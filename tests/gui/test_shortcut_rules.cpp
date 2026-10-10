@@ -10,6 +10,7 @@
 
 #include <QKeyEvent>
 #include <QKeySequence>
+#include <QRegularExpression>
 #include <QShortcut>
 
 #include <algorithm>
@@ -50,6 +51,7 @@ TEST_CASE("Shortcut rules: keys that type text are refused", "[gui][shortcuts][r
         CHECK(resultOf(platform, keys(NONE, Qt::Key_F7)) == Result::Allowed);
         const KeyCheck typing = ShortcutRules(platform).check(keys(NONE, Qt::Key_K), "file.close");
         CHECK(typing.reason.contains(QStringLiteral("types text")));
+        CHECK(typing.brief == QStringLiteral("types text"));
     }
 
     // On macOS Option with a key types a character as well: Cmd or Control makes a shortcut
@@ -68,6 +70,7 @@ TEST_CASE("Shortcut rules: Ctrl+Alt is AltGr on Windows and the desktop's on Lin
         ShortcutRules(ShortcutPlatform::Windows).check(keys(CTRL | ALT, Qt::Key_K), "file.close");
     CHECK(windows.result == Result::Refused);
     CHECK(windows.reason.contains(QStringLiteral("AltGr")));
+    CHECK(windows.brief == QStringLiteral("Ctrl+Alt is AltGr"));
     CHECK(resultOf(ShortcutPlatform::Windows, keys(CTRL | ALT | SHIFT, Qt::Key_F5)) ==
           Result::Refused);
 
@@ -75,6 +78,7 @@ TEST_CASE("Shortcut rules: Ctrl+Alt is AltGr on Windows and the desktop's on Lin
         ShortcutRules(ShortcutPlatform::Linux).check(keys(CTRL | ALT, Qt::Key_T), "file.close");
     CHECK(linux.result == Result::Refused);
     CHECK(linux.reason.contains(QStringLiteral("Ctrl+Alt")));
+    CHECK(linux.brief == QStringLiteral("Ctrl+Alt belongs to the desktop"));
 }
 
 TEST_CASE("Shortcut rules: the keys of the system", "[gui][shortcuts][rules]") {
@@ -90,6 +94,22 @@ TEST_CASE("Shortcut rules: the keys of the system", "[gui][shortcuts][rules]") {
     // Alt+F4 closes the window: only Exit may have it
     CHECK(resultOf(windows, keys(ALT, Qt::Key_F4), "file.close") == Result::Refused);
     CHECK(resultOf(windows, keys(ALT, Qt::Key_F4), "file.exit") == Result::Allowed);
+
+    // Each says what the keys do, and in a few words why for a summary
+    const ShortcutRules windowsRules(windows);
+    const KeyCheck switching = windowsRules.check(keys(ALT, Qt::Key_Tab), "file.close");
+    CHECK(switching.reason ==
+          QStringLiteral("%1 switches the windows of the system: it does not reach the program.")
+              .arg(ShortcutRules::keysText(keys(ALT, Qt::Key_Tab))));
+    CHECK(switching.brief == QStringLiteral("a key of the system"));
+    CHECK(windowsRules.check(keys(META, Qt::Key_E), "file.close").brief ==
+          QStringLiteral("the Windows key"));
+    // Tab works as in every program: a fixed key
+    const KeyCheck field = windowsRules.check(keys(NONE, Qt::Key_Tab), "file.close");
+    CHECK(field.reason ==
+          QStringLiteral("%1 goes to the next field. It is a fixed key: choose another shortcut.")
+              .arg(ShortcutRules::keysText(keys(NONE, Qt::Key_Tab))));
+    CHECK(field.brief == QStringLiteral("a fixed key"));
 
     const ShortcutPlatform linux = ShortcutPlatform::Linux;
     CHECK(resultOf(linux, keys(ALT, Qt::Key_Tab)) == Result::Refused);
@@ -114,24 +134,34 @@ TEST_CASE("Shortcut rules: the keys of the system", "[gui][shortcuts][rules]") {
     CHECK(resultOf(mac, keys(ALT, Qt::Key_F4)) == Result::Allowed);
 }
 
-TEST_CASE("Shortcut rules: the fixed keys say where they work", "[gui][shortcuts][rules]") {
+TEST_CASE("Shortcut rules: the fixed keys say what they do", "[gui][shortcuts][rules]") {
     const ShortcutRules windows(ShortcutPlatform::Windows);
+    const QString fixed = QStringLiteral(" It is a fixed key: choose another shortcut.");
 
     const KeyCheck word = windows.check(keys(CTRL, Qt::Key_Backspace), "file.close");
     CHECK(word.result == Result::Refused);
-    CHECK(word.reason.contains(QStringLiteral("fixed key")));
-    CHECK(word.reason.contains(
-        QStringLiteral("In the text › Delete the word before / after the cursor")));
+    CHECK(word.reason == QStringLiteral("In the text %1 deletes the word before the cursor.")
+                                 .arg(ShortcutRules::keysText(keys(CTRL, Qt::Key_Backspace))) +
+                             fixed);
+    CHECK(word.brief == QStringLiteral("a fixed key"));
+    CHECK(windows.check(keys(SHIFT, Qt::Key_Right), "file.close")
+              .reason.contains(QStringLiteral("extends the selection by a character")));
+    CHECK(windows.check(keys(CTRL, Qt::Key_Tab), "file.close")
+              .reason.startsWith(ShortcutRules::keysText(keys(CTRL, Qt::Key_Tab)) +
+                                 QStringLiteral(" goes to the next tab.")));
 
-    // A key of several places names each of them
+    // Esc closes what is open, wherever it is
     const KeyCheck escape = windows.check(keys(NONE, Qt::Key_Escape), "file.close");
     CHECK(escape.result == Result::Refused);
-    CHECK(escape.reason.contains(QStringLiteral("Find bar › Close the bar")));
-    CHECK(escape.reason.contains(QStringLiteral("Annotation frame › Drop the text")));
-    CHECK(escape.reason.contains(QStringLiteral("Distraction-Free › Leave it")));
+    CHECK(escape.reason ==
+          QStringLiteral("%1 closes the windows, the find bar and the annotation frame.")
+                  .arg(ShortcutRules::keysText(keys(NONE, Qt::Key_Escape))) +
+              fixed);
 
-    CHECK(windows.check(keys(ALT, Qt::Key_C), "file.close")
-              .reason.contains(QStringLiteral("Find bar")));
+    CHECK(windows.check(keys(ALT, Qt::Key_C), "file.close").reason ==
+          QStringLiteral("In the find bar %1 turns on “Match case”.")
+                  .arg(ShortcutRules::keysText(keys(ALT, Qt::Key_C))) +
+              fixed);
     CHECK(windows.check(keys(CTRL, Qt::Key_Return), "file.close").result == Result::Refused);
     CHECK(windows.check(keys(CTRL, Qt::Key_Enter), "file.close").result == Result::Refused);
     CHECK(windows.check(keys(CTRL, Qt::Key_Tab), "file.close").result == Result::Refused);
@@ -161,11 +191,16 @@ TEST_CASE("Shortcut rules: the fixed keys say where they work", "[gui][shortcuts
     CHECK(mac.check(keys(CTRL | ALT, Qt::Key_Down), "edit.nextTodo").result == Result::Allowed);
 }
 
-TEST_CASE("Shortcut rules: keys some desktops take only bring a warning", "[gui][shortcuts][rules]") {
+TEST_CASE("Shortcut rules: keys some desktops take only bring a warning",
+          "[gui][shortcuts][rules]") {
     const ShortcutRules linux(ShortcutPlatform::Linux);
     const KeyCheck desktops = linux.check(keys(CTRL, Qt::Key_F2), "file.close");
     CHECK(desktops.result == Result::Warning);
     CHECK(desktops.reason.contains(QStringLiteral("KDE and Xfce")));
+    // KDE switches its desktops with Ctrl+F1–F4 only, Xfce with Ctrl+F1–F12
+    const KeyCheck xfce = linux.check(keys(CTRL, Qt::Key_F7), "file.close");
+    CHECK(xfce.result == Result::Warning);
+    CHECK(xfce.reason.startsWith(QStringLiteral("In Xfce ")));
     CHECK(linux.check(keys(ALT, Qt::Key_F2), "file.close").result == Result::Warning);
     CHECK(linux.check(keys(ALT, Qt::Key_F11), "file.close").result == Result::Allowed);
     CHECK(linux.check(keys(CTRL | SHIFT, Qt::Key_F2), "file.close").result == Result::Allowed);
@@ -198,8 +233,11 @@ TEST_CASE("Shortcut rules: the list shows every key of the text", "[gui][shortcu
         const std::vector<FixedKeyGroup> groups = ShortcutRules(platform).fixedGroups();
         REQUIRE_FALSE(groups.empty());
         const FixedKeyGroup& text = groups.front();
-        CHECK(text.title == QStringLiteral("In the text"));
+        CHECK(text.title == QStringLiteral("Fixed: in the text"));
         CHECK(groups.back().system);
+        for (const FixedKeyGroup& group : groups) {
+            CHECK(group.title.startsWith(QStringLiteral("Fixed: ")));
+        }
 
         for (const kalahari::editor::TextKey& textKey : kalahari::editor::textKeys(mac)) {
             bool shown = false;
@@ -226,7 +264,8 @@ TEST_CASE("Shortcut rules: the keys of the find bar are fixed", "[gui][shortcuts
     }
 }
 
-TEST_CASE("Shortcut rules: a key press is written as the shortcuts are", "[gui][shortcuts][rules]") {
+TEST_CASE("Shortcut rules: a key press is written as the shortcuts are",
+          "[gui][shortcuts][rules]") {
     const auto pressed = [](int key, Qt::KeyboardModifiers modifiers) {
         const QKeyEvent event(QEvent::KeyPress, key, modifiers);
         return ShortcutRules::keysOf(&event);
@@ -289,22 +328,49 @@ TEST_CASE("Shortcut rules: rows of every key with some modifiers", "[gui][shortc
                                   ShortcutRules::keysText(keys(CTRL, Qt::Key_Enter)));
 }
 
-TEST_CASE("Shortcut rules: the keys that select are written in words", "[gui][shortcuts][rules]") {
+TEST_CASE("Shortcut rules: two keys that select stand for all", "[gui][shortcuts][rules]") {
     for (const ShortcutPlatform platform :
          {ShortcutPlatform::Windows, ShortcutPlatform::Linux, ShortcutPlatform::MacOS}) {
         const bool mac = platform == ShortcutPlatform::MacOS;
         const FixedKeyGroup text = ShortcutRules(platform).fixedGroups().front();
-        const auto selecting = std::find_if(text.rows.begin(), text.rows.end(),
-                                            [](const FixedKeys& row) {
-                                                return row.label == QStringLiteral("Selecting");
-                                            });
+        const auto selecting =
+            std::find_if(text.rows.begin(), text.rows.end(), [](const FixedKeys& row) {
+                return row.label == QStringLiteral("Selecting: Shift with the keys above");
+            });
         REQUIRE(selecting != text.rows.end());
         // A list of every key with Shift would be too long to read
-        CHECK(selecting->keysText() == QStringLiteral("Shift with the keys that move the cursor"));
+        const QKeyCombination byWord = keys((mac ? ALT : CTRL) | SHIFT, Qt::Key_Right);
+        CHECK(selecting->keysText() == ShortcutRules::keysText(keys(SHIFT, Qt::Key_Left)) +
+                                           QStringLiteral(", ") + ShortcutRules::keysText(byWord));
         for (const kalahari::editor::TextKey& textKey : kalahari::editor::textKeys(mac)) {
             if (textKey.extendSelection) {
                 INFO(QKeySequence(textKey.keys).toString(QKeySequence::PortableText).toStdString());
                 CHECK(selecting->covers(textKey.keys));
+                CHECK(selecting->reasonFor(textKey.keys)
+                          .contains(QStringLiteral("extends the selection")));
+            }
+        }
+    }
+}
+
+TEST_CASE("Shortcut rules: every fixed key says what it does", "[gui][shortcuts][rules]") {
+    const QRegularExpression placeholder(QStringLiteral("%[0-9]"));
+    for (const ShortcutPlatform platform :
+         {ShortcutPlatform::Windows, ShortcutPlatform::Linux, ShortcutPlatform::MacOS}) {
+        for (const FixedKeyGroup& group : ShortcutRules(platform).fixedGroups()) {
+            if (group.local) {
+                continue;  // a command may have them: nothing to refuse
+            }
+            for (const FixedKeys& row : group.rows) {
+                CHECK((row.keyReasons.isEmpty() || row.keyReasons.size() == row.keys.size()));
+                for (const QKeyCombination fixedKeys : row.keys) {
+                    const QString reason = row.reasonFor(fixedKeys);
+                    INFO(group.title.toStdString() << " › " << row.label.toStdString() << ": "
+                                                   << reason.toStdString());
+                    CHECK(reason.contains(ShortcutRules::keysText(fixedKeys)));
+                    // Every place of the text is filled ("%" itself is a key: Cmd+%)
+                    CHECK_FALSE(reason.contains(placeholder));
+                }
             }
         }
     }

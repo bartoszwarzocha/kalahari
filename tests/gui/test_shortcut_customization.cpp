@@ -229,7 +229,8 @@ TEST_CASE("Custom shortcuts: Help > Keyboard Shortcuts opens them", "[gui][short
     CHECK(opened);
 }
 
-TEST_CASE("Custom shortcuts: the texts that name the keys follow them", "[gui][shortcuts][custom]") {
+TEST_CASE("Custom shortcuts: the texts that name the keys follow them",
+          "[gui][shortcuts][custom]") {
     registerAllCommands(CommandCallbacks{});
     auto& registry = CommandRegistry::getInstance();
     const auto textsOf = [](const QWidget& widget) {

@@ -16,9 +16,12 @@
 #include <QScrollArea>
 #include <QSplitter>
 #include <QStackedWidget>
+#include <QStyle>
 #include <QTimer>
 #include <QTreeWidget>
 #include <QVBoxLayout>
+
+#include <algorithm>
 
 namespace kalahari {
 namespace gui {
@@ -37,9 +40,10 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode)
     setCompactHeading(true);
     setApplyButtonVisible(true);
     setModal(true);
-    // Tall enough for the longest editor page where the screen allows; a page that does
+    // Tall enough for the longest editor page where the screen allows, wide enough for the
+    // search and the keys of the Keyboard Shortcuts page in one row each; a page that does
     // not fit scrolls
-    QSize size(800, 700);
+    QSize size(840, 700);
     if (const QScreen* screen = this->screen()) {
         size = size.boundedTo(screen->availableGeometry().size() * 0.9);
     }
@@ -59,6 +63,14 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode)
     contentLayout()->addWidget(splitter, 1);
 
     createNavigationTree();
+
+    // The groups as wide as the longest of them, with room for a scroll bar on a low screen:
+    // the pages get the rest
+    m_navTree->resizeColumnToContents(0);
+    const int navWidth =
+        m_navTree->columnWidth(0) + 2 * m_navTree->frameWidth() +
+        m_navTree->style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, m_navTree);
+    splitter->setSizes({navWidth, std::max(width() - navWidth, 0)});
 
     connect(m_navTree, &QTreeWidget::currentItemChanged, this,
             [this](QTreeWidgetItem* current) { showPage(current); });

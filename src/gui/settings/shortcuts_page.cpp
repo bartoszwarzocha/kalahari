@@ -7,6 +7,7 @@
 
 #include "kalahari/gui/settings/shortcuts_page.h"
 #include "kalahari/gui/menu_builder.h"
+#include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/shortcut_settings.h"
 #include "kalahari/gui/widgets/shortcut_recorder.h"
 #include "kalahari/core/art_provider.h"
@@ -15,6 +16,7 @@
 #include "kalahari/core/theme_manager.h"
 
 #include <QAccessible>
+#include <QApplication>
 #include <QCheckBox>
 #include <QDir>
 #include <QFile>
@@ -28,6 +30,7 @@
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLabel>
+#include <QPainter>
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QSaveFile>
@@ -36,6 +39,7 @@
 #include <QSignalBlocker>
 #include <QStyle>
 #include <QStyleOption>
+#include <QStyledItemDelegate>
 #include <QTextDocumentFragment>
 #include <QTimer>
 #include <QTreeWidget>
@@ -54,20 +58,26 @@ namespace {
 /// What an item of the list is
 enum class ItemKind { Menu, Command, FixedGroup, FixedRow, NoMatch };
 
-constexpr int KIND_ROLE = Qt::UserRole;       ///< ItemKind
-constexpr int INDEX_ROLE = Qt::UserRole + 1;  ///< The command in m_entries, or the fixed group
-constexpr int ROW_ROLE = Qt::UserRole + 2;    ///< The row of the fixed group
+constexpr int KIND_ROLE = Qt::UserRole;            ///< ItemKind
+constexpr int INDEX_ROLE = Qt::UserRole + 1;       ///< The command in m_entries, or the group
+constexpr int ROW_ROLE = Qt::UserRole + 2;         ///< The row of the fixed group
+constexpr int NAME_ROLE = Qt::UserRole + 3;        ///< The name the list paints before a note
+constexpr int NOTE_ROLE = Qt::UserRole + 4;        ///< A muted note after the name
+constexpr int NOTE_COLOR_ROLE = Qt::UserRole + 5;  ///< The color of the note
+constexpr int LOCK_ROLE = Qt::UserRole + 6;        ///< A lock after the name: fixed keys (QIcon)
 
 constexpr int LIST_MIN_ROWS = 3;          ///< On a small screen the list shrinks to this many rows
 constexpr int KEYS_COLUMN_PADDING = 24;   ///< Room around the keys in their column
+constexpr double KEYS_COLUMN_SHARE = 0.38;  ///< The keys' column has at least this much of the list
 constexpr int FIELD_TEXT_ROOM = 6;        ///< Room a line edit keeps beside its text
-constexpr int MESSAGE_ICON_SIZE = 20;
+constexpr int LOCK_GAP = 4;               ///< Between a name and its lock
+constexpr double LOCK_OPACITY = 0.7;      ///< The lock is quieter than the name
 constexpr int SKIPPED_SHOWN = 8;          ///< The skipped keys of an import named one by one
 constexpr qint64 MAX_FILE_SIZE = 1024 * 1024;  ///< A file of shortcuts is far smaller
 constexpr float MESSAGE_TINT = 0.12F;     ///< How much of its color the message's background has
 
 /// The mark of a changed shortcut, before its keys
-const QString CHANGED_MARK = QStringLiteral("● ");
+const QString CHANGED_MARK = QStringLiteral("●");
 /// Between a menu and its command, as in "File › Save"
 const QString PATH_SEPARATOR = QStringLiteral(" › ");
 
@@ -75,12 +85,14 @@ ItemKind kindOf(const QTreeWidgetItem* item) {
     return static_cast<ItemKind>(item->data(0, KIND_ROLE).toInt());
 }
 
+// The key codes as numbers: a key press can have a value Qt::Key does not name
 QKeyCombination combinationOf(const KeyboardShortcut& keys) {
-    return QKeyCombination(keys.modifiers, static_cast<Qt::Key>(keys.keyCode));
+    return QKeyCombination::fromCombined(keys.keyCode | static_cast<int>(keys.modifiers.toInt()));
 }
 
 KeyboardShortcut shortcutFrom(QKeyCombination keys) {
-    return KeyboardShortcut(static_cast<int>(keys.key()), keys.keyboardModifiers());
+    return KeyboardShortcut(keys.toCombined() & ~int(Qt::KeyboardModifierMask),
+                            keys.keyboardModifiers());
 }
 
 /// Keys as the system writes them; empty for none
@@ -121,6 +133,86 @@ public:
         return {QTreeWidget::sizeHint().width(), minimumHeight()};
     }
 };
+
+/// Paints a command's name with a muted note after it ("not available yet"), and a group of
+/// fixed keys with a lock after its name; every other item as usual
+class NameDelegate : public QStyledItemDelegate {
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    void paint(QPainter* painter, const QStyleOptionViewItem& option,
+               const QModelIndex& index) const override {
+        const QString note = index.data(NOTE_ROLE).toString();
+        const QIcon lock = index.data(LOCK_ROLE).value<QIcon>();
+        if (index.column() != 0 || (note.isEmpty() && lock.isNull())) {
+            QStyledItemDelegate::paint(painter, option, index);
+            return;
+        }
+        QStyleOptionViewItem item = option;
+        initStyleOption(&item, index);
+        item.text.clear();
+        const QWidget* widget = item.widget;
+        const QStyle* style = widget != nullptr ? widget->style() : QApplication::style();
+        // The row, its selection and its focus, without the text
+        style->drawControl(QStyle::CE_ItemViewItem, &item, painter, widget);
+
+        // The text where the style puts it
+        const int margin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, nullptr, widget) + 1;
+        QRect room = style->subElementRect(QStyle::SE_ItemViewItemText, &item, widget)
+                         .adjusted(margin, 0, -margin, 0);
+        const QPalette::ColorGroup colors = !item.state.testFlag(QStyle::State_Enabled)
+                                                ? QPalette::Disabled
+                                            : item.state.testFlag(QStyle::State_Active)
+                                                ? QPalette::Normal
+                                                : QPalette::Inactive;
+        const bool selected = item.state.testFlag(QStyle::State_Selected);
+        const QColor text =
+            item.palette.color(colors, selected ? QPalette::HighlightedText : QPalette::Text);
+        const QFontMetrics metrics(item.font);
+        const int lockSize = metrics.ascent();
+        const int lockRoom = lock.isNull() ? 0 : LOCK_GAP + lockSize;
+
+        painter->save();
+        painter->setClipRect(room);
+        painter->setFont(item.font);
+        painter->setPen(text);
+        const QString name = metrics.elidedText(index.data(NAME_ROLE).toString(), Qt::ElideRight,
+                                                std::max(room.width() - lockRoom, 0));
+        painter->drawText(room, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine, name);
+        room.setLeft(room.left() + metrics.horizontalAdvance(name));
+
+        if (!lock.isNull()) {
+            const QRect lockRect(room.left() + LOCK_GAP, room.center().y() - lockSize / 2 + 1,
+                                 lockSize, lockSize);
+            painter->setOpacity(LOCK_OPACITY);
+            lock.paint(painter, lockRect, Qt::AlignCenter,
+                       selected ? QIcon::Selected : QIcon::Normal);
+            painter->setOpacity(1.0);
+        }
+        if (!note.isEmpty() && room.width() > 0) {
+            QFont noteFont = item.font;
+            noteFont.setBold(false);
+            const QColor noteColor = index.data(NOTE_COLOR_ROLE).value<QColor>();
+            painter->setFont(noteFont);
+            painter->setPen(selected || !noteColor.isValid() ? text : noteColor);
+            const QString shown = QFontMetrics(noteFont).elidedText(
+                QStringLiteral(" (%1)").arg(note), Qt::ElideRight, room.width());
+            painter->drawText(room, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine, shown);
+        }
+        painter->restore();
+    }
+};
+
+/// The width a line edit needs to show a text of a width whole
+int lineEditWidth(const QLineEdit* field, int textWidth) {
+    QStyleOptionFrame option;
+    option.initFrom(field);
+    option.lineWidth = field->style()->pixelMetric(QStyle::PM_DefaultFrameWidth, &option, field);
+    const QMargins textMargins = field->textMargins();
+    const QSize text(textWidth + FIELD_TEXT_ROOM + textMargins.left() + textMargins.right(),
+                     field->sizeHint().height());
+    return field->style()->sizeFromContents(QStyle::CT_LineEdit, &option, text, field).width();
+}
 
 /// Whether the item or its group is hidden by the search
 bool isHiddenInList(const QTreeWidgetItem* item) {
@@ -171,12 +263,27 @@ std::vector<std::string> pathParts(const std::string& menuPath) {
 ShortcutsPage::ShortcutsPage(QWidget* parent)
     : SettingsPage(parent)
     , m_fixedGroups(m_rules.fixedGroups())
+    , m_defaults(CommandRegistry::getInstance().defaultShortcuts())
 {
     createSearch();
     createList();
     createDetail();
     createButtons();
     buildList();
+
+    // The keys go through the page as they are seen: the search, the list, the selected
+    // command and its message, the buttons under it
+    setTabOrder(m_search, m_byKeysButton);
+    setTabOrder(m_byKeysButton, m_onlyChanged);
+    setTabOrder(m_onlyChanged, m_list);
+    setTabOrder(m_list, m_changeButton);
+    setTabOrder(m_changeButton, m_removeButton);
+    setTabOrder(m_removeButton, m_restoreButton);
+    setTabOrder(m_restoreButton, m_messageAcceptButton);
+    setTabOrder(m_messageAcceptButton, m_messageCancelButton);
+    setTabOrder(m_messageCancelButton, m_restoreAllButton);
+    setTabOrder(m_restoreAllButton, m_importButton);
+    setTabOrder(m_importButton, m_exportButton);
 
     // Apply and OK write only the keys the user changed
     auto& settings = core::SettingsManager::getInstance();
@@ -197,21 +304,29 @@ ShortcutsPage::ShortcutsPage(QWidget* parent)
 
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &ShortcutsPage::updateIcons);
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
+            [this]() {
+                updateColors();
+                refresh();
+            });
     updateIcons();
+    updateColors();
     refresh();
 }
 
 void ShortcutsPage::createSearch() {
-    auto* row = new QHBoxLayout();
-    auto* label = new QLabel(tr("&Search:"));
+    // The options beside the field, or under it on a narrow page (arrangeSearchRow)
+    m_searchRow = new QGridLayout();
+    m_searchRow->setColumnStretch(1, 1);
+    m_searchLabel = new QLabel(tr("&Search:"));
     m_search = new ShortcutRecorder();
     m_search->setObjectName(QStringLiteral("shortcutsSearch"));
     m_search->setPlaceholderText(textSearchPrompt());
     m_search->setClearButtonEnabled(true);
     m_search->installEventFilter(this);
-    label->setBuddy(m_search);
+    m_searchLabel->setBuddy(m_search);
 
-    m_byKeysButton = new QPushButton(tr("By &Keys"));
+    m_byKeysButton = new QPushButton(tr("Search by &Keys"));
     m_byKeysButton->setObjectName(QStringLiteral("shortcutsByKeys"));
     m_byKeysButton->setCheckable(true);
     m_byKeysButton->setToolTip(tr("Press a shortcut to see what it does"));
@@ -220,11 +335,15 @@ void ShortcutsPage::createSearch() {
     m_onlyChanged->setObjectName(QStringLiteral("shortcutsOnlyChanged"));
     m_onlyChanged->setToolTip(tr("Show only the shortcuts you changed"));
 
-    row->addWidget(label);
-    row->addWidget(m_search, 1);
-    row->addWidget(m_byKeysButton);
-    row->addWidget(m_onlyChanged);
-    pageLayout()->addLayout(row);
+    m_searchOptions = new QWidget();
+    auto* options = new QHBoxLayout(m_searchOptions);
+    options->setContentsMargins(0, 0, 0, 0);
+    options->addWidget(m_byKeysButton);
+    options->addWidget(m_onlyChanged);
+    m_searchRow->addWidget(m_searchLabel, 0, 0);
+    m_searchRow->addWidget(m_search, 0, 1);
+    m_searchRow->addWidget(m_searchOptions, 0, 2);
+    pageLayout()->addLayout(m_searchRow);
 
     connect(m_search, &QLineEdit::textChanged, this, [this]() {
         if (!m_keySearch) {
@@ -257,6 +376,7 @@ void ShortcutsPage::createList() {
     m_list->setColumnCount(2);
     m_list->setHeaderLabels({tr("Command"), tr("Shortcut")});
     m_list->setAccessibleName(tr("Commands and their shortcuts"));
+    m_list->setItemDelegateForColumn(0, new NameDelegate(m_list));
     m_list->setUniformRowHeights(true);
     m_list->setAllColumnsShowFocus(true);
     m_list->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -271,6 +391,8 @@ void ShortcutsPage::createList() {
     m_list->setMinimumHeight(m_list->header()->sizeHint().height() + LIST_MIN_ROWS * rowHeight +
                              2 * m_list->frameWidth());
     m_list->installEventFilter(this);
+    // A new width gives the keys' column its share again (fitKeysColumn)
+    m_list->viewport()->installEventFilter(this);
     pageLayout()->addWidget(m_list, 1);
 
     connect(m_list, &QTreeWidget::currentItemChanged, this, [this]() {
@@ -279,7 +401,7 @@ void ShortcutsPage::createList() {
     });
     connect(m_list, &QTreeWidget::itemDoubleClicked, this, [this](QTreeWidgetItem* item) {
         if (entryOf(item) != nullptr) {
-            startChange();
+            startChange(m_list);
         } else if (item->childCount() > 0) {
             item->setExpanded(!item->isExpanded());
         }
@@ -337,16 +459,13 @@ void ShortcutsPage::createDetail() {
     // The message about the keys pressed, and the buttons that go on when it asks
     m_message = new QFrame();
     m_message->setObjectName(QStringLiteral("shortcutMessage"));
-    auto* messageLayout = new QHBoxLayout(m_message);
+    auto* messageLayout = new QVBoxLayout(m_message);
     messageLayout->setContentsMargins(8, 6, 8, 6);
-    m_messageIcon = new QLabel();
-    messageLayout->addWidget(m_messageIcon, 0, Qt::AlignTop);
-    auto* messageColumn = new QVBoxLayout();
     m_messageText = new QLabel();
     m_messageText->setObjectName(QStringLiteral("shortcutMessageText"));
     m_messageText->setTextFormat(Qt::RichText);
     m_messageText->setWordWrap(true);
-    messageColumn->addWidget(m_messageText);
+    messageLayout->addWidget(m_messageText);
     auto* messageButtons = new QHBoxLayout();
     m_messageAcceptButton = new QPushButton();
     m_messageAcceptButton->setObjectName(QStringLiteral("shortcutMessageAccept"));
@@ -358,8 +477,7 @@ void ShortcutsPage::createDetail() {
     messageButtons->addWidget(m_messageAcceptButton);
     messageButtons->addWidget(m_messageCancelButton);
     messageButtons->addStretch();
-    messageColumn->addLayout(messageButtons);
-    messageLayout->addLayout(messageColumn, 1);
+    messageLayout->addLayout(messageButtons);
     m_message->hide();
     layout->addWidget(m_message);
 
@@ -371,11 +489,13 @@ void ShortcutsPage::createDetail() {
     connect(m_keysField, &ShortcutRecorder::recordingStopped, this, [this](bool escape) {
         showDetail();
         if (escape) {
-            m_list->setFocus(Qt::OtherFocusReason);
+            returnFocus();
         }
     });
-    connect(m_changeButton, &QPushButton::clicked, this, &ShortcutsPage::startChange);
-    connect(m_removeButton, &QPushButton::clicked, this, &ShortcutsPage::removeKeys);
+    connect(m_changeButton, &QPushButton::clicked, this,
+            [this]() { startChange(m_changeButton); });
+    connect(m_removeButton, &QPushButton::clicked, this,
+            [this]() { removeKeys(m_changeButton); });
     connect(m_restoreButton, &QPushButton::clicked, this, &ShortcutsPage::restoreDefault);
     connect(m_messageAcceptButton, &QPushButton::clicked, this, [this]() {
         // What the button does may show the next message
@@ -387,7 +507,7 @@ void ShortcutsPage::createDetail() {
     });
     connect(m_messageCancelButton, &QPushButton::clicked, this, [this]() {
         hideMessage();
-        m_list->setFocus(Qt::OtherFocusReason);
+        returnFocus();
     });
 }
 
@@ -412,9 +532,9 @@ void ShortcutsPage::createButtons() {
 }
 
 void ShortcutsPage::buildList() {
-    auto& registry = CommandRegistry::getInstance();
-    m_defaults = registry.defaultShortcuts();
-    const std::vector<Command> commands = registry.getAllCommands();
+    const std::vector<Command> commands = CommandRegistry::getInstance().getAllCommands();
+    QFont groupFont = m_list->font();
+    groupFont.setBold(true);
 
     // The commands the menus show and the program runs (or keeps keys for, as F1 for the
     // help to come), by their menu
@@ -456,8 +576,6 @@ void ShortcutsPage::buildList() {
         group->setText(0, menuTitle);
         group->setData(0, KIND_ROLE, static_cast<int>(ItemKind::Menu));
         group->setFirstColumnSpanned(true);
-        QFont groupFont = m_list->font();
-        groupFont.setBold(true);
         group->setFont(0, groupFont);
 
         // Depth first: the items of a submenu where the submenu is
@@ -475,9 +593,17 @@ void ShortcutsPage::buildList() {
                     entry.label = prefix + QString::fromStdString(child.command->label);
                     entry.available = child.command->canExecute();
                     entry.item = new QTreeWidgetItem(group);
-                    entry.item->setText(0, entry.available
-                                               ? entry.label
-                                               : tr("%1 (not available yet)").arg(entry.label));
+                    entry.item->setText(0, entry.label);
+                    if (!entry.available) {
+                        // Muted after the name (NameDelegate); a screen reader reads both
+                        const QString note =
+                            child.command->unavailableNote.empty()
+                                ? tr("in preparation")
+                                : QString::fromStdString(child.command->unavailableNote);
+                        entry.item->setText(0, QStringLiteral("%1 (%2)").arg(entry.label, note));
+                        entry.item->setData(0, NAME_ROLE, entry.label);
+                        entry.item->setData(0, NOTE_ROLE, note);
+                    }
                     entry.item->setData(0, KIND_ROLE, static_cast<int>(ItemKind::Command));
                     entry.item->setData(0, INDEX_ROLE, static_cast<int>(m_entries.size()));
                     m_entries.push_back(std::move(entry));
@@ -486,18 +612,17 @@ void ShortcutsPage::buildList() {
         addItems(menu, QString());
     }
 
-    // The keys no command can have, last: so it is seen what is taken
-    const QColor muted =
-        core::ThemeManager::getInstance().getCurrentTheme().palette.placeholderText;
+    // The keys no command can have, last and muted (updateColors), the groups with a lock
+    // (updateIcons): so it is seen what is taken
     for (size_t groupIndex = 0; groupIndex < m_fixedGroups.size(); ++groupIndex) {
         const FixedKeyGroup& fixedGroup = m_fixedGroups[groupIndex];
         auto* group = new QTreeWidgetItem(m_list);
-        group->setText(0, fixedGroup.system ? tr("%1 – keys of the system").arg(fixedGroup.title)
-                                            : tr("%1 – fixed keys").arg(fixedGroup.title));
+        group->setText(0, fixedGroup.title);
+        group->setData(0, NAME_ROLE, fixedGroup.title);
         group->setData(0, KIND_ROLE, static_cast<int>(ItemKind::FixedGroup));
         group->setData(0, INDEX_ROLE, static_cast<int>(groupIndex));
         group->setFirstColumnSpanned(true);
-        group->setForeground(0, muted);
+        group->setFont(0, groupFont);
         group->setToolTip(0, explanationOf(fixedGroup, nullptr));
         for (size_t rowIndex = 0; rowIndex < fixedGroup.rows.size(); ++rowIndex) {
             const FixedKeys& fixed = fixedGroup.rows[rowIndex];
@@ -508,8 +633,6 @@ void ShortcutsPage::buildList() {
             item->setData(0, KIND_ROLE, static_cast<int>(ItemKind::FixedRow));
             item->setData(0, INDEX_ROLE, static_cast<int>(groupIndex));
             item->setData(0, ROW_ROLE, static_cast<int>(rowIndex));
-            item->setForeground(0, muted);
-            item->setForeground(1, muted);
         }
     }
 
@@ -518,7 +641,6 @@ void ShortcutsPage::buildList() {
     m_noMatchItem->setData(0, KIND_ROLE, static_cast<int>(ItemKind::NoMatch));
     m_noMatchItem->setFlags(Qt::ItemIsEnabled);
     m_noMatchItem->setFirstColumnSpanned(true);
-    m_noMatchItem->setForeground(0, muted);
     m_noMatchItem->setHidden(true);
 
     m_list->expandAll();
@@ -555,7 +677,7 @@ void ShortcutsPage::assignKeys(QKeyCombination pressed) {
 
     if (shortcutOf(id) == keys) {
         refresh();
-        m_list->setFocus(Qt::OtherFocusReason);
+        returnFocus();
         return;
     }
 
@@ -563,7 +685,7 @@ void ShortcutsPage::assignKeys(QKeyCombination pressed) {
     if (check.result == KeyCheck::Result::Refused) {
         refresh();
         showMessage(MessageKind::Error, check.reason.toHtmlEscaped());
-        m_list->setFocus(Qt::OtherFocusReason);
+        returnFocus();
         return;
     }
     // The program's own keys of the command come back as Restore Default brings them
@@ -575,14 +697,14 @@ void ShortcutsPage::assignKeys(QKeyCombination pressed) {
     if (owner.empty() && check.result == KeyCheck::Result::Allowed) {
         setKeys(id, keys);
         refresh();
-        m_list->setFocus(Qt::OtherFocusReason);
+        returnFocus();
         return;
     }
 
     // Keys another command has, or keys some desktops take: the user decides
     QStringList lines;
     if (!owner.empty()) {
-        lines.append(tr("%1 is the shortcut of <b>%2</b>: if you assign it here, that command "
+        lines.append(tr("%1 already belongs to <b>%2</b>: if you assign it here, that command "
                         "will be left without a shortcut.")
                          .arg(nativeText(keys).toHtmlEscaped(), titleOf(owner).toHtmlEscaped()));
     }
@@ -599,12 +721,12 @@ void ShortcutsPage::assignKeys(QKeyCombination pressed) {
                     refresh();
                     if (!owner.empty()) {
                         showMessage(MessageKind::Information,
-                                    tr("<b>%1</b> is now without a shortcut.")
+                                    tr("%1 now has no shortcut.")
                                         .arg(titleOf(owner).toHtmlEscaped()));
                     } else {
                         hideMessage();
                     }
-                    m_list->setFocus(Qt::OtherFocusReason);
+                    returnFocus();
                 });
 }
 
@@ -617,9 +739,11 @@ KeyboardShortcut ShortcutsPage::shortcutOf(const std::string& commandId) const {
 bool ShortcutsPage::exportShortcuts(const QString& path) {
     hideMessage();
     const QString name = QDir::toNativeSeparators(path);
-    const QByteArray data = QByteArray::fromStdString(shortcutsFile(m_custom).dump(2) + "\n");
+    const QByteArray contents =
+        QByteArray::fromStdString(shortcutsFile(m_custom).dump(2) + "\n");
     QSaveFile file(path);
-    if (!file.open(QIODevice::WriteOnly) || file.write(data) != data.size() || !file.commit()) {
+    if (!file.open(QIODevice::WriteOnly) || file.write(contents) != contents.size() ||
+        !file.commit()) {
         core::Logger::getInstance().warn("Keyboard shortcuts: could not export to {}: {}",
                                          path.toStdString(), file.errorString().toStdString());
         showMessage(MessageKind::Error, tr("The shortcuts could not be saved to %1: %2")
@@ -631,7 +755,7 @@ bool ShortcutsPage::exportShortcuts(const QString& path) {
     core::Logger::getInstance().info("Keyboard shortcuts: {} exported to {}", count,
                                      path.toStdString());
     showMessage(MessageKind::Information,
-                tr("%n changed shortcut(s) saved to %1.", nullptr, count)
+                tr("Saved %n changed shortcut(s) to the file %1.", nullptr, count)
                     .arg(name.toHtmlEscaped()));
     return true;
 }
@@ -653,9 +777,9 @@ bool ShortcutsPage::importShortcuts(const QString& path) {
         showMessage(MessageKind::Error, notShortcuts);
         return false;
     }
-    const QByteArray data = file.readAll();
+    const QByteArray contents = file.readAll();
     const nlohmann::json json =
-        nlohmann::json::parse(data.constBegin(), data.constEnd(), nullptr, false);
+        nlohmann::json::parse(contents.constBegin(), contents.constEnd(), nullptr, false);
     const std::optional<nlohmann::json> object =
         json.is_discarded() ? std::nullopt : shortcutsOfFile(json);
     if (!object) {
@@ -663,12 +787,13 @@ bool ShortcutsPage::importShortcuts(const QString& path) {
         return false;
     }
 
-    // Every key as if it was pressed here, but without questions: what cannot be is skipped
+    // Every key as if it was pressed here, but without questions: what cannot be is skipped,
+    // each with why in a few words
     QStringList unreadable;
     const CommandRegistry::ShortcutMap fromFile = shortcutsFromJson(*object, &unreadable);
     QStringList skipped;
     for (const QString& id : unreadable) {
-        skipped.append(tr("%1: the keys cannot be read").arg(titleOf(id.toStdString())));
+        skipped.append(tr("“%1” (the keys cannot be read)").arg(labelOf(id.toStdString())));
     }
     CommandRegistry::ShortcutMap imported;
     std::map<KeyboardShortcut, std::string> owners;
@@ -676,20 +801,20 @@ bool ShortcutsPage::importShortcuts(const QString& path) {
     for (const auto& [id, keys] : fromFile) {
         if (entryById(id) == nullptr) {
             skipped.append(
-                tr("“%1”: Kalahari has no such command").arg(QString::fromStdString(id)));
+                tr("“%1” (Kalahari has no such command)").arg(QString::fromStdString(id)));
             continue;
         }
         if (!keys.isEmpty()) {
             const KeyCheck check = m_rules.check(combinationOf(keys), id);
             if (check.result == KeyCheck::Result::Refused) {
                 skipped.append(
-                    tr("%1 for %2: %3").arg(nativeText(keys), titleOf(id), check.reason));
+                    tr("%1 for “%2” (%3)").arg(nativeText(keys), labelOf(id), check.brief));
                 continue;
             }
             const auto [owner, first] = owners.emplace(keys, id);
             if (!first) {
-                skipped.append(tr("%1 for %2: the file gives it to %3 too")
-                                   .arg(nativeText(keys), titleOf(id), titleOf(owner->second)));
+                skipped.append(tr("%1 for “%2” (the file gives it to “%3” too)")
+                                   .arg(nativeText(keys), labelOf(id), labelOf(owner->second)));
                 continue;
             }
         }
@@ -701,22 +826,22 @@ bool ShortcutsPage::importShortcuts(const QString& path) {
 
     core::Logger::getInstance().info("Keyboard shortcuts: {} imported from {}, {} skipped", read,
                                      path.toStdString(), skipped.size());
-    QString text = tr("%n shortcut(s) read from %1.", nullptr, read).arg(name.toHtmlEscaped());
+    QString text =
+        tr("Read %n shortcut(s) from the file %1.", nullptr, read).arg(name.toHtmlEscaped());
     if (!skipped.isEmpty()) {
         QStringList shown;
         for (const QString& line : skipped.mid(0, SKIPPED_SHOWN)) {
             shown.append(line.toHtmlEscaped());
         }
-        text += QStringLiteral(" ") +
-                tr("Skipped %n:", nullptr, static_cast<int>(skipped.size())) +
-                QStringLiteral("<br>") + shown.join(QStringLiteral("<br>"));
         if (skipped.size() > SKIPPED_SHOWN) {
-            text += QStringLiteral("<br>") +
-                    tr("and %n more.", nullptr, static_cast<int>(skipped.size()) - SKIPPED_SHOWN);
+            shown.append(
+                tr("and %n more", nullptr, static_cast<int>(skipped.size()) - SKIPPED_SHOWN));
         }
+        text += QLatin1Char(' ') + tr("Skipped %n: %1.", nullptr, static_cast<int>(skipped.size()))
+                                       .arg(shown.join(QStringLiteral("; ")));
     }
-    text += QStringLiteral("<br>") + tr("Apply or OK saves the changes, Cancel drops them.");
-    showMessage(skipped.isEmpty() ? MessageKind::Information : MessageKind::Warning, text);
+    text += QLatin1Char(' ') + tr("Apply or OK will save the changes.");
+    showMessage(MessageKind::Information, text);
     return true;
 }
 
@@ -781,6 +906,13 @@ QString ShortcutsPage::titleOf(const std::string& commandId) const {
     return QString::fromStdString(commandId);
 }
 
+QString ShortcutsPage::labelOf(const std::string& commandId) const {
+    if (const Entry* entry = entryById(commandId)) {
+        return entry->label;
+    }
+    return titleOf(commandId);
+}
+
 KeyboardShortcut ShortcutsPage::defaultOf(const std::string& commandId) const {
     const auto found = m_defaults.find(commandId);
     return found != m_defaults.end() ? found->second : KeyboardShortcut();
@@ -837,24 +969,27 @@ void ShortcutsPage::refresh() {
     const QFontMetrics boldMetrics(bold);
 
     int widest = m_list->header()->fontMetrics().horizontalAdvance(m_list->headerItem()->text(1));
-    bool anyChanged = false;
     for (const Entry& entry : m_entries) {
         const auto found = keysNow.find(entry.id);
         const KeyboardShortcut keys = found != keysNow.end() ? found->second : KeyboardShortcut();
         const KeyboardShortcut programKeys = defaultOf(entry.id);
         const bool changed = keys != programKeys;
-        anyChanged = anyChanged || changed;
 
+        // A changed shortcut stands out, the mark alone where it was removed
         QString text = nativeText(keys);
         if (changed) {
-            text = CHANGED_MARK + (keys.isEmpty() ? tr("none") : text);
+            text = keys.isEmpty() ? CHANGED_MARK : CHANGED_MARK + QLatin1Char(' ') + text;
         }
         entry.item->setText(1, text);
         entry.item->setFont(1, changed ? bold : normal);
-        entry.item->setToolTip(
-            1, changed ? tr("Default: %1")
-                             .arg(programKeys.isEmpty() ? tr("none") : nativeText(programKeys))
-                       : QString());
+        entry.item->setData(1, Qt::ForegroundRole,
+                            changed ? QVariant(QBrush(m_changedColor)) : QVariant());
+        const QString programText = !changed              ? QString()
+                                    : programKeys.isEmpty() ? tr("Default: no shortcut")
+                                                            : tr("Default: %1").arg(
+                                                                  nativeText(programKeys));
+        entry.item->setToolTip(0, programText);
+        entry.item->setToolTip(1, programText);
         // Screen readers say "changed" instead of reading the mark
         entry.item->setData(1, Qt::AccessibleTextRole,
                             changed ? tr("%1, changed").arg(keys.isEmpty() ? tr("none")
@@ -863,25 +998,52 @@ void ShortcutsPage::refresh() {
         widest = std::max(widest, (changed ? boldMetrics : normalMetrics).horizontalAdvance(text));
     }
     // As wide as the keys of the commands; the long lists of the fixed keys are cut short
-    m_list->setColumnWidth(1, widest + KEYS_COLUMN_PADDING);
+    m_keysColumnWidth = widest + KEYS_COLUMN_PADDING;
+    fitKeysColumn();
 
-    // The field under the list shows any of them whole (arrangeKeysRow)
+    // The field under the list shows the keys of any command whole, and what it asks for
+    // while it records them
     const QFontMetrics fieldMetrics(m_keysField->font());
-    m_widestKeys = 0;
+    m_widestKeys = std::max(fieldMetrics.horizontalAdvance(changePrompt()),
+                            fieldMetrics.horizontalAdvance(tr("No shortcut")));
     for (const auto& [id, keys] : keysNow) {
         m_widestKeys = std::max(m_widestKeys, fieldMetrics.horizontalAdvance(nativeText(keys)));
     }
-    for (const FixedKeyGroup& group : m_fixedGroups) {
-        for (const FixedKeys& fixed : group.rows) {
-            m_widestKeys = std::max(m_widestKeys, fieldMetrics.horizontalAdvance(fixed.keysText()));
-        }
-    }
     arrangeKeysRow();
 
-    m_restoreAllButton->setEnabled(anyChanged || !m_custom.empty());
-    m_exportButton->setEnabled(!m_custom.empty());
     applyFilter();
     showDetail();
+}
+
+void ShortcutsPage::updateColors() {
+    const core::Theme& theme = core::ThemeManager::getInstance().getCurrentTheme();
+    // Readable on the list as the text of the annotations' cards is on theirs
+    m_mutedColor =
+        readableColor(theme.palette.placeholderText, theme.palette.base, MIN_TEXT_CONTRAST);
+    m_changedColor = readableColor(theme.palette.link, theme.palette.base, MIN_TEXT_CONTRAST);
+    // The note under the keys is muted too, on the window's background
+    m_detailInfo->setStyleSheet(
+        QStringLiteral("color: %1;")
+            .arg(readableColor(theme.palette.placeholderText, theme.palette.window,
+                               MIN_TEXT_CONTRAST)
+                     .name()));
+
+    for (int top = 0; top < m_list->topLevelItemCount(); ++top) {
+        QTreeWidgetItem* group = m_list->topLevelItem(top);
+        if (kindOf(group) == ItemKind::FixedGroup) {
+            group->setForeground(0, m_mutedColor);
+            for (int child = 0; child < group->childCount(); ++child) {
+                group->child(child)->setForeground(0, m_mutedColor);
+                group->child(child)->setForeground(1, m_mutedColor);
+            }
+        }
+    }
+    for (const Entry& entry : m_entries) {
+        if (!entry.available) {
+            entry.item->setData(0, NOTE_COLOR_ROLE, m_mutedColor);
+        }
+    }
+    m_noMatchItem->setForeground(0, m_mutedColor);
 }
 
 bool ShortcutsPage::isShown(const QTreeWidgetItem* item,
@@ -1008,6 +1170,14 @@ QTreeWidgetItem* ShortcutsPage::firstShownItem() const {
     return nullptr;
 }
 
+void ShortcutsPage::fitKeysColumn() {
+    const auto share = static_cast<int>(m_list->viewport()->width() * KEYS_COLUMN_SHARE);
+    const int width = std::max(m_keysColumnWidth, share);
+    if (m_list->columnWidth(1) != width) {
+        m_list->setColumnWidth(1, width);
+    }
+}
+
 // ============================================================================
 // The selected command
 // ============================================================================
@@ -1023,18 +1193,14 @@ void ShortcutsPage::showDetail() {
         m_changeButton->setEnabled(true);
         m_removeButton->setEnabled(!keys.isEmpty());
         m_restoreButton->setEnabled(keys != programKeys);
-        if (m_keysField->isRecording()) {
-            // The field is too narrow for the whole prompt
-            m_detailInfo->setText(tr("Press the new shortcut of the command. Esc cancels."));
-            return;
+        if (!m_keysField->isRecording()) {
+            m_keysField->setText(keys.isEmpty() ? tr("No shortcut") : nativeText(keys));
+            m_keysField->setCursorPosition(0);
         }
-        m_keysField->setPlaceholderText(tr("No shortcut"));
-        m_keysField->setText(nativeText(keys));
-        m_keysField->setCursorPosition(0);
 
         QStringList info;
         if (!entry->available) {
-            info.append(tr("The command is not available yet; its shortcut is kept for it."));
+            info.append(tr("The command is not available yet: its shortcut is reserved."));
         }
         if (programKeys.isEmpty()) {
             info.append(tr("Default: no shortcut."));
@@ -1044,9 +1210,19 @@ void ShortcutsPage::showDetail() {
         } else {
             info.append(tr("Default: %1.").arg(nativeText(programKeys)));
         }
-        if (entry->id == "file.exit" && m_rules.platform() != ShortcutPlatform::MacOS) {
-            info.append(
-                tr("Alt+F4 closes the window also without this shortcut: the system does it."));
+        if (entry->id == "file.exit") {
+            switch (m_rules.platform()) {
+            case ShortcutPlatform::Windows:
+                info.append(tr("Alt+F4 closes the window also without this shortcut: Windows "
+                               "does it."));
+                break;
+            case ShortcutPlatform::Linux:
+                info.append(tr("Alt+F4 closes the window also without this shortcut: the "
+                               "desktop does it."));
+                break;
+            case ShortcutPlatform::MacOS:
+                break;
+            }
         }
         m_detailInfo->setText(info.join(QLatin1Char(' ')));
         return;
@@ -1054,7 +1230,6 @@ void ShortcutsPage::showDetail() {
 
     // Fixed keys, a group or nothing: nothing to change
     m_keysField->setEnabled(false);
-    m_keysField->setPlaceholderText(QString());
     m_changeButton->setEnabled(false);
     m_removeButton->setEnabled(false);
     m_restoreButton->setEnabled(false);
@@ -1072,7 +1247,7 @@ void ShortcutsPage::showDetail() {
     m_keysField->clear();
     m_keysField->setToolTip(QString());
     if (group != nullptr) {
-        m_detailTitle->setText(item->text(0));
+        m_detailTitle->setText(group->title);
         m_detailInfo->setText(explanationOf(*group, nullptr));
     } else if (item != nullptr && kindOf(item) == ItemKind::Menu) {
         m_detailTitle->setText(item->text(0));
@@ -1085,23 +1260,14 @@ void ShortcutsPage::showDetail() {
 }
 
 void ShortcutsPage::arrangeKeysRow() {
-    // The field as wide as the longest keys, with its frame
-    QStyleOptionFrame option;
-    option.initFrom(m_keysField);
-    option.lineWidth =
-        m_keysField->style()->pixelMetric(QStyle::PM_DefaultFrameWidth, &option, m_keysField);
-    const QMargins textMargins = m_keysField->textMargins();
-    const QSize text(m_widestKeys + FIELD_TEXT_ROOM + textMargins.left() + textMargins.right(),
-                     m_keysField->sizeHint().height());
-    const int fieldWidth = m_keysField->style()
-                               ->sizeFromContents(QStyle::CT_LineEdit, &option, text, m_keysField)
-                               .width();
-
+    // The field as wide as the longest text it shows
+    const int fieldWidth = lineEditWidth(m_keysField, m_widestKeys);
     const int spacing = std::max(m_keysRow->horizontalSpacing(), 0);
     const int besideWidth = m_keysLabel->sizeHint().width() + spacing + fieldWidth + spacing +
                             m_keyButtons->sizeHint().width();
     const QMargins margins = m_detail->layout()->contentsMargins();
-    const int room = m_detail->contentsRect().width() - margins.left() - margins.right();
+    const int room =
+        m_detail->contentsRect().width() - margins.left() - margins.right() - scrollBarRoom();
     const bool under = room < besideWidth;
     if (under == m_keyButtonsUnder) {
         return;
@@ -1115,28 +1281,73 @@ void ShortcutsPage::arrangeKeysRow() {
     }
 }
 
+void ShortcutsPage::arrangeSearchRow() {
+    // The field as wide as the longer of its prompts. They show while the field is empty,
+    // and then QLineEdit keeps no room for its clear button.
+    const QFontMetrics metrics(m_search->font());
+    const int prompts = std::max(metrics.horizontalAdvance(textSearchPrompt()),
+                                 metrics.horizontalAdvance(keySearchPrompt()));
+    const int fieldWidth = lineEditWidth(m_search, prompts);
+    const int spacing = std::max(m_searchRow->horizontalSpacing(), 0);
+    const int besideWidth = m_searchLabel->sizeHint().width() + spacing + fieldWidth + spacing +
+                            m_searchOptions->sizeHint().width();
+    const QMargins margins = pageLayout()->contentsMargins();
+    const int room = contentsRect().width() - margins.left() - margins.right() - scrollBarRoom();
+    const bool under = room < besideWidth;
+    if (under == m_searchOptionsUnder) {
+        return;
+    }
+    m_searchOptionsUnder = under;
+    m_searchRow->removeWidget(m_searchOptions);
+    if (under) {
+        m_searchRow->addWidget(m_searchOptions, 1, 1, Qt::AlignLeft);
+    } else {
+        m_searchRow->addWidget(m_searchOptions, 0, 2);
+    }
+}
+
+int ShortcutsPage::scrollBarRoom() const {
+    // The page of the dialog is in a scroll area: the room its scroll bar takes when the
+    // page gets taller than the window (a message), as QAbstractScrollArea gives it
+    for (const QWidget* parent = parentWidget(); parent != nullptr;
+         parent = parent->parentWidget()) {
+        const auto* scrollArea = qobject_cast<const QScrollArea*>(parent);
+        if (scrollArea == nullptr) {
+            continue;
+        }
+        const QScrollBar* bar = scrollArea->verticalScrollBar();
+        const QStyle* style = scrollArea->style();
+        if (bar->isVisibleTo(scrollArea) ||
+            scrollArea->verticalScrollBarPolicy() == Qt::ScrollBarAlwaysOff ||
+            style->styleHint(QStyle::SH_ScrollBar_Transient, nullptr, bar) != 0) {
+            // Shown already (the page is narrower), never shown, or over the page
+            return 0;
+        }
+        int room = bar->sizeHint().width();
+        if (style->styleHint(QStyle::SH_ScrollView_FrameOnlyAroundContents, nullptr,
+                             scrollArea) != 0) {
+            room += style->pixelMetric(QStyle::PM_ScrollView_ScrollBarSpacing, nullptr,
+                                       scrollArea);
+        }
+        return room;
+    }
+    return 0;
+}
+
 QString ShortcutsPage::explanationOf(const FixedKeyGroup& group, const FixedKeys* row) const {
     if (group.local) {
         return tr("These keys work only while the list of the panel is active, so a command "
                   "may have them as well.");
     }
-    if (!group.system) {
-        return tr("Fixed keys: they work here as in other programs, so no command can have them.");
+    if (group.system) {
+        return row != nullptr
+                   ? tr("A key of the system: the program does not get it or cannot change it.")
+                   : tr("Keys of the system: the program does not get them or cannot change "
+                        "them.");
     }
-    if (row != nullptr) {
-        // The system's own reason, where it names one key
-        if (!row->reason.contains(QLatin1String("%1"))) {
-            return row->reason;
-        }
-        if (row->keys.isEmpty() && !row->anyKeyText.isEmpty()) {
-            return row->reason.arg(row->anyKeyText);
-        }
-        if (row->keys.size() == 1 && row->anyKeyWith == Qt::NoModifier) {
-            return row->reason.arg(row->keysText());
-        }
-    }
-    return tr("The system or the windows of the program use these keys, so no command can "
-              "have them.");
+    return row != nullptr
+               ? tr("A fixed key: it works as in other programs and cannot be changed.")
+               : tr("Fixed keys: they work as in other programs and cannot be changed.");
 }
 
 // ============================================================================
@@ -1201,22 +1412,18 @@ void ShortcutsPage::styleMessage() {
     const core::Theme& theme = core::ThemeManager::getInstance().getCurrentTheme();
     QColor background;
     QColor line;
-    QString icon;
     switch (m_messageKind) {
     case MessageKind::Information:
         line = theme.palette.highlight;
         background = mixed(theme.palette.base, line, MESSAGE_TINT);
-        icon = QStringLiteral("help.about");
         break;
     case MessageKind::Warning:
         line = theme.colors.infoBarBorder;
         background = theme.colors.infoBarBackground;
-        icon = QStringLiteral("common.warning");
         break;
     case MessageKind::Error:
         line = theme.log.error;
         background = mixed(theme.palette.base, line, MESSAGE_TINT);
-        icon = QStringLiteral("common.error");
         break;
     }
     m_message->setStyleSheet(
@@ -1224,17 +1431,16 @@ void ShortcutsPage::styleMessage() {
                        "border-left: 3px solid %2; border-radius: 2px; } "
                        "QLabel { background: transparent; color: %3; }")
             .arg(background.name(), line.name(), theme.palette.windowText.name()));
-    m_messageIcon->setPixmap(core::ArtProvider::getInstance().getThemedIcon(icon).pixmap(
-        QSize(MESSAGE_ICON_SIZE, MESSAGE_ICON_SIZE)));
 }
 
 void ShortcutsPage::updateIcons() {
     const QIcon lock = core::ArtProvider::getInstance().getIcon(QStringLiteral("common.lock"),
                                                                 core::IconContext::TreeView);
+    // After the name (NameDelegate): the name comes first, as in the menus
     for (int top = 0; top < m_list->topLevelItemCount(); ++top) {
         QTreeWidgetItem* group = m_list->topLevelItem(top);
         if (kindOf(group) == ItemKind::FixedGroup) {
-            group->setIcon(0, lock);
+            group->setData(0, LOCK_ROLE, lock);
         }
     }
     if (!m_message->isHidden()) {
@@ -1246,16 +1452,17 @@ void ShortcutsPage::updateIcons() {
 // Actions
 // ============================================================================
 
-void ShortcutsPage::startChange() {
+void ShortcutsPage::startChange(QWidget* returnTo) {
     if (currentEntry() == nullptr) {
         return;
     }
+    m_returnFocus = returnTo != nullptr ? returnTo : m_list;
     hideMessage();
-    m_keysField->startRecording(tr("Press the keys"));
+    m_keysField->startRecording(changePrompt());
     showDetail();
 }
 
-void ShortcutsPage::removeKeys() {
+void ShortcutsPage::removeKeys(QWidget* returnTo) {
     const Entry* entry = currentEntry();
     if (entry == nullptr) {
         return;
@@ -1263,7 +1470,8 @@ void ShortcutsPage::removeKeys() {
     hideMessage();
     setKeys(entry->id, KeyboardShortcut());
     refresh();
-    m_list->setFocus(Qt::OtherFocusReason);
+    m_returnFocus = returnTo;
+    returnFocus();
 }
 
 void ShortcutsPage::restoreDefault() {
@@ -1279,35 +1487,50 @@ void ShortcutsPage::restoreDefault() {
     if (owner.empty()) {
         setKeys(id, programKeys);
         refresh();
-        m_list->setFocus(Qt::OtherFocusReason);
+        // The button is off now: the keys go to the change
+        m_returnFocus = m_changeButton;
+        returnFocus();
         return;
     }
+    // Cancel gives the keys back to the button
+    m_returnFocus = m_restoreButton;
     showMessage(MessageKind::Warning,
-                tr("The default shortcut %1 is now the shortcut of <b>%2</b>: if you restore it, "
-                   "that command will be left without a shortcut.")
+                tr("The default shortcut %1 now belongs to <b>%2</b>: if you restore it, that "
+                   "command will be left without a shortcut.")
                     .arg(nativeText(programKeys).toHtmlEscaped(), titleOf(owner).toHtmlEscaped()),
                 tr("Restore A&nyway"), [this, id, programKeys, owner]() {
                     setKeys(owner, KeyboardShortcut());
                     setKeys(id, programKeys);
                     refresh();
                     showMessage(MessageKind::Information,
-                                tr("<b>%1</b> is now without a shortcut.")
-                                    .arg(titleOf(owner).toHtmlEscaped()));
-                    m_list->setFocus(Qt::OtherFocusReason);
+                                tr("%1 now has no shortcut.").arg(titleOf(owner).toHtmlEscaped()));
+                    m_returnFocus = m_changeButton;
+                    returnFocus();
                 });
 }
 
 void ShortcutsPage::restoreAllDefaults() {
     hideMessage();
+    if (m_custom.empty()) {
+        showMessage(MessageKind::Information,
+                    tr("All the commands already have their default shortcuts."));
+        return;
+    }
     m_custom.clear();
     refresh();
     showMessage(MessageKind::Information,
-                tr("All the commands have their default shortcuts again. Apply or OK saves it, "
-                   "Cancel drops it."));
-    m_list->setFocus(Qt::OtherFocusReason);
+                tr("All the commands have their default shortcuts again. Apply or OK will save "
+                   "this change, Cancel will discard it."));
 }
 
 void ShortcutsPage::chooseExportFile() {
+    hideMessage();
+    if (m_custom.empty()) {
+        showMessage(MessageKind::Information,
+                    tr("There are no changed shortcuts: the file would be empty. Change a "
+                       "shortcut, then export it."));
+        return;
+    }
     const QString suggested =
         QDir(QDir::homePath()).filePath(tr("kalahari-shortcuts") + QStringLiteral(".json"));
     QString path = QFileDialog::getSaveFileName(this, tr("Export Keyboard Shortcuts"), suggested,
@@ -1348,43 +1571,49 @@ void ShortcutsPage::setKeySearch(bool on) {
         m_byKeysButton->setChecked(on);
     }
     if (on) {
-        m_textQuery = m_search->text();
         recordSearchKeys();
     } else {
+        // The search by text starts again from an empty field
         if (m_search->isRecording()) {
             m_search->stopRecording();
         }
         const QSignalBlocker blocker(m_search);
         m_search->setReadOnly(false);
         m_search->setPlaceholderText(textSearchPrompt());
-        m_search->setToolTip(QString());
-        m_search->setText(m_textQuery);
+        m_search->clear();
     }
     applyFilter();
 }
 
 void ShortcutsPage::recordSearchKeys() {
-    // The field as it is for the text, so recording restores it so when it ends
+    // The field as it is for the text, empty, so recording leaves it so when it ends
     {
         const QSignalBlocker blocker(m_search);
         m_search->setReadOnly(false);
         m_search->setPlaceholderText(textSearchPrompt());
-        m_search->setText(m_textQuery);
+        m_search->clear();
     }
     m_searchKeys.reset();
-    // The field is too narrow for more than the prompt
-    m_search->setToolTip(tr("Esc goes back to the search by text."));
     m_search->startRecording(keySearchPrompt(), true);
     applyFilter();
 }
 
-QString ShortcutsPage::textSearchPrompt() {
+QString ShortcutsPage::textSearchPrompt() const {
+    // Keys the list has, as an example: those of Find and Replace (⌥⌘F on macOS), or else
+    // those of Find, the same on every system
+    const KeyboardShortcut example = defaultOf("edit.findReplace");
     return tr("Command name or keys, e.g. %1")
-        .arg(ShortcutRules::keysText(QKeyCombination(Qt::ControlModifier, Qt::Key_F)));
+        .arg(example.isEmpty()
+                 ? ShortcutRules::keysText(QKeyCombination(Qt::ControlModifier, Qt::Key_F))
+                 : nativeText(example));
 }
 
 QString ShortcutsPage::keySearchPrompt() {
-    return tr("Press a shortcut...");
+    return tr("Press a shortcut... (Esc – normal search)");
+}
+
+QString ShortcutsPage::changePrompt() {
+    return tr("Press the new shortcut... (Esc – cancel)");
 }
 
 void ShortcutsPage::focusList() {
@@ -1395,6 +1624,14 @@ void ShortcutsPage::focusList() {
         }
     }
     m_list->setFocus(Qt::OtherFocusReason);
+}
+
+void ShortcutsPage::returnFocus() {
+    QWidget* target = m_returnFocus;
+    if (target == nullptr || !target->isEnabled() || target->isHidden()) {
+        target = m_list;
+    }
+    target->setFocus(Qt::OtherFocusReason);
 }
 
 bool ShortcutsPage::eventFilter(QObject* watched, QEvent* event) {
@@ -1408,7 +1645,7 @@ bool ShortcutsPage::eventFilter(QObject* watched, QEvent* event) {
             if (enter || key->key() == Qt::Key_F2) {
                 QTreeWidgetItem* item = m_list->currentItem();
                 if (currentEntry() != nullptr) {
-                    startChange();
+                    startChange(m_list);
                 } else if (enter && item != nullptr && item->childCount() > 0) {
                     item->setExpanded(!item->isExpanded());
                 }
@@ -1416,7 +1653,7 @@ bool ShortcutsPage::eventFilter(QObject* watched, QEvent* event) {
             }
             if (key->key() == Qt::Key_Delete && currentEntry() != nullptr &&
                 m_removeButton->isEnabled()) {
-                removeKeys();
+                removeKeys(m_list);
                 return true;
             }
         }
@@ -1428,7 +1665,7 @@ bool ShortcutsPage::eventFilter(QObject* watched, QEvent* event) {
         if ((watched == m_messageAcceptButton || watched == m_messageCancelButton) && plain &&
             key->key() == Qt::Key_Escape) {
             hideMessage();
-            m_list->setFocus(Qt::OtherFocusReason);
+            returnFocus();
             return true;
         }
     } else if (event->type() == QEvent::FocusIn && watched == m_search) {
@@ -1438,10 +1675,12 @@ bool ShortcutsPage::eventFilter(QObject* watched, QEvent* event) {
         }
     } else if (event->type() == QEvent::MouseButtonRelease && watched == m_keysField) {
         if (currentEntry() != nullptr && !m_keysField->isRecording()) {
-            startChange();
+            startChange(m_list);
         }
     } else if (event->type() == QEvent::Resize && watched == m_detail) {
         arrangeKeysRow();
+    } else if (event->type() == QEvent::Resize && watched == m_list->viewport()) {
+        fitKeysColumn();
     } else if (event->type() == QEvent::Resize && watched == m_list) {
         // The list gets lower when what is under it grows (a message, a longer note): the
         // selected row stays in sight if it was. The rows have not moved: was it in the
@@ -1462,6 +1701,16 @@ bool ShortcutsPage::eventFilter(QObject* watched, QEvent* event) {
         }
     }
     return SettingsPage::eventFilter(watched, event);
+}
+
+void ShortcutsPage::resizeEvent(QResizeEvent* event) {
+    SettingsPage::resizeEvent(event);
+    arrangeSearchRow();
+    // The page settles after the message came (a scroll bar, a line more of the message):
+    // the message stays in sight
+    if (!m_message->isHidden()) {
+        revealMessage();
+    }
 }
 
 } // namespace gui

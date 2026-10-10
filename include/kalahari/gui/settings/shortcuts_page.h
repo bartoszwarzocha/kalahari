@@ -14,6 +14,7 @@
 #include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/shortcut_rules.h"
 
+#include <QColor>
 #include <QKeyCombination>
 #include <QString>
 
@@ -27,6 +28,7 @@ class QFrame;
 class QGridLayout;
 class QLabel;
 class QPushButton;
+class QResizeEvent;
 class QTreeWidget;
 class QTreeWidgetItem;
 
@@ -66,6 +68,7 @@ public:
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
 
 private:
     /// @brief A command of the list
@@ -93,6 +96,9 @@ private:
     [[nodiscard]] const Entry* currentEntry() const;
     [[nodiscard]] const Entry* entryById(const std::string& id) const;
 
+    /// @brief The keys of the list and the field: where the theme makes them readable
+    void updateColors();
+
     /// @brief The fixed keys of an item, or nullptr
     /// @param group The group of the keys, also for the item of the group itself
     [[nodiscard]] const FixedKeys* fixedKeysOf(const QTreeWidgetItem* item,
@@ -100,6 +106,9 @@ private:
 
     /// @brief "File › Save", for the messages
     [[nodiscard]] QString titleOf(const std::string& commandId) const;
+
+    /// @brief "Save" (with its submenus, without the menu), for the summary of an import
+    [[nodiscard]] QString labelOf(const std::string& commandId) const;
 
     /// @brief The program's keys of a command
     [[nodiscard]] KeyboardShortcut defaultOf(const std::string& commandId) const;
@@ -137,12 +146,24 @@ private:
     /// @brief The first command or fixed keys the list shows, or nullptr
     [[nodiscard]] QTreeWidgetItem* firstShownItem() const;
 
+    /// @brief The keys' column as wide as the keys of the commands, and at least a share of
+    ///        the list
+    void fitKeysColumn();
+
     /// @brief Show the selected command or fixed keys under the list
     void showDetail();
 
     /// @brief Put the buttons of the keys beside the field, or under it where they would
     ///        leave it too little room for the longest keys of the list
     void arrangeKeysRow();
+
+    /// @brief Put the search options beside the search field, or under it where they would
+    ///        leave it too little room for its prompts
+    void arrangeSearchRow();
+
+    /// @brief The width a scroll bar of the dialog would take from the page when it comes:
+    ///        the rows are arranged for the page with it, so it does not move them
+    [[nodiscard]] int scrollBarRoom() const;
 
     /// @brief Why a command cannot have fixed keys (row: nullptr for the whole group)
     [[nodiscard]] QString explanationOf(const FixedKeyGroup& group, const FixedKeys* row) const;
@@ -158,15 +179,20 @@ private:
     /// @brief Scroll the page, if it scrolls, so the message is in sight
     void revealMessage();
 
-    /// @brief Colors and icon of the message, of the current theme
+    /// @brief Colors of the message, of the current theme
     void styleMessage();
 
     /// @brief Icons of the current theme
     void updateIcons();
 
     /// @brief Record keys for the selected command (Change...)
-    void startChange();
-    void removeKeys();
+    /// @param returnTo What gets the keys back when the change is over (nullptr: the list)
+    void startChange(QWidget* returnTo);
+
+    /// @brief Leave the selected command without keys
+    /// @param returnTo What gets the keys after it
+    void removeKeys(QWidget* returnTo);
+
     void restoreDefault();
     void restoreAllDefaults();
     void chooseExportFile();
@@ -179,11 +205,17 @@ private:
     void recordSearchKeys();
 
     /// @brief What the search field asks for, by text and by keys
-    [[nodiscard]] static QString textSearchPrompt();
+    [[nodiscard]] QString textSearchPrompt() const;
     [[nodiscard]] static QString keySearchPrompt();
+
+    /// @brief What the field of the keys asks for while it records them
+    [[nodiscard]] static QString changePrompt();
 
     /// @brief Give the list the keys, with a command selected
     void focusList();
+
+    /// @brief Give the keys back to what started a change (the list, or a button)
+    void returnFocus();
 
     ShortcutRules m_rules;
     std::vector<FixedKeyGroup> m_fixedGroups;
@@ -191,15 +223,22 @@ private:
     CommandRegistry::ShortcutMap m_defaults;  ///< The program's keys of all registered commands
     CommandRegistry::ShortcutMap m_custom;    ///< The user's keys, with the changes on the page
 
-    int m_widestKeys = 0;                         ///< The longest keys the field shows, in pixels
-    bool m_keyButtonsUnder = false;               ///< The buttons of the keys are under the field
+    int m_widestKeys = 0;            ///< The longest text the field of the keys shows, in pixels
+    int m_keysColumnWidth = 0;       ///< The longest keys of the commands, with their room
+    bool m_keyButtonsUnder = false;  ///< The buttons of the keys are under the field
+    bool m_searchOptionsUnder = false;            ///< The search options are under the field
     bool m_keySearch = false;                     ///< Search by keys is on
     std::optional<QKeyCombination> m_searchKeys;  ///< The keys searched for
-    QString m_textQuery;                          ///< The text searched for before it
     MessageKind m_messageKind = MessageKind::Information;
     std::function<void()> m_messageAccept;
+    QWidget* m_returnFocus = nullptr;  ///< What gets the keys back after a change (of the page)
+    QColor m_mutedColor;               ///< The fixed keys and the notes
+    QColor m_changedColor;             ///< The keys the user changed
 
+    QGridLayout* m_searchRow = nullptr;
+    QLabel* m_searchLabel = nullptr;
     ShortcutRecorder* m_search = nullptr;
+    QWidget* m_searchOptions = nullptr;
     QPushButton* m_byKeysButton = nullptr;
     QCheckBox* m_onlyChanged = nullptr;
     QTreeWidget* m_list = nullptr;
@@ -215,7 +254,6 @@ private:
     QPushButton* m_restoreButton = nullptr;
     QLabel* m_detailInfo = nullptr;
     QFrame* m_message = nullptr;
-    QLabel* m_messageIcon = nullptr;
     QLabel* m_messageText = nullptr;
     QPushButton* m_messageAcceptButton = nullptr;
     QPushButton* m_messageCancelButton = nullptr;

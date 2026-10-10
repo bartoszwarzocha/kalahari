@@ -13,6 +13,7 @@
 #include <QKeyCombination>
 #include <QList>
 #include <QString>
+#include <QStringList>
 
 #include <string>
 #include <vector>
@@ -20,6 +21,10 @@
 class QKeyEvent;
 
 namespace kalahari {
+namespace editor {
+enum class TextKeyAction;
+}
+
 namespace gui {
 
 /// @brief The system whose keys the rules follow
@@ -45,19 +50,25 @@ struct FixedKeys {
     QString reason;                                 ///< Why a command cannot have them
                                                     ///< (%1: the keys)
     std::string allowedFor;                         ///< The one command that may have them
-    QString summary = {};                           ///< The keys in words, when a list of them
-                                                    ///< would be too long to read
+    QString summary = {};                           ///< The keys as the list shows them, when
+                                                    ///< a list of them all would not do
+    QStringList keyReasons = {};                    ///< Why, key by key, in the order of keys
+                                                    ///< (in place of reason)
+    QString brief = {};                             ///< Why, in a few words, for a summary
 
     /// @brief Whether the keys are among these
-    [[nodiscard]] bool covers(QKeyCombination keys) const;
+    [[nodiscard]] bool covers(QKeyCombination pressed) const;
 
     /// @brief The keys as the list shows them, as the system writes them (or the summary)
     [[nodiscard]] QString keysText() const;
+
+    /// @brief Why a command cannot have keys among these: what they do
+    [[nodiscard]] QString reasonFor(QKeyCombination pressed) const;
 };
 
 /// @brief The fixed keys of one place of the program, or the keys of the system
 struct FixedKeyGroup {
-    QString title;                ///< Where they work ("In the text", "Windows")
+    QString title;                ///< As the list shows it ("Fixed: in the text")
     std::vector<FixedKeys> rows;
     bool system = false;          ///< The keys of the system: the program does not get them
     bool local = false;           ///< They work only in a list with the keys: a command may
@@ -72,7 +83,8 @@ struct KeyCheck {
         Refused   ///< The command cannot have it
     };
     Result result = Result::Allowed;
-    QString reason;  ///< Why (Warning, Refused)
+    QString reason;      ///< Why (Warning, Refused)
+    QString brief = {};  ///< Why, in a few words, for a summary (Refused)
 };
 
 /// @brief The rules of the keys of the commands on one system
@@ -115,6 +127,13 @@ private:
 
     /// @brief A warning about keys some desktops take, or empty
     QString desktopWarning(QKeyCombination keys) const;
+
+    /// @brief Why a key of the text is fixed: what it does there
+    static QString textKeyReason(QKeyCombination keys, editor::TextKeyAction action,
+                                 bool selecting);
+
+    /// @brief What a fixed key does, and that a command cannot have it
+    static QString fixedKeyReason(const QString& does);
 
     ShortcutPlatform m_platform;
 };

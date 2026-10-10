@@ -1635,58 +1635,79 @@ are added:
 opens Settings on this page. `src/gui/settings/shortcuts_page.cpp`.
 
 ```
-┌ Settings ────────────────────────────────────────────────────────────────────┐
-│ Search: [Command name or keys, e.g. Ctrl+F   ] [By Keys] [ ] Only Changed    │
-│ ┌ Command ───────────────────────────────────────────┬ Shortcut ───────────┐ │
-│ │ ▾ File                                             │                     │ │
-│ │     New File                                       │ Ctrl+N              │ │
-│ │     Open › Open File...                            │ Ctrl+Shift+O        │ │
-│ │     Close Book                                     │ Ctrl+F4             │ │
-│ │ ...                                                │                     │ │
-│ │ ▾ In the text – fixed keys                         │                     │ │
-│ │     Word left / right                              │ Ctrl+Left, Ctrl+... │ │
-│ │ ▾ Windows – keys of the system                     │                     │ │
-│ └────────────────────────────────────────────────────┴─────────────────────┘ │
-│ ┌──────────────────────────────────────────────────────────────────────────┐ │
-│ │ File › Close Book                                                        │ │
-│ │ Shortcut: [Ctrl+F4                                                     ] │ │
-│ │           [Change...] [Remove] [Restore Default]                         │ │
-│ │ Default: Ctrl+F4.                                                        │ │
-│ └──────────────────────────────────────────────────────────────────────────┘ │
-│ [Restore All Defaults]                               [Import...] [Export...] │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌ Settings ──────────────────────────────────────────────────────────────────────────┐
+│ Search: [Command name or keys, e.g. Ctrl+H] [Search by Keys] [ ] Only Changed      │
+│ ┌ Command ───────────────────────────────────────┬ Shortcut ─────────────────────┐ │
+│ │ ▾ File                                         │                               │ │
+│ │     New File                                   │ Ctrl+N                        │ │
+│ │     Open › Open File...                        │ Ctrl+Shift+O                  │ │
+│ │     Close Book                                 │ Ctrl+F4                       │ │
+│ │ ...                                            │                               │ │
+│ │ ▾ Help                                         │                               │ │
+│ │     Kalahari Help (not available yet)          │ F1                            │ │
+│ │ ▾ Fixed: in the text (lock)                    │                               │ │
+│ │     Word left / right                          │ Ctrl+Left, Ctrl+Right         │ │
+│ │ ▾ Fixed: the Windows system (lock)             │                               │ │
+│ └────────────────────────────────────────────────┴───────────────────────────────┘ │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ File › Close Book                                                              │ │
+│ │ Shortcut: [Ctrl+F4                  ] [Change...] [Remove] [Restore Default]   │ │
+│ │ Default: Ctrl+F4.                                                              │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│ [Restore All Defaults]                                     [Import...] [Export...] │
+└────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 - **The list:** the commands in the groups and the order of the menus (a submenu as
-  "Open › Open File..."), then the fixed keys of each place and the keys of the system, grey
-  with a lock. A changed shortcut is bold with a mark, and its tooltip names the default. A
-  command the program does not run yet says so and keeps its keys for later.
+  "Open › Open File..."), then the fixed keys of each place (Fixed: in the text, tabs, the
+  find bar, the annotation frame, the Annotations panel, Distraction-Free) and the keys of
+  the system (Fixed: the Windows system, the Linux desktop or the macOS system), muted, with
+  a lock after the name. A changed shortcut is bold with a mark (●), and its tooltip names
+  the default. A command the program does not run yet says so after its name ("not
+  available yet" for Kalahari Help, "in preparation" for the others) and keeps its keys for
+  later.
+- **Under the list** the selected row: its menu and name, its keys, and a note – the
+  default keys, a shortcut kept for a command not available yet, that Alt+F4 closes the
+  window also without the shortcut of Exit; for fixed keys and the keys of the system, what
+  they are and that they cannot be changed. A message under the keys takes the place of the
+  note.
 - **Search:** by the name of a command or the text of its keys ("ctrl+f" finds Ctrl+F);
-  **By Keys** – press a shortcut, and the list shows what has it, or says it is free;
-  **Only Changed**.
+  **Search by Keys** – press a shortcut, and the list shows what has it (a fixed key with
+  what it does, a key that types text says so), or says it is free; Esc goes back to the
+  search by text. **Only Changed** shows only the changed shortcuts.
 - **Change...** (also Enter, F2 or a double click in the list, or a click in the field) –
-  press the new shortcut; Esc cancels. Every key is checked (`ShortcutRules`):
+  the field asks for the new shortcut ("Press the new shortcut... (Esc – cancel)"). Every key
+  is checked (`ShortcutRules`):
   - keys that type text, fixed keys and the keys of the system are refused, with the reason;
   - keys another command has bring a question: Assign Anyway takes them from it;
-  - keys a desktop may take bring a warning, and Assign Anyway gives them all the same.
+  - keys a desktop may take bring a warning, and Assign Anyway gives them all the same: on
+    Linux Ctrl+F1–F12 (KDE switches its desktops with Ctrl+F1–F4, Xfce with all of them) and
+    Alt+F1–F10 (the menus and windows of the desktops; Alt+F4 only Exit can have), on macOS
+    F11 (it shows the desktop).
 - **Remove** (Delete in the list) leaves the command without a shortcut. **Restore Default**
   gives it the program's keys; when another command has them now, it asks first. **Restore
-  All Defaults** drops every change.
+  All Defaults** drops every change (or says there is none).
 - **Import...** reads a file of shortcuts in place of the changes on the page and names the
-  keys it leaves out; **Export...** saves the changed shortcuts to a file (JSON, format
-  `kalahari-keyboard-shortcuts`), e.g. for another computer.
+  keys it leaves out, with the reason; **Export...** saves the changed shortcuts to a file
+  (JSON, format `kalahari-keyboard-shortcuts`), e.g. for another computer, and with no
+  changed shortcuts says the file would be empty.
 - **Apply / OK** save the changes; the menus, the toolbars and every text that names a key
   (the Dashboard, the hint of the Annotations panel, the note on Typewriter Scrolling, the
   toolbar manager) change at once. Cancel drops them.
-- **Keyboard:** every button and field has its letter (Alt+S Search, Alt+K By Keys, Alt+O
-  Only Changed, Alt+C Change..., Alt+R Remove, Alt+D Restore Default, Alt+A Restore All
-  Defaults, Alt+I Import..., Alt+E Export...); Down or Enter in the search goes to the list;
-  Enter in the list changes the keys and does not close the window; Esc on the buttons of a
-  message closes the message.
-- **Small screens** (1366 × 768 at 150%): the list gives up its rows first, down to three;
-  the buttons of the keys go under the field where beside it they would leave it too little
-  room for the longest keys of the list; only then does the page scroll. A message under the
-  keys scrolls into sight, and the selected command stays in sight in the list.
+- **Keyboard:** every button and field has its letter (Alt+S Search, Alt+K Search by Keys,
+  Alt+O Only Changed, Alt+C Change..., Alt+R Remove, Alt+D Restore Default, Alt+A Restore
+  All Defaults, Alt+I Import..., Alt+E Export...); Down or Enter in the search goes to the
+  list; Enter in the list changes the keys and does not close the window; Esc on the
+  buttons of a message closes the message; after a change the keys go back to where it
+  started.
+- **Small screens** (1366 × 768 at 125% and 150%): Settings opens 840 px wide where the
+  screen allows (820 at 150%), and its list of groups is only as wide as the longest of
+  them, so the search and the keys of the selected command have one row each, with their
+  prompts whole. Where a row has too little room (a larger font), the options go under the
+  search field and the buttons under the keys; the rows keep room for a scroll bar, so one
+  that comes with a message moves nothing. The list gives up its rows first, down to three;
+  only then does the page scroll. A message under the keys scrolls into sight, and the
+  selected command stays in sight in the list.
 
 **Settings:** `keyboard.shortcuts` holds only the shortcuts the user changed: command id to
 keys in the portable form ("Ctrl+Shift+F"), "" for none. At start the program leaves out the

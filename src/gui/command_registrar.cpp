@@ -589,6 +589,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // OpenSpec #00030: F1 for Help (standard)
     REG_CMD_KEY("help.manual", QT_TRANSLATE_NOOP("CommandRegistrar", "Kalahari Help"), "HELP/Kalahari Help", 10, false, 2,
                 KeyboardShortcut(Qt::Key_F1, Qt::NoModifier));
+    // F1 waits for the help: the list of the shortcuts says it is not there yet
+    if (Command* help = registry.getCommand("help.manual")) {
+        help->unavailableNote =
+            QCoreApplication::translate("CommandRegistrar", "not available yet", "Kalahari Help")
+                .toStdString();
+    }
     REG_CMD("help.tutorial", QT_TRANSLATE_NOOP("CommandRegistrar", "Getting Started Tutorial"), "HELP/Getting Started Tutorial", 20, true, 2);
 
     // Opens Settings > Keyboard Shortcuts: the list of the shortcuts, where they are changed

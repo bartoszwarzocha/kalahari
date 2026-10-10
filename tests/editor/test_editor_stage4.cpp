@@ -362,9 +362,11 @@ void click(BookEditor& editor, const QPointF& pos) {
 /// A key press. On macOS Page Up and Page Down move the cursor with Option (alone they move
 /// the view only, as in the text fields of macOS).
 void pressKey(BookEditor& editor, int key, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
-    if (isMacOS() && (key == Qt::Key_PageUp || key == Qt::Key_PageDown) &&
-        !(modifiers & Qt::ShiftModifier)) {
-        modifiers |= Qt::AltModifier;
+    if constexpr (isMacOS()) {
+        if ((key == Qt::Key_PageUp || key == Qt::Key_PageDown) &&
+            !(modifiers & Qt::ShiftModifier)) {
+            modifiers |= Qt::AltModifier;
+        }
     }
     QKeyEvent event(QEvent::KeyPress, key, modifiers);
     QCoreApplication::sendEvent(&editor, &event);

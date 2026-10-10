@@ -133,7 +133,7 @@ std::optional<nlohmann::json> shortcutsOfFile(const nlohmann::json& file) {
     if (file.contains("shortcuts")) {
         const nlohmann::json& shortcuts = file.at("shortcuts");
         if (shortcuts.is_object()) {
-            return shortcuts;
+            return std::optional<nlohmann::json>(std::in_place, shortcuts);
         }
         return std::nullopt;
     }
@@ -143,7 +143,7 @@ std::optional<nlohmann::json> shortcutsOfFile(const nlohmann::json& file) {
             return std::nullopt;
         }
     }
-    return file;
+    return std::optional<nlohmann::json>(std::in_place, file);
 }
 
 } // namespace gui
