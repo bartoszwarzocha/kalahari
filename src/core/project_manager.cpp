@@ -717,9 +717,22 @@ const ProjectElement* ProjectManager::findElement(const QString& elementId) cons
 }
 
 QString ProjectManager::addElement(const KindRef& kind, const QString& title, BookPlace place,
-                                   const QString& groupId, qsizetype index) {
+                                   const QString& groupId, qsizetype index,
+                                   const QStringList& takeInside) {
     auto& logger = Logger::getInstance();
-    QList<ProjectElement>* list = listForNew(kind, place, groupId);
+    if (!m_project) {
+        logger.error("addElement: No project is open");
+        return QString();
+    }
+
+    // The project as it was comes back when the change cannot be saved. It shares its lists
+    // with the project until they change, so it is taken before any pointer into them.
+    const BookProject previous = *m_project;
+
+    // The place the writer chose, or the place of its kind
+    const ElementPlace at =
+        index < 0 ? newPlaceOf(kind, place, groupId) : ElementPlace{place, groupId, index};
+    QList<ProjectElement>* list = listForNew(kind, place, at.groupId);
     if (!list) {
         return QString();
     }
@@ -729,11 +742,29 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
                      kind.reference().toStdString());
         return QString();
     }
-    if (index > list->size()) {
-        logger.error("addElement: The list has no place {}", index);
+    if (at.index > list->size()) {
+        logger.error("addElement: The list has no place {}", at.index);
         return QString();
     }
-    const qsizetype at = index < 0 ? newIndexIn(*list, kind) : index;
+
+    // Only a group takes elements inside it: elements of the content of its part of the book,
+    // which has no groups, each once, and only those that can be inside it
+    const QList<const ProjectElement*> content =
+        takeInside.isEmpty() ? QList<const ProjectElement*>()
+                             : BookProject::contentOf(bookTypes(), m_project->elementsIn(place));
+    for (const QString& insideId : takeInside) {
+        const auto inside =
+            std::find_if(content.cbegin(), content.cend(), [&insideId](const ProjectElement* e) {
+                return e->id == insideId;
+            });
+        const KindRef insideKind = inside != content.cend() ? kindOf(**inside) : KindRef{};
+        if (kind.kind->form != ElementForm::Group || !insideKind ||
+            !insideKind.kind->allowsInside(kind.kind->id) || takeInside.count(insideId) > 1) {
+            logger.error("addElement: {} cannot go inside a new element of {}",
+                         insideId.toStdString(), kind.reference().toStdString());
+            return QString();
+        }
+    }
 
     ProjectElement element;
     element.id = m_project->newElementId();
@@ -748,50 +779,108 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
         }
     }
 
-    list->insert(at, element);
-    if (!saveManifest()) {
-        list->removeAt(at);
+    const auto restore = [this, &previous, &element]() {
+        *m_project = previous;
         if (!element.file.isEmpty()) {
             QFile::remove(filePathOf(element));
         }
         m_elementStates.remove(element.id);
+    };
+
+    // The elements it takes go inside it in order; it still goes before the element that was
+    // at its place, whose list can lose the elements it takes. The groups stay where they are,
+    // but their lists can move in memory.
+    qsizetype insertAt = at.index;
+    if (!takeInside.isEmpty()) {
+        QString beforeId;
+        for (qsizetype i = at.index; i < list->size() && beforeId.isEmpty(); ++i) {
+            if (!takeInside.contains(list->at(i).id)) {
+                beforeId = list->at(i).id;
+            }
+        }
+        for (const QString& insideId : takeInside) {
+            element.elements.append(*m_project->takeElement(insideId));
+        }
+        list = at.groupId.isEmpty() ? &m_project->elementsIn(place)
+                                    : &m_project->findElement(at.groupId)->elements;
+        insertAt = list->size();
+        for (qsizetype i = 0; i < list->size(); ++i) {
+            if (list->at(i).id == beforeId) {
+                insertAt = i;
+            }
+        }
+    }
+
+    list->insert(insertAt, element);
+    if (!saveManifest()) {
+        restore();
         return QString();
     }
 
-    logger.info("addElement: Added '{}' ({}, id: {})", title.toStdString(),
-                kind.reference().toStdString(), element.id.toStdString());
+    logger.info("addElement: Added '{}' ({}, id: {}) with {} elements inside it",
+                title.toStdString(), kind.reference().toStdString(), element.id.toStdString(),
+                takeInside.size());
     return element.id;
 }
 
 qsizetype ProjectManager::newIndexIn(const QList<ProjectElement>& elements,
                                      const KindRef& kind) const {
-    const KindPosition position = kind ? kind.kind->position : KindPosition::Any;
-    if (position == KindPosition::Start) {
-        return 0;
+    return BookProject::newIndexIn(bookTypes(), elements, kind);
+}
+
+ElementPlace ProjectManager::newPlaceOf(const KindRef& kind, BookPlace place,
+                                        const QString& groupId) const {
+    ElementPlace at{place, groupId, 0};
+    if (!m_project || !kind) {
+        return at;
     }
-    if (position == KindPosition::End) {
-        return elements.size();
+    const ProjectElement* group = groupId.isEmpty() ? nullptr : findElement(groupId);
+    if (!groupId.isEmpty() && !group) {
+        return at;
     }
-    qsizetype index = elements.size();
-    while (index > 0) {
-        const KindRef previous = kindOf(elements.at(index - 1));
-        if (!previous || previous.kind->position != KindPosition::End) {
-            break;
-        }
-        --index;
+    const QList<ProjectElement>& list = group ? group->elements : m_project->elementsIn(place);
+    at.index = newIndexIn(list, kind);
+
+    // In the body: before the elements that close it, also when they end a part
+    if (place != BookPlace::Main || group || kind.kind->position != KindPosition::Any ||
+        kind.kind->form == ElementForm::Group) {
+        return at;
     }
-    return index;
+    const QList<const ProjectElement*> closing = BookProject::closingElementsOf(bookTypes(), list);
+    const std::optional<ElementPlace> first =
+        closing.isEmpty() ? std::nullopt : m_project->placeOf(closing.first()->id);
+    if (!first) {
+        return at;
+    }
+    if (first->groupId.isEmpty()) {
+        at.index = first->index;
+        return at;
+    }
+    const QList<KindRef> kinds = kindsFor(place, first->groupId);
+    const bool fits = std::any_of(kinds.cbegin(), kinds.cend(), [&kind](const KindRef& offered) {
+        return offered.kind == kind.kind;
+    });
+    return fits ? *first : at;
 }
 
 QString ProjectManager::addFile(const QString& sourcePath, bool copy, const KindRef& kind,
-                                const QString& title, BookPlace place, const QString& groupId) {
+                                const QString& title, BookPlace place, const QString& groupId,
+                                qsizetype index) {
     auto& logger = Logger::getInstance();
-    QList<ProjectElement>* list = listForNew(kind, place, groupId);
+
+    // The place the writer chose, or the place of its kind
+    const ElementPlace at =
+        index < 0 ? newPlaceOf(kind, place, groupId) : ElementPlace{place, groupId, index};
+    QList<ProjectElement>* list = listForNew(kind, place, at.groupId);
     if (!list) {
         return QString();
     }
     if (kind.kind->form != ElementForm::Text) {
         logger.error("addFile: {} is not a kind of text", kind.reference().toStdString());
+        return QString();
+    }
+    if (at.index > list->size()) {
+        logger.error("addFile: The list has no place {}", at.index);
         return QString();
     }
     const StandaloneFile::Type fileType = StandaloneFile::typeOf(sourcePath);
@@ -832,10 +921,9 @@ QString ProjectManager::addFile(const QString& sourcePath, bool copy, const Kind
     }
 
     if (written) {
-        const qsizetype at = newIndexIn(*list, kind);
-        list->insert(at, element);
+        list->insert(at.index, element);
         if (!saveManifest()) {
-            list->removeAt(at);
+            list->removeAt(at.index);
             written = false;
         }
     }

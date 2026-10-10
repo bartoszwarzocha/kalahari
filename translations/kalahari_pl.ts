@@ -934,6 +934,201 @@ Uruchomić ponownie teraz?</translation>
     </message>
 </context>
 <context>
+    <name>SectionWords</name>
+    <message>
+        <source>at the beginning of the book</source>
+        <translation>na początku książki</translation>
+    </message>
+    <message>
+        <source>at the very beginning of the book</source>
+        <translation>na samym początku książki</translation>
+    </message>
+    <message>
+        <source>before the content of the book</source>
+        <translation>przed treścią książki</translation>
+    </message>
+    <message>
+        <source>in the content of the book</source>
+        <translation>w treści książki</translation>
+    </message>
+    <message>
+        <source>at the start of the content of the book</source>
+        <translation>na początku treści książki</translation>
+    </message>
+    <message>
+        <source>at the end of the content of the book</source>
+        <translation>na końcu treści książki</translation>
+    </message>
+    <message>
+        <source>at the end of the book</source>
+        <translation>na końcu książki</translation>
+    </message>
+    <message>
+        <source>after the content of the book</source>
+        <translation>za treścią książki</translation>
+    </message>
+    <message>
+        <source>at the very end of the book</source>
+        <translation>na samym końcu książki</translation>
+    </message>
+    <message>
+        <source>in the section &quot;%1&quot;</source>
+        <translation>w sekcji „%1”</translation>
+    </message>
+    <message>
+        <source>at the start of the section &quot;%1&quot;</source>
+        <translation>na początku sekcji „%1”</translation>
+    </message>
+    <message>
+        <source>at the end of the section &quot;%1&quot;</source>
+        <translation>na końcu sekcji „%1”</translation>
+    </message>
+    <message>
+        <source>in the front matter</source>
+        <translation>na stronach początkowych</translation>
+    </message>
+    <message>
+        <source>at the start of the front matter</source>
+        <translation>na początku stron początkowych</translation>
+    </message>
+    <message>
+        <source>at the end of the front matter</source>
+        <translation>na końcu stron początkowych</translation>
+    </message>
+    <message>
+        <source>in the body</source>
+        <translation>w tekście głównym</translation>
+    </message>
+    <message>
+        <source>at the start of the body</source>
+        <translation>na początku tekstu głównego</translation>
+    </message>
+    <message>
+        <source>at the end of the body</source>
+        <translation>na końcu tekstu głównego</translation>
+    </message>
+    <message>
+        <source>in the back matter</source>
+        <translation>na stronach końcowych</translation>
+    </message>
+    <message>
+        <source>at the start of the back matter</source>
+        <translation>na początku stron końcowych</translation>
+    </message>
+    <message>
+        <source>at the end of the back matter</source>
+        <translation>na końcu stron końcowych</translation>
+    </message>
+    <message>
+        <source>in the opening fragment</source>
+        <translation>we fragmencie początkowym</translation>
+    </message>
+    <message>
+        <source>at the start of the opening fragment</source>
+        <translation>na początku fragmentu początkowego</translation>
+    </message>
+    <message>
+        <source>at the end of the opening fragment</source>
+        <translation>na końcu fragmentu początkowego</translation>
+    </message>
+    <message>
+        <source>in the main fragment</source>
+        <translation>we fragmencie głównym</translation>
+    </message>
+    <message>
+        <source>at the start of the main fragment</source>
+        <translation>na początku fragmentu głównego</translation>
+    </message>
+    <message>
+        <source>at the end of the main fragment</source>
+        <translation>na końcu fragmentu głównego</translation>
+    </message>
+    <message>
+        <source>in the closing fragment</source>
+        <translation>we fragmencie końcowym</translation>
+    </message>
+    <message>
+        <source>at the start of the closing fragment</source>
+        <translation>na początku fragmentu końcowego</translation>
+    </message>
+    <message>
+        <source>at the end of the closing fragment</source>
+        <translation>na końcu fragmentu końcowego</translation>
+    </message>
+    <message>
+        <source>in the opening</source>
+        <translation>w otwarciu</translation>
+    </message>
+    <message>
+        <source>at the start of the opening</source>
+        <translation>na początku otwarcia</translation>
+    </message>
+    <message>
+        <source>at the end of the opening</source>
+        <translation>na końcu otwarcia</translation>
+    </message>
+    <message>
+        <source>in the development</source>
+        <translation>w rozwinięciu</translation>
+    </message>
+    <message>
+        <source>at the start of the development</source>
+        <translation>na początku rozwinięcia</translation>
+    </message>
+    <message>
+        <source>at the end of the development</source>
+        <translation>na końcu rozwinięcia</translation>
+    </message>
+    <message>
+        <source>in the closing</source>
+        <translation>w zamknięciu</translation>
+    </message>
+    <message>
+        <source>at the start of the closing</source>
+        <translation>na początku zamknięcia</translation>
+    </message>
+    <message>
+        <source>at the end of the closing</source>
+        <translation>na końcu zamknięcia</translation>
+    </message>
+    <message>
+        <source>in the front section</source>
+        <translation>w sekcji początkowej</translation>
+    </message>
+    <message>
+        <source>at the start of the front section</source>
+        <translation>na początku sekcji początkowej</translation>
+    </message>
+    <message>
+        <source>at the end of the front section</source>
+        <translation>na końcu sekcji początkowej</translation>
+    </message>
+    <message>
+        <source>in the main section</source>
+        <translation>w sekcji głównej</translation>
+    </message>
+    <message>
+        <source>at the start of the main section</source>
+        <translation>na początku sekcji głównej</translation>
+    </message>
+    <message>
+        <source>at the end of the main section</source>
+        <translation>na końcu sekcji głównej</translation>
+    </message>
+    <message>
+        <source>in the back section</source>
+        <translation>w sekcji końcowej</translation>
+    </message>
+    <message>
+        <source>at the start of the back section</source>
+        <translation>na początku sekcji końcowej</translation>
+    </message>
+    <message>
+        <source>at the end of the back section</source>
+        <translation>na końcu sekcji końcowej</translation>
+    </message>
+</context>
+<context>
     <name>TemplateRegistry</name>
     <message>
         <source>Novel</source>
@@ -3001,6 +3196,65 @@ Saving the chapter keeps only this text. Close it without saving to leave the fi
         <translation>Rozdział „%1” jest uszkodzony, dlatego widać tylko tekst sprzed uszkodzonego miejsca.
 
 Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, zamknij rozdział bez zapisywania.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ElementPlacePicker</name>
+    <message>
+        <source>Place</source>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Elsewhere: show the place in the list</source>
+        <translation>W innym miejscu – wskaż je na liście</translation>
+    </message>
+    <message>
+        <source>Click the element it is to go before</source>
+        <translation>Kliknij element, przed którym ma stanąć</translation>
+    </message>
+    <message>
+        <source>Move the element up</source>
+        <translation>Przesuń element wyżej</translation>
+    </message>
+    <message>
+        <source>Move the element down</source>
+        <translation>Przesuń element niżej</translation>
+    </message>
+    <message>
+        <source>Click the element it is to go before, or move it with the buttons %1.</source>
+        <translation>Kliknij element, przed którym ma stanąć, albo przesuń go przyciskami %1.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; will no longer be the first element %2.</source>
+        <translation>Element „%1” przestanie być pierwszy %2.</translation>
+    </message>
+    <message>
+        <source>%1 will no longer be the first elements %2.</source>
+        <translation>Elementy %1 przestaną być pierwsze %2.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; will no longer be the last element %2.</source>
+        <translation>Element „%1” przestanie być ostatni %2.</translation>
+    </message>
+    <message>
+        <source>%1 will no longer be the last elements %2.</source>
+        <translation>Elementy %1 przestaną być ostatnie %2.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; will not be the first element %2.</source>
+        <translation>Element „%1” nie będzie pierwszy %2.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; will not be the last element %2.</source>
+        <translation>Element „%1” nie będzie ostatni %2.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot;</source>
+        <translation>„%1”</translation>
+    </message>
+    <message>
+        <source>%1 and %2</source>
+        <translation>%1 i %2</translation>
     </message>
 </context>
 <context>
@@ -5124,32 +5378,16 @@ Harmonogram projektu:
         <translation>Dodaj rozdział</translation>
     </message>
     <message>
-        <source>The chapter is added as the last one in the part &quot;%1&quot;.</source>
-        <translation>Rozdział zostanie dodany jako ostatni w części „%1”.</translation>
-    </message>
-    <message>
         <source>Add Part</source>
         <translation>Dodaj część</translation>
-    </message>
-    <message>
-        <source>The part is added as the last one in the book.</source>
-        <translation>Część zostanie dodana jako ostatnia w książce.</translation>
     </message>
     <message>
         <source>Add Front Matter Item</source>
         <translation>Dodaj element części wstępnej</translation>
     </message>
     <message>
-        <source>The item is added as the last one in the front matter.</source>
-        <translation>Element zostanie dodany jako ostatni w części wstępnej.</translation>
-    </message>
-    <message>
         <source>Add Back Matter Item</source>
         <translation>Dodaj element części końcowej</translation>
-    </message>
-    <message>
-        <source>The item is added as the last one in the back matter.</source>
-        <translation>Element zostanie dodany jako ostatni w części końcowej.</translation>
     </message>
     <message>
         <source>Title</source>
@@ -5160,64 +5398,12 @@ Harmonogram projektu:
         <translation>Dodaj</translation>
     </message>
     <message>
-        <source>The chapter is added as the last one in the body of the book.</source>
-        <translation>Rozdział zostanie dodany jako ostatni w części głównej książki.</translation>
-    </message>
-    <message>
         <source>Kind</source>
         <translation>Rodzaj</translation>
     </message>
     <message>
-        <source>Place</source>
-        <translation>Miejsce</translation>
-    </message>
-    <message>
-        <source>Elsewhere: show the place in the list</source>
-        <translation>W innym miejscu – wskaż je na liście</translation>
-    </message>
-    <message>
-        <source>Click the element the new one is to go before</source>
-        <translation>Kliknij element, przed którym ma się znaleźć nowy</translation>
-    </message>
-    <message>
-        <source>Move the new element up</source>
-        <translation>Przesuń nowy element wyżej</translation>
-    </message>
-    <message>
-        <source>Move the new element down</source>
-        <translation>Przesuń nowy element niżej</translation>
-    </message>
-    <message>
-        <source>The chapter is added at the end of the part &quot;%1&quot;, before &quot;%2&quot;.</source>
-        <translation>Rozdział zostanie dodany na końcu części „%1”, przed „%2”.</translation>
-    </message>
-    <message>
-        <source>The chapter is added at the end of the body of the book, before &quot;%1&quot;.</source>
-        <translation>Rozdział zostanie dodany na końcu części głównej książki, przed „%1”.</translation>
-    </message>
-    <message>
-        <source>The part is added at the end of the book, before &quot;%1&quot;.</source>
-        <translation>Część zostanie dodana na końcu książki, przed „%1”.</translation>
-    </message>
-    <message>
         <source>Choose where the new element goes in the book.</source>
         <translation>Wybierz, gdzie w książce ma się znaleźć nowy element.</translation>
-    </message>
-    <message>
-        <source>The element is added as the first one in the body of the book.</source>
-        <translation>Element zostanie dodany jako pierwszy w części głównej książki.</translation>
-    </message>
-    <message>
-        <source>The element is added as the last one in the body of the book.</source>
-        <translation>Element zostanie dodany jako ostatni w części głównej książki.</translation>
-    </message>
-    <message>
-        <source>At the start of the body of the book</source>
-        <translation>Na początku części głównej</translation>
-    </message>
-    <message>
-        <source>At the end of the body of the book</source>
-        <translation>Na końcu części głównej</translation>
     </message>
     <message>
         <source>First in &quot;%1&quot;</source>
@@ -5226,6 +5412,102 @@ Harmonogram projektu:
     <message>
         <source>Last in &quot;%1&quot;</source>
         <translation>Jako ostatni element w „%1”</translation>
+    </message>
+    <message>
+        <source>After adding the part</source>
+        <translation>Po dodaniu części</translation>
+    </message>
+    <message>
+        <source>The list only shows how the book will look.</source>
+        <translation>Lista pokazuje tylko, jak będzie wyglądać książka.</translation>
+    </message>
+    <message>
+        <source>Move &quot;%1&quot; to the end of the new part</source>
+        <translation>Przenieś „%1” na koniec nowej części</translation>
+    </message>
+    <message>
+        <source>Move %1 to the end of the new part</source>
+        <translation>Przenieś %1 na koniec nowej części</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is now the last element %2. At the end of the new part it stays the last one.</source>
+        <translation>Element „%1” jest teraz ostatni %2. Na końcu nowej części nadal będzie ostatni.</translation>
+    </message>
+    <message>
+        <source>%1 are now the last elements %2. At the end of the new part they stay the last ones.</source>
+        <translation>Elementy %1 są teraz ostatnie %2. Na końcu nowej części nadal będą ostatnie.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; stays where it is, and the chapters added to the new part go after it.</source>
+        <translation>Element „%1” zostanie na swoim miejscu, a rozdziały dodane do nowej części staną za nim.</translation>
+    </message>
+    <message>
+        <source>%1 stay where they are, and the chapters added to the new part go after them.</source>
+        <translation>Elementy %1 zostaną na swoich miejscach, a rozdziały dodane do nowej części staną za nimi.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is the last element %2, so the new chapter goes before it, at the end of &quot;%3&quot;. You can choose another place.</source>
+        <translation>Element „%1” jest ostatni %2, więc nowy rozdział stanie przed nim, na końcu „%3”. Możesz wybrać inne miejsce.</translation>
+    </message>
+    <message>
+        <source>%1 are the last elements %2, so the new chapter goes before them, at the end of &quot;%3&quot;. You can choose another place.</source>
+        <translation>Elementy %1 są ostatnie %2, więc nowy rozdział stanie przed nimi, na końcu „%3”. Możesz wybrać inne miejsce.</translation>
+    </message>
+    <message>
+        <source>The element is added as the first one %1.</source>
+        <translation>Element zostanie dodany jako pierwszy %1.</translation>
+    </message>
+    <message>
+        <source>The element is added as the last one %1.</source>
+        <translation>Element zostanie dodany jako ostatni %1.</translation>
+    </message>
+    <message>
+        <source>The chapter is added as the last one in &quot;%1&quot;.</source>
+        <translation>Rozdział zostanie dodany jako ostatni w „%1”.</translation>
+    </message>
+    <message>
+        <source>The chapter is added at the end of &quot;%1&quot;, before &quot;%2&quot;.</source>
+        <translation>Rozdział zostanie dodany na końcu „%1”, przed „%2”.</translation>
+    </message>
+    <message>
+        <source>The chapter is added as the last one %1.</source>
+        <translation>Rozdział zostanie dodany jako ostatni %1.</translation>
+    </message>
+    <message>
+        <source>The chapter is added %1, before &quot;%2&quot;.</source>
+        <translation>Rozdział zostanie dodany %1, przed „%2”.</translation>
+    </message>
+    <message>
+        <source>The part is added %1.</source>
+        <translation>Część zostanie dodana %1.</translation>
+    </message>
+    <message>
+        <source>The part is added %1, after &quot;%2&quot;.</source>
+        <translation>Część zostanie dodana %1, za „%2”.</translation>
+    </message>
+    <message>
+        <source>The part is added %1, before &quot;%2&quot;.</source>
+        <translation>Część zostanie dodana %1, przed „%2”.</translation>
+    </message>
+    <message>
+        <source>The item is added as the last one %1.</source>
+        <translation>Element zostanie dodany jako ostatni %1.</translation>
+    </message>
+    <message>
+        <source>The item is added %1, before &quot;%2&quot;.</source>
+        <translation>Element zostanie dodany %1, przed „%2”.</translation>
+    </message>
+    <message>
+        <source>Before &quot;%1&quot;, at the end of &quot;%2&quot;</source>
+        <translation>Przed „%1”, na końcu „%2”</translation>
+    </message>
+    <message>
+        <source>%1, after &quot;%2&quot;</source>
+        <translation>%1, za „%2”</translation>
+    </message>
+    <message>
+        <source>%1, before &quot;%2&quot;</source>
+        <translation>%1, przed „%2”</translation>
     </message>
 </context>
 <context>

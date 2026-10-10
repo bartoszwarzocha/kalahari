@@ -183,6 +183,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/kalahari_dialog.cpp          # Base of the program's own dialogs
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/message_dialog.cpp           # Own messages, questions and typed texts
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_element_dialog.cpp       # New element of the book in the Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/section_words.cpp                    # Parts of the book in sentences
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/element_place_picker.cpp     # The place of an element in the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_item_dialog.cpp          # New Book dialog: the folder of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/item_templates.cpp           # Templates of the New Book dialog
@@ -236,6 +238,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT

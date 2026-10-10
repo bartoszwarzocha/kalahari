@@ -5,20 +5,17 @@
 #include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/settings_manager.h"
-#include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/widgets/element_place_picker.h"
 
+#include <QCheckBox>
 #include <QComboBox>
-#include <QEvent>
 #include <QHBoxLayout>
-#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QRadioButton>
-#include <QSignalBlocker>
-#include <QTreeWidget>
 #include <QVBoxLayout>
 
+#include <algorithm>
 #include <utility>
 
 namespace kalahari {
@@ -27,8 +24,62 @@ namespace dialogs {
 
 namespace {
 
-constexpr int PLACE_ROLE = Qt::UserRole;  ///< Index of the place before an element; -1: none
-constexpr int LIST_ROWS = 9;              ///< Rows the list of the body shows at the start
+constexpr int NOTICE_ICON_SIZE = 16;  ///< Size of the icon of the note about the place
+
+/// The part of the book an element of @p kind goes to
+core::BookPlace partOf(NewElementKind kind) {
+    switch (kind) {
+    case NewElementKind::FrontMatterItem:
+        return core::BookPlace::Front;
+    case NewElementKind::BackMatterItem:
+        return core::BookPlace::Back;
+    case NewElementKind::Chapter:
+    case NewElementKind::Part:
+        break;
+    }
+    return core::BookPlace::Main;
+}
+
+/// Element @p id of @p elements, at any depth
+const core::ProjectElement* findIn(const QList<core::ProjectElement>& elements,
+                                   const QString& id) {
+    for (const core::ProjectElement& element : elements) {
+        if (element.id == id) {
+            return &element;
+        }
+        if (const core::ProjectElement* inside = findIn(element.elements, id)) {
+            return inside;
+        }
+    }
+    return nullptr;
+}
+
+/// @p elements without the elements @p ids, at any depth
+QList<core::ProjectElement> without(QList<core::ProjectElement> elements,
+                                    const QStringList& ids) {
+    elements.removeIf(
+        [&ids](const core::ProjectElement& element) { return ids.contains(element.id); });
+    for (core::ProjectElement& element : elements) {
+        element.elements = without(element.elements, ids);
+    }
+    return elements;
+}
+
+QStringList titlesOf(const QList<core::ProjectElement>& elements) {
+    QStringList titles;
+    for (const core::ProjectElement& element : elements) {
+        titles << element.title;
+    }
+    return titles;
+}
+
+QStringList idsOf(const QList<core::ProjectElement>& elements) {
+    QStringList ids;
+    for (const core::ProjectElement& element : elements) {
+        ids << element.id;
+    }
+    return ids;
+}
 
 } // anonymous namespace
 
@@ -39,6 +90,8 @@ NewElementDialog::NewElementDialog(NewElementKind kind, const QList<NewElementCh
     , m_groupTitle(groupTitle)
     , m_choices(choices)
     , m_current(choices.isEmpty() ? -1 : qBound(0, current, static_cast<int>(choices.size()) - 1))
+    , m_part(partOf(kind))
+    , m_words(SectionWords::forPart(nullptr, partOf(kind)))
 {
     switch (kind) {
     case NewElementKind::Chapter:
@@ -73,79 +126,52 @@ NewElementDialog::NewElementDialog(NewElementKind kind, const QList<NewElementCh
     addField(tr("Title"), m_titleEdit);
     connect(m_titleEdit, &QLineEdit::textEdited, this, [this]() { m_titleChanged = true; });
     connect(m_titleEdit, &QLineEdit::textChanged, this, &NewElementDialog::updateAcceptButton);
-    connect(m_titleEdit, &QLineEdit::textChanged, this, [this]() {
-        if (m_newItem) {
-            m_newItem->setText(0, title());
-        }
-    });
+    connect(m_titleEdit, &QLineEdit::textChanged, this, [this]() { m_picker->setTitle(title()); });
 
-    // The place of a prologue or an epilogue: the options, and the list of the body with the
-    // new element in its place
-    m_placeBox = new QWidget(this);
-    auto* placeLayout = new QVBoxLayout(m_placeBox);
-    placeLayout->setContentsMargins(0, 0, 0, 0);
-    placeLayout->setSpacing(4);
-    auto* placeLabel = new QLabel(tr("Place"), m_placeBox);
-    placeLabel->setTextFormat(Qt::PlainText);
-    placeLayout->addWidget(placeLabel);
+    // A new part takes inside it the elements that close the body, if the writer wants
+    m_takeBox = new QCheckBox(this);
+    m_takeBox->setChecked(true);
+    m_takeBox->hide();
+    contentLayout()->addWidget(m_takeBox);
+    connect(m_takeBox, &QCheckBox::toggled, this, &NewElementDialog::updatePart);
 
-    m_firstButton = new QRadioButton(m_placeBox);
-    m_groupButton = new QRadioButton(m_placeBox);
-    m_elsewhereButton = new QRadioButton(tr("Elsewhere: show the place in the list"), m_placeBox);
-    placeLabel->setBuddy(m_firstButton);
-    placeLayout->addWidget(m_firstButton);
-    placeLayout->addWidget(m_groupButton);
-    placeLayout->addWidget(m_elsewhereButton);
-    connect(m_firstButton, &QRadioButton::clicked, this, [this]() { moveTo(m_firstOption); });
-    connect(m_groupButton, &QRadioButton::clicked, this, [this]() { moveTo(m_groupOption); });
-    connect(m_elsewhereButton, &QRadioButton::clicked, this, [this]() {
-        m_placeList->setFocus();
-    });
+    // What the dialog notes about the place
+    m_noticeBox = new QWidget(this);
+    auto* noticeLayout = new QHBoxLayout(m_noticeBox);
+    noticeLayout->setContentsMargins(0, 0, 0, 0);
+    noticeLayout->setSpacing(8);
+    m_noticeIcon = new QLabel(m_noticeBox);
+    m_noticeIcon->setAlignment(Qt::AlignTop);
+    noticeLayout->addWidget(m_noticeIcon);
+    m_noticeText = new QLabel(m_noticeBox);
+    m_noticeText->setTextFormat(Qt::PlainText);
+    m_noticeText->setWordWrap(true);
+    noticeLayout->addWidget(m_noticeText, 1);
+    m_noticeBox->hide();
+    contentLayout()->addWidget(m_noticeBox);
 
-    auto* listRow = new QHBoxLayout();
-    listRow->setSpacing(6);
-    m_placeList = new QTreeWidget(m_placeBox);
-    m_placeList->setHeaderHidden(true);
-    m_placeList->setRootIsDecorated(false);
-    m_placeList->setItemsExpandable(false);
-    m_placeList->setMinimumHeight(m_placeList->fontMetrics().height() * LIST_ROWS);
-    m_placeList->setToolTip(tr("Click the element the new one is to go before"));
-    m_placeList->installEventFilter(this);
-    connect(m_placeList, &QTreeWidget::itemClicked, this, &NewElementDialog::onElementClicked);
-    listRow->addWidget(m_placeList, 1);
-
-    auto& artProvider = core::ArtProvider::getInstance();
-    auto* moveButtons = new QVBoxLayout();
-    moveButtons->setSpacing(6);
-    m_upButton = new QPushButton(m_placeBox);
-    m_upButton->setIcon(artProvider.getIcon(QStringLiteral("navigation.up"),
-                                            core::IconContext::Button));
-    m_upButton->setToolTip(tr("Move the new element up"));
-    m_upButton->setAutoRepeat(true);
-    m_upButton->setAutoDefault(false);
-    m_downButton = new QPushButton(m_placeBox);
-    m_downButton->setIcon(artProvider.getIcon(QStringLiteral("navigation.down"),
-                                              core::IconContext::Button));
-    m_downButton->setToolTip(tr("Move the new element down"));
-    m_downButton->setAutoRepeat(true);
-    m_downButton->setAutoDefault(false);
-    connect(m_upButton, &QPushButton::clicked, this, [this]() { moveTo(m_place - 1); });
-    connect(m_downButton, &QPushButton::clicked, this, [this]() { moveTo(m_place + 1); });
-    moveButtons->addWidget(m_upButton);
-    moveButtons->addWidget(m_downButton);
-    moveButtons->addStretch(1);
-    listRow->addLayout(moveButtons);
-    placeLayout->addLayout(listRow, 1);
+    // The place: the part of the book with the new element in it. A new part only shows
+    // the body as it will be.
+    m_picker = new ElementPlacePicker(this);
+    if (kind == NewElementKind::Part) {
+        m_picker->setLabel(tr("After adding the part"));
+        m_picker->setPreview(true);
+    }
+    contentLayout()->addWidget(m_picker, 1);
+    m_previewNote = new QLabel(tr("The list only shows how the book will look."), this);
+    m_previewNote->setTextFormat(Qt::PlainText);
+    m_previewNote->setWordWrap(true);
+    m_previewNote->hide();
+    contentLayout()->addWidget(m_previewNote);
 
     // The list takes the room of a resized dialog; without it the room stays under the fields
-    contentLayout()->addWidget(m_placeBox, 1);
-    m_placeStretch = contentLayout()->count();
+    m_pickerStretch = contentLayout()->count();
     contentLayout()->addStretch(1);
-    m_placeBox->hide();
+    m_picker->hide();
 
     setAcceptText(tr("Add"));
     updateAcceptButton();
-    updateDescription();
+    updatePlaces();
 
     // The writer starts with what the element is: its kind, or straight away its title
     if (m_kindBox) {
@@ -155,10 +181,14 @@ NewElementDialog::NewElementDialog(NewElementKind kind, const QList<NewElementCh
     }
 }
 
-void NewElementDialog::setBody(const QList<core::ProjectElement>& elements,
-                               const core::BookTypeRegistry& registry, const QString& groupId)
+void NewElementDialog::setSection(const QList<core::ProjectElement>& elements,
+                                  const QString& name, const SectionWords& words,
+                                  const core::BookTypeRegistry& registry,
+                                  const QString& groupId)
 {
-    m_body = elements;
+    m_elements = elements;
+    m_sectionName = name;
+    m_words = words;
     m_registry = &registry;
     m_openedOn = groupId;
     updatePlaces();
@@ -174,25 +204,15 @@ QString NewElementDialog::title() const
     return m_titleEdit->text().trimmed();
 }
 
-std::optional<NewElementPlace> NewElementDialog::place() const
+core::ElementPlace NewElementDialog::place() const
 {
-    if (m_place < 0 || m_place >= m_places.size()) {
-        return std::nullopt;
-    }
-    return m_places.at(m_place);
+    return m_choosing ? m_picker->place() : defaultPlace();
 }
 
-bool NewElementDialog::eventFilter(QObject* watched, QEvent* event)
+QStringList NewElementDialog::takeInside() const
 {
-    if (watched == m_placeList && event->type() == QEvent::KeyPress) {
-        const auto* key = static_cast<QKeyEvent*>(event);
-        if (key->modifiers() == Qt::NoModifier &&
-            (key->key() == Qt::Key_Up || key->key() == Qt::Key_Down)) {
-            moveTo(m_place + (key->key() == Qt::Key_Up ? -1 : 1));
-            return true;
-        }
-    }
-    return KalahariDialog::eventFilter(watched, event);
+    const bool taken = m_dialogKind == NewElementKind::Part && m_canTake && m_takeBox->isChecked();
+    return taken ? idsOf(m_closing) : QStringList();
 }
 
 void NewElementDialog::onKindChanged()
@@ -209,137 +229,71 @@ void NewElementDialog::updateAcceptButton()
     acceptButton()->setEnabled(!title().isEmpty() && kind());
 }
 
-void NewElementDialog::updateDescription()
-{
-    const core::KindRef chosen = kind();
-    const core::KindPosition position =
-        chosen ? chosen.kind->position : core::KindPosition::Any;
-    const QString before = m_current >= 0 ? m_choices.at(m_current).before : QString();
-
-    QString heading;
-    QString description;
-    switch (m_dialogKind) {
-    case NewElementKind::Chapter:
-        heading = tr("Add Chapter");
-        if (!m_groupTitle.isEmpty()) {
-            description =
-                before.isEmpty()
-                    ? tr("The chapter is added as the last one in the part \"%1\".")
-                          .arg(m_groupTitle)
-                    : tr("The chapter is added at the end of the part \"%1\", before \"%2\".")
-                          .arg(m_groupTitle, before);
-        } else {
-            description =
-                before.isEmpty()
-                    ? tr("The chapter is added as the last one in the body of the book.")
-                    : tr("The chapter is added at the end of the body of the book, before "
-                         "\"%1\".")
-                          .arg(before);
-        }
-        break;
-    case NewElementKind::Part:
-        heading = tr("Add Part");
-        description = before.isEmpty()
-                          ? tr("The part is added as the last one in the book.")
-                          : tr("The part is added at the end of the book, before \"%1\".")
-                                .arg(before);
-        break;
-    case NewElementKind::FrontMatterItem:
-        heading = tr("Add Front Matter Item");
-        description = tr("The item is added as the last one in the front matter.");
-        break;
-    case NewElementKind::BackMatterItem:
-        heading = tr("Add Back Matter Item");
-        description = tr("The item is added as the last one in the back matter.");
-        break;
-    }
-
-    // A prologue opens the body of the book and an epilogue closes it, unless the writer
-    // chooses its place
-    const bool body =
-        m_dialogKind == NewElementKind::Chapter || m_dialogKind == NewElementKind::Part;
-    if (!m_places.isEmpty()) {
-        description = tr("Choose where the new element goes in the book.");
-    } else if (body && position == core::KindPosition::Start) {
-        description = tr("The element is added as the first one in the body of the book.");
-    } else if (body && position == core::KindPosition::End) {
-        description = tr("The element is added as the last one in the body of the book.");
-    }
-    setHeading(heading, description);
-}
-
-bool NewElementDialog::canBeInside(const core::ProjectElement& element) const
-{
-    const core::KindRef chosen = kind();
-    return m_registry && chosen &&
-           core::BookProject::formOf(*m_registry, element) == core::ElementForm::Group &&
-           chosen.kind->allowsInside(element.kind.kindId);
-}
-
 void NewElementDialog::updatePlaces()
 {
-    m_places.clear();
-    m_place = -1;
-    m_firstOption = -1;
-    m_groupOption = -1;
+    if (m_dialogKind == NewElementKind::Part) {
+        updatePart();
+        return;
+    }
 
+    m_choosing = false;
+    m_beforeClosing = false;
     const core::KindRef chosen = kind();
-    const core::KindPosition position =
-        chosen ? chosen.kind->position : core::KindPosition::Any;
-    if (m_registry && position != core::KindPosition::Any) {
-        const bool start = position == core::KindPosition::Start;
-
-        // The places in reading order: before each element of the body and, in a group that
-        // can have the element, before each of its elements and at its end; then the end
-        const core::ProjectElement* firstGroup = nullptr;
-        const core::ProjectElement* lastGroup = nullptr;
-        for (qsizetype i = 0; i <= m_body.size(); ++i) {
-            m_places.append({QString(), i});
-            if (i == m_body.size() || !canBeInside(m_body.at(i))) {
-                continue;
-            }
-            const core::ProjectElement& group = m_body.at(i);
-            if (!firstGroup) {
-                firstGroup = &group;
-            }
-            lastGroup = &group;
-            for (qsizetype j = 0; j <= group.elements.size(); ++j) {
-                m_places.append({group.id, j});
-            }
-        }
-
-        // The start of the body and of its first group, or the end of the body and of its
-        // last group
-        m_firstOption = start ? 0 : m_places.size() - 1;
-        m_firstButton->setText(start ? tr("At the start of the body of the book")
-                                     : tr("At the end of the body of the book"));
-        if (const core::ProjectElement* group = start ? firstGroup : lastGroup) {
-            m_groupOption = m_places.indexOf(
-                NewElementPlace{group->id, start ? 0 : group->elements.size()});
-            m_groupButton->setText(start ? tr("First in \"%1\"").arg(group->title)
-                                         : tr("Last in \"%1\"").arg(group->title));
-        }
-
-        // The dialog starts with the start (or the end) of the group it was opened on
-        m_place = m_firstOption;
-        for (const core::ProjectElement& element : std::as_const(m_body)) {
-            if (element.id == m_openedOn && canBeInside(element)) {
-                m_place = m_places.indexOf(
-                    NewElementPlace{element.id, start ? 0 : element.elements.size()});
-            }
-        }
+    const core::ElementPlace usual = defaultPlace();
+    if (m_registry && chosen) {
+        m_picker->setBook({{m_part, m_sectionName, m_words.inPart, m_elements}}, *m_registry);
+        m_picker->setElement(chosen, title());
     }
 
-    const bool shown = !m_places.isEmpty();
-    m_groupButton->setVisible(m_groupOption >= 0);
-    m_placeBox->setVisible(shown);
-    contentLayout()->setStretch(m_placeStretch, shown ? 0 : 1);
-    if (shown) {
-        showPlace();
-    } else {
-        m_placeList->clear();
-        m_newItem = nullptr;
+    QList<PlaceOption> options;
+    const bool placed = m_registry && chosen && !m_picker->places().isEmpty();
+    if (placed && chosen.kind->position != core::KindPosition::Any) {
+        // A prologue at the start of the part or first in its first group; an epilogue at
+        // the end of the part or last in its last group; or anywhere else
+        const bool start = chosen.kind->position == core::KindPosition::Start;
+        const core::ElementPlace edge{m_part, QString(), start ? 0 : m_elements.size()};
+        if (m_picker->canBeAt(edge)) {
+            options.append(
+                {SectionWords::capitalized(start ? m_words.atStart : m_words.atEnd), edge});
+        }
+        const core::ProjectElement* group = nullptr;
+        for (const core::ProjectElement& element : std::as_const(m_elements)) {
+            if (m_picker->canBeAt({m_part, element.id, 0}) && (!start || !group)) {
+                group = &element;
+            }
+        }
+        if (group) {
+            options.append({start ? tr("First in \"%1\"").arg(group->title)
+                                  : tr("Last in \"%1\"").arg(group->title),
+                            {m_part, group->id, start ? 0 : group->elements.size()}});
+        }
+        m_choosing = true;
+    } else if (placed) {
+        m_picker->setPlace(usual);
+        if (m_openedOn.isEmpty() && !usual.groupId.isEmpty() && m_picker->place() == usual) {
+            // A chapter of the body goes before the epilogue that ends the last part, or the
+            // writer puts it at the end of the body
+            const core::ElementPlace end{
+                m_part, QString(), core::BookProject::newIndexIn(*m_registry, m_elements, chosen)};
+            options.append({placeText(usual), usual});
+            if (m_picker->canBeAt(end)) {
+                options.append({placeText(end), end});
+            }
+            m_choosing = true;
+            m_beforeClosing = true;
+        } else if (!m_picker->warnings().isEmpty()) {
+            // The place of its kind makes another element stop opening or closing the part:
+            // the writer sees it, and can choose another place
+            options.append({placeText(usual), usual});
+            m_choosing = true;
+        }
     }
+    m_picker->setOptions(options);
+    m_picker->setPlace(m_picker->canBeAt(usual) || options.isEmpty() ? usual
+                                                                     : options.first().place);
+
+    m_picker->setVisible(m_choosing);
+    contentLayout()->setStretch(m_pickerStretch, m_choosing ? 0 : 1);
     updateDescription();
 
     // A dialog on the screen takes the height of what it shows now
@@ -348,98 +302,231 @@ void NewElementDialog::updatePlaces()
     }
 }
 
-void NewElementDialog::showPlace()
+void NewElementDialog::updatePart()
 {
-    auto& artProvider = core::ArtProvider::getInstance();
-    const NewElementPlace chosen = m_places.at(m_place);
-    const core::KindRef newKind = kind();
+    const core::KindRef chosen = kind();
+    const core::ElementPlace usual = defaultPlace();
 
-    m_placeList->clear();
-    m_newItem = nullptr;
-
-    // The new element, in the font of the list made bold, and selected
-    const auto addNew = [&](QTreeWidgetItem* parent) {
-        auto* item = parent ? new QTreeWidgetItem(parent) : new QTreeWidgetItem(m_placeList);
-        item->setText(0, title());
-        const QString iconId = newKind && !newKind.kind->icon.isEmpty()
-                                   ? newKind.kind->icon
-                                   : QStringLiteral("template.chapter");
-        item->setIcon(0, artProvider.getIcon(iconId, core::IconContext::TreeView));
-        QFont font = m_placeList->font();
-        font.setBold(true);
-        item->setFont(0, font);
-        item->setData(0, PLACE_ROLE, -1);
-        item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
-        m_newItem = item;
-    };
-
-    // An element of the book: clicking it puts the new element before it, if it can go there
-    const auto addElement = [&](QTreeWidgetItem* parent, const core::ProjectElement& element,
-                                const NewElementPlace& before) {
-        auto* item = parent ? new QTreeWidgetItem(parent) : new QTreeWidgetItem(m_placeList);
-        item->setText(0, element.title);
-        item->setIcon(0, artProvider.getIcon(NavigatorPanel::iconIdOf(*m_registry, element),
-                                             core::IconContext::TreeView));
-        item->setData(0, PLACE_ROLE, static_cast<qlonglong>(m_places.indexOf(before)));
-        item->setFlags(Qt::ItemIsEnabled);
-        return item;
-    };
-
-    for (qsizetype i = 0; i <= m_body.size(); ++i) {
-        if (chosen == NewElementPlace{QString(), i}) {
-            addNew(nullptr);
-        }
-        if (i == m_body.size()) {
-            break;
-        }
-        const core::ProjectElement& element = m_body.at(i);
-        QTreeWidgetItem* item = addElement(nullptr, element, {QString(), i});
-        for (qsizetype j = 0; j <= element.elements.size(); ++j) {
-            if (chosen == NewElementPlace{element.id, j}) {
-                addNew(item);
-            }
-            if (j < element.elements.size()) {
-                addElement(item, element.elements.at(j), {element.id, j});
+    // The elements that close the body at the end of the groups before the new part, and
+    // whether the part can have them inside it
+    m_closing.clear();
+    m_canTake = false;
+    if (m_registry && chosen) {
+        const qsizetype before = qMin(usual.index, m_elements.size());
+        for (const core::ProjectElement* element :
+             core::BookProject::closingElementsOf(*m_registry, m_elements)) {
+            for (qsizetype i = 0; i < before; ++i) {
+                if (findIn(m_elements.at(i).elements, element->id)) {
+                    m_closing.append(*element);
+                    break;
+                }
             }
         }
+        m_canTake = !m_closing.isEmpty() &&
+                    std::all_of(m_closing.cbegin(), m_closing.cend(),
+                                [this, &chosen](const core::ProjectElement& element) {
+                                    const core::KindRef inside =
+                                        core::BookProject::kindOf(*m_registry, element);
+                                    return inside && inside.kind->allowsInside(chosen.kind->id);
+                                });
     }
-    m_placeList->expandAll();
-    if (m_newItem) {
-        m_placeList->setCurrentItem(m_newItem);
-        m_placeList->scrollToItem(m_newItem);
+    const QStringList titles = titlesOf(m_closing);
+    const QString named = ElementPlacePicker::quoted(titles);
+    const bool one = titles.size() == 1;
+    m_takeBox->setText(one ? tr("Move \"%1\" to the end of the new part").arg(titles.value(0))
+                           : tr("Move %1 to the end of the new part").arg(named));
+    m_takeBox->setVisible(m_canTake);
+    const bool taken = m_canTake && m_takeBox->isChecked();
+
+    if (m_closing.isEmpty()) {
+        showNotice(QString(), QString());
+    } else if (taken) {
+        //: In Polish: Element „%1” jest teraz ostatni %2. Na końcu nowej części nadal będzie
+        //: ostatni.
+        showNotice(QStringLiteral("help.about"),
+                   one ? tr("\"%1\" is now the last element %2. At the end of the new part it "
+                            "stays the last one.")
+                             .arg(titles.first(), m_words.inPart)
+                       //: In Polish: Elementy %1 są teraz ostatnie %2. Na końcu nowej części
+                       //: nadal będą ostatnie.
+                       : tr("%1 are now the last elements %2. At the end of the new part they "
+                            "stay the last ones.")
+                             .arg(named, m_words.inPart));
+    } else {
+        //: In Polish: Element „%1” zostanie na swoim miejscu, a rozdziały dodane do nowej
+        //: części staną za nim.
+        showNotice(QStringLiteral("common.warning"),
+                   one ? tr("\"%1\" stays where it is, and the chapters added to the new part "
+                            "go after it.")
+                             .arg(titles.first())
+                       //: In Polish: Elementy %1 zostaną na swoich miejscach, a rozdziały
+                       //: dodane do nowej części staną za nimi.
+                       : tr("%1 stay where they are, and the chapters added to the new part go "
+                            "after them.")
+                             .arg(named));
     }
 
-    // The option of the place: one of the first two, or any other place
-    {
-        const QSignalBlocker first(m_firstButton);
-        const QSignalBlocker group(m_groupButton);
-        const QSignalBlocker elsewhere(m_elsewhereButton);
-        if (m_place == m_firstOption) {
-            m_firstButton->setChecked(true);
-        } else if (m_place == m_groupOption) {
-            m_groupButton->setChecked(true);
+    // The body as it will be
+    if (m_registry && chosen) {
+        const QList<core::ProjectElement> body =
+            taken ? without(m_elements, idsOf(m_closing)) : m_elements;
+        m_picker->setBook({{m_part, m_sectionName, m_words.inPart, body}}, *m_registry);
+        m_picker->setElement(chosen, title(), taken ? m_closing : QList<core::ProjectElement>());
+        m_picker->setPlace(usual);
+    }
+    const bool shown = m_registry && chosen && !m_picker->places().isEmpty();
+    m_picker->setVisible(shown);
+    m_previewNote->setVisible(shown);
+    contentLayout()->setStretch(m_pickerStretch, shown ? 0 : 1);
+    updateDescription();
+
+    if (isVisible()) {
+        adjustSize();
+    }
+}
+
+void NewElementDialog::updateDescription()
+{
+    const core::KindRef chosen = kind();
+    const core::KindPosition position =
+        chosen ? chosen.kind->position : core::KindPosition::Any;
+    const core::ElementPlace usual = defaultPlace();
+    const core::ProjectElement* group = usual.groupId.isEmpty() ? nullptr : groupOf(usual.groupId);
+    const QList<core::ProjectElement>* list =
+        group ? &group->elements : (usual.groupId.isEmpty() ? &m_elements : nullptr);
+    const QString before = list && usual.index >= 0 && usual.index < list->size()
+                               ? list->at(usual.index).title
+                               : QString();
+    const QString choose = tr("Choose where the new element goes in the book.");
+
+    QString heading;
+    QString description;
+    switch (m_dialogKind) {
+    case NewElementKind::Chapter:
+        heading = tr("Add Chapter");
+        if (m_beforeClosing && m_registry) {
+            QStringList closing;
+            for (const core::ProjectElement* element :
+                 core::BookProject::closingElementsOf(*m_registry, m_elements)) {
+                closing << element->title;
+            }
+            const QString groupTitle = group ? group->title : QString();
+            description =
+                closing.size() == 1
+                    //: %2: the body with its preposition, "in the main section". In Polish:
+                    //: Element „%1” jest ostatni %2, więc nowy rozdział stanie przed nim, na
+                    //: końcu „%3”. Możesz wybrać inne miejsce.
+                    ? tr("\"%1\" is the last element %2, so the new chapter goes before it, at "
+                         "the end of \"%3\". You can choose another place.")
+                          .arg(closing.first(), m_words.inPart, groupTitle)
+                    //: In Polish: Elementy %1 są ostatnie %2, więc nowy rozdział stanie przed
+                    //: nimi, na końcu „%3”. Możesz wybrać inne miejsce.
+                    : tr("%1 are the last elements %2, so the new chapter goes before them, at "
+                         "the end of \"%3\". You can choose another place.")
+                          .arg(ElementPlacePicker::quoted(closing), m_words.inPart, groupTitle);
+        } else if (m_choosing) {
+            description = choose;
+        } else if (position == core::KindPosition::Start) {
+            description = tr("The element is added as the first one %1.").arg(m_words.inPart);
+        } else if (position == core::KindPosition::End) {
+            description = tr("The element is added as the last one %1.").arg(m_words.inPart);
+        } else if (!m_groupTitle.isEmpty()) {
+            description =
+                before.isEmpty()
+                    ? tr("The chapter is added as the last one in \"%1\".").arg(m_groupTitle)
+                    : tr("The chapter is added at the end of \"%1\", before \"%2\".")
+                          .arg(m_groupTitle, before);
         } else {
-            m_elsewhereButton->setChecked(true);
+            description =
+                before.isEmpty()
+                    //: %1: the body with its preposition, "in the main section"
+                    ? tr("The chapter is added as the last one %1.").arg(m_words.inPart)
+                    //: %1: where in the body, "at the end of the main section". In Polish:
+                    //: Rozdział zostanie dodany %1, przed „%2”.
+                    : tr("The chapter is added %1, before \"%2\".").arg(m_words.atEnd, before);
         }
+        break;
+    case NewElementKind::Part:
+        heading = tr("Add Part");
+        if (m_elements.isEmpty()) {
+            //: %1: where in the body, "at the end of the main section". In Polish: Część
+            //: zostanie dodana %1.
+            description = tr("The part is added %1.").arg(m_words.atEnd);
+        } else if (before.isEmpty()) {
+            //: In Polish: Część zostanie dodana %1, za „%2”.
+            description = tr("The part is added %1, after \"%2\".")
+                              .arg(m_words.atEnd, m_elements.last().title);
+        } else {
+            //: In Polish: Część zostanie dodana %1, przed „%2”.
+            description = tr("The part is added %1, before \"%2\".").arg(m_words.atEnd, before);
+        }
+        break;
+    case NewElementKind::FrontMatterItem:
+    case NewElementKind::BackMatterItem:
+        heading = m_dialogKind == NewElementKind::FrontMatterItem ? tr("Add Front Matter Item")
+                                                                  : tr("Add Back Matter Item");
+        if (m_choosing) {
+            description = choose;
+        } else if (before.isEmpty()) {
+            //: %1: a part of the book with its preposition, "in the front section"
+            description = tr("The item is added as the last one %1.").arg(m_words.inPart);
+        } else {
+            //: %1: where in a part of the book, "at the end of the front section". In Polish:
+            //: Element zostanie dodany %1, przed „%2”.
+            description = tr("The item is added %1, before \"%2\".").arg(m_words.atEnd, before);
+        }
+        break;
     }
-    m_upButton->setEnabled(m_place > 0);
-    m_downButton->setEnabled(m_place < m_places.size() - 1);
+    setHeading(heading, description);
 }
 
-void NewElementDialog::moveTo(qsizetype index)
+QString NewElementDialog::placeText(const core::ElementPlace& place) const
 {
-    if (index < 0 || index >= m_places.size() || index == m_place) {
-        return;
+    if (!place.groupId.isEmpty()) {
+        const core::ProjectElement* group = groupOf(place.groupId);
+        if (!group) {
+            return QString();
+        }
+        if (place.index >= group->elements.size()) {
+            return tr("Last in \"%1\"").arg(group->title);
+        }
+        //: %1: the element the new one goes before; %2: the part it is in
+        return tr("Before \"%1\", at the end of \"%2\"")
+            .arg(group->elements.at(place.index).title, group->title);
     }
-    m_place = index;
-    showPlace();
+    if (m_elements.isEmpty()) {
+        return SectionWords::capitalized(m_words.atEnd);
+    }
+    const QString atEnd = SectionWords::capitalized(m_words.atEnd);
+    if (place.index >= m_elements.size()) {
+        //: An option: %1 is where in a part of the book, "At the end of the main section"; %2
+        //: is the title of its last element. In Polish: %1, za „%2”
+        return tr("%1, after \"%2\"").arg(atEnd, m_elements.last().title);
+    }
+    //: An option: %1 is where in a part of the book, "At the end of the main section"; %2 is the
+    //: title of the element the new one goes before. In Polish: %1, przed „%2”
+    return tr("%1, before \"%2\"").arg(atEnd, m_elements.at(place.index).title);
 }
 
-void NewElementDialog::onElementClicked(QTreeWidgetItem* item)
+const core::ProjectElement* NewElementDialog::groupOf(const QString& id) const
 {
-    if (item && item != m_newItem) {
-        moveTo(item->data(0, PLACE_ROLE).toLongLong());
-    }
+    return findIn(m_elements, id);
+}
+
+core::ElementPlace NewElementDialog::defaultPlace() const
+{
+    return m_current >= 0 ? m_choices.at(m_current).place
+                          : core::ElementPlace{m_part, QString(), 0};
+}
+
+void NewElementDialog::showNotice(const QString& iconId, const QString& text)
+{
+    m_noticeText->setText(text);
+    m_noticeIcon->setPixmap(iconId.isEmpty()
+                                ? QPixmap()
+                                : core::ArtProvider::getInstance().getIcon(iconId).pixmap(
+                                      NOTICE_ICON_SIZE, NOTICE_ICON_SIZE));
+    m_noticeBox->setVisible(!text.isEmpty());
 }
 
 } // namespace dialogs

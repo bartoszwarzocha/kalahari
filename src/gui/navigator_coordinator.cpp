@@ -10,6 +10,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/section_words.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/art_provider.h"
@@ -540,56 +541,41 @@ void NavigatorCoordinator::addElement(dialogs::NewElementKind dialogKind,
         return;
     }
 
-    // The list the dialog was opened on: a part of the book or a group
+    // The part of the book the dialog was opened on, or a group in it
     const core::BookProject* project = pm.project();
-    const core::ProjectElement* group = groupId.isEmpty() ? nullptr : pm.findElement(groupId);
-    if (!project || (!groupId.isEmpty() && !group)) {
+    const core::ProjectBook* book = pm.book();
+    if (!project || !book || (!groupId.isEmpty() && !pm.findElement(groupId))) {
         logger.warn("NavigatorCoordinator: No list to add to");
         return;
     }
-    const QList<core::ProjectElement>& list = group ? group->elements : project->elementsIn(place);
 
-    // Each kind with the title its new element starts with ("Chapter 3") and the element it
-    // goes before when it does not go last (a chapter goes before the epilogue)
+    // Each kind with the title its new element starts with ("Chapter 3") and its place (a
+    // chapter of the body goes before the epilogue that ends the book)
     QList<dialogs::NewElementChoice> choices;
     int currentIndex = 0;
     for (const core::KindRef& kind : kinds) {
         if (kind.kind == current.kind) {
             currentIndex = static_cast<int>(choices.size());
         }
-        const qsizetype index = pm.newIndexIn(list, kind);
-        choices.append({kind, pm.defaultTitle(kind),
-                        index < list.size() ? list.at(index).title : QString()});
+        choices.append({kind, pm.defaultTitle(kind), pm.newPlaceOf(kind, place, groupId)});
     }
 
+    // The dialog shows where the element goes in its part of the book, and lets the writer
+    // choose another place; a book without sections has no rows of its parts
     dialogs::NewElementDialog dialog(dialogKind, choices, currentIndex, groupTitle,
                                      qobject_cast<QWidget*>(parent()));
-
-    // With the parts layer, the writer chooses where a prologue or an epilogue goes
-    const core::ProjectBook* book = pm.book();
-    if (place == core::BookPlace::Main && book && book->partsLayer) {
-        dialog.setBody(book->mainElements, pm.bookTypes(), groupId);
-    }
+    dialog.setSection(project->elementsIn(place),
+                      book->partsLayer ? book->sectionName(place) : QString(),
+                      SectionWords::forPart(book, place), pm.bookTypes(), groupId);
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
     const QString title = dialog.title();
-    const core::KindRef kind = dialog.kind();
-
-    // The place the writer chose; without the parts layer a prologue opens the body of the
-    // book and an epilogue closes it; other kinds take their place in the list
-    QString targetGroupId = groupId;
-    qsizetype index = -1;
-    if (const std::optional<dialogs::NewElementPlace> chosen = dialog.place()) {
-        targetGroupId = chosen->groupId;
-        index = chosen->index;
-    } else if (place == core::BookPlace::Main && kind &&
-               kind.kind->position != core::KindPosition::Any) {
-        targetGroupId.clear();
-    }
+    const core::ElementPlace at = dialog.place();
 
     // ProjectManager makes the chapter file of a text element and saves the project at once
-    const QString elementId = pm.addElement(kind, title, place, targetGroupId, index);
+    const QString elementId = pm.addElement(dialog.kind(), title, at.place, at.groupId, at.index,
+                                            dialog.takeInside());
     if (elementId.isEmpty()) {
         logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
         QString failedTitle = tr("Add Item Failed");

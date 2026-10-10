@@ -144,6 +144,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/kalahari_dialog.cpp  # KalahariDialog - base of the program's own dialogs
     gui/dialogs/message_dialog.cpp  # MessageDialog, TextInputDialog - own messages, questions, typed texts
     gui/dialogs/new_element_dialog.cpp  # NewElementDialog - new chapter, part or item in the Navigator
+    gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
     gui/kalahari_syntax_highlighter.cpp
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)
@@ -166,6 +167,7 @@ set(KALAHARI_SOURCES
     gui/widgets/color_config_widget.cpp
     gui/widgets/length_spin_box.cpp
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
+    gui/widgets/element_place_picker.cpp  # ElementPlacePicker - the place of an element in the book
     gui/toolbar_manager.cpp
     gui/panels/annotation_card.cpp
     gui/panels/annotation_colors.cpp
@@ -249,6 +251,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h

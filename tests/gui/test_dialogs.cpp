@@ -8,6 +8,7 @@
 #include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
+#include "kalahari/gui/section_words.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -25,11 +26,12 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
-#include <optional>
-
 using namespace kalahari::gui::dialogs;
+using kalahari::core::BookPlace;
+using kalahari::core::ElementPlace;
 using kalahari::core::KindRef;
 using kalahari::core::ProjectElement;
+using kalahari::gui::SectionWords;
 
 namespace {
 
@@ -116,8 +118,8 @@ QTreeWidgetItem* listItem(const QDialog& dialog, const QString& text) {
 }
 
 /// @brief The text of the item before which the new element @p title is in the list, and of
-/// the item it is in: "Part One > Chapter 1"; "> Part One" for the start of the body;
-/// "Part Two >" for the end of Part Two
+/// the item it is in: "Part One > Chapter 1"; "Main Section > Part One" for the start of the
+/// main section; "Part Two >" for the end of Part Two
 std::string shownPlace(const QDialog& dialog, const QString& title) {
     QTreeWidgetItem* shown = listItem(dialog, title);
     REQUIRE(shown != nullptr);
@@ -139,6 +141,38 @@ std::string shownPlace(const QDialog& dialog, const QString& title) {
 void press(QWidget* widget, Qt::Key key) {
     QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
     QApplication::sendEvent(widget, &event);
+}
+
+/// @brief Place @p index of the main section: in group @p groupId, or in the section itself
+ElementPlace mainAt(const QString& groupId, qsizetype index) {
+    return {BookPlace::Main, groupId, index};
+}
+
+/// @brief Show @p elements as the main section of a book named with the first set of names,
+/// the dialog opened on group @p groupId or on the section
+void setMain(NewElementDialog& dialog, const QList<ProjectElement>& elements,
+             const QString& groupId = QString()) {
+    dialog.setSection(elements, QStringLiteral("Main Section"),
+                      SectionWords::forPart(nullptr, BookPlace::Main), builtInTypes(), groupId);
+}
+
+/// @brief The epilogue of a novel, @p id
+ProjectElement epilogue(const QString& id) {
+    ProjectElement made;
+    made.id = id;
+    made.kind = {QStringLiteral("kalahari.novel"), QStringLiteral("epilogue")};
+    made.title = QStringLiteral("Epilogue");
+    return made;
+}
+
+/// @brief The button next to the list of the book with tooltip @p toolTip
+QPushButton* moveButton(const QDialog& dialog, const QString& toolTip) {
+    for (QPushButton* button : dialog.findChildren<QPushButton*>()) {
+        if (button->toolTip() == toolTip) {
+            return button;
+        }
+    }
+    return nullptr;
 }
 
 } // anonymous namespace
@@ -240,7 +274,8 @@ TEST_CASE("Navigator: a new chapter without a part goes to the body", "[gui][dia
     REQUIRE(chapter);
     NewElementDialog dialog(NewElementKind::Chapter, {{chapter, QStringLiteral("Chapter 1")}});
 
-    CHECK(showsText(dialog, QStringLiteral("body of the book")));
+    CHECK(showsText(dialog,
+                    QStringLiteral("The chapter is added as the last one in the main section.")));
     CHECK(dialog.title() == QStringLiteral("Chapter 1"));
 }
 
@@ -322,18 +357,53 @@ TEST_CASE("Navigator: the rename dialog starts with the current name", "[gui][di
     CHECK(dialog.name() == QStringLiteral("The Beginning"));
 }
 
+TEST_CASE("Navigator: sentences name the parts of the book after its set of names",
+          "[gui][dialogs]") {
+    // Without a book: the first set
+    const SectionWords first = SectionWords::forPart(nullptr, BookPlace::Main);
+    CHECK(first.inPart == QStringLiteral("in the main section"));
+    CHECK(first.atStart == QStringLiteral("at the start of the main section"));
+    CHECK(first.atEnd == QStringLiteral("at the end of the main section"));
+    CHECK(SectionWords::capitalized(first.atEnd) ==
+          QStringLiteral("At the end of the main section"));
+
+    kalahari::core::ProjectBook book;
+    book.sectionSet = QStringLiteral("matter");
+    CHECK(SectionWords::forPart(&book, BookPlace::Main).atEnd ==
+          QStringLiteral("at the end of the body"));
+    CHECK(SectionWords::forPart(&book, BookPlace::Front).inPart ==
+          QStringLiteral("in the front matter"));
+
+    // The writer's own names are quoted
+    book.sectionSet = QString::fromLatin1(kalahari::core::ProjectBook::CUSTOM_SECTIONS);
+    book.sectionNames = {QStringLiteral("Opening"), QStringLiteral("Story"),
+                         QStringLiteral("Notes")};
+    CHECK(SectionWords::forPart(&book, BookPlace::Main).atStart ==
+          QStringLiteral("at the start of the section \"Story\""));
+
+    // A book without sections: the place in the book
+    book.partsLayer = false;
+    CHECK(SectionWords::forPart(&book, BookPlace::Front).atEnd ==
+          QStringLiteral("before the content of the book"));
+    CHECK(SectionWords::forPart(&book, BookPlace::Back).atStart ==
+          QStringLiteral("after the content of the book"));
+    CHECK(SectionWords::forPart(&book, BookPlace::Main).inPart ==
+          QStringLiteral("in the content of the book"));
+}
+
 TEST_CASE("Navigator: the writer chooses where the prologue goes", "[gui][dialogs]") {
     const KindRef prologue = novelKind(QStringLiteral("prologue"));
     const KindRef chapter = baseKind(QStringLiteral("chapter"));
     REQUIRE(prologue);
     REQUIRE(chapter);
-    NewElementDialog dialog(NewElementKind::Chapter, {{prologue, QStringLiteral("Prologue")},
-                                                      {chapter, QStringLiteral("Chapter 5")}});
-    dialog.setBody(novelBody(), builtInTypes());
+    NewElementDialog dialog(NewElementKind::Chapter,
+                            {{prologue, QStringLiteral("Prologue"), mainAt(QString(), 0)},
+                             {chapter, QStringLiteral("Chapter 5"), mainAt(QString(), 3)}});
+    setMain(dialog, novelBody());
     CHECK(showsText(dialog, QStringLiteral("Choose where the new element goes in the book.")));
 
-    // At the start of the body, as the first option says
-    QRadioButton* start = option(dialog, QStringLiteral("At the start of the body of the book"));
+    // At the start of the main section, as the first option says
+    QRadioButton* start = option(dialog, QStringLiteral("At the start of the main section"));
     QRadioButton* firstPart = option(dialog, QStringLiteral("First in \"Part One\""));
     QRadioButton* elsewhere = option(dialog, QStringLiteral("Elsewhere: show the place in the list"));
     REQUIRE(start != nullptr);
@@ -341,111 +411,279 @@ TEST_CASE("Navigator: the writer chooses where the prologue goes", "[gui][dialog
     REQUIRE(elsewhere != nullptr);
     CHECK(start->isVisibleTo(&dialog));
     CHECK(start->isChecked());
-    CHECK(dialog.place() == NewElementPlace{QString(), 0});
-    CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == "> Part One");
+    CHECK(dialog.place() == mainAt(QString(), 0));
+    CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == "Main Section > Part One");
 
-    // First in the first part
+    // First in the first part, where it still opens the book
     firstPart->click();
-    CHECK(dialog.place() == NewElementPlace{QStringLiteral("part1"), 0});
+    CHECK(dialog.place() == mainAt(QStringLiteral("part1"), 0));
     CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == "Part One > Chapter 1");
+    CHECK_FALSE(showsText(dialog, QStringLiteral("will not be the first element")));
 
     // Moved down with the button, and with the key in the list: any place in a part, between
-    // the parts and at the end
+    // the parts and at the end; after a chapter the dialog says that it does not open the book
     auto* list = dialog.findChild<QTreeWidget*>();
     REQUIRE(list != nullptr);
-    QPushButton* down = nullptr;
-    QPushButton* up = nullptr;
-    for (QPushButton* button : dialog.findChildren<QPushButton*>()) {
-        if (button->toolTip() == QStringLiteral("Move the new element down")) {
-            down = button;
-        } else if (button->toolTip() == QStringLiteral("Move the new element up")) {
-            up = button;
-        }
-    }
+    QPushButton* up = moveButton(dialog, QStringLiteral("Move the element up"));
+    QPushButton* down = moveButton(dialog, QStringLiteral("Move the element down"));
     REQUIRE(down != nullptr);
     REQUIRE(up != nullptr);
     down->click();
-    CHECK(dialog.place() == NewElementPlace{QStringLiteral("part1"), 1});
+    CHECK(dialog.place() == mainAt(QStringLiteral("part1"), 1));
     CHECK(elsewhere->isChecked());
+    CHECK(showsText(dialog, QStringLiteral("\"Prologue\" will not be the first element in the "
+                                           "main section.")));
     press(list, Qt::Key_Down);
     press(list, Qt::Key_Down);
-    CHECK(dialog.place() == NewElementPlace{QString(), 1});
-    CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == "> Chapter 3");
+    CHECK(dialog.place() == mainAt(QString(), 1));
+    CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == "Main Section > Chapter 3");
     for (int i = 0; i < 10; ++i) {
         down->click();
     }
-    CHECK(dialog.place() == NewElementPlace{QString(), 3});
-    CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == ">");
+    CHECK(dialog.place() == mainAt(QString(), 3));
+    CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == "Main Section >");
     CHECK_FALSE(down->isEnabled());
     CHECK(up->isEnabled());
 
-    // Clicking an element puts the new one before it
+    // Clicking an element puts the new one before it; clicking the section, first in it
     emit list->itemClicked(listItem(dialog, QStringLiteral("Chapter 4")), 0);
-    CHECK(dialog.place() == NewElementPlace{QStringLiteral("part2"), 0});
-    emit list->itemClicked(listItem(dialog, QStringLiteral("Part One")), 0);
-    CHECK(dialog.place() == NewElementPlace{QString(), 0});
+    CHECK(dialog.place() == mainAt(QStringLiteral("part2"), 0));
+    emit list->itemClicked(listItem(dialog, QStringLiteral("Main Section")), 0);
+    CHECK(dialog.place() == mainAt(QString(), 0));
     CHECK(start->isChecked());
     CHECK_FALSE(up->isEnabled());
+    CHECK_FALSE(showsText(dialog, QStringLiteral("will not be the first element")));
 
     // The title the writer types shows in the list
     auto* title = dialog.findChild<QLineEdit*>();
     REQUIRE(title != nullptr);
     title->setText(QStringLiteral("Before It All"));
-    CHECK(shownPlace(dialog, QStringLiteral("Before It All")) == "> Part One");
+    CHECK(shownPlace(dialog, QStringLiteral("Before It All")) == "Main Section > Part One");
 
     // A chapter takes the place of its kind: the dialog does not ask
     auto* kinds = dialog.findChild<QComboBox*>();
     REQUIRE(kinds != nullptr);
     kinds->setCurrentIndex(1);
-    CHECK_FALSE(dialog.place().has_value());
+    CHECK(dialog.place() == mainAt(QString(), 3));
     CHECK_FALSE(list->isVisibleTo(&dialog));
-    CHECK(showsText(dialog, QStringLiteral("body of the book")));
+    CHECK(showsText(dialog,
+                    QStringLiteral("The chapter is added as the last one in the main section.")));
 
-    // Back to the prologue: the start of the body again
+    // Back to the prologue: the start of the main section again
     kinds->setCurrentIndex(0);
     CHECK(list->isVisibleTo(&dialog));
-    CHECK(dialog.place() == NewElementPlace{QString(), 0});
+    CHECK(dialog.place() == mainAt(QString(), 0));
 }
 
 TEST_CASE("Navigator: the epilogue starts at the end of the part the dialog was opened on",
           "[gui][dialogs]") {
-    const KindRef epilogue = novelKind(QStringLiteral("epilogue"));
-    REQUIRE(epilogue);
-    NewElementDialog dialog(NewElementKind::Chapter, {{epilogue, QStringLiteral("Epilogue")}}, 0,
-                            QStringLiteral("Part One"));
-    dialog.setBody(novelBody(), builtInTypes(), QStringLiteral("part1"));
+    const KindRef epilogueKind = novelKind(QStringLiteral("epilogue"));
+    REQUIRE(epilogueKind);
+    NewElementDialog dialog(
+        NewElementKind::Chapter,
+        {{epilogueKind, QStringLiteral("Epilogue"), mainAt(QStringLiteral("part1"), 2)}}, 0,
+        QStringLiteral("Part One"));
+    setMain(dialog, novelBody(), QStringLiteral("part1"));
 
-    CHECK(dialog.place() == NewElementPlace{QStringLiteral("part1"), 2});
+    // There it does not end the book, and the dialog says so
+    CHECK(dialog.place() == mainAt(QStringLiteral("part1"), 2));
     CHECK(shownPlace(dialog, QStringLiteral("Epilogue")) == "Part One >");
-    QRadioButton* end = option(dialog, QStringLiteral("At the end of the body of the book"));
+    CHECK(showsText(dialog, QStringLiteral(
+                                "\"Epilogue\" will not be the last element in the main section.")));
+    QRadioButton* end = option(dialog, QStringLiteral("At the end of the main section"));
     QRadioButton* lastPart = option(dialog, QStringLiteral("Last in \"Part Two\""));
     REQUIRE(end != nullptr);
     REQUIRE(lastPart != nullptr);
     CHECK(option(dialog, QStringLiteral("Elsewhere: show the place in the list"))->isChecked());
 
     lastPart->click();
-    CHECK(dialog.place() == NewElementPlace{QStringLiteral("part2"), 1});
+    CHECK(dialog.place() == mainAt(QStringLiteral("part2"), 1));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("will not be the last element")));
     end->click();
-    CHECK(dialog.place() == NewElementPlace{QString(), 3});
+    CHECK(dialog.place() == mainAt(QString(), 3));
 
-    SECTION("Without parts, the end of the body or a place in the list") {
-        dialog.setBody({element(QStringLiteral("c1"), QStringLiteral("Chapter 1"))},
-                       builtInTypes());
-        CHECK(dialog.place() == NewElementPlace{QString(), 1});
-        CHECK(end->isVisibleTo(&dialog));
-        CHECK_FALSE(option(dialog, QStringLiteral("Last in \"Part Two\""))->isVisibleTo(&dialog));
+    SECTION("Without parts, the end of the main section or a place in the list") {
+        setMain(dialog, {element(QStringLiteral("c1"), QStringLiteral("Chapter 1"))});
+        CHECK(dialog.place() == mainAt(QString(), 1));
+        QRadioButton* endNow = option(dialog, QStringLiteral("At the end of the main section"));
+        REQUIRE(endNow != nullptr);
+        CHECK(endNow->isChecked());
+        CHECK(option(dialog, QStringLiteral("Last in \"Part Two\"")) == nullptr);
     }
 }
 
-TEST_CASE("Navigator: without the body of the book the prologue opens it", "[gui][dialogs]") {
-    // A book without the parts layer: the dialog does not ask for the place
+TEST_CASE("Navigator: without the part of the book the dialog only says where the element goes",
+          "[gui][dialogs]") {
     const KindRef prologue = novelKind(QStringLiteral("prologue"));
     REQUIRE(prologue);
-    NewElementDialog dialog(NewElementKind::Chapter, {{prologue, QStringLiteral("Prologue")}});
+    NewElementDialog dialog(NewElementKind::Chapter,
+                            {{prologue, QStringLiteral("Prologue"), mainAt(QString(), 0)}});
 
-    CHECK_FALSE(dialog.place().has_value());
+    CHECK(dialog.place() == mainAt(QString(), 0));
+    CHECK_FALSE(dialog.findChild<QTreeWidget*>()->isVisibleTo(&dialog));
     CHECK(showsText(dialog,
-                    QStringLiteral("The element is added as the first one in the body of the book.")));
+                    QStringLiteral("The element is added as the first one in the main section.")));
+}
+
+TEST_CASE("Navigator: in a book without sections the list has no row of its part",
+          "[gui][dialogs]") {
+    const KindRef prologue = novelKind(QStringLiteral("prologue"));
+    REQUIRE(prologue);
+    kalahari::core::ProjectBook book;
+    book.partsLayer = false;
+    NewElementDialog dialog(NewElementKind::Chapter,
+                            {{prologue, QStringLiteral("Prologue"), mainAt(QString(), 0)}});
+    dialog.setSection(novelBody(), QString(), SectionWords::forPart(&book, BookPlace::Main),
+                      builtInTypes());
+
+    QRadioButton* start =
+        option(dialog, QStringLiteral("At the start of the content of the book"));
+    REQUIRE(start != nullptr);
+    CHECK(start->isChecked());
+    CHECK(shownPlace(dialog, QStringLiteral("Prologue")) == "> Part One");
+}
+
+TEST_CASE("Navigator: a new chapter goes before the epilogue that ends the last part",
+          "[gui][dialogs]") {
+    const KindRef chapter = baseKind(QStringLiteral("chapter"));
+    REQUIRE(chapter);
+    const QList<ProjectElement> body = {
+        element(QStringLiteral("part1"), QStringLiteral("Part One"),
+                {element(QStringLiteral("c1"), QStringLiteral("Chapter 1")),
+                 epilogue(QStringLiteral("epi"))})};
+
+    SECTION("Opened on the main section: before the epilogue, or after the part") {
+        NewElementDialog dialog(
+            NewElementKind::Chapter,
+            {{chapter, QStringLiteral("Chapter 2"), mainAt(QStringLiteral("part1"), 1)}});
+        setMain(dialog, body);
+
+        // Before the epilogue, at the end of the part, as the first option says
+        CHECK(showsText(dialog, QStringLiteral("\"Epilogue\" is the last element in the main "
+                                               "section, so the new chapter goes before it, at "
+                                               "the end of \"Part One\". You can choose another "
+                                               "place.")));
+        QRadioButton* inPart =
+            option(dialog, QStringLiteral("Before \"Epilogue\", at the end of \"Part One\""));
+        QRadioButton* afterPart =
+            option(dialog, QStringLiteral("At the end of the main section, after \"Part One\""));
+        REQUIRE(inPart != nullptr);
+        REQUIRE(afterPart != nullptr);
+        CHECK(inPart->isChecked());
+        CHECK(dialog.place() == mainAt(QStringLiteral("part1"), 1));
+        CHECK(shownPlace(dialog, QStringLiteral("Chapter 2")) == "Part One > Epilogue");
+        CHECK_FALSE(showsText(dialog, QStringLiteral("will no longer be the last element")));
+
+        // After the part the epilogue no longer ends the book, and the dialog says so
+        afterPart->click();
+        CHECK(dialog.place() == mainAt(QString(), 1));
+        CHECK(shownPlace(dialog, QStringLiteral("Chapter 2")) == "Main Section >");
+        CHECK(showsText(dialog, QStringLiteral("\"Epilogue\" will no longer be the last element "
+                                               "in the main section.")));
+    }
+
+    SECTION("Opened on the part: before the epilogue, without asking") {
+        NewElementDialog dialog(
+            NewElementKind::Chapter,
+            {{chapter, QStringLiteral("Chapter 2"), mainAt(QStringLiteral("part1"), 1)}}, 0,
+            QStringLiteral("Part One"));
+        setMain(dialog, body, QStringLiteral("part1"));
+
+        CHECK(dialog.place() == mainAt(QStringLiteral("part1"), 1));
+        CHECK_FALSE(dialog.findChild<QTreeWidget*>()->isVisibleTo(&dialog));
+        CHECK(showsText(dialog, QStringLiteral("The chapter is added at the end of \"Part One\", "
+                                               "before \"Epilogue\".")));
+    }
+}
+
+TEST_CASE("Navigator: the dialog warns when the new element makes the epilogue stop ending "
+          "the book",
+          "[gui][dialogs]") {
+    const KindRef chapter = baseKind(QStringLiteral("chapter"));
+    REQUIRE(chapter);
+    const QList<ProjectElement> body = {
+        element(QStringLiteral("part1"), QStringLiteral("Part One"),
+                {element(QStringLiteral("c1"), QStringLiteral("Chapter 1")),
+                 epilogue(QStringLiteral("epi"))}),
+        element(QStringLiteral("part2"), QStringLiteral("Part Two"))};
+    NewElementDialog dialog(
+        NewElementKind::Chapter,
+        {{chapter, QStringLiteral("Chapter 2"), mainAt(QStringLiteral("part2"), 0)}}, 0,
+        QStringLiteral("Part Two"));
+    setMain(dialog, body, QStringLiteral("part2"));
+
+    // The place the writer asked for, with what it changes
+    QRadioButton* inPart = option(dialog, QStringLiteral("Last in \"Part Two\""));
+    REQUIRE(inPart != nullptr);
+    CHECK(inPart->isChecked());
+    CHECK(dialog.place() == mainAt(QStringLiteral("part2"), 0));
+    CHECK(showsText(dialog, QStringLiteral("Choose where the new element goes in the book.")));
+    CHECK(showsText(dialog, QStringLiteral("\"Epilogue\" will no longer be the last element in "
+                                           "the main section.")));
+
+    // Before the epilogue it stays the last one
+    auto* list = dialog.findChild<QTreeWidget*>();
+    REQUIRE(list != nullptr);
+    emit list->itemClicked(listItem(dialog, QStringLiteral("Epilogue")), 0);
+    CHECK(dialog.place() == mainAt(QStringLiteral("part1"), 1));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("will no longer be the last element")));
+}
+
+TEST_CASE("Navigator: a new part takes the epilogue that ends the book", "[gui][dialogs]") {
+    const KindRef part = baseKind(QStringLiteral("part"));
+    REQUIRE(part);
+    const QList<ProjectElement> body = {
+        element(QStringLiteral("part1"), QStringLiteral("Part One"),
+                {element(QStringLiteral("c1"), QStringLiteral("Chapter 1")),
+                 epilogue(QStringLiteral("epi"))})};
+    NewElementDialog dialog(NewElementKind::Part,
+                            {{part, QStringLiteral("Part Two"), mainAt(QString(), 1)}});
+    setMain(dialog, body);
+    CHECK(showsText(dialog, QStringLiteral(
+                                "The part is added at the end of the main section, after \"Part "
+                                "One\".")));
+
+    // By default the epilogue goes to the end of the new part, where it stays the last element
+    auto* take = dialog.findChild<QCheckBox*>();
+    REQUIRE(take != nullptr);
+    CHECK(take->isVisibleTo(&dialog));
+    CHECK(take->text() == QStringLiteral("Move \"Epilogue\" to the end of the new part"));
+    CHECK(take->isChecked());
+    CHECK(dialog.takeInside() == QStringList{QStringLiteral("epi")});
+    CHECK(dialog.place() == mainAt(QString(), 1));
+    CHECK(showsText(dialog, QStringLiteral("\"Epilogue\" is now the last element in the main "
+                                           "section. At the end of the new part it stays the "
+                                           "last one.")));
+
+    // The list only shows the book as it will be
+    CHECK(shownPlace(dialog, QStringLiteral("Part Two")) == "Main Section >");
+    CHECK(listItem(dialog, QStringLiteral("Epilogue"))->parent() ==
+          listItem(dialog, QStringLiteral("Part Two")));
+    CHECK(listItem(dialog, QStringLiteral("Part One"))->childCount() == 1);
+    CHECK(showsText(dialog, QStringLiteral("The list only shows how the book will look.")));
+    CHECK_FALSE(moveButton(dialog, QStringLiteral("Move the element up"))->isVisibleTo(&dialog));
+    CHECK_FALSE(option(dialog, QStringLiteral("Elsewhere: show the place in the list"))
+                    ->isVisibleTo(&dialog));
+
+    // Left where it is, the chapters of the new part go after it
+    take->setChecked(false);
+    CHECK(dialog.takeInside().isEmpty());
+    CHECK(showsText(dialog, QStringLiteral("\"Epilogue\" stays where it is, and the chapters "
+                                           "added to the new part go after it.")));
+    CHECK(listItem(dialog, QStringLiteral("Epilogue"))->parent() ==
+          listItem(dialog, QStringLiteral("Part One")));
+    CHECK(listItem(dialog, QStringLiteral("Part Two"))->childCount() == 0);
+
+    SECTION("Without an epilogue at the end of the parts there is nothing to take") {
+        NewElementDialog plain(NewElementKind::Part,
+                               {{part, QStringLiteral("Part Three"), mainAt(QString(), 3)}});
+        setMain(plain, novelBody());
+        CHECK_FALSE(plain.findChild<QCheckBox*>()->isVisibleTo(&plain));
+        CHECK(plain.takeInside().isEmpty());
+        CHECK(showsText(plain, QStringLiteral("The part is added at the end of the main section, "
+                                              "after \"Part Two\".")));
+        CHECK(shownPlace(plain, QStringLiteral("Part Three")) == "Main Section >");
+    }
 }
 
 TEST_CASE("New Book: the dialog checks the folder of the book", "[gui][dialogs]") {

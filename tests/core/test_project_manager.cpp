@@ -806,6 +806,159 @@ TEST_CASE("ProjectManager puts a new element in the place of its kind", "[projec
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("A new chapter of the body goes before the epilogue that ends the last part",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Epilogue", "Author", "en", true, "kalahari.novel"));
+    const KindRef chapter = pm.chapterKindFor(BookPlace::Main);
+    const KindRef prologueKind = kind("kalahari.novel", "prologue");
+    const KindRef epilogueKind = kind("kalahari.novel", "epilogue");
+
+    // The prologue, and Part One with a chapter and the epilogue
+    REQUIRE(pm.removeElement(pm.book()->mainElements.first().id).has_value());
+    const QString prologue = pm.addElement(prologueKind, "Prologue", BookPlace::Main);
+    const QString partOne = pm.addElement(pm.partKind(), "Part One", BookPlace::Main);
+    REQUIRE_FALSE(pm.addElement(chapter, "Chapter 1", BookPlace::Main, partOne).isEmpty());
+    const QString epilogue = pm.addElement(epilogueKind, "Epilogue", BookPlace::Main, partOne);
+    REQUIRE_FALSE(prologue.isEmpty());
+    REQUIRE_FALSE(epilogue.isEmpty());
+    REQUIRE(titles(pm.book()->mainElements) == "Prologue, Part One");
+
+    // A new chapter of the body goes into Part One, before the epilogue
+    CHECK(pm.newPlaceOf(chapter, BookPlace::Main) == ElementPlace{BookPlace::Main, partOne, 1});
+    REQUIRE_FALSE(pm.addElement(chapter, "Chapter 2", BookPlace::Main).isEmpty());
+    CHECK(titles(pm.book()->mainElements) == "Prologue, Part One");
+    CHECK(titles(pm.findElement(partOne)->elements) == "Chapter 1, Chapter 2, Epilogue");
+
+    // So does a text file added to the body
+    const QString textPath = QDir(dir.path()).filePath("notes.txt");
+    writeFile(textPath, "Notes");
+    REQUIRE_FALSE(pm.addFile(textPath, true, chapter, "Notes", BookPlace::Main).isEmpty());
+    CHECK(titles(pm.findElement(partOne)->elements) == "Chapter 1, Chapter 2, Notes, Epilogue");
+
+    // The prologue, a part, the epilogue, an element of a part and of the front keep the place
+    // of their kind
+    CHECK(pm.newPlaceOf(prologueKind, BookPlace::Main) ==
+          ElementPlace{BookPlace::Main, QString(), 0});
+    CHECK(pm.newPlaceOf(pm.partKind(), BookPlace::Main) ==
+          ElementPlace{BookPlace::Main, QString(), 2});
+    CHECK(pm.newPlaceOf(epilogueKind, BookPlace::Main) ==
+          ElementPlace{BookPlace::Main, QString(), 2});
+    CHECK(pm.newPlaceOf(chapter, BookPlace::Main, partOne) ==
+          ElementPlace{BookPlace::Main, partOne, 3});
+    CHECK(pm.newPlaceOf(kind("kalahari.base", "dedication"), BookPlace::Front) ==
+          ElementPlace{BookPlace::Front, QString(), 1});
+    CHECK(pm.newPlaceOf(chapter, BookPlace::Main, "no-group") ==
+          ElementPlace{BookPlace::Main, "no-group", 0});
+
+    // An empty part after Part One: the epilogue still ends the body
+    const QString partTwo = pm.addElement(pm.partKind(), "Part Two", BookPlace::Main);
+    REQUIRE(titles(pm.book()->mainElements) == "Prologue, Part One, Part Two");
+    CHECK(pm.newPlaceOf(chapter, BookPlace::Main) == ElementPlace{BookPlace::Main, partOne, 3});
+
+    // A chapter in Part Two: nothing ends the body, a new chapter goes to its end
+    REQUIRE_FALSE(pm.addElement(chapter, "Chapter 3", BookPlace::Main, partTwo).isEmpty());
+    CHECK(pm.newPlaceOf(chapter, BookPlace::Main) == ElementPlace{BookPlace::Main, QString(), 3});
+
+    // A kind that cannot be in a part goes to the end of the body
+    pm.project()->kinds.append(KindReference{"kalahari.short_stories", "story"});
+    const KindRef story = kind("kalahari.short_stories", "story");
+    REQUIRE(pm.removeElement(pm.findElement(partTwo)->elements.first().id).has_value());
+    CHECK(pm.newPlaceOf(story, BookPlace::Main) == ElementPlace{BookPlace::Main, QString(), 3});
+
+    // The epilogue at the end of the body: a new chapter goes before it, in the body
+    REQUIRE(pm.removeElement(epilogue).has_value());
+    REQUIRE_FALSE(pm.addElement(epilogueKind, "Epilogue", BookPlace::Main).isEmpty());
+    REQUIRE(titles(pm.book()->mainElements) == "Prologue, Part One, Part Two, Epilogue");
+    CHECK(pm.newPlaceOf(chapter, BookPlace::Main) == ElementPlace{BookPlace::Main, QString(), 3});
+    REQUIRE_FALSE(pm.addElement(chapter, "Chapter 4", BookPlace::Main).isEmpty());
+    CHECK(titles(pm.book()->mainElements) ==
+          "Prologue, Part One, Part Two, Chapter 4, Epilogue");
+
+    // The .klh file has them in their places
+    const BookProject saved = savedProject(pm.getManifestPath());
+    CHECK(saved.books.first().mainElements == pm.book()->mainElements);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("A new part takes the epilogue from the end of the last part", "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Parts", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const KindRef chapter = pm.chapterKindFor(BookPlace::Main);
+    const KindRef part = pm.partKind();
+
+    // Part One with a chapter and the epilogue, and a story, which cannot be in a part
+    REQUIRE(pm.removeElement(pm.book()->mainElements.first().id).has_value());
+    const QString partOne = pm.addElement(part, "Part One", BookPlace::Main);
+    REQUIRE_FALSE(pm.addElement(chapter, "Chapter 1", BookPlace::Main, partOne).isEmpty());
+    const QString epilogue =
+        pm.addElement(kind("kalahari.novel", "epilogue"), "Epilogue", BookPlace::Main, partOne);
+    REQUIRE_FALSE(epilogue.isEmpty());
+    pm.project()->kinds.append(KindReference{"kalahari.short_stories", "story"});
+    const QString story = pm.addElement(kind("kalahari.short_stories", "story"), "Story",
+                                        BookPlace::Main, QString(), 0);
+    REQUIRE_FALSE(story.isEmpty());
+    const QString titlePage = pm.book()->frontElements.first().id;
+    const QString epilogueFile = pm.findElement(epilogue)->file;
+    const QDir bookFolder(QDir(pm.getProjectPath()).filePath("book"));
+    const BookProject before = *pm.project();
+    const QStringList files = bookFolder.entryList(QDir::Files);
+
+    // Only a group takes elements inside it, each once, and only elements of its part of the
+    // book that can be inside it
+    const auto takes = [&pm](const KindRef& kind, const QStringList& inside) {
+        return pm.addElement(kind, "New", BookPlace::Main, QString(), -1, inside);
+    };
+    CHECK(takes(chapter, {epilogue}).isEmpty());
+    CHECK(takes(part, {story}).isEmpty());
+    CHECK(takes(part, {partOne}).isEmpty());
+    CHECK(takes(part, {epilogue, epilogue}).isEmpty());
+    CHECK(takes(part, {titlePage}).isEmpty());
+    CHECK(takes(part, {"no-element"}).isEmpty());
+    CHECK(*pm.project() == before);
+    CHECK(bookFolder.entryList(QDir::Files) == files);
+
+    // Part Two takes the epilogue; the epilogue keeps its file
+    const QString partTwo = takes(part, {epilogue});
+    REQUIRE_FALSE(partTwo.isEmpty());
+    CHECK(titles(pm.book()->mainElements) == "Story, Part One, New");
+    CHECK(titles(pm.findElement(partOne)->elements) == "Chapter 1");
+    CHECK(titles(pm.findElement(partTwo)->elements) == "Epilogue");
+    CHECK(pm.findElement(epilogue)->file == epilogueFile);
+
+    // A new chapter of the body goes into Part Two, before the epilogue
+    CHECK(pm.newPlaceOf(chapter, BookPlace::Main) == ElementPlace{BookPlace::Main, partTwo, 0});
+    REQUIRE_FALSE(pm.addElement(chapter, "Chapter 2", BookPlace::Main).isEmpty());
+    CHECK(titles(pm.findElement(partTwo)->elements) == "Chapter 2, Epilogue");
+    CHECK(savedProject(manifest).books.first().mainElements == pm.book()->mainElements);
+
+    // A new part at the place of the epilogue that it takes goes where the epilogue was
+    REQUIRE(pm.removeElement(epilogue).has_value());
+    const QString atEnd =
+        pm.addElement(kind("kalahari.novel", "epilogue"), "Last Words", BookPlace::Main);
+    REQUIRE(titles(pm.book()->mainElements) == "Story, Part One, New, Last Words");
+    const QString partThree =
+        pm.addElement(part, "Part Three", BookPlace::Main, QString(), 3, {atEnd});
+    REQUIRE_FALSE(partThree.isEmpty());
+    CHECK(titles(pm.book()->mainElements) == "Story, Part One, New, Part Three");
+    CHECK(titles(pm.findElement(partThree)->elements) == "Last Words");
+
+    // A project that cannot be saved stays as it was, without the new chapter file
+    const BookProject unchanged = *pm.project();
+    const QStringList chapterFiles = bookFolder.entryList(QDir::Files);
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkdir(manifest));
+    CHECK(pm.addElement(part, "Part Four", BookPlace::Main, QString(), -1, {atEnd}).isEmpty());
+    CHECK(pm.addElement(chapter, "Chapter 3", BookPlace::Main).isEmpty());
+    CHECK(*pm.project() == unchanged);
+    CHECK(bookFolder.entryList(QDir::Files) == chapterFiles);
+    REQUIRE(QDir().rmdir(manifest));
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("Move to Start and Move to End keep the prologue first and the epilogue last",
           "[project_manager]") {
     QTemporaryDir dir;

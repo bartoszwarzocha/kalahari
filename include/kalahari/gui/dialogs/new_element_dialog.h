@@ -7,23 +7,23 @@
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
+#include "kalahari/gui/section_words.h"
 
 #include <QList>
 #include <QString>
+#include <QStringList>
 
-#include <optional>
-
+class QCheckBox;
 class QComboBox;
-class QEvent;
+class QLabel;
 class QLineEdit;
-class QPushButton;
-class QRadioButton;
-class QTreeWidget;
-class QTreeWidgetItem;
 class QWidget;
 
 namespace kalahari {
 namespace gui {
+
+class ElementPlacePicker;
+
 namespace dialogs {
 
 /// @brief What a new element of the book is, which decides where it goes
@@ -34,20 +34,12 @@ enum class NewElementKind {
     BackMatterItem,   ///< An item at the end of the back matter (afterword, glossary...)
 };
 
-/// @brief A kind the new element can have, with the title it starts with
+/// @brief A kind the new element can have, with the title it starts with and its place
 struct NewElementChoice {
-    core::KindRef kind;  ///< Kind of the element
-    QString title;       ///< Title of an element of the kind, e.g. "Chapter 3"
-    QString before{};    ///< Title of the element it goes before, when it does not go last
-                         ///< (a chapter goes before the epilogue); empty: it goes last
-};
-
-/// @brief A place in the body of the book: a list and a place in it
-struct NewElementPlace {
-    QString groupId;      ///< Group whose list it is; empty: the body itself
-    qsizetype index = 0;  ///< Place in the list
-
-    bool operator==(const NewElementPlace&) const = default;
+    core::KindRef kind;          ///< Kind of the element
+    QString title;               ///< Title of an element of the kind, e.g. "Chapter 3"
+    core::ElementPlace place{};  ///< Place an element of the kind takes when the writer does
+                                 ///< not choose it (ProjectManager::newPlaceOf())
 };
 
 /// @brief Dialog for a new element of the book in the Navigator
@@ -58,11 +50,19 @@ struct NewElementPlace {
 /// so typing replaces it; it follows the kind until the writer changes it. The dialog
 /// cannot be accepted with an empty title.
 ///
-/// With the body of the book (setBody()), the writer also chooses where an element of a kind
-/// with a position goes: a prologue at the start of the body, first in its first part or
-/// anywhere else; an epilogue at the end of the body, last in its last part or anywhere else.
-/// A list of the body's elements shows the new element in its place, and the writer moves it
-/// with the buttons next to the list or by clicking the element it is to go before.
+/// With the part of the book it goes to (setSection()), the dialog says where the element
+/// goes, and the writer chooses the place in a list of the part when there is a choice to
+/// make:
+/// - a prologue goes at the start of the part, first in its first group or anywhere else;
+///   an epilogue at the end of the part, last in its last group or anywhere else;
+/// - a chapter of the body goes before the epilogue at the end of the last part, or at the
+///   end of the body;
+/// - an element whose place makes another one stop opening or closing the part (a chapter in
+///   a part after the epilogue) shows that place and the warning.
+///
+/// A new part shows the body as it will be, and takes inside it the elements that close the
+/// body at the end of the parts before it (the epilogue), unless the writer leaves them
+/// where they are.
 class NewElementDialog : public KalahariDialog {
     Q_OBJECT
 
@@ -79,14 +79,18 @@ public:
                      int current = 0, const QString& groupTitle = QString(),
                      QWidget* parent = nullptr);
 
-    /// @brief Let the writer choose the place of an element of a kind with a position
-    /// @param elements Elements of the body of the book, with the elements inside its groups
-    /// @param registry Kinds of the elements: their icons and the groups a kind can be in;
-    ///        it must outlive the dialog
-    /// @param groupId Group the dialog was opened on, whose start (or end) it offers first;
-    ///        empty: the body
-    void setBody(const QList<core::ProjectElement>& elements,
-                 const core::BookTypeRegistry& registry, const QString& groupId = QString());
+    /// @brief The part of the book the element goes to, so that the dialog shows where it goes
+    /// and lets the writer choose
+    /// @param elements Elements of the part, with the elements inside its groups
+    /// @param name Name of the part in the Navigator, in the language of the book: "Sekcja
+    ///        główna"
+    /// @param words How the dialog's sentences name the part
+    /// @param registry Kinds of the elements: their icons, positions and the groups a kind
+    ///        can be in; it must outlive the dialog
+    /// @param groupId Group the dialog was opened on; empty: the part
+    void setSection(const QList<core::ProjectElement>& elements, const QString& name,
+                    const SectionWords& words, const core::BookTypeRegistry& registry,
+                    const QString& groupId = QString());
 
     /// @brief The kind of the new element (one of the choices)
     core::KindRef kind() const;
@@ -94,13 +98,13 @@ public:
     /// @brief The title of the new element, without spaces around it
     QString title() const;
 
-    /// @brief The place the writer chose for the element; nullopt when the dialog offers no
-    /// places for its kind, so it goes where its kind goes
-    std::optional<NewElementPlace> place() const;
+    /// @brief The place of the new element: the one the writer chose, or the place of its kind
+    core::ElementPlace place() const;
 
-protected:
-    /// @brief Up and Down in the list of the body move the new element
-    bool eventFilter(QObject* watched, QEvent* event) override;
+    /// @brief Ids of the elements a new part takes inside it: those that close the body at
+    /// the end of the parts before it, unless the writer leaves them there; empty for other
+    /// elements
+    QStringList takeInside() const;
 
 private:
     /// @brief A new kind: the title follows it unless the writer has changed it, and the places
@@ -110,23 +114,28 @@ private:
     /// @brief The dialog can be accepted only with a title
     void updateAcceptButton();
 
+    /// @brief The places of the chosen kind, the options of the list and the heading
+    void updatePlaces();
+
+    /// @brief A new part: the elements it can take inside it, and the body as it will be
+    void updatePart();
+
     /// @brief The sentence of the heading: where an element of the chosen kind goes
     void updateDescription();
 
-    /// @brief The places of the chosen kind, or none when it has no position
-    void updatePlaces();
+    /// @brief The words of an option for @p place of an element with no position: "At the end
+    /// of the main section, after "Part One"", "Before "Epilogue", at the end of "Part One""
+    QString placeText(const core::ElementPlace& place) const;
 
-    /// @brief Show the new element in the list at its place, and the place's option
-    void showPlace();
+    /// @brief Group @p id of the part, at any depth; nullptr when it has none
+    const core::ProjectElement* groupOf(const QString& id) const;
 
-    /// @brief The new element goes to place @p index of m_places
-    void moveTo(qsizetype index);
+    /// @brief The place of the chosen kind when the writer does not choose it
+    core::ElementPlace defaultPlace() const;
 
-    /// @brief The writer clicked an element of the list: the new element goes before it
-    void onElementClicked(QTreeWidgetItem* item);
-
-    /// @brief Whether an element of the chosen kind can be inside @p element
-    bool canBeInside(const core::ProjectElement& element) const;
+    /// @brief Show what the dialog notes about the place: @p text with the icon @p iconId;
+    /// an empty text hides the note
+    void showNotice(const QString& iconId, const QString& text);
 
     NewElementKind m_dialogKind;
     QString m_groupTitle;
@@ -136,23 +145,30 @@ private:
     QLineEdit* m_titleEdit = nullptr;
     bool m_titleChanged = false;      ///< The writer changed the title: it stays as it is
 
-    // The place of an element of a kind with a position
-    QList<core::ProjectElement> m_body;                 ///< Elements of the body of the book
+    // The part of the book the element goes to
+    core::BookPlace m_part = core::BookPlace::Main;
+    QList<core::ProjectElement> m_elements;              ///< Its elements
+    QString m_sectionName;                               ///< Its name in the Navigator
+    SectionWords m_words;                                ///< Its name in sentences
     const core::BookTypeRegistry* m_registry = nullptr;
-    QString m_openedOn;                                 ///< Group the dialog was opened on
-    QList<NewElementPlace> m_places;                    ///< Places of the kind, in reading order
-    qsizetype m_place = -1;                             ///< Index of the chosen place
-    qsizetype m_firstOption = -1;                       ///< Place of the first option
-    qsizetype m_groupOption = -1;                       ///< Place of the group option; -1: none
-    QWidget* m_placeBox = nullptr;
-    QRadioButton* m_firstButton = nullptr;     ///< Start (or end) of the body
-    QRadioButton* m_groupButton = nullptr;     ///< First in the first group (last in the last)
-    QRadioButton* m_elsewhereButton = nullptr; ///< The place shown in the list
-    QTreeWidget* m_placeList = nullptr;
-    QTreeWidgetItem* m_newItem = nullptr;      ///< The new element in the list
-    int m_placeStretch = -1;                   ///< Index of the stretch under the content
-    QPushButton* m_upButton = nullptr;
-    QPushButton* m_downButton = nullptr;
+    QString m_openedOn;                                  ///< Group the dialog was opened on
+
+    // The place
+    ElementPlacePicker* m_picker = nullptr;
+    int m_pickerStretch = -1;          ///< Index of the stretch under the content
+    bool m_choosing = false;           ///< The writer chooses the place in the list
+    bool m_beforeClosing = false;      ///< A chapter goes before the epilogue in a group
+
+    // A new part: the elements that close the body, which it takes inside it
+    QList<core::ProjectElement> m_closing;  ///< At the end of the groups before the part
+    bool m_canTake = false;                 ///< The part can have all of them inside it
+    QCheckBox* m_takeBox = nullptr;
+    QLabel* m_previewNote = nullptr;
+
+    // The note about the place: information or a warning
+    QWidget* m_noticeBox = nullptr;
+    QLabel* m_noticeIcon = nullptr;
+    QLabel* m_noticeText = nullptr;
 };
 
 } // namespace dialogs

@@ -255,13 +255,19 @@ public:
     /// @p groupId
     ///
     /// A text element gets a chapter file of its own in the book's folder, with the text of
-    /// its kind's template, and the status "draft". Saves the .klh file.
-    /// @param index Place of the element in its list; -1: the place of its kind, newIndexIn()
+    /// its kind's template, and the status "draft". A group can take elements of the book
+    /// inside it, at its end, in the order given: a new part takes the epilogue from the end of
+    /// the last part, so that the chapters added to the new part go before it. Saves the .klh
+    /// file.
+    /// @param index Place of the element in its list; -1: the place of its kind, newPlaceOf(),
+    ///        which can be in a group of the body of the book
+    /// @param takeInside Ids of elements that the new group takes inside it
     /// @return The new element's id; empty when the kind cannot be there or is a window kind,
-    ///         the project has no group @p groupId, @p index is beyond the list, or a file
-    ///         cannot be written
+    ///         the project has no group @p groupId, @p index is beyond the list, an element of
+    ///         @p takeInside cannot be inside the group, or a file cannot be written
     QString addElement(const KindRef& kind, const QString& title, BookPlace place,
-                       const QString& groupId = QString(), qsizetype index = -1);
+                       const QString& groupId = QString(), qsizetype index = -1,
+                       const QStringList& takeInside = {});
 
     /// @brief Place in @p elements that a new element of @p kind takes when the writer does not
     /// choose it
@@ -271,16 +277,28 @@ public:
     /// before the epilogue.
     qsizetype newIndexIn(const QList<ProjectElement>& elements, const KindRef& kind) const;
 
+    /// @brief Place that a new element of @p kind takes in @p place of the book, or in group
+    /// @p groupId, when the writer does not choose it
+    ///
+    /// The place of its kind in the list, newIndexIn(). In the body of the book, an element of
+    /// a kind with no position that is not a group goes before the elements that close the
+    /// body, also when they are at the end of a part: a new chapter goes before the epilogue
+    /// that ends the last part, if the chapter can be in that part.
+    ElementPlace newPlaceOf(const KindRef& kind, BookPlace place,
+                            const QString& groupId = QString()) const;
+
     /// @brief Add a chapter or text file as a new text element of @p kind
     ///
     /// The file goes to the book's folder, named after its kind and a number; a text file
-    /// (.txt) becomes a chapter, its lines the paragraphs. The element takes the place of its
-    /// kind in its list, newIndexIn(). Saves the .klh file.
+    /// (.txt) becomes a chapter, its lines the paragraphs. Saves the .klh file.
     /// @param sourcePath The chapter (.kchapter) or text file
     /// @param copy true to copy the file, false to move it
+    /// @param index Place of the element in its list; -1: the place of its kind, newPlaceOf(),
+    ///        which can be in a group of the body of the book
     /// @return The new element's id; empty when it cannot be added
     QString addFile(const QString& sourcePath, bool copy, const KindRef& kind,
-                    const QString& title, BookPlace place, const QString& groupId = QString());
+                    const QString& title, BookPlace place, const QString& groupId = QString(),
+                    qsizetype index = -1);
 
     /// @brief Give element @p elementId the title @p title and save the .klh file
     /// @return false when the project has no such element or the file cannot be written

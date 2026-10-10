@@ -12,6 +12,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
 #include <QDir>
@@ -116,6 +117,14 @@ Answer acceptPlace(int index, const QString& option) {
         }
         dialog.accept();
     };
+}
+
+/// @brief Accept a new part, leaving the elements that end the body where they are
+void acceptLeaving(QDialog& dialog) {
+    if (auto* take = dialog.findChild<QCheckBox*>()) {
+        take->setChecked(false);
+    }
+    dialog.accept();
 }
 
 /// @brief Answer a question of the program's message window with the button of its action
@@ -487,9 +496,76 @@ TEST_CASE("Navigator commands: the prologue and the epilogue go where the writer
     const QString epilogueId = novel.book().mainElements.at(1).elements.last().id;
     REQUIRE(pm.removeElement(epilogueId).has_value());
     CHECK(answering(addChapter(partTwo),
-                    {acceptPlace(epilogue, QStringLiteral("At the end of the body of the book"))}) ==
+                    {acceptPlace(epilogue, QStringLiteral("At the end of the main section"))}) ==
           1);
     CHECK(titles(novel.book().mainElements) == "Part I, Part II, Epilogue");
+
+    // A new chapter of the body goes before it
+    CHECK(answering(addChapter(QString()), {acceptAsItIs}) == 1);
+    CHECK(titles(novel.book().mainElements) == "Part I, Part II, Chapter 4, Epilogue");
+}
+
+TEST_CASE("Navigator commands: the epilogue at the end of the last part stays the last element",
+          "[gui][navigator]") {
+    OpenNovel novel;
+    Navigator navigator;
+    auto& pm = novel.pm;
+    const auto addChapter = [&navigator](const QString& groupId) {
+        return [&navigator, groupId] { navigator.coordinator.onRequestAddChapter(groupId); };
+    };
+
+    // A part with a chapter and the epilogue
+    answering([&] { navigator.coordinator.onRequestAddPart(); }, {acceptAsItIs});
+    REQUIRE(novel.book().mainElements.size() == 1);
+    const QString partOne = novel.book().mainElements.at(0).id;
+    answering(addChapter(partOne), {acceptAsItIs});
+    const int epilogue =
+        indexOf(pm.textKindsFor(core::BookPlace::Main, partOne), QStringLiteral("epilogue"));
+    REQUIRE(epilogue >= 0);
+    answering(addChapter(partOne), {acceptKind(epilogue)});
+    REQUIRE(titles(novel.book().mainElements.at(0).elements) == "Chapter 1, Epilogue");
+
+    SECTION("A new chapter of the body goes before it, at the end of the part") {
+        CHECK(answering(addChapter(QString()), {acceptAsItIs}) == 1);
+        CHECK(titles(novel.book().mainElements) == "Part I");
+        CHECK(titles(novel.book().mainElements.at(0).elements) ==
+              "Chapter 1, Chapter 2, Epilogue");
+        CHECK(titles(novel.savedBook().mainElements.at(0).elements) ==
+              "Chapter 1, Chapter 2, Epilogue");
+    }
+
+    SECTION("The writer can put it after the part") {
+        const int chapter =
+            indexOf(pm.textKindsFor(core::BookPlace::Main), QStringLiteral("chapter"));
+        REQUIRE(chapter >= 0);
+        CHECK(answering(addChapter(QString()),
+                        {acceptPlace(chapter, QStringLiteral(
+                                                  "At the end of the main section, after \"Part "
+                                                  "I\""))}) == 1);
+        CHECK(titles(novel.book().mainElements) == "Part I, Chapter 2");
+        CHECK(titles(novel.book().mainElements.at(0).elements) == "Chapter 1, Epilogue");
+    }
+
+    SECTION("A new part takes it to its end, and its chapters go before it") {
+        CHECK(answering([&] { navigator.coordinator.onRequestAddPart(); }, {acceptAsItIs}) == 1);
+        REQUIRE(titles(novel.book().mainElements) == "Part I, Part II");
+        const QString partTwo = novel.book().mainElements.at(1).id;
+        CHECK(titles(novel.book().mainElements.at(0).elements) == "Chapter 1");
+        CHECK(titles(novel.book().mainElements.at(1).elements) == "Epilogue");
+        CHECK(titles(novel.savedBook().mainElements.at(1).elements) == "Epilogue");
+        CHECK(navigator.itemsIn(partTwo) == "Epilogue [Draft]");
+
+        CHECK(answering(addChapter(partTwo), {acceptAsItIs}) == 1);
+        CHECK(titles(novel.book().mainElements.at(1).elements) == "Chapter 2, Epilogue");
+    }
+
+    SECTION("A new part leaves it where it is when the writer wants") {
+        CHECK(answering([&] { navigator.coordinator.onRequestAddPart(); }, {acceptLeaving}) ==
+              1);
+        REQUIRE(titles(novel.book().mainElements) == "Part I, Part II");
+        CHECK(titles(novel.book().mainElements.at(0).elements) == "Chapter 1, Epilogue");
+        CHECK(novel.book().mainElements.at(1).elements.isEmpty());
+    }
 }
 
 TEST_CASE("Navigator menu: moving an element to the start and to the end of its list",
