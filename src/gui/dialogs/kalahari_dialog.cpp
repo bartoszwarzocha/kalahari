@@ -57,16 +57,6 @@ public:
                 std::min(content.height(), LOWEST)};
     }
 
-    bool hasHeightForWidth() const override
-    {
-        return widget() && widget()->hasHeightForWidth();
-    }
-
-    int heightForWidth(int width) const override
-    {
-        return widget() ? widget()->heightForWidth(width) : -1;
-    }
-
 protected:
     /// The dialog's layout keeps the area's old size: content shown or hidden later
     /// (e.g. the details of a message) tells it the new one

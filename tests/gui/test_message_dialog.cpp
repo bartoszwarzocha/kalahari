@@ -483,16 +483,21 @@ TEST_CASE("Own messages: a window uses the height of the screen before it scroll
           "[gui][dialogs]") {
     // Taller than the two thirds of the screen Qt gives a window, lower than the screen
     const QRect screen = QApplication::primaryScreen()->availableGeometry();
-    QStringList lines;
-    MessageDialog probe(MessageDialog::Kind::Information, QStringLiteral("Report"),
-                        QStringLiteral("Line"));
-    const int lineHeight = probe.fontMetrics().lineSpacing();
-    const int count = (screen.height() * 3 / 4 - 200) / lineHeight;
-    for (int i = 0; i < count; ++i) {
-        lines.append(QStringLiteral("Line %1").arg(i + 1));
+    const auto report = [](int count) {
+        QStringList lines;
+        for (int i = 0; i < count; ++i) {
+            lines.append(QStringLiteral("Line %1").arg(i + 1));
+        }
+        return lines.join(QLatin1Char('\n'));
+    };
+    int count = 1;
+    while (MessageDialog(MessageDialog::Kind::Information, QStringLiteral("Report"), report(count))
+               .sizeHint()
+               .height() <= screen.height() * 2 / 3) {
+        ++count;
     }
     MessageDialog dialog(MessageDialog::Kind::Information, QStringLiteral("Report"),
-                         lines.join(QLatin1Char('\n')));
+                         report(count));
     REQUIRE(dialog.sizeHint().height() > screen.height() * 2 / 3);
     REQUIRE(dialog.sizeHint().height() < screen.height() - 40);
     dialog.show();
