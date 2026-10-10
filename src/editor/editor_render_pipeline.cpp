@@ -280,8 +280,12 @@ void EditorRenderPipeline::computeViewGeometry() {
     computed.pageCenterOffset =
         maxX > 0.0 ? gap * scale - m_context.scrollX : (pagesViewWidth - pageWidth) / 2.0;
     computed.originX = computed.pageCenterOffset + computed.marginLeft * scale;
-    computed.originY = (gap + computed.marginTop) * scale;
-    computed.scrollPaddingTop = gap + computed.marginTop;
+    // A bar over the view's top edge (find/replace) takes the top of the view: the pages
+    // start below it, and the scroll range has room for it, so that no line is hidden under
+    // the bar at the start of the text
+    const double topBar = m_context.topBarHeight;
+    computed.originY = topBar + (gap + computed.marginTop) * scale;
+    computed.scrollPaddingTop = topBar / scale + gap + computed.marginTop;
     computed.scrollPaddingBottom = gap + computed.marginBottom + typewriterBottom / scale;
 
     // The viewport manager works in document units: it needs the scale and where the
@@ -485,6 +489,15 @@ void EditorRenderPipeline::setConfigScrollBarWidth(double width) {
     if (std::abs(m_context.scrollBarWidth - width) < 0.01) return;
 
     m_context.scrollBarWidth = width;
+    computeViewGeometry();
+    markAllDirty();
+}
+
+void EditorRenderPipeline::setConfigTopBarHeight(double height) {
+    height = std::max(0.0, height);
+    if (std::abs(m_context.topBarHeight - height) < 0.01) return;
+
+    m_context.topBarHeight = height;
     computeViewGeometry();
     markAllDirty();
 }

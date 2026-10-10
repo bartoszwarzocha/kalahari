@@ -9,12 +9,14 @@
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/dialogs/add_to_project_dialog.h"
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/menu_builder.h"
@@ -37,11 +39,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/theme.h"
-#include "kalahari/core/document.h"
-#include "kalahari/core/document_archive.h"
-#include "kalahari/core/book.h"
-#include "kalahari/core/book_element.h"
-#include "kalahari/core/part.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QActionGroup>
@@ -63,9 +61,9 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QToolButton>
+#include <QScreen>
 #include <QStyle>
 #include <QProgressDialog>
-#include <QInputDialog>
 #include <QTimer>
 #include <map>
 
@@ -152,10 +150,11 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestSectionProperties);
     connect(m_dockCoordinator, &DockCoordinator::navigatorRequestPartProperties,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestPartProperties);
-    connect(m_dockCoordinator, &DockCoordinator::chapterReordered,
-            m_navigatorCoordinator, &NavigatorCoordinator::onChapterReordered);
-    connect(m_dockCoordinator, &DockCoordinator::partReordered,
-            m_navigatorCoordinator, &NavigatorCoordinator::onPartReordered);
+    connect(m_dockCoordinator, &DockCoordinator::elementMoved,
+            m_navigatorCoordinator, &NavigatorCoordinator::onElementMoved);
+    // A chapter title changed in the Properties panel shows on its tab too
+    connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::refreshTabTitle);
     // Connect Navigator add item signals (OpenSpec #00042 Task 7.19 Issue #1)
     connect(m_dockCoordinator, &DockCoordinator::requestAddChapter,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddChapter);
@@ -163,6 +162,16 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddPart);
     connect(m_dockCoordinator, &DockCoordinator::requestAddItem,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddItem);
+    // The sections of the book: shown or not, and their names
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowSections,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestShowSections);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestRenameSection,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestRenameSection);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSections,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestSections);
+    // The Navigator shows the title of the book and the names of its sections in its language
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::refreshNavigator);
     // Connect NavigatorCoordinator dirty state signal to NavigatorPanel (OpenSpec #00042 Phase 7.5)
     connect(m_navigatorCoordinator, &NavigatorCoordinator::chapterDirtyStateChanged,
             m_dockCoordinator->navigatorPanel(), &NavigatorPanel::setElementModified);
@@ -226,10 +235,9 @@ MainWindow::MainWindow(QWidget* parent)
         m_dockCoordinator->annotationsDock(),
         m_dockCoordinator->centralTabs(),
         [this](const QString& elementId) {
-            if (const core::BookElement* element =
+            if (const core::ProjectElement* element =
                     core::ProjectManager::getInstance().findElement(elementId)) {
-                m_navigatorCoordinator->onElementSelected(
-                    elementId, QString::fromStdString(element->getTitle()));
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
             }
         },
         statusBar(),
@@ -258,6 +266,11 @@ MainWindow::MainWindow(QWidget* parent)
     connect(&pm, &core::ProjectManager::projectClosed,
             m_documentCoordinator, &DocumentCoordinator::onProjectClosed);
     logger.debug("MainWindow: Connected ProjectManager signals to DocumentCoordinator");
+
+    // The Book menu follows the open book
+    connect(&pm, &core::ProjectManager::projectOpened, this, &MainWindow::updateBookCommands);
+    connect(&pm, &core::ProjectManager::projectClosed, this, &MainWindow::updateBookCommands);
+    updateBookCommands();
 
     // OpenSpec #00043: Create debounce timer for action state updates
     // This prevents expensive updates on every cursor movement
@@ -365,6 +378,13 @@ void MainWindow::registerCommands() {
     callbacks.onFindReplace = [this]() { onFindReplace(); };
     callbacks.onSettings = [this]() { onSettings(); };
 
+    // Book commands: a main text of the book (a chapter, a story...), placed in the window
+    // of adding it, and the book's properties
+    callbacks.onNewChapter = [this]() {
+        if (m_navigatorCoordinator) m_navigatorCoordinator->onRequestAddChapter(QString());
+    };
+    callbacks.onBookProperties = [this]() { showBookProperties(); };
+
     // Format commands (OpenSpec #00042 Phase 7.2)
     callbacks.onFormatBold = [this]() { onFormatBold(); };
     callbacks.onFormatItalic = [this]() { onFormatItalic(); };
@@ -452,6 +472,21 @@ void MainWindow::registerCommands() {
         dfCmd->isChecked = [this]() { return isDistractionFree(); };
         dfCmd->isEnabled = [this]() {
             return isDistractionFree() || (m_dockCoordinator != nullptr && getCurrentEditor() != nullptr);
+        };
+    }
+
+    // The Book menu works with a book open; New Chapter... also needs a kind of text the
+    // body of the book can have (see updateBookCommands())
+    if (auto* newText = registry.getCommand("book.newChapter")) {
+        newText->isEnabled = []() {
+            const auto& projects = core::ProjectManager::getInstance();
+            return projects.isProjectOpen()
+                   && static_cast<bool>(projects.chapterKindFor(core::BookPlace::Main));
+        };
+    }
+    if (auto* properties = registry.getCommand("book.properties")) {
+        properties->isEnabled = []() {
+            return core::ProjectManager::getInstance().isProjectOpen();
         };
     }
 
@@ -1072,24 +1107,22 @@ void MainWindow::createDocks() {
 
         // Prompt to save if THIS tab has unsaved changes (Bug#2 fix).
         if (editor && m_documentCoordinator && m_documentCoordinator->isEditorDirty(editor)) {
-            auto reply = QMessageBox::question(
-                this,
-                tr("Unsaved Changes"),
+            const auto reply = dialogs::MessageDialog::ask(
+                this, tr("Unsaved Changes"),
                 tr("This document has unsaved changes.\n\nDo you want to save before closing?"),
-                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-                QMessageBox::Save);
+                tr("&Save"), tr("Do&n't Save"));
 
-            if (reply == QMessageBox::Cancel) {
+            if (reply == dialogs::MessageDialog::Answer::Cancel) {
                 return;  // Do NOT close the tab.
             }
 
-            if (reply == QMessageBox::Save) {
+            if (reply == dialogs::MessageDialog::Answer::Accept) {
                 // Close the tab only once its content is saved: a failed or cancelled
                 // save keeps it open, with its changes
                 if (!m_documentCoordinator->saveEditor(editor)) {
                     return;
                 }
-            } else {  // QMessageBox::Discard
+            } else {  // Don't Save
                 m_documentCoordinator->discardEditorChanges(editor);
             }
         }
@@ -1250,6 +1283,43 @@ void MainWindow::resetLayout() {
     statusBar()->showMessage(tr("Layout reset to default"), 2000);
 }
 
+void MainWindow::showBookProperties() {
+    if (m_dockCoordinator == nullptr || !core::ProjectManager::getInstance().isProjectOpen()) {
+        return;
+    }
+    QDockWidget* dock = m_dockCoordinator->propertiesDock();
+    dock->show();
+    // In a tab group the panel would lie under the current tab; a floating one is a window
+    dock->raise();
+    if (dock->isFloating()) {
+        dock->activateWindow();
+    }
+    m_dockCoordinator->propertiesPanel()->editProjectProperties();
+}
+
+void MainWindow::updateBookCommands() {
+    auto& registry = CommandRegistry::getInstance();
+    if (Command* newText = registry.getCommand("book.newChapter")) {
+        // Named after the texts it adds: "New Story..." in a collection of short stories,
+        // "New Chapter..." without a book
+        const auto& projects = core::ProjectManager::getInstance();
+        const core::KindRef kind = projects.isProjectOpen()
+                                       ? projects.chapterKindFor(core::BookPlace::Main)
+                                       : core::KindRef{};
+        //: In Polish: {kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...
+        const QString label =
+            kind ? core::fillWords(tr("New {Kind}..."), {{QStringLiteral("kind"), wordsOf(kind)}})
+                 : QCoreApplication::translate("CommandRegistrar", "New Chapter...");
+        newText->label = label.toStdString();
+        newText->tooltip = newText->label;
+        if (QAction* action = registry.getAction(std::string("book.newChapter"))) {
+            action->setText(QString(label).replace('&', QStringLiteral("&&")));
+        }
+    }
+    registry.updateActionState("book.newChapter");
+    registry.updateActionState("book.properties");
+}
+
 bool MainWindow::hasUnsavedChanges() const {
     // Any dirty standalone editor tab (per-tab "dirty" property). Checked
     // regardless of project state because standalone tabs can coexist with a project.
@@ -1273,12 +1343,10 @@ bool MainWindow::hasUnsavedChanges() const {
 
     // Project open. Unsaved CONTENT is tracked per OPEN editor tab (m_dirtyChapters),
     // set only on genuine edits because the slot is connected AFTER load. We do NOT
-    // consult the model BookElement dirty flag here: building the project tree,
-    // selecting an element, or populating the properties panel can mark an element
-    // dirty with no user edit (setContent/setMetadata set it), and such a flag can
-    // never be cleared (saveChapterContent no-ops for unloaded content) — that was
-    // the spurious "save on project open" prompt. Structure/metadata dirtiness
-    // (add/rename/move/delete + properties) is the separate pm.isDirty() axis.
+    // consult the unsaved text ProjectManager keeps (getDirtyElements()) here: it is set
+    // only when the tabs' text is handed over for saving. Book data dirtiness (the
+    // properties of the book) is the separate pm.isDirty() axis; add/rename/move/delete
+    // are saved at once.
     if (m_navigatorCoordinator) {
         const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
         for (auto it = dirtyChapters.constBegin(); it != dirtyChapters.constEnd(); ++it) {
@@ -1309,26 +1377,22 @@ void MainWindow::closeEvent(QCloseEvent* event) {
             ? m_documentCoordinator->unsavedDocumentNames() : QStringList();
         const QString filename = names.isEmpty() ? tr("Untitled") : names.join(QStringLiteral(", "));
 
-        auto reply = QMessageBox::question(
-            this,
-            tr("Unsaved Changes"),
-            tr("Do you want to save changes to %1?").arg(filename),
-            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-            QMessageBox::Save
-        );
+        const auto reply = dialogs::MessageDialog::ask(
+            this, tr("Unsaved Changes"), tr("Do you want to save changes to %1?").arg(filename),
+            tr("&Save"), tr("Do&n't Save"));
 
-        if (reply == QMessageBox::Save) {
+        if (reply == dialogs::MessageDialog::Answer::Accept) {
             // Save the project and every editor tab; whatever could not be saved (failed
             // or cancelled) keeps the window open with its changes
             if (!m_documentCoordinator || !m_documentCoordinator->saveAllChanges()) {
                 event->ignore();
                 return;
             }
-        } else if (reply == QMessageBox::Cancel) {
+        } else if (reply == dialogs::MessageDialog::Answer::Cancel) {
             event->ignore();
             return;
         }
-        // Discard -> continue with close
+        // Don't Save -> continue with close
     }
 
     // Phase F: Save Navigator expansion state before closing
@@ -1534,6 +1598,10 @@ void MainWindow::showEvent(QShowEvent* event) {
         if (!windowState.isEmpty() && !toolbarResetNeeded) {
             // Normal case: restore saved window state (includes toolbar positions)
             restoreState(windowState);
+        } else if (const QScreen* screen = this->screen()) {
+            // No saved layout (the first start, or the toolbars were reset): a small screen
+            // gets a layout that leaves the text room
+            m_dockCoordinator->fitFirstLayout(screen->availableGeometry());
         }
 
         // Task #00019: Restore toolbar state (visibility)

@@ -16,6 +16,7 @@
 
 class QComboBox;
 class QHBoxLayout;
+class QRadioButton;
 
 namespace kalahari {
 namespace core {
@@ -24,6 +25,7 @@ struct Theme;
 namespace gui {
 
 class ColorConfigWidget;
+class FolderField;
 
 /// @brief General: startup
 class GeneralPage : public SettingsPage {
@@ -155,6 +157,39 @@ class AnnotationsPage : public SettingsPage {
     Q_OBJECT
 public:
     explicit AnnotationsPage(QWidget* parent = nullptr);
+};
+
+/// @brief Files > Folders: the folders of the books and of the archives, and where and how
+/// many backups of the database of each book are kept
+///
+/// After a change of the folder of the books or of the archives the windows that start in
+/// it start there again, also when they remember the folder used last.
+class FoldersPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit FoldersPage(QWidget* parent = nullptr);
+
+    std::vector<std::string> apply() override;
+
+    /// @brief A changed folder the program cannot use
+    [[nodiscard]] Problem problem() const override;
+
+private:
+    /// @brief Add the field of a folder kept in setting @p key, which is empty for the
+    /// default folder
+    void addFolder(QFormLayout* form, const QString& label, const char* key,
+                   const QString& defaultFolder, const QString& chooseTitle);
+
+    /// @brief A field of a folder checked before it is written
+    struct CheckedFolder {
+        FolderField* field;
+        Binding* binding;
+    };
+    std::vector<CheckedFolder> m_folders;
+
+    QRadioButton* m_inEachBook = nullptr;   ///< The backups in the folder of each book
+    QRadioButton* m_inOneFolder = nullptr;  ///< The backups in one folder for all books
+    FolderField* m_backupFolder = nullptr;
 };
 
 /// @brief Advanced > General: the diagnostic menu (this session only, not stored)

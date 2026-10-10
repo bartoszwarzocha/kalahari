@@ -23,7 +23,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("file.new", "resources/icons/twotone/note_add.svg", "New File");
     iconRegistry.registerIcon("file.new.project", "resources/icons/twotone/create_new_folder.svg", "New Book");
     iconRegistry.registerIcon("file.open", "resources/icons/twotone/folder_open.svg", "Open File");
-    iconRegistry.registerIcon("file.close", "resources/icons/twotone/close.svg", "Close File");
+    iconRegistry.registerIcon("file.close", "resources/icons/twotone/close.svg", "Close Book");
     iconRegistry.registerIcon("file.save", "resources/icons/twotone/save.svg", "Save");
     iconRegistry.registerIcon("file.saveAs", "resources/icons/twotone/save_as.svg", "Save As");
     iconRegistry.registerIcon("file.saveAll", "resources/icons/twotone/layers.svg", "Save All");
@@ -72,7 +72,6 @@ void registerAllIcons() {
     iconRegistry.registerIcon("book.newItem", "resources/icons/twotone/add_box.svg", "New Item");
     iconRegistry.registerIcon("book.newMindMap", "resources/icons/twotone/account_tree.svg", "New Mind Map");
     iconRegistry.registerIcon("book.newTimeline", "resources/icons/twotone/timeline.svg", "New Timeline");
-    iconRegistry.registerIcon("book.chapterBreak", "resources/icons/twotone/horizontal_rule.svg", "Chapter Break");
     iconRegistry.registerIcon("book.sceneBreak", "resources/icons/twotone/more_horiz.svg", "Scene Break");
     iconRegistry.registerIcon("book.properties", "resources/icons/twotone/tune.svg", "Book Properties");
 
@@ -235,6 +234,8 @@ void registerAllIcons() {
     // Aliases for dialog buttons (navigation.up, navigation.down, action.delete)
     iconRegistry.registerIcon("navigation.up", "resources/icons/twotone/arrow_upward.svg", "Move Up");
     iconRegistry.registerIcon("navigation.down", "resources/icons/twotone/arrow_downward.svg", "Move Down");
+    iconRegistry.registerIcon("navigation.top", "resources/icons/twotone/move_to_start.svg", "Move to Start");
+    iconRegistry.registerIcon("navigation.bottom", "resources/icons/twotone/move_to_end.svg", "Move to End");
     iconRegistry.registerIcon("action.delete", "resources/icons/twotone/delete.svg", "Delete");
     iconRegistry.registerIcon("common.firstPage", "resources/icons/twotone/first_page.svg", "First Page");
     iconRegistry.registerIcon("common.lastPage", "resources/icons/twotone/last_page.svg", "Last Page");
@@ -263,7 +264,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("template.nonfiction", "resources/icons/twotone/menu_book.svg", "Non-fiction");
     iconRegistry.registerIcon("template.screenplay", "resources/icons/twotone/theaters.svg", "Screenplay");
     iconRegistry.registerIcon("template.poetry", "resources/icons/twotone/edit_note.svg", "Poetry");
-    iconRegistry.registerIcon("template.empty", "resources/icons/twotone/folder_open.svg", "Empty Project");
+    iconRegistry.registerIcon("template.empty", "resources/icons/twotone/folder_open.svg", "User Project");
     iconRegistry.registerIcon("template.chapter", "resources/icons/twotone/article.svg", "Chapter");
     iconRegistry.registerIcon("template.mindmap", "resources/icons/twotone/account_tree.svg", "Mind Map");
     iconRegistry.registerIcon("template.timeline", "resources/icons/twotone/timeline.svg", "Timeline");

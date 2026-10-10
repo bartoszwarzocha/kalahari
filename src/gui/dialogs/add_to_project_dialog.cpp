@@ -4,9 +4,11 @@
 /// OpenSpec #00033: Project File System - Phase F
 
 #include "kalahari/gui/dialogs/add_to_project_dialog.h"
+#include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/section_words.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
-#include "kalahari/core/document.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -15,6 +17,9 @@
 #include <QButtonGroup>
 #include <QPushButton>
 #include <QFileInfo>
+#include <QSignalBlocker>
+
+#include <utility>
 
 using namespace kalahari::gui::dialogs;
 
@@ -29,6 +34,7 @@ AddToProjectDialog::AddToProjectDialog(const QString& filePath, QWidget* parent)
     , m_sectionCombo(nullptr)
     , m_partCombo(nullptr)
     , m_partLabel(nullptr)
+    , m_kindCombo(nullptr)
     , m_titleEdit(nullptr)
     , m_copyRadio(nullptr)
     , m_moveRadio(nullptr)
@@ -44,14 +50,11 @@ AddToProjectDialog::AddToProjectDialog(const QString& filePath, QWidget* parent)
     setMinimumWidth(400);
     setMaximumWidth(600);
 
-    // Initialize result structure with defaults
-    m_result.copyFile = true;
-    m_result.targetSection = "body";
-
     setupUI();
-    createConnections();
     populateSections();
     populateParts();
+    populateKinds();
+    createConnections();
 
     // Set initial title from file name
     m_titleEdit->setText(extractFileName(m_filePath));
@@ -94,16 +97,19 @@ void AddToProjectDialog::setupUI() {
     formLayout->setSpacing(6);
     formLayout->setContentsMargins(11, 11, 11, 11);
 
-    // Target section combo
+    // Target section combo; populateSections() names it
+    m_sectionLabel = new QLabel(targetGroup);
     m_sectionCombo = new QComboBox(targetGroup);
-    m_sectionCombo->setToolTip(tr("Select the project section where the file will be added"));
-    formLayout->addRow(tr("Section:"), m_sectionCombo);
+    formLayout->addRow(m_sectionLabel, m_sectionCombo);
 
-    // Target part combo (only visible for body section)
-    m_partLabel = new QLabel(tr("Part:"), targetGroup);
+    // Target part combo (only visible for the main section); populateParts() names it
+    m_partLabel = new QLabel(targetGroup);
     m_partCombo = new QComboBox(targetGroup);
-    m_partCombo->setToolTip(tr("Select the part where the file will be added (body section only)"));
     formLayout->addRow(m_partLabel, m_partCombo);
+
+    // Kind of the new element: a chapter, a prologue, a preface...
+    m_kindCombo = new QComboBox(targetGroup);
+    formLayout->addRow(tr("Kind:"), m_kindCombo);
 
     // Title input
     m_titleEdit = new QLineEdit(targetGroup);
@@ -151,8 +157,12 @@ void AddToProjectDialog::createConnections() {
     connect(m_sectionCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &AddToProjectDialog::onSectionChanged);
 
-    // Part selection (also triggers validation)
+    // Part selection: the kinds follow it
     connect(m_partCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &AddToProjectDialog::onPartChanged);
+
+    // Kind selection
+    connect(m_kindCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this](int) { validateInput(); });
 
     // Title change
@@ -167,68 +177,88 @@ void AddToProjectDialog::createConnections() {
 }
 
 void AddToProjectDialog::populateSections() {
+    using kalahari::core::BookPlace;
     m_sectionCombo->clear();
 
-    // Add all available sections
-    // Data contains internal section ID
-    m_sectionCombo->addItem(tr("Front Matter"), "frontmatter");
-    m_sectionCombo->addItem(tr("Body"), "body");
-    m_sectionCombo->addItem(tr("Back Matter"), "backmatter");
-    m_sectionCombo->addItem(tr("Mind Maps"), "mindmaps");
-    m_sectionCombo->addItem(tr("Timelines"), "timelines");
-
-    // Default to Body section
-    int bodyIndex = m_sectionCombo->findData("body");
-    if (bodyIndex >= 0) {
-        m_sectionCombo->setCurrentIndex(bodyIndex);
+    // The sections with the book's names; a book without sections has places in the book: its
+    // beginning, its content and its end. Data contains the section's place in the book.
+    const kalahari::core::ProjectBook* book = kalahari::core::ProjectManager::getInstance().book();
+    const bool sectionsShown = !book || book->partsLayer;
+    const kalahari::core::ProjectBook noBook;
+    for (BookPlace place : {BookPlace::Front, BookPlace::Main, BookPlace::Back}) {
+        const QString name =
+            sectionsShown ? (book ? *book : noBook).sectionName(place)
+                          : SectionWords::capitalized(SectionWords::forPart(book, place).inPart);
+        m_sectionCombo->addItem(name, static_cast<int>(place));
     }
+    m_sectionLabel->setText(sectionsShown ? tr("Section:") : tr("Place:"));
+    m_sectionCombo->setToolTip(sectionsShown
+                                   ? tr("Select the section of the book where the file will be "
+                                        "added")
+                                   : tr("Select where in the book the file will be added"));
+
+    // Default to the main section
+    m_sectionCombo->setCurrentIndex(1);
+}
+
+kalahari::core::BookPlace AddToProjectDialog::currentPlace() const {
+    return static_cast<kalahari::core::BookPlace>(m_sectionCombo->currentData().toInt());
 }
 
 void AddToProjectDialog::populateParts() {
+    const QSignalBlocker blocker(m_partCombo);
     m_partCombo->clear();
 
-    // Get parts from ProjectManager
-    auto& pm = kalahari::core::ProjectManager::getInstance();
-
-    if (!pm.isProjectOpen()) {
-        m_partCombo->setEnabled(false);
-        return;
-    }
-
-    auto* doc = pm.getDocument();
-    if (!doc) {
-        m_partCombo->setEnabled(false);
-        return;
-    }
-
-    // Access the book structure through the document
-    // For now, we'll check if body section is selected
-    QString currentSection = m_sectionCombo->currentData().toString();
-    bool isBodySection = (currentSection == "body");
-
-    m_partCombo->setVisible(isBodySection);
-    m_partLabel->setVisible(isBodySection);
-
-    if (!isBodySection) {
-        return;
-    }
-
-    // Get book from document and populate parts
-    const auto& book = doc->getBook();
-    const auto& parts = book.getBody();
-
-    if (parts.empty()) {
-        // No parts exist, add a placeholder
-        m_partCombo->addItem(tr("(No parts available)"), "");
-        m_partCombo->setEnabled(false);
-    } else {
-        m_partCombo->setEnabled(true);
-        for (const auto& part : parts) {
-            QString partTitle = QString::fromStdString(part->getTitle());
-            QString partId = QString::fromStdString(part->getId());
-            m_partCombo->addItem(partTitle, partId);
+    // The parts of the body; a file can also go to the body itself. They are named after
+    // their kind: "Division:", "(No division)"
+    const auto& pm = kalahari::core::ProjectManager::getInstance();
+    const QHash<QString, kalahari::core::KindWords> nouns{
+        {QStringLiteral("group"), kalahari::gui::wordsOf(pm.partKind())}};
+    //: In Polish: {Group}:
+    m_partLabel->setText(kalahari::core::fillWords(tr("{Group}:"), nouns));
+    //: In Polish: Wybierz {group:accusative}, do {group:m=którego|f=której|n=którego|p=których}
+    //: trafi plik
+    m_partCombo->setToolTip(kalahari::core::fillWords(
+        tr("Select the {group} where the file will be added"), nouns));
+    const kalahari::core::ProjectBook* book = pm.book();
+    const bool isBodySection = currentPlace() == kalahari::core::BookPlace::Main;
+    if (book && isBodySection) {
+        for (const kalahari::core::ProjectElement& element : book->mainElements) {
+            if (pm.formOf(element) == kalahari::core::ElementForm::Group) {
+                if (m_partCombo->count() == 0) {
+                    //: In Polish: (Bez {group:genitive})
+                    m_partCombo->addItem(kalahari::core::fillWords(tr("(No {group})"), nouns),
+                                         QString());
+                }
+                m_partCombo->addItem(element.title, element.id);
+            }
         }
     }
+
+    // Shown only when there is a part to choose
+    const bool hasParts = m_partCombo->count() > 0;
+    m_partCombo->setVisible(hasParts);
+    m_partLabel->setVisible(hasParts);
+}
+
+void AddToProjectDialog::populateKinds() {
+    const QSignalBlocker blocker(m_kindCombo);
+    m_kindCombo->clear();
+
+    // Text kinds the project offers there, named in the language of the program
+    const auto& pm = kalahari::core::ProjectManager::getInstance();
+    const kalahari::core::BookPlace place = currentPlace();
+    const QString groupId = m_partCombo->currentData().toString();
+    m_kinds = pm.textKindsFor(place, groupId);
+    const kalahari::core::KindRef chapterKind = pm.chapterKindFor(place, groupId);
+    const QString language = kalahari::gui::programLanguage();
+    for (const kalahari::core::KindRef& kind : std::as_const(m_kinds)) {
+        m_kindCombo->addItem(kind.kind->name.text(language));
+        if (kind.kind == chapterKind.kind) {
+            m_kindCombo->setCurrentIndex(m_kindCombo->count() - 1);
+        }
+    }
+    m_kindCombo->setEnabled(!m_kinds.isEmpty());
 }
 
 void AddToProjectDialog::validateInput() {
@@ -239,18 +269,9 @@ void AddToProjectDialog::validateInput() {
         valid = false;
     }
 
-    // Section must be selected
-    if (m_sectionCombo->currentIndex() < 0) {
+    // A kind must be selected; there is none when no element can be added there
+    if (m_kindCombo->currentIndex() < 0 || m_kindCombo->currentIndex() >= m_kinds.size()) {
         valid = false;
-    }
-
-    // If body section, part must be selected (unless no parts available)
-    QString currentSection = m_sectionCombo->currentData().toString();
-    if (currentSection == "body") {
-        QString partId = m_partCombo->currentData().toString();
-        if (partId.isEmpty() && m_partCombo->isEnabled()) {
-            valid = false;
-        }
     }
 
     m_addBtn->setEnabled(valid);
@@ -268,8 +289,14 @@ QString AddToProjectDialog::extractFileName(const QString& filePath) const {
 void AddToProjectDialog::onSectionChanged(int index) {
     Q_UNUSED(index)
 
-    // Update part combo visibility and contents
+    // Update part combo visibility and contents, and the kinds of the section
     populateParts();
+    populateKinds();
+    validateInput();
+}
+
+void AddToProjectDialog::onPartChanged() {
+    populateKinds();
     validateInput();
 }
 
@@ -279,17 +306,17 @@ void AddToProjectDialog::onTitleChanged(const QString& text) {
 }
 
 void AddToProjectDialog::onAccept() {
-    // Populate result structure
-    m_result.targetSection = m_sectionCombo->currentData().toString();
+    const int kindIndex = m_kindCombo->currentIndex();
+    if (kindIndex < 0 || kindIndex >= m_kinds.size()) {
+        return;
+    }
+
+    // Populate result structure; the part combo has a part only in the body
+    m_result.place = currentPlace();
+    m_result.groupId = m_partCombo->currentData().toString();
+    m_result.kind = m_kinds.at(kindIndex);
     m_result.newTitle = m_titleEdit->text().trimmed();
     m_result.copyFile = m_copyRadio->isChecked();
-
-    // Part ID only relevant for body section
-    if (m_result.targetSection == "body") {
-        m_result.targetPart = m_partCombo->currentData().toString();
-    } else {
-        m_result.targetPart.clear();
-    }
 
     accept();
 }

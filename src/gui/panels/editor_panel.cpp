@@ -4,15 +4,16 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/kind_words.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/annotation.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/statistics_collector.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include <QEvent>
 #include <QGuiApplication>
-#include <QMessageBox>
 #include <QScreen>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -155,13 +156,31 @@ bool EditorPanel::setContent(const QString& content) {
     return complete;
 }
 
-void EditorPanel::warnDamagedChapter(QWidget* parent, const QString& chapterName) {
-    QMessageBox::warning(
-        parent,
-        tr("Damaged Chapter"),
-        tr("The chapter \"%1\" is damaged, so only its text before the damaged place is shown.\n\n"
-           "Saving the chapter keeps only this text. Close it without saving to leave the file "
-           "as it is.").arg(chapterName));
+void EditorPanel::warnDamagedChapter(QWidget* parent, const QString& name,
+                                     const core::KindWords* kind) {
+    if (!kind) {
+        dialogs::MessageDialog::warning(
+            parent, tr("Damaged File"),
+            tr("The file \"%1\" is damaged, so only its text before the damaged place is "
+               "shown.\n\nSaving the file keeps only this text. Close it without saving to "
+               "leave the file as it is.")
+                .arg(name));
+        return;
+    }
+    // "The story ... is damaged": the kind of the element in the program's language
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), *kind}};
+    //: In Polish: {kind:m=Uszkodzony|f=Uszkodzona|n=Uszkodzone|p=Uszkodzone} {kind}
+    const QString title = core::fillWords(tr("Damaged {Kind}"), nouns);
+    //: In Polish: {Kind} „%1” {kind:m=jest uszkodzony|f=jest uszkodzona|n=jest
+    //: uszkodzone|p=są uszkodzone}, dlatego widać tylko tekst sprzed uszkodzonego miejsca.
+    //: Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmian,
+    //: zamknij {kind:accusative} bez zapisywania.
+    const QString text = core::fillWords(
+        tr("The {kind} \"%1\" {kind:s=is|p=are} damaged, so only {kind:s=its|p=their} text "
+           "before the damaged place is shown.\n\nSaving the {kind} keeps only this text. "
+           "Close {kind:s=it|p=them} without saving to leave the file as it is."),
+        nouns);
+    dialogs::MessageDialog::warning(parent, title, text.arg(name));
 }
 
 QString EditorPanel::getContent() const {

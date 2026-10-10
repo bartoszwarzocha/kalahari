@@ -3,12 +3,15 @@
 ///
 /// AddToProjectDialog allows users to add a standalone file (not part of the
 /// project) to the current project structure. Users can choose the target
-/// section (frontmatter, body, backmatter, mindmaps, timelines) and whether
-/// to copy or move the file.
+/// section (front, main, back, with the book's names; in a book without sections, the place
+/// in the book), the part in the main section, the kind of the new element and whether to copy
+/// or move the file.
 ///
 /// OpenSpec #00033: Project File System - Phase F
 
 #pragma once
+
+#include "kalahari/core/book_type_registry.h"
 
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -16,6 +19,7 @@
 #include <QLineEdit>
 #include <QRadioButton>
 #include <QLabel>
+#include <QList>
 #include <QString>
 
 namespace kalahari {
@@ -30,10 +34,11 @@ namespace dialogs {
 ///
 /// Contains all information needed to add a file to the project structure.
 struct AddToProjectResult {
-    QString targetSection;   ///< "frontmatter", "body", "backmatter", "mindmaps", "timelines"
-    QString targetPart;      ///< Part ID if body section selected, empty otherwise
+    core::BookPlace place = core::BookPlace::Main;  ///< Section: front, main or back
+    QString groupId;         ///< Part ID in the body; empty: the body itself or another section
+    core::KindRef kind;      ///< Kind of the new element (a chapter, a prologue...)
     QString newTitle;        ///< Display title for the file in the project
-    bool copyFile;           ///< true = copy file, false = move file
+    bool copyFile = true;    ///< true = copy file, false = move file
 };
 
 // ============================================================================
@@ -44,8 +49,10 @@ struct AddToProjectResult {
 ///
 /// AddToProjectDialog allows users to integrate standalone files into the
 /// current project structure. The user can:
-/// - Select a target section (frontmatter, body, backmatter, mindmaps, timelines)
-/// - Select a target part (only when body section is selected)
+/// - Select a target section (front, main, back), named as the book names them; in a book
+///   without sections, the place in the book (its beginning, its content, its end)
+/// - Select a target part (only when the main section is selected and the book has parts)
+/// - Select the kind of the new element: a text kind the project offers there
 /// - Set a display title for the file
 /// - Choose whether to copy or move the file
 ///
@@ -56,9 +63,10 @@ struct AddToProjectResult {
 /// +----------------------------------------------+
 /// |  File: notes.rtf                              |
 /// |                                               |
-/// |  Target Section: [Body          v]            |
-/// |  Target Part:    [Part 1: Intro v]            |
-/// |  Title:          [Research Notes_________]    |
+/// |  Section: [Body          v]                   |
+/// |  Part:    [Part 1: Intro v]                   |
+/// |  Kind:    [Chapter       v]                   |
+/// |  Title:   [Research Notes_________]           |
 /// |                                               |
 /// |  Action: (*) Copy file to project             |
 /// |          ( ) Move file to project             |
@@ -97,6 +105,9 @@ private slots:
     /// @param index New selection index
     void onSectionChanged(int index);
 
+    /// @brief Handle part combo selection change: the kinds follow the part
+    void onPartChanged();
+
     /// @brief Handle title text change
     /// @param text New text value
     void onTitleChanged(const QString& text);
@@ -120,6 +131,13 @@ private:
 
     /// @brief Populate parts combo based on current project structure
     void populateParts();
+
+    /// @brief Populate kinds combo with the text kinds the project offers in the chosen
+    /// section and part
+    void populateKinds();
+
+    /// @brief Section chosen in the section combo
+    core::BookPlace currentPlace() const;
 
     /// @brief Validate input and update Add button state
     void validateInput();
@@ -150,14 +168,23 @@ private:
     // Form Widgets
     // ========================================================================
 
-    /// @brief Target section selection (frontmatter, body, backmatter, etc.)
+    /// @brief Target section selection (front, main, back)
     QComboBox* m_sectionCombo;
 
-    /// @brief Target part selection (enabled only for Body section)
+    /// @brief Label for section combo: "Section:", or "Place:" in a book without sections
+    QLabel* m_sectionLabel = nullptr;
+
+    /// @brief Target part selection (shown only for the main section of a book with parts)
     QComboBox* m_partCombo;
 
     /// @brief Label for part combo (to hide when not applicable)
     QLabel* m_partLabel;
+
+    /// @brief Kind of the new element
+    QComboBox* m_kindCombo;
+
+    /// @brief Kinds of the kind combo, in its order
+    QList<core::KindRef> m_kinds;
 
     /// @brief Display title input
     QLineEdit* m_titleEdit;

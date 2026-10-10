@@ -6,6 +6,7 @@
 #include <catch2/catch_approx.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/editor_render_pipeline.h>
+#include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/render_context.h>
 #include <kalahari/editor/view_modes.h>
@@ -482,6 +483,17 @@ TEST_CASE("Stage4 page mode: the first line of a page is shown on that page",
     CHECK(at.top() > 20.0 + 50.0);
     CHECK(at.top() < editor->height() / 2.0);
     CHECK(editor->currentPage() == 2);
+
+    SECTION("with the find bar open, the sheet's top goes below the bar") {
+        editor->showFind();
+        const auto* bar = editor->findChild<FindReplaceBar*>();
+        REQUIRE(bar != nullptr);
+        REQUIRE(bar->height() > 0);
+        editor->goToPage(3);
+        editor->goToPage(2);
+        paint(*editor);
+        CHECK(caret(*editor).top() == Approx(at.top() + bar->height()).margin(1.0));
+    }
 }
 
 TEST_CASE("Stage4 page mode: the lines stay on their sheets on far pages",

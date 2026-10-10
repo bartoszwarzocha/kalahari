@@ -15,34 +15,78 @@
       "form": "text", "places": ["main", "cycle"], "icon": "template.chapter",
       "name": { "pl": "Wiersz", "en": "Poem" },
       "plural": { "pl": "Wiersze", "en": "Poems" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "wiersz", "plural": "wiersze",
+                "genitive": "wiersza", "dative": "wierszowi", "accusative": "wiersz",
+                "instrumental": "wierszem", "locative": "wierszu", "genitivePlural": "wierszy" },
+        "en": { "singular": "poem", "plural": "poems", "indefinite": "a poem" }
+      },
       "title": { "pl": "Wiersz %n", "en": "Poem %n" }
     },
     "cycle": {
       "form": "group", "places": ["main"], "icon": "structure.part",
       "name": { "pl": "Cykl", "en": "Cycle" },
       "plural": { "pl": "Cykle", "en": "Cycles" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "cykl", "plural": "cykle", "genitive": "cyklu",
+                "dative": "cyklowi", "accusative": "cykl", "instrumental": "cyklem",
+                "locative": "cyklu", "genitivePlural": "cykli" },
+        "en": { "singular": "cycle", "plural": "cycles", "indefinite": "a cycle" }
+      },
       "title": { "pl": "Cykl %n", "en": "Cycle %n" }, "numbering": "roman"
     },
     "explanatory_notes": {
       "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Objaśnienia", "en": "Notes" },
-      "plural": { "pl": "Objaśnienia", "en": "Notes" }
+      "plural": { "pl": "Objaśnienia", "en": "Notes" },
+      "words": {
+        "pl": { "gender": "plural", "singular": "objaśnienia", "plural": "objaśnienia",
+                "genitive": "objaśnień", "dative": "objaśnieniom", "accusative": "objaśnienia",
+                "instrumental": "objaśnieniami", "locative": "objaśnieniach",
+                "genitivePlural": "objaśnień" },
+        "en": { "gender": "plural", "singular": "notes", "plural": "notes", "indefinite": "notes" }
+      }
     },
     "first_lines": {
       "form": "window", "editor": "first_lines", "generated": true,
       "places": ["back"], "limit": 1, "icon": "common.sort",
       "name": { "pl": "Indeks pierwszych wersów", "en": "Index of first lines" },
-      "plural": { "pl": "Indeksy pierwszych wersów", "en": "Indexes of first lines" }
+      "plural": { "pl": "Indeksy pierwszych wersów", "en": "Indexes of first lines" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "indeks pierwszych wersów",
+                "plural": "indeksy pierwszych wersów", "genitive": "indeksu pierwszych wersów",
+                "dative": "indeksowi pierwszych wersów", "accusative": "indeks pierwszych wersów",
+                "instrumental": "indeksem pierwszych wersów",
+                "locative": "indeksie pierwszych wersów",
+                "genitivePlural": "indeksów pierwszych wersów" },
+        "en": { "singular": "index of first lines", "plural": "indexes of first lines",
+                "indefinite": "an index of first lines" }
+      }
     },
     "publisher_note": {
       "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Nota wydawnicza", "en": "Publisher's note" },
-      "plural": { "pl": "Noty wydawnicze", "en": "Publisher's notes" }
+      "plural": { "pl": "Noty wydawnicze", "en": "Publisher's notes" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "nota wydawnicza", "plural": "noty wydawnicze",
+                "genitive": "noty wydawniczej", "dative": "nocie wydawniczej",
+                "accusative": "notę wydawniczą", "instrumental": "notą wydawniczą",
+                "locative": "nocie wydawniczej", "genitivePlural": "not wydawniczych" },
+        "en": { "singular": "publisher's note", "plural": "publisher's notes",
+                "indefinite": "a publisher's note" }
+      }
     },
     "draft": {
       "form": "text", "places": ["workshop"], "icon": "template.note",
       "name": { "pl": "Brudnopis", "en": "Draft" },
       "plural": { "pl": "Brudnopisy", "en": "Drafts" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "brudnopis", "plural": "brudnopisy",
+                "genitive": "brudnopisu", "dative": "brudnopisowi", "accusative": "brudnopis",
+                "instrumental": "brudnopisem", "locative": "brudnopisie",
+                "genitivePlural": "brudnopisów" },
+        "en": { "singular": "draft", "plural": "drafts", "indefinite": "a draft" }
+      },
       "title": { "pl": "Brudnopis %n", "en": "Draft %n" }
     }
   },

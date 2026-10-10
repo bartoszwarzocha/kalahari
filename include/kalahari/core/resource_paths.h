@@ -74,6 +74,10 @@ public:
     /// @return Absolute path to <resources>/icons, or empty string if resources not found
     QString getIconsDir() const;
 
+    /// @brief Get path to the folder of the built-in book type packages
+    /// @return Absolute path to <resources>/booktypes, or empty string if resources not found
+    QString getBookTypesDir() const;
+
     /// @brief Check if resources were found during initialization
     /// @return true if a valid resources directory was found, false otherwise
     bool resourcesFound() const;

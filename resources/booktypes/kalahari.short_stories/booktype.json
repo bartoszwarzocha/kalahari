@@ -6,7 +6,7 @@
   "name": { "pl": "Zbiór opowiadań", "en": "Short Story Collection" },
   "description": {
     "pl": "Opowiadania jednego autora albo antologia; opowiadania można łączyć w działy.",
-    "en": "Stories by one author or an anthology; stories can be grouped into sections."
+    "en": "Stories by one author or an anthology; stories can be grouped into divisions."
   },
   "icon": "template.shortStories",
   "uses": ["kalahari.base", "kalahari.novel"],
@@ -15,24 +15,53 @@
       "form": "text", "places": ["main", "section"], "icon": "template.chapter",
       "name": { "pl": "Opowiadanie", "en": "Story" },
       "plural": { "pl": "Opowiadania", "en": "Stories" },
+      "words": {
+        "pl": { "gender": "neuter", "singular": "opowiadanie", "plural": "opowiadania",
+                "genitive": "opowiadania", "dative": "opowiadaniu", "accusative": "opowiadanie",
+                "instrumental": "opowiadaniem", "locative": "opowiadaniu",
+                "genitivePlural": "opowiadań" },
+        "en": { "singular": "story", "plural": "stories", "indefinite": "a story" }
+      },
       "title": { "pl": "Opowiadanie %n", "en": "Story %n" }
     },
     "section": {
       "form": "group", "places": ["main"], "icon": "structure.part",
-      "name": { "pl": "Dział", "en": "Section" },
-      "plural": { "pl": "Działy", "en": "Sections" },
-      "title": { "pl": "Dział %n", "en": "Section %n" }, "numbering": "roman"
+      "name": { "pl": "Dział", "en": "Division" },
+      "plural": { "pl": "Działy", "en": "Divisions" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "dział", "plural": "działy",
+                "genitive": "działu", "dative": "działowi", "accusative": "dział",
+                "instrumental": "działem", "locative": "dziale", "genitivePlural": "działów" },
+        "en": { "singular": "division", "plural": "divisions", "indefinite": "a division" }
+      },
+      "title": { "pl": "Dział %n", "en": "Division %n" }, "numbering": "roman"
     },
     "contributors": {
       "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Noty o autorach", "en": "Notes on contributors" },
-      "plural": { "pl": "Noty o autorach", "en": "Notes on contributors" }
+      "plural": { "pl": "Noty o autorach", "en": "Notes on contributors" },
+      "words": {
+        "pl": { "gender": "plural", "singular": "noty o autorach", "plural": "noty o autorach",
+                "genitive": "not o autorach", "dative": "notom o autorach",
+                "accusative": "noty o autorach", "instrumental": "notami o autorach",
+                "locative": "notach o autorach", "genitivePlural": "not o autorach" },
+        "en": { "gender": "plural", "singular": "notes on contributors",
+                "plural": "notes on contributors", "indefinite": "notes on contributors" }
+      }
     },
     "first_publications": {
       "form": "window", "editor": "first_publications", "generated": true,
       "places": ["back"], "limit": 1, "icon": "format.bullets",
       "name": { "pl": "Pierwodruki", "en": "First publications" },
-      "plural": { "pl": "Pierwodruki", "en": "First publications" }
+      "plural": { "pl": "Pierwodruki", "en": "First publications" },
+      "words": {
+        "pl": { "gender": "plural", "singular": "pierwodruki", "plural": "pierwodruki",
+                "genitive": "pierwodruków", "dative": "pierwodrukom", "accusative": "pierwodruki",
+                "instrumental": "pierwodrukami", "locative": "pierwodrukach",
+                "genitivePlural": "pierwodruków" },
+        "en": { "gender": "plural", "singular": "first publications",
+                "plural": "first publications", "indefinite": "first publications" }
+      }
     }
   },
   "front":    ["title_page", "copyright", "dedication", "motto", "toc", "introduction"],

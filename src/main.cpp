@@ -23,16 +23,14 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/cmd_line_parser.h"
 #include "kalahari/core/project_manager.h"
-#include "kalahari/core/document.h"
-#include "kalahari/core/book.h"
-#include "kalahari/core/book_element.h"
-#include "kalahari/core/part.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/utils/icon_downloader.h"
 #include "kalahari/core/utils/svg_converter.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/book_editor_accessible.h"
 #include "kalahari/editor/editor_benchmark.h"
 #include "kalahari/gui/kalahari_style.h"
+#include "kalahari/gui/kind_names.h"
 
 // ============================================================================
 // DownloadHelper - Qt Signal/Slot helper for CLI icon downloads
@@ -103,6 +101,7 @@ int main(int argc, char *argv[]) {
     if (language != "en") {
         if (translator.load("kalahari_" + language, ":/i18n")) {
             app.installTranslator(&translator);
+            kalahari::gui::setProgramLanguage(language);
             logger.info("UI language: {}", language.toStdString());
         } else {
             logger.warn("No translation for UI language '{}', using English", language.toStdString());
@@ -312,51 +311,18 @@ int main(int argc, char *argv[]) {
 
             // Open chapter if specified
             if (!chapterTitle.isEmpty() && pm.isProjectOpen()) {
-                auto* doc = pm.getDocument();
-                if (doc) {
-                    kalahari::core::Book& book = doc->getBook();
+                if (const kalahari::core::BookProject* project = pm.project()) {
                     QString foundId;
                     QString foundTitle;
-                    std::string titleToFind = chapterTitle.toStdString();
 
-                    // Helper lambda for matching (exact or prefix)
-                    auto matchesTitle = [&titleToFind](const std::string& elemTitle) {
-                        return elemTitle == titleToFind ||
-                               (elemTitle.length() > titleToFind.length() &&
-                                elemTitle.substr(0, titleToFind.length()) == titleToFind);
-                    };
-
-                    // Search in frontmatter
-                    for (const auto& elem : book.getFrontMatter()) {
-                        if (matchesTitle(elem->getTitle())) {
-                            foundId = QString::fromStdString(elem->getId());
-                            foundTitle = QString::fromStdString(elem->getTitle());
+                    // The first text element of the book, in reading order, whose title is
+                    // the chapter's title or begins with it
+                    for (const kalahari::core::ProjectElement* element : project->readingOrder()) {
+                        if (pm.formOf(*element) == kalahari::core::ElementForm::Text &&
+                            element->title.startsWith(chapterTitle)) {
+                            foundId = element->id;
+                            foundTitle = element->title;
                             break;
-                        }
-                    }
-
-                    // Search in body parts and chapters
-                    if (foundId.isEmpty()) {
-                        for (const auto& part : book.getBody()) {
-                            for (const auto& chapter : part->getChapters()) {
-                                if (matchesTitle(chapter->getTitle())) {
-                                    foundId = QString::fromStdString(chapter->getId());
-                                    foundTitle = QString::fromStdString(chapter->getTitle());
-                                    break;
-                                }
-                            }
-                            if (!foundId.isEmpty()) break;
-                        }
-                    }
-
-                    // Search in backmatter
-                    if (foundId.isEmpty()) {
-                        for (const auto& elem : book.getBackMatter()) {
-                            if (matchesTitle(elem->getTitle())) {
-                                foundId = QString::fromStdString(elem->getId());
-                                foundTitle = QString::fromStdString(elem->getTitle());
-                                break;
-                            }
                         }
                     }
 

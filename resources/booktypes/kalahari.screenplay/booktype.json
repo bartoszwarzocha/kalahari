@@ -15,33 +15,73 @@
       "form": "text", "places": ["main", "episode"], "icon": "template.chapter",
       "name": { "pl": "Akt", "en": "Act" },
       "plural": { "pl": "Akty", "en": "Acts" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "akt", "plural": "akty", "genitive": "aktu",
+                "dative": "aktowi", "accusative": "akt", "instrumental": "aktem",
+                "locative": "akcie", "genitivePlural": "aktów" },
+        "en": { "singular": "act", "plural": "acts", "indefinite": "an act" }
+      },
       "title": { "pl": "Akt %n", "en": "Act %n" }, "numbering": "roman"
     },
     "episode": {
       "form": "group", "places": ["main"], "icon": "structure.part",
       "name": { "pl": "Odcinek", "en": "Episode" },
       "plural": { "pl": "Odcinki", "en": "Episodes" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "odcinek", "plural": "odcinki",
+                "genitive": "odcinka", "dative": "odcinkowi", "accusative": "odcinek",
+                "instrumental": "odcinkiem", "locative": "odcinku", "genitivePlural": "odcinków" },
+        "en": { "singular": "episode", "plural": "episodes", "indefinite": "an episode" }
+      },
       "title": { "pl": "Odcinek %n", "en": "Episode %n" }
     },
     "logline": {
       "form": "text", "places": ["workshop"], "icon": "template.note",
       "name": { "pl": "Logline", "en": "Logline" },
-      "plural": { "pl": "Logline", "en": "Loglines" }
+      "plural": { "pl": "Logline", "en": "Loglines" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "logline", "plural": "logline",
+                "genitive": "logline", "dative": "logline", "accusative": "logline",
+                "instrumental": "logline", "locative": "logline", "genitivePlural": "logline" },
+        "en": { "singular": "logline", "plural": "loglines", "indefinite": "a logline" }
+      }
     },
     "synopsis": {
       "form": "text", "places": ["workshop"], "icon": "template.note",
       "name": { "pl": "Streszczenie", "en": "Synopsis" },
-      "plural": { "pl": "Streszczenia", "en": "Synopses" }
+      "plural": { "pl": "Streszczenia", "en": "Synopses" },
+      "words": {
+        "pl": { "gender": "neuter", "singular": "streszczenie", "plural": "streszczenia",
+                "genitive": "streszczenia", "dative": "streszczeniu", "accusative": "streszczenie",
+                "instrumental": "streszczeniem", "locative": "streszczeniu",
+                "genitivePlural": "streszczeń" },
+        "en": { "singular": "synopsis", "plural": "synopses", "indefinite": "a synopsis" }
+      }
     },
     "treatment": {
       "form": "text", "places": ["workshop"], "icon": "template.note",
       "name": { "pl": "Treatment", "en": "Treatment" },
-      "plural": { "pl": "Treatmenty", "en": "Treatments" }
+      "plural": { "pl": "Treatmenty", "en": "Treatments" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "treatment", "plural": "treatmenty",
+                "genitive": "treatmentu", "dative": "treatmentowi", "accusative": "treatment",
+                "instrumental": "treatmentem", "locative": "treatmencie",
+                "genitivePlural": "treatmentów" },
+        "en": { "singular": "treatment", "plural": "treatments", "indefinite": "a treatment" }
+      }
     },
     "step_outline": {
       "form": "text", "places": ["workshop"], "icon": "template.note",
       "name": { "pl": "Drabinka scen", "en": "Step outline" },
-      "plural": { "pl": "Drabinki scen", "en": "Step outlines" }
+      "plural": { "pl": "Drabinki scen", "en": "Step outlines" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "drabinka scen", "plural": "drabinki scen",
+                "genitive": "drabinki scen", "dative": "drabince scen",
+                "accusative": "drabinkę scen", "instrumental": "drabinką scen",
+                "locative": "drabince scen", "genitivePlural": "drabinek scen" },
+        "en": { "singular": "step outline", "plural": "step outlines",
+                "indefinite": "a step outline" }
+      }
     }
   },
   "front":    ["title_page"],

@@ -155,17 +155,20 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
     {
         TemplateInfo info;
         info.id = QStringLiteral("template.novel");
+        info.typeId = QStringLiteral("kalahari.novel");
         info.name = QCoreApplication::translate("TemplateRegistry", "Novel");
         info.description = QCoreApplication::translate("TemplateRegistry",
             "A traditional novel structure with parts and chapters.\n\n"
-            "Includes front matter (title page, dedication) and back matter "
-            "(epilogue, acknowledgments). Perfect for fiction writing with "
-            "a clear hierarchical organization.");
+            "A title page and a dedication at the beginning, a prologue and an epilogue in "
+            "the text, and an afterword and acknowledgments at the end.");
         info.iconId = QStringLiteral("template.novel");
         info.features = QStringList{
             QCoreApplication::translate("TemplateRegistry", "Part/Chapter structure"),
-            QCoreApplication::translate("TemplateRegistry", "Front matter (title, dedication)"),
-            QCoreApplication::translate("TemplateRegistry", "Back matter (epilogue, notes)"),
+            QCoreApplication::translate("TemplateRegistry",
+                                        "Title page and dedication at the beginning"),
+            QCoreApplication::translate("TemplateRegistry", "Prologue and epilogue"),
+            QCoreApplication::translate("TemplateRegistry",
+                                        "Afterword and acknowledgments at the end"),
             QCoreApplication::translate("TemplateRegistry", "Word count tracking"),
             QCoreApplication::translate("TemplateRegistry", "Character & location banks")
         };
@@ -180,14 +183,15 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
     {
         TemplateInfo info;
         info.id = QStringLiteral("template.shortStories");
+        info.typeId = QStringLiteral("kalahari.short_stories");
         info.name = QCoreApplication::translate("TemplateRegistry", "Short Story Collection");
         info.description = QCoreApplication::translate("TemplateRegistry",
-            "A collection of independent short stories.\n\n"
-            "Flat structure without parts - each story stands alone. "
+            "A collection of short stories that can be grouped into divisions.\n\n"
+            "Each story stands alone, and a division gathers stories with a common theme. "
             "Great for anthologies, collections, or episodic content.");
         info.iconId = QStringLiteral("template.shortStories");
         info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Flat story structure"),
+            QCoreApplication::translate("TemplateRegistry", "Division/Story structure"),
             QCoreApplication::translate("TemplateRegistry", "Independent stories"),
             QCoreApplication::translate("TemplateRegistry", "Per-story statistics"),
             QCoreApplication::translate("TemplateRegistry", "Easy reordering"),
@@ -204,14 +208,15 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
     {
         TemplateInfo info;
         info.id = QStringLiteral("template.nonfiction");
+        info.typeId = QStringLiteral("kalahari.nonfiction");
         info.name = QCoreApplication::translate("TemplateRegistry", "Non-fiction");
         info.description = QCoreApplication::translate("TemplateRegistry",
-            "A non-fiction book with flat chapter structure.\n\n"
+            "A non-fiction book with chapters, which can be grouped into parts.\n\n"
             "Designed for essays, guides, memoirs, and technical writing. "
             "Includes bibliography and index support.");
         info.iconId = QStringLiteral("template.nonfiction");
         info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Flat chapter structure"),
+            QCoreApplication::translate("TemplateRegistry", "Part/Chapter structure"),
             QCoreApplication::translate("TemplateRegistry", "Bibliography support"),
             QCoreApplication::translate("TemplateRegistry", "Index generation"),
             QCoreApplication::translate("TemplateRegistry", "Footnotes & citations"),
@@ -228,14 +233,15 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
     {
         TemplateInfo info;
         info.id = QStringLiteral("template.screenplay");
+        info.typeId = QStringLiteral("kalahari.screenplay");
         info.name = QCoreApplication::translate("TemplateRegistry", "Screenplay");
         info.description = QCoreApplication::translate("TemplateRegistry",
             "A screenplay or stage play structure.\n\n"
-            "Organized by acts and scenes with proper screenplay formatting. "
+            "Acts, which can be grouped into episodes, with proper screenplay formatting. "
             "Suitable for film, TV, or theater scripts.");
         info.iconId = QStringLiteral("template.screenplay");
         info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Act/Scene structure"),
+            QCoreApplication::translate("TemplateRegistry", "Episode/Act structure"),
             QCoreApplication::translate("TemplateRegistry", "Screenplay formatting"),
             QCoreApplication::translate("TemplateRegistry", "Character list"),
             QCoreApplication::translate("TemplateRegistry", "Scene descriptions"),
@@ -252,14 +258,15 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
     {
         TemplateInfo info;
         info.id = QStringLiteral("template.poetry");
+        info.typeId = QStringLiteral("kalahari.poetry");
         info.name = QCoreApplication::translate("TemplateRegistry", "Poetry Collection");
         info.description = QCoreApplication::translate("TemplateRegistry",
-            "A collection of poems organized by sections.\n\n"
-            "Flexible structure for organizing poems into thematic sections. "
+            "A collection of poems that can be grouped into cycles.\n\n"
+            "Flexible structure for grouping poems into thematic cycles. "
             "Supports various poetry formats and styles.");
         info.iconId = QStringLiteral("template.poetry");
         info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Section/Poem structure"),
+            QCoreApplication::translate("TemplateRegistry", "Cycle/Poem structure"),
             QCoreApplication::translate("TemplateRegistry", "Thematic grouping"),
             QCoreApplication::translate("TemplateRegistry", "Verse formatting"),
             QCoreApplication::translate("TemplateRegistry", "Line count tracking"),
@@ -271,22 +278,22 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
     }
 
     // ========================================================================
-    // Empty Project Template
+    // User Project: a book without a type
     // ========================================================================
     {
         TemplateInfo info;
         info.id = QStringLiteral("template.empty");
-        info.name = QCoreApplication::translate("TemplateRegistry", "Empty Project");
+        info.name = QCoreApplication::translate("TemplateRegistry", "User Project");
         info.description = QCoreApplication::translate("TemplateRegistry",
-            "A blank project with no predefined structure.\n\n"
-            "Start from scratch and build your own structure. "
-            "Recommended for advanced users who want full control.");
+            "A book without a type: it starts empty, and you build it in the Navigator from "
+            "the elements of the Base package, such as a title page, a dedication, chapters, "
+            "parts and an afterword.");
         info.iconId = QStringLiteral("template.empty");
         info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "No predefined structure"),
-            QCoreApplication::translate("TemplateRegistry", "Full customization"),
-            QCoreApplication::translate("TemplateRegistry", "Add elements manually"),
-            QCoreApplication::translate("TemplateRegistry", "For advanced users")
+            QCoreApplication::translate("TemplateRegistry", "No book type"),
+            QCoreApplication::translate("TemplateRegistry", "Starts empty"),
+            QCoreApplication::translate("TemplateRegistry", "Elements of the Base package"),
+            QCoreApplication::translate("TemplateRegistry", "Structure built in the Navigator")
         };
         info.fileExtension = QString();
         info.isBuiltin = true;

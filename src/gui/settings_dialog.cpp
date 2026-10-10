@@ -2,6 +2,7 @@
 /// @brief Implementation of SettingsDialog
 
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
@@ -110,12 +111,13 @@ void SettingsDialog::createNavigationTree() {
     addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
 
     QTreeWidgetItem* files = category(tr("Files"));
+    addPage(files, tr("Folders"), []() { return new FoldersPage(); });
     addPlannedPage(files, tr("Backup"),
                    tr("Planned features:\n"
                       "- Automatic backup frequency\n"
-                      "- Backup location selection\n"
-                      "- Number of backup copies to keep\n"
-                      "- Restore from backup"));
+                      "- Restore from backup\n\n"
+                      "The folder of the database backups and the number of copies kept are "
+                      "on the Folders page."));
     addPlannedPage(files, tr("Auto-save"),
                    tr("Planned features:\n"
                       "- Auto-save interval\n"
@@ -264,9 +266,33 @@ bool SettingsDialog::hasChanges() const {
     return false;
 }
 
+bool SettingsDialog::changesCanBeWritten() {
+    for (SettingsPage* page : m_pages) {
+        const SettingsPage::Problem problem = page->problem();
+        if (problem.text.isEmpty()) {
+            continue;
+        }
+        // The page with the value shows it, and the message is named after the page
+        QString title = tr("Settings");
+        for (const auto& [item, container] : m_builtPages) {
+            if (container->isAncestorOf(page)) {
+                m_navTree->setCurrentItem(item);
+                title = item->text(0);
+                break;
+            }
+        }
+        if (problem.field) {
+            problem.field->setFocus();
+        }
+        dialogs::MessageDialog::warning(this, title, problem.text);
+        return false;
+    }
+    return true;
+}
+
 QStringList SettingsDialog::applyChanges() {
     QStringList changedKeys;
-    if (!hasChanges()) {
+    if (!hasChanges() || !changesCanBeWritten()) {
         return changedKeys;
     }
 
@@ -316,6 +342,10 @@ void SettingsDialog::onApply() {
 }
 
 void SettingsDialog::accept() {
+    // A value that cannot be written keeps the dialog open on its page
+    if (hasChanges() && !changesCanBeWritten()) {
+        return;
+    }
     applyChanges();
     KalahariDialog::accept();
 }

@@ -4,11 +4,8 @@
 
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/core/art_provider.h"
-#include "kalahari/core/book.h"
-#include "kalahari/core/book_element.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/chapter_document.h"
-#include "kalahari/core/document.h"
-#include "kalahari/core/part.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
@@ -16,6 +13,7 @@
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/panels/annotation_frame.h"
 #include "kalahari/gui/panels/annotations_panel.h"
@@ -34,7 +32,6 @@
 #include <QTimer>
 
 #include <algorithm>
-#include <filesystem>
 #include <iterator>
 #include <string>
 #include <utility>
@@ -403,6 +400,19 @@ void AnnotationsCoordinator::refresh() {
     const editor::BookEditor* editor = current != nullptr ? current->getBookEditor() : nullptr;
     m_panel->setBookScopeAvailable(bookOpen);
     m_panel->setDocumentAvailable(editor != nullptr);
+
+    // The names of what the panel lists: the kind of the element in front ("Story"), and the
+    // main texts the writer opens in the book
+    std::optional<core::KindWords> inFront;
+    if (const core::ProjectElement* element =
+            bookOpen ? projects.findElement(elementIdOf(current)) : nullptr) {
+        inFront = wordsOf(*element);
+    }
+    std::optional<core::KindWords> bookTexts;
+    if (const core::KindRef mainKind = projects.mainTextKind()) {
+        bookTexts = wordsOf(mainKind);
+    }
+    m_panel->setKindNames(inFront, bookTexts, bookOpen);
     m_stale = false;
 
     std::vector<AnnotationEntry> entries;
@@ -444,9 +454,9 @@ QString AnnotationsCoordinator::elementIdOf(const EditorPanel* panel) const {
 QString AnnotationsCoordinator::titleOf(const EditorPanel* panel) const {
     const QString elementId = elementIdOf(panel);
     if (!elementId.isEmpty()) {
-        if (const core::BookElement* element =
+        if (const core::ProjectElement* element =
                 core::ProjectManager::getInstance().findElement(elementId)) {
-            return QString::fromStdString(element->getTitle());
+            return element->title;
         }
     }
 
@@ -491,31 +501,17 @@ editor::BookEditor* AnnotationsCoordinator::editorFor(const QString& elementId) 
 
 std::vector<AnnotationsCoordinator::ChapterAnnotations> AnnotationsCoordinator::bookAnnotations() {
     std::vector<ChapterAnnotations> chapters;
-    const core::Document* document = core::ProjectManager::getInstance().getDocument();
-    if (document == nullptr) {
+    auto& projects = core::ProjectManager::getInstance();
+    const core::BookProject* project = projects.project();
+    if (project == nullptr) {
         return chapters;
     }
 
-    const auto add = [this, &chapters](const std::shared_ptr<core::BookElement>& element) {
-        if (element) {
-            const QString id = QString::fromStdString(element->getId());
-            chapters.push_back(
-                {id, QString::fromStdString(element->getTitle()), chapterAnnotations(id)});
+    // The text elements of the book, in reading order
+    for (const core::ProjectElement* element : project->readingOrder()) {
+        if (projects.formOf(*element) == core::ElementForm::Text) {
+            chapters.push_back({element->id, element->title, chapterAnnotations(element->id)});
         }
-    };
-    const core::Book& book = document->getBook();
-    for (const auto& element : book.getFrontMatter()) {
-        add(element);
-    }
-    for (const auto& part : book.getBody()) {
-        if (part) {
-            for (const auto& chapter : part->getChapters()) {
-                add(chapter);
-            }
-        }
-    }
-    for (const auto& element : book.getBackMatter()) {
-        add(element);
     }
     return chapters;
 }
@@ -529,16 +525,13 @@ editor::AnnotationList AnnotationsCoordinator::chapterAnnotations(const QString&
 
 editor::AnnotationList AnnotationsCoordinator::fileAnnotations(const QString& elementId) {
     auto& projects = core::ProjectManager::getInstance();
-    const core::BookElement* element = projects.findElement(elementId);
-    if (element == nullptr || element->getFile().empty()) {
+    const core::ProjectElement* element = projects.findElement(elementId);
+    if (element == nullptr || projects.formOf(*element) != core::ElementForm::Text) {
         return {};
     }
-    std::filesystem::path path =
-        std::filesystem::path(projects.getProjectPath().toStdWString()) / element->getFile();
-    path.replace_extension(".kchapter");
-    const QString filePath = QString::fromStdWString(path.wstring());
+    const QString filePath = projects.filePathOf(*element);
     const QFileInfo info(filePath);
-    if (!info.exists()) {
+    if (filePath.isEmpty() || !info.exists()) {
         return {};
     }
 

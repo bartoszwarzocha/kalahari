@@ -20,7 +20,6 @@
 #include <memory>
 #include <optional>
 #include <filesystem>
-#include "kalahari/core/document.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
 
@@ -115,7 +114,7 @@ public:
     EditorPanel* getCurrentEditor();
 
     /// @brief Open a chapter/element by ID (OpenSpec #00043 - Benchmark CLI)
-    /// @param elementId Element ID to open (from BookElement::getId())
+    /// @param elementId Element ID to open (ProjectElement::id)
     /// @param elementTitle Display title of the element
     /// @note Public wrapper for onNavigatorElementSelected for CLI/benchmark use
     void openChapter(const QString& elementId, const QString& elementTitle);
@@ -155,6 +154,16 @@ private:
     /// @brief Reset dock layout to default
     /// @note Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void resetLayout();
+
+    /// @brief Book > Book Properties...: the Properties panel in front with the book's
+    /// properties, its first field ready for typing
+    void showBookProperties();
+
+    /// @brief Make the Book menu follow the open book
+    ///
+    /// New Chapter... is named after the texts it adds (New Story... in a collection of short
+    /// stories) and, like Book Properties..., works only with a book open.
+    void updateBookCommands();
 
     // NOTE: createDiagnosticMenu, removeDiagnosticMenu, createDevToolsMenu, removeDevToolsMenu
     // moved to DiagnosticController (OpenSpec #00038)
@@ -288,7 +297,7 @@ private slots:
     void onAboutQt();
 
     /// @brief Slot for Navigator element selection (Task #00015, OpenSpec #00033)
-    /// @param elementId Unique ID of the selected element (BookElement::getId())
+    /// @param elementId Unique ID of the selected element (ProjectElement::id)
     /// @param elementTitle Display title of the element
     /// @note Delegates to NavigatorCoordinator (OpenSpec #00038 Phase 6)
     void onNavigatorElementSelected(const QString& elementId, const QString& elementTitle);

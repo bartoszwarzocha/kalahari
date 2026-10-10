@@ -9,15 +9,19 @@
 #include <QObject>
 #include <QString>
 #include <QMap>
+#include <QList>
 #include <functional>
 #include <optional>
+
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_registry.h"
 
 class QTabWidget;
 class QStatusBar;
 
 namespace kalahari {
 namespace core {
-    class Document;
+    struct ProjectElement;
 }
 
 namespace editor {
@@ -25,6 +29,10 @@ namespace editor {
 }
 
 namespace gui {
+
+namespace dialogs {
+    enum class NewElementKind;
+}
 
 class NavigatorPanel;
 class PropertiesPanel;
@@ -88,7 +96,7 @@ public:
     /// @param elementId Element ID whose changes should be discarded
     ///
     /// Clears the chapter dirty state everywhere so nothing goes stale:
-    /// - the model BookElement dirty flag (single source of truth)
+    /// - the unsaved text ProjectManager keeps (single source of truth)
     /// - the m_dirtyChapters display cache
     /// - the navigator "*" indicator (via chapterDirtyStateChanged)
     /// Does NOT persist any content. Used by the tab-close discard path.
@@ -96,6 +104,13 @@ public:
 
     /// @brief Clear current element ID (on project close)
     void clearCurrentElement() { m_currentElementId.clear(); }
+
+    /// @brief Refresh navigator with the open project, keeping its expanded items
+    void refreshNavigator();
+
+    /// @brief Show the title of element @p elementId on its open tab, with the "*" of its
+    /// unsaved changes
+    void refreshTabTitle(const QString& elementId);
 
     // =========================================================================
     // Statistics Integration (OpenSpec #00042 Task 7.7)
@@ -125,8 +140,7 @@ public slots:
 
     /// @brief Handle delete request from navigator
     /// @param elementId Element ID to delete
-    /// @param elementType Type of element (for confirmation message)
-    void onRequestDelete(const QString& elementId, const QString& elementType);
+    void onRequestDelete(const QString& elementId);
 
     /// @brief Handle move request from navigator
     /// @param elementId Element ID to move
@@ -142,30 +156,40 @@ public slots:
     void onRequestSectionProperties(const QString& sectionType);
 
     /// @brief Handle part properties request from navigator
-    /// @param partId Part ID
+    /// @param partId Group (part) ID
     void onRequestPartProperties(const QString& partId);
 
-    /// @brief Handle chapter reorder from navigator drag & drop
-    /// @param partId Part containing the chapter
-    /// @param fromIndex Original index
-    /// @param toIndex New index
-    void onChapterReordered(const QString& partId, int fromIndex, int toIndex);
-
-    /// @brief Handle part reorder from navigator drag & drop
-    /// @param fromIndex Original index
-    /// @param toIndex New index
-    void onPartReordered(int fromIndex, int toIndex);
+    /// @brief Handle an element dragged to another place of its list in the navigator
+    /// @param elementId Element ID
+    /// @param index Its new index in its list
+    void onElementMoved(const QString& elementId, int index);
 
     /// @brief Handle add chapter request from navigator context menu
-    /// @param partId Part ID to add chapter to
-    void onRequestAddChapter(const QString& partId);
+    /// @param groupId Group (part) to add the chapter to; empty: the body of the book
+    void onRequestAddChapter(const QString& groupId);
 
     /// @brief Handle add part request from navigator context menu
     void onRequestAddPart();
 
-    /// @brief Handle add item request from navigator context menu (front/back matter)
+    /// @brief Handle add item request from navigator context menu (front/back section)
     /// @param sectionType Section type ("front_matter" or "back_matter")
     void onRequestAddItem(const QString& sectionType);
+
+    /// @brief Show the sections of the book in the Navigator, or hide them; saves the .klh
+    /// file
+    /// @param shown Whether the Navigator shows the sections
+    void onRequestShowSections(bool shown);
+
+    /// @brief Show the sections of the book in the Navigator or not, and name them; saves the
+    /// .klh file, and refreshes the Navigator and the Properties panel
+    /// @param sections Whether the Navigator shows the sections, and their names
+    void onRequestSections(const kalahari::core::BookSections& sections);
+
+    /// @brief Ask for a new name of a section of the book and give it; saves the .klh file
+    ///
+    /// The section gets the writer's own name, and the other two keep the names they have.
+    /// @param sectionType "section_frontmatter", "section_body" or "section_backmatter"
+    void onRequestRenameSection(const QString& sectionType);
 
 signals:
     /// @brief Emitted when an element is selected/opened
@@ -188,8 +212,18 @@ private:
     /// @return Active EditorPanel or nullptr if not an editor tab
     EditorPanel* getCurrentEditor() const;
 
-    /// @brief Refresh navigator with current document
-    void refreshNavigator();
+    /// @brief Close the editor tabs of @p element and of the elements inside it
+    void closeTabsOf(const core::ProjectElement& element);
+
+    /// @brief Ask for a new element and add it at the end of @p place of the book, or of
+    /// group @p groupId
+    /// @param dialogKind What the element is, for the dialog
+    /// @param kinds Kinds it can have, in the order the dialog offers them
+    /// @param current The kind chosen at the start; the first one when it is not one of them
+    /// @param groupTitle Title of group @p groupId, for the dialog
+    void addElement(dialogs::NewElementKind dialogKind, const QList<core::KindRef>& kinds,
+                    const core::KindRef& current, core::BookPlace place,
+                    const QString& groupId, const QString& groupTitle);
 
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;

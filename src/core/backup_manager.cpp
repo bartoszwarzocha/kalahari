@@ -10,15 +10,90 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QDateTime>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSaveFile>
 #include <algorithm>
 
 namespace kalahari {
 namespace core {
 
+namespace {
+
+/// @brief A folder the way the folders of backups compare it: absolute, cleaned
+QString cleanFolder(const QString& folder) {
+    return folder.isEmpty() ? QString() : QDir::cleanPath(QFileInfo(folder).absoluteFilePath());
+}
+
+/// @brief Whether two paths name the same folder (on Windows letters of either case are the
+/// same)
+bool sameFolder(const QString& first, const QString& second) {
+#ifdef Q_OS_WIN
+    constexpr Qt::CaseSensitivity CASE = Qt::CaseInsensitive;
+#else
+    constexpr Qt::CaseSensitivity CASE = Qt::CaseSensitive;
+#endif
+    return !first.isEmpty() && cleanFolder(first).compare(cleanFolder(second), CASE) == 0;
+}
+
+/// @brief The folder of the book that the folder of backups @p folder belongs to; empty when
+/// it is not a folder of backups of a book
+QString bookFolderOf(const QString& folder) {
+    QFile file(QDir(folder).filePath(QString::fromLatin1(BackupManager::BOOK_FILE)));
+    if (!file.open(QIODevice::ReadOnly)) {
+        return QString();
+    }
+    const QJsonObject book = QJsonDocument::fromJson(file.readAll()).object();
+    return book.value(QStringLiteral("folder")).toString();
+}
+
+}  // namespace
+
 BackupManager::BackupManager(const QString& projectPath)
     : m_projectPath(projectPath)
     , m_backupDir(QDir(projectPath).filePath(".backups"))
 {
+}
+
+void BackupManager::setCommonFolder(const QString& folder, const QString& projectId)
+{
+    const QString common = folder.trimmed();
+    m_commonFolder =
+        common.isEmpty() ? QString() : QDir::cleanPath(QDir::fromNativeSeparators(common));
+    m_projectId = projectId;
+    m_backupDir = m_commonFolder.isEmpty() ? QDir(m_projectPath).filePath(".backups")
+                                           : bookFolderIn(m_commonFolder);
+}
+
+QString BackupManager::bookFolderIn(const QString& folder) const
+{
+    const QDir common(folder);
+    for (const QFileInfo& entry :
+         common.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
+        if (sameFolder(bookFolderOf(entry.absoluteFilePath()), m_projectPath)) {
+            return entry.absoluteFilePath();
+        }
+    }
+
+    // A new folder named after the folder of the book; a name another book took gets a number
+    QString name = QDir(cleanFolder(m_projectPath)).dirName();
+    if (name.isEmpty()) {
+        name = QStringLiteral("book");  // a book at the root of a drive
+    }
+    QString candidate = common.filePath(name);
+    for (int number = 2; QFileInfo::exists(candidate); ++number) {
+        candidate = common.filePath(QStringLiteral("%1 (%2)").arg(name).arg(number));
+    }
+    return candidate;
+}
+
+bool BackupManager::writeBookFile() const
+{
+    const QJsonObject book{{QStringLiteral("folder"), cleanFolder(m_projectPath)},
+                           {QStringLiteral("project"), m_projectId}};
+    QSaveFile file(QDir(m_backupDir).filePath(QString::fromLatin1(BOOK_FILE)));
+    return file.open(QIODevice::WriteOnly) &&
+           file.write(QJsonDocument(book).toJson()) >= 0 && file.commit();
 }
 
 QString BackupManager::databasePath() const
@@ -28,6 +103,14 @@ QString BackupManager::databasePath() const
 
 bool BackupManager::ensureBackupDirExists()
 {
+    if (!m_commonFolder.isEmpty() && (!QDir().mkpath(m_backupDir) || !writeBookFile())) {
+        // The backup is not lost: it goes to the book's own folder
+        Logger::getInstance().warn(
+            "BackupManager: Cannot write to {}, the backup goes to the folder of the book",
+            m_backupDir.toStdString());
+        m_backupDir = QDir(m_projectPath).filePath(".backups");
+    }
+
     QDir dir(m_backupDir);
     if (!dir.exists()) {
         if (!dir.mkpath(".")) {

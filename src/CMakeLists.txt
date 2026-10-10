@@ -36,6 +36,7 @@ set(KALAHARI_CORE_SOURCES
     core/standalone_file.cpp    # Chapters and text files opened outside a book project
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/book_type_registry.cpp # Book type packages loaded from folders
+    core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/book_project.cpp       # Book project as its .klh file saves it
     core/utils/svg_converter.cpp
     core/theme.cpp
@@ -144,6 +145,8 @@ set(KALAHARI_SOURCES
     gui/dialogs/kalahari_dialog.cpp  # KalahariDialog - base of the program's own dialogs
     gui/dialogs/message_dialog.cpp  # MessageDialog, TextInputDialog - own messages, questions, typed texts
     gui/dialogs/new_element_dialog.cpp  # NewElementDialog - new chapter, part or item in the Navigator
+    gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
+    gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
     gui/kalahari_syntax_highlighter.cpp
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)
@@ -163,9 +166,15 @@ set(KALAHARI_SOURCES
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
     gui/settings/annotations_page.cpp
+    gui/settings/folders_page.cpp
     gui/widgets/color_config_widget.cpp
     gui/widgets/length_spin_box.cpp
+    gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
+    gui/widgets/element_place_picker.cpp  # ElementPlacePicker - the place of an element in the book
+    gui/widgets/flow_layout.cpp  # FlowLayout - items in more rows in a narrow panel
+    gui/widgets/sections_field.cpp  # Fields of the sections of a book: their names or none
+    gui/widgets/folder_field.cpp  # FolderField - the path of a folder, Choose... and Restore Default
     gui/toolbar_manager.cpp
     gui/panels/annotation_card.cpp
     gui/panels/annotation_colors.cpp
@@ -183,6 +192,7 @@ set(KALAHARI_SOURCES
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
+    gui/utils/program_folders.cpp  # The folders of the program and of the windows choosing files
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
     gui/utils/qt_standard_texts.cpp  # Qt's own texts (standard buttons) for the translations
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
@@ -248,7 +258,12 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h  # InfoBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/sections_field.h  # SectionsComboBox, SectionNamesEdit with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/folder_field.h  # FolderField with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h

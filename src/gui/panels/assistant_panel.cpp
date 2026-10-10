@@ -22,6 +22,7 @@ AssistantPanel::AssistantPanel(QWidget* parent)
     // Create placeholder label
     m_placeholderLabel = new QLabel(tr("Assistant Panel\n🦁\n(Placeholder - full implementation in Phase 2+)"), this);
     m_placeholderLabel->setAlignment(Qt::AlignCenter);
+    m_placeholderLabel->setWordWrap(true);  // a narrow panel on a small screen
     layout->addWidget(m_placeholderLabel);
 
     setLayout(layout);

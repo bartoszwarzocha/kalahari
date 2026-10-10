@@ -12,88 +12,204 @@
   "kinds": {
     "title_page": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "template": "templates/title_page.kchapter",
       "name": { "pl": "Strona tytułowa", "en": "Title page" },
-      "plural": { "pl": "Strony tytułowe", "en": "Title pages" }
+      "plural": { "pl": "Strony tytułowe", "en": "Title pages" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "strona tytułowa", "plural": "strony tytułowe",
+                "genitive": "strony tytułowej", "dative": "stronie tytułowej",
+                "accusative": "stronę tytułową", "instrumental": "stroną tytułową",
+                "locative": "stronie tytułowej", "genitivePlural": "stron tytułowych" },
+        "en": { "singular": "title page", "plural": "title pages", "indefinite": "a title page" }
+      }
     },
     "copyright": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Strona redakcyjna", "en": "Copyright page" },
-      "plural": { "pl": "Strony redakcyjne", "en": "Copyright pages" }
+      "plural": { "pl": "Strony redakcyjne", "en": "Copyright pages" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "strona redakcyjna",
+                "plural": "strony redakcyjne", "genitive": "strony redakcyjnej",
+                "dative": "stronie redakcyjnej", "accusative": "stronę redakcyjną",
+                "instrumental": "stroną redakcyjną", "locative": "stronie redakcyjnej",
+                "genitivePlural": "stron redakcyjnych" },
+        "en": { "singular": "copyright page", "plural": "copyright pages",
+                "indefinite": "a copyright page" }
+      }
     },
     "dedication": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Dedykacja", "en": "Dedication" },
-      "plural": { "pl": "Dedykacje", "en": "Dedications" }
+      "plural": { "pl": "Dedykacje", "en": "Dedications" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "dedykacja", "plural": "dedykacje",
+                "genitive": "dedykacji", "dative": "dedykacji", "accusative": "dedykację",
+                "instrumental": "dedykacją", "locative": "dedykacji",
+                "genitivePlural": "dedykacji" },
+        "en": { "singular": "dedication", "plural": "dedications", "indefinite": "a dedication" }
+      }
     },
     "motto": {
       "form": "text", "places": ["front", "part"], "icon": "format.style.quote",
       "name": { "pl": "Motto", "en": "Epigraph" },
-      "plural": { "pl": "Motta", "en": "Epigraphs" }
+      "plural": { "pl": "Motta", "en": "Epigraphs" },
+      "words": {
+        "pl": { "gender": "neuter", "singular": "motto", "plural": "motta", "genitive": "motta",
+                "dative": "mottu", "accusative": "motto", "instrumental": "mottem",
+                "locative": "motcie", "genitivePlural": "mott" },
+        "en": { "singular": "epigraph", "plural": "epigraphs", "indefinite": "an epigraph" }
+      }
     },
     "toc": {
       "form": "window", "editor": "toc", "generated": true,
       "places": ["front", "back"], "limit": 1, "icon": "format.numbering",
       "name": { "pl": "Spis treści", "en": "Table of contents" },
-      "plural": { "pl": "Spisy treści", "en": "Tables of contents" }
+      "plural": { "pl": "Spisy treści", "en": "Tables of contents" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "spis treści", "plural": "spisy treści",
+                "genitive": "spisu treści", "dative": "spisowi treści",
+                "accusative": "spis treści", "instrumental": "spisem treści",
+                "locative": "spisie treści", "genitivePlural": "spisów treści" },
+        "en": { "singular": "table of contents", "plural": "tables of contents",
+                "indefinite": "a table of contents" }
+      }
     },
     "preface": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Przedmowa", "en": "Preface" },
-      "plural": { "pl": "Przedmowy", "en": "Prefaces" }
+      "plural": { "pl": "Przedmowy", "en": "Prefaces" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "przedmowa", "plural": "przedmowy",
+                "genitive": "przedmowy", "dative": "przedmowie", "accusative": "przedmowę",
+                "instrumental": "przedmową", "locative": "przedmowie",
+                "genitivePlural": "przedmów" },
+        "en": { "singular": "preface", "plural": "prefaces", "indefinite": "a preface" }
+      }
     },
     "introduction": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Wstęp", "en": "Introduction" },
-      "plural": { "pl": "Wstępy", "en": "Introductions" }
+      "plural": { "pl": "Wstępy", "en": "Introductions" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "wstęp", "plural": "wstępy",
+                "genitive": "wstępu", "dative": "wstępowi", "accusative": "wstęp",
+                "instrumental": "wstępem", "locative": "wstępie", "genitivePlural": "wstępów" },
+        "en": { "singular": "introduction", "plural": "introductions",
+                "indefinite": "an introduction" }
+      }
     },
     "chapter": {
       "form": "text", "places": ["main", "part"], "icon": "template.chapter",
       "name": { "pl": "Rozdział", "en": "Chapter" },
       "plural": { "pl": "Rozdziały", "en": "Chapters" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "rozdział", "plural": "rozdziały",
+                "genitive": "rozdziału", "dative": "rozdziałowi", "accusative": "rozdział",
+                "instrumental": "rozdziałem", "locative": "rozdziale",
+                "genitivePlural": "rozdziałów" },
+        "en": { "singular": "chapter", "plural": "chapters", "indefinite": "a chapter" }
+      },
       "title": { "pl": "Rozdział %n", "en": "Chapter %n" }
     },
     "part": {
       "form": "group", "places": ["main"], "icon": "structure.part",
       "name": { "pl": "Część", "en": "Part" },
       "plural": { "pl": "Części", "en": "Parts" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "część", "plural": "części",
+                "genitive": "części", "dative": "części", "accusative": "część",
+                "instrumental": "częścią", "locative": "części", "genitivePlural": "części" },
+        "en": { "singular": "part", "plural": "parts", "indefinite": "a part" }
+      },
       "title": { "pl": "Część %n", "en": "Part %n" }, "numbering": "roman"
     },
     "afterword": {
       "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Posłowie", "en": "Afterword" },
-      "plural": { "pl": "Posłowia", "en": "Afterwords" }
+      "plural": { "pl": "Posłowia", "en": "Afterwords" },
+      "words": {
+        "pl": { "gender": "neuter", "singular": "posłowie", "plural": "posłowia",
+                "genitive": "posłowia", "dative": "posłowiu", "accusative": "posłowie",
+                "instrumental": "posłowiem", "locative": "posłowiu", "genitivePlural": "posłowi" },
+        "en": { "singular": "afterword", "plural": "afterwords", "indefinite": "an afterword" }
+      }
     },
     "acknowledgments": {
       "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Podziękowania", "en": "Acknowledgments" },
-      "plural": { "pl": "Podziękowania", "en": "Acknowledgments" }
+      "plural": { "pl": "Podziękowania", "en": "Acknowledgments" },
+      "words": {
+        "pl": { "gender": "plural", "singular": "podziękowania", "plural": "podziękowania",
+                "genitive": "podziękowań", "dative": "podziękowaniom",
+                "accusative": "podziękowania", "instrumental": "podziękowaniami",
+                "locative": "podziękowaniach", "genitivePlural": "podziękowań" },
+        "en": { "gender": "plural", "singular": "acknowledgments", "plural": "acknowledgments",
+                "indefinite": "acknowledgments" }
+      }
     },
     "glossary": {
       "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Słowniczek", "en": "Glossary" },
-      "plural": { "pl": "Słowniczki", "en": "Glossaries" }
+      "plural": { "pl": "Słowniczki", "en": "Glossaries" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "słowniczek", "plural": "słowniczki",
+                "genitive": "słowniczka", "dative": "słowniczkowi", "accusative": "słowniczek",
+                "instrumental": "słowniczkiem", "locative": "słowniczku",
+                "genitivePlural": "słowniczków" },
+        "en": { "singular": "glossary", "plural": "glossaries", "indefinite": "a glossary" }
+      }
     },
     "about_author": {
       "form": "text", "places": ["back"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Nota o autorze", "en": "About the author" },
-      "plural": { "pl": "Noty o autorze", "en": "About the author" }
+      "plural": { "pl": "Noty o autorze", "en": "About the author" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "nota o autorze", "plural": "noty o autorze",
+                "genitive": "noty o autorze", "dative": "nocie o autorze",
+                "accusative": "notę o autorze", "instrumental": "notą o autorze",
+                "locative": "nocie o autorze", "genitivePlural": "not o autorze" },
+        "en": { "singular": "note about the author", "plural": "notes about the author",
+                "indefinite": "a note about the author" }
+      }
     },
     "work_note": {
       "form": "text", "places": ["workshop"], "icon": "template.note",
       "name": { "pl": "Notatka robocza", "en": "Working note" },
       "plural": { "pl": "Notatki robocze", "en": "Working notes" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "notatka robocza", "plural": "notatki robocze",
+                "genitive": "notatki roboczej", "dative": "notatce roboczej",
+                "accusative": "notatkę roboczą", "instrumental": "notatką roboczą",
+                "locative": "notatce roboczej", "genitivePlural": "notatek roboczych" },
+        "en": { "singular": "working note", "plural": "working notes",
+                "indefinite": "a working note" }
+      },
       "title": { "pl": "Notatka %n", "en": "Note %n" }
     },
     "mindmap": {
       "form": "window", "editor": "mindmap", "places": ["workshop"], "icon": "template.mindmap",
       "name": { "pl": "Mapa myśli", "en": "Mind map" },
       "plural": { "pl": "Mapy myśli", "en": "Mind maps" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "mapa myśli", "plural": "mapy myśli",
+                "genitive": "mapy myśli", "dative": "mapie myśli", "accusative": "mapę myśli",
+                "instrumental": "mapą myśli", "locative": "mapie myśli",
+                "genitivePlural": "map myśli" },
+        "en": { "singular": "mind map", "plural": "mind maps", "indefinite": "a mind map" }
+      },
       "title": { "pl": "Mapa myśli %n", "en": "Mind map %n" }
     },
     "timeline": {
       "form": "window", "editor": "timeline", "places": ["workshop"], "icon": "template.timeline",
       "name": { "pl": "Oś czasu", "en": "Timeline" },
       "plural": { "pl": "Osie czasu", "en": "Timelines" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "oś czasu", "plural": "osie czasu",
+                "genitive": "osi czasu", "dative": "osi czasu", "accusative": "oś czasu",
+                "instrumental": "osią czasu", "locative": "osi czasu",
+                "genitivePlural": "osi czasu" },
+        "en": { "singular": "timeline", "plural": "timelines", "indefinite": "a timeline" }
+      },
       "title": { "pl": "Oś czasu %n", "en": "Timeline %n" }
     },
     "character": {
@@ -101,6 +217,12 @@
       "workshopGroup": "libraries",
       "name": { "pl": "Postać", "en": "Character" },
       "plural": { "pl": "Postacie", "en": "Characters" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "postać", "plural": "postacie",
+                "genitive": "postaci", "dative": "postaci", "accusative": "postać",
+                "instrumental": "postacią", "locative": "postaci", "genitivePlural": "postaci" },
+        "en": { "singular": "character", "plural": "characters", "indefinite": "a character" }
+      },
       "title": { "pl": "Postać %n", "en": "Character %n" }
     },
     "location": {
@@ -108,6 +230,12 @@
       "workshopGroup": "libraries",
       "name": { "pl": "Miejsce", "en": "Location" },
       "plural": { "pl": "Miejsca", "en": "Locations" },
+      "words": {
+        "pl": { "gender": "neuter", "singular": "miejsce", "plural": "miejsca",
+                "genitive": "miejsca", "dative": "miejscu", "accusative": "miejsce",
+                "instrumental": "miejscem", "locative": "miejscu", "genitivePlural": "miejsc" },
+        "en": { "singular": "location", "plural": "locations", "indefinite": "a location" }
+      },
       "title": { "pl": "Miejsce %n", "en": "Location %n" }
     },
     "item": {
@@ -115,13 +243,27 @@
       "workshopGroup": "libraries",
       "name": { "pl": "Przedmiot", "en": "Item" },
       "plural": { "pl": "Przedmioty", "en": "Items" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "przedmiot", "plural": "przedmioty",
+                "genitive": "przedmiotu", "dative": "przedmiotowi", "accusative": "przedmiot",
+                "instrumental": "przedmiotem", "locative": "przedmiocie",
+                "genitivePlural": "przedmiotów" },
+        "en": { "singular": "item", "plural": "items", "indefinite": "an item" }
+      },
       "title": { "pl": "Przedmiot %n", "en": "Item %n" }
     },
     "material": {
       "form": "window", "editor": "material", "places": ["workshop"], "icon": "common.attachFile",
       "workshopGroup": "resources",
       "name": { "pl": "Materiał", "en": "Material" },
-      "plural": { "pl": "Materiały", "en": "Materials" }
+      "plural": { "pl": "Materiały", "en": "Materials" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "materiał", "plural": "materiały",
+                "genitive": "materiału", "dative": "materiałowi", "accusative": "materiał",
+                "instrumental": "materiałem", "locative": "materiale",
+                "genitivePlural": "materiałów" },
+        "en": { "singular": "material", "plural": "materials", "indefinite": "a material" }
+      }
     }
   },
   "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface", "introduction"],

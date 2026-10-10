@@ -1,9 +1,10 @@
 /// @file test_book_project.cpp
 /// @brief Book project and its .klh file: every field, kinds of other types and of packages
-/// that are not installed, and files with problems
+/// that are not installed, files with problems and the example project
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/chapter_document.h>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -73,7 +74,8 @@ const char* const NOVEL = R"({
   "books": [
     {
       "id": "c2a1", "title": "My Novel", "author": "Anna Nowak", "language": "pl",
-      "genre": "saga", "name": "Text", "partsLayer": false, "folder": "book",
+      "genre": "saga", "name": "Text", "partsLayer": false, "sections": "matter",
+      "folder": "book",
       "front": [
         { "id": "e1", "kind": "kalahari.base:title_page", "title": "Title page",
           "file": "book/title_page_001.kchapter", "status": "draft" }
@@ -137,6 +139,10 @@ BookProject fullProject() {
     first.genre = QStringLiteral("saga");
     first.name = QStringLiteral("Text");
     first.partsLayer = false;
+    first.sectionSet = QString::fromLatin1(ProjectBook::CUSTOM_SECTIONS);
+    first.sectionNames = {QStringLiteral("Przedmowa i wstęp"), QStringLiteral("Opowieść"),
+                          QStringLiteral("Dodatki")};
+    first.sectionNamesExtra.insert(QStringLiteral("workshop"), QStringLiteral("Notatki"));
     first.folder = QStringLiteral("book");
     first.frontElements = {titlePage};
     first.mainElements = {part};
@@ -152,6 +158,7 @@ BookProject fullProject() {
     second.title = QStringLiteral("My Novel II");
     second.author = QStringLiteral("Anna Nowak");
     second.language = QStringLiteral("en");
+    second.sectionSet = QStringLiteral("arc");
     second.folder = QStringLiteral("book2");
     second.mainElements = {nextChapter};
 
@@ -223,6 +230,9 @@ TEST_CASE("Book project: a .klh file with every field", "[core][bookproject]") {
     CHECK(book.genre == QStringLiteral("saga"));
     CHECK(book.name == QStringLiteral("Text"));
     CHECK_FALSE(book.partsLayer);
+    CHECK(book.sectionSet == QStringLiteral("matter"));
+    CHECK(book.sectionNames.isEmpty());
+    CHECK(book.sectionName(BookPlace::Main) == QStringLiteral("Tekst główny"));
     CHECK(book.folder == QStringLiteral("book"));
 
     REQUIRE(book.frontElements.size() == 1);
@@ -282,6 +292,9 @@ TEST_CASE("Book project: a project is saved and read back unchanged", "[core][bo
     BookProject changed = project;
     changed.books[0].mainElements[0].elements[1].status = QStringLiteral("final");
     CHECK_FALSE(changed == project);
+    changed = project;
+    changed.books[0].sectionNames[1] = QStringLiteral("Historia");
+    CHECK_FALSE(changed == project);
 }
 
 TEST_CASE("Book project: fields this version does not know are kept", "[core][bookproject]") {
@@ -291,6 +304,8 @@ TEST_CASE("Book project: fields this version does not know are kept", "[core][bo
       "kinds": [],
       "books": [
         { "id": "b", "title": "", "author": "", "language": "", "genre": "", "partsLayer": true,
+          "sections": { "front": "Przedmowa", "main": "Opowieść", "back": "Dodatki",
+                        "workshop": "Notatki" },
           "folder": "book", "cover": "cover.jpg", "front": [], "back": [],
           "main": [
             { "id": "e1", "kind": "kalahari.base:part", "title": "Part One", "pov": "Anna",
@@ -312,6 +327,10 @@ TEST_CASE("Book project: fields this version does not know are kept", "[core][bo
           QStringLiteral("Saga"));
     CHECK(textOf(project.type->extra, "channel") == QStringLiteral("beta"));
     CHECK(textOf(project.books.at(0).extra, "cover") == QStringLiteral("cover.jpg"));
+    CHECK(project.books.at(0).sectionNames ==
+          QStringList{QStringLiteral("Przedmowa"), QStringLiteral("Opowieść"),
+                      QStringLiteral("Dodatki")});
+    CHECK(textOf(project.books.at(0).sectionNamesExtra, "workshop") == QStringLiteral("Notatki"));
     const ProjectElement& part = project.books.at(0).mainElements.at(0);
     CHECK(textOf(part.extra, "pov") == QStringLiteral("Anna"));
     CHECK(part.elements.at(0).extra.value(QStringLiteral("words")).toInt() == 1200);
@@ -383,6 +402,271 @@ TEST_CASE("Book project: elements are found, added, moved and taken out",
     CHECK_FALSE(project.takeElement(QStringLiteral("e2")).has_value());
     CHECK(project.takeElement(QStringLiteral("e4")).has_value());
     CHECK(project.workshop.elements.isEmpty());
+}
+
+TEST_CASE("Book project: places of elements, and the elements that open and close a part",
+          "[core][bookproject]") {
+    BookTypeRegistry registry;
+    loadBuiltIn(registry);
+    BookProject project = projectOf(R"({
+      "format": 2, "id": "p", "type": { "id": "kalahari.novel", "version": "1.0" },
+      "books": [ { "id": "b", "folder": "book",
+        "front": [ { "id": "t", "kind": "kalahari.base:title_page", "title": "Title page" } ],
+        "main": [
+          { "id": "pro", "kind": "kalahari.novel:prologue", "title": "Prologue" },
+          { "id": "p1", "kind": "kalahari.base:part", "title": "Part One", "elements": [
+            { "id": "c1", "kind": "kalahari.base:chapter", "title": "Chapter 1" },
+            { "id": "epi", "kind": "kalahari.novel:epilogue", "title": "Epilogue" } ] },
+          { "id": "p2", "kind": "kalahari.base:part", "title": "Part Two" }
+        ] } ],
+      "workshop": { "elements": [
+        { "id": "n", "kind": "kalahari.base:work_note", "title": "Ideas" } ] }
+    })");
+    const QList<ProjectElement>& body = project.elementsIn(BookPlace::Main);
+    const auto ids = [](const QList<const ProjectElement*>& elements) {
+        QStringList list;
+        for (const ProjectElement* element : elements) {
+            list << element->id;
+        }
+        return joined(list);
+    };
+
+    // In the part of the book or the Workshop, in the list of a group or of the part
+    CHECK(project.placeOf(QStringLiteral("t")) == ElementPlace{BookPlace::Front, QString(), 0});
+    CHECK(project.placeOf(QStringLiteral("p2")) == ElementPlace{BookPlace::Main, QString(), 2});
+    CHECK(project.placeOf(QStringLiteral("epi")) ==
+          ElementPlace{BookPlace::Main, QStringLiteral("p1"), 1});
+    CHECK(project.placeOf(QStringLiteral("n")) ==
+          ElementPlace{BookPlace::Workshop, QString(), 0});
+    CHECK_FALSE(project.placeOf(QStringLiteral("x")).has_value());
+
+    // The content of the body as the reader meets it, without the parts: the prologue opens
+    // it and the epilogue at the end of Part One closes it, Part Two being empty
+    CHECK(ids(BookProject::contentOf(registry, body)) == "pro, c1, epi");
+    CHECK(ids(BookProject::openingElementsOf(registry, body)) == "pro");
+    CHECK(ids(BookProject::closingElementsOf(registry, body)) == "epi");
+
+    // Elements of the start and of the end inside groups, and at the end of the body
+    project.findElement(QStringLiteral("p1"))
+        ->elements.prepend(element("pro2", "kalahari.novel", "prologue", "Prologue II"));
+    project.elementsIn(BookPlace::Main)
+        .append(element("epi2", "kalahari.novel", "epilogue", "Epilogue II"));
+    CHECK(ids(BookProject::openingElementsOf(registry, body)) == "pro, pro2");
+    CHECK(ids(BookProject::closingElementsOf(registry, body)) == "epi, epi2");
+
+    // A chapter after them: nothing closes the body; before them: nothing opens it
+    project.findElement(QStringLiteral("p2"))
+        ->elements.append(element("c2", "kalahari.base", "chapter", "Chapter 2"));
+    CHECK(ids(BookProject::closingElementsOf(registry, body)) == "epi2");
+    project.findElement(QStringLiteral("p2"))
+        ->elements.append(element("c3", "kalahari.base", "chapter", "Chapter 3"));
+    project.elementsIn(BookPlace::Main).removeLast();
+    CHECK(ids(BookProject::closingElementsOf(registry, body)).empty());
+    project.elementsIn(BookPlace::Main)
+        .prepend(element("c0", "kalahari.base", "chapter", "Chapter 0"));
+    CHECK(ids(BookProject::openingElementsOf(registry, body)).empty());
+
+    // A text element of a kind that is not installed stands anywhere, like a chapter
+    project.elementsIn(BookPlace::Main).removeFirst();
+    ProjectElement prophecy = element("x", "addon.fantasy", "prophecy", "The Prophecy");
+    prophecy.file = QStringLiteral("book/prophecy_001.kchapter");
+    project.elementsIn(BookPlace::Main).prepend(prophecy);
+    CHECK(ids(BookProject::contentOf(registry, body)) == "x, pro, pro2, c1, epi, c2, c3");
+    CHECK(ids(BookProject::openingElementsOf(registry, body)).empty());
+
+    // Lists without content
+    CHECK(BookProject::contentOf(registry, {}).isEmpty());
+    CHECK(BookProject::openingElementsOf(registry, {}).isEmpty());
+    CHECK(BookProject::closingElementsOf(registry, {}).isEmpty());
+}
+
+TEST_CASE("Book project: names of the front, main and back part", "[core][bookproject]") {
+    QStringList sets;
+    for (const SectionNameSet& set : ProjectBook::sectionNameSets()) {
+        sets << set.id;
+    }
+    CHECK(joined(sets) == "sections, matter, fragments, arc");
+
+    ProjectBook book;
+    const auto names = [&book]() {
+        return joined({book.sectionName(BookPlace::Front), book.sectionName(BookPlace::Main),
+                       book.sectionName(BookPlace::Back)});
+    };
+
+    // Without a set, the first one, in the language of the book; a language without names of
+    // its own gets the English ones
+    book.language = QStringLiteral("pl");
+    CHECK(names() == "Sekcja początkowa, Sekcja główna, Sekcja końcowa");
+    book.language = QStringLiteral("pl_PL");
+    CHECK(names() == "Sekcja początkowa, Sekcja główna, Sekcja końcowa");
+    book.language = QStringLiteral("en");
+    CHECK(names() == "Front Section, Main Section, Back Section");
+    book.language = QStringLiteral("de");
+    CHECK(names() == "Front Section, Main Section, Back Section");
+
+    struct Set {
+        const char* id;
+        const char* polish;
+        const char* english;
+    };
+    const std::vector<Set> all = {
+        {"sections", "Sekcja początkowa, Sekcja główna, Sekcja końcowa",
+         "Front Section, Main Section, Back Section"},
+        {"matter", "Strony początkowe, Tekst główny, Strony końcowe",
+         "Front Matter, Body, Back Matter"},
+        {"fragments", "Fragment początkowy, Fragment główny, Fragment końcowy",
+         "Opening Fragment, Main Fragment, Closing Fragment"},
+        {"arc", "Otwarcie, Rozwinięcie, Zamknięcie", "Opening, Development, Closing"},
+    };
+    for (const Set& set : all) {
+        INFO(set.id);
+        book.sectionSet = QString::fromLatin1(set.id);
+        CHECK(book.sectionNameSet().id == book.sectionSet);
+        book.language = QStringLiteral("pl");
+        CHECK(names() == set.polish);
+        book.language = QStringLiteral("en");
+        CHECK(names() == set.english);
+    }
+
+    // A set this version does not know gives the first one
+    book.sectionSet = QStringLiteral("acts");
+    CHECK(book.sectionNameSet().id == QStringLiteral("sections"));
+    CHECK(names() == "Front Section, Main Section, Back Section");
+
+    // The writer's own names are the same in every language
+    book.sectionSet = QString::fromLatin1(ProjectBook::CUSTOM_SECTIONS);
+    book.sectionNames = {QStringLiteral("Przedmowa i wstęp"), QStringLiteral("Opowieść"),
+                         QStringLiteral("Dodatki")};
+    CHECK(names() == "Przedmowa i wstęp, Opowieść, Dodatki");
+    book.language = QStringLiteral("pl");
+    CHECK(names() == "Przedmowa i wstęp, Opowieść, Dodatki");
+    CHECK(book.sectionNameSet().id == QStringLiteral("sections"));
+
+    // The Workshop is no part of the book
+    CHECK(book.sectionName(BookPlace::Workshop).isEmpty());
+    book.sectionSet.clear();
+    CHECK(book.sectionName(BookPlace::Workshop).isEmpty());
+}
+
+TEST_CASE("Book project: the names of the parts are saved and read back",
+          "[core][bookproject]") {
+    // The project of a book with "sections": @p sections, and the field as it is saved back
+    const auto withSections = [](const char* sections) {
+        return projectOf(QStringLiteral(R"({ "format": 2, "id": "p", "books": [
+                                               { "id": "b", "folder": "book",
+                                                 "sections": %1 } ] })")
+                             .arg(QString::fromUtf8(sections))
+                             .toUtf8());
+    };
+    const auto saved = [](const BookProject& project) {
+        return project.toJson()
+            .value(QStringLiteral("books"))
+            .toArray()
+            .at(0)
+            .toObject()
+            .value(QStringLiteral("sections"));
+    };
+
+    // A set
+    const BookProject matter = withSections(R"("matter")");
+    CHECK(matter.books.at(0).sectionSet == QStringLiteral("matter"));
+    CHECK(saved(matter) == QJsonValue(QStringLiteral("matter")));
+
+    // A set this version does not know gives the first one and is saved back
+    const BookProject acts = withSections(R"("acts")");
+    CHECK(acts.books.at(0).sectionSet == QStringLiteral("acts"));
+    CHECK(acts.books.at(0).sectionNameSet().id == QStringLiteral("sections"));
+    CHECK(saved(acts) == QJsonValue(QStringLiteral("acts")));
+
+    // The writer's own names
+    const char* const names =
+        R"({ "front": "Przedmowa i wstęp", "main": "Opowieść", "back": "Dodatki" })";
+    const BookProject own = withSections(names);
+    const ProjectBook& book = own.books.at(0);
+    CHECK(book.sectionSet == QStringLiteral("custom"));
+    CHECK(book.sectionNames == QStringList{QStringLiteral("Przedmowa i wstęp"),
+                                           QStringLiteral("Opowieść"),
+                                           QStringLiteral("Dodatki")});
+    CHECK(book.sectionNamesExtra.isEmpty());
+    CHECK(book.sectionName(BookPlace::Front) == QStringLiteral("Przedmowa i wstęp"));
+    CHECK(book.sectionName(BookPlace::Back) == QStringLiteral("Dodatki"));
+    CHECK(saved(own) == QJsonValue(jsonOf(names)));
+
+    // With a set, the writer's names are not saved
+    BookProject changed = own;
+    changed.books[0].sectionSet = QStringLiteral("arc");
+    CHECK(saved(changed) == QJsonValue(QStringLiteral("arc")));
+
+    // None: the first set, and no field in the file
+    const BookProject none =
+        projectOf(R"({ "format": 2, "id": "p", "books": [ { "id": "b", "folder": "book" } ] })");
+    CHECK(none.books.at(0).sectionSet.isEmpty());
+    CHECK(none.books.at(0).sectionNameSet().id == QStringLiteral("sections"));
+    CHECK(saved(none).isUndefined());
+}
+
+TEST_CASE("Book project: the sections are shown or hidden, and named", "[core][bookproject]") {
+    ProjectBook book;
+    book.language = QStringLiteral("pl");
+    ProjectElement dedication;
+    dedication.id = QStringLiteral("e1");
+    dedication.title = QStringLiteral("Dedykacja");
+    book.frontElements << dedication;
+    const auto names = [&book]() {
+        return joined({book.sectionName(BookPlace::Front), book.sectionName(BookPlace::Main),
+                       book.sectionName(BookPlace::Back)});
+    };
+    const QString custom = QString::fromLatin1(ProjectBook::CUSTOM_SECTIONS);
+
+    // A set of names
+    book.setSections({true, QStringLiteral("matter"), {}});
+    CHECK(book.partsLayer);
+    CHECK(book.sectionSet == QStringLiteral("matter"));
+    CHECK(book.sectionNames.isEmpty());
+    CHECK(book.sections() == BookSections{true, QStringLiteral("matter"), {}});
+    CHECK(names() == "Strony początkowe, Tekst główny, Strony końcowe");
+
+    // Hidden sections keep their names, and each element stays in its section
+    book.setSections({false, QStringLiteral("matter"), {}});
+    CHECK_FALSE(book.partsLayer);
+    CHECK(book.sections() == BookSections{false, QStringLiteral("matter"), {}});
+    CHECK(names() == "Strony początkowe, Tekst główny, Strony końcowe");
+    CHECK(book.frontElements.size() == 1);
+    CHECK(book.mainElements.isEmpty());
+
+    // The writer's own names lose the spaces at their ends; an empty or missing name is the
+    // name of the first set in the language of the book
+    book.setSections({true, custom, {QStringLiteral("  Przedmowa  "), QStringLiteral(" ")}});
+    CHECK(book.sectionSet == custom);
+    CHECK(names() == "Przedmowa, Sekcja główna, Sekcja końcowa");
+    CHECK(book.sections() ==
+          BookSections{true, custom,
+                       {QStringLiteral("Przedmowa"), QStringLiteral("Sekcja główna"),
+                        QStringLiteral("Sekcja końcowa")}});
+    book.language = QStringLiteral("en");
+    book.setSections({true, custom, {}});
+    CHECK(names() == "Front Section, Main Section, Back Section");
+
+    // Fields of the writer's names that this version does not know stay with the writer's
+    // names, and go with them
+    book.sectionNamesExtra.insert(QStringLiteral("workshop"), QStringLiteral("Notatki"));
+    book.setSections({true, custom,
+                      {QStringLiteral("Wstęp"), QStringLiteral("Opowieść"),
+                       QStringLiteral("Dodatki")}});
+    CHECK(book.sectionNamesExtra.value(QStringLiteral("workshop")).toString() ==
+          QStringLiteral("Notatki"));
+    book.setSections({true, QStringLiteral("arc"),
+                      {QStringLiteral("Wstęp"), QStringLiteral("Opowieść"),
+                       QStringLiteral("Dodatki")}});
+    CHECK(book.sectionNames.isEmpty());  // names only with the writer's names
+    CHECK(book.sectionNamesExtra.isEmpty());
+    CHECK(book.sections() == BookSections{true, QStringLiteral("arc"), {}});
+    CHECK(names() == "Opening, Development, Closing");
+
+    // No set: the first one
+    book.setSections({true, QString(), {}});
+    CHECK(book.sectionNameSet().id == QStringLiteral("sections"));
+    CHECK(book.frontElements.size() == 1);
 }
 
 TEST_CASE("Book project: changing an element of a copy leaves the project as it was",
@@ -470,7 +754,8 @@ TEST_CASE("Book project: a book takes kinds of other types", "[core][bookproject
           "kalahari.novel:prologue, kalahari.base:part, kalahari.base:chapter, "
           "kalahari.novel:epilogue");
     CHECK(references(project.kindsInside(registry, QStringLiteral("part"))) ==
-          "kalahari.base:chapter, kalahari.base:motto");
+          "kalahari.novel:prologue, kalahari.base:chapter, kalahari.novel:epilogue, "
+          "kalahari.base:motto");
 
     const KindRef bibliography =
         BookProject::kindOf(registry, project.books.at(0).backElements.at(0));
@@ -538,11 +823,13 @@ TEST_CASE("Book project: kinds of packages that are not installed", "[core][book
     CHECK(references(project.kindsIn(registry, BookPlace::Main)) == "kalahari.base:chapter");
     CHECK(project.kindsIn(registry, BookPlace::Workshop).isEmpty());
 
-    // ...the elements of the missing kinds stay, without a kind...
+    // ...the elements of the missing kinds stay, without a kind, in the form of their file...
     const QList<ProjectElement>& main = project.books.at(0).mainElements;
     CHECK_FALSE(BookProject::kindOf(registry, main.at(0)));
     CHECK(BookProject::kindOf(registry, main.at(1)));
     CHECK_FALSE(BookProject::kindOf(registry, project.workshop.elements.at(0)));
+    CHECK(BookProject::formOf(registry, main.at(0)) == ElementForm::Text);
+    CHECK(BookProject::formOf(registry, project.workshop.elements.at(0)) == ElementForm::Window);
 
     // ...and saving keeps them
     CHECK(project.toJson() == jsonOf(text));
@@ -625,6 +912,27 @@ TEST_CASE("Book project: a .klh file with problems", "[core][bookproject]") {
          project(R"({ "format": 2, "id": "p",
                       "books": [ { "id": "b", "folder": "book", "partsLayer": "yes" } ] })"),
          "books[0].partsLayer: must be true or false"},
+        {"names of the parts that are a number",
+         project(R"({ "format": 2, "id": "p",
+                      "books": [ { "id": "b", "folder": "book", "sections": 3 } ] })"),
+         "books[0].sections: must be the id of a set of names, e.g. \"matter\", or the names "
+         "of the front, main and back part"},
+        {"the writer's names without the names",
+         project(R"({ "format": 2, "id": "p",
+                      "books": [ { "id": "b", "folder": "book", "sections": "custom" } ] })"),
+         "books[0].sections: must be the id of a set of names"},
+        {"the writer's names without the back part",
+         project(R"({ "format": 2, "id": "p", "books": [ { "id": "b", "folder": "book",
+                      "sections": { "front": "Wstęp", "main": "Opowieść" } } ] })"),
+         "books[0].sections.back: must be a text that is not empty"},
+        {"an empty name of a part",
+         project(R"({ "format": 2, "id": "p", "books": [ { "id": "b", "folder": "book",
+                      "sections": { "front": "", "main": "Opowieść", "back": "Dodatki" } } ] })"),
+         "books[0].sections.front: must be a text that is not empty"},
+        {"a name of a part that is not a text",
+         project(R"({ "format": 2, "id": "p", "books": [ { "id": "b", "folder": "book",
+                      "sections": { "front": "Wstęp", "main": 2, "back": "Dodatki" } } ] })"),
+         "books[0].sections.main: must be a text that is not empty"},
         {"a title that is not a text",
          project(R"({ "format": 2, "id": "p",
                       "books": [ { "id": "b", "folder": "book", "title": 7 } ] })"),
@@ -742,4 +1050,39 @@ TEST_CASE("Book project: saving to a folder that does not exist fails", "[core][
     const QString path = directory.filePath(QStringLiteral("missing/My Novel.klh"));
     CHECK_FALSE(fullProject().save(path));
     CHECK_FALSE(QFile::exists(path));
+}
+
+// =============================================================================
+// The example project
+// =============================================================================
+
+TEST_CASE("Book project: the example project is in the format of this version",
+          "[core][bookproject][examples]") {
+    BookTypeRegistry registry;
+    loadBuiltIn(registry);
+
+    const QDir folder(QStringLiteral(KALAHARI_SOURCE_DIR "/examples/ExampleNovel"));
+    QStringList problems;
+    const std::optional<BookProject> project =
+        BookProject::load(folder.filePath(QStringLiteral("ExampleNovel.klh")), problems);
+    INFO(joined(problems));
+    REQUIRE(project.has_value());
+    CHECK(project->missingPackages(registry).isEmpty());
+
+    // Every element has its kind, and every text element a chapter file with its title and
+    // status
+    int texts = 0;
+    for (const ProjectElement* element : project->readingOrder()) {
+        INFO(element->id.toStdString());
+        CHECK(BookProject::kindOf(registry, *element));
+        if (BookProject::formOf(registry, *element) == ElementForm::Text) {
+            ++texts;
+            const std::optional<ChapterDocument> chapter =
+                ChapterDocument::load(folder.filePath(element->file));
+            REQUIRE(chapter.has_value());
+            CHECK(chapter->title() == element->title);
+            CHECK(chapter->status() == element->status);
+        }
+    }
+    CHECK(texts == 4);
 }

@@ -309,7 +309,8 @@ void CommandRegistry::applyActionAvailability(QAction* action, const Command& cm
     QString tooltip = QString::fromStdString(cmd.tooltip.empty() ? cmd.label : cmd.tooltip);
 
     if (!cmd.canExecute()) {
-        tooltip = tr("%1 (not available yet)").arg(tooltip);
+        // As the list of the keyboard shortcuts says it
+        tooltip = tr("%1 (in preparation)").arg(tooltip);
     } else if (tooltip == QString::fromStdString(cmd.label)) {
         // Menus show explicit tooltips, so do not repeat the label there;
         // toolbars still fall back to the action text
@@ -317,6 +318,9 @@ void CommandRegistry::applyActionAvailability(QAction* action, const Command& cm
     }
 
     action->setToolTip(tooltip);
+    // The status bar also says that a grey command is in preparation, so it does not look
+    // broken (KalahariStyle lets the mouse rest on grey menu items)
+    action->setStatusTip(cmd.canExecute() ? QString() : tooltip);
     action->setEnabled(cmd.canExecute() && cmd.checkEnabled());
 }
 

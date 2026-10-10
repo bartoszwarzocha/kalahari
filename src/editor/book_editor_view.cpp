@@ -286,11 +286,12 @@ void BookEditor::scrollToPageTop(int page)
     if (!m_renderPipeline || m_viewMode != ViewMode::Page) {
         return;
     }
-    // The sheet's top at the gap below the view's top edge, as the first page shows at the
-    // start of the chapter
+    // The sheet's top at the gap below the view's top edge (below the find/replace bar over
+    // it), as the first page shows at the start of the chapter
     const RenderContext& ctx = m_renderPipeline->context();
     setScrollOffset(m_renderPipeline->pageTextTop(page - 1) - ctx.computed.marginTop -
-                    ctx.pageMode.pageSpacing + ctx.computed.originY / ctx.computed.viewScale);
+                    ctx.pageMode.pageSpacing +
+                    (ctx.computed.originY - ctx.topBarHeight) / ctx.computed.viewScale);
 }
 
 void BookEditor::setPaperScale(double scale)
@@ -546,7 +547,10 @@ void BookEditor::updateScrollBarRange()
     double pageStep = static_cast<double>(height());
     if (m_viewportManager) {
         maxOffset = m_viewportManager->maxScrollPosition();
-        pageStep = m_viewportManager->visibleDocumentHeight();
+        // The view below the find/replace bar over its top
+        const double topBar = m_renderPipeline ? m_renderPipeline->context().topBarHeight : 0.0;
+        pageStep = m_viewportManager->visibleDocumentHeight() -
+                   topBar / m_viewportManager->viewScale();
     }
 
     // Update scrollbar without triggering signals

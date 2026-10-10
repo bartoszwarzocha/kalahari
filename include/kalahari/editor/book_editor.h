@@ -946,7 +946,8 @@ protected:
     // Event Handlers
     // =========================================================================
 
-    /// @brief Shows the text of an annotation as the tooltip of its mark
+    /// @brief Shows the text of an annotation as the tooltip of its mark, and places the
+    /// find/replace bar again when its rows change (a longer count of the matches)
     bool event(QEvent* event) override;
 
     /// @brief Paint event handler
@@ -1503,6 +1504,19 @@ private:
 
     /// @brief Make the selected text the search text, if it lies in one paragraph
     void takeSearchTextFromSelection();
+
+    /// @brief Put the find/replace bar at the top of the view, beside the scroll bar, as high
+    /// as its rows are at that width (in a narrow view its buttons take more rows); the
+    /// pages start below it
+    void placeFindReplaceBar();
+
+    /// @brief The height the find/replace bar takes at the top of the view (0 while it is
+    /// closed)
+    [[nodiscard]] int findReplaceBarHeight() const;
+
+    /// @brief Start the pages below a bar over the top of the view (the find/replace bar; 0:
+    /// none), so that no line is hidden under it
+    void setTopBarHeight(int height);
 
     /// @brief Navigate cursor to a search match
     /// @param match The search match to navigate to

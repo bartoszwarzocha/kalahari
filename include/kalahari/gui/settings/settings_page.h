@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QString>
 #include <QWidget>
 
 #include <nlohmann/json.hpp>
@@ -45,6 +46,19 @@ public:
     /// @return Keys of the settings written (session-only options have no key)
     virtual std::vector<std::string> apply();
 
+    /// @brief A changed value that Apply and OK cannot write
+    struct Problem {
+        QString text;              ///< Why, in a sentence or two
+        QWidget* field = nullptr;  ///< The control of the value
+    };
+
+    /// @brief Check the changed values before Apply or OK writes them
+    ///
+    /// For a value that cannot be written the dialog shows the page, puts the focus on the
+    /// control of the value, says why and writes nothing.
+    /// @return The first changed value that cannot be written; an empty text when all can be
+    [[nodiscard]] virtual Problem problem() const;
+
 protected:
     /// @brief How one control is bound to a setting
     struct Binding {
@@ -75,6 +89,9 @@ protected:
 
     /// @brief Fill one binding again (e.g. its key follows another control)
     void reload(Binding& binding);
+
+    /// @brief Whether the control of a binding differs from the value it was filled with
+    [[nodiscard]] static bool bindingChanged(const Binding& binding);
 
     /// @brief The page's top-level layout
     [[nodiscard]] QVBoxLayout* pageLayout() const { return m_layout; }

@@ -134,6 +134,13 @@ QString ResourcePaths::getIconsDir() const {
     return QDir::cleanPath(m_foundResourcesDir + "/icons");
 }
 
+QString ResourcePaths::getBookTypesDir() const {
+    if (m_foundResourcesDir.isEmpty()) {
+        return QString();
+    }
+    return QDir::cleanPath(m_foundResourcesDir + "/booktypes");
+}
+
 bool ResourcePaths::resourcesFound() const {
     return !m_foundResourcesDir.isEmpty();
 }

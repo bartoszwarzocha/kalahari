@@ -14,48 +14,106 @@
     "abbreviations": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
       "name": { "pl": "Wykaz skrótów", "en": "List of abbreviations" },
-      "plural": { "pl": "Wykazy skrótów", "en": "Lists of abbreviations" }
+      "plural": { "pl": "Wykazy skrótów", "en": "Lists of abbreviations" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "wykaz skrótów", "plural": "wykazy skrótów",
+                "genitive": "wykazu skrótów", "dative": "wykazowi skrótów",
+                "accusative": "wykaz skrótów", "instrumental": "wykazem skrótów",
+                "locative": "wykazie skrótów", "genitivePlural": "wykazów skrótów" },
+        "en": { "singular": "list of abbreviations", "plural": "lists of abbreviations",
+                "indefinite": "a list of abbreviations" }
+      }
     },
     "conclusion": {
-      "form": "text", "places": ["main"], "limit": 1, "icon": "template.chapter",
+      "form": "text", "places": ["main"], "limit": 1, "position": "end",
+      "icon": "template.chapter",
       "name": { "pl": "Zakończenie", "en": "Conclusion" },
-      "plural": { "pl": "Zakończenia", "en": "Conclusions" }
+      "plural": { "pl": "Zakończenia", "en": "Conclusions" },
+      "words": {
+        "pl": { "gender": "neuter", "singular": "zakończenie", "plural": "zakończenia",
+                "genitive": "zakończenia", "dative": "zakończeniu", "accusative": "zakończenie",
+                "instrumental": "zakończeniem", "locative": "zakończeniu",
+                "genitivePlural": "zakończeń" },
+        "en": { "singular": "conclusion", "plural": "conclusions", "indefinite": "a conclusion" }
+      }
     },
     "annex": {
       "form": "text", "places": ["back"], "icon": "template.chapter",
       "name": { "pl": "Aneks", "en": "Appendix" },
       "plural": { "pl": "Aneksy", "en": "Appendices" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "aneks", "plural": "aneksy",
+                "genitive": "aneksu", "dative": "aneksowi", "accusative": "aneks",
+                "instrumental": "aneksem", "locative": "aneksie", "genitivePlural": "aneksów" },
+        "en": { "singular": "appendix", "plural": "appendices", "indefinite": "an appendix" }
+      },
       "title": { "pl": "Aneks %n", "en": "Appendix %n" }
     },
     "endnotes": {
       "form": "window", "editor": "endnotes", "generated": true,
       "places": ["back"], "limit": 1, "icon": "insert.endnote",
       "name": { "pl": "Przypisy końcowe", "en": "Endnotes" },
-      "plural": { "pl": "Przypisy końcowe", "en": "Endnotes" }
+      "plural": { "pl": "Przypisy końcowe", "en": "Endnotes" },
+      "words": {
+        "pl": { "gender": "plural", "singular": "przypisy końcowe", "plural": "przypisy końcowe",
+                "genitive": "przypisów końcowych", "dative": "przypisom końcowym",
+                "accusative": "przypisy końcowe", "instrumental": "przypisami końcowymi",
+                "locative": "przypisach końcowych", "genitivePlural": "przypisów końcowych" },
+        "en": { "gender": "plural", "singular": "endnotes", "plural": "endnotes",
+                "indefinite": "endnotes" }
+      }
     },
     "bibliography": {
       "form": "window", "editor": "bibliography", "generated": true,
       "places": ["back"], "limit": 1, "icon": "format.bullets",
       "name": { "pl": "Bibliografia", "en": "Bibliography" },
-      "plural": { "pl": "Bibliografie", "en": "Bibliographies" }
+      "plural": { "pl": "Bibliografie", "en": "Bibliographies" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "bibliografia", "plural": "bibliografie",
+                "genitive": "bibliografii", "dative": "bibliografii", "accusative": "bibliografię",
+                "instrumental": "bibliografią", "locative": "bibliografii",
+                "genitivePlural": "bibliografii" },
+        "en": { "singular": "bibliography", "plural": "bibliographies",
+                "indefinite": "a bibliography" }
+      }
     },
     "index": {
       "form": "window", "editor": "index", "generated": true,
       "places": ["back"], "limit": 1, "icon": "common.sort",
       "name": { "pl": "Indeks", "en": "Index" },
-      "plural": { "pl": "Indeksy", "en": "Indexes" }
+      "plural": { "pl": "Indeksy", "en": "Indexes" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "indeks", "plural": "indeksy",
+                "genitive": "indeksu", "dative": "indeksowi", "accusative": "indeks",
+                "instrumental": "indeksem", "locative": "indeksie", "genitivePlural": "indeksów" },
+        "en": { "singular": "index", "plural": "indexes", "indefinite": "an index" }
+      }
     },
     "illustrations": {
       "form": "window", "editor": "illustrations", "generated": true,
       "places": ["back"], "limit": 1, "icon": "insert.image",
       "name": { "pl": "Spis ilustracji", "en": "List of illustrations" },
-      "plural": { "pl": "Spisy ilustracji", "en": "Lists of illustrations" }
+      "plural": { "pl": "Spisy ilustracji", "en": "Lists of illustrations" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "spis ilustracji", "plural": "spisy ilustracji",
+                "genitive": "spisu ilustracji", "dative": "spisowi ilustracji",
+                "accusative": "spis ilustracji", "instrumental": "spisem ilustracji",
+                "locative": "spisie ilustracji", "genitivePlural": "spisów ilustracji" },
+        "en": { "singular": "list of illustrations", "plural": "lists of illustrations",
+                "indefinite": "a list of illustrations" }
+      }
     },
     "source": {
       "form": "window", "editor": "card", "places": ["workshop"], "icon": "common.filePresent",
       "workshopGroup": "libraries",
       "name": { "pl": "Źródło", "en": "Source" },
       "plural": { "pl": "Źródła", "en": "Sources" },
+      "words": {
+        "pl": { "gender": "neuter", "singular": "źródło", "plural": "źródła", "genitive": "źródła",
+                "dative": "źródłu", "accusative": "źródło", "instrumental": "źródłem",
+                "locative": "źródle", "genitivePlural": "źródeł" },
+        "en": { "singular": "source", "plural": "sources", "indefinite": "a source" }
+      },
       "title": { "pl": "Źródło %n", "en": "Source %n" }
     }
   },

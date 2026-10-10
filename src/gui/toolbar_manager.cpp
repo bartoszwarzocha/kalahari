@@ -8,6 +8,7 @@
 /// instead of creating new QAction instances. CommandRegistry now owns all command actions.
 
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/command.h"
@@ -23,7 +24,6 @@
 #include <QJsonObject>
 #include <QStatusBar>
 #include <QRegularExpression>
-#include <QMessageBox>
 #include <QFontComboBox>
 #include <QSpinBox>
 #include <QLabel>
@@ -170,7 +170,8 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "Quick Actions"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
-        {"file.new", "file.new.project", "file.open", "file.save", "file.saveAll", SEPARATOR_ID,
+        {"file.new", "file.new.project", "file.open", "file.save", "file.saveAll", "file.close",
+         SEPARATOR_ID,
          "edit.find", SEPARATOR_ID,
          "tools.backupNow", SEPARATOR_ID,
          "edit.settings", "tools.toolbarManager"}
@@ -1009,12 +1010,10 @@ void ToolbarManager::showContextMenu(const QPoint& globalPos) {
     QAction* resetAction = menu.addAction(QObject::tr("Reset to Default"));
     QObject::connect(resetAction, &QAction::triggered, &m_connectionContext, [this]() {
         // Confirm before reset
-        QMessageBox::StandardButton result = QMessageBox::question(
-            m_mainWindow,
-            QObject::tr("Reset Toolbars"),
-            QObject::tr("Reset all toolbars to default configuration?"),
-            QMessageBox::Yes | QMessageBox::No);
-        if (result == QMessageBox::Yes) {
+        if (dialogs::MessageDialog::confirm(
+                m_mainWindow, QObject::tr("Reset Toolbars"),
+                QObject::tr("Reset all toolbars to default configuration?"),
+                QObject::tr("&Reset"))) {
             resetToDefaults();
         }
     });

@@ -32,6 +32,13 @@ public:
                     const QStyleOption* option = nullptr,
                     const QWidget* widget = nullptr) const override;
 
+    /// @brief Let grey menu items be active, as on Windows: the status bar then describes a
+    /// command in preparation when the mouse is on it
+    int styleHint(StyleHint hint,
+                  const QStyleOption* option = nullptr,
+                  const QWidget* widget = nullptr,
+                  QStyleHintReturn* returnData = nullptr) const override;
+
     /// @brief Override standard icons to provide theme-aware icons
     ///
     /// Used to replace default Qt icons (like toolbar extension button chevron)
