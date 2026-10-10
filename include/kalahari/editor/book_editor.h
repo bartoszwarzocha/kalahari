@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
@@ -135,7 +136,8 @@ public:
     QString plainText() const;
 
     /// @brief Get total character count in the document
-    /// @return Character count from QTextDocument
+    /// @return Characters with spaces, without the paragraph and line breaks, cached per
+    ///         paragraph like wordCount()
     size_t characterCount() const;
 
     /// @brief Get total word count in the document
@@ -146,6 +148,28 @@ public:
     /// @brief Get character count without spaces
     /// @return Non-space character count, cached per paragraph like wordCount()
     size_t characterCountNoSpaces() const;
+
+    /// @brief The word, character and paragraph counts of the whole text, in one pass over
+    ///        the paragraphs' cached counts
+    ///
+    /// The paragraphs are those with text (core::countText()); paragraphCount() counts the
+    /// empty ones too.
+    core::TextCounts textCounts() const;
+
+    /// @brief The word, character and paragraph counts of the selected text (zeros without
+    ///        one)
+    ///
+    /// A word cut by an edge of the selection counts as a word, and a paragraph as a
+    /// paragraph when the selection has some of its text, as in Word and LibreOffice.
+    core::TextCounts selectionCounts() const;
+
+    /// @brief Set what the counts take for a word (the settings' choice)
+    ///
+    /// The counts follow the new rules at once, and countsChanged() says they changed.
+    void setWordCountRules(const core::WordCountRules& rules);
+
+    /// @brief What the counts take for a word
+    const core::WordCountRules& wordCountRules() const { return m_wordCountRules; }
 
     /// @brief Get the underlying QTextDocument (read-only for accessibility)
     /// @return Pointer to the QTextDocument, or nullptr if not initialized
@@ -876,6 +900,10 @@ signals:
     /// Use this to track content changes (e.g., for statistics, auto-save).
     void contentChanged();
 
+    /// @brief Emitted when the word and character counts change while the text stays the
+    ///        same (they follow new rules of setWordCountRules())
+    void countsChanged();
+
     /// @brief Emitted when the document reference changes
     ///
     /// This signal is emitted whenever the document reference changes
@@ -1390,6 +1418,7 @@ private:
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
+    core::WordCountRules m_wordCountRules;                  ///< What the counts take for a word
 
     // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h
 

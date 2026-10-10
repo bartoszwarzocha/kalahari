@@ -65,6 +65,10 @@ public:
     // =========================================================================
 
     /// @brief Set the editor to track
+    ///
+    /// The words written and deleted are counted in it from now on: its text as it is now,
+    /// a text loaded into it later and new rules of counting are not words written. An
+    /// editor destroyed while it is tracked is forgotten.
     /// @param editor BookEditor to monitor (nullptr to disconnect)
     /// @note Previous editor is automatically disconnected
     void setBookEditor(BookEditor* editor);
@@ -82,7 +86,8 @@ public:
     int wordCount() const;
 
     /// @brief Get the character count including spaces
-    /// @return Number of characters (0 if no document)
+    /// @return Number of characters, without the paragraph and line breaks (0 if no
+    ///         document)
     int characterCount() const;
 
     /// @brief Get the character count excluding spaces
@@ -90,11 +95,12 @@ public:
     int characterCountNoSpaces() const;
 
     /// @brief Get the paragraph count
-    /// @return Number of paragraphs (0 if no document)
+    /// @return Number of paragraphs with text, as core::countText() counts them (0 if no
+    ///         document)
     int paragraphCount() const;
 
     /// @brief Get estimated reading time in minutes
-    /// @return Minutes at 200 words per minute
+    /// @return core::readingMinutes() of the words
     int estimatedReadingTime() const;
 
     // =========================================================================
@@ -157,6 +163,12 @@ private slots:
     /// @brief Handle debounced statistics recalculation
     void debouncedRecalculate();
 
+    /// @brief Count from the counts of now, with no words written or deleted
+    void rebase();
+
+    /// @brief Forget the tracked editor when it is destroyed
+    void onEditorDestroyed(QObject* object);
+
 private:
     /// @brief Called when editor content changes
     void onContentChanged();
@@ -185,6 +197,7 @@ private:
     int m_wordCount{0};
     int m_characterCount{0};
     int m_characterCountNoSpaces{0};
+    int m_paragraphCount{0};
 
     // Session tracking
     bool m_sessionActive{false};
@@ -209,7 +222,6 @@ private:
     // Constants
     static constexpr int FLUSH_INTERVAL_MS = 5 * 60 * 1000;  ///< 5 minutes
     static constexpr int IDLE_THRESHOLD_MS = 2 * 60 * 1000;  ///< 2 minutes
-    static constexpr int WORDS_PER_MINUTE = 200;             ///< Reading speed
     static constexpr int STATS_DEBOUNCE_MS = 250;            ///< Debounce delay for stats
 };
 

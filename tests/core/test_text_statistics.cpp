@@ -2,6 +2,7 @@
 /// @brief Unit tests for countText() - the application's single word count definition
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/settings_manager.h>
 #include <kalahari/core/text_statistics.h>
 #include <QString>
 
@@ -10,7 +11,22 @@ using namespace kalahari::core;
 namespace {
 
 int words(const QString& text) {
-    return countText(text).words;
+    return countText(text, WordCountRules{}).words;
+}
+
+/// @brief Words counted with the dialogue dashes as words
+int wordsWithDashes(const QString& text) {
+    WordCountRules rules;
+    rules.dashesAreWords = true;
+    return countText(text, rules).words;
+}
+
+int characters(const QString& text) {
+    return countText(text, WordCountRules{}).characters;
+}
+
+int paragraphs(const QString& text) {
+    return countText(text, WordCountRules{}).paragraphs;
 }
 
 }  // anonymous namespace
@@ -28,8 +44,8 @@ TEST_CASE("countText counts words", "[core][text_statistics]") {
     }
 
     SECTION("No-break space and paragraph separator separate words") {
-        CHECK(words(QStringLiteral("w\u00A0domu")) == 2);
-        CHECK(words(QStringLiteral("koniec\u2029Nowy")) == 2);
+        CHECK(words(QStringLiteral("w domu")) == 2);
+        CHECK(words(QStringLiteral("koniec Nowy")) == 2);
     }
 
     SECTION("Punctuation-only runs are not words") {
@@ -57,10 +73,105 @@ TEST_CASE("countText counts words", "[core][text_statistics]") {
     }
 }
 
+TEST_CASE("countText counts standalone dashes as words when the rules say so",
+          "[core][text_statistics]") {
+    SECTION("The dialogue dashes of a line of dialogue") {
+        // The option of the settings: Microsoft Word counts them, LibreOffice does not
+        CHECK(words(QStringLiteral("– Tak – powiedział.")) == 2);
+        CHECK(wordsWithDashes(QStringLiteral("– Tak – powiedział.")) == 4);
+        CHECK(words(QStringLiteral("— Yes — she said.")) == 3);
+        CHECK(wordsWithDashes(QStringLiteral("— Yes — she said.")) == 5);
+    }
+
+    SECTION("Any run of dashes alone: hyphen, en dash, em dash, horizontal bar") {
+        CHECK(wordsWithDashes(QStringLiteral("a - b")) == 3);
+        CHECK(wordsWithDashes(QStringLiteral("a -- b")) == 3);
+        CHECK(wordsWithDashes(QStringLiteral("a ――― b")) == 3);
+        CHECK(wordsWithDashes(QStringLiteral("–")) == 1);
+        CHECK(wordsWithDashes(QStringLiteral("koniec – Nowy")) == 3);
+    }
+
+    SECTION("A dash with other characters is no word of its own") {
+        CHECK(wordsWithDashes(QStringLiteral("–Tak")) == 1);
+        CHECK(wordsWithDashes(QStringLiteral("2010–2020")) == 1);
+        CHECK(wordsWithDashes(QStringLiteral("e-mail")) == 1);
+        CHECK(wordsWithDashes(QStringLiteral("–, a")) == 1);
+        CHECK(wordsWithDashes(QStringLiteral("*** …")) == 0);
+    }
+
+    SECTION("The rules change the words only, not the characters") {
+        WordCountRules rules;
+        rules.dashesAreWords = true;
+        const TextCounts with = countText(QStringLiteral("– Tak –"), rules);
+        const TextCounts without = countText(QStringLiteral("– Tak –"), WordCountRules{});
+        CHECK(with.characters == without.characters);
+        CHECK(with.nonSpaceCharacters == without.nonSpaceCharacters);
+    }
+}
+
 TEST_CASE("countText counts non-space characters", "[core][text_statistics]") {
-    CHECK(countText(QString()).nonSpaceCharacters == 0);
-    CHECK(countText(QStringLiteral("abc def")).nonSpaceCharacters == 6);
-    CHECK(countText(QStringLiteral("– Tak\u00A0!")).nonSpaceCharacters == 5);
+    CHECK(countText(QString(), WordCountRules{}).nonSpaceCharacters == 0);
+    CHECK(countText(QStringLiteral("abc def"), WordCountRules{}).nonSpaceCharacters == 6);
+    CHECK(countText(QStringLiteral("– Tak !"), WordCountRules{}).nonSpaceCharacters == 5);
     // A surrogate pair is one character
-    CHECK(countText(QString::fromUcs4(U"a\U0001F600")).nonSpaceCharacters == 2);
+    CHECK(countText(QString::fromUcs4(U"a\U0001F600"), WordCountRules{}).nonSpaceCharacters == 2);
+}
+
+TEST_CASE("countText counts characters with spaces, without line and paragraph breaks",
+          "[core][text_statistics]") {
+    CHECK(characters(QString()) == 0);
+    CHECK(characters(QStringLiteral("abc def")) == 7);
+    CHECK(characters(QStringLiteral("– Tak !")) == 7);
+    CHECK(characters(QStringLiteral("a\tb")) == 3);
+    // The breaks are not characters of the text, as in Word and LibreOffice
+    CHECK(characters(QStringLiteral("ab\ncd")) == 4);
+    CHECK(characters(QStringLiteral("ab\r\ncd")) == 4);
+    CHECK(characters(QStringLiteral("ab cd ef")) == 6);
+    // A surrogate pair is one character
+    CHECK(characters(QString::fromUcs4(U"a \U0001F600")) == 3);
+}
+
+TEST_CASE("countText counts the paragraphs with text", "[core][text_statistics]") {
+    CHECK(paragraphs(QString()) == 0);
+    CHECK(paragraphs(QStringLiteral("One")) == 1);
+    CHECK(paragraphs(QStringLiteral("One\nTwo")) == 2);
+
+    SECTION("Empty paragraphs are not paragraphs, as in Word and LibreOffice") {
+        // The line end at the end of a text file, empty lines, lines of spaces
+        CHECK(paragraphs(QStringLiteral("One\n")) == 1);
+        CHECK(paragraphs(QStringLiteral("One\n\n\nTwo\n")) == 2);
+        CHECK(paragraphs(QStringLiteral(" \t\n \n")) == 0);
+    }
+
+    SECTION("A paragraph without words is a paragraph") {
+        CHECK(paragraphs(QStringLiteral("One\n***\nTwo")) == 3);
+        CHECK(paragraphs(QStringLiteral("\u2013")) == 1);
+    }
+
+    SECTION("Every new line ends a paragraph, a line separator only breaks the line") {
+        // Windows and old Mac line ends, the next line, a page break, a paragraph separator
+        CHECK(paragraphs(QStringLiteral("One\r\nTwo\r\n")) == 2);
+        CHECK(paragraphs(QStringLiteral("One\rTwo")) == 2);
+        CHECK(paragraphs(QStringLiteral("One\u0085Two\fThree\u2029Four")) == 4);
+        // The line separator and the vertical tab (a line break in Word's plain text)
+        CHECK(paragraphs(QStringLiteral("One\u2028Two\vThree")) == 1);
+    }
+}
+
+TEST_CASE("readingMinutes counts a minute begun as a minute", "[core][text_statistics]") {
+    CHECK(readingMinutes(0) == 0);
+    CHECK(readingMinutes(1) == 1);
+    CHECK(readingMinutes(READING_WORDS_PER_MINUTE) == 1);
+    CHECK(readingMinutes(READING_WORDS_PER_MINUTE + 1) == 2);
+    // The long chapter of the example book
+    CHECK(readingMinutes(150017) == 751);
+}
+
+TEST_CASE("wordCountRules follow the setting", "[core][text_statistics]") {
+    auto& settings = SettingsManager::getInstance();
+    settings.set<bool>("editor.wordCount.dashesAsWords", true);
+    CHECK(wordCountRules().dashesAreWords);
+    settings.set<bool>("editor.wordCount.dashesAsWords", false);
+    CHECK_FALSE(wordCountRules().dashesAreWords);
+    CHECK(wordCountRules() == WordCountRules{});
 }

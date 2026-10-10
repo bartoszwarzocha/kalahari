@@ -138,6 +138,9 @@ std::map<std::string, json> buildDefaults() {
         // Editor: the size of the annotations' marks in the text, in percent of the size
         // the text's font gives them
         {"editor.annotationMarkSize", 100},
+
+        // Word count in the whole program: a dash standing alone (a dialogue dash) is a word
+        {"editor.wordCount.dashesAsWords", false},
     };
 }
 

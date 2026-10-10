@@ -4,6 +4,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/text_statistics.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/annotation.h"
 #include "kalahari/editor/book_editor.h"
@@ -98,11 +99,6 @@ EditorPanel::EditorPanel(QWidget* parent)
 
 EditorPanel::~EditorPanel() {
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
-
-    // Disconnect StatisticsCollector from editor
-    if (m_statisticsCollector) {
-        m_statisticsCollector->setBookEditor(nullptr);
-    }
 }
 
 void EditorPanel::setText(const QString& text) {
@@ -120,11 +116,6 @@ void EditorPanel::setText(const QString& text) {
     // This method populates QTextDocument, ViewportManager, EditorRenderPipeline
     m_bookEditor->fromKml(kml);
     logger.debug("EditorPanel::setText - BookEditor::fromKml() complete");
-
-    // Reconnect statistics collector to editor (OpenSpec #00042 Task 7.7)
-    if (m_statisticsCollector && m_bookEditor) {
-        m_statisticsCollector->setBookEditor(m_bookEditor);
-    }
 }
 
 QString EditorPanel::getText() const {
@@ -147,11 +138,6 @@ bool EditorPanel::setContent(const QString& content) {
     // This method populates QTextDocument, ViewportManager, EditorRenderPipeline
     const bool complete = m_bookEditor->fromKml(content);
     logger.debug("EditorPanel::setContent - BookEditor::fromKml() complete");
-
-    // Reconnect statistics collector if needed
-    if (m_statisticsCollector && m_bookEditor) {
-        m_statisticsCollector->setBookEditor(m_bookEditor);
-    }
     return complete;
 }
 
@@ -259,6 +245,9 @@ void EditorPanel::applySettings() {
                    MAX_MARK_SCALE);
 
     m_bookEditor->setAppearance(appearance);
+
+    // What the counts take for a word (a setting of the whole program)
+    m_bookEditor->setWordCountRules(core::wordCountRules());
     applyPaperScale();
 
     core::Logger::getInstance().debug("EditorPanel: editor settings applied");
@@ -299,23 +288,24 @@ bool EditorPanel::event(QEvent* event) {
         m_bookEditor) {
         applyPaperScale();
     }
+    // Shown, the tab is the one in front: the words written in it count to the session
+    if (event->type() == QEvent::Show) {
+        trackStatistics();
+    }
     return QWidget::event(event);
 }
 
 void EditorPanel::setStatisticsCollector(editor::StatisticsCollector* collector) {
-    auto& logger = core::Logger::getInstance();
-
-    // Disconnect from previous collector
-    if (m_statisticsCollector) {
-        m_statisticsCollector->setBookEditor(nullptr);
-    }
-
     m_statisticsCollector = collector;
+    trackStatistics();
+}
 
-    // Connect to new collector
-    if (m_statisticsCollector && m_bookEditor) {
+void EditorPanel::trackStatistics() {
+    // The collector follows the chapter in front; a tab behind the others keeps it on the
+    // chapter it follows until it is shown
+    if (m_statisticsCollector && m_bookEditor && isVisible()) {
         m_statisticsCollector->setBookEditor(m_bookEditor);
-        logger.debug("EditorPanel: StatisticsCollector connected to BookEditor");
+        core::Logger::getInstance().debug("EditorPanel: StatisticsCollector follows this editor");
     }
 }
 

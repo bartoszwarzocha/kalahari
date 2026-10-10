@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   puts the message and its details on the clipboard; every button works from the keyboard.
   The program's messages move to it in the following changes.
 
+- **Word count: a dialogue dash as a word, if chosen** - 2026-10-10. Settings > Editor >
+  General > Word Count can count a dash separated by spaces from the words around it, as
+  at the start of a line of dialogue, as a word, as Microsoft Word does; by default it is
+  not one, as in LibreOffice. The status bar, the Properties panel and Distraction-Free
+  writing count anew at once, the chapters' counts in the book when they are saved or the
+  book is opened again.
+
 ### Changed
 
 - **One version number** - 2026-10-09. The About window, the program and the command
@@ -441,6 +448,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   seemed to disappear, for example after the book was closed and opened again. The
   Navigator now only fills the Properties panel; its context menu item Properties... still
   brings the panel to the front.
+
+- **Status bar: the counts of the document in front** - 2026-10-10. The words, characters
+  and reading time in the status bar are those of the tab in front, a chapter or a file
+  outside the book, and change with the tab; over the Dashboard there are none, and no zoom
+  either. With a selection they show its counts out of the whole text ("Words: 12 of
+  3,480"), and the Properties panel counts a selection the same way. Before, they followed
+  the chapter opened last, stayed empty for a file outside the book and went to zero when
+  any tab was closed, and the zoom of the last document stayed over the Dashboard. The
+  characters no longer include the paragraph ends, as in Word and LibreOffice, and the
+  numbers are written in the system's way (3 480 in Polish), in Distraction-Free writing
+  too. A reading time of an hour or more is given in hours and minutes ("Reading: 12 h
+  31 min" instead of "Reading: 751 min"). The Properties panel writes the numbers and the
+  reading time the same way, and its paragraphs are the paragraphs with text, as in Word
+  and LibreOffice: a one-line text file had two paragraphs, its empty last line being the
+  second.
+
+- **Distraction-Free writing: a readable word count** - 2026-10-10. The word count at the
+  bottom of the view was drawn straight over the lines of text and mixed with them. The
+  count and the clock now have a plate of the paper's color under them, which fades out
+  with them.
+
+- **Writing statistics: only the words written** - 2026-10-10. The words written and
+  deleted in a writing session are counted in the chapter in front. A chapter opened in the
+  editor, or a new way of counting, no longer counts as words written, and the words typed
+  just before switching to another tab are not lost.
+
+- **KML format description: the elements as the program writes them** - 2026-10-10. The
+  format description and the editor's functional specification name the links to
+  characters, places and items as the program reads and writes them (`<charref>`,
+  `<locref>`, `<itemref>`, with `id` and `target`), and describe comments, to-dos and notes
+  as annotations of the `<annotations>` section.
 
 - **File > Recent Books in its place in Polish** - 2026-10-09. The submenu was put before
   the item whose text contains "Close", so in the Polish program („Zamknij książkę") it went
