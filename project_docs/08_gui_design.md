@@ -1485,8 +1485,10 @@ One set, the same on Windows and Linux; the Windows keys are the reference. On m
 is Cmd, with the few keys of macOS listed below. Every shortcut is written out in
 `src/gui/command_registrar.cpp`, and `tests/gui/test_command_shortcuts.cpp` lists them all:
 a command that gets or changes a shortcut changes that list and this table. Another test
-fails when two commands share a key. The tables list the program's keys; the user can give
-the commands others (see Shortcut Customization).
+fails when two commands share a key, and another when the code takes a key from the system
+(Qt's standard keys, `QKeySequence::StandardKey`, which differ between the systems and the
+Linux desktops). The tables list the program's keys; the user can give the commands others
+(see Shortcut Customization).
 
 Rules for a new shortcut:
 - Not Ctrl+W: next to Ctrl+S and Ctrl+E, it would close the book by mistake while writing.
