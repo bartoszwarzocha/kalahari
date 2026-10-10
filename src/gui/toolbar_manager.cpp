@@ -170,7 +170,8 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "Quick Actions"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
-        {"file.new", "file.new.project", "file.open", "file.save", "file.saveAll", SEPARATOR_ID,
+        {"file.new", "file.new.project", "file.open", "file.close", "file.save", "file.saveAll",
+         SEPARATOR_ID,
          "edit.find", SEPARATOR_ID,
          "tools.backupNow", SEPARATOR_ID,
          "edit.settings", "tools.toolbarManager"}
