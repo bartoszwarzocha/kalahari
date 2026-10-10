@@ -451,6 +451,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names
   it "Szkic"; it now shows the same names as the menu (Szkic, Poprawki).
 
+- **Mouse wheel: it changes only the field one works in** - 2026-10-10. Scrolling a page of
+  the settings with the mouse wheel changed every number field and drop-down list that
+  passed under the mouse (for example the line spacing), and the wheel over the font and
+  its size in the toolbar changed them too. As on Windows, the wheel now changes only the
+  field with the keyboard focus, after a click or Tab in it; over any other field it
+  scrolls the page.
+
 - **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
   shows the pages at their size on paper; when the display scaling (for example 125% to
   150% in the Windows settings) or the screen's resolution changed while the program ran,
