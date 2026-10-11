@@ -30,6 +30,7 @@
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/utils/distraction_free_layout.h"
 #include "kalahari/gui/utils/setting_toggle.h"
+#include "kalahari/gui/utils/tab_focus.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/log_panel_sink.h"
 #include "kalahari/core/settings_manager.h"
@@ -1095,7 +1096,8 @@ void MainWindow::createDocks() {
         }
 
         // Remove tab and delete widget
-        centralTabs->removeTab(index);
+        // (the keys go on to the page in front, not to the font box of the toolbar)
+        utils::removeTabKeepingFocus(*centralTabs, index);
         widget->deleteLater();
 
         logger.debug("Tab closed at index {}", index);

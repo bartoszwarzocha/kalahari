@@ -462,6 +462,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   its menu item was deleted reached freed memory. Each connection now ends with its menu
   item, toolbar or window.
 
+- **Closing a tab: the keys go on to the document in front** - 2026-10-11. After a tab was
+  closed with its ×, the keyboard focus went to the font box of the toolbar, so the text
+  typed next landed there instead of in the document now in front. That document now gets
+  the keys, at the place it had them last, as in Word and LibreOffice; a focus elsewhere,
+  for example in a panel, stays where it was.
+
 - **Distraction-Free without a document** - 2026-10-08. View > Distraction-Free
   (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in
   front: its command is greyed out without one, and it goes off when the Dashboard or no

@@ -184,6 +184,7 @@ set(KALAHARI_SOURCES
     gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
+    gui/utils/tab_focus.cpp  # Closing a tab gives the keys to the page in front
     gui/utils/qt_standard_texts.cpp  # Qt's own texts (standard buttons) for the translations
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
