@@ -1566,6 +1566,8 @@ Rules for a new shortcut:
 | Format > Align Center | Ctrl+E |
 | Format > Align Right | Ctrl+R |
 | Format > Justify | Ctrl+J |
+| Tools > Check Spelling as You Type | Shift+F7 |
+| Tools > Next Misspelling | F7 |
 | View > Panels > Navigator | F2 |
 | View > Panels > Log | F4 |
 | View > Panels > Search | F5 |
@@ -1651,9 +1653,9 @@ bar and the panels' titles. The keys are in the texts ("Save &As...", in Polish 
 &jako..."): `src/gui/command_registrar.cpp` for the commands, `src/gui/menu_builder.cpp` for
 the menus, the code of a context menu for its items, the translation for Polish. Each item
 has one key, a Latin letter or a digit (Polish letters are typed with AltGr), which no other
-item of the same menu has. The text's context menu also has three commands of the Insert menu
-(Add Comment, Add To Do, Add Note): their keys are unique there too, beside Cut, Copy and
-Paste.
+item of the same menu has. The text's context menu has commands of the Edit menu (Cut, Copy,
+Paste, Select All) and three of the Insert menu (Add Comment, Add To Do, Add Note): their keys
+are unique there too.
 
 Names and words a menu shows as they are get free keys (`src/gui/utils/access_keys.cpp`): the
 first letter of one of their words that is free, else another of their letters or digits;
@@ -1710,6 +1712,12 @@ All) gives the cursor back to the text, where Undo takes the replacement back; Q
 it to the next element of the window, the font box of the toolbar. After a replacement the
 cursor stands at the end of the replaced text, and after Replace All at the end of the last
 replacement, shown in the view; Replace with more matches after it selects the next one.
+
+The text's context menu has the same Cut, Copy, Paste and Select All, with their icons and
+keys, enabled as in the Edit menu (Cut and Copy only with a selection): EditorPanel gives them
+to its editor (`BookEditor::setContextMenuEditActions()`), which without them has items of its
+own. They work on the text whose menu it is: a right click gives it the cursor, and the menu
+key and Shift+F10 open the menu of the text that has it.
 
 The commands that work on the document in front, a chapter or a text file – Find, Find Next,
 Find Previous and Find and Replace, the character formats, the alignments, the view mode and
@@ -1773,7 +1781,6 @@ Commands without keys yet, with keys that are still free:
 - `Ctrl+Shift+T` - Timeline
 - `Alt+1`, `Alt+2`, `Alt+3` - Heading 1–3, `Alt+0` - Normal style (on macOS Option+Cmd with
   the digit)
-- `F7` / `Shift+F7` - Next Misspelling / Check Spelling as You Type (in open pull requests)
 - `F10` - Focused Mode (see Focus Modes)
 
 Keys planned before that other commands have now; these commands get new keys when they

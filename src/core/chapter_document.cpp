@@ -12,8 +12,6 @@
 #include <QJsonDocument>
 #include <QXmlStreamReader>
 
-#include <algorithm>
-
 namespace kalahari {
 namespace core {
 
@@ -96,18 +94,10 @@ void ChapterDocument::touch()
 
 void ChapterDocument::recalculateStatistics()
 {
-    const TextCounts counts = countText(m_plainText);
+    const TextCounts counts = countText(m_plainText, wordCountRules());
     m_wordCount = counts.words;
     m_characterCount = counts.nonSpaceCharacters;
-    m_paragraphCount = calculateParagraphCount(m_plainText);
-}
-
-int ChapterDocument::calculateParagraphCount(const QString& text)
-{
-    const auto lines = QStringView(text).split(QLatin1Char('\n'));
-    return static_cast<int>(std::count_if(lines.begin(), lines.end(), [](QStringView line) {
-        return !line.trimmed().isEmpty();
-    }));
+    m_paragraphCount = counts.paragraphs;
 }
 
 // =============================================================================

@@ -494,7 +494,8 @@ QString SnapshotManager::computeHash(const QString& content) const
 
 int SnapshotManager::countWords(const QString& content) const
 {
-    return core::countText(core::ChapterDocument::kmlToPlainText(content)).words;
+    return core::countText(core::ChapterDocument::kmlToPlainText(content), core::wordCountRules())
+        .words;
 }
 
 QString SnapshotManager::generateSnapshotId() const

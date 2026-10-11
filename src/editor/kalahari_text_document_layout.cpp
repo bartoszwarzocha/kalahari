@@ -75,6 +75,19 @@ KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
     , m_backgroundTimer(new QTimer(this)) {
     if (doc) {
         updateEstimateMetrics();
+
+        // Qt announces a change of the text (contentsChange) before it has the changed
+        // blocks laid out again (documentChanged()), and an edited block keeps its old lines
+        // until then. Whoever reads the lines in between (the find bar giving the keys to
+        // the text, which places the cursor) measured the new text by the old lines: past
+        // its end after a shorter replacement, where Qt's debug build stops (QList::at). The
+        // changed blocks lose their lines first, before the document's other listeners, as
+        // the layout is made before they connect.
+        connect(doc, &QTextDocument::contentsChange, this,
+                [this](int from, int, int charsAdded) {
+                    const auto [first, last] = changedBlocks(from, charsAdded);
+                    clearLines(first, last);
+                });
     }
     // Runs whenever the event loop has nothing else to do, while blocks wait for layout
     m_backgroundTimer->setInterval(0);
@@ -384,11 +397,30 @@ void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int
         return;
     }
 
-    // Qt reports the change in new-document coordinates: [from, from + charsAdded) holds
-    // everything inserted or reformatted. Every block touching that range is laid out
-    // again, including the block holding the first character after it: it may have been
-    // split off from, or merged with, the changed text. Blocks outside the range are
-    // untouched.
+    // Every block touching the change is laid out again. Blocks outside it are untouched.
+    const auto [first, last] = changedBlocks(from, charsAdded);
+
+    // The changed blocks lose their lines, as QTextDocumentLayout clears them (when the
+    // document announced the change, they have lost them already): Qt keeps the lines of an
+    // edited block, and a QTextCursor placed in one still waiting for layout measured the
+    // new text by them (past its end after a shorter replacement)
+    clearLines(first, last);
+
+    // Untouched blocks keep their cache entries, so the old entries of the changed range
+    // end where the new range ends, shifted by the change in block count.
+    const int lastNumber = last.blockNumber();
+    const int oldLast =
+        lastNumber - (doc->blockCount() - static_cast<int>(m_blockHeights.size()));
+    replaceRange(first.blockNumber(), lastNumber, oldLast);
+}
+
+std::pair<QTextBlock, QTextBlock> KalahariTextDocumentLayout::changedBlocks(int from,
+                                                                          int charsAdded) const {
+    // Qt reports a change in new-document coordinates: [from, from + charsAdded) holds
+    // everything inserted or reformatted. The blocks touching that range changed, including
+    // the block holding the first character after it: it may have been split off from, or
+    // merged with, the changed text.
+    const QTextDocument* doc = document();
     QTextBlock first = doc->findBlock(from);
     if (!first.isValid()) {
         first = doc->firstBlock();
@@ -397,21 +429,14 @@ void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int
     if (!last.isValid()) {
         last = doc->lastBlock();
     }
+    return {first, last};
+}
 
-    // The changed blocks lose their lines, as QTextDocumentLayout clears them: Qt keeps the
-    // lines of an edited block, and a QTextCursor placed in one still waiting for layout
-    // measured the new text by them (past its end after a shorter replacement)
+void KalahariTextDocumentLayout::clearLines(const QTextBlock& first, const QTextBlock& last) {
     const QTextBlock afterLast = last.next();
     for (QTextBlock block = first; block.isValid() && block != afterLast; block = block.next()) {
         block.clearLayout();
     }
-
-    // Untouched blocks keep their cache entries, so the old entries of the changed range
-    // end where the new range ends, shifted by the change in block count.
-    const int lastNumber = last.blockNumber();
-    const int oldLast =
-        lastNumber - (doc->blockCount() - static_cast<int>(m_blockHeights.size()));
-    replaceRange(first.blockNumber(), lastNumber, oldLast);
 }
 
 void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) {

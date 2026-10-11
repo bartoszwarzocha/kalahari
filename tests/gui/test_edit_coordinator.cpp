@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
+#include "context_menu_reader.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/find_replace_bar.h"
 #include "kalahari/gui/command_registrar.h"
@@ -15,9 +16,11 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QComboBox>
+#include <QContextMenuEvent>
 #include <QDockWidget>
 #include <QGuiApplication>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QLineEdit>
 #include <QMainWindow>
 #include <QMenuBar>
@@ -117,6 +120,48 @@ void activate(QMainWindow& window) {
     window.show();
     window.activateWindow();
     REQUIRE(test::waitUntil([&window] { return QApplication::activeWindow() == &window; }));
+}
+
+/// The commands of the window work on the element with the keys, as MainWindow gives them
+CommandCallbacks callbacksOf(EditCoordinator& coordinator) {
+    CommandCallbacks callbacks;
+    callbacks.onUndo = [&coordinator] { coordinator.execute(Edit::Undo); };
+    callbacks.onRedo = [&coordinator] { coordinator.execute(Edit::Redo); };
+    callbacks.onCut = [&coordinator] { coordinator.execute(Edit::Cut); };
+    callbacks.onCopy = [&coordinator] { coordinator.execute(Edit::Copy); };
+    callbacks.onPaste = [&coordinator] { coordinator.execute(Edit::Paste); };
+    callbacks.onSelectAll = [&coordinator] { coordinator.execute(Edit::SelectAll); };
+    return callbacks;
+}
+
+/// The place of a character of the text's first paragraph, for a click (the cursor goes there)
+QPoint placeOf(editor::BookEditor& book, int offset) {
+    book.setCursorPosition({0, offset});
+    return book.inputMethodQuery(Qt::ImCursorRectangle).toRect().center();
+}
+
+/// The context menu of the text for a right click at a place, read as it shows; an item is
+/// chosen with its access key @p key, as the writer does (none: the menu closes)
+QList<test::MenuItem> textMenu(editor::BookEditor& book, const QPoint& place,
+                               QChar key = QChar()) {
+    test::ContextMenuReader reader(&book);
+    reader.chooseWith(key);
+    QContextMenuEvent event(QContextMenuEvent::Mouse, place, book.mapToGlobal(place));
+    QCoreApplication::sendEvent(&book, &event);
+    CHECK(test::waitUntil([] { return QApplication::activePopupWidget() == nullptr; }));
+    REQUIRE(reader.menusRead() == 1);
+    return reader.items();
+}
+
+/// The actions of a menu's items, without the separators
+QList<const QAction*> actionsOf(const QList<test::MenuItem>& items) {
+    QList<const QAction*> actions;
+    for (const test::MenuItem& item : items) {
+        if (!item.separator) {
+            actions.append(item.action);
+        }
+    }
+    return actions;
 }
 
 }  // namespace
@@ -456,14 +501,7 @@ TEST_CASE("Edit commands: the keys work on the element with the cursor", "[gui][
     window.addDockWidget(Qt::BottomDockWidgetArea, dock);
 
     EditCoordinator coordinator(noBook);
-    CommandCallbacks callbacks;
-    callbacks.onUndo = [&coordinator] { coordinator.execute(Edit::Undo); };
-    callbacks.onRedo = [&coordinator] { coordinator.execute(Edit::Redo); };
-    callbacks.onCut = [&coordinator] { coordinator.execute(Edit::Cut); };
-    callbacks.onCopy = [&coordinator] { coordinator.execute(Edit::Copy); };
-    callbacks.onPaste = [&coordinator] { coordinator.execute(Edit::Paste); };
-    callbacks.onSelectAll = [&coordinator] { coordinator.execute(Edit::SelectAll); };
-    registerAllCommands(callbacks);
+    registerAllCommands(callbacksOf(coordinator));
     for (const char* id : IDS) {
         window.addAction(CommandRegistry::getInstance().getAction(QString::fromLatin1(id)));
     }
@@ -506,4 +544,80 @@ TEST_CASE("Edit commands: the keys work on the element with the cursor", "[gui][
     // An empty clipboard: nothing to paste
     QGuiApplication::clipboard()->clear();
     CHECK(enabledCommands() == "Redo SelectAll");
+}
+
+TEST_CASE("Edit commands: the text's context menu gives them to its text with their keys",
+          "[gui][edit]") {
+    if (!canActivateWindows()) {
+        SKIP(NEEDS_OFFSCREEN);
+    }
+    QMainWindow window;
+    auto* central = new QWidget();
+    auto* layout = new QVBoxLayout(central);
+    auto* field = new QLineEdit(QStringLiteral("Field"));
+    auto* book = new editor::BookEditor();
+    layout->addWidget(field);
+    layout->addWidget(book, 1);
+    window.setCentralWidget(central);
+    window.resize(600, 400);
+    book->fromKml(test::kmlOf({QStringLiteral("One two")}));
+
+    EditCoordinator coordinator(noBook);
+    registerAllCommands(callbacksOf(coordinator));
+    auto& registry = CommandRegistry::getInstance();
+    for (const char* id : IDS) {
+        window.addAction(registry.getAction(QString::fromLatin1(id)));
+    }
+    QAction* cut = registry.getAction(QStringLiteral("edit.cut"));
+    QAction* copy = registry.getAction(QStringLiteral("edit.copy"));
+    QAction* paste = registry.getAction(QStringLiteral("edit.paste"));
+    QAction* selectAll = registry.getAction(QStringLiteral("edit.selectAll"));
+    book->setContextMenuEditActions({cut, copy, paste, selectAll});  // as the editor panel does
+    coordinator.connectCommands();
+    QGuiApplication::clipboard()->clear();
+    activate(window);
+
+    REQUIRE(takesKeys(book));
+    const QPoint onTwo = placeOf(*book, 5);
+    const QPoint afterOne = placeOf(*book, 3);
+
+    // The field had the keys; a right click in the text gives them to the text (Qt gives
+    // them at a press of any button to a widget that takes them at a click)
+    REQUIRE(takesKeys(field));
+    REQUIRE(takesKeys(book));
+    book->setSelection({{0, 4}, {0, 7}});  // "two"
+
+    // The commands of the Edit menu, with their icons and keys: Paste is greyed out, as
+    // there, with nothing to paste
+    QList<test::MenuItem> items = textMenu(*book, onTwo);
+    REQUIRE(actionsOf(items).size() >= 4);
+    CHECK(actionsOf(items).mid(0, 4) == QList<const QAction*>{cut, copy, paste, selectAll});
+    CHECK(items.at(0).enabled);
+    CHECK(items.at(1).enabled);
+    CHECK_FALSE(items.at(2).enabled);
+    const std::array<std::pair<const QAction*, const char*>, 4> keys = {
+        {{cut, "Ctrl+X"}, {copy, "Ctrl+C"}, {paste, "Ctrl+V"}, {selectAll, "Ctrl+A"}}};
+    for (const auto& [command, shown] : keys) {
+        INFO(command->text().toStdString());
+        CHECK(command->shortcut() == QKeySequence(QString::fromLatin1(shown)));
+        CHECK(command->isShortcutVisibleInContextMenu());  // as Windows and Linux show them
+    }
+
+    // Each one chosen with its letter works on the text, not on the field
+    textMenu(*book, onTwo, QLatin1Char('c'));
+    CHECK(clipboardText() == "two");
+
+    // A right click outside the selection puts the cursor there
+    items = textMenu(*book, afterOne, QLatin1Char('p'));
+    CHECK(actionsOf(items).mid(0, 2) == QList<const QAction*>{paste, selectAll});
+    CHECK(items.at(0).enabled);
+    CHECK(book->plainText() == QStringLiteral("Onetwo two"));
+
+    textMenu(*book, afterOne, QLatin1Char('a'));
+    CHECK(book->selectedText() == QStringLiteral("Onetwo two"));
+
+    textMenu(*book, onTwo, QLatin1Char('t'));
+    CHECK(book->plainText().isEmpty());
+    CHECK(clipboardText() == "Onetwo two");
+    CHECK(field->text() == QStringLiteral("Field"));
 }

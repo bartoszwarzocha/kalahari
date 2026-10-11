@@ -110,7 +110,7 @@ public:
     int characterCount() const;
 
     /// @brief Get paragraph count
-    /// @return Number of paragraphs containing text
+    /// @return Number of paragraphs containing text, as counted by core::countText()
     int paragraphCount() const;
 
     /// @brief Get last modification timestamp
@@ -226,11 +226,6 @@ public:
 private:
     /// @brief Recalculate statistics from current content
     void recalculateStatistics();
-
-    /// @brief Calculate paragraph count from plain text
-    /// @param text Plain text string, one paragraph per line
-    /// @return Number of lines containing text
-    static int calculateParagraphCount(const QString& text);
 
     // =========================================================================
     // Member Variables

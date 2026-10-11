@@ -65,20 +65,35 @@ LayoutTypography layoutTypography(const EditorTypography& typography) {
     return result;
 }
 
-/// @brief Word and character counts of the whole document, from the paragraphs' counts
+/// @brief Add the counts @p part to @p total
+void addCounts(core::TextCounts& total, const core::TextCounts& part) {
+    total.words += part.words;
+    total.characters += part.characters;
+    total.nonSpaceCharacters += part.nonSpaceCharacters;
+    total.paragraphs += part.paragraphs;
+}
+
+/// @brief The counts of a paragraph, counted when its cached counts are stale
+const core::TextCounts& paragraphCounts(const QTextBlock& block,
+                                        const core::WordCountRules& rules) {
+    ParagraphData* data = ParagraphData::of(block);
+    if (!data->countsValid) {
+        data->counts = core::countText(block.text(), rules);
+        data->countsValid = true;
+    }
+    return data->counts;
+}
+
+/// @brief Word, character and paragraph counts of the whole document, from the paragraphs'
+///        counts
 ///
 /// Document statistics are sums of per-paragraph counts, so after an edit only the
-/// paragraphs it touched are counted again.
-core::TextCounts countDocument(const QTextDocument* doc) {
+/// paragraphs it touched are counted again. A word never goes on past the end of its
+/// paragraph, so the sums are the counts of the whole text.
+core::TextCounts countDocument(const QTextDocument* doc, const core::WordCountRules& rules) {
     core::TextCounts total;
     for (QTextBlock block = doc->begin(); block.isValid(); block = block.next()) {
-        ParagraphData* data = ParagraphData::of(block);
-        if (!data->countsValid) {
-            data->counts = core::countText(block.text());
-            data->countsValid = true;
-        }
-        total.words += data->counts.words;
-        total.nonSpaceCharacters += data->counts.nonSpaceCharacters;
+        addCounts(total, paragraphCounts(block, rules));
     }
     return total;
 }
@@ -375,8 +390,10 @@ bool BookEditor::event(QEvent* event)
 
 void BookEditor::paintEvent(QPaintEvent* event)
 {
-    // The zoom is on the screen now: from here on it changes only when asked for
+    // The zoom and the cursor line are on the screen now: from here on they change only when
+    // asked for
     m_shrinkOnFirstShow = false;
+    m_cursorLineHeightOnFirstShow = -1.0;
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::TextAntialiasing, true);
@@ -419,6 +436,7 @@ void BookEditor::resizeEvent(QResizeEvent* event)
     applyFirstShowShrink();  // the view's new width, until the first paint
 
     updateScrollBarRange();
+    applyFirstShowCursorLine();  // the view's new size, until the first paint
     update();
 }
 
@@ -671,22 +689,70 @@ QString BookEditor::plainText() const
 
 size_t BookEditor::characterCount() const
 {
-    if (!m_textBuffer) {
-        return 0;
-    }
-    // QTextDocument::characterCount() includes trailing block separator, subtract 1
-    int count = m_textBuffer->characterCount();
-    return static_cast<size_t>(std::max(0, count - 1));
+    return static_cast<size_t>(textCounts().characters);
 }
 
 size_t BookEditor::wordCount() const
 {
-    return m_textBuffer ? static_cast<size_t>(countDocument(m_textBuffer.get()).words) : 0;
+    return static_cast<size_t>(textCounts().words);
 }
 
 size_t BookEditor::characterCountNoSpaces() const
 {
-    return m_textBuffer ? static_cast<size_t>(countDocument(m_textBuffer.get()).nonSpaceCharacters) : 0;
+    return static_cast<size_t>(textCounts().nonSpaceCharacters);
+}
+
+core::TextCounts BookEditor::textCounts() const
+{
+    return m_textBuffer ? countDocument(m_textBuffer.get(), m_wordCountRules) : core::TextCounts{};
+}
+
+core::TextCounts BookEditor::selectionCounts() const
+{
+    core::TextCounts total;
+    if (!m_textBuffer || m_selection.isEmpty()) {
+        return total;
+    }
+
+    // The paragraphs selected whole have their cached counts; the first and the last one
+    // may be selected in part
+    const SelectionRange range = m_selection.normalized();
+    int number = range.start.paragraph;
+    for (QTextBlock block = m_textBuffer->findBlockByNumber(number);
+         block.isValid() && number <= range.end.paragraph; block = block.next(), ++number) {
+        const int length = block.length() - 1;  // without the paragraph's end
+        const int start =
+            number == range.start.paragraph ? std::clamp(range.start.offset, 0, length) : 0;
+        const int end =
+            number == range.end.paragraph ? std::clamp(range.end.offset, 0, length) : length;
+        if (start == 0 && end == length) {
+            addCounts(total, paragraphCounts(block, m_wordCountRules));
+        } else if (end > start) {
+            const QString text = block.text();
+            addCounts(total,
+                      core::countText(QStringView(text).mid(start, end - start), m_wordCountRules));
+        }
+    }
+    return total;
+}
+
+void BookEditor::setWordCountRules(const core::WordCountRules& rules)
+{
+    if (rules == m_wordCountRules) {
+        return;
+    }
+    m_wordCountRules = rules;
+
+    // Every paragraph is counted again, by the new rules, when the counts are asked for
+    if (m_textBuffer) {
+        for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+            if (ParagraphData* paragraph = ParagraphData::find(block)) {
+                paragraph->countsValid = false;
+            }
+        }
+    }
+    update();  // the word count of Distraction-Free writing
+    emit countsChanged();
 }
 
 QTextDocument* BookEditor::textDocument() const
@@ -823,6 +889,10 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
                 invalidateParagraphCounts(doc, from, charsAdded);
             });
 
+    // and their spelling is checked again (the waves of the words left as they were stay)
+    connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
+            &BookEditor::adjustSpellingToEdit);
+
     // The content goes in in a single edit block: Qt then reports one change and the
     // layout runs once, at endEditBlock().
     QTextCursor cursor(m_textBuffer.get());
@@ -852,6 +922,9 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
 
     // The new text has the zoom of the settings (syncPipelineState())
     applyFirstShowShrink();
+
+    // Its spelling is checked from the paragraphs in view
+    requestSpellCheck();
 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now() - startTime);

@@ -11,10 +11,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/search_engine.h>
 #include <QAbstractTextDocumentLayout>
+#include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QTextLayout>
 #include <algorithm>
 #include <random>
 
@@ -961,4 +964,66 @@ TEST_CASE("SearchEngine matches follow edits of the document", "[editor][search_
     }
     CHECK(reported > 150);
     CHECK(missed == 0);
+}
+
+TEST_CASE("SearchEngine announces the matches of an edit once the edit is laid out",
+          "[editor][search_engine][stage3]") {
+    // Regression: the matches of an edit were announced while the document reported it,
+    // before its layout had laid out the edited paragraph again. The find bar, its last match
+    // replaced, gave the keys to the text, which placed its cursor by the lines of the old
+    // text: past its end after a shorter replacement, an assertion of Qt's debug build
+    // (QList::at).
+    const bool wholeWords = GENERATE(false, true);
+    const QString replacement = GENERATE(QStringLiteral("w"), QStringLiteral("storm"));
+    INFO("whole words " << wholeWords << ", replacement " << replacement.toStdString());
+
+    QTextDocument doc;
+    auto* layout = new KalahariTextDocumentLayout(&doc);
+    doc.setDocumentLayout(layout);
+    doc.setTextWidth(200);
+    doc.setPlainText(QStringLiteral(
+        "The wind howled through the window all night long, and the shutters rattled until "
+        "the grey morning came.\nNo match here."));
+    layout->layoutPendingBlocks();
+    REQUIRE(doc.firstBlock().layout()->lineCount() > 1);
+
+    SearchEngine engine;
+    engine.setDocument(&doc);
+    SearchOptions options;
+    options.wholeWord = wholeWords;
+    engine.setOptions(options);
+    engine.setSearchText(QStringLiteral("wind"));
+    REQUIRE(engine.totalMatchCount() == (wholeWords ? 1 : 2));  // "window" too
+    REQUIRE(engine.setCurrentMatchIndex(0));
+
+    // A listener measuring the edited paragraph by its lines, as the find bar does when it
+    // gives the keys to the text
+    int announced = 0;
+    int unlaid = 0;
+    QObject::connect(&engine, &SearchEngine::matchesChanged, [&doc, &announced, &unlaid]() {
+        ++announced;
+        const QTextBlock block = doc.firstBlock();
+        const QTextLayout* lines = block.layout();
+        if (lines->lineCount() == 0) {
+            ++unlaid;
+            return;
+        }
+        const QTextLine last = lines->lineAt(lines->lineCount() - 1);
+        if (last.textStart() + last.textLength() != block.text().size()) {
+            ++unlaid;
+        }
+    });
+
+    engine.setReplaceText(replacement);
+    REQUIRE(engine.replaceCurrent());
+    CHECK(engine.totalMatchCount() == (wholeWords ? 0 : 1));
+    CHECK(announced > 0);
+    CHECK(unlaid == 0);
+
+    // Undone, the same
+    announced = 0;
+    doc.undo();
+    CHECK(engine.totalMatchCount() == (wholeWords ? 1 : 2));
+    CHECK(announced > 0);
+    CHECK(unlaid == 0);
 }

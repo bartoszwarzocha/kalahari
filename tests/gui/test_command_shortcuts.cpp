@@ -93,6 +93,8 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"format.alignCenter", QStringLiteral("Ctrl+E")},
         {"format.alignRight", QStringLiteral("Ctrl+R")},
         {"format.justify", QStringLiteral("Ctrl+J")},
+        {"tools.spellcheck", QStringLiteral("Shift+F7")},
+        {"tools.nextMisspelling", QStringLiteral("F7")},
         {"view.navigator", QStringLiteral("F2")},
         {"view.log", QStringLiteral("F4")},
         {"view.search", QStringLiteral("F5")},

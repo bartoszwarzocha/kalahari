@@ -817,6 +817,58 @@ TEST_CASE("Stage2 on demand: an edited block waiting for layout has no lines of 
     CHECK(lastLine.textStart() + lastLine.textLength() == d.block(0).text().size());
 }
 
+TEST_CASE("Stage2 on demand: the edited blocks have no lines of their old text while the "
+          "edit is reported",
+          "[editor][stage2][ondemand]") {
+    // Regression: the document reports an edit (contentsChange) before the layout lays out
+    // the edited blocks again, and an edited block kept the lines of its old text until
+    // then. A listener measuring the text by them (the find bar giving the keys to the text,
+    // which placed its cursor) went past its end after a shorter replacement: an assertion
+    // of Qt's debug build (QList::at).
+    const QString replacement = GENERATE(QStringLiteral("w"), QStringLiteral("a long storm"));
+    INFO("replacement: " << replacement.toStdString());
+    TypesetDocument d;
+    d.load({longParagraph(0), longParagraph(1), longParagraph(2)});
+    d.layout->layoutPendingBlocks();
+    REQUIRE(d.block(1).layout()->lineCount() > 1);
+
+    // A listener of the document, connected after its layout, as the editor's are
+    QStringList oldLines;
+    QObject::connect(d.doc.get(), &QTextDocument::contentsChange,
+                     [&d, &oldLines](int from, int, int charsAdded) {
+                         const QTextBlock last = d.doc->findBlock(from + charsAdded);
+                         for (QTextBlock block = d.doc->findBlock(from); block.isValid();
+                              block = block.next()) {
+                             const QTextLayout* lines = block.layout();
+                             if (lines->lineCount() > 0) {
+                                 const QTextLine line = lines->lineAt(lines->lineCount() - 1);
+                                 if (line.textStart() + line.textLength() != block.text().size()) {
+                                     oldLines << QStringLiteral("block %1").arg(block.blockNumber());
+                                 }
+                             }
+                             if (block == last) {
+                                 break;
+                             }
+                         }
+                     });
+
+    // Replaced, the replacement undone and redone
+    QTextCursor cursor(d.block(1));
+    cursor.setPosition(d.block(1).position() + 10);
+    cursor.setPosition(d.block(1).position() + 30, QTextCursor::KeepAnchor);
+    cursor.insertText(replacement);
+    d.doc->undo();
+    d.doc->redo();
+    INFO(oldLines.join(QStringLiteral(", ")).toStdString());
+    CHECK(oldLines.isEmpty());
+
+    // Once reported, the edited block has the lines of its new text
+    const QTextLayout* lines = d.block(1).layout();
+    REQUIRE(lines->lineCount() > 0);
+    const QTextLine lastLine = lines->lineAt(lines->lineCount() - 1);
+    CHECK(lastLine.textStart() + lastLine.textLength() == d.block(1).text().size());
+}
+
 TEST_CASE("Stage2 on demand: the editor lays out what it shows, the rest in the background",
           "[editor][stage2][ondemand]") {
     BookEditor editor;
