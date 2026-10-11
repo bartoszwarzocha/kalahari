@@ -1632,3 +1632,69 @@ TEST_CASE("Properties panel: the sections of the book and their names, saved at 
     CHECK(novel.book().title == QStringLiteral("Renamed Book"));
     CHECK(navigator.bookItem()->text(0) == QStringLiteral("Renamed Book"));
 }
+
+TEST_CASE("Properties panel: leaving a field without a change saves nothing",
+          "[gui][navigator]") {
+    OpenNovel novel;
+    Navigator navigator;
+    auto& pm = novel.pm;
+    gui::PropertiesPanel* properties = navigator.properties;
+    QObject::connect(properties, &gui::PropertiesPanel::requestSections, &navigator.coordinator,
+                     &gui::NavigatorCoordinator::onRequestSections);
+    const QString chapterId = pm.addElement(pm.chapterKindFor(core::BookPlace::Main),
+                                            QStringLiteral("The Storm"), core::BookPlace::Main);
+    REQUIRE_FALSE(chapterId.isEmpty());
+
+    // The writer's own names of the sections
+    properties->showProjectProperties();
+    auto* sections = properties->findChild<QComboBox*>(QStringLiteral("projectSectionsCombo"));
+    auto* namesRow = properties->findChild<QWidget*>(QStringLiteral("projectSectionNames"));
+    REQUIRE(sections != nullptr);
+    REQUIRE(namesRow != nullptr);
+    sections->setCurrentIndex(
+        sections->findData(QString::fromLatin1(core::ProjectBook::CUSTOM_SECTIONS)));
+    REQUIRE(novel.book().sections().set == QLatin1String(core::ProjectBook::CUSTOM_SECTIONS));
+
+    // A save would write the file of the book again
+    const QString manifest =
+        QDir(novel.dir.path()).filePath(QStringLiteral("Navigator Test.klh"));
+    {
+        QFile file(manifest);
+        REQUIRE(file.open(QIODevice::WriteOnly));
+        REQUIRE(file.write("not saved") == 9);
+    }
+    const auto saved = [&manifest]() {
+        QFile file(manifest);
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        return file.readAll() != "not saved";
+    };
+    const auto lineWithText = [properties](const QString& text) -> QLineEdit* {
+        for (QLineEdit* edit : properties->findChildren<QLineEdit*>()) {
+            if (edit->isVisibleTo(properties) && edit->text() == text) {
+                return edit;
+            }
+        }
+        return nullptr;
+    };
+
+    QLineEdit* title = lineWithText(QStringLiteral("Navigator Test"));
+    QLineEdit* author = lineWithText(QStringLiteral("Author"));
+    REQUIRE(title != nullptr);
+    REQUIRE(author != nullptr);
+    emit title->editingFinished();
+    emit author->editingFinished();
+    REQUIRE(QMetaObject::invokeMethod(namesRow, "editingFinished"));
+    properties->showChapterProperties(chapterId);
+    QLineEdit* chapterTitle = lineWithText(QStringLiteral("The Storm"));
+    REQUIRE(chapterTitle != nullptr);
+    emit chapterTitle->editingFinished();
+    CHECK_FALSE(saved());
+
+    // A changed name is saved
+    properties->showProjectProperties();
+    const QList<QLineEdit*> names = namesRow->findChildren<QLineEdit*>();
+    REQUIRE(names.size() == 3);
+    names.at(1)->setText(QStringLiteral("The Middle"));
+    REQUIRE(QMetaObject::invokeMethod(namesRow, "editingFinished"));
+    CHECK(saved());
+}
