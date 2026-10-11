@@ -16,7 +16,7 @@
 #include <optional>
 
 class QEvent;
-class QFormLayout;
+class QGridLayout;
 class QGroupBox;
 class QLabel;
 class QLineEdit;
@@ -82,10 +82,9 @@ public:
 protected:
     /// @brief A line under a field: an icon and a sentence, or a remark in grey without an icon
     struct FieldNote {
-        QWidget* widget = nullptr;    ///< The line
-        QLabel* icon = nullptr;       ///< Its icon
-        QLabel* text = nullptr;       ///< Its sentence
-        QFormLayout* form = nullptr;  ///< The group of the line; none for the hint
+        QWidget* widget = nullptr;  ///< The line
+        QLabel* icon = nullptr;     ///< Its icon
+        QLabel* text = nullptr;     ///< Its sentence
     };
 
     /// @brief Create the window with an empty heading and no fields
@@ -95,16 +94,22 @@ protected:
     QVBoxLayout* fieldsLayout() const { return m_fieldsLayout; }
 
     /// @brief A group of rows with a title, at the end of the fields: a label at the left of
-    /// each row, the labels of all the groups as wide as the widest
-    QFormLayout* addGroup(const QString& title);
+    /// each field, the labels of all the groups as wide as the widest
+    ///
+    /// The rows are on a grid: a form layout of more rows of wrapped sentences may give a row
+    /// the height its sentence has at another width, which cuts the sentence.
+    QGridLayout* addGroup(const QString& title);
 
-    /// @brief Add a row to @p form: label @p label, with a colon, at the left of @p field
+    /// @brief Add a row to @p group: label @p label, with a colon, at the left of @p field
     /// @return The label of the row
-    QLabel* addRow(QFormLayout* form, const QString& label, QWidget* field);
+    QLabel* addRow(QGridLayout* group, const QString& label, QWidget* field);
 
-    /// @brief Add a line under the last row of @p form, under its field; hidden until
+    /// @brief Add a line under the last row of @p group, under its field; hidden until
     /// showNote() gives it a sentence
-    FieldNote addNote(QFormLayout* form);
+    FieldNote addNote(QGridLayout* group);
+
+    /// @brief Show or hide the row of @p field: the field and its label
+    void setRowVisible(QWidget* field, bool visible);
 
     /// @brief Show @p text in line @p note, with the icon @p iconId; without an icon, the line
     /// is a remark in grey; an empty text hides the line
@@ -368,7 +373,6 @@ private:
     QString m_folder;
     std::optional<core::BookProject> m_project;
     QStringList m_archiveProblems;
-    QFormLayout* m_archiveForm = nullptr;
     QLineEdit* m_archiveField = nullptr;
     QLineEdit* m_folderField = nullptr;
     FieldNote m_archiveNote;

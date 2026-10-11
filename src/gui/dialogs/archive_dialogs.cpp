@@ -21,7 +21,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFontDatabase>
-#include <QFormLayout>
+#include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHash>
@@ -33,6 +33,7 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QScreen>
+#include <QStyle>
 #include <QTextDocument>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -63,6 +64,11 @@ void appendAll(const QList<core::ProjectElement>& elements,
         all.append(&element);
         appendAll(element.elements, all);
     }
+}
+
+/// The row under the last row of @p grid; a grid without widgets has none
+int nextRow(const QGridLayout* grid) {
+    return grid->count() == 0 ? 0 : grid->rowCount();
 }
 
 /// A value of the rows of the book of an archive: plain text that can be selected
@@ -198,21 +204,29 @@ void ArchiveDialog::reject()
     }
 }
 
-QFormLayout* ArchiveDialog::addGroup(const QString& title)
+QGridLayout* ArchiveDialog::addGroup(const QString& title)
 {
     auto* group = new QGroupBox(title, m_fields);
-    auto* form = new QFormLayout(group);
-    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    auto* grid = new QGridLayout(group);
+    grid->setColumnStretch(1, 1);
     m_fieldsLayout->addWidget(group);
-    return form;
+    return grid;
 }
 
-QLabel* ArchiveDialog::addRow(QFormLayout* form, const QString& label, QWidget* field)
+QLabel* ArchiveDialog::addRow(QGridLayout* group, const QString& label, QWidget* field)
 {
-    auto* rowLabel = new QLabel(label, form->parentWidget());
+    auto* rowLabel = new QLabel(label, group->parentWidget());
     rowLabel->setTextFormat(Qt::PlainText);
     rowLabel->setBuddy(field);
-    form->addRow(rowLabel, field);
+    // At the side the system puts the labels of forms; level with a field of one line, and
+    // with the first line of a field of more lines
+    const Qt::Alignment side =
+        Qt::Alignment(style()->styleHint(QStyle::SH_FormLayoutLabelAlignment, nullptr, this)) &
+        Qt::AlignHorizontal_Mask;
+    const int row = nextRow(group);
+    group->addWidget(rowLabel, row, 0,
+                     side | (field->hasHeightForWidth() ? Qt::AlignTop : Qt::AlignVCenter));
+    group->addWidget(field, row, 1);
 
     // The fields of all the groups start in one line
     m_rowLabels.append(rowLabel);
@@ -226,16 +240,23 @@ QLabel* ArchiveDialog::addRow(QFormLayout* form, const QString& label, QWidget* 
     return rowLabel;
 }
 
-ArchiveDialog::FieldNote ArchiveDialog::addNote(QFormLayout* form)
+ArchiveDialog::FieldNote ArchiveDialog::addNote(QGridLayout* group)
 {
     FieldNote note;
-    note.form = form;
-    note.widget = newNote(form->parentWidget(), &note.icon, &note.text);
-    // An empty label: a row without one gets the height its wrapped sentence has in a narrow
-    // column, whatever the width of the window
-    form->addRow(new QWidget(form->parentWidget()), note.widget);
-    form->setRowVisible(note.widget, false);
+    note.widget = newNote(group->parentWidget(), &note.icon, &note.text);
+    note.widget->hide();
+    group->addWidget(note.widget, nextRow(group), 1);
     return note;
+}
+
+void ArchiveDialog::setRowVisible(QWidget* field, bool visible)
+{
+    field->setVisible(visible);
+    for (QLabel* label : std::as_const(m_rowLabels)) {
+        if (label->buddy() == field) {
+            label->setVisible(visible);
+        }
+    }
 }
 
 void ArchiveDialog::showNote(const FieldNote& note, const QString& text, const QString& iconId)
@@ -250,11 +271,7 @@ void ArchiveDialog::showNote(const FieldNote& note, const QString& text, const Q
         setNoteIcon(note.icon, iconId);
     }
     note.icon->setVisible(!iconId.isEmpty());
-    if (note.form) {
-        note.form->setRowVisible(note.widget, !text.isEmpty());
-    } else {
-        note.widget->setVisible(!text.isEmpty());
-    }
+    note.widget->setVisible(!text.isEmpty());
 }
 
 QString ArchiveDialog::noteText(const FieldNote& note) const
@@ -435,7 +452,7 @@ ExportArchiveDialog::ExportArchiveDialog(const Book& book, const QString& folder
 
     // The archive: its folder and its name
     //: A group of the window: the folder and the name of the archive. In Polish: Archiwum
-    QFormLayout* archive = addGroup(tr("Archive"));
+    QGridLayout* archive = addGroup(tr("Archive"));
     QPushButton* browseButton = nullptr;
     //: In Polish: Folder:
     addRow(archive, tr("Folder:"), newPathField(&m_folderField, &browseButton));
@@ -662,19 +679,19 @@ ImportArchiveDialog::ImportArchiveDialog(const core::BookTypeRegistry& registry,
     setHeadingIcon(QStringLiteral("file.import.archive"));
 
     // The archive and its book
-    m_archiveForm = addGroup(tr("Archive"));
+    QGridLayout* archive = addGroup(tr("Archive"));
     QPushButton* browseArchiveButton = nullptr;
     //: In Polish: Plik:
-    addRow(m_archiveForm, tr("File:"), newPathField(&m_archiveField, &browseArchiveButton));
+    addRow(archive, tr("File:"), newPathField(&m_archiveField, &browseArchiveButton));
     //: In the empty field of the archive. In Polish: Wybierz archiwum przyciskiem Przeglądaj...
     m_archiveField->setPlaceholderText(tr("Choose the archive with Browse..."));
     browseArchiveButton->setToolTip(tr("Choose the archive in the system window"));
-    m_archiveNote = addNote(m_archiveForm);
-    const auto addBookRow = [this](const QString& label, QLabel** value) {
+    m_archiveNote = addNote(archive);
+    const auto addBookRow = [this, archive](const QString& label, QLabel** value) {
         *value = newValue(this);
-        QLabel* rowLabel = addRow(m_archiveForm, label, *value);
+        QLabel* rowLabel = addRow(archive, label, *value);
         m_bookRows.emplaceBack(rowLabel, *value);
-        m_archiveForm->setRowVisible(*value, false);
+        setRowVisible(*value, false);
         return rowLabel;
     };
     //: A row of the book of the archive. In Polish: Tytuł:
@@ -693,7 +710,7 @@ ImportArchiveDialog::ImportArchiveDialog(const core::BookTypeRegistry& registry,
 
     // The folder in which the folder of the book is made
     //: A group of the window: where the imported book goes. In Polish: Miejsce
-    QFormLayout* place = addGroup(tr("Place"));
+    QGridLayout* place = addGroup(tr("Place"));
     QPushButton* browseFolderButton = nullptr;
     addRow(place, tr("Folder:"), newPathField(&m_folderField, &browseFolderButton));
     browseFolderButton->setToolTip(tr("Choose the folder in the system window"));
@@ -747,7 +764,7 @@ QString ImportArchiveDialog::bookText() const
 {
     QStringList lines;
     for (const auto& [label, value] : m_bookRows) {
-        if (m_archiveForm->isRowVisible(value)) {
+        if (value->isVisibleTo(this)) {
             lines << label->text() + QLatin1Char(' ') + value->text();
         }
     }
@@ -936,19 +953,19 @@ void ImportArchiveDialog::showBook()
 {
     const core::ProjectBook* book =
         m_project && !m_project->books.isEmpty() ? &m_project->books.first() : nullptr;
-    m_archiveForm->setRowVisible(m_titleValue, m_project.has_value());
-    m_archiveForm->setRowVisible(m_typeValue, m_project.has_value());
-    m_archiveForm->setRowVisible(m_contentsValue, m_project.has_value());
+    setRowVisible(m_titleValue, m_project.has_value());
+    setRowVisible(m_typeValue, m_project.has_value());
+    setRowVisible(m_contentsValue, m_project.has_value());
     if (!m_project) {
-        m_archiveForm->setRowVisible(m_authorValue, false);
-        m_archiveForm->setRowVisible(m_workshopValue, false);
+        setRowVisible(m_authorValue, false);
+        setRowVisible(m_workshopValue, false);
         return;
     }
 
     m_titleValue->setText(bookTitle());
     const QString author = book ? book->author.trimmed() : QString();
     m_authorValue->setText(author);
-    m_archiveForm->setRowVisible(m_authorValue, !author.isEmpty());
+    setRowVisible(m_authorValue, !author.isEmpty());
     m_typeValue->setText(typeName());
 
     // The elements of the book: the main part first, as it holds the most of them
@@ -967,7 +984,7 @@ void ImportArchiveDialog::showBook()
                                  ? tr("Workshop:")
                                  : m_project->workshop.name + QLatin1Char(':'));
     m_workshopValue->setText(contentsOf(*m_registry, workshop));
-    m_archiveForm->setRowVisible(m_workshopValue, !workshop.isEmpty());
+    setRowVisible(m_workshopValue, !workshop.isEmpty());
 }
 
 QString ImportArchiveDialog::bookTitle() const

@@ -424,7 +424,7 @@ TEST_CASE("Export Project Archive: a line under a field is as high as its senten
     dialog.show();
     settle();
 
-    // One line
+    // One line or two, by the font
     const QLabel* replaced = labelWith(
         dialog, QStringLiteral("The folder already has the archive \"Travels.klh.zip\". The "
                                "export replaces it."));
@@ -432,7 +432,6 @@ TEST_CASE("Export Project Archive: a line under a field is as high as its senten
     // The line: the icon and the sentence beside it
     const QWidget* line = replaced->parentWidget();
     CHECK(line->height() == line->heightForWidth(line->width()));
-    CHECK(replaced->height() < 2 * replaced->fontMetrics().lineSpacing());
 
     // More lines
     const QString name = QStringLiteral("Travels of Anna to the north of the country, with the "
@@ -445,6 +444,15 @@ TEST_CASE("Export Project Archive: a line under a field is as high as its senten
     line = named->parentWidget();
     CHECK(line->height() == line->heightForWidth(line->width()));
     CHECK(named->height() >= 2 * named->fontMetrics().lineSpacing());
+
+    // One line in any font, after more lines
+    dialog.nameField()->clear();
+    settle();
+    const QLabel* empty = labelWith(dialog, QStringLiteral("Type the name of the archive."));
+    REQUIRE(empty != nullptr);
+    line = empty->parentWidget();
+    CHECK(line->height() == line->heightForWidth(line->width()));
+    CHECK(empty->height() < 2 * empty->fontMetrics().lineSpacing());
 }
 
 // =============================================================================
@@ -537,6 +545,41 @@ TEST_CASE("Import Project Archive: the book of the archive before the import",
                              "Research: 4 elements: 3 characters and a location"));
         CHECK(dialog.folderNote() == QStringLiteral("The book goes to the folder \"Saga\"."));
     }
+}
+
+TEST_CASE("Import Project Archive: each row of the book is as high as its sentence",
+          "[gui][dialogs][archive]") {
+    QTemporaryDir dir;
+    const QString archive = novelArchive(dir);
+    std::optional<core::BookProject> project = core::ProjectManager::readArchive(archive);
+    REQUIRE(project.has_value());
+    // A title and an author of more lines, between rows of one line
+    const QString title = QStringLiteral("Travels of Anna to the north of the country, with the "
+                                         "notes of the journey and the letters to her family");
+    const QString author = QStringLiteral("Anna Maria Nowak-Kowalska, with her brother, her "
+                                          "sister and the friends she made on the way north");
+    project->books.first().title = title;
+    project->books.first().author = author;
+    const QString other = QDir(dir.path()).filePath(QStringLiteral("Long.klh.zip"));
+    writeArchive(other, "Long.klh", QJsonDocument(project->toJson()).toJson());
+
+    ImportArchiveDialog dialog(builtInTypes(), QDir(dir.path()).filePath(QStringLiteral("Books")),
+                               [](const QString&, const QString&, bool,
+                                  const ArchiveDialog::Progress&, QStringList*) { return true; });
+    dialog.show();
+    settle();
+    dialog.setArchive(other);
+    settle();
+
+    for (const QString& text : {title, author, QStringLiteral("Novel"),
+                                QStringLiteral("2 elements: a chapter and a title page")}) {
+        CAPTURE(text.toStdString());
+        const QLabel* value = labelWith(dialog, text);
+        REQUIRE(value != nullptr);
+        CHECK(value->height() == value->heightForWidth(value->width()));
+    }
+    const QLabel* titleValue = labelWith(dialog, title);
+    CHECK(titleValue->height() >= 2 * titleValue->fontMetrics().lineSpacing());
 }
 
 TEST_CASE("Import Project Archive: the contents of a book in a sentence",
