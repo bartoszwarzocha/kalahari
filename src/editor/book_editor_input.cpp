@@ -882,10 +882,9 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
     }
     menu.addAction(tr("Paste"), this, &BookEditor::paste);
 
-    if (hasSelection()) {
-        menu.addSeparator();
-        menu.addAction(tr("Select All"), this, &BookEditor::selectAll);
-    }
+    // Also without a selection, as in the program's text fields
+    menu.addSeparator();
+    menu.addAction(tr("Select All"), this, &BookEditor::selectAll);
 
     // The application's commands for the text (adding annotations)
     bool separated = false;
