@@ -2056,7 +2056,7 @@ QString ProjectManager::unpackArchive(const QString& archivePath,
     }
 
     // A book whose .klh file cannot be read does not stay behind
-    const QString manifest = dir.filePath(manifests.first());
+    QString manifest = dir.filePath(manifests.first());
     QStringList found;
     const std::optional<BookProject> project = BookProject::load(manifest, found);
     if (!project) {
