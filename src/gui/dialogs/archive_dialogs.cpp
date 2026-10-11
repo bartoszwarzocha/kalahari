@@ -107,6 +107,10 @@ ArchiveDialog::ArchiveDialog(QWidget* parent)
     m_progressBar = new QProgressBar(this);
     m_progressBar->setRange(0, 100);
     m_progressBar->setTextVisible(false);
+    // The layout takes the whole bar, so the content that scrolls to it shows it whole: on
+    // macOS the style puts the bar a few pixels past the room the layout gives it, past the
+    // end of the content
+    m_progressBar->setAttribute(Qt::WA_LayoutUsesWidgetRect);
     //: The bar of the progress of an export or an import. In Polish: Postęp
     m_progressBar->setAccessibleName(tr("Progress"));
     m_progressBar->hide();

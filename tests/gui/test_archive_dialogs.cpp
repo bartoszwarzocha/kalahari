@@ -25,9 +25,11 @@
 #include <QLayout>
 #include <QLineEdit>
 #include <QProgressBar>
+#include <QProxyStyle>
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollBar>
+#include <QStyleOption>
 #include <QTemporaryDir>
 #include <QTranslator>
 #include <QTreeWidget>
@@ -80,6 +82,21 @@ QLabel* labelWith(const QDialog& dialog, const QString& text) {
     }
     return nullptr;
 }
+
+/// @brief A style that draws a progress bar a few pixels past the room the layout gives it,
+/// as the style of macOS does
+class ProgressPastItsRoom : public QProxyStyle {
+public:
+    static constexpr int PAST = 3;  ///< Pixels of the bar under its room in the layout
+
+    QRect subElementRect(SubElement element, const QStyleOption* option,
+                         const QWidget* widget) const override {
+        if (element == SE_ProgressBarLayoutItem) {
+            return option->rect.adjusted(0, 0, 0, -PAST);
+        }
+        return QProxyStyle::subElementRect(element, option, widget);
+    }
+};
 
 /// @brief Write file @p path with @p data
 void writeFile(const QString& path, const QByteArray& data) {
@@ -450,6 +467,9 @@ TEST_CASE("Export Project Archive: in a low window the progress and the result a
                              QStringLiteral("template.chapter")});
     }
     bool succeeds = true;
+    // On macOS the progress bar is drawn a few pixels past its room in the layout, where the
+    // content ends; the same here on each system
+    ProgressPastItsRoom style;
     ExportArchiveDialog* shown = nullptr;
     const gui::FittingScrollArea* area = nullptr;
     // Whether @p widget is wholly in the part of the content in view
@@ -504,6 +524,7 @@ TEST_CASE("Export Project Archive: in a low window the progress and the result a
                                    return true;
                                });
     shown = &dialog;
+    dialog.progressBar()->setStyle(&style);
     dialog.show();
     settle();
     area = dialog.findChild<gui::FittingScrollArea*>();
