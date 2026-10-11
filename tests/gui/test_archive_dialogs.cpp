@@ -11,6 +11,7 @@
 #include "kalahari/gui/utils/file_location.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -82,17 +83,24 @@ void writeFile(const QString& path, const QByteArray& data) {
     REQUIRE(file.write(data) == data.size());
 }
 
-/// @brief Write archive @p path with the .klh file @p name of @p project
-void writeArchive(const QString& path, const QByteArray& name, const QByteArray& data) {
+/// @brief Write archive @p path with @p entries: the name and the data of each file
+void writeArchive(const QString& path, const QList<std::pair<QByteArray, QByteArray>>& entries) {
     int error = 0;
     zip_t* archive =
         zip_open(QFile::encodeName(path).constData(), ZIP_CREATE | ZIP_TRUNCATE, &error);
     REQUIRE(archive != nullptr);
-    zip_source_t* source = zip_source_buffer(archive, data.constData(),
-                                             static_cast<zip_uint64_t>(data.size()), 0);
-    REQUIRE(source != nullptr);
-    REQUIRE(zip_file_add(archive, name.constData(), source, ZIP_FL_ENC_UTF_8) >= 0);
+    for (const auto& [name, data] : entries) {
+        zip_source_t* source = zip_source_buffer(archive, data.constData(),
+                                                 static_cast<zip_uint64_t>(data.size()), 0);
+        REQUIRE(source != nullptr);
+        REQUIRE(zip_file_add(archive, name.constData(), source, ZIP_FL_ENC_UTF_8) >= 0);
+    }
     REQUIRE(zip_close(archive) == 0);
+}
+
+/// @brief Write archive @p path with the .klh file @p name of @p project
+void writeArchive(const QString& path, const QByteArray& name, const QByteArray& data) {
+    writeArchive(path, {{name, data}});
 }
 
 /// @brief An archive of the new novel "Travels" by Anna, in @p dir
@@ -192,10 +200,9 @@ TEST_CASE("Export Project Archive: the folder and the name of the archive",
           "[gui][dialogs][archive]") {
     QTemporaryDir dir;
     const QString folder = QDir(dir.path()).filePath(QStringLiteral("Archives"));
-    ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false}, folder,
-                               [](const QString&, const ArchiveDialog::Progress&, QStringList*) {
-                                   return true;
-                               });
+    ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, folder,
+                               [](const QString&, bool, const ArchiveDialog::Progress&,
+                                  QStringList*) { return true; });
 
     CHECK(dialog.windowTitle() == QStringLiteral("Export Project Archive"));
     CHECK(dialog.acceptButton()->text() == QStringLiteral("Export"));
@@ -276,11 +283,11 @@ TEST_CASE("Export Project Archive: the files that are not ready and the unsaved 
         {{QStringLiteral("Chapter 2"), QStringLiteral("draft"), QStringLiteral("template.chapter")},
          {QStringLiteral("Epilogue"), QStringLiteral("revision"),
           QStringLiteral("template.chapter")}},
-        true};
+        true,
+        0};
     ExportArchiveDialog dialog(book, dir.path(),
-                               [](const QString&, const ArchiveDialog::Progress&, QStringList*) {
-                                   return true;
-                               });
+                               [](const QString&, bool, const ArchiveDialog::Progress&,
+                                  QStringList*) { return true; });
 
     REQUIRE(dialog.unreadyGroup()->isVisibleTo(&dialog));
     CHECK(dialog.unreadyGroup()->title() == QStringLiteral("Files Not Ready (2)"));
@@ -306,8 +313,8 @@ TEST_CASE("Export Project Archive: the progress and the result in the window",
     bool succeeds = true;
     ExportArchiveDialog* shown = nullptr;
     ExportArchiveDialog dialog(
-        {QStringLiteral("Travels"), {}, false}, folder,
-        [&](const QString& archive, const ArchiveDialog::Progress& progress,
+        {QStringLiteral("Travels"), {}, false, 0}, folder,
+        [&](const QString& archive, bool, const ArchiveDialog::Progress& progress,
             QStringList* problems) {
             written << archive;
             // While the work lasts, the window waits and cannot be closed
@@ -388,13 +395,13 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
     // A long path: the sentence of the result takes more than one line
     const QString folder = QDir(dir.path()).filePath(
         QStringLiteral("The archives of the books of the writer/The archives of this year"));
-    ExportArchiveDialog::Book book{QStringLiteral("Travels"), {}, false};
+    ExportArchiveDialog::Book book{QStringLiteral("Travels"), {}, false, 0};
     for (int i = 1; i <= 4; ++i) {
         book.unready.append({QStringLiteral("Chapter %1").arg(i), QStringLiteral("draft"),
                              QStringLiteral("template.chapter")});
     }
     ExportArchiveDialog dialog(book, folder,
-                               [](const QString& archive, const ArchiveDialog::Progress&,
+                               [](const QString& archive, bool, const ArchiveDialog::Progress&,
                                   QStringList*) {
                                    writeFile(archive, "archive");
                                    return true;
@@ -417,10 +424,9 @@ TEST_CASE("Export Project Archive: a line under a field is as high as its senten
           "[gui][dialogs][archive]") {
     QTemporaryDir dir;
     writeFile(QDir(dir.path()).filePath(QStringLiteral("Travels.klh.zip")), "old");
-    ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false}, dir.path(),
-                               [](const QString&, const ArchiveDialog::Progress&, QStringList*) {
-                                   return true;
-                               });
+    ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, dir.path(),
+                               [](const QString&, bool, const ArchiveDialog::Progress&,
+                                  QStringList*) { return true; });
     dialog.show();
     settle();
 
@@ -453,6 +459,53 @@ TEST_CASE("Export Project Archive: a line under a field is as high as its senten
     line = empty->parentWidget();
     CHECK(line->height() == line->heightForWidth(line->width()));
     CHECK(empty->height() < 2 * empty->fontMetrics().lineSpacing());
+}
+
+TEST_CASE("Export Project Archive: the backups of the database go when the writer wants them",
+          "[gui][dialogs][archive]") {
+    QTemporaryDir dir;
+    QList<bool> withBackups;
+    const auto exporter = [&withBackups](const QString& archive, bool backups,
+                                         const ArchiveDialog::Progress&, QStringList*) {
+        withBackups << backups;
+        writeFile(archive, "archive");
+        return true;
+    };
+
+    SECTION("A book with backups") {
+        ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 3}, dir.path(),
+                                   exporter);
+        CHECK(dialog.backupsBox()->text() == QStringLiteral("Include the database backups (3)"));
+        CHECK(dialog.backupsBox()->isEnabled());
+        CHECK_FALSE(dialog.backupsBox()->isChecked());
+        CHECK(dialog.backupsNote() ==
+              QStringLiteral("The archive takes the copies of the database made when the book "
+                             "was closed, so after an import on another computer the book has "
+                             "its backups."));
+
+        SECTION("Not checked") {
+            dialog.accept();
+            CHECK(withBackups == QList<bool>{false});
+        }
+
+        SECTION("Checked") {
+            dialog.backupsBox()->setChecked(true);
+            dialog.accept();
+            CHECK(withBackups == QList<bool>{true});
+        }
+    }
+
+    SECTION("A book without backups") {
+        ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, dir.path(),
+                                   exporter);
+        CHECK(dialog.backupsBox()->text() == QStringLiteral("Include the database backups (0)"));
+        CHECK_FALSE(dialog.backupsBox()->isEnabled());
+        CHECK(dialog.backupsNote() == QStringLiteral("The book has no backups of its database "
+                                                     "yet: Kalahari makes them when the book is "
+                                                     "closed."));
+        dialog.accept();
+        CHECK(withBackups == QList<bool>{false});
+    }
 }
 
 // =============================================================================
@@ -580,6 +633,39 @@ TEST_CASE("Import Project Archive: each row of the book is as high as its senten
     }
     const QLabel* titleValue = labelWith(dialog, title);
     CHECK(titleValue->height() >= 2 * titleValue->fontMetrics().lineSpacing());
+}
+
+TEST_CASE("Import Project Archive: the backups of the database in the archive",
+          "[gui][dialogs][archive]") {
+    QTemporaryDir dir;
+    const QString archive = novelArchive(dir);
+    const std::optional<core::BookProject> project = core::ProjectManager::readArchive(archive);
+    REQUIRE(project.has_value());
+    const QByteArray manifest = QJsonDocument(project->toJson()).toJson();
+    ImportArchiveDialog dialog(builtInTypes(), QDir(dir.path()).filePath(QStringLiteral("Books")),
+                               [](const QString&, const QString&, bool,
+                                  const ArchiveDialog::Progress&, QStringList*) { return true; });
+
+    const QString two = QDir(dir.path()).filePath(QStringLiteral("Two.klh.zip"));
+    writeArchive(two, {{"Two.klh", manifest},
+                       {".backups/project_20000101_000000.db", "first"},
+                       {".backups/project_20000102_000000.db", "second"}});
+    dialog.setArchive(two);
+    CHECK(dialog.bookText().endsWith(QStringLiteral("\nBackups: 2 database backups")));
+    const QLabel* backups = labelWith(dialog, QStringLiteral("2 database backups"));
+    REQUIRE(backups != nullptr);
+    CHECK(backups->toolTip() == QStringLiteral("After the import the backups are where "
+                                               "Kalahari keeps backups (Settings > Files > "
+                                               "Folders)."));
+
+    const QString one = QDir(dir.path()).filePath(QStringLiteral("One.klh.zip"));
+    writeArchive(one, {{"One.klh", manifest}, {".backups/project_20000101_000000.db", "first"}});
+    dialog.setArchive(one);
+    CHECK(dialog.bookText().endsWith(QStringLiteral("\nBackups: 1 database backup")));
+
+    // An archive without backups has no row of them
+    dialog.setArchive(archive);
+    CHECK_FALSE(dialog.bookText().contains(QStringLiteral("Backups:")));
 }
 
 TEST_CASE("Import Project Archive: the contents of a book in a sentence",

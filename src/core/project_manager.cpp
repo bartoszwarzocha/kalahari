@@ -177,6 +177,26 @@ bool isLocalFile(const QString& path) {
     return files.contains(path) || (path.contains(QLatin1Char('/')) && folders.contains(first));
 }
 
+/// Folder of the backups of the database, in a project's folder and in its archive
+constexpr QLatin1String BACKUPS_FOLDER(".backups");
+
+/// Whether archive entry @p path is a backup of the database: a file project_*.db in the
+/// .backups folder
+bool isArchivedBackup(const QString& path) {
+    const QString name = path.section(QLatin1Char('/'), 1);
+    return path.section(QLatin1Char('/'), 0, 0) == BACKUPS_FOLDER &&
+           !name.contains(QLatin1Char('/')) && name.startsWith(QLatin1String("project_")) &&
+           name.endsWith(QLatin1String(".db"), Qt::CaseInsensitive);
+}
+
+/// Give file @p path the time of its last change @p time
+void setModificationTime(const QString& path, const QDateTime& time) {
+    QFile file(path);
+    if (file.open(QIODevice::ReadWrite | QIODevice::ExistingOnly)) {
+        file.setFileTime(time, QFileDevice::FileModificationTime);
+    }
+}
+
 /// Whether archive entry @p path served only the project where it was archived: its lock and
 /// the shared memory of its database, which archives of earlier versions have. The log of the
 /// database stays, as it may have changes that the database file does not have.
@@ -1706,9 +1726,36 @@ QList<ProjectElement>* ProjectManager::listForNew(const KindRef& kind, BookPlace
     return list;
 }
 
+QStringList ProjectManager::databaseBackups() const {
+    if (!isProjectOpen()) {
+        return {};
+    }
+    const QString projectDir = getProjectPath();
+    BackupManager kept(projectDir);
+    kept.setCommonFolder(QString::fromStdString(SettingsManager::getInstance().get<std::string>(
+                             BackupManager::FOLDER_SETTING)),
+                         m_project->id);
+    QStringList backups = kept.availableBackups();
+
+    // The backups made before a common folder was chosen stay in the project's own folder
+    QStringList names;
+    for (const QString& backup : std::as_const(backups)) {
+        names.append(QFileInfo(backup).fileName());
+    }
+    for (const QString& backup : BackupManager(projectDir).availableBackups()) {
+        if (!names.contains(QFileInfo(backup).fileName())) {
+            backups.append(backup);
+        }
+    }
+    std::stable_sort(backups.begin(), backups.end(), [](const QString& a, const QString& b) {
+        return QFileInfo(a).lastModified() > QFileInfo(b).lastModified();
+    });
+    return backups;
+}
+
 bool ProjectManager::exportArchive(const QString& outputPath,
                                    const std::function<void(int)>& progressCallback,
-                                   QStringList* problems) {
+                                   QStringList* problems, bool withBackups) {
     auto& logger = Logger::getInstance();
     const auto fail = [&logger, problems](const QString& problem) {
         logger.error("exportArchive: {}", problem.toStdString());
@@ -1744,12 +1791,25 @@ bool ProjectManager::exportArchive(const QString& outputPath,
         return fail(QStringLiteral("%1: %2").arg(QFileInfo(outputPath).fileName(), error));
     }
 
+    // The files of the folder, and the backups of the database from wherever they are kept
     const QDir dir(projectDir);
+    QList<std::pair<QString, QString>> entries;  // the name in the archive and the file
     for (const QString& name : std::as_const(files)) {
+        entries.append({name, dir.filePath(name)});
+    }
+    if (withBackups) {
+        for (const QString& backup : databaseBackups()) {
+            entries.append(
+                {QString(BACKUPS_FOLDER) + QLatin1Char('/') + QFileInfo(backup).fileName(),
+                 backup});
+        }
+    }
+
+    for (const auto& [name, path] : std::as_const(entries)) {
         // Entries are named with "/" in UTF-8, so the archive opens on every system
         zip_error_t sourceError;
         zip_error_init(&sourceError);
-        zip_source_t* source = fileSource(dir.filePath(name), &sourceError);
+        zip_source_t* source = fileSource(path, &sourceError);
         if (!source || zip_file_add(archive, name.toUtf8().constData(), source,
                                     ZIP_FL_ENC_UTF_8 | ZIP_FL_OVERWRITE) < 0) {
             const QString reason = source ? QString::fromUtf8(zip_strerror(archive))
@@ -1785,12 +1845,15 @@ bool ProjectManager::exportArchive(const QString& outputPath,
         progress(100);
     }
 
-    logger.info("exportArchive: Exported {} files", files.size());
+    logger.info("exportArchive: Exported {} files", entries.size());
     return true;
 }
 
 std::optional<BookProject> ProjectManager::readArchive(const QString& archivePath,
-                                                       QStringList* problems) {
+                                                       QStringList* problems, int* backups) {
+    if (backups) {
+        *backups = 0;
+    }
     QStringList found;
     const auto fail = [&found, problems](const QString& problem) -> std::optional<BookProject> {
         if (!problem.isEmpty()) {
@@ -1815,11 +1878,16 @@ std::optional<BookProject> ProjectManager::readArchive(const QString& archivePat
     // The .klh file at the top of the project that unpackArchive() finds: the first by name
     QString manifest;
     zip_uint64_t manifestIndex = 0;
+    int backupCount = 0;
     const zip_int64_t count = zip_get_num_entries(archive, 0);
     for (zip_int64_t i = 0; i < count; ++i) {
         const char* rawName = zip_get_name(archive, static_cast<zip_uint64_t>(i), 0);
         const QString name = rawName ? QString::fromUtf8(rawName) : QString();
         const QString path = entryPath(name);
+        if (!name.endsWith(QLatin1Char('/')) && isArchivedBackup(path)) {
+            ++backupCount;
+            continue;
+        }
         if (path.isEmpty() || path.contains(QLatin1Char('/')) ||
             name.endsWith(QLatin1Char('/')) || name.endsWith(QLatin1Char('\\')) ||
             !path.endsWith(QLatin1String(BookProject::FILE_EXTENSION), Qt::CaseInsensitive)) {
@@ -1863,6 +1931,9 @@ std::optional<BookProject> ProjectManager::readArchive(const QString& archivePat
     std::optional<BookProject> project = BookProject::read(data, manifest, found);
     if (!project) {
         return fail(QString());
+    }
+    if (backups) {
+        *backups = backupCount;
     }
     return project;
 }
@@ -1959,6 +2030,17 @@ QString ProjectManager::unpackArchive(const QString& archivePath,
             return fail(QStringLiteral("%1: %2").arg(path, reason));
         }
 
+        // A backup keeps its time, by which the backups of a book are sorted
+        if (isArchivedBackup(path)) {
+            zip_stat_t entryInfo;
+            zip_stat_init(&entryInfo);
+            if (zip_stat_index(archive, static_cast<zip_uint64_t>(i), 0, &entryInfo) == 0 &&
+                (entryInfo.valid & ZIP_STAT_MTIME) != 0) {
+                setModificationTime(filePath, QDateTime::fromSecsSinceEpoch(
+                                                  static_cast<qint64>(entryInfo.mtime)));
+            }
+        }
+
         if (progressCallback) {
             progressCallback(static_cast<int>((i + 1) * 100 / count));
         }
@@ -1975,8 +2057,12 @@ QString ProjectManager::unpackArchive(const QString& archivePath,
 
     // A book whose .klh file cannot be read does not stay behind
     const QString manifest = dir.filePath(manifests.first());
-    const QStringList found = projectFileProblems(manifest);
-    if (!found.isEmpty()) {
+    QStringList found;
+    const std::optional<BookProject> project = BookProject::load(manifest, found);
+    if (!project) {
+        if (found.isEmpty()) {
+            found.append(QStringLiteral("%1: cannot be read").arg(manifests.first()));
+        }
         undo();
         for (const QString& line : found) {
             logger.error("unpackArchive: {}", line.toStdString());
@@ -1985,6 +2071,18 @@ QString ProjectManager::unpackArchive(const QString& archivePath,
             problems->append(found);
         }
         return QString();
+    }
+
+    // The backups of the database go where the Folders page keeps the backups of books
+    const QString common = QString::fromStdString(
+        SettingsManager::getInstance().get<std::string>(BackupManager::FOLDER_SETTING));
+    if (!common.trimmed().isEmpty()) {
+        BackupManager backups(extractDir);
+        backups.setCommonFolder(common, project->id);
+        if (!backups.takeBackupsFrom(dir.filePath(BACKUPS_FOLDER))) {
+            logger.warn("unpackArchive: Some backups of the database stay in {}",
+                        dir.filePath(BACKUPS_FOLDER).toStdString());
+        }
     }
     logger.info("unpackArchive: Unpacked {}", manifest.toStdString());
     return manifest;

@@ -58,6 +58,14 @@ public:
     /// @return List of backup file paths
     QStringList availableBackups() const;
 
+    /// @brief Move the backups in @p folder, such as the .backups folder of a book unpacked
+    /// from an archive, to the folder of the backups of the book, with their times
+    ///
+    /// A backup whose name the folder of the backups already has stays in @p folder, and so do
+    /// all of them when the common folder cannot be written. An emptied @p folder is removed.
+    /// @return true when no backup stayed in @p folder
+    bool takeBackupsFrom(const QString& folder);
+
     /// @brief Restore database from backup
     /// @param backupPath Path to backup file
     /// @return true on success

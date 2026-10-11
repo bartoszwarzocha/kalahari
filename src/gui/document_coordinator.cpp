@@ -1315,7 +1315,7 @@ void DocumentCoordinator::onExportArchive() {
     book.unsavedChanges = bookHasUnsavedChanges();
     dialogs::ExportArchiveDialog dialog(
         book, ProgramFolders::startFolder(ProgramFolders::Operation::ExportArchive),
-        [this, &pm, &logger](const QString& path,
+        [this, &pm, &logger](const QString& path, bool withBackups,
                              const dialogs::ArchiveDialog::Progress& progress,
                              QStringList* problems) {
             ProgramFolders::remember(ProgramFolders::Operation::ExportArchive,
@@ -1326,7 +1326,7 @@ void DocumentCoordinator::onExportArchive() {
                     "Some changes in the book could not be saved. Check the log for details."));
                 return false;
             }
-            if (!pm.exportArchive(path, progress, problems)) {
+            if (!pm.exportArchive(path, progress, problems, withBackups)) {
                 logger.error("Failed to export project archive");
                 return false;
             }

@@ -5950,6 +5950,18 @@ Harmonogram projektu:
         <source>A name cannot have the characters %1.</source>
         <translation>Nazwa nie może zawierać znaków %1.</translation>
     </message>
+    <message>
+        <source>Include the database backups (%1)</source>
+        <translation>Dołącz kopie zapasowe bazy (%1)</translation>
+    </message>
+    <message>
+        <source>The archive takes the copies of the database made when the book was closed, so after an import on another computer the book has its backups.</source>
+        <translation>Archiwum zabierze kopie bazy zrobione przy zamykaniu książki, więc po imporcie na innym komputerze książka będzie miała swoje kopie zapasowe.</translation>
+    </message>
+    <message>
+        <source>The book has no backups of its database yet: Kalahari makes them when the book is closed.</source>
+        <translation>Książka nie ma jeszcze kopii bazy: program robi je przy zamykaniu książki.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::FilePreviewDialog</name>
@@ -6122,6 +6134,26 @@ Harmonogram projektu:
             <numerusform>%n element: %1</numerusform>
             <numerusform>%n elementy: %1</numerusform>
             <numerusform>%n elementów: %1</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Backups:</source>
+        <translation>Kopie zapasowe:</translation>
+    </message>
+    <message>
+        <source>1 database backup</source>
+        <translation>1 kopia bazy</translation>
+    </message>
+    <message>
+        <source>After the import the backups are where Kalahari keeps backups (Settings &gt; Files &gt; Folders).</source>
+        <translation>Po imporcie kopie trafią tam, gdzie program trzyma kopie zapasowe (Ustawienia &gt; Pliki &gt; Foldery).</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n database backups</source>
+        <translation>
+            <numerusform>%n kopia bazy</numerusform>
+            <numerusform>%n kopie bazy</numerusform>
+            <numerusform>%n kopii bazy</numerusform>
         </translation>
     </message>
 </context>

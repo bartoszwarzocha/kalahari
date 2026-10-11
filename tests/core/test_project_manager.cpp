@@ -25,6 +25,7 @@
 #include <zip.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <string>
 #include <utility>
 #include <vector>
@@ -158,6 +159,48 @@ QStringList entriesOf(const QString& path) {
     zip_discard(archive);
     names.sort();
     return names;
+}
+
+/// Keeps the backups of the books in a common folder while it lives
+class BackupFolder {
+public:
+    explicit BackupFolder(const QString& folder) { set(folder); }
+    ~BackupFolder() {
+        try {
+            set(QString());
+        } catch (...) {
+            // A destructor may not throw: the later tests then find the folder in the settings
+            std::fputs("BackupFolder: the common folder of the backups is still set\n", stderr);
+        }
+    }
+    BackupFolder(const BackupFolder&) = delete;
+    BackupFolder& operator=(const BackupFolder&) = delete;
+
+    /// Keep the backups in @p folder; empty: in the folder of each book
+    static void set(const QString& folder) {
+        SettingsManager::getInstance().set<std::string>(BackupManager::FOLDER_SETTING,
+                                                        folder.toStdString());
+    }
+};
+
+/// The day of January 2000 when a backup is made
+QDateTime dayOfBackup(int day) {
+    return QDateTime(QDate(2000, 1, day), QTime(0, 0));
+}
+
+/// Write backup @p path, made on @p day of January 2000
+void writeBackup(const QString& path, int day) {
+    QFile file(path);
+    REQUIRE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    REQUIRE(file.write(QByteArray("backup of day ") + QByteArray::number(day)) > 0);
+    REQUIRE(file.flush());
+    REQUIRE(file.setFileTime(dayOfBackup(day), QFileDevice::FileModificationTime));
+}
+
+/// Whether file @p path was last changed on @p day of January 2000, as far as an archive keeps
+/// the time: to two seconds
+bool madeOnDay(const QString& path, int day) {
+    return qAbs(QFileInfo(path).lastModified().secsTo(dayOfBackup(day))) <= 2;
 }
 
 /// Files of folder @p path, with the files of the folders in it, as archive entries named
@@ -1897,6 +1940,84 @@ TEST_CASE("ProjectManager unpacks an archive without opening its book",
         CHECK_FALSE(QFileInfo::exists(QDir(target).filePath("Broken")));
         CHECK_FALSE(pm.isProjectOpen());
     }
+}
+
+TEST_CASE("The backups of the database go to an archive when the writer wants them",
+          "[project_manager][archive]") {
+    QTemporaryDir dir;
+    const QDir root(dir.path());
+    const BackupFolder backupFolder(root.filePath("Backups"));
+    auto& pm = projects();
+    REQUIRE(pm.createProject(root.filePath("Books"), "Travels", "Anna", "en", true,
+                             "kalahari.novel"));
+    const QDir project(pm.getProjectPath());
+
+    // Two backups where the settings keep them, and two made before, in the book's own folder:
+    // a name in both folders counts once
+    BackupManager kept(project.path());
+    kept.setCommonFolder(root.filePath("Backups"), pm.project()->id);
+    const QString made = kept.createBackup();  // with the file that names the book
+    REQUIRE_FALSE(made.isEmpty());
+    REQUIRE(QFile::remove(made));
+    const QDir common(kept.backupDir());
+    writeBackup(common.filePath("project_20000103_000000.db"), 3);
+    writeBackup(common.filePath("project_20000102_000000.db"), 2);
+    REQUIRE(project.mkpath(".backups"));
+    writeBackup(project.filePath(".backups/project_20000102_000000.db"), 2);
+    writeBackup(project.filePath(".backups/project_20000101_000000.db"), 1);
+    const QStringList backups = pm.databaseBackups();
+    REQUIRE(backups.size() == 3);
+    CHECK(QFileInfo(backups.at(0)) == QFileInfo(common.filePath("project_20000103_000000.db")));
+    CHECK(QFileInfo(backups.at(1)) == QFileInfo(common.filePath("project_20000102_000000.db")));
+    CHECK(QFileInfo(backups.at(2)) ==
+          QFileInfo(project.filePath(".backups/project_20000101_000000.db")));
+
+    // Without them the archive is as before; with them, they are in its .backups folder
+    const QString archive = root.filePath("Travels copy.klh.zip");
+    QStringList problems;
+    REQUIRE(pm.exportArchive(archive, nullptr, &problems));
+    CHECK(entriesOf(archive).filter(".backups").isEmpty());
+    int count = -1;
+    REQUIRE(ProjectManager::readArchive(archive, &problems, &count).has_value());
+    CHECK(count == 0);
+    REQUIRE(pm.exportArchive(archive, nullptr, &problems, true));
+    CHECK(problems.isEmpty());
+    const QStringList archived{".backups/project_20000101_000000.db",
+                               ".backups/project_20000102_000000.db",
+                               ".backups/project_20000103_000000.db"};
+    CHECK(entriesOf(archive).filter(".backups") == archived);
+    REQUIRE(ProjectManager::readArchive(archive, &problems, &count).has_value());
+    CHECK(count == 3);
+    REQUIRE(pm.closeProject(false));
+
+    // The import takes them, with their times, where the settings keep the backups, to a
+    // folder of the imported book
+    const QString manifest =
+        ProjectManager::unpackArchive(archive, root.filePath("Imported"), nullptr, &problems);
+    REQUIRE_FALSE(manifest.isEmpty());
+    CHECK(problems.isEmpty());
+    const QDir imported(QFileInfo(manifest).absolutePath());
+    CHECK_FALSE(QFileInfo::exists(imported.filePath(".backups")));
+    REQUIRE(pm.openProject(manifest));
+    const QStringList taken = pm.databaseBackups();
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(taken.size() == 3);
+    CHECK(QFileInfo(taken.first()).absoluteDir() == QDir(root.filePath("Backups/Travels copy")));
+    for (int i = 0; i < 3; ++i) {
+        CHECK(QFileInfo(taken.at(i)).fileName() == QFileInfo(archived.at(2 - i)).fileName());
+        CHECK(madeOnDay(taken.at(i), 3 - i));
+    }
+
+    // Without a common folder they stay in the book's own .backups folder
+    BackupFolder::set(QString());
+    const QString second =
+        ProjectManager::unpackArchive(archive, root.filePath("Imported 2"), nullptr, &problems);
+    REQUIRE_FALSE(second.isEmpty());
+    const QDir own(QDir(QFileInfo(second).absolutePath()).filePath(".backups"));
+    CHECK(own.entryList(QDir::Files, QDir::Name) ==
+          QStringList{"project_20000101_000000.db", "project_20000102_000000.db",
+                      "project_20000103_000000.db"});
+    CHECK(madeOnDay(own.filePath("project_20000101_000000.db"), 1));
 }
 
 TEST_CASE("An archive is named after its book", "[project_manager][archive]") {

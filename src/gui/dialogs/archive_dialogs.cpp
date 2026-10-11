@@ -15,6 +15,7 @@
 #include "kalahari/gui/utils/file_location.h"
 #include "kalahari/gui/utils/program_folders.h"
 
+#include <QCheckBox>
 #include <QCoreApplication>
 #include <QDir>
 #include <QEvent>
@@ -432,6 +433,7 @@ ExportArchiveDialog::Book ExportArchiveDialog::openBook()
                 {element->title, status, NavigatorPanel::iconIdOf(pm.bookTypes(), *element)});
         }
     }
+    book.backups = static_cast<int>(pm.databaseBackups().size());
     return book;
 }
 
@@ -464,6 +466,29 @@ ExportArchiveDialog::ExportArchiveDialog(const Book& book, const QString& folder
     m_nameNote = addNote(archive);
     connect(browseButton, &QPushButton::clicked, this, &ExportArchiveDialog::browse);
     connect(m_nameField, &QLineEdit::textChanged, this, &ExportArchiveDialog::updateFields);
+
+    // The backups of the database go only when the writer wants them
+    //: A check box of the window; %1: how many backups the book has. In Polish: Dołącz kopie
+    //: zapasowe bazy (%1)
+    m_backupsBox = new QCheckBox(tr("Include the database backups (%1)").arg(m_book.backups),
+                                 archive->parentWidget());
+    m_backupsBox->setEnabled(m_book.backups > 0);
+    archive->addWidget(m_backupsBox, nextRow(archive), 1);
+    m_backupsNote = addNote(archive);
+    if (m_book.backups > 0) {
+        //: Under the check box of the backups. In Polish: Archiwum zabierze kopie bazy
+        //: zrobione przy zamykaniu książki, więc po imporcie na innym komputerze książka będzie
+        //: miała swoje kopie zapasowe.
+        showNote(m_backupsNote,
+                 tr("The archive takes the copies of the database made when the book was "
+                    "closed, so after an import on another computer the book has its "
+                    "backups."));
+    } else {
+        //: Under the check box of the backups, which cannot be checked. In Polish: Książka nie
+        //: ma jeszcze kopii bazy: program robi je przy zamykaniu książki.
+        showNote(m_backupsNote, tr("The book has no backups of its database yet: Kalahari "
+                                   "makes them when the book is closed."));
+    }
 
     // The text elements that are not final go as they are
     //: A group of the window; %1: how many files it lists. In Polish: Niegotowe pliki (%1)
@@ -547,7 +572,7 @@ void ExportArchiveDialog::run()
         problems.append(
             tr("Kalahari cannot create the folder %1.").arg(QDir::toNativeSeparators(m_folder)));
     } else {
-        written = m_exporter(path, progress(), &problems);
+        written = m_exporter(path, m_backupsBox->isChecked(), progress(), &problems);
     }
     if (written) {
         //: %1: the path of the archive. In Polish: Zapisano archiwum %1.
@@ -705,6 +730,8 @@ ImportArchiveDialog::ImportArchiveDialog(const core::BookTypeRegistry& registry,
     addBookRow(tr("Contents:"), &m_contentsValue);
     //: The elements of the Workshop of the book. In Polish: Warsztat:
     m_workshopLabel = addBookRow(tr("Workshop:"), &m_workshopValue);
+    //: The backups of the database in the archive. In Polish: Kopie zapasowe:
+    addBookRow(tr("Backups:"), &m_backupsValue);
     connect(browseArchiveButton, &QPushButton::clicked, this,
             &ImportArchiveDialog::browseArchive);
 
@@ -741,8 +768,9 @@ void ImportArchiveDialog::setArchive(const QString& path)
     showPath(m_archiveField, path);
     m_archiveProblems.clear();
     m_project.reset();
+    m_backups = 0;
     if (!path.isEmpty()) {
-        m_project = core::ProjectManager::readArchive(path, &m_archiveProblems);
+        m_project = core::ProjectManager::readArchive(path, &m_archiveProblems, &m_backups);
     }
     showBook();
     updateFields();
@@ -959,6 +987,7 @@ void ImportArchiveDialog::showBook()
     if (!m_project) {
         setRowVisible(m_authorValue, false);
         setRowVisible(m_workshopValue, false);
+        setRowVisible(m_backupsValue, false);
         return;
     }
 
@@ -985,6 +1014,22 @@ void ImportArchiveDialog::showBook()
                                  : m_project->workshop.name + QLatin1Char(':'));
     m_workshopValue->setText(contentsOf(*m_registry, workshop));
     setRowVisible(m_workshopValue, !workshop.isEmpty());
+
+    // The backups of the database, which go where Kalahari keeps the backups of books
+    if (m_backups == 1) {
+        //: The one backup of the database in the archive. In Polish: 1 kopia bazy
+        m_backupsValue->setText(tr("1 database backup"));
+    } else {
+        //: How many backups of the database the archive has. In Polish: %n kopia bazy |
+        //: %n kopie bazy | %n kopii bazy
+        m_backupsValue->setText(tr("%n database backups", nullptr, m_backups));
+    }
+    m_backupsValue->setToolTip(
+        //: In Polish: Po imporcie kopie trafią tam, gdzie program trzyma kopie zapasowe
+        //: (Ustawienia > Pliki > Foldery).
+        tr("After the import the backups are where Kalahari keeps backups (Settings > Files > "
+           "Folders)."));
+    setRowVisible(m_backupsValue, m_backups > 0);
 }
 
 QString ImportArchiveDialog::bookTitle() const

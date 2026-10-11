@@ -191,6 +191,40 @@ QStringList BackupManager::availableBackups() const
     return result;
 }
 
+bool BackupManager::takeBackupsFrom(const QString& folder)
+{
+    const QDir source(folder);
+    const QFileInfoList backups =
+        source.entryInfoList({QStringLiteral("project_*.db")}, QDir::Files);
+    if (backups.isEmpty() || sameFolder(folder, m_backupDir)) {
+        return true;
+    }
+    if (!ensureBackupDirExists() || sameFolder(folder, m_backupDir)) {
+        return false;  // the common folder cannot be written, so they stay with the book
+    }
+
+    bool all = true;
+    for (const QFileInfo& backup : backups) {
+        const QString target = QDir(m_backupDir).filePath(backup.fileName());
+        // A move to another drive is a copy, which has the time of the copy
+        const QDateTime modified = backup.lastModified();
+        if (QFileInfo::exists(target) || !QFile::rename(backup.absoluteFilePath(), target)) {
+            Logger::getInstance().warn("BackupManager: {} stays in {}",
+                                       backup.fileName().toStdString(), folder.toStdString());
+            all = false;
+            continue;
+        }
+        QFile moved(target);
+        if (moved.open(QIODevice::ReadWrite | QIODevice::ExistingOnly)) {
+            moved.setFileTime(modified, QFileDevice::FileModificationTime);
+        }
+    }
+    if (all) {
+        QDir().rmdir(folder);  // only when nothing else is in it
+    }
+    return all;
+}
+
 bool BackupManager::restoreFromBackup(const QString& backupPath)
 {
     if (!QFile::exists(backupPath)) {

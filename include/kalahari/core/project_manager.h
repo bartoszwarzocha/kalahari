@@ -465,34 +465,47 @@ public:
     // Archive Operations
     // =========================================================================
 
+    /// @brief The backups of the database of the open project, newest first: those where
+    /// the Folders page of the Settings keeps them, and those that stayed in the project's own
+    /// .backups folder before a common folder was chosen
+    QStringList databaseBackups() const;
+
     /// @brief Write the open project to a .klh.zip archive
     ///
     /// The archive has the files of the project's folder, with "/" in their names, so that it
     /// opens on every system. The database is brought up to date first, so its log files stay
-    /// out (a log that cannot be written to the database goes with it), and so do the lock of
-    /// the open project and the backups of its database: they serve the project only here.
+    /// out (a log that cannot be written to the database goes with it), and so does the lock
+    /// of the open project, which serves the project only here. The backups of the database
+    /// go only when @p withBackups says so, to the .backups folder of the archive, wherever
+    /// they are kept (databaseBackups()).
     /// @param outputPath Path of the .klh.zip file
     /// @param progressCallback Optional callback for progress (0-100)
     /// @param problems What went wrong, one problem per line; may be nullptr
+    /// @param withBackups Whether the backups of the database go to the archive
     /// @return true if the archive was written
     bool exportArchive(const QString& outputPath,
                        const std::function<void(int)>& progressCallback = nullptr,
-                       QStringList* problems = nullptr);
+                       QStringList* problems = nullptr, bool withBackups = false);
 
     /// @brief Read the project of a .klh.zip archive without unpacking it: its .klh file, the
     /// one unpackArchive() finds at the top of the project
     /// @param archivePath Path of the .klh.zip file
     /// @param problems What went wrong, one problem per line; may be nullptr
+    /// @param backups Gets the number of the backups of the database in the archive; may be
+    /// nullptr
     /// @return The project, or nullopt when the archive or its .klh file cannot be read
     static std::optional<BookProject> readArchive(const QString& archivePath,
-                                                  QStringList* problems = nullptr);
+                                                  QStringList* problems = nullptr,
+                                                  int* backups = nullptr);
 
     /// @brief Unpack a .klh.zip archive to a new folder, without opening the project in it
     ///
     /// The project goes to targetDir/<archiveProjectName()>, which must not exist yet. Entries
     /// that would land outside that folder are skipped, and so are the lock and the database's
     /// shared memory file that archives of earlier versions have. When the project cannot be
-    /// unpacked or its .klh file cannot be read, the new folder is removed.
+    /// unpacked or its .klh file cannot be read, the new folder is removed. The backups of the
+    /// database in the archive keep their times and go where the Folders page of the Settings
+    /// keeps the backups of the project.
     /// @param archivePath Path of the .klh.zip file
     /// @param targetDir Folder in which the project's folder is made
     /// @param progressCallback Optional callback for progress (0-100)

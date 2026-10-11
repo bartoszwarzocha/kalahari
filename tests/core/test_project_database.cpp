@@ -298,6 +298,56 @@ TEST_CASE("BackupManager keeps the backups of each book in its own folder of a c
     CHECK(own.backupDir() == QDir(root.filePath("Second/Novel")).filePath(".backups"));
 }
 
+TEST_CASE("BackupManager takes the backups of an unpacked book where it keeps its backups",
+          "[database][backup]") {
+    TempProjectDir tempDir;
+    const QDir root(tempDir.path());
+    REQUIRE(root.mkpath("Novel/.backups"));
+    const QDir unpacked(root.filePath("Novel/.backups"));
+    const auto dayOf = [](int day) { return QDateTime(QDate(2000, 1, day), QTime(0, 0)); };
+    const auto writeBackup = [&unpacked, &dayOf](int day) {
+        QFile file(unpacked.filePath(QString("project_2000010%1_000000.db").arg(day)));
+        REQUIRE(file.open(QIODevice::WriteOnly));
+        REQUIRE(file.write("backup") > 0);
+        REQUIRE(file.flush());
+        REQUIRE(file.setFileTime(dayOf(day), QFileDevice::FileModificationTime));
+    };
+    const auto namesOf = [](const QStringList& paths) {
+        QStringList names;
+        for (const QString& path : paths) {
+            names << QFileInfo(path).fileName();
+        }
+        return names;
+    };
+    writeBackup(1);
+    writeBackup(2);
+
+    // To the folder of the book in the common folder, with their times; the emptied folder goes
+    BackupManager manager(root.filePath("Novel"));
+    manager.setCommonFolder(root.filePath("Backups"), "novel-id");
+    CHECK(manager.takeBackupsFrom(unpacked.path()));
+    const QDir taken(manager.backupDir());
+    CHECK(taken.dirName() == "Novel");
+    CHECK(namesOf(manager.availableBackups()) ==
+          QStringList{"project_20000102_000000.db", "project_20000101_000000.db"});
+    CHECK(QFileInfo(taken.filePath("project_20000101_000000.db")).lastModified() == dayOf(1));
+    CHECK(QFileInfo::exists(taken.filePath(BackupManager::BOOK_FILE)));
+    CHECK_FALSE(QFileInfo::exists(unpacked.path()));
+
+    // A backup whose name the folder has stays where it is, and so does its folder
+    REQUIRE(root.mkpath("Novel/.backups"));
+    writeBackup(2);
+    writeBackup(3);
+    CHECK_FALSE(manager.takeBackupsFrom(unpacked.path()));
+    CHECK(unpacked.entryList(QDir::Files) == QStringList{"project_20000102_000000.db"});
+    CHECK(namesOf(manager.availableBackups()).first() == "project_20000103_000000.db");
+
+    // Without a common folder they are where the backups of the book are
+    BackupManager own(root.filePath("Novel"));
+    CHECK(own.takeBackupsFrom(unpacked.path()));
+    CHECK(unpacked.entryList(QDir::Files) == QStringList{"project_20000102_000000.db"});
+}
+
 // =============================================================================
 // ProjectDatabase Tests
 // =============================================================================

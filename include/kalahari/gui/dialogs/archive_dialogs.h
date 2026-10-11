@@ -15,6 +15,7 @@
 #include <functional>
 #include <optional>
 
+class QCheckBox;
 class QEvent;
 class QGridLayout;
 class QGroupBox;
@@ -181,8 +182,9 @@ private:
 /// not ready, and the progress and the result of the export in one window
 ///
 /// The window says under the name when the export replaces an archive, and lists the text
-/// elements that are not final, which go to the archive as they are. The changes of the book
-/// that are not saved are saved before the export.
+/// elements that are not final, which go to the archive as they are. The backups of the
+/// database go only when the writer checks it. The changes of the book that are not saved are
+/// saved before the export.
 class ExportArchiveDialog : public ArchiveDialog {
     Q_OBJECT
 
@@ -199,11 +201,13 @@ public:
         QString title;                ///< Title of the book
         QList<UnreadyFile> unready;   ///< Text elements that are not final, in reading order
         bool unsavedChanges = false;  ///< Whether the book has changes that are not saved
+        int backups = 0;              ///< Number of the backups of the database of the book
     };
 
-    /// @brief Writes the archive to @p path; false, with the problems, when it cannot
-    using Exporter =
-        std::function<bool(const QString& path, const Progress& progress, QStringList* problems)>;
+    /// @brief Writes the archive to @p path, with the backups of the database when
+    /// @p withBackups is true; false, with the problems, when it cannot
+    using Exporter = std::function<bool(const QString& path, bool withBackups,
+                                        const Progress& progress, QStringList* problems)>;
 
     /// @brief What the window says about the book open in the program, without its changes
     /// that are not saved, which the caller knows
@@ -237,6 +241,13 @@ public:
     /// archive gets, or that the export replaces an archive
     QString nameNote() const { return noteText(m_nameNote); }
 
+    /// @brief The check box that takes the backups of the database to the archive
+    QCheckBox* backupsBox() const { return m_backupsBox; }
+
+    /// @brief The line under the check box of the backups: what they give, or that the book
+    /// has none yet
+    QString backupsNote() const { return noteText(m_backupsNote); }
+
     /// @brief The group of the files that are not ready; hidden when there are none
     QGroupBox* unreadyGroup() const { return m_unreadyGroup; }
 
@@ -268,6 +279,8 @@ private:
     QLineEdit* m_nameField = nullptr;
     FieldNote m_folderNote;
     FieldNote m_nameNote;
+    QCheckBox* m_backupsBox = nullptr;
+    FieldNote m_backupsNote;
     QGroupBox* m_unreadyGroup = nullptr;
     RowList* m_unreadyList = nullptr;
 };
@@ -276,8 +289,9 @@ private:
 /// and the progress and the result of the import in one window
 ///
 /// The window reads the title, the author, the type and the content of the book from the
-/// archive without unpacking it. The book goes to a new folder named after the archive. When a
-/// book is open, the import first asks whether the imported book takes its place.
+/// archive without unpacking it, and the number of the backups of its database that the
+/// archive has. The book goes to a new folder named after the archive. When a book is open,
+/// the import first asks whether the imported book takes its place.
 class ImportArchiveDialog : public ArchiveDialog {
     Q_OBJECT
 
@@ -384,6 +398,8 @@ private:
     QLabel* m_contentsValue = nullptr;
     QLabel* m_workshopLabel = nullptr;
     QLabel* m_workshopValue = nullptr;
+    QLabel* m_backupsValue = nullptr;
+    int m_backups = 0;  ///< Number of the backups of the database in the archive
 };
 
 } // namespace dialogs
