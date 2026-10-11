@@ -1,5 +1,5 @@
 /// @file tab_focus.h
-/// @brief The keys go to the page in front of the tabs, also when a tab closes
+/// @brief The keys go to the page in front of the tabs, also when a tab closes or is clicked
 
 #ifndef KALAHARI_GUI_UTILS_TAB_FOCUS_H
 #define KALAHARI_GUI_UTILS_TAB_FOCUS_H
@@ -32,6 +32,14 @@ void focusPageInFront(QTabWidget& tabs);
 /// @param tabs The tabs
 /// @param index The index of the tab to remove; out of range does nothing
 void removeTabKeepingFocus(QTabWidget& tabs, int index);
+
+/// @brief Give the keyboard focus to the page of a tab clicked in @p tabs, from then on
+///
+/// Wherever the focus was, as in the Navigator, the page brought to the front with a click on
+/// its tab gets it as focusPageInFront() gives it, as in Word and LibreOffice the document
+/// brought to the front gets the keys; so does the page of the tab already in front.
+/// @param tabs The tabs
+void focusPageOnTabClick(QTabWidget& tabs);
 
 } // namespace utils
 } // namespace gui

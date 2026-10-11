@@ -1,9 +1,11 @@
 /// @file tab_focus.cpp
-/// @brief The keys go to the page in front of the tabs, also when a tab closes
+/// @brief The keys go to the page in front of the tabs, also when a tab closes or is clicked
 
 #include "kalahari/gui/utils/tab_focus.h"
 
+#include <QTabBar>
 #include <QTabWidget>
+#include <QTimer>
 #include <QWidget>
 
 namespace kalahari {
@@ -61,6 +63,17 @@ void removeTabKeepingFocus(QTabWidget& tabs, int index) {
     if (focusOnPage || inFront) {
         focusPageInFront(tabs);
     }
+}
+
+void focusPageOnTabClick(QTabWidget& tabs) {
+    QTabWidget* target = &tabs;
+    QObject::connect(tabs.tabBar(), &QTabBar::tabBarClicked, target, [target](int index) {
+        if (index < 0) {
+            return;  // beside the tabs
+        }
+        // The tab bar tells of the press before its tab comes to the front
+        QTimer::singleShot(0, target, [target]() { focusPageInFront(*target); });
+    });
 }
 
 } // namespace utils

@@ -505,11 +505,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without a cursor in the text, so what was typed next did not reach the chapter until its
   text was clicked; after a tab was closed with its ×, the focus went to the font box of the
   toolbar. Now a chapter or a file opened (from the Navigator, with File > Open > File... or
-  File > New) or brought to the front from the Navigator gets the keys, with its cursor
-  showing, as in Word and LibreOffice. When the tab in front closes, also with the book or
-  after the question about unsaved changes, the document coming to the front gets them,
-  wherever they were, at the place it had them last; when a tab behind closes, the keys stay
-  where they are, for example in a panel.
+  File > New) or brought to the front (from the Navigator or with a click on its tab) gets
+  the keys, with its cursor showing, as in Word and LibreOffice. When the tab in front
+  closes, also with the book or after the question about unsaved changes, the document
+  coming to the front gets them, wherever they were, at the place it had them last; when a
+  tab behind closes, the keys stay where they are, for example in a panel.
 
 - **Distraction-Free without a document** - 2026-10-08. View > Distraction-Free
   (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in

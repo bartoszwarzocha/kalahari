@@ -1079,8 +1079,11 @@ void MainWindow::createDocks() {
     connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
             m_dockCoordinator->navigatorPanel(), &NavigatorPanel::refreshItem);
 
-    // Connect tab close signal (Task #00015)
+    // A document brought to the front with a click on its tab gets the keys
     QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    utils::focusPageOnTabClick(*centralTabs);
+
+    // Connect tab close signal (Task #00015)
     connect(m_dockCoordinator, &DockCoordinator::tabCloseRequested, this, [this, centralTabs](int index) {
         auto& logger = core::Logger::getInstance();
         QWidget* widget = centralTabs->widget(index);

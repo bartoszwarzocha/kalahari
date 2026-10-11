@@ -1,5 +1,5 @@
 /// @file test_tab_focus.cpp
-/// @brief The keys go to the page in front of the tabs, also when a tab closes
+/// @brief The keys go to the page in front of the tabs, also when a tab closes or is clicked
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
@@ -7,7 +7,10 @@
 
 #include <QApplication>
 #include <QLineEdit>
+#include <QMouseEvent>
+#include <QPointF>
 #include <QString>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -15,10 +18,23 @@
 #include <array>
 
 using kalahari::gui::utils::focusPageInFront;
+using kalahari::gui::utils::focusPageOnTabClick;
 using kalahari::gui::utils::removeTabKeepingFocus;
 namespace test = kalahari::test;
 
 namespace {
+
+/// A click of @p button on the tab at @p index of @p tabs
+void clickTab(QTabWidget& tabs, int index, Qt::MouseButton button = Qt::LeftButton) {
+    QTabBar* bar = tabs.tabBar();
+    const QPointF pos = bar->tabRect(index).center();
+    const QPointF globalPos = bar->mapToGlobal(pos);
+    QMouseEvent press(QEvent::MouseButtonPress, pos, globalPos, button, button, Qt::NoModifier);
+    QApplication::sendEvent(bar, &press);
+    QMouseEvent release(QEvent::MouseButtonRelease, pos, globalPos, button, Qt::NoButton,
+                        Qt::NoModifier);
+    QApplication::sendEvent(bar, &release);
+}
 
 /// A page of the tabs with two fields
 struct Page {
@@ -183,5 +199,32 @@ TEST_CASE("The page in front of the tabs gets the keys", "[gui][tabs]") {
         w.window.activateWindow();
         REQUIRE(test::waitUntil([&w] { return QApplication::activeWindow() == &w.window; }));
         CHECK(w.pages[1].first->hasFocus());
+    }
+}
+
+TEST_CASE("A click on a tab gives the keys to its page", "[gui][tabs]") {
+    Window w;
+    REQUIRE(test::waitUntil([&w] { return QApplication::activeWindow() == &w.window; }));
+    focusPageOnTabClick(*w.tabs);
+
+    SECTION("another tab: its page comes to the front with the keys, from elsewhere too") {
+        w.tabs->setCurrentIndex(1);
+        w.pages[1].second->setFocus(Qt::TabFocusReason);
+        w.tabs->setCurrentIndex(0);
+        w.toolbarField->setFocus(Qt::TabFocusReason);
+        REQUIRE(w.toolbarField->hasFocus());
+
+        clickTab(*w.tabs, 1);
+        REQUIRE(w.tabs->currentIndex() == 1);
+        CHECK(test::waitUntil([&w] { return w.pages[1].second->hasFocus(); }));
+    }
+
+    SECTION("the tab in front: its page gets the keys") {
+        w.tabs->setCurrentIndex(2);
+        w.toolbarField->setFocus(Qt::TabFocusReason);
+        REQUIRE(w.toolbarField->hasFocus());
+
+        clickTab(*w.tabs, 2);
+        CHECK(test::waitUntil([&w] { return w.pages[2].first->hasFocus(); }));
     }
 }
