@@ -1244,6 +1244,15 @@ private:
     /// @brief Scroll a page wider than the view sideways to show the cursor
     void scrollSidewaysToCursor();
 
+    /// @brief The scroll position that shows the end of the text: the last line with the
+    ///        page's bottom margin below it
+    ///
+    /// At the end of a long text in the continuous view the page ends there, as the scroll
+    /// range does. Below a text shorter than a page, and on a last page the text does not
+    /// fill, the range goes on over blank paper: the position stops short of it, at the start
+    /// of the document when the text with its margins fits in the view.
+    qreal textEndScrollPosition() const;
+
     /// @brief Scroll the line with the cursor to the typewriter focus height
     /// @param animate Animate a short scroll (when smooth typewriter scrolling is on); a
     ///        jump of more than a view height is never animated

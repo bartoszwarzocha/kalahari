@@ -340,6 +340,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Ctrl+End in a short text** - 2026-10-11. Ctrl+End and Ctrl+Shift+End scrolled to the
+  bottom of the page, so the lines of a text shorter than a page left the view and only
+  blank paper showed; the page view did the same on a last page filled only at its top. The
+  view now goes to the end of the text, the last line with the page's bottom margin below
+  it, as at the end of a long chapter, and a short text that fits in the window stays put.
+
 - **Menu icons** - 2026-10-10. Six menu commands had no icon (import and export of a
   project archive, InDesign ICML, export settings, Find in book, saving the current
   perspective) and the log warned about each of them when the menus were built.

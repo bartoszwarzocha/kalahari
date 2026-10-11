@@ -864,6 +864,65 @@ TEST_CASE("Stage5 continuous view: a chapter shorter than a page is on a whole p
     CHECK(paperBottom(continuous) + 1 < continuous.height());  // the desk below the page
 }
 
+TEST_CASE("Stage5 Ctrl+End: a text shorter than a page stays in view",
+          "[editor][stage5][continuous]") {
+    // Regression: Ctrl+End scrolled to the bottom of the page, so the few lines of a note
+    // left the view, which showed blank paper only
+    for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {
+        CAPTURE(static_cast<int>(mode));
+        auto editor = editorWith(kmlOf({QStringLiteral("The first line of the note."),
+                                        QStringLiteral("The second line of the note."),
+                                        QStringLiteral("They met on Tuesday morning.")}));
+        editor->setViewMode(mode);
+        QScrollBar* vertical = scrollBar(*editor, Qt::Vertical);
+        REQUIRE(vertical != nullptr);
+        REQUIRE(vertical->maximum() > 0);  // the page is higher than the view
+
+        editor->moveCursorToDocEnd();
+        CHECK(editor->cursorPosition().paragraph == 2);
+        CHECK(editor->scrollOffset() == 0.0);  // the text from its first line, as before
+        const QRectF caret = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+        CHECK(caret.top() >= 0.0);
+        CHECK(caret.bottom() <= editor->height());
+    }
+}
+
+TEST_CASE("Stage5 Ctrl+End: a last page the text fills at its top ends as a long chapter does",
+          "[editor][stage5][continuous]") {
+    // Regression: Ctrl+End in the page view scrolled to the bottom of the last page, far
+    // below the last line. The line goes where it goes at the end of a long chapter in the
+    // continuous view, whose page ends there: the page's bottom margin below it.
+    auto chapter = editorWith(kmlOf(longParagraphs(30)));
+    chapter->moveCursorToDocEnd();
+    const QRectF chapterEnd = chapter->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+    QScrollBar* chapterScroll = scrollBar(*chapter, Qt::Vertical);
+    REQUIRE(chapterScroll != nullptr);
+    REQUIRE(chapterScroll->value() == chapterScroll->maximum());
+
+    // Paragraphs up to the first one that reaches a second page
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, chapter->size());
+    editor->setViewMode(ViewMode::Page);
+    const auto pageCount = [&editor] {
+        auto* layout =
+            qobject_cast<KalahariTextDocumentLayout*>(editor->textDocument()->documentLayout());
+        layout->layoutPendingBlocks();
+        return layout->pageCount();
+    };
+    int paragraphs = 0;
+    do {
+        editor->fromKml(kmlOf(longParagraphs(++paragraphs)));
+    } while (pageCount() < 2 && paragraphs < 100);
+    REQUIRE(pageCount() == 2);
+
+    editor->moveCursorToDocEnd();
+    const QRectF end = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+    CHECK(end.bottom() == Approx(chapterEnd.bottom()).margin(1.0));
+    QScrollBar* vertical = scrollBar(*editor, Qt::Vertical);
+    REQUIRE(vertical != nullptr);
+    CHECK(vertical->value() < vertical->maximum());  // short of the page's bottom
+}
+
 TEST_CASE("Stage5 continuous view: switching views keeps the cursor's place on the screen",
           "[editor][stage5][continuous]") {
     // A view taller than the text of a page: a page break lies between the top of the view
