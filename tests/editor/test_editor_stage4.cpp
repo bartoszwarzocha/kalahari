@@ -18,6 +18,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QScreen>
+#include <QScrollBar>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -359,6 +360,40 @@ void click(BookEditor& editor, const QPointF& pos) {
     pressAndRelease(editor, pos);
 }
 
+/// A press (or the second press of a double click) and a release of a mouse button on a
+/// widget; Qt sends a press on to the parents as long as none takes it
+void pressAndRelease(QWidget& widget, const QPointF& pos, Qt::MouseButton button,
+                     QEvent::Type pressType = QEvent::MouseButtonPress) {
+    QMouseEvent press(pressType, pos, widget.mapToGlobal(pos), button, button, Qt::NoModifier);
+    QCoreApplication::sendEvent(&widget, &press);
+    QMouseEvent release(QEvent::MouseButtonRelease, pos, widget.mapToGlobal(pos), button,
+                        Qt::NoButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(&widget, &release);
+}
+
+/// Counts the presses of a mouse button that reach a widget, the second press of a double
+/// click too
+struct PressCounter : QObject {
+    int presses = 0;
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (event->type() == QEvent::MouseButtonPress ||
+            event->type() == QEvent::MouseButtonDblClick) {
+            ++presses;
+        }
+        return QObject::eventFilter(watched, event);
+    }
+};
+
+/// The editor's scroll bar of this orientation
+QScrollBar* scrollBarOf(BookEditor& editor, Qt::Orientation orientation) {
+    for (QScrollBar* bar : editor.findChildren<QScrollBar*>()) {
+        if (bar->orientation() == orientation) {
+            return bar;
+        }
+    }
+    return nullptr;
+}
+
 void pressKey(BookEditor& editor, int key, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
     QKeyEvent event(QEvent::KeyPress, key, modifiers);
     QCoreApplication::sendEvent(&editor, &event);
@@ -452,6 +487,48 @@ TEST_CASE("Stage4 page mode: a click lands on the character under it, on every p
                 CHECK(editor->cursorPosition() == target);
             }
         }
+    }
+}
+
+TEST_CASE("Stage4 scroll bars: a press on them stays with them, the text gets none",
+          "[editor][stage4]") {
+    // Qt 6.9 passes a press a scroll bar does not use (one of the right button, or one on a
+    // bar without a range) on to the widget under it: the editor would take it for a click
+    // in the text
+    PressCounter counter;
+
+    SECTION("the right button on the scroll bars") {
+        auto editor = editorIn(ViewMode::Page);
+        editor->setZoomFactor(3.0);  // the page wider than the view
+        paint(*editor);
+        editor->installEventFilter(&counter);
+        QScrollBar* vertical = scrollBarOf(*editor, Qt::Vertical);
+        QScrollBar* horizontal = scrollBarOf(*editor, Qt::Horizontal);
+        REQUIRE(vertical != nullptr);
+        REQUIRE(horizontal != nullptr);
+        REQUIRE(vertical->maximum() > vertical->minimum());
+        REQUIRE(horizontal->maximum() > horizontal->minimum());
+        editor->setCursorPosition({0, 3});
+        pressAndRelease(*vertical, QPointF(4.0, 40.0), Qt::RightButton);
+        pressAndRelease(*horizontal, QPointF(40.0, 4.0), Qt::RightButton);
+        CHECK(counter.presses == 0);
+        CHECK(editor->cursorPosition() == CursorPosition{0, 3});
+    }
+
+    SECTION("a click and a double click on a scroll bar without a range") {
+        auto editor = editorIn(ViewMode::Page, 1);
+        editor->setZoomFactor(0.25);  // the whole page in the view
+        paint(*editor);
+        editor->installEventFilter(&counter);
+        QScrollBar* vertical = scrollBarOf(*editor, Qt::Vertical);
+        REQUIRE(vertical != nullptr);
+        REQUIRE(vertical->maximum() == vertical->minimum());
+        editor->setCursorPosition({0, 3});
+        pressAndRelease(*vertical, QPointF(4.0, 40.0), Qt::LeftButton);
+        pressAndRelease(*vertical, QPointF(4.0, 40.0), Qt::LeftButton, QEvent::MouseButtonDblClick);
+        CHECK(counter.presses == 0);
+        CHECK(editor->cursorPosition() == CursorPosition{0, 3});
+        CHECK_FALSE(editor->hasSelection());
     }
 }
 

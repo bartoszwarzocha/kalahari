@@ -687,6 +687,7 @@ void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& te
     frame->setText(text);
     connect(frame, &AnnotationFrame::saveRequested, this, &AnnotationsCoordinator::saveWriting);
     connect(frame, &AnnotationFrame::cancelRequested, this, &AnnotationsCoordinator::cancelWriting);
+    connect(frame, &AnnotationFrame::closeRequested, this, [this]() { finishWriting(); });
 
     // A closed tab takes the frame with its editor: nothing is left to write
     connect(frame, &QObject::destroyed, this, [this]() {

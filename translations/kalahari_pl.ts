@@ -2027,6 +2027,14 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>Save (%1)</source>
         <translation>Zapisz (%1)</translation>
     </message>
+    <message>
+        <source>Cancel (Esc)</source>
+        <translation>Anuluj (Esc)</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Anuluj</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AnnotationsCoordinator</name>
