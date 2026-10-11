@@ -435,14 +435,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Tests: no files in the user's profile** - 2026-10-11. The test program unpacked its test
-  plugin in the program's folder of the user's profile (on Windows
-  `%LOCALAPPDATA%\Kalahari\plugins\temp`), wrote a log to a `tmp` folder at the root of the
-  drive, and after one test ran under the program's own name, so files that later tests
-  wrote through Qt's standard folders went to the user's Kalahari folder. Tests now keep the
-  plugin and the log in their own temporary folder, removed after the run, and keep the
-  name of the test program.
-
 - **Panels: the Navigator no longer covers the panel in front** - 2026-10-09. Choosing an
   element in the Navigator (a click, the arrow keys, opening a chapter, a new status)
   brought the Properties panel to the front of its tab group, so the Annotations panel
@@ -478,6 +470,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   put it on the list of recent books, so a book just created was missing from the
   Dashboard and the Recent Books menu until it was opened again. Every book opened or
   created now goes to the top of the list.
+
+- **Tests: no files in the user's profile** - 2026-10-11. The test program unpacked its test
+  plugin in the program's folder of the user's profile (on Windows
+  `%LOCALAPPDATA%\Kalahari\plugins\temp`), wrote a log to a `tmp` folder at the root of the
+  drive, and after one test ran under the program's own name, so files that later tests
+  wrote through Qt's standard folders went to the user's Kalahari folder. Tests now keep the
+  plugin and the log in their own temporary folder, removed after the run, and keep the
+  name of the test program.
 
 - **A chapter added in the Navigator was damaged** - 2026-10-08. Add Chapter (and Add
   Item in the front or back matter) made a chapter without a file, so its text was saved
