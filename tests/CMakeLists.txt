@@ -72,6 +72,7 @@ set(TEST_SOURCES
     gui/test_language_names.cpp                  # Names of languages in the program's language
     gui/test_dialogs.cpp                         # The program's own dialogs
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
+    gui/test_widget_wheel.cpp                    # The mouse wheel changes only the field with the focus
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing
     gui/test_editor_panel.cpp                    # Editor panel between the settings and its editor
     gui/test_status_bar_statistics.cpp           # Counts of the document in front in the status bar
@@ -203,6 +204,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/theme.cpp                 # Theme for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/theme_manager.cpp         # ThemeManager for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/resource_paths.cpp        # ResourcePaths for ThemeManager/IconRegistry
+    ${CMAKE_SOURCE_DIR}/src/gui/widget_wheel.cpp            # The mouse wheel changes only the field with the focus
     ${CMAKE_SOURCE_DIR}/src/editor/clipboard_handler.cpp     # Phase 4.13-4.16: Clipboard
     ${CMAKE_SOURCE_DIR}/src/editor/editor_appearance.cpp    # Phase 5: Editor appearance
     ${CMAKE_SOURCE_DIR}/src/editor/statistics_collector.cpp   # Phase 6/Task 7.17: Statistics

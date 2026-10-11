@@ -133,6 +133,7 @@ set(KALAHARI_SOURCES
     core/recent_books_manager.cpp # RecentBooksManager - Recent files management (OpenSpec #00030)
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
+    gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
     gui/command.cpp
     gui/command_registry.cpp
     gui/dialogs/about_dialog.cpp
