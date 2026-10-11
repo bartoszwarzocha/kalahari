@@ -482,6 +482,51 @@ TEST_CASE("Stage3 find: Find opens the bar with the selected text and finds it",
     }
 }
 
+TEST_CASE("Stage3 find: Find Next after the bar is closed goes on with its search",
+          "[editor][stage3][search]") {
+    // As F3 in Word, the browsers and the code editors: the bar shows again with its text and
+    // the next match is selected, while the keys stay in the text (regression: after Esc the
+    // first F3 only opened the bar again, with the keys in its field)
+    auto editor = editorWith(kWords);
+    editor->setSelection({{0, 4}, {0, 8}});  // "word"
+    editor->showFind();
+    auto* bar = findBar(*editor);
+    REQUIRE(bar != nullptr);
+    editor->hideFindReplace();  // Esc
+    REQUIRE_FALSE(isShown(bar));
+    REQUIRE(editor->focusWidget() == editor.get());
+
+    SECTION("Find Next") {
+        editor->findNext();
+        CHECK(isShown(bar));
+        CHECK(editor->selection().normalized().start == CursorPosition{0, 23});
+        CHECK(editor->focusWidget() == editor.get());
+        CHECK(editor->searchEngine()->totalMatchCount() == 3);
+    }
+
+    SECTION("Find Previous") {
+        editor->findPrevious();
+        CHECK(isShown(bar));
+        CHECK(editor->selection().normalized().start == CursorPosition{2, 9});
+        CHECK(editor->focusWidget() == editor.get());
+    }
+
+    SECTION("with the text of the bar, not the selected text") {
+        editor->setSelection({{1, 0}, {1, 2}});  // "No"
+        editor->findNext();
+        CHECK(bar->searchText() == QStringLiteral("word"));
+        CHECK(editor->selection().normalized().start == CursorPosition{2, 9});
+    }
+
+    SECTION("in the mode the bar had") {
+        editor->showFindReplace();
+        editor->hideFindReplace();
+        editor->findNext();
+        CHECK(bar->isReplaceMode());
+        CHECK(editor->focusWidget() == editor.get());
+    }
+}
+
 TEST_CASE("Stage3 find: Find Next without a search term opens the bar",
           "[editor][stage3][search]") {
     auto editor = editorWith(kWords);

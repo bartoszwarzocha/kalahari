@@ -430,6 +430,8 @@ CursorPosition {
 
 ### 6.5. Wyszukiwanie i zamiana
 - Znajdź: tekst, całe słowa, wielkość liter, regex (opcjonalnie)
+- F3 i Shift+F3 – następne i poprzednie wystąpienie, także po zamknięciu paska klawiszem Esc:
+  pasek wraca z tym samym tekstem, a kursor zostaje w tekście
 - Znajdź w obrębie zaznaczenia
 - Zamień: pojedynczo i „zamień wszystko" z podglądem
 - Historia wyszukiwań w sesji

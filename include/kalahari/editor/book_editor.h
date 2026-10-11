@@ -832,9 +832,12 @@ public:
     void showFindReplace();
 
     /// @brief Navigate to the next search match
+    ///
+    /// After the bar was closed, it shows again with its text and the search goes on, while
+    /// the keys stay in the text; without a search text, the bar opens to type one.
     void findNext();
 
-    /// @brief Navigate to the previous search match
+    /// @brief Navigate to the previous search match (as findNext())
     void findPrevious();
 
     /// @brief Hide the find/replace bar and clear search highlights
@@ -1585,6 +1588,13 @@ private:
 
     /// @brief Make the selected text the search text, if it lies in one paragraph
     void takeSearchTextFromSelection();
+
+    /// @brief Show the find bar at the top of the text, in the find or the replace mode
+    void openFindBar(bool replace);
+
+    /// @brief The search for Find Next and Find Previous: the bar's, shown again if closed
+    /// @return False without a text to search for: the bar opens to type one
+    bool resumeSearch();
 
     /// @brief Navigate cursor to a search match
     /// @param match The search match to navigate to

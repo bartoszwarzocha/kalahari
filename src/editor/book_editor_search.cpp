@@ -80,14 +80,7 @@ void BookEditor::showFind()
     }
 
     takeSearchTextFromSelection();
-
-    m_findReplaceBar->showFind();
-
-    // Position at top of editor
-    int scrollBarWidth = m_verticalScrollBar ? m_verticalScrollBar->sizeHint().width() : 0;
-    m_findReplaceBar->setGeometry(0, 0, width() - scrollBarWidth, m_findReplaceBar->sizeHint().height());
-
-    m_findReplaceBar->show();
+    openFindBar(false);
     m_findReplaceBar->focusSearchInput();
 }
 
@@ -98,22 +91,48 @@ void BookEditor::showFindReplace()
     }
 
     takeSearchTextFromSelection();
+    openFindBar(true);
+    m_findReplaceBar->focusSearchInput();
+}
 
-    m_findReplaceBar->showFindReplace();
+void BookEditor::openFindBar(bool replace)
+{
+    if (replace) {
+        m_findReplaceBar->showFindReplace();
+    } else {
+        m_findReplaceBar->showFind();
+    }
 
     // Position at top of editor
-    int scrollBarWidth = m_verticalScrollBar ? m_verticalScrollBar->sizeHint().width() : 0;
-    m_findReplaceBar->setGeometry(0, 0, width() - scrollBarWidth, m_findReplaceBar->sizeHint().height());
+    const int scrollBarWidth =
+        m_verticalScrollBar ? m_verticalScrollBar->sizeHint().width() : 0;
+    m_findReplaceBar->setGeometry(0, 0, width() - scrollBarWidth,
+                                  m_findReplaceBar->sizeHint().height());
 
     m_findReplaceBar->show();
-    m_findReplaceBar->focusSearchInput();
+}
+
+bool BookEditor::resumeSearch()
+{
+    if (m_searchEngine && m_searchEngine->isActive()) {
+        return true;
+    }
+
+    // Without a search term, open the bar to type one
+    if (!m_findReplaceBar || m_findReplaceBar->searchText().isEmpty()) {
+        showFind();
+        return false;
+    }
+
+    // The bar was closed (Esc): it shows again, in its mode and with its text, and the keys
+    // stay in the text, as F3 goes on in Word, the browsers and the code editors
+    openFindBar(m_findReplaceBar->isReplaceMode());
+    return m_searchEngine->isActive();
 }
 
 void BookEditor::findNext()
 {
-    // Without a search term, open the bar to type one
-    if (!m_searchEngine || !m_searchEngine->isActive()) {
-        showFind();
+    if (!resumeSearch()) {
         return;
     }
     auto match = m_searchEngine->nextMatch();
@@ -124,8 +143,7 @@ void BookEditor::findNext()
 
 void BookEditor::findPrevious()
 {
-    if (!m_searchEngine || !m_searchEngine->isActive()) {
-        showFind();
+    if (!resumeSearch()) {
         return;
     }
     auto match = m_searchEngine->previousMatch();

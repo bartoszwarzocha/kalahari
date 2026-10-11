@@ -574,6 +574,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   longer or shorter replacement it landed inside a word. It now stands at the end of the
   replaced text; after Replace All, at the end of the last replacement, shown in the view.
 
+- **Find bar: F3 after the bar is closed** - 2026-10-11. After Escape closed the find bar,
+  the first F3 (Find Next) or Shift+F3 (Find Previous) only opened the bar again, with the
+  cursor in its field. Now, as in Word, the browsers and the code editors, the bar shows again
+  with its text and mode, the next or the previous match is selected, and the cursor stays in
+  the text; without a text to search for, F3 opens the bar to type one, as before.
+
 - **Editor: Replace All in a long chapter** - 2026-10-11. After an edit of many paragraphs
   at once (Replace All, a long paste), the paragraphs waiting to be laid out again kept the
   lines of their old text, and a cursor placed in a paragraph that got shorter read past its
