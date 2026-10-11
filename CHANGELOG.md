@@ -601,6 +601,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   end: a debug build stopped on Replace All. Such paragraphs now have no lines until they are
   laid out, as in Qt's own layout.
 
+- **Toolbars: the font and the size go on the text at Enter** - 2026-10-11. Each letter typed
+  in the font field went on the text as a font ("F", "Fr"..., so the text showed in another
+  font) and each number typed in the size field as a size (7 of 72), one step to undo each,
+  and Escape left them there. Now what was typed goes on the text at Enter, as one step to
+  undo, and Escape leaves the text as it was; a choice in the font list and the arrows go on
+  it at once, as before.
+
 - **Toolbars: the cursor goes back where it was after a command** - 2026-10-11. A click on a
   floating toolbar took the cursor: after its command, what was typed reached neither the
   text nor a field. In the font and size fields of a toolbar, docked or floating, the cursor

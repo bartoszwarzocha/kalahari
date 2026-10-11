@@ -12,6 +12,7 @@
 #include <QEvent>
 #include <QFocusEvent>
 #include <QKeyEvent>
+#include <QSpinBox>
 #include <QTimer>
 #include <QToolBar>
 #include <QWidget>
@@ -90,6 +91,10 @@ bool ToolbarKeys::eventFilter(QObject* watched, QEvent* event) {
         if (key == Qt::Key_Escape && combo != nullptr && combo->isEditable()
             && combo->currentIndex() >= 0) {
             combo->setEditText(combo->itemText(combo->currentIndex()));  // what was typed goes
+        }
+        auto* spin = qobject_cast<QSpinBox*>(watched);
+        if (key == Qt::Key_Escape && spin != nullptr) {
+            spin->setValue(spin->value());  // what was typed goes, not taken when it is left
         }
         giveBackKeysLater();
         break;

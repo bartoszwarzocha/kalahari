@@ -1713,10 +1713,11 @@ replacement, shown in the view; Replace with more matches after it selects the n
 
 After a command given in a toolbar the cursor goes back where it was, as in Word and
 LibreOffice (`src/gui/toolbar_keys.cpp`, checked by `tests/gui/test_toolbar_keys.cpp`). In the
-font and size fields one types; Enter, Escape (which drops what was typed in the font field)
-and a choice in the font list give the cursor back to the text or the panel's field that had
-it. The arrow keys in a field go through its values, and Tab goes to the other field. The
-arrows of the size field, like the buttons, do not take the cursor. A floating toolbar is a
+font and size fields one types: what was typed goes on the text at Enter, as one step to undo,
+and Escape drops it. Enter, Escape and a choice in the font list give the cursor back to the
+text or the panel's field that had it. The arrow keys in a field go through its values, each
+going on the text, and Tab goes to the other field. The arrows of the size field, like the
+buttons, do not take the cursor. A floating toolbar is a
 window of its own: shown floating it does not take the cursor, and a click on it that is not
 in one of its fields, or a command given there, gives the cursor back at once.
 

@@ -1,16 +1,24 @@
 /// @file test_toolbar_keys.cpp
-/// @brief After a command given in a toolbar the keys go back where they were (ToolbarKeys)
+/// @brief After a command given in a toolbar the keys go back where they were (ToolbarKeys);
+///        the font and the size typed in its fields go on the text at Enter
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "../editor/editor_test_utils.h"
+#include "kalahari/editor/book_editor.h"
+#include "kalahari/gui/command_registrar.h"
+#include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/icon_registrar.h"
+#include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/toolbar_keys.h"
+#include "kalahari/gui/toolbar_manager.h"
 
 #include <QAbstractItemView>
 #include <QAction>
 #include <QApplication>
 #include <QComboBox>
 #include <QCursor>
+#include <QFontComboBox>
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QLineEdit>
@@ -20,6 +28,8 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWindow>
+
+#include <algorithm>
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -64,6 +74,28 @@ void type(const QString& text) {
     }
 }
 
+/// Type text in a widget, with or without the keys
+void typeIn(QWidget* widget, const QString& text) {
+    for (const QChar c : text) {
+        Qt::Key key = Qt::Key_unknown;
+        if (c.isDigit()) {
+            key = static_cast<Qt::Key>(Qt::Key_0 + c.digitValue());
+        } else if (c == QLatin1Char(' ')) {
+            key = Qt::Key_Space;
+        } else if (c.toUpper() >= QLatin1Char('A') && c.toUpper() <= QLatin1Char('Z')) {
+            key = static_cast<Qt::Key>(Qt::Key_A + c.toUpper().unicode() - 'A');
+        }
+        QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier, QString(c));
+        QApplication::sendEvent(widget, &event);
+    }
+}
+
+/// Press Enter in a widget, with or without the keys
+void enterIn(QWidget* widget) {
+    QKeyEvent event(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier, QStringLiteral("\r"));
+    QApplication::sendEvent(widget, &event);
+}
+
 /// An editable font box, as the toolbar's (QFontComboBox) is from the start
 QComboBox* fontBoxIn(QToolBar* toolbar) {
     auto* box = new QComboBox(toolbar);
@@ -97,6 +129,7 @@ struct Desk {
         QObject::connect(bold, &QAction::triggered, [this]() { ++bolds; });
         size->setRange(6, 72);
         size->setValue(12);
+        size->setKeyboardTracking(false);  // as the toolbar's
         toolbar->addWidget(font);
         toolbar->addWidget(size);
         button = qobject_cast<QToolButton*>(toolbar->widgetForAction(bold));
@@ -205,7 +238,7 @@ TEST_CASE("Floating toolbar: one types in its fields; a command gives the keys b
     REQUIRE(keysStayIn(desk.toolbar, desk.size));
     desk.size->selectAll();
     type(QStringLiteral("18"));
-    CHECK(desk.size->value() == 18);
+    CHECK(desk.size->text() == QStringLiteral("18"));  // taken at Enter
 
     SECTION("the keys move between its fields with Tab") {
         press(Qt::Key_Tab);
@@ -258,12 +291,28 @@ TEST_CASE("Toolbar fields: Enter and Escape give the keys back where they were",
     Desk desk(floating);
 
     SECTION("Enter takes the size") {
+        int changes = 0;
+        QObject::connect(desk.size, &QSpinBox::valueChanged, [&changes]() { ++changes; });
         desk.clickField(desk.size);
         desk.size->selectAll();
         type(QStringLiteral("18"));
         press(Qt::Key_Return, QStringLiteral("\r"));
         CHECK(desk.size->value() == 18);
+        CHECK(changes == 1);
         CHECK(keysIn(&desk.window, desk.text));
+    }
+
+    SECTION("Escape leaves what was typed in the size field") {
+        int changes = 0;
+        QObject::connect(desk.size, &QSpinBox::valueChanged, [&changes]() { ++changes; });
+        desk.clickField(desk.size);
+        desk.size->selectAll();
+        type(QStringLiteral("30"));
+        press(Qt::Key_Escape);
+        CHECK(keysIn(&desk.window, desk.text));
+        CHECK(desk.size->value() == 12);
+        CHECK(desk.size->text() == QStringLiteral("12"));
+        CHECK(changes == 0);  // not taken when the field was left either
     }
 
     SECTION("Enter takes the font") {
@@ -374,4 +423,74 @@ TEST_CASE("Toolbar fields made later give the keys back too", "[gui][toolbar]") 
     desk.clickField(spacing);
     press(Qt::Key_Return, QStringLiteral("\r"));
     CHECK(keysIn(&desk.window, desk.text));
+}
+
+TEST_CASE("Toolbar fields: the font and the size typed go on the text at Enter, as one step",
+          "[gui][toolbar]") {
+    // Regression: each letter typed in the font field went on the text as a font ("F",
+    // "Fr"...) and each number typed in the size field as a size (7 of 72), one step to undo
+    // each; Escape left them on the text
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+    QMainWindow window;
+    ToolbarManager manager(&window);
+    manager.createToolbars(CommandRegistry::getInstance());
+    auto* font = window.findChild<QFontComboBox*>(QStringLiteral("formatFontCombo"));
+    auto* size = window.findChild<QSpinBox*>(QStringLiteral("formatFontSize"));
+    REQUIRE(font != nullptr);
+    REQUIRE(size != nullptr);
+
+    EditorPanel panel;
+    editor::BookEditor* text = panel.getBookEditor();
+    REQUIRE(text->fromKml(test::kmlOf({QStringLiteral("Hello world")})));
+    text->setCursorPosition({0, 2});  // inside a word: the font and the size go on it
+    manager.connectFontWidgets([&panel]() { return &panel; });
+    manager.syncFontWidgetsToEditor(&panel);
+    const QString family = text->currentFontFamily();
+    const int points = text->currentFontSize();
+
+    SECTION("the size") {
+        const int typed = points == 20 ? 30 : 20;
+        size->selectAll();
+        typeIn(size, QString::number(typed));
+        CHECK(text->currentFontSize() == points);
+        enterIn(size);
+        CHECK(text->currentFontSize() == typed);
+        text->undo();
+        CHECK(text->currentFontSize() == points);
+    }
+
+    SECTION("the font") {
+        // A family of the list typed in full: one of letters, digits and spaces that does not
+        // start another one's name, so the field does not complete it to a longer one
+        QStringList families;
+        for (int i = 0; i < font->count(); ++i) {
+            families << font->itemText(i);
+        }
+        QString chosen;
+        for (const QString& name : families) {
+            const bool typeable = std::all_of(name.cbegin(), name.cend(), [](QChar c) {
+                return c.isDigit() || c == QLatin1Char(' ')
+                       || (c.toUpper() >= QLatin1Char('A') && c.toUpper() <= QLatin1Char('Z'));
+            });
+            const bool starts = std::any_of(families.cbegin(), families.cend(),
+                                            [&name](const QString& other) {
+                return other != name && other.startsWith(name, Qt::CaseInsensitive);
+            });
+            if (typeable && !starts && name.compare(family, Qt::CaseInsensitive) != 0) {
+                chosen = name;
+                break;
+            }
+        }
+        REQUIRE_FALSE(chosen.isEmpty());
+        CAPTURE(chosen);
+
+        font->lineEdit()->selectAll();
+        typeIn(font, chosen);
+        CHECK(text->currentFontFamily() == family);
+        enterIn(font);
+        CHECK(text->currentFontFamily() == chosen);
+        text->undo();
+        CHECK(text->currentFontFamily() == family);
+    }
 }

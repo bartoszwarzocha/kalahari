@@ -796,6 +796,8 @@ void ToolbarManager::addToolbarItem(QToolBar* toolbar, const QString& cmdId, Com
         sizeSpinner->setSuffix(" pt");
         sizeSpinner->setMinimumWidth(60);
         sizeSpinner->setMaximumWidth(80);
+        // The size typed goes on the text at Enter, not at each digit (7 of 72)
+        sizeSpinner->setKeyboardTracking(false);
         // TODO: Connect to editor when available
         toolbar->addWidget(sizeSpinner);
         m_fontSizeSpinner = sizeSpinner;
@@ -1234,10 +1236,11 @@ void ToolbarManager::connectFontWidgets(std::function<EditorPanel*()> getEditor)
 
     m_getEditorCallback = getEditor;
 
-    // Connect font family combo
+    // Connect font family combo: a family chosen in the list, with the arrows, or typed and
+    // taken with Enter. Not at each letter typed, which put "F", "Fr"... on the text
     if (m_fontComboBox) {
-        QObject::connect(m_fontComboBox, &QFontComboBox::currentFontChanged, &m_connectionContext,
-                         [this](const QFont& font) {
+        QObject::connect(m_fontComboBox, &QComboBox::activated, &m_connectionContext,
+                         [this](int index) {
             if (m_fontWidgetsSyncing || !m_getEditorCallback) {
                 return;
             }
@@ -1247,13 +1250,13 @@ void ToolbarManager::connectFontWidgets(std::function<EditorPanel*()> getEditor)
                 return;
             }
 
+            const QString family = m_fontComboBox->itemText(index);
             auto& logger = core::Logger::getInstance();
-            logger.debug("ToolbarManager: Font family changed to '{}'",
-                         font.family().toStdString());
+            logger.debug("ToolbarManager: Font family changed to '{}'", family.toStdString());
 
             // Apply font family to selection or default font
             editor::BookEditor* bookEditor = editor->getBookEditor();
-            bookEditor->setSelectionFontFamily(font.family());
+            bookEditor->setSelectionFontFamily(family);
         });
 
         logger.debug("ToolbarManager: Font combo connected");
