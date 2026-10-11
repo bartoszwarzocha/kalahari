@@ -17,8 +17,10 @@
 
 #include "document_window.h"
 
+#include <QAbstractButton>
 #include <QAction>
 #include <QCoreApplication>
+#include <QDialogButtonBox>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -36,6 +38,7 @@
 #include <QToolBar>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
+#include <QWindow>
 
 #include <functional>
 #include <string>
@@ -123,12 +126,35 @@ std::string titlesOf(const QList<core::ProjectElement>& elements) {
     return titles.join(QStringLiteral(", ")).toStdString();
 }
 
-/// @brief Run @p command; in the New File window it shows, do @p act and press Create. The
-/// texts of the other windows go to @p others, and those windows are closed.
+/// The ticks of 10 ms a test waits for the system to show a window before it answers the window
+/// all the same, so that it never waits for ever
+constexpr int SHOWN_TICKS = 200;
+
+/// @brief Whether the system shows @p dialog on the screen
+bool onScreen(const QDialog& dialog) {
+    const QWindow* window = dialog.windowHandle();
+    return window != nullptr && window->isExposed();
+}
+
+/// @brief The Cancel button of the New File window
+QAbstractButton* cancelButton(const NewFileDialog& dialog) {
+    const auto* buttons = dialog.findChild<QDialogButtonBox*>();
+    return buttons ? buttons->button(QDialogButtonBox::Cancel) : nullptr;
+}
+
+/// @brief Run @p command; in the New File window it shows, do @p act and press the button it
+/// returns (Create or Cancel). The texts of the other windows go to @p others, and those
+/// windows are closed.
+///
+/// The button is pressed in the loop of the window once the system shows the window, as the
+/// writer presses it: on macOS, Qt built with its checks stopped the test in its own code when
+/// the test closed the window at the moment it was shown.
 /// @return The number of New File windows the command showed
-int creating(const std::function<void()>& command,
-             const std::function<void(NewFileDialog&)>& act, QStringList& others) {
+int pressing(const std::function<void()>& command,
+             const std::function<QAbstractButton*(NewFileDialog&)>& act, QStringList& others) {
     int shown = 0;
+    int waited = 0;
+    bool noButton = false;
     QTimer timer;
     timer.setInterval(10);
     QObject::connect(&timer, &QTimer::timeout, [&]() {
@@ -143,15 +169,24 @@ int creating(const std::function<void()>& command,
             return;
         }
         if (newFile->property("handled").toBool()) {
-            return;  // Create is pressed in its loop
+            return;  // The button is pressed in its loop
+        }
+        if (!onScreen(*newFile) && ++waited < SHOWN_TICKS) {
+            return;
         }
         newFile->setProperty("handled", true);
         ++shown;
-        act(*newFile);
-        QMetaObject::invokeMethod(newFile->createButton(), "click", Qt::QueuedConnection);
+        if (QAbstractButton* button = act(*newFile)) {
+            QMetaObject::invokeMethod(button, "click", Qt::QueuedConnection);
+        } else {
+            // Closed all the same: the test never waits for the window
+            noButton = true;
+            QMetaObject::invokeMethod(newFile, "reject", Qt::QueuedConnection);
+        }
     });
     timer.start();
     command();
+    CHECK_FALSE(noButton);
     return shown;
 }
 
@@ -188,7 +223,14 @@ int savingAs(const std::function<void()>& command, const QString& path, QString*
         if (proposed) {
             *proposed = dialog->selectedFiles().value(0);
         }
-        dialog->selectFile(path);
+        // The writer types the name in the field of the name. QFileDialog::selectFile() leaves
+        // the field as it is while it has the focus, which it has where the system gives the
+        // window the focus.
+        if (auto* name = dialog->findChild<QLineEdit*>(QStringLiteral("fileNameEdit"))) {
+            name->setText(path);
+        } else {
+            dialog->selectFile(path);
+        }
         QMetaObject::invokeMethod(dialog, "accept", Qt::QueuedConnection);
     });
     timer.start();
@@ -402,13 +444,14 @@ TEST_CASE("New File: Create adds the element at its place and opens it in the ed
     test::Window window;
 
     QStringList others;
-    const int shown = creating(
+    const int shown = pressing(
         [&window]() { window.documents.onNewDocument(); },
         [](NewFileDialog& dialog) {
             eraseText(dialog.titleEdit());
             typeText(dialog.titleEdit(), QStringLiteral("The Calm"));
             // Before the first chapter
             dialog.picker()->setPlace(core::ElementPlace{BookPlace::Main, QString(), 0});
+            return dialog.createButton();
         },
         others);
     INFO(others.join(QStringLiteral("\n")).toStdString());
@@ -434,15 +477,12 @@ TEST_CASE("New File: Cancel adds nothing", "[gui][newfile]") {
     test::Window window;
     const qsizetype elements = book.pm.project()->elementsIn(BookPlace::Main).size();
 
-    QTimer timer;
-    timer.setInterval(10);
-    QObject::connect(&timer, &QTimer::timeout, []() {
-        if (auto* dialog = qobject_cast<NewFileDialog*>(test::shownDialog())) {
-            dialog->reject();
-        }
-    });
-    timer.start();
-    window.documents.onNewDocument();
+    QStringList others;
+    const int shown = pressing([&window]() { window.documents.onNewDocument(); },
+                               [](NewFileDialog& dialog) { return cancelButton(dialog); }, others);
+    INFO(others.join(QStringLiteral("\n")).toStdString());
+    CHECK(shown == 1);
+    CHECK(others.isEmpty());
 
     CHECK(book.pm.project()->elementsIn(BookPlace::Main).size() == elements);
     CHECK(window.tabs->count() == 0);
