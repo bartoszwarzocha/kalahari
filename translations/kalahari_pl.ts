@@ -21,8 +21,8 @@
         <translation>&amp;Otwórz książkę...</translation>
     </message>
     <message>
-        <source>&amp;Open File...</source>
-        <translation>&amp;Otwórz plik...</translation>
+        <source>Open &amp;File...</source>
+        <translation>O&amp;twórz plik...</translation>
     </message>
     <message>
         <source>&amp;Close Book</source>

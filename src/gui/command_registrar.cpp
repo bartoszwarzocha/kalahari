@@ -185,7 +185,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       callbacks.onOpenDocument);
 
     // OpenSpec #00033 Phase F: Open standalone file (Ctrl+Shift+O)
-    REG_CMD_TOOL_ICON("file.open.file", QT_TRANSLATE_NOOP("CommandRegistrar", "&Open File..."), "FILE/Open/Open File...", 35, false, 0,
+    REG_CMD_TOOL_ICON("file.open.file", QT_TRANSLATE_NOOP("CommandRegistrar", "Open &File..."), "FILE/Open/Open File...", 35, false, 0,
                       KeyboardShortcut(Qt::Key_O, Qt::ControlModifier | Qt::ShiftModifier),
                       IconSet(),
                       callbacks.onOpenStandaloneFile);
