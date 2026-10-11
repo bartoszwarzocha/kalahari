@@ -9,8 +9,10 @@
 /// WidgetKeys, a filter of the whole application, gives the widgets on Linux the keys they
 /// have on Windows. On both it lets read-only texts copy what is selected in them, keeps
 /// Alt with a letter (the access key of a menu item) from typing in the fields, as Windows
-/// does, shows the keys in the context menus of the fields and gives every item of every
-/// menu an access key (giveFreeAccessKeys()). macOS keeps the keys of its own fields.
+/// does, keeps Alt with the digits of the keypad (on Windows the code of a character:
+/// Alt+0150 is "–") from the shortcuts, shows the keys in the context menus of the fields
+/// and gives every item of every menu an access key (giveFreeAccessKeys()). macOS keeps the
+/// keys of its own fields.
 
 #pragma once
 

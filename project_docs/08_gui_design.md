@@ -1524,7 +1524,9 @@ Rules for a new shortcut:
 - No Ctrl+Alt on Windows and Linux: Windows takes it for AltGr, which types letters
   (ą, ć, ę...).
 - No Alt with a letter on Windows and Linux: it opens the menu with that letter underlined
-  (see Access Keys). Alt with a digit and Alt+Shift with a letter are free.
+  (see Access Keys). Alt with a digit and Alt+Shift with a letter are free; Alt with a digit
+  of the keypad runs no shortcut (on Windows it gives the code of a character: Alt+0150
+  types an en dash).
 - No key a desktop takes for itself: Ctrl+F1–F4 on KDE (desktops 1–4), Ctrl+F1–F12 on Xfce
   (workspaces 1–12); on macOS Cmd+H (hides the program) and F11 (shows the desktop).
   Close Book keeps Ctrl+F4, the Windows key (see Linux Desktops).
@@ -1676,13 +1678,14 @@ Linux show them (the words and the items of Qt's fields too).
 
 Alt with a letter types nothing in the text and in the fields, as in the fields of Windows;
 it goes on to the menus. AltGr types: Windows reports it as Ctrl+Alt, Linux as the letter it
-gives. So does Alt with the digits of the keypad (Alt+0233 – é). Settings > Keyboard
-Shortcuts keeps Alt with a letter for the menus (Fixed: the menus). The options of the find
-bar keep Alt+C, Alt+W and Alt+R while the bar shows, in the bar and in the text under it
-(in Polish the menus Pomo&c and &Widok have these letters); elsewhere these keys open the
-menus. In Distraction-Free, where the menu bar is hidden, Alt with the letter of a menu shows
-the menus at the top with that menu open; once it closes, they hide when the mouse is away
-from them.
+gives. So does Alt with the digits of the keypad (Alt+0233 – é): they run no shortcut, not
+even one with Alt and the same digit above the letters, which Qt would take them for
+(WidgetKeys); on Linux they do nothing. Settings > Keyboard Shortcuts keeps Alt with a
+letter for the menus (Fixed: the menus). The options of the find bar keep Alt+C, Alt+W and
+Alt+R while the bar shows, in the bar and in the text under it (in Polish the menus Pomo&c
+and &Widok have these letters); elsewhere these keys open the menus. In Distraction-Free,
+where the menu bar is hidden, Alt with the letter of a menu shows the menus at the top with
+that menu open; once it closes, they hide when the mouse is away from them.
 
 #### The Edit Commands
 
@@ -1756,15 +1759,17 @@ Alt+F1–F10) and leaves the choice to the user; the program's own keys bring no
 Commands without keys yet, with keys that are still free:
 - `Ctrl+P` - Print
 - `Ctrl+G` - Go to Line
-- `Ctrl+Shift+K` - Strikethrough (in the Format menu, without keys)
+- `Ctrl+Shift+K` - Small Caps (Strikethrough, in the Format menu, has no keys, as in Word
+  and LibreOffice)
 - `Ctrl+Shift+C` - Word Count
 - `Ctrl+Shift+T` - Timeline
+- `Alt+1`, `Alt+2`, `Alt+3` - Heading 1–3, `Alt+0` - Normal style (on macOS Option+Cmd with
+  the digit)
 - `F7` / `Shift+F7` - Next Misspelling / Check Spelling as You Type (in open pull requests)
 - `F10` - Focused Mode (see Focus Modes)
 
 Keys planned before that other commands have now; these commands get new keys when they
 are added:
-- Normal style (`Ctrl+0`: Zoom 100%), Heading 1 and 2 (`Ctrl+1`, `Ctrl+2`: the view modes)
 - Normal Mode (`F9`: the Annotations panel), Toggle Focus Mode (`Ctrl+\`: splitting the
   editor, in `SplitEditorPanel`, which the program does not use yet)
 - Quick perspective switch (`F5`–`F8`: the panels), panel toggles (`Ctrl+1`–`Ctrl+5`: the

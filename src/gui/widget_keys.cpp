@@ -86,6 +86,15 @@ bool records(const QWidget* widget) {
     return recorder != nullptr && recorder->isRecording();
 }
 
+/// Alt with a digit of the keypad: on Windows a part of the code of a character, which it
+/// types when Alt goes up (Alt+0150 is "–")
+bool isCharacterCode(const QKeyEvent* event) {
+    const Qt::KeyboardModifiers modifiers = event->modifiers();
+    return modifiers.testFlag(Qt::KeypadModifier) &&
+           (modifiers & ~(Qt::KeypadModifier | Qt::GroupSwitchModifier)) == Qt::AltModifier &&
+           event->key() >= Qt::Key_0 && event->key() <= Qt::Key_9;
+}
+
 /// Alt with a character: the access key of a menu item, which types nothing
 /// (editor::typesText()); AltGr types
 bool isAccessKey(const QKeyEvent* event) {
@@ -226,6 +235,15 @@ bool WidgetKeys::shortcutOverride(QWidget* widget, QKeyEvent* event) {
     if (records(widget)) {
         return false;
     }
+
+    // The code of a character typed with Alt on the keypad runs no shortcut in any widget:
+    // Qt takes the keypad's digits for those above the letters, so Alt+0150 ran the commands
+    // with Alt+0, Alt+1 and Alt+5. On Linux too, where it types nothing: the same keys on both
+    if (isCharacterCode(event)) {
+        event->accept();
+        return true;
+    }
+
     const TextField field = textFieldOf(widget);
     if (field.kind == TextField::Kind::None) {
         return false;

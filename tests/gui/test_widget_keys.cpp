@@ -43,6 +43,13 @@
 #include <memory>
 #include <utility>
 
+/// Qt's own way to press a key over the window's shortcuts, as the system delivers it (Qt
+/// Test presses keys with it; the program does not link Qt Test)
+Q_GUI_EXPORT bool qt_sendShortcutOverrideEvent(QObject* o, ulong timestamp, int k,
+                                               Qt::KeyboardModifiers mods,
+                                               const QString& text = QString(),
+                                               bool autorep = false, ushort count = 1);
+
 using namespace kalahari;
 using namespace kalahari::gui;
 
@@ -90,6 +97,12 @@ bool keepsFromShortcuts(QWidget* widget, int key, Qt::KeyboardModifiers modifier
     event.ignore();  // as the shortcuts ask
     QApplication::sendEvent(widget, &event);
     return event.isAccepted();
+}
+
+/// A key pressed in a widget goes to the window's shortcuts first: whether one of them ran
+bool runsShortcut(QWidget* widget, int key, Qt::KeyboardModifiers modifiers,
+                  const QString& text = QString()) {
+    return qt_sendShortcutOverrideEvent(widget, 0, key, modifiers, text);
 }
 
 /// The whole text of a menu's item, found by its label without the keys
@@ -431,6 +444,64 @@ TEST_CASE("Alt with a letter types nothing in a field, AltGr types", "[gui][widg
         CHECK_FALSE(press(&line, Qt::Key_P, ALT, QStringLiteral("p")));
         CHECK(line.text() == QStringLiteral("kot"));
     }
+}
+
+TEST_CASE("Alt with the digits of the keypad runs no shortcut: Windows types a character",
+          "[gui][widget_keys]") {
+    if (onMacOS()) {
+        SKIP("macOS keeps the keys of its own fields");
+    }
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("needs an active window without a window on screen: "
+             "run with QT_QPA_PLATFORM=offscreen");
+    }
+    const ShortcutPlatform platform =
+        GENERATE(ShortcutPlatform::Windows, ShortcutPlatform::Linux);
+    CAPTURE(static_cast<int>(platform));
+
+    QWidget window;
+    auto* layout = new QVBoxLayout(&window);
+    auto* line = new QLineEdit(&window);
+    auto* list = new QTreeWidget(&window);
+    layout->addWidget(line);
+    layout->addWidget(list);
+    auto* heading = new QAction(QStringLiteral("Heading 1"), &window);
+    heading->setShortcut(QKeySequence(QKeyCombination(ALT, Qt::Key_1)));
+    window.addAction(heading);
+    int runs = 0;
+    QObject::connect(heading, &QAction::triggered, [&runs] { ++runs; });
+    window.show();
+    window.activateWindow();
+    REQUIRE(test::waitUntil([&window] { return window.isActiveWindow(); }));
+    line->setFocus();
+    const Qt::KeyboardModifiers keypad = ALT | Qt::KeypadModifier;
+
+    // Qt takes the 1 of the keypad for the 1 above the letters
+    REQUIRE(runsShortcut(line, Qt::Key_1, keypad, QStringLiteral("1")));
+    REQUIRE(runs == 1);
+
+    const InstalledKeys keys(platform);
+    QWidget* const widgets[] = {line, list, &window};
+    for (QWidget* widget : widgets) {
+        CAPTURE(widget->metaObject()->className());
+        const int before = runs;
+
+        // Alt+0150 is "–" on Windows: the digits go on to the widget, and the character
+        // comes when Alt goes up
+        for (const int digit : {Qt::Key_0, Qt::Key_1, Qt::Key_5, Qt::Key_0}) {
+            CHECK_FALSE(runsShortcut(widget, digit, keypad, QString(QChar(digit))));
+        }
+        CHECK(runs == before);
+
+        // The 1 above the letters runs it
+        CHECK(runsShortcut(widget, Qt::Key_1, ALT, QStringLiteral("1")));
+        CHECK(runs == before + 1);
+    }
+
+    // In a field the digits type nothing; the character comes without a key
+    press(line, Qt::Key_1, keypad, QStringLiteral("1"));
+    press(line, 0, ALT, QStringLiteral("–"));
+    CHECK(line->text() == QStringLiteral("–"));
 }
 
 TEST_CASE("Left and Right over a selection move the cursor from where it is",
