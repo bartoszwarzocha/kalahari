@@ -253,7 +253,8 @@ private:
 
     /// @brief Write the unsaved text of @p element and of the elements inside it to their
     /// chapter files, with the changes of their open tabs; a tab whose text is written no
-    /// longer shows changes
+    /// longer shows changes. The files get the titles, the statuses and the notes of the
+    /// elements, for the files that stay when the elements leave the book.
     /// @return The elements whose text could not be written: @p element or elements inside it
     QList<const core::ProjectElement*> saveTextsOf(const core::ProjectElement& element);
 

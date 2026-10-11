@@ -470,6 +470,13 @@ QList<const core::ProjectElement*> NavigatorCoordinator::saveTextsOf(
                 m_centralTabs->setTabText(tab, m_centralTabs->tabText(tab).mid(1));
             }
         }
+        // The file goes back to the book with its title, status and notes: a book made before
+        // Kalahari wrote them to the files has others there
+        if (!unsaved.contains(&element) && !pm.saveChapterDetails(element.id)) {
+            core::Logger::getInstance().warn("NavigatorCoordinator: The file of '{}' keeps "
+                                             "the title, the status and the notes it had",
+                                             element.title.toStdString());
+        }
     }
     for (const core::ProjectElement& inner : element.elements) {
         unsaved.append(saveTextsOf(inner));

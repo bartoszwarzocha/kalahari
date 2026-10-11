@@ -1610,6 +1610,50 @@ TEST_CASE("ProjectManager keeps the notes of a chapter in its chapter file", "[p
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager writes the title, the status and the notes of a chapter to its file",
+          "[project_manager]") {
+    // A book made before Kalahari wrote them to the files has others there: "Chapter 2" for
+    // "Rozdział 2"
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Details", "Author", "en", true, "kalahari.novel"));
+    const QString id = pm.addElement(pm.chapterKindFor(BookPlace::Main), "The Journey",
+                                     BookPlace::Main);
+    REQUIRE_FALSE(id.isEmpty());
+    REQUIRE(pm.setStatus(id, "revision"));
+    REQUIRE(pm.setNotes(id, "Check the dates"));
+    const QString path = pm.filePathOf(*pm.findElement(id));
+
+    ChapterDocument earlier = chapterFileOf(id);
+    earlier.setKml(kmlWith("Text"));
+    earlier.setTitle("Chapter 2");
+    earlier.setStatus("draft");
+    earlier.setNotes("");
+    REQUIRE(earlier.save(path));
+
+    SECTION("A file with others gets them, and keeps its text") {
+        REQUIRE(pm.saveChapterDetails(id));
+        const ChapterDocument file = chapterFileOf(id);
+        CHECK(file.title() == "The Journey");
+        CHECK(file.status() == "revision");
+        CHECK(file.notes() == "Check the dates");
+        CHECK(file.kml() == earlier.kml());
+    }
+
+    SECTION("A missing file is not made") {
+        REQUIRE(QFile::remove(path));
+        CHECK(pm.saveChapterDetails(id));
+        CHECK_FALSE(QFileInfo::exists(path));
+    }
+
+    SECTION("A part has no file") {
+        const QString part = pm.addElement(pm.partKind(), "Part", BookPlace::Main);
+        REQUIRE_FALSE(part.isEmpty());
+        CHECK(pm.saveChapterDetails(part));
+    }
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("ProjectManager counts the words and statuses of the book", "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();

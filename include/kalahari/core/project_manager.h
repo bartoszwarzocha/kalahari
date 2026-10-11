@@ -445,6 +445,14 @@ public:
     /// @return true when it is written or there is nothing to write
     bool saveChapterContent(const QString& elementId);
 
+    /// @brief Write the title, the status and the notes of a text element to its chapter file
+    /// when the file has others, keeping its text
+    ///
+    /// A book made before Kalahari wrote them to the files has others there; the file that
+    /// stays when the element leaves the book takes the element's own.
+    /// @return true when they are written, the file has them or the element has no file
+    bool saveChapterDetails(const QString& elementId);
+
     /// @brief Get all dirty elements
     /// @return IDs of the text elements whose text is not saved
     std::vector<QString> getDirtyElements() const;

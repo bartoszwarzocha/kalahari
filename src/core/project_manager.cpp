@@ -1524,6 +1524,30 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
     return true;
 }
 
+bool ProjectManager::saveChapterDetails(const QString& elementId) {
+    const ProjectElement* element = findElement(elementId);
+    if (!element || !stateOf(elementId)) {
+        return true;  // Not a text element with a file
+    }
+    const QString path = filePathOf(*element);
+    if (!QFileInfo::exists(path)) {
+        return true;  // A missing file is not made here
+    }
+    const std::optional<ChapterDocument> chapter = ChapterDocument::load(path);
+    if (chapter && chapter->title() == element->title &&
+        chapter->status() == statusOf(*element) &&
+        chapter->notes() == m_elementStates.value(elementId).notes) {
+        return true;
+    }
+    if (!writeChapterFile(*element, std::nullopt)) {
+        return false;
+    }
+    Logger::getInstance().info("saveChapterDetails: The file of '{}' has its title, status and "
+                               "notes",
+                               element->title.toStdString());
+    return true;
+}
+
 std::vector<QString> ProjectManager::getDirtyElements() const {
     std::vector<QString> dirtyIds;
     if (!m_project) {

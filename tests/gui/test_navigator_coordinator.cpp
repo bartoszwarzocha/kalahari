@@ -768,6 +768,34 @@ TEST_CASE("Navigator commands: renaming, moving and deleting, saved at once",
               "Chapter 2 – " + name.toStdString());
     }
 
+    SECTION("The file of a chapter of an earlier book gets the title, the status and the notes "
+            "of the chapter") {
+        // Regression: a book made before Kalahari wrote them to the files has others there, so
+        // the file under "Unassigned Files" went back to the book with another title
+        TestTrash trash;
+        const core::ProjectElement* bodyChapter = pm.findElement(bodyChapterId);
+        REQUIRE(bodyChapter != nullptr);
+        const QString file = pm.filePathOf(*bodyChapter);
+        REQUIRE(pm.setStatus(bodyChapterId, QStringLiteral("revision")));
+        REQUIRE(pm.setNotes(bodyChapterId, QStringLiteral("Check the dates")));
+        std::optional<core::ChapterDocument> earlier = core::ChapterDocument::load(file);
+        REQUIRE(earlier.has_value());
+        earlier->setTitle(QStringLiteral("Chapter 9"));
+        earlier->setStatus(QStringLiteral("draft"));
+        earlier->setNotes(QString());
+        REQUIRE(earlier->save(file));
+
+        CHECK(answering([&] { navigator.coordinator.onRequestDelete(bodyChapterId); },
+                        {answerDelete(true, false)}) == 1);
+        const std::optional<core::ChapterDocument> kept = core::ChapterDocument::load(file);
+        REQUIRE(kept.has_value());
+        CHECK(kept->title() == QStringLiteral("Chapter 2"));
+        CHECK(kept->status() == QStringLiteral("revision"));
+        CHECK(kept->notes() == QStringLiteral("Check the dates"));
+        CHECK(navigator.itemsInSection(QStringLiteral("unassigned_files")) ==
+              "Chapter 2 – " + QFileInfo(file).fileName().toStdString());
+    }
+
     SECTION("Deleting a part takes its chapters out of the book and closes their tabs") {
         TestTrash trash;
         const QString file = pm.filePathOf(chapter);
