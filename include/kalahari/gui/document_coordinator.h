@@ -181,7 +181,14 @@ public slots:
     /// @brief Save document with new name
     void onSaveAsDocument();
 
-    /// @brief Save all modified files
+    /// @brief Save the book: its changed chapters and its data; what cannot be saved is
+    /// reported in a window
+    void onSaveBook();
+
+    /// @brief Save all: the book and every open file outside it that has unsaved changes
+    ///
+    /// A file that cannot be saved is reported and does not stop the others; with nothing to
+    /// save, the status bar says so.
     void onSaveAll();
 
     /// @brief Close current document

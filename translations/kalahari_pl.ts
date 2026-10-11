@@ -2990,6 +2990,14 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <source>Import Without Opening</source>
         <translation>Importuj bez otwierania</translation>
     </message>
+    <message>
+        <source>Nothing to save: all changes are saved</source>
+        <translation>Nie ma nic do zapisania: wszystkie zmiany są zapisane</translation>
+    </message>
+    <message>
+        <source>Book saved</source>
+        <translation>Zapisano książkę</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorColorsPage</name>

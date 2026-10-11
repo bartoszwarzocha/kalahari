@@ -373,6 +373,10 @@ void MainWindow::registerCommands() {
         if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
         if (m_documentCoordinator) m_documentCoordinator->onSaveAsDocument();
     };
+    callbacks.onSaveAll = [this]() {
+        if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
+        if (m_documentCoordinator) m_documentCoordinator->onSaveAll();
+    };
     callbacks.onCloseDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onCloseDocument(); };
     callbacks.onImportArchive = [this]() { if (m_documentCoordinator) m_documentCoordinator->onImportArchive(); };
     callbacks.onExportArchive = [this]() { if (m_documentCoordinator) m_documentCoordinator->onExportArchive(); };

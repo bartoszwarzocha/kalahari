@@ -176,7 +176,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onSaveAsDocument);
 
-    REG_CMD("file.saveAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Save All"), "FILE/Save All", 70, true, 1);
+    // The book and every open file outside it; no shortcut of its own
+    REG_CMD_TOOL_ICON("file.saveAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Save All"),
+                      "FILE/Save All", 70, true, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onSaveAll);
 
     // Import submenu
     REG_CMD("file.import.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "DOCX Document..."), "FILE/Import/DOCX Document...", 80, false, 1);

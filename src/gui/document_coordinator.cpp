@@ -321,8 +321,10 @@ bool DocumentCoordinator::agreeToCloseBook(const QString& saveQuestion,
         bookName = QFileInfo(pm.getProjectPath()).fileName();
     }
 
-    if (m_hasUnsavedChanges()) {
-        // Dirty: offer to save before switching (single source of truth)
+    // The check keeps an annotation being written first. Files open outside the book stay
+    // open with their changes, so only the changes of the book are asked about.
+    if (m_hasUnsavedChanges() && bookHasUnsavedChanges()) {
+        // Dirty: offer to save before switching
         const auto reply = dialogs::MessageDialog::ask(m_mainWindow, tr("Unsaved Changes"),
                                                        saveQuestion.arg(bookName), tr("&Save"),
                                                        tr("Do&n't Save"));
@@ -330,8 +332,8 @@ bool DocumentCoordinator::agreeToCloseBook(const QString& saveQuestion,
             return false;
         }
         if (reply == dialogs::MessageDialog::Answer::Accept) {
-            onSaveAll();
-            return !m_hasUnsavedChanges();  // a failed save stops the command
+            onSaveBook();
+            return !bookHasUnsavedChanges();  // a failed save stops the command
         }
         return true;  // Don't Save: the changes go with the book
     }
@@ -625,7 +627,7 @@ void DocumentCoordinator::onSaveDocument() {
     if (pm.isProjectOpen()) {
         // In project mode, Ctrl+S saves the manifest (including metadata like notes)
         // and any dirty chapter content
-        onSaveAll();
+        onSaveBook();
         return;
     }
 
@@ -744,9 +746,9 @@ bool DocumentCoordinator::saveEditor(EditorPanel* editor) {
     }
     switch (editorKind(editor)) {
     case EditorKind::ProjectChapter:
-        // Chapters are saved with the project; onSaveAll() clears a chapter's flag only
+        // Chapters are saved with the project; onSaveBook() clears a chapter's flag only
         // once its content is written
-        onSaveAll();
+        onSaveBook();
         return !isEditorDirty(editor);
     case EditorKind::StandaloneFile:
         return writeStandaloneFile(editor, standaloneFileOf(editor).path());
@@ -778,7 +780,7 @@ void DocumentCoordinator::discardEditorChanges(EditorPanel* editor) {
 bool DocumentCoordinator::saveAllChanges() {
     if (core::ProjectManager::getInstance().isProjectOpen()) {
         // Every dirty chapter and the project structure, in one save
-        onSaveAll();
+        onSaveBook();
     }
 
     // Then every other tab that still has unsaved changes
@@ -788,7 +790,7 @@ bool DocumentCoordinator::saveAllChanges() {
             continue;
         }
         if (editorKind(editor) == EditorKind::ProjectChapter) {
-            return false;  // onSaveAll() above could not write it, and said so
+            return false;  // onSaveBook() above could not write it, and said so
         }
         if (!saveEditor(editor)) {
             return false;
@@ -834,9 +836,49 @@ void DocumentCoordinator::onSaveAll() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Save All");
 
+    // The editor of tab @p index when it is a file outside the book with unsaved changes
+    const auto unsavedFile = [this](int index) -> EditorPanel* {
+        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(index));
+        const bool unsaved =
+            editor && editorKind(editor) != EditorKind::ProjectChapter && isEditorDirty(editor);
+        return unsaved ? editor : nullptr;
+    };
+
+    // What has unsaved changes now: the book, and the open files outside it
+    const bool bookChanged = bookHasUnsavedChanges();
+    bool filesChanged = false;
+    for (int i = 0; i < m_centralTabs->count() && !filesChanged; ++i) {
+        filesChanged = unsavedFile(i) != nullptr;
+    }
+    if (!bookChanged && !filesChanged) {
+        m_statusBar->showMessage(tr("Nothing to save: all changes are saved"), 3000);
+        return;
+    }
+
+    // Each save reports what it could not write, and that does not stop the others. Saving
+    // closes no tab.
+    bool saved = true;
+    if (bookChanged) {
+        onSaveBook();
+        saved = !bookHasUnsavedChanges();
+    }
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        if (EditorPanel* editor = unsavedFile(i); editor && !saveEditor(editor)) {
+            saved = false;
+        }
+    }
+    if (saved) {
+        m_statusBar->showMessage(tr("All changes saved"), 3000);
+    }
+}
+
+void DocumentCoordinator::onSaveBook() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Saving the book");
+
     auto& pm = core::ProjectManager::getInstance();
     if (!pm.isProjectOpen()) {
-        logger.debug("No project open - Save All does nothing");
+        logger.debug("No project open - nothing to save");
         m_statusBar->showMessage(tr("No project open"), 2000);
         return;
     }
@@ -913,7 +955,7 @@ bool DocumentCoordinator::saveBook() {
 
         pm.setDirty(false);
         logger.info("All chapters and manifest saved successfully");
-        m_statusBar->showMessage(tr("All changes saved"), 2000);
+        m_statusBar->showMessage(tr("Book saved"), 2000);
         return true;
     }
     logger.error("Failed to save some chapters");
