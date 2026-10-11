@@ -9,6 +9,7 @@
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/navigator_coordinator.h"
+#include "kalahari/gui/utils/tab_focus.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/gui/dialogs/add_to_project_dialog.h"
@@ -1188,7 +1189,7 @@ void DocumentCoordinator::addToProject(const QString& filePath) {
             m_navigatorPanel->removeStandaloneFile(filePath);
             m_standaloneFilePaths.removeAll(filePath);
             if (fileEditor) {
-                m_centralTabs->removeTab(m_centralTabs->indexOf(fileEditor));
+                utils::removeTabKeepingFocus(*m_centralTabs, m_centralTabs->indexOf(fileEditor));
                 fileEditor->deleteLater();
                 if (m_navigatorCoordinator) {
                     m_navigatorCoordinator->onElementSelected(elementId, result.newTitle);
@@ -1478,7 +1479,7 @@ void DocumentCoordinator::onProjectClosed() {
     for (int i = m_centralTabs->count() - 1; i >= 0; --i) {
         QWidget* widget = m_centralTabs->widget(i);
         if (qobject_cast<EditorPanel*>(widget) && !widget->property("elementId").toString().isEmpty()) {
-            m_centralTabs->removeTab(i);
+            utils::removeTabKeepingFocus(*m_centralTabs, i);
             widget->deleteLater();
         }
     }
