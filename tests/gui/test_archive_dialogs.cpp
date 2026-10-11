@@ -98,6 +98,33 @@ public:
     }
 };
 
+/// @brief A style of scroll bars that take room beside the content, on each system: wide
+/// enough that the wrapped sentences of the content take more lines beside the bar
+class WideScrollBars : public QProxyStyle {
+public:
+    static constexpr int EXTENT = 200;  ///< Width of a vertical scroll bar
+
+    int pixelMetric(PixelMetric metric, const QStyleOption* option,
+                    const QWidget* widget) const override {
+        if (metric == PM_ScrollBarExtent) {
+            return EXTENT;
+        }
+        if (metric == PM_ScrollView_ScrollBarOverlap) {
+            return 0;
+        }
+        return QProxyStyle::pixelMetric(metric, option, widget);
+    }
+
+    int styleHint(StyleHint hint, const QStyleOption* option, const QWidget* widget,
+                  QStyleHintReturn* returnData) const override {
+        // On macOS the bars are drawn over the content, only while it scrolls
+        if (hint == SH_ScrollBar_Transient) {
+            return 0;
+        }
+        return QProxyStyle::styleHint(hint, option, widget, returnData);
+    }
+};
+
 /// @brief Write file @p path with @p data
 void writeFile(const QString& path, const QByteArray& data) {
     QFile file(path);
@@ -438,8 +465,10 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
     settle();
     REQUIRE(dialog.isDone());
     // The list keeps its rows, and the result has room for its lines: the window grows for
-    // them as far as the screen allows, and on a lower screen the content scrolls
-    CHECK(list->height() == rowsHeight);
+    // them as far as the screen allows, and on a lower screen the content scrolls. A window
+    // that grew while the content scrolled grew for the lines its sentences take beside the
+    // scroll bar: without the bar they take fewer, and the list gets the room they leave.
+    CHECK(list->height() >= rowsHeight);
     const auto* area = dialog.findChild<gui::FittingScrollArea*>();
     REQUIRE(area != nullptr);
     const int needed = area->contentHeightForWidth(area->viewport()->width());
@@ -451,6 +480,51 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
     const bool fits = area->viewport()->height() >= needed;
     const bool asHighAsTheScreen = windowHeight >= screenHeight;
     CHECK((fits || asHighAsTheScreen));
+}
+
+TEST_CASE("Export Project Archive: the window that grew shows the whole result",
+          "[gui][dialogs][archive]") {
+    // Regression: the content got the scroll bar when the result came, and kept it in the
+    // window that grew for the result: beside the bar the sentence of the result took more
+    // lines, and Show in Folder stayed out of view
+    QTemporaryDir dir;
+    ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, dir.path(),
+                               [](const QString&, bool, const ArchiveDialog::Progress&,
+                                  QStringList*) { return true; });
+    // A long name of short words: the sentence of the result takes a few lines, and more
+    // beside the bar
+    QString name;
+    for (int i = 0; i < 7; ++i) {
+        name += QStringLiteral("the books of the writer ");
+    }
+    dialog.nameField()->setText(name.trimmed());
+    auto* area = dialog.findChild<gui::FittingScrollArea*>();
+    REQUIRE(area != nullptr);
+    WideScrollBars style;
+    area->verticalScrollBar()->setStyle(&style);
+    dialog.show();
+    settle();
+
+    dialog.accept();
+    settle();
+    REQUIRE(dialog.isDone());
+    // The window had room to grow for the result
+    const int screenHeight = dialog.screen()->availableGeometry().height();
+    REQUIRE(dialog.frameGeometry().height() < screenHeight);
+    const QLabel* result = labelWith(dialog, dialog.resultText());
+    const QLabel* link = labelWith(dialog, QStringLiteral("<a href=\"show\">Show in Folder</a>"));
+    REQUIRE(result != nullptr);
+    REQUIRE(link != nullptr);
+    INFO("The content scrolls " << area->verticalScrollBar()->maximum() << " in a view "
+                                << area->viewport()->width() << "x" << area->viewport()->height()
+                                << "; the result is " << result->width() << "x"
+                                << result->height());
+    // The content does not scroll, and the sentence and Show in Folder are in view
+    CHECK(area->verticalScrollBar()->maximum() == 0);
+    for (const QLabel* label : {result, link}) {
+        const QRect place(label->mapTo(area->viewport(), QPoint(0, 0)), label->size());
+        CHECK(area->viewport()->rect().contains(place));
+    }
 }
 
 TEST_CASE("Export Project Archive: in a low window the progress and the result are in view",

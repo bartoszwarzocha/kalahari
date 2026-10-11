@@ -397,13 +397,15 @@ void ArchiveDialog::fitHeight()
         return;
     }
     // The content's own height at the width it has, in place of the height the area of the
-    // content asks for, as in KalahariDialog::sizeHint(). The width is the one without the
-    // scroll bar, which the area shows only until the window has grown: at the narrower width
-    // of the bar, wrapped sentences would ask for more lines than they keep
+    // content asks for, as in KalahariDialog::sizeHint(). The width is the one beside the
+    // scroll bar while the area shows it: the area keeps the bar as long as the content does
+    // not fit at that width, where wrapped sentences take more lines, and the end of the
+    // result would stay out of view. In the higher window the bar goes, and the fields take
+    // the room the wider sentences leave.
     const int height = layout()->hasHeightForWidth() ? layout()->totalHeightForWidth(width())
                                                      : layout()->totalSizeHint().height();
     const int wanted = height - area->sizeHint().height() +
-                       area->contentHeightForWidth(area->maximumViewportSize().width());
+                       area->contentHeightForWidth(area->viewport()->width());
     // Within the screen, where the content scrolls; a window that grew past the bottom of the
     // screen moves up. The layout has just taken in the content: asking it again would bring
     // another LayoutRequest, and a window that cannot grow would never stop asking.
