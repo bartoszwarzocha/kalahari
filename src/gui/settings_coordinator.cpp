@@ -39,11 +39,15 @@ void SettingsCoordinator::setDiagnosticModeGetter(std::function<bool()> callback
     m_diagnosticModeGetter = std::move(callback);
 }
 
+void SettingsCoordinator::setSpellCheckService(editor::SpellCheckService* service) {
+    m_spellCheckService = service;
+}
+
 void SettingsCoordinator::openSettingsDialog() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Settings");
 
-    SettingsDialog dialog(m_mainWindow, m_diagnosticModeGetter());
+    SettingsDialog dialog(m_mainWindow, m_diagnosticModeGetter(), m_spellCheckService);
     connect(&dialog, &SettingsDialog::settingsApplied,
             this, &SettingsCoordinator::onApplySettings);
     connect(&dialog, &SettingsDialog::diagnosticModeChanged, this, [this](bool enabled) {

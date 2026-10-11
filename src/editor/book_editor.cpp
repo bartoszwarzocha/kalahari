@@ -814,6 +814,10 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
                 invalidateParagraphCounts(doc, from, charsAdded);
             });
 
+    // and their spelling is checked again (the waves of the words left as they were stay)
+    connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
+            &BookEditor::adjustSpellingToEdit);
+
     // The content goes in in a single edit block: Qt then reports one change and the
     // layout runs once, at endEditBlock().
     QTextCursor cursor(m_textBuffer.get());
@@ -843,6 +847,9 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
 
     // The new text has the zoom of the settings (syncPipelineState())
     applyFirstShowShrink();
+
+    // Its spelling is checked from the paragraphs in view
+    requestSpellCheck();
 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now() - startTime);

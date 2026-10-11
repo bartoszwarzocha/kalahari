@@ -326,16 +326,16 @@ TEST_CASE("Stage5 highlights: typed TODO and comment patterns are plain text",
 
 TEST_CASE("Stage5 highlights: check results apply while the paragraph keeps its text",
           "[editor][stage5][highlight]") {
+    // The grammar check's results; the spelling waves move with the edits instead
+    // (test_spelling.cpp)
     auto editor = editorWith(kmlOf({QStringLiteral("Teh cat sat"), QStringLiteral("Other line")}));
-    SpellCheckService spelling;
     GrammarCheckService grammar;
     grammar.setEnabled(false);  // no initial check of the document
-    editor->setSpellCheckService(&spelling);
     editor->setGrammarCheckService(&grammar);
 
-    emit spelling.paragraphChecked(0, {SpellErrorInfo(0, 3, QStringLiteral("Teh"))});
-    emit grammar.paragraphChecked(0, {GrammarError(4, 7, QStringLiteral("cat sat"))});
-    const std::vector<TextHighlight> checked{{0, 3, HighlightKind::Spelling},
+    emit grammar.paragraphChecked(0, {GrammarError(0, 3, QStringLiteral("Teh")),
+                                      GrammarError(4, 7, QStringLiteral("cat sat"))});
+    const std::vector<TextHighlight> checked{{0, 3, HighlightKind::Grammar},
                                              {4, 7, HighlightKind::Grammar}};
     CHECK(highlightsOf(*editor, 0) == checked);
     CHECK(highlightsOf(*editor, 1).empty());
@@ -357,30 +357,35 @@ TEST_CASE("Stage5 highlights: check results apply while the paragraph keeps its 
     }
 
     SECTION("a new check replaces them") {
-        emit spelling.paragraphChecked(0, {});
+        emit grammar.paragraphChecked(0, {GrammarError(4, 7, QStringLiteral("cat sat"))});
         CHECK(highlightsOf(*editor, 0) ==
               std::vector<TextHighlight>{{4, 7, HighlightKind::Grammar}});
     }
 
     SECTION("results for text the paragraph no longer has are dropped") {
-        // Made before "sat" became "Teh"...: the word is not at its place any more
-        emit spelling.paragraphChecked(0, {SpellErrorInfo(8, 3, QStringLiteral("set")),
-                                           SpellErrorInfo(0, 3, QStringLiteral("Teh")),
-                                           SpellErrorInfo(9, 5, QStringLiteral("sat"))});
+        // Made before "sat" became "Teh"...: the words are not at their places any more
+        emit grammar.paragraphChecked(0, {GrammarError(8, 3, QStringLiteral("set")),
+                                          GrammarError(0, 3, QStringLiteral("Teh")),
+                                          GrammarError(4, 7, QStringLiteral("cat sat")),
+                                          GrammarError(9, 5, QStringLiteral("sat"))});
         CHECK(highlightsOf(*editor, 0) == checked);
     }
 }
 
 TEST_CASE("Stage5 highlights: spelling and grammar issues are drawn as waves",
           "[editor][stage5][highlight]") {
+    // The spelling is checked while the editor is shown
     auto editor = editorWith(kmlOf({QStringLiteral("Teh cat sat on the mat")}));
-    SpellCheckService spelling;
-    editor->setSpellCheckService(&spelling);
+    editor->show();
+    runEventLoop(50);
     const QRect word = rangeArea(*editor, 0, 0, 3);
     const QRect rest = rangeArea(*editor, 0, 4, 22);
     const QImage plain = editorImage(*editor);
 
-    emit spelling.paragraphChecked(0, {SpellErrorInfo(0, 3, QStringLiteral("Teh"))});
+    SpellCheckService spelling;
+    REQUIRE(spelling.loadDictionary(QStringLiteral("en_US")));
+    editor->setSpellCheckService(&spelling);
+    REQUIRE(waitUntil([&editor]() { return !editor->isSpellCheckPending(); }, 20000));
     const QImage checked = editorImage(*editor);
     CHECK(differingPixels(plain, checked, word) > word.width() / 2);
     CHECK(differingPixels(plain, checked, rest) == 0);

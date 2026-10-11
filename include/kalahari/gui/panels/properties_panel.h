@@ -166,6 +166,10 @@ signals:
     /// @note Used to notify Navigator to refresh the item's display title (status suffix)
     void chapterStatusChanged(const QString& elementId);
 
+    /// @brief Emitted when the book's language is changed in the panel
+    /// @param language Its code (pl, en...)
+    void bookLanguageChanged(const QString& language);
+
 private:
     /// @brief Setup UI components
     void setupUI();

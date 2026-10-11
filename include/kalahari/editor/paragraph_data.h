@@ -16,9 +16,12 @@ namespace kalahari::editor {
 ///
 /// They are kept with the text they were made for and apply only while the paragraph
 /// still has that text: an edit makes them stale until the paragraph is checked again.
+/// The spelling check moves them with the edits instead (BookEditor), so the waves of the
+/// words an edit leaves as they were stay.
 struct ParagraphCheck {
-    QString text;                       ///< Paragraph text the results are for
+    QString text;                       ///< Paragraph text the results are for (with issues)
     std::vector<TextHighlight> issues;  ///< Ranges found, offsets in that text
+    bool current = false;               ///< Checked since the text or the dictionary changed
 
     /// @brief Issues that apply to a paragraph with @p currentText (none when it changed)
     const std::vector<TextHighlight>* issuesFor(const QString& currentText) const {
