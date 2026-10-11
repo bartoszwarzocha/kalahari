@@ -321,6 +321,7 @@ void ArchiveDialog::startWork()
     m_result->hide();
     m_progressBar->setValue(0);
     m_progressBar->show();
+    bringIntoView(m_progressBar);
     // The window shows that the work started
     QCoreApplication::processEvents();
 }
@@ -351,6 +352,7 @@ void ArchiveDialog::finishWork(const QString& text, const QString& path)
     cancelButton()->hide();
     acceptButton()->setEnabled(true);
     acceptButton()->setFocus();
+    bringIntoView(m_result);
 }
 
 void ArchiveDialog::failWork(const QString& text, const QStringList& problems)
@@ -369,6 +371,7 @@ void ArchiveDialog::failWork(const QString& text, const QStringList& problems)
     m_fields->setEnabled(true);
     acceptButton()->setEnabled(true);
     cancelButton()->setEnabled(true);
+    bringIntoView(m_result);
 }
 
 bool ArchiveDialog::event(QEvent* event)
@@ -390,15 +393,33 @@ void ArchiveDialog::fitHeight()
         return;
     }
     // The content's own height at the width it has, in place of the height the area of the
-    // content asks for, as in KalahariDialog::sizeHint()
+    // content asks for, as in KalahariDialog::sizeHint(). The width is the one without the
+    // scroll bar, which the area shows only until the window has grown: at the narrower width
+    // of the bar, wrapped sentences would ask for more lines than they keep
     const int height = layout()->hasHeightForWidth() ? layout()->totalHeightForWidth(width())
                                                      : layout()->totalSizeHint().height();
     const int wanted = height - area->sizeHint().height() +
-                       area->contentHeightForWidth(area->viewport()->width());
+                       area->contentHeightForWidth(area->maximumViewportSize().width());
     // Within the screen, where the content scrolls; a window that grew past the bottom of the
     // screen moves up
     if (wanted > this->height()) {
         fitToScreen(QSize(width(), wanted));
+    }
+}
+
+void ArchiveDialog::bringIntoView(QWidget* widget)
+{
+    auto* area = findChild<FittingScrollArea*>(QString(), Qt::FindDirectChildrenOnly);
+    if (!isVisible() || !area) {
+        return;
+    }
+    // The window grows for what it shows now (fitHeight()) and the content takes its place,
+    // before the area scrolls to it
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+    area->ensureWidgetVisible(widget, 0, 0);
+    // A result higher than the area shows its sentence, with the details under it
+    if (widget == m_result) {
+        area->ensureWidgetVisible(m_resultText, 0, 0);
     }
 }
 

@@ -25,6 +25,7 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QScreen>
+#include <QScrollBar>
 #include <QTemporaryDir>
 #include <QTranslator>
 #include <QTreeWidget>
@@ -431,6 +432,72 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
     const bool fits = area->viewport()->height() >= needed;
     const bool asHighAsTheScreen = windowHeight >= screenHeight;
     CHECK((fits || asHighAsTheScreen));
+}
+
+TEST_CASE("Export Project Archive: in a low window the progress and the result are in view",
+          "[gui][dialogs][archive]") {
+    // Regression: on a low screen (1366x768 at 125%) the window stopped at the screen with the
+    // fields in view, and the writer had to scroll to read the result
+    QTemporaryDir dir;
+    // A long path: the sentence of the result takes more than one line
+    const QString folder = QDir(dir.path()).filePath(
+        QStringLiteral("The archives of the books of the writer/The archives of this year"));
+    ExportArchiveDialog::Book book{QStringLiteral("Travels"), {}, false, 0};
+    for (int i = 1; i <= 4; ++i) {
+        book.unready.append({QStringLiteral("Chapter %1").arg(i), QStringLiteral("draft"),
+                             QStringLiteral("template.chapter")});
+    }
+    bool succeeds = true;
+    ExportArchiveDialog* shown = nullptr;
+    const gui::FittingScrollArea* area = nullptr;
+    // Whether @p widget is wholly in the part of the content in view
+    const auto inView = [&area](const QWidget* widget) {
+        const QRect place(widget->mapTo(area->viewport(), QPoint(0, 0)), widget->size());
+        return area->viewport()->rect().contains(place);
+    };
+    ExportArchiveDialog dialog(book, folder,
+                               [&](const QString& archive, bool,
+                                   const ArchiveDialog::Progress& progress,
+                                   QStringList* problems) {
+                                   progress(40);
+                                   CHECK(inView(shown->progressBar()));
+                                   if (!succeeds) {
+                                       problems->append(
+                                           QStringLiteral("Travels.klh.zip: the disk is full"));
+                                       return false;
+                                   }
+                                   writeFile(archive, "archive");
+                                   return true;
+                               });
+    shown = &dialog;
+    dialog.show();
+    settle();
+    area = dialog.findChild<gui::FittingScrollArea*>();
+    REQUIRE(area != nullptr);
+    // The window cannot grow, as on a screen as high as the window
+    dialog.setMaximumHeight(dialog.height());
+
+    SECTION("Saved") {
+        dialog.accept();
+        settle();
+        REQUIRE(dialog.isDone());
+        // The content scrolls, and the result is in view
+        REQUIRE(area->verticalScrollBar()->maximum() > 0);
+        const QLabel* result = labelWith(dialog, dialog.resultText());
+        REQUIRE(result != nullptr);
+        CHECK(inView(result));
+    }
+
+    SECTION("Not saved") {
+        succeeds = false;
+        dialog.accept();
+        settle();
+        REQUIRE_FALSE(dialog.isDone());
+        REQUIRE(area->verticalScrollBar()->maximum() > 0);
+        const QLabel* result = labelWith(dialog, dialog.resultText());
+        REQUIRE(result != nullptr);
+        CHECK(inView(result));
+    }
 }
 
 TEST_CASE("Export Project Archive: a line under a field is as high as its sentence",
