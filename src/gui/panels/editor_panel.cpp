@@ -2,6 +2,7 @@
 /// @brief Editor panel implementation with BookEditor (OpenSpec #00042 Phase 7.1)
 
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
@@ -12,7 +13,6 @@
 #include "kalahari/editor/statistics_collector.h"
 #include <QEvent>
 #include <QGuiApplication>
-#include <QMessageBox>
 #include <QScreen>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -156,7 +156,7 @@ bool EditorPanel::setContent(const QString& content) {
 }
 
 void EditorPanel::warnDamagedChapter(QWidget* parent, const QString& chapterName) {
-    QMessageBox::warning(
+    dialogs::MessageDialog::warning(
         parent,
         tr("Damaged Chapter"),
         tr("The chapter \"%1\" is damaged, so only its text before the damaged place is shown.\n\n"

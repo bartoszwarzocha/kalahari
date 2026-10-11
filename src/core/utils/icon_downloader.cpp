@@ -3,6 +3,7 @@
 
 #include "kalahari/core/utils/icon_downloader.h"
 #include "kalahari/core/logger.h"
+#include <QCoreApplication>
 #include <QNetworkRequest>
 #include <QUrl>
 
@@ -10,6 +11,11 @@ using namespace kalahari::core;
 
 namespace {
     constexpr int DOWNLOAD_TIMEOUT_MS = 10000; // 10 seconds
+
+    /// @brief A message for the writer, translated (lupdate finds it in gui/utils/core_texts.cpp)
+    QString message(const char* source) {
+        return QCoreApplication::translate("kalahari::core::IconDownloader", source);
+    }
 }
 
 // ============================================================================
@@ -31,7 +37,7 @@ void IconDownloader::downloadFromUrl(const QString& url, const QString& theme) {
     // Validate URL
     QUrl qurl(url);
     if (!qurl.isValid()) {
-        QString error = QString("Invalid URL: %1").arg(url);
+        QString error = message("Invalid URL: %1").arg(url);
         emit downloadError(url, error);
         Logger::getInstance().error("IconDownloader: {}", error.toStdString());
         return;
@@ -98,24 +104,45 @@ void IconDownloader::onReplyFinished() {
 
         switch (reply->error()) {
             case QNetworkReply::ContentNotFoundError:
-                errorMsg = QString("Not found (404): %1").arg(url);
+                errorMsg = message("Not found (404): %1").arg(url);
+                break;
+
+            case QNetworkReply::ContentAccessDenied:
+                errorMsg = message("Access denied (403): %1").arg(url);
                 break;
 
             case QNetworkReply::TimeoutError:
-                errorMsg = QString("Download timeout (%1ms)").arg(DOWNLOAD_TIMEOUT_MS);
+            case QNetworkReply::OperationCanceledError:
+                errorMsg = message("The server did not answer within %1 seconds")
+                               .arg(DOWNLOAD_TIMEOUT_MS / 1000);
                 break;
 
             case QNetworkReply::HostNotFoundError:
             case QNetworkReply::ConnectionRefusedError:
-                errorMsg = QString("Network error: Cannot connect");
+            case QNetworkReply::RemoteHostClosedError:
+                errorMsg = message("Cannot connect to the server");
+                break;
+
+            case QNetworkReply::ProxyConnectionRefusedError:
+            case QNetworkReply::ProxyConnectionClosedError:
+            case QNetworkReply::ProxyNotFoundError:
+            case QNetworkReply::ProxyTimeoutError:
+            case QNetworkReply::ProxyAuthenticationRequiredError:
+                errorMsg = message("The proxy server did not let the connection through");
+                break;
+
+            case QNetworkReply::SslHandshakeFailedError:
+                errorMsg = message("A secure connection to the server failed");
                 break;
 
             default:
-                errorMsg = QString("HTTP error: %1").arg(reply->errorString());
+                // Qt's own description of the problem stays as the detail
+                errorMsg = message("Download failed: %1").arg(reply->errorString());
                 break;
         }
 
-        Logger::getInstance().error("IconDownloader: Download failed: {}", errorMsg.toStdString());
+        Logger::getInstance().error("IconDownloader: Download failed (network error {}): {}",
+                                    static_cast<int>(reply->error()), errorMsg.toStdString());
         emit downloadError(url, errorMsg);
         reply->deleteLater();
         return;
@@ -126,7 +153,7 @@ void IconDownloader::onReplyFinished() {
     QString svgString = QString::fromUtf8(svgData);
 
     if (svgString.isEmpty()) {
-        QString error = QString("Downloaded SVG is empty");
+        QString error = message("The downloaded file is empty");
         Logger::getInstance().error("IconDownloader: {}", error.toStdString());
         emit downloadError(url, error);
         reply->deleteLater();
