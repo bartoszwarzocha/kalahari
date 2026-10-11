@@ -138,3 +138,12 @@ TEST_CASE("Panels: the Properties command of the Navigator brings the Properties
 
     CHECK(panels.onTop(panels.docks->propertiesDock()));
 }
+
+TEST_CASE("Panels: the panels on the right can be made narrow", "[gui][panels]") {
+    // On a small screen (1366x768 at 150%) wide panels on the right left the editor little room
+    Panels panels;
+    QDockWidget* annotations = panels.docks->annotationsDock();
+    panels.window.resizeDocks({annotations}, {100}, Qt::Horizontal);
+    QApplication::processEvents();
+    CHECK(annotations->width() <= 200);
+}

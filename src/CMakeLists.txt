@@ -171,6 +171,9 @@ set(KALAHARI_SOURCES
     gui/widgets/path_label.cpp  # A file path that wraps also inside a long name
     gui/widgets/length_spin_box.cpp
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
+    gui/widgets/flow_layout.cpp  # A row of buttons that wraps on a narrow panel
+    gui/widgets/segmented_layout.cpp  # Joined buttons, one under another on a narrow panel
+    gui/widgets/height_for_width_scroll_area.cpp  # Rows that wrap, and scroll in a low panel
     gui/widgets/shortcut_recorder.cpp  # A field that records key presses
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
     gui/toolbar_manager.cpp

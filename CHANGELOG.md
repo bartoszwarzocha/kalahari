@@ -43,6 +43,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Side panels on a small screen** - 2026-10-11. The panels on the right can be made much
+  narrower, so that the text keeps its room on a 1366 × 768 screen at 125% and 150%. In the
+  Annotations panel the kind buttons and the To-do buttons go on in the next line, the
+  Open/Done/All and Chapter/Book buttons go one under another (still joined), the date list
+  goes under the scope and both lists get narrower; in a panel too low for all of that the
+  filters scroll, the cards keep their room, and no control is drawn over another. The text
+  of the Assistant panel wraps.
+
 - **Keyboard shortcuts: one set on every system** - 2026-10-10. Every shortcut is written
   out in the program and is the same on Windows and Linux; macOS shows Cmd for Ctrl. Eight
   commands took the keys Qt gives each system and desktop, so Close Book was Ctrl+F4 on
@@ -504,6 +512,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     of hardcoded cream/amber values plus a manual luminance branch.
 
 ### Fixed
+
+- **Muted texts that could not be read** - 2026-10-11. The planned pages in the Settings
+  list (nearly invisible in the Dark theme), the hint under the address in the icon
+  downloader and the muted texts of the Dashboard (the tagline, the shortcuts heading, the
+  description, path and date of a recent book, "no items") have the color of the notes of
+  the Settings pages, readable on what they lie on in both themes (at least 4.5:1); the
+  Settings list follows a change of the theme.
 
 - **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
   texts of the Settings pages and the descriptions of the planned pages had a contrast of

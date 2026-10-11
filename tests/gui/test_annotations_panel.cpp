@@ -31,7 +31,6 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QResizeEvent>
-#include <QScrollArea>
 #include <QTabWidget>
 #include <QTextDocument>
 #include <QTextEdit>
@@ -110,7 +109,9 @@ bool keepsFromShortcuts(QWidget* widget, int key, Qt::KeyboardModifiers modifier
 
 /// The widget of the panel's list of cards, which has the keys of the list
 QWidget* listOf(const AnnotationsPanel& panel) {
-    return panel.findChild<QScrollArea*>()->widget();
+    auto* list = panel.findChild<QWidget*>(QStringLiteral("annotationList"));
+    REQUIRE(list != nullptr);
+    return list;
 }
 
 /// A theme of the application, as its file has it
