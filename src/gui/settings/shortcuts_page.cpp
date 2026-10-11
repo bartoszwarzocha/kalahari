@@ -109,13 +109,16 @@ QString searchForm(const QString& text) {
 
 /// The beginnings of the words of a search, case folded: a word of five letters or more
 /// without its ending (one letter, two of a word of seven), so that a name with another form
-/// of the word is found too: "książka" finds "Zamknij książkę", "akapit" "w akapicie"
+/// of the word is found too: "książka" finds "Zamknij książkę", "akapit" "w akapicie". A word
+/// with other characters stays whole: "ctrl+h" is a key, not the "ctrl+" of "(Ctrl+Alt)"
 QStringList searchStems(const QString& text) {
     QStringList stems;
     const QStringList words =
         text.toCaseFolded().simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
     for (const QString& word : words) {
-        const qsizetype ending = word.size() >= 7 ? 2 : (word.size() >= 5 ? 1 : 0);
+        const bool letters = std::all_of(word.cbegin(), word.cend(),
+                                         [](QChar character) { return character.isLetter(); });
+        const qsizetype ending = !letters ? 0 : (word.size() >= 7 ? 2 : (word.size() >= 5 ? 1 : 0));
         stems.append(word.left(word.size() - ending));
     }
     return stems;

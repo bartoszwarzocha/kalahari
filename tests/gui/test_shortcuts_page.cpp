@@ -603,6 +603,9 @@ TEST_CASE("Shortcuts page: the search finds the other forms of the words",
     addCommand("file.save", "Zapisz", "FILE/Zapisz", 3, shortcut(Qt::Key_S, CTRL));
     addCommand("edit.paragraph", "Wiersz w akapicie", "EDIT/Wiersz w akapicie", 1,
                KeyboardShortcut());
+    // A name with keys in it, as "Desktop keys (Ctrl+Alt)" of the Linux desktop
+    addCommand("edit.altKeys", "Klawisze (Ctrl+Alt)", "EDIT/Klawisze (Ctrl+Alt)", 2,
+               KeyboardShortcut());
     ShortcutsPage page;
     page.load();
     QTreeWidget* list = listOf(page);
@@ -612,6 +615,7 @@ TEST_CASE("Shortcuts page: the search finds the other forms of the words",
     QTreeWidgetItem* close = itemNamed(list, QStringLiteral("Zamknij ksi\u0105\u017ck\u0119"));
     QTreeWidgetItem* save = itemNamed(list, QStringLiteral("Zapisz"));
     QTreeWidgetItem* line = itemNamed(list, QStringLiteral("Wiersz w akapicie"));
+    QTreeWidgetItem* altKeys = itemNamed(list, QStringLiteral("Klawisze (Ctrl+Alt)"));
     QTreeWidgetItem* newParagraph = itemNamed(list, QStringLiteral("New paragraph"));
 
     search->setText(QStringLiteral("ksi\u0105\u017cka"));  // książka
@@ -639,6 +643,12 @@ TEST_CASE("Shortcuts page: the search finds the other forms of the words",
     search->setText(QStringLiteral("zapis"));
     CHECK(isShown(save));
     CHECK_FALSE(isShown(close));
+
+    // Keys are not words with endings: "ctrl+h" is not the "ctrl+" of "(Ctrl+Alt)"
+    search->setText(QStringLiteral("ctrl+h"));
+    CHECK_FALSE(isShown(altKeys));
+    search->setText(QStringLiteral("ctrl+alt"));
+    CHECK(isShown(altKeys));
 }
 
 TEST_CASE("Shortcuts page: written keys find those keys, not longer ones",

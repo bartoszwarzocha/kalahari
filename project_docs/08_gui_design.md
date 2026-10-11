@@ -1823,7 +1823,8 @@ opens Settings on this page. `src/gui/settings/shortcuts_page.cpp`.
 - **Search:** by the name of a command or the text of its keys ("ctrl+f" finds Ctrl+F). The
   words of a name may come in any order, and a word of five letters or more finds its other
   forms too, without its last letter (two of a word of seven): "książka" finds "Otwórz
-  książkę..." and "Zamknij książkę". A whole key name finds that key: "ctrl+h" finds Ctrl+H
+  książkę..." and "Zamknij książkę"; a word with other characters than letters stays whole
+  (a key is not a word with an ending). A whole key name finds that key: "ctrl+h" finds Ctrl+H
   and not Ctrl+Home, "f1" finds F1 and not F10–F12; while no keys have it, it is a name being
   written and finds the keys it begins ("shift+f1" finds Shift+F11). **Search by Keys** –
   press a shortcut, and the list shows what has it (a fixed key with what it does, a key
