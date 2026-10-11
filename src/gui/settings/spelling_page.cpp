@@ -125,9 +125,9 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
                           stored);
     }
     QLabel* languageLabel = addField(checking, tr("Language:"), language, LANGUAGE_KEY);
-    addNote(checking, tr("With Language of the book the chapters are checked in the language "
-                         "of the book, set in its properties, and other documents, such as a "
-                         "file opened from the disk, in the language of the program. A "
+    addNote(checking, tr("With \"Language of the book\" the chapters are checked in the "
+                         "language of the book, set in its properties, and other documents, such "
+                         "as a file opened from the disk, in the language of the program. A "
                          "misspelled word is underlined with a wavy line; right-click it for "
                          "suggestions. Tools > Check Spelling as You Type (Shift+F7) turns the "
                          "checking on and off."));
@@ -161,8 +161,8 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
     row->addWidget(m_add);
     row->addWidget(m_remove);
     own->addRow(row);
-    addNote(own, tr("Words that are right whatever the dictionary says; Add to Dictionary in the "
-                    "context menu of a misspelled word puts it here. A word in lower case is "
+    addNote(own, tr("Words that are right whatever the dictionary says; \"Add to Dictionary\" in "
+                    "the context menu of a misspelled word puts it here. A word in lower case is "
                     "right also with capital letters."));
 
     connect(m_add, &QPushButton::clicked, this, &EditorSpellingPage::addWord);
