@@ -995,7 +995,7 @@ void ImportArchiveDialog::showBook()
     const QString author = book ? book->author.trimmed() : QString();
     m_authorValue->setText(author);
     setRowVisible(m_authorValue, !author.isEmpty());
-    m_typeValue->setText(typeName());
+    m_typeValue->setText(typeNameOf(*m_registry, *m_project));
 
     // The elements of the book: the main part first, as it holds the most of them
     QList<const core::ProjectElement*> elements;
@@ -1039,20 +1039,6 @@ QString ImportArchiveDialog::bookTitle() const
         return m_project->books.first().title;
     }
     return core::ProjectManager::archiveProjectName(m_archive);
-}
-
-QString ImportArchiveDialog::typeName() const
-{
-    if (!m_project || !m_project->type) {
-        //: The type of a book whose author chose its kinds. In Polish: Projekt użytkownika
-        return tr("User Project");
-    }
-    if (const core::BookTypePackage* package = m_registry->package(m_project->type->id)) {
-        return package->name.text(programLanguage());
-    }
-    //: The type of a book whose package is not installed; %1: the id of the type. In Polish:
-    //: %1 (typ niezainstalowany)
-    return tr("%1 (not installed)").arg(m_project->type->id);
 }
 
 } // namespace dialogs

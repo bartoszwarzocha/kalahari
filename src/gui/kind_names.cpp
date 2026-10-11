@@ -27,6 +27,19 @@ void setProgramLanguage(const QString& code) {
     language() = code.isEmpty() ? QStringLiteral("en") : code;
 }
 
+QString typeNameOf(const core::BookTypeRegistry& registry, const core::BookProject& project) {
+    if (!project.type) {
+        //: The type of a book whose author chose its kinds. In Polish: Projekt użytkownika
+        return QCoreApplication::translate("KindNames", "User Project");
+    }
+    if (const core::BookTypePackage* package = registry.package(project.type->id)) {
+        return package->name.text(programLanguage());
+    }
+    //: The type of a book whose package is not installed; %1: the id of the type. In Polish:
+    //: %1 (typ niezainstalowany)
+    return QCoreApplication::translate("KindNames", "%1 (not installed)").arg(project.type->id);
+}
+
 core::KindWords wordsOf(const core::KindRef& kind) {
     return kind ? kind.kind->wordsIn(programLanguage()) : core::KindWords{};
 }

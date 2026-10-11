@@ -81,12 +81,12 @@ DashboardPage::DashboardPage(QWidget* parent)
 
     addCheckBox(form, tr("Show Kalahari News"), "dashboard.showKalahariNews")
         ->setToolTip(tr("Display news and updates section on Dashboard"));
-    addCheckBox(form, tr("Show Recent Files"), "dashboard.showRecentFiles")
-        ->setToolTip(tr("Display recently opened projects on Dashboard"));
+    addCheckBox(form, tr("Show Recent Books"), "dashboard.showRecentFiles")
+        ->setToolTip(tr("Display recently opened books on Dashboard"));
 
     auto* maxItems = new QSpinBox();
     maxItems->setRange(3, 9);
-    maxItems->setToolTip(tr("Number of items to show in News and Recent Files sections (3-9)"));
+    maxItems->setToolTip(tr("Number of items to show in News and Recent Books sections (3-9)"));
     addField(form, tr("Maximum items per section:"), maxItems, "dashboard.maxItems");
 
     auto* iconSize = new QSpinBox();

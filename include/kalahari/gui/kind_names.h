@@ -16,6 +16,7 @@
 
 namespace kalahari {
 namespace core {
+struct BookProject;
 struct ProjectElement;
 } // namespace core
 
@@ -31,6 +32,11 @@ QString programLanguage();
 /// @brief Set the language of the program's texts; main() sets the language of the translation
 /// it loads
 void setProgramLanguage(const QString& language);
+
+/// @brief Name of the type of @p project in the program's language: the name of its package in
+/// @p registry; "User Project" for a book without a type; for a type whose package is not
+/// installed, its id with "(not installed)"
+QString typeNameOf(const core::BookTypeRegistry& registry, const core::BookProject& project);
 
 /// @brief Forms of the name of @p kind in the program's language; none without a kind
 core::KindWords wordsOf(const core::KindRef& kind);

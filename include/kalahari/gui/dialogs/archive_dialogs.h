@@ -377,9 +377,6 @@ private:
     /// @brief The title of the book of the archive; the name of the archive when it has none
     QString bookTitle() const;
 
-    /// @brief The name of the type of the book of the archive
-    QString typeName() const;
-
     const core::BookTypeRegistry* m_registry;
     Importer m_importer;
     OpeningQuestion m_openingQuestion;

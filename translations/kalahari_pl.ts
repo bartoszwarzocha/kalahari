@@ -662,6 +662,14 @@
         <comment>gender of the word element</comment>
         <translation>masculine</translation>
     </message>
+    <message>
+        <source>User Project</source>
+        <translation>Projekt użytkownika</translation>
+    </message>
+    <message>
+        <source>%1 (not installed)</source>
+        <translation>%1 (typ niezainstalowany)</translation>
+    </message>
 </context>
 <context>
     <name>ProgramFolders</name>
@@ -1704,12 +1712,12 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <translation>Ostatnie książki</translation>
     </message>
     <message>
-        <source>No Recent Files</source>
-        <translation>Brak ostatnich plików</translation>
+        <source>No Recent Books</source>
+        <translation>Brak ostatnich książek</translation>
     </message>
     <message>
-        <source>Clear Recent Files</source>
-        <translation>Wyczyść listę ostatnich plików</translation>
+        <source>Clear Recent Books</source>
+        <translation>Wyczyść listę ostatnich książek</translation>
     </message>
 </context>
 <context>
@@ -2334,18 +2342,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Pokazuje na Pulpicie sekcję wiadomości i aktualizacji</translation>
     </message>
     <message>
-        <source>Show Recent Files</source>
-        <translation>Pokazuj ostatnie pliki</translation>
-    </message>
-    <message>
-        <source>Display recently opened projects on Dashboard</source>
-        <translation>Pokazuje na Pulpicie ostatnio otwierane projekty</translation>
-    </message>
-    <message>
-        <source>Number of items to show in News and Recent Files sections (3-9)</source>
-        <translation>Liczba pozycji w sekcjach wiadomości i ostatnich plików (3–9)</translation>
-    </message>
-    <message>
         <source>Maximum items per section:</source>
         <translation>Najwięcej pozycji w sekcji:</translation>
     </message>
@@ -2360,6 +2356,18 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>Icon size:</source>
         <translation>Rozmiar ikon:</translation>
+    </message>
+    <message>
+        <source>Show Recent Books</source>
+        <translation>Pokazuj ostatnie książki</translation>
+    </message>
+    <message>
+        <source>Display recently opened books on Dashboard</source>
+        <translation>Pokazuje na Pulpicie ostatnio otwierane książki</translation>
+    </message>
+    <message>
+        <source>Number of items to show in News and Recent Books sections (3-9)</source>
+        <translation>Liczba pozycji w sekcjach wiadomości i ostatnich książek (3–9)</translation>
     </message>
 </context>
 <context>
@@ -2405,10 +2413,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Wiadomości Kalahari</translation>
     </message>
     <message>
-        <source>Recent Files</source>
-        <translation>Ostatnie pliki</translation>
-    </message>
-    <message>
         <source>Unknown Author</source>
         <translation>Autor nieznany</translation>
     </message>
@@ -2421,12 +2425,16 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Nie znaleziono pliku</translation>
     </message>
     <message>
-        <source>No recent projects yet.</source>
-        <translation>Nie ma jeszcze ostatnich projektów.</translation>
-    </message>
-    <message>
         <source>No news yet.</source>
         <translation>Nie ma jeszcze wiadomości.</translation>
+    </message>
+    <message>
+        <source>Recent Books</source>
+        <translation>Ostatnie książki</translation>
+    </message>
+    <message>
+        <source>No recent books.</source>
+        <translation>Lista ostatnich książek jest pusta.</translation>
     </message>
 </context>
 <context>
@@ -6111,14 +6119,6 @@ Harmonogram projektu:
     <message>
         <source>The book goes to the folder &quot;%1&quot;.</source>
         <translation>Książka powstanie w folderze „%1”.</translation>
-    </message>
-    <message>
-        <source>User Project</source>
-        <translation>Projekt użytkownika</translation>
-    </message>
-    <message>
-        <source>%1 (not installed)</source>
-        <translation>%1 (typ niezainstalowany)</translation>
     </message>
     <message numerus="yes">
         <source>%n {kind:plural}</source>
