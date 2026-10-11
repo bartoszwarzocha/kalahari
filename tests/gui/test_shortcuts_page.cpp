@@ -1146,6 +1146,32 @@ TEST_CASE("Shortcuts page: the selected command stays in sight when its rows get
     dialog.reject();
 }
 
+TEST_CASE("Shortcuts page: the selected command stays in sight when the search is cleared",
+          "[gui][shortcuts][page]") {
+    // Regression: the list showed its top again, the command the search found under its edge
+    registerCommands();
+    SettingsDialog dialog(nullptr);
+    dialog.resize(840, 460);
+    dialog.showShortcutsPage();
+    dialog.show();
+    settle();
+    ShortcutsPage* page = pageOf(dialog);
+    QTreeWidget* list = listOf(*page);
+    auto* search = child<ShortcutRecorder>(*page, QStringLiteral("shortcutsSearch"));
+    QTreeWidgetItem* tips = itemNamed(list, QStringLiteral("Tips (in preparation)"));
+    REQUIRE_FALSE(inSight(list, tips));  // far down the list
+
+    search->setText(QStringLiteral("tips"));
+    settle();
+    REQUIRE(list->currentItem() == tips);
+    search->clear();
+    settle();
+    INFO(placeOf(list, tips));
+    CHECK(list->currentItem() == tips);
+    CHECK(inSight(list, tips));
+    dialog.reject();
+}
+
 TEST_CASE("Shortcuts page: the muted and the changed texts can be read in every theme",
           "[gui][shortcuts][page]") {
     registerCommands();

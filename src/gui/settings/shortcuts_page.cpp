@@ -1234,7 +1234,8 @@ void ShortcutsPage::applyFilter() {
         m_noMatchItem->setToolTip(0, m_noMatchItem->text(0));
     }
 
-    // The selection stays on what the list shows
+    // The selection stays on what the list shows, in sight: the rows shown again over it
+    // move it down (a search cleared)
     QTreeWidgetItem* current = m_list->currentItem();
     if (current == nullptr || isHiddenInList(current)) {
         QTreeWidgetItem* first = firstShownItem();
@@ -1244,6 +1245,8 @@ void ShortcutsPage::applyFilter() {
         if (first == nullptr) {
             showDetail();
         }
+    } else {
+        m_list->scrollTo(m_list->indexFromItem(current));
     }
 }
 

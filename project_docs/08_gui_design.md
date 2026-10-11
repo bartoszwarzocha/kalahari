@@ -1859,7 +1859,7 @@ opens Settings on this page. `src/gui/settings/shortcuts_page.cpp`.
   search field and the buttons under the keys; the rows keep room for a scroll bar, so one
   that comes with a message moves nothing. The list gives up its rows first, down to three;
   only then does the page scroll. A message under the keys scrolls into sight, and the
-  selected command stays in sight in the list.
+  selected command stays in sight in the list, also when the search is cleared.
 
 **Settings:** `keyboard.shortcuts` holds only the shortcuts the user changed: command id to
 keys in the portable form ("Ctrl+Shift+F"), "" for none. At start the program leaves out the
