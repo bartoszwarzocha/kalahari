@@ -11,6 +11,7 @@
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
+#include "kalahari/gui/dialogs/user_project_dialog.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/archive_dialogs.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -41,6 +42,7 @@
 #include <QFile>
 #include <QDir>
 #include <functional>
+#include <memory>
 
 Q_DECLARE_METATYPE(kalahari::core::StandaloneFile)
 
@@ -48,6 +50,9 @@ namespace kalahari {
 namespace gui {
 
 namespace {
+
+/// How long the status bar says where a book created without opening is: the only sign of it
+constexpr int CREATED_WITHOUT_OPENING_MS = 8000;
 
 /// What an editor tab shows, which decides how it is saved
 enum class EditorKind {
@@ -264,30 +269,122 @@ void DocumentCoordinator::onNewDocument() {
 void DocumentCoordinator::onNewProject() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: New Project (OpenSpec #00033)");
-
-    // Show NewItemDialog in Project mode
-    dialogs::NewItemDialog dialog(dialogs::NewItemMode::Project, m_mainWindow);
-    if (dialog.exec() != QDialog::Accepted) {
-        return;
-    }
-    const auto result = dialog.result();
-
-    // The new book takes the place of the open one
-    if (!agreeToCloseBook(
-            tr("Do you want to save changes to '%1' before creating the new book?"),
-            tr("Do you want to close '%1' and create the new book?"))) {
-        logger.debug("User cancelled creating a new book");
-        return;
-    }
-
-    // ProjectManager creates the book of the template's type and opens it, and
-    // onProjectOpened() shows it
     auto& pm = core::ProjectManager::getInstance();
+
+    // When a book is open, the window that creates the new book asks whether the new book
+    // takes its place or is created without opening; Cancel returns to that window
+    const dialogs::NewBookQuestion question = [this](QWidget* window, const QString& title) {
+        // Cancel returns to the window that asks: the New Book window, or the window of the
+        // kinds of a user project
+        const bool fromKinds = qobject_cast<dialogs::UserProjectDialog*>(window) != nullptr;
+        const OpenBookChoice choice = askAboutOpenBook(
+            window,
+            //: %1: the title of the new book. In Polish: Nowa książka „%1” może zastąpić
+            //: otwartą albo powstać bez otwierania.
+            tr("The new book \"%1\" can take the place of the open one or be created without "
+               "opening.")
+                .arg(title),
+            fromKinds
+                //: In Polish: Książkę utworzoną bez otwierania znajdziesz na Pulpicie i w
+                //: menu Plik > Ostatnie książki. „Anuluj” wraca do okna „Nowa książka –
+                //: projekt użytkownika” z zaznaczonymi rodzajami.
+                ? tr("A book created without opening is on the Dashboard and in File > Recent "
+                     "Books. Cancel returns to the New Book – User Project window with the "
+                     "kinds you checked.")
+                //: In Polish: Książkę utworzoną bez otwierania znajdziesz na Pulpicie i w
+                //: menu Plik > Ostatnie książki. „Anuluj” wraca do okna „Nowa książka”
+                //: z wpisanymi danymi.
+                : tr("A book created without opening is on the Dashboard and in File > Recent "
+                     "Books. Cancel returns to the New Book window with your data."),
+            //: In Polish: Zamknij i otwórz nową
+            tr("Close and Open New"),
+            //: In Polish: Utwórz bez otwierania
+            tr("Create Without Opening"),
+            tr("Do you want to save changes to '%1' before creating the new book?"));
+        switch (choice) {
+            case OpenBookChoice::Close:
+                return dialogs::NewBookOpening::Open;
+            case OpenBookChoice::KeepOpen:
+                return dialogs::NewBookOpening::DontOpen;
+            case OpenBookChoice::Cancel:
+                break;
+        }
+        return dialogs::NewBookOpening::Cancel;
+    };
+
+    // The New Book window and, for a user project, the window of its kinds, whose Back
+    // returns to the New Book window; both keep what the writer chose in them
+    dialogs::NewItemDialog dialog(dialogs::NewItemMode::Project, m_mainWindow);
+    dialog.setOpeningQuestion(question);
+    std::unique_ptr<dialogs::UserProjectDialog> kindsDialog;
+    dialogs::NewItemResult result;
+    core::NewProject request;
+    bool open = true;
+    while (true) {
+        if (dialog.exec() != QDialog::Accepted) {
+            return;
+        }
+        result = dialog.result();
+        request = core::NewProject{};
+        request.parentDir = result.location;
+        request.title = result.title;
+        request.author = result.author;
+        request.language = result.language;
+        request.createSubfolder = result.createSubfolder;
+        request.typeId =
+            dialogs::TemplateRegistry::getInstance().getTemplate(result.templateId).typeId;
+        request.sections = result.sections;
+        if (!dialogs::NewItemDialog::isUserProject(result.templateId)) {
+            open = result.open;
+            break;
+        }
+        if (!kindsDialog) {
+            kindsDialog =
+                std::make_unique<dialogs::UserProjectDialog>(pm.bookTypes(), m_mainWindow);
+            kindsDialog->setOpeningQuestion(question);
+        }
+        kindsDialog->setBook(result.title, result.language, result.sections);
+        const int answer = kindsDialog->exec();
+        if (answer == QDialog::Accepted) {
+            request.palette = kindsDialog->choice();
+            open = kindsDialog->opens();
+            break;
+        }
+        if (answer != dialogs::UserProjectDialog::BACK) {
+            return;
+        }
+    }
+
     QStringList problems;
-    const QString typeId =
-        dialogs::TemplateRegistry::getInstance().getTemplate(result.templateId).typeId;
-    if (!pm.createProject(result.location, result.title, result.author, result.language,
-                          result.createSubfolder, typeId, &problems, result.sections)) {
+    if (!open) {
+        // The open book stays open; the new one is on the Dashboard and in Recent Books
+        const QString manifest = pm.createProjectWithoutOpening(request, &problems);
+        if (manifest.isEmpty()) {
+            logger.error("Failed to create project: {}", result.title.toStdString());
+            dialogs::MessageDialog::error(m_mainWindow, tr("New Book"),
+                                          tr("Could not create the book '%1'.").arg(result.title),
+                                          detailsOf(problems));
+            return;
+        }
+        // The next new book starts in the folder this one was created in
+        const QString projectFolder = QFileInfo(manifest).absolutePath();
+        ProgramFolders::remember(ProgramFolders::Operation::NewBook,
+                                 QFileInfo(projectFolder).absolutePath());
+        core::RecentBooksManager::getInstance().addRecentFile(manifest);
+        logger.info("Project created without opening: {} in {}", result.title.toStdString(),
+                    projectFolder.toStdString());
+        //: %1: the title of the new book. In Polish: Utworzono książkę „%1” bez otwierania.
+        //: Znajdziesz ją na Pulpicie i w menu Plik > Ostatnie książki.
+        m_statusBar->showMessage(tr("Book \"%1\" created without opening. It is on the "
+                                    "Dashboard and in File > Recent Books.")
+                                     .arg(result.title),
+                                 CREATED_WITHOUT_OPENING_MS);
+        return;
+    }
+
+    // ProjectManager closes the open book, creates the new one and opens it, and
+    // onProjectOpened() shows it
+    if (!pm.createProject(request, &problems)) {
         logger.error("Failed to create project: {}", result.title.toStdString());
         dialogs::MessageDialog::error(m_mainWindow, tr("New Book"),
                                       tr("Could not create the book '%1'.").arg(result.title),

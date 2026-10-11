@@ -23,6 +23,7 @@
 #include <QPushButton>
 #include <QSplitter>
 
+#include <functional>
 #include <optional>
 
 namespace kalahari {
@@ -58,7 +59,24 @@ struct NewItemResult {
     /// Whether the Navigator shows the sections of the book, and their names (project mode
     /// only)
     std::optional<kalahari::core::BookSections> sections;
+    /// Whether the new book opens (project mode only): false when the writer chose to create it
+    /// without opening, and the open book stays open
+    bool open = true;
 };
+
+// ============================================================================
+// The question about the open book
+// ============================================================================
+
+/// @brief Whether a new book opens: the answer to the question about the open book
+enum class NewBookOpening {
+    Open,      ///< The new book opens in the place of the open one
+    DontOpen,  ///< The open book stays; the new one goes to the Dashboard and to Recent Books
+    Cancel     ///< Nothing is created; the window that asked stays as it was
+};
+
+/// @brief Asks in @p window about the open book before book @p title is created
+using NewBookQuestion = std::function<NewBookOpening(QWidget* window, const QString& title)>;
 
 // ============================================================================
 // NewItemDialog - Main dialog class
@@ -102,6 +120,15 @@ public:
     /// @return Populated NewItemResult structure
     /// @note Only valid after dialog is accepted
     NewItemResult result() const;
+
+    /// @brief Ask @p question about the open book before a book of a type is created; without
+    /// a question the new book opens. A user project asks in its next window
+    /// (UserProjectDialog).
+    void setOpeningQuestion(NewBookQuestion question);
+
+    /// @brief Whether template @p templateId makes a user project: a book without a type,
+    /// whose kinds the writer chooses in the next window
+    static bool isUserProject(const QString& templateId);
 
 private slots:
     /// @brief Handle template selection change
@@ -186,6 +213,10 @@ private:
     /// @brief Remember the writer's choice for the next book, for templates that show sections
     void saveSectionsChoice() const;
 
+    /// @brief Name the create button after what it does: "Next" for a user project, which has
+    /// a next window, else "Create Book"
+    void updateCreateButton();
+
     // ========================================================================
     // State
     // ========================================================================
@@ -208,6 +239,9 @@ private:
 
     /// @brief The writer typed in the fields of own names, or they come from the last book
     bool m_sectionNamesTyped = false;
+
+    /// @brief Asks about the open book before a book of a type is created
+    NewBookQuestion m_openingQuestion;
 
     // ========================================================================
     // Description Panel Widgets (LEFT)

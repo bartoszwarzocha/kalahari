@@ -545,6 +545,165 @@ TEST_CASE("A user project has the kinds of the base package", "[project_manager]
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("A user project has the kinds and the elements chosen in the palette",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+
+    NewProject request;
+    request.parentDir = dir.path();
+    request.title = QStringLiteral("Saga");
+    request.author = QStringLiteral("Anna Nowak");
+    request.language = QStringLiteral("pl");
+    PaletteChoice palette;
+    palette.kinds = {kind("kalahari.base", "title_page"), kind("kalahari.base", "chapter"),
+                     kind("kalahari.base", "part"),       kind("kalahari.base", "work_note"),
+                     kind("kalahari.base", "character"),  kind("kalahari.base", "afterword"),
+                     kind("kalahari.novel", "prologue"),  kind("kalahari.novel", "epilogue"),
+                     kind("kalahari.poetry", "poem"),     kind("kalahari.poetry", "cycle")};
+    // In the order of the palette: the parts of the book, then the Workshop
+    palette.elements = {{kind("kalahari.base", "title_page"), BookPlace::Front},
+                        {kind("kalahari.base", "chapter"), BookPlace::Main},
+                        {kind("kalahari.base", "part"), BookPlace::Main},
+                        {kind("kalahari.novel", "prologue"), BookPlace::Main},
+                        {kind("kalahari.novel", "epilogue"), BookPlace::Main},
+                        {kind("kalahari.poetry", "poem"), BookPlace::Main},
+                        {kind("kalahari.poetry", "cycle"), BookPlace::Main},
+                        {kind("kalahari.base", "work_note"), BookPlace::Workshop},
+                        {kind("kalahari.base", "character"), BookPlace::Workshop}};
+    request.palette = palette;
+    REQUIRE(pm.createProject(request));
+
+    const BookProject* project = pm.project();
+    REQUIRE(project != nullptr);
+    CHECK(project->isUserProject());
+    const QList<KindReference> kinds{
+        {"kalahari.base", "title_page"}, {"kalahari.base", "chapter"},
+        {"kalahari.base", "part"},       {"kalahari.base", "work_note"},
+        {"kalahari.base", "character"},  {"kalahari.base", "afterword"},
+        {"kalahari.novel", "prologue"},  {"kalahari.novel", "epilogue"},
+        {"kalahari.poetry", "poem"},     {"kalahari.poetry", "cycle"}};
+    CHECK(project->kinds == kinds);
+    CHECK(pm.kindsFor(BookPlace::Back).size() == 1);  // the afterword, without an element
+
+    // The title page has the title and the author of the book
+    const ProjectBook* book = pm.book();
+    REQUIRE(book != nullptr);
+    REQUIRE(book->frontElements.size() == 1);
+    CHECK(book->frontElements.first().title == "Strona tytułowa");
+    CHECK(paragraphsOf(book->frontElements.first().id) ==
+          QStringList{"Saga", "", "Anna Nowak"});
+
+    // Each text element goes into the first group made with it that can have it; the prologue
+    // and the epilogue stay at the start and at the end of the body
+    CHECK(titles(book->mainElements) == "Prolog, Część I, Cykl I, Epilog");
+    REQUIRE(book->mainElements.size() == 4);
+    const ProjectElement& part = book->mainElements.at(1);
+    CHECK(part.file.isEmpty());
+    CHECK(part.status.isEmpty());
+    CHECK(titles(part.elements) == "Rozdział 1");
+    CHECK(titles(book->mainElements.at(2).elements) == "Wiersz 1");
+    const ProjectElement& chapter = part.elements.first();
+    CHECK(chapter.file == "book/chapter_001.kchapter");
+    CHECK(chapter.status == "draft");
+    CHECK(chapterFileOf(chapter.id).title() == "Rozdział 1");
+    CHECK(book->backElements.isEmpty());
+
+    // The working note is in the Workshop's folder; a character waits for its window
+    CHECK(titles(project->workshop.elements) == "Notatka 1");
+    CHECK(project->workshop.elements.first().file == "workshop/work_note_001.kchapter");
+    CHECK(QFileInfo::exists(QDir(pm.getProjectPath()).filePath("workshop/work_note_001.kchapter")));
+
+    const QString manifest = pm.getManifestPath();
+    REQUIRE(pm.closeProject(false));
+    const BookProject saved = savedProject(manifest);
+    CHECK(saved.kinds == kinds);
+    CHECK(titles(saved.books.first().mainElements) == "Prolog, Część I, Cykl I, Epilog");
+}
+
+TEST_CASE("ProjectManager creates a project without opening it", "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Open Book", "Anna", "en", true, "kalahari.novel"));
+    const QString open = pm.getManifestPath();
+
+    NewProject request;
+    request.parentDir = dir.path();
+    request.title = QStringLiteral("Second");
+    request.author = QStringLiteral("Anna");
+    request.language = QStringLiteral("en");
+    request.typeId = QStringLiteral("kalahari.novel");
+    QStringList problems;
+
+    SECTION("The open book stays open, and the new one is whole") {
+        const QString manifest = pm.createProjectWithoutOpening(request, &problems);
+        CHECK(problems.isEmpty());
+        CHECK(QFileInfo(manifest) == QFileInfo(QDir(dir.path()).filePath("Second/Second.klh")));
+        CHECK(pm.isProjectOpen());
+        CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(open));
+
+        const BookProject saved = savedProject(manifest);
+        CHECK(saved.books.first().title == "Second");
+        CHECK(titles(saved.books.first().mainElements) == "Chapter 1");
+        CHECK(QFileInfo::exists(QDir(dir.path()).filePath("Second/book/chapter_001.kchapter")));
+        REQUIRE(pm.openProject(manifest));
+        REQUIRE(pm.book() != nullptr);
+        CHECK(pm.book()->title == "Second");
+    }
+
+    SECTION("A project that cannot be made leaves nothing behind") {
+        REQUIRE(QDir(dir.path()).mkpath("Second"));
+        writeFile(QDir(dir.path()).filePath("Second/notes.txt"), "mine");
+        CHECK(pm.createProjectWithoutOpening(request, &problems).isEmpty());
+        REQUIRE(problems.size() == 1);
+        CHECK(problems.first().endsWith(": the folder exists and is not empty"));
+        CHECK(QDir(QDir(dir.path()).filePath("Second"))
+                  .entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden) ==
+              QStringList{"notes.txt"});
+        CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(open));
+    }
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager does not create a user project from a wrong palette",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    NewProject request;
+    request.parentDir = dir.path();
+    request.title = QStringLiteral("Palette");
+    request.author = QStringLiteral("Anna");
+    request.language = QStringLiteral("en");
+    PaletteChoice palette;
+    palette.kinds = {kind("kalahari.base", "chapter")};
+    QStringList expected;
+
+    SECTION("A book of a type") {
+        request.typeId = QStringLiteral("kalahari.novel");
+        expected = {"a book of a type takes no palette"};
+    }
+    SECTION("No kinds") {
+        palette.kinds.clear();
+        expected = {"the project has no kinds"};
+    }
+    SECTION("An element of a kind the project does not have") {
+        palette.elements = {{kind("kalahari.base", "part"), BookPlace::Main}};
+        expected = {"kalahari.base:part is not a kind of the project"};
+    }
+    SECTION("An element in a place its kind does not allow") {
+        palette.elements = {{kind("kalahari.base", "chapter"), BookPlace::Front}};
+        expected = {"kalahari.base:chapter cannot be in front"};
+    }
+    request.palette = palette;
+
+    CHECK(pm.newProjectProblems(request) == expected);
+    QStringList problems;
+    CHECK_FALSE(pm.createProject(request, &problems));
+    CHECK(problems == expected);
+    CHECK_FALSE(pm.isProjectOpen());
+    CHECK_FALSE(QFileInfo::exists(QDir(dir.path()).filePath("Palette")));
+}
+
 TEST_CASE("ProjectManager does not create a project it cannot make", "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();

@@ -284,15 +284,19 @@ void TemplateRegistry::loadBuiltinProjectTemplates() {
         TemplateInfo info;
         info.id = QStringLiteral("template.empty");
         info.name = QCoreApplication::translate("TemplateRegistry", "User Project");
+        //: In Polish: Książka bez typu: w następnym kroku wybierzesz rodzaje jej elementów
+        //: spośród wszystkich typów książek oraz elementy, z którymi powstanie.
         info.description = QCoreApplication::translate("TemplateRegistry",
-            "A book without a type: it starts empty, and you build it in the Navigator from "
-            "the elements of the Base package, such as a title page, a dedication, chapters, "
-            "parts and an afterword.");
+            "A book without a type: in the next step you choose the kinds of its elements "
+            "from all book types, and the elements it is created with.");
         info.iconId = QStringLiteral("template.empty");
         info.features = QStringList{
             QCoreApplication::translate("TemplateRegistry", "No book type"),
-            QCoreApplication::translate("TemplateRegistry", "Starts empty"),
-            QCoreApplication::translate("TemplateRegistry", "Elements of the Base package"),
+            //: In Polish: Rodzaje elementów ze wszystkich typów książek
+            QCoreApplication::translate("TemplateRegistry",
+                                        "Kinds of elements from all book types"),
+            //: In Polish: Elementy tworzone razem z książką
+            QCoreApplication::translate("TemplateRegistry", "Elements created with the book"),
             QCoreApplication::translate("TemplateRegistry", "Structure built in the Navigator")
         };
         info.fileExtension = QString();

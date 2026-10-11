@@ -119,6 +119,19 @@ NewItemResult NewItemDialog::result() const {
     return m_result;
 }
 
+void NewItemDialog::setOpeningQuestion(NewBookQuestion question) {
+    m_openingQuestion = std::move(question);
+}
+
+bool NewItemDialog::isUserProject(const QString& templateId) {
+    const std::vector<TemplateInfo> templates =
+        TemplateRegistry::getInstance().getProjectTemplates();
+    return std::any_of(templates.cbegin(), templates.cend(),
+                       [&templateId](const TemplateInfo& info) {
+                           return info.id == templateId && info.typeId.isEmpty();
+                       });
+}
+
 // ============================================================================
 // UI Setup
 // ============================================================================
@@ -684,7 +697,22 @@ void NewItemDialog::onTemplateSelected(QListWidgetItem* current, QListWidgetItem
     QString templateId = current->data(Qt::UserRole).toString();
     updateDescription(templateId);
     showSectionsChoice();
+    updateCreateButton();
     validateInput();
+}
+
+void NewItemDialog::updateCreateButton() {
+    if (m_mode != NewItemMode::Project) {
+        return;
+    }
+    const QListWidgetItem* current = m_templateList->currentItem();
+    if (current && isUserProject(current->data(Qt::UserRole).toString())) {
+        //: The button of the New Book window for a user project, whose kinds the writer
+        //: chooses in the next window. In Polish: Dalej
+        m_createBtn->setText(tr("Next"));
+    } else {
+        m_createBtn->setText(tr("Create Book"));
+    }
 }
 
 void NewItemDialog::onBrowseLocation() {
@@ -733,6 +761,22 @@ void NewItemDialog::onAccept() {
         m_result.location = m_locationEdit->text().trimmed();
         m_result.createSubfolder = m_subfolderCheck->isChecked();
         m_result.sections = chosenSections();
+
+        // A book of a type is created now: when a book is open, the writer says whether the
+        // new one takes its place, and Cancel returns to this window. A user project asks in
+        // its next window.
+        m_result.open = true;
+        if (m_openingQuestion && !isUserProject(m_result.templateId)) {
+            switch (m_openingQuestion(this, m_result.title)) {
+                case NewBookOpening::Open:
+                    break;
+                case NewBookOpening::DontOpen:
+                    m_result.open = false;
+                    break;
+                case NewBookOpening::Cancel:
+                    return;
+            }
+        }
         saveSectionsChoice();
     }
 

@@ -32,9 +32,6 @@ namespace core {
 
 namespace {
 
-/// Package whose kinds a user project starts with
-constexpr const char* BASE_PACKAGE = "kalahari.base";
-
 /// Statuses of text elements, from the first draft to the final text
 const QStringList& textStatuses() {
     static const QStringList statuses{QStringLiteral("draft"), QStringLiteral("revision"),
@@ -309,48 +306,83 @@ bool ProjectManager::createProject(const QString& parentDir,
                                    const QString& typeId,
                                    QStringList* problems,
                                    const std::optional<BookSections>& sections) {
+    NewProject project;
+    project.parentDir = parentDir;
+    project.title = title;
+    project.author = author;
+    project.language = language;
+    project.createSubfolder = createSubfolder;
+    project.typeId = typeId;
+    project.sections = sections;
+    return createProject(project, problems);
+}
+
+bool ProjectManager::createProject(const NewProject& project, QStringList* problems) {
     auto& logger = Logger::getInstance();
-    const auto fail = [&logger, problems](const QString& problem) {
-        logger.error("createProject: {}", problem.toStdString());
+    const auto fail = [&logger, problems](const QStringList& found) {
+        for (const QString& problem : found) {
+            logger.error("createProject: {}", problem.toStdString());
+        }
         if (problems) {
-            problems->append(problem);
+            problems->append(found);
         }
         return false;
     };
 
-    const QString fileName = safeFileName(title);
-    if (fileName.isEmpty()) {
-        return fail(QStringLiteral("the book has no title"));
+    // What is wrong comes before anything changes: the open project stays open
+    const QStringList wrong = newProjectProblems(project);
+    if (!wrong.isEmpty()) {
+        return fail(wrong);
     }
-
-    // The type before anything is written
-    const BookTypePackage* type = nullptr;
-    if (!typeId.isEmpty()) {
-        type = bookTypes().package(typeId);
-        if (!type) {
-            return fail(QStringLiteral("the book type %1 is not installed").arg(typeId));
-        }
-        if (type->role != PackageRole::Type) {
-            return fail(QStringLiteral("%1 is not a book type").arg(typeId));
-        }
-    }
-
-    // The project's folder must be new or empty; the open project stays open when it is not
-    const QString projectDir = newProjectFolder(parentDir, title, createSubfolder);
-    const bool folderExisted = QFileInfo(projectDir).exists();
-    if (!canHoldNewProject(projectDir)) {
-        return fail(QStringLiteral("%1: the folder exists and is not empty")
-                        .arg(QDir::toNativeSeparators(projectDir)));
-    }
-
-    // Close any existing project first
     if (isProjectOpen() && !closeProject(true)) {
-        return fail(QStringLiteral("the open project cannot be closed"));
+        return fail({QStringLiteral("the open project cannot be closed")});
     }
 
+    const QString projectDir =
+        newProjectFolder(project.parentDir, project.title, project.createSubfolder);
+    const bool folderExisted = QFileInfo(projectDir).exists();
+    const QString manifestPath = createProjectWithoutOpening(project, problems);
+    if (manifestPath.isEmpty()) {
+        return false;
+    }
+
+    QStringList found;
+    if (!openProject(manifestPath, &found)) {
+        removeNewProject(projectDir, folderExisted);
+        found.append(QStringLiteral("the new project cannot be opened"));
+        return fail(found);
+    }
+
+    logger.info("Project created successfully: {}", manifestPath.toStdString());
+    return true;
+}
+
+QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
+                                                    QStringList* problems) const {
+    auto& logger = Logger::getInstance();
+    const auto fail = [&logger, problems](const QStringList& found) {
+        for (const QString& problem : found) {
+            logger.error("createProject: {}", problem.toStdString());
+        }
+        if (problems) {
+            problems->append(found);
+        }
+        return QString();
+    };
+
+    const QStringList wrong = newProjectProblems(request);
+    if (!wrong.isEmpty()) {
+        return fail(wrong);
+    }
+    const BookTypePackage* type =
+        request.typeId.isEmpty() ? nullptr : bookTypes().package(request.typeId);
+
+    const QString projectDir =
+        newProjectFolder(request.parentDir, request.title, request.createSubfolder);
+    const bool folderExisted = QFileInfo(projectDir).exists();
     if (!QDir().mkpath(projectDir)) {
-        return fail(QStringLiteral("%1: the folder cannot be made")
-                        .arg(QDir::toNativeSeparators(projectDir)));
+        return fail({QStringLiteral("%1: the folder cannot be made")
+                         .arg(QDir::toNativeSeparators(projectDir))});
     }
 
     BookProject project;
@@ -359,8 +391,13 @@ bool ProjectManager::createProject(const QString& parentDir,
     project.modified = project.created;
     if (type) {
         project.type = ProjectType{type->id, type->version, {}};
+    } else if (request.palette) {
+        // A user project has the kinds the writer chose in the palette
+        for (const KindRef& kind : request.palette->kinds) {
+            project.kinds.append(KindReference{kind.package->id, kind.kind->id});
+        }
     } else {
-        // A user project starts with the kinds of the base package
+        // ... or, without the palette, the kinds of the base package
         for (const KindRef& kind : bookTypes().allKinds()) {
             if (kind.package->id == QLatin1String(BASE_PACKAGE)) {
                 project.kinds.append(KindReference{kind.package->id, kind.kind->id});
@@ -370,79 +407,193 @@ bool ProjectManager::createProject(const QString& parentDir,
 
     ProjectBook book;
     book.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    book.title = title.trimmed();
-    book.author = author;
-    book.language = language;
+    book.title = request.title.trimmed();
+    book.author = request.author;
+    book.language = request.language;
     book.partsLayer = type ? type->partsLayer : false;
-    if (sections) {
-        book.setSections(*sections);
+    if (request.sections) {
+        book.setSections(*request.sections);
     }
     book.folder = QString::fromLatin1(BookProject::BOOK_FOLDER);
     project.books.append(book);
 
-    const QString manifestPath =
-        QDir(projectDir).filePath(fileName + QLatin1String(BookProject::FILE_EXTENSION));
+    QString manifestPath = QDir(projectDir).filePath(
+        safeFileName(request.title) + QLatin1String(BookProject::FILE_EXTENSION));
     logger.info("Creating project at: {}", manifestPath.toStdString());
 
-    // The folder goes back to how it was when the project cannot be made
-    const auto undo = [&projectDir, folderExisted]() {
-        QDir(projectDir).removeRecursively();
-        if (folderExisted) {
-            QDir().mkpath(projectDir);
-        }
+    // Numbers of the default titles, for each kind: "Chapter 1", "Part I"
+    QHash<const ElementKind*, int> numbers;
+    const auto newElement = [&project, &numbers, &request](const KindRef& kind) {
+        ProjectElement element;
+        element.id = project.newElementId();
+        element.kind = KindReference{kind.package->id, kind.kind->id};
+        element.title = kind.kind->defaultTitle(request.language, ++numbers[kind.kind]);
+        return element;
     };
 
-    // The elements a book of the type starts with, each with the text of its kind's template.
-    // Kinds that open in a window of their own wait until the program has the window.
+    // A text element with the text of its kind's template, put in @p list at @p index
+    const auto addText = [&](const KindRef& kind, BookPlace place, QList<ProjectElement>& list,
+                             qsizetype index) {
+        const ProjectBook& first = project.books.first();
+        ProjectElement element = newElement(kind);
+        element.file = freeChapterFile(project, projectDir, folderOf(place, &first),
+                                       kind.kind->id);
+        element.status = QStringLiteral("draft");
+
+        ChapterDocument chapter;
+        chapter.setKml(startingText(kind, first));
+        chapter.setTitle(element.title);
+        chapter.setStatus(element.status);
+        const QString path = QDir(projectDir).filePath(element.file);
+        if (!QDir().mkpath(QFileInfo(path).absolutePath()) || !chapter.save(path)) {
+            return QStringLiteral("%1: the file cannot be written")
+                .arg(QDir::toNativeSeparators(path));
+        }
+        list.insert(index, element);
+        return QString();
+    };
+
+    // Kinds that open in a window of their own wait until the program has the window
+    const auto notYet = [&logger](const KindRef& kind) {
+        logger.debug("createProject: The book does not start with {}, which the program cannot "
+                     "open yet",
+                     kind.reference().toStdString());
+    };
+
     if (type) {
-        QHash<const ElementKind*, int> numbers;
+        // The elements a book of the type starts with, in the order of the type
         for (const StartElement& start : bookTypes().startElements(type->id)) {
             if (!start.kind || start.kind.kind->form != ElementForm::Text) {
-                logger.debug("createProject: The book does not start with {}, which the "
-                             "program cannot open yet",
-                             start.kind.reference().toStdString());
+                notYet(start.kind);
                 continue;
             }
-            const ProjectBook& first = project.books.first();
-            ProjectElement element;
-            element.id = project.newElementId();
-            element.kind = KindReference{start.kind.package->id, start.kind.kind->id};
-            element.title = start.kind.kind->defaultTitle(language, ++numbers[start.kind.kind]);
-            element.file = freeChapterFile(project, projectDir, folderOf(start.place, &first),
-                                           start.kind.kind->id);
-            element.status = QStringLiteral("draft");
-
-            ChapterDocument chapter;
-            chapter.setKml(startingText(start.kind, first));
-            chapter.setTitle(element.title);
-            chapter.setStatus(element.status);
-            const QString path = QDir(projectDir).filePath(element.file);
-            if (!QDir().mkpath(QFileInfo(path).absolutePath()) || !chapter.save(path)) {
-                undo();
-                return fail(QStringLiteral("%1: the file cannot be written")
-                                .arg(QDir::toNativeSeparators(path)));
+            QList<ProjectElement>& list = project.elementsIn(start.place);
+            const QString problem = addText(start.kind, start.place, list, list.size());
+            if (!problem.isEmpty()) {
+                removeNewProject(projectDir, folderExisted);
+                return fail({problem});
             }
-            project.elementsIn(start.place).append(element);
+        }
+    } else if (request.palette) {
+        // The elements the writer chose: the groups first, so that the text elements that can
+        // be inside them go into them
+        struct MadeGroup {
+            BookPlace place;
+            QString id;
+            QString kindId;
+        };
+        QList<MadeGroup> groups;
+        for (const StartElement& start : request.palette->elements) {
+            if (start.kind.kind->form != ElementForm::Group) {
+                continue;
+            }
+            QList<ProjectElement>& list = project.elementsIn(start.place);
+            const ProjectElement group = newElement(start.kind);
+            list.insert(BookProject::newIndexIn(bookTypes(), list, start.kind), group);
+            groups.append(MadeGroup{start.place, group.id, start.kind.kind->id});
+        }
+        for (const StartElement& start : request.palette->elements) {
+            if (start.kind.kind->form == ElementForm::Window) {
+                notYet(start.kind);
+                continue;
+            }
+            if (start.kind.kind->form != ElementForm::Text) {
+                continue;  // a group, made above
+            }
+            // The first group of its place that can have it, unless it stands at the start or
+            // at the end of the place
+            QList<ProjectElement>* list = &project.elementsIn(start.place);
+            if (start.kind.kind->position == KindPosition::Any) {
+                const auto group = std::find_if(
+                    groups.cbegin(), groups.cend(), [&start](const MadeGroup& made) {
+                        return made.place == start.place &&
+                               start.kind.kind->allowsInside(made.kindId);
+                    });
+                if (group != groups.cend()) {
+                    list = &project.findElement(group->id)->elements;
+                }
+            }
+            const QString problem = addText(start.kind, start.place, *list,
+                                            BookProject::newIndexIn(bookTypes(), *list,
+                                                                    start.kind));
+            if (!problem.isEmpty()) {
+                removeNewProject(projectDir, folderExisted);
+                return fail({problem});
+            }
         }
     }
 
     if (!project.save(manifestPath)) {
-        undo();
-        return fail(QStringLiteral("%1: the file cannot be written")
-                        .arg(QDir::toNativeSeparators(manifestPath)));
+        removeNewProject(projectDir, folderExisted);
+        return fail({QStringLiteral("%1: the file cannot be written")
+                         .arg(QDir::toNativeSeparators(manifestPath))});
+    }
+    return manifestPath;
+}
+
+QStringList ProjectManager::newProjectProblems(const NewProject& project) const {
+    QStringList problems;
+    if (safeFileName(project.title).isEmpty()) {
+        problems.append(QStringLiteral("the book has no title"));
     }
 
-    QStringList found;
-    if (!openProject(manifestPath, &found)) {
-        undo();
-        if (problems) {
-            problems->append(found);
+    if (!project.typeId.isEmpty()) {
+        const BookTypePackage* type = bookTypes().package(project.typeId);
+        if (!type) {
+            problems.append(
+                QStringLiteral("the book type %1 is not installed").arg(project.typeId));
+        } else if (type->role != PackageRole::Type) {
+            problems.append(QStringLiteral("%1 is not a book type").arg(project.typeId));
         }
-        return fail(QStringLiteral("the new project cannot be opened"));
+        if (project.palette) {
+            problems.append(QStringLiteral("a book of a type takes no palette"));
+        }
+    } else if (project.palette) {
+        // The kinds of the palette, and its elements of these kinds, each in a place the kind
+        // allows
+        if (project.palette->kinds.isEmpty()) {
+            problems.append(QStringLiteral("the project has no kinds"));
+        }
+        for (const KindRef& kind : project.palette->kinds) {
+            if (!kind || !kind.package) {
+                problems.append(QStringLiteral("a kind of the palette is not installed"));
+            }
+        }
+        for (const StartElement& start : project.palette->elements) {
+            if (!start.kind || !start.kind.package) {
+                problems.append(QStringLiteral("an element of the palette has no kind"));
+                continue;
+            }
+            const auto& kinds = project.palette->kinds;
+            const bool ofProject =
+                std::any_of(kinds.cbegin(), kinds.cend(), [&start](const KindRef& kind) {
+                    return kind.kind == start.kind.kind;
+                });
+            if (!ofProject) {
+                problems.append(QStringLiteral("%1 is not a kind of the project")
+                                    .arg(start.kind.reference()));
+            } else if (!start.kind.kind->allows(start.place)) {
+                problems.append(QStringLiteral("%1 cannot be in %2")
+                                    .arg(start.kind.reference(), bookPlaceName(start.place)));
+            }
+        }
     }
 
-    logger.info("Project created successfully: {}", manifestPath.toStdString());
-    return true;
+    // The project's folder must be new or empty
+    const QString projectDir =
+        newProjectFolder(project.parentDir, project.title, project.createSubfolder);
+    if (!projectDir.isEmpty() && !canHoldNewProject(projectDir)) {
+        problems.append(QStringLiteral("%1: the folder exists and is not empty")
+                            .arg(QDir::toNativeSeparators(projectDir)));
+    }
+    return problems;
+}
+
+void ProjectManager::removeNewProject(const QString& projectDir, bool folderExisted) {
+    QDir(projectDir).removeRecursively();
+    if (folderExisted) {
+        QDir().mkpath(projectDir);
+    }
 }
 
 QString ProjectManager::newProjectFolder(const QString& parentDir, const QString& title,

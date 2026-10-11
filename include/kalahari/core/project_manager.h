@@ -77,6 +77,32 @@ struct UnassignedFile {
     QString title;  ///< Title the file keeps; empty when it has none or cannot be read
 };
 
+/// @brief What the writer chose in the palette for a user project: the kinds the project
+/// offers and the elements it starts with
+struct PaletteChoice {
+    QList<KindRef> kinds;          ///< Kinds of the project, in the order of the palette
+    QList<StartElement> elements;  ///< Elements it starts with ("Create now"), each of one of
+                                   ///< the kinds, in a place of the book the kind allows
+};
+
+/// @brief A new project, as ProjectManager::createProject() makes it
+struct NewProject {
+    QString parentDir;            ///< Folder of the project, or the folder it is made in
+    QString title;                ///< Title of the book; it also names the folder and the file
+    QString author;               ///< Author of the book
+    QString language;             ///< Language code of the text (e.g., "en", "pl")
+    bool createSubfolder = true;  ///< Make the project's folder, named after the title, in
+                                  ///< parentDir
+    QString typeId;               ///< Package of the book type, e.g. "kalahari.novel"; empty: a
+                                  ///< user project
+    /// Whether the Navigator shows the sections of the book, and their names; none: as the
+    /// type says (a user project shows none), with the first set of names
+    std::optional<BookSections> sections;
+    /// A user project's kinds and the elements it starts with; none: the kinds of the base
+    /// package, and no elements
+    std::optional<PaletteChoice> palette;
+};
+
 /// @brief Singleton manager of the book project open in the program
 ///
 /// Signals:
@@ -92,6 +118,9 @@ public:
     /// @brief Get singleton instance
     /// @return Reference to the singleton ProjectManager
     static ProjectManager& getInstance();
+
+    /// @brief Package whose kinds a user project has when the writer skips the palette
+    static constexpr const char* BASE_PACKAGE = "kalahari.base";
 
     // Prevent copy and move
     ProjectManager(const ProjectManager&) = delete;
@@ -130,6 +159,34 @@ public:
                        const QString& typeId = QString(),
                        QStringList* problems = nullptr,
                        const std::optional<BookSections>& sections = std::nullopt);
+
+    /// @brief Create a new project and open it, as the other createProject() does, also a user
+    /// project with the kinds and the elements of the palette
+    /// @param project The project; a book of a type takes no palette
+    /// @param problems Gets what is wrong when the project cannot be created, one line each
+    /// @return false when the project cannot be created; the open project stays open when the
+    ///         project is wrong (newProjectProblems())
+    ///
+    /// The elements of the palette are made in its order: the groups first, then the text
+    /// elements, each in its place of the book where its kind puts a new element (a prologue
+    /// at the start). A text element that can be inside a group made with it goes into the
+    /// first such group of its place ("Part I" with "Chapter 1"); one that stands at the start
+    /// or at the end of its place (a prologue, an epilogue) does not. Elements of kinds that
+    /// open in a window of their own wait until the program has the window.
+    bool createProject(const NewProject& project, QStringList* problems = nullptr);
+
+    /// @brief Create a new project without opening it: the open project stays open
+    /// @param project The project, as createProject() takes it
+    /// @param problems Gets what is wrong when the project cannot be created, one line each
+    /// @return The project's .klh file; empty when the project cannot be created, and then
+    ///         nothing of it is left in the folder
+    QString createProjectWithoutOpening(const NewProject& project,
+                                        QStringList* problems = nullptr) const;
+
+    /// @brief What keeps @p project from being created: the book has no title, the type is
+    /// not installed, the palette is wrong or the folder exists and is not empty
+    /// @return One line per problem; empty when the project can be created
+    QStringList newProjectProblems(const NewProject& project) const;
 
     /// @brief Folder that createProject() makes the project in
     /// @param parentDir Folder of the project, or the folder it is made in (createSubfolder)
@@ -617,6 +674,10 @@ private:
     /// @brief The text a new element of @p kind starts with: its template's, with the title
     /// and the author of @p book in place of "{title}" and "{author}"; empty without a template
     static QString startingText(const KindRef& kind, const ProjectBook& book);
+
+    /// @brief Remove what was made of a new project that cannot be created: its folder goes
+    /// back to how it was, empty when it existed (@p folderExisted), else it is removed
+    static void removeNewProject(const QString& projectDir, bool folderExisted);
 
     /// @brief List that a new element of @p kind goes to: @p place of the book, or group
     /// @p groupId; nullptr, with the reason in the log, when the kind cannot be there

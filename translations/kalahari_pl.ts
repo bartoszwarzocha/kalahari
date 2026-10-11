@@ -672,6 +672,21 @@
     </message>
 </context>
 <context>
+    <name>KindPalette</name>
+    <message>
+        <source>Create now</source>
+        <translation>Utwórz od razu</translation>
+    </message>
+    <message>
+        <source>The program does not have an editor of this kind yet.</source>
+        <translation>Program nie ma jeszcze edytora tego rodzaju.</translation>
+    </message>
+    <message>
+        <source>The Navigator does not show the Workshop yet.</source>
+        <translation>Nawigator nie pokazuje jeszcze Warsztatu.</translation>
+    </message>
+</context>
+<context>
     <name>ProgramFolders</name>
     <message>
         <source>Archives</source>
@@ -1509,20 +1524,8 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Projekt użytkownika</translation>
     </message>
     <message>
-        <source>A book without a type: it starts empty, and you build it in the Navigator from the elements of the Base package, such as a title page, a dedication, chapters, parts and an afterword.</source>
-        <translation>Książka bez typu: na początku jest pusta, a budujesz ją w Nawigatorze z elementów pakietu „Podstawa”, takich jak strona tytułowa, dedykacja, rozdziały, części i posłowie.</translation>
-    </message>
-    <message>
         <source>No book type</source>
         <translation>Bez typu książki</translation>
-    </message>
-    <message>
-        <source>Starts empty</source>
-        <translation>Na początku pusta</translation>
-    </message>
-    <message>
-        <source>Elements of the Base package</source>
-        <translation>Elementy pakietu „Podstawa”</translation>
     </message>
     <message>
         <source>Structure built in the Navigator</source>
@@ -1591,6 +1594,18 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     <message>
         <source>Episode/Act structure</source>
         <translation>Układ odcinków i aktów</translation>
+    </message>
+    <message>
+        <source>A book without a type: in the next step you choose the kinds of its elements from all book types, and the elements it is created with.</source>
+        <translation>Książka bez typu: w następnym kroku wybierzesz rodzaje jej elementów spośród wszystkich typów książek oraz elementy, z którymi powstanie.</translation>
+    </message>
+    <message>
+        <source>Kinds of elements from all book types</source>
+        <translation>Rodzaje elementów ze wszystkich typów książek</translation>
+    </message>
+    <message>
+        <source>Elements created with the book</source>
+        <translation>Elementy tworzone razem z książką</translation>
     </message>
 </context>
 <context>
@@ -2867,10 +2882,6 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <translation>Czy zapisać zmiany w „%1” przed utworzeniem nowej książki?</translation>
     </message>
     <message>
-        <source>Do you want to close &apos;%1&apos; and create the new book?</source>
-        <translation>Czy zamknąć „%1” i utworzyć nową książkę?</translation>
-    </message>
-    <message>
         <source>Could not create the book &apos;%1&apos;.</source>
         <translation>Nie udało się utworzyć książki „%1”.</translation>
     </message>
@@ -3005,6 +3016,30 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>Book saved</source>
         <translation>Zapisano książkę</translation>
+    </message>
+    <message>
+        <source>The new book &quot;%1&quot; can take the place of the open one or be created without opening.</source>
+        <translation>Nowa książka „%1” może zastąpić otwartą albo powstać bez otwierania.</translation>
+    </message>
+    <message>
+        <source>A book created without opening is on the Dashboard and in File &gt; Recent Books. Cancel returns to the New Book window with your data.</source>
+        <translation>Książkę utworzoną bez otwierania znajdziesz na Pulpicie i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka” z wpisanymi danymi.</translation>
+    </message>
+    <message>
+        <source>Close and Open New</source>
+        <translation>Zamknij i otwórz nową</translation>
+    </message>
+    <message>
+        <source>Create Without Opening</source>
+        <translation>Utwórz bez otwierania</translation>
+    </message>
+    <message>
+        <source>Book &quot;%1&quot; created without opening. It is on the Dashboard and in File &gt; Recent Books.</source>
+        <translation>Utworzono książkę „%1” bez otwierania. Znajdziesz ją na Pulpicie i w menu Plik &gt; Ostatnie książki.</translation>
+    </message>
+    <message>
+        <source>A book created without opening is on the Dashboard and in File &gt; Recent Books. Cancel returns to the New Book – User Project window with the kinds you checked.</source>
+        <translation>Książkę utworzoną bez otwierania znajdziesz na Pulpicie i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka – projekt użytkownika” z zaznaczonymi rodzajami.</translation>
     </message>
 </context>
 <context>
@@ -6543,6 +6578,10 @@ Harmonogram projektu:
         <source>Browse...</source>
         <translation>Przeglądaj...</translation>
     </message>
+    <message>
+        <source>Next</source>
+        <translation>Dalej</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::RenameElementDialog</name>
@@ -6863,6 +6902,85 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     <message>
         <source>Please enter an icon name.</source>
         <translation>Wpisz nazwę ikony.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::UserProjectDialog</name>
+    <message>
+        <source>Check All</source>
+        <translation>Zaznacz wszystkie</translation>
+    </message>
+    <message>
+        <source>Only &quot;Base&quot;</source>
+        <translation>Tylko „Podstawa”</translation>
+    </message>
+    <message>
+        <source>Uncheck All</source>
+        <translation>Odznacz wszystkie</translation>
+    </message>
+    <message>
+        <source>Palette of Kinds</source>
+        <translation>Paleta rodzajów</translation>
+    </message>
+    <message>
+        <source>Tools of the Types</source>
+        <translation>Narzędzia typów</translation>
+    </message>
+    <message>
+        <source>No type has tools yet. When they come (e.g. a plot board and a book dictionary), you will choose them here.</source>
+        <translation>Żaden typ nie ma jeszcze narzędzi. Gdy powstaną (np. tablica fabuły i słownik książki), wybierzesz je tutaj.</translation>
+    </message>
+    <message>
+        <source>&lt; Back</source>
+        <translation>&lt; Wstecz</translation>
+    </message>
+    <message>
+        <source>Skip</source>
+        <translation>Pomiń</translation>
+    </message>
+    <message>
+        <source>Creates the book with the kinds of &quot;Base&quot;, without the changes made in this window.</source>
+        <translation>Tworzy książkę z rodzajami „Podstawy”, bez zmian wprowadzonych w tym oknie.</translation>
+    </message>
+    <message>
+        <source>Create Book</source>
+        <translation>Utwórz książkę</translation>
+    </message>
+    <message>
+        <source>Workshop</source>
+        <translation>Warsztat</translation>
+    </message>
+    <message>
+        <source>Kinds of Elements of the Book &quot;%1&quot;</source>
+        <translation>Rodzaje elementów książki „%1”</translation>
+    </message>
+    <message>
+        <source>Check the kinds the book is to have. The elements with &quot;Create now&quot; checked are created with it.</source>
+        <translation>Zaznacz rodzaje, które ma mieć książka. Elementy z zaznaczonym polem „Utwórz od razu” powstaną razem z nią.</translation>
+    </message>
+    <message>
+        <source>New Book – User Project</source>
+        <translation>Nowa książka – projekt użytkownika</translation>
+    </message>
+    <message>
+        <source>Beginning of the Book</source>
+        <translation>Początek książki</translation>
+    </message>
+    <message>
+        <source>Content</source>
+        <translation>Treść</translation>
+    </message>
+    <message>
+        <source>End of the Book</source>
+        <translation>Koniec książki</translation>
+    </message>
+    <message>
+        <source>Checked kinds: %1</source>
+        <translation>Zaznaczone rodzaje: %1</translation>
+    </message>
+    <message>
+        <source>Check at least one kind.</source>
+        <translation>Zaznacz co najmniej jeden rodzaj.</translation>
     </message>
 </context>
 <context>

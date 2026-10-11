@@ -1011,6 +1011,69 @@ TEST_CASE("New Book: the sections of the book, in its language", "[gui][dialogs]
     }
 }
 
+TEST_CASE("New Book: a book of a type asks about the open book; a user project goes on to its "
+          "kinds",
+          "[gui][dialogs]") {
+    QTemporaryDir dir;
+    NewBook book;
+    for (QLineEdit* field : book.dialog->findChildren<QLineEdit*>()) {
+        if (field->placeholderText() == QStringLiteral("Enter book title...")) {
+            field->setText(QStringLiteral("Second"));
+        } else if (field->placeholderText() == QStringLiteral("Select book folder...")) {
+            field->setText(dir.path());
+        }
+    }
+    const auto* box = book.dialog->findChild<QDialogButtonBox*>();
+    REQUIRE(box != nullptr);
+    QPushButton* create = nullptr;
+    for (QAbstractButton* button : box->buttons()) {
+        if (box->buttonRole(button) == QDialogButtonBox::AcceptRole) {
+            create = qobject_cast<QPushButton*>(button);
+        }
+    }
+    REQUIRE(create != nullptr);
+    QStringList asked;
+    NewBookOpening answer = NewBookOpening::Cancel;
+    book.dialog->setOpeningQuestion([&](QWidget* window, const QString& title) {
+        CHECK(window == book.dialog.get());
+        asked << title;
+        return answer;
+    });
+    book.dialog->show();
+
+    SECTION("A book of a type") {
+        book.choose("template.novel");
+        CHECK(create->text() == QStringLiteral("Create Book"));
+
+        // Cancel of the question: the window stays, with the data
+        create->click();
+        CHECK(asked == QStringList{QStringLiteral("Second")});
+        CHECK(book.dialog->isVisible());
+
+        answer = NewBookOpening::DontOpen;
+        create->click();
+        CHECK(asked.size() == 2);
+        CHECK_FALSE(book.dialog->isVisible());
+        CHECK(book.dialog->QDialog::result() == QDialog::Accepted);
+        CHECK_FALSE(book.dialog->result().open);
+    }
+
+    SECTION("A user project") {
+        book.choose("template.empty");
+        CHECK(create->text() == QStringLiteral("Next"));
+        book.choose("template.poetry");
+        CHECK(create->text() == QStringLiteral("Create Book"));
+        book.choose("template.empty");
+
+        // The question comes in the window of its kinds
+        create->click();
+        CHECK(asked.isEmpty());
+        CHECK(book.dialog->QDialog::result() == QDialog::Accepted);
+        CHECK(book.dialog->result().open);
+        CHECK(NewItemDialog::isUserProject(book.dialog->result().templateId));
+    }
+}
+
 TEST_CASE("Delete from Book: what goes, named after its kind, and where its files go",
           "[gui][dialogs]") {
     const QString folder = QDir::cleanPath(QDir::tempPath() + QStringLiteral("/Stories"));
