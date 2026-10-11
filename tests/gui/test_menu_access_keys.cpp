@@ -439,7 +439,12 @@ void checkTextMenus(bool shown, QStringList& problems) {
     editor::BookEditor editor;
     test::resizeWidget(editor, QSize(600, 400));
     editor.fromKml(test::kmlOf({sentence()}));
-    // The commands the program gives the text's menu (AnnotationsCoordinator)
+    // The commands the program gives the text's menu: those of the Edit menu (EditorPanel)
+    // and the annotations (AnnotationsCoordinator)
+    editor.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
+                                      registry.getAction(QStringLiteral("edit.copy")),
+                                      registry.getAction(QStringLiteral("edit.paste")),
+                                      registry.getAction(QStringLiteral("edit.selectAll"))});
     editor.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
                                   registry.getAction(QStringLiteral("insert.todo")),
                                   registry.getAction(QStringLiteral("insert.note"))});

@@ -660,6 +660,25 @@ public:
     /// Null entries are left out.
     void setContextMenuActions(const QList<QAction*>& actions);
 
+    /// @brief The application's Cut, Copy, Paste and Select All (setContextMenuEditActions())
+    struct ContextMenuEditActions {
+        QAction* cut = nullptr;
+        QAction* copy = nullptr;
+        QAction* paste = nullptr;
+        QAction* selectAll = nullptr;
+    };
+
+    /// @brief The commands of the Edit menu the text's context menu shows as its editing
+    ///        items, with their icons and keys
+    ///
+    /// They take the places of the editor's own Cut, Copy, Paste and Select All (Cut and
+    /// Copy only with a selection) and are enabled as in the Edit menu. They work on the
+    /// element with the keys, the editor whose menu is open: a right click gives it the keys,
+    /// and the keyboard opens the menu of the editor that has them. An item without a
+    /// command is the editor's own. The application keeps the commands while the editor
+    /// lives.
+    void setContextMenuEditActions(const ContextMenuEditActions& actions);
+
     /// @brief Show the text's context menu under the cursor, as the menu key and Shift+F10
     ///        do: for a misspelled word at the cursor it offers what to put in its place
     void showContextMenuAtCursor();
@@ -1520,6 +1539,7 @@ private:
     bool m_autoScrollForDrop = false;   ///< Scrolling for dragged text (else: for a mouse selection)
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
     QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
+    ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
 
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string

@@ -143,6 +143,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - In Polish the keys have Polish names in the menus, the tooltips and the settings
     (Strzałka w górę, Spacja, Enter).
 
+- **The text's context menu: the commands of the Edit menu** - 2026-10-11. Cut, Copy, Paste
+  and Select All in the text's context menu are the commands of the Edit menu, with their
+  icons and keys (Ctrl+X, Ctrl+C, Ctrl+V and Ctrl+A, or those set in Settings > Keyboard
+  Shortcuts); the menu had items of its own without them. Paste is greyed out where there is
+  nothing to paste, as in the Edit menu. macOS shows no keys in context menus.
+
 - **Dashboard on a small screen** - 2026-10-10. On a 1366 × 768 screen at 125% and 150%,
   with the side panels open or closed, nothing of the Dashboard is cut off. The hints of
   the shortcuts go one under another where one row is too narrow for them, with the keys

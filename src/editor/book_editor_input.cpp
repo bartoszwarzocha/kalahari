@@ -641,6 +641,11 @@ void BookEditor::setContextMenuActions(const QList<QAction*>& actions)
     m_contextMenuActions = actions;
 }
 
+void BookEditor::setContextMenuEditActions(const ContextMenuEditActions& actions)
+{
+    m_contextMenuEditActions = actions;
+}
+
 void BookEditor::contextMenuEvent(QContextMenuEvent* event)
 {
     if (!m_textBuffer) {
@@ -713,15 +718,26 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
     }
 
+    // The editing items: the Edit menu's commands with their icons and keys, where the
+    // application gives them; else the editor's own
+    const auto addEditItem = [this, &menu](QAction* command, const QString& text,
+                                           void (BookEditor::*edit)()) {
+        if (command != nullptr) {
+            menu.addAction(command);
+        } else {
+            menu.addAction(text, this, edit);
+        }
+    };
+    const ContextMenuEditActions& commands = m_contextMenuEditActions;
     if (hasSelection()) {
-        menu.addAction(tr("Cu&t"), this, &BookEditor::cut);
-        menu.addAction(tr("&Copy"), this, &BookEditor::copy);
+        addEditItem(commands.cut, tr("Cu&t"), &BookEditor::cut);
+        addEditItem(commands.copy, tr("&Copy"), &BookEditor::copy);
     }
-    menu.addAction(tr("&Paste"), this, &BookEditor::paste);
+    addEditItem(commands.paste, tr("&Paste"), &BookEditor::paste);
 
     // Also without a selection, as in the program's text fields
     menu.addSeparator();
-    menu.addAction(tr("Select &All"), this, &BookEditor::selectAll);
+    addEditItem(commands.selectAll, tr("Select &All"), &BookEditor::selectAll);
 
     // The application's commands for the text (adding annotations)
     bool separated = false;
