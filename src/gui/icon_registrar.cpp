@@ -252,6 +252,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("common.createNewFolder", "resources/icons/twotone/create_new_folder.svg", "Create Folder");
     iconRegistry.registerIcon("common.driveFileMove", "resources/icons/twotone/drive_file_move.svg", "Move File");
     iconRegistry.registerIcon("common.fileCopy", "resources/icons/twotone/file_copy.svg", "Copy File");
+    iconRegistry.registerIcon("common.preview", "resources/icons/twotone/visibility.svg",
+                              "Preview");
     // Dock title bar button icons (OpenSpec #00032)
     iconRegistry.registerIcon("dock.float", "resources/icons/twotone/fullscreen_exit.svg", "Float");
     iconRegistry.registerIcon("dock.close", "resources/icons/twotone/close.svg", "Close");
@@ -281,6 +283,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("structure.backmatter", "resources/icons/twotone/last_page.svg", "Back Matter");
     iconRegistry.registerIcon("structure.part", "resources/icons/twotone/folder_open.svg", "Part");
     iconRegistry.registerIcon("structure.otherfiles", "resources/icons/twotone/folder_open.svg", "Other Files");
+    iconRegistry.registerIcon("structure.unassigned", "resources/icons/twotone/folder.svg",
+                              "Unassigned Files");
     iconRegistry.registerIcon("project.book", "resources/icons/twotone/auto_stories.svg", "Book Project");
 
     logger.debug("Registered {} icons with IconRegistry", 184);

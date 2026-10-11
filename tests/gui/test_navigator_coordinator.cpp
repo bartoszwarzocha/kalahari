@@ -1,14 +1,22 @@
 /// @file test_navigator_coordinator.cpp
 /// @brief The Navigator's commands on the open book project: adding, renaming, moving and
-/// deleting elements, which ProjectManager saves at once
+/// deleting elements, which ProjectManager saves at once, and the files that no element has
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/chapter_document.h>
+#include <kalahari/core/file_trash.h>
+#include <kalahari/core/kind_words.h>
 #include <kalahari/core/project_manager.h>
+#include <kalahari/gui/dialogs/add_to_book_dialog.h>
+#include <kalahari/gui/dialogs/delete_dialogs.h>
+#include <kalahari/gui/dialogs/file_preview_dialog.h>
 #include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/navigator_coordinator.h>
+#include <kalahari/gui/panels/editor_panel.h>
 #include <kalahari/gui/panels/navigator_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
+#include <kalahari/gui/utils/file_location.h>
 
 #include <QAction>
 #include <QApplication>
@@ -16,6 +24,7 @@
 #include <QComboBox>
 #include <QDialog>
 #include <QDir>
+#include <QFile>
 #include <QLabel>
 #include <QFileInfo>
 #include <QKeyEvent>
@@ -26,6 +35,7 @@
 #include <QStatusBar>
 #include <QTabWidget>
 #include <QTemporaryDir>
+#include <QTextBrowser>
 #include <QTimer>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
@@ -145,9 +155,93 @@ Answer answerQuestion(bool doIt, QString* asked = nullptr) {
     };
 }
 
+/// @brief Answer the window that deletes an element from the book with Delete (@p doIt), the
+/// files too when @p withFiles says so, or with Cancel; @p said gets what the window says
+Answer answerDelete(bool doIt, bool withFiles = false, QString* said = nullptr) {
+    return [doIt, withFiles, said](QDialog& dialog) {
+        auto* window = qobject_cast<gui::dialogs::DeleteFromBookDialog*>(&dialog);
+        if (!window) {
+            dialog.reject();
+            return;
+        }
+        window->deleteFilesBox()->setChecked(withFiles);
+        if (said) {
+            *said = window->clipboardText();
+        }
+        (doIt ? window->acceptButton() : window->cancelButton())->click();
+    };
+}
+
+/// @brief Answer the window that deletes files of "Unassigned Files" with Delete (@p doIt) or
+/// with Cancel; @p said gets what the window says
+Answer answerDeleteFiles(bool doIt, QString* said = nullptr) {
+    return [doIt, said](QDialog& dialog) {
+        auto* window = qobject_cast<gui::dialogs::DeleteFilesDialog*>(&dialog);
+        if (!window) {
+            dialog.reject();
+            return;
+        }
+        if (said) {
+            *said = window->clipboardText();
+        }
+        (doIt ? window->acceptButton() : window->cancelButton())->click();
+    };
+}
+
+/// @brief @p text with the name of the system's Trash for "{bin}"
+QString withBin(const QString& text) {
+    return core::fillWords(text, {{QStringLiteral("bin"), gui::dialogs::trashWords()}});
+}
+
+/// @brief The text of chapter file @p path; empty when it cannot be read
+QString textOf(const QString& path) {
+    const std::optional<core::ChapterDocument> chapter = core::ChapterDocument::load(path);
+    return chapter ? chapter->plainText() : QString();
+}
+
+/// @brief The Trash of a test in place of the system's until the test ends; it keeps the text
+/// each file had when it took it
+struct TestTrash {
+    bool exists = true;  ///< The files can go to it
+    bool takes = true;   ///< It takes them; else it refuses them
+    QStringList taken;   ///< The files it took
+    QStringList texts;   ///< Their texts
+
+    TestTrash() {
+        core::setTrashForTests([this](const QString&) { return exists; },
+                               [this](const QString& path) {
+                                   if (!takes) {
+                                       return false;
+                                   }
+                                   taken << path;
+                                   texts << textOf(path);
+                                   return QFile::remove(path);
+                               });
+    }
+    ~TestTrash() { core::setTrashForTests({}, {}); }
+    TestTrash(const TestTrash&) = delete;
+    TestTrash& operator=(const TestTrash&) = delete;
+};
+
+/// @brief The file manager of a test in place of the system's until the test ends
+struct TestFileManager {
+    QStringList shown;  ///< What the program showed in it
+
+    TestFileManager() {
+        gui::setFileManagerForTests([this](const QString& path) {
+            shown << path;
+            return true;
+        });
+    }
+    ~TestFileManager() { gui::setFileManagerForTests({}); }
+    TestFileManager(const TestFileManager&) = delete;
+    TestFileManager& operator=(const TestFileManager&) = delete;
+};
+
 /// @brief A new novel, open in ProjectManager until the test ends
 ///
-/// The commands start from an empty book: the elements a novel starts with are taken out.
+/// The commands start from an empty book: the elements a novel starts with are taken out,
+/// with their files, which the Navigator would list under "Unassigned Files".
 struct OpenNovel {
     QTemporaryDir dir;
     core::ProjectManager& pm = core::ProjectManager::getInstance();
@@ -160,9 +254,17 @@ struct OpenNovel {
         for (const QList<core::ProjectElement>* list :
              {&book().frontElements, &book().mainElements}) {
             while (!list->isEmpty()) {
-                REQUIRE(pm.removeElement(list->first().id).has_value());
+                const std::optional<core::ProjectElement> removed =
+                    pm.removeElement(list->first().id);
+                REQUIRE(removed.has_value());
+                if (removed) {
+                    for (const QString& file : pm.filesOf(*removed)) {
+                        REQUIRE(QFile::remove(file));
+                    }
+                }
             }
         }
+        REQUIRE(pm.unassignedFiles().isEmpty());
     }
     ~OpenNovel() { pm.closeProject(false); }
     OpenNovel(const OpenNovel&) = delete;
@@ -449,31 +551,73 @@ TEST_CASE("Navigator commands: renaming, moving and deleting, saved at once",
               "Part I, Chapter 2 [Draft]");
     }
 
-    SECTION("Deleting a chapter says where its file stays") {
+    SECTION("Deleting a chapter leaves its file in the book's folder, under \"Unassigned "
+            "Files\"") {
+        TestTrash trash;
         const core::ProjectElement* bodyChapter = pm.findElement(bodyChapterId);
         REQUIRE(bodyChapter != nullptr);
         const QString file = pm.filePathOf(*bodyChapter);
-        QString asked;
+        const QString name = QFileInfo(file).fileName();
+        navigator.properties->showChapterProperties(chapter.id);
+        QString said;
         CHECK(answering([&] { navigator.coordinator.onRequestDelete(bodyChapterId); },
-                        {answerQuestion(true, &asked)}) == 1);
-        CHECK(asked.contains(QStringLiteral("Its file stays in the book's folder:\n") +
-                             QDir::toNativeSeparators(file)));
+                        {answerDelete(true, false, &said)}) == 1);
+        INFO(said.toStdString());
+        CHECK(said.contains(QStringLiteral("Delete the chapter \"Chapter 2\" from the book?")));
+        CHECK(said.contains(QStringLiteral("Chapter 2 – ") + name));
+        CHECK(said.contains(QStringLiteral(
+            "The file stays in the book's folder. You will find it in the Navigator, under "
+            "\"Unassigned Files\", where you can add it back to the book or delete it.")));
+        CHECK(said.contains(QStringLiteral("Folder: ") +
+                            QDir::toNativeSeparators(QFileInfo(file).absolutePath())));
         CHECK(titles(novel.book().mainElements) == "Part I");
+        CHECK(titles(novel.savedBook().mainElements) == "Part I");
         CHECK(QFileInfo::exists(file));
+        CHECK(trash.taken.isEmpty());
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("Chapter deleted from the book: Chapter 2"));
+
+        // The Properties panel keeps showing a chapter that is still in the book
+        CHECK(navigator.properties->currentPage() == gui::PropertiesPanel::Page::Chapter);
+
+        // The Navigator lists the file after the sections of the book, open
+        QTreeWidgetItem* unassigned = navigator.section(QStringLiteral("unassigned_files"));
+        REQUIRE(unassigned != nullptr);
+        CHECK(unassigned->text(0) == QStringLiteral("Unassigned Files (1)"));
+        CHECK(unassigned->isExpanded());
+        CHECK(unassigned->parent() == navigator.bookItem());
+        CHECK(navigator.bookItem()->indexOfChild(unassigned) ==
+              navigator.bookItem()->childCount() - 1);
+        CHECK(navigator.itemsInSection(QStringLiteral("unassigned_files")) ==
+              "Chapter 2 – " + name.toStdString());
     }
 
-    SECTION("Deleting a part takes its chapters out of the project and closes their tabs") {
-        // Not without the writer's word; the question says that the files stay
-        QString asked;
+    SECTION("Deleting a part takes its chapters out of the book and closes their tabs") {
+        TestTrash trash;
+        const QString file = pm.filePathOf(chapter);
+        const QString name = QFileInfo(file).fileName();
+
+        // Not without the writer's word; the window lists the part with its chapter and its
+        // file
+        QString said;
         CHECK(answering([&] { navigator.coordinator.onRequestDelete(partId); },
-                        {answerQuestion(false, &asked)}) == 1);
-        CHECK(asked.contains(QStringLiteral("Delete \"Part I\" from the book?")));
-        CHECK(asked.contains(QStringLiteral("their files stay in the book's folder")));
+                        {answerDelete(false, false, &said)}) == 1);
+        INFO(said.toStdString());
+        CHECK(said.contains(QStringLiteral("Delete the part \"Part I\" from the book?")));
+        CHECK(said.contains(QStringLiteral(
+            "Together with it, the chapter \"Chapter 1\" will be deleted from the book.")));
+        CHECK(said.contains(QStringLiteral("Part I\n  Chapter 1 – ") + name));
         CHECK(titles(novel.book().mainElements) == "Part I, Chapter 2");
         CHECK(navigator.tabs->count() == 1);
+        CHECK(navigator.coordinator.isChapterDirty(chapter.id));
 
+        // Deleted: the text of the chapter's tab goes to its file first
+        auto* editor = qobject_cast<gui::EditorPanel*>(navigator.tabs->widget(0));
+        REQUIRE(editor != nullptr);
+        editor->setText(QStringLiteral("The storm came at night."));
+        navigator.properties->showChapterProperties(chapter.id);
         CHECK(answering([&] { navigator.coordinator.onRequestDelete(partId); },
-                        {answerQuestion(true)}) == 1);
+                        {answerDelete(true)}) == 1);
         CHECK(titles(novel.book().mainElements) == "Chapter 2");
         CHECK(titles(novel.savedBook().mainElements) == "Chapter 2");
         CHECK(pm.findElement(chapter.id) == nullptr);
@@ -481,11 +625,389 @@ TEST_CASE("Navigator commands: renaming, moving and deleting, saved at once",
         CHECK(navigator.item(chapter.id) == nullptr);
         CHECK(navigator.tabs->count() == 0);
         CHECK_FALSE(navigator.coordinator.isChapterDirty(chapter.id));
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("Part deleted from the book: Part I"));
 
-        // The chapter's file stays in the project's folder
-        CHECK(QFileInfo::exists(
-            QDir(novel.dir.path()).filePath(chapter.file)));
+        // The Properties panel showed the deleted chapter: it shows the book
+        CHECK(navigator.properties->currentPage() == gui::PropertiesPanel::Page::Project);
+
+        // The chapter's file stays in the book's folder, with the text of the tab
+        CHECK(textOf(file).contains(QStringLiteral("The storm came at night.")));
+        CHECK(trash.taken.isEmpty());
+        CHECK(navigator.itemsInSection(QStringLiteral("unassigned_files")) ==
+              "Chapter 1 – " + name.toStdString());
     }
+}
+
+TEST_CASE("Navigator commands: the files deleted with an element go to the Trash or for good",
+          "[gui][navigator]") {
+    OpenNovel novel;
+    Navigator navigator;
+    auto& pm = novel.pm;
+    TestTrash trash;
+
+    // A part with two chapters; the first one is open, with changes
+    answering([&] { navigator.coordinator.onRequestAddPart(); }, {acceptAsItIs});
+    REQUIRE(novel.book().mainElements.size() == 1);
+    const QString partId = novel.book().mainElements.first().id;
+    answering([&] { navigator.coordinator.onRequestAddChapter(partId); }, {acceptAsItIs});
+    answering([&] { navigator.coordinator.onRequestAddChapter(partId); }, {acceptAsItIs});
+    const QList<core::ProjectElement> chapters = novel.book().mainElements.first().elements;
+    REQUIRE(titles(chapters) == "Chapter 1, Chapter 2");
+    const QStringList files{pm.filePathOf(chapters.at(0)), pm.filePathOf(chapters.at(1))};
+    navigator.coordinator.onElementSelected(chapters.at(0).id, chapters.at(0).title);
+    REQUIRE(navigator.tabs->count() == 1);
+    auto* editor = qobject_cast<gui::EditorPanel*>(navigator.tabs->widget(0));
+    REQUIRE(editor != nullptr);
+    editor->setText(QStringLiteral("The storm came at night."));
+    navigator.coordinator.setChapterDirty(chapters.at(0).id, true);
+
+    SECTION("To the Trash, with the text of the open tab") {
+        QString said;
+        CHECK(answering([&] { navigator.coordinator.onRequestDelete(partId); },
+                        {answerDelete(true, true, &said)}) == 1);
+        INFO(said.toStdString());
+        CHECK(said.contains(withBin(QStringLiteral(
+            "The files of the chapters go to the system's {bin}. You can restore them from the "
+            "{bin}, but not from the program."))));
+        CHECK_FALSE(said.contains(QStringLiteral("Folder:")));
+        CHECK(novel.book().mainElements.isEmpty());
+        CHECK(novel.savedBook().mainElements.isEmpty());
+        CHECK(trash.taken == files);
+        CHECK(trash.texts.value(0).contains(QStringLiteral("The storm came at night.")));
+        CHECK_FALSE(QFileInfo::exists(files.at(0)));
+        CHECK_FALSE(QFileInfo::exists(files.at(1)));
+        CHECK(navigator.tabs->count() == 0);
+        CHECK(navigator.section(QStringLiteral("unassigned_files")) == nullptr);
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("Part deleted from the book: Part I"));
+    }
+
+    SECTION("For good from a folder without a Trash") {
+        trash.exists = false;
+        QString said;
+        CHECK(answering([&] { navigator.coordinator.onRequestDelete(partId); },
+                        {answerDelete(true, true, &said)}) == 1);
+        INFO(said.toStdString());
+        CHECK(said.contains(withBin(QStringLiteral(
+            "The files of the chapters will be gone for good: files in this folder cannot go to "
+            "the {bin}."))));
+        CHECK(novel.book().mainElements.isEmpty());
+        CHECK(trash.taken.isEmpty());
+        CHECK_FALSE(QFileInfo::exists(files.at(0)));
+        CHECK_FALSE(QFileInfo::exists(files.at(1)));
+        CHECK(navigator.section(QStringLiteral("unassigned_files")) == nullptr);
+    }
+
+    SECTION("A file the Trash does not take goes for good only when the writer says so") {
+        trash.takes = false;
+        QString asked;
+        CHECK(answering([&] { navigator.coordinator.onRequestDelete(chapters.at(1).id); },
+                        {answerDelete(true, true), answerQuestion(false, &asked)}) == 2);
+        INFO(asked.toStdString());
+        CHECK(asked.contains(withBin(QStringLiteral("The {bin} did not take the file:\n")) +
+                             QDir::toNativeSeparators(files.at(1))));
+        CHECK(asked.contains(QStringLiteral("Delete it for good? It cannot be restored then.")));
+        CHECK(titles(novel.book().mainElements.first().elements) == "Chapter 1");
+        CHECK(QFileInfo::exists(files.at(1)));
+        CHECK(navigator.itemsInSection(QStringLiteral("unassigned_files")) ==
+              "Chapter 2 – " + QFileInfo(files.at(1)).fileName().toStdString());
+
+        // The writer says so
+        CHECK(answering([&] { navigator.coordinator.onRequestDelete(chapters.at(0).id); },
+                        {answerDelete(true, true), answerQuestion(true)}) == 2);
+        CHECK(novel.book().mainElements.first().elements.isEmpty());
+        CHECK_FALSE(QFileInfo::exists(files.at(0)));
+        CHECK(navigator.tabs->count() == 0);
+    }
+
+    SECTION("The files the Trash does not take are listed, and the part shown goes too") {
+        trash.takes = false;
+        navigator.properties->showPartProperties(partId);
+        QString asked;
+        CHECK(answering([&] { navigator.coordinator.onRequestDelete(partId); },
+                        {answerDelete(true, true), answerQuestion(false, &asked)}) == 2);
+        INFO(asked.toStdString());
+        CHECK(asked.contains(withBin(QStringLiteral("The {bin} did not take these files:\n  ")) +
+                             QDir::toNativeSeparators(files.at(0)) + QStringLiteral("\n  ") +
+                             QDir::toNativeSeparators(files.at(1))));
+        CHECK(asked.contains(
+            QStringLiteral("Delete them for good? They cannot be restored then.")));
+        CHECK(novel.book().mainElements.isEmpty());
+        CHECK(QFileInfo::exists(files.at(0)));
+        CHECK(QFileInfo::exists(files.at(1)));
+        CHECK(navigator.properties->currentPage() == gui::PropertiesPanel::Page::Project);
+    }
+
+    SECTION("An empty part has no files") {
+        CHECK(answering([&] { navigator.coordinator.onRequestDelete(chapters.at(0).id); },
+                        {answerDelete(true)}) == 1);
+        CHECK(answering([&] { navigator.coordinator.onRequestDelete(chapters.at(1).id); },
+                        {answerDelete(true)}) == 1);
+        QString said;
+        CHECK(answering([&] { navigator.coordinator.onRequestDelete(partId); },
+                        {answerDelete(true, true, &said)}) == 1);
+        INFO(said.toStdString());
+        CHECK(said == QStringLiteral(
+                          "Delete from Book\n\nDelete the part \"Part I\" from the book?\n\n"
+                          "The part is empty.\n\nPart I"));
+        CHECK(novel.book().mainElements.isEmpty());
+        CHECK(trash.taken.isEmpty());
+        CHECK(QFileInfo::exists(files.at(0)));
+        CHECK(QFileInfo::exists(files.at(1)));
+    }
+}
+
+TEST_CASE("Navigator: the files that no element has go back to the book or are deleted",
+          "[gui][navigator]") {
+    OpenNovel novel;
+    Navigator navigator;
+    auto& pm = novel.pm;
+    auto& coordinator = navigator.coordinator;
+    TestTrash trash;
+    TestFileManager fileManager;
+    navigator.panel->resize(400, 600);
+    navigator.window.resize(400, 600);
+    navigator.window.show();
+    const auto unassigned = [&navigator]() {
+        return navigator.section(QStringLiteral("unassigned_files"));
+    };
+    const auto fileItem = [&unassigned](const core::ProjectElement& element) {
+        QTreeWidgetItem* files = unassigned();
+        for (int i = 0; files && i < files->childCount(); ++i) {
+            if (files->child(i)->data(0, Qt::UserRole).toString() == element.file) {
+                return files->child(i);
+            }
+        }
+        return static_cast<QTreeWidgetItem*>(nullptr);
+    };
+    const auto pathOf = [&novel](const core::ProjectElement& element) {
+        return QDir::cleanPath(QDir(novel.dir.path()).filePath(element.file));
+    };
+    const auto deleteFromBook = [&coordinator](const QString& id) {
+        REQUIRE(answering([&coordinator, &id] { coordinator.onRequestDelete(id); },
+                          {answerDelete(true)}) == 1);
+    };
+
+    // A prologue and three chapters; the prologue, the second chapter (a revision with notes
+    // and a text) and the third one go from the book, and their files stay
+    for (int i = 0; i < 3; ++i) {
+        answering([&] { coordinator.onRequestAddChapter(QString()); }, {acceptAsItIs});
+    }
+    const int prologueKind =
+        indexOf(pm.textKindsFor(core::BookPlace::Main), QStringLiteral("prologue"));
+    REQUIRE(prologueKind >= 0);
+    answering([&] { coordinator.onRequestAddChapter(QString()); }, {acceptKind(prologueKind)});
+    const QList<core::ProjectElement> start = novel.book().mainElements;
+    REQUIRE(titles(start) == "Prologue, Chapter 1, Chapter 2, Chapter 3");
+    const core::ProjectElement& prologue = start.at(0);
+    const core::ProjectElement& first = start.at(1);
+    const core::ProjectElement& second = start.at(2);
+    const core::ProjectElement& third = start.at(3);
+    REQUIRE(pm.setStatus(second.id, QStringLiteral("revision")));
+    REQUIRE(pm.setNotes(second.id, QStringLiteral("Check the dates.")));
+    pm.setChapterContent(second.id, QStringLiteral("<kml><p>The storm came at night.</p></kml>"));
+    REQUIRE(pm.saveChapterContent(second.id));
+    for (const core::ProjectElement* gone : {&prologue, &second, &third}) {
+        deleteFromBook(gone->id);
+    }
+    REQUIRE(titles(novel.book().mainElements) == "Chapter 1");
+
+    // Listed by the names of their files, with their titles, and open: they are new
+    REQUIRE(unassigned() != nullptr);
+    CHECK(unassigned()->text(0) == QStringLiteral("Unassigned Files (3)"));
+    CHECK(unassigned()->isExpanded());
+    const auto shown = [](const core::ProjectElement& element) {
+        return element.title + QStringLiteral(" – ") + QFileInfo(element.file).fileName();
+    };
+    CHECK(navigator.itemsInSection(QStringLiteral("unassigned_files")) ==
+          QStringList{shown(second), shown(third), shown(prologue)}
+              .join(QStringLiteral(", "))
+              .toStdString());
+    REQUIRE(fileItem(second) != nullptr);
+    CHECK(fileItem(second)->toolTip(0) == QDir::toNativeSeparators(pathOf(second)));
+
+    // The menus of a file and of the item of the files; a file shows its text when it is
+    // opened
+    QStringList requested;
+    const auto request = [&requested](const char* what) {
+        return [&requested, what](const QString& file) {
+            requested << QString::fromLatin1(what) + QLatin1Char(' ') + file;
+        };
+    };
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestPreviewUnassigned,
+                     request("preview"));
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAddUnassigned,
+                     request("add"));
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestDeleteUnassigned,
+                     request("delete"));
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestDeleteAllUnassigned,
+                     [&requested]() { requested << QStringLiteral("delete all"); });
+    CHECK(navigator.inMenuOf(fileItem(second), QStringLiteral("Preview")));
+    CHECK(navigator.inMenuOf(fileItem(second), QStringLiteral("Add to Book...")));
+    CHECK(navigator.inMenuOf(fileItem(second), QStringLiteral("Delete File...")));
+    CHECK(navigator.inMenuOf(unassigned(), QStringLiteral("Delete All...")));
+    auto* tree = navigator.panel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    emit tree->itemActivated(fileItem(second), 0);
+    const QString file = second.file;
+    CHECK(requested.join(QStringLiteral(", ")) ==
+          QStringLiteral("preview %1, add %1, delete %1, delete all, preview %1").arg(file));
+    CHECK(navigator.tabs->count() == 0);
+    CHECK(navigator.inMenuOf(fileItem(second), QStringLiteral("Show in Folder")));
+    CHECK(navigator.inMenuOf(unassigned(), QStringLiteral("Show in Folder")));
+    CHECK(fileManager.shown ==
+          QStringList{pathOf(second), QFileInfo(pathOf(second)).absolutePath()});
+
+    // Closed by the writer, the item stays closed
+    unassigned()->setExpanded(false);
+    coordinator.refreshNavigator();
+    CHECK_FALSE(unassigned()->isExpanded());
+
+    // The preview: the text of the file, read-only, and what the element would take from it
+    QString said;
+    QString text;
+    CHECK(answering([&] { coordinator.onRequestPreviewUnassigned(second.file); },
+                    {[&said, &text](QDialog& dialog) {
+                         if (auto* preview =
+                                 qobject_cast<gui::dialogs::FilePreviewDialog*>(&dialog)) {
+                             for (const QLabel* label : dialog.findChildren<QLabel*>()) {
+                                 said += label->text() + QLatin1Char('\n');
+                             }
+                             text = preview->text()->toPlainText();
+                             CHECK(preview->text()->isReadOnly());
+                             CHECK(preview->cancelButton()->isDefault());
+                         }
+                         dialog.reject();
+                     }}) == 1);
+    INFO(said.toStdString());
+    CHECK(said.contains(QStringLiteral("Chapter 2\n")));
+    CHECK(said.contains(QDir::toNativeSeparators(second.file) +
+                        QStringLiteral(" · Status: Revision · Words: 5")));
+    CHECK(text == QStringLiteral("The storm came at night."));
+    CHECK(titles(novel.book().mainElements) == "Chapter 1");
+
+    // From the preview to the book: the kind its file's name says, its title and its status
+    QString kind;
+    QString title;
+    QString status;
+    CHECK(answering([&] { coordinator.onRequestPreviewUnassigned(second.file); },
+                    {[](QDialog& dialog) {
+                         if (auto* preview =
+                                 qobject_cast<gui::dialogs::FilePreviewDialog*>(&dialog)) {
+                             preview->acceptButton()->click();
+                         } else {
+                             dialog.reject();
+                         }
+                     },
+                     [&kind, &title, &status](QDialog& dialog) {
+                         auto* adding = qobject_cast<gui::dialogs::AddToBookDialog*>(&dialog);
+                         if (!adding) {
+                             dialog.reject();
+                             return;
+                         }
+                         kind = adding->kindBox()->currentText();
+                         title = adding->titleEdit()->text();
+                         status = adding->statusLabel()->text();
+                         CHECK(adding->copyButton() == nullptr);
+                         adding->acceptButton()->click();
+                     }}) == 2);
+    CHECK(kind == QStringLiteral("Chapter"));
+    CHECK(title == QStringLiteral("Chapter 2"));
+    CHECK(status == QStringLiteral("Revision (from the file)"));
+
+    // Back in the book at the end of the body, with the status and the notes of the file
+    REQUIRE(titles(novel.book().mainElements) == "Chapter 1, Chapter 2");
+    const core::ProjectElement back = novel.book().mainElements.at(1);
+    CHECK(back.file == second.file);
+    CHECK(back.status == QStringLiteral("revision"));
+    CHECK(pm.notes(back.id) == QStringLiteral("Check the dates."));
+    CHECK(titles(novel.savedBook().mainElements) == "Chapter 1, Chapter 2");
+    CHECK(navigator.current() == back.id);
+    CHECK(navigator.statusBar->currentMessage() ==
+          QStringLiteral("Chapter added to the book: Chapter 2"));
+    CHECK(unassigned()->text(0) == QStringLiteral("Unassigned Files (2)"));
+    CHECK_FALSE(unassigned()->isExpanded());
+    CHECK(fileItem(second) == nullptr);
+
+    // The prologue goes back as a prologue, with the writer's title, which its file takes
+    CHECK(answering([&] { coordinator.onRequestAddUnassigned(prologue.file); },
+                    {[&kind](QDialog& dialog) {
+                         auto* adding = qobject_cast<gui::dialogs::AddToBookDialog*>(&dialog);
+                         if (!adding) {
+                             dialog.reject();
+                             return;
+                         }
+                         kind = adding->kindBox()->currentText();
+                         adding->titleEdit()->setText(QStringLiteral(" Before "));
+                         adding->acceptButton()->click();
+                     }}) == 1);
+    CHECK(kind == QStringLiteral("Prologue"));
+    CHECK(titles(novel.book().mainElements) == "Before, Chapter 1, Chapter 2");
+    const std::optional<core::ChapterDocument> renamed =
+        core::ChapterDocument::load(pathOf(prologue));
+    CHECK((renamed && renamed->title() == QStringLiteral("Before")));
+
+    // From the preview to deleting the file: it goes to the Trash
+    said.clear();
+    CHECK(answering([&] { coordinator.onRequestPreviewUnassigned(third.file); },
+                    {[](QDialog& dialog) {
+                         if (auto* preview =
+                                 qobject_cast<gui::dialogs::FilePreviewDialog*>(&dialog)) {
+                             preview->deleteButton()->click();
+                         } else {
+                             dialog.reject();
+                         }
+                     },
+                     answerDeleteFiles(true, &said)}) == 2);
+    const QString thirdName = QFileInfo(third.file).fileName();
+    CHECK(said.contains(QStringLiteral("Delete the file \"") + thirdName +
+                        QStringLiteral("\"?")));
+    CHECK(said.contains(QStringLiteral("Chapter 3 – ") + thirdName));
+    CHECK(said.contains(withBin(QStringLiteral(
+        "The file goes to the system's {bin}. You can restore it from the {bin}, but not from "
+        "the program."))));
+    CHECK(trash.taken == QStringList{pathOf(third)});
+    CHECK(unassigned() == nullptr);
+    CHECK(navigator.statusBar->currentMessage() ==
+          withBin(QStringLiteral("File moved to the {bin}: ")) + thirdName);
+
+    // More files open the item
+    for (const QString& id : {novel.book().mainElements.at(0).id, first.id, back.id}) {
+        deleteFromBook(id);
+    }
+    REQUIRE(unassigned() != nullptr);
+    CHECK(unassigned()->text(0) == QStringLiteral("Unassigned Files (3)"));
+    CHECK(unassigned()->isExpanded());
+
+    // A file deleted outside the program: the Navigator shows the files there are
+    REQUIRE(QFile::remove(pathOf(prologue)));
+    QString asked;
+    CHECK(answering([&] { coordinator.onRequestAddUnassigned(prologue.file); },
+                    {answerQuestion(true, &asked)}) == 1);
+    CHECK(asked.contains(QStringLiteral("The file could not be read:\n") +
+                         QDir::toNativeSeparators(pathOf(prologue))));
+    CHECK(unassigned()->text(0) == QStringLiteral("Unassigned Files (2)"));
+    CHECK(answering([&] { coordinator.onRequestDeleteUnassigned(prologue.file); }) == 0);
+
+    // All of them, from a folder without a Trash: gone for good, when the writer says so
+    trash.exists = false;
+    said.clear();
+    CHECK(answering([&] { coordinator.onRequestDeleteAllUnassigned(); },
+                    {answerDeleteFiles(false, &said)}) == 1);
+    INFO(said.toStdString());
+    CHECK(said.contains(QStringLiteral("Delete all unassigned files (2)?")));
+    CHECK(said.contains(withBin(QStringLiteral(
+        "The files will be gone for good: files in this folder cannot go to the {bin}."))));
+    CHECK(unassigned()->text(0) == QStringLiteral("Unassigned Files (2)"));
+    CHECK(answering([&] { coordinator.onRequestDeleteAllUnassigned(); },
+                    {answerDeleteFiles(true)}) == 1);
+    CHECK(unassigned() == nullptr);
+    CHECK_FALSE(QFileInfo::exists(pathOf(first)));
+    CHECK_FALSE(QFileInfo::exists(pathOf(second)));
+    CHECK(trash.taken == QStringList{pathOf(third)});
+    CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Files deleted: 2"));
+    CHECK(pm.unassignedFiles().isEmpty());
 }
 
 TEST_CASE("Navigator commands: the prologue and the epilogue go where the writer chooses",
@@ -730,12 +1252,12 @@ TEST_CASE("Navigator commands: the sections are hidden, shown and renamed, saved
                      });
     QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAddItem,
                      [&requested](const QString& section) { requested << section; });
-    CHECK(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Add Part")));
-    CHECK(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Add Chapter")));
+    CHECK(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Add Part...")));
+    CHECK(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Add Chapter...")));
     CHECK(navigator.inMenuOf(navigator.bookItem(),
-                             QStringLiteral("Add Item at the Beginning of the Book")));
+                             QStringLiteral("Add Item at the Beginning of the Book...")));
     CHECK(navigator.inMenuOf(navigator.bookItem(),
-                             QStringLiteral("Add Item at the End of the Book")));
+                             QStringLiteral("Add Item at the End of the Book...")));
     CHECK(requested.join(QStringLiteral(", ")).toStdString() ==
           "part, chapter:, front_matter, back_matter");
 
@@ -765,7 +1287,7 @@ TEST_CASE("Navigator commands: the sections are hidden, shown and renamed, saved
     CHECK(navigator.section(QStringLiteral("section_body"))->isExpanded());
     CHECK_FALSE(navigator.section(QStringLiteral("section_frontmatter"))->isExpanded());
     CHECK(navigator.bookItem()->isExpanded());
-    CHECK_FALSE(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Add Part"), false));
+    CHECK_FALSE(navigator.inMenuOf(navigator.bookItem(), QStringLiteral("Add Part..."), false));
 
     // A section gets the writer's name; the others keep theirs
     CHECK(navigator.inMenuOf(navigator.section(QStringLiteral("section_body")),
@@ -833,7 +1355,7 @@ TEST_CASE("Properties panel: the sections of the book and their names, saved at 
         }
     }
     for (QLineEdit* field : properties->findChildren<QLineEdit*>()) {
-        if (field->placeholderText() == QStringLiteral("Enter project title")) {
+        if (field->placeholderText() == QStringLiteral("Enter the title of the book")) {
             title = field;
         }
     }

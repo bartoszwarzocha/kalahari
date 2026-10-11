@@ -10,6 +10,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/utils/file_location.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
@@ -20,6 +21,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTreeWidgetItem>
+#include <QDir>
 #include <QFileInfo>
 #include <QLineEdit>
 #include <QToolButton>
@@ -49,7 +51,22 @@ bool isContainerType(const QString& type) {
     return type == QLatin1String("document") || type == QLatin1String("root") ||
            type == QLatin1String("section_frontmatter") || type == QLatin1String("section_body") ||
            type == QLatin1String("section_backmatter") || type == QLatin1String("group_element") ||
-           type == QLatin1String("other_files");
+           type == QLatin1String("unassigned_files") || type == QLatin1String("other_files");
+}
+
+/// Whether an item of @p type is "Unassigned Files" or one of its files, which are grey
+bool isUnassignedType(const QString& type) {
+    return type == QLatin1String("unassigned_files") || type == QLatin1String("unassigned_file");
+}
+
+/// Icon @p iconId as a disabled item shows it: grey, for the files that are not in the book
+QIcon greyIcon(const QString& iconId, int size) {
+    const QIcon icon =
+        kalahari::core::ArtProvider::getInstance().getIcon(iconId,
+                                                           kalahari::core::IconContext::TreeView);
+    QIcon grey;
+    grey.addPixmap(icon.pixmap(QSize(size, size), QIcon::Disabled));
+    return grey;
 }
 
 /// Tree of the Navigator. An element is dragged only to another place of its list (a section
@@ -299,6 +316,10 @@ void NavigatorPanel::clearDocument() {
     m_treeWidget->clear();
     m_otherFilesItem = nullptr;
     m_highlightedItem = nullptr;
+    m_unassignedItem = nullptr;
+    m_unassignedCount = 0;
+    m_unassignedExpanded = true;
+    m_projectFolder.clear();
     m_standaloneFiles.clear();
     m_treeWidget->setHeaderLabel(tr("Project Structure (no document loaded)"));
 }
@@ -312,15 +333,20 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
 
     auto& artProvider = core::ArtProvider::getInstance();
 
-    // Save standalone files and the highlighted element to restore them after clearing
+    // Save standalone files and the highlighted element to restore them after clearing, and
+    // whether "Unassigned Files" was open, which setUnassignedFiles() gives back
     QStringList standaloneFilePaths = m_standaloneFiles.keys();
     const QString highlightedId =
         m_highlightedItem ? m_highlightedItem->data(0, Qt::UserRole).toString() : QString();
+    if (m_unassignedItem) {
+        m_unassignedExpanded = m_unassignedItem->isExpanded();
+    }
 
     // Clear existing items (this clears tree and standalone file tracking)
     m_treeWidget->clear();
     m_otherFilesItem = nullptr;
     m_highlightedItem = nullptr;
+    m_unassignedItem = nullptr;
     m_standaloneFiles.clear();
     m_treeWidget->setHeaderLabel(tr("Project Structure"));
 
@@ -381,6 +407,95 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
     }
 
     logger.debug("NavigatorPanel::loadProject() complete");
+}
+
+void NavigatorPanel::setUnassignedFiles(const QList<core::UnassignedFile>& files,
+                                        const QString& projectFolder) {
+    // Open when it gets more files: those of the elements just deleted from the book
+    const bool more = files.size() > m_unassignedCount;
+    const bool expanded =
+        more || (m_unassignedItem ? m_unassignedItem->isExpanded() : m_unassignedExpanded);
+    delete m_unassignedItem;
+    m_unassignedItem = nullptr;
+    m_unassignedCount = static_cast<int>(files.size());
+    m_projectFolder = projectFolder;
+
+    QTreeWidgetItem* rootItem =
+        m_treeWidget->topLevelItemCount() > 0 ? m_treeWidget->topLevelItem(0) : nullptr;
+    if (files.isEmpty() || !rootItem ||
+        rootItem->data(0, Qt::UserRole + 1).toString() != QLatin1String("document")) {
+        m_unassignedExpanded = true;  // The next files show at once
+        return;
+    }
+
+    // After the book, before "Other Files"; not dragged, and nothing is dropped on it
+    m_unassignedItem = new QTreeWidgetItem();
+    const int otherFiles = m_otherFilesItem ? rootItem->indexOfChild(m_otherFilesItem) : -1;
+    if (otherFiles >= 0) {
+        rootItem->insertChild(otherFiles, m_unassignedItem);
+    } else {
+        rootItem->addChild(m_unassignedItem);
+    }
+    //: The item of the Navigator with the chapter files that no element of the book has; %1:
+    //: their number. In Polish: Pliki bez przydziału (%1)
+    m_unassignedItem->setText(0, tr("Unassigned Files (%1)").arg(files.size()));
+    m_unassignedItem->setData(0, Qt::UserRole, QString());
+    m_unassignedItem->setData(0, Qt::UserRole + 1, QStringLiteral("unassigned_files"));
+    m_unassignedItem->setToolTip(
+        0, tr("Chapter files in the book's folder that no element of the book has"));
+    m_unassignedItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+
+    const QDir project(projectFolder);
+    for (const core::UnassignedFile& file : files) {
+        auto* item = new QTreeWidgetItem(m_unassignedItem);
+        const QString name = QFileInfo(file.file).fileName();
+        //: A file of "Unassigned Files": %1 the title of its text, %2 the name of the file
+        item->setText(0, file.title.isEmpty() ? name : tr("%1 – %2").arg(file.title, name));
+        item->setData(0, Qt::UserRole, file.file);
+        item->setData(0, Qt::UserRole + 1, QStringLiteral("unassigned_file"));
+        item->setData(0, TITLE_ROLE, file.title);
+        item->setToolTip(0, QDir::toNativeSeparators(QDir::cleanPath(project.filePath(file.file))));
+        item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    }
+    updateUnassignedLook();
+    m_unassignedItem->setExpanded(expanded);
+
+    // A filter of the tree applies to the new items too
+    if (!m_searchEdit->text().isEmpty() || m_currentFilterType != FilterType::All) {
+        filterTree(m_searchEdit->text());
+    }
+}
+
+void NavigatorPanel::updateUnassignedLook() {
+    if (!m_unassignedItem) {
+        return;
+    }
+    // Grey and italic, as what is not in the book
+    const QColor grey = core::ThemeManager::getInstance()
+                            .getCurrentTheme()
+                            .palette.toQPalette()
+                            .color(QPalette::PlaceholderText);
+    QFont italic = m_treeWidget->font();
+    italic.setItalic(true);
+    const std::function<void(QTreeWidgetItem*)> apply = [&](QTreeWidgetItem* item) {
+        item->setForeground(0, grey);
+        item->setFont(0, italic);
+        item->setIcon(0, greyIcon(getIconIdForType(item->data(0, Qt::UserRole + 1).toString()),
+                                  m_currentIconSize));
+        for (int i = 0; i < item->childCount(); ++i) {
+            apply(item->child(i));
+        }
+    };
+    apply(m_unassignedItem);
+}
+
+void NavigatorPanel::showInFileManager(const QString& path) {
+    if (!showInFolder(path)) {
+        dialogs::MessageDialog::warning(
+            this, tr("Show in Folder"),
+            tr("The file manager of the system could not show:\n%1")
+                .arg(QDir::toNativeSeparators(path)));
+    }
 }
 
 QTreeWidgetItem* NavigatorPanel::addSectionItem(QTreeWidgetItem* parent, const QString& title,
@@ -570,7 +685,9 @@ void NavigatorPanel::refreshItemIcons(QTreeWidgetItem* item) {
         }
     }
 
-    if (!iconId.isEmpty()) {
+    if (isUnassignedType(elementType)) {
+        item->setIcon(0, greyIcon(iconId, m_currentIconSize));
+    } else if (!iconId.isEmpty()) {
         item->setIcon(0, artProvider.getIcon(iconId, core::IconContext::TreeView));
     }
 
@@ -595,6 +712,8 @@ QString NavigatorPanel::getIconIdForType(const QString& elementType) const {
         return "structure.part";
     } else if (elementType == "other_files") {
         return "structure.otherfiles";
+    } else if (elementType == "unassigned_files") {
+        return "structure.unassigned";
     } else if (elementType == "root") {
         return "common.folder";
     } else if (elementType == "standalone_file" || elementType == "window_element") {
@@ -647,7 +766,9 @@ void NavigatorPanel::ensureOtherFilesSection() {
 
     // Create "Other Files" section as child of root (always at bottom)
     m_otherFilesItem = new QTreeWidgetItem(rootItem);
-    m_otherFilesItem->setText(0, tr("Other Files"));
+    //: The item of the Navigator with the files open beside the book, which are not in it.
+    //: In Polish: Pliki spoza książki
+    m_otherFilesItem->setText(0, tr("Files Outside the Book"));
     m_otherFilesItem->setData(0, Qt::UserRole, QString());
     m_otherFilesItem->setData(0, Qt::UserRole + 1, "other_files");
     m_otherFilesItem->setIcon(0, artProvider.getIcon("structure.otherfiles", core::IconContext::TreeView));
@@ -814,8 +935,8 @@ bool NavigatorPanel::matchesTypeFilter(QTreeWidgetItem* item) const {
         return kindId == "timeline";
 
     case FilterType::OtherFiles:
-        // Other files: only items in "Other Files" section (standalone files)
-        return (elementType == "standalone_file");
+        // Other files: the files of "Other Files" (standalone files) and of "Unassigned Files"
+        return elementType == "standalone_file" || elementType == "unassigned_file";
 
     case FilterType::All:
     default:
@@ -945,8 +1066,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         moveToEndAction->setEnabled(index >= 0 && index < endIndex);
     };
 
-    // "Add Story", "Dodaj opowiadanie": a new element of @p kind; none when the place takes no
-    // element of the kind
+    // "Add Story...", "Dodaj opowiadanie...": a new element of @p kind; none when the place takes
+    // no element of the kind
     const auto addKindAction = [&](const core::KindRef& kind) -> QAction* {
         if (!kind) {
             return nullptr;
@@ -959,7 +1080,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         }
         return menu.addAction(
             artProvider.getIcon(iconId, core::IconContext::Menu),
-            core::fillWords(tr("Add {Kind}"), {{QStringLiteral("kind"), wordsOf(kind)}}));
+            core::fillWords(tr("Add {Kind}..."), {{QStringLiteral("kind"), wordsOf(kind)}}));
     };
 
     const auto addRenameDeleteActions = [&]() {
@@ -970,7 +1091,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
         QAction* deleteAction = menu.addAction(
             artProvider.getIcon("edit.delete", core::IconContext::Menu),
-            tr("Delete"));
+            tr("Delete..."));
         connect(deleteAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuDelete);
     };
 
@@ -1083,7 +1204,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                                               : core::BookPlace::Back;
             QAction* addItemAction = menu.addAction(
                 artProvider.getIcon("template.chapter", core::IconContext::Menu),
-                tr("Add Item"));
+                tr("Add Item..."));
             connect(addItemAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddItem);
             addItemAction->setEnabled(projectOpen && !pm.textKindsFor(place).isEmpty());
         }
@@ -1117,14 +1238,14 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
             QAction* addFirstAction = menu.addAction(
                 artProvider.getIcon("structure.frontmatter", core::IconContext::Menu),
-                tr("Add Item at the Beginning of the Book"));
+                tr("Add Item at the Beginning of the Book..."));
             connect(addFirstAction, &QAction::triggered, this,
                     [this]() { emit requestAddItem(QStringLiteral("front_matter")); });
             addFirstAction->setEnabled(!pm.textKindsFor(core::BookPlace::Front).isEmpty());
 
             QAction* addLastAction = menu.addAction(
                 artProvider.getIcon("structure.backmatter", core::IconContext::Menu),
-                tr("Add Item at the End of the Book"));
+                tr("Add Item at the End of the Book..."));
             connect(addLastAction, &QAction::triggered, this,
                     [this]() { emit requestAddItem(QStringLiteral("back_matter")); });
             addLastAction->setEnabled(!pm.textKindsFor(core::BookPlace::Back).isEmpty());
@@ -1143,7 +1264,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("common.properties", core::IconContext::Menu),
-            tr("Project Properties..."));
+            tr("Book Properties..."));
         connect(propertiesAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuProperties);
 
     } else if (elementType == "standalone_file") {
@@ -1156,14 +1277,54 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
 
         QAction* addToProjectAction = menu.addAction(
-            artProvider.getIcon("common.add", core::IconContext::Menu),
-            tr("Add to Project"));
+            artProvider.getIcon("book.newItem", core::IconContext::Menu),
+            tr("Add to Book..."));
         connect(addToProjectAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddToProject);
 
         QAction* removeFromListAction = menu.addAction(
             artProvider.getIcon("edit.delete", core::IconContext::Menu),
             tr("Remove from List"));
         connect(removeFromListAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuRemoveFromList);
+
+    } else if (elementType == "unassigned_file") {
+        // A chapter file that no element has: its text, back to the book, or deleted
+        const QString path = QDir::cleanPath(QDir(m_projectFolder).filePath(elementId));
+        QAction* previewAction = menu.addAction(
+            artProvider.getIcon("common.preview", core::IconContext::Menu), tr("Preview"));
+        connect(previewAction, &QAction::triggered, this,
+                [this, elementId]() { emit requestPreviewUnassigned(elementId); });
+        QAction* addAction = menu.addAction(
+            artProvider.getIcon("book.newItem", core::IconContext::Menu), tr("Add to Book..."));
+        connect(addAction, &QAction::triggered, this,
+                [this, elementId]() { emit requestAddUnassigned(elementId); });
+        menu.addSeparator();
+        QAction* showAction = menu.addAction(
+            artProvider.getIcon("common.folder", core::IconContext::Menu), tr("Show in Folder"));
+        connect(showAction, &QAction::triggered, this,
+                [this, path]() { showInFileManager(path); });
+        menu.addSeparator();
+        QAction* deleteAction = menu.addAction(
+            artProvider.getIcon("edit.delete", core::IconContext::Menu), tr("Delete File..."));
+        connect(deleteAction, &QAction::triggered, this,
+                [this, elementId]() { emit requestDeleteUnassigned(elementId); });
+
+    } else if (elementType == "unassigned_files") {
+        // The files that no element has: their folder, or all of them deleted
+        const QString first =
+            item->childCount() > 0 ? item->child(0)->data(0, Qt::UserRole).toString() : QString();
+        const QString folder =
+            QFileInfo(QDir::cleanPath(QDir(m_projectFolder).filePath(first))).absolutePath();
+        QAction* showAction = menu.addAction(
+            artProvider.getIcon("common.folder", core::IconContext::Menu), tr("Show in Folder"));
+        connect(showAction, &QAction::triggered, this,
+                [this, folder]() { showInFileManager(folder); });
+        menu.addSeparator();
+        QAction* deleteAllAction = menu.addAction(
+            artProvider.getIcon("edit.delete", core::IconContext::Menu), tr("Delete All..."));
+        connect(deleteAllAction, &QAction::triggered, this,
+                [this]() { emit requestDeleteAllUnassigned(); });
+        menu.addSeparator();
+        addExpandCollapseActions();
 
     } else if (elementType == "other_files") {
         // Other Files header - only expand/collapse
@@ -1416,6 +1577,12 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
         return;
     }
 
+    // A file that no element has shows its text; it opens in the editor once it is in the book
+    if (elementType == "unassigned_file") {
+        emit requestPreviewUnassigned(elementId);
+        return;
+    }
+
     // Only text elements open in the editor; sections, groups and window elements do not
     if (elementType == "text_element") {
         emit elementSelected(elementId, item->data(0, TITLE_ROLE).toString());
@@ -1529,6 +1696,9 @@ void NavigatorPanel::updateHighlightColor() {
     if (m_highlightedItem) {
         m_highlightedItem->setBackground(0, QBrush(m_highlightColor));
     }
+
+    // The files that no element has stay grey in the colors of the theme
+    updateUnassignedLook();
 
     logger.debug("NavigatorPanel: Highlight color updated to {}", m_highlightColor.name().toStdString());
 }
@@ -1731,6 +1901,7 @@ QTreeWidgetItem* NavigatorPanel::findItemByTypeAndTextRecursive(QTreeWidgetItem*
                         itemType == QLatin1String("section_frontmatter") ||
                         itemType == QLatin1String("section_body") ||
                         itemType == QLatin1String("section_backmatter") ||
+                        itemType == QLatin1String("unassigned_files") ||
                         itemType == QLatin1String("other_files");
     if (itemType == elementType && (single || parent->text(0) == text)) {
         return parent;

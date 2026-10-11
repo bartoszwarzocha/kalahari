@@ -48,5 +48,9 @@ core::KindWords wordsOf(const core::ProjectElement& element);
 /// (core::ProjectManager::mainTextKind()); none without a book
 core::KindWords mainWords();
 
+/// @brief Forms of the word "element" in the program's language, for a sentence about elements
+/// of different kinds: "3 elements", "the files of the elements"
+core::KindWords elementWords();
+
 } // namespace gui
 } // namespace kalahari

@@ -135,7 +135,7 @@ QWidget* PropertiesPanel::createNoProjectPage() {
     QVBoxLayout* layout = new QVBoxLayout(page);
     layout->setContentsMargins(11, 11, 11, 11);
 
-    m_noProjectLabel = new QLabel(tr("Open a project to see properties"), page);
+    m_noProjectLabel = new QLabel(tr("Open a book to see its properties"), page);
     m_noProjectLabel->setAlignment(Qt::AlignCenter);
     m_noProjectLabel->setWordWrap(true);
 
@@ -159,16 +159,16 @@ QWidget* PropertiesPanel::createProjectPage() {
     layout->setContentsMargins(11, 11, 11, 11);
     layout->setSpacing(11);
 
-    // Project Information group
-    QGroupBox* infoGroup = new QGroupBox(tr("Project Information"), scrollContent);
+    // Book Information group
+    QGroupBox* infoGroup = new QGroupBox(tr("Book Information"), scrollContent);
     QFormLayout* infoLayout = new QFormLayout(infoGroup);
     infoLayout->setSpacing(6);
     infoLayout->setContentsMargins(11, 11, 11, 11);
 
     // Title
     m_projectTitleEdit = new QLineEdit(infoGroup);
-    m_projectTitleEdit->setToolTip(tr("Project title"));
-    m_projectTitleEdit->setPlaceholderText(tr("Enter project title"));
+    m_projectTitleEdit->setToolTip(tr("Title of the book"));
+    m_projectTitleEdit->setPlaceholderText(tr("Enter the title of the book"));
     infoLayout->addRow(tr("Title:"), m_projectTitleEdit);
 
     // Author
@@ -179,7 +179,7 @@ QWidget* PropertiesPanel::createProjectPage() {
 
     // Language
     m_projectLanguageCombo = new QComboBox(infoGroup);
-    m_projectLanguageCombo->setToolTip(tr("Project language"));
+    m_projectLanguageCombo->setToolTip(tr("Language of the book"));
     m_projectLanguageCombo->addItem(tr("English"), "en");
     m_projectLanguageCombo->addItem(tr("Polish"), "pl");
     m_projectLanguageCombo->addItem(tr("German"), "de");
@@ -233,12 +233,12 @@ QWidget* PropertiesPanel::createProjectPage() {
 
     // Created date
     m_projectCreatedLabel = new QLabel("-", statsGroup);
-    m_projectCreatedLabel->setToolTip(tr("Date when the project was created"));
+    m_projectCreatedLabel->setToolTip(tr("Date when the book was created"));
     statsLayout->addRow(tr("Created:"), m_projectCreatedLabel);
 
     // Modified date
     m_projectModifiedLabel = new QLabel("-", statsGroup);
-    m_projectModifiedLabel->setToolTip(tr("Date when the project was last modified"));
+    m_projectModifiedLabel->setToolTip(tr("Date when the book was last changed"));
     statsLayout->addRow(tr("Modified:"), m_projectModifiedLabel);
 
     layout->addWidget(statsGroup);
@@ -745,6 +745,7 @@ void PropertiesPanel::refresh() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::refresh()");
 
+    const auto& pm = core::ProjectManager::getInstance();
     Page currentPage = static_cast<Page>(m_stackedWidget->currentIndex());
 
     switch (currentPage) {
@@ -755,8 +756,11 @@ void PropertiesPanel::refresh() {
             populateProjectFields();
             break;
         case Page::Chapter:
-            if (!m_currentChapterId.isEmpty()) {
+            // An element deleted from the book leaves the panel to the book
+            if (pm.findElement(m_currentChapterId)) {
                 populateChapterFields(m_currentChapterId);
+            } else {
+                showProjectProperties();
             }
             break;
         case Page::Section:
@@ -765,8 +769,10 @@ void PropertiesPanel::refresh() {
             }
             break;
         case Page::Part:
-            if (!m_currentPartId.isEmpty()) {
+            if (pm.findElement(m_currentPartId)) {
                 populatePartFields(m_currentPartId);
+            } else {
+                showProjectProperties();
             }
             break;
         case Page::Editor:

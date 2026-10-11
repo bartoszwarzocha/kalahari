@@ -1234,6 +1234,194 @@ TEST_CASE("ProjectManager adds a chapter file with its notes and status", "[proj
     REQUIRE(pm.closeProject(false));
 }
 
+/// Files and titles of @p files, "file: title" each
+std::string fileTitles(const QList<UnassignedFile>& files) {
+    QStringList list;
+    for (const UnassignedFile& file : files) {
+        list << file.file + QStringLiteral(": ") + file.title;
+    }
+    return list.join(QStringLiteral(", ")).toStdString();
+}
+
+TEST_CASE("ProjectManager gives the files of an element and of the elements inside it",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Files", "Author", "en", true, "kalahari.novel"));
+
+    const KindRef chapter = pm.chapterKindFor(BookPlace::Main);
+    const QString part = pm.addElement(pm.partKind(), "Part", BookPlace::Main);
+    const QString a = pm.addElement(chapter, "A", BookPlace::Main, part);
+    const QString b = pm.addElement(chapter, "B", BookPlace::Main, part);
+    REQUIRE_FALSE(b.isEmpty());
+    const QString fileA = pm.filePathOf(*pm.findElement(a));
+    const QString fileB = pm.filePathOf(*pm.findElement(b));
+
+    // In reading order; a part has no file
+    CHECK(pm.filesOf(*pm.findElement(part)) == QStringList{fileA, fileB});
+    CHECK(pm.filesOf(*pm.findElement(b)) == QStringList{fileB});
+
+    SECTION("A file that is not on the disk is left out") {
+        REQUIRE(QFile::remove(fileA));
+        CHECK(pm.filesOf(*pm.findElement(part)) == QStringList{fileB});
+    }
+
+    SECTION("A file that an element outside them has is left out") {
+        const QString chapterOne = pm.book()->mainElements.first().id;
+        pm.findElement(chapterOne)->file = pm.findElement(b)->file;
+        CHECK(pm.filesOf(*pm.findElement(part)) == QStringList{fileA});
+
+        // Two of them with one file: it is there once
+        pm.findElement(b)->file = pm.findElement(a)->file;
+        CHECK(pm.filesOf(*pm.findElement(part)) == QStringList{fileA});
+    }
+
+    SECTION("Also of an element taken out of the project") {
+        const std::optional<ProjectElement> removed = pm.removeElement(part);
+        REQUIRE(removed.has_value());
+        CHECK(pm.filesOf(*removed) == QStringList{fileA, fileB});
+    }
+
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager lists the chapter files that no element has", "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Unassigned", "Author", "en", true, "kalahari.novel"));
+    const QDir project(pm.getProjectPath());
+    CHECK(pm.unassignedFiles().isEmpty());
+
+    // The files of deleted elements stay, with their titles
+    const KindRef chapter = pm.chapterKindFor(BookPlace::Main);
+    const QString part = pm.addElement(pm.partKind(), "Part", BookPlace::Main);
+    REQUIRE_FALSE(pm.addElement(chapter, "A", BookPlace::Main, part).isEmpty());
+    REQUIRE_FALSE(pm.addElement(chapter, "B", BookPlace::Main, part).isEmpty());
+    REQUIRE(pm.removeElement(part).has_value());
+    CHECK(fileTitles(pm.unassignedFiles()) ==
+          "book/chapter_002.kchapter: A, book/chapter_003.kchapter: B");
+
+    // Chapter files of the Workshop too, and one that cannot be read, without a title; not the
+    // writer's other files, nor the files in folders of these folders
+    REQUIRE(project.mkpath(QStringLiteral("workshop")));
+    REQUIRE(ChapterDocument::fromKmlContent(kmlWith("Idea"), "Idea")
+                .save(project.filePath(QStringLiteral("workshop/note_001.kchapter"))));
+    writeFile(project.filePath(QStringLiteral("book/broken.kchapter")), "not a chapter");
+    writeFile(project.filePath(QStringLiteral("book/cover.png")), "png");
+    REQUIRE(project.mkpath(QStringLiteral("book/old")));
+    REQUIRE(ChapterDocument::fromKmlContent(kmlWith("Old"), "Old")
+                .save(project.filePath(QStringLiteral("book/old/chapter_009.kchapter"))));
+    CHECK(fileTitles(pm.unassignedFiles()) ==
+          "book/broken.kchapter: , book/chapter_002.kchapter: A, "
+          "book/chapter_003.kchapter: B, workshop/note_001.kchapter: Idea");
+
+    // So the program can tell whether the file of a deleted element will be on the list
+    CHECK(pm.listsAsUnassigned(project.filePath(QStringLiteral("book/chapter_001.kchapter"))));
+    CHECK(pm.listsAsUnassigned(project.filePath(QStringLiteral("workshop/note_001.kchapter"))));
+    CHECK(pm.listsAsUnassigned(project.filePath(QStringLiteral("book/./new.KCHAPTER"))));
+    CHECK_FALSE(pm.listsAsUnassigned(project.filePath(QStringLiteral("book/cover.png"))));
+    CHECK_FALSE(
+        pm.listsAsUnassigned(project.filePath(QStringLiteral("book/old/chapter_009.kchapter"))));
+    CHECK_FALSE(pm.listsAsUnassigned(project.filePath(QStringLiteral("other.kchapter"))));
+
+    // A new chapter does not take the name of a file without an element
+    const QString c = pm.addElement(chapter, "C", BookPlace::Main);
+    REQUIRE_FALSE(c.isEmpty());
+    CHECK(pm.findElement(c)->file == "book/chapter_004.kchapter");
+
+    REQUIRE(pm.closeProject(false));
+    CHECK(pm.unassignedFiles().isEmpty());
+    CHECK_FALSE(
+        pm.listsAsUnassigned(project.filePath(QStringLiteral("book/chapter_001.kchapter"))));
+}
+
+TEST_CASE("ProjectManager adds a chapter file that no element has to the book",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Back", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QDir project(pm.getProjectPath());
+
+    // A chapter with a status and notes, deleted from the book
+    const KindRef chapter = pm.chapterKindFor(BookPlace::Main);
+    const QString old = pm.addElement(chapter, "The Storm", BookPlace::Main);
+    REQUIRE(pm.setStatus(old, "revision"));
+    REQUIRE(pm.setNotes(old, "Remember the dog"));
+    pm.setChapterContent(old, kmlWith("Rain and wind"));
+    REQUIRE(pm.saveChapterContent(old));
+    REQUIRE(pm.removeElement(old).has_value());
+    const QString file = QStringLiteral("book/chapter_002.kchapter");
+    REQUIRE(QFileInfo::exists(project.filePath(file)));
+
+    // Back in the front matter, as the writer names it: the file stays where it is
+    const QString id = pm.addUnassignedFile(file, kind("kalahari.novel", "preface"),
+                                            "Preface", BookPlace::Front);
+    REQUIRE_FALSE(id.isEmpty());
+    const ProjectElement* added = pm.findElement(id);
+    REQUIRE(added != nullptr);
+    CHECK(added->file == file);
+    CHECK(added->kind.toString() == kind("kalahari.novel", "preface").reference());
+    CHECK(added->status == "revision");
+    CHECK(pm.notes(id) == "Remember the dog");
+    CHECK(pm.wordCount(id) == 3);
+    CHECK(titles(pm.book()->frontElements) == "Title page, Preface");
+    CHECK(chapterFileOf(id).title() == "Preface");
+    CHECK(chapterFileOf(id).kml() == kmlWith("Rain and wind"));
+    CHECK(pm.unassignedFiles().isEmpty());
+    CHECK(titles(savedProject(manifest).books.first().frontElements) == "Title page, Preface");
+
+    SECTION("Not a file that an element has, or that is not in the book's folders") {
+        const QString used = pm.findElement(id)->file;
+        CHECK(pm.addUnassignedFile(used, chapter, "Again", BookPlace::Main).isEmpty());
+
+        writeFile(project.filePath(QStringLiteral("loose.kchapter")), "{}");
+        writeFile(QDir(dir.path()).filePath(QStringLiteral("outside.kchapter")), "{}");
+        writeFile(project.filePath(QStringLiteral("book/cover.png")), "png");
+        for (const QString& other :
+             {QStringLiteral("loose.kchapter"), QStringLiteral("../outside.kchapter"),
+              project.filePath(QStringLiteral("loose.kchapter")),
+              QStringLiteral("book/cover.png"), QStringLiteral("book/missing.kchapter"),
+              QString()}) {
+            INFO(other.toStdString());
+            CHECK(pm.addUnassignedFile(other, chapter, "Other", BookPlace::Main).isEmpty());
+        }
+        CHECK(titles(pm.book()->mainElements) == "Chapter 1");
+    }
+
+    SECTION("Not a file that cannot be read, nor as a kind that cannot be there; the file stays") {
+        const QString broken = QStringLiteral("book/broken.kchapter");
+        writeFile(project.filePath(broken), "not a chapter");
+        CHECK(pm.addUnassignedFile(broken, chapter, "Broken", BookPlace::Main).isEmpty());
+        CHECK(QFileInfo::exists(project.filePath(broken)));
+
+        REQUIRE(pm.removeElement(id).has_value());
+        CHECK(pm.addUnassignedFile(file, pm.partKind(), "Part", BookPlace::Main).isEmpty());
+        CHECK(pm.addUnassignedFile(file, kind("kalahari.novel", "preface"), "Preface",
+                                   BookPlace::Main)
+                  .isEmpty());
+        CHECK(QFileInfo::exists(project.filePath(file)));
+        CHECK(pm.unassignedFiles().size() == 2);
+    }
+
+    SECTION("In the place the writer chose, or in the place of its kind") {
+        REQUIRE(pm.removeElement(id).has_value());
+        const QString epilogue = pm.addElement(kind("kalahari.novel", "epilogue"), "Epilogue",
+                                               BookPlace::Main);
+        REQUIRE_FALSE(epilogue.isEmpty());
+        REQUIRE_FALSE(pm.addUnassignedFile(file, chapter, "The Storm", BookPlace::Main).isEmpty());
+        CHECK(titles(pm.book()->mainElements) == "Chapter 1, The Storm, Epilogue");
+
+        const QString part = pm.addElement(pm.partKind(), "Part", BookPlace::Main);
+        REQUIRE(pm.removeElement(pm.book()->mainElements.at(1).id).has_value());
+        REQUIRE_FALSE(
+            pm.addUnassignedFile(file, chapter, "The Storm", BookPlace::Main, part, 0).isEmpty());
+        CHECK(titles(pm.findElement(part)->elements) == "The Storm");
+    }
+
+    REQUIRE(pm.closeProject(false));
+}
+
 // =============================================================================
 // Text, status and notes of chapters
 // =============================================================================
@@ -1290,6 +1478,11 @@ TEST_CASE("ProjectManager keeps the status in the .klh file and in the chapter f
     CHECK_FALSE(pm.setStatus(id, "done"));
     CHECK_FALSE(pm.setStatus(part, "final"));  // groups have no status
     CHECK(ProjectManager::statusOf(*pm.findElement(part)) == "draft");
+    CHECK(ProjectManager::isTextStatus("draft"));
+    CHECK(ProjectManager::isTextStatus("revision"));
+    CHECK(ProjectManager::isTextStatus("final"));
+    CHECK_FALSE(ProjectManager::isTextStatus("done"));
+    CHECK_FALSE(ProjectManager::isTextStatus(""));
     REQUIRE(pm.closeProject(false));
 
     // The .klh file decides

@@ -1,8 +1,8 @@
 /// @file standalone_info_bar.h
-/// @brief Info bar widget for standalone files (not part of a project)
+/// @brief Info bar widget for standalone files (not part of the book)
 ///
 /// OpenSpec #00033 Phase F: StandaloneInfoBar widget displays an informational
-/// banner when editing a standalone file, with an option to add it to a project.
+/// banner when editing a standalone file, with an option to add it to the open book.
 
 #pragma once
 
@@ -13,18 +13,18 @@
 namespace kalahari {
 namespace gui {
 
-/// @brief Info bar displayed for standalone files not part of a project
+/// @brief Info bar displayed for standalone files not part of the book
 ///
 /// Shows a themed banner with:
 /// - Info icon
 /// - Message about limited features
-/// - "Add to Project" button
+/// - "Add to Book..." button
 /// - Close/dismiss button
 ///
 /// Visual Design:
 /// +-------------------------------------------------------------------+
-/// | [i] This file is not part of a project.  [Add to Project] [X]     |
-/// |     Limited features available.                                    |
+/// | [i] This file is not part of a book.        [Add to Book...] [X]  |
+/// |     Some features are not available.                               |
 /// +-------------------------------------------------------------------+
 ///
 /// Usage:
@@ -58,7 +58,7 @@ public:
     QString filePath() const { return m_filePath; }
 
 signals:
-    /// @brief Emitted when "Add to Project" button is clicked
+    /// @brief Emitted when "Add to Book..." button is clicked
     void addToProjectClicked();
 
 private:

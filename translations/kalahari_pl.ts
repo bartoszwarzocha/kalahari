@@ -585,6 +585,82 @@
     </message>
 </context>
 <context>
+    <name>DeleteDialogs</name>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Skopiowano</translation>
+    </message>
+    <message>
+        <source>Copy what the window says to the clipboard</source>
+        <translation>Kopiuj treść okna do schowka</translation>
+    </message>
+    <message>
+        <source>Recycle Bin</source>
+        <translation>Kosz</translation>
+    </message>
+    <message>
+        <source>Trash</source>
+        <translation>Kosz</translation>
+    </message>
+</context>
+<context>
+    <name>KindNames</name>
+    <message>
+        <source>element</source>
+        <comment>singular</comment>
+        <translation>element</translation>
+    </message>
+    <message>
+        <source>elements</source>
+        <comment>plural</comment>
+        <translation>elementy</translation>
+    </message>
+    <message>
+        <source>element</source>
+        <comment>genitive</comment>
+        <translation>elementu</translation>
+    </message>
+    <message>
+        <source>element</source>
+        <comment>dative</comment>
+        <translation>elementowi</translation>
+    </message>
+    <message>
+        <source>element</source>
+        <comment>accusative</comment>
+        <translation>element</translation>
+    </message>
+    <message>
+        <source>element</source>
+        <comment>instrumental</comment>
+        <translation>elementem</translation>
+    </message>
+    <message>
+        <source>element</source>
+        <comment>locative</comment>
+        <translation>elemencie</translation>
+    </message>
+    <message>
+        <source>elements</source>
+        <comment>genitive plural</comment>
+        <translation>elementów</translation>
+    </message>
+    <message>
+        <source>an element</source>
+        <comment>indefinite</comment>
+        <translation>element</translation>
+    </message>
+    <message>
+        <source>neuter</source>
+        <comment>gender of the word element</comment>
+        <translation>masculine</translation>
+    </message>
+</context>
+<context>
     <name>ProgramFolders</name>
     <message>
         <source>Archives</source>
@@ -2724,40 +2800,12 @@ Czy na pewno kontynuować?</translation>
 %2</translation>
     </message>
     <message>
-        <source>This file is not part of the current project.</source>
-        <translation>Ten plik nie należy do bieżącego projektu.</translation>
-    </message>
-    <message>
-        <source>This file is not part of a project. Limited features available.</source>
-        <translation>Ten plik nie należy do projektu. Część funkcji jest niedostępna.</translation>
-    </message>
-    <message>
         <source>Opened: %1</source>
         <translation>Otwarto: %1</translation>
     </message>
     <message>
         <source>No Project Open</source>
         <translation>Brak otwartego projektu</translation>
-    </message>
-    <message>
-        <source>Please open or create a book project first.
-
-Use File &gt; New Book... or File &gt; Open Book... to start.</source>
-        <translation>Najpierw otwórz albo utwórz projekt książki.
-
-Użyj polecenia Plik → Nowa książka... lub Plik → Otwórz książkę....</translation>
-    </message>
-    <message>
-        <source>File added to project: %1</source>
-        <translation>Dodano plik do projektu: %1</translation>
-    </message>
-    <message>
-        <source>Error</source>
-        <translation>Błąd</translation>
-    </message>
-    <message>
-        <source>Failed to add file to project. Check logs for details.</source>
-        <translation>Nie udało się dodać pliku do projektu. Szczegóły są w dzienniku.</translation>
     </message>
     <message>
         <source>Please open a project first before exporting.</source>
@@ -2976,6 +3024,46 @@ Program otwiera dokumenty Kalahari (*.kchapter) i pliki tekstowe (*.txt).</trans
     <message>
         <source>Kalahari Documents (*.kchapter)</source>
         <translation>Dokumenty Kalahari (*.kchapter)</translation>
+    </message>
+    <message>
+        <source>This file is not part of the open book.</source>
+        <translation>Ten plik nie należy do otwartej książki.</translation>
+    </message>
+    <message>
+        <source>This file is not part of a book. Some features are not available.</source>
+        <translation>Ten plik nie należy do książki. Część funkcji jest niedostępna.</translation>
+    </message>
+    <message>
+        <source>No Book Open</source>
+        <translation>Brak otwartej książki</translation>
+    </message>
+    <message>
+        <source>Open or create a book first.
+
+Use File &gt; New Book... or File &gt; Open Book... to start.</source>
+        <translation>Najpierw otwórz albo utwórz książkę.
+
+Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</translation>
+    </message>
+    <message>
+        <source>Add to Book</source>
+        <translation>Dodaj do książki</translation>
+    </message>
+    <message>
+        <source>No element of this book can have a text.</source>
+        <translation>Żaden element tej książki nie może zawierać tekstu.</translation>
+    </message>
+    <message>
+        <source>Add {Kind} Failed</source>
+        <translation>Nie udało się dodać {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>The file could not be added to the book. The program&apos;s log has the details.</source>
+        <translation>Nie udało się dodać pliku do książki. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>{Kind} added to the book: %1</source>
+        <translation>Dodano {kind:accusative} do książki: %1</translation>
     </message>
 </context>
 <context>
@@ -3796,14 +3884,6 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>Nie udało się zapisać zmian.</translation>
     </message>
     <message>
-        <source>Confirm Delete</source>
-        <translation>Potwierdź usunięcie</translation>
-    </message>
-    <message>
-        <source>Deleted successfully</source>
-        <translation>Usunięto</translation>
-    </message>
-    <message>
         <source>Delete Failed</source>
         <translation>Nie udało się usunąć</translation>
     </message>
@@ -3818,24 +3898,6 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Moved down</source>
         <translation>Przeniesiono w dół</translation>
-    </message>
-    <message>
-        <source>Delete &quot;%1&quot; from the book?</source>
-        <translation>Usunąć „%1” z książki?</translation>
-    </message>
-    <message>
-        <source>Its file stays in the book&apos;s folder:
-%1</source>
-        <translation>Plik elementu zostanie w folderze książki:
-%1</translation>
-    </message>
-    <message>
-        <source>The elements inside it are deleted from the book too; their files stay in the book&apos;s folder.</source>
-        <translation>Elementy, które zawiera, też zostaną usunięte z książki; ich pliki zostaną w folderze książki.</translation>
-    </message>
-    <message>
-        <source>&amp;Delete</source>
-        <translation>&amp;Usuń</translation>
     </message>
     <message>
         <source>Show Sections Failed</source>
@@ -3872,6 +3934,130 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>{Kind} added: %1</source>
         <translation>Dodano {kind:accusative}: %1</translation>
+    </message>
+    <message>
+        <source>The changes in the {kind} &quot;%1&quot; could not be saved to its file.
+
+Delete {kind:s=it|p=them} from the book anyway? The file keeps the text saved before.</source>
+        <translation>Zmian w {kind:locative} „%1” nie udało się zapisać w pliku.
+
+Mimo to usunąć {kind:m=go|f=ją|n=je|p=je} z książki? Plik zachowa tekst zapisany wcześniej.</translation>
+    </message>
+    <message>
+        <source>The changes in these elements could not be saved to their files:
+%1
+
+Delete them from the book anyway? Their files keep the text saved before.</source>
+        <translation>Zmian w tych elementach nie udało się zapisać w ich plikach:
+%1
+
+Mimo to usunąć je z książki? Ich pliki zachowają tekst zapisany wcześniej.</translation>
+    </message>
+    <message>
+        <source>Delete from Book</source>
+        <translation>Usuń z książki</translation>
+    </message>
+    <message>
+        <source>Delete &amp;Anyway</source>
+        <translation>&amp;Usuń mimo to</translation>
+    </message>
+    <message>
+        <source>{Kind} deleted from the book: %1</source>
+        <translation>Usunięto {kind:accusative} z książki: %1</translation>
+    </message>
+    <message>
+        <source>The {bin} did not take the file:
+%1
+
+Delete it for good? It cannot be restored then.</source>
+        <translation>Kosz nie przyjął pliku:
+%1
+
+Usunąć go na zawsze? Nie będzie można go przywrócić.</translation>
+    </message>
+    <message>
+        <source>The {bin} did not take these files:
+%1
+
+Delete them for good? They cannot be restored then.</source>
+        <translation>Kosz nie przyjął tych plików:
+%1
+
+Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
+    </message>
+    <message>
+        <source>Delete File</source>
+        <translation>Usuń plik</translation>
+    </message>
+    <message>
+        <source>Delete Files</source>
+        <translation>Usuń pliki</translation>
+    </message>
+    <message>
+        <source>Delete for &amp;Good</source>
+        <translation>&amp;Usuń na zawsze</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the File</source>
+        <translation>&amp;Zachowaj plik</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the Files</source>
+        <translation>&amp;Zachowaj pliki</translation>
+    </message>
+    <message>
+        <source>The file could not be deleted:
+%1</source>
+        <translation>Nie udało się usunąć pliku:
+%1</translation>
+    </message>
+    <message>
+        <source>These files could not be deleted:
+%1</source>
+        <translation>Nie udało się usunąć tych plików:
+%1</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>The file could not be read:
+%1</source>
+        <translation>Nie udało się odczytać pliku:
+%1</translation>
+    </message>
+    <message>
+        <source>Add to Book</source>
+        <translation>Dodaj do książki</translation>
+    </message>
+    <message>
+        <source>No element of this book can have a text.</source>
+        <translation>Żaden element tej książki nie może zawierać tekstu.</translation>
+    </message>
+    <message>
+        <source>The file could not be added to the book. The program&apos;s log has the details.</source>
+        <translation>Nie udało się dodać pliku do książki. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>{Kind} added to the book: %1</source>
+        <translation>Dodano {kind:accusative} do książki: %1</translation>
+    </message>
+    <message>
+        <source>File moved to the {bin}: %1</source>
+        <translation>Przeniesiono plik do Kosza: %1</translation>
+    </message>
+    <message>
+        <source>File deleted: %1</source>
+        <translation>Usunięto plik: %1</translation>
+    </message>
+    <message>
+        <source>Files moved to the {bin}: %1</source>
+        <translation>Przeniesiono pliki do Kosza: %1</translation>
+    </message>
+    <message>
+        <source>Files deleted: %1</source>
+        <translation>Usunięto pliki: %1</translation>
     </message>
 </context>
 <context>
@@ -3929,20 +4115,12 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>Pliki</translation>
     </message>
     <message>
-        <source>Other Files</source>
-        <translation>Inne pliki</translation>
-    </message>
-    <message>
         <source>Open</source>
         <translation>Otwórz</translation>
     </message>
     <message>
         <source>Rename...</source>
         <translation>Zmień nazwę...</translation>
-    </message>
-    <message>
-        <source>Delete</source>
-        <translation>Usuń</translation>
     </message>
     <message>
         <source>Move Up</source>
@@ -3973,16 +4151,8 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>Właściwości...</translation>
     </message>
     <message>
-        <source>Add Item</source>
-        <translation>Dodaj element</translation>
-    </message>
-    <message>
-        <source>Project Properties...</source>
-        <translation>Właściwości projektu...</translation>
-    </message>
-    <message>
-        <source>Add to Project</source>
-        <translation>Dodaj do projektu</translation>
+        <source>Add Item...</source>
+        <translation>Dodaj element...</translation>
     </message>
     <message>
         <source>Remove from List</source>
@@ -4005,40 +4175,74 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>Przenieś na koniec</translation>
     </message>
     <message>
-        <source>Add Item at the Beginning of the Book</source>
-        <translation>Dodaj element na początku książki</translation>
+        <source>Add Item at the Beginning of the Book...</source>
+        <translation>Dodaj element na początku książki...</translation>
     </message>
     <message>
-        <source>Add Item at the End of the Book</source>
-        <translation>Dodaj element na końcu książki</translation>
+        <source>Add Item at the End of the Book...</source>
+        <translation>Dodaj element na końcu książki...</translation>
     </message>
     <message>
         <source>Show Sections</source>
         <translation>Pokaż sekcje</translation>
     </message>
     <message>
-        <source>Add {Kind}</source>
-        <translation>Dodaj {kind:accusative}</translation>
+        <source>Add {Kind}...</source>
+        <translation>Dodaj {kind:accusative}...</translation>
+    </message>
+    <message>
+        <source>Unassigned Files (%1)</source>
+        <translation>Pliki bez przydziału (%1)</translation>
+    </message>
+    <message>
+        <source>Chapter files in the book&apos;s folder that no element of the book has</source>
+        <translation>Pliki tekstów w folderze książki, które nie należą do żadnego jej elementu</translation>
+    </message>
+    <message>
+        <source>%1 – %2</source>
+        <translation>%1 – %2</translation>
+    </message>
+    <message>
+        <source>Show in Folder</source>
+        <translation>Pokaż w folderze</translation>
+    </message>
+    <message>
+        <source>The file manager of the system could not show:
+%1</source>
+        <translation>Menedżer plików nie mógł pokazać tego miejsca:
+%1</translation>
+    </message>
+    <message>
+        <source>Files Outside the Book</source>
+        <translation>Pliki spoza książki</translation>
+    </message>
+    <message>
+        <source>Delete...</source>
+        <translation>Usuń...</translation>
+    </message>
+    <message>
+        <source>Book Properties...</source>
+        <translation>Właściwości książki...</translation>
+    </message>
+    <message>
+        <source>Add to Book...</source>
+        <translation>Dodaj do książki...</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Delete File...</source>
+        <translation>Usuń plik...</translation>
+    </message>
+    <message>
+        <source>Delete All...</source>
+        <translation>Usuń wszystkie...</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::PropertiesPanel</name>
-    <message>
-        <source>Open a project to see properties</source>
-        <translation>Otwórz projekt, aby zobaczyć właściwości</translation>
-    </message>
-    <message>
-        <source>Project Information</source>
-        <translation>Informacje o projekcie</translation>
-    </message>
-    <message>
-        <source>Project title</source>
-        <translation>Tytuł projektu</translation>
-    </message>
-    <message>
-        <source>Enter project title</source>
-        <translation>Wpisz tytuł projektu</translation>
-    </message>
     <message>
         <source>Title:</source>
         <translation>Tytuł:</translation>
@@ -4054,10 +4258,6 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Author:</source>
         <translation>Autor:</translation>
-    </message>
-    <message>
-        <source>Project language</source>
-        <translation>Język projektu</translation>
     </message>
     <message>
         <source>English</source>
@@ -4124,16 +4324,8 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>Słowa razem:</translation>
     </message>
     <message>
-        <source>Date when the project was created</source>
-        <translation>Data utworzenia projektu</translation>
-    </message>
-    <message>
         <source>Created:</source>
         <translation>Utworzono:</translation>
-    </message>
-    <message>
-        <source>Date when the project was last modified</source>
-        <translation>Data ostatniej zmiany projektu</translation>
     </message>
     <message>
         <source>Modified:</source>
@@ -4391,6 +4583,34 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>Total word count in {group:s=this|p=these} {group}</source>
         <translation>Liczba słów w {group:m=tym|f=tej|n=tym|p=tych} {group:locative}</translation>
     </message>
+    <message>
+        <source>Open a book to see its properties</source>
+        <translation>Otwórz książkę, aby zobaczyć jej właściwości</translation>
+    </message>
+    <message>
+        <source>Book Information</source>
+        <translation>Informacje o książce</translation>
+    </message>
+    <message>
+        <source>Title of the book</source>
+        <translation>Tytuł książki</translation>
+    </message>
+    <message>
+        <source>Enter the title of the book</source>
+        <translation>Wpisz tytuł książki</translation>
+    </message>
+    <message>
+        <source>Language of the book</source>
+        <translation>Język książki</translation>
+    </message>
+    <message>
+        <source>Date when the book was created</source>
+        <translation>Data utworzenia książki</translation>
+    </message>
+    <message>
+        <source>Date when the book was last changed</source>
+        <translation>Data ostatniej zmiany książki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SearchPanel</name>
@@ -4646,16 +4866,16 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
 <context>
     <name>kalahari::gui::StandaloneInfoBar</name>
     <message>
-        <source>This file is not part of a project. Limited features available.</source>
-        <translation>Ten plik nie należy do projektu. Część funkcji jest niedostępna.</translation>
+        <source>This file is not part of a book. Some features are not available.</source>
+        <translation>Ten plik nie należy do książki. Część funkcji jest niedostępna.</translation>
     </message>
     <message>
-        <source>Add to Project</source>
-        <translation>Dodaj do projektu</translation>
+        <source>Add to Book...</source>
+        <translation>Dodaj do książki...</translation>
     </message>
     <message>
-        <source>Add this file to a project for full features</source>
-        <translation>Dodaj ten plik do projektu, aby mieć wszystkie funkcje</translation>
+        <source>Add the file to the open book as a new element</source>
+        <translation>Dodaj plik do otwartej książki jako nowy element</translation>
     </message>
 </context>
 <context>
@@ -5456,86 +5676,253 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
-    <name>kalahari::gui::dialogs::AddToProjectDialog</name>
+    <name>kalahari::gui::dialogs::AddToBookDialog</name>
     <message>
-        <source>Add File to Project</source>
-        <translation>Dodaj plik do projektu</translation>
+        <source>The file goes back to the book as an element, with the title, the status and the notes saved in it.</source>
+        <translation>Plik wróci do książki jako element, z zapisanym w nim tytułem, stanem i notatkami.</translation>
     </message>
     <message>
-        <source>File</source>
-        <translation>Plik</translation>
+        <source>The text of the file becomes a new element of the book; its lines become paragraphs.</source>
+        <translation>Tekst pliku stanie się nowym elementem książki, a jego wiersze – akapitami.</translation>
     </message>
     <message>
-        <source>Target Location</source>
-        <translation>Miejsce docelowe</translation>
+        <source>The file becomes an element of the book, with the title, the status and the notes saved in it.</source>
+        <translation>Plik stanie się elementem książki, z zapisanym w nim tytułem, stanem i notatkami.</translation>
     </message>
     <message>
-        <source>Section:</source>
-        <translation>Sekcja:</translation>
+        <source>Add the File to the Book</source>
+        <translation>Dodaj plik do książki</translation>
     </message>
     <message>
-        <source>Enter display title...</source>
-        <translation>Wpisz wyświetlany tytuł...</translation>
+        <source>Add to Book</source>
+        <translation>Dodaj do książki</translation>
     </message>
     <message>
-        <source>The title that will be shown in the Navigator panel</source>
-        <translation>Tytuł widoczny w panelu Nawigator</translation>
+        <source>File:</source>
+        <translation>Plik:</translation>
     </message>
     <message>
-        <source>Title:</source>
-        <translation>Tytuł:</translation>
+        <source>&amp;Copy to the book – the original stays where it is</source>
+        <translation>&amp;Skopiuj do książki – oryginał zostanie na miejscu</translation>
     </message>
     <message>
-        <source>Action</source>
-        <translation>Działanie</translation>
+        <source>&amp;Move to the book – the original is deleted</source>
+        <translation>&amp;Przenieś do książki – oryginał zostanie usunięty</translation>
     </message>
     <message>
-        <source>Copy file to project</source>
-        <translation>Skopiuj plik do projektu</translation>
+        <source>&amp;Kind:</source>
+        <translation>&amp;Rodzaj:</translation>
     </message>
     <message>
-        <source>Create a copy of the file in the project folder (original file remains unchanged)</source>
-        <translation>Tworzy kopię pliku w folderze projektu (oryginał pozostaje bez zmian)</translation>
+        <source>&amp;Title:</source>
+        <translation>&amp;Tytuł:</translation>
     </message>
     <message>
-        <source>Move file to project</source>
-        <translation>Przenieś plik do projektu</translation>
+        <source>%1 (from the file)</source>
+        <translation>%1 (z pliku)</translation>
     </message>
     <message>
-        <source>Move the file into the project folder (original file will be deleted)</source>
-        <translation>Przenosi plik do folderu projektu (oryginał zostanie usunięty)</translation>
+        <source>Status:</source>
+        <translation>Stan:</translation>
     </message>
     <message>
-        <source>Add to Project</source>
-        <translation>Dodaj do projektu</translation>
+        <source>Add</source>
+        <translation>Dodaj</translation>
     </message>
     <message>
-        <source>Kind:</source>
-        <translation>Rodzaj:</translation>
+        <source>Draft</source>
+        <translation>Szkic</translation>
     </message>
     <message>
-        <source>Place:</source>
-        <translation>Miejsce:</translation>
+        <source>Revision</source>
+        <translation>Poprawki</translation>
     </message>
     <message>
-        <source>Select the section of the book where the file will be added</source>
-        <translation>Wybierz sekcję książki, do której trafi plik</translation>
+        <source>Final</source>
+        <translation>Gotowy</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::DeleteFilesDialog</name>
+    <message>
+        <source>Delete the file &quot;%1&quot;?</source>
+        <translation>Usunąć plik „%1”?</translation>
     </message>
     <message>
-        <source>Select where in the book the file will be added</source>
-        <translation>Wybierz miejsce w książce, do którego trafi plik</translation>
+        <source>Delete all unassigned files (%1)?</source>
+        <translation>Usunąć wszystkie pliki bez przydziału (%1)?</translation>
     </message>
     <message>
-        <source>{Group}:</source>
-        <translation>{Group}:</translation>
+        <source>Delete File</source>
+        <translation>Usuń plik</translation>
     </message>
     <message>
-        <source>Select the {group} where the file will be added</source>
-        <translation>Wybierz {group:accusative}, do {group:m=którego|f=której|n=którego|p=których} trafi plik</translation>
+        <source>Delete Files</source>
+        <translation>Usuń pliki</translation>
     </message>
     <message>
-        <source>(No {group})</source>
-        <translation>(Bez {group:genitive})</translation>
+        <source>Files to delete</source>
+        <translation>Pliki do usunięcia</translation>
+    </message>
+    <message>
+        <source>The file goes to the system&apos;s {bin}. You can restore it from the {bin}, but not from the program.</source>
+        <translation>Plik trafi do systemowego Kosza. Przywrócisz go z Kosza, ale już nie z programu.</translation>
+    </message>
+    <message>
+        <source>The files go to the system&apos;s {bin}. You can restore them from the {bin}, but not from the program.</source>
+        <translation>Pliki trafią do systemowego Kosza. Przywrócisz je z Kosza, ale już nie z programu.</translation>
+    </message>
+    <message>
+        <source>The file will be gone for good: files in this folder cannot go to the {bin}.</source>
+        <translation>Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</translation>
+    </message>
+    <message>
+        <source>The files will be gone for good: files in this folder cannot go to the {bin}.</source>
+        <translation>Pliki znikną na zawsze: z tego folderu nie da się przenieść plików do Kosza.</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::DeleteFromBookDialog</name>
+    <message>
+        <source>Together with {kind:s=it|p=them}, the {child} &quot;%1&quot; will be deleted from the book.</source>
+        <translation>Razem z {kind:m=nim|f=nią|n=nim|p=nimi} z książki {child:s=zniknie|p=znikną} {child} „%1”.</translation>
+    </message>
+    <message>
+        <source>The {kind} {kind:s=is|p=are} empty.</source>
+        <translation>{Kind} {kind:s=jest|p=są} pust{kind:m=y|f=a|n=e|p=e}.</translation>
+    </message>
+    <message>
+        <source>Delete the {kind} &quot;%1&quot; from the book?</source>
+        <translation>Usunąć {kind:accusative} „%1” z książki?</translation>
+    </message>
+    <message>
+        <source>Delete from Book</source>
+        <translation>Usuń z książki</translation>
+    </message>
+    <message>
+        <source>Elements to delete</source>
+        <translation>Elementy do usunięcia</translation>
+    </message>
+    <message>
+        <source>&amp;Also delete the file of the {owner} – it goes to the {bin}</source>
+        <translation>Usuń &amp;też plik {owner:genitive} – trafi do Kosza</translation>
+    </message>
+    <message>
+        <source>&amp;Also delete the file of the {owner} – it will be gone for good</source>
+        <translation>Usuń &amp;też plik {owner:genitive} – zniknie na zawsze</translation>
+    </message>
+    <message>
+        <source>&amp;Also delete the files of the {owner:plural} (%1) – they go to the {bin}</source>
+        <translation>Usuń &amp;też pliki {owner:genitivePlural} (%1) – trafią do Kosza</translation>
+    </message>
+    <message>
+        <source>&amp;Also delete the files of the {owner:plural} (%1) – they will be gone for good</source>
+        <translation>Usuń &amp;też pliki {owner:genitivePlural} (%1) – znikną na zawsze</translation>
+    </message>
+    <message>
+        <source>Folder:</source>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Show in &amp;Folder</source>
+        <translation>Pokaż w &amp;folderze</translation>
+    </message>
+    <message>
+        <source>Open the folder in the file manager of the system</source>
+        <translation>Otwórz folder w menedżerze plików</translation>
+    </message>
+    <message>
+        <source>Show in Folder</source>
+        <translation>Pokaż w folderze</translation>
+    </message>
+    <message>
+        <source>The file manager of the system could not show the folder:
+%1</source>
+        <translation>Menedżer plików nie mógł pokazać folderu:
+%1</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>The file of the {owner} goes to the system&apos;s {bin}. You can restore it from the {bin}, but not from the program.</source>
+        <translation>Plik {owner:genitive} trafi do systemowego Kosza. Przywrócisz go z Kosza, ale już nie z programu.</translation>
+    </message>
+    <message>
+        <source>The files of the {owner:plural} go to the system&apos;s {bin}. You can restore them from the {bin}, but not from the program.</source>
+        <translation>Pliki {owner:genitivePlural} trafią do systemowego Kosza. Przywrócisz je z Kosza, ale już nie z programu.</translation>
+    </message>
+    <message>
+        <source>The file of the {owner} will be gone for good: files in this folder cannot go to the {bin}.</source>
+        <translation>Plik {owner:genitive} zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</translation>
+    </message>
+    <message>
+        <source>The files of the {owner:plural} will be gone for good: files in this folder cannot go to the {bin}.</source>
+        <translation>Pliki {owner:genitivePlural} znikną na zawsze: z tego folderu nie da się przenieść plików do Kosza.</translation>
+    </message>
+    <message>
+        <source>The file stays in the book&apos;s folder. You will find it in the Navigator, under &quot;Unassigned Files&quot;, where you can add it back to the book or delete it.</source>
+        <translation>Plik zostanie w folderze książki. Znajdziesz go w Nawigatorze, w węźle „Pliki bez przydziału”, skąd możesz go dodać z powrotem do książki albo usunąć.</translation>
+    </message>
+    <message>
+        <source>The files stay in the book&apos;s folder. You will find them in the Navigator, under &quot;Unassigned Files&quot;, where you can add them back to the book or delete them.</source>
+        <translation>Pliki zostaną w folderze książki. Znajdziesz je w Nawigatorze, w węźle „Pliki bez przydziału”, skąd możesz je dodać z powrotem do książki albo usunąć.</translation>
+    </message>
+    <message>
+        <source>The file stays in its folder.</source>
+        <translation>Plik zostanie w swoim folderze.</translation>
+    </message>
+    <message>
+        <source>The files stay in their folders.</source>
+        <translation>Pliki zostaną w swoich folderach.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Together with {kind:s=it|p=them}, %n {child:plural} will be deleted from the book.</source>
+        <translation>
+            <numerusform>Razem z {kind:m=nim|f=nią|n=nim|p=nimi} z książki zniknie %n {child}.</numerusform>
+            <numerusform>Razem z {kind:m=nim|f=nią|n=nim|p=nimi} z książki znikną %n {child:plural}.</numerusform>
+            <numerusform>Razem z {kind:m=nim|f=nią|n=nim|p=nimi} z książki zniknie %n {child:genitivePlural}.</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::FilePreviewDialog</name>
+    <message>
+        <source>Status: %1</source>
+        <translation>Stan: %1</translation>
+    </message>
+    <message>
+        <source>Words: %1</source>
+        <translation>Słowa: %1</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>The file has no text.</source>
+        <translation>Plik nie zawiera tekstu.</translation>
+    </message>
+    <message>
+        <source>Text of the file</source>
+        <translation>Tekst pliku</translation>
+    </message>
+    <message>
+        <source>&amp;Add to Book...</source>
+        <translation>&amp;Dodaj do książki...</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>&amp;Delete File...</source>
+        <translation>&amp;Usuń plik...</translation>
     </message>
 </context>
 <context>

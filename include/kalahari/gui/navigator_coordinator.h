@@ -22,6 +22,7 @@ class QStatusBar;
 namespace kalahari {
 namespace core {
     struct ProjectElement;
+    struct UnassignedFile;
 }
 
 namespace editor {
@@ -138,9 +139,33 @@ public slots:
     /// @param currentTitle Current title (for edit dialog)
     void onRequestRename(const QString& elementId, const QString& currentTitle);
 
-    /// @brief Handle delete request from navigator
+    /// @brief Delete an element from the book, with the elements inside it, after asking
+    ///
+    /// The window lists what goes and says where the files go: by default they stay in the
+    /// book's folder, with the changes of their open tabs, and the Navigator lists them under
+    /// "Unassigned Files"; the writer can delete them too, to the system's Trash, or for good
+    /// from a folder without one.
     /// @param elementId Element ID to delete
     void onRequestDelete(const QString& elementId);
+
+    /// @brief Show the text of a file of "Unassigned Files", read-only; from there the writer
+    /// can add it to the book or delete it
+    /// @param file The file, relative to the project folder
+    void onRequestPreviewUnassigned(const QString& file);
+
+    /// @brief Add a file of "Unassigned Files" to the book, as a new element of the kind, with
+    /// the title and at the place the writer chooses; it takes the status and the notes of
+    /// the file
+    /// @param file The file, relative to the project folder
+    void onRequestAddUnassigned(const QString& file);
+
+    /// @brief Delete a file of "Unassigned Files" after asking: to the system's Trash, or for
+    /// good from a folder without one
+    /// @param file The file, relative to the project folder
+    void onRequestDeleteUnassigned(const QString& file);
+
+    /// @brief Delete all files of "Unassigned Files" after asking
+    void onRequestDeleteAllUnassigned();
 
     /// @brief Handle move request from navigator
     /// @param elementId Element ID to move
@@ -214,6 +239,23 @@ private:
 
     /// @brief Close the editor tabs of @p element and of the elements inside it
     void closeTabsOf(const core::ProjectElement& element);
+
+    /// @brief Write the unsaved text of @p element and of the elements inside it to their
+    /// chapter files, with the changes of their open tabs; a tab whose text is written no
+    /// longer shows changes
+    /// @return The elements whose text could not be written: @p element or elements inside it
+    QList<const core::ProjectElement*> saveTextsOf(const core::ProjectElement& element);
+
+    /// @brief Delete @p files: to the system's Trash when @p trash, else for good
+    ///
+    /// When the Trash does not take a file, the writer chooses whether it goes for good; the
+    /// writer is told about the files that could not be deleted.
+    /// @param forGood Set to whether a file was deleted for good; nullptr: not wanted
+    /// @return The files that are still on the disk
+    QStringList deleteFiles(const QStringList& files, bool trash, bool* forGood = nullptr);
+
+    /// @brief Ask whether to delete @p files of "Unassigned Files", and delete them
+    void deleteUnassigned(const QList<core::UnassignedFile>& files);
 
     /// @brief Ask for a new element and add it at the end of @p place of the book, or of
     /// group @p groupId

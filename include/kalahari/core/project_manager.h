@@ -70,6 +70,13 @@ struct TextStatistics {
                                       ///< -> elements
 };
 
+/// @brief A chapter file in the folder of the book or of the Workshop that no element has: the
+/// file of an element deleted from the book without its file, or a file the writer put there
+struct UnassignedFile {
+    QString file;   ///< File, relative to the project folder: "book/chapter_004.kchapter"
+    QString title;  ///< Title the file keeps; empty when it has none or cannot be read
+};
+
 /// @brief Singleton manager of the book project open in the program
 ///
 /// Signals:
@@ -228,6 +235,10 @@ public:
     /// @brief Status of @p element, "draft" when it has none
     static QString statusOf(const ProjectElement& element);
 
+    /// @brief Whether @p status is a status of text elements ("draft", "revision", "final"):
+    /// an element added from a chapter file takes the file's status only then
+    static bool isTextStatus(const QString& status);
+
     /// @brief Kinds that can be added to @p place of the book, or inside group @p groupId
     ///
     /// The kinds the project offers there, without those whose elements reached the kind's
@@ -324,10 +335,44 @@ public:
     /// @brief Take element @p elementId, with the elements inside it, out of the project and
     /// save the .klh file
     ///
-    /// Their files stay in the project's folder.
+    /// Their files stay in the project's folder: unassignedFiles() has their chapter files,
+    /// and filesOf() of the element gives them to whoever deletes them.
     /// @return The element; nullopt when the project has no such element or the file cannot be
     ///         written
     std::optional<ProjectElement> removeElement(const QString& elementId);
+
+    /// @brief Files of @p element and of the elements inside it that are on the disk, as
+    /// absolute paths in reading order
+    ///
+    /// A file that an element outside them also has is left out, so deleting the files
+    /// deletes no file of another element.
+    QStringList filesOf(const ProjectElement& element) const;
+
+    /// @brief Chapter files (.kchapter) in the folders of the book and of the Workshop that no
+    /// element of the project has, by folder and name
+    ///
+    /// Other files there (pictures, materials) are the writer's, and so are the folders in
+    /// them: they are left out.
+    QList<UnassignedFile> unassignedFiles() const;
+
+    /// @brief Whether unassignedFiles() lists file @p path (absolute) when no element has it:
+    /// a chapter file in the folder of the book or of the Workshop
+    bool listsAsUnassigned(const QString& path) const;
+
+    /// @brief Add the chapter file @p file, which no element has, as a new text element of
+    /// @p kind with @p title in @p place of the book, or in group @p groupId
+    ///
+    /// The file stays where it is and takes the title; the element takes the status and the
+    /// notes of the file. Saves the .klh file.
+    /// @param file The file, relative to the project folder (UnassignedFile::file)
+    /// @param index Place of the element in its list; -1: the place of its kind, newPlaceOf(),
+    ///        which can be in a group of the body of the book
+    /// @return The new element's id; empty when the file is not one of unassignedFiles() or
+    ///         cannot be read, the kind cannot be there or is not a text kind, or the .klh file
+    ///         cannot be written. The file is never removed.
+    QString addUnassignedFile(const QString& file, const KindRef& kind, const QString& title,
+                              BookPlace place, const QString& groupId = QString(),
+                              qsizetype index = -1);
 
     /// @brief Move element @p elementId to place @p index of its list and save the .klh file
     /// @return false when the element or the place does not exist or the file cannot be written
@@ -486,6 +531,13 @@ private:
     /// @brief Write the title, status and notes of @p element to its chapter file, and
     /// @p kml when given; the file keeps its other data
     bool writeChapterFile(const ProjectElement& element, const std::optional<QString>& kml);
+
+    /// @brief Folders of the files of unassignedFiles(): of the book and of the Workshop, as
+    /// absolute paths
+    QStringList unassignedFolders() const;
+
+    /// @brief Absolute paths of the files of unassignedFiles()
+    QStringList unassignedPaths() const;
 
     /// @brief A free chapter file for a new element of @p kind in @p place, relative to the
     /// project: <book folder>/<kind>_001.kchapter, or workshop/<kind>_001.kchapter

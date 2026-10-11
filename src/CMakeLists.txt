@@ -34,6 +34,7 @@ set(KALAHARI_CORE_SOURCES
     core/text_statistics.cpp    # Word/character counting shared by the whole application
     core/text_file.cpp          # Plain text files in their own encoding and line ends
     core/standalone_file.cpp    # Chapters and text files opened outside a book project
+    core/file_trash.cpp         # Files to the Trash of the system
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/book_type_registry.cpp # Book type packages loaded from folders
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
@@ -140,11 +141,13 @@ set(KALAHARI_SOURCES
     gui/dialogs/icon_downloader_dialog.cpp
     gui/dialogs/item_templates.cpp  # TemplateRegistry - Project/file templates (OpenSpec #00033)
     gui/dialogs/new_item_dialog.cpp  # NewItemDialog - New project/file dialog (OpenSpec #00033)
-    gui/dialogs/add_to_project_dialog.cpp  # AddToProjectDialog - Add standalone file to project (OpenSpec #00033)
     gui/dialogs/toolbar_manager_dialog.cpp  # ToolbarManagerDialog - Visual Studio-style toolbar customization (OpenSpec #00031)
     gui/dialogs/kalahari_dialog.cpp  # KalahariDialog - base of the program's own dialogs
     gui/dialogs/message_dialog.cpp  # MessageDialog, TextInputDialog - own messages, questions, typed texts
     gui/dialogs/new_element_dialog.cpp  # NewElementDialog - new chapter, part or item in the Navigator
+    gui/dialogs/add_to_book_dialog.cpp  # AddToBookDialog - a file as a new element of the book
+    gui/dialogs/delete_dialogs.cpp  # DeleteFromBookDialog, DeleteFilesDialog - what goes, and its files
+    gui/dialogs/file_preview_dialog.cpp  # FilePreviewDialog - the text of a file no element has
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
@@ -193,6 +196,7 @@ set(KALAHARI_SOURCES
     gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
     gui/utils/program_folders.cpp  # The folders of the program and of the windows choosing files
+    gui/utils/file_location.cpp  # A file or a folder shown in the file manager of the system
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
     gui/utils/qt_standard_texts.cpp  # Qt's own texts (standard buttons) for the translations
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
@@ -241,10 +245,12 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT (OpenSpec #00031)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT (OpenSpec #00033)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_project_dialog.h  # AddToProjectDialog with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h

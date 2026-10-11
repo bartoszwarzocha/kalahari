@@ -4,6 +4,9 @@
 /// OpenSpec #00038 - Phase 6: Extract Navigator Handlers from MainWindow
 
 #include "kalahari/gui/navigator_coordinator.h"
+#include "kalahari/gui/dialogs/add_to_book_dialog.h"
+#include "kalahari/gui/dialogs/delete_dialogs.h"
+#include "kalahari/gui/dialogs/file_preview_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
@@ -12,6 +15,8 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/section_words.h"
+#include "kalahari/core/chapter_document.h"
+#include "kalahari/core/file_trash.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/art_provider.h"
@@ -20,8 +25,12 @@
 #include <QTabWidget>
 #include <QStatusBar>
 #include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <algorithm>
 #include <chrono>
 #include <optional>
+#include <utility>
 
 namespace kalahari {
 namespace gui {
@@ -49,6 +58,25 @@ const SectionItem* sectionItem(const QString& type) {
         }
     }
     return nullptr;
+}
+
+/// @p paths one a line, with the separators of the system; several paths are indented, as a
+/// list
+QString pathLines(const QStringList& paths) {
+    if (paths.size() == 1) {
+        return QDir::toNativeSeparators(paths.first());
+    }
+    QStringList lines;
+    for (const QString& path : paths) {
+        lines << QStringLiteral("  ") + QDir::toNativeSeparators(path);
+    }
+    return lines.join(QLatin1Char('\n'));
+}
+
+/// Absolute path of @p file, relative to the folder of the open project
+QString projectFilePath(const QString& file) {
+    return QDir::cleanPath(
+        QDir(core::ProjectManager::getInstance().getProjectPath()).filePath(file));
 }
 
 }  // namespace
@@ -111,6 +139,8 @@ void NavigatorCoordinator::refreshNavigator() {
         const QStringList expandedIds = m_navigatorPanel->expandedItemIds();
         m_navigatorPanel->loadProject(*project, pm.bookTypes());
         m_navigatorPanel->setExpandedItemIds(expandedIds);
+        // The files no element has, after the elements: it keeps whether it was open
+        m_navigatorPanel->setUnassignedFiles(pm.unassignedFiles(), pm.getProjectPath());
     }
     emit refreshNavigatorRequested();
 }
@@ -312,54 +342,357 @@ void NavigatorCoordinator::onRequestRename(const QString& elementId, const QStri
 void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
+    auto* window = qobject_cast<QWidget*>(parent());
 
     if (!pm.isProjectOpen()) {
         logger.warn("NavigatorCoordinator: Delete requested but no project open");
         return;
     }
 
-    const core::ProjectElement* element = pm.findElement(elementId);
-    if (!element) {
+    const core::ProjectElement* found = pm.findElement(elementId);
+    if (!found) {
         logger.warn("NavigatorCoordinator: Element not found for delete: {}", elementId.toStdString());
-        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), tr("Delete Failed"),
+        dialogs::MessageDialog::warning(window, tr("Delete Failed"),
                                         tr("Could not find the element to delete."));
         return;
     }
+    // A copy: deleting it changes the project
+    const core::ProjectElement element = *found;
 
-    // Confirm deletion, saying where the files go: they stay in the book's folder
-    QString question = tr("Delete \"%1\" from the book?").arg(element->title);
-    if (!element->file.isEmpty()) {
-        question += QStringLiteral("\n\n") +
-                    tr("Its file stays in the book's folder:\n%1")
-                        .arg(QDir::toNativeSeparators(pm.filePathOf(*element)));
-    }
-    if (!element->elements.isEmpty()) {
-        question += QStringLiteral("\n\n") +
-                    tr("The elements inside it are deleted from the book too; their files stay "
-                       "in the book's folder.");
-    }
-    if (!dialogs::MessageDialog::confirm(qobject_cast<QWidget*>(parent()), tr("Confirm Delete"),
-                                         question, tr("&Delete"),
-                                         dialogs::MessageDialog::Kind::Warning,
-                                         dialogs::MessageDialog::DefaultButton::Cancel)) {
+    // The window lists what goes from the book and says where the files go: they stay in the
+    // book's folder, or go to the system's Trash, or for good from a folder without one
+    dialogs::DeleteFromBookDialog::Content content;
+    content.element = element;
+    content.files = pm.filesOf(element);
+    content.projectFolder = pm.getProjectPath();
+    content.trash = !content.files.isEmpty() &&
+                    std::all_of(content.files.cbegin(), content.files.cend(),
+                                [](const QString& file) { return core::canMoveToTrash(file); });
+    content.unassigned =
+        std::all_of(content.files.cbegin(), content.files.cend(),
+                    [&pm](const QString& file) { return pm.listsAsUnassigned(file); });
+    dialogs::DeleteFromBookDialog dialog(content, pm.bookTypes(), window);
+    if (dialog.exec() != QDialog::Accepted) {
         return;
+    }
+    const bool withFiles = dialog.deleteFiles();
+
+    // The files that stay, or go to the Trash, keep the changes of the open tabs
+    if (!withFiles || content.trash) {
+        const QList<const core::ProjectElement*> unsaved = saveTextsOf(element);
+        if (!unsaved.isEmpty()) {
+            QString question;
+            if (unsaved.size() == 1) {
+                const QHash<QString, core::KindWords> nouns{
+                    {QStringLiteral("kind"), wordsOf(*unsaved.first())}};
+                //: In Polish: Zmian w {kind:locative} „%1” nie udało się zapisać w pliku.
+                //: Mimo to usunąć {kind:m=go|f=ją|n=je|p=je} z książki? Plik zachowa tekst
+                //: zapisany wcześniej.
+                question = core::fillWords(tr("The changes in the {kind} \"%1\" could not be "
+                                              "saved to its file.\n\nDelete {kind:s=it|p=them} "
+                                              "from the book anyway? The file keeps the text "
+                                              "saved before."),
+                                           nouns)
+                               .arg(unsaved.first()->title);
+            } else {
+                QStringList titles;
+                for (const core::ProjectElement* each : unsaved) {
+                    titles << QStringLiteral("  ") + each->title;
+                }
+                question = tr("The changes in these elements could not be saved to their "
+                              "files:\n%1\n\nDelete them from the book anyway? Their files keep "
+                              "the text saved before.")
+                               .arg(titles.join(QLatin1Char('\n')));
+            }
+            if (!dialogs::MessageDialog::confirm(window, tr("Delete from Book"), question,
+                                                 tr("Delete &Anyway"),
+                                                 dialogs::MessageDialog::Kind::Warning,
+                                                 dialogs::MessageDialog::DefaultButton::Cancel)) {
+                return;
+            }
+        }
     }
 
     // ProjectManager takes the element, with the elements inside it, out of the project and
-    // saves it at once; their files stay in the project's folder
+    // saves it at once
     const std::optional<core::ProjectElement> removed = pm.removeElement(elementId);
     if (!removed) {
         logger.error("NavigatorCoordinator: Failed to save the project after delete");
-        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), tr("Delete Failed"),
+        dialogs::MessageDialog::warning(window, tr("Delete Failed"),
                                         tr("Failed to save changes."));
         return;
     }
     logger.info("NavigatorCoordinator: Deleted element: {}", elementId.toStdString());
-
     closeTabsOf(*removed);
+
+    // The files go to the Trash, or for good from a folder without one; those that stay are
+    // under "Unassigned Files"
+    if (withFiles) {
+        deleteFiles(content.files, content.trash);
+    }
     refreshNavigator();
-    m_statusBar->showMessage(tr("Deleted successfully"), 2000);
+    m_propertiesPanel->refresh();  // a deleted element leaves the panel to the book
+
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(element)}};
+    //: In Polish: Usunięto {kind:accusative} z książki: %1
+    m_statusBar->showMessage(
+        core::fillWords(tr("{Kind} deleted from the book: %1"), nouns).arg(element.title), 2000);
     emit documentModified();
+}
+
+QList<const core::ProjectElement*> NavigatorCoordinator::saveTextsOf(
+    const core::ProjectElement& element) {
+    auto& pm = core::ProjectManager::getInstance();
+    QList<const core::ProjectElement*> unsaved;
+
+    // A text with a file gets the changes of its open tab; a part or a window element has no
+    // text
+    if (pm.formOf(element) == core::ElementForm::Text && !element.file.isEmpty()) {
+        const bool dirtyTab = m_dirtyChapters.value(element.id, false);
+        int tab = -1;
+        for (int i = 0; i < m_centralTabs->count() && tab < 0; ++i) {
+            auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+            if (editor && editor->property("elementId").toString() == element.id) {
+                tab = i;
+                if (dirtyTab) {
+                    pm.setChapterContent(element.id, editor->getContent());
+                }
+            }
+        }
+        if (!pm.saveChapterContent(element.id)) {
+            unsaved.append(&element);
+        } else if (dirtyTab) {
+            // Saved: the tab and the Navigator no longer show changes
+            m_dirtyChapters[element.id] = false;
+            emit chapterDirtyStateChanged(element.id, false);
+            if (tab >= 0 && m_centralTabs->tabText(tab).startsWith(QLatin1Char('*'))) {
+                m_centralTabs->setTabText(tab, m_centralTabs->tabText(tab).mid(1));
+            }
+        }
+    }
+    for (const core::ProjectElement& inner : element.elements) {
+        unsaved.append(saveTextsOf(inner));
+    }
+    return unsaved;
+}
+
+QStringList NavigatorCoordinator::deleteFiles(const QStringList& files, bool trash,
+                                             bool* forGood) {
+    auto& logger = core::Logger::getInstance();
+    auto* window = qobject_cast<QWidget*>(parent());
+    bool gone = false;
+    QStringList refused;
+    QStringList failed;
+    for (const QString& file : files) {
+        if (trash) {
+            if (!core::moveToTrash(file)) {
+                refused << file;
+            }
+        } else if (QFile::remove(file)) {
+            gone = true;
+        } else {
+            failed << file;
+        }
+    }
+
+    // What the Trash did not take goes for good only when the writer says so
+    QStringList kept;
+    if (!refused.isEmpty()) {
+        const bool one = refused.size() == 1;
+        const QHash<QString, core::KindWords> nouns{
+            {QStringLiteral("bin"), dialogs::trashWords()}};
+        const QString question =
+            core::fillWords(one ? tr("The {bin} did not take the file:\n%1\n\nDelete it for "
+                                     "good? It cannot be restored then.")
+                                : tr("The {bin} did not take these files:\n%1\n\nDelete them "
+                                     "for good? They cannot be restored then."),
+                            nouns)
+                .arg(pathLines(refused));
+        dialogs::MessageDialog dialog(dialogs::MessageDialog::Kind::Warning,
+                                      one ? tr("Delete File") : tr("Delete Files"), question,
+                                      window);
+        dialog.setQuestionButtons(tr("Delete for &Good"),
+                                  one ? tr("&Keep the File") : tr("&Keep the Files"));
+        dialog.setDefaultButton(dialogs::MessageDialog::DefaultButton::Cancel);
+        dialog.exec();
+        if (dialog.answer() == dialogs::MessageDialog::Answer::Accept) {
+            for (const QString& file : std::as_const(refused)) {
+                if (QFile::remove(file)) {
+                    gone = true;
+                } else {
+                    failed << file;
+                }
+            }
+        } else {
+            kept << refused;
+        }
+    }
+
+    if (!failed.isEmpty()) {
+        logger.error("NavigatorCoordinator: Could not delete {} file(s)", failed.size());
+        const bool one = failed.size() == 1;
+        dialogs::MessageDialog::error(window, one ? tr("Delete File") : tr("Delete Files"),
+                                      (one ? tr("The file could not be deleted:\n%1")
+                                           : tr("These files could not be deleted:\n%1"))
+                                          .arg(pathLines(failed)));
+        kept << failed;
+    }
+    if (forGood) {
+        *forGood = gone;
+    }
+    logger.info("NavigatorCoordinator: Deleted {} of {} file(s){}", files.size() - kept.size(),
+                files.size(), trash ? " to the Trash" : "");
+    return kept;
+}
+
+void NavigatorCoordinator::onRequestPreviewUnassigned(const QString& file) {
+    auto& pm = core::ProjectManager::getInstance();
+    auto* window = qobject_cast<QWidget*>(parent());
+    if (!pm.isProjectOpen()) {
+        return;
+    }
+
+    const QString path = projectFilePath(file);
+    const std::optional<core::ChapterDocument> chapter = core::ChapterDocument::load(path);
+    if (!chapter) {
+        dialogs::MessageDialog::warning(
+            window, tr("Preview"),
+            tr("The file could not be read:\n%1").arg(QDir::toNativeSeparators(path)));
+        refreshNavigator();  // The Navigator shows the files there are
+        return;
+    }
+    dialogs::FilePreviewDialog dialog(*chapter, path, pm.getProjectPath(), window);
+    dialog.exec();
+    switch (dialog.choice()) {
+    case dialogs::FilePreviewDialog::Choice::AddToBook:
+        onRequestAddUnassigned(file);
+        break;
+    case dialogs::FilePreviewDialog::Choice::Delete:
+        onRequestDeleteUnassigned(file);
+        break;
+    case dialogs::FilePreviewDialog::Choice::Close:
+        break;
+    }
+}
+
+void NavigatorCoordinator::onRequestAddUnassigned(const QString& file) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+    auto* window = qobject_cast<QWidget*>(parent());
+    if (!pm.isProjectOpen()) {
+        return;
+    }
+
+    // The element takes the title, the status and the notes of the file
+    const QString path = projectFilePath(file);
+    const std::optional<core::ChapterDocument> chapter = core::ChapterDocument::load(path);
+    if (!chapter) {
+        dialogs::MessageDialog::warning(
+            window, tr("Add to Book"),
+            tr("The file could not be read:\n%1").arg(QDir::toNativeSeparators(path)));
+        refreshNavigator();
+        return;
+    }
+    const dialogs::AddToBookDialog::Book book = dialogs::AddToBookDialog::openBook(path);
+    if (book.choices.isEmpty()) {
+        dialogs::MessageDialog::warning(window, tr("Add to Book"),
+                                        tr("No element of this book can have a text."));
+        return;
+    }
+    dialogs::AddToBookDialog dialog({path, chapter->title(), chapter->status(), true}, book,
+                                    pm.bookTypes(), window);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    const core::ElementPlace at = dialog.place();
+    const QString title = dialog.title();
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(dialog.kind())}};
+    const QString elementId =
+        pm.addUnassignedFile(file, dialog.kind(), title, at.place, at.groupId, at.index);
+    if (elementId.isEmpty()) {
+        logger.error("NavigatorCoordinator: Failed to add '{}' to the book", file.toStdString());
+        //: In Polish: Nie udało się dodać {kind:genitive}
+        dialogs::MessageDialog::warning(window, core::fillWords(tr("Add {Kind} Failed"), nouns),
+                                        tr("The file could not be added to the book. The "
+                                           "program's log has the details."));
+        refreshNavigator();
+        return;
+    }
+    logger.info("NavigatorCoordinator: Added '{}' to the book as '{}' (id={})",
+                file.toStdString(), title.toStdString(), elementId.toStdString());
+
+    // The new element is shown, also inside a collapsed part
+    refreshNavigator();
+    m_navigatorPanel->revealElement(elementId);
+    //: In Polish: Dodano {kind:accusative} do książki: %1
+    m_statusBar->showMessage(
+        core::fillWords(tr("{Kind} added to the book: %1"), nouns).arg(title), 2000);
+    emit documentModified();
+}
+
+void NavigatorCoordinator::onRequestDeleteUnassigned(const QString& file) {
+    auto& pm = core::ProjectManager::getInstance();
+    if (!pm.isProjectOpen()) {
+        return;
+    }
+    QList<core::UnassignedFile> files = pm.unassignedFiles();
+    files.removeIf([&file](const core::UnassignedFile& each) { return each.file != file; });
+    deleteUnassigned(files);
+}
+
+void NavigatorCoordinator::onRequestDeleteAllUnassigned() {
+    auto& pm = core::ProjectManager::getInstance();
+    if (pm.isProjectOpen()) {
+        deleteUnassigned(pm.unassignedFiles());
+    }
+}
+
+void NavigatorCoordinator::deleteUnassigned(const QList<core::UnassignedFile>& files) {
+    // Files that are gone already: the Navigator shows the files there are
+    if (files.isEmpty()) {
+        refreshNavigator();
+        return;
+    }
+
+    auto& pm = core::ProjectManager::getInstance();
+    QStringList paths;
+    for (const core::UnassignedFile& file : files) {
+        paths << projectFilePath(file.file);
+    }
+    const bool trash = std::all_of(paths.cbegin(), paths.cend(), [](const QString& path) {
+        return core::canMoveToTrash(path);
+    });
+    dialogs::DeleteFilesDialog dialog(files, pm.getProjectPath(), trash,
+                                      qobject_cast<QWidget*>(parent()));
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    bool forGood = false;
+    const QStringList kept = deleteFiles(paths, trash, &forGood);
+    refreshNavigator();
+
+    // What happened to them, as the window said it would
+    const qsizetype deleted = paths.size() - kept.size();
+    if (deleted > 0) {
+        const bool inTrash = trash && !forGood;
+        const QHash<QString, core::KindWords> nouns{
+            {QStringLiteral("bin"), dialogs::trashWords()}};
+        QString message;
+        if (paths.size() == 1) {
+            //: In Polish: Przeniesiono plik do Kosza: %1
+            message = inTrash ? core::fillWords(tr("File moved to the {bin}: %1"), nouns)
+                              : tr("File deleted: %1");
+            message = message.arg(QFileInfo(paths.first()).fileName());
+        } else {
+            //: In Polish: Przeniesiono pliki do Kosza: %1
+            message = inTrash ? core::fillWords(tr("Files moved to the {bin}: %1"), nouns)
+                              : tr("Files deleted: %1");
+            message = message.arg(deleted);
+        }
+        m_statusBar->showMessage(message, 2000);
+    }
 }
 
 void NavigatorCoordinator::closeTabsOf(const core::ProjectElement& element) {

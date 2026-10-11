@@ -11,9 +11,11 @@
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
-#include "kalahari/gui/dialogs/add_to_project_dialog.h"
+#include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/utils/program_folders.h"
+#include "kalahari/gui/kind_names.h"
+#include "kalahari/core/chapter_document.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_database.h"
@@ -1036,9 +1038,10 @@ void DocumentCoordinator::updateStandaloneInfoBar() {
 
     m_standaloneInfoBar->setFilePath(editor->property("standaloneFilePath").toString());
     if (core::ProjectManager::getInstance().isProjectOpen()) {
-        m_standaloneInfoBar->setMessage(tr("This file is not part of the current project."));
+        m_standaloneInfoBar->setMessage(tr("This file is not part of the open book."));
     } else {
-        m_standaloneInfoBar->setMessage(tr("This file is not part of a project. Limited features available."));
+        m_standaloneInfoBar->setMessage(
+            tr("This file is not part of a book. Some features are not available."));
     }
     m_standaloneInfoBar->show();
 }
@@ -1130,70 +1133,89 @@ void DocumentCoordinator::onAddToProject() {
 
 void DocumentCoordinator::addToProject(const QString& filePath) {
     auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: Add to Project");
+    logger.info("Action triggered: Add to Book");
 
     auto& pm = core::ProjectManager::getInstance();
 
-    // Check if a project is open
+    // A book must be open
     if (!pm.isProjectOpen()) {
         dialogs::MessageDialog::information(
-            m_mainWindow, tr("No Project Open"),
-            tr("Please open or create a book project first.\n\n"
+            m_mainWindow, tr("No Book Open"),
+            tr("Open or create a book first.\n\n"
                "Use File > New Book... or File > Open Book... to start."));
-        logger.info("Add to Project: No project open");
+        logger.info("Add to Book: No book open");
         return;
     }
 
     if (filePath.isEmpty()) {
-        logger.warn("Add to Project: No file path");
+        logger.warn("Add to Book: No file path");
         return;
     }
 
-    // The project gets the file with the changes made in its tab
+    // The book gets the file with the changes made in its tab
     EditorPanel* fileEditor = findStandaloneEditor(filePath);
     if (fileEditor && isEditorDirty(fileEditor) && !saveEditor(fileEditor)) {
         return;
     }
 
-    // Show AddToProjectDialog for copy/move options
-    dialogs::AddToProjectDialog dialog(filePath, m_mainWindow);
-    if (dialog.exec() == QDialog::Accepted) {
-        auto result = dialog.result();
-
-        // Add file to project using ProjectManager (it saves the project at once)
-        QString elementId = pm.addFile(filePath, result.copyFile, result.kind, result.newTitle,
-                                       result.place, result.groupId);
-
-        if (!elementId.isEmpty()) {
-            // Success - the navigator shows the new element, the file leaves the "Other
-            // Files" list, and the chapter takes the place of its tab
-            if (m_navigatorCoordinator) {
-                m_navigatorCoordinator->refreshNavigator();
-            }
-            m_navigatorPanel->removeStandaloneFile(filePath);
-            m_standaloneFilePaths.removeAll(filePath);
-            if (fileEditor) {
-                m_centralTabs->removeTab(m_centralTabs->indexOf(fileEditor));
-                fileEditor->deleteLater();
-                if (m_navigatorCoordinator) {
-                    m_navigatorCoordinator->onElementSelected(elementId, result.newTitle);
-                }
-            }
-            updateStandaloneInfoBar();
-
-            m_statusBar->showMessage(
-                tr("File added to project: %1").arg(result.newTitle), 3000);
-            logger.info("Add to Project: Successfully added {} as {}",
-                       filePath.toStdString(), elementId.toStdString());
-        } else {
-            dialogs::MessageDialog::warning(
-                m_mainWindow, tr("Error"),
-                tr("Failed to add file to project. Check logs for details."));
-            logger.error("Add to Project: Failed to add file");
+    // A chapter keeps its title, its status and its notes; a text file gets its name as the
+    // title
+    dialogs::AddToBookDialog::File file{filePath, QString(), QString(), false};
+    if (core::StandaloneFile::typeOf(filePath) == core::StandaloneFile::Type::Chapter) {
+        if (const std::optional<core::ChapterDocument> chapter =
+                core::ChapterDocument::load(filePath)) {
+            file.title = chapter->title();
+            file.status = chapter->status();
         }
-    } else {
-        logger.info("Add to Project: User cancelled");
     }
+    const dialogs::AddToBookDialog::Book book = dialogs::AddToBookDialog::openBook(filePath);
+    if (book.choices.isEmpty()) {
+        dialogs::MessageDialog::warning(m_mainWindow, tr("Add to Book"),
+                                        tr("No element of this book can have a text."));
+        return;
+    }
+    dialogs::AddToBookDialog dialog(file, book, pm.bookTypes(), m_mainWindow);
+    if (dialog.exec() != QDialog::Accepted) {
+        logger.info("Add to Book: User cancelled");
+        return;
+    }
+
+    // ProjectManager copies or moves the file to the book's folder and saves the book at once
+    const core::ElementPlace at = dialog.place();
+    const QString title = dialog.title();
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(dialog.kind())}};
+    const QString elementId = pm.addFile(filePath, dialog.copy(), dialog.kind(), title, at.place,
+                                         at.groupId, at.index);
+    if (elementId.isEmpty()) {
+        //: In Polish: Nie udało się dodać {kind:genitive}
+        dialogs::MessageDialog::warning(
+            m_mainWindow, core::fillWords(tr("Add {Kind} Failed"), nouns),
+            tr("The file could not be added to the book. The program's log has the details."));
+        logger.error("Add to Book: Failed to add file");
+        return;
+    }
+
+    // The navigator shows the new element, the file leaves "Files Outside the Book", and the
+    // element takes the place of its tab
+    if (m_navigatorCoordinator) {
+        m_navigatorCoordinator->refreshNavigator();
+    }
+    m_navigatorPanel->revealElement(elementId);
+    m_navigatorPanel->removeStandaloneFile(filePath);
+    m_standaloneFilePaths.removeAll(filePath);
+    if (fileEditor) {
+        m_centralTabs->removeTab(m_centralTabs->indexOf(fileEditor));
+        fileEditor->deleteLater();
+        if (m_navigatorCoordinator) {
+            m_navigatorCoordinator->onElementSelected(elementId, title);
+        }
+    }
+    updateStandaloneInfoBar();
+
+    //: In Polish: Dodano {kind:accusative} do książki: %1
+    m_statusBar->showMessage(
+        core::fillWords(tr("{Kind} added to the book: %1"), nouns).arg(title), 3000);
+    logger.info("Add to Book: Added {} as {}", filePath.toStdString(), elementId.toStdString());
 }
 
 void DocumentCoordinator::removeStandaloneFile(const QString& path) {
@@ -1426,8 +1448,10 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
         logger.warn("Project database not available for StyleResolver/StatisticsCollector");
     }
 
-    // Update Navigator panel with the book's structure
+    // Update Navigator panel with the book's structure, and the files no element has; the
+    // expansion state of the last session decides whether their item is open
     m_navigatorPanel->loadProject(*project, pm.bookTypes());
+    m_navigatorPanel->setUnassignedFiles(pm.unassignedFiles(), pm.getProjectPath());
 
     // Restore Navigator expansion state
     QFileInfo pathInfo(projectPath);

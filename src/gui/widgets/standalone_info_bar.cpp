@@ -11,9 +11,9 @@ namespace gui {
 StandaloneInfoBar::StandaloneInfoBar(QWidget* parent)
     : InfoBar(parent)
 {
-    setMessage(tr("This file is not part of a project. Limited features available."));
-    setActionText(tr("Add to Project"));
-    setActionToolTip(tr("Add this file to a project for full features"));
+    setMessage(tr("This file is not part of a book. Some features are not available."));
+    setActionText(tr("Add to Book..."));
+    setActionToolTip(tr("Add the file to the open book as a new element"));
     connect(this, &InfoBar::actionClicked, this, &StandaloneInfoBar::addToProjectClicked);
 }
 

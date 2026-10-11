@@ -18,6 +18,7 @@
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QSaveFile>
+#include <QSet>
 #include <QTimeZone>
 #include <QUuid>
 
@@ -98,6 +99,46 @@ QString folderOf(BookPlace place, const ProjectBook* book) {
     }
     return book && !book->folder.isEmpty() ? book->folder
                                            : QString::fromLatin1(BookProject::BOOK_FOLDER);
+}
+
+/// @p path as the file system tells files apart: without the case of the letters on Windows
+/// and macOS
+QString fileKey(const QString& path) {
+#if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
+    return QDir::cleanPath(path).toCaseFolded();
+#else
+    return QDir::cleanPath(path);
+#endif
+}
+
+/// Files of the elements of @p project in @p projectDir, as fileKey() of their absolute
+/// paths; the elements whose ids @p skipped has are left out
+QSet<QString> fileKeysOf(const BookProject& project, const QString& projectDir,
+                         const QSet<QString>& skipped = {}) {
+    QSet<QString> keys;
+    const QDir dir(projectDir);
+    for (const ProjectElement* element : allElements(project)) {
+        if (!element->file.isEmpty() && !skipped.contains(element->id)) {
+            keys.insert(fileKey(dir.filePath(element->file)));
+        }
+    }
+    return keys;
+}
+
+/// Chapter files (.kchapter) in folder @p folder (absolute) whose fileKey() @p used does not
+/// have, as absolute paths by name
+QStringList unassignedPathsIn(const QString& folder, const QSet<QString>& used) {
+    const QDir dir(folder);
+    QStringList paths;
+    const QFileInfoList entries = dir.entryInfoList({QStringLiteral("*.kchapter")}, QDir::Files,
+                                                    QDir::Name | QDir::IgnoreCase);
+    for (const QFileInfo& entry : entries) {
+        const QString path = QDir::cleanPath(entry.absoluteFilePath());
+        if (!used.contains(fileKey(path))) {
+            paths.append(path);
+        }
+    }
+    return paths;
 }
 
 /// A chapter file that no element of @p project and no file of @p projectDir has, for a new
@@ -658,6 +699,10 @@ QString ProjectManager::statusOf(const ProjectElement& element) {
     return element.status.isEmpty() ? QStringLiteral("draft") : element.status;
 }
 
+bool ProjectManager::isTextStatus(const QString& status) {
+    return textStatuses().contains(status);
+}
+
 QList<KindRef> ProjectManager::kindsFor(BookPlace place, const QString& groupId) const {
     QList<KindRef> kinds;
     if (!m_project) {
@@ -1048,6 +1093,162 @@ std::optional<ProjectElement> ProjectManager::removeElement(const QString& eleme
     Logger::getInstance().info("removeElement: Removed '{}' (id: {})",
                                element.title.toStdString(), elementId.toStdString());
     return element;
+}
+
+QStringList ProjectManager::filesOf(const ProjectElement& element) const {
+    QList<const ProjectElement*> inside{&element};
+    appendAll(element.elements, inside);
+    QSet<QString> ids;
+    for (const ProjectElement* each : inside) {
+        ids.insert(each->id);
+    }
+    // Files that other elements have too stay
+    const QSet<QString> elsewhere =
+        m_project ? fileKeysOf(*m_project, getProjectPath(), ids) : QSet<QString>();
+
+    QStringList files;
+    QSet<QString> listed;
+    for (const ProjectElement* each : inside) {
+        const QString path = filePathOf(*each);
+        if (path.isEmpty() || !QFileInfo(path).isFile()) {
+            continue;
+        }
+        const QString key = fileKey(path);
+        if (!elsewhere.contains(key) && !listed.contains(key)) {
+            files.append(path);
+            listed.insert(key);
+        }
+    }
+    return files;
+}
+
+QStringList ProjectManager::unassignedFolders() const {
+    QStringList folders;
+    if (!m_project) {
+        return folders;
+    }
+    const QDir projectDir(getProjectPath());
+    for (const BookPlace place : {BookPlace::Main, BookPlace::Workshop}) {
+        const QString folder = QDir::cleanPath(projectDir.filePath(folderOf(place, book())));
+        if (std::none_of(folders.cbegin(), folders.cend(), [&folder](const QString& listed) {
+                return fileKey(listed) == fileKey(folder);
+            })) {
+            folders.append(folder);
+        }
+    }
+    return folders;
+}
+
+QStringList ProjectManager::unassignedPaths() const {
+    QStringList paths;
+    if (!m_project) {
+        return paths;
+    }
+    const QSet<QString> used = fileKeysOf(*m_project, getProjectPath());
+    for (const QString& folder : unassignedFolders()) {
+        paths.append(unassignedPathsIn(folder, used));
+    }
+    return paths;
+}
+
+QList<UnassignedFile> ProjectManager::unassignedFiles() const {
+    QList<UnassignedFile> unassigned;
+    const QDir projectDir(getProjectPath());
+    for (const QString& path : unassignedPaths()) {
+        UnassignedFile file;
+        file.file = projectDir.relativeFilePath(path);
+        if (const std::optional<ChapterDocument> chapter = ChapterDocument::load(path)) {
+            file.title = chapter->title();
+        }
+        unassigned.append(file);
+    }
+    return unassigned;
+}
+
+bool ProjectManager::listsAsUnassigned(const QString& path) const {
+    const QFileInfo info(path);
+    // As unassignedPathsIn() finds them: hidden files are left out
+    if (info.suffix().compare(QStringLiteral("kchapter"), Qt::CaseInsensitive) != 0 ||
+        info.isHidden()) {
+        return false;
+    }
+    const QString folder = fileKey(info.absolutePath());
+    const QStringList folders = unassignedFolders();
+    return std::any_of(folders.cbegin(), folders.cend(),
+                       [&folder](const QString& each) { return fileKey(each) == folder; });
+}
+
+QString ProjectManager::addUnassignedFile(const QString& file, const KindRef& kind,
+                                          const QString& title, BookPlace place,
+                                          const QString& groupId, qsizetype index) {
+    auto& logger = Logger::getInstance();
+    if (!m_project) {
+        logger.error("addUnassignedFile: No project is open");
+        return QString();
+    }
+
+    // One of unassignedFiles()
+    const QString relative = QDir::cleanPath(file);
+    const QString path = QDir::cleanPath(QDir(getProjectPath()).filePath(relative));
+    const QStringList unassigned = unassignedPaths();
+    if (relative.isEmpty() || QDir::isAbsolutePath(relative) ||
+        std::none_of(unassigned.cbegin(), unassigned.cend(), [&path](const QString& free) {
+            return fileKey(free) == fileKey(path);
+        })) {
+        logger.error("addUnassignedFile: {} is not a chapter file of the book or the Workshop "
+                     "that no element has",
+                     file.toStdString());
+        return QString();
+    }
+    const std::optional<ChapterDocument> chapter = ChapterDocument::load(path);
+    if (!chapter) {
+        logger.error("addUnassignedFile: {} cannot be read", path.toStdString());
+        return QString();
+    }
+
+    // The place the writer chose, or the place of its kind
+    const ElementPlace at =
+        index < 0 ? newPlaceOf(kind, place, groupId) : ElementPlace{place, groupId, index};
+    QList<ProjectElement>* list = listForNew(kind, place, at.groupId);
+    if (!list) {
+        return QString();
+    }
+    if (kind.kind->form != ElementForm::Text) {
+        logger.error("addUnassignedFile: {} is not a kind of text",
+                     kind.reference().toStdString());
+        return QString();
+    }
+    if (at.index > list->size()) {
+        logger.error("addUnassignedFile: The list has no place {}", at.index);
+        return QString();
+    }
+
+    // The element keeps the status of the file
+    ProjectElement element;
+    element.id = m_project->newElementId();
+    element.kind = KindReference{kind.package->id, kind.kind->id};
+    element.title = title;
+    element.file = relative;
+    element.status = textStatuses().contains(chapter->status()) ? chapter->status()
+                                                                 : QStringLiteral("draft");
+    list->insert(at.index, element);
+    if (!saveManifest()) {
+        list->removeAt(at.index);
+        return QString();
+    }
+
+    // ... and its notes; the file takes the title
+    ElementState& state = m_elementStates[element.id];
+    state.notes = chapter->notes();
+    state.wordCount = chapter->wordCount();
+    if (!writeChapterFile(element, std::nullopt)) {
+        logger.warn("addUnassignedFile: The title of {} is not in its chapter file",
+                    element.id.toStdString());
+    }
+
+    logger.info("addUnassignedFile: Added {} as '{}' ({}, id: {})", file.toStdString(),
+                title.toStdString(), kind.reference().toStdString(), element.id.toStdString());
+    return element.id;
 }
 
 bool ProjectManager::moveElement(const QString& elementId, qsizetype index) {

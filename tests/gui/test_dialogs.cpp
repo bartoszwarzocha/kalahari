@@ -3,8 +3,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/chapter_document.h"
+#include "kalahari/core/kind_words.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/dialogs/add_to_book_dialog.h"
+#include "kalahari/gui/dialogs/delete_dialogs.h"
+#include "kalahari/gui/dialogs/file_preview_dialog.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
@@ -24,6 +29,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QTemporaryDir>
+#include <QTextBrowser>
 #include <QListWidget>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
@@ -179,6 +185,25 @@ QPushButton* moveButton(const QDialog& dialog, const QString& toolTip) {
         }
     }
     return nullptr;
+}
+
+/// @brief @p text with the name of the system's Trash for "{bin}"
+QString withBin(const QString& text) {
+    return kalahari::core::fillWords(text, {{QStringLiteral("bin"), trashWords()}});
+}
+
+/// @brief Element @p id of a collection of short stories: a story with file @p file, or a
+/// division with @p elements
+ProjectElement storiesElement(const QString& kindId, const QString& id, const QString& title,
+                              const QString& file = QString(),
+                              const QList<ProjectElement>& elements = {}) {
+    ProjectElement made;
+    made.id = id;
+    made.kind = {QStringLiteral("kalahari.short_stories"), kindId};
+    made.title = title;
+    made.file = file;
+    made.elements = elements;
+    return made;
 }
 
 } // anonymous namespace
@@ -948,5 +973,332 @@ TEST_CASE("New Book: the sections of the book, in its language", "[gui][dialogs]
         NewBook next;
         next.choose("template.novel");
         CHECK(next.sections->currentData().toString() == QStringLiteral("sections"));
+    }
+}
+
+TEST_CASE("Delete from Book: what goes, named after its kind, and where its files go",
+          "[gui][dialogs]") {
+    const QString folder = QDir::cleanPath(QDir::tempPath() + QStringLiteral("/Stories"));
+    const auto pathOf = [&folder](const QString& file) {
+        return QDir::cleanPath(QDir(folder).filePath(file));
+    };
+    DeleteFromBookDialog::Content content;
+    content.element = storiesElement(
+        QStringLiteral("section"), QStringLiteral("love"), QStringLiteral("Love"), QString(),
+        {storiesElement(QStringLiteral("story"), QStringLiteral("s1"), QStringLiteral("The Letter"),
+                        QStringLiteral("stories/story_001.kchapter")),
+         storiesElement(QStringLiteral("story"), QStringLiteral("s2"), QStringLiteral("The Visit"),
+                        QStringLiteral("stories/story_002.kchapter"))});
+    content.files = {pathOf(QStringLiteral("stories/story_001.kchapter")),
+                     pathOf(QStringLiteral("stories/story_002.kchapter"))};
+    content.projectFolder = folder;
+
+    SECTION("The files stay in the book's folder unless the writer deletes them") {
+        DeleteFromBookDialog dialog(content, builtInTypes());
+        CHECK(dialog.windowTitle() == QStringLiteral("Delete from Book"));
+        CHECK(dialog.clipboardText() ==
+              QStringLiteral("Delete from Book\n\n"
+                             "Delete the division \"Love\" from the book?\n\n"
+                             "Together with it, 2 stories will be deleted from the book.\n\n"
+                             "Love\n"
+                             "  The Letter – story_001.kchapter\n"
+                             "  The Visit – story_002.kchapter\n\n"
+                             "The files stay in the book's folder. You will find them in the "
+                             "Navigator, under \"Unassigned Files\", where you can add them back "
+                             "to the book or delete them.\n\n"
+                             "Folder: ") +
+                  QDir::toNativeSeparators(pathOf(QStringLiteral("stories"))));
+        CHECK(dialog.list()->topLevelItem(0)->childCount() == 2);
+        CHECK(dialog.deleteFilesBox()->isVisibleTo(&dialog));
+        CHECK_FALSE(dialog.deleteFilesBox()->isChecked());
+        CHECK_FALSE(dialog.deleteFiles());
+        CHECK(dialog.deleteFilesBox()->text() ==
+              withBin(QStringLiteral(
+                  "&Also delete the files of the stories (2) – they go to the {bin}")));
+        CHECK(dialog.folderField()->isVisibleTo(&dialog));
+        CHECK(dialog.showInFolderButton()->isVisibleTo(&dialog));
+
+        // Deleting needs Delete or its mnemonic: Cancel is the default
+        CHECK(dialog.acceptButton()->text() == QStringLiteral("&Delete"));
+        CHECK(dialog.cancelButton()->isDefault());
+        CHECK_FALSE(dialog.acceptButton()->isDefault());
+
+        // The files too: the window says where they go
+        dialog.deleteFilesBox()->setChecked(true);
+        CHECK(dialog.deleteFiles());
+        CHECK(dialog.filesNote()->text() ==
+              withBin(QStringLiteral("The files of the stories go to the system's {bin}. You "
+                                     "can restore them from the {bin}, but not from the "
+                                     "program.")));
+        CHECK_FALSE(dialog.folderField()->isVisibleTo(&dialog));
+    }
+
+    SECTION("Checking the box moves nothing in the window") {
+        DeleteFromBookDialog dialog(content, builtInTypes());
+        dialog.show();
+        QApplication::processEvents();
+        const QSize size = dialog.size();
+        const QRect box = dialog.deleteFilesBox()->geometry();
+        const QRect list = dialog.list()->geometry();
+        for (const bool checked : {true, false}) {
+            dialog.deleteFilesBox()->setChecked(checked);
+            QApplication::processEvents();
+            CHECK(dialog.size() == size);
+            CHECK(dialog.deleteFilesBox()->geometry() == box);
+            CHECK(dialog.list()->geometry() == list);
+        }
+
+        // The end of the folder's path shows the folder of the book
+        CHECK(dialog.folderField()->cursorPosition() == dialog.folderField()->text().size());
+    }
+
+    SECTION("From a folder without a Trash they are gone for good") {
+        content.trash = false;
+        DeleteFromBookDialog dialog(content, builtInTypes());
+        CHECK(dialog.deleteFilesBox()->text() ==
+              QStringLiteral(
+                  "&Also delete the files of the stories (2) – they will be gone for good"));
+        dialog.deleteFilesBox()->setChecked(true);
+        CHECK(dialog.filesNote()->text() ==
+              withBin(QStringLiteral("The files of the stories will be gone for good: files in "
+                                     "this folder cannot go to the {bin}.")));
+    }
+
+    SECTION("Files that the Navigator does not list stay in their folders") {
+        content.unassigned = false;
+        DeleteFromBookDialog dialog(content, builtInTypes());
+        CHECK(dialog.filesNote()->text() == QStringLiteral("The files stay in their folders."));
+    }
+
+    SECTION("A story") {
+        content.element = content.element.elements.first();
+        content.files = {content.files.first()};
+        DeleteFromBookDialog dialog(content, builtInTypes());
+        CHECK(dialog.clipboardText().startsWith(
+            QStringLiteral("Delete from Book\n\nDelete the story \"The Letter\" from the "
+                           "book?\n\nThe Letter – story_001.kchapter\n\nThe file stays in "
+                           "the book's folder. You will find it in the Navigator, under "
+                           "\"Unassigned Files\", where you can add it back to the book or "
+                           "delete it.")));
+        CHECK(dialog.deleteFilesBox()->text() ==
+              withBin(
+                  QStringLiteral("&Also delete the file of the story – it goes to the {bin}")));
+        dialog.deleteFilesBox()->setChecked(true);
+        CHECK(dialog.filesNote()->text() ==
+              withBin(QStringLiteral("The file of the story goes to the system's {bin}. You can "
+                                     "restore it from the {bin}, but not from the program.")));
+    }
+
+    SECTION("Elements of different kinds are elements") {
+        content.element.elements.append(storiesElement(QStringLiteral("contributors"),
+                                                       QStringLiteral("notes"),
+                                                       QStringLiteral("Notes"),
+                                                       QStringLiteral("back/notes.kchapter")));
+        content.files.append(pathOf(QStringLiteral("back/notes.kchapter")));
+        DeleteFromBookDialog dialog(content, builtInTypes());
+        CHECK(dialog.clipboardText().contains(
+            QStringLiteral("Together with it, 3 elements will be deleted from the book.")));
+        CHECK(dialog.deleteFilesBox()->text() ==
+              withBin(QStringLiteral(
+                  "&Also delete the files of the elements (3) – they go to the {bin}")));
+    }
+
+    SECTION("An empty division has no files") {
+        content.element.elements.clear();
+        content.files.clear();
+        DeleteFromBookDialog dialog(content, builtInTypes());
+        CHECK(dialog.clipboardText() ==
+              QStringLiteral("Delete from Book\n\nDelete the division \"Love\" from the "
+                             "book?\n\nThe division is empty.\n\nLove"));
+        CHECK_FALSE(dialog.deleteFilesBox()->isVisibleTo(&dialog));
+        CHECK_FALSE(dialog.filesNote()->isVisibleTo(&dialog));
+        CHECK_FALSE(dialog.folderField()->isVisibleTo(&dialog));
+        dialog.deleteFilesBox()->setChecked(true);
+        CHECK_FALSE(dialog.deleteFiles());
+    }
+}
+
+TEST_CASE("Delete Files: the files that no element has, and where they go", "[gui][dialogs]") {
+    const QString folder = QDir::cleanPath(QDir::tempPath() + QStringLiteral("/Novel"));
+    const QList<kalahari::core::UnassignedFile> files{
+        {QStringLiteral("manuscript/chapter_002.kchapter"), QStringLiteral("Chapter 2")},
+        {QStringLiteral("manuscript/draft.kchapter"), QString()}};
+
+    SECTION("All of them, to the Trash") {
+        DeleteFilesDialog dialog(files, folder, true);
+        CHECK(dialog.windowTitle() == QStringLiteral("Delete Files"));
+        CHECK(dialog.clipboardText() ==
+              withBin(QStringLiteral(
+                  "Delete Files\n\nDelete all unassigned files (2)?\n\n"
+                  "Chapter 2 – chapter_002.kchapter\ndraft.kchapter\n\n"
+                  "The files go to the system's {bin}. You can restore them from the {bin}, but "
+                  "not from the program.")));
+        CHECK(dialog.list()->topLevelItem(1)->toolTip(0) ==
+              QDir::toNativeSeparators(folder + QStringLiteral("/manuscript/draft.kchapter")));
+        CHECK(dialog.acceptButton()->text() == QStringLiteral("&Delete"));
+        CHECK(dialog.cancelButton()->isDefault());
+        CHECK_FALSE(dialog.acceptButton()->isDefault());
+    }
+
+    SECTION("One of them, for good from a folder without a Trash") {
+        DeleteFilesDialog dialog({files.first()}, folder, false);
+        CHECK(dialog.windowTitle() == QStringLiteral("Delete File"));
+        CHECK(dialog.clipboardText() ==
+              withBin(QStringLiteral(
+                  "Delete File\n\nDelete the file \"chapter_002.kchapter\"?\n\n"
+                  "Chapter 2 – chapter_002.kchapter\n\n"
+                  "The file will be gone for good: files in this folder cannot go to the "
+                  "{bin}.")));
+    }
+}
+
+TEST_CASE("Preview: the text of a file that no element has, and what can be done with it",
+          "[gui][dialogs]") {
+    const QString folder = QDir::cleanPath(QDir::tempPath() + QStringLiteral("/Novel"));
+    const QString path = folder + QStringLiteral("/manuscript/chapter_002.kchapter");
+    kalahari::core::ChapterDocument chapter;
+    chapter.setTitle(QStringLiteral("Chapter 2"));
+    chapter.setStatus(QStringLiteral("revision"));
+    chapter.setKml(
+        QStringLiteral("<kml><p>The storm came at night.</p><p>Nobody slept.</p></kml>"));
+
+    SECTION("Its title, its file, its status, its words and its text") {
+        FilePreviewDialog dialog(chapter, path, folder);
+        CHECK(dialog.windowTitle() == QStringLiteral("Preview"));
+        CHECK(showsText(dialog, QStringLiteral("Chapter 2")));
+        const QString file = QStringLiteral("manuscript/chapter_002.kchapter");
+        CHECK(showsText(dialog, QDir::toNativeSeparators(file) +
+                                    QStringLiteral(" · Status: Revision · Words: 7")));
+        CHECK(dialog.text()->toPlainText() ==
+              QStringLiteral("The storm came at night.\nNobody slept."));
+        CHECK(dialog.text()->isReadOnly());
+
+        // Close is the default; the other buttons lead on
+        CHECK(dialog.acceptButton()->text() == QStringLiteral("&Add to Book..."));
+        CHECK(dialog.deleteButton()->text() == QStringLiteral("&Delete File..."));
+        CHECK(dialog.cancelButton()->text() == QStringLiteral("Close"));
+        CHECK(dialog.cancelButton()->isDefault());
+        CHECK_FALSE(dialog.acceptButton()->isDefault());
+        CHECK(dialog.choice() == FilePreviewDialog::Choice::Close);
+    }
+
+    SECTION("Add to Book...") {
+        FilePreviewDialog dialog(chapter, path, folder);
+        dialog.acceptButton()->click();
+        CHECK(dialog.result() == QDialog::Accepted);
+        CHECK(dialog.choice() == FilePreviewDialog::Choice::AddToBook);
+    }
+
+    SECTION("Delete File...") {
+        FilePreviewDialog dialog(chapter, path, folder);
+        dialog.deleteButton()->click();
+        CHECK(dialog.result() == QDialog::Accepted);
+        CHECK(dialog.choice() == FilePreviewDialog::Choice::Delete);
+    }
+
+    SECTION("Close") {
+        FilePreviewDialog dialog(chapter, path, folder);
+        dialog.cancelButton()->click();
+        CHECK(dialog.result() == QDialog::Rejected);
+        CHECK(dialog.choice() == FilePreviewDialog::Choice::Close);
+    }
+
+    SECTION("A file without a title, a status of the elements and a text") {
+        chapter.setTitle(QString());
+        chapter.setStatus(QStringLiteral("unknown"));
+        chapter.setKml(QStringLiteral("<kml></kml>"));
+        FilePreviewDialog dialog(chapter, path, folder);
+        CHECK(showsText(dialog, QStringLiteral("chapter_002.kchapter")));
+        CHECK_FALSE(showsText(dialog, QStringLiteral("Status:")));
+        CHECK(showsText(dialog, QStringLiteral("Words: 0")));
+        CHECK(dialog.text()->toPlainText().isEmpty());
+        CHECK(dialog.text()->placeholderText() == QStringLiteral("The file has no text."));
+    }
+}
+
+TEST_CASE("Add to Book: the file, the kind, the title and the place of the new element",
+          "[gui][dialogs]") {
+    const KindRef chapter = baseKind(QStringLiteral("chapter"));
+    const KindRef prologue = novelKind(QStringLiteral("prologue"));
+    REQUIRE(chapter);
+    REQUIRE(prologue);
+    AddToBookDialog::Book book;
+    book.choices = {{chapter, QString(), mainAt(QString(), 3)},
+                    {prologue, QString(), mainAt(QString(), 0)}};
+    book.sections = {{BookPlace::Main, QStringLiteral("Main Section"),
+                      SectionWords::forPart(nullptr, BookPlace::Main).inPart, novelBody()}};
+
+    SECTION("A chapter from outside the book: copied, with its title and its status") {
+        AddToBookDialog dialog({QStringLiteral("/notes/storm.kchapter"),
+                                QStringLiteral(" The Storm "), QStringLiteral("final"), false},
+                               book, builtInTypes());
+        CHECK(dialog.windowTitle() == QStringLiteral("Add to Book"));
+        CHECK(showsText(dialog, QStringLiteral("Add the File to the Book")));
+        CHECK(showsText(dialog, QStringLiteral("The file becomes an element of the book, with the "
+                                               "title, the status and the notes saved in it.")));
+        REQUIRE(dialog.copyButton() != nullptr);
+        REQUIRE(dialog.moveButton() != nullptr);
+        CHECK(dialog.copyButton()->isChecked());
+        CHECK(dialog.copy());
+        dialog.moveButton()->setChecked(true);
+        CHECK_FALSE(dialog.copy());
+
+        CHECK(dialog.kindBox()->count() == 2);
+        CHECK(dialog.kindBox()->isEnabled());
+        CHECK(dialog.kindBox()->currentText() == QStringLiteral("Chapter"));
+        CHECK(dialog.kind().kind == chapter.kind);
+        CHECK(dialog.titleEdit()->text() == QStringLiteral("The Storm"));
+        CHECK(dialog.title() == QStringLiteral("The Storm"));
+        CHECK(dialog.statusLabel()->text() == QStringLiteral("Final (from the file)"));
+        CHECK(dialog.place() == mainAt(QString(), 3));
+        CHECK(dialog.acceptButton()->text() == QStringLiteral("Add"));
+        CHECK(dialog.acceptButton()->isEnabled());
+
+        // Another kind takes its own place
+        dialog.kindBox()->setCurrentIndex(1);
+        CHECK(dialog.kind().kind == prologue.kind);
+        CHECK(dialog.place() == mainAt(QString(), 0));
+
+        // Without a title it cannot be accepted
+        dialog.titleEdit()->setText(QStringLiteral("  "));
+        CHECK_FALSE(dialog.acceptButton()->isEnabled());
+    }
+
+    SECTION("A text file: its name is the title, and the element is a draft") {
+        AddToBookDialog dialog({QStringLiteral("/notes/storm notes.txt"), QString(), QString(),
+                                false},
+                               book, builtInTypes());
+        CHECK(showsText(dialog, QStringLiteral("The text of the file becomes a new element of "
+                                               "the book; its lines become paragraphs.")));
+        CHECK(dialog.titleEdit()->text() == QStringLiteral("storm notes"));
+        CHECK(dialog.statusLabel()->text() == QStringLiteral("Draft"));
+    }
+
+    SECTION("A file of the book goes back to it and stays where it is") {
+        AddToBookDialog dialog({QStringLiteral("/book/manuscript/chapter_002.kchapter"),
+                                QStringLiteral("Chapter 2"), QStringLiteral("revision"), true},
+                               book, builtInTypes());
+        CHECK(showsText(dialog, QStringLiteral("The file goes back to the book as an element, "
+                                               "with the title, the status and the notes saved "
+                                               "in it.")));
+        CHECK(dialog.copyButton() == nullptr);
+        CHECK(dialog.moveButton() == nullptr);
+        CHECK(dialog.copy());
+        CHECK(dialog.statusLabel()->text() == QStringLiteral("Revision (from the file)"));
+    }
+
+    SECTION("The kind chosen at the start; with one kind the list does not change") {
+        book.current = 1;
+        AddToBookDialog started({QStringLiteral("/notes/storm.kchapter"), QString(), QString(),
+                                 false},
+                                book, builtInTypes());
+        CHECK(started.kindBox()->currentText() == QStringLiteral("Prologue"));
+
+        book.choices.removeLast();
+        AddToBookDialog dialog({QStringLiteral("/notes/storm.kchapter"), QString(), QString(),
+                                false},
+                               book, builtInTypes());
+        CHECK(dialog.kindBox()->currentText() == QStringLiteral("Chapter"));
+        CHECK_FALSE(dialog.kindBox()->isEnabled());
     }
 }

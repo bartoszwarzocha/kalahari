@@ -14,7 +14,6 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/dialogs/about_dialog.h"
-#include "kalahari/gui/dialogs/add_to_project_dialog.h"
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
@@ -167,6 +166,15 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestShowSections);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestRenameSection,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestRenameSection);
+    // The files no element of the book has: shown, added back to the book or deleted
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestPreviewUnassigned,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestPreviewUnassigned);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestAddUnassigned,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddUnassigned);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestDeleteUnassigned,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestDeleteUnassigned);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestDeleteAllUnassigned,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestDeleteAllUnassigned);
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSections,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestSections);
     // The Navigator shows the title of the book and the names of its sections in its language

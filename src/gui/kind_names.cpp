@@ -5,6 +5,8 @@
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
 
+#include <QCoreApplication>
+
 namespace kalahari {
 namespace gui {
 
@@ -47,6 +49,49 @@ core::KindWords wordsOf(const core::ProjectElement& element) {
 
 core::KindWords mainWords() {
     return wordsOf(core::ProjectManager::getInstance().mainTextKind());
+}
+
+core::KindWords elementWords() {
+    // Each form is a text of its own, so that a translation gives the forms of its language,
+    // as the packages give the forms of the names of kinds
+    core::KindWords words;
+    //: The word "element" in sentences about elements of different kinds: "Together with
+    //: it, 3 elements will be deleted from the book". In Polish: element
+    words.forms.insert(QStringLiteral("singular"),
+                       QCoreApplication::translate("KindNames", "element", "singular"));
+    //: In Polish: elementy
+    words.forms.insert(QStringLiteral("plural"),
+                       QCoreApplication::translate("KindNames", "elements", "plural"));
+    //: In Polish: elementu
+    words.forms.insert(QStringLiteral("genitive"),
+                       QCoreApplication::translate("KindNames", "element", "genitive"));
+    //: In Polish: elementowi
+    words.forms.insert(QStringLiteral("dative"),
+                       QCoreApplication::translate("KindNames", "element", "dative"));
+    //: In Polish: element
+    words.forms.insert(QStringLiteral("accusative"),
+                       QCoreApplication::translate("KindNames", "element", "accusative"));
+    //: In Polish: elementem
+    words.forms.insert(QStringLiteral("instrumental"),
+                       QCoreApplication::translate("KindNames", "element", "instrumental"));
+    //: In Polish: elemencie
+    words.forms.insert(QStringLiteral("locative"),
+                       QCoreApplication::translate("KindNames", "element", "locative"));
+    //: In Polish: elementów
+    words.forms.insert(QStringLiteral("genitivePlural"),
+                       QCoreApplication::translate("KindNames", "elements", "genitive plural"));
+    //: With the indefinite article. In Polish: element
+    words.forms.insert(QStringLiteral("indefinite"),
+                       QCoreApplication::translate("KindNames", "an element", "indefinite"));
+    //: The grammatical gender of the word "element" in the translation, for the words that
+    //: agree with it: one of the English words masculine, feminine, neuter or plural, not
+    //: translated. In Polish: masculine
+    const QString gender =
+        QCoreApplication::translate("KindNames", "neuter", "gender of the word element");
+    if (!core::KindWords::genderFromName(gender, words.gender)) {
+        words.gender = core::Gender::Neuter;
+    }
+    return words;
 }
 
 } // namespace gui

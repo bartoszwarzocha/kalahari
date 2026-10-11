@@ -19,6 +19,7 @@ set(TEST_SOURCES
     core/test_text_statistics.cpp
     core/test_text_file.cpp         # Plain text files in their own encoding and line ends
     core/test_standalone_file.cpp   # Chapters and text files opened outside a book project
+    core/test_file_trash.cpp        # Files to the Trash of the system
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     core/test_book_type_registry.cpp  # Book type packages and their registry
     core/test_kind_words.cpp          # Names of kinds in sentences, and the markers of translations
@@ -109,6 +110,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/standalone_file.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/file_trash.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_package.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
@@ -193,6 +195,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/section_words.cpp                    # Parts of the book in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/kind_names.cpp                       # Kinds of elements in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/element_place_picker.cpp     # The place of an element in the book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/add_to_book_dialog.cpp       # A file as a new element of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/delete_dialogs.cpp           # What goes from the book, and its files
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/file_preview_dialog.cpp      # The text of a file no element has
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/file_location.cpp              # A file shown in the file manager
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp              # Items in more rows when narrow
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_item_dialog.cpp          # New Book dialog: the folder of the book
@@ -252,6 +258,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT

@@ -30,6 +30,7 @@ namespace kalahari {
 namespace core {
     struct BookProject;
     struct ProjectElement;
+    struct UnassignedFile;
     class BookTypeRegistry;
 }
 
@@ -43,9 +44,15 @@ namespace gui {
 /// Supports icons, element selection, and automatic theme refresh.
 /// OpenSpec #00034 Phase C: Added editor synchronization (highlight current chapter).
 ///
-/// Item data: Qt::UserRole holds the element ID (the path of a standalone file), Qt::UserRole + 1
-/// the item type: "document", "section_frontmatter", "section_body", "section_backmatter",
-/// "text_element", "group_element", "window_element", "other_files" or "standalone_file".
+/// The chapter files in the book's folder that no element has (the files of elements deleted
+/// from the book without their files) are listed, grey, under "Unassigned Files", from where
+/// they go back to the book or are deleted.
+///
+/// Item data: Qt::UserRole holds the element ID (the path of a standalone file, the file of an
+/// unassigned file relative to the project folder), Qt::UserRole + 1 the item type: "document",
+/// "section_frontmatter", "section_body", "section_backmatter", "text_element",
+/// "group_element", "window_element", "unassigned_files", "unassigned_file", "other_files" or
+/// "standalone_file".
 class NavigatorPanel : public QWidget {
     Q_OBJECT
 
@@ -66,7 +73,18 @@ public:
     /// @brief Load the first book of a project into the tree
     /// @param project Project to display
     /// @param registry Packages whose kinds give the elements their form and icon
+    /// @note The files that no element has come with setUnassignedFiles()
     void loadProject(const core::BookProject& project, const core::BookTypeRegistry& registry);
+
+    /// @brief List the chapter files that no element has under "Unassigned Files", after the
+    /// sections of the book; without files the tree has no such item
+    ///
+    /// The item opens when it gets more files than it had, so that the writer sees the files of
+    /// the elements just deleted from the book; else it stays as the writer left it.
+    /// @param files The files (core::ProjectManager::unassignedFiles())
+    /// @param projectFolder Folder of the project: the files are relative to it
+    void setUnassignedFiles(const QList<core::UnassignedFile>& files,
+                            const QString& projectFolder);
 
     /// @brief ArtProvider id of the icon of @p element: of its kind or, when @p registry does
     /// not have its kind, of its form
@@ -224,6 +242,21 @@ signals:
     /// @param filePath Absolute file path
     void requestRemoveStandaloneFile(const QString& filePath);
 
+    /// @brief Request to show the text of a file of "Unassigned Files"
+    /// @param file The file, relative to the project folder
+    void requestPreviewUnassigned(const QString& file);
+
+    /// @brief Request to add a file of "Unassigned Files" to the book
+    /// @param file The file, relative to the project folder
+    void requestAddUnassigned(const QString& file);
+
+    /// @brief Request to delete a file of "Unassigned Files"
+    /// @param file The file, relative to the project folder
+    void requestDeleteUnassigned(const QString& file);
+
+    /// @brief Request to delete all the files of "Unassigned Files"
+    void requestDeleteAllUnassigned();
+
 private slots:
     /// @brief Refresh icons when theme/colors change
     void refreshIcons();
@@ -304,6 +337,14 @@ private:
     /// @brief Ensure "Other Files" section exists and is visible
     void ensureOtherFilesSection();
 
+    /// @brief Give the items of "Unassigned Files" their grey look in the colors of the
+    /// current theme
+    void updateUnassignedLook();
+
+    /// @brief Show @p path (absolute) in the file manager of the system, or say that it could
+    /// not be shown
+    void showInFileManager(const QString& path);
+
     /// @brief Process filter for a single item and its children
     /// @param item Item to process
     /// @param filterText Filter text (lowercase)
@@ -367,6 +408,12 @@ private:
     QTreeWidget* m_treeWidget;
     QTreeWidgetItem* m_otherFilesItem;  ///< "Other Files" section (always at bottom)
     QMap<QString, QTreeWidgetItem*> m_standaloneFiles;  ///< path -> tree item
+
+    // Unassigned files
+    QTreeWidgetItem* m_unassignedItem = nullptr;  ///< "Unassigned Files"; nullptr: no files
+    int m_unassignedCount = 0;                    ///< Files it listed last
+    bool m_unassignedExpanded = true;             ///< Whether it was open before a reload
+    QString m_projectFolder;                      ///< The files are relative to it
 
     // Search/filter components
     QComboBox* m_typeFilter;             ///< Type filter combo box
