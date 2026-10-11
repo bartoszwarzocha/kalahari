@@ -225,6 +225,7 @@ void ElementPlacePicker::setTitle(const QString& title)
 void ElementPlacePicker::setLabel(const QString& text)
 {
     m_label->setText(text);
+    m_label->setVisible(!text.isEmpty());
 }
 
 void ElementPlacePicker::setNote(const QString& text)

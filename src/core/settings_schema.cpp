@@ -52,6 +52,9 @@ std::map<std::string, json> buildDefaults() {
         // Toolbars
         {"toolbars.locked", false},
         {"toolbars.configurations", "{}"},
+        // The commands added to the built-in toolbars that the saved toolbars have: a
+        // customized toolbar gets the later ones once (ToolbarManager)
+        {"toolbars.addedCommands", 0},
         {"toolbars.configVersion", 0},
 
         // Log panel

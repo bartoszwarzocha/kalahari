@@ -31,7 +31,8 @@
       "words": {
         "pl": { "gender": "masculine", "singular": "dział", "plural": "działy",
                 "genitive": "działu", "dative": "działowi", "accusative": "dział",
-                "instrumental": "działem", "locative": "dziale", "genitivePlural": "działów" },
+                "instrumental": "działem", "locative": "dziale", "genitivePlural": "działów",
+                "locativePlural": "działach" },
         "en": { "singular": "division", "plural": "divisions", "indefinite": "a division" }
       },
       "title": { "pl": "Dział %n", "en": "Division %n" }, "numbering": "roman"

@@ -10,6 +10,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/move_element_dialog.h"
 #include "kalahari/gui/dialogs/new_element_dialog.h"
+#include "kalahari/gui/dialogs/new_file_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
@@ -964,6 +965,48 @@ void NavigatorCoordinator::onRequestAddItem(const QString& sectionType) {
     addElement(front ? dialogs::NewElementKind::FrontMatterItem
                      : dialogs::NewElementKind::BackMatterItem,
                pm.textKindsFor(place), core::KindRef{}, place, QString(), QString());
+}
+
+void NavigatorCoordinator::onRequestNewFile() {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+    auto* window = qobject_cast<QWidget*>(parent());
+
+    if (!pm.isProjectOpen()) {
+        logger.warn("NavigatorCoordinator: New file requested but no project open");
+        return;
+    }
+
+    // The writer chooses the kind, the title and the place
+    dialogs::NewFileDialog dialog(dialogs::NewFileDialog::openBook(), pm.bookTypes(), window);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    const core::KindRef kind = dialog.kind();
+    const QString title = dialog.title();
+    const core::ElementPlace at = dialog.place();
+    // The messages name the kind added: "Story added", "Could not add a story"
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
+
+    // ProjectManager makes the chapter file of the element and saves the project at once
+    const QString elementId = pm.addElement(kind, title, at.place, at.groupId, at.index);
+    if (elementId.isEmpty()) {
+        logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
+        //: In Polish: Nie udało się dodać {kind:genitive}
+        dialogs::MessageDialog::warning(window, core::fillWords(tr("Add {Kind} Failed"), nouns),
+                                        tr("Failed to save changes."));
+        return;
+    }
+    logger.info("NavigatorCoordinator: New file '{}' (id={})", title.toStdString(),
+                elementId.toStdString());
+
+    // The new element is shown, also inside a collapsed part, and opens in the editor
+    refreshNavigator();
+    m_navigatorPanel->revealElement(elementId);
+    onElementSelected(elementId, title);
+    //: In Polish: Dodano {kind:accusative}: %1
+    m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(title), 2000);
+    emit documentModified();
 }
 
 void NavigatorCoordinator::onRequestShowSections(bool shown) {

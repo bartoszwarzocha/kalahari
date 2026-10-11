@@ -278,6 +278,10 @@ private:
     /// @return Created QToolBar
     QToolBar* createToolbar(const ToolbarConfig& config, CommandRegistry& registry);
 
+    /// @brief Give the toolbars that the writer customized the commands added to the built-in
+    /// toolbars since then, once, where the default toolbars have them; saves them
+    void addNewCommands();
+
     /// @brief Add toolbar item (action, separator, or widget) to toolbar
     ///
     /// Shared helper method used by both createToolbar() and rebuildToolbar()

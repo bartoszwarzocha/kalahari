@@ -4,10 +4,6 @@
 <context>
     <name>CommandRegistrar</name>
     <message>
-        <source>New File</source>
-        <translation>Nowy plik</translation>
-    </message>
-    <message>
         <source>New Book...</source>
         <translation>Nowa książka...</translation>
     </message>
@@ -582,6 +578,10 @@
     <message>
         <source>Annotations</source>
         <translation>Uwagi</translation>
+    </message>
+    <message>
+        <source>New File...</source>
+        <translation>Nowy plik...</translation>
     </message>
 </context>
 <context>
@@ -1259,6 +1259,18 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>at the end of the back section</source>
         <translation>na końcu sekcji końcowej</translation>
+    </message>
+    <message>
+        <source>Beginning of the Book</source>
+        <translation>Początek książki</translation>
+    </message>
+    <message>
+        <source>Content</source>
+        <translation>Treść</translation>
+    </message>
+    <message>
+        <source>End of the Book</source>
+        <translation>Koniec książki</translation>
     </message>
 </context>
 <context>
@@ -2730,10 +2742,6 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <translation>Czy zapisać zmiany w bieżącym dokumencie?</translation>
     </message>
     <message>
-        <source>New document created</source>
-        <translation>Utworzono nowy dokument</translation>
-    </message>
-    <message>
         <source>Open Book</source>
         <translation>Otwórz książkę</translation>
     </message>
@@ -3040,6 +3048,14 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>A book created without opening is on the Dashboard and in File &gt; Recent Books. Cancel returns to the New Book – User Project window with the kinds you checked.</source>
         <translation>Książkę utworzoną bez otwierania znajdziesz na Pulpicie i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka – projekt użytkownika” z zaznaczonymi rodzajami.</translation>
+    </message>
+    <message>
+        <source>Untitled %1</source>
+        <translation>Bez tytułu %1</translation>
+    </message>
+    <message>
+        <source>New file created</source>
+        <translation>Utworzono nowy plik</translation>
     </message>
 </context>
 <context>
@@ -6409,6 +6425,85 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::NewFileDialog</name>
+    <message>
+        <source>in {group:plural}</source>
+        <translation>w {group:locativePlural}</translation>
+    </message>
+    <message>
+        <source>%1 and %2</source>
+        <translation>%1 i %2</translation>
+    </message>
+    <message>
+        <source>any number</source>
+        <translation>dowolnie wiele</translation>
+    </message>
+    <message>
+        <source>one {kind} in the book</source>
+        <translation>{kind:m=jeden|f=jedna|n=jedno|p=jedne} {kind} w książce</translation>
+    </message>
+    <message>
+        <source>at most %1 in the book</source>
+        <translation>najwyżej %1 w książce</translation>
+    </message>
+    <message>
+        <source>The program does not have an editor for the {kind} yet.</source>
+        <translation>Program nie ma jeszcze edytora {kind:genitive}.</translation>
+    </message>
+    <message>
+        <source>The book already has {kind:indefinite}.</source>
+        <translation>Książka ma już {kind:accusative}.</translation>
+    </message>
+    <message>
+        <source>The book already has as many elements of this kind as it can have: %1.</source>
+        <translation>Książka ma już tyle elementów tego rodzaju, ile może mieć: %1.</translation>
+    </message>
+    <message>
+        <source>%1 in the folder &quot;%2&quot;</source>
+        <translation>%1 w folderze „%2”</translation>
+    </message>
+    <message>
+        <source>New File</source>
+        <translation>Nowy plik</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <translation>Utwórz</translation>
+    </message>
+    <message>
+        <source>Where:</source>
+        <translation>Gdzie:</translation>
+    </message>
+    <message>
+        <source>How many:</source>
+        <translation>Ile:</translation>
+    </message>
+    <message>
+        <source>File:</source>
+        <translation>Plik:</translation>
+    </message>
+    <message>
+        <source>Type:</source>
+        <translation>Typ:</translation>
+    </message>
+    <message>
+        <source>Kinds</source>
+        <translation>Rodzaje</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>Szczegóły</translation>
+    </message>
+    <message>
+        <source>&amp;Title:</source>
+        <translation>&amp;Tytuł:</translation>
+    </message>
+    <message>
+        <source>Place:</source>
+        <translation>Miejsce:</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::NewItemDialog</name>
     <message>
         <source>New Book</source>
@@ -6961,18 +7056,6 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     <message>
         <source>New Book – User Project</source>
         <translation>Nowa książka – projekt użytkownika</translation>
-    </message>
-    <message>
-        <source>Beginning of the Book</source>
-        <translation>Początek książki</translation>
-    </message>
-    <message>
-        <source>Content</source>
-        <translation>Treść</translation>
-    </message>
-    <message>
-        <source>End of the Book</source>
-        <translation>Koniec książki</translation>
     </message>
     <message>
         <source>Checked kinds: %1</source>

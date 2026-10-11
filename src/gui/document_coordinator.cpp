@@ -222,48 +222,39 @@ void DocumentCoordinator::setPhase0Content(core::Document& doc, const QString& t
 
 void DocumentCoordinator::onNewDocument() {
     auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: New Document");
+    logger.info("Action triggered: New File");
 
-    // Check for unsaved changes via the single source of truth.
-    if (m_hasUnsavedChanges()) {
-        const auto reply = dialogs::MessageDialog::ask(
-            m_mainWindow, tr("Unsaved Changes"),
-            tr("Do you want to save changes to the current document?"), tr("&Save"),
-            tr("Do&n't Save"));
-
-        if (reply == dialogs::MessageDialog::Answer::Accept) {
-            if (!saveAllChanges()) return;  // Save was cancelled or failed
-        } else if (reply == dialogs::MessageDialog::Answer::Cancel) {
-            return;
+    // With a book open, the new file is an element of the book, of the kind and at the place
+    // the writer chooses in the New File window
+    if (core::ProjectManager::getInstance().isProjectOpen()) {
+        if (m_navigatorCoordinator) {
+            m_navigatorCoordinator->onRequestNewFile();
         }
-        // Don't Save -> continue
+        return;
     }
 
-    // Create new EditorPanel tab (on-demand)
-    EditorPanel* newEditor = new EditorPanel(m_mainWindow);
-    int tabIndex = m_centralTabs->addTab(newEditor, tr("Untitled"));
+    // Without a book, an empty file outside one; its first save asks where to save it, as a
+    // Kalahari document or a text file
+    ++m_newFiles;
+    //: The tab of a new file outside a book, before it is saved; %1: its number. In Polish:
+    //: Bez tytułu %1
+    const QString title = tr("Untitled %1").arg(m_newFiles);
+    auto* newEditor = new EditorPanel(m_mainWindow);
+    const QString iconId = QStringLiteral("template.chapter");
+    const int tabIndex = m_centralTabs->addTab(
+        newEditor, core::ArtProvider::getInstance().getIcon(iconId), title);
+    newEditor->setProperty("tabIconId", iconId);
+    newEditor->setProperty("standaloneFile", QVariant::fromValue(core::StandaloneFile()));
+    newEditor->setProperty("standaloneFilePath", QString());
+    newEditor->setProperty("isStandaloneFile", true);
+    newEditor->setProperty("dirty", false);
+    newEditor->setContent(QString());
     m_centralTabs->setCurrentIndex(tabIndex);
+    trackStandaloneChanges(newEditor);
+    updateStandaloneInfoBar();
 
-    // Connect contentChanged signal for dirty tracking
-    connect(newEditor, &EditorPanel::contentChanged,
-            this, [this]() {
-                if (!m_currentDocument.has_value()) return;
-                m_setDirty(true);
-            });
-
-    // Create new document with empty content structure
-    m_currentDocument = core::Document("Untitled", "User", "en");
-    m_currentFilePath = "";
-
-    // Initialize with empty content so editor has something to work with
-    // This ensures the editor panel has a valid document attached
-    newEditor->setText("");
-    newEditor->setContent("");  // Ensure content is properly initialized
-    m_setDirty(false);
-
-    logger.info("New document created in new tab");
-    m_statusBar->showMessage(tr("New document created"), 2000);
-    emit documentOpened();
+    logger.info("New file outside a book: {}", title.toStdString());
+    m_statusBar->showMessage(tr("New file created"), 2000);
 }
 
 void DocumentCoordinator::onNewProject() {
@@ -606,10 +597,10 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
 
     const bool isProjectFile = filePath.endsWith(".klh", Qt::CaseInsensitive);
 
-    // Check for unsaved changes via the single source of truth. Switching from an open
+    // Check for unsaved changes via the single source of truth. A book does not ask: the
+    // files open outside a book stay open with their changes, and switching from an open
     // project asks below, once, after checking that it is a different project.
-    if (m_hasUnsavedChanges()
-        && !(isProjectFile && core::ProjectManager::getInstance().isProjectOpen())) {
+    if (!isProjectFile && m_hasUnsavedChanges()) {
         const auto reply = dialogs::MessageDialog::ask(
             m_mainWindow, tr("Unsaved Changes"),
             tr("Do you want to save changes to the current document?"), tr("&Save"),
@@ -856,8 +847,11 @@ bool DocumentCoordinator::saveEditor(EditorPanel* editor) {
         // once its content is written
         onSaveBook();
         return !isEditorDirty(editor);
-    case EditorKind::StandaloneFile:
-        return writeStandaloneFile(editor, standaloneFileOf(editor).path());
+    case EditorKind::StandaloneFile: {
+        // A new file has no file yet: the writer chooses where it goes
+        const QString path = standaloneFileOf(editor).path();
+        return path.isEmpty() ? saveStandaloneFileAs(editor) : writeStandaloneFile(editor, path);
+    }
     case EditorKind::SingleDocument:
         return saveSingleDocument(editor, false);
     }
@@ -1205,23 +1199,9 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     // Show info bar for standalone files with context-aware message
     updateStandaloneInfoBar();
 
-    // Connect contentChanged signal for dirty tracking.
     // Connected AFTER setContent() above so merely opening a file does not mark it
     // dirty (same rationale as the project-chapter path in NavigatorCoordinator).
-    connect(newEditor, &EditorPanel::contentChanged,
-            this, [this, newEditor]() {
-                // Real per-tab dirty flag (source of truth for standalone tabs).
-                newEditor->setProperty("dirty", true);
-
-                // Mark tab title with asterisk
-                int currentIdx = m_centralTabs->indexOf(newEditor);
-                if (currentIdx >= 0) {
-                    QString tabText = m_centralTabs->tabText(currentIdx);
-                    if (!tabText.startsWith("*")) {
-                        m_centralTabs->setTabText(currentIdx, "*" + tabText);
-                    }
-                }
-            });
+    trackStandaloneChanges(newEditor);
 
     logger.info("Standalone file opened: {}", path.toStdString());
     m_statusBar->showMessage(tr("Opened: %1").arg(tabTitle), 2000);
@@ -1241,6 +1221,22 @@ EditorPanel* DocumentCoordinator::findStandaloneEditor(const QString& path) cons
         }
     }
     return nullptr;
+}
+
+void DocumentCoordinator::trackStandaloneChanges(EditorPanel* editor) {
+    connect(editor, &EditorPanel::contentChanged, this, [this, editor]() {
+        // Real per-tab dirty flag (source of truth for standalone tabs).
+        editor->setProperty("dirty", true);
+
+        // Mark tab title with asterisk
+        const int index = m_centralTabs->indexOf(editor);
+        if (index >= 0) {
+            const QString tabText = m_centralTabs->tabText(index);
+            if (!tabText.startsWith(QLatin1Char('*'))) {
+                m_centralTabs->setTabText(index, QLatin1Char('*') + tabText);
+            }
+        }
+    });
 }
 
 void DocumentCoordinator::setInfoBarAllowed(bool allowed) {
@@ -1319,15 +1315,30 @@ bool DocumentCoordinator::saveStandaloneFileAs(EditorPanel* editor) {
     QString selectedFilter =
         core::StandaloneFile::typeOf(oldPath) == core::StandaloneFile::Type::PlainText
             ? textFiles : chapters;
+
+    // A new file starts in the folder of Open File, as a Kalahari document named after its tab
+    QString start = oldPath;
+    if (oldPath.isEmpty()) {
+        QString name = m_centralTabs->tabText(m_centralTabs->indexOf(editor));
+        if (name.startsWith(QLatin1Char('*'))) {
+            name.remove(0, 1);
+        }
+        start = QDir(ProgramFolders::windowFolder(ProgramFolders::Operation::OpenFile))
+                    .filePath(name + QStringLiteral(".kchapter"));
+    }
     QString path = QFileDialog::getSaveFileName(
         m_mainWindow,
         tr("Save File As"),
-        oldPath,
+        start,
         chapters + QStringLiteral(";;") + textFiles,
         &selectedFilter
     );
     if (path.isEmpty()) {
         return false;
+    }
+    if (oldPath.isEmpty()) {
+        ProgramFolders::remember(ProgramFolders::Operation::OpenFile,
+                                 QFileInfo(path).absolutePath());
     }
 
     // A name without one of the two extensions gets the one of the chosen type
@@ -1347,8 +1358,18 @@ bool DocumentCoordinator::saveStandaloneFileAs(EditorPanel* editor) {
 }
 
 void DocumentCoordinator::onAddToProject() {
-    // The info bar shows the file of the current tab
-    addToProject(m_standaloneInfoBar->filePath());
+    // The info bar shows the file of the current tab; a new file that has no file yet is
+    // saved first, where the writer chooses
+    QString path = m_standaloneInfoBar->filePath();
+    EditorPanel* editor = getCurrentEditor();
+    if (path.isEmpty() && editor && editorKind(editor) == EditorKind::StandaloneFile
+        && core::ProjectManager::getInstance().isProjectOpen()) {
+        if (!saveStandaloneFileAs(editor)) {
+            return;
+        }
+        path = standaloneFileOf(editor).path();
+    }
+    addToProject(path);
 }
 
 void DocumentCoordinator::addToProject(const QString& filePath) {

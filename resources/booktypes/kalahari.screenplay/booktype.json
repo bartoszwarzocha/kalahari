@@ -30,7 +30,8 @@
       "words": {
         "pl": { "gender": "masculine", "singular": "odcinek", "plural": "odcinki",
                 "genitive": "odcinka", "dative": "odcinkowi", "accusative": "odcinek",
-                "instrumental": "odcinkiem", "locative": "odcinku", "genitivePlural": "odcinków" },
+                "instrumental": "odcinkiem", "locative": "odcinku", "genitivePlural": "odcinków",
+                "locativePlural": "odcinkach" },
         "en": { "singular": "episode", "plural": "episodes", "indefinite": "an episode" }
       },
       "title": { "pl": "Odcinek %n", "en": "Episode %n" }

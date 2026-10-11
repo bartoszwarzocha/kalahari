@@ -179,6 +179,27 @@ SectionWords SectionWords::forPart(const core::ProjectBook* book, core::BookPlac
     return {};
 }
 
+QString SectionWords::groupName(core::BookPlace place)
+{
+    switch (place) {
+    case core::BookPlace::Front:
+        //: The group of the kinds of the first elements of a book without sections, e.g. a
+        //: title page. In Polish: Początek książki
+        return tr("Beginning of the Book");
+    case core::BookPlace::Main:
+        //: The group of the kinds of the content of a book without sections, e.g. a chapter.
+        //: In Polish: Treść
+        return tr("Content");
+    case core::BookPlace::Back:
+        //: The group of the kinds of the last elements of a book without sections, e.g. an
+        //: afterword. In Polish: Koniec książki
+        return tr("End of the Book");
+    case core::BookPlace::Workshop:
+        break;
+    }
+    return QString();
+}
+
 QString SectionWords::capitalized(const QString& phrase)
 {
     if (phrase.isEmpty()) {

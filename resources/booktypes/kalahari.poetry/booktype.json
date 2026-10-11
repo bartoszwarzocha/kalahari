@@ -30,7 +30,7 @@
       "words": {
         "pl": { "gender": "masculine", "singular": "cykl", "plural": "cykle", "genitive": "cyklu",
                 "dative": "cyklowi", "accusative": "cykl", "instrumental": "cyklem",
-                "locative": "cyklu", "genitivePlural": "cykli" },
+                "locative": "cyklu", "genitivePlural": "cykli", "locativePlural": "cyklach" },
         "en": { "singular": "cycle", "plural": "cycles", "indefinite": "a cycle" }
       },
       "title": { "pl": "Cykl %n", "en": "Cycle %n" }, "numbering": "roman"

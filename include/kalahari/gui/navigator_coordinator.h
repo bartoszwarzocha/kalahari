@@ -211,6 +211,11 @@ public slots:
     /// @param sectionType Section type ("front_matter" or "back_matter")
     void onRequestAddItem(const QString& sectionType);
 
+    /// @brief New File with a book open: a new element of the kind, with the title and at the
+    /// place the writer chooses in the New File window, which opens in the editor; saves the
+    /// .klh file
+    void onRequestNewFile();
+
     /// @brief Show the sections of the book in the Navigator, or hide them; saves the .klh
     /// file
     /// @param shown Whether the Navigator shows the sections

@@ -697,13 +697,11 @@ std::optional<core::ElementPlace> NavigatorPanel::dropPlaceOf(
     return std::nullopt;
 }
 
-QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
-                                 const core::ProjectElement& element) {
-    const core::KindRef kind = core::BookProject::kindOf(registry, element);
-    if (kind && !kind.kind->icon.isEmpty()) {
-        return kind.kind->icon;
-    }
-    switch (core::BookProject::formOf(registry, element)) {
+namespace {
+
+/// ArtProvider id of the icon of the elements of @p form without an icon of their own
+QString formIconId(core::ElementForm form) {
+    switch (form) {
     case core::ElementForm::Group:
         return QStringLiteral("structure.part");
     case core::ElementForm::Window:
@@ -712,6 +710,24 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
         break;
     }
     return QStringLiteral("template.chapter");
+}
+
+}  // namespace
+
+QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
+                                 const core::ProjectElement& element) {
+    const core::KindRef kind = core::BookProject::kindOf(registry, element);
+    if (kind && !kind.kind->icon.isEmpty()) {
+        return kind.kind->icon;
+    }
+    return formIconId(core::BookProject::formOf(registry, element));
+}
+
+QString NavigatorPanel::iconIdOf(const core::KindRef& kind) {
+    if (!kind) {
+        return formIconId(core::ElementForm::Text);
+    }
+    return kind.kind->icon.isEmpty() ? formIconId(kind.kind->form) : kind.kind->icon;
 }
 
 void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,

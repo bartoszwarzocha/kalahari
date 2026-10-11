@@ -136,7 +136,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // FILE MENU
     // =========================================================================
 
-    REG_CMD_TOOL_ICON("file.new", QT_TRANSLATE_NOOP("CommandRegistrar", "New File"), "FILE/New File", 10, false, 0,
+    // A new file of the open book, of the kind and at the place the writer chooses; without a
+    // book, a new file outside one
+    REG_CMD_TOOL_ICON("file.new", QT_TRANSLATE_NOOP("CommandRegistrar", "New File..."), "FILE/New File...", 10, false, 0,
                       KeyboardShortcut::fromQKeySequence(QKeySequence::New),
                       IconSet(),
                       callbacks.onNewDocument);
@@ -152,8 +154,8 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onOpenDocument);
 
-    // OpenSpec #00033 Phase F: Open standalone file (Ctrl+Shift+O)
-    REG_CMD_TOOL_ICON("file.open.file", QT_TRANSLATE_NOOP("CommandRegistrar", "Open File..."), "FILE/Open/Open File...", 35, false, 0,
+    // A file outside the book (Ctrl+Shift+O), right under Open Book
+    REG_CMD_TOOL_ICON("file.open.file", QT_TRANSLATE_NOOP("CommandRegistrar", "Open File..."), "FILE/Open File...", 25, false, 0,
                       KeyboardShortcut(Qt::Key_O, Qt::ControlModifier | Qt::ShiftModifier),
                       IconSet(),
                       callbacks.onOpenStandaloneFile);

@@ -322,6 +322,11 @@ public:
     /// book, numbered after the elements of the kind the project has
     QString defaultTitle(const KindRef& kind) const;
 
+    /// @brief A free chapter file for a new element of @p kind in @p place, relative to the
+    /// project: <book folder>/<kind>_001.kchapter, or workshop/<kind>_001.kchapter; the file
+    /// that addElement() gives it
+    QString newChapterFile(const KindRef& kind, BookPlace place) const;
+
     // =========================================================================
     // Elements
     // =========================================================================
@@ -666,10 +671,6 @@ private:
 
     /// @brief Absolute paths of the files of unassignedFiles()
     QStringList unassignedPaths() const;
-
-    /// @brief A free chapter file for a new element of @p kind in @p place, relative to the
-    /// project: <book folder>/<kind>_001.kchapter, or workshop/<kind>_001.kchapter
-    QString newChapterFile(const KindRef& kind, BookPlace place) const;
 
     /// @brief The text a new element of @p kind starts with: its template's, with the title
     /// and the author of @p book in place of "{title}" and "{author}"; empty without a template

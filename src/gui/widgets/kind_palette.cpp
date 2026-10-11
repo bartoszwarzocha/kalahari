@@ -7,6 +7,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
+#include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/widgets/flow_layout.h"
 
 #include <QCheckBox>
@@ -45,22 +46,6 @@ constexpr int PALETTE_MARGIN = 10;        ///< At the sides of the palette
 constexpr std::array<core::BookPlace, 4> GROUP_PLACES{core::BookPlace::Front, core::BookPlace::Main,
                                                       core::BookPlace::Back,
                                                       core::BookPlace::Workshop};
-
-/// The icon of @p kind: its own, or that of its form
-QString iconIdOf(const core::KindRef& kind) {
-    if (!kind.kind->icon.isEmpty()) {
-        return kind.kind->icon;
-    }
-    switch (kind.kind->form) {
-        case core::ElementForm::Group:
-            return QStringLiteral("structure.part");
-        case core::ElementForm::Window:
-            return QStringLiteral("common.file");
-        case core::ElementForm::Text:
-            break;
-    }
-    return QStringLiteral("template.chapter");
-}
 
 } // anonymous namespace
 
@@ -174,7 +159,8 @@ public:
     void updateIcon() {
         auto& artProvider = core::ArtProvider::getInstance();
         const int size = artProvider.getIconSize(core::IconContext::Dialog);
-        const QIcon icon = artProvider.getIcon(iconIdOf(m_kind), core::IconContext::Dialog);
+        const QIcon icon =
+            artProvider.getIcon(NavigatorPanel::iconIdOf(m_kind), core::IconContext::Dialog);
         m_icon->setPixmap(icon.pixmap(QSize(size, size), devicePixelRatioF()));
         m_icon->setFixedSize(size, size);
     }

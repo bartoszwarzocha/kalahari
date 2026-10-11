@@ -389,7 +389,8 @@ private:
     /// prompt reads is always the flag that edits set.
     [[nodiscard]] bool hasUnsavedChanges() const;
 
-    /// @brief Update window title with filename and dirty state
+    /// @brief The title of the window: the open book or the document, with "*" when it is
+    /// changed: "Rain - Kalahari"; with nothing open, "Kalahari"
     void updateWindowTitle();
 
     /// @brief Toggle fullscreen mode (OpenSpec #00040)

@@ -41,6 +41,10 @@ public:
     /// @brief @p phrase with a capital letter, at the start of a sentence or of an option:
     /// "At the end of the main section"
     static QString capitalized(const QString& phrase);
+
+    /// @brief The name of @p place (Front, Main or Back) of a book without sections, for the
+    /// group of its kinds: "Beginning of the Book", "Content", "End of the Book"
+    static QString groupName(core::BookPlace place);
 };
 
 } // namespace gui

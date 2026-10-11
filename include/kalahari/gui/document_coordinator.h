@@ -162,7 +162,8 @@ public slots:
     // Document operations
     // =========================================================================
 
-    /// @brief Create new document
+    /// @brief New File: with a book open, a new element of the book in the New File window;
+    /// without one, an empty file outside a book, saved where the writer chooses
     void onNewDocument();
 
     /// @brief Create new project
@@ -364,9 +365,14 @@ private:
     /// @return true when the file was written
     bool writeStandaloneFile(EditorPanel* editor, const QString& path);
 
-    /// @brief Save a standalone file tab under a name the user chooses (chapter or text file)
+    /// @brief Save a standalone file tab under a name the user chooses (chapter or text file);
+    /// a new file starts in the folder of Open File
     /// @return true when the file was written
     bool saveStandaloneFileAs(EditorPanel* editor);
+
+    /// @brief Mark a standalone file tab as changed, with "*" before its name, at the first
+    /// change of its text
+    void trackStandaloneChanges(EditorPanel* editor);
 
     /// @brief Save an editor's text as the single-file (Phase 0) document
     /// @param editor Editor whose text is saved
@@ -397,6 +403,9 @@ private:
 
     /// @brief Files of the navigator's "Other Files" (opened outside the project)
     QStringList m_standaloneFilePaths;
+
+    /// @brief New files made outside a book so far, for the number in their tabs' names
+    int m_newFiles{0};
 
     /// @brief Style resolver for the current project (OpenSpec #00042 Task 7.6)
     std::unique_ptr<editor::StyleResolver> m_styleResolver;

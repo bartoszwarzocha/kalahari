@@ -29,8 +29,37 @@
 #include <QLabel>
 #include <QMenuBar>
 
+#include <array>
+
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+/// A command added to a built-in toolbar after a version that the writer could customize
+struct AddedCommand {
+    const char* toolbar;  ///< Id of the toolbar
+    const char* command;  ///< Id of the command
+    int version;          ///< Version of ADDED_COMMANDS that adds it
+};
+
+/// The commands added to the built-in toolbars. A toolbar that the writer customized before
+/// gets each of them once, where the default toolbar has it; a writer who removes one keeps it
+/// removed. Version history:
+///   1: Open File on the File and Quick Actions toolbars, Save As on Quick Actions
+constexpr std::array<AddedCommand, 3> ADDED_COMMANDS{{
+    {"file", "file.open.file", 1},
+    {"quickActions", "file.open.file", 1},
+    {"quickActions", "file.saveAs", 1},
+}};
+
+/// The version of ADDED_COMMANDS: of its last commands
+constexpr int ADDED_COMMANDS_VERSION = 1;
+
+/// The setting with the version of ADDED_COMMANDS that the saved toolbars have
+constexpr const char* ADDED_COMMANDS_SETTING = "toolbars.addedCommands";
+
+}  // namespace
 
 // OpenSpec #00037: Toolbar config version for reset detection
 // Increment this when changing default toolbar visibility or layout
@@ -76,7 +105,8 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "File Toolbar"),
         Qt::TopToolBarArea,
         false,  // hidden by default (accessible via Quick Actions)
-        {"file.new", "file.new.project", "file.open", "file.save", "file.saveAs", "file.close"}
+        {"file.new", "file.new.project", "file.open", "file.open.file", "file.save",
+         "file.saveAs", "file.close"}
     };
 
     // Edit Toolbar
@@ -163,14 +193,16 @@ void ToolbarManager::initializeConfigs() {
     };
 
     // Quick Actions Toolbar (OpenSpec #00037 - Phase C)
-    // Consolidated toolbar with most frequently used actions for rapid access
+    // Consolidated toolbar with most frequently used actions for rapid access: every command
+    // of the File toolbar, as text editors have them, and Save All
     // Note: Undo/Redo are in Edit toolbar, not duplicated here
     m_configs["quickActions"] = {
         "quickActions",
         QT_TRANSLATE_NOOP("QObject", "Quick Actions"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
-        {"file.new", "file.new.project", "file.open", "file.save", "file.saveAll", "file.close",
+        {"file.new", "file.new.project", "file.open", "file.open.file", "file.save",
+         "file.saveAs", "file.saveAll", "file.close",
          SEPARATOR_ID,
          "edit.find", SEPARATOR_ID,
          "tools.backupNow", SEPARATOR_ID,
@@ -909,6 +941,9 @@ void ToolbarManager::loadConfigurations() {
         }
     }
 
+    // The commands that the built-in toolbars got since the writer customized them
+    addNewCommands();
+
     // OpenSpec #00031 - Phase E: Load toolbar lock state
     m_toolbarsLocked = settings.get<bool>("toolbars.locked");
     logger.debug("ToolbarManager: Toolbars locked state: {}", m_toolbarsLocked);
@@ -959,9 +994,47 @@ void ToolbarManager::saveConfigurations() {
     QJsonDocument doc(root);
     std::string jsonStr = doc.toJson(QJsonDocument::Compact).toStdString();
     settings.set<std::string>("toolbars.configurations", jsonStr);
+    // The saved toolbars have the commands added so far, or the writer removed them
+    settings.set<int>(ADDED_COMMANDS_SETTING, ADDED_COMMANDS_VERSION);
     settings.save();
 
     logger.debug("ToolbarManager: Saved toolbar configurations");
+}
+
+void ToolbarManager::addNewCommands() {
+    const int saved = core::SettingsManager::getInstance().get<int>(ADDED_COMMANDS_SETTING, 0);
+    bool added = false;
+    for (const AddedCommand& entry : ADDED_COMMANDS) {
+        const QString toolbarId = QString::fromLatin1(entry.toolbar);
+        const QString commandId = QString::fromLatin1(entry.command);
+        auto commands = m_toolbarCommands.find(toolbarId);
+        // A toolbar with the defaults has the command, and so has one customized since
+        if (entry.version <= saved || commands == m_toolbarCommands.end()
+            || commands->contains(commandId)) {
+            continue;
+        }
+
+        // After the command it follows in the default toolbar, or the nearest one before that
+        // the toolbar has; at the start when it has none of them
+        const QStringList defaults = m_defaultConfigs.value(toolbarId);
+        qsizetype at = 0;
+        for (qsizetype i = defaults.indexOf(commandId) - 1; i >= 0; --i) {
+            const QString& before = defaults.at(i);
+            const qsizetype index =
+                before == QLatin1String(SEPARATOR_ID) ? -1 : commands->indexOf(before);
+            if (index >= 0) {
+                at = index + 1;
+                break;
+            }
+        }
+        commands->insert(at, commandId);
+        added = true;
+        core::Logger::getInstance().info("ToolbarManager: Added '{}' to the toolbar '{}'",
+                                         entry.command, entry.toolbar);
+    }
+    if (added) {
+        saveConfigurations();
+    }
 }
 
 // ============================================================================

@@ -98,6 +98,10 @@ public:
     static QString iconIdOf(const core::BookTypeRegistry& registry,
                             const core::ProjectElement& element);
 
+    /// @brief ArtProvider id of the icon of the elements of @p kind: its own, or that of its
+    /// form; that of a text without a kind
+    static QString iconIdOf(const core::KindRef& kind);
+
     /// @brief Where an element is dropped, as the line or the frame of the tree shows it
     enum class DropSpot {
         Above,  ///< Above an item

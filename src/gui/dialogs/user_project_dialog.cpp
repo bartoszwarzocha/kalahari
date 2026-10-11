@@ -6,6 +6,7 @@
 #include "kalahari/core/book_project.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
 #include "kalahari/gui/panels/annotation_colors.h"
+#include "kalahari/gui/section_words.h"
 #include "kalahari/gui/widgets/kind_palette.h"
 
 #include <QAbstractButton>
@@ -220,24 +221,16 @@ void UserProjectDialog::setBook(const QString& title, const QString& language,
 
     // The groups have the names of the sections, as the Navigator shows them; a book without
     // sections has a beginning, a content and an end
+    core::ProjectBook book;
     if (sections && sections->shown) {
-        core::ProjectBook book;
         book.language = language;
         book.setSections(*sections);
-        for (const core::BookPlace place : BOOK_PLACES) {
-            m_palette->setGroupName(place, book.sectionName(place));
-        }
-        return;
     }
-    //: The group of the kinds of the first elements of a book without sections, e.g. a title
-    //: page. In Polish: Początek książki
-    m_palette->setGroupName(core::BookPlace::Front, tr("Beginning of the Book"));
-    //: The group of the kinds of the content of a book without sections, e.g. a chapter. In
-    //: Polish: Treść
-    m_palette->setGroupName(core::BookPlace::Main, tr("Content"));
-    //: The group of the kinds of the last elements of a book without sections, e.g. an
-    //: afterword. In Polish: Koniec książki
-    m_palette->setGroupName(core::BookPlace::Back, tr("End of the Book"));
+    for (const core::BookPlace place : BOOK_PLACES) {
+        m_palette->setGroupName(place, sections && sections->shown
+                                           ? book.sectionName(place)
+                                           : SectionWords::groupName(place));
+    }
 }
 
 void UserProjectDialog::setOpeningQuestion(NewBookQuestion question)

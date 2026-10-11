@@ -118,7 +118,8 @@
       "words": {
         "pl": { "gender": "feminine", "singular": "część", "plural": "części",
                 "genitive": "części", "dative": "części", "accusative": "część",
-                "instrumental": "częścią", "locative": "części", "genitivePlural": "części" },
+                "instrumental": "częścią", "locative": "części", "genitivePlural": "części",
+                "locativePlural": "częściach" },
         "en": { "singular": "part", "plural": "parts", "indefinite": "a part" }
       },
       "title": { "pl": "Część %n", "en": "Part %n" }, "numbering": "roman"

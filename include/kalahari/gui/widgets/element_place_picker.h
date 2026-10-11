@@ -86,7 +86,8 @@ public:
     /// @brief The title of the element in the list
     void setTitle(const QString& title);
 
-    /// @brief The words above the list; by default "Place"
+    /// @brief The words above the list; by default "Place"; empty: none, for a dialog that
+    /// names the list beside it
     void setLabel(const QString& text);
 
     /// @brief A sentence under the list, before the hint how to choose the place: "Current
