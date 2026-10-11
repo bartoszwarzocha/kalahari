@@ -144,6 +144,8 @@ set(KALAHARI_SOURCES
     gui/dialogs/toolbar_manager_dialog.cpp  # ToolbarManagerDialog - Visual Studio-style toolbar customization (OpenSpec #00031)
     gui/dialogs/kalahari_dialog.cpp  # KalahariDialog - base of the program's own dialogs
     gui/dialogs/message_dialog.cpp  # MessageDialog, TextInputDialog - own messages, questions, typed texts
+    gui/dialogs/progress_dialog.cpp  # ProgressDialog - own window for the progress of a long task
+    gui/dialogs/color_dialog.cpp  # ColorDialog - own window for choosing a color
     gui/dialogs/new_element_dialog.cpp  # NewElementDialog - new chapter, part or item in the Navigator
     gui/dialogs/add_to_book_dialog.cpp  # AddToBookDialog - a file as a new element of the book
     gui/dialogs/move_element_dialog.cpp  # MoveElementDialog - a new place in the book for an element
@@ -176,6 +178,8 @@ set(KALAHARI_SOURCES
     gui/widgets/color_config_widget.cpp
     gui/widgets/length_spin_box.cpp
     gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
+    gui/widgets/tool_button_columns.cpp  # Panel buttons that wrap into columns
+    gui/widgets/fitting_scroll_area.cpp  # Content that scrolls only on a small screen
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
     gui/widgets/element_place_picker.cpp  # ElementPlacePicker - the place of an element in the book
     gui/widgets/flow_layout.cpp  # FlowLayout - items in more rows in a narrow panel
@@ -202,6 +206,7 @@ set(KALAHARI_SOURCES
     gui/utils/file_location.cpp  # A file or a folder shown in the file manager of the system
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
     gui/utils/qt_standard_texts.cpp  # Qt's own texts (standard buttons) for the translations
+    gui/utils/core_texts.cpp  # The core library's texts for the translations
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
     editor/book_editor_annotations.cpp
@@ -250,6 +255,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/progress_dialog.h  # ProgressDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/color_dialog.h  # ColorDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT
@@ -270,6 +277,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h  # InfoBar with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT

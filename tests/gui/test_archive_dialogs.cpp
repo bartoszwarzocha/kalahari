@@ -9,6 +9,7 @@
 #include "kalahari/gui/dialogs/archive_dialogs.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/utils/file_location.h"
+#include "kalahari/gui/widgets/fitting_scroll_area.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -417,7 +418,9 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
     REQUIRE(dialog.isDone());
     // The list keeps its rows, and the result has room for its lines
     CHECK(list->height() == rowsHeight);
-    CHECK(dialog.height() >= dialog.layout()->totalHeightForWidth(dialog.width()));
+    const auto* area = dialog.findChild<gui::FittingScrollArea*>();
+    REQUIRE(area != nullptr);
+    CHECK(area->viewport()->height() >= area->contentHeightForWidth(area->viewport()->width()));
 }
 
 TEST_CASE("Export Project Archive: a line under a field is as high as its sentence",

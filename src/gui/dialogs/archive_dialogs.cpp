@@ -12,6 +12,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/widgets/fitting_scroll_area.h"
 #include "kalahari/gui/utils/file_location.h"
 #include "kalahari/gui/utils/program_folders.h"
 
@@ -33,7 +34,6 @@
 #include <QPlainTextEdit>
 #include <QProgressBar>
 #include <QPushButton>
-#include <QScreen>
 #include <QStyle>
 #include <QTextDocument>
 #include <QTreeWidget>
@@ -385,34 +385,20 @@ bool ArchiveDialog::event(QEvent* event)
 
 void ArchiveDialog::fitHeight()
 {
-    if (!isVisible() || !layout()->hasHeightForWidth()) {
+    const auto* area = findChild<FittingScrollArea*>(QString(), Qt::FindDirectChildrenOnly);
+    if (!isVisible() || !area) {
         return;
     }
-    int wanted = layout()->totalHeightForWidth(width());
-    QRect available;
-    if (const QScreen* screen = this->screen()) {
-        // The screen without the title bar and the border of the window
-        const QRect frame = frameGeometry();
-        const QRect inner = geometry();
-        available = screen->availableGeometry() -
-                    QMargins(inner.left() - frame.left(), inner.top() - frame.top(),
-                             frame.right() - inner.right(), frame.bottom() - inner.bottom());
-        wanted = std::min(wanted, available.height());
-    }
-    // On a small screen the list gives up rows, but the fields keep their room
-    wanted = std::max(wanted, layout()->totalMinimumHeightForWidth(width()));
-    if (wanted <= height()) {
-        return;
-    }
-    resize(width(), wanted);
-
-    // A window that grew past the bottom of the screen moves up
-    if (available.isValid()) {
-        const int below = geometry().bottom() - available.bottom();
-        const int above = geometry().top() - available.top();
-        if (below > 0 && above > 0) {
-            move(pos().x(), pos().y() - std::min(below, above));
-        }
+    // The content's own height at the width it has, in place of the height the area of the
+    // content asks for, as in KalahariDialog::sizeHint()
+    const int height = layout()->hasHeightForWidth() ? layout()->totalHeightForWidth(width())
+                                                     : layout()->totalSizeHint().height();
+    const int wanted = height - area->sizeHint().height() +
+                       area->contentHeightForWidth(area->viewport()->width());
+    // Within the screen, where the content scrolls; a window that grew past the bottom of the
+    // screen moves up
+    if (wanted > this->height()) {
+        fitToScreen(QSize(width(), wanted));
     }
 }
 
