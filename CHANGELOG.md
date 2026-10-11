@@ -527,6 +527,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   longer or shorter replacement it landed inside a word. It now stands at the end of the
   replaced text; after Replace All, at the end of the last replacement, shown in the view.
 
+- **Toolbars: the cursor goes back where it was after a command** - 2026-10-11. A click on a
+  floating toolbar took the cursor: after its command, what was typed reached neither the
+  text nor a field. In the font and size fields of a toolbar, docked or floating, the cursor
+  stayed after the choice, and what was typed changed the font name. Now, as in Word and
+  LibreOffice, after a command, after Enter or Escape in a field and after a choice in the
+  font list, the cursor goes back where it was: to the text or to the field of a panel. The
+  arrows of the size field do not take the cursor; in the fields one types as before, and Tab
+  goes from one to the other.
+
 - **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
   texts of the Settings pages and the descriptions of the planned pages had a contrast of
   2.3:1 with the window in the light theme and 3.6:1 in the dark one. They now have at

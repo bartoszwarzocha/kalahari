@@ -10,6 +10,7 @@
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
+#include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
@@ -250,6 +251,11 @@ MainWindow::MainWindow(QWidget* parent)
         },
         this);
     m_editCoordinator->connectCommands();
+
+    // After a command given in a toolbar the keys go back where they were, in the text or a
+    // field; a floating toolbar, a window of its own, takes them at a click (the window owns
+    // the object)
+    new ToolbarKeys(this, this);
 
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
     // No m_editorPanel at startup - Dashboard is default first tab

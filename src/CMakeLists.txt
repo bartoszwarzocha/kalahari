@@ -155,6 +155,7 @@ set(KALAHARI_SOURCES
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
+    gui/toolbar_keys.cpp  # ToolbarKeys - a toolbar gives the keys back after a command
     gui/main_window.cpp
     gui/menu_builder.cpp
     gui/recent_books_menu.cpp
@@ -254,6 +255,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator with Q_OBJECT (OpenSpec #00038 Phase 7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h

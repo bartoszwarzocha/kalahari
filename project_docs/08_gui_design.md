@@ -1644,6 +1644,15 @@ it to the next element of the window, the font box of the toolbar. After a repla
 cursor stands at the end of the replaced text, and after Replace All at the end of the last
 replacement, shown in the view; Replace with more matches after it selects the next one.
 
+After a command given in a toolbar the cursor goes back where it was, as in Word and
+LibreOffice (`src/gui/toolbar_keys.cpp`, checked by `tests/gui/test_toolbar_keys.cpp`). In the
+font and size fields one types; Enter, Escape (which drops what was typed in the font field)
+and a choice in the font list give the cursor back to the text or the panel's field that had
+it. The arrow keys in a field go through its values, and Tab goes to the other field. The
+arrows of the size field, like the buttons, do not take the cursor. A floating toolbar is a
+window of its own: shown floating it does not take the cursor, and a click on it that is not
+in one of its fields, or a command given there, gives the cursor back at once.
+
 #### macOS
 
 Ctrl is Cmd. Where the system needs it, a command has the keys of macOS:
