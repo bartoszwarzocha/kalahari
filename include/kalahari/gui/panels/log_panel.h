@@ -18,7 +18,6 @@
 #include <deque>
 
 class QTextEdit;
-class QToolBar;
 
 namespace kalahari {
 namespace core {
@@ -26,6 +25,8 @@ class LogPanelSink;
 }
 
 namespace gui {
+
+class ToolButtonColumns;
 
 /// @brief Log entry for ring buffer
 struct LogEntry {
@@ -132,7 +133,7 @@ private:
     // ========================================================================
 
     QTextEdit* m_logEdit;           ///< Log display (rich text for colors)
-    QToolBar* m_toolBar;            ///< Vertical toolbar
+    ToolButtonColumns* m_toolBar;   ///< Buttons at the side, wrapping into columns when low
 
     // ========================================================================
     // Log Sink

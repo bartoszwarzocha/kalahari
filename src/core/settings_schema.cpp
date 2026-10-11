@@ -30,6 +30,8 @@ std::map<std::string, json> buildDefaults() {
         {"ui.language", "en"},
         // Unit the length fields show (px, mm, cm, in, pt); each setting keeps its own
         {"ui.lengthUnit", "mm"},
+        // Colors chosen last in the color window, newest first ("#rrggbb")
+        {"ui.recentColors", json::array()},
         {"appearance.theme", "Light"},
         {"appearance.uiFontSize", 12},
         {"appearance.iconTheme", "twotone"},

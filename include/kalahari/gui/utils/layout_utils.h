@@ -8,6 +8,8 @@
 #define KALAHARI_GUI_UTILS_LAYOUT_UTILS_H
 
 class QLayout;
+class QSize;
+class QWidget;
 
 namespace kalahari {
 namespace gui {
@@ -36,6 +38,15 @@ namespace utils {
 /// }
 /// @endcode
 void clearLayout(QLayout* layout);
+
+/// @brief Give a window its preferred size, or less where the screen is smaller
+///
+/// A window larger than the screen (e.g. 1366x768 at 150%) would hide its buttons;
+/// it keeps a margin for the title bar and the taskbar instead.
+///
+/// @param window The window to resize
+/// @param preferred The size the window has on a screen big enough for it
+void resizeWithinScreen(QWidget* window, const QSize& preferred);
 
 } // namespace utils
 } // namespace gui
