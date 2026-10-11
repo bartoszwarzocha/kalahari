@@ -7,14 +7,17 @@
 #include <kalahari/core/python_interpreter.h>
 #include <kalahari/core/settings_manager.h>
 
+#include <filesystem>
+
 using namespace kalahari::core;
 
 // Test fixture for plugin loading tests
 class PluginLoadingTestFixture {
 public:
     PluginLoadingTestFixture() {
-        // Initialize logger
-        Logger::getInstance().init("/tmp/kalahari_test_plugin_loading.log");
+        // Initialize logger in the test process' own temporary folder
+        Logger::getInstance().init(
+            (std::filesystem::temp_directory_path() / "kalahari_test_plugin_loading.log").string());
 
         // Allow unsigned plugins for testing (test plugins are not signed)
         SettingsManager::getInstance().set("plugins.allowUnsigned", true);
@@ -70,6 +73,19 @@ TEST_CASE("Plugin Manager - Loading", "[plugin]") {
         const auto* instance = manager.getPluginInstance("org.kalahari.test.hello");
         REQUIRE(instance != nullptr);
         REQUIRE(instance->state == PluginState::Activated);
+    }
+
+    SECTION("Tests unpack the plugin in their temporary folder, not in the user's profile") {
+        REQUIRE(manager.loadPlugin("org.kalahari.test.hello"));
+        const auto* instance = manager.getPluginInstance("org.kalahari.test.hello");
+        REQUIRE(instance != nullptr);
+        REQUIRE(instance->archive != nullptr);
+
+        const std::filesystem::path relative = instance->archive->getExtractedPath()
+                                                   .lexically_relative(
+                                                       std::filesystem::temp_directory_path());
+        REQUIRE_FALSE(relative.empty());
+        REQUIRE(*relative.begin() != "..");
     }
 
     SECTION("Loading non-existent plugin fails") {
