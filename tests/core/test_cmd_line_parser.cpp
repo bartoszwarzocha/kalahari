@@ -124,6 +124,10 @@ TEST_CASE("The program version comes from the project version", "[cmdline][versi
 
     char* argv[] = { const_cast<char*>("kalahari") };
     CmdLineParser parser(1, argv);
-    parser.setApplicationDescription("Kalahari", "Writer's IDE");
+    // The test program keeps its own name: under the program's name, files that later tests
+    // write through QStandardPaths would land in the user's Kalahari folder
+    const QString testProgramName = QCoreApplication::applicationName();
+    parser.setApplicationDescription(testProgramName, "Writer's IDE");
     REQUIRE(QCoreApplication::applicationVersion() == shown);
+    REQUIRE(QCoreApplication::applicationName() == testProgramName);
 }

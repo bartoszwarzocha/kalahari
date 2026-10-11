@@ -320,15 +320,15 @@ public:
     /// @param key JSON pointer path (e.g., "ui.theme")
     void removeKey(const std::string& key);
 
+    /// @brief True when KALAHARI_TEST_MODE is set (tests keep away from user files)
+    static bool isTestMode();
+
 private:
     /// @brief Private constructor (singleton)
     SettingsManager();
 
     /// @brief Destructor (saves settings automatically)
     ~SettingsManager();
-
-    /// @brief True when KALAHARI_TEST_MODE is set (tests keep away from user files)
-    static bool isTestMode();
 
     /// @brief Get platform-specific settings directory path
     /// @return Path to settings directory (e.g., ~/.config/kalahari/)
