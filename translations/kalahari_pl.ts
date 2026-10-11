@@ -626,6 +626,10 @@
 <context>
     <name>QObject</name>
     <message>
+        <source>&amp;Restart Now</source>
+        <translation>&amp;Uruchom ponownie teraz</translation>
+    </message>
+    <message>
         <source>Dashboard</source>
         <translation>Pulpit</translation>
     </message>
@@ -1522,6 +1526,18 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
 <context>
     <name>kalahari::gui::AdvancedGeneralPage</name>
     <message>
+        <source>Do you want to enable the diagnostic menu?
+
+This exposes advanced debugging tools.</source>
+        <translation>Czy włączyć menu diagnostyczne?
+
+Udostępnia ono zaawansowane narzędzia diagnostyczne.</translation>
+    </message>
+    <message>
+        <source>&amp;Enable</source>
+        <translation>&amp;Włącz</translation>
+    </message>
+    <message>
         <source>Warning: These settings are for advanced users and developers.
 Incorrect configuration may affect application stability.</source>
         <translation>Uwaga: te ustawienia są przeznaczone dla zaawansowanych użytkowników i programistów.
@@ -1552,14 +1568,6 @@ The menu stays for this session only.</source>
 - stanem składników
 
 Menu zostaje tylko do końca tej sesji.</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to enable diagnostic menu?
-
-This exposes advanced debugging tools.</source>
-        <translation>Czy na pewno włączyć menu diagnostyczne?
-
-Udostępnia ono zaawansowane narzędzia do debugowania.</translation>
     </message>
 </context>
 <context>
@@ -1894,10 +1902,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>Click to select color</source>
         <translation>Kliknij, aby wybrać kolor</translation>
     </message>
-    <message>
-        <source>Select Color</source>
-        <translation>Wybierz kolor</translation>
-    </message>
 </context>
 <context>
     <name>kalahari::gui::CommandRegistry</name>
@@ -2047,6 +2051,28 @@ do: „%2”</translation>
 </context>
 <context>
     <name>kalahari::gui::DiagnosticController</name>
+    <message>
+        <source>This benchmark will temporarily modify the editor content.
+The original content will NOT be preserved.</source>
+        <translation>Test wydajności tymczasowo zmieni treść edytora.
+Pierwotna treść NIE zostanie zachowana.</translation>
+    </message>
+    <message>
+        <source>&amp;Run Benchmark</source>
+        <translation>&amp;Uruchom test</translation>
+    </message>
+    <message>
+        <source>This will IMMEDIATELY crash the application!
+
+All unsaved work will be LOST.</source>
+        <translation>Program NATYCHMIAST ulegnie awarii!
+
+Wszystkie niezapisane zmiany zostaną UTRACONE.</translation>
+    </message>
+    <message>
+        <source>&amp;Crash Now</source>
+        <translation>&amp;Wywołaj awarię</translation>
+    </message>
     <message>
         <source>Diagnostic mode enabled</source>
         <translation>Włączono tryb diagnostyczny</translation>
@@ -2212,22 +2238,8 @@ do: „%2”</translation>
         <translation>Test wydajności edytora</translation>
     </message>
     <message>
-        <source>This benchmark will temporarily modify the editor content.
-The original content will NOT be preserved.
-
-Do you want to continue?</source>
-        <translation>Test wydajności zmieni treść w edytorze.
-Pierwotna treść NIE zostanie zachowana.
-
-Czy kontynuować?</translation>
-    </message>
-    <message>
         <source>Running Editor Benchmark...</source>
         <translation>Trwa test wydajności edytora...</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Anuluj</translation>
     </message>
     <message>
         <source>Editor Benchmark Results
@@ -2262,18 +2274,6 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     <message>
         <source>Force Crash</source>
         <translation>Wymuś awarię</translation>
-    </message>
-    <message>
-        <source>This will IMMEDIATELY crash the application!
-
-All unsaved work will be LOST.
-
-Are you sure you want to continue?</source>
-        <translation>Program NATYCHMIAST ulegnie awarii!
-
-Cała niezapisana praca PRZEPADNIE.
-
-Czy na pewno kontynuować?</translation>
     </message>
     <message>
         <source>Crash cancelled</source>
@@ -3309,14 +3309,6 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     <message>
         <source>Dark paper: off</source>
         <translation>Ciemny papier: wyłączony</translation>
-    </message>
-    <message>
-        <source>Press Esc to leave Distraction-Free</source>
-        <translation>Naciśnij Esc, aby wyjść z trybu bez rozpraszania</translation>
-    </message>
-    <message>
-        <source>About Qt</source>
-        <translation>O Qt</translation>
     </message>
     <message>
         <source>Unsaved Changes</source>
@@ -5402,6 +5394,42 @@ Harmonogram projektu:
 <context>
     <name>kalahari::gui::dialogs::ToolbarManagerDialog</name>
     <message>
+        <source>New name</source>
+        <translation>Nowa nazwa</translation>
+    </message>
+    <message>
+        <source>Toolbar name</source>
+        <translation>Nazwa paska narzędzi</translation>
+    </message>
+    <message>
+        <source>&amp;Create</source>
+        <translation>&amp;Utwórz</translation>
+    </message>
+    <message>
+        <source>Do you want to delete the toolbar &quot;%1&quot;?</source>
+        <translation>Czy usunąć pasek narzędzi „%1”?</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>&amp;Rename</source>
+        <translation>&amp;Zmień nazwę</translation>
+    </message>
+    <message>
+        <source>Do you want to reset all toolbars to their default configurations?
+
+This will remove all user-defined toolbars and restore built-in toolbars to defaults.</source>
+        <translation>Czy przywrócić domyślny układ wszystkich pasków narzędzi?
+
+Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do ustawień domyślnych.</translation>
+    </message>
+    <message>
+        <source>&amp;Reset</source>
+        <translation>&amp;Przywróć</translation>
+    </message>
+    <message>
         <source>Customize Toolbars</source>
         <translation>Dostosuj paski narzędzi</translation>
     </message>
@@ -5530,36 +5558,823 @@ Harmonogram projektu:
         <translation>Nowy pasek</translation>
     </message>
     <message>
-        <source>Enter toolbar name:</source>
-        <translation>Nazwa paska:</translation>
-    </message>
-    <message>
         <source>Delete Toolbar</source>
         <translation>Usuń pasek</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to delete the toolbar &apos;%1&apos;?</source>
-        <translation>Czy na pewno usunąć pasek „%1”?</translation>
     </message>
     <message>
         <source>Rename Toolbar</source>
         <translation>Zmień nazwę paska</translation>
     </message>
     <message>
-        <source>Enter new name:</source>
-        <translation>Nowa nazwa:</translation>
-    </message>
-    <message>
         <source>Reset Toolbars</source>
         <translation>Przywróć paski narzędzi</translation>
     </message>
+</context>
+<context>
+    <name>kalahari::gui::IconDownloaderDialog</name>
     <message>
-        <source>Are you sure you want to reset all toolbars to their default configurations?
-
-This will remove all user-defined toolbars and restore built-in toolbars to defaults.</source>
-        <translation>Czy na pewno przywrócić domyślny układ wszystkich pasków narzędzi?
-
-Paski użytkownika zostaną usunięte, a paski wbudowane wrócą do ustawień domyślnych.</translation>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Icon URL</source>
+        <translation>Adres ikony</translation>
+    </message>
+    <message>
+        <source>Enter full URL to SVG icon. Example:</source>
+        <translation>Wpisz pełny adres URL ikony SVG. Przykład:</translation>
+    </message>
+    <message>
+        <source>Full URL to SVG file</source>
+        <translation>Pełny adres URL pliku SVG</translation>
+    </message>
+    <message>
+        <source>Output Settings</source>
+        <translation>Zapis</translation>
+    </message>
+    <message>
+        <source>Icon name:</source>
+        <translation>Nazwa ikony:</translation>
+    </message>
+    <message>
+        <source>e.g., save, folder_open</source>
+        <translation>np. save, folder_open</translation>
+    </message>
+    <message>
+        <source>Name for saved file (without .svg)</source>
+        <translation>Nazwa zapisanego pliku (bez .svg)</translation>
+    </message>
+    <message>
+        <source>Save to theme:</source>
+        <translation>Zapisz w stylu:</translation>
+    </message>
+    <message>
+        <source>Target theme directory</source>
+        <translation>Katalog docelowego stylu ikon</translation>
+    </message>
+    <message>
+        <source>Download Progress</source>
+        <translation>Postęp pobierania</translation>
+    </message>
+    <message>
+        <source>Ready to download</source>
+        <translation>Gotowe do pobrania</translation>
+    </message>
+    <message>
+        <source>Errors:</source>
+        <translation>Błędy:</translation>
+    </message>
+    <message>
+        <source>No errors</source>
+        <translation>Brak błędów</translation>
+    </message>
+    <message>
+        <source>Download</source>
+        <translation>Pobierz</translation>
+    </message>
+    <message>
+        <source>Downloading...</source>
+        <translation>Pobieranie…</translation>
+    </message>
+    <message>
+        <source>Conversion failed: %1</source>
+        <translation>Nie udało się przekształcić ikony: %1</translation>
+    </message>
+    <message>
+        <source>Failed to create directory: %1</source>
+        <translation>Nie udało się utworzyć katalogu: %1</translation>
+    </message>
+    <message>
+        <source>Failed to write file: %1</source>
+        <translation>Nie udało się zapisać pliku: %1</translation>
+    </message>
+    <message>
+        <source>Downloading... (%1/%2)</source>
+        <translation>Pobieranie… (%1/%2)</translation>
+    </message>
+    <message>
+        <source>Downloaded and saved successfully</source>
+        <translation>Pobrano i zapisano</translation>
+    </message>
+    <message>
+        <source>Download failed</source>
+        <translation>Nie udało się pobrać</translation>
+    </message>
+    <message>
+        <source>Icon Downloader</source>
+        <translation>Pobieranie ikon</translation>
+    </message>
+    <message>
+        <source>Cancel Download</source>
+        <translation>Przerwij pobieranie</translation>
+    </message>
+    <message>
+        <source>The download is in progress. Do you want to stop it?</source>
+        <translation>Trwa pobieranie. Czy je przerwać?</translation>
+    </message>
+    <message>
+        <source>&amp;Stop Download</source>
+        <translation>&amp;Przerwij pobieranie</translation>
+    </message>
+    <message>
+        <source>Invalid Input</source>
+        <translation>Nieprawidłowe dane</translation>
+    </message>
+    <message>
+        <source>Please enter a URL.</source>
+        <translation>Wpisz adres URL.</translation>
+    </message>
+    <message>
+        <source>The URL must start with http:// or https://.</source>
+        <translation>Adres URL musi zaczynać się od http:// lub https://.</translation>
+    </message>
+    <message>
+        <source>Please enter an icon name.</source>
+        <translation>Wpisz nazwę ikony.</translation>
+    </message>
+</context>
+<context>
+    <name>main</name>
+    <message>
+        <source>Writer&apos;s IDE for book authors</source>
+        <translation>Środowisko do pisania książek</translation>
+    </message>
+    <message>
+        <source>Run in CLI mode (no GUI)</source>
+        <translation>Uruchom w trybie wiersza poleceń (bez okien)</translation>
+    </message>
+    <message>
+        <source>Enable diagnostic mode (show Diagnostics menu)</source>
+        <translation>Włącz tryb diagnostyczny (menu Diagnostyka)</translation>
+    </message>
+    <message>
+        <source>Enable developer tools (Dev Tools menu + CLI features)</source>
+        <translation>Włącz narzędzia deweloperskie (menu Narzędzia deweloperskie i funkcje wiersza poleceń)</translation>
+    </message>
+    <message>
+        <source>Run performance benchmark and exit</source>
+        <translation>Wykonaj test wydajności i zakończ</translation>
+    </message>
+    <message>
+        <source>Open project from path (for --benchmark)</source>
+        <translation>Otwórz projekt ze ścieżki (dla --benchmark)</translation>
+    </message>
+    <message>
+        <source>Open specific chapter by title (for --benchmark)</source>
+        <translation>Otwórz rozdział o podanym tytule (dla --benchmark)</translation>
+    </message>
+    <message>
+        <source>Download icon from URL (requires --cli)</source>
+        <translation>Pobierz ikonę z adresu URL (wymaga --cli)</translation>
+    </message>
+    <message>
+        <source>Output icon name (required with --get-icon)</source>
+        <translation>Nazwa pobranej ikony (wymagana z --get-icon)</translation>
+    </message>
+    <message>
+        <source>Target theme: twotone, rounded, outlined (default: twotone)</source>
+        <translation>Styl ikon: twotone, rounded, outlined (domyślnie twotone)</translation>
+    </message>
+    <message>
+        <source>Command Line</source>
+        <translation>Wiersz poleceń</translation>
+    </message>
+    <message>
+        <source>The command line could not be read.</source>
+        <translation>Nie udało się odczytać wiersza poleceń.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ColorDialog</name>
+    <message>
+        <source>Select Color</source>
+        <translation>Wybierz kolor</translation>
+    </message>
+    <message>
+        <source>Select</source>
+        <translation>Wybierz</translation>
+    </message>
+    <message>
+        <source>&amp;Palette</source>
+        <translation>&amp;Paleta</translation>
+    </message>
+    <message>
+        <source>Palette</source>
+        <translation>Paleta</translation>
+    </message>
+    <message>
+        <source>Rec&amp;ent colors</source>
+        <translation>&amp;Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Recent colors</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>The colors you select appear here.</source>
+        <translation>Tutaj pojawią się wybrane kolory.</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Pre&amp;vious</source>
+        <translation>Poprzedn&amp;i</translation>
+    </message>
+    <message>
+        <source>Bring back the previous color</source>
+        <translation>Przywróć poprzedni kolor</translation>
+    </message>
+    <message>
+        <source>New</source>
+        <translation>Nowy</translation>
+    </message>
+    <message>
+        <source>&amp;HEX</source>
+        <translation>&amp;HEX</translation>
+    </message>
+    <message>
+        <source>&amp;Red</source>
+        <translation>&amp;Czerwony</translation>
+    </message>
+    <message>
+        <source>&amp;Green</source>
+        <translation>&amp;Zielony</translation>
+    </message>
+    <message>
+        <source>&amp;Blue</source>
+        <translation>&amp;Niebieski</translation>
+    </message>
+    <message>
+        <source>New color %1</source>
+        <translation>Nowy kolor %1</translation>
+    </message>
+</context>
+<context>
+    <name>QCommandLineParser</name>
+    <message>
+        <source>Unknown option &apos;%1&apos;.</source>
+        <translation>Nieznana opcja „%1”.</translation>
+    </message>
+    <message>
+        <source>Unknown options: %1.</source>
+        <translation>Nieznane opcje: %1.</translation>
+    </message>
+    <message>
+        <source>Missing value after &apos;%1&apos;.</source>
+        <translation>Brak wartości po „%1”.</translation>
+    </message>
+    <message>
+        <source>Unexpected value after &apos;%1&apos;.</source>
+        <translation>Nieoczekiwana wartość po „%1”.</translation>
+    </message>
+    <message>
+        <source>Usage: %1</source>
+        <translation>Użycie: %1</translation>
+    </message>
+    <message>
+        <source>[options]</source>
+        <translation>[opcje]</translation>
+    </message>
+    <message>
+        <source>Options:</source>
+        <translation>Opcje:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::core::CmdLineParser</name>
+    <message>
+        <source>Displays help on commandline options.</source>
+        <translation>Wyświetla pomoc dotyczącą opcji wiersza poleceń.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::core::IconDownloader</name>
+    <message>
+        <source>Invalid URL: %1</source>
+        <translation>Nieprawidłowy adres URL: %1</translation>
+    </message>
+    <message>
+        <source>Not found (404): %1</source>
+        <translation>Nie znaleziono (404): %1</translation>
+    </message>
+    <message>
+        <source>Access denied (403): %1</source>
+        <translation>Odmowa dostępu (403): %1</translation>
+    </message>
+    <message>
+        <source>The server did not answer within %1 seconds</source>
+        <translation>Serwer nie odpowiedział w ciągu %1 s</translation>
+    </message>
+    <message>
+        <source>Cannot connect to the server</source>
+        <translation>Nie można połączyć się z serwerem</translation>
+    </message>
+    <message>
+        <source>The proxy server did not let the connection through</source>
+        <translation>Serwer pośredniczący (proxy) nie przepuścił połączenia</translation>
+    </message>
+    <message>
+        <source>A secure connection to the server failed</source>
+        <translation>Nie udało się nawiązać bezpiecznego połączenia z serwerem</translation>
+    </message>
+    <message>
+        <source>Download failed: %1</source>
+        <translation>Pobieranie nie powiodło się: %1</translation>
+    </message>
+    <message>
+        <source>The downloaded file is empty</source>
+        <translation>Pobrany plik jest pusty</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::core::SvgConverter</name>
+    <message>
+        <source>The SVG file is empty</source>
+        <translation>Plik SVG jest pusty</translation>
+    </message>
+    <message>
+        <source>Invalid XML in line %1, column %2: %3</source>
+        <translation>Błąd składni XML w wierszu %1, kolumnie %2: %3</translation>
+    </message>
+    <message>
+        <source>The file is not an SVG image (its root element is &lt;%1&gt;)</source>
+        <translation>Plik nie jest obrazem SVG (jego elementem głównym jest &lt;%1&gt;)</translation>
+    </message>
+    <message>
+        <source>The &lt;svg&gt; element has no viewBox attribute</source>
+        <translation>Element &lt;svg&gt; nie ma atrybutu viewBox</translation>
+    </message>
+    <message>
+        <source>Conversion produced invalid SVG: %1</source>
+        <translation>Konwersja dała nieprawidłowy plik SVG: %1</translation>
+    </message>
+</context>
+<context>
+    <name>CloseButton</name>
+    <message>
+        <source>Close Tab</source>
+        <translation>Zamknij kartę</translation>
+    </message>
+</context>
+<context>
+    <name>QAbstractSpinBox</name>
+    <message>
+        <source>&amp;Select All</source>
+        <translation>&amp;Zaznacz wszystko</translation>
+    </message>
+    <message>
+        <source>&amp;Step up</source>
+        <translation>Krok w &amp;górę</translation>
+    </message>
+    <message>
+        <source>Step &amp;down</source>
+        <translation>Krok w &amp;dół</translation>
+    </message>
+</context>
+<context>
+    <name>QAccessibleActionInterface</name>
+    <message>
+        <source>Press</source>
+        <translation>Naciśnij</translation>
+    </message>
+    <message>
+        <source>Triggers the action</source>
+        <translation>Wykonuje polecenie</translation>
+    </message>
+    <message>
+        <source>Increase</source>
+        <translation>Zwiększ</translation>
+    </message>
+    <message>
+        <source>Increase the value</source>
+        <translation>Zwiększa wartość</translation>
+    </message>
+    <message>
+        <source>Decrease</source>
+        <translation>Zmniejsz</translation>
+    </message>
+    <message>
+        <source>Decrease the value</source>
+        <translation>Zmniejsza wartość</translation>
+    </message>
+    <message>
+        <source>Shows the menu</source>
+        <translation>Pokazuje menu</translation>
+    </message>
+    <message>
+        <source>SetFocus</source>
+        <translation>Ustaw fokus</translation>
+    </message>
+    <message>
+        <source>Sets the focus</source>
+        <translation>Ustawia fokus</translation>
+    </message>
+    <message>
+        <source>Toggle</source>
+        <translation>Przełącz</translation>
+    </message>
+    <message>
+        <source>Toggles the state</source>
+        <translation>Przełącza stan</translation>
+    </message>
+    <message>
+        <source>Scroll Left</source>
+        <translation>Przewiń w lewo</translation>
+    </message>
+    <message>
+        <source>Scrolls to the left</source>
+        <translation>Przewija w lewo</translation>
+    </message>
+    <message>
+        <source>Scroll Right</source>
+        <translation>Przewiń w prawo</translation>
+    </message>
+    <message>
+        <source>Scrolls to the right</source>
+        <translation>Przewija w prawo</translation>
+    </message>
+    <message>
+        <source>Scrolls up</source>
+        <translation>Przewija w górę</translation>
+    </message>
+    <message>
+        <source>Scrolls down</source>
+        <translation>Przewija w dół</translation>
+    </message>
+    <message>
+        <source>Goes back a page</source>
+        <translation>Cofa o stronę</translation>
+    </message>
+    <message>
+        <source>Goes to the next page</source>
+        <translation>Przechodzi o stronę dalej</translation>
+    </message>
+</context>
+<context>
+    <name>QComboBox</name>
+    <message>
+        <source>Open the combo box selection popup</source>
+        <translation>Otwiera listę do wyboru</translation>
+    </message>
+</context>
+<context>
+    <name>QDockWidget</name>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Float</source>
+        <translation>Odepnij</translation>
+    </message>
+    <message>
+        <source>Undocks and re-attaches the dock widget</source>
+        <translation>Odpina panel i dołącza go z powrotem</translation>
+    </message>
+</context>
+<context>
+    <name>QFileDialog</name>
+    <message>
+        <source>Look in:</source>
+        <translation>Szukaj w:</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Wstecz</translation>
+    </message>
+    <message>
+        <source>Go back</source>
+        <translation>Wróć</translation>
+    </message>
+    <message>
+        <source>Forward</source>
+        <translation>Dalej</translation>
+    </message>
+    <message>
+        <source>Go forward</source>
+        <translation>Przejdź dalej</translation>
+    </message>
+    <message>
+        <source>Parent Directory</source>
+        <translation>Folder nadrzędny</translation>
+    </message>
+    <message>
+        <source>Go to the parent directory</source>
+        <translation>Przejdź do folderu nadrzędnego</translation>
+    </message>
+    <message>
+        <source>Create New Folder</source>
+        <translation>Utwórz nowy folder</translation>
+    </message>
+    <message>
+        <source>Create a New Folder</source>
+        <translation>Utwórz nowy folder</translation>
+    </message>
+    <message>
+        <source>List View</source>
+        <translation>Widok listy</translation>
+    </message>
+    <message>
+        <source>Change to list view mode</source>
+        <translation>Przełącz na widok listy</translation>
+    </message>
+    <message>
+        <source>Detail View</source>
+        <translation>Widok szczegółów</translation>
+    </message>
+    <message>
+        <source>Change to detail view mode</source>
+        <translation>Przełącz na widok szczegółów</translation>
+    </message>
+    <message>
+        <source>Sidebar</source>
+        <translation>Pasek boczny</translation>
+    </message>
+    <message>
+        <source>List of places and bookmarks</source>
+        <translation>Lista miejsc i zakładek</translation>
+    </message>
+    <message>
+        <source>Recent Places</source>
+        <translation>Ostatnie miejsca</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <translation>Pliki</translation>
+    </message>
+    <message>
+        <source>File &amp;name:</source>
+        <translation>&amp;Nazwa pliku:</translation>
+    </message>
+    <message>
+        <source>Directory:</source>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Files of type:</source>
+        <translation>Pliki typu:</translation>
+    </message>
+    <message>
+        <source>All Files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Directories</source>
+        <translation>Foldery</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Otwórz</translation>
+    </message>
+    <message>
+        <source>&amp;Open</source>
+        <translation>&amp;Otwórz</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>Save As</source>
+        <translation>Zapisz jako</translation>
+    </message>
+    <message>
+        <source>&amp;Choose</source>
+        <translation>&amp;Wybierz</translation>
+    </message>
+    <message>
+        <source>Find Directory</source>
+        <translation>Wybierz folder</translation>
+    </message>
+    <message>
+        <source>&amp;Rename</source>
+        <translation>&amp;Zmień nazwę</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Show &amp;hidden files</source>
+        <translation>Pokaż &amp;ukryte pliki</translation>
+    </message>
+    <message>
+        <source>&amp;New Folder</source>
+        <translation>&amp;Nowy folder</translation>
+    </message>
+    <message>
+        <source>New Folder</source>
+        <translation>Nowy folder</translation>
+    </message>
+    <message>
+        <source>Show </source>
+        <translation>Pokaż </translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>Plik</translation>
+    </message>
+    <message>
+        <source>Folder</source>
+        <translation>Folder</translation>
+    </message>
+    <message>
+        <source>Alias</source>
+        <translation>Alias</translation>
+    </message>
+    <message>
+        <source>Shortcut</source>
+        <translation>Skrót</translation>
+    </message>
+    <message>
+        <source>Drive</source>
+        <translation>Dysk</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Nieznany</translation>
+    </message>
+    <message>
+        <source>%1 already exists.
+Do you want to replace it?</source>
+        <translation>Plik %1 już istnieje.
+Czy go zastąpić?</translation>
+    </message>
+    <message>
+        <source>%1
+File not found.
+Please verify the correct file name was given.</source>
+        <translation>%1
+Nie znaleziono pliku.
+Sprawdź, czy nazwa pliku jest poprawna.</translation>
+    </message>
+    <message>
+        <source>%1
+Directory not found.
+Please verify the correct directory name was given.</source>
+        <translation>%1
+Nie znaleziono folderu.
+Sprawdź, czy nazwa folderu jest poprawna.</translation>
+    </message>
+    <message>
+        <source>Are you sure you want to delete &apos;%1&apos;?</source>
+        <translation>Czy na pewno usunąć „%1”?</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is write protected.
+Do you want to delete it anyway?</source>
+        <translation>„%1” jest chroniony przed zapisem.
+Czy mimo to go usunąć?</translation>
+    </message>
+    <message>
+        <source>Could not delete directory.</source>
+        <translation>Nie można usunąć folderu.</translation>
+    </message>
+</context>
+<context>
+    <name>QFileSystemModel</name>
+    <message>
+        <source>Name</source>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation>Rozmiar</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation>Typ</translation>
+    </message>
+    <message>
+        <source>Kind</source>
+        <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>Date Modified</source>
+        <translation>Data modyfikacji</translation>
+    </message>
+    <message>
+        <source>Computer</source>
+        <translation>Komputer</translation>
+    </message>
+</context>
+<context>
+    <name>QScrollBar</name>
+    <message>
+        <source>Scroll here</source>
+        <translation>Przewiń tutaj</translation>
+    </message>
+    <message>
+        <source>Left edge</source>
+        <translation>Lewa krawędź</translation>
+    </message>
+    <message>
+        <source>Top</source>
+        <translation>Do góry</translation>
+    </message>
+    <message>
+        <source>Right edge</source>
+        <translation>Prawa krawędź</translation>
+    </message>
+    <message>
+        <source>Bottom</source>
+        <translation>Do dołu</translation>
+    </message>
+    <message>
+        <source>Page left</source>
+        <translation>Strona w lewo</translation>
+    </message>
+    <message>
+        <source>Page up</source>
+        <translation>Strona w górę</translation>
+    </message>
+    <message>
+        <source>Page right</source>
+        <translation>Strona w prawo</translation>
+    </message>
+    <message>
+        <source>Page down</source>
+        <translation>Strona w dół</translation>
+    </message>
+    <message>
+        <source>Scroll left</source>
+        <translation>Przewiń w lewo</translation>
+    </message>
+    <message>
+        <source>Scroll up</source>
+        <translation>Przewiń w górę</translation>
+    </message>
+    <message>
+        <source>Scroll right</source>
+        <translation>Przewiń w prawo</translation>
+    </message>
+    <message>
+        <source>Scroll down</source>
+        <translation>Przewiń w dół</translation>
+    </message>
+</context>
+<context>
+    <name>QTabBar</name>
+    <message>
+        <source>Scroll Left</source>
+        <translation>Przewiń w lewo</translation>
+    </message>
+    <message>
+        <source>Scroll Right</source>
+        <translation>Przewiń w prawo</translation>
+    </message>
+</context>
+<context>
+    <name>QWidgetTextControl</name>
+    <message>
+        <source>&amp;Undo</source>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>&amp;Redo</source>
+        <translation>&amp;Ponów</translation>
+    </message>
+    <message>
+        <source>Cu&amp;t</source>
+        <translation>Wy&amp;tnij</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy &amp;Link Location</source>
+        <translation>Kopiuj &amp;adres odnośnika</translation>
+    </message>
+    <message>
+        <source>&amp;Paste</source>
+        <translation>&amp;Wklej</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Select All</source>
+        <translation>Zaznacz wszystko</translation>
     </message>
 </context>
 </TS>

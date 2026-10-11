@@ -5,6 +5,7 @@
 
 #include "kalahari/gui/settings_coordinator.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
@@ -15,7 +16,6 @@
 
 #include <algorithm>
 #include <QMainWindow>
-#include <QMessageBox>
 #include <QStatusBar>
 
 namespace kalahari {
@@ -76,13 +76,12 @@ void SettingsCoordinator::openSettingsDialog() {
 }
 
 void SettingsCoordinator::offerRestartForLanguage() {
-    auto reply = QMessageBox::question(
+    const bool restart = dialogs::MessageDialog::confirm(
         m_mainWindow,
         QObject::tr("Language Changed"),
         QObject::tr("The new language will be used after restarting Kalahari.\n\nRestart now?"),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No);
-    if (reply != QMessageBox::Yes) {
+        QObject::tr("&Restart Now"));
+    if (!restart) {
         return;
     }
 

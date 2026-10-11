@@ -11,6 +11,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Own windows instead of the system ones** - 2026-10-10. The benchmark, the forced crash,
+  the icon downloader, the Toolbar Manager (new, renamed and deleted toolbars, reset), the Log
+  panel, the diagnostic menu setting, the language restart question, the damaged chapter
+  warning and the command line help now use the program's own message, question, text and
+  progress windows. Questions name their action on the button ("Delete", "Reset"), and for
+  steps that cannot be undone Enter presses Cancel. The color buttons in Settings open the
+  program's own color window: a palette, recently used colors, the previous and the new
+  color side by side, HEX and RGB fields, all usable from the keyboard. The unused About Qt
+  command is gone; About Kalahari already names the Qt version.
+
+- **Windows that fit small screens** - 2026-10-10. The program's own windows never grow
+  past the screen (for example 1366×768 at 125–150% scaling): their content scrolls while
+  the heading and the buttons stay in view, and a window opens as tall as the screen allows
+  before it scrolls. In a lower window lists first give up their room, and only then the
+  content scrolls; wrapped texts leave no empty line above the buttons, and the title bar
+  stays on the screen. About, the Toolbar Manager, the icon downloader and the main window
+  also open within the screen. The command line help (`--help`) and its errors show in the
+  program's window, in Polish when the program runs in Polish. In the Toolbar Manager a
+  renamed toolbar stays selected and the command names are no longer cut off. The icon
+  downloader's texts and its download errors are translated too. The Log panel's buttons
+  wrap into a second column when the panel is low instead of hiding behind an arrow, and
+  they can be reached with Tab.
+
+- **Qt's own texts in Polish** - 2026-10-10. The menus Qt builds itself are in Polish when
+  the program runs in Polish: the scroll bar menu (Przewiń tutaj, Do góry, Strona w dół...),
+  the menu of multi-line text fields and of number fields (Krok w górę, Krok w dół), the
+  names screen readers hear for panel and tab buttons and for their actions, and Qt's own
+  file window where the system has none (some Linux desktops).
+
 - **Own window for messages and questions** - 2026-10-10. A message, a warning, an error with
   its details, a question with buttons named after the action, and a typed text now have the
   program's own window, in the look of its other dialogs, in place of the system ones. Copy
