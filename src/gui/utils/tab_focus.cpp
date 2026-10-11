@@ -3,7 +3,6 @@
 
 #include "kalahari/gui/utils/tab_focus.h"
 
-#include <QApplication>
 #include <QTabWidget>
 #include <QWidget>
 
@@ -42,7 +41,9 @@ void removeTabKeepingFocus(QTabWidget& tabs, int index) {
     if (page == nullptr) {
         return;
     }
-    const QWidget* focus = QApplication::focusWidget();
+    // The focus of the tabs' window: also while a window of its own is in front of it, such as
+    // the question about unsaved changes before a tab or the book closes
+    const QWidget* focus = tabs.window()->focusWidget();
     const bool focusOnPage = focus != nullptr && (focus == page || page->isAncestorOf(focus));
 
     tabs.removeTab(index);
@@ -50,6 +51,7 @@ void removeTabKeepingFocus(QTabWidget& tabs, int index) {
     if (!focusOnPage) {
         return;
     }
+    // In a window behind another, the widget gets the focus when its window comes back
     if (QWidget* front = tabs.currentWidget()) {
         focusTarget(front)->setFocus(Qt::OtherFocusReason);
     } else {

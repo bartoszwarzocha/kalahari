@@ -18,6 +18,8 @@ namespace utils {
 /// else its first field that takes the focus from Tab, else the page itself (the tabs
 /// themselves when no page is left), as in Word and LibreOffice the document in front gets
 /// the keys. A focus elsewhere, as in a panel while a tab behind is closed, stays there.
+/// The same holds while a window of the program is in front, such as the question about
+/// unsaved changes: the page in front gets the keys when the window comes back.
 /// The page removed is not deleted.
 /// @param tabs The tabs
 /// @param index The index of the tab to remove; out of range does nothing

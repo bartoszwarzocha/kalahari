@@ -95,6 +95,28 @@ TEST_CASE("Closing a tab: the keys go on to the page in front", "[gui][tabs]") {
         CHECK(w.tabs->count() == 1);
     }
 
+    SECTION("also after a question in a window of its own, as about unsaved changes") {
+        w.tabs->setCurrentIndex(2);
+        w.pages[2].first->setFocus(Qt::TabFocusReason);
+        REQUIRE(w.pages[2].first->hasFocus());
+
+        // The question takes the keys, and the tab goes while it is still in front
+        QWidget question;
+        question.show();
+        question.activateWindow();
+        REQUIRE(test::waitUntil(
+            [&question] { return QApplication::activeWindow() == &question; }));
+        removeTabKeepingFocus(*w.tabs, 2);
+
+        // Back in the window, the keys are on the page now in front
+        question.hide();
+        w.window.activateWindow();
+        REQUIRE(test::waitUntil([&w] { return QApplication::activeWindow() == &w.window; }));
+        REQUIRE(w.tabs->currentWidget() == w.pages[1].widget);
+        CHECK(w.pages[1].first->hasFocus());
+        CHECK_FALSE(w.toolbarField->hasFocus());
+    }
+
     SECTION("without a page left, to the tabs") {
         w.tabs->setCurrentIndex(0);
         w.pages[0].first->setFocus(Qt::TabFocusReason);
