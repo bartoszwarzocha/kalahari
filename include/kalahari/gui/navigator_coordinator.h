@@ -184,10 +184,21 @@ public slots:
     /// @param partId Group (part) ID
     void onRequestPartProperties(const QString& partId);
 
-    /// @brief Handle an element dragged to another place of its list in the navigator
+    /// @brief Move an element to another place of its list: Move to Start, Move to End
     /// @param elementId Element ID
     /// @param index Its new index in its list
     void onElementMoved(const QString& elementId, int index);
+
+    /// @brief Ask for a new place of an element in the book in the Move dialog, and move it
+    /// there with the elements inside it; saves the .klh file
+    /// @param elementId Element ID
+    void onRequestMoveTo(const QString& elementId);
+
+    /// @brief Move an element dragged in the Navigator to another place of the book, with the
+    /// elements inside it; saves the .klh file
+    /// @param elementId Element ID
+    /// @param place Its new place, in the book without it
+    void onElementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place);
 
     /// @brief Handle add chapter request from navigator context menu
     /// @param groupId Group (part) to add the chapter to; empty: the body of the book
@@ -256,6 +267,10 @@ private:
 
     /// @brief Ask whether to delete @p files of "Unassigned Files", and delete them
     void deleteUnassigned(const QList<core::UnassignedFile>& files);
+
+    /// @brief Move element @p elementId to @p place of the book without it, and show it there;
+    /// the writer is told when the book cannot be saved
+    void moveElementTo(const QString& elementId, const core::ElementPlace& place);
 
     /// @brief Ask for a new element and add it at the end of @p place of the book, or of
     /// group @p groupId

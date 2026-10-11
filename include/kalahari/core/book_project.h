@@ -245,6 +245,23 @@ struct BookProject {
     /// @return false when the project has no element @p elementId or its list no place @p index
     bool moveElement(const QString& elementId, qsizetype index);
 
+    /// @brief Places that element @p elementId can be moved to, in reading order
+    ///
+    /// In a book, the places of its kind: in the sections of the book that allow the kind, and
+    /// in the groups that can have it, but not inside the element itself; in the Workshop, the
+    /// places of the Workshop. A place is in the project without the element: its index is
+    /// the one the element gets in its new list, so the place the element has now is one of
+    /// them. An element whose kind @p registry does not have moves only within its list.
+    /// @return The places; empty when the project has no element @p elementId
+    QList<ElementPlace> movePlacesOf(const BookTypeRegistry& registry,
+                                     const QString& elementId) const;
+
+    /// @brief Move element @p elementId, with the elements inside it, to @p to, one of
+    /// movePlacesOf()
+    /// @return false when the element cannot go there; the project does not change then
+    bool moveElementTo(const BookTypeRegistry& registry, const QString& elementId,
+                       const ElementPlace& to);
+
     /// @brief Whether an element of the project has the file @p file
     bool hasFile(const QString& file) const;
 

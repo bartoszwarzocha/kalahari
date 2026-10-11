@@ -151,6 +151,11 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestPartProperties);
     connect(m_dockCoordinator, &DockCoordinator::elementMoved,
             m_navigatorCoordinator, &NavigatorCoordinator::onElementMoved);
+    // Move...: any place of the book its kind can have, in the Move dialog or dragged there
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestMoveTo,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestMoveTo);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::elementMovedTo,
+            m_navigatorCoordinator, &NavigatorCoordinator::onElementMovedTo);
     // A chapter title changed in the Properties panel shows on its tab too
     connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
             m_navigatorCoordinator, &NavigatorCoordinator::refreshTabTitle);

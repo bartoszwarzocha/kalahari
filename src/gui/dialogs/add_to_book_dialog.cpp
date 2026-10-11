@@ -87,7 +87,7 @@ AddToBookDialog::Book AddToBookDialog::openBook(const QString& path) {
         book.sections.append({place,
                               projectBook->partsLayer ? projectBook->sectionName(place)
                                                       : QString(),
-                              SectionWords::forPart(projectBook, place).inPart, elements});
+                              SectionWords::forPart(projectBook, place), elements});
     }
 
     // The kind the file's name says, else the main texts of the book

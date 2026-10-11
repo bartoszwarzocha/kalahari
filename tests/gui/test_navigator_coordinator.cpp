@@ -131,6 +131,18 @@ Answer acceptPlace(int index, const QString& option) {
     };
 }
 
+/// @brief Choose the option of the place with text @p option and accept the dialog
+Answer acceptOption(const QString& option) {
+    return [option](QDialog& dialog) {
+        for (QRadioButton* button : dialog.findChildren<QRadioButton*>()) {
+            if (button->text() == option) {
+                button->click();
+            }
+        }
+        dialog.accept();
+    };
+}
+
 /// @brief Accept a new part, leaving the elements that end the body where they are
 void acceptLeaving(QDialog& dialog) {
     if (auto* take = dialog.findChild<QCheckBox*>()) {
@@ -361,9 +373,10 @@ struct Navigator {
     }
 
     /// Show the menu of @p found and choose its action @p text when the menu has it, enabled,
-    /// and @p choose says so
+    /// and @p choose says so; @p toolTip gets the tooltip of the action
     /// @return Whether the menu had the action, enabled
-    bool inMenuOf(QTreeWidgetItem* found, const QString& text, bool choose = true) {
+    bool inMenuOf(QTreeWidgetItem* found, const QString& text, bool choose = true,
+                  QString* toolTip = nullptr) {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         REQUIRE(found != nullptr);
@@ -372,7 +385,8 @@ struct Navigator {
         bool shown = false;
         QTimer timer;
         timer.setInterval(10);
-        QObject::connect(&timer, &QTimer::timeout, [&timer, &enabled, &shown, &text, choose]() {
+        QObject::connect(&timer, &QTimer::timeout,
+                         [&timer, &enabled, &shown, &text, choose, toolTip]() {
             auto* menu = qobject_cast<QMenu*>(QApplication::activePopupWidget());
             if (!menu) {
                 return;
@@ -380,6 +394,9 @@ struct Navigator {
             timer.stop();
             shown = true;
             for (QAction* action : menu->actions()) {
+                if (toolTip && action->text() == text) {
+                    *toolTip = action->toolTip();
+                }
                 if (action->text() == text && action->isEnabled()) {
                     enabled = true;
                     if (choose) {
@@ -493,6 +510,125 @@ TEST_CASE("Navigator commands: parts, chapters and items of the kinds chosen, sa
           "Prologue [Draft], Part I");
     CHECK(navigator.itemsIn(part.id) == "Chapter 1 [Draft]");
     CHECK(navigator.itemsInSection(QStringLiteral("section_frontmatter")) == "For Anna [Draft]");
+}
+
+TEST_CASE("Navigator commands: an element moves to the place chosen in the Move dialog, or "
+          "dragged there", "[gui][navigator]") {
+    OpenNovel novel;
+    Navigator navigator;
+    auto& pm = novel.pm;
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestMoveTo,
+                     &navigator.coordinator, &gui::NavigatorCoordinator::onRequestMoveTo);
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::elementMovedTo,
+                     &navigator.coordinator, &gui::NavigatorCoordinator::onElementMovedTo);
+
+    // A part with a chapter, a chapter of the body and the epilogue that ends the book
+    answering([&] { navigator.coordinator.onRequestAddPart(); }, {acceptAsItIs});
+    REQUIRE(novel.book().mainElements.size() == 1);
+    const QString partId = novel.book().mainElements.first().id;
+    answering([&] { navigator.coordinator.onRequestAddChapter(partId); }, {acceptAsItIs});
+    answering([&] { navigator.coordinator.onRequestAddChapter(QString()); }, {acceptAsItIs});
+    const QString epilogueId = pm.addElement(
+        pm.bookTypes().findKind(QStringLiteral("kalahari.novel"), QStringLiteral("epilogue")),
+        QStringLiteral("Epilogue"), core::BookPlace::Main);
+    navigator.coordinator.refreshNavigator();
+    REQUIRE(titles(novel.book().mainElements) == "Part I, Chapter 2, Epilogue");
+    const QString chapterId = novel.book().mainElements.at(1).id;
+
+    SECTION("Move... puts the epilogue last in the part, as the option of the dialog says") {
+        CHECK(answering([&] { navigator.chooseInMenu(epilogueId, QStringLiteral("Move...")); },
+                        {acceptOption(QStringLiteral("Last in the part \"Part I\""))}) == 1);
+        CHECK(titles(novel.book().mainElements) == "Part I, Chapter 2");
+        CHECK(titles(novel.book().mainElements.first().elements) == "Chapter 1, Epilogue");
+        CHECK(titles(novel.savedBook().mainElements.first().elements) == "Chapter 1, Epilogue");
+        CHECK(navigator.item(epilogueId)->parent() == navigator.item(partId));
+        CHECK(navigator.current() == epilogueId);
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("Epilogue moved: Epilogue"));
+
+        // A dialog closed without a new place changes nothing
+        CHECK(answering([&] { navigator.chooseInMenu(epilogueId, QStringLiteral("Move...")); }) ==
+              1);
+        CHECK(answering([&] { navigator.chooseInMenu(epilogueId, QStringLiteral("Move...")); },
+                        {acceptAsItIs}) == 1);
+        CHECK(titles(novel.book().mainElements.first().elements) == "Chapter 1, Epilogue");
+    }
+
+    SECTION("Dragged into the part, and out of it to the start of the body") {
+        emit navigator.panel->elementMovedTo(chapterId, {core::BookPlace::Main, partId, 0});
+        CHECK(titles(novel.book().mainElements) == "Part I, Epilogue");
+        CHECK(titles(novel.book().mainElements.first().elements) == "Chapter 2, Chapter 1");
+        CHECK(titles(novel.savedBook().mainElements.first().elements) == "Chapter 2, Chapter 1");
+        CHECK(navigator.item(chapterId)->parent() == navigator.item(partId));
+        CHECK(navigator.current() == chapterId);
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("Chapter moved: Chapter 2"));
+
+        emit navigator.panel->elementMovedTo(chapterId, {core::BookPlace::Main, QString(), 0});
+        CHECK(titles(novel.book().mainElements) == "Chapter 2, Part I, Epilogue");
+        CHECK(titles(novel.savedBook().mainElements) == "Chapter 2, Part I, Epilogue");
+    }
+
+    SECTION("Move... is offered for an element that has another place, of a known kind") {
+        const QString titleId = pm.addElement(
+            pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("title_page")),
+            QStringLiteral("Title Page"), core::BookPlace::Front);
+        core::ProjectElement unknown;
+        unknown.id = QStringLiteral("arc");
+        unknown.kind = {QStringLiteral("acme.thriller"), QStringLiteral("arc")};
+        unknown.title = QStringLiteral("Arc");
+        pm.project()->elementsIn(core::BookPlace::Main).append(unknown);
+        navigator.coordinator.refreshNavigator();
+
+        CHECK(navigator.inMenuOf(navigator.item(epilogueId), QStringLiteral("Move..."), false));
+        CHECK(navigator.inMenuOf(navigator.item(partId), QStringLiteral("Move..."), false));
+        CHECK_FALSE(
+            navigator.inMenuOf(navigator.item(titleId), QStringLiteral("Move..."), false));
+        QString why;
+        CHECK_FALSE(navigator.inMenuOf(navigator.item(QStringLiteral("arc")),
+                                       QStringLiteral("Move..."), false, &why));
+        CHECK(why == QStringLiteral("The program does not have the package of this element's "
+                                    "kind."));
+    }
+
+    SECTION("Move... puts an element where its kind can be, also from a place where it cannot") {
+        // A title page in the body, from an older package: the front matter is its only place
+        core::ProjectElement stray;
+        stray.id = QStringLiteral("stray");
+        stray.kind = {QStringLiteral("kalahari.base"), QStringLiteral("title_page")};
+        stray.title = QStringLiteral("Title Page");
+        pm.project()->elementsIn(core::BookPlace::Main).append(stray);
+        navigator.coordinator.refreshNavigator();
+        REQUIRE(pm.movePlacesOf(stray.id) ==
+                QList<core::ElementPlace>{{core::BookPlace::Front, QString(), 0}});
+
+        CHECK(navigator.inMenuOf(navigator.item(stray.id), QStringLiteral("Move..."), false));
+        CHECK(answering([&] { navigator.chooseInMenu(stray.id, QStringLiteral("Move...")); },
+                        {acceptAsItIs}) == 1);
+        CHECK(titles(novel.book().frontElements) == "Title Page");
+        CHECK(titles(novel.book().mainElements) == "Part I, Chapter 2, Epilogue");
+        CHECK(titles(novel.savedBook().frontElements) == "Title Page");
+    }
+
+    SECTION("A book that cannot be saved stays as it was, and the writer is told") {
+        const QString manifest =
+            QDir(novel.dir.path()).filePath(QStringLiteral("Navigator Test.klh"));
+        REQUIRE(QFile::remove(manifest));
+        REQUIRE(QDir().mkdir(manifest));
+        QString said;
+        CHECK(answering(
+                  [&] {
+                      emit navigator.panel->elementMovedTo(chapterId,
+                                                           {core::BookPlace::Main, partId, 0});
+                  },
+                  {answerQuestion(true, &said)}) == 1);
+        CHECK(said.contains(QStringLiteral("Move Chapter Failed")));
+        CHECK(said.contains(QStringLiteral("The changes in the book could not be saved.")));
+        CHECK(titles(novel.book().mainElements) == "Part I, Chapter 2, Epilogue");
+        CHECK(navigator.item(chapterId)->parent() == navigator.section(QStringLiteral(
+                                                         "section_body")));
+        REQUIRE(QDir().rmdir(manifest));
+    }
 }
 
 TEST_CASE("Navigator commands: renaming, moving and deleting, saved at once",

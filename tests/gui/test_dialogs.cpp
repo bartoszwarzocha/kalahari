@@ -11,6 +11,7 @@
 #include "kalahari/gui/dialogs/delete_dialogs.h"
 #include "kalahari/gui/dialogs/file_preview_dialog.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
+#include "kalahari/gui/dialogs/move_element_dialog.h"
 #include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
@@ -43,6 +44,7 @@ using kalahari::core::BookPlace;
 using kalahari::core::ElementPlace;
 using kalahari::core::KindRef;
 using kalahari::core::ProjectElement;
+using kalahari::gui::PickerSection;
 using kalahari::gui::SectionWords;
 
 namespace {
@@ -185,6 +187,32 @@ QPushButton* moveButton(const QDialog& dialog, const QString& toolTip) {
         }
     }
     return nullptr;
+}
+
+/// @brief Element @p id of kind @p kindId of the base package, titled @p title
+ProjectElement baseElement(const QString& kindId, const QString& id, const QString& title) {
+    ProjectElement made;
+    made.id = id;
+    made.kind = {QStringLiteral("kalahari.base"), kindId};
+    made.title = title;
+    return made;
+}
+
+/// @brief The front, main and back section of a book with @p front, @p main and @p back
+/// elements: with sections named with the first set of names, or of @p book
+QList<PickerSection> bookSections(const QList<ProjectElement>& front,
+                                  const QList<ProjectElement>& main,
+                                  const QList<ProjectElement>& back,
+                                  const kalahari::core::ProjectBook* book = nullptr) {
+    const bool rows = !book || book->partsLayer;
+    const auto section = [rows, book](BookPlace place, const char* name,
+                                      const QList<ProjectElement>& elements) {
+        return PickerSection{place, rows ? QString::fromLatin1(name) : QString(),
+                             SectionWords::forPart(book, place), elements};
+    };
+    return {section(BookPlace::Front, "Front Section", front),
+            section(BookPlace::Main, "Main Section", main),
+            section(BookPlace::Back, "Back Section", back)};
 }
 
 /// @brief @p text with the name of the system's Trash for "{bin}"
@@ -455,8 +483,11 @@ TEST_CASE("Navigator: the writer chooses where the prologue goes", "[gui][dialog
     // the parts and at the end; after a chapter the dialog says that it does not open the book
     auto* list = dialog.findChild<QTreeWidget*>();
     REQUIRE(list != nullptr);
-    QPushButton* up = moveButton(dialog, QStringLiteral("Move the element up"));
-    QPushButton* down = moveButton(dialog, QStringLiteral("Move the element down"));
+    CHECK(showsText(dialog, QStringLiteral("Click the element the prologue is to go before, or "
+                                           "move it with the buttons")));
+    CHECK(list->toolTip() == QStringLiteral("Click the element the prologue is to go before"));
+    QPushButton* up = moveButton(dialog, QStringLiteral("Move the prologue up"));
+    QPushButton* down = moveButton(dialog, QStringLiteral("Move the prologue down"));
     REQUIRE(down != nullptr);
     REQUIRE(up != nullptr);
     down->click();
@@ -695,7 +726,7 @@ TEST_CASE("Navigator: a new part takes the epilogue that ends the book", "[gui][
           listItem(dialog, QStringLiteral("Part Two")));
     CHECK(listItem(dialog, QStringLiteral("Part One"))->childCount() == 1);
     CHECK(showsText(dialog, QStringLiteral("The list only shows how the book will look.")));
-    CHECK_FALSE(moveButton(dialog, QStringLiteral("Move the element up"))->isVisibleTo(&dialog));
+    CHECK_FALSE(moveButton(dialog, QStringLiteral("Move the part up"))->isVisibleTo(&dialog));
     CHECK_FALSE(option(dialog, QStringLiteral("Elsewhere: show the place in the list"))
                     ->isVisibleTo(&dialog));
 
@@ -1226,7 +1257,7 @@ TEST_CASE("Add to Book: the file, the kind, the title and the place of the new e
     book.choices = {{chapter, QString(), mainAt(QString(), 3)},
                     {prologue, QString(), mainAt(QString(), 0)}};
     book.sections = {{BookPlace::Main, QStringLiteral("Main Section"),
-                      SectionWords::forPart(nullptr, BookPlace::Main).inPart, novelBody()}};
+                      SectionWords::forPart(nullptr, BookPlace::Main), novelBody()}};
 
     SECTION("A chapter from outside the book: copied, with its title and its status") {
         AddToBookDialog dialog({QStringLiteral("/notes/storm.kchapter"),
@@ -1301,4 +1332,171 @@ TEST_CASE("Add to Book: the file, the kind, the title and the place of the new e
         CHECK(dialog.kindBox()->currentText() == QStringLiteral("Chapter"));
         CHECK_FALSE(dialog.kindBox()->isEnabled());
     }
+}
+
+TEST_CASE("Move: the writer chooses a new place for the epilogue", "[gui][dialogs]") {
+    // The epilogue ends the main section of a novel, after "Part Two"
+    MoveElementDialog::Book book;
+    book.element = epilogue(QStringLiteral("epi"));
+    book.from = mainAt(QString(), 3);
+    book.sections =
+        bookSections({baseElement(QStringLiteral("title_page"), QStringLiteral("title"),
+                                  QStringLiteral("Title Page"))},
+                     novelBody(),
+                     {baseElement(QStringLiteral("afterword"), QStringLiteral("after"),
+                                  QStringLiteral("Afterword"))});
+    MoveElementDialog dialog(book, builtInTypes());
+    CHECK(dialog.windowTitle() == QStringLiteral("Move"));
+    CHECK(showsText(dialog, QStringLiteral("Move \"Epilogue\"")));
+    CHECK(showsText(dialog, QStringLiteral("Choose the new place. The list shows the epilogue "
+                                           "where it goes.")));
+    CHECK(dialog.acceptButton()->text() == QStringLiteral("Move"));
+
+    // Where it is now; the list shows only the main section, where an epilogue can be
+    CHECK(showsText(dialog, QStringLiteral("Current place: at the end of the main section. "
+                                           "Click the element the epilogue is to go before, "
+                                           "or move it with the buttons")));
+    CHECK(shownPlace(dialog, QStringLiteral("Epilogue")) == "Main Section >");
+    CHECK(dialog.place() == mainAt(QString(), 3));
+    CHECK(listItem(dialog, QStringLiteral("Main Section")) != nullptr);
+    CHECK(listItem(dialog, QStringLiteral("Front Section")) == nullptr);
+    CHECK(listItem(dialog, QStringLiteral("Title Page")) == nullptr);
+    CHECK(listItem(dialog, QStringLiteral("Back Section")) == nullptr);
+    CHECK(dialog.picker()->places() ==
+          QList<ElementPlace>{mainAt(QString(), 0), mainAt(QStringLiteral("part1"), 0),
+                              mainAt(QStringLiteral("part1"), 1),
+                              mainAt(QStringLiteral("part1"), 2), mainAt(QString(), 1),
+                              mainAt(QString(), 2), mainAt(QStringLiteral("part2"), 0),
+                              mainAt(QStringLiteral("part2"), 1), mainAt(QString(), 3)});
+
+    // The places of its kind as options; at the place it has, the dialog cannot be accepted
+    QRadioButton* atEnd = option(dialog, QStringLiteral("At the end of the main section"));
+    QRadioButton* inPart = option(dialog, QStringLiteral("Last in the part \"Part Two\""));
+    QRadioButton* elsewhere =
+        option(dialog, QStringLiteral("Elsewhere: show the place in the list"));
+    REQUIRE(atEnd != nullptr);
+    REQUIRE(inPart != nullptr);
+    REQUIRE(elsewhere != nullptr);
+    CHECK(atEnd->isChecked());
+    CHECK_FALSE(dialog.acceptButton()->isEnabled());
+
+    // Last in "Part Two": it still ends the book
+    inPart->click();
+    CHECK(dialog.place() == mainAt(QStringLiteral("part2"), 1));
+    CHECK(shownPlace(dialog, QStringLiteral("Epilogue")) == "Part Two >");
+    CHECK(dialog.acceptButton()->isEnabled());
+    CHECK_FALSE(showsText(dialog, QStringLiteral("will not be the last element")));
+
+    // Before "Chapter 3": the dialog says that it no longer ends the main section
+    auto* list = dialog.findChild<QTreeWidget*>();
+    REQUIRE(list != nullptr);
+    emit list->itemClicked(listItem(dialog, QStringLiteral("Chapter 3")), 0);
+    CHECK(dialog.place() == mainAt(QString(), 1));
+    CHECK(elsewhere->isChecked());
+    CHECK(showsText(dialog, QStringLiteral("\"Epilogue\" will not be the last element in the "
+                                           "main section.")));
+
+    // Up and Down in the list move it at once; back at its place, nothing to accept
+    press(list, Qt::Key_Down);
+    CHECK(dialog.place() == mainAt(QString(), 2));
+    press(list, Qt::Key_Down);
+    press(list, Qt::Key_Down);
+    press(list, Qt::Key_Down);
+    CHECK(dialog.place() == mainAt(QString(), 3));
+    CHECK(atEnd->isChecked());
+    CHECK_FALSE(dialog.acceptButton()->isEnabled());
+    CHECK(moveButton(dialog, QStringLiteral("Move the epilogue up"))->isEnabled());
+    CHECK_FALSE(moveButton(dialog, QStringLiteral("Move the epilogue down"))->isEnabled());
+}
+
+TEST_CASE("Move: what changes is said against the book as it is", "[gui][dialogs]") {
+    // Chapter 3 between the parts, and an epilogue that ends the main section
+    const ProjectElement chapter = element(QStringLiteral("c3"), QStringLiteral("Chapter 3"));
+    QList<ProjectElement> body = novelBody();
+    body.removeAt(1);
+    body.append(epilogue(QStringLiteral("epi")));
+    MoveElementDialog::Book book;
+    book.element = chapter;
+    book.from = mainAt(QString(), 1);
+    book.sections = bookSections({}, body, {});
+    MoveElementDialog dialog(book, builtInTypes());
+    CHECK(showsText(dialog, QStringLiteral("Current place: in the main section, before \"Part "
+                                           "Two\".")));
+    CHECK(shownPlace(dialog, QStringLiteral("Chapter 3")) == "Main Section > Part Two");
+
+    // A chapter has no options; after the epilogue, the epilogue no longer ends the section
+    CHECK_FALSE(option(dialog, QStringLiteral("Elsewhere: show the place in the list"))
+                    ->isVisibleTo(&dialog));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("will no longer be")));
+    dialog.picker()->setPlace(mainAt(QString(), 3));
+    CHECK(showsText(dialog, QStringLiteral("\"Epilogue\" will no longer be the last element in "
+                                           "the main section.")));
+
+    // A chapter that is already after the epilogue: where it is, nothing changes
+    MoveElementDialog::Book after = book;
+    after.from = mainAt(QString(), 3);
+    MoveElementDialog already(after, builtInTypes());
+    CHECK(already.place() == mainAt(QString(), 3));
+    CHECK_FALSE(showsText(already, QStringLiteral("will no longer be")));
+    CHECK(showsText(already, QStringLiteral("Current place: at the end of the main section.")));
+}
+
+TEST_CASE("Move: a part goes with its chapters, only where a part can be", "[gui][dialogs]") {
+    QList<ProjectElement> body = novelBody();
+    MoveElementDialog::Book book;
+    book.element = body.takeLast();  // "Part Two" with "Chapter 4"
+    book.from = mainAt(QString(), 2);
+    book.sections = bookSections({}, body, {});
+    MoveElementDialog dialog(book, builtInTypes());
+    CHECK(showsText(dialog, QStringLiteral("Choose the new place. The list shows the part where "
+                                           "it goes.")));
+    CHECK(showsText(dialog, QStringLiteral("Current place: at the end of the main section.")));
+
+    // In the main section only, not inside "Part One"; the chapter goes with it
+    CHECK(dialog.picker()->places() ==
+          QList<ElementPlace>{mainAt(QString(), 0), mainAt(QString(), 1), mainAt(QString(), 2)});
+    CHECK(listItem(dialog, QStringLiteral("Chapter 4"))->parent() ==
+          listItem(dialog, QStringLiteral("Part Two")));
+    moveButton(dialog, QStringLiteral("Move the part up"))->click();
+    CHECK(dialog.place() == mainAt(QString(), 1));
+    CHECK(shownPlace(dialog, QStringLiteral("Part Two")) == "Main Section > Chapter 3");
+    CHECK(dialog.acceptButton()->isEnabled());
+}
+
+TEST_CASE("Move: in a book without sections the list is one, and every press moves the element",
+          "[gui][dialogs]") {
+    // A table of contents at the end of the front part; the main part is empty
+    kalahari::core::ProjectBook flat;
+    flat.partsLayer = false;
+    MoveElementDialog::Book book;
+    book.element = baseElement(QStringLiteral("toc"), QStringLiteral("toc"),
+                               QStringLiteral("Contents"));
+    book.from = {BookPlace::Front, QString(), 1};
+    book.sections = bookSections({baseElement(QStringLiteral("title_page"),
+                                              QStringLiteral("title"), QStringLiteral("Title"))},
+                                 {},
+                                 {baseElement(QStringLiteral("afterword"),
+                                              QStringLiteral("after"),
+                                              QStringLiteral("Afterword"))},
+                                 &flat);
+    MoveElementDialog dialog(book, builtInTypes());
+    CHECK(showsText(dialog, QStringLiteral("Current place: before the content of the book.")));
+    auto* list = dialog.findChild<QTreeWidget*>();
+    REQUIRE(list != nullptr);
+    CHECK(list->topLevelItemCount() == 3);
+    CHECK(shownPlace(dialog, QStringLiteral("Contents")) == "> Afterword");
+
+    // The end of the front part and the start of the back part are one line of the list: the
+    // keys pass over one of them
+    press(list, Qt::Key_Down);
+    CHECK(dialog.place() == ElementPlace{BookPlace::Back, QString(), 1});
+    CHECK(shownPlace(dialog, QStringLiteral("Contents")) == ">");
+    press(list, Qt::Key_Up);
+    CHECK(dialog.place() == ElementPlace{BookPlace::Back, QString(), 0});
+    press(list, Qt::Key_Up);
+    CHECK(dialog.place() == ElementPlace{BookPlace::Front, QString(), 0});
+    CHECK(shownPlace(dialog, QStringLiteral("Contents")) == "> Title");
+    CHECK_FALSE(moveButton(dialog, QStringLiteral("Move the table of contents up"))->isEnabled());
+    press(list, Qt::Key_Down);
+    CHECK(dialog.place() == ElementPlace{BookPlace::Front, QString(), 1});
 }

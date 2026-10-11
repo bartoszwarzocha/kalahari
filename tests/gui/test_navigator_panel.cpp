@@ -9,7 +9,10 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 
+#include <optional>
+
 using namespace kalahari;
+using Spot = gui::NavigatorPanel::DropSpot;
 
 namespace {
 
@@ -71,6 +74,12 @@ QTreeWidgetItem* findSection(QTreeWidget* tree, const QString& type) {
 
 QString typeOf(const QTreeWidgetItem* item) {
     return item->data(0, Qt::UserRole + 1).toString();
+}
+
+/// @brief Place @p index of @p place of the book, in group @p groupId or in the part itself
+std::optional<core::ElementPlace> placeAt(core::BookPlace place, const char* groupId,
+                                          qsizetype index) {
+    return core::ElementPlace{place, QString::fromLatin1(groupId), index};
 }
 
 } // namespace
@@ -209,21 +218,25 @@ TEST_CASE("Navigator: a book without sections shows its elements one after anoth
     CHECK(findSection(tree, QStringLiteral("section_body")) == nullptr);
     CHECK(findItem(tree, "Chapter 2")->parent() == findItem(tree, "Part One"));
 
-    // The book's item takes the drops of its elements; an element is dragged only within its
-    // section, and its new index is in the list of the section
+    // The book's item takes the drops of its elements. The line between the last element of
+    // a section and the first one of the next is in both of them: the element goes to the
+    // first one that can have it, unless it is there already
     CHECK(root->flags().testFlag(Qt::ItemIsDropEnabled));
-    const auto drop = [tree](const char* dragged, const char* target, bool below) {
-        return gui::NavigatorPanel::dropIndexOf(findItem(tree, QString::fromLatin1(dragged)),
-                                                findItem(tree, QString::fromLatin1(target)),
-                                                below);
+    const auto drop = [tree, &project](const char* dragged, const char* target, Spot spot) {
+        return gui::NavigatorPanel::dropPlaceOf(project, registry(),
+                                                findItem(tree, QString::fromLatin1(dragged)),
+                                                findItem(tree, QString::fromLatin1(target)), spot);
     };
-    CHECK(drop("Part One", "Chapter 1", false) == 0);
-    CHECK(drop("Chapter 1", "Part One", true) == 1);
-    CHECK(drop("Dedication", "Title", false) == 0);
-    CHECK(drop("Chapter 1", "Part One", false) == -1);   // where it is
-    CHECK(drop("Chapter 1", "Dedication", true) == -1);  // another section
-    CHECK(drop("Afterword", "Part One", true) == -1);
-    CHECK(drop("Chapter 2", "Chapter 1", false) == -1);  // another list
+    using core::BookPlace;
+    CHECK(drop("Part One", "Chapter 1", Spot::Above) == placeAt(BookPlace::Main, "", 0));
+    CHECK(drop("Title", "Chapter 1", Spot::Above) == placeAt(BookPlace::Front, "", 1));
+    CHECK(drop("Chapter 2", "Dedication", Spot::Below) == placeAt(BookPlace::Main, "", 0));
+    CHECK(drop("Chapter 1", "Afterword", Spot::Above) == placeAt(BookPlace::Main, "", 1));
+    CHECK_FALSE(drop("Dedication", "Chapter 1", Spot::Above));  // where it is
+    CHECK_FALSE(drop("Chapter 1", "Dedication", Spot::Below));
+    CHECK_FALSE(drop("Chapter 1", "Part One", Spot::Above));
+    CHECK_FALSE(drop("Afterword", "Chapter 1", Spot::Above));   // neither in the body nor in
+    CHECK_FALSE(drop("Afterword", "Chapter 2", Spot::Below));   // the front, nor in a part
 
     // With sections, the elements are in the items of their sections
     project.books[0].partsLayer = true;
@@ -233,7 +246,8 @@ TEST_CASE("Navigator: a book without sections shows its elements one after anoth
     CHECK(findItem(tree, "Title")->parent() ==
           findSection(tree, QStringLiteral("section_frontmatter")));
     CHECK_FALSE(tree->topLevelItem(0)->flags().testFlag(Qt::ItemIsDropEnabled));
-    CHECK(drop("Part One", "Chapter 1", false) == 0);
+    CHECK(drop("Part One", "Chapter 1", Spot::Above) == placeAt(BookPlace::Main, "", 0));
+    CHECK_FALSE(drop("Chapter 2", "Dedication", Spot::Below));  // the sections are apart
 }
 
 TEST_CASE("Navigator: elements show the icons of their kinds", "[gui][navigator]") {
@@ -279,15 +293,62 @@ TEST_CASE("Navigator: elements of a package that is not installed stay in the tr
           QStringLiteral("common.file"));
 }
 
-TEST_CASE("Navigator: the place in its list an element is dragged to", "[gui][navigator]") {
-    // A list of four elements: A B C D
-    CHECK(gui::NavigatorPanel::dropIndex(0, 2, true) == 2);    // A below C: B C A D
-    CHECK(gui::NavigatorPanel::dropIndex(0, 2, false) == 1);   // A above C: B A C D
-    CHECK(gui::NavigatorPanel::dropIndex(3, 0, false) == 0);   // D above A: D A B C
-    CHECK(gui::NavigatorPanel::dropIndex(3, 1, true) == 2);    // D below B: A B D C
-    CHECK(gui::NavigatorPanel::dropIndex(0, 3, true) == 3);    // A below D: B C D A
+TEST_CASE("Navigator: an element is dragged to any place its kind can have",
+          "[gui][navigator]") {
+    core::ProjectElement part = element("Part One", "kalahari.base:part");
+    part.elements.append(element("Chapter 2", "kalahari.base:chapter"));
+    const core::BookProject project =
+        novel({element("Title", "kalahari.base:title_page")},
+              {element("Prologue", "kalahari.novel:prologue"),
+               element("Chapter 1", "kalahari.base:chapter"), part,
+               element("Epilogue", "kalahari.novel:epilogue")},
+              {element("Afterword", "kalahari.base:afterword")});
+    gui::NavigatorPanel panel;
+    auto* tree = panel.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    panel.loadProject(project, registry());
+    const auto item = [tree](const char* id) { return findItem(tree, QString::fromLatin1(id)); };
+    const auto drop = [&project, &item](const char* dragged, const QTreeWidgetItem* target,
+                                        Spot spot) {
+        return gui::NavigatorPanel::dropPlaceOf(project, registry(), item(dragged), target, spot);
+    };
+    using core::BookPlace;
+    REQUIRE(item("Part One") != nullptr);
+    REQUIRE(item("Part One")->isExpanded());
 
-    // Next to itself, an element stays where it is
-    CHECK(gui::NavigatorPanel::dropIndex(1, 2, false) == -1);  // B above C
-    CHECK(gui::NavigatorPanel::dropIndex(1, 0, true) == -1);   // B below A
+    // Into the part: below its last chapter, or on the part, where an epilogue goes
+    CHECK(drop("Epilogue", item("Chapter 2"), Spot::Below) ==
+          placeAt(BookPlace::Main, "Part One", 1));
+    CHECK(drop("Epilogue", item("Part One"), Spot::On) ==
+          placeAt(BookPlace::Main, "Part One", 1));
+
+    // Below a part that shows its chapters: first in it; below a collapsed one: after it,
+    // where the epilogue is already
+    CHECK(drop("Epilogue", item("Part One"), Spot::Below) ==
+          placeAt(BookPlace::Main, "Part One", 0));
+    item("Part One")->setExpanded(false);
+    CHECK_FALSE(drop("Epilogue", item("Part One"), Spot::Below));
+    item("Part One")->setExpanded(true);
+
+    // Out of the part; on the main section, where a chapter is added: before the epilogue
+    CHECK(drop("Chapter 2", item("Chapter 1"), Spot::Above) == placeAt(BookPlace::Main, "", 1));
+    CHECK(drop("Chapter 1", findSection(tree, "section_body"), Spot::On) ==
+          placeAt(BookPlace::Main, "", 2));
+
+    // A part only in the main section: neither in a part nor in itself
+    CHECK(drop("Part One", item("Prologue"), Spot::Below) == placeAt(BookPlace::Main, "", 1));
+    CHECK_FALSE(drop("Part One", item("Chapter 2"), Spot::Above));
+
+    // Where the kind cannot be: a chapter in the front section, an afterword in the body
+    CHECK_FALSE(drop("Chapter 1", findSection(tree, "section_frontmatter"), Spot::On));
+    CHECK_FALSE(drop("Chapter 1", item("Title"), Spot::Below));
+    CHECK_FALSE(drop("Afterword", item("Chapter 1"), Spot::Above));
+
+    // Where it is, on itself, on the book; a section is not dragged
+    CHECK_FALSE(drop("Chapter 2", item("Part One"), Spot::On));
+    CHECK_FALSE(drop("Chapter 1", item("Chapter 1"), Spot::Above));
+    CHECK_FALSE(drop("Chapter 1", tree->topLevelItem(0), Spot::On));
+    CHECK_FALSE(gui::NavigatorPanel::dropPlaceOf(project, registry(),
+                                                 findSection(tree, "section_body"),
+                                                 item("Chapter 1"), Spot::Above));
 }

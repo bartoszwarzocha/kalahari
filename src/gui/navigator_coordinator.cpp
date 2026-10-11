@@ -8,6 +8,7 @@
 #include "kalahari/gui/dialogs/delete_dialogs.h"
 #include "kalahari/gui/dialogs/file_preview_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/dialogs/move_element_dialog.h"
 #include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -818,6 +819,67 @@ void NavigatorCoordinator::onElementMoved(const QString& elementId, int index) {
     // The tree shows the order of the project, also when the move failed
     refreshNavigator();
     m_navigatorPanel->revealElement(elementId);
+}
+
+void NavigatorCoordinator::onRequestMoveTo(const QString& elementId) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+    if (!pm.isProjectOpen()) {
+        logger.warn("NavigatorCoordinator: Move requested but no project open");
+        return;
+    }
+
+    const dialogs::MoveElementDialog::Book book = dialogs::MoveElementDialog::openBook(elementId);
+    if (book.sections.isEmpty()) {
+        logger.warn("NavigatorCoordinator: Element not found for move: {}",
+                    elementId.toStdString());
+        refreshNavigator();
+        return;
+    }
+    dialogs::MoveElementDialog dialog(book, pm.bookTypes(), qobject_cast<QWidget*>(parent()));
+    if (dialog.exec() == QDialog::Accepted && !(dialog.place() == book.from)) {
+        moveElementTo(elementId, dialog.place());
+    }
+}
+
+void NavigatorCoordinator::onElementMovedTo(const QString& elementId,
+                                            const core::ElementPlace& place) {
+    moveElementTo(elementId, place);
+}
+
+void NavigatorCoordinator::moveElementTo(const QString& elementId,
+                                         const core::ElementPlace& place) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element) {
+        logger.warn("NavigatorCoordinator: Element not found for move: {}",
+                    elementId.toStdString());
+        refreshNavigator();
+        return;
+    }
+    const QString title = element->title;
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+
+    // ProjectManager saves the project at once
+    if (!pm.moveElementTo(elementId, place)) {
+        logger.error("NavigatorCoordinator: Failed to move element {}", elementId.toStdString());
+        refreshNavigator();
+        //: In Polish: Nie udało się przenieść {kind:genitive}
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()),
+                                        core::fillWords(tr("Move {Kind} Failed"), nouns),
+                                        tr("The changes in the book could not be saved. The "
+                                           "program's log has the details."));
+        return;
+    }
+
+    // The element is shown at its new place, also inside a collapsed part
+    refreshNavigator();
+    m_navigatorPanel->revealElement(elementId);
+    m_propertiesPanel->refresh();
+    //: %1: the title of the element. In Polish: Przeniesiono {kind:accusative}: %1
+    m_statusBar->showMessage(core::fillWords(tr("{Kind} moved: %1"), nouns).arg(title), 2000);
+    emit documentModified();
 }
 
 

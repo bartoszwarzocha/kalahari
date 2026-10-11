@@ -32,6 +32,9 @@
 #include <QPalette>
 #include <QBrush>
 #include <QDropEvent>
+#include <QBasicTimer>
+#include <QTimerEvent>
+#include <algorithm>
 #include <functional>
 
 
@@ -43,8 +46,8 @@ constexpr int ICON_ROLE = Qt::UserRole + 2;
 constexpr int KIND_ROLE = Qt::UserRole + 3;
 /// Title of an element, without the status and modified marks
 constexpr int TITLE_ROLE = Qt::UserRole + 4;
-/// Section of the book an element is in (core::BookPlace as int)
-constexpr int PLACE_ROLE = Qt::UserRole + 5;
+/// Milliseconds before a collapsed group or section that a dragged element rests on opens
+constexpr int AUTO_EXPAND_DELAY = 700;
 
 /// Whether an item of @p type holds other items: the document, its sections, groups...
 bool isContainerType(const QString& type) {
@@ -59,6 +62,53 @@ bool isUnassignedType(const QString& type) {
     return type == QLatin1String("unassigned_files") || type == QLatin1String("unassigned_file");
 }
 
+/// Type of @p item (Qt::UserRole + 1): "text_element", "section_body"...
+QString typeOf(const QTreeWidgetItem* item) {
+    return item->data(0, Qt::UserRole + 1).toString();
+}
+
+/// Whether an item of @p type is an element of the book
+bool isElementType(const QString& type) {
+    return type == QLatin1String("text_element") || type == QLatin1String("group_element") ||
+           type == QLatin1String("window_element");
+}
+
+/// The part of the book of a section item of @p type; none for another item
+std::optional<kalahari::core::BookPlace> sectionPlaceOf(const QString& type) {
+    if (type == QLatin1String("section_frontmatter")) {
+        return kalahari::core::BookPlace::Front;
+    }
+    if (type == QLatin1String("section_body")) {
+        return kalahari::core::BookPlace::Main;
+    }
+    if (type == QLatin1String("section_backmatter")) {
+        return kalahari::core::BookPlace::Back;
+    }
+    return std::nullopt;
+}
+
+/// The parts of a book, in reading order
+const QList<kalahari::core::BookPlace>& bookParts() {
+    static const QList<kalahari::core::BookPlace> parts{kalahari::core::BookPlace::Front,
+                                                        kalahari::core::BookPlace::Main,
+                                                        kalahari::core::BookPlace::Back};
+    return parts;
+}
+
+/// Whether @p item shows items under it: it is expanded, and not all of them are hidden by
+/// the filter
+bool showsChildren(const QTreeWidgetItem* item) {
+    if (!item->isExpanded()) {
+        return false;
+    }
+    for (int i = 0; i < item->childCount(); ++i) {
+        if (!item->child(i)->isHidden()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /// Icon @p iconId as a disabled item shows it: grey, for the files that are not in the book
 QIcon greyIcon(const QString& iconId, int size) {
     const QIcon icon =
@@ -69,27 +119,55 @@ QIcon greyIcon(const QString& iconId, int size) {
     return grey;
 }
 
-/// Tree of the Navigator. An element is dragged only to another place of its list (a section
-/// of the book or a group); the drop does not change the tree, it asks for the move, and the
-/// tree shows the new order once it is loaded again. In a book without sections the elements
-/// of the three sections are all under the book's item, each section after the one before it.
+/// Tree of the Navigator. An element is dragged to any place of the book its kind can have
+/// (NavigatorPanel::dropPlaceOf()); the drop does not change the tree, it asks for the move,
+/// and the tree shows the book as it is once it is loaded again. In a book without sections
+/// the elements of the three sections are all under the book's item, each section after the
+/// one before it.
 class NavigatorTree : public QTreeWidget {
 public:
     using QTreeWidget::QTreeWidget;
 
-    /// Called after a drop with the dragged element and its new index in its list
-    std::function<void(const QString& elementId, int index)> onMove;
+    /// Called after a drop with the dragged element and its new place
+    std::function<void(const QString& elementId, const kalahari::core::ElementPlace& place)>
+        onMove;
 
 protected:
     void dragMoveEvent(QDragMoveEvent* event) override {
+        // The item under the dragged element opens when it rests there (timerEvent())
+        m_openPos = event->position().toPoint();
+        m_openTimer.start(AUTO_EXPAND_DELAY, this);
+
         QTreeWidget::dragMoveEvent(event);
-        if (event->isAccepted() && dropIndex(event->position().toPoint()) < 0) {
+        if (event->isAccepted() && !dropPlace(event->position().toPoint())) {
             event->ignore();
         }
     }
 
+    void dragLeaveEvent(QDragLeaveEvent* event) override {
+        m_openTimer.stop();
+        QTreeWidget::dragLeaveEvent(event);
+    }
+
+    /// A collapsed group or section that the dragged element rests on opens, so that the
+    /// element can go inside it. An open one stays open: the view's own autoExpandDelay
+    /// would close it.
+    void timerEvent(QTimerEvent* event) override {
+        if (event->timerId() != m_openTimer.timerId()) {
+            QTreeWidget::timerEvent(event);
+            return;
+        }
+        m_openTimer.stop();
+        QTreeWidgetItem* item = itemAt(m_openPos);
+        if (state() == DraggingState && item && item->childCount() > 0) {
+            item->setExpanded(true);
+        }
+    }
+
     void dropEvent(QDropEvent* event) override {
-        const int index = dropIndex(event->position().toPoint());
+        m_openTimer.stop();
+        const std::optional<kalahari::core::ElementPlace> place =
+            dropPlace(event->position().toPoint());
         const QTreeWidgetItem* dragged = selectedItems().value(0);
         const QString elementId = dragged ? dragged->data(0, Qt::UserRole).toString() : QString();
 
@@ -99,25 +177,43 @@ protected:
         setState(NoState);
         viewport()->update();
 
-        if (index >= 0 && !elementId.isEmpty() && onMove) {
+        if (place && !elementId.isEmpty() && onMove) {
             // After the drag has ended: the move loads the tree again
-            QTimer::singleShot(0, this, [this, elementId, index]() { onMove(elementId, index); });
+            QTimer::singleShot(0, this,
+                               [this, elementId, to = *place]() { onMove(elementId, to); });
         }
     }
 
 private:
-    /// New index of the dragged element in its list when it is dropped at @p pos; -1 when it
-    /// cannot go there or stays where it is
-    int dropIndex(const QPoint& pos) const {
+    /// The new place of the dragged element when it is dropped at @p pos; none when it cannot
+    /// go there or stays where it is
+    std::optional<kalahari::core::ElementPlace> dropPlace(const QPoint& pos) const {
+        using Spot = kalahari::gui::NavigatorPanel::DropSpot;
+        Spot spot = Spot::On;
         switch (dropIndicatorPosition()) {
         case AboveItem:
+            spot = Spot::Above;
+            break;
         case BelowItem:
-            return kalahari::gui::NavigatorPanel::dropIndexOf(
-                selectedItems().value(0), itemAt(pos), dropIndicatorPosition() == BelowItem);
-        default:  // On the item or beside the items: not a place in the list
-            return -1;
+            spot = Spot::Below;
+            break;
+        case OnItem:
+            break;
+        case OnViewport:  // Beside the items
+            return std::nullopt;
         }
+        const auto& pm = kalahari::core::ProjectManager::getInstance();
+        const kalahari::core::BookProject* project = pm.project();
+        if (!project) {
+            return std::nullopt;
+        }
+        return kalahari::gui::NavigatorPanel::dropPlaceOf(*project, pm.bookTypes(),
+                                                          selectedItems().value(0), itemAt(pos),
+                                                          spot);
     }
+
+    QBasicTimer m_openTimer;  ///< Opens the item under the dragged element
+    QPoint m_openPos;         ///< Where the dragged element is in the viewport
 };
 
 } // anonymous namespace
@@ -218,10 +314,13 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
 
     // Create tree widget
     auto* tree = new NavigatorTree(this);
-    tree->onMove = [this](const QString& elementId, int index) {
-        core::Logger::getInstance().info("NavigatorPanel: Element {} dragged to place {}",
-                                         elementId.toStdString(), index);
-        emit elementMoved(elementId, index);
+    tree->onMove = [this](const QString& elementId, const core::ElementPlace& place) {
+        core::Logger::getInstance().info("NavigatorPanel: Element {} dragged to place {} of {}",
+                                         elementId.toStdString(), place.index,
+                                         place.groupId.isEmpty()
+                                             ? core::bookPlaceName(place.place).toStdString()
+                                             : place.groupId.toStdString());
+        emit elementMovedTo(elementId, place);
     };
     m_treeWidget = tree;
 
@@ -238,7 +337,8 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     // No project loaded yet - tree will be populated via loadProject()
     m_treeWidget->setHeaderLabel(tr("Project Structure (no document loaded)"));
 
-    // Enable drag & drop for reordering (OpenSpec #00034 Phase D)
+    // Enable drag & drop for reordering (OpenSpec #00034 Phase D); a collapsed group or
+    // section that the dragged element rests on opens (NavigatorTree), so that it can go inside
     m_treeWidget->setDragEnabled(true);
     m_treeWidget->setAcceptDrops(true);
     m_treeWidget->setDropIndicatorShown(true);
@@ -364,12 +464,12 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
         // A book without sections: the elements of its three sections in reading order. The
         // book's item takes the drops of the elements.
         rootItem->setFlags(rootItem->flags() | Qt::ItemIsDropEnabled);
-        addElementItems(rootItem, book->frontElements, registry, core::BookPlace::Front);
-        addElementItems(rootItem, book->mainElements, registry, core::BookPlace::Main);
-        addElementItems(rootItem, book->backElements, registry, core::BookPlace::Back);
+        addElementItems(rootItem, book->frontElements, registry);
+        addElementItems(rootItem, book->mainElements, registry);
+        addElementItems(rootItem, book->backElements, registry);
     } else {
         // The three sections of the book with its names, also when empty, so that elements can
-        // be added to them. Elements are dragged only within their section or group, which
+        // be added to them. Elements are dragged to the sections and the groups, which
         // therefore take drops.
         const core::ProjectBook noBook;
         const core::ProjectBook& names = book ? *book : noBook;
@@ -383,11 +483,9 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
                            QStringLiteral("section_backmatter"));
 
         if (book) {
-            addElementItems(frontMatterItem, book->frontElements, registry,
-                            core::BookPlace::Front);
-            addElementItems(bodyItem, book->mainElements, registry, core::BookPlace::Main);
-            addElementItems(backMatterItem, book->backElements, registry,
-                            core::BookPlace::Back);
+            addElementItems(frontMatterItem, book->frontElements, registry);
+            addElementItems(bodyItem, book->mainElements, registry);
+            addElementItems(backMatterItem, book->backElements, registry);
         }
 
         frontMatterItem->setExpanded(false);  // Collapsed by default
@@ -511,41 +609,92 @@ QTreeWidgetItem* NavigatorPanel::addSectionItem(QTreeWidgetItem* parent, const Q
     return item;
 }
 
-int NavigatorPanel::dropIndex(int from, int target, bool below) {
-    int to = below ? target + 1 : target;
-    if (from < to) {
-        --to;  // The places after the element move up when it leaves its place
+std::optional<core::ElementPlace> NavigatorPanel::dropPlaceOf(
+    const core::BookProject& project, const core::BookTypeRegistry& registry,
+    const QTreeWidgetItem* dragged, const QTreeWidgetItem* target, DropSpot spot) {
+    if (!dragged || !target || target == dragged || !isElementType(typeOf(dragged))) {
+        return std::nullopt;
     }
-    return to == from ? -1 : to;
-}
-
-int NavigatorPanel::dropIndexOf(const QTreeWidgetItem* dragged, const QTreeWidgetItem* target,
-                                bool below) {
-    if (!dragged || !target || target == dragged || !dragged->parent() ||
-        target->parent() != dragged->parent() ||
-        target->data(0, PLACE_ROLE) != dragged->data(0, PLACE_ROLE)) {
-        return -1;
+    const QString elementId = dragged->data(0, Qt::UserRole).toString();
+    const std::optional<core::ElementPlace> from = project.placeOf(elementId);
+    if (!from || from->place == core::BookPlace::Workshop) {
+        return std::nullopt;
     }
 
-    // The list of the element starts at the first item of its section: in a book without
-    // sections the book's item holds the three lists one after another
-    const QTreeWidgetItem* parent = dragged->parent();
-    const QVariant place = dragged->data(0, PLACE_ROLE);
-    int first = -1;
-    int from = -1;
-    int to = -1;
-    for (int i = 0; i < parent->childCount(); ++i) {
-        const QTreeWidgetItem* child = parent->child(i);
-        if (first < 0 && child->data(0, PLACE_ROLE) == place) {
-            first = i;
+    // The places are in the book without the element
+    core::BookProject without = project;
+    const std::optional<core::ProjectElement> element = without.takeElement(elementId);
+    if (!element) {
+        return std::nullopt;
+    }
+    const core::KindRef kind = core::BookProject::kindOf(registry, *element);
+    const QString targetId = target->data(0, Qt::UserRole).toString();
+    const QString targetType = typeOf(target);
+
+    // The places the line or the frame shows, the first ones first
+    QList<core::ElementPlace> candidates;
+    if (spot == DropSpot::On) {
+        // Where an element of its kind is added to the section or the group
+        const std::optional<core::BookPlace> section = sectionPlaceOf(targetType);
+        const core::ProjectElement* group =
+            targetType == QLatin1String("group_element") ? without.findElement(targetId)
+                                                         : nullptr;
+        const std::optional<core::ElementPlace> groupPlace =
+            group ? without.placeOf(targetId) : std::nullopt;
+        if (kind && section) {
+            candidates.append({*section, QString(),
+                               core::BookProject::newIndexIn(registry,
+                                                             without.elementsIn(*section), kind)});
+        } else if (kind && group && groupPlace) {
+            candidates.append({groupPlace->place, targetId,
+                               core::BookProject::newIndexIn(registry, group->elements, kind)});
         }
-        if (child == dragged) {
-            from = i;
-        } else if (child == target) {
-            to = i;
+    } else if (isElementType(targetType)) {
+        const std::optional<core::ElementPlace> at = without.placeOf(targetId);
+        if (!at) {
+            return std::nullopt;  // Inside the element itself
+        }
+
+        // In a book without sections, at the end of a section the line is also at the start
+        // of the next ones up to the first one with elements, and the other way round
+        const bool oneList = at->groupId.isEmpty() && target->parent() &&
+                             typeOf(target->parent()) == QLatin1String("document");
+        const qsizetype part = bookParts().indexOf(at->place);
+        if (spot == DropSpot::Above) {
+            candidates.append(*at);
+            for (qsizetype i = part - 1; oneList && at->index == 0 && i >= 0; --i) {
+                const QList<core::ProjectElement>& before = without.elementsIn(bookParts().at(i));
+                candidates.append({bookParts().at(i), QString(), before.size()});
+                if (!before.isEmpty()) {
+                    break;
+                }
+            }
+        } else {
+            // Below a group that shows its elements: first in it
+            if (targetType == QLatin1String("group_element") && showsChildren(target)) {
+                candidates.append({at->place, targetId, 0});
+            }
+            const core::ElementPlace after{at->place, at->groupId, at->index + 1};
+            candidates.append(after);
+            const bool atEnd =
+                oneList && part >= 0 && after.index == without.elementsIn(at->place).size();
+            for (qsizetype i = part + 1; atEnd && i < bookParts().size(); ++i) {
+                candidates.append({bookParts().at(i), QString(), 0});
+                if (!without.elementsIn(bookParts().at(i)).isEmpty()) {
+                    break;
+                }
+            }
         }
     }
-    return dropIndex(from - first, to - first, below);
+
+    // The first place its kind can have; none when the element stays where it is
+    const QList<core::ElementPlace> places = project.movePlacesOf(registry, elementId);
+    for (const core::ElementPlace& candidate : std::as_const(candidates)) {
+        if (places.contains(candidate)) {
+            return candidate == *from ? std::nullopt : std::optional(candidate);
+        }
+    }
+    return std::nullopt;
 }
 
 QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
@@ -567,8 +716,7 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
 
 void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
                                      const QList<core::ProjectElement>& elements,
-                                     const core::BookTypeRegistry& registry,
-                                     core::BookPlace place) {
+                                     const core::BookTypeRegistry& registry) {
     auto& artProvider = core::ArtProvider::getInstance();
 
     for (const core::ProjectElement& element : elements) {
@@ -598,12 +746,11 @@ void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
         item->setData(0, ICON_ROLE, iconId);
         item->setData(0, KIND_ROLE, element.kind.toString());
         item->setData(0, TITLE_ROLE, element.title);
-        item->setData(0, PLACE_ROLE, static_cast<int>(place));
         item->setIcon(0, artProvider.getIcon(iconId, core::IconContext::TreeView));
         item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
 
         if (form == core::ElementForm::Group) {
-            addElementItems(item, element.elements, registry, place);
+            addElementItems(item, element.elements, registry);
             item->setExpanded(true);  // Expand groups by default
         }
     }
@@ -1021,15 +1168,46 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     logger.debug("NavigatorPanel::showContextMenu() - Type: {}, ID: {}",
                  elementType.toStdString(), elementId.toStdString());
 
-    // Create context menu
+    // Create context menu; an action that cannot be used may say why in its tooltip
     QMenu menu(this);
+    menu.setToolTipsVisible(true);
 
     auto& pm = core::ProjectManager::getInstance();
     const bool projectOpen = pm.isProjectOpen();
 
-    // Move within the element's list: a section of the book or a group. Move to Start and Move
-    // to End keep a prologue first and an epilogue last
+    // Move to any place of the book the element's kind can have, in the Move dialog; or within
+    // the element's list: a section of the book or a group. Move to Start and Move to End keep
+    // a prologue first and an epilogue last
     const auto addMoveActions = [&]() {
+        const core::ProjectElement* element = pm.findElement(elementId);
+        const bool knownKind = element && pm.kindOf(*element);
+        QAction* moveToAction = menu.addAction(
+            artProvider.getIcon("common.driveFileMove", core::IconContext::Menu),
+            tr("Move..."));
+        connect(moveToAction, &QAction::triggered, this,
+                [this, elementId]() { emit requestMoveTo(elementId); });
+
+        // The element can go to a place other than the one it has; one where its kind cannot be
+        // (from an older package) has none among the places of its kind
+        const std::optional<core::ElementPlace> current =
+            pm.project() ? pm.project()->placeOf(elementId) : std::nullopt;
+        const QList<core::ElementPlace> places = pm.movePlacesOf(elementId);
+        const bool elsewhere =
+            current && std::any_of(places.cbegin(), places.cend(),
+                                   [&current](const core::ElementPlace& place) {
+                                       return !(place == *current);
+                                   });
+        moveToAction->setEnabled(knownKind && elsewhere);
+        if (element && !knownKind) {
+            //: Why Move... cannot be used: the element's kind comes from a package of book
+            //: types that this installation does not have. In Polish: Program nie ma pakietu,
+            //: z którego pochodzi rodzaj tego elementu.
+            const QString why = tr("The program does not have the package of this element's "
+                                   "kind.");
+            moveToAction->setToolTip(why);
+            moveToAction->setStatusTip(why);
+        }
+
         const core::BookProject* project = pm.project();
         qsizetype listIndex = -1;
         const QList<core::ProjectElement>* list =

@@ -200,7 +200,7 @@ void DockCoordinator::createNavigatorDock() {
     connect(m_navigatorPanel, &NavigatorPanel::elementSelected,
             this, &DockCoordinator::navigatorElementSelected);
 
-    // Connect Navigator drag & drop signal
+    // Connect Navigator Move to Start and Move to End
     connect(m_navigatorPanel, &NavigatorPanel::elementMoved,
             this, &DockCoordinator::elementMoved);
 

@@ -12,6 +12,7 @@
 #include <QJsonObject>
 #include <QTemporaryDir>
 #include <QTimeZone>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -478,6 +479,113 @@ TEST_CASE("Book project: places of elements, and the elements that open and clos
     CHECK(BookProject::contentOf(registry, {}).isEmpty());
     CHECK(BookProject::openingElementsOf(registry, {}).isEmpty());
     CHECK(BookProject::closingElementsOf(registry, {}).isEmpty());
+}
+
+TEST_CASE("Book project: an element moves wherever its kind can be, with the elements inside it",
+          "[core][bookproject]") {
+    BookTypeRegistry registry;
+    loadBuiltIn(registry);
+    BookProject project = projectOf(R"({
+      "format": 2, "id": "p", "type": { "id": "kalahari.novel", "version": "1.0" },
+      "books": [ { "id": "b", "folder": "book",
+        "front": [ { "id": "t", "kind": "kalahari.base:title_page", "title": "Title page" } ],
+        "main": [
+          { "id": "pro", "kind": "kalahari.novel:prologue", "title": "Prologue" },
+          { "id": "c1", "kind": "kalahari.base:chapter", "title": "Chapter 1" },
+          { "id": "p1", "kind": "kalahari.base:part", "title": "Part One", "elements": [
+            { "id": "c2", "kind": "kalahari.base:chapter", "title": "Chapter 2" } ] },
+          { "id": "epi", "kind": "kalahari.novel:epilogue", "title": "Epilogue" }
+        ],
+        "back": [ { "id": "a", "kind": "kalahari.base:afterword", "title": "Afterword" } ] } ],
+      "workshop": { "elements": [
+        { "id": "n1", "kind": "kalahari.base:work_note", "title": "Ideas" },
+        { "id": "n2", "kind": "kalahari.base:work_note", "title": "Plan" } ] }
+    })");
+    // The front, main and back part and the Workshop, each group with its elements
+    const std::function<QString(const QList<ProjectElement>&)> listed =
+        [&listed](const QList<ProjectElement>& elements) {
+            QStringList ids;
+            for (const ProjectElement& element : elements) {
+                ids << (element.elements.isEmpty()
+                            ? element.id
+                            : element.id + QLatin1Char('[') + listed(element.elements) +
+                                  QLatin1Char(']'));
+            }
+            return ids.join(QStringLiteral(", "));
+        };
+    const auto layout = [&project, &listed]() {
+        return QStringLiteral("%1 | %2 | %3 | %4")
+            .arg(listed(project.elementsIn(BookPlace::Front)),
+                 listed(project.elementsIn(BookPlace::Main)),
+                 listed(project.elementsIn(BookPlace::Back)),
+                 listed(project.elementsIn(BookPlace::Workshop)))
+            .toStdString();
+    };
+    const auto main = [](const char* groupId, qsizetype index) {
+        return ElementPlace{BookPlace::Main, QString::fromLatin1(groupId), index};
+    };
+    REQUIRE(layout() == "t | pro, c1, p1[c2], epi | a | n1, n2");
+
+    // The places are in the book without the element, in reading order: the epilogue anywhere
+    // in the body and in its part; the place it has is the end of the body
+    CHECK(project.movePlacesOf(registry, QStringLiteral("epi")) ==
+          QList<ElementPlace>{main("", 0), main("", 1), main("", 2), main("p1", 0),
+                              main("p1", 1), main("", 3)});
+
+    // A part only in the body, neither in a part nor in itself; a title page only in the front
+    CHECK(project.movePlacesOf(registry, QStringLiteral("p1")) ==
+          QList<ElementPlace>{main("", 0), main("", 1), main("", 2), main("", 3)});
+    CHECK(project.movePlacesOf(registry, QStringLiteral("t")) ==
+          QList<ElementPlace>{{BookPlace::Front, QString(), 0}});
+
+    // A note of the Workshop stays in the Workshop; an element the project does not have has
+    // no places
+    CHECK(project.movePlacesOf(registry, QStringLiteral("n1")) ==
+          QList<ElementPlace>{{BookPlace::Workshop, QString(), 0},
+                              {BookPlace::Workshop, QString(), 1}});
+    CHECK(project.movePlacesOf(registry, QStringLiteral("x")).isEmpty());
+
+    // The epilogue into the part and back, the part with its chapter to the start of the body,
+    // the chapter out of the part, a note within the Workshop
+    CHECK(project.moveElementTo(registry, QStringLiteral("epi"), main("p1", 1)));
+    CHECK(layout() == "t | pro, c1, p1[c2, epi] | a | n1, n2");
+    CHECK(project.moveElementTo(registry, QStringLiteral("epi"), main("", 3)));
+    CHECK(layout() == "t | pro, c1, p1[c2], epi | a | n1, n2");
+    CHECK(project.moveElementTo(registry, QStringLiteral("p1"), main("", 0)));
+    CHECK(layout() == "t | p1[c2], pro, c1, epi | a | n1, n2");
+    CHECK(project.moveElementTo(registry, QStringLiteral("c2"), main("", 3)));
+    CHECK(layout() == "t | p1, pro, c1, c2, epi | a | n1, n2");
+    CHECK(project.moveElementTo(registry, QStringLiteral("n1"),
+                                {BookPlace::Workshop, QString(), 1}));
+    CHECK(layout() == "t | p1, pro, c1, c2, epi | a | n2, n1");
+
+    // Where the kind cannot be, or a place that is not in the book: the project stays as it
+    // was. A part goes neither into a part nor into itself.
+    project.findElement(QStringLiteral("p1"))
+        ->elements.append(element("c3", "kalahari.base", "chapter", "Chapter 3"));
+    project.elementsIn(BookPlace::Main).append(element("p2", "kalahari.base", "part", "Part Two"));
+    const BookProject before = project;
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("c1"),
+                                      {BookPlace::Front, QString(), 0}));
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("a"), main("", 0)));
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("c1"), main("", 9)));
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("c1"), main("p9", 0)));
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("p2"), main("p1", 0)));
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("p1"), main("p1", 0)));
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("n1"), main("", 0)));
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("x"), main("", 0)));
+    CHECK(project == before);
+
+    // An element of a package that is not installed moves only within its list
+    ProjectElement prophecy = element("x2", "addon.fantasy", "prophecy", "The Prophecy");
+    prophecy.file = QStringLiteral("book/prophecy_001.kchapter");
+    project.findElement(QStringLiteral("p1"))->elements.prepend(prophecy);
+    CHECK(project.movePlacesOf(registry, QStringLiteral("x2")) ==
+          QList<ElementPlace>{main("p1", 0), main("p1", 1)});
+    CHECK(project.moveElementTo(registry, QStringLiteral("x2"), main("p1", 1)));
+    CHECK(listed(project.findElement(QStringLiteral("p1"))->elements).toStdString() ==
+          "c3, x2");
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("x2"), main("", 0)));
 }
 
 TEST_CASE("Book project: names of the front, main and back part", "[core][bookproject]") {

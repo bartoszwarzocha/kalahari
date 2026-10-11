@@ -4,6 +4,8 @@
 
 #include "kalahari/gui/widgets/element_place_picker.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/kind_words.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 
 #include <QEvent>
@@ -131,7 +133,6 @@ ElementPlacePicker::ElementPlacePicker(QWidget* parent)
     m_list->setRootIsDecorated(false);
     m_list->setItemsExpandable(false);
     m_list->setMinimumHeight(list->rowHeight() * MINIMUM_ROWS + 2 * m_list->frameWidth());
-    m_list->setToolTip(tr("Click the element it is to go before"));
     m_list->installEventFilter(this);
     connect(m_list, &QTreeWidget::itemClicked, this, &ElementPlacePicker::onItemClicked);
     listRow->addWidget(m_list, 1);
@@ -142,27 +143,23 @@ ElementPlacePicker::ElementPlacePicker(QWidget* parent)
     m_upButton = new QPushButton(this);
     m_upButton->setIcon(artProvider.getIcon(QStringLiteral("navigation.up"),
                                             core::IconContext::Button));
-    m_upButton->setToolTip(tr("Move the element up"));
     m_upButton->setAutoRepeat(true);
     m_upButton->setAutoDefault(false);
     m_downButton = new QPushButton(this);
     m_downButton->setIcon(artProvider.getIcon(QStringLiteral("navigation.down"),
                                               core::IconContext::Button));
-    m_downButton->setToolTip(tr("Move the element down"));
     m_downButton->setAutoRepeat(true);
     m_downButton->setAutoDefault(false);
-    connect(m_upButton, &QPushButton::clicked, this, [this]() { moveTo(m_place - 1); });
-    connect(m_downButton, &QPushButton::clicked, this, [this]() { moveTo(m_place + 1); });
+    connect(m_upButton, &QPushButton::clicked, this, [this]() { moveTo(nextPlace(-1)); });
+    connect(m_downButton, &QPushButton::clicked, this, [this]() { moveTo(nextPlace(1)); });
     moveButtons->addWidget(m_upButton);
     moveButtons->addWidget(m_downButton);
     moveButtons->addStretch(1);
     listRow->addLayout(moveButtons);
     layout->addLayout(listRow, 1);
 
-    //: %1: the arrows of the buttons, kept together on a line
-    m_hint = new QLabel(tr("Click the element it is to go before, or move it with the buttons %1.")
-                            .arg(QStringLiteral("↑\u00A0↓")),
-                        this);
+    // How to choose the place, in the words of the element's kind (updateHint())
+    m_hint = new QLabel(this);
     m_hint->setTextFormat(Qt::PlainText);
     m_hint->setWordWrap(true);
     layout->addWidget(m_hint);
@@ -183,6 +180,7 @@ ElementPlacePicker::ElementPlacePicker(QWidget* parent)
     warningLayout->addWidget(m_warningText, 1);
     m_warningBox->hide();
     layout->addWidget(m_warningBox);
+    updateHint();
 }
 
 void ElementPlacePicker::setBook(const QList<PickerSection>& sections,
@@ -210,6 +208,7 @@ void ElementPlacePicker::setElement(const core::KindRef& kind, const QString& ti
         }
     }
     m_place = m_places.isEmpty() ? -1 : 0;
+    updateHint();
     showPlace();
     emit placeChanged();
 }
@@ -226,6 +225,12 @@ void ElementPlacePicker::setTitle(const QString& title)
 void ElementPlacePicker::setLabel(const QString& text)
 {
     m_label->setText(text);
+}
+
+void ElementPlacePicker::setNote(const QString& text)
+{
+    m_note = text;
+    updateHint();
 }
 
 void ElementPlacePicker::setOptions(const QList<PlaceOption>& options)
@@ -249,6 +254,12 @@ void ElementPlacePicker::setOptions(const QList<PlaceOption>& options)
 void ElementPlacePicker::setPlace(const core::ElementPlace& place)
 {
     moveTo(m_places.indexOf(place));
+}
+
+void ElementPlacePicker::setMovedFrom(const core::ElementPlace& place)
+{
+    m_movedFrom = place;
+    showPlace();
 }
 
 bool ElementPlacePicker::canBeAt(const core::ElementPlace& place) const
@@ -290,41 +301,51 @@ QStringList ElementPlacePicker::warnings() const
     }
     list->insert(qBound(qsizetype(0), at.index, list->size()), placed);
 
+    // The part as it is: without the element, or with it where it is moved from
+    QList<core::ProjectElement> before = section->elements;
+    if (m_movedFrom && m_movedFrom->place == at.place) {
+        if (QList<core::ProjectElement>* from = listIn(before, m_movedFrom->groupId)) {
+            from->insert(qBound(qsizetype(0), m_movedFrom->index, from->size()), placed);
+        }
+    }
+
     // The elements that opened or closed it and no longer do, and the element itself
     using core::BookProject;
     const QStringList opening = idsOf(BookProject::openingElementsOf(*m_registry, after));
     const QStringList closing = idsOf(BookProject::closingElementsOf(*m_registry, after));
     const QStringList notFirst =
-        titlesLost(BookProject::openingElementsOf(*m_registry, section->elements), opening);
+        titlesLost(BookProject::openingElementsOf(*m_registry, before), opening);
     const QStringList notLast =
-        titlesLost(BookProject::closingElementsOf(*m_registry, section->elements), closing);
+        titlesLost(BookProject::closingElementsOf(*m_registry, before), closing);
     if (notFirst.size() == 1) {
         //: %1: the title of an element; %2: a part of the book with its preposition, "in the
         //: main section". In Polish: Element „%1” przestanie być pierwszy %2.
         sentences << tr("\"%1\" will no longer be the first element %2.")
-                         .arg(notFirst.first(), section->inPart);
+                         .arg(notFirst.first(), section->words.inPart);
     } else if (notFirst.size() > 1) {
         //: %1: titles in quotes, "A" and "B"; %2: a part of the book with its preposition. In
         //: Polish: Elementy %1 przestaną być pierwsze %2.
         sentences << tr("%1 will no longer be the first elements %2.")
-                         .arg(quoted(notFirst), section->inPart);
+                         .arg(quoted(notFirst), section->words.inPart);
     }
     if (notLast.size() == 1) {
         //: In Polish: Element „%1” przestanie być ostatni %2.
         sentences << tr("\"%1\" will no longer be the last element %2.")
-                         .arg(notLast.first(), section->inPart);
+                         .arg(notLast.first(), section->words.inPart);
     } else if (notLast.size() > 1) {
         //: In Polish: Elementy %1 przestaną być ostatnie %2.
         sentences << tr("%1 will no longer be the last elements %2.")
-                         .arg(quoted(notLast), section->inPart);
+                         .arg(quoted(notLast), section->words.inPart);
     }
     if (m_kind.kind->position == core::KindPosition::Start && !opening.contains(PLACED_ID)) {
         //: A prologue placed after a chapter. In Polish: Element „%1” nie będzie pierwszy %2.
-        sentences << tr("\"%1\" will not be the first element %2.").arg(m_title, section->inPart);
+        sentences << tr("\"%1\" will not be the first element %2.")
+                         .arg(m_title, section->words.inPart);
     }
     if (m_kind.kind->position == core::KindPosition::End && !closing.contains(PLACED_ID)) {
         //: An epilogue placed before a chapter. In Polish: Element „%1” nie będzie ostatni %2.
-        sentences << tr("\"%1\" will not be the last element %2.").arg(m_title, section->inPart);
+        sentences << tr("\"%1\" will not be the last element %2.")
+                         .arg(m_title, section->words.inPart);
     }
     return sentences;
 }
@@ -340,7 +361,7 @@ void ElementPlacePicker::setPreview(bool preview)
     m_downButton->setVisible(!preview);
     m_hint->setVisible(!preview);
     m_list->setFocusPolicy(preview ? Qt::NoFocus : Qt::StrongFocus);
-    m_list->setToolTip(preview ? QString() : tr("Click the element it is to go before"));
+    updateHint();
     showPlace();
 }
 
@@ -366,7 +387,7 @@ bool ElementPlacePicker::eventFilter(QObject* watched, QEvent* event)
         const auto* key = static_cast<QKeyEvent*>(event);
         if (key->modifiers() == Qt::NoModifier &&
             (key->key() == Qt::Key_Up || key->key() == Qt::Key_Down)) {
-            moveTo(m_place + (key->key() == Qt::Key_Up ? -1 : 1));
+            moveTo(nextPlace(key->key() == Qt::Key_Up ? -1 : 1));
             return true;
         }
     }
@@ -402,6 +423,9 @@ void ElementPlacePicker::showPlace()
 
     if (m_registry) {
         for (const PickerSection& section : std::as_const(m_sections)) {
+            if (!isShown(section)) {
+                continue;
+            }
             QTreeWidgetItem* row = nullptr;
             if (!section.name.isEmpty()) {
                 // Its row puts the element first in it
@@ -443,8 +467,8 @@ void ElementPlacePicker::showPlace()
         const QSignalBlocker blocker(m_elsewhereButton);
         m_elsewhereButton->setChecked(true);
     }
-    m_upButton->setEnabled(m_place > 0);
-    m_downButton->setEnabled(m_place >= 0 && m_place < m_places.size() - 1);
+    m_upButton->setEnabled(nextPlace(-1) >= 0);
+    m_downButton->setEnabled(nextPlace(1) >= 0);
 
     const QStringList sentences = warnings();
     m_warningText->setText(sentences.join(QLatin1Char('\n')));
@@ -521,6 +545,89 @@ void ElementPlacePicker::moveTo(qsizetype index)
     m_place = index;
     showPlace();
     emit placeChanged();
+}
+
+qsizetype ElementPlacePicker::nextPlace(int step) const
+{
+    if (m_place < 0) {
+        return -1;
+    }
+    qsizetype index = m_place + step;
+    while (index >= 0 && index < m_places.size() &&
+           looksSame(m_places.at(m_place), m_places.at(index))) {
+        index += step;
+    }
+    return index >= 0 && index < m_places.size() ? index : -1;
+}
+
+bool ElementPlacePicker::looksSame(const core::ElementPlace& a, const core::ElementPlace& b) const
+{
+    if (a.place == b.place || !a.groupId.isEmpty() || !b.groupId.isEmpty()) {
+        return false;
+    }
+    const auto sectionOf = [this](core::BookPlace place) {
+        return std::find_if(m_sections.cbegin(), m_sections.cend(),
+                            [place](const PickerSection& section) {
+                                return section.place == place;
+                            }) -
+               m_sections.cbegin();
+    };
+    const bool aFirst = sectionOf(a.place) < sectionOf(b.place);
+    const core::ElementPlace& upper = aFirst ? a : b;
+    const core::ElementPlace& lower = aFirst ? b : a;
+    const qsizetype first = sectionOf(upper.place);
+    const qsizetype last = sectionOf(lower.place);
+    if (last >= m_sections.size() || upper.index != m_sections.at(first).elements.size() ||
+        lower.index != 0) {
+        return false;
+    }
+
+    // One list: no rows of the parts, and no elements between the two places
+    for (qsizetype i = first; i <= last; ++i) {
+        const PickerSection& section = m_sections.at(i);
+        if (!section.name.isEmpty() || (i > first && i < last && !section.elements.isEmpty())) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ElementPlacePicker::isShown(const PickerSection& section) const
+{
+    return section.name.isEmpty() ||
+           std::any_of(m_places.cbegin(), m_places.cend(),
+                       [&section](const core::ElementPlace& place) {
+                           return place.place == section.place;
+                       });
+}
+
+void ElementPlacePicker::updateHint()
+{
+    const QHash<QString, core::KindWords> nouns{
+        {QStringLiteral("kind"), m_kind ? wordsOf(m_kind) : elementWords()}};
+    //: In Polish: Przesuń {kind:accusative} w górę
+    m_upButton->setToolTip(core::fillWords(tr("Move the {kind} up"), nouns));
+    //: In Polish: Przesuń {kind:accusative} w dół
+    m_downButton->setToolTip(core::fillWords(tr("Move the {kind} down"), nouns));
+    //: The tooltip of the list of the book. In Polish: Kliknij element, przed którym
+    //: {kind:s=ma|p=mają} się znaleźć {kind}
+    const QString click =
+        core::fillWords(tr("Click the element the {kind} {kind:s=is|p=are} to go before"), nouns);
+    m_list->setToolTip(m_preview ? QString() : click);
+    //: %1: the arrows of the buttons, kept together on a line. In Polish: Kliknij element, przed
+    //: którym {kind:s=ma|p=mają} się znaleźć {kind}, albo przesuń {kind:m=go|f=ją|n=je|p=je}
+    //: przyciskami %1.
+    const QString hint = core::fillWords(tr("Click the element the {kind} {kind:s=is|p=are} to "
+                                            "go before, or move {kind:s=it|p=them} with the "
+                                            "buttons %1."),
+                                         nouns)
+                             .arg(QStringLiteral("↑\u00A0↓"));
+    m_hint->setText(m_note.isEmpty() ? hint : m_note + QLatin1Char(' ') + hint);
+}
+
+void ElementPlacePicker::focusList()
+{
+    m_list->setFocus();
 }
 
 void ElementPlacePicker::onItemClicked(QTreeWidgetItem* item)

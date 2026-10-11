@@ -378,6 +378,24 @@ public:
     /// @return false when the element or the place does not exist or the file cannot be written
     bool moveElement(const QString& elementId, qsizetype index);
 
+    /// @brief Places that element @p elementId can be moved to, in reading order
+    /// (BookProject::movePlacesOf()): wherever its kind can be in the book, in the book without
+    /// the element; the place it has now is one of them
+    QList<ElementPlace> movePlacesOf(const QString& elementId) const;
+
+    /// @brief Whether element @p elementId can be moved to @p to, one of movePlacesOf()
+    bool canMoveTo(const QString& elementId, const ElementPlace& to) const;
+
+    /// @brief Move element @p elementId, with the elements inside it, to @p to and save the
+    /// .klh file
+    ///
+    /// The element goes to another section of the book or into another group, or to another
+    /// place of its list, wherever its kind can be. Its files stay where they are.
+    /// @param to A place in the book without the element, one of movePlacesOf()
+    /// @return false when the element cannot go there or the file cannot be written; the
+    ///         project stays as it was then
+    bool moveElementTo(const QString& elementId, const ElementPlace& to);
+
     /// @brief Place in its list that Move to Start gives element @p elementId
     ///
     /// The first place; an element of a kind that is not of the start goes after the elements

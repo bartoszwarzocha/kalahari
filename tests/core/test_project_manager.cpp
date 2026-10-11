@@ -1158,6 +1158,60 @@ TEST_CASE("Move to Start and Move to End keep the prologue first and the epilogu
     CHECK(pm.startIndexOf(second) == -1);
 }
 
+TEST_CASE("ProjectManager moves an element to another part of the book or group, and saves it",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Places", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString part = pm.addElement(pm.partKind(), "Part One", BookPlace::Main);
+    const QString epilogue =
+        pm.addElement(kind("kalahari.novel", "epilogue"), "Epilogue", BookPlace::Main);
+    REQUIRE(titles(pm.book()->mainElements) == "Chapter 1, Part One, Epilogue");
+    const QString chapter = pm.book()->mainElements.first().id;
+    const auto inBody = [](const QString& groupId, qsizetype index) {
+        return ElementPlace{BookPlace::Main, groupId, index};
+    };
+
+    // The epilogue goes into the part, also in the .klh file; its file stays where it is
+    const QString file = pm.filePathOf(*pm.findElement(epilogue));
+    CHECK(pm.movePlacesOf(epilogue).contains(inBody(part, 0)));
+    CHECK(pm.canMoveTo(epilogue, inBody(part, 0)));
+    CHECK_FALSE(pm.canMoveTo(epilogue, {BookPlace::Back, QString(), 0}));
+    REQUIRE(pm.moveElementTo(epilogue, inBody(part, 0)));
+    CHECK(titles(pm.book()->mainElements) == "Chapter 1, Part One");
+    CHECK(titles(pm.findElement(part)->elements) == "Epilogue");
+    CHECK(pm.filePathOf(*pm.findElement(epilogue)) == file);
+    CHECK(QFileInfo::exists(file));
+    CHECK(titles(savedProject(manifest).books.first().mainElements.last().elements) ==
+          "Epilogue");
+    CHECK_FALSE(pm.isDirty());
+
+    // A chapter into the part, before the epilogue; to the place it has: nothing changes
+    REQUIRE(pm.moveElementTo(chapter, inBody(part, 0)));
+    CHECK(titles(pm.findElement(part)->elements) == "Chapter 1, Epilogue");
+    REQUIRE(pm.moveElementTo(chapter, inBody(part, 0)));
+    CHECK(titles(pm.findElement(part)->elements) == "Chapter 1, Epilogue");
+
+    // Where its kind cannot be, or a place that is not in the book: the book stays as it was
+    const BookProject unchanged = *pm.project();
+    CHECK_FALSE(pm.moveElementTo(chapter, {BookPlace::Back, QString(), 0}));
+    CHECK_FALSE(pm.moveElementTo(part, inBody(part, 0)));
+    CHECK_FALSE(pm.moveElementTo(chapter, inBody(part, 5)));
+    CHECK_FALSE(pm.moveElementTo("no-element", inBody(QString(), 0)));
+    CHECK(pm.movePlacesOf("no-element").isEmpty());
+    CHECK(*pm.project() == unchanged);
+
+    // A book that cannot be saved stays as it was
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkdir(manifest));
+    CHECK_FALSE(pm.moveElementTo(epilogue, inBody(QString(), 1)));
+    CHECK(*pm.project() == unchanged);
+    REQUIRE(QDir().rmdir(manifest));
+    REQUIRE(pm.closeProject(false));
+    CHECK(pm.movePlacesOf(epilogue).isEmpty());
+}
+
 // =============================================================================
 // Files added to the project
 // =============================================================================

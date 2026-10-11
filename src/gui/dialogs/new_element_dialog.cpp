@@ -245,7 +245,7 @@ void NewElementDialog::updatePlaces()
     const core::KindRef chosen = kind();
     const core::ElementPlace usual = defaultPlace();
     if (m_registry && chosen) {
-        m_picker->setBook({{m_part, m_sectionName, m_words.inPart, m_elements}}, *m_registry);
+        m_picker->setBook({{m_part, m_sectionName, m_words, m_elements}}, *m_registry);
         m_picker->setElement(chosen, title());
     }
 
@@ -380,7 +380,7 @@ void NewElementDialog::updatePart()
     if (m_registry && chosen) {
         const QList<core::ProjectElement> body =
             taken ? without(m_elements, idsOf(m_closing)) : m_elements;
-        m_picker->setBook({{m_part, m_sectionName, m_words.inPart, body}}, *m_registry);
+        m_picker->setBook({{m_part, m_sectionName, m_words, body}}, *m_registry);
         m_picker->setElement(chosen, title(), taken ? m_closing : QList<core::ProjectElement>());
         m_picker->setPlace(usual);
     }

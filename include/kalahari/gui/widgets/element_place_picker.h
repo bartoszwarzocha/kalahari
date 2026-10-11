@@ -6,11 +6,14 @@
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/gui/section_words.h"
 
 #include <QList>
 #include <QString>
 #include <QStringList>
 #include <QWidget>
+
+#include <optional>
 
 class QEvent;
 class QLabel;
@@ -26,10 +29,10 @@ namespace gui {
 /// @brief A part of the book (front, main or back) in the list of ElementPlacePicker
 struct PickerSection {
     core::BookPlace place = core::BookPlace::Main;  ///< Which part of the book it is
-    QString name;    ///< Name of its row, as in the Navigator; empty: no row, its elements are
-                     ///< at the top of the list
-    QString inPart;  ///< The part in the picker's sentences, with its preposition: "in the main
-                     ///< section" (SectionWords::inPart)
+    QString name;        ///< Name of its row, as in the Navigator; empty: no row, its elements
+                         ///< are at the top of the list
+    SectionWords words;  ///< The part in sentences, with its prepositions: "in the main
+                         ///< section", "at the end of the main section"
     QList<core::ProjectElement> elements;  ///< Its elements, with the elements inside its groups
 };
 
@@ -46,12 +49,17 @@ struct PlaceOption {
 /// with Up and Down in the list, or by clicking the element it is to go before; clicking the
 /// row of a part of the book puts it first there. The places are those the kind of the
 /// element can have, in reading order: in a part of the book that allows the kind, and in
-/// its groups that can have it.
+/// its groups that can have it. A part of the book with a row but no place for the kind is
+/// not shown; the parts of a book without sections are one list, so all of them are. Where
+/// the end of one part and the start of the next look the same in that list, the buttons and
+/// the keys pass over one of them.
 ///
 /// Above the list the picker can offer places as options, with "Elsewhere" for any other
 /// place. Under it the picker says which elements stop opening or closing their part of the
 /// book at the chosen place (a chapter after the epilogue), and whether the element itself
-/// is not where its kind goes (a prologue after a chapter).
+/// is not where its kind goes (a prologue after a chapter). For an element of the book that
+/// is moved (setMovedFrom()), the list shows the book without it, and the warnings compare
+/// the chosen place with the book as it is.
 ///
 /// A preview only shows the book with the element in its place: no options, no buttons, no
 /// clicks, and the elements the element takes inside it marked.
@@ -81,11 +89,19 @@ public:
     /// @brief The words above the list; by default "Place"
     void setLabel(const QString& text);
 
+    /// @brief A sentence under the list, before the hint how to choose the place: "Current
+    /// place: at the end of the main section."; empty: none
+    void setNote(const QString& text);
+
     /// @brief Places offered as options above the list, then "Elsewhere"; none: no options
     void setOptions(const QList<PlaceOption>& options);
 
     /// @brief Put the element at @p place, if its kind can be there
     void setPlace(const core::ElementPlace& place);
+
+    /// @brief The element is in the book, at @p place of the book without it (the sections of
+    /// setBook()), and is moved: the warnings say what changes from the book as it is
+    void setMovedFrom(const core::ElementPlace& place);
 
     /// @brief Whether the element can be at @p place
     bool canBeAt(const core::ElementPlace& place) const;
@@ -103,6 +119,9 @@ public:
 
     /// @brief Show only the book with the element in its place
     void setPreview(bool preview);
+
+    /// @brief Give the list the keyboard focus: Up and Down move the element at once
+    void focusList();
 
     /// @brief Titles in quotes, joined as in a sentence: "A", "B" and "C"
     static QString quoted(const QStringList& titles);
@@ -139,6 +158,22 @@ private:
     /// @brief The element goes to place @p index of places()
     void moveTo(qsizetype index);
 
+    /// @brief Index of the next place up (@p step -1) or down (@p step 1) that the list shows
+    /// apart from the place of the element; -1 when there is none
+    qsizetype nextPlace(int step) const;
+
+    /// @brief Whether the list shows places @p a and @p b at one spot: the end of a part of the
+    /// book without a row and the start of the next one, with no elements between them
+    bool looksSame(const core::ElementPlace& a, const core::ElementPlace& b) const;
+
+    /// @brief Whether the list shows @p section: a part of the book without a row, or one with
+    /// a place for the element
+    bool isShown(const PickerSection& section) const;
+
+    /// @brief The hint how to choose the place and the tooltip of the list, which name the
+    /// element's kind, with the note before the hint
+    void updateHint();
+
     /// @brief The writer clicked a row: the element goes before it
     void onItemClicked(QTreeWidgetItem* item);
 
@@ -151,6 +186,8 @@ private:
     qsizetype m_place = -1;                ///< Index of the chosen place
     QList<PlaceOption> m_options;
     bool m_preview = false;
+    QString m_note;                        ///< The sentence before the hint
+    std::optional<core::ElementPlace> m_movedFrom;  ///< Place of an element that is moved
 
     QLabel* m_label = nullptr;
     QVBoxLayout* m_optionLayout = nullptr;

@@ -10,13 +10,15 @@
 
 #pragma once
 
-#include "kalahari/core/book_type_package.h"
+#include "kalahari/core/book_project.h"
 
 #include <QWidget>
 #include <QMap>
 #include <QSet>
 #include <QString>
 #include <QStringList>
+
+#include <optional>
 
 class QAction;
 class QTreeWidget;
@@ -47,6 +49,11 @@ namespace gui {
 /// The chapter files in the book's folder that no element has (the files of elements deleted
 /// from the book without their files) are listed, grey, under "Unassigned Files", from where
 /// they go back to the book or are deleted.
+///
+/// An element is dragged to any place of the book its kind can have (dropPlaceOf()), also in
+/// another group or section; a collapsed group or section under it opens after a moment, so
+/// that it can go inside. The drop asks for the move (elementMovedTo()), and the tree shows
+/// the book as it is once it is loaded again.
 ///
 /// Item data: Qt::UserRole holds the element ID (the path of a standalone file, the file of an
 /// unassigned file relative to the project folder), Qt::UserRole + 1 the item type: "document",
@@ -91,17 +98,30 @@ public:
     static QString iconIdOf(const core::BookTypeRegistry& registry,
                             const core::ProjectElement& element);
 
-    /// @brief New index of the element at @p from of a list when it is dropped above the
-    /// element at @p target of the list, or below it (@p below)
-    /// @return The index; -1 when the element stays where it is
-    static int dropIndex(int from, int target, bool below);
+    /// @brief Where an element is dropped, as the line or the frame of the tree shows it
+    enum class DropSpot {
+        Above,  ///< Above an item
+        Below,  ///< Below an item
+        On,     ///< On an item that takes elements: a section of the book or a group
+    };
 
-    /// @brief New index of the element of item @p dragged in its list when it is dropped above
-    /// item @p target, or below it (@p below)
-    /// @return The index; -1 when @p target is not in the same list (a section of the book or
-    ///         a group) or the element stays where it is
-    static int dropIndexOf(const QTreeWidgetItem* dragged, const QTreeWidgetItem* target,
-                           bool below);
+    /// @brief The place of the element of item @p dragged when it is dropped at @p spot of item
+    /// @p target, in @p project without the element (core::ProjectManager::moveElementTo())
+    ///
+    /// Above or below an element, the element goes to the line between the items, also in
+    /// another group or section; below a group that shows its elements, first in the group,
+    /// else after it. On a section or a group, it goes where an element of its kind is added
+    /// there: a chapter before the epilogue. In a book without sections, the line between the
+    /// last element of a section and the first one of the next is in both of them: the
+    /// element goes to the first one that can have it. The element goes only where its kind can
+    /// be (core::BookProject::movePlacesOf()).
+    /// @param registry Kinds of the elements
+    /// @return The place; none when the element cannot go there or stays where it is
+    static std::optional<core::ElementPlace> dropPlaceOf(const core::BookProject& project,
+                                                         const core::BookTypeRegistry& registry,
+                                                         const QTreeWidgetItem* dragged,
+                                                         const QTreeWidgetItem* target,
+                                                         DropSpot spot);
 
     /// @brief Clear tree (when no document is loaded)
     void clearDocument();
@@ -207,11 +227,21 @@ signals:
     /// @param direction -1 for up, +1 for down
     void requestMoveElement(const QString& elementId, int direction);
 
-    /// @brief Emitted when an element is dragged to another place of its list
+    /// @brief Emitted when an element is moved to the start or the end of its list (Move to
+    /// Start, Move to End)
     /// @param elementId Element ID
     /// @param index Its new index in its list (a part of the book or a group)
-    /// @note The tree does not change; it shows the new order once it is loaded again
     void elementMoved(const QString& elementId, int index);
+
+    /// @brief Emitted when an element is dragged to another place of the book
+    /// @param elementId Element ID
+    /// @param place Its new place, in the book without it (dropPlaceOf())
+    /// @note The tree does not change; it shows the new order once it is loaded again
+    void elementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place);
+
+    /// @brief Request to choose a new place of an element in the book (Move...)
+    /// @param elementId Element ID
+    void requestMoveTo(const QString& elementId);
 
     /// @brief Request to show properties dialog
     /// @param elementId Element ID (empty for document properties)
@@ -315,10 +345,9 @@ private:
     /// @return Icon ID for ArtProvider (e.g., "common.folder", "template.chapter")
     QString getIconIdForType(const QString& elementType) const;
 
-    /// @brief Add the items of @p elements of section @p place, and of the elements inside
-    /// them, under @p parent
+    /// @brief Add the items of @p elements, and of the elements inside them, under @p parent
     void addElementItems(QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements,
-                         const core::BookTypeRegistry& registry, core::BookPlace place);
+                         const core::BookTypeRegistry& registry);
 
     /// @brief Title of an element as the tree shows it: "*" when it has unsaved changes, and
     /// for a text element its status when it is not final ("Chapter 1 [Draft]")

@@ -1273,6 +1273,44 @@ bool ProjectManager::moveElement(const QString& elementId, qsizetype index) {
     return true;
 }
 
+QList<ElementPlace> ProjectManager::movePlacesOf(const QString& elementId) const {
+    return m_project ? m_project->movePlacesOf(bookTypes(), elementId) : QList<ElementPlace>{};
+}
+
+bool ProjectManager::canMoveTo(const QString& elementId, const ElementPlace& to) const {
+    return movePlacesOf(elementId).contains(to);
+}
+
+bool ProjectManager::moveElementTo(const QString& elementId, const ElementPlace& to) {
+    auto& logger = Logger::getInstance();
+    const std::optional<ElementPlace> from =
+        m_project ? m_project->placeOf(elementId) : std::nullopt;
+    if (!from) {
+        logger.warn("moveElementTo: The project has no element {}", elementId.toStdString());
+        return false;
+    }
+    if (*from == to) {
+        return true;  // It is there
+    }
+    const std::string where = to.groupId.isEmpty() ? bookPlaceName(to.place).toStdString()
+                                                   : to.groupId.toStdString();
+
+    // The project as it was comes back when the change cannot be saved
+    const BookProject previous = *m_project;
+    if (!m_project->moveElementTo(bookTypes(), elementId, to)) {
+        logger.warn("moveElementTo: {} cannot go to place {} of {}", elementId.toStdString(),
+                    to.index, where);
+        return false;
+    }
+    if (!saveManifest()) {
+        *m_project = previous;
+        return false;
+    }
+    logger.info("moveElementTo: Moved {} to place {} of {}", elementId.toStdString(), to.index,
+                where);
+    return true;
+}
+
 qsizetype ProjectManager::startIndexOf(const QString& elementId) const {
     qsizetype from = -1;
     const QList<ProjectElement>* list =

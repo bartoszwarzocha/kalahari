@@ -241,7 +241,8 @@ signals:
     /// @brief Emitted when info bar is dismissed
     void infoBarDismissed();
 
-    /// @brief Emitted when an element is dragged to another place of its list in the navigator
+    /// @brief Emitted when an element is moved to the start or the end of its list in the
+    /// navigator (Move to Start, Move to End)
     /// @param elementId Element ID
     /// @param index Its new index in its list
     void elementMoved(const QString& elementId, int index);

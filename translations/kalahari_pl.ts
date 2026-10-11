@@ -3464,14 +3464,6 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>W innym miejscu – wskaż je na liście</translation>
     </message>
     <message>
-        <source>Move the element up</source>
-        <translation>Przesuń element wyżej</translation>
-    </message>
-    <message>
-        <source>Move the element down</source>
-        <translation>Przesuń element niżej</translation>
-    </message>
-    <message>
         <source>&quot;%1&quot; will no longer be the first element %2.</source>
         <translation>Element „%1” przestanie być pierwszy %2.</translation>
     </message>
@@ -3504,12 +3496,20 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>%1 i %2</translation>
     </message>
     <message>
-        <source>Click the element it is to go before</source>
-        <translation>Kliknij element, przed którym ma się znaleźć nowy element</translation>
+        <source>Move the {kind} up</source>
+        <translation>Przesuń {kind:accusative} w górę</translation>
     </message>
     <message>
-        <source>Click the element it is to go before, or move it with the buttons %1.</source>
-        <translation>Kliknij element, przed którym ma się znaleźć nowy element, albo przesuń go przyciskami %1.</translation>
+        <source>Move the {kind} down</source>
+        <translation>Przesuń {kind:accusative} w dół</translation>
+    </message>
+    <message>
+        <source>Click the element the {kind} {kind:s=is|p=are} to go before</source>
+        <translation>Kliknij element, przed którym {kind:s=ma|p=mają} się znaleźć {kind}</translation>
+    </message>
+    <message>
+        <source>Click the element the {kind} {kind:s=is|p=are} to go before, or move {kind:s=it|p=them} with the buttons %1.</source>
+        <translation>Kliknij element, przed którym {kind:s=ma|p=mają} się znaleźć {kind}, albo przesuń {kind:m=go|f=ją|n=je|p=je} przyciskami %1.</translation>
     </message>
 </context>
 <context>
@@ -4059,6 +4059,18 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
         <source>Files deleted: %1</source>
         <translation>Usunięto pliki: %1</translation>
     </message>
+    <message>
+        <source>Move {Kind} Failed</source>
+        <translation>Nie udało się przenieść {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>The changes in the book could not be saved. The program&apos;s log has the details.</source>
+        <translation>Nie udało się zapisać zmian w książce. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>{Kind} moved: %1</source>
+        <translation>Przeniesiono {kind:accusative}: %1</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
@@ -4239,6 +4251,14 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
     <message>
         <source>Delete All...</source>
         <translation>Usuń wszystkie...</translation>
+    </message>
+    <message>
+        <source>Move...</source>
+        <translation>Przenieś...</translation>
+    </message>
+    <message>
+        <source>The program does not have the package of this element&apos;s kind.</source>
+        <translation>Program nie ma pakietu, z którego pochodzi rodzaj tego elementu.</translation>
     </message>
 </context>
 <context>
@@ -5965,6 +5985,53 @@ Harmonogram projektu:
     <message>
         <source>Hide &amp;Details</source>
         <translation>Ukryj &amp;szczegóły</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::MoveElementDialog</name>
+    <message>
+        <source>Move &quot;%1&quot;</source>
+        <translation>Przenieś „%1”</translation>
+    </message>
+    <message>
+        <source>Choose the new place. The list shows the {kind} where {kind:s=it goes|p=they go}.</source>
+        <translation>Wybierz nowe miejsce. Lista pokazuje {kind:accusative} tam, gdzie {kind:s=trafi|p=trafią}.</translation>
+    </message>
+    <message>
+        <source>Move</source>
+        <translation>Przenieś</translation>
+    </message>
+    <message>
+        <source>Current place: %1.</source>
+        <translation>Obecne miejsce: %1.</translation>
+    </message>
+    <message>
+        <source>in the {group} &quot;%1&quot;</source>
+        <translation>w {group:locative} „%1”</translation>
+    </message>
+    <message>
+        <source>at the end of the {group} &quot;%1&quot;</source>
+        <translation>na końcu {group:genitive} „%1”</translation>
+    </message>
+    <message>
+        <source>at the start of the {group} &quot;%1&quot;</source>
+        <translation>na początku {group:genitive} „%1”</translation>
+    </message>
+    <message>
+        <source>in the {group} &quot;%1&quot;, before &quot;%2&quot;</source>
+        <translation>w {group:locative} „%1”, przed elementem „%2”</translation>
+    </message>
+    <message>
+        <source>%1, before &quot;%2&quot;</source>
+        <translation>%1, przed elementem „%2”</translation>
+    </message>
+    <message>
+        <source>First in the {group} &quot;%1&quot;</source>
+        <translation>Jako pierwszy element {group:genitive} „%1”</translation>
+    </message>
+    <message>
+        <source>Last in the {group} &quot;%1&quot;</source>
+        <translation>Jako ostatni element {group:genitive} „%1”</translation>
     </message>
 </context>
 <context>
