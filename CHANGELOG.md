@@ -580,6 +580,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with its text and mode, the next or the previous match is selected, and the cursor stays in
   the text; without a text to search for, F3 opens the bar to type one, as before.
 
+- **Find bar: over the text, and from the keyboard** - 2026-10-11. The bar had no
+  background of its own: the text scrolled under it showed between its fields and over the
+  number of matches. It now covers the text under it, and a match the view scrolls to is
+  shown below the bar, not under it (Find Previous put it at the top of the view, under the
+  bar). Tab goes from the search text to the replacement and its buttons, then to the
+  options, the arrows and Close, as in Word's Find and Replace (it went through the six
+  buttons of the search row first); Enter presses the button with the cursor, as Space does
+  (it did nothing).
+
+- **Find bar: undoing a replacement** - 2026-10-11. Undoing Replace All put the cursor at
+  the start of the chapter, far from where the writer was. Undoing a replacement now brings
+  back the cursor and selection it was made with (the replaced match is selected again, and
+  the next Replace replaces it), and redoing it puts the cursor at the end of the replaced
+  text.
+
 - **Editor: Replace All in a long chapter** - 2026-10-11. After an edit of many paragraphs
   at once (Replace All, a long paste), the paragraphs waiting to be laid out again kept the
   lines of their old text, and a cursor placed in a paragraph that got shorter read past its

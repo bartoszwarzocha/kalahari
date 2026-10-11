@@ -16,6 +16,7 @@
 
 #include <QAbstractTextDocumentLayout>
 #include <QApplication>
+#include <QColor>
 #include <QDragLeaveEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
@@ -28,6 +29,7 @@
 #include <QMenuBar>
 #include <QMimeData>
 #include <QMouseEvent>
+#include <QPalette>
 #include <QPushButton>
 #include <QScrollBar>
 #include <QStringList>
@@ -747,6 +749,219 @@ TEST_CASE("Stage3 find: after Replace All the last replacement is in the view",
     const QRectF caret = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
     CHECK(caret.top() >= 0.0);
     CHECK(caret.bottom() <= editor->height());
+}
+
+TEST_CASE("Stage3 find: undoing a replacement brings back the cursor it was made with",
+          "[editor][stage3][search]") {
+    // Regression: after undoing Replace All the cursor went to the start of the chapter, where
+    // Qt puts it after undoing changes at many places, far from where the writer was
+    auto editor = editorWith(kWords);
+    editor->showFindReplace();
+    auto* bar = findBar(*editor);
+    REQUIRE(bar != nullptr);
+    QLineEdit* replaceField = replaceFieldOf(*bar);
+    QPushButton* replace = buttonOf(*bar, QStringLiteral("Replace"));
+    QPushButton* replaceAll = buttonOf(*bar, QStringLiteral("Replace All"));
+    REQUIRE(replaceField != nullptr);
+    REQUIRE(replace != nullptr);
+    REQUIRE(replaceAll != nullptr);
+    bar->setSearchText(QStringLiteral("word"));
+    replaceField->setText(QStringLiteral("term"));
+    const QString replaced =
+        QStringLiteral("One term, then another term.\nNo match here.\nThe last term.");
+
+    SECTION("Replace All: undone, the cursor where it was; redone, after the last one") {
+        editor->setCursorPosition({1, 3});  // "No |match here."
+        replaceAll->click();
+        REQUIRE(editor->plainText() == replaced);
+        REQUIRE(editor->cursorPosition() == CursorPosition{2, 13});
+
+        editor->undo();
+        CHECK(editor->toKml() == kWords);
+        CHECK(editor->cursorPosition() == CursorPosition{1, 3});
+        CHECK_FALSE(editor->hasSelection());
+
+        editor->redo();
+        CHECK(editor->plainText() == replaced);
+        CHECK(editor->cursorPosition() == CursorPosition{2, 13});
+        CHECK_FALSE(editor->hasSelection());
+    }
+
+    SECTION("Replace All with a match selected: undone, the match is selected again") {
+        editor->findNext();
+        editor->findNext();
+        REQUIRE(editor->selection().normalized().start == CursorPosition{0, 23});
+        replaceAll->click();
+
+        editor->undo();
+        CHECK(editor->toKml() == kWords);
+        CHECK(editor->selection().normalized().start == CursorPosition{0, 23});
+        CHECK(editor->selection().normalized().end == CursorPosition{0, 27});
+    }
+
+    SECTION("Replace: undone, the match is selected again and replaced by the next Replace") {
+        replace->click();  // selects the first match
+        replace->click();
+        REQUIRE(editor->plainText().startsWith(QStringLiteral("One term, then another word.")));
+
+        editor->undo();
+        CHECK(editor->toKml() == kWords);
+        CHECK(editor->selection().normalized().start == CursorPosition{0, 4});
+        CHECK(editor->selection().normalized().end == CursorPosition{0, 8});
+
+        editor->redo();
+        CHECK(editor->plainText().startsWith(QStringLiteral("One term, then another word.")));
+        CHECK(editor->cursorPosition() == CursorPosition{0, 8});
+        CHECK_FALSE(editor->hasSelection());
+
+        editor->undo();
+        replace->click();
+        CHECK(editor->plainText().startsWith(QStringLiteral("One term, then another word.")));
+    }
+}
+
+TEST_CASE("Stage3 find: the bar covers the text under it", "[editor][stage3][search]") {
+    // Regression: the bar had no background of its own, and the text scrolled under it
+    // showed between its fields and over the number of matches
+    auto editor = editorWith(kWords);
+    editor->showFindReplace();
+    auto* bar = findBar(*editor);
+    REQUIRE(isShown(bar));
+    QPalette palette = bar->palette();
+    palette.setColor(QPalette::Window, QColor(1, 2, 3));
+    bar->setPalette(palette);
+
+    QImage image(editor->size(), QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    editor->render(&image);
+
+    // The margin of the bar, left of its first field
+    CHECK(image.pixelColor(2, bar->height() / 2) == QColor(1, 2, 3));
+}
+
+TEST_CASE("Stage3 find: a match is shown below the bar and not under it",
+          "[editor][stage3][search]") {
+    // Regression: a match the view scrolled up to stood at the top of the view, under the bar
+    QStringList paragraphs;
+    for (int i = 0; i < 200; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1 with enough words to wrap onto a second line "
+                                     "in a window of this width, so the heights matter.").arg(i);
+    }
+    paragraphs[100] = QStringLiteral("The needle is here.");
+    auto editor = editorWith(kmlOf(paragraphs));
+    editor->showFindReplace();
+    auto* bar = findBar(*editor);
+    REQUIRE(bar != nullptr);
+    bar->setSearchText(QStringLiteral("needle"));
+    editor->setCursorPosition({199, 0});  // the view at the end of the text
+
+    editor->findPrevious();
+
+    REQUIRE(editor->selection().normalized().start == CursorPosition{100, 4});
+    const QRectF caret = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+    CHECK(caret.top() >= bar->geometry().bottom());
+    CHECK(caret.bottom() <= editor->height());
+}
+
+TEST_CASE("Stage3 find: Tab goes from the search text to the replacement",
+          "[editor][stage3][search]") {
+    // As in Word's Find and Replace: the fields, the replace buttons, then the options, the
+    // arrows and Close (regression: Tab went through the six buttons of the search row first)
+    FindReplaceBar bar;
+    bar.showFindReplace();
+    QLineEdit* search = nullptr;
+    for (QLineEdit* input : bar.findChildren<QLineEdit*>()) {
+        if (input->placeholderText() == QStringLiteral("Find...")) {
+            search = input;
+        }
+    }
+    REQUIRE(search != nullptr);
+
+    // The widgets of the bar that Tab goes to, by their texts or tooltips
+    QStringList order;
+    QWidget* widget = search;
+    do {
+        if ((widget->focusPolicy() & Qt::TabFocus) != 0 && bar.isAncestorOf(widget)) {
+            if (const auto* input = qobject_cast<QLineEdit*>(widget)) {
+                order << input->placeholderText();
+            } else if (const auto* button = qobject_cast<QAbstractButton*>(widget)) {
+                order << (button->text().isEmpty() ? button->toolTip() : button->text());
+            }
+        }
+        widget = widget->nextInFocusChain();
+    } while (widget != search && order.size() < 20);
+
+    CHECK(order == QStringList{QStringLiteral("Find..."), QStringLiteral("Replace..."),
+                               QStringLiteral("Replace"), QStringLiteral("Replace All"),
+                               QStringLiteral("Aa"), QStringLiteral("W"), QStringLiteral(".*"),
+                               QStringLiteral("Previous Match (Shift+Enter)"),
+                               QStringLiteral("Next Match (Enter)"),
+                               QStringLiteral("Close (Escape)")});
+}
+
+TEST_CASE("Stage3 find: Enter presses the button of the bar with the keys",
+          "[editor][stage3][search]") {
+    // As Space does, and as on the buttons of Word's Find and Replace (regression: the bar
+    // took Enter from its buttons, and nothing happened)
+    auto editor = editorWith(kWords);
+    editor->showFindReplace();
+    auto* bar = findBar(*editor);
+    REQUIRE(bar != nullptr);
+    bar->setSearchText(QStringLiteral("word"));
+    QLineEdit* replaceField = replaceFieldOf(*bar);
+    QPushButton* replaceAll = buttonOf(*bar, QStringLiteral("Replace All"));
+    REQUIRE(replaceField != nullptr);
+    REQUIRE(replaceAll != nullptr);
+    replaceField->setText(QStringLiteral("term"));
+    QToolButton* matchCase = nullptr;
+    QToolButton* next = nullptr;
+    QToolButton* close = nullptr;
+    for (QToolButton* button : bar->findChildren<QToolButton*>()) {
+        if (button->text() == QStringLiteral("Aa")) {
+            matchCase = button;
+        } else if (button->toolTip() == QStringLiteral("Next Match (Enter)")) {
+            next = button;
+        } else if (button->toolTip() == QStringLiteral("Close (Escape)")) {
+            close = button;
+        }
+    }
+    REQUIRE(matchCase != nullptr);
+    REQUIRE(next != nullptr);
+    REQUIRE(close != nullptr);
+    const auto press = [](QWidget* widget, int key, Qt::KeyboardModifiers modifiers = {}) {
+        QKeyEvent event(QEvent::KeyPress, key, modifiers);
+        QCoreApplication::sendEvent(widget, &event);
+    };
+    const QString replaced =
+        QStringLiteral("One term, then another term.\nNo match here.\nThe last term.");
+
+    SECTION("Replace All") {
+        press(replaceAll, Qt::Key_Return);
+        CHECK(editor->plainText() == replaced);
+    }
+
+    SECTION("Replace All, with Enter of the keypad") {
+        press(replaceAll, Qt::Key_Enter, Qt::KeypadModifier);
+        CHECK(editor->plainText() == replaced);
+    }
+
+    SECTION("Next Match") {
+        press(next, Qt::Key_Return);
+        CHECK(editor->selection().normalized().start == CursorPosition{0, 4});
+        CHECK(editor->toKml() == kWords);
+    }
+
+    SECTION("Close") {
+        press(close, Qt::Key_Return);
+        CHECK_FALSE(isShown(bar));
+        CHECK(editor->toKml() == kWords);
+    }
+
+    SECTION("an option, as a check box, is turned on and off by Space, not by Enter") {
+        press(matchCase, Qt::Key_Return);
+        CHECK_FALSE(matchCase->isChecked());
+        CHECK(editor->toKml() == kWords);
+    }
 }
 
 TEST_CASE("Stage3 find: the options have the keys their tooltips show",

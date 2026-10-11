@@ -195,13 +195,15 @@ public:
 
     /// @brief Replace current match with replacement text and go on to the next match
     ///
-    /// The edit goes straight into the document, so its native undo records it.
+    /// The edit goes straight into the document as one undo step (see
+    /// replacementStepBegun()).
     /// @return true if replacement was made
     bool replaceCurrent();
 
     /// @brief Replace all matches with replacement text
     ///
-    /// The edit goes straight into the document as one undo step.
+    /// The edit goes straight into the document as one undo step (see
+    /// replacementStepBegun()).
     /// @return Number of replacements made
     int replaceAll();
 
@@ -237,6 +239,19 @@ signals:
     /// @brief Emitted when search text changes
     /// @param text The new search text
     void searchTextChanged(const QString& text);
+
+    /// @brief Emitted when the undo step of a replacement has begun, before its edits
+    ///
+    /// What is added to the document's undo stack now joins the step and is undone last
+    /// (BookEditor records there the cursor undoing the step brings back).
+    void replacementStepBegun();
+
+    /// @brief Emitted when the edits of a replacement are made and its undo step is still
+    /// open (replacementEnd() is where the replaced text ends)
+    ///
+    /// What is added to the document's undo stack now joins the step and is redone last
+    /// (BookEditor records there the cursor redoing the step brings back).
+    void replacementStepEnding();
 
 private:
     /// @brief Rebuild match cache from buffer

@@ -4,6 +4,8 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/find_replace_bar.h>
+#include <kalahari/editor/search_engine.h>
+#include "book_editor_internal.h"
 #include <QScrollBar>
 #include <QTextBlock>
 
@@ -42,6 +44,19 @@ void BookEditor::setupFindReplace()
             this, [this]() { setFocus(); });
     connect(m_searchEngine.get(), &SearchEngine::matchesChanged,
             this, [this]() { update(); });  // Repaint on match change
+
+    // Undoing a replacement brings back the cursor and selection it was made with, redoing
+    // it the cursor at the end of the replaced text: after undoing Replace All QTextDocument
+    // would put the cursor at the start of the text. Of the step's undo items, the first is
+    // undone last and the last redone last.
+    connect(m_searchEngine.get(), &SearchEngine::replacementStepBegun, this, [this]() {
+        m_searchEngine->document()->appendUndoItem(new CallbackUndoItem(
+            [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+    });
+    connect(m_searchEngine.get(), &SearchEngine::replacementStepEnding, this, [this]() {
+        m_searchEngine->document()->appendUndoItem(new CallbackUndoItem(
+            [this, state = StepCursor{replacedTextEnd(), {}}] { m_stepCursor = state; }));
+    });
     syncSearchOrigin();
 }
 
@@ -179,18 +194,22 @@ void BookEditor::onNavigateToMatch(const SearchMatch& match)
     update();
 }
 
+CursorPosition BookEditor::replacedTextEnd() const
+{
+    const int end = m_searchEngine ? m_searchEngine->replacementEnd() : -1;
+    const QTextBlock block =
+        end >= 0 && m_textBuffer ? m_textBuffer->findBlock(end) : QTextBlock();
+    return block.isValid() ? CursorPosition{block.blockNumber(), end - block.position()}
+                           : m_cursorPosition;
+}
+
 void BookEditor::onTextReplaced()
 {
     // The cursor goes to the end of the replaced text, after Replace All to the end of the
     // last replacement: where it stood, at the end of the match, the replacement may be
     // longer or shorter, and the cursor would land inside a word
     clearSelection();
-    const int end = m_searchEngine ? m_searchEngine->replacementEnd() : -1;
-    const QTextBlock block = end >= 0 && m_textBuffer ? m_textBuffer->findBlock(end) : QTextBlock();
-    if (block.isValid()) {
-        m_cursorPosition = {block.blockNumber(), end - block.position()};
-    }
-    m_cursorPosition = validateCursorPosition(m_cursorPosition);
+    m_cursorPosition = validateCursorPosition(replacedTextEnd());
 
     ensureCursorVisible();
     syncPipelineCursor();

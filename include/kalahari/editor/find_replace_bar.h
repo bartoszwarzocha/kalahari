@@ -16,6 +16,7 @@
 #include <QWidget>
 #include <QString>
 
+class QAbstractButton;
 class QHBoxLayout;
 class QKeyEvent;
 class QLabel;
@@ -190,6 +191,10 @@ private:
     /// @brief Whether the options' keys work in a widget: the bar, a widget in it, or the
     ///        text under it (the editor the bar belongs to)
     bool takesOptionKeys(const QObject* watched) const;
+
+    /// @brief The buttons Enter presses when they have the keys, as Space does: all but
+    ///        the options, which are check boxes
+    QList<QAbstractButton*> enterButtons() const;
 
     // =========================================================================
     // UI Components - Row 1 (Find)

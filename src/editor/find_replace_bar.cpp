@@ -7,6 +7,7 @@
 #include "kalahari/editor/search_engine.h"
 #include "kalahari/editor/text_keys.h"
 
+#include <QAbstractButton>
 #include <QCoreApplication>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -27,6 +28,8 @@ namespace kalahari::editor {
 FindReplaceBar::FindReplaceBar(QWidget* parent)
     : QWidget(parent)
 {
+    // The bar lies over the top of the text: its own background hides the text under it
+    setAutoFillBackground(true);
     setupUi();
     createShortcuts();
     createConnections();
@@ -159,6 +162,16 @@ void FindReplaceBar::setupUi()
     // Set fixed height for compact appearance
     setMaximumHeight(70);
 
+    // Tab goes from the search text to the replacement and its buttons, then to the
+    // options, the arrows and Close, as in Word's Find and Replace (the replace row is
+    // skipped while it is hidden)
+    const QList<QWidget*> tabOrder = {m_searchInput, m_replaceInput, m_replaceBtn,
+                                      m_replaceAllBtn, m_caseSensitiveBtn, m_wholeWordBtn,
+                                      m_regexBtn, m_prevBtn, m_nextBtn, m_closeBtn};
+    for (qsizetype i = 1; i < tabOrder.size(); ++i) {
+        setTabOrder(tabOrder.at(i - 1), tabOrder.at(i));
+    }
+
     // Initial button states
     updateButtonStates();
 }
@@ -194,6 +207,11 @@ QToolButton* FindReplaceBar::optionFor(const QKeyEvent* event) const
     return option >= 0 && option < options.size() ? options.at(option) : nullptr;
 }
 
+QList<QAbstractButton*> FindReplaceBar::enterButtons() const
+{
+    return {m_prevBtn, m_nextBtn, m_closeBtn, m_replaceBtn, m_replaceAllBtn};
+}
+
 bool FindReplaceBar::takesOptionKeys(const QObject* watched) const
 {
     if (!watched->isWidgetType()) {
@@ -212,6 +230,9 @@ void FindReplaceBar::createConnections()
     // Enter: eventFilter()
     m_searchInput->installEventFilter(this);
     m_replaceInput->installEventFilter(this);
+    for (QAbstractButton* button : enterButtons()) {
+        button->installEventFilter(this);
+    }
 
     // Option toggles
     connect(m_caseSensitiveBtn, &QToolButton::toggled,
@@ -340,6 +361,21 @@ bool FindReplaceBar::eventFilter(QObject* watched, QEvent* event)
                 option->toggle();
             }
             keyEvent->accept();
+            return true;
+        }
+    }
+
+    // Enter presses the button with the keys, as Space does: Qt presses a button with Enter
+    // only in a dialog, and the bar takes the keys its buttons leave unused
+    if (event->type() == QEvent::KeyPress) {
+        const auto* keyEvent = static_cast<QKeyEvent*>(event);
+        auto* button = qobject_cast<QAbstractButton*>(watched);
+        const bool enter = keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter;
+        if (enter && (keyEvent->modifiers() & ~Qt::KeypadModifier) == Qt::NoModifier &&
+            button != nullptr && enterButtons().contains(button)) {
+            if (!keyEvent->isAutoRepeat() && button->isEnabled()) {
+                button->click();
+            }
             return true;
         }
     }

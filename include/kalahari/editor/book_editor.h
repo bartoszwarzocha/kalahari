@@ -1100,8 +1100,10 @@ private:
     /// @brief Align the paragraph at the cursor, or the selected ones, as one undo step
     void setParagraphAlignment(Qt::Alignment alignment);
 
-    /// @brief Put back the cursor and selection a step that changes no text (a paragraph
-    /// format step, a step of annotations) just undone or redone was made with
+    /// @brief Put back the cursor and selection the undo step just undone or redone
+    /// recorded: the ones a step that changes no text (a paragraph format step, a step of
+    /// annotations) was made with; for a replacement those before it when it is undone,
+    /// the end of the replaced text when it is redone
     void restoreStepCursor();
 
     /// @brief Start an undo step of annotations, or join the last undo step
@@ -1533,14 +1535,14 @@ private:
     /// @brief QTextCursor for direct cursor operations (Phase 11.6)
     QTextCursor m_textCursor;
 
-    /// @brief Cursor and selection a step that changes no text was made with
+    /// @brief Cursor and selection an undo step brings back (restoreStepCursor())
     struct StepCursor {
         CursorPosition cursor;
         SelectionRange selection;
     };
 
-    /// @brief Set by the undo item of a step that changes no text being undone or redone
-    /// (see setParagraphAlignment() and beginAnnotationStep())
+    /// @brief Set by the undo items of a step being undone or redone (see
+    /// setParagraphAlignment(), beginAnnotationStep() and setupFindReplace())
     std::optional<StepCursor> m_stepCursor;
 
     /// @brief Create the document with the given content and connect it to the view
@@ -1605,6 +1607,10 @@ private:
     /// Replacements edit the document directly, outside the editor's own editing
     /// operations: keep the cursor inside the changed text and emit contentChanged().
     void onTextReplaced();
+
+    /// @brief Where the text put in by the last replacement ends (after Replace All, the
+    /// last replacement in the text), or the cursor if nothing was replaced
+    CursorPosition replacedTextEnd() const;
 };
 
 }  // namespace kalahari::editor

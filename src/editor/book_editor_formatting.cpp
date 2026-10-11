@@ -123,7 +123,8 @@ void BookEditor::setParagraphAlignment(Qt::Alignment alignment)
 
 void BookEditor::restoreStepCursor()
 {
-    // The step changed no text, so its cursor and selection fit the text on both sides of it
+    // A step that changed no text has one cursor and selection for both sides of it; a
+    // replacement recorded its own for each side
     if (m_stepCursor) {
         m_cursorPosition = validateCursorPosition(m_stepCursor->cursor);
         setSelection(m_stepCursor->selection);
