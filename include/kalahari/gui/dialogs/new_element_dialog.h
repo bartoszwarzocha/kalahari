@@ -129,6 +129,10 @@ private:
     /// @brief The sentence of the heading: where an element of the chosen kind goes
     void updateDescription();
 
+    /// @brief A dialog on the screen takes the height of what it shows now: with the list of
+    /// places or without it
+    void fitToContent();
+
     /// @brief The words of an option for @p place of an element with no position: "At the end
     /// of the main section, after "Part One"", "Before "Epilogue", at the end of "Part One""
     QString placeText(const core::ElementPlace& place) const;

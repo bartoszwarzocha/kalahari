@@ -6,6 +6,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/widgets/element_place_picker.h"
+#include "kalahari/gui/widgets/fitting_scroll_area.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -302,11 +303,7 @@ void NewElementDialog::updatePlaces()
     m_picker->setVisible(m_choosing);
     contentLayout()->setStretch(m_pickerStretch, m_choosing ? 0 : 1);
     updateDescription();
-
-    // A dialog on the screen takes the height of what it shows now
-    if (isVisible()) {
-        adjustSize();
-    }
+    fitToContent();
 }
 
 void NewElementDialog::updatePart()
@@ -389,10 +386,7 @@ void NewElementDialog::updatePart()
     m_previewNote->setVisible(shown);
     contentLayout()->setStretch(m_pickerStretch, shown ? 0 : 1);
     updateDescription();
-
-    if (isVisible()) {
-        adjustSize();
-    }
+    fitToContent();
 }
 
 void NewElementDialog::updateDescription()
@@ -517,6 +511,19 @@ void NewElementDialog::updateDescription()
         break;
     }
     setHeading(heading, description);
+}
+
+void NewElementDialog::fitToContent()
+{
+    auto* area = findChild<FittingScrollArea*>(QString(), Qt::FindDirectChildrenOnly);
+    if (!isVisible() || !area) {
+        return;
+    }
+    // The area of the content and the layout of the dialog learn of the shown or hidden list
+    // only from the event loop: without them the dialog would ask for the height it had
+    area->updateGeometry();
+    layout()->activate();
+    resizeOnScreen(sizeHint());
 }
 
 QString NewElementDialog::placeText(const core::ElementPlace& place) const

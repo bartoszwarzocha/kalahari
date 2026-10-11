@@ -541,6 +541,46 @@ TEST_CASE("Navigator: the writer chooses where the prologue goes", "[gui][dialog
     CHECK(dialog.place() == mainAt(QString(), 0));
 }
 
+TEST_CASE("Navigator: the dialog grows when it shows the list of places", "[gui][dialogs]") {
+    // Regression: the window kept the height of a chapter, and the places of a prologue were
+    // hidden under the scroll bar of its content
+    const KindRef prologue = novelKind(QStringLiteral("prologue"));
+    const KindRef chapter = baseKind(QStringLiteral("chapter"));
+    REQUIRE(prologue);
+    REQUIRE(chapter);
+    NewElementDialog dialog(NewElementKind::Chapter,
+                            {{chapter, QStringLiteral("Chapter 5"), mainAt(QString(), 3)},
+                             {prologue, QStringLiteral("Prologue"), mainAt(QString(), 0)}});
+    setMain(dialog, novelBody());
+    dialog.show();
+    QApplication::processEvents();
+    auto* list = dialog.findChild<QTreeWidget*>();
+    auto* kinds = dialog.findChild<QComboBox*>();
+    auto* area = dialog.findChild<kalahari::gui::FittingScrollArea*>(
+        QString(), Qt::FindDirectChildrenOnly);
+    REQUIRE(list != nullptr);
+    REQUIRE(kinds != nullptr);
+    REQUIRE(area != nullptr);
+    REQUIRE_FALSE(list->isVisible());
+    const int before = dialog.height();
+
+    // The prologue: the window grows for the list; where the screen has room for all of it,
+    // the content does not scroll
+    kinds->setCurrentIndex(1);
+    QApplication::processEvents();
+    REQUIRE(list->isVisible());
+    CHECK(dialog.height() > before);
+    if (dialog.sizeHint().height() < dialog.screen()->availableGeometry().height() - 100) {
+        CHECK(dialog.height() == dialog.sizeHint().height());
+        CHECK_FALSE(area->verticalScrollBar()->isVisible());
+    }
+
+    // A chapter again: the height of a chapter
+    kinds->setCurrentIndex(0);
+    QApplication::processEvents();
+    CHECK(dialog.height() == before);
+}
+
 TEST_CASE("Navigator: the epilogue starts at the end of the part the dialog was opened on",
           "[gui][dialogs]") {
     const KindRef epilogueKind = novelKind(QStringLiteral("epilogue"));
