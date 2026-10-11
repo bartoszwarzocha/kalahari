@@ -97,11 +97,21 @@ public:
     /// @brief Parse command line arguments
     ///
     /// Parses the command line arguments according to the options
-    /// added with addSwitch(). If --help is specified, prints help
-    /// and returns false.
+    /// added with addSwitch(). If --help is specified, returns false and
+    /// helpRequested() is true: the caller shows helpText(). After an error
+    /// errorText() says what is wrong.
     ///
     /// @return true if parsing succeeded, false if error or help requested
     bool parse();
+
+    /// @brief --help was given: parse() returned false so that the caller shows the help
+    bool helpRequested() const { return m_helpRequested; }
+
+    /// @brief The help of all switches and options, as --help shows it
+    QString helpText() const;
+
+    /// @brief What is wrong with the command line after parse() failed
+    QString errorText() const;
 
     /// @brief Check if a switch was specified
     ///
@@ -164,6 +174,9 @@ private:
 
     /// @brief Tracks if parse() has been called
     bool m_parsed = false;
+
+    /// @brief --help was given
+    bool m_helpRequested = false;
 
     /// @brief List of added switch names (for validation)
     std::vector<QString> m_switches;

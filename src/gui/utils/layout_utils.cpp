@@ -5,6 +5,8 @@
 
 #include <QLayout>
 #include <QLayoutItem>
+#include <QScreen>
+#include <QSize>
 #include <QWidget>
 
 namespace kalahari {
@@ -31,6 +33,18 @@ void clearLayout(QLayout* layout) {
         // Delete the item itself (handles spacers too)
         delete item;
     }
+}
+
+void resizeWithinScreen(QWidget* window, const QSize& preferred) {
+    if (!window) {
+        return;
+    }
+    constexpr double SCREEN_SHARE = 0.9;   ///< Room left for the title bar and the taskbar
+    QSize size = preferred;
+    if (const QScreen* screen = window->screen()) {
+        size = size.boundedTo(screen->availableGeometry().size() * SCREEN_SHARE);
+    }
+    window->resize(size.expandedTo(window->minimumSize()));
 }
 
 } // namespace utils

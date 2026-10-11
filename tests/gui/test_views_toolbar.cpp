@@ -5,6 +5,8 @@
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/toolbar_manager.h"
 
@@ -15,10 +17,14 @@
 #include <QFile>
 #include <QImage>
 #include <QLabel>
+#include <QLineEdit>
+#include <QListWidget>
 #include <QMainWindow>
 #include <QMenu>
 #include <QPainter>
+#include <QPushButton>
 #include <QSvgRenderer>
+#include <QTimer>
 #include <QToolBar>
 
 using namespace kalahari::gui;
@@ -262,4 +268,50 @@ TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too", 
     // Next to the Assistant panel, with which it shares the tabs on the right
     CHECK(actions.indexOf(registry.getAction(std::string("view.annotations"))) ==
           actions.indexOf(registry.getAction(std::string("view.assistant"))) + 1);
+}
+
+TEST_CASE("Toolbar manager: a renamed toolbar stays selected", "[gui][toolbar]") {
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+
+    QMainWindow window;
+    ToolbarManager manager(&window);
+    manager.createToolbars(CommandRegistry::getInstance());
+    const QString id = manager.createUserToolbar(QStringLiteral("Mine"));
+
+    dialogs::ToolbarManagerDialog dialog(&manager, &window);
+    // The list of toolbars is the one that holds the new toolbar
+    QListWidget* list = nullptr;
+    for (QListWidget* candidate : dialog.findChildren<QListWidget*>()) {
+        for (int i = 0; i < candidate->count(); ++i) {
+            if (candidate->item(i)->data(Qt::UserRole).toString() == id) {
+                list = candidate;
+                list->setCurrentRow(i);
+            }
+        }
+    }
+    REQUIRE(list != nullptr);
+    QPushButton* rename = nullptr;
+    for (QPushButton* button : dialog.findChildren<QPushButton*>()) {
+        if (button->text() == QStringLiteral("Rename...")) {
+            rename = button;
+        }
+    }
+    REQUIRE(rename != nullptr);
+    REQUIRE(rename->isEnabled());
+
+    QTimer::singleShot(0, []() {
+        auto* input = qobject_cast<dialogs::TextInputDialog*>(QApplication::activeModalWidget());
+        REQUIRE(input != nullptr);
+        input->findChild<QLineEdit*>()->setText(QStringLiteral("Second"));
+        input->accept();
+    });
+    rename->click();
+
+    REQUIRE(list->currentItem() != nullptr);
+    CHECK(list->currentItem()->data(Qt::UserRole).toString() == id);
+    CHECK(list->currentItem()->text().endsWith(QStringLiteral("Second")));
+    CHECK(rename->isEnabled());
+
+    manager.deleteUserToolbar(id);
 }
