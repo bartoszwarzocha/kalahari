@@ -3,11 +3,11 @@
 
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/gui/dialogs/color_dialog.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <QColorDialog>
 
 namespace kalahari {
 namespace gui {
@@ -71,16 +71,12 @@ QColor ColorConfigWidget::color() const {
 }
 
 void ColorConfigWidget::onColorButtonClicked() {
-    // Open color dialog without alpha channel (standard RGB)
-    QColor newColor = QColorDialog::getColor(
-        m_color,
-        this,
-        tr("Select Color"),
-        QColorDialog::DontUseNativeDialog
-    );
+    // The program's own color window, without alpha (standard RGB); its heading names the setting
+    const std::optional<QColor> newColor =
+        dialogs::ColorDialog::getColor(m_color, this, m_label->text());
 
-    if (newColor.isValid() && newColor != m_color) {
-        m_color = newColor;
+    if (newColor && *newColor != m_color) {
+        m_color = *newColor;
         updateColorDisplay();
         emit colorChanged(m_color);
     }

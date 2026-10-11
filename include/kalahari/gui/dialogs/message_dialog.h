@@ -65,6 +65,10 @@ public:
     /// @param details Plain text; empty: no details and no Show Details button
     void setDetails(const QString& details);
 
+    /// @brief Show the text in a fixed-width font, without wrapping, for text laid out in
+    ///        columns (e.g. the command line help)
+    void setMonospaced(bool monospaced);
+
     /// @brief Turn the message into a question: show Cancel and name the accept button
     /// @param acceptText Text of the button that does the job (e.g. "&Delete")
     /// @param cancelText Text of Cancel; empty: "Cancel"
