@@ -48,6 +48,8 @@ class AnnotationCard;
 /// done (or brings it back), Delete removes it, the menu key or Shift+F10 opens its menu.
 /// Esc goes back to the text from anywhere in the panel; Down in the search goes to the
 /// list.
+///
+/// In a narrow panel (a small screen) the rows of buttons go on in the next row.
 class AnnotationsPanel : public QWidget {
     Q_OBJECT
 
@@ -227,6 +229,7 @@ private:
     QVBoxLayout* m_listLayout{nullptr};
     QLabel* m_emptyLabel{nullptr};
     QLabel* m_todoLabel{nullptr};
+    QWidget* m_todoButtons{nullptr};  ///< The previous and next to-do buttons
     QToolButton* m_previousTodoButton{nullptr};
     QToolButton* m_nextTodoButton{nullptr};
 };

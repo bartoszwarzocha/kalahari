@@ -278,8 +278,26 @@ TEST_CASE("Panels: every panel and the text fit a small screen side by side", "[
     QApplication::processEvents();
 
     const QSize needed = panels.window.minimumSizeHint();
-    CAPTURE(needed.width());
+    CAPTURE(needed.width(), needed.height());
     CHECK(needed.width() <= SMALL_SCREEN.width());
+    CHECK(needed.height() <= SMALL_SCREEN.height() - WINDOW_FRAME_HEIGHT);
+
+    SECTION("The panels on the right one under another") {
+        // Each panel keeps a few lines and scrolls, so the window is not higher than the
+        // screen
+        const QList<QDockWidget*> right = panels.rightDocks();
+        for (qsizetype i = 1; i < right.size(); ++i) {
+            panels.window.splitDockWidget(right.at(i - 1), right.at(i), Qt::Vertical);
+        }
+        for (QDockWidget* dock : right) {
+            dock->show();
+        }
+        QApplication::processEvents();
+        const QSize stacked = panels.window.minimumSizeHint();
+        CAPTURE(stacked.width(), stacked.height());
+        CHECK(stacked.width() <= SMALL_SCREEN.width());
+        CHECK(stacked.height() <= SMALL_SCREEN.height() - WINDOW_FRAME_HEIGHT);
+    }
 
     SECTION("The bar to find and replace fits the text") {
         panels.window.resize(SMALL_SCREEN.width(), SMALL_SCREEN.height() - WINDOW_FRAME_HEIGHT);

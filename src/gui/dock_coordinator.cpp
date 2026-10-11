@@ -13,6 +13,7 @@
 #include "kalahari/gui/panels/search_panel.h"
 #include "kalahari/gui/panels/assistant_panel.h"
 #include "kalahari/gui/panels/annotations_panel.h"
+#include "kalahari/gui/widgets/fitting_scroll_area.h"
 #include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/core/logger.h"
@@ -46,6 +47,18 @@ constexpr int SMALL_SCREEN_NAVIGATOR_PERCENT = 22;
 QRect screenArea(const QWidget* window) {
     const QScreen* screen = window->screen();
     return screen ? screen->availableGeometry() : QRect();
+}
+
+/// @brief Lines of text a panel keeps in a low window: the panels on the right one under
+/// another and the Log panel fit a small screen (1366x768 at 150%)
+constexpr int PANEL_MINIMUM_LINES = 3;
+
+/// @brief @p panel in a scroll area as large as the panel, for @p dock: in a lower dock its
+/// lists get lower first, then the panel scrolls
+FittingScrollArea* scrollingPanel(QWidget* panel, QDockWidget* dock) {
+    auto* area = new FittingScrollArea(panel, dock);
+    area->setMinimumLines(PANEL_MINIMUM_LINES);
+    return area;
 }
 
 } // anonymous namespace
@@ -241,7 +254,7 @@ void DockCoordinator::createPropertiesDock() {
 
     m_propertiesPanel = new PropertiesPanel(m_mainWindow);
     m_propertiesDock = new QDockWidget(QObject::tr("Properties"), m_mainWindow);
-    m_propertiesDock->setWidget(m_propertiesPanel);
+    m_propertiesDock->setWidget(scrollingPanel(m_propertiesPanel, m_propertiesDock));
     m_propertiesDock->setObjectName("PropertiesDock");
     setupDockTitleBar(m_propertiesDock, "view.properties", QObject::tr("Properties"));
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_propertiesDock);
@@ -259,7 +272,7 @@ void DockCoordinator::createLogDock() {
     // At startup, diagnostic mode is always false
     m_logPanel = new LogPanel(m_mainWindow, false);
     m_logDock = new QDockWidget(QObject::tr("Log"), m_mainWindow);
-    m_logDock->setWidget(m_logPanel);
+    m_logDock->setWidget(scrollingPanel(m_logPanel, m_logDock));
     m_logDock->setObjectName("LogDock");
     setupDockTitleBar(m_logDock, "view.log", QObject::tr("Log"));
     m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, m_logDock);
@@ -282,7 +295,7 @@ void DockCoordinator::createSearchDock() {
 
     m_searchPanel = new SearchPanel(m_mainWindow);
     m_searchDock = new QDockWidget(QObject::tr("Search"), m_mainWindow);
-    m_searchDock->setWidget(m_searchPanel);
+    m_searchDock->setWidget(scrollingPanel(m_searchPanel, m_searchDock));
     m_searchDock->setObjectName("SearchDock");
     setupDockTitleBar(m_searchDock, "view.search", QObject::tr("Search"));
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_searchDock);
@@ -295,7 +308,7 @@ void DockCoordinator::createAssistantDock() {
 
     m_assistantPanel = new AssistantPanel(m_mainWindow);
     m_assistantDock = new QDockWidget(QObject::tr("Assistant"), m_mainWindow);
-    m_assistantDock->setWidget(m_assistantPanel);
+    m_assistantDock->setWidget(scrollingPanel(m_assistantPanel, m_assistantDock));
     m_assistantDock->setObjectName("AssistantDock");
     setupDockTitleBar(m_assistantDock, "view.assistant", QObject::tr("Assistant"));
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_assistantDock);
@@ -308,7 +321,7 @@ void DockCoordinator::createAnnotationsDock() {
 
     m_annotationsPanel = new AnnotationsPanel(m_mainWindow);
     m_annotationsDock = new QDockWidget(QObject::tr("Annotations"), m_mainWindow);
-    m_annotationsDock->setWidget(m_annotationsPanel);
+    m_annotationsDock->setWidget(scrollingPanel(m_annotationsPanel, m_annotationsDock));
     m_annotationsDock->setObjectName("AnnotationsDock");
     setupDockTitleBar(m_annotationsDock, "view.annotations", QObject::tr("Annotations"));
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_annotationsDock);

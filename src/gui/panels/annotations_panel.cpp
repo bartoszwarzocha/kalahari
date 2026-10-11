@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/annotation_card.h"
+#include "kalahari/gui/widgets/flow_layout.h"
 #include "kalahari/core/theme.h"
 #include "kalahari/core/theme_manager.h"
 
@@ -178,8 +179,8 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
     connect(m_searchEdit, &QLineEdit::textChanged, this, &AnnotationsPanel::readFilters);
     layout->addWidget(m_searchEdit);
 
-    // Kinds: on or off, with their counts
-    auto* kinds = new QHBoxLayout();
+    // Kinds: on or off, with their counts; in more rows in a narrow panel
+    auto* kinds = new FlowLayout();
     kinds->setSpacing(5);
     for (std::size_t i = 0; i < m_kindButtons.size(); ++i) {
         QToolButton*& button = m_kindButtons.at(i);
@@ -192,7 +193,6 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
         connect(button, &QToolButton::toggled, this, &AnnotationsPanel::readFilters);
         kinds->addWidget(button);
     }
-    kinds->addStretch(1);
     layout->addLayout(kinds);
 
     // State
@@ -203,9 +203,14 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
     states->addStretch(1);
     layout->addLayout(states);
 
-    // Scope and date; the first button names the text in front (updateScopeText())
+    // Scope and date; the first button names the text in front (updateScopeText()). The date
+    // goes under the scope in a narrow panel
     m_scopeGroup = new QButtonGroup(this);
-    auto* scopeRow = choiceButtons(this, m_scopeGroup, {tr("File"), tr("Book")});
+    auto* scopeButtons = new QWidget(this);
+    QHBoxLayout* scopeLayout =
+        choiceButtons(scopeButtons, m_scopeGroup, {tr("File"), tr("Book")});
+    scopeLayout->setContentsMargins(0, 0, 0, 0);
+    scopeButtons->setLayout(scopeLayout);
     m_scopeGroup->button(static_cast<int>(AnnotationScope::Chapter))->setChecked(true);
     m_textScopeButton = m_scopeGroup->button(static_cast<int>(AnnotationScope::Chapter));
     m_bookScopeButton = m_scopeGroup->button(static_cast<int>(AnnotationScope::Book));
@@ -218,12 +223,15 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
             rebuild();
         }
     });
-    scopeRow->addSpacing(6);
     m_dateCombo = new QComboBox(this);
     m_dateCombo->addItems({tr("Date: any"), tr("Date: today"), tr("Date: last 7 days"),
                            tr("Date: last 30 days")});
+    m_dateCombo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);  // to the edge
     connect(m_dateCombo, &QComboBox::currentIndexChanged, this, &AnnotationsPanel::readFilters);
-    scopeRow->addWidget(m_dateCombo, 1);
+    auto* scopeRow = new FlowLayout();
+    scopeRow->setSpacing(6);
+    scopeRow->addWidget(scopeButtons);
+    scopeRow->addWidget(m_dateCombo);
     layout->addLayout(scopeRow);
 
     // Order (in the order of AnnotationSort)
@@ -254,25 +262,32 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
     m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     layout->addWidget(m_scrollArea, 1);
 
-    // To do: previous and next
-    auto* todoRow = new QHBoxLayout();
-    todoRow->setSpacing(6);
+    // To do: previous and next; the buttons go under the words in a narrow panel
     m_todoLabel = new QLabel(tr("To do:"), this);
     m_todoLabel->setObjectName(QStringLiteral("annotationSecondary"));
-    todoRow->addWidget(m_todoLabel);
-    m_previousTodoButton = new QToolButton(this);
+    m_todoButtons = new QWidget(this);
+    m_todoButtons->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    auto* todoButtonsLayout = new QHBoxLayout(m_todoButtons);
+    todoButtonsLayout->setContentsMargins(0, 0, 0, 0);
+    todoButtonsLayout->setSpacing(6);
+    m_previousTodoButton = new QToolButton(m_todoButtons);
     m_previousTodoButton->setText(tr("Previous"));
-    m_nextTodoButton = new QToolButton(this);
+    m_nextTodoButton = new QToolButton(m_todoButtons);
     m_nextTodoButton->setText(tr("Next"));
     for (QToolButton* button : {m_previousTodoButton, m_nextTodoButton}) {
         button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
         button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-        todoRow->addWidget(button);
+        todoButtonsLayout->addWidget(button);
     }
     m_nextTodoButton->setLayoutDirection(Qt::RightToLeft);  // its arrow after the text
     m_todoLabel->hide();
+    m_todoButtons->hide();
     m_previousTodoButton->hide();
     m_nextTodoButton->hide();
+    auto* todoRow = new FlowLayout();
+    todoRow->setSpacing(6);
+    todoRow->addWidget(m_todoLabel);
+    todoRow->addWidget(m_todoButtons);
     layout->addLayout(todoRow);
 
     auto& themes = core::ThemeManager::getInstance();
@@ -389,6 +404,7 @@ void AnnotationsPanel::setTodoActions(QAction* previous, QAction* next) {
     follow(m_previousTodoButton, previous);
     follow(m_nextTodoButton, next);
     m_todoLabel->setVisible(previous != nullptr || next != nullptr);
+    m_todoButtons->setVisible(previous != nullptr || next != nullptr);
 }
 
 void AnnotationsPanel::selectAnnotation(const QString& key) {

@@ -27,6 +27,7 @@
 #include <QHelpEvent>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QLayout>
 #include <QMainWindow>
 #include <QPushButton>
 #include <QResizeEvent>
@@ -1124,4 +1125,17 @@ TEST_CASE("Annotations: the frame shows who the annotation is by", "[gui][annota
         desk.coordinator->cancelWriting();
     }
     settings.set<std::string>("annotations.author", "");
+}
+
+TEST_CASE("Annotations: a narrow panel puts its buttons in more rows", "[gui][annotations]") {
+    // Regression: the rows of buttons made the panel as wide as all of them side by side, so
+    // on a small screen (1366x768 at 150%: 911 pixels) the window reached beyond the screen
+    AnnotationsPanel panel;
+    QLayout* layout = panel.layout();
+    REQUIRE(layout != nullptr);
+    REQUIRE(layout->hasHeightForWidth());
+
+    CHECK(panel.minimumSizeHint().width() <= 911 / 4);
+    CHECK(layout->totalHeightForWidth(panel.minimumSizeHint().width()) >
+          layout->totalHeightForWidth(600));
 }
