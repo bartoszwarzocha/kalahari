@@ -256,7 +256,9 @@ public:
     ///
     /// The line stays fully in the view, off its edges, and the view does not scroll past the
     /// top and the bottom of the text. With typewriter scrolling the line goes to the focus
-    /// height instead.
+    /// height instead. Until the view is painted first, a new size of it (the panels around a
+    /// new tab settle, as the bar of a file outside the book hides) puts the line at the height
+    /// again, unless the cursor moved.
     void scrollCursorLineTo(qreal height);
 
     // =========================================================================
@@ -1140,6 +1142,10 @@ private:
     /// @brief Apply shrinkToPageWidthOnFirstShow() while it waits for the first paint
     void applyFirstShowShrink();
 
+    /// @brief Put the cursor line at the height of scrollCursorLineTo() again while it waits
+    ///        for the first paint
+    void applyFirstShowCursorLine();
+
     /// @brief Give the pipeline the page size, margins, gap and page numbers
     void applyPageLayout();
 
@@ -1339,6 +1345,8 @@ private:
     bool m_paintingWholeView = false;                       ///< A paint of the whole view runs
     bool m_shrinkOnFirstShow = false;                       ///< shrinkToPageWidthOnFirstShow() waits
                                                             ///< for the first paint
+    qreal m_cursorLineHeightOnFirstShow = -1.0;             ///< scrollCursorLineTo() waits for the
+                                                            ///< first paint (none below 0)
 
     // Cursor state (Phase 3.4 + 3.5)
     CursorPosition m_cursorPosition;                        ///< Current cursor position

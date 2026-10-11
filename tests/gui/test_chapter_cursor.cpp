@@ -151,6 +151,42 @@ TEST_CASE("A chapter opens with the line of its cursor where it was in the view"
         CHECK(cursorInView(*opened));
     }
 
+    SECTION("at the same height, also when the view gets a new size before it is painted") {
+        // The panels around a new tab settle: the bar of a file outside the book hides
+        closed->scrollCursorLineTo(0.4);
+        const qreal height = closed->cursorLineViewHeight();
+        rememberChapterCursor(database, chapter, *closed);
+        test::resizeWidget(*opened, QSize(600, 360));
+
+        REQUIRE(restoreChapterCursor(database, chapter, *opened));
+        test::resizeWidget(*opened, QSize(600, 400));
+        CHECK(opened->cursorPosition() == CursorPosition{120, 5});
+        CHECK(opened->cursorLineViewHeight() == Approx(height).margin(0.005));
+        CHECK(cursorInView(*opened));
+    }
+
+    SECTION("the view keeps its scroll on a new size once the cursor moved") {
+        closed->scrollCursorLineTo(0.4);
+        rememberChapterCursor(database, chapter, *closed);
+        REQUIRE(restoreChapterCursor(database, chapter, *opened));
+        opened->setCursorPosition(CursorPosition{121, 0});
+        const qreal scroll = opened->scrollOffset();
+
+        test::resizeWidget(*opened, QSize(600, 440));
+        CHECK(opened->scrollOffset() == Approx(scroll));
+    }
+
+    SECTION("the view keeps its scroll on a new size once it was painted") {
+        closed->scrollCursorLineTo(0.4);
+        rememberChapterCursor(database, chapter, *closed);
+        REQUIRE(restoreChapterCursor(database, chapter, *opened));
+        opened->grab();
+        const qreal scroll = opened->scrollOffset();
+
+        test::resizeWidget(*opened, QSize(600, 440));
+        CHECK(opened->scrollOffset() == Approx(scroll));
+    }
+
     SECTION("in the view, when it was scrolled off the view") {
         closed->setScrollOffset(0.0);
         REQUIRE(closed->cursorLineViewHeight() > 1.0);

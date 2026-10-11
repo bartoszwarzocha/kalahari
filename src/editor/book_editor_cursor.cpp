@@ -30,6 +30,9 @@ void BookEditor::setCursorPosition(const CursorPosition& position)
     CursorPosition validatedPos = validateCursorPosition(position);
 
     if (m_cursorPosition != validatedPos) {
+        // A cursor moved does not go back to a height of scrollCursorLineTo()
+        m_cursorLineHeightOnFirstShow = -1.0;
+
         // Track old position for focus mode optimization
         CursorPosition oldPos = m_cursorPosition;
         m_cursorPosition = validatedPos;
@@ -248,6 +251,8 @@ void BookEditor::scrollCursorLineTo(qreal heightInView)
     if (!m_textBuffer || !m_viewportManager || height() <= 0) {
         return;
     }
+    // Until the first paint a new size of the view puts the line there again
+    m_cursorLineHeightOnFirstShow = heightInView;
     if (m_appearance.typewriter.enabled) {
         updateTypewriterScroll(false);
         return;
@@ -271,6 +276,13 @@ void BookEditor::scrollCursorLineTo(qreal heightInView)
 
     // A line too near the bottom edge, or below it, comes fully into the view
     scrollToCursorLine();
+}
+
+void BookEditor::applyFirstShowCursorLine()
+{
+    if (m_cursorLineHeightOnFirstShow >= 0.0) {
+        scrollCursorLineTo(m_cursorLineHeightOnFirstShow);
+    }
 }
 
 void BookEditor::scrollSidewaysToCursor()
