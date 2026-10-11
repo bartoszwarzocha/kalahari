@@ -1640,7 +1640,9 @@ the element that had the cursor. The commands are enabled only where they can do
 they follow the cursor from element to element, the selection, the text and the clipboard. A
 button of the find bar that turns off with the cursor (Replace on the last match, Replace
 All) gives the cursor back to the text, where Undo takes the replacement back; Qt would give
-it to the next element of the window, the font box of the toolbar.
+it to the next element of the window, the font box of the toolbar. After a replacement the
+cursor stands at the end of the replaced text, and after Replace All at the end of the last
+replacement, shown in the view; Replace with more matches after it selects the next one.
 
 #### macOS
 

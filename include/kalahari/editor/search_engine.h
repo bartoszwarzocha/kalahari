@@ -205,6 +205,11 @@ public:
     /// @return Number of replacements made
     int replaceAll();
 
+    /// @brief Where the text put in by the last replacement ends; after Replace All, the end
+    ///        of the last replacement in the text
+    /// @return Absolute character position, or -1 when nothing was replaced
+    [[nodiscard]] int replacementEnd() const;
+
     // =========================================================================
     // Highlight Access
     // =========================================================================
@@ -275,6 +280,7 @@ private:
     QMetaObject::Connection m_documentEdits;  ///< Notices edits the matches did not follow
     QMetaObject::Connection m_documentChange; ///< Follows the edits with the matches
     QTextCursor m_origin;                     ///< Where the search goes on from (setOrigin())
+    QTextCursor m_replacementEnd;             ///< Where the last replaced text ends
     QString m_searchText;                     ///< Current search text
     QString m_replaceText;                    ///< Current replacement text
     SearchOptions m_options;                  ///< Current search options

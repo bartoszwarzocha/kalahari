@@ -5,6 +5,7 @@
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/find_replace_bar.h>
 #include <QScrollBar>
+#include <QTextBlock>
 
 namespace kalahari::editor {
 
@@ -162,10 +163,18 @@ void BookEditor::onNavigateToMatch(const SearchMatch& match)
 
 void BookEditor::onTextReplaced()
 {
-    // The replaced text may be shorter than the selected match the cursor stood on
+    // The cursor goes to the end of the replaced text, after Replace All to the end of the
+    // last replacement: where it stood, at the end of the match, the replacement may be
+    // longer or shorter, and the cursor would land inside a word
     clearSelection();
+    const int end = m_searchEngine ? m_searchEngine->replacementEnd() : -1;
+    const QTextBlock block = end >= 0 && m_textBuffer ? m_textBuffer->findBlock(end) : QTextBlock();
+    if (block.isValid()) {
+        m_cursorPosition = {block.blockNumber(), end - block.position()};
+    }
     m_cursorPosition = validateCursorPosition(m_cursorPosition);
 
+    ensureCursorVisible();
     syncPipelineCursor();
     update();
     emit contentChanged();

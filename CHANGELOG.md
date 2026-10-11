@@ -522,6 +522,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changed the font name. The cursor now goes back to the text, where Undo takes the
   replacement back.
 
+- **Find bar: the cursor at the end of the replaced text** - 2026-10-11. After Replace All,
+  and after Replace on the last match, the cursor kept its place in the paragraph: with a
+  longer or shorter replacement it landed inside a word. It now stands at the end of the
+  replaced text; after Replace All, at the end of the last replacement, shown in the view.
+
 - **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
   texts of the Settings pages and the descriptions of the planned pages had a contrast of
   2.3:1 with the window in the light theme and 3.6:1 in the dark one. They now have at

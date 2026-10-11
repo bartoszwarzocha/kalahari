@@ -390,6 +390,26 @@ bool isShown(QWidget* widget) {
     return widget != nullptr && !widget->isHidden();
 }
 
+/// The field of the bar with the replacement text
+QLineEdit* replaceFieldOf(FindReplaceBar& bar) {
+    for (QLineEdit* input : bar.findChildren<QLineEdit*>()) {
+        if (input->placeholderText() == QStringLiteral("Replace...")) {
+            return input;
+        }
+    }
+    return nullptr;
+}
+
+/// The button of the bar with this text (Replace, Replace All)
+QPushButton* buttonOf(FindReplaceBar& bar, const QString& text) {
+    for (QPushButton* button : bar.findChildren<QPushButton*>()) {
+        if (button->text() == text) {
+            return button;
+        }
+    }
+    return nullptr;
+}
+
 }  // anonymous namespace
 
 TEST_CASE("Stage3 find: Find opens the bar with the selected text and finds it",
@@ -556,23 +576,11 @@ TEST_CASE("Stage3 find: the keys go back to the text when the button with them t
     auto* bar = findBar(*editor);
     REQUIRE(bar != nullptr);
     bar->setSearchText(QStringLiteral("another"));  // a single match
-    QLineEdit* replaceField = nullptr;
-    for (QLineEdit* input : bar->findChildren<QLineEdit*>()) {
-        if (input->placeholderText() == QStringLiteral("Replace...")) {
-            replaceField = input;
-        }
-    }
+    QLineEdit* replaceField = replaceFieldOf(*bar);
     REQUIRE(replaceField != nullptr);
     replaceField->setText(QStringLiteral("one more"));
-    QPushButton* replace = nullptr;
-    QPushButton* replaceAll = nullptr;
-    for (QPushButton* button : bar->findChildren<QPushButton*>()) {
-        if (button->text() == QStringLiteral("Replace")) {
-            replace = button;
-        } else if (button->text() == QStringLiteral("Replace All")) {
-            replaceAll = button;
-        }
-    }
+    QPushButton* replace = buttonOf(*bar, QStringLiteral("Replace"));
+    QPushButton* replaceAll = buttonOf(*bar, QStringLiteral("Replace All"));
     REQUIRE(replace != nullptr);
     REQUIRE(replaceAll != nullptr);
     const QString replaced =
@@ -605,6 +613,92 @@ TEST_CASE("Stage3 find: the keys go back to the text when the button with them t
               QStringLiteral("One one more, then another word.\nNo match here.\nThe last word."));
         CHECK(window.focusWidget() == replace);
     }
+}
+
+TEST_CASE("Stage3 find: after a replacement the cursor is at the end of the replaced text",
+          "[editor][stage3][search]") {
+    // Regression: the cursor kept its place in the paragraph, at the end of the match it
+    // stood on, and a longer or shorter replacement left it inside a word
+    auto editor = editorWith(
+        QStringLiteral("<kml><p>A cat, a cat.</p><p>The cat and the other cat.</p></kml>"));
+    editor->showFindReplace();
+    auto* bar = findBar(*editor);
+    REQUIRE(bar != nullptr);
+    QLineEdit* replaceField = replaceFieldOf(*bar);
+    QPushButton* replace = buttonOf(*bar, QStringLiteral("Replace"));
+    QPushButton* replaceAll = buttonOf(*bar, QStringLiteral("Replace All"));
+    REQUIRE(replaceField != nullptr);
+    REQUIRE(replace != nullptr);
+    REQUIRE(replaceAll != nullptr);
+    bar->setSearchText(QStringLiteral("cat"));
+    editor->findNext();
+    REQUIRE(editor->selection().normalized().start == CursorPosition{0, 2});  // the first one
+
+    SECTION("Replace All, longer: at the end of the last replacement") {
+        replaceField->setText(QStringLiteral("kitten"));
+        replaceAll->click();
+        CHECK(editor->plainText() == QStringLiteral("A kitten, a kitten.\n"
+                                                    "The kitten and the other kitten."));
+        CHECK_FALSE(editor->hasSelection());
+        CHECK(editor->cursorPosition() == CursorPosition{1, 31});
+    }
+
+    SECTION("Replace All, shorter: at the end of the last replacement") {
+        replaceField->setText(QStringLiteral("ox"));
+        replaceAll->click();
+        CHECK(editor->plainText() == QStringLiteral("A ox, a ox.\nThe ox and the other ox."));
+        CHECK_FALSE(editor->hasSelection());
+        CHECK(editor->cursorPosition() == CursorPosition{1, 23});
+    }
+
+    SECTION("Replace on the last match: at the end of the replaced text") {
+        bar->setSearchText(QStringLiteral("other"));
+        replaceField->setText(QStringLiteral("second"));
+        replace->click();  // selects the match
+        CHECK(editor->selection().normalized().start == CursorPosition{1, 16});
+        replace->click();
+        CHECK(editor->plainText() == QStringLiteral("A cat, a cat.\nThe cat and the second cat."));
+        CHECK_FALSE(editor->hasSelection());
+        CHECK(editor->cursorPosition() == CursorPosition{1, 22});
+    }
+
+    SECTION("Replace with a match after it: the next match is selected") {
+        replaceField->setText(QStringLiteral("ox"));
+        replace->click();
+        CHECK(editor->plainText().startsWith(QStringLiteral("A ox, a cat.\n")));
+        CHECK(editor->selection().normalized().start == CursorPosition{0, 8});
+        CHECK(editor->selection().normalized().end == CursorPosition{0, 11});
+    }
+}
+
+TEST_CASE("Stage3 find: after Replace All the last replacement is in the view",
+          "[editor][stage3][search]") {
+    QStringList paragraphs;
+    paragraphs << QStringLiteral("The needle is at the top.");
+    for (int i = 0; i < 400; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1 with enough words to wrap onto a second line "
+                                     "in a window of this width, so the heights matter.").arg(i);
+    }
+    paragraphs << QStringLiteral("The needle is here.");
+    auto editor = editorWith(kmlOf(paragraphs));
+    editor->showFindReplace();
+    auto* bar = findBar(*editor);
+    REQUIRE(bar != nullptr);
+    bar->setSearchText(QStringLiteral("needle"));
+    editor->findNext();
+    REQUIRE(editor->selection().normalized().start == CursorPosition{0, 4});
+    QLineEdit* replaceField = replaceFieldOf(*bar);
+    QPushButton* replaceAll = buttonOf(*bar, QStringLiteral("Replace All"));
+    REQUIRE(replaceField != nullptr);
+    REQUIRE(replaceAll != nullptr);
+    replaceField->setText(QStringLiteral("pin"));
+
+    replaceAll->click();
+
+    CHECK(editor->cursorPosition() == CursorPosition{401, 7});
+    const QRectF caret = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+    CHECK(caret.top() >= 0.0);
+    CHECK(caret.bottom() <= editor->height());
 }
 
 TEST_CASE("Stage3 find: the options have the keys their tooltips show",
