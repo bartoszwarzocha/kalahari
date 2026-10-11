@@ -8,6 +8,7 @@
 #include <QRegularExpression>
 #include <algorithm>
 #include <iterator>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -51,6 +52,7 @@ void SearchEngine::setDocument(QTextDocument* document) {
         m_matchesDirty = true;
         m_currentMatchIndex = -1;
         m_matches.clear();
+        m_announceAfterLayout = false;
 
         if (m_document) {
             // The matches follow the edits: only the edited paragraphs are searched again
@@ -68,6 +70,12 @@ void SearchEngine::setDocument(QTextDocument* document) {
                     m_currentMatchIndex = -1;
                 }
                 m_changeReported = false;
+
+                // The matches followed the edit (onContentsChange()); the edited paragraphs
+                // are laid out now
+                if (std::exchange(m_announceAfterLayout, false)) {
+                    emit matchesChanged();
+                }
             });
         }
     }
@@ -502,7 +510,11 @@ void SearchEngine::onContentsChange(int position, int charsRemoved, int charsAdd
 
     // The selection the search goes on from has moved with the edit as well
     m_currentMatchIndex = originMatchIndex();
-    emit matchesChanged();
+
+    // Announced once the document has the edit laid out: the document reports the change
+    // before that, while the edited paragraphs still have the lines of their old text, and
+    // a listener (the find bar giving the keys to the text) would place the cursor by them
+    m_announceAfterLayout = true;
 }
 
 int SearchEngine::firstMatchFrom(size_t position) const {

@@ -665,6 +665,191 @@ TEST_CASE("Stage3 find: the keys go back to the text when the button with them t
     }
 }
 
+namespace {
+
+/// Numbers of the paragraphs whose lines are not those of their own text: Qt keeps the
+/// lines of an edited paragraph until the layout lays it out again
+QList<int> paragraphsWithOldLines(const QTextDocument& document) {
+    QList<int> numbers;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        const QTextLayout* lines = block.layout();
+        if (lines != nullptr && lines->lineCount() > 0) {
+            const QTextLine last = lines->lineAt(lines->lineCount() - 1);
+            if (last.textStart() + last.textLength() != block.text().size()) {
+                numbers << block.blockNumber();
+            }
+        }
+    }
+    return numbers;
+}
+
+/// Notes the paragraphs with lines of an old text whenever the find bar gives the keys to
+/// the text, and whenever the text gets them or is painted: each of these measures the
+/// text by its lines (the cursor, the matches)
+class OldLinesWatch : public QObject {
+public:
+    OldLinesWatch(BookEditor& editor, FindReplaceBar& bar) : m_editor(editor) {
+        editor.installEventFilter(this);
+        connect(&bar, &FindReplaceBar::textFocusRequested, this,
+                [this] { look(QStringLiteral("keys to the text")); });
+    }
+
+    /// What was noted: when, and the paragraph numbers
+    const QStringList& found() const { return m_found; }
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (event->type() == QEvent::FocusIn) {
+            look(QStringLiteral("focus in"));
+        } else if (event->type() == QEvent::Paint) {
+            look(QStringLiteral("paint"));
+        }
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    void look(const QString& when) {
+        const QList<int> numbers = paragraphsWithOldLines(*m_editor.textDocument());
+        for (const int number : numbers) {
+            m_found << QStringLiteral("%1: paragraph %2").arg(when).arg(number);
+        }
+    }
+
+    BookEditor& m_editor;
+    QStringList m_found;
+};
+
+}  // anonymous namespace
+
+TEST_CASE("Stage3 find: the text is measured by its own lines when the last match goes",
+          "[editor][stage3][search]") {
+    // Regression (Windows, debug build): with whole words on, Enter on Replace replaced the
+    // last match and Qt stopped on an assertion (QList::at). The find bar, told of the
+    // replacement while the document was reporting it, before the replaced paragraph was
+    // laid out again, gave the keys to the text, which placed its cursor by the lines of the
+    // paragraph's old text: past its end after a shorter replacement on the last line. The
+    // same with Find, when Undo from the bar takes the last match away. Also with the match
+    // words have inside them (whole words off) and with a longer replacement.
+    const bool wholeWords = GENERATE(false, true);
+    const bool shorter = GENERATE(true, false);
+    enum class Way { EnterEnter, F3Enter, ReplaceAll, UndoInFind };
+    const Way way = GENERATE(Way::EnterEnter, Way::F3Enter, Way::ReplaceAll, Way::UndoInFind);
+    const QString replacement = shorter ? QStringLiteral("w") : QStringLiteral("storm");
+    INFO("whole words " << wholeWords << ", shorter " << shorter << ", way "
+                        << static_cast<int>(way));
+
+    // The words wrap onto several lines, the matches are on the last one; the paragraph is
+    // justified, as by default
+    const QString words = QStringLiteral(
+        "The shutters rattled until the grey morning came over the hills, and the old house "
+        "creaked and groaned all night long, while the window shook in the");
+    const auto wind = static_cast<int>(words.size()) + 1;  // where " wind." has its word
+    QString first = words + QStringLiteral(" wind.");
+    if (way == Way::UndoInFind) {
+        // Undone, the word typed last goes: the text gets shorter, or longer when it was
+        // typed over a longer one
+        first = words + (shorter ? QStringLiteral(".") : QStringLiteral(" breeze."));
+    }
+    QWidget window;
+    auto* layout = new QVBoxLayout(&window);
+    layout->addWidget(new QLineEdit(&window));  // before the text in the window, as the toolbar
+    auto* editor = new BookEditor(&window);
+    layout->addWidget(editor);
+    window.resize(500, 400);
+    editor->fromKml(kmlOf({first, QStringLiteral("No match here.")}));
+    window.show();
+    window.activateWindow();
+    waitUntil([&window] { return window.isActiveWindow(); });
+    if (way == Way::UndoInFind) {
+        if (shorter) {
+            editor->setCursorPosition({0, wind - 1});
+            editor->insertText(QStringLiteral(" wind"));
+        } else {
+            editor->setSelection({{0, wind}, {0, wind + 6}});
+            editor->insertText(QStringLiteral("wind"));
+        }
+        REQUIRE(editor->plainText().startsWith(words + QStringLiteral(" wind.")));
+        editor->showFind();
+    } else {
+        editor->setCursorPosition({0, wind + 5});  // at the end of the paragraph
+        editor->showFindReplace();
+    }
+    auto* bar = findBar(*editor);
+    REQUIRE(bar != nullptr);
+    bar->setSearchText(QStringLiteral("wind"));
+    QToolButton* wholeWordsOption = nullptr;
+    QToolButton* next = nullptr;
+    for (QToolButton* button : bar->findChildren<QToolButton*>()) {
+        if (button->text() == QStringLiteral("W")) {
+            wholeWordsOption = button;
+        } else if (button->toolTip() == QStringLiteral("Next Match (Enter)")) {
+            next = button;
+        }
+    }
+    REQUIRE(wholeWordsOption != nullptr);
+    REQUIRE(next != nullptr);
+    wholeWordsOption->setChecked(wholeWords);
+    // "wind", and the "wind" of "window"
+    REQUIRE(editor->searchEngine()->totalMatchCount() == (wholeWords ? 1 : 2));
+    QLineEdit* replaceField = replaceFieldOf(*bar);
+    QPushButton* replace = buttonOf(*bar, QStringLiteral("Replace"));
+    QPushButton* replaceAll = buttonOf(*bar, QStringLiteral("Replace All"));
+    REQUIRE(replaceField != nullptr);
+    REQUIRE(replace != nullptr);
+    REQUIRE(replaceAll != nullptr);
+    replaceField->setText(replacement);
+    runEventLoop(20);  // painted once
+
+    const OldLinesWatch watch(*editor, *bar);
+    const auto enter = [](QWidget* button) {
+        QKeyEvent event(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+        QCoreApplication::sendEvent(button, &event);
+    };
+    switch (way) {
+    case Way::EnterEnter:
+    case Way::F3Enter:
+        replace->setFocus();
+        if (way == Way::F3Enter) {
+            editor->findNext();  // F3: the first match, from the top
+        } else {
+            enter(replace);  // the first match, from the top
+        }
+        REQUIRE(editor->searchEngine()->currentMatchIndex() == 0);
+        // Each Enter replaces the match and selects the next one, until none is left
+        for (int left = wholeWords ? 1 : 2; left > 0; --left) {
+            REQUIRE(replace->isEnabled());
+            enter(replace);
+            runEventLoop(5);
+        }
+        break;
+    case Way::ReplaceAll:
+        replaceAll->setFocus();
+        enter(replaceAll);
+        break;
+    case Way::UndoInFind:
+        next->setFocus();
+        enter(next);  // the first match
+        editor->undo();  // Undo of the window's Edit menu, given in the bar
+        break;
+    }
+    runEventLoop(20);  // painted again
+
+    QString paragraph = first;
+    if (way != Way::UndoInFind) {
+        paragraph = words + QStringLiteral(" ") + replacement + QStringLiteral(".");
+        if (!wholeWords) {
+            paragraph.replace(QStringLiteral("window"), replacement + QStringLiteral("ow"));
+        }
+    }
+    CHECK(editor->plainText() == paragraph + QStringLiteral("\nNo match here."));
+    INFO(watch.found().join(QStringLiteral("; ")).toStdString());
+    CHECK(watch.found().isEmpty());
+    if (editor->searchEngine()->totalMatchCount() == 0) {
+        // The buttons are off: the keys are in the text
+        CHECK(window.focusWidget() == editor);
+    }
+}
+
 TEST_CASE("Stage3 find: after a replacement the cursor is at the end of the replaced text",
           "[editor][stage3][search]") {
     // Regression: the cursor kept its place in the paragraph, at the end of the match it

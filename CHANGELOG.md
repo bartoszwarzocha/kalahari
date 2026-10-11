@@ -672,6 +672,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   end: a debug build stopped on Replace All. Such paragraphs now have no lines until they are
   laid out, as in Qt's own layout.
 
+- **Find bar: replacing the last match** - 2026-10-11. Replace (Enter or F3 and Enter) on
+  the last match, often the only one with whole words on, stopped a debug build on an
+  assertion of Qt (QList::at), and so did Replace All and Undo given in the bar when they
+  took the last match away. The bar gave the cursor back to the text while the document was
+  still reporting the edit, before the paragraph was laid out again, and the cursor was
+  placed by the lines of its old text, past the end of a shorter one. The bar now learns of
+  the changed matches once the paragraph is laid out, and while an edit is reported the
+  changed paragraphs have no lines of their old text.
+
 - **Toolbars: the font and the size go on the text at Enter** - 2026-10-11. Each letter typed
   in the font field went on the text as a font ("F", "Fr"..., so the text showed in another
   font) and each number typed in the size field as a size (7 of 72), one step to undo each,
