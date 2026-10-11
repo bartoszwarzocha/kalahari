@@ -199,6 +199,7 @@ set(KALAHARI_SOURCES
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
+    gui/utils/document_commands.cpp  # The commands that work on the document in front
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
     gui/utils/qt_standard_texts.cpp  # Qt's own texts (standard buttons) for the translations
     gui/utils/core_texts.cpp  # The core library's texts for the translations

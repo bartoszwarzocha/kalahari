@@ -1711,6 +1711,12 @@ it to the next element of the window, the font box of the toolbar. After a repla
 cursor stands at the end of the replaced text, and after Replace All at the end of the last
 replacement, shown in the view; Replace with more matches after it selects the next one.
 
+The commands that work on the document in front, a chapter or a text file – Find, Find Next,
+Find Previous and Find and Replace, the character formats, the alignments, the view mode and
+the zoom – are greyed out, also their keys, while there is none (the Dashboard in front, no
+tab), and none of them is checked, as in Word without a document
+(`src/gui/utils/document_commands.cpp`, checked by `tests/gui/test_document_commands.cpp`).
+
 After a command given in a toolbar the cursor goes back where it was, as in Word and
 LibreOffice (`src/gui/toolbar_keys.cpp`, checked by `tests/gui/test_toolbar_keys.cpp`). In the
 font and size fields one types: what was typed goes on the text at Enter, as one step to undo,

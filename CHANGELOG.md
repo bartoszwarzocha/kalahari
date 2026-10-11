@@ -564,6 +564,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   button, the Dashboard) the commands do nothing, and the menu and the toolbar show them
   disabled wherever they can do nothing.
 
+- **The commands of the document without a document** - 2026-10-11. Over the Dashboard,
+  without a tab and after the book was closed, Find, Find Next, Find Previous, Find and
+  Replace, Bold, Italic, Underline, Strikethrough, the alignments, the view mode and the zoom
+  were enabled in the menus and on the toolbars (Bold and the alignment of the last chapter
+  even checked) and did nothing, also with their keys. They are now greyed out, with nothing
+  checked, until a chapter or a text file is in front, as in Word without a document.
+
 - **Find bar: the cursor goes back to the text after the last replacement** - 2026-10-10.
   Replace on the last match and Replace All turn their button off, and the cursor went on to
   the font box of the toolbar: Undo did not take the replacement back, and what was typed

@@ -33,6 +33,7 @@
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/utils/distraction_free_layout.h"
+#include "kalahari/gui/utils/document_commands.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/utils/setting_toggle.h"
 #include "kalahari/core/logger.h"
@@ -487,6 +488,11 @@ void MainWindow::registerCommands() {
         };
     }
 
+    // Find, the formats, the alignments, the view mode and the zoom work on the document in
+    // front: without one (the Dashboard, no tab) they are greyed out with their keys, as in
+    // Word without a document. The tab in front updates them (updateEditorActionStates())
+    utils::bindToDocument(registry, [this]() { return hasDocumentInFront(); });
+
     // The paper, Typewriter Scrolling and Focus are settings of every editor: their toggles
     // show them also before an editor opens, and follow the editor's context menu and the
     // Settings dialog
@@ -914,82 +920,56 @@ void MainWindow::updateEditorActionStates() {
         m_editCoordinator->updateStates();
     }
 
-    // Update action states based on current editor state
+    // The commands of the document follow the editor in front, checked as the text at the
+    // cursor; without a document (the Dashboard, no tab) none is checked and they are greyed
+    // out (utils::bindToDocument())
     EditorPanel* editor = getCurrentEditor();
-    if (!editor || !editor->getBookEditor()) {
-        return;
-    }
-
-    editor::BookEditor* bookEditor = editor->getBookEditor();
+    editor::BookEditor* bookEditor = editor != nullptr ? editor->getBookEditor() : nullptr;
     CommandRegistry& registry = CommandRegistry::getInstance();
+    const auto setChecked = [&registry](const std::string& id, bool checked) {
+        if (Command* command = registry.getCommand(id)) {
+            command->isChecked = [checked]() { return checked; };
+        }
+    };
 
     // Update format action checked states
-    bool isBold = bookEditor->isBold();
-    bool isItalic = bookEditor->isItalic();
-    bool isUnderline = bookEditor->isUnderline();
-    bool isStrikethrough = bookEditor->isStrikethrough();
+    setChecked("format.bold", bookEditor != nullptr && bookEditor->isBold());
+    setChecked("format.italic", bookEditor != nullptr && bookEditor->isItalic());
+    setChecked("format.underline", bookEditor != nullptr && bookEditor->isUnderline());
+    setChecked("format.strikethrough", bookEditor != nullptr && bookEditor->isStrikethrough());
 
-    if (auto* boldCmd = registry.getCommand("format.bold")) {
-        boldCmd->isChecked = [isBold]() { return isBold; };
-        registry.updateActionState("format.bold");
-    }
-    if (auto* italicCmd = registry.getCommand("format.italic")) {
-        italicCmd->isChecked = [isItalic]() { return isItalic; };
-        registry.updateActionState("format.italic");
-    }
-    if (auto* underlineCmd = registry.getCommand("format.underline")) {
-        underlineCmd->isChecked = [isUnderline]() { return isUnderline; };
-        registry.updateActionState("format.underline");
-    }
-    if (auto* strikeCmd = registry.getCommand("format.strikethrough")) {
-        strikeCmd->isChecked = [isStrikethrough]() { return isStrikethrough; };
-        registry.updateActionState("format.strikethrough");
-    }
+    // Update view mode checked states
+    const auto inMode = [bookEditor](editor::ViewMode mode) {
+        return bookEditor != nullptr && bookEditor->viewMode() == mode;
+    };
+    setChecked("view.mode.continuous", inMode(editor::ViewMode::Continuous));
+    setChecked("view.mode.page", inMode(editor::ViewMode::Page));
+
+    // Update alignment action checked states
+    const Qt::Alignment alignment = bookEditor != nullptr
+                                        ? bookEditor->currentAlignment() & Qt::AlignHorizontal_Mask
+                                        : Qt::Alignment();
+    setChecked("format.alignLeft", bookEditor != nullptr && alignment == Qt::AlignLeft);
+    setChecked("format.alignCenter", alignment == Qt::AlignHCenter);
+    setChecked("format.alignRight", alignment == Qt::AlignRight);
+    setChecked("format.justify", alignment == Qt::AlignJustify);
+
+    utils::updateDocumentCommands(registry);
 
     // Sync the font family/size toolbar controls to the char format under the caret,
     // so they reflect the formatting at the cursor (updates on every cursor move /
     // selection change), not just the global default set on tab activation.
-    if (m_toolbarManager) {
+    if (bookEditor != nullptr && m_toolbarManager) {
         m_toolbarManager->syncFontWidgetsToEditor(editor);
     }
+}
 
-    // Update view mode checked states
-    editor::ViewMode currentMode = bookEditor->viewMode();
-    if (auto* contCmd = registry.getCommand("view.mode.continuous")) {
-        contCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::Continuous; };
-        registry.updateActionState("view.mode.continuous");
+bool MainWindow::hasDocumentInFront() {
+    if (m_dockCoordinator == nullptr) {
+        return false;
     }
-    if (auto* pageCmd = registry.getCommand("view.mode.page")) {
-        pageCmd->isChecked = [currentMode]() { return currentMode == editor::ViewMode::Page; };
-        registry.updateActionState("view.mode.page");
-    }
-
-    // Update alignment action checked states
-    Qt::Alignment currentAlign = bookEditor->currentAlignment();
-    if (auto* leftCmd = registry.getCommand("format.alignLeft")) {
-        leftCmd->isChecked = [currentAlign]() {
-            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignLeft;
-        };
-        registry.updateActionState("format.alignLeft");
-    }
-    if (auto* centerCmd = registry.getCommand("format.alignCenter")) {
-        centerCmd->isChecked = [currentAlign]() {
-            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignHCenter;
-        };
-        registry.updateActionState("format.alignCenter");
-    }
-    if (auto* rightCmd = registry.getCommand("format.alignRight")) {
-        rightCmd->isChecked = [currentAlign]() {
-            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignRight;
-        };
-        registry.updateActionState("format.alignRight");
-    }
-    if (auto* justifyCmd = registry.getCommand("format.justify")) {
-        justifyCmd->isChecked = [currentAlign]() {
-            return (currentAlign & Qt::AlignHorizontal_Mask) == Qt::AlignJustify;
-        };
-        registry.updateActionState("format.justify");
-    }
+    EditorPanel* editor = getCurrentEditor();
+    return editor != nullptr && editor->getBookEditor() != nullptr;
 }
 
 void MainWindow::onSettings() {
@@ -1109,6 +1089,8 @@ void MainWindow::createDocks() {
             if (m_toolbarManager) {
                 m_toolbarManager->syncFontWidgetsToEditor(nullptr);
             }
+            // No document: its commands greyed out
+            updateEditorActionStates();
             return;
         }
 
@@ -1191,6 +1173,8 @@ void MainWindow::createDocks() {
             if (m_toolbarManager) {
                 m_toolbarManager->syncFontWidgetsToEditor(nullptr);
             }
+            // The Dashboard: the commands of the document greyed out
+            updateEditorActionStates();
         }
     });
 

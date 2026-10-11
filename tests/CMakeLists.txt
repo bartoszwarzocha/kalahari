@@ -75,6 +75,7 @@ set(TEST_SOURCES
     gui/test_menu_access_keys.cpp                # The access keys of the menus, in both languages
     gui/test_panel_toggle.cpp                    # Panel toggles follow open panels
     gui/test_setting_toggle.cpp                  # Toggles follow on/off settings
+    gui/test_document_commands.cpp               # Document commands greyed out without one
     gui/test_dialogs.cpp                         # The program's own dialogs
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing
@@ -179,6 +180,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/layout_utils.cpp      # clearLayout for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/utils/panel_toggle.cpp      # Show/hide toggles of the dock panels
     ${CMAKE_SOURCE_DIR}/src/gui/utils/setting_toggle.cpp    # Toggles that show an on/off setting
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/document_commands.cpp  # The commands of the document in front
     ${CMAKE_SOURCE_DIR}/src/gui/utils/distraction_free_layout.cpp  # The window's layout for Distraction-Free writing
     ${CMAKE_SOURCE_DIR}/src/gui/panels/editor_panel.cpp     # Editor panel: settings to and from its editor
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_entry.cpp  # Annotations panel: filters and orders

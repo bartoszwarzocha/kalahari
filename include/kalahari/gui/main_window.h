@@ -275,9 +275,13 @@ private slots:
 
     /// @brief Update action states based on editor state
     ///
-    /// Called when cursor position or selection changes in BookEditor.
-    /// Updates enabled/checked state for Edit and Format menu actions.
+    /// Called when cursor position or selection changes in BookEditor, and when the tab
+    /// in front changes. Updates enabled/checked state for Edit and Format menu actions;
+    /// without a document in front the commands of the document are greyed out.
     void updateEditorActionStates();
+
+    /// @brief Whether a document (a chapter or a text file) is in front
+    [[nodiscard]] bool hasDocumentInFront();
 
     /// @brief Update status bar statistics display
     /// @param words Word count
