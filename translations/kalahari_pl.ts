@@ -2142,6 +2142,10 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Żadna uwaga nie pasuje do filtrów.</translation>
     </message>
     <message>
+        <source>A plain text file (.txt) does not keep annotations, so they cannot be added to it. To add annotations, add the file to the book.</source>
+        <translation>Plik tekstowy (.txt) nie przechowuje uwag, więc nie można ich w nim dodawać. Aby dodawać uwagi, dodaj ten plik do książki.</translation>
+    </message>
+    <message>
         <source>Annotations</source>
         <translation>Uwagi</translation>
     </message>

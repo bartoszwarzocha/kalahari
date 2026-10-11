@@ -638,6 +638,17 @@ public:
     /// @return false when the chapter has no annotation with this id
     bool goToAnnotation(const QString& id);
 
+    /// @brief Whether annotations can be anchored to the text
+    ///
+    /// A plain text file keeps none: no annotation is added to it, and text pasted or
+    /// dropped into it comes without them.
+    bool annotationsAllowed() const;
+
+    /// @brief Let the text take annotations or not (see annotationsAllowed())
+    ///
+    /// It holds for content loaded later too. The annotations the text already has stay.
+    void setAnnotationsAllowed(bool allowed);
+
     /// @brief Go to the next TODO not done yet, after the cursor
     /// @return Its id; empty when there is none after the cursor
     QString goToNextTodo();
@@ -1436,6 +1447,7 @@ private:
     bool m_autoScrollForDrop = false;   ///< Scrolling for dragged text (else: for a mouse selection)
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
     QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
+    bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
 
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string
