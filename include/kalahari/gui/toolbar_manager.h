@@ -13,6 +13,7 @@
 #include <QAction>
 #include <QMenu>
 #include <QMap>
+#include <QObject>
 #include <QStringList>
 #include <string>
 #include <unordered_map>
@@ -341,6 +342,10 @@ public:
 private:
     std::function<EditorPanel*()> m_getEditorCallback;  ///< Callback to get current editor
     bool m_fontWidgetsSyncing = false;                   ///< Prevent recursive updates
+
+    /// Context of the connections whose lambdas capture this manager: declared last, so it is
+    /// destroyed first and Qt drops those connections before the rest of the manager goes
+    QObject m_connectionContext;
 };
 
 } // namespace gui

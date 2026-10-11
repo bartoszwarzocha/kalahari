@@ -62,7 +62,7 @@ Headers in `include/kalahari/<module>/`, sources in `src/<module>/` (same layout
 ```
 include/kalahari/
 ├── core/           # business logic, singletons
-│   ├── art_provider.h, icon_registry.h, theme_manager.h, theme.h, fallback_theme.h
+│   ├── art_provider.h, icon_registry.h, theme_manager.h, theme.h
 │   ├── settings_manager.h, logger.h, event_bus.h
 │   ├── book.h, part.h, book_element.h, document.h, chapter_document.h
 │   ├── project_manager.h, project_database.h, project_lock.h, backup_manager.h
@@ -80,7 +80,7 @@ include/kalahari/
     ├── main_window.h + coordinators (icon_registrar, command_registrar,
     │   dock_coordinator, document_coordinator, navigator_coordinator,
     │   diagnostic_controller, settings_coordinator)
-    ├── command_registry.h, menu_builder.h, toolbar_builder.h, toolbar_manager.h
+    ├── command_registry.h, menu_builder.h, toolbar_manager.h
     ├── settings_dialog.h, settings/ (Settings pages)
     ├── dialogs/    # about, new item, add to project, toolbar manager, ...
     ├── panels/     # editor, navigator, log, properties, search, tags, comments, ...

@@ -20,7 +20,6 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/recent_books_menu.h"
-#include "kalahari/gui/toolbar_builder.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/editor/book_editor.h"
@@ -31,6 +30,7 @@
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/utils/distraction_free_layout.h"
+#include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/utils/setting_toggle.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/log_panel_sink.h"
@@ -79,8 +79,6 @@ MainWindow::MainWindow(QWidget* parent)
     , m_fileMenu(nullptr)
     , m_editMenu(nullptr)
     , m_viewMenu(nullptr)
-    , m_toolbarManager(nullptr)
-    , m_menuBuilder(nullptr)
     , m_dockCoordinator(nullptr)
     , m_firstShow(true)
     , m_diagnosticController(nullptr)
@@ -94,7 +92,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Set window properties
     setWindowTitle("Kalahari Writer's IDE");
-    resize(1280, 720);
+    utils::resizeWithinScreen(this, QSize(1280, 720));
 
     // Create UI components (Command Registry pattern)
     registerCommands();    // Register all commands with CommandRegistry
@@ -209,8 +207,9 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_documentCoordinator, &DocumentCoordinator::documentOpened,
             this, [this]() {
         if (auto* collector = m_documentCoordinator->statisticsCollector()) {
+            // The collector outlives documents, so connect it only once
             connect(collector, &editor::StatisticsCollector::statisticsChanged,
-                    this, &MainWindow::updateStatusBarStatistics);
+                    this, &MainWindow::updateStatusBarStatistics, Qt::UniqueConnection);
             core::Logger::getInstance().debug("MainWindow: Connected StatisticsCollector to status bar");
         }
     });
@@ -488,7 +487,7 @@ void MainWindow::createMenus() {
 
     // Build menu bar from CommandRegistry using MenuBuilder
     // Task #00025: Store MenuBuilder for icon refresh on theme change
-    m_menuBuilder = new MenuBuilder();
+    m_menuBuilder = std::make_unique<MenuBuilder>();
     CommandRegistry& registry = CommandRegistry::getInstance();
     m_menuBuilder->buildMenuBar(registry, this);
 
@@ -522,7 +521,7 @@ void MainWindow::createToolbars() {
     logger.debug("Creating toolbars from CommandRegistry using ToolbarManager");
 
     // Task #00019: Create ToolbarManager and build 5 toolbars
-    m_toolbarManager = new ToolbarManager(this);
+    m_toolbarManager = std::make_unique<ToolbarManager>(this);
     CommandRegistry& registry = CommandRegistry::getInstance();
     m_toolbarManager->createToolbars(registry);
 
@@ -1030,15 +1029,6 @@ void MainWindow::onAbout() {
     logger.info("About dialog closed");
 }
 
-void MainWindow::onAboutQt() {
-    auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: About Qt");
-
-    QMessageBox::aboutQt(this, tr("About Qt"));
-
-    logger.info("About Qt dialog displayed");
-}
-
 // Dock management - OpenSpec #00038 Phase 4: Delegated to DockCoordinator
 
 void MainWindow::createDocks() {
@@ -1542,6 +1532,11 @@ void MainWindow::showEvent(QShowEvent* event) {
 
         auto& settings = core::SettingsManager::getInstance();
         restoreGeometry(settings.getBinary("window.geometry"));
+        // A size saved on a larger screen, or at a smaller scaling, would leave the window
+        // bigger than this screen
+        if (!isMaximized() && !isFullScreen()) {
+            utils::resizeWithinScreen(this, size());
+        }
 
         // Only restore window state if we haven't cleared it for toolbar reset
         // IMPORTANT: Read windowState AFTER clearSavedWindowState() to get fresh value

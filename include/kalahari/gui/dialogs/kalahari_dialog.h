@@ -6,13 +6,20 @@
 #include <QDialog>
 #include <QString>
 
+class QDialogButtonBox;
 class QHBoxLayout;
 class QLabel;
 class QPushButton;
+class QMargins;
+class QShowEvent;
+class QSize;
 class QVBoxLayout;
 
 namespace kalahari {
 namespace gui {
+
+class FittingScrollArea;
+
 namespace dialogs {
 
 /// @brief The base of the program's own dialogs
@@ -76,8 +83,31 @@ public:
     /// @param visible true to show it (by default it is hidden)
     void setApplyButtonVisible(bool visible);
 
-    /// @brief At least the minimum width, and the height the content needs at that width
+    /// @brief At least the minimum width, and the height the heading and the content need
+    ///        at that width
     QSize sizeHint() const override;
+
+protected:
+    /// @brief Keep the whole dialog on a small screen: the content scrolls, the heading
+    ///        and the buttons stay in view
+    void showEvent(QShowEvent* event) override;
+
+    /// @brief Resize to @p wanted, or less where the screen is smaller, and keep the
+    ///        whole window on the screen (e.g. after details were shown)
+    void fitToScreen(const QSize& wanted);
+
+    /// @brief The window's frame the system adds around the dialog: its own when the window
+    ///        exists, else the style's guess
+    QMargins frameMargins() const;
+
+    /// @brief The buttons that close the dialog, for a dialog that adds one of its own
+    QDialogButtonBox* buttonBox() const { return m_buttonBox; }
+
+    /// @brief Add a button at the left end of the row, apart from the ones that close the
+    ///        dialog, on every system (e.g. Copy of a message)
+    /// @param text Button text, with a mnemonic
+    /// @return The button; it does not close the dialog
+    QPushButton* addSideButton(const QString& text);
 
 signals:
     /// @brief Apply was pressed: do the dialog's job and keep it open
@@ -94,7 +124,10 @@ private:
     QLabel* m_iconLabel = nullptr;
     QLabel* m_titleLabel = nullptr;
     QLabel* m_descriptionLabel = nullptr;
+    FittingScrollArea* m_contentArea = nullptr;
     QVBoxLayout* m_contentLayout = nullptr;
+    QDialogButtonBox* m_buttonBox = nullptr;
+    QHBoxLayout* m_sideButtonLayout = nullptr;
     QPushButton* m_acceptButton = nullptr;
     QPushButton* m_cancelButton = nullptr;
     QPushButton* m_applyButton = nullptr;
