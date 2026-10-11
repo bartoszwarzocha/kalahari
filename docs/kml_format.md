@@ -185,13 +185,12 @@ Elements of the product specification that the editor does not read yet:
 - lists `<ul>`, `<ol>`, `<li>`,
 - images `<img>`,
 - tables `<table>`, `<tr>`, `<td>`, `<th>`,
-- the annotations `<endnote>` and the references `<item-ref>`, `<cite>`,
+- the annotations `<endnote>` and the references `<itemref>`, `<cite>`,
 - the paragraph attribute `style` (paragraph styles) and the root attributes `version` and
   `lang`.
 
-The specification names the character and location references `<char-ref>` and `<loc-ref>`;
-the editor uses `<charref>` and `<locref>`. Its `<comment>`, `<todo>` and `<note>` elements are
-annotations of the `<annotations>` section, of the kinds `comment`, `todo` and `note`.
+The specification's `<comment>`, `<todo>` and `<note>` elements are annotations of the
+`<annotations>` section, of the kinds `comment`, `todo` and `note`.
 
 The editor skips these elements, together with everything inside them, when it loads a
 chapter, and ignores the attributes. The next save writes the chapter without them, so a file

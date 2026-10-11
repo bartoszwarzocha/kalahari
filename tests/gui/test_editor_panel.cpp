@@ -6,9 +6,11 @@
 #include "../editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/statistics_collector.h"
 #include "kalahari/gui/panels/editor_panel.h"
 
 #include <QScreen>
+#include <QTabWidget>
 
 #include <algorithm>
 #include <memory>
@@ -113,4 +115,37 @@ TEST_CASE("Editor panel: the pages keep their size on paper when the screen's sc
         emit screen->logicalDotsPerInchChanged(screen->logicalDotsPerInch());
     }
     CHECK(bookEditor->paperScale() == Approx(onPaper));
+}
+
+TEST_CASE("Editor panel: the words written are counted in the chapter in front",
+          "[gui][editor][statistics]") {
+    // Regression: the writing session followed the chapter opened last, not the one in
+    // front, and closing any tab stopped it
+    editor::StatisticsCollector collector;
+    QTabWidget tabs;
+    auto* first = new gui::EditorPanel;
+    first->getBookEditor()->fromKml(test::kmlOf({QStringLiteral("One two")}));
+    auto* second = new gui::EditorPanel;
+    second->getBookEditor()->fromKml(test::kmlOf({QStringLiteral("Three four five")}));
+    tabs.addTab(first, QStringLiteral("First"));
+    tabs.addTab(second, QStringLiteral("Second"));
+    tabs.show();
+
+    // As the Navigator gives it to every chapter it opens
+    first->setStatisticsCollector(&collector);
+    second->setStatisticsCollector(&collector);
+    CHECK(collector.wordCount() == 2);
+
+    tabs.setCurrentIndex(1);
+    CHECK(collector.wordCount() == 3);
+    tabs.setCurrentIndex(0);
+    CHECK(collector.wordCount() == 2);
+
+    // The tab behind closed: the chapter in front is still followed
+    delete second;
+    CHECK(collector.wordCount() == 2);
+
+    // The chapter in front closed: it is forgotten
+    delete first;
+    CHECK(collector.wordCount() == 0);
 }
