@@ -17,6 +17,7 @@
 #include <QTabWidget>
 #include <QLabel>
 #include <QMap>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <filesystem>
@@ -44,12 +45,14 @@ class PropertiesPanel;
 class LogPanel;
 class MenuBuilder;      // Task #00025
 class BusyIndicator;    // Reusable spinner overlay
+class StatusBarStatistics;  // Counts of the document in front in the status bar
 class DiagnosticController;  // OpenSpec #00038 - Diagnostic/dev mode controller
 class DockCoordinator;  // OpenSpec #00038 Phase 4 - Dock/panel management
 class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
 class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
+class SpellingCoordinator;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
 }
@@ -283,13 +286,6 @@ private slots:
     /// Updates enabled/checked state for Edit and Format menu actions.
     void updateEditorActionStates();
 
-    /// @brief Update status bar statistics display
-    /// @param words Word count
-    /// @param chars Character count
-    /// @param paragraphs Paragraph count
-    /// @note Connected to StatisticsCollector::statisticsChanged() signal (OpenSpec #00042 Task 6.13)
-    void updateStatusBarStatistics(int words, int chars, int paragraphs);
-
     /// @brief Slot for Help > About action
     void onAbout();
 
@@ -347,6 +343,7 @@ private:
 
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
+    SpellingCoordinator* m_spellingCoordinator{nullptr};
 
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen
@@ -357,10 +354,8 @@ private:
     /// @brief Whether Distraction-Free writing is on
     [[nodiscard]] bool isDistractionFree() const;
 
-    // Status bar statistics labels (OpenSpec #00042 Task 6.13)
-    QLabel* m_wordCountLabel{nullptr};                ///< Word count display
-    QLabel* m_charCountLabel{nullptr};                ///< Character count display
-    QLabel* m_readingTimeLabel{nullptr};              ///< Reading time display
+    // Status bar: the counts, the page and the zoom of the document in front
+    StatusBarStatistics* m_statusBarStatistics{nullptr};  ///< Words, characters, reading time
     QLabel* m_pageLabel{nullptr};                     ///< Page of the cursor (Page Layout view)
     QLabel* m_zoomLabel{nullptr};                     ///< Zoom of the editor in front
 
@@ -388,6 +383,25 @@ private:
 
     /// @brief Toggle fullscreen mode (OpenSpec #00040)
     void toggleFullScreen();
+
+    /// @brief Run @p open, which may open a document or bring one to the front; the document
+    ///        then in front gets the keys
+    void openGivingKeys(const std::function<void()>& open);
+
+    /// @brief Give the keys to the text of the document in front, opened or brought to the
+    ///        front: its cursor shows, and what is typed next goes there, as in Word and
+    ///        LibreOffice
+    void focusCurrentText();
+
+    /// @brief Put the cursor of the chapter @p elementId, just opened, where it was when the
+    ///        chapter was closed last, unless the settings say that a chapter opens at its start
+    void placeOpenedChapterCursor(const QString& elementId);
+
+    /// @brief Keep in the book where the cursor of @p editor is, when it shows a chapter
+    void rememberChapterCursor(const EditorPanel* editor);
+
+    /// @brief Keep in the book where the cursor of every open chapter is
+    void rememberChapterCursors();
 
     // NOTE: collectCurrentSettings moved to SettingsCoordinator (OpenSpec #00038 Phase 5)
 };

@@ -198,6 +198,10 @@ signals:
     /// the title, and the names of the sections in the language of the book
     void bookChanged();
 
+    /// @brief Emitted when the book's language is changed in the panel
+    /// @param language Its code (pl, en...)
+    void bookLanguageChanged(const QString& language);
+
 private:
     /// @brief Setup UI components
     void setupUI();

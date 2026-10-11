@@ -10,10 +10,12 @@
 #include <QDateTime>
 #include <QTextLine>
 #include <QEasingCurve>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QVariantAnimation>
 #include <QScreen>
 #include <QScrollBar>
+#include <QLocale>
 #include <QTimer>
 #include <QWheelEvent>
 #include <algorithm>
@@ -37,6 +39,26 @@ constexpr int MAX_CURSOR_PLACING_ROUNDS = 4;
 
 // Distance of the Distraction-Free texts (word count, hint, clock) from the view's edges
 constexpr qreal DISTRACTION_FREE_TEXT_MARGIN = 20.0;
+
+namespace {
+
+/// @brief A scroll bar of the editor: every press on it stays with it
+///
+/// Qt 6.9 passes a press a scroll bar does not use (one of the right button, or one on a
+/// bar without a range) on to the widget under it: the editor would take it for a click in
+/// the text, moving the cursor or selecting a word
+class EditorScrollBar : public QScrollBar {
+public:
+    using QScrollBar::QScrollBar;
+
+protected:
+    void mousePressEvent(QMouseEvent* event) override {
+        QScrollBar::mousePressEvent(event);
+        event->accept();
+    }
+};
+
+}  // namespace
 
 // =============================================================================
 // Scrolling
@@ -496,7 +518,7 @@ void BookEditor::onScrollAnimationValueChanged(const QVariant& value)
 void BookEditor::setupScrollBar()
 {
     // Create vertical scrollbar (with an arrow pointer, not the editor's I-beam)
-    m_verticalScrollBar = new QScrollBar(Qt::Vertical, this);
+    m_verticalScrollBar = new EditorScrollBar(Qt::Vertical, this);
     m_verticalScrollBar->setCursor(Qt::ArrowCursor);
     m_verticalScrollBar->setMinimum(0);
     m_verticalScrollBar->setMaximum(0);
@@ -522,7 +544,7 @@ void BookEditor::setupScrollBar()
     }
 
     // Horizontal scrollbar: while the zoomed page is wider than the view
-    m_horizontalScrollBar = new QScrollBar(Qt::Horizontal, this);
+    m_horizontalScrollBar = new EditorScrollBar(Qt::Horizontal, this);
     m_horizontalScrollBar->setCursor(Qt::ArrowCursor);
     m_horizontalScrollBar->setRange(0, 0);
     m_horizontalScrollBar->setSingleStep(static_cast<int>(WHEEL_SCROLL_STEP));
@@ -900,21 +922,38 @@ void BookEditor::paintDistractionFreeOverlay(QPainter& painter)
         return;
     }
 
-    // In the dimmed text color of the paper (the color of the paragraphs Focus dims)
+    // In the dimmed text color of the paper (the color of the paragraphs Focus dims), each
+    // on a plate of the paper's color, so that it does not mix with the lines under it
     QColor textColor = m_appearance.colors.focusInactiveColor(m_appearance.colorMode);
     textColor.setAlphaF(static_cast<float>(textColor.alphaF() * m_uiOpacity));
+    QColor plateColor = m_appearance.colors.background(m_appearance.colorMode);
+    plateColor.setAlphaF(static_cast<float>(plateColor.alphaF() * m_uiOpacity));
     painter.setFont(m_appearance.typography.uiFont);
-    painter.setPen(textColor);
 
     const QRectF area = view.adjusted(DISTRACTION_FREE_TEXT_MARGIN, DISTRACTION_FREE_TEXT_MARGIN,
                                       -DISTRACTION_FREE_TEXT_MARGIN, -DISTRACTION_FREE_TEXT_MARGIN);
+    const auto drawLabel = [&painter, &area, &textColor, &plateColor](Qt::Alignment alignment,
+                                                                    const QString& text) {
+        constexpr qreal padding = 8.0;  // around the text, on the plate
+        const QRectF plate = painter.boundingRect(area, alignment, text)
+                                 .adjusted(-padding, -padding / 2.0, padding, padding / 2.0);
+        painter.save();
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(plateColor);
+        painter.drawRoundedRect(plate, padding / 2.0, padding / 2.0);
+        painter.restore();
+        painter.setPen(textColor);
+        painter.drawText(area, alignment, text);
+    };
     if (m_appearance.distractionFree.showWordCount) {
-        painter.drawText(area, Qt::AlignHCenter | Qt::AlignBottom,
-                         tr("Words: %1").arg(wordCount()));
+        // As the status bar writes the number (3 480 in Polish, 3,480 in English)
+        drawLabel(Qt::AlignHCenter | Qt::AlignBottom,
+                  tr("Words: %1").arg(QLocale().toString(textCounts().words)));
     }
     if (m_appearance.distractionFree.showClock) {
-        painter.drawText(area, Qt::AlignRight | Qt::AlignTop,
-                         QDateTime::currentDateTime().toString(QStringLiteral("HH:mm")));
+        drawLabel(Qt::AlignRight | Qt::AlignTop,
+                  QDateTime::currentDateTime().toString(QStringLiteral("HH:mm")));
     }
 }
 

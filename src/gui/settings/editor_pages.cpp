@@ -6,6 +6,7 @@
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
+#include "kalahari/gui/utils/chapter_cursor.h"
 #include "kalahari/editor/editor_appearance.h"
 
 #include <QCheckBox>
@@ -36,8 +37,16 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     size->setSuffix(tr(" pt"));
     addField(font, tr("Font Size:"), size, "editor.fontSize");
 
-    // The editor does not use these options yet
     QFormLayout* behavior = addGroup(tr("Editor Behavior"));
+    // A chapter opens where its cursor was when it was closed last, or at its start
+    auto* opensAt = new QComboBox();
+    opensAt->addItem(tr("Where You Last Edited"),
+                     QString::fromLatin1(utils::CHAPTER_OPENS_WHERE_LEFT));
+    opensAt->addItem(tr("At the Beginning"), QString::fromLatin1(utils::CHAPTER_OPENS_AT_START));
+    addField(behavior, tr("Open a Chapter:"), opensAt, utils::CHAPTER_OPENS_AT_KEY);
+    addNote(behavior, tr("The place of the cursor is kept in the book for every chapter, also "
+                         "after the program is closed."));
+    // The editor does not use these options yet
     auto* tabSize = new QSpinBox();
     tabSize->setRange(2, 8);
     tabSize->setSuffix(tr(" spaces"));
@@ -77,6 +86,14 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     addField(typewriter, tr("Cursor Line Height:"), focus, "editor.typewriter.focusPosition", 100.0);
     addCheckBox(typewriter, tr("Smooth scrolling"), "editor.typewriter.smoothScroll")
         ->setToolTip(tr("Glide to the next line instead of jumping"));
+
+    // The counts of the whole program: the status bar, the panels, Distraction-Free writing
+    QFormLayout* wordCount = addGroup(tr("Word Count"));
+    addCheckBox(wordCount, tr("Count standalone dialogue dashes as words"),
+                "editor.wordCount.dashesAsWords");
+    addNote(wordCount, tr("A dash separated by spaces from the words around it, as at the start "
+                          "of a line of dialogue. Microsoft Word counts it as a word, LibreOffice "
+                          "does not."));
 
     pageLayout()->addStretch();
 }

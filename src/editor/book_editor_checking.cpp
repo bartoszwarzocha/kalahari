@@ -4,13 +4,106 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/editor/paragraph_data.h>
+#include <kalahari/editor/spell_check_service.h>
+#include <QAction>
+#include <QElapsedTimer>
+#include <QFont>
 #include <QMenu>
 #include <QMessageBox>
+#include <QShowEvent>
+#include <QStringView>
+#include <QTextBlock>
+#include <QTimer>
 #include <utility>
+#include <vector>
 
 namespace kalahari::editor {
 
 namespace {
+
+/// @brief How long a turn of the spelling check runs at most (ns): typing stays smooth
+constexpr qint64 SPELL_TURN_NS = 8'000'000;
+
+/// @brief How long after an edit the paragraphs it changed are checked (ms)
+constexpr int SPELL_EDIT_DELAY_MS = 150;
+
+/// @brief How many words the context menu offers in place of a misspelled one
+constexpr int MAX_SUGGESTIONS = 5;
+
+/// @brief Whether the character at @p i of a text goes on a word from the side of @p step:
+///        a letter, a digit or an accent, or an apostrophe or a hyphen with a letter after it
+bool continuesWord(const QString& text, qsizetype i, int step) {
+    if (i < 0 || i >= text.size()) {
+        return false;
+    }
+    const QChar c = text[i];
+    if (c.isLetterOrNumber() || c.isMark() || c == QLatin1Char('_')) {
+        return true;
+    }
+    const bool joiner = c == QLatin1Char('\'') || c == QChar(0x2019) || c == QLatin1Char('-') ||
+                        c == QChar(0x2010) || c == QChar(0x2011);
+    const qsizetype next = i + step;
+    return joiner && next >= 0 && next < text.size() && text[next].isLetter();
+}
+
+/// @brief Whether a wave found in @p oldText marks the same word at @p start of @p newText,
+///        not joined to other letters
+bool sameWordAt(const QString& oldText, const TextHighlight& issue, const QString& newText,
+                int start) {
+    return start >= 0 && start + issue.length <= newText.size() &&
+           QStringView(newText).mid(start, issue.length) ==
+               QStringView(oldText).mid(issue.start, issue.length) &&
+           !continuesWord(newText, start - 1, -1) &&
+           !continuesWord(newText, start + issue.length, 1);
+}
+
+/// @brief Move the spelling waves of a paragraph with an edit made in it
+///
+/// The waves before the edit stay where they are. Those after it go with the text after
+/// it, which ends the last paragraph of the edit (the same one, when the edit put in no new
+/// paragraph). A wave goes only with its word as it was.
+/// @param first The paragraph (with waves for its text before the edit)
+/// @param offset Where the edit starts in it
+/// @param charsRemoved How much text the edit removed
+/// @param last The paragraph holding the end of the edit
+void moveSpellingWaves(const QTextBlock& first, int offset, int charsRemoved,
+                       const QTextBlock& last) {
+    ParagraphCheck& check = ParagraphData::find(first)->spelling;
+    const QString old = std::exchange(check.text, QString());
+    const std::vector<TextHighlight> issues = std::exchange(check.issues, {});
+    const QString text = first.text();
+    const QString lastText = last == first ? text : last.text();
+
+    // The text after the edit is the paragraph's old end, unless the edit removed it
+    const int removedEnd = offset + charsRemoved;
+    const bool endKept = removedEnd <= old.size();
+    const int shift = static_cast<int>(lastText.size() - old.size());
+
+    std::vector<TextHighlight> lastWaves;
+    for (const TextHighlight& issue : issues) {
+        if (issue.start + issue.length <= offset) {
+            if (sameWordAt(old, issue, text, issue.start)) {
+                check.issues.push_back(issue);
+            }
+        } else if (issue.start >= removedEnd && endKept) {
+            const TextHighlight moved{issue.start + shift, issue.length, issue.kind};
+            if (sameWordAt(old, issue, lastText, moved.start)) {
+                (last == first ? check.issues : lastWaves).push_back(moved);
+            }
+        }
+    }
+    if (!check.issues.empty()) {
+        check.text = text;
+    }
+    if (!lastWaves.empty()) {
+        ParagraphCheck& lastCheck = ParagraphData::of(last)->spelling;
+        if (lastCheck.issuesFor(lastText) == nullptr) {
+            lastCheck.issues = std::move(lastWaves);
+            lastCheck.text = lastText;
+            lastCheck.current = false;
+        }
+    }
+}
 
 /// @brief Keep the results of a check with the paragraph they were made for
 ///
@@ -25,7 +118,8 @@ void storeCheckResults(const QTextDocument* doc, int paragraph,
     if (!block.isValid()) {
         return;
     }
-    ParagraphCheck results{block.text(), {}};
+    ParagraphCheck results;
+    results.text = block.text();
     for (const auto& [issue, issueText] : found) {
         const bool inText = issue.start >= 0 && issue.length > 0 &&
                             issue.start + issue.length <= results.text.length();
@@ -46,29 +140,27 @@ void storeCheckResults(const QTextDocument* doc, int paragraph,
 }  // anonymous namespace
 
 // =============================================================================
-// Spell Check Integration (Phase 6.9)
+// Spelling
 // =============================================================================
 
 void BookEditor::setSpellCheckService(SpellCheckService* service)
 {
-    // Disconnect from previous service
-    if (m_spellCheckService) {
+    if (m_spellCheckService == service) {
+        return;
+    }
+    if (m_spellCheckService != nullptr) {
         disconnect(m_spellCheckService, nullptr, this, nullptr);
-        m_spellCheckService->setBookEditor(nullptr);
     }
-
     m_spellCheckService = service;
-
-    // Connect to new service
-    if (m_spellCheckService) {
-        connect(m_spellCheckService, &SpellCheckService::paragraphChecked,
-                this, &BookEditor::onSpellCheckParagraph);
-
-        // Connect service to this BookEditor for paragraph signals
-        m_spellCheckService->setBookEditor(this);
-
-        core::Logger::getInstance().debug("BookEditor: Spell check service connected");
+    if (m_spellCheckService != nullptr) {
+        connect(m_spellCheckService, &SpellCheckService::wordsChanged, this,
+                &BookEditor::onSpellingWordsChanged);
+        connect(m_spellCheckService, &QObject::destroyed, this,
+                &BookEditor::onSpellCheckServiceDestroyed);
+        connect(this, &BookEditor::cursorPositionChanged, this,
+                &BookEditor::onSpellingCursorMoved, Qt::UniqueConnection);
     }
+    onSpellingWordsChanged();
 }
 
 SpellCheckService* BookEditor::spellCheckService() const
@@ -78,22 +170,325 @@ SpellCheckService* BookEditor::spellCheckService() const
 
 void BookEditor::requestSpellCheck()
 {
-    if (m_spellCheckService && m_textBuffer) {
-        m_spellCheckService->checkDocumentAsync();
+    if (!m_textBuffer || m_spellCheckService == nullptr || !m_spellCheckService->isActive()) {
+        return;
+    }
+    for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+        if (ParagraphData* paragraphData = ParagraphData::find(block)) {
+            paragraphData->spelling.current = false;
+        }
+    }
+    scheduleSpellCheck(0);
+}
+
+bool BookEditor::isSpellCheckPending() const
+{
+    return m_spellTimer != nullptr && m_spellTimer->isActive();
+}
+
+bool BookEditor::goToNextMisspelling()
+{
+    if (!m_textBuffer || m_spellCheckService == nullptr || !m_spellCheckService->isActive()) {
+        return false;
+    }
+
+    // The writer has stopped typing: the word typed last counts too
+    if (m_spellTyping >= 0) {
+        endSpellingTyping();
+    }
+
+    // After the selection (the word gone to before), else from the cursor: the word the
+    // cursor is in, or right after, comes first
+    const bool afterSelection = hasSelection();
+    const CursorPosition from = afterSelection ? m_selection.normalized().end : m_cursorPosition;
+    const auto afterFrom = [afterSelection, &from](const TextHighlight& issue) {
+        return afterSelection ? issue.start >= from.offset
+                              : issue.start + issue.length >= from.offset;
+    };
+
+    // Round the text from the paragraph of the cursor back to it, checking on the way the
+    // paragraphs not checked yet
+    bool wavesChanged = false;
+    const int count = m_textBuffer->blockCount();
+    QTextBlock block = m_textBuffer->findBlockByNumber(from.paragraph);
+    for (int visited = 0; visited <= count; ++visited) {
+        if (!block.isValid()) {
+            block = m_textBuffer->begin();
+        }
+        const ParagraphData* known = ParagraphData::find(block);
+        if (known == nullptr || !known->spelling.current) {
+            wavesChanged = checkSpelling(block) || wavesChanged;
+        }
+
+        const TextHighlight* first = nullptr;
+        if (const ParagraphData* paragraphData = ParagraphData::find(block)) {
+            for (const TextHighlight& issue : paragraphData->spelling.issues) {
+                // The paragraph of the cursor: after it first, before it when back at it
+                bool wanted = true;
+                if (visited == 0) {
+                    wanted = afterFrom(issue);
+                } else if (visited == count) {
+                    wanted = !afterFrom(issue);
+                }
+                if (wanted && (first == nullptr || issue.start < first->start)) {
+                    first = &issue;
+                }
+            }
+        }
+        if (first != nullptr) {
+            const int paragraph = block.blockNumber();
+            const CursorPosition start{paragraph, first->start};
+            const CursorPosition end{paragraph, first->start + first->length};
+            clearSelection();
+            setCursorPosition(end);
+            m_selectionAnchor = start;
+            setSelection({start, end});
+            ensureCursorVisible();
+            update();
+            return true;
+        }
+        block = block.next();
+    }
+    if (wavesChanged) {
+        update();
+    }
+    return false;
+}
+
+void BookEditor::onSpellingWordsChanged()
+{
+    if (m_spellCheckService == nullptr || !m_spellCheckService->isActive()) {
+        clearSpelling();
+        return;
+    }
+    requestSpellCheck();
+}
+
+void BookEditor::onSpellCheckServiceDestroyed()
+{
+    m_spellCheckService = nullptr;
+    clearSpelling();
+}
+
+void BookEditor::clearSpelling()
+{
+    if (m_spellTimer != nullptr) {
+        m_spellTimer->stop();
+    }
+    m_spellTyping = -1;
+    if (!m_textBuffer) {
+        return;
+    }
+    bool hadWaves = false;
+    for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+        if (ParagraphData* paragraphData = ParagraphData::find(block)) {
+            hadWaves = hadWaves || !paragraphData->spelling.issues.empty();
+            paragraphData->spelling = ParagraphCheck{};
+        }
+    }
+    if (hadWaves) {
+        update();
     }
 }
 
-void BookEditor::onSpellCheckParagraph(int paragraphIndex, const QList<SpellErrorInfo>& errors)
+void BookEditor::scheduleSpellCheck(int delayMs)
 {
-    // Kept with the paragraph; the render pipeline draws them as waves
-    std::vector<std::pair<TextHighlight, QString>> found;
-    found.reserve(static_cast<size_t>(errors.size()));
-    for (const SpellErrorInfo& error : errors) {
-        found.emplace_back(TextHighlight{error.startPos, error.length, HighlightKind::Spelling},
-                           error.word);
+    if (m_spellTimer == nullptr) {
+        m_spellTimer = new QTimer(this);
+        m_spellTimer->setSingleShot(true);
+        connect(m_spellTimer, &QTimer::timeout, this, &BookEditor::runSpellCheck);
     }
-    storeCheckResults(m_textBuffer.get(), paragraphIndex, &ParagraphData::spelling, found);
-    update();
+    // A turn due sooner stays
+    if (!m_spellTimer->isActive() || m_spellTimer->remainingTime() > delayMs) {
+        m_spellTimer->start(delayMs);
+    }
+}
+
+void BookEditor::runSpellCheck()
+{
+    if (!m_textBuffer || m_spellCheckService == nullptr || !m_spellCheckService->isActive() ||
+        !isVisible()) {
+        return;  // a hidden editor goes on when it is shown (showEvent())
+    }
+
+    QElapsedTimer clock;
+    clock.start();
+    const auto turnIsOver = [&clock]() { return clock.nsecsElapsed() >= SPELL_TURN_NS; };
+    const auto due = [](const QTextBlock& block) {
+        const ParagraphData* paragraphData = ParagraphData::find(block);
+        return paragraphData == nullptr || !paragraphData->spelling.current;
+    };
+
+    // The paragraphs in view first; the view is painted again when their waves change
+    const auto [firstInView, lastInView] =
+        m_viewportManager ? m_viewportManager->visibleRange() : std::pair<size_t, size_t>{0, 0};
+    const auto inView = [first = firstInView, last = lastInView](int number) {
+        return static_cast<size_t>(number) >= first && static_cast<size_t>(number) <= last;
+    };
+    bool viewChanged = false;
+    const auto endTurn = [this, &viewChanged](bool more) {
+        if (viewChanged) {
+            update();
+        }
+        if (more) {
+            scheduleSpellCheck(0);
+        }
+    };
+    for (QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(firstInView));
+         block.isValid() && inView(block.blockNumber()); block = block.next()) {
+        if (due(block)) {
+            viewChanged = checkSpelling(block) || viewChanged;
+            if (turnIsOver()) {
+                endTurn(true);
+                return;
+            }
+        }
+    }
+
+    // Then the others, round the text from where the last turn stopped
+    const int count = m_textBuffer->blockCount();
+    QTextBlock block = m_textBuffer->findBlockByNumber(m_spellNext < count ? m_spellNext : 0);
+    for (int visited = 0; visited < count; ++visited) {
+        if (!block.isValid()) {
+            block = m_textBuffer->begin();
+        }
+        if (due(block)) {
+            const int number = block.blockNumber();
+            if (checkSpelling(block) && inView(number)) {
+                viewChanged = true;
+            }
+            if (turnIsOver()) {
+                m_spellNext = number + 1;
+                endTurn(true);
+                return;
+            }
+        }
+        block = block.next();
+    }
+    m_spellNext = 0;
+    endTurn(false);
+}
+
+bool BookEditor::checkSpelling(const QTextBlock& block)
+{
+    const QString text = block.text();
+    const QList<SpellErrorInfo> errors = m_spellCheckService->checkParagraph(text);
+
+    // The word being typed gets its wave when the cursor leaves it
+    const int typed = m_spellTyping >= 0 && block.contains(m_spellTyping)
+                          ? m_spellTyping - block.position()
+                          : -1;
+    std::vector<TextHighlight> issues;
+    issues.reserve(static_cast<size_t>(errors.size()));
+    for (const SpellErrorInfo& error : errors) {
+        if (typed > error.startPos && typed <= error.startPos + error.length) {
+            continue;
+        }
+        issues.push_back({error.startPos, error.length, HighlightKind::Spelling});
+    }
+
+    ParagraphCheck& check = ParagraphData::of(block)->spelling;
+    const std::vector<TextHighlight>* before = check.issuesFor(text);
+    const bool changed = before != nullptr ? *before != issues : !issues.empty();
+    check.issues = std::move(issues);
+    check.text = check.issues.empty() ? QString() : text;
+    check.current = true;
+    return changed;
+}
+
+void BookEditor::adjustSpellingToEdit(int from, int charsRemoved, int charsAdded)
+{
+    if (!m_textBuffer || m_spellCheckService == nullptr) {
+        return;
+    }
+    const QTextBlock first = m_textBuffer->findBlock(from);
+    const QTextBlock last = m_textBuffer->findBlock(from + charsAdded);
+    if (!first.isValid()) {
+        return;
+    }
+
+    // An edit not made by typing (a paste, undo, a replacement) ends the typing
+    if (!m_spellTypingEdit && m_spellTyping >= 0) {
+        endSpellingTyping();
+    }
+
+    for (QTextBlock block = first; block.isValid(); block = block.next()) {
+        ParagraphData* paragraphData = ParagraphData::find(block);  // none: a new paragraph, due
+        if (paragraphData != nullptr) {
+            ParagraphCheck& check = paragraphData->spelling;
+            const QString text = block.text();
+            // A paragraph with the text its waves were found in keeps them (a new format)
+            if (check.issues.empty() || check.text != text) {
+                check.current = false;
+                if (block == first && !check.issues.empty()) {
+                    moveSpellingWaves(block, from - block.position(), charsRemoved, last);
+                } else {
+                    check.issues.clear();
+                    check.text.clear();
+                }
+            }
+        }
+        if (block == last) {
+            break;
+        }
+    }
+    scheduleSpellCheck(SPELL_EDIT_DELAY_MS);
+}
+
+void BookEditor::onSpellingCursorMoved()
+{
+    if (m_spellTypingEdit || m_spellTyping < 0 || !m_textBuffer) {
+        return;
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!block.isValid() || block.position() + m_cursorPosition.offset != m_spellTyping) {
+        endSpellingTyping();
+    }
+}
+
+void BookEditor::noteSpellingTyping()
+{
+    if (!m_textBuffer || m_spellCheckService == nullptr) {
+        return;
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    m_spellTyping = block.isValid() ? block.position() + m_cursorPosition.offset : -1;
+}
+
+void BookEditor::endSpellingTyping()
+{
+    const QTextBlock typed = m_textBuffer ? m_textBuffer->findBlock(m_spellTyping) : QTextBlock();
+    m_spellTyping = -1;
+    if (ParagraphData* paragraphData = ParagraphData::find(typed)) {
+        paragraphData->spelling.current = false;
+    }
+    if (m_spellCheckService != nullptr && m_spellCheckService->isActive()) {
+        scheduleSpellCheck(0);
+    }
+}
+
+void BookEditor::checkSpellingAtCursor()
+{
+    if (!m_textBuffer || m_spellCheckService == nullptr || !m_spellCheckService->isActive()) {
+        return;
+    }
+    if (m_spellTyping >= 0) {
+        endSpellingTyping();
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    const ParagraphData* known = ParagraphData::find(block);
+    if (block.isValid() && (known == nullptr || !known->spelling.current) &&
+        checkSpelling(block)) {
+        update();
+    }
+}
+
+void BookEditor::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+    if (m_spellCheckService != nullptr && m_spellCheckService->isActive()) {
+        scheduleSpellCheck(0);
+    }
 }
 
 std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int offset) const
@@ -104,7 +499,7 @@ std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int
         const QString text = block.text();
         if (const auto* issues = paragraphData->spelling.issuesFor(text)) {
             for (const TextHighlight& issue : *issues) {
-                if (offset >= issue.start && offset < issue.start + issue.length) {
+                if (offset >= issue.start && offset <= issue.start + issue.length) {
                     return {text.mid(issue.start, issue.length), issue.start,
                             issue.start + issue.length};
                 }
@@ -114,53 +509,43 @@ std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int
     return {QString(), 0, 0};
 }
 
-QMenu* BookEditor::createSpellCheckContextMenu(const QString& word, int paraIndex,
-                                                int startOffset, int endOffset)
+void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIndex,
+                                    int startOffset, int endOffset)
 {
-    QMenu* menu = new QMenu(this);
-
-    // Get suggestions from spell check service
-    QStringList suggestions;
-    if (m_spellCheckService) {
-        suggestions = m_spellCheckService->suggestions(word, 5);
-    }
-
-    // Add suggestion actions
+    // The words to put in its place, in bold as in other word processors
+    const QStringList suggestions = m_spellCheckService != nullptr
+                                        ? m_spellCheckService->suggestions(word, MAX_SUGGESTIONS)
+                                        : QStringList();
     if (suggestions.isEmpty()) {
-        QAction* noSuggestionsAction = menu->addAction(tr("(No suggestions)"));
-        noSuggestionsAction->setEnabled(false);
-    } else {
-        for (const QString& suggestion : suggestions) {
-            QAction* action = menu->addAction(suggestion);
-            connect(action, &QAction::triggered, this, [this, paraIndex, startOffset, endOffset, suggestion]() {
-                replaceWord(paraIndex, startOffset, endOffset, suggestion);
-            });
-        }
+        menu.addAction(tr("(No suggestions)"))->setEnabled(false);
     }
+    for (const QString& suggestion : suggestions) {
+        QAction* action = menu.addAction(suggestion);
+        QFont bold = action->font();
+        bold.setBold(true);
+        action->setFont(bold);
+        connect(action, &QAction::triggered, this,
+                [this, paraIndex, startOffset, endOffset, suggestion]() {
+                    replaceWord(paraIndex, startOffset, endOffset, suggestion);
+                });
+    }
+    menu.addSeparator();
 
-    menu->addSeparator();
-
-    // Add to dictionary option
-    QAction* addToDictAction = menu->addAction(tr("Add to Dictionary"));
-    connect(addToDictAction, &QAction::triggered, this, [this, word]() {
-        if (m_spellCheckService) {
-            m_spellCheckService->addToUserDictionary(word);
-            // Re-check affected paragraph
-            requestSpellCheck();
-        }
-    });
-
-    // Ignore option
-    QAction* ignoreAction = menu->addAction(tr("Ignore"));
-    connect(ignoreAction, &QAction::triggered, this, [this, word]() {
-        if (m_spellCheckService) {
+    // The word is right from now on: in every document (Ignore All until the application
+    // closes, Add to Dictionary for good)
+    QAction* ignore = menu.addAction(tr("Ignore All"));
+    connect(ignore, &QAction::triggered, this, [this, word]() {
+        if (m_spellCheckService != nullptr) {
             m_spellCheckService->ignoreWord(word);
-            // Re-check affected paragraph
-            requestSpellCheck();
         }
     });
-
-    return menu;
+    QAction* add = menu.addAction(tr("Add to Dictionary"));
+    connect(add, &QAction::triggered, this, [this, word]() {
+        if (m_spellCheckService != nullptr) {
+            m_spellCheckService->addToUserDictionary(word);
+        }
+    });
+    menu.addSeparator();
 }
 
 void BookEditor::replaceWord(int paraIndex, int startOffset, int endOffset, const QString& replacement)
@@ -181,16 +566,6 @@ void BookEditor::replaceWord(int paraIndex, int startOffset, int endOffset, cons
     } else {
         insertText(replacement);
     }
-
-    // Get text for debug log using QTextDocument
-    QString replacedText;
-    QTextBlock block = m_textBuffer->findBlockByNumber(paraIndex);
-    if (block.isValid()) {
-        replacedText = block.text().mid(startOffset, endOffset - startOffset);
-    }
-    core::Logger::getInstance().debug("BookEditor: Replaced '{}' at ({}, {}-{}) with '{}'",
-        replacedText.toStdString(),
-        paraIndex, startOffset, endOffset, replacement.toStdString());
 }
 
 // =============================================================================

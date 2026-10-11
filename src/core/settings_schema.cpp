@@ -105,12 +105,17 @@ std::map<std::string, json> buildDefaults() {
         {"editor.tabSize", 4},
         {"editor.lineNumbers", true},
         {"editor.wordWrap", false},
+        // Where a chapter opens: "lastEdit", where its cursor was when it was closed last, or
+        // "start"
+        {"editor.chapterOpensAt", "lastEdit"},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},
         {"editor.indentSize", 24.0},
 
-        // Editor: spelling. An empty language follows the book's language
+        // Editor: spelling as you type. The language is a dictionary (pl_PL) or a language
+        // (pl); empty: the book's language
+        {"editor.spellCheck.enabled", true},
         {"editor.spellCheck.language", ""},
 
         // Editor: grammar. The address of the user's LanguageTool server; empty: off
@@ -165,6 +170,9 @@ std::map<std::string, json> buildDefaults() {
         // Editor: the size of the annotations' marks in the text, in percent of the size
         // the text's font gives them
         {"editor.annotationMarkSize", 100},
+
+        // Word count in the whole program: a dash standing alone (a dialogue dash) is a word
+        {"editor.wordCount.dashesAsWords", false},
     };
 }
 
