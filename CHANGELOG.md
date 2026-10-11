@@ -485,7 +485,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   passed under the mouse (for example the line spacing), and the wheel over the font and
   its size in the toolbar changed them too. As on Windows, the wheel now changes only the
   field with the keyboard focus, after a click or Tab in it; over any other field it
-  scrolls the page.
+  scrolls the page. While the wheel scrolls the page, the field with the focus does not
+  stop it when it passes under the mouse, as in web browsers; after a short pause, or once
+  the mouse moves, the wheel over that field changes it again.
 
 - **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
   shows the pages at their size on paper; when the display scaling (for example 125% to

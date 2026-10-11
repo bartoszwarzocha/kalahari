@@ -6,14 +6,17 @@
 /// settings with the wheel changed every field that passed under the mouse. On Windows the
 /// wheel changes only the field with the keyboard focus, and over any other field it
 /// scrolls the page around it. WidgetWheel, a filter of the whole application, does the
-/// same on every system.
+/// same on every system, and as in web browsers the wheel that scrolls a page goes on
+/// scrolling it when the field with the focus passes under the mouse.
 
 #pragma once
 
 #include <QObject>
+#include <QPointF>
 
 class QApplication;
 class QEvent;
+class QWheelEvent;
 
 namespace kalahari::gui {
 
@@ -23,6 +26,11 @@ namespace kalahari::gui {
 /// Tab, no longer from the wheel. The wheel over it while it has no focus goes on to the
 /// widget around it: a page, a list or a panel that scrolls. With the focus the field turns
 /// as Qt turns it on the system: on macOS a combo box does not, as there.
+///
+/// While the wheel scrolls a page, the field with the focus does not take it either when the
+/// page brings the field under the mouse: the notches that follow within half a second, with
+/// the mouse where it was, go on scrolling the page. After a pause, or once the mouse moves,
+/// the wheel over the field turns it again.
 class WidgetWheel : public QObject {
 public:
     /// @brief The filter, to install on the application
@@ -34,6 +42,18 @@ public:
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
+
+private:
+    /// @brief Whether @p wheel goes on scrolling a page: it comes soon after the last notch
+    ///        that reached one, with the mouse where it was
+    [[nodiscard]] bool scrollsPage(const QWheelEvent& wheel) const;
+
+    /// @brief Remember @p wheel as a notch that reached a page, a list or a text that scrolls
+    void notePageScroll(const QWheelEvent& wheel);
+
+    bool m_pageScrolled = false;   ///< A notch has reached a page since the start
+    quint64 m_pageScrollTime = 0;  ///< Time of the last such notch, in milliseconds
+    QPointF m_pageScrollPosition;  ///< Where the mouse was then, on the screen
 };
 
 /// @brief Let the wheel change only the field with the focus, in the whole application

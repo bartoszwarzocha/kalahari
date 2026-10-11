@@ -7,8 +7,11 @@
 
 #include <QApplication>
 #include <QComboBox>
+#include <QLabel>
 #include <QLineEdit>
+#include <QPoint>
 #include <QProxyStyle>
+#include <QScrollArea>
 #include <QScrollBar>
 #include <QSlider>
 #include <QSpinBox>
@@ -43,6 +46,22 @@ bool turnWheel(QWidget& widget) {
                       Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
     QCoreApplication::sendEvent(&widget, &wheel);
     return wheel.isAccepted();
+}
+
+/// One notch of the wheel towards the user over @p widget, with the mouse at @p mouse on the
+/// screen, at @p time in milliseconds of the system: as Qt gives it to the widget and, while
+/// no one takes it, to the widgets around it up to the window
+void turnWheelAt(QWidget& widget, const QPoint& mouse, quint64 time) {
+    for (QWidget* receiver = &widget; receiver != nullptr; receiver = receiver->parentWidget()) {
+        QWheelEvent wheel(receiver->mapFromGlobal(QPointF(mouse)), QPointF(mouse), QPoint(),
+                          QPoint(0, -120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase,
+                          false);
+        wheel.setTimestamp(time);
+        QCoreApplication::sendEvent(receiver, &wheel);
+        if (wheel.isAccepted() || receiver->isWindow()) {
+            return;
+        }
+    }
 }
 
 /// A window with a text field, a field of each kind the wheel turns and a scroll bar, each in
@@ -201,4 +220,69 @@ TEST_CASE("Mouse wheel: a combo box as on macOS takes the focus from Tab, never 
     REQUIRE(fields.comboBox->hasFocus());
     turnWheel(*fields.comboBox);
     CHECK(fields.comboBox->currentIndex() == 1);
+}
+
+TEST_CASE("Mouse wheel: the field with the focus does not stop the page the wheel scrolls",
+          "[gui][wheel]") {
+    InstalledWheel wheel;
+    // A page that scrolls, as in Settings, with a field that has the focus after a click
+    QScrollArea area;
+    auto* page = new QWidget;
+    auto* layout = new QVBoxLayout(page);
+    auto* label = new QLabel(QStringLiteral("Label"), page);
+    auto* focusedField = new QSpinBox(page);
+    auto* otherField = new QSpinBox(page);
+    layout->addWidget(label);
+    layout->addWidget(focusedField);
+    layout->addWidget(otherField);
+    layout->addStretch();
+    page->setMinimumHeight(2000);
+    for (QSpinBox* field : {focusedField, otherField}) {
+        field->setRange(0, 10);
+        field->setValue(5);
+    }
+    area.setWidget(page);
+    area.setWidgetResizable(true);
+    area.resize(300, 200);
+    area.show();
+    area.activateWindow();
+    REQUIRE(test::waitUntil([&area] { return QApplication::activeWindow() == &area; }));
+    QScrollBar* scrollBar = area.verticalScrollBar();
+    REQUIRE(scrollBar->maximum() > 0);
+    focusedField->setFocus(Qt::MouseFocusReason);
+    REQUIRE(focusedField->hasFocus());
+
+    // The wheel over the label scrolls the page; the page brings the field with the focus
+    // under the mouse, and the next notches of the turn go on scrolling the page
+    const QPoint mouse = label->mapToGlobal(label->rect().center());
+    turnWheelAt(*label, mouse, 1000);
+    int scrolled = scrollBar->value();
+    CHECK(scrolled > 0);
+    turnWheelAt(*focusedField, mouse, 1100);
+    CHECK(focusedField->value() == 5);
+    CHECK(scrollBar->value() > scrolled);
+    scrolled = scrollBar->value();
+    // A hand that trembles a little does not end the turn
+    turnWheelAt(*focusedField, mouse + QPoint(3, 4), 1500);
+    CHECK(focusedField->value() == 5);
+    CHECK(scrollBar->value() > scrolled);
+
+    // After a pause the wheel turns the field, and the page stays
+    scrolled = scrollBar->value();
+    turnWheelAt(*focusedField, mouse + QPoint(3, 4), 2100);
+    CHECK(focusedField->value() == 4);
+    turnWheelAt(*focusedField, mouse + QPoint(3, 4), 2200);
+    CHECK(focusedField->value() == 3);
+    CHECK(scrollBar->value() == scrolled);
+
+    // A turn that begins over a field without the focus scrolls the page as well; once the
+    // mouse moves, the wheel over the field with the focus turns it again
+    const QPoint elsewhere = otherField->mapToGlobal(otherField->rect().center());
+    turnWheelAt(*otherField, elsewhere, 5000);
+    CHECK(otherField->value() == 5);
+    CHECK(scrollBar->value() > scrolled);
+    turnWheelAt(*focusedField, elsewhere, 5100);
+    CHECK(focusedField->value() == 3);
+    turnWheelAt(*focusedField, elsewhere + QPoint(0, 30), 5200);
+    CHECK(focusedField->value() == 2);
 }
