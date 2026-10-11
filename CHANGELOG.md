@@ -33,9 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shortcuts) where the commands get other keys. The list has the commands in the order of
   the menus, then the fixed keys of the text, the bars and the panels and the keys of the
   system, which no command can have; under it, the selected row with its keys and what
-  they do. It searches by name, by keys ("ctrl+h" finds Ctrl+H and not Ctrl+Home, "f1"
-  finds F1 and not F10–F12), or by a shortcut pressed (Search by Keys), and can show only
-  the changed shortcuts. Every key is checked: keys that type text, fixed keys and the
+  they do. It searches by name (the words in any order and in their other forms: "książka"
+  finds "Zamknij książkę"), by keys ("ctrl+h" finds Ctrl+H and not Ctrl+Home, "f1" finds F1
+  and not F10–F12), or by a shortcut pressed (Search by Keys), and can show only the
+  changed shortcuts. Every key is checked: keys that type text, fixed keys and the
   system's are refused with the reason; keys another command has are taken from it only
   when the user says so; keys a Linux desktop or macOS may take bring a warning. Remove,
   Restore Default, Restore All Defaults, Import and Export (a JSON file, e.g. for another

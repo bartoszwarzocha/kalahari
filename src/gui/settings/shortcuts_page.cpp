@@ -107,6 +107,31 @@ QString searchForm(const QString& text) {
     return form;
 }
 
+/// The beginnings of the words of a search, case folded: a word of five letters or more
+/// without its ending (one letter, two of a word of seven), so that a name with another form
+/// of the word is found too: "książka" finds "Zamknij książkę", "akapit" "w akapicie"
+QStringList searchStems(const QString& text) {
+    QStringList stems;
+    const QStringList words =
+        text.toCaseFolded().simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    for (const QString& word : words) {
+        const qsizetype ending = word.size() >= 7 ? 2 : (word.size() >= 5 ? 1 : 0);
+        stems.append(word.left(word.size() - ending));
+    }
+    return stems;
+}
+
+/// Whether a name has the search: the whole text searched for, or the beginnings of all its
+/// words, in any order
+bool nameHas(const QString& name, const QString& query, const QStringList& stems) {
+    const QString form = searchForm(name);
+    return form.contains(query) ||
+           (!stems.isEmpty() && std::all_of(stems.cbegin(), stems.cend(),
+                                            [&form](const QString& stem) {
+                                                return form.contains(stem);
+                                            }));
+}
+
 /// Whether a character of a text of keys stands between two key names: "+" between the
 /// keys, "," between the keys of a list, the symbols of the modifiers on macOS
 bool isKeyNameBoundary(QChar character) {
@@ -1149,7 +1174,7 @@ bool ShortcutsPage::isShown(const QTreeWidgetItem* item,
         if (!byText) {
             return true;
         }
-        return searchForm(entry->menu + entry->label).contains(query) ||
+        return nameHas(entry->menu + entry->label, query, m_searchStems) ||
                keysOfItemHave(item, keysNow, query, m_wholeKeyName);
     }
 
@@ -1164,7 +1189,7 @@ bool ShortcutsPage::isShown(const QTreeWidgetItem* item,
     if (!byText) {
         return true;
     }
-    return searchForm(group->title + fixed->label).contains(query) ||
+    return nameHas(group->title + fixed->label, query, m_searchStems) ||
            keysOfItemHave(item, keysNow, query, m_wholeKeyName);
 }
 
@@ -1191,6 +1216,7 @@ void ShortcutsPage::applyFilter() {
     const CommandRegistry::ShortcutMap keysNow = resolved();
     // In the search by keys the field shows the keys, not a text to search for
     const QString query = m_keySearch ? QString() : searchForm(m_search->text());
+    m_searchStems = m_keySearch ? QStringList() : searchStems(m_search->text());
     const bool filtering = m_onlyChanged->isChecked() || m_keySearch || !query.isEmpty();
     // A whole key name finds that key: "f1" is not F12. While no keys have it, it is a name
     // being written and finds the keys it begins: "shift+f1" finds Shift+F12 on the way

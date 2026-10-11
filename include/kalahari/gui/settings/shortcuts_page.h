@@ -17,6 +17,7 @@
 #include <QColor>
 #include <QKeyCombination>
 #include <QString>
+#include <QStringList>
 
 #include <functional>
 #include <optional>
@@ -135,7 +136,8 @@ private:
 
     /// @brief Whether the search and "Only Changed" leave an item of a command or of fixed
     ///        keys in the list
-    /// @param query The text searched for, as searchForm() makes it (empty: none)
+    /// @param query The text searched for, as searchForm() makes it (empty: none); a name
+    ///        with the beginnings of its words (m_searchStems) has it too
     [[nodiscard]] bool isShown(const QTreeWidgetItem* item,
                                const CommandRegistry::ShortcutMap& keysNow,
                                const QString& query) const;
@@ -236,6 +238,7 @@ private:
     bool m_keySearch = false;                     ///< Search by keys is on
     std::optional<QKeyCombination> m_searchKeys;  ///< The keys searched for
     bool m_wholeKeyName = false;  ///< The search ends with the whole name of keys the list has
+    QStringList m_searchStems;    ///< The beginnings of the words searched for
     MessageKind m_messageKind = MessageKind::Information;
     std::function<void()> m_messageAccept;
     QWidget* m_returnFocus = nullptr;  ///< What gets the keys back after a change (of the page)

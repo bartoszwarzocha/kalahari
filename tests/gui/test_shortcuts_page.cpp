@@ -593,6 +593,54 @@ TEST_CASE("Shortcuts page: the search finds commands by name and by keys",
     onlyChanged->setChecked(false);
 }
 
+TEST_CASE("Shortcuts page: the search finds the other forms of the words",
+          "[gui][shortcuts][page]") {
+    // As in Polish: the menus have "książkę", "akapicie", and one writes "książka", "akapit"
+    addCommand("file.open.book", "Otw\u00f3rz ksi\u0105\u017ck\u0119...",
+               "FILE/Otw\u00f3rz ksi\u0105\u017ck\u0119...", 1, shortcut(Qt::Key_O, CTRL));
+    addCommand("file.close", "Zamknij ksi\u0105\u017ck\u0119",
+               "FILE/Zamknij ksi\u0105\u017ck\u0119", 2, shortcut(Qt::Key_F4, CTRL));
+    addCommand("file.save", "Zapisz", "FILE/Zapisz", 3, shortcut(Qt::Key_S, CTRL));
+    addCommand("edit.paragraph", "Wiersz w akapicie", "EDIT/Wiersz w akapicie", 1,
+               KeyboardShortcut());
+    ShortcutsPage page;
+    page.load();
+    QTreeWidget* list = listOf(page);
+    auto* search = child<ShortcutRecorder>(page, QStringLiteral("shortcutsSearch"));
+    QTreeWidgetItem* open =
+        itemNamed(list, QStringLiteral("Otw\u00f3rz ksi\u0105\u017ck\u0119..."));
+    QTreeWidgetItem* close = itemNamed(list, QStringLiteral("Zamknij ksi\u0105\u017ck\u0119"));
+    QTreeWidgetItem* save = itemNamed(list, QStringLiteral("Zapisz"));
+    QTreeWidgetItem* line = itemNamed(list, QStringLiteral("Wiersz w akapicie"));
+    QTreeWidgetItem* newParagraph = itemNamed(list, QStringLiteral("New paragraph"));
+
+    search->setText(QStringLiteral("ksi\u0105\u017cka"));  // książka
+    CHECK(isShown(open));
+    CHECK(isShown(close));
+    CHECK_FALSE(isShown(save));
+
+    search->setText(QStringLiteral("akapit"));
+    CHECK(isShown(line));
+    CHECK_FALSE(isShown(open));
+
+    // The words in any order, each in another form
+    search->setText(QStringLiteral("ksi\u0105\u017cki zamkni\u0119cie"));  // książki zamknięcie
+    CHECK_FALSE(isShown(close));  // "zamknięcie" is not a form of "Zamknij"
+    search->setText(QStringLiteral("ksi\u0105\u017cki zamknij"));
+    CHECK(isShown(close));
+    CHECK_FALSE(isShown(open));
+
+    // The fixed keys too
+    search->setText(QStringLiteral("paragraphs"));
+    CHECK(isShown(newParagraph));
+    CHECK_FALSE(isShown(save));
+
+    // Only the names with the word
+    search->setText(QStringLiteral("zapis"));
+    CHECK(isShown(save));
+    CHECK_FALSE(isShown(close));
+}
+
 TEST_CASE("Shortcuts page: written keys find those keys, not longer ones",
           "[gui][shortcuts][page]") {
     registerCommands();
