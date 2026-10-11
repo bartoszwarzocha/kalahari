@@ -195,15 +195,22 @@ public:
 
     /// @brief Replace current match with replacement text and go on to the next match
     ///
-    /// The edit goes straight into the document, so its native undo records it.
+    /// The edit goes straight into the document as one undo step (see
+    /// replacementStepBegun()).
     /// @return true if replacement was made
     bool replaceCurrent();
 
     /// @brief Replace all matches with replacement text
     ///
-    /// The edit goes straight into the document as one undo step.
+    /// The edit goes straight into the document as one undo step (see
+    /// replacementStepBegun()).
     /// @return Number of replacements made
     int replaceAll();
+
+    /// @brief Where the text put in by the last replacement ends; after Replace All, the end
+    ///        of the last replacement in the text
+    /// @return Absolute character position, or -1 when nothing was replaced
+    [[nodiscard]] int replacementEnd() const;
 
     // =========================================================================
     // Highlight Access
@@ -232,6 +239,19 @@ signals:
     /// @brief Emitted when search text changes
     /// @param text The new search text
     void searchTextChanged(const QString& text);
+
+    /// @brief Emitted when the undo step of a replacement has begun, before its edits
+    ///
+    /// What is added to the document's undo stack now joins the step and is undone last
+    /// (BookEditor records there the cursor undoing the step brings back).
+    void replacementStepBegun();
+
+    /// @brief Emitted when the edits of a replacement are made and its undo step is still
+    /// open (replacementEnd() is where the replaced text ends)
+    ///
+    /// What is added to the document's undo stack now joins the step and is redone last
+    /// (BookEditor records there the cursor redoing the step brings back).
+    void replacementStepEnding();
 
 private:
     /// @brief Rebuild match cache from buffer
@@ -275,6 +295,7 @@ private:
     QMetaObject::Connection m_documentEdits;  ///< Notices edits the matches did not follow
     QMetaObject::Connection m_documentChange; ///< Follows the edits with the matches
     QTextCursor m_origin;                     ///< Where the search goes on from (setOrigin())
+    QTextCursor m_replacementEnd;             ///< Where the last replaced text ends
     QString m_searchText;                     ///< Current search text
     QString m_replaceText;                    ///< Current replacement text
     SearchOptions m_options;                  ///< Current search options

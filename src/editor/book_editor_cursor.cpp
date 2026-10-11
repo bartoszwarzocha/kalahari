@@ -4,6 +4,7 @@
 #include <kalahari/editor/book_editor.h>
 #include "book_editor_internal.h"
 #include <QAbstractTextDocumentLayout>
+#include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <QTextBoundaryFinder>
 #include <QTextLine>
@@ -221,12 +222,15 @@ void BookEditor::scrollToCursorLine()
     };
 
     // The band of the view the line must be within: the view without a margin at its top
-    // and bottom edges, as document y relative to the scroll position (the scroll position
-    // is drawn at the view's top inset, and the zoom scales by the view scale)
+    // and bottom edges and without the find bar over its top, as document y relative to the
+    // scroll position (the scroll position is drawn at the view's top inset, and the zoom
+    // scales by the view scale)
     const qreal scrollY = m_viewportManager->scrollPosition();
     const qreal scale = m_viewportManager->viewScale();
     const qreal inset = m_viewportManager->viewTopInset();
-    const qreal bandTop = (CURSOR_SCROLL_MARGIN - inset) / scale;
+    const bool barShown = m_findReplaceBar != nullptr && !m_findReplaceBar->isHidden();
+    const int covered = barShown ? m_findReplaceBar->height() : 0;
+    const qreal bandTop = (covered + CURSOR_SCROLL_MARGIN - inset) / scale;
     const qreal bandBottom =
         (static_cast<qreal>(height()) - CURSOR_SCROLL_MARGIN - inset) / scale;
 

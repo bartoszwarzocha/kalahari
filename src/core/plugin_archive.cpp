@@ -3,6 +3,7 @@
 
 #include <kalahari/core/plugin_archive.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/settings_manager.h>
 #include <zip.h>
 #include <fstream>
 #include <chrono>
@@ -128,6 +129,11 @@ const std::filesystem::path& PluginArchive::getArchivePath() const {
 }
 
 std::filesystem::path PluginArchive::getTempPluginDir() {
+    // Tests unpack into their own temporary folder, never into the user's profile
+    if (SettingsManager::isTestMode()) {
+        return std::filesystem::temp_directory_path() / "Kalahari" / "plugins";
+    }
+
 #ifdef __linux__
     // XDG Base Directory specification
     const char* xdg_data_home = std::getenv("XDG_DATA_HOME");

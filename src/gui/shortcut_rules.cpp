@@ -349,6 +349,24 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
         {tr("Exit"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, escapeReason, {}});
     groups.push_back(std::move(distractionFree));
 
+    // The access keys of the menus (Windows, Linux): Alt with the letter underlined in a
+    // menu's name opens it, in every language. macOS has none: there Option with a letter
+    // types a character
+    if (!mac) {
+        FixedKeyGroup menus;
+        menus.title = tr("Fixed: the menus");
+        FixedKeys accessKeys{tr("Open a menu (underlined letter)"), {}, NONE, {},
+                             tr("%1 is kept for the menus: Alt with a letter opens the menu "
+                                "with that letter underlined in its name."),
+                             {}};
+        for (int key = Qt::Key_A; key <= Qt::Key_Z; ++key) {
+            accessKeys.keys.append(keyWith(ALT, static_cast<Qt::Key>(key)));
+        }
+        accessKeys.summary = keysText(keyWith(ALT, Qt::Key_A)) + QStringLiteral("…Z");
+        menus.rows.push_back(std::move(accessKeys));
+        groups.push_back(std::move(menus));
+    }
+
     return groups;
 }
 

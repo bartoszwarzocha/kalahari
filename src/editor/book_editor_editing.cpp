@@ -118,9 +118,11 @@ void insertAnnotatedDocument(QTextCursor& cursor, QTextDocument& content) {
 ///
 /// Kalahari content (KML) is parsed like a chapter file, so formatting, alignment and
 /// annotations survive; text from other programs takes the formatting of the insertion
-/// point. Only the document changes: the editor's cursor and view follow once the outermost
-/// edit block has ended. The cursor ends after the inserted text.
-void insertMimeData(QTextCursor& cursor, const QMimeData& source) {
+/// point, with @p typed on top (a format given for the text typed next). Only the document
+/// changes: the editor's cursor and view follow once the outermost edit block has ended.
+/// The cursor ends after the inserted text.
+void insertMimeData(QTextCursor& cursor, const QMimeData& source,
+                    const QTextCharFormat& typed = QTextCharFormat()) {
     if (source.hasFormat(QString::fromLatin1(MIME_KML))) {
         KmlDocumentModel model;
         if (model.loadKml(QString::fromUtf8(source.data(QString::fromLatin1(MIME_KML)))) &&
@@ -136,7 +138,7 @@ void insertMimeData(QTextCursor& cursor, const QMimeData& source) {
     }
 
     cursor.beginEditBlock();  // the replaced selection and the text: one undo step
-    insertKeepingAnnotations(cursor, pastedPlainText(source.text()));
+    insertKeepingAnnotations(cursor, pastedPlainText(source.text()), typed);
     cursor.endEditBlock();
 }
 
@@ -164,12 +166,13 @@ void BookEditor::insertText(const QString& text)
     // Direct QTextCursor edit - recorded by QTextDocument's native undo: the replaced
     // selection with the text as one step, typed text with the text typed before it
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
         const SelectionRange sel = m_selection.normalized();
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
         clearSelection();
     }
-    insertKeepingAnnotations(cursor, text);
+    insertKeepingAnnotations(cursor, text, pending);
 
     // Mirror the resulting QTextCursor into the editor's cursor model.
     m_cursorPosition.paragraph = cursor.blockNumber();
@@ -223,6 +226,7 @@ void BookEditor::insertNewline()
     // The new paragraph inherits the current block format (zero margins + alignment), so
     // it keeps the same layout.
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
         const SelectionRange sel = m_selection.normalized();
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
@@ -232,6 +236,9 @@ void BookEditor::insertNewline()
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
+    if (!pending.isEmpty()) {
+        setPendingFormat(pending);  // the text typed in the new paragraph gets it
+    }
 
     ensureCursorVisible();
     syncPipelineCursor();
@@ -502,8 +509,9 @@ void BookEditor::undo()
 
     // QTextDocument's native undo is the single source of truth for BOTH text and
     // formatting. undo(&cursor) also positions the cursor at the change — mirror it
-    // into the editor's own cursor model.
+    // into the editor's own cursor model. A format given for the text typed next goes.
     m_stepCursor.reset();
+    m_pendingFormat = QTextCharFormat();
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->undo(&cursor);
     m_cursorPosition.paragraph = cursor.blockNumber();
@@ -525,6 +533,7 @@ void BookEditor::redo()
     }
 
     m_stepCursor.reset();
+    m_pendingFormat = QTextCharFormat();  // as undo() does
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->redo(&cursor);
     m_cursorPosition.paragraph = cursor.blockNumber();
@@ -626,12 +635,13 @@ void BookEditor::insertFromMimeData(const QMimeData* source)
     ensureDocument();
 
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
         const SelectionRange sel = m_selection.normalized();
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
         clearSelection();
     }
-    insertMimeData(cursor, *source);
+    insertMimeData(cursor, *source, pending);
     finishEdit(cursor);
 }
 

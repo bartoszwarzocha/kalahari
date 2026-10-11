@@ -468,66 +468,61 @@ public:
 
     // =========================================================================
     // Formatting (Phase 7.2)
+    //
+    // As in Word and LibreOffice, a character format goes on the selection; without one, on
+    // the word the cursor is inside of, else on the text typed next at the cursor, until
+    // the cursor moves.
     // =========================================================================
 
-    /// @brief Toggle bold formatting on selection or at cursor
-    ///
-    /// If text is selected, toggles bold on the selection.
-    /// If no selection, toggles bold mode for next typed characters.
+    /// @brief Toggle bold on the selection, the word with the cursor or the text typed next
     void toggleBold();
 
-    /// @brief Toggle italic formatting on selection or at cursor
-    ///
-    /// If text is selected, toggles italic on the selection.
-    /// If no selection, toggles italic mode for next typed characters.
+    /// @brief Toggle italic on the selection, the word with the cursor or the text typed next
     void toggleItalic();
 
-    /// @brief Toggle underline formatting on selection or at cursor
-    ///
-    /// If text is selected, toggles underline on the selection.
-    /// If no selection, toggles underline mode for next typed characters.
+    /// @brief Toggle underline on the selection, the word with the cursor or the text typed
+    ///        next
     void toggleUnderline();
 
-    /// @brief Toggle strikethrough formatting on selection or at cursor
-    ///
-    /// If text is selected, toggles strikethrough on the selection.
-    /// If no selection, toggles strikethrough mode for next typed characters.
+    /// @brief Toggle strikethrough on the selection, the word with the cursor or the text
+    ///        typed next
     void toggleStrikethrough();
 
-    /// @brief Check if current selection/cursor position has bold formatting
-    /// @return true if text at cursor/selection is bold
+    /// @brief Whether all of the selection is bold, or the text typed at the cursor would be
     bool isBold() const;
 
-    /// @brief Check if current selection/cursor position has italic formatting
-    /// @return true if text at cursor/selection is italic
+    /// @brief Whether all of the selection is italic, or the text typed at the cursor would be
     bool isItalic() const;
 
-    /// @brief Check if current selection/cursor position has underline formatting
-    /// @return true if text at cursor/selection is underlined
+    /// @brief Whether all of the selection is underlined, or the text typed at the cursor
+    ///        would be
     bool isUnderline() const;
 
-    /// @brief Check if current selection/cursor position has strikethrough formatting
-    /// @return true if text at cursor/selection has strikethrough
+    /// @brief Whether all of the selection is struck through, or the text typed at the cursor
+    ///        would be
     bool isStrikethrough() const;
 
     // =========================================================================
-    // Font Selection (applies to selection if any, otherwise default font)
+    // Font of the selection, the word with the cursor or the text typed next. The editor's
+    // own font stays: it is the one of the settings (editor.fontFamily, editor.fontSize).
     // =========================================================================
 
-    /// @brief Set font family for selection or default font if no selection
+    /// @brief Set the font family of the selection, the word with the cursor or the text
+    ///        typed next
     /// @param family The font family name
     void setSelectionFontFamily(const QString& family);
 
-    /// @brief Set font size for selection or default font if no selection
+    /// @brief Set the font size of the selection, the word with the cursor or the text typed
+    ///        next
     /// @param pointSize The font size in points
     void setSelectionFontSize(int pointSize);
 
-    /// @brief Get font family at current cursor position
-    /// @return Font family name at cursor
+    /// @brief The font family of the text typed at the cursor
+    /// @return Its own family, or the editor's
     QString currentFontFamily() const;
 
-    /// @brief Get font size at current cursor position
-    /// @return Font size in points at cursor
+    /// @brief The font size of the text typed at the cursor
+    /// @return Its own size in points, or the editor's
     int currentFontSize() const;
 
     // =========================================================================
@@ -837,9 +832,12 @@ public:
     void showFindReplace();
 
     /// @brief Navigate to the next search match
+    ///
+    /// After the bar was closed, it shows again with its text and the search goes on, while
+    /// the keys stay in the text; without a search text, the bar opens to type one.
     void findNext();
 
-    /// @brief Navigate to the previous search match
+    /// @brief Navigate to the previous search match (as findNext())
     void findPrevious();
 
     /// @brief Hide the find/replace bar and clear search highlights
@@ -1102,8 +1100,10 @@ private:
     /// @brief Align the paragraph at the cursor, or the selected ones, as one undo step
     void setParagraphAlignment(Qt::Alignment alignment);
 
-    /// @brief Put back the cursor and selection a step that changes no text (a paragraph
-    /// format step, a step of annotations) just undone or redone was made with
+    /// @brief Put back the cursor and selection the undo step just undone or redone
+    /// recorded: the ones a step that changes no text (a paragraph format step, a step of
+    /// annotations) was made with; for a replacement those before it when it is undone,
+    /// the end of the replaced text when it is redone
     void restoreStepCursor();
 
     /// @brief Start an undo step of annotations, or join the last undo step
@@ -1348,17 +1348,52 @@ private:
     /// @brief Inline formatting the bold, italic, underline and strikethrough commands toggle
     enum class InlineFormat { Bold, Italic, Underline, Strikethrough };
 
-    /// @brief Toggle inline formatting on selection or set pending format
-    /// @param formatType The type of formatting
+    /// @brief Toggle an inline format on the selection, the word with the cursor or the text
+    ///        typed next
     ///
-    /// If text is selected, toggles the format on the selection.
-    /// If no selection, toggles the pending format state for next typed text.
+    /// On text, the format goes when all of it has it, else all of it gets it. For the text
+    /// typed next the format is relative to the one the text there has: given twice, it is
+    /// as without it.
     void toggleFormat(InlineFormat formatType);
 
-    /// @brief Check if text at cursor/selection has specific formatting
-    /// @param formatType The type of formatting to check
-    /// @return true if current position has the specified formatting
+    /// @brief Whether all of the selection has an inline format, or the text typed at the
+    ///        cursor would have it
     bool hasFormat(InlineFormat formatType) const;
+
+    /// @brief Whether every character of a range has an inline format
+    bool rangeHasFormat(const SelectionRange& range, InlineFormat formatType) const;
+
+    /// @brief Whether a character format has an inline format
+    static bool formatHas(const QTextCharFormat& format, InlineFormat formatType);
+
+    /// @brief The text a character format given now goes on: the selection, or the word the
+    ///        cursor is inside of (not at its start or end)
+    /// @return None elsewhere: the format goes on the text typed next
+    std::optional<SelectionRange> formatRange() const;
+
+    /// @brief Merge a character format into a range, as one undo step
+    ///
+    /// Undoing or redoing it brings back the cursor and selection it was made with.
+    void applyCharFormat(const SelectionRange& range, const QTextCharFormat& format);
+
+    /// @brief The format given without a selection for the text typed next, while the
+    ///        cursor is at its place with no selection (else an empty format)
+    QTextCharFormat pendingFormat() const;
+
+    /// @brief Make a format the one of the text typed next at the cursor's place
+    void setPendingFormat(const QTextCharFormat& format);
+
+    /// @brief The format the cursor's place gives typed text (insertionFormat())
+    QTextCharFormat placeFormat() const;
+
+    /// @brief The format of the text typed at the cursor: the place's with the pending one
+    QTextCharFormat typingFormat() const;
+
+    /// @brief The font family text with a format shows: its own, or the editor's
+    QString fontFamilyOf(const QTextCharFormat& format) const;
+
+    /// @brief The font size text with a format shows: its own, or the editor's
+    int fontSizeOf(const QTextCharFormat& format) const;
 
     QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
     QScrollBar* m_horizontalScrollBar = nullptr;            ///< Horizontal scrollbar (zoomed pages)
@@ -1433,11 +1468,11 @@ private:
     // Undo/Redo: QTextDocument's native undo is the single source of truth
     // (text AND formatting) — see undo()/redo(). No separate QUndoStack.
 
-    // Pending format state (Phase 7.2)
-    bool m_pendingBold{false};                              ///< Apply bold to next typed text
-    bool m_pendingItalic{false};                            ///< Apply italic to next typed text
-    bool m_pendingUnderline{false};                         ///< Apply underline to next typed text
-    bool m_pendingStrikethrough{false};                     ///< Apply strikethrough to next typed text
+    // A format given without a selection outside a word, for the text typed next at its
+    // place: typing there and Enter keep it, moving the cursor, selecting, undo, redo and
+    // another text drop it (see pendingFormat())
+    QTextCharFormat m_pendingFormat;   ///< Only the properties given
+    CursorPosition m_pendingFormatAt;  ///< The cursor's place when it was given
 
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
@@ -1500,14 +1535,14 @@ private:
     /// @brief QTextCursor for direct cursor operations (Phase 11.6)
     QTextCursor m_textCursor;
 
-    /// @brief Cursor and selection a step that changes no text was made with
+    /// @brief Cursor and selection an undo step brings back (restoreStepCursor())
     struct StepCursor {
         CursorPosition cursor;
         SelectionRange selection;
     };
 
-    /// @brief Set by the undo item of a step that changes no text being undone or redone
-    /// (see setParagraphAlignment() and beginAnnotationStep())
+    /// @brief Set by the undo items of a step being undone or redone (see
+    /// setParagraphAlignment(), beginAnnotationStep() and setupFindReplace())
     std::optional<StepCursor> m_stepCursor;
 
     /// @brief Create the document with the given content and connect it to the view
@@ -1556,6 +1591,13 @@ private:
     /// @brief Make the selected text the search text, if it lies in one paragraph
     void takeSearchTextFromSelection();
 
+    /// @brief Show the find bar at the top of the text, in the find or the replace mode
+    void openFindBar(bool replace);
+
+    /// @brief The search for Find Next and Find Previous: the bar's, shown again if closed
+    /// @return False without a text to search for: the bar opens to type one
+    bool resumeSearch();
+
     /// @brief Navigate cursor to a search match
     /// @param match The search match to navigate to
     void onNavigateToMatch(const SearchMatch& match);
@@ -1565,6 +1607,10 @@ private:
     /// Replacements edit the document directly, outside the editor's own editing
     /// operations: keep the cursor inside the changed text and emit contentChanged().
     void onTextReplaced();
+
+    /// @brief Where the text put in by the last replacement ends (after Replace All, the
+    /// last replacement in the text), or the cursor if nothing was replaced
+    CursorPosition replacedTextEnd() const;
 };
 
 }  // namespace kalahari::editor

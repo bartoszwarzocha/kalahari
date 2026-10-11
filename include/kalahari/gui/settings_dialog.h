@@ -55,7 +55,8 @@ public:
     /// @return Keys of the settings written
     QStringList applyChanges();
 
-    /// @brief Open the Keyboard Shortcuts page (Help > Keyboard Shortcuts)
+    /// @brief Open the Keyboard Shortcuts page (Help > Keyboard Shortcuts), the cursor in its
+    /// search
     void showShortcutsPage();
 
 public slots:

@@ -155,4 +155,17 @@ TextKey textKeyFor(int key, Qt::KeyboardModifiers modifiers, bool macOS) {
     return {};
 }
 
+bool typesText(int key, Qt::KeyboardModifiers modifiers, bool macOS) {
+    const bool ctrl = modifiers.testFlag(Qt::ControlModifier);
+    const bool alt = modifiers.testFlag(Qt::AltModifier);
+    if (macOS) {
+        return !ctrl;  // Cmd gives a command; Option types the characters it gives
+    }
+    if (ctrl) {
+        return alt;  // AltGr on Windows; Ctrl alone gives a command
+    }
+    // Alt alone: the access key of a menu item
+    return !alt || key == 0 || key == Qt::Key_unknown;
+}
+
 }  // namespace kalahari::editor

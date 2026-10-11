@@ -593,6 +593,64 @@ TEST_CASE("Shortcuts page: the search finds commands by name and by keys",
     onlyChanged->setChecked(false);
 }
 
+TEST_CASE("Shortcuts page: the search finds the other forms of the words",
+          "[gui][shortcuts][page]") {
+    // As in Polish: the menus have "książkę", "akapicie", and one writes "książka", "akapit"
+    addCommand("file.open.book", "Otw\u00f3rz ksi\u0105\u017ck\u0119...",
+               "FILE/Otw\u00f3rz ksi\u0105\u017ck\u0119...", 1, shortcut(Qt::Key_O, CTRL));
+    addCommand("file.close", "Zamknij ksi\u0105\u017ck\u0119",
+               "FILE/Zamknij ksi\u0105\u017ck\u0119", 2, shortcut(Qt::Key_F4, CTRL));
+    addCommand("file.save", "Zapisz", "FILE/Zapisz", 3, shortcut(Qt::Key_S, CTRL));
+    addCommand("edit.paragraph", "Wiersz w akapicie", "EDIT/Wiersz w akapicie", 1,
+               KeyboardShortcut());
+    // A name with keys in it, as "Desktop keys (Ctrl+Alt)" of the Linux desktop
+    addCommand("edit.altKeys", "Klawisze (Ctrl+Alt)", "EDIT/Klawisze (Ctrl+Alt)", 2,
+               KeyboardShortcut());
+    ShortcutsPage page;
+    page.load();
+    QTreeWidget* list = listOf(page);
+    auto* search = child<ShortcutRecorder>(page, QStringLiteral("shortcutsSearch"));
+    QTreeWidgetItem* open =
+        itemNamed(list, QStringLiteral("Otw\u00f3rz ksi\u0105\u017ck\u0119..."));
+    QTreeWidgetItem* close = itemNamed(list, QStringLiteral("Zamknij ksi\u0105\u017ck\u0119"));
+    QTreeWidgetItem* save = itemNamed(list, QStringLiteral("Zapisz"));
+    QTreeWidgetItem* line = itemNamed(list, QStringLiteral("Wiersz w akapicie"));
+    QTreeWidgetItem* altKeys = itemNamed(list, QStringLiteral("Klawisze (Ctrl+Alt)"));
+    QTreeWidgetItem* newParagraph = itemNamed(list, QStringLiteral("New paragraph"));
+
+    search->setText(QStringLiteral("ksi\u0105\u017cka"));  // książka
+    CHECK(isShown(open));
+    CHECK(isShown(close));
+    CHECK_FALSE(isShown(save));
+
+    search->setText(QStringLiteral("akapit"));
+    CHECK(isShown(line));
+    CHECK_FALSE(isShown(open));
+
+    // The words in any order, each in another form
+    search->setText(QStringLiteral("ksi\u0105\u017cki zamkni\u0119cie"));  // książki zamknięcie
+    CHECK_FALSE(isShown(close));  // "zamknięcie" is not a form of "Zamknij"
+    search->setText(QStringLiteral("ksi\u0105\u017cki zamknij"));
+    CHECK(isShown(close));
+    CHECK_FALSE(isShown(open));
+
+    // The fixed keys too
+    search->setText(QStringLiteral("paragraphs"));
+    CHECK(isShown(newParagraph));
+    CHECK_FALSE(isShown(save));
+
+    // Only the names with the word
+    search->setText(QStringLiteral("zapis"));
+    CHECK(isShown(save));
+    CHECK_FALSE(isShown(close));
+
+    // Keys are not words with endings: "ctrl+h" is not the "ctrl+" of "(Ctrl+Alt)"
+    search->setText(QStringLiteral("ctrl+h"));
+    CHECK_FALSE(isShown(altKeys));
+    search->setText(QStringLiteral("ctrl+alt"));
+    CHECK(isShown(altKeys));
+}
+
 TEST_CASE("Shortcuts page: written keys find those keys, not longer ones",
           "[gui][shortcuts][page]") {
     registerCommands();
@@ -712,6 +770,25 @@ TEST_CASE("Shortcuts page: the search by keys", "[gui][shortcuts][page]") {
     CHECK(search->placeholderText() == textPrompt);
     CHECK(isShown(save));
     CHECK(isShown(close));
+}
+
+TEST_CASE("Shortcuts page: opened from the Help menu, its search has the cursor",
+          "[gui][shortcuts][page]") {
+    registerCommands();
+    SettingsDialog dialog(nullptr);
+    dialog.showShortcutsPage();
+    auto* stack = dialog.findChild<QStackedWidget*>();
+    REQUIRE(stack != nullptr);
+    auto* scrollArea = qobject_cast<QScrollArea*>(stack->currentWidget());
+    REQUIRE(scrollArea != nullptr);
+    auto* page = qobject_cast<ShortcutsPage*>(scrollArea->widget());
+    REQUIRE(page != nullptr);
+    dialog.show();
+    QApplication::processEvents();
+
+    // The keys typed at once go to the search, not to Apply of the window
+    auto* search = child<ShortcutRecorder>(*page, QStringLiteral("shortcutsSearch"));
+    CHECK(dialog.focusWidget() == search);
 }
 
 TEST_CASE("Shortcuts page: the keys of the list do not close the window",
@@ -1143,6 +1220,32 @@ TEST_CASE("Shortcuts page: the selected command stays in sight when its rows get
     REQUIRE(list->height() == listHeight);
     REQUIRE(list->viewport()->height() < room);
     CHECK(inSight(list, item));
+    dialog.reject();
+}
+
+TEST_CASE("Shortcuts page: the selected command stays in sight when the search is cleared",
+          "[gui][shortcuts][page]") {
+    // Regression: the list showed its top again, the command the search found under its edge
+    registerCommands();
+    SettingsDialog dialog(nullptr);
+    dialog.resize(840, 460);
+    dialog.showShortcutsPage();
+    dialog.show();
+    settle();
+    ShortcutsPage* page = pageOf(dialog);
+    QTreeWidget* list = listOf(*page);
+    auto* search = child<ShortcutRecorder>(*page, QStringLiteral("shortcutsSearch"));
+    QTreeWidgetItem* tips = itemNamed(list, QStringLiteral("Tips (in preparation)"));
+    REQUIRE_FALSE(inSight(list, tips));  // far down the list
+
+    search->setText(QStringLiteral("tips"));
+    settle();
+    REQUIRE(list->currentItem() == tips);
+    search->clear();
+    settle();
+    INFO(placeOf(list, tips));
+    CHECK(list->currentItem() == tips);
+    CHECK(inSight(list, tips));
     dialog.reject();
 }
 

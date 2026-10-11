@@ -181,6 +181,36 @@ TEST_CASE("Text keys: macOS has the keys of its text fields", "[editor][textkeys
     CHECK(isKey(MAC, Qt::Key_Down, CTRL | ALT, Action::None));  // Next To Do
 }
 
+TEST_CASE("Text keys: Alt with a letter types nothing on Windows and Linux, AltGr types",
+          "[editor][textkeys]") {
+    CHECK(typesText(Qt::Key_A, NONE, WINDOWS));
+    CHECK(typesText(Qt::Key_A, SHIFT, WINDOWS));
+
+    // Ctrl gives a command, Alt the access key of a menu item
+    CHECK_FALSE(typesText(Qt::Key_A, CTRL, WINDOWS));
+    CHECK_FALSE(typesText(Qt::Key_A, CTRL | SHIFT, WINDOWS));
+    CHECK_FALSE(typesText(Qt::Key_A, ALT, WINDOWS));
+    CHECK_FALSE(typesText(Qt::Key_A, ALT | SHIFT, WINDOWS));
+    CHECK_FALSE(typesText(Qt::Key_1, ALT, WINDOWS));
+
+    // AltGr: Ctrl+Alt on Windows, the key of the letter it gives on Linux ("ą": "Ą")
+    CHECK(typesText(Qt::Key_A, CTRL | ALT, WINDOWS));
+    CHECK(typesText(Qt::Key_A, CTRL | ALT | SHIFT, WINDOWS));
+    CHECK(typesText(0x104, NONE, WINDOWS));
+
+    // What Alt composes with the digits of the keypad comes without a key
+    CHECK(typesText(0, ALT, WINDOWS));
+    CHECK(typesText(Qt::Key_unknown, ALT, WINDOWS));
+    CHECK_FALSE(typesText(0, CTRL, WINDOWS));
+
+    // macOS: Cmd gives a command, Option types (Option+A is "ą" on the Polish keyboard)
+    CHECK(typesText(Qt::Key_A, NONE, MAC));
+    CHECK(typesText(Qt::Key_A, ALT, MAC));
+    CHECK(typesText(Qt::Key_A, ALT | SHIFT, MAC));
+    CHECK_FALSE(typesText(Qt::Key_A, CTRL, MAC));
+    CHECK_FALSE(typesText(Qt::Key_A, CTRL | ALT, MAC));
+}
+
 TEST_CASE("Text keys: each key is in a table once", "[editor][textkeys]") {
     for (const bool macOS : {WINDOWS, MAC}) {
         QSet<int> seen;
@@ -526,6 +556,41 @@ TEST_CASE("Text keys: the keys of the program's system reach the editor", "[edit
     // Typing still types
     press(*editor, Qt::Key_X, NONE, QStringLiteral("x"));
     CHECK(textOf(*editor) == QStringLiteral("xAla  kota.\nKot."));
+}
+
+TEST_CASE("Text keys: Alt with a letter goes on to the menus, AltGr types in the text",
+          "[editor][textkeys]") {
+    auto editor = editorWith({QStringLiteral("kot")});
+    editor->setCursorPosition({0, 3});
+    const QString polishA = QStringLiteral("ą");
+    // Whether the editor took the key: one it leaves goes on to the window and its menus
+    const auto takes = [&editor](int key, Qt::KeyboardModifiers modifiers, const QString& text) {
+        QKeyEvent event(QEvent::KeyPress, key, modifiers, text);
+        QCoreApplication::sendEvent(editor.get(), &event);
+        return event.isAccepted();
+    };
+
+    if (isMacOS()) {
+        // Option types the character it gives with the key; Cmd gives a command
+        CHECK(takes(Qt::Key_A, ALT, polishA));
+        CHECK_FALSE(takes(Qt::Key_A, CTRL | ALT, polishA));
+        CHECK(textOf(*editor) == QStringLiteral("kotą"));
+        return;
+    }
+
+    // The access key of a menu item types nothing
+    CHECK_FALSE(takes(Qt::Key_P, ALT, QStringLiteral("p")));
+    CHECK_FALSE(takes(Qt::Key_P, ALT | SHIFT, QStringLiteral("P")));
+    CHECK_FALSE(takes(Qt::Key_1, ALT, QStringLiteral("1")));
+    CHECK(textOf(*editor) == QStringLiteral("kot"));
+
+    // AltGr types: Ctrl+Alt on Windows, the key of the letter on Linux
+    CHECK(takes(Qt::Key_A, CTRL | ALT, polishA));
+    CHECK(takes(Qt::Key_A, CTRL | ALT | SHIFT, QStringLiteral("Ą")));
+    CHECK(takes(0x104, NONE, polishA));
+    // Alt with 0233 on the keypad: the character it composes, without a key
+    CHECK(takes(0, ALT, QStringLiteral("é")));
+    CHECK(textOf(*editor) == QStringLiteral("kotąĄąé"));
 }
 
 TEST_CASE("Text keys: the second keys of the clipboard commands", "[editor][textkeys]") {

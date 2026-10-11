@@ -2,6 +2,8 @@
 /// @brief Implementation of WidgetKeys
 
 #include "kalahari/gui/widget_keys.h"
+#include "kalahari/editor/text_keys.h"
+#include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/widgets/shortcut_recorder.h"
 
 #include <QAbstractButton>
@@ -82,6 +84,34 @@ TextField textFieldOf(QWidget* widget) {
 bool records(const QWidget* widget) {
     const auto* recorder = qobject_cast<const ShortcutRecorder*>(widget);
     return recorder != nullptr && recorder->isRecording();
+}
+
+/// Alt with a digit of the keypad: on Windows a part of the code of a character, which it
+/// types when Alt goes up (Alt+0150 is "–")
+bool isCharacterCode(const QKeyEvent* event) {
+    const Qt::KeyboardModifiers modifiers = event->modifiers();
+    return modifiers.testFlag(Qt::KeypadModifier) &&
+           (modifiers & ~(Qt::KeypadModifier | Qt::GroupSwitchModifier)) == Qt::AltModifier &&
+           event->key() >= Qt::Key_0 && event->key() <= Qt::Key_9;
+}
+
+/// Alt with a character: the access key of a menu item, which types nothing
+/// (editor::typesText()); AltGr types
+bool isAccessKey(const QKeyEvent* event) {
+    const QString text = event->text();
+    return !text.isEmpty() && text.at(0).isPrint() &&
+           !event->modifiers().testFlag(Qt::ControlModifier) &&
+           !editor::typesText(event->key(), event->modifiers(), false);
+}
+
+/// Whether a widget takes the characters of the keys: a field one can type into, or a combo
+/// box one cannot type into (it chooses the item that starts with the character)
+bool takesCharacters(const TextField& field, const QWidget* widget) {
+    if (field.kind == TextField::Kind::Line || field.kind == TextField::Kind::Text) {
+        return field.editable;
+    }
+    const auto* comboBox = qobject_cast<const QComboBox*>(widget);
+    return comboBox != nullptr && !comboBox->isEditable();
 }
 
 /// The keys that copy and select all, which a field with text keeps for itself
@@ -189,8 +219,11 @@ bool WidgetKeys::eventFilter(QObject* watched, QEvent* event) {
     case QEvent::Polish:
     case QEvent::Show:
         // Polished before the menu takes its size; shown, in case it was polished earlier
+        // or got items since. Every item has an access key, its words too (the words for a
+        // misspelled one)
         if (auto* menu = qobject_cast<QMenu*>(widget)) {
             showKeys(menu);
+            giveFreeAccessKeys(menu);
         }
         return false;
     default:
@@ -202,6 +235,15 @@ bool WidgetKeys::shortcutOverride(QWidget* widget, QKeyEvent* event) {
     if (records(widget)) {
         return false;
     }
+
+    // The code of a character typed with Alt on the keypad runs no shortcut in any widget:
+    // Qt takes the keypad's digits for those above the letters, so Alt+0150 ran the commands
+    // with Alt+0, Alt+1 and Alt+5. On Linux too, where it types nothing: the same keys on both
+    if (isCharacterCode(event)) {
+        event->accept();
+        return true;
+    }
+
     const TextField field = textFieldOf(widget);
     if (field.kind == TextField::Kind::None) {
         return false;
@@ -239,8 +281,20 @@ bool WidgetKeys::shortcutOverride(QWidget* widget, QKeyEvent* event) {
 }
 
 bool WidgetKeys::keyPress(QWidget* widget, QKeyEvent* event) {
+    if (records(widget)) {
+        return false;
+    }
+
+    // Alt with a letter that opens no menu goes on to the window, as in the fields of
+    // Windows: Qt's fields type the letter, on Windows too
+    const TextField field = textFieldOf(widget);
+    if (isAccessKey(event) && takesCharacters(field, widget)) {
+        event->ignore();
+        return true;
+    }
+
     // On Windows Qt gives the widgets these keys itself
-    if (!m_linux || records(widget)) {
+    if (!m_linux) {
         return false;
     }
     const QKeyCombination keys = ShortcutRules::keysOf(event);
@@ -248,7 +302,6 @@ bool WidgetKeys::keyPress(QWidget* widget, QKeyEvent* event) {
         return openContextMenu(widget, event);
     }
 
-    const TextField field = textFieldOf(widget);
     const bool hasTextKeys = field.kind != TextField::Kind::None ||
                              qobject_cast<QAbstractItemView*>(widget) != nullptr;
     if (hasTextKeys && linuxOnlyKeys().contains(keys)) {
@@ -347,33 +400,56 @@ void WidgetKeys::deliverAgain(QWidget* widget, QKeyEvent* event) {
 }
 
 void WidgetKeys::showKeys(QMenu* menu) {
-    if (QCoreApplication::testAttribute(Qt::AA_DontShowShortcutsInContextMenus)) {
-        return;
-    }
-
     // Qt's fields name the commands of their menus in Qt's words and show the keys only of
     // those no command of the window has (and on Linux Ctrl+Shift+Z for Redo)
     const char* context = menuContextOf(menu);
     if (context == nullptr) {
         return;
     }
+    const bool showShortcuts =
+        !QCoreApplication::testAttribute(Qt::AA_DontShowShortcutsInContextMenus);
 
+    // Where Qt's English words have no access key (Delete, Select All) or one another item
+    // has (a number field's Select All and Step up share S, its Step down and Delete D),
+    // those of the fields of Windows; the translation has its own
     struct Item {
+        const char* context;  ///< Qt's context of the words; none for the menu's
         const char* text;
-        QKeyCombination keys;
+        QKeyCombination keys;  ///< Shown; none for an item without keys or with its own
+        const char* english;   ///< Qt's English words with another access key
     };
     static const Item items[] = {
-        {"&Undo", QKeyCombination(CTRL, Qt::Key_Z)}, {"&Redo", QKeyCombination(CTRL, Qt::Key_Y)},
-        {"Cu&t", QKeyCombination(CTRL, Qt::Key_X)},  {"&Copy", QKeyCombination(CTRL, Qt::Key_C)},
-        {"&Paste", QKeyCombination(CTRL, Qt::Key_V)},
-        {"Select All", QKeyCombination(CTRL, Qt::Key_A)}};
+        {nullptr, "&Undo", QKeyCombination(CTRL, Qt::Key_Z), nullptr},
+        {nullptr, "&Redo", QKeyCombination(CTRL, Qt::Key_Y), nullptr},
+        {nullptr, "Cu&t", QKeyCombination(CTRL, Qt::Key_X), nullptr},
+        {nullptr, "&Copy", QKeyCombination(CTRL, Qt::Key_C), nullptr},
+        {nullptr, "&Paste", QKeyCombination(CTRL, Qt::Key_V), nullptr},
+        {nullptr, "Delete", QKeyCombination(), "&Delete"},
+        {nullptr, "Select All", QKeyCombination(CTRL, Qt::Key_A), "Select &All"},
+        {"QAbstractSpinBox", "&Select All", QKeyCombination(CTRL, Qt::Key_A), "Select &All"},
+        {"QAbstractSpinBox", "Step &down", QKeyCombination(), "Step d&own"}};
     for (QAction* action : menu->actions()) {
-        const QString label = action->text().section(QLatin1Char('\t'), 0, 0);
+        const QString text = action->text();
+        const QString label = text.section(QLatin1Char('\t'), 0, 0);
         for (const Item& item : items) {
-            if (label == QCoreApplication::translate(context, item.text)) {
-                action->setText(label + QLatin1Char('\t') + ShortcutRules::keysText(item.keys));
-                break;
+            const char* itemContext = item.context != nullptr ? item.context : context;
+            const QString words = QCoreApplication::translate(itemContext, item.text);
+            const bool english = item.english != nullptr && words == QLatin1String(item.text);
+            if (label != words && !(english && label == QLatin1String(item.english))) {
+                continue;
             }
+
+            // Shown again, the menu keeps its texts
+            QString newText = english ? QString::fromLatin1(item.english) : label;
+            if (showShortcuts && item.keys != QKeyCombination()) {
+                newText += QLatin1Char('\t') + ShortcutRules::keysText(item.keys);
+            } else {
+                newText += text.mid(label.size());
+            }
+            if (newText != text) {
+                action->setText(newText);
+            }
+            break;
         }
     }
 }

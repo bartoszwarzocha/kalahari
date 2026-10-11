@@ -197,11 +197,13 @@ AnnotationList removeForReplacement(QTextCursor& cursor);
 
 /// @brief Type text at the cursor, replacing its selection
 ///
-/// The text gets insertionFormat(); replacing a selection, it also joins the fragments
-/// the whole selection belongs to, and the other annotations of the selection stay on its
-/// place. A line break ("\n") starts a new paragraph. Without a selection, consecutive
-/// calls make one undo step, as typing does.
-void insertKeepingAnnotations(QTextCursor& cursor, const QString& text);
+/// The text gets insertionFormat() with @p typed on top (a format given for the text typed
+/// next); replacing a selection, it also joins the fragments the whole selection belongs
+/// to, and the other annotations of the selection stay on its place. A line break ("\n")
+/// starts a new paragraph. Without a selection, consecutive calls make one undo step, as
+/// typing does.
+void insertKeepingAnnotations(QTextCursor& cursor, const QString& text,
+                              const QTextCharFormat& typed = QTextCharFormat());
 
 /// @brief Start a new paragraph at the cursor, replacing its selection
 ///

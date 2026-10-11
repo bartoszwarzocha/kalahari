@@ -268,6 +268,11 @@ void SettingsDialog::showPage(QTreeWidgetItem* item) {
 
 void SettingsDialog::showShortcutsPage() {
     m_navTree->setCurrentItem(m_shortcutsItem);
+    // The cursor in the search of the page, so the keys go there at once (the window gives
+    // it to the search when it shows)
+    if (auto* page = m_pageStack->findChild<ShortcutsPage*>()) {
+        page->setFocus(Qt::OtherFocusReason);
+    }
 }
 
 void SettingsDialog::setLengthUnit(LengthUnit unit) {

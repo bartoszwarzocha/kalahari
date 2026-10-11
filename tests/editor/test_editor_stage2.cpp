@@ -772,6 +772,48 @@ TEST_CASE("Stage2 on demand: small edits are laid out at once, a large paste wai
     CHECK(d.layout->documentSize() == reference.layout->documentSize());
 }
 
+TEST_CASE("Stage2 on demand: an edited block waiting for layout has no lines of its old text",
+          "[editor][stage2][ondemand]") {
+    // Regression: Qt keeps the lines of an edited block until it is laid out again, and a
+    // QTextCursor placed in one measured the new text by them, past its end after a
+    // shorter replacement (Replace All stopped on an assertion in Qt's debug build)
+    TypesetDocument d;
+    d.load(mixedParagraphs(60));
+    d.layout->layoutPendingBlocks();
+    REQUIRE(d.block(0).layout()->lineCount() > 0);
+
+    // One edit from the first block to the last, too large to be laid out at once: the
+    // first block gets shorter
+    QTextCursor cursor(d.doc.get());
+    cursor.beginEditBlock();
+    cursor.setPosition(d.block(59).position());
+    cursor.insertText(QStringLiteral("End. "));
+    cursor.setPosition(0);
+    cursor.setPosition(d.block(0).length() / 2, QTextCursor::KeepAnchor);
+    cursor.removeSelectedText();
+    cursor.endEditBlock();
+    REQUIRE_FALSE(d.layout->isLaidOut(0));
+    REQUIRE_FALSE(d.layout->isLaidOut(59));
+
+    for (QTextBlock block = d.doc->begin(); block.isValid(); block = block.next()) {
+        INFO("block " << block.blockNumber());
+        const QTextLayout* lines = block.layout();
+        if (d.layout->isLaidOut(block.blockNumber())) {
+            REQUIRE(lines->lineCount() > 0);
+            const QTextLine lastLine = lines->lineAt(lines->lineCount() - 1);
+            CHECK(lastLine.textStart() + lastLine.textLength() == block.text().size());
+        } else {
+            CHECK(lines->lineCount() == 0);
+        }
+    }
+
+    // Laid out, the block has the lines of its new text
+    const QTextLayout* first = KalahariTextDocumentLayout::blockLayout(d.block(0));
+    REQUIRE(first->lineCount() > 0);
+    const QTextLine lastLine = first->lineAt(first->lineCount() - 1);
+    CHECK(lastLine.textStart() + lastLine.textLength() == d.block(0).text().size());
+}
+
 TEST_CASE("Stage2 on demand: the editor lays out what it shows, the rest in the background",
           "[editor][stage2][ondemand]") {
     BookEditor editor;

@@ -11,17 +11,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Menus: access keys** - 2026-10-11. Every item of every menu has an underlined letter, in
+  English and in Polish: Alt with the letter of a menu opens it (Alt+F – File, in Polish Alt+P
+  – Plik), and in an open menu the letter of an item chooses it. So do the context menus: of
+  the text (also the words for a misspelled word and for a grammar issue), of the Navigator,
+  of the toolbars, of the annotations, of the fields (where Qt's English words have none,
+  those of Windows: &Delete, Select &All), and of the menu bar and the panels' titles. No two
+  items of a menu share a letter; a toolbar the user names, the words a menu shows and the
+  panels get free ones, and the recent books are numbered. A line that only tells something
+  has none. On Windows and Linux Alt with a letter types nothing in the text and in the
+  fields, as in the fields of Windows; AltGr types the Polish letters as before (on Windows it
+  is Ctrl+Alt). Alt with the digits of the keypad runs no shortcut, so on Windows it types the
+  character with that code as before (Alt+0150 is an en dash), also where a command has Alt
+  with a digit. Settings > Keyboard Shortcuts keeps Alt with a letter for the menus. The
+  options of the find bar keep Alt+C, Alt+W and Alt+R while it shows, in the bar and in the
+  text (in Polish the Help and View menus have these letters). In Distraction-Free Alt with
+  the letter of a menu shows the menus at the top with that menu open. macOS has no access
+  keys: Option with a letter types a character there.
+
 - **Settings > Keyboard Shortcuts** - 2026-10-10. A page of its own (also Help > Keyboard
   Shortcuts) where the commands get other keys. The list has the commands in the order of
   the menus, then the fixed keys of the text, the bars and the panels and the keys of the
   system, which no command can have; under it, the selected row with its keys and what
-  they do. It searches by name, by keys ("ctrl+h" finds Ctrl+H and not Ctrl+Home, "f1"
-  finds F1 and not F10–F12), or by a shortcut pressed (Search by Keys), and can show only
-  the changed shortcuts. Every key is checked: keys that type text, fixed keys and the
+  they do. It searches by name (the words in any order and in their other forms: "książka"
+  finds "Zamknij książkę"), by keys ("ctrl+h" finds Ctrl+H and not Ctrl+Home, "f1" finds F1
+  and not F10–F12), or by a shortcut pressed (Search by Keys), and can show only the
+  changed shortcuts. Every key is checked: keys that type text, fixed keys and the
   system's are refused with the reason; keys another command has are taken from it only
   when the user says so; keys a Linux desktop or macOS may take bring a warning. Remove,
   Restore Default, Restore All Defaults, Import and Export (a JSON file, e.g. for another
-  computer); everything works from the keyboard. The page fits a 1366 × 768 screen at 125%
+  computer); everything works from the keyboard, and Help > Keyboard Shortcuts opens the
+  page with the cursor in its search. The page fits a 1366 × 768 screen at 125%
   and 150%: the Settings window is 840 px wide where the screen allows and its list of
   groups only as wide as the longest of them, the list of commands gives up its rows first,
   no text is cut, and the page scrolls only when nothing else is left. The menus, the
@@ -34,6 +54,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shift+Delete, Ctrl+Insert, Shift+Insert, Shift+F10). On macOS the text has the keys of
   the system's text fields: Option and Cmd with the arrows, Home and End move the view,
   and the Control keys (Control+A, E, K, Y, T, O, L and others).
+
+- **Own windows instead of the system ones** - 2026-10-10. The benchmark, the forced crash,
+  the icon downloader, the Toolbar Manager (new, renamed and deleted toolbars, reset), the Log
+  panel, the diagnostic menu setting, the language restart question, the damaged chapter
+  warning and the command line help now use the program's own message, question, text and
+  progress windows. Questions name their action on the button ("Delete", "Reset"), and for
+  steps that cannot be undone Enter presses Cancel. The color buttons in Settings open the
+  program's own color window: a palette, recently used colors, the previous and the new
+  color side by side, HEX and RGB fields, all usable from the keyboard. The unused About Qt
+  command is gone; About Kalahari already names the Qt version.
+
+- **Windows that fit small screens** - 2026-10-10. The program's own windows never grow
+  past the screen (for example 1366×768 at 125–150% scaling): their content scrolls while
+  the heading and the buttons stay in view, and a window opens as tall as the screen allows
+  before it scrolls. In a lower window lists first give up their room, and only then the
+  content scrolls; wrapped texts leave no empty line above the buttons, and the title bar
+  stays on the screen. About, the Toolbar Manager, the icon downloader and the main window
+  also open within the screen. The command line help (`--help`) and its errors show in the
+  program's window, in Polish when the program runs in Polish. In the Toolbar Manager a
+  renamed toolbar stays selected and the command names are no longer cut off. The icon
+  downloader's texts and its download errors are translated too. The Log panel's buttons
+  wrap into a second column when the panel is low instead of hiding behind an arrow, and
+  they can be reached with Tab.
+
+- **Qt's own texts in Polish** - 2026-10-10. The menus Qt builds itself are in Polish when
+  the program runs in Polish: the scroll bar menu (Przewiń tutaj, Do góry, Strona w dół...),
+  the menu of multi-line text fields and of number fields (Krok w górę, Krok w dół), the
+  names screen readers hear for panel and tab buttons and for their actions, and Qt's own
+  file window where the system has none (some Linux desktops).
 
 - **Own window for messages and questions** - 2026-10-10. A message, a warning, an error with
   its details, a question with buttons named after the action, and a typed text now have the
@@ -520,6 +569,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the Settings pages, readable on what they lie on in both themes (at least 4.5:1); the
   Settings list follows a change of the theme.
 
+- **Clipboard and undo on the element with the cursor** - 2026-10-10. Undo, Redo, Cut,
+  Copy, Paste and Select All, with their keys, from the Edit menu and from the toolbar,
+  work on the element with the cursor and on no other: the book's text, a field of a
+  panel, a list. Ctrl+V in the Log pasted into the book, and the Edit menu and the toolbar
+  worked on the book wherever the cursor was. In a text that only shows (the Log) Paste,
+  Cut, Undo and Redo do nothing, Copy and Select All work; a list copies its current item.
+  In the Annotations panel and the find bar, outside their fields, Undo and Redo undo what
+  was done there in the text (an annotation marked done, a replacement). Elsewhere (a
+  button, the Dashboard) the commands do nothing, and the menu and the toolbar show them
+  disabled wherever they can do nothing.
+
+- **The commands of the document without a document** - 2026-10-11. Over the Dashboard,
+  without a tab and after the book was closed, Find, Find Next, Find Previous, Find and
+  Replace, Bold, Italic, Underline, Strikethrough, the alignments, the view mode and the zoom
+  were enabled in the menus and on the toolbars (Bold and the alignment of the last chapter
+  even checked) and did nothing, also with their keys. They are now greyed out, with nothing
+  checked, until a chapter or a text file is in front, as in Word without a document.
+
+- **Find bar: the cursor goes back to the text after the last replacement** - 2026-10-10.
+  Replace on the last match and Replace All turn their button off, and the cursor went on to
+  the font box of the toolbar: Undo did not take the replacement back, and what was typed
+  changed the font name. The cursor now goes back to the text, where Undo takes the
+  replacement back.
+
+- **Find bar: the cursor at the end of the replaced text** - 2026-10-11. After Replace All,
+  and after Replace on the last match, the cursor kept its place in the paragraph: with a
+  longer or shorter replacement it landed inside a word. It now stands at the end of the
+  replaced text; after Replace All, at the end of the last replacement, shown in the view.
+
+- **Find bar: F3 after the bar is closed** - 2026-10-11. After Escape closed the find bar,
+  the first F3 (Find Next) or Shift+F3 (Find Previous) only opened the bar again, with the
+  cursor in its field. Now, as in Word, the browsers and the code editors, the bar shows again
+  with its text and mode, the next or the previous match is selected, and the cursor stays in
+  the text; without a text to search for, F3 opens the bar to type one, as before.
+
+- **Find bar: over the text, and from the keyboard** - 2026-10-11. The bar had no
+  background of its own: the text scrolled under it showed between its fields and over the
+  number of matches. It now covers the text under it, and a match the view scrolls to is
+  shown below the bar, not under it (Find Previous put it at the top of the view, under the
+  bar). Tab goes from the search text to the replacement and its buttons, then to the
+  options, the arrows and Close, as in Word's Find and Replace (it went through the six
+  buttons of the search row first); Enter presses the button with the cursor, as Space does
+  (it did nothing).
+
+- **Find bar: undoing a replacement** - 2026-10-11. Undoing Replace All put the cursor at
+  the start of the chapter, far from where the writer was. Undoing a replacement now brings
+  back the cursor and selection it was made with (the replaced match is selected again, and
+  the next Replace replaces it), and redoing it puts the cursor at the end of the replaced
+  text.
+
+- **Editor: Replace All in a long chapter** - 2026-10-11. After an edit of many paragraphs
+  at once (Replace All, a long paste), the paragraphs waiting to be laid out again kept the
+  lines of their old text, and a cursor placed in a paragraph that got shorter read past its
+  end: a debug build stopped on Replace All. Such paragraphs now have no lines until they are
+  laid out, as in Qt's own layout.
+
+- **Toolbars: the font and the size go on the text at Enter** - 2026-10-11. Each letter typed
+  in the font field went on the text as a font ("F", "Fr"..., so the text showed in another
+  font) and each number typed in the size field as a size (7 of 72), one step to undo each,
+  and Escape left them there. Now what was typed goes on the text at Enter, as one step to
+  undo, and Escape leaves the text as it was; a choice in the font list and the arrows go on
+  it at once, as before.
+
+- **Toolbars: the cursor goes back where it was after a command** - 2026-10-11. A click on a
+  floating toolbar took the cursor: after its command, what was typed reached neither the
+  text nor a field. In the font and size fields of a toolbar, docked or floating, the cursor
+  stayed after the choice, and what was typed changed the font name. Now, as in Word and
+  LibreOffice, after a command, after Enter or Escape in a field and after a choice in the
+  font list, the cursor goes back where it was: to the text or to the field of a panel. The
+  arrows of the size field do not take the cursor; in the fields one types as before, and Tab
+  goes from one to the other.
+
+- **Formats given without a selection** - 2026-10-11. Bold, italic, underline and
+  strikethrough turned on without a selection (Ctrl+B, Ctrl+I, Ctrl+U, the toolbar) did not
+  reach the typed text: the button showed the format on, the text was typed without it, and
+  the button stayed on after the cursor moved away. The font and the size chosen in the
+  toolbar without a selection did nothing. Now, as in Word and LibreOffice, with the cursor
+  inside a word they go on the whole word; elsewhere on the text typed next at the cursor,
+  also after Enter, with an input method and in plain text pasted there. Moving the cursor,
+  selecting, Undo and Redo drop them; given where the text has the format, the typed text is
+  without it. Undoing a format brings back the cursor and the selection it was given with.
+
 - **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
   texts of the Settings pages and the descriptions of the planned pages had a contrast of
   2.3:1 with the window in the light theme and 3.6:1 in the dark one. They now have at
@@ -568,6 +699,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   put it on the list of recent books, so a book just created was missing from the
   Dashboard and the Recent Books menu until it was opened again. Every book opened or
   created now goes to the top of the list.
+
+- **Tests: no files in the user's profile** - 2026-10-11. The test program unpacked its test
+  plugin in the program's folder of the user's profile (on Windows
+  `%LOCALAPPDATA%\Kalahari\plugins\temp`), wrote a log to a `tmp` folder at the root of the
+  drive, and after one test ran under the program's own name, so files that later tests
+  wrote through Qt's standard folders went to the user's Kalahari folder. Tests now keep the
+  plugin and the log in their own temporary folder, removed after the run, and keep the
+  name of the test program.
 
 - **A chapter added in the Navigator was damaged** - 2026-10-08. Add Chapter (and Add
   Item in the front or back matter) made a chapter without a file, so its text was saved
