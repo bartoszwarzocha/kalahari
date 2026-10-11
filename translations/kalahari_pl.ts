@@ -3125,6 +3125,22 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Działanie edytora</translation>
     </message>
     <message>
+        <source>Where You Last Edited</source>
+        <translation>W miejscu ostatniej edycji</translation>
+    </message>
+    <message>
+        <source>At the Beginning</source>
+        <translation>Na początku</translation>
+    </message>
+    <message>
+        <source>Open a Chapter:</source>
+        <translation>Otwieraj rozdział:</translation>
+    </message>
+    <message>
+        <source>The place of the cursor is kept in the book for every chapter, also after the program is closed.</source>
+        <translation>Miejsce kursora jest zapamiętywane w książce dla każdego rozdziału, także po zamknięciu programu.</translation>
+    </message>
+    <message>
         <source> spaces</source>
         <translation> spacji</translation>
     </message>

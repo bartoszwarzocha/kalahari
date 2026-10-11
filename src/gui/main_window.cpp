@@ -18,6 +18,7 @@
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/project_database.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/recent_books_menu.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
@@ -32,6 +33,8 @@
 #include "kalahari/gui/utils/distraction_free_layout.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/utils/setting_toggle.h"
+#include "kalahari/gui/utils/tab_focus.h"
+#include "kalahari/gui/utils/chapter_cursor.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/log_panel_sink.h"
 #include "kalahari/core/settings_manager.h"
@@ -168,6 +171,9 @@ MainWindow::MainWindow(QWidget* parent)
     // Connect NavigatorCoordinator dirty state signal to NavigatorPanel (OpenSpec #00042 Phase 7.5)
     connect(m_navigatorCoordinator, &NavigatorCoordinator::chapterDirtyStateChanged,
             m_dockCoordinator->navigatorPanel(), &NavigatorPanel::setElementModified);
+    // A chapter opens where its cursor was when it was closed last
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::elementOpened,
+            this, &MainWindow::placeOpenedChapterCursor);
     logger.debug("MainWindow: Connected DockCoordinator navigator signals to NavigatorCoordinator");
 
     // Create DocumentCoordinator after NavigatorCoordinator (needs it for dirty chapter tracking)
@@ -196,6 +202,16 @@ MainWindow::MainWindow(QWidget* parent)
     // Connect DocumentCoordinator signals
     connect(m_documentCoordinator, &DocumentCoordinator::windowTitleChanged,
             this, &MainWindow::setWindowTitle);
+    // A file outside the book opened from the Navigator gets the keys, as a chapter does
+    // (connected after the coordinator, which opens it)
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::standaloneFileSelected, this,
+            [this](const QString& path) {
+                const EditorPanel* editor = getCurrentEditor();
+                if (editor != nullptr
+                    && editor->property("standaloneFilePath").toString() == path) {
+                    focusCurrentText();
+                }
+            });
 
     // Distraction-Free writing hides the window's bars, panels and tabs and brings them
     // back (also with Esc); the editors and the commands follow it
@@ -252,6 +268,10 @@ MainWindow::MainWindow(QWidget* parent)
             m_documentCoordinator, &DocumentCoordinator::prepareForProjectClose);
     connect(&pm, &core::ProjectManager::projectClosed,
             m_documentCoordinator, &DocumentCoordinator::onProjectClosed);
+    // The chapters still open when the book closes open there next time (its database is
+    // still open then)
+    connect(&pm, &core::ProjectManager::projectAboutToClose,
+            this, &MainWindow::rememberChapterCursors);
     logger.debug("MainWindow: Connected ProjectManager signals to DocumentCoordinator");
 
     // OpenSpec #00043: Create debounce timer for action state updates
@@ -328,10 +348,19 @@ void MainWindow::registerCommands() {
     CommandCallbacks callbacks;
 
     // File commands - delegate to DocumentCoordinator
-    callbacks.onNewDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onNewDocument(); };
+    // A document opened gets the keys
+    callbacks.onNewDocument = [this]() {
+        openGivingKeys([this]() {
+            if (m_documentCoordinator) m_documentCoordinator->onNewDocument();
+        });
+    };
     callbacks.onNewProject = [this]() { if (m_documentCoordinator) m_documentCoordinator->onNewProject(); };
     callbacks.onOpenDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onOpenDocument(); };
-    callbacks.onOpenStandaloneFile = [this]() { if (m_documentCoordinator) m_documentCoordinator->onOpenStandaloneFile(); };
+    callbacks.onOpenStandaloneFile = [this]() {
+        openGivingKeys([this]() {
+            if (m_documentCoordinator) m_documentCoordinator->onOpenStandaloneFile();
+        });
+    };
     // An annotation being written is saved with the document
     callbacks.onSaveDocument = [this]() {
         if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
@@ -1026,8 +1055,11 @@ void MainWindow::createDocks() {
     connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
             m_dockCoordinator->navigatorPanel(), &NavigatorPanel::refreshItem);
 
-    // Connect tab close signal (Task #00015)
+    // A document brought to the front with a click on its tab gets the keys
     QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    utils::focusPageOnTabClick(*centralTabs);
+
+    // Connect tab close signal (Task #00015)
     connect(m_dockCoordinator, &DockCoordinator::tabCloseRequested, this, [this, centralTabs](int index) {
         auto& logger = core::Logger::getInstance();
         QWidget* widget = centralTabs->widget(index);
@@ -1062,8 +1094,12 @@ void MainWindow::createDocks() {
             }
         }
 
+        // A chapter opens next time where its cursor is now
+        rememberChapterCursor(editor);
+
         // Remove tab and delete widget
-        centralTabs->removeTab(index);
+        // (the keys go on to the page in front, not to the font box of the toolbar)
+        utils::removeTabKeepingFocus(*centralTabs, index);
         widget->deleteLater();
 
         logger.debug("Tab closed at index {}", index);
@@ -1306,6 +1342,9 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 
     // Phase F: Save Navigator expansion state before closing
     if (pm.isProjectOpen()) {
+        // The open chapters open next time where their cursors are now
+        rememberChapterCursors();
+
         QString projectPath = pm.getProjectPath();
         if (!projectPath.isEmpty()) {
             QFileInfo pathInfo(projectPath);
@@ -1424,6 +1463,76 @@ void MainWindow::onNavigatorElementSelected(const QString& elementId, const QStr
     if (m_navigatorCoordinator) {
         m_navigatorCoordinator->onElementSelected(elementId, elementTitle);
     }
+    // The chapter opened, or brought to the front, gets the keys
+    const EditorPanel* editor = getCurrentEditor();
+    if (editor != nullptr && editor->property("elementId").toString() == elementId) {
+        focusCurrentText();
+    }
+}
+
+void MainWindow::openGivingKeys(const std::function<void()>& open) {
+    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    const int front = centralTabs->currentIndex();
+    const int count = centralTabs->count();
+    open();
+    // A tab more, or another one in front: a document was opened (also after the window that
+    // chose it, as the window for choosing a file)
+    if (centralTabs->currentIndex() != front || centralTabs->count() != count) {
+        focusCurrentText();
+    }
+}
+
+void MainWindow::focusCurrentText() {
+    // In the window behind a window of the program, the text gets the keys when it comes back
+    if (EditorPanel* editor = getCurrentEditor(); editor != nullptr && editor->getBookEditor()) {
+        editor->getBookEditor()->setFocus(Qt::OtherFocusReason);
+    }
+}
+
+void MainWindow::placeOpenedChapterCursor(const QString& elementId) {
+    const auto opensAt = core::SettingsManager::getInstance().get<std::string>(
+        utils::CHAPTER_OPENS_AT_KEY, utils::CHAPTER_OPENS_WHERE_LEFT);
+    const core::ProjectDatabase* database = core::ProjectManager::getInstance().getDatabase();
+    if (opensAt == utils::CHAPTER_OPENS_AT_START || database == nullptr || !database->isOpen()) {
+        return;  // at its start, as a new editor has it
+    }
+    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    for (int i = 0; i < centralTabs->count(); ++i) {
+        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
+        if (editor != nullptr && editor->getBookEditor() != nullptr
+            && editor->property("elementId").toString() == elementId) {
+            utils::restoreChapterCursor(*database, elementId, *editor->getBookEditor());
+            return;
+        }
+    }
+}
+
+void MainWindow::rememberChapterCursor(const EditorPanel* editor) {
+    core::ProjectDatabase* database = core::ProjectManager::getInstance().getDatabase();
+    if (editor == nullptr || editor->getBookEditor() == nullptr || database == nullptr
+        || !database->isOpen()) {
+        return;
+    }
+    // A chapter of the book, not a file outside it
+    const QString elementId = editor->property("elementId").toString();
+    if (!elementId.isEmpty()) {
+        utils::rememberChapterCursor(*database, elementId, *editor->getBookEditor());
+    }
+}
+
+void MainWindow::rememberChapterCursors() {
+    core::ProjectDatabase* database = core::ProjectManager::getInstance().getDatabase();
+    QTabWidget* centralTabs = m_dockCoordinator ? m_dockCoordinator->centralTabs() : nullptr;
+    if (database == nullptr || !database->isOpen() || centralTabs == nullptr) {
+        return;
+    }
+    // One write to the book's database for all of them
+    database->executeInTransaction([this, centralTabs]() {
+        for (int i = 0; i < centralTabs->count(); ++i) {
+            rememberChapterCursor(qobject_cast<const EditorPanel*>(centralTabs->widget(i)));
+        }
+        return true;
+    });
 }
 
 void MainWindow::openChapter(const QString& elementId, const QString& elementTitle) {

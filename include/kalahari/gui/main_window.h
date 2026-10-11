@@ -17,6 +17,7 @@
 #include <QTabWidget>
 #include <QLabel>
 #include <QMap>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <filesystem>
@@ -379,6 +380,25 @@ private:
 
     /// @brief Toggle fullscreen mode (OpenSpec #00040)
     void toggleFullScreen();
+
+    /// @brief Run @p open, which may open a document or bring one to the front; the document
+    ///        then in front gets the keys
+    void openGivingKeys(const std::function<void()>& open);
+
+    /// @brief Give the keys to the text of the document in front, opened or brought to the
+    ///        front: its cursor shows, and what is typed next goes there, as in Word and
+    ///        LibreOffice
+    void focusCurrentText();
+
+    /// @brief Put the cursor of the chapter @p elementId, just opened, where it was when the
+    ///        chapter was closed last, unless the settings say that a chapter opens at its start
+    void placeOpenedChapterCursor(const QString& elementId);
+
+    /// @brief Keep in the book where the cursor of @p editor is, when it shows a chapter
+    void rememberChapterCursor(const EditorPanel* editor);
+
+    /// @brief Keep in the book where the cursor of every open chapter is
+    void rememberChapterCursors();
 
     // NOTE: collectCurrentSettings moved to SettingsCoordinator (OpenSpec #00038 Phase 5)
     // NOTE: getPhase0Content, setPhase0Content moved to DocumentCoordinator (OpenSpec #00038 Phase 7)

@@ -272,6 +272,20 @@ public:
     /// Resets blink state to visible and restarts timer, but does not adjust scroll.
     void resetCursorBlink();
 
+    /// @brief The height of the cursor line in the view, as a part of the view's height
+    /// @return The top of the line: 0 at the top edge of the view, 1 at its bottom edge, less
+    ///         or more for a line above or below the view
+    qreal cursorLineViewHeight() const;
+
+    /// @brief Scroll the cursor line to @p height in the view (see cursorLineViewHeight())
+    ///
+    /// The line stays fully in the view, off its edges, and the view does not scroll past the
+    /// top and the bottom of the text. With typewriter scrolling the line goes to the focus
+    /// height instead. Until the view is painted first, a new size of it (the panels around a
+    /// new tab settle, as the bar of a file outside the book hides) puts the line at the height
+    /// again, unless the cursor moved.
+    void scrollCursorLineTo(qreal height);
+
     // =========================================================================
     // Cursor Navigation (Phase 3.6/3.7/3.8)
     // =========================================================================
@@ -1172,6 +1186,10 @@ private:
     /// @brief Apply shrinkToPageWidthOnFirstShow() while it waits for the first paint
     void applyFirstShowShrink();
 
+    /// @brief Put the cursor line at the height of scrollCursorLineTo() again while it waits
+    ///        for the first paint
+    void applyFirstShowCursorLine();
+
     /// @brief Give the pipeline the page size, margins, gap and page numbers
     void applyPageLayout();
 
@@ -1371,6 +1389,8 @@ private:
     bool m_paintingWholeView = false;                       ///< A paint of the whole view runs
     bool m_shrinkOnFirstShow = false;                       ///< shrinkToPageWidthOnFirstShow() waits
                                                             ///< for the first paint
+    qreal m_cursorLineHeightOnFirstShow = -1.0;             ///< scrollCursorLineTo() waits for the
+                                                            ///< first paint (none below 0)
 
     // Cursor state (Phase 3.4 + 3.5)
     CursorPosition m_cursorPosition;                        ///< Current cursor position

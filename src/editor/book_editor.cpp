@@ -390,8 +390,10 @@ bool BookEditor::event(QEvent* event)
 
 void BookEditor::paintEvent(QPaintEvent* event)
 {
-    // The zoom is on the screen now: from here on it changes only when asked for
+    // The zoom and the cursor line are on the screen now: from here on they change only when
+    // asked for
     m_shrinkOnFirstShow = false;
+    m_cursorLineHeightOnFirstShow = -1.0;
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::TextAntialiasing, true);
@@ -434,6 +436,7 @@ void BookEditor::resizeEvent(QResizeEvent* event)
     applyFirstShowShrink();  // the view's new width, until the first paint
 
     updateScrollBarRange();
+    applyFirstShowCursorLine();  // the view's new size, until the first paint
     update();
 }
 

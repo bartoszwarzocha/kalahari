@@ -74,6 +74,8 @@ set(TEST_SOURCES
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
     gui/test_widget_wheel.cpp                    # The mouse wheel changes only the field with the focus
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing
+    gui/test_tab_focus.cpp                       # The keys go to the page in front of the tabs
+    gui/test_chapter_cursor.cpp                  # A chapter opens where its cursor was
     gui/test_editor_panel.cpp                    # Editor panel between the settings and its editor
     gui/test_status_bar_statistics.cpp           # Counts of the document in front in the status bar
     gui/test_reading_time.cpp                    # The reading time of a text as the program shows it
@@ -170,6 +172,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/panel_toggle.cpp      # Show/hide toggles of the dock panels
     ${CMAKE_SOURCE_DIR}/src/gui/utils/setting_toggle.cpp    # Toggles that show an on/off setting
     ${CMAKE_SOURCE_DIR}/src/gui/utils/distraction_free_layout.cpp  # The window's layout for Distraction-Free writing
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/tab_focus.cpp         # The keys go to the page in front of the tabs
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/chapter_cursor.cpp    # A chapter opens where its cursor was
     ${CMAKE_SOURCE_DIR}/src/gui/panels/editor_panel.cpp     # Editor panel: settings to and from its editor
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_coordinator.cpp    # Spelling as you type: the editors' dictionary
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_entry.cpp  # Annotations panel: filters and orders
