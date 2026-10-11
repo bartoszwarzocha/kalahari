@@ -80,6 +80,9 @@ std::map<std::string, json> buildDefaults() {
         {"editor.tabSize", 4},
         {"editor.lineNumbers", true},
         {"editor.wordWrap", false},
+        // Where a chapter opens: "lastEdit", where its cursor was when it was closed last, or
+        // "start"
+        {"editor.chapterOpensAt", "lastEdit"},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},

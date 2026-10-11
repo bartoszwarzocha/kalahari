@@ -247,6 +247,18 @@ public:
     /// Resets blink state to visible and restarts timer, but does not adjust scroll.
     void resetCursorBlink();
 
+    /// @brief The height of the cursor line in the view, as a part of the view's height
+    /// @return The top of the line: 0 at the top edge of the view, 1 at its bottom edge, less
+    ///         or more for a line above or below the view
+    qreal cursorLineViewHeight() const;
+
+    /// @brief Scroll the cursor line to @p height in the view (see cursorLineViewHeight())
+    ///
+    /// The line stays fully in the view, off its edges, and the view does not scroll past the
+    /// top and the bottom of the text. With typewriter scrolling the line goes to the focus
+    /// height instead.
+    void scrollCursorLineTo(qreal height);
+
     // =========================================================================
     // Cursor Navigation (Phase 3.6/3.7/3.8)
     // =========================================================================

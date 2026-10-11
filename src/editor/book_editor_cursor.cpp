@@ -230,6 +230,49 @@ void BookEditor::scrollToCursorLine()
     // If line is fully visible, don't scroll
 }
 
+qreal BookEditor::cursorLineViewHeight() const
+{
+    if (!m_viewportManager || height() <= 0) {
+        return 0.0;
+    }
+    // The scroll position is drawn at the view's top inset, and the zoom scales by the view
+    // scale
+    const qreal top = (getCursorDocumentY() - m_viewportManager->scrollPosition()) *
+                          m_viewportManager->viewScale() +
+                      m_viewportManager->viewTopInset();
+    return top / static_cast<qreal>(height());
+}
+
+void BookEditor::scrollCursorLineTo(qreal heightInView)
+{
+    if (!m_textBuffer || !m_viewportManager || height() <= 0) {
+        return;
+    }
+    if (m_appearance.typewriter.enabled) {
+        updateTypewriterScroll(false);
+        return;
+    }
+
+    // The top of the line goes to the height, not nearer the top edge of the view than
+    // scrolling to the cursor goes. The blocks above the line that come into view are laid
+    // out first: with estimated heights the line could end up above or below the height.
+    const qreal scale = m_viewportManager->viewScale();
+    const qreal inset = m_viewportManager->viewTopInset();
+    const qreal top =
+        std::max(heightInView * static_cast<qreal>(height()), CURSOR_SCROLL_MARGIN);
+    auto* layout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+    qreal newScroll = 0.0;
+    do {
+        newScroll = getCursorDocumentY() - (top - inset) / scale;
+    } while (layout != nullptr &&
+             layout->ensureLaidOut(layout->blockNumberAtY(newScroll - inset / scale),
+                                   m_cursorPosition.paragraph - 1));
+    setScrollOffset(std::max(0.0, newScroll));
+
+    // A line too near the bottom edge, or below it, comes fully into the view
+    scrollToCursorLine();
+}
+
 void BookEditor::scrollSidewaysToCursor()
 {
     // A page wider than the view (a narrow window, a high zoom) scrolls sideways to the

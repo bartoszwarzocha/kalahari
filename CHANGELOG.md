@@ -21,6 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   color side by side, HEX and RGB fields, all usable from the keyboard. The unused About Qt
   command is gone; About Kalahari already names the Qt version.
 
+- **A chapter opens where it was last edited** - 2026-10-11. Every chapter opened with its
+  cursor at the start. The book now keeps, for every chapter, where its cursor was when the
+  chapter was closed (with its tab, with the book or with the program), and the chapter
+  opens there, ready for typing, with the cursor's line at the same height in the window as
+  then (in the window also when the cursor was scrolled out of it). Settings > Editor >
+  General > Open a Chapter chooses between Where You Last Edited (the default) and At the
+  Beginning. The place is kept in the book's database, as Word and LibreOffice keep it in
+  the document, so a copy of the book opens there too.
+
 - **Windows that fit small screens** - 2026-10-10. The program's own windows never grow
   past the screen (for example 1366×768 at 125–150% scaling): their content scrolls while
   the heading and the buttons stay in view, and a window opens as tall as the screen allows
@@ -491,12 +500,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   its menu item was deleted reached freed memory. Each connection now ends with its menu
   item, toolbar or window.
 
-- **Closing a tab: the keys go on to the document in front** - 2026-10-11. After a tab was
-  closed with its ×, the keyboard focus went to the font box of the toolbar, so the text
-  typed next landed there instead of in the document now in front. That document now gets
-  the keys, at the place it had them last, as in Word and LibreOffice; a focus elsewhere,
-  for example in a panel, stays where it was. The same holds for the chapter tabs that close
-  with the book, also after the question about unsaved changes.
+- **The keys go to the document opened or left in front** - 2026-10-11. A chapter opened
+  from the Navigator (double click, Enter or Open) left the keyboard focus in the Navigator,
+  without a cursor in the text, so what was typed next did not reach the chapter until its
+  text was clicked; after a tab was closed with its ×, the focus went to the font box of the
+  toolbar. Now a chapter or a file opened (from the Navigator, with File > Open > File... or
+  File > New) or brought to the front from the Navigator gets the keys, with its cursor
+  showing, as in Word and LibreOffice. When the tab in front closes, also with the book or
+  after the question about unsaved changes, the document coming to the front gets them,
+  wherever they were, at the place it had them last; when a tab behind closes, the keys stay
+  where they are, for example in a panel.
 
 - **Distraction-Free without a document** - 2026-10-08. View > Distraction-Free
   (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in

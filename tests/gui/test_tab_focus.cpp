@@ -1,5 +1,5 @@
 /// @file test_tab_focus.cpp
-/// @brief Closing a tab gives the keys to the page in front
+/// @brief The keys go to the page in front of the tabs, also when a tab closes
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
@@ -14,6 +14,7 @@
 
 #include <array>
 
+using kalahari::gui::utils::focusPageInFront;
 using kalahari::gui::utils::removeTabKeepingFocus;
 namespace test = kalahari::test;
 
@@ -82,17 +83,29 @@ TEST_CASE("Closing a tab: the keys go on to the page in front", "[gui][tabs]") {
         CHECK(w.pages[1].first->hasFocus());
     }
 
-    SECTION("a focus elsewhere stays there") {
+    SECTION("a tab behind closes: a focus elsewhere stays there") {
         w.tabs->setCurrentIndex(0);
         w.toolbarField->setFocus(Qt::TabFocusReason);
         REQUIRE(w.toolbarField->hasFocus());
 
-        // The tab in front and a tab behind
-        removeTabKeepingFocus(*w.tabs, 0);
-        CHECK(w.toolbarField->hasFocus());
+        removeTabKeepingFocus(*w.tabs, 2);
         removeTabKeepingFocus(*w.tabs, 1);
         CHECK(w.toolbarField->hasFocus());
         CHECK(w.tabs->count() == 1);
+    }
+
+    SECTION("the tab in front closes: the page coming to the front gets the keys from "
+            "elsewhere too, as from the Navigator") {
+        w.tabs->setCurrentIndex(1);
+        w.pages[1].second->setFocus(Qt::TabFocusReason);
+        w.tabs->setCurrentIndex(2);
+        w.toolbarField->setFocus(Qt::TabFocusReason);
+        REQUIRE(w.toolbarField->hasFocus());
+
+        removeTabKeepingFocus(*w.tabs, 2);
+        REQUIRE(w.tabs->currentWidget() == w.pages[1].widget);
+        CHECK(w.pages[1].second->hasFocus());
+        CHECK_FALSE(w.toolbarField->hasFocus());
     }
 
     SECTION("also after a question in a window of its own, as about unsaved changes") {
@@ -132,5 +145,43 @@ TEST_CASE("Closing a tab: the keys go on to the page in front", "[gui][tabs]") {
         removeTabKeepingFocus(*w.tabs, 3);
         removeTabKeepingFocus(*w.tabs, -1);
         CHECK(w.tabs->count() == 3);
+    }
+}
+
+TEST_CASE("The page in front of the tabs gets the keys", "[gui][tabs]") {
+    Window w;
+    REQUIRE(test::waitUntil([&w] { return QApplication::activeWindow() == &w.window; }));
+    w.toolbarField->setFocus(Qt::TabFocusReason);
+
+    SECTION("its first field, as a page just opened") {
+        w.tabs->setCurrentIndex(2);
+        REQUIRE(w.toolbarField->hasFocus());
+        focusPageInFront(*w.tabs);
+        CHECK(w.pages[2].first->hasFocus());
+    }
+
+    SECTION("its field that had the focus last") {
+        w.tabs->setCurrentIndex(1);
+        w.pages[1].second->setFocus(Qt::TabFocusReason);
+        w.toolbarField->setFocus(Qt::TabFocusReason);
+        focusPageInFront(*w.tabs);
+        CHECK(w.pages[1].second->hasFocus());
+    }
+
+    SECTION("in a window behind another of the program: when it comes back") {
+        w.tabs->setCurrentIndex(1);
+        QWidget other;
+        other.show();
+        other.activateWindow();
+        REQUIRE(test::waitUntil([&other] { return QApplication::activeWindow() == &other; }));
+
+        // The other window keeps the keys meanwhile
+        focusPageInFront(*w.tabs);
+        CHECK_FALSE(w.pages[1].first->hasFocus());
+
+        other.hide();
+        w.window.activateWindow();
+        REQUIRE(test::waitUntil([&w] { return QApplication::activeWindow() == &w.window; }));
+        CHECK(w.pages[1].first->hasFocus());
     }
 }

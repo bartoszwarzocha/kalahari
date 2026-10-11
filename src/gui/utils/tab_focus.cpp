@@ -1,5 +1,5 @@
 /// @file tab_focus.cpp
-/// @brief Closing a tab gives the keys to the page in front
+/// @brief The keys go to the page in front of the tabs, also when a tab closes
 
 #include "kalahari/gui/utils/tab_focus.h"
 
@@ -36,6 +36,15 @@ QWidget* focusTarget(QWidget* page) {
 
 }  // anonymous namespace
 
+void focusPageInFront(QTabWidget& tabs) {
+    // In a window behind another, the widget gets the focus when its window comes back
+    if (QWidget* front = tabs.currentWidget()) {
+        focusTarget(front)->setFocus(Qt::OtherFocusReason);
+    } else {
+        tabs.setFocus(Qt::OtherFocusReason);
+    }
+}
+
 void removeTabKeepingFocus(QTabWidget& tabs, int index) {
     QWidget* page = tabs.widget(index);
     if (page == nullptr) {
@@ -45,17 +54,12 @@ void removeTabKeepingFocus(QTabWidget& tabs, int index) {
     // the question about unsaved changes before a tab or the book closes
     const QWidget* focus = tabs.window()->focusWidget();
     const bool focusOnPage = focus != nullptr && (focus == page || page->isAncestorOf(focus));
+    const bool inFront = index == tabs.currentIndex();
 
     tabs.removeTab(index);
 
-    if (!focusOnPage) {
-        return;
-    }
-    // In a window behind another, the widget gets the focus when its window comes back
-    if (QWidget* front = tabs.currentWidget()) {
-        focusTarget(front)->setFocus(Qt::OtherFocusReason);
-    } else {
-        tabs.setFocus(Qt::OtherFocusReason);
+    if (focusOnPage || inFront) {
+        focusPageInFront(tabs);
     }
 }
 
