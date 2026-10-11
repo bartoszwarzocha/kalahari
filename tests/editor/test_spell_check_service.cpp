@@ -14,6 +14,7 @@
 #include <memory>
 
 using namespace kalahari::editor;
+using kalahari::test::DICTIONARY_WAIT_MS;
 using kalahari::test::runEventLoop;
 using kalahari::test::waitUntil;
 
@@ -129,7 +130,7 @@ TEST_CASE("SpellCheckService: a dictionary loaded in the background", "[editor][
     service.loadDictionaryInBackground(QStringLiteral("pl_PL"));
     CHECK(service.isLoading());
     CHECK_FALSE(service.isDictionaryLoaded());
-    REQUIRE(waitUntil([&told]() { return !told.loaded.isEmpty(); }, 20000));
+    REQUIRE(waitUntil([&told]() { return !told.loaded.isEmpty(); }, DICTIONARY_WAIT_MS));
     CHECK_FALSE(service.isLoading());
     CHECK(service.currentDictionary() == QStringLiteral("pl_PL"));
     CHECK(told.loaded == QStringList{"pl_PL"});
@@ -144,13 +145,13 @@ TEST_CASE("SpellCheckService: a dictionary loaded in the background", "[editor][
         service.loadDictionaryInBackground(QStringLiteral("en_US"));
         CHECK(service.currentDictionary() == QStringLiteral("pl_PL"));
         service.loadDictionaryInBackground(QStringLiteral("pl_PL"));
-        REQUIRE(waitUntil([&service]() { return !service.isLoading(); }, 20000));
+        REQUIRE(waitUntil([&service]() { return !service.isLoading(); }, DICTIONARY_WAIT_MS));
         CHECK(service.currentDictionary() == QStringLiteral("pl_PL"));
         CHECK(told.loaded == QStringList{"pl_PL"});
         CHECK(told.changed == 1);
 
         service.loadDictionaryInBackground(QStringLiteral("en_US"));
-        REQUIRE(waitUntil([&told]() { return told.loaded.size() == 2; }, 20000));
+        REQUIRE(waitUntil([&told]() { return told.loaded.size() == 2; }, DICTIONARY_WAIT_MS));
         CHECK(service.currentDictionary() == QStringLiteral("en_US"));
         CHECK(told.changed == 2);
     }
