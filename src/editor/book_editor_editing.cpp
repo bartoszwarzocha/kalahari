@@ -32,9 +32,10 @@ namespace {
 
 /// @brief Clipboard text as the editor can store and save it
 ///
-/// Line and paragraph breaks of every platform become paragraph breaks. Characters XML
-/// cannot hold (control characters other than tab, unpaired surrogates, U+FFFE, U+FFFF)
-/// are dropped, so pasted text cannot make the chapter file unreadable.
+/// The line ends of every platform become paragraph breaks; U+2028 and a vertical tab (a
+/// line break of Word) are a line break in the paragraph. Characters XML cannot hold
+/// (control characters other than tab, unpaired surrogates, U+FFFE, U+FFFF) are dropped,
+/// so pasted text cannot make the chapter file unreadable.
 QString pastedPlainText(const QString& text) {
     QString result;
     result.reserve(text.size());
@@ -44,8 +45,10 @@ QString pastedPlainText(const QString& text) {
         if (code == u'\r' && i + 1 < text.size() && text.at(i + 1) == u'\n') {
             continue;  // the \n that follows makes the break
         }
-        if (code == u'\n' || code == u'\r' || code == u'\v' || code == u'\f' ||
-            code == QChar::LineSeparator || code == QChar::ParagraphSeparator) {
+        if (code == u'\v' || code == QChar::LineSeparator) {
+            result += QChar(QChar::LineSeparator);
+        } else if (code == u'\n' || code == u'\r' || code == u'\f' ||
+                   code == QChar::ParagraphSeparator) {
             result += u'\n';
         } else if (ch.isHighSurrogate() && i + 1 < text.size() && text.at(i + 1).isLowSurrogate()) {
             result += ch;
@@ -118,9 +121,10 @@ void insertAnnotatedDocument(QTextCursor& cursor, QTextDocument& content) {
 ///
 /// Kalahari content (KML) is parsed like a chapter file, so formatting, alignment and
 /// annotations survive; text from other programs takes the formatting of the insertion
-/// point, with @p typed on top (a format given for the text typed next). Only the document
-/// changes: the editor's cursor and view follow once the outermost edit block has ended.
-/// The cursor ends after the inserted text.
+/// point, with @p typed on top (a format given for the text typed next), and its HTML
+/// tells its line breaks from its paragraph ends. Only the document changes: the editor's
+/// cursor and view follow once the outermost edit block has ended. The cursor ends after
+/// the inserted text.
 void insertMimeData(QTextCursor& cursor, const QMimeData& source,
                     const QTextCharFormat& typed = QTextCharFormat()) {
     if (source.hasFormat(QString::fromLatin1(MIME_KML))) {
@@ -137,8 +141,9 @@ void insertMimeData(QTextCursor& cursor, const QMimeData& source,
         core::Logger::getInstance().warn("BookEditor: unreadable KML, inserting the text");
     }
 
+    const QString text = ClipboardHandler::withLineEndsOf(source.text(), source.html());
     cursor.beginEditBlock();  // the replaced selection and the text: one undo step
-    insertKeepingAnnotations(cursor, pastedPlainText(source.text()), typed);
+    insertKeepingAnnotations(cursor, pastedPlainText(text), typed);
     cursor.endEditBlock();
 }
 
@@ -245,6 +250,26 @@ void BookEditor::insertNewline()
     update();
     emit contentChanged();
     emit paragraphInserted(m_cursorPosition.paragraph);
+}
+
+void BookEditor::insertLineBreak()
+{
+    ensureDocument();
+
+    // A character of the paragraph, typed as text: it takes the format of the place and
+    // the one given for the text typed next, which the text after it keeps. Its own edit
+    // block parts it from the text typed before it in the undo history.
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    const QTextCharFormat pending = pendingFormat();
+    if (hasSelection()) {
+        const SelectionRange sel = m_selection.normalized();
+        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        clearSelection();
+    }
+    cursor.beginEditBlock();
+    insertKeepingAnnotations(cursor, QString(QChar(QChar::LineSeparator)), pending);
+    cursor.endEditBlock();
+    finishEdit(cursor);
 }
 
 void BookEditor::deleteBackward()
@@ -605,9 +630,10 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
     const QString kml =
         KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd());
 
-    // Paragraphs separated by line breaks
+    // Lines: the paragraphs and the line breaks in them end one
     QString text = range.selectedText();
     text.replace(QChar::ParagraphSeparator, QLatin1Char('\n'));
+    text.replace(QChar::LineSeparator, QLatin1Char('\n'));
 
     auto mimeData = std::make_unique<QMimeData>();
     mimeData->setText(text);

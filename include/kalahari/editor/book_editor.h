@@ -132,7 +132,9 @@ public:
     QString paragraphPlainText(size_t index) const;
 
     /// @brief Get the full plain text of the document
-    /// @return Concatenation of all paragraph texts with newlines (no-break spaces stay)
+    /// @return Concatenation of all paragraph texts with newlines; no-break spaces and the
+    ///         line breaks in the paragraphs (QChar::LineSeparator) stay, as in
+    ///         ChapterDocument::kmlToPlainText()
     QString plainText() const;
 
     /// @brief Get total character count in the document
@@ -375,6 +377,14 @@ public:
     /// If there is an active selection, it is deleted first.
     /// The cursor moves to the start of the new paragraph.
     void insertNewline();
+
+    /// @brief Start a new line in the paragraph (Shift+Enter), as Word's line break
+    ///
+    /// The break is a QChar::LineSeparator in the paragraph's text (<br/> in KML), so the
+    /// lines keep the paragraph's format and spacing. It replaces the selection, and the
+    /// cursor goes to the start of the new line. The break and the text typed after it are
+    /// one undo step, apart from the text typed before it.
+    void insertLineBreak();
 
     /// @brief Delete character before cursor (Backspace)
     ///

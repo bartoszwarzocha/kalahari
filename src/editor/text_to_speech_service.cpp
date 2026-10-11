@@ -141,8 +141,12 @@ void TextToSpeechService::speak(const QString& text)
     m_textOffset = 0;
 
 #ifdef QT_TEXTTOSPEECH_LIB
+    // A line break in a paragraph is read as a line end, a pause; the text keeps its
+    // length, so the offsets of the words hold
+    QString spoken = text;
+    spoken.replace(QChar(QChar::LineSeparator), QLatin1Char('\n'));
     auto* tts = static_cast<QTextToSpeech*>(m_tts);
-    tts->say(text);
+    tts->say(spoken);
 #endif
 }
 

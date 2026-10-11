@@ -306,6 +306,26 @@ void KmlDocumentModel::anchorAfterText(Paragraph& para, const Annotation& annota
     setAnnotations(format, withAnnotation(annotationsOf(format), annotation));
 }
 
+void KmlDocumentModel::appendText(Paragraph& para, const QString& text,
+                                  const QTextCharFormat& format)
+{
+    if (text.isEmpty()) {
+        return;
+    }
+    const auto start = static_cast<size_t>(para.text.size());
+    para.text += text;
+
+    // Add a format run for any formatting, metadata or annotation (the base format of a
+    // paragraph is empty, so any property marks a non-default run)
+    if (format.propertyCount() > 0) {
+        FormatRun run;
+        run.start = start;
+        run.end = static_cast<size_t>(para.text.size());
+        run.format = format;
+        para.formats.push_back(run);
+    }
+}
+
 void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph& para)
 {
     const QString tag = reader.name().toString();
@@ -348,21 +368,7 @@ void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
         }
 
         if (reader.isCharacters()) {
-            QString chars = reader.text().toString();
-            if (!chars.isEmpty()) {
-                const auto start = static_cast<size_t>(para.text.size());
-                para.text += chars;
-
-                // Add a format run for any formatting, metadata or annotation (the base
-                // format of a paragraph is empty, so any property marks a non-default run)
-                if (currentFormat.propertyCount() > 0) {
-                    FormatRun run;
-                    run.start = start;
-                    run.end = static_cast<size_t>(para.text.size());
-                    run.format = currentFormat;
-                    para.formats.push_back(run);
-                }
-            }
+            appendText(para, reader.text().toString(), currentFormat);
             reader.readNext();
         } else if (reader.isStartElement()) {
             QString tag = reader.name().toString();
@@ -414,6 +420,12 @@ void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                 // Text run - just parse content
                 reader.readNext();
                 parseInlineContent(reader, para, currentFormat, tag);
+            } else if (tag == QStringLiteral("br")) {
+                // A line break in the paragraph (Shift+Enter): a character of its text, in
+                // the format of its place
+                appendText(para, QString(QChar(QChar::LineSeparator)), currentFormat);
+                reader.skipCurrentElement();
+                reader.readNext();
             } else {
                 // Unknown element - skip it, together with its end tag (where
                 // skipCurrentElement() stops), so the text after it is still parsed

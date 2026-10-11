@@ -552,14 +552,17 @@ TEST_CASE("Stage2 paste: text from other programs takes the format of the insert
               QStringLiteral("<kml><p align=\"center\">A <b>bold</b> word</p></kml>"));
     }
 
-    SECTION("line breaks of every platform, without characters a file cannot hold") {
+    SECTION("line ends of every platform, line breaks, without characters a file cannot hold") {
+        // A vertical tab (Word) and U+2028 are line breaks in the paragraph
         editor->setCursorPosition({0, 0});
+        const QChar lineBreak(QChar::LineSeparator);
         const QString text = QStringLiteral("a") + QChar(0x01) + QStringLiteral("b") + QChar(0x0B) +
-                             QStringLiteral("c\r\nd\re") + QChar(QChar::LineSeparator) +
-                             QStringLiteral("f\tg\n");
+                             QStringLiteral("c\r\nd\re") + lineBreak + QStringLiteral("f\tg\n");
         editor->insertFromMimeData(plainText(text).get());
         const QString kml = editor->toKml();
-        CHECK(editor->plainText() == QStringLiteral("ab\nc\nd\ne\nf\tg\nA bold word"));
+        CHECK(editor->plainText() == QStringLiteral("ab") + lineBreak + QStringLiteral("c\nd\ne") +
+                                         lineBreak + QStringLiteral("f\tg\nA bold word"));
+        CHECK(kml.count(QStringLiteral("<br/>")) == 2);
 
         // The saved chapter loads again
         auto reloaded = editorWith(kml);

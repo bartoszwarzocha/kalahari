@@ -25,6 +25,12 @@ bool isWordCharacter(QChar ch) {
     return ch.isLetterOrNumber() || ch.isMark();
 }
 
+/// @brief A line break in a paragraph (Shift+Enter): moves by words stop at it as at the
+///        end of a paragraph
+bool isLineBreak(QChar ch) {
+    return ch == QChar::LineSeparator;
+}
+
 /// @brief The offset one character before or after an offset of a paragraph's text: a
 ///        letter goes with its marks, a surrogate pair whole
 int characterBoundary(const QString& text, int offset, bool forward) {
@@ -1111,6 +1117,9 @@ void BookEditor::performTextKey(TextKeyAction action, bool select)
     case Action::NewParagraph:
         insertNewline();
         return;
+    case Action::NewLine:
+        insertLineBreak();
+        return;
     case Action::OpenLine:
         // The paragraph break goes after the cursor
         insertNewline();
@@ -1213,7 +1222,8 @@ CursorPosition BookEditor::textKeyTarget(TextKeyAction action, const CursorPosit
     switch (action) {
     case Action::WordLeft: {
         // Back over the spaces and punctuation, then over the word; at the start of a
-        // paragraph to the end of the one before
+        // paragraph to the end of the one before, at the start of a line after a line break
+        // to the end of the line before
         if (position.offset == 0) {
             if (position.paragraph == 0) {
                 return position;
@@ -1221,7 +1231,11 @@ CursorPosition BookEditor::textKeyTarget(TextKeyAction action, const CursorPosit
             return {position.paragraph - 1, paragraphLength(doc, position.paragraph - 1)};
         }
         int offset = position.offset;
-        while (offset > 0 && !isWordCharacter(text.at(offset - 1))) {
+        if (isLineBreak(text.at(offset - 1))) {
+            return {position.paragraph, offset - 1};
+        }
+        while (offset > 0 && !isWordCharacter(text.at(offset - 1)) &&
+               !isLineBreak(text.at(offset - 1))) {
             --offset;
         }
         while (offset > 0 && isWordCharacter(text.at(offset - 1))) {
@@ -1231,16 +1245,21 @@ CursorPosition BookEditor::textKeyTarget(TextKeyAction action, const CursorPosit
     }
     case Action::WordRight: {
         // Over the rest of the word, then over the spaces and punctuation; at the end of a
-        // paragraph to the start of the next one
+        // paragraph to the start of the next one, at the end of a line before a line break
+        // to the start of the line after it
         if (position.offset >= length) {
             return position.paragraph < lastParagraph ? CursorPosition{position.paragraph + 1, 0}
                                                       : position;
         }
         int offset = position.offset;
+        if (isLineBreak(text.at(offset))) {
+            return {position.paragraph, offset + 1};
+        }
         while (offset < length && isWordCharacter(text.at(offset))) {
             ++offset;
         }
-        while (offset < length && !isWordCharacter(text.at(offset))) {
+        while (offset < length && !isWordCharacter(text.at(offset)) &&
+               !isLineBreak(text.at(offset))) {
             ++offset;
         }
         return {position.paragraph, offset};

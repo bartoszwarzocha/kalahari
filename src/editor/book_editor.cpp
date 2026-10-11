@@ -652,12 +652,12 @@ QString BookEditor::plainText() const
     if (!m_textBuffer) {
         return QString();
     }
-    // As toPlainText(), which would also turn no-break spaces into spaces
+    // As toPlainText(), which would also turn no-break spaces into spaces and the line
+    // breaks in the paragraphs into newlines
     QString text = m_textBuffer->toRawText();
     for (QChar& ch : text) {
         switch (ch.unicode()) {
         case QChar::ParagraphSeparator:
-        case QChar::LineSeparator:
         case 0xFDD0:  // QTextBeginningOfFrame
         case 0xFDD1:  // QTextEndOfFrame
             ch = QLatin1Char('\n');
