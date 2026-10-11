@@ -53,6 +53,10 @@ inline void runEventLoop(int ms, const std::function<void()>& onTick = {}) {
     loop.exec();
 }
 
+/// How long a test waits for a dictionary loaded in the background: a debug build made with
+/// MSVC, with other tests running beside it, takes more than half a minute for the Polish one
+constexpr int DICTIONARY_WAIT_MS = 120000;
+
 /// Run the event loop until @p done returns true or @p timeoutMs passes
 inline bool waitUntil(const std::function<bool()>& done, int timeoutMs = 2000) {
     if (done()) return true;

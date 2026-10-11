@@ -45,6 +45,7 @@
 
 using namespace kalahari;
 using namespace kalahari::gui;
+using kalahari::test::DICTIONARY_WAIT_MS;
 using kalahari::test::kmlOf;
 using kalahari::test::waitUntil;
 
@@ -89,7 +90,7 @@ bool checksWith(const SpellingCoordinator& coordinator, const QString& dictionar
         [service, dictionary]() {
             return service->currentDictionary() == dictionary && !service->isLoading();
         },
-        20000);
+        DICTIONARY_WAIT_MS);
 }
 
 /// The words with a spelling wave in a paragraph, in their order
@@ -274,7 +275,7 @@ TEST_CASE("Spelling coordinator: the editors of the documents check with its dic
     const editor::BookEditor* shown = second->getBookEditor();
     CHECK(waitUntil(
         [shown]() { return wavyWords(*shown, 0) == QStringList{QStringLiteral("mistakkes")}; },
-        20000));
+        DICTIONARY_WAIT_MS));
 }
 
 TEST_CASE("Spelling coordinator: a document outside the book is checked in the default "
@@ -317,7 +318,7 @@ TEST_CASE("Spelling coordinator: a document outside the book is checked in the d
             [chapterEditor]() {
                 return wavyWords(*chapterEditor, 0) == QStringList{QStringLiteral("ksi\u0105rzka")};
             },
-            20000));
+            DICTIONARY_WAIT_MS));
         CHECK(chapterEditor->spellCheckService() == book);
 
         // A file opened from the disk: in the language of the program, with a dictionary of
@@ -331,7 +332,7 @@ TEST_CASE("Spelling coordinator: a document outside the book is checked in the d
             [noteEditor]() {
                 return wavyWords(*noteEditor, 0) == QStringList{QStringLiteral("mistakke")};
             },
-            20000));
+            DICTIONARY_WAIT_MS));
         editor::SpellCheckService* other = noteEditor->spellCheckService();
         REQUIRE(other != nullptr);
         CHECK(other != book);

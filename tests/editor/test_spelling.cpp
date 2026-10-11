@@ -57,7 +57,7 @@ std::unique_ptr<BookEditor> shownEditor(const QStringList& paragraphs,
 
 /// Run the event loop until the editor has checked what it has to
 bool checked(const BookEditor& editor) {
-    return waitUntil([&editor]() { return !editor.isSpellCheckPending(); }, 20000);
+    return waitUntil([&editor]() { return !editor.isSpellCheckPending(); }, DICTIONARY_WAIT_MS);
 }
 
 /// Type text as the keyboard does, a key at a time
@@ -276,7 +276,8 @@ TEST_CASE("Spelling: the paragraphs in view are checked first", "[editor][spelli
 
     // Checked in short turns: the view first, then the text from its start
     editor->setSpellCheckService(spelling.get());
-    REQUIRE(waitUntil([&editor]() { return !wavyWords(*editor, 5000).isEmpty(); }, 20000));
+    REQUIRE(waitUntil([&editor]() { return !wavyWords(*editor, 5000).isEmpty(); },
+                      DICTIONARY_WAIT_MS));
     CHECK(wavyWords(*editor, 4000).isEmpty());
     CHECK(editor->isSpellCheckPending());
 
