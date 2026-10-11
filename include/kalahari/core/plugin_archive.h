@@ -70,7 +70,8 @@ public:
 
 private:
     /// @brief Get platform-specific temporary plugin directory
-    /// @return Path to ~/.local/share/Kalahari/plugins/temp/ (or platform equivalent)
+    /// @return Path to ~/.local/share/Kalahari/plugins/temp/ (or platform equivalent); in test
+    ///         mode a folder in the temporary directory
     static std::filesystem::path getTempPluginDir();
 
     /// @brief Extract ZIP archive to target directory
