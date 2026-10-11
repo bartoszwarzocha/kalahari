@@ -2,11 +2,14 @@
 /// @brief Unit tests for BookEditor (OpenSpec #00042 Phase 3.1-3.5)
 /// Phase 11: Rewritten for QTextDocument-based architecture
 
+#include "editor_test_utils.h"
+
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/book_editor_accessible.h>
 #include <QAccessible>
 #include <QApplication>
+#include <QContextMenuEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QScrollBar>
@@ -379,4 +382,27 @@ TEST_CASE("BookEditor is editable text for screen readers", "[editor][book_edito
     editor.insertText(QStringLiteral("X"));
     CHECK(text->text(0, 4) == QStringLiteral("XAla"));
     CHECK(text->characterCount() == editor.plainText().length());
+}
+
+TEST_CASE("BookEditor context menu offers Select All also without a selection",
+          "[editor][book_editor]") {
+    BookEditor editor;
+    editor.fromKml(kalahari::test::kmlOf({QStringLiteral("First line."), QStringLiteral("Last.")}));
+    editor.resize(400, 300);
+    editor.show();
+    editor.setCursorPosition(CursorPosition{0, 3});
+    REQUIRE_FALSE(editor.hasSelection());
+
+    // As in the program's text fields: the whole text is selected from the menu
+    const QStringList texts = kalahari::test::runPopupMenu(
+        [&editor]() {
+            QContextMenuEvent event(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+            QCoreApplication::sendEvent(&editor, &event);
+        },
+        QStringLiteral("Select &All"));
+    CHECK(texts.contains(QStringLiteral("&Paste")));
+    CHECK(texts.contains(QStringLiteral("Select &All")));
+    const SelectionRange all = editor.selection();
+    CHECK(all.start == CursorPosition{0, 0});
+    CHECK(all.end == CursorPosition{1, 5});
 }

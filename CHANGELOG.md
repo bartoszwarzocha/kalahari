@@ -65,6 +65,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   color side by side, HEX and RGB fields, all usable from the keyboard. The unused About Qt
   command is gone; About Kalahari already names the Qt version.
 
+- **A chapter opens where it was last edited** - 2026-10-11. Every chapter opened with its
+  cursor at the start. The book now keeps, for every chapter, where its cursor was when the
+  chapter was closed (with its tab, with the book or with the program), and the chapter
+  opens there, ready for typing, with the cursor's line at the same height in the window as
+  then (in the window also when the cursor was scrolled out of it). Settings > Editor >
+  General > Open a Chapter chooses between Where You Last Edited (the default) and At the
+  Beginning. The place is kept in the book's database, as Word and LibreOffice keep it in
+  the document, so a copy of the book opens there too.
+
 - **Windows that fit small screens** - 2026-10-10. The program's own windows never grow
   past the screen (for example 1366×768 at 125–150% scaling): their content scrolls while
   the heading and the buttons stay in view, and a window opens as tall as the screen allows
@@ -89,6 +98,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   program's own window, in the look of its other dialogs, in place of the system ones. Copy
   puts the message and its details on the clipboard; every button works from the keyboard.
   The program's messages move to it in the following changes.
+
+- **Word count: a dialogue dash as a word, if chosen** - 2026-10-10. Settings > Editor >
+  General > Word Count can count a dash separated by spaces from the words around it, as
+  at the start of a line of dialogue, as a word, as Microsoft Word does; by default it is
+  not one, as in LibreOffice. The status bar, the Properties panel and Distraction-Free
+  writing count anew at once, the chapters' counts in the book when they are saved or the
+  book is opened again.
 
 ### Changed
 
@@ -137,6 +153,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   narrow card puts the book's icon above its texts. The content takes three quarters of a
   wide panel, more where it needs it, and only a panel narrower than the longest word
   scrolls sideways.
+- **Annotations: the frame closes when the writer goes elsewhere; its X drops the text** -
+  2026-10-10. Going anywhere else in the program closes the frame of an annotation and
+  keeps what was written, as Ctrl+Enter does: a click outside it (in the text, a panel, a
+  toolbar or the menu bar) or the keys going to another place of the program; a new
+  annotation left empty is not added. The X in its top right corner drops what was
+  written, as Esc does. The frame stays open while another application is in front, for
+  its own context menu and while the text is scrolled with the scroll bars.
 
 - **One version number** - 2026-10-09. The About window, the program and the command
   line show the version from the project definition (0.3.0-alpha); before, they showed
@@ -404,6 +427,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Menu commands and settings page for features that will not be built:
   Browse Marketplace, Cloud Sync, Collaboration - 2026-10-03
 
+### Fixed
+
+- **Menu icons** - 2026-10-10. Six menu commands had no icon (import and export of a
+  project archive, InDesign ICML, export settings, Find in book, saving the current
+  perspective) and the log warned about each of them when the menus were built.
+
 ### Added
 
 - **Book projects: a new project file in core** - 2026-10-09. A new model in core reads and
@@ -430,6 +459,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   offers in each part of the book and in the Workshop, what a new book starts with, and its
   styles. A registry in core loads and checks them. Nothing uses it yet, so the program
   works as before; the New Book and Add Element windows will use it in later stages.
+- **Spelling as you type** - 2026-10-09
+  - The editor underlines misspelled words with a wavy line, in the book's language (set in
+    its properties) or in the language chosen in Settings > Editor > Spelling. A document
+    outside the book, such as a file opened from the disk, is checked in the language
+    chosen in the settings, else in the language of the program, not in the book's, as a
+    new document is in Word and LibreOffice; its dictionary is loaded when the first such
+    document is opened. Polish and English dictionaries come with the program; those of
+    LibreOffice and of the system (Linux, macOS) are found too. When the language has no
+    dictionary, the status bar says so. The languages go by their names in the language of
+    the program (in the Polish one: francuski), also in the list of the dictionaries in the
+    settings.
+  - The paragraphs on the screen are checked first, the rest of the chapter in short steps
+    between the key presses, so typing stays smooth also in a long chapter. The word being
+    typed gets its line when the cursor leaves it, and the lines of the other words stay
+    in place while the text around them is edited.
+  - A right click on a misspelled word offers up to five words to put in its place,
+    Ignore All (the word is right until the program closes) and Add to Dictionary (right
+    for good), above the usual commands. Select All is among them also when nothing is
+    selected, as in the program's text fields.
+  - The likeliest word comes first: a word typed without its accents gets the word with
+    them (ktory: który, Lodz: Łódź), a word starting a sentence also gets the words written
+    small (Teh: The), while a misspelled name still gets the name, and the writer's own
+    words close to the misspelled one are offered too.
+  - From the keyboard: Tools > Next Misspelling (F7) selects the next misspelled word,
+    from the cursor round the chapter, and opens the same menu under it; the menu key and
+    Shift+F10 open it for the word at the cursor.
+  - Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off for all
+    documents, and remembers it. Settings > Editor > Spelling has the same switch, the
+    language and the list of the writer's own words, which can be added and removed there;
+    they are the same in every language and kept in `user_dictionary.txt` next to
+    `settings.json`.
+  - The dictionary is loaded in the background, once for all open chapters, and a
+    language change does not stop the work.
 - **Annotations: their marks, the frame they are written in, the Annotations panel and the
   commands for them** - 2026-10-08
   - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a
@@ -648,6 +710,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   icon color. The build script that converts the icons (`scripts/convert_all_icons.py`),
   the program's converter of downloaded icons and `scripts/convert_svg_templates.py` now
   leave a shape without a fill when its group has `fill="none"`.
+- **Editor: a press on its scroll bars stays with them** - 2026-10-10. With Qt 6.9, a
+  click on the editor's scroll bar when there was nothing to scroll went on to the text
+  under it: it moved the cursor, and a double click selected a word. Such a click, and a
+  press of the right mouse button on the scroll bars, also closed the frame of an
+  annotation being written. A press on a scroll bar now stays with it; the right button
+  still opens the scroll bar's menu.
 
 - **Panels: the Navigator no longer covers the panel in front** - 2026-10-09. Choosing an
   element in the Navigator (a click, the arrow keys, opening a chapter, a new status)
@@ -655,6 +723,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   seemed to disappear, for example after the book was closed and opened again. The
   Navigator now only fills the Properties panel; its context menu item Properties... still
   brings the panel to the front.
+
+- **Status bar: the counts of the document in front** - 2026-10-10. The words, characters
+  and reading time in the status bar are those of the tab in front, a chapter or a file
+  outside the book, and change with the tab; over the Dashboard there are none, and no zoom
+  either. With a selection they show its counts out of the whole text ("Words: 12 of
+  3,480"), and the Properties panel counts a selection the same way. Before, they followed
+  the chapter opened last, stayed empty for a file outside the book and went to zero when
+  any tab was closed, and the zoom of the last document stayed over the Dashboard. The
+  characters no longer include the paragraph ends, as in Word and LibreOffice, and the
+  numbers are written in the system's way (3 480 in Polish), in Distraction-Free writing
+  too. A reading time of an hour or more is given in hours and minutes ("Reading: 12 h
+  31 min" instead of "Reading: 751 min"). The Properties panel writes the numbers and the
+  reading time the same way, and its paragraphs are the paragraphs with text, as in Word
+  and LibreOffice: a one-line text file had two paragraphs, its empty last line being the
+  second.
+
+- **Distraction-Free writing: a readable word count** - 2026-10-10. The word count at the
+  bottom of the view was drawn straight over the lines of text and mixed with them. The
+  count and the clock now have a plate of the paper's color under them, which fades out
+  with them.
+
+- **Writing statistics: only the words written** - 2026-10-10. The words written and
+  deleted in a writing session are counted in the chapter in front. A chapter opened in the
+  editor, or a new way of counting, no longer counts as words written, and the words typed
+  just before switching to another tab are not lost.
+
+- **KML format description: the elements as the program writes them** - 2026-10-10. The
+  format description and the editor's functional specification name the links to
+  characters, places and items as the program reads and writes them (`<charref>`,
+  `<locref>`, `<itemref>`, with `id` and `target`), and describe comments, to-dos and notes
+  as annotations of the `<annotations>` section.
 
 - **File > Recent Books in its place in Polish** - 2026-10-09. The submenu was put before
   the item whose text contains "Close", so in the Polish program („Zamknij książkę") it went
@@ -664,6 +763,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The status of an element in the Navigator in Polish** - 2026-10-09. The Navigator showed
   the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names
   it "Szkic"; it now shows the same names as the menu (Szkic, Poprawki).
+
+- **Mouse wheel: it changes only the field one works in** - 2026-10-10. Scrolling a page of
+  the settings with the mouse wheel changed every number field and drop-down list that
+  passed under the mouse (for example the line spacing), and the wheel over the font and
+  its size in the toolbar changed them too. As on Windows, the wheel now changes only the
+  field with the keyboard focus, after a click or Tab in it; over any other field it
+  scrolls the page. While the wheel scrolls the page, the field with the focus does not
+  stop it when it passes under the mouse, as in web browsers; after a short pause, or once
+  the mouse moves, the wheel over that field changes it again.
 
 - **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
   shows the pages at their size on paper; when the display scaling (for example 125% to
@@ -675,6 +783,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   toolbar context menu were connected without an owner, so a toolbar shown or hidden after
   its menu item was deleted reached freed memory. Each connection now ends with its menu
   item, toolbar or window.
+
+- **The keys go to the document opened or left in front** - 2026-10-11. A chapter opened
+  from the Navigator (double click, Enter or Open) left the keyboard focus in the Navigator,
+  without a cursor in the text, so what was typed next did not reach the chapter until its
+  text was clicked; after a tab was closed with its ×, the focus went to the font box of the
+  toolbar. Now a chapter or a file opened (from the Navigator, with File > Open > File... or
+  File > New) or brought to the front (from the Navigator or with a click on its tab) gets
+  the keys, with its cursor showing, as in Word and LibreOffice. When the tab in front
+  closes, also with the book or after the question about unsaved changes, the document
+  coming to the front gets them, wherever they were, at the place it had them last; when a
+  tab behind closes, the keys stay where they are, for example in a panel.
 
 - **Distraction-Free without a document** - 2026-10-08. View > Distraction-Free
   (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in

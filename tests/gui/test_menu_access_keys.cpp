@@ -451,22 +451,27 @@ void checkTextMenus(bool shown, QStringList& problems) {
         const QPoint inText = placeOf(editor, 1);
         QList<test::MenuItem> items = contextMenu(&editor, &editor, inText);
         collectProblems(items, QStringLiteral("Text"), {}, problems);
-        CHECK(itemCount(items) == 5);  // Paste, the three annotations and the color mode
+        CHECK(itemCount(items) == 6);  // Paste, Select All, the three annotations, the color mode
 
         // A click in the selection keeps it
         editor.selectAll();
         items = contextMenu(&editor, &editor, inText);
         collectProblems(items, QStringLiteral("Selected text"), {}, problems);
-        CHECK(itemCount(items) == 8);  // also Cut, Copy and Select All
+        CHECK(itemCount(items) == 8);  // also Cut and Copy
     }
     editor.clearSelection();
 
-    // The words for a misspelled one, from the dictionary; the test marks the word
+    // The words for a misspelled one, from the dictionary, on top of the usual menu; the
+    // editor checks its text as it shows
     editor::SpellCheckService spelling;
-    spelling.setEnabled(false);
     REQUIRE(spelling.loadDictionary(QStringLiteral("en_US")));
+    const auto checked = [](const editor::BookEditor& checkedEditor) {
+        return test::waitUntil([&checkedEditor] { return !checkedEditor.isSpellCheckPending(); },
+                               test::DICTIONARY_WAIT_MS);
+    };
     editor.setSpellCheckService(&spelling);
-    emit spelling.paragraphChecked(0, {editor::SpellErrorInfo(4, 7, QStringLiteral("chaptre"))});
+    editor.show();
+    REQUIRE(checked(editor));
     const QStringList words = spelling.suggestions(QStringLiteral("chaptre"), 5);
     REQUIRE(words.contains(QStringLiteral("chapter")));
     QStringList wordTexts;
@@ -476,18 +481,25 @@ void checkTextMenus(bool shown, QStringList& problems) {
     QList<test::MenuItem> items = contextMenu(&editor, &editor, placeOf(editor, 6));
     collectProblems(items, QStringLiteral("Misspelled word"), shown ? QStringList() : wordTexts,
                     problems);
-    CHECK(itemCount(items) == words.size() + 2);  // and Add to Dictionary, Ignore
+    // and Ignore All, Add to Dictionary, then the usual menu
+    CHECK(itemCount(items) == words.size() + 2 + 6);
 
-    // Without a dictionary there are none, and the menu says so
-    editor::SpellCheckService noDictionary;
-    editor.setSpellCheckService(&noDictionary);
-    emit noDictionary.paragraphChecked(0,
-                                       {editor::SpellErrorInfo(4, 7, QStringLiteral("chaptre"))});
+    // A word the dictionary has nothing like: the menu says there are none
+    editor::BookEditor unknownWord;
+    test::resizeWidget(unknownWord, QSize(600, 400));
+    unknownWord.fromKml(test::kmlOf({QStringLiteral("The qxzvwk one.")}));
+    unknownWord.setSpellCheckService(&spelling);
+    unknownWord.show();
+    REQUIRE(checked(unknownWord));
+    REQUIRE(spelling.suggestions(QStringLiteral("qxzvwk"), 5).isEmpty());
     const QString none = QCoreApplication::translate(BOOK_EDITOR, "(No suggestions)");
-    items = contextMenu(&editor, &editor, placeOf(editor, 6));
-    collectProblems(items, QStringLiteral("Misspelled word without a dictionary"), {none},
+    items = contextMenu(&unknownWord, &unknownWord, placeOf(unknownWord, 6));
+    collectProblems(items, QStringLiteral("Misspelled word without suggestions"), {none},
                     problems);
     CHECK(labelsOf(items).contains(none));
+
+    // Spelling goes before grammar: the issue below is a misspelling too
+    editor.setSpellCheckService(nullptr);
 
     // The words for a grammar issue, from the writer's LanguageTool server; the lines that
     // tell what is wrong have no keys

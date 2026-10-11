@@ -1566,6 +1566,8 @@ Rules for a new shortcut:
 | Format > Align Center | Ctrl+E |
 | Format > Align Right | Ctrl+R |
 | Format > Justify | Ctrl+J |
+| Tools > Check Spelling as You Type | Shift+F7 |
+| Tools > Next Misspelling | F7 |
 | View > Panels > Navigator | F2 |
 | View > Panels > Log | F4 |
 | View > Panels > Search | F5 |
@@ -1772,7 +1774,6 @@ Commands without keys yet, with keys that are still free:
 - `Ctrl+Shift+T` - Timeline
 - `Alt+1`, `Alt+2`, `Alt+3` - Heading 1–3, `Alt+0` - Normal style (on macOS Option+Cmd with
   the digit)
-- `F7` / `Shift+F7` - Next Misspelling / Check Spelling as You Type (in open pull requests)
 - `F10` - Focused Mode (see Focus Modes)
 
 Keys planned before that other commands have now; these commands get new keys when they

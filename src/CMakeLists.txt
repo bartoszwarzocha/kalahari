@@ -133,6 +133,7 @@ set(KALAHARI_SOURCES
     core/recent_books_manager.cpp # RecentBooksManager - Recent files management (OpenSpec #00030)
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
+    gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
     gui/command.cpp
     gui/command_registry.cpp
     gui/dialogs/about_dialog.cpp
@@ -159,12 +160,14 @@ set(KALAHARI_SOURCES
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
     gui/toolbar_keys.cpp  # ToolbarKeys - a toolbar gives the keys back after a command
+    gui/spelling_coordinator.cpp  # SpellingCoordinator - spelling as you type: the editors' dictionary
     gui/main_window.cpp
     gui/menu_builder.cpp
     gui/recent_books_menu.cpp
     gui/settings_dialog.cpp
     gui/settings/settings_page.cpp
     gui/settings/general_pages.cpp
+    gui/settings/spelling_page.cpp
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
     gui/settings/annotations_page.cpp
@@ -181,6 +184,7 @@ set(KALAHARI_SOURCES
     gui/widgets/fitting_scroll_area.cpp  # Content that scrolls only on a small screen
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
     gui/toolbar_manager.cpp
+    gui/widgets/status_bar_statistics.cpp  # Counts of the document in front in the status bar
     gui/panels/annotation_card.cpp
     gui/panels/annotation_colors.cpp
     gui/panels/annotation_entry.cpp
@@ -196,11 +200,15 @@ set(KALAHARI_SOURCES
     gui/panels/search_panel.cpp
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/access_keys.cpp  # The access keys of menu texts
+    gui/utils/language_names.cpp  # Names of languages in the language of the user interface
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
+    gui/utils/reading_time.cpp  # The reading time of a text as the program shows it
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
     gui/utils/document_commands.cpp  # The commands that work on the document in front
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
+    gui/utils/tab_focus.cpp  # The keys go to the page in front of the tabs
+    gui/utils/chapter_cursor.cpp  # A chapter opens where its cursor was
     gui/utils/qt_standard_texts.cpp  # Qt's own texts (standard buttons) for the translations
     gui/utils/core_texts.cpp  # The core library's texts for the translations
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
@@ -266,6 +274,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
@@ -278,6 +287,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h  # StatusBarStatistics with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h
