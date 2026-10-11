@@ -574,6 +574,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   longer or shorter replacement it landed inside a word. It now stands at the end of the
   replaced text; after Replace All, at the end of the last replacement, shown in the view.
 
+- **Editor: Replace All in a long chapter** - 2026-10-11. After an edit of many paragraphs
+  at once (Replace All, a long paste), the paragraphs waiting to be laid out again kept the
+  lines of their old text, and a cursor placed in a paragraph that got shorter read past its
+  end: a debug build stopped on Replace All. Such paragraphs now have no lines until they are
+  laid out, as in Qt's own layout.
+
 - **Toolbars: the cursor goes back where it was after a command** - 2026-10-11. A click on a
   floating toolbar took the cursor: after its command, what was typed reached neither the
   text nor a field. In the font and size fields of a toolbar, docked or floating, the cursor

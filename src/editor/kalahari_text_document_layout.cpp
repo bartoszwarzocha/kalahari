@@ -398,6 +398,14 @@ void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int
         last = doc->lastBlock();
     }
 
+    // The changed blocks lose their lines, as QTextDocumentLayout clears them: Qt keeps the
+    // lines of an edited block, and a QTextCursor placed in one still waiting for layout
+    // measured the new text by them (past its end after a shorter replacement)
+    const QTextBlock afterLast = last.next();
+    for (QTextBlock block = first; block.isValid() && block != afterLast; block = block.next()) {
+        block.clearLayout();
+    }
+
     // Untouched blocks keep their cache entries, so the old entries of the changed range
     // end where the new range ends, shifted by the change in block count.
     const int lastNumber = last.blockNumber();

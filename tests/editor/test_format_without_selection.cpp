@@ -477,7 +477,9 @@ TEST_CASE("Undo of a format brings back the cursor and the selection it was give
         press(*editor, Qt::Key_Right, Qt::ShiftModifier);
         editor->toggleItalic();
         editor->setSelectionFontSize(SIZE);
-        press(*editor, Qt::Key_Home);
+        // Elsewhere, without the selection (on macOS Home would only scroll the view)
+        editor->clearSelection();
+        editor->setCursorPosition({0, 0});
         REQUIRE_FALSE(editor->hasSelection());
 
         editor->undo();
