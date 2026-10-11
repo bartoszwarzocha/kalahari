@@ -34,6 +34,7 @@
 #include <QScrollBar>
 #include <QStyle>
 #include <QStyledItemDelegate>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -100,23 +101,17 @@ public:
 
     /// After the tiles are laid out (when the list is shown, and at a new width), the list
     /// starts at the top; when the chosen tile is not in view there, it starts at the name of
-    /// the part of the book of that tile, so that no name is cut in half above the tiles
+    /// the part of the book of that tile, so that no name is cut in half above the tiles.
+    ///
+    /// Qt lays the list out also while it draws it, and a scroll then breaks the drawing on
+    /// macOS (Qt built with its checks stops the program): the list scrolls just after.
     void doItemsLayout() override
     {
         QListWidget::doItemsLayout();
-        verticalScrollBar()->setValue(verticalScrollBar()->minimum());
-        const QModelIndex current = currentIndex();
-        if (!current.isValid() || viewport()->rect().contains(visualRect(current))) {
-            return;
+        if (!m_startPending) {
+            m_startPending = true;
+            QTimer::singleShot(0, this, [this]() { showStart(); });
         }
-        for (int row = current.row(); row >= 0; --row) {
-            const QModelIndex index = model()->index(row, 0, rootIndex());
-            if (index.data(HEADING_ROLE).toBool()) {
-                scrollTo(index, PositionAtTop);
-                break;
-            }
-        }
-        scrollTo(current, EnsureVisible);
     }
 
 protected:
@@ -150,6 +145,28 @@ protected:
         }
         return QItemSelectionModel::ClearAndSelect;
     }
+
+private:
+    /// The list at its start, as doItemsLayout() says
+    void showStart()
+    {
+        m_startPending = false;
+        verticalScrollBar()->setValue(verticalScrollBar()->minimum());
+        const QModelIndex current = currentIndex();
+        if (!current.isValid() || viewport()->rect().contains(visualRect(current))) {
+            return;
+        }
+        for (int row = current.row(); row >= 0; --row) {
+            const QModelIndex index = model()->index(row, 0, rootIndex());
+            if (index.data(HEADING_ROLE).toBool()) {
+                scrollTo(index, PositionAtTop);
+                break;
+            }
+        }
+        scrollTo(current, EnsureVisible);
+    }
+
+    bool m_startPending = false;  ///< showStart() is to come
 };
 
 /// Draws the names of the parts of the book as the palette of kinds does, in bold with a line

@@ -70,6 +70,7 @@ set(TEST_SOURCES
     gui/test_save_all.cpp                        # Save All: the book and the files outside it
     gui/test_new_book.cpp                        # New Book: the kinds of a user project, without opening
     gui/test_new_file.cpp                        # New File: an element of the book, or a file outside one
+    gui/test_book_tabs.cpp                       # The tabs of a book: one file in one tab, Close Book, words
     gui/test_kind_names.cpp                      # Names of kinds in menu commands
     gui/test_navigator_panel.cpp                 # Navigator tree of a book project
     gui/test_navigator_coordinator.cpp           # Navigator commands on the open project

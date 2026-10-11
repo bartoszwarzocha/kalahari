@@ -348,9 +348,6 @@ private:
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
 
-    // Document dirty state (kept in MainWindow, shared with DocumentCoordinator via callbacks)
-    bool m_isDirty;                                   ///< Unsaved changes flag
-
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen
 
@@ -370,11 +367,8 @@ private:
     // OpenSpec #00043: Debounce timer for action state updates
     QTimer* m_actionStateDebounceTimer{nullptr};      ///< Debounce rapid cursor changes
 
-    // NOTE: m_currentDocument, m_currentFilePath, m_standaloneFilePaths moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
+    // NOTE: m_standaloneFilePaths moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
     // NOTE: m_dirtyChapters and m_currentElementId moved to NavigatorCoordinator (OpenSpec #00038 Phase 6)
-
-    /// @brief Mark document as modified (add "*" to title)
-    void setDirty(bool dirty);
 
     /// @brief Single source-of-truth predicate for unsaved changes
     /// @return true if there are any unsaved changes anywhere
@@ -382,22 +376,20 @@ private:
     /// Consolidates all dirty concepts into one coherent check:
     /// - project open: dirty CONTENT elements (ProjectManager::hasDirtyElements)
     ///   OR dirty STRUCTURE/manifest (ProjectManager::isDirty)
-    /// - no project: the phase-0/standalone document flag (m_isDirty)
     /// - always: any dirty standalone editor tab (per-tab "dirty" property)
     ///
     /// Every save/close prompt path consults this predicate so the flag that a
     /// prompt reads is always the flag that edits set.
     [[nodiscard]] bool hasUnsavedChanges() const;
 
-    /// @brief The title of the window: the open book or the document, with "*" when it is
-    /// changed: "Rain - Kalahari"; with nothing open, "Kalahari"
+    /// @brief The title of the window: the open book, "Rain - Kalahari"; without a book,
+    /// "Kalahari"
     void updateWindowTitle();
 
     /// @brief Toggle fullscreen mode (OpenSpec #00040)
     void toggleFullScreen();
 
     // NOTE: collectCurrentSettings moved to SettingsCoordinator (OpenSpec #00038 Phase 5)
-    // NOTE: getPhase0Content, setPhase0Content moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
 };
 
 } // namespace gui

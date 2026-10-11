@@ -973,6 +973,20 @@ const ProjectElement* ProjectManager::findElement(const QString& elementId) cons
     return m_project ? m_project->findElement(elementId) : nullptr;
 }
 
+const ProjectElement* ProjectManager::elementWithFile(const QString& path) const {
+    if (!m_project || path.isEmpty()) {
+        return nullptr;
+    }
+    // QFileInfo compares the files themselves when they are on the disk
+    const QFileInfo file(path);
+    for (const ProjectElement* element : allElements(*m_project)) {
+        if (!element->file.isEmpty() && QFileInfo(filePathOf(*element)) == file) {
+            return element;
+        }
+    }
+    return nullptr;
+}
+
 QString ProjectManager::addElement(const KindRef& kind, const QString& title, BookPlace place,
                                    const QString& groupId, qsizetype index,
                                    const QStringList& takeInside) {
@@ -1586,7 +1600,17 @@ bool ProjectManager::setNotes(const QString& elementId, const QString& notes) {
 }
 
 int ProjectManager::wordCount(const QString& elementId) const {
-    return m_elementStates.value(elementId).wordCount;
+    const auto state = m_elementStates.constFind(elementId);
+    if (state == m_elementStates.constEnd()) {
+        return 0;
+    }
+    return state->editorWordCount.value_or(state->wordCount);
+}
+
+void ProjectManager::setEditorWordCount(const QString& elementId, int words) {
+    if (ElementState* state = stateOf(elementId)) {
+        state->editorWordCount = words;
+    }
 }
 
 TextStatistics ProjectManager::statisticsOf(const QList<ProjectElement>& elements) const {
@@ -1631,6 +1655,7 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
     state.loaded = true;
     state.dirty = false;
     state.wordCount = chapter->wordCount();
+    state.editorWordCount.reset();
     state.notes = chapter->notes();
     logger.debug("Loaded .kchapter for element: {} ({} chars)", elementId.toStdString(),
                  state.content.length());
@@ -1650,6 +1675,7 @@ void ProjectManager::discardChapterContent(const QString& elementId) {
         state->content.clear();
         state->loaded = false;
         state->dirty = false;
+        state->editorWordCount.reset();  // the file counts the words again
     }
 }
 
@@ -1840,7 +1866,11 @@ bool ProjectManager::writeChapterFile(const ProjectElement& element,
         logger.error("writeChapterFile: Cannot write {}", path.toStdString());
         return false;
     }
-    m_elementStates[element.id].wordCount = chapter.wordCount();
+    ElementState& state = m_elementStates[element.id];
+    state.wordCount = chapter.wordCount();
+    if (kml) {
+        state.editorWordCount.reset();  // the file has the text of the editor now
+    }
     return true;
 }
 

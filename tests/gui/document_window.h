@@ -19,6 +19,7 @@
 #include <kalahari/gui/widgets/standalone_info_bar.h>
 
 #include <QApplication>
+#include <QCoreApplication>
 #include <QDialog>
 #include <QFile>
 #include <QLabel>
@@ -28,6 +29,7 @@
 #include <QTabWidget>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QWindow>
 
 #include <cstdio>
 #include <functional>
@@ -57,6 +59,32 @@ inline QString textsOf(const QDialog& dialog) {
     }
     return texts.join(QLatin1Char(' '));
 }
+
+/// The ticks of 10 ms a test waits for the system to show a window before it answers the window
+/// all the same, so that it never waits for ever
+constexpr int SHOWN_TICKS = 200;
+
+/// @brief Whether the system shows @p dialog on the screen
+inline bool onScreen(const QDialog& dialog) {
+    const QWindow* window = dialog.windowHandle();
+    return window != nullptr && window->isExposed();
+}
+
+/// @brief The program's own window that saves a file, not the one of the system, until the
+/// test ends: a test can choose the file in it on every system
+class OwnFileDialogs {
+public:
+    OwnFileDialogs()
+        : m_saved(QCoreApplication::testAttribute(Qt::AA_DontUseNativeDialogs)) {
+        QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs, true);
+    }
+    ~OwnFileDialogs() { QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs, m_saved); }
+    OwnFileDialogs(const OwnFileDialogs&) = delete;
+    OwnFileDialogs& operator=(const OwnFileDialogs&) = delete;
+
+private:
+    bool m_saved;
+};
 
 /// @brief Run @p command, accepting each dialog it shows with the button that does its job;
 /// the title and the texts of each dialog go to @p said, one dialog a line
@@ -156,7 +184,6 @@ struct Window {
     gui::DashboardPanel* dashboard = new gui::DashboardPanel(&window);
     gui::StandaloneInfoBar* infoBar = new gui::StandaloneInfoBar(&window);
     gui::NavigatorCoordinator navigator{navigatorPanel, properties, tabs, &statusBar, &window};
-    bool dirty = false;
     gui::DocumentCoordinator documents{
         &window,
         tabs,
@@ -166,13 +193,22 @@ struct Window {
         &navigator,
         infoBar,
         &statusBar,
-        [this]() { return dirty; },
-        [this](bool value) { dirty = value; },
         []() {},
         [this]() { return !documents.unsavedDocumentNames().isEmpty(); },
         &window};
 
     Window() { navigator.refreshNavigator(); }
+
+    /// The editors close before the coordinators, as in the main window: an editor tells the
+    /// statistics of the writing, which the coordinators keep, that it closes. These are also
+    /// the editors of the tabs closed meanwhile, deleted later.
+    ~Window() {
+        for (gui::EditorPanel* editor : window.findChildren<gui::EditorPanel*>()) {
+            delete editor;
+        }
+    }
+    Window(const Window&) = delete;
+    Window& operator=(const Window&) = delete;
 
     /// The editor of the tab with @p index
     [[nodiscard]] gui::EditorPanel* editor(int index) const {

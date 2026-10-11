@@ -2726,20 +2726,8 @@ Szczegóły zapisano w panelu Dziennik.</translation>
 <context>
     <name>kalahari::gui::DocumentCoordinator</name>
     <message>
-        <source>Untitled</source>
-        <translation>Bez tytułu</translation>
-    </message>
-    <message>
         <source>Unsaved Changes</source>
         <translation>Niezapisane zmiany</translation>
-    </message>
-    <message>
-        <source>Do you want to save changes to %1?</source>
-        <translation>Czy zapisać zmiany w %1?</translation>
-    </message>
-    <message>
-        <source>Do you want to save changes to the current document?</source>
-        <translation>Czy zapisać zmiany w bieżącym dokumencie?</translation>
     </message>
     <message>
         <source>Open Book</source>
@@ -2774,40 +2762,12 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <translation>Plik „%1” już nie istnieje.</translation>
     </message>
     <message>
-        <source>Failed to open document: %1</source>
-        <translation>Nie udało się otworzyć dokumentu: %1</translation>
-    </message>
-    <message>
-        <source>Document opened: %1</source>
-        <translation>Otwarto dokument: %1</translation>
-    </message>
-    <message>
         <source>No document to save</source>
         <translation>Brak dokumentu do zapisania</translation>
     </message>
     <message>
-        <source>Save Document As</source>
-        <translation>Zapisz dokument jako</translation>
-    </message>
-    <message>
-        <source>Kalahari Files (*.klh)</source>
-        <translation>Pliki Kalahari (*.klh)</translation>
-    </message>
-    <message>
         <source>Save Error</source>
         <translation>Błąd zapisu</translation>
-    </message>
-    <message>
-        <source>Failed to save document: %1</source>
-        <translation>Nie udało się zapisać dokumentu: %1</translation>
-    </message>
-    <message>
-        <source>Document saved as: %1</source>
-        <translation>Zapisano dokument jako: %1</translation>
-    </message>
-    <message>
-        <source>Document saved</source>
-        <translation>Zapisano dokument</translation>
     </message>
     <message>
         <source>No project open</source>
@@ -2820,10 +2780,6 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     <message>
         <source>Save Warning</source>
         <translation>Ostrzeżenie o zapisie</translation>
-    </message>
-    <message>
-        <source>Document closed</source>
-        <translation>Zamknięto dokument</translation>
     </message>
     <message>
         <source>Open File</source>
@@ -3056,6 +3012,30 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>New file created</source>
         <translation>Utworzono nowy plik</translation>
+    </message>
+    <message>
+        <source>{Kind} &quot;%1&quot; {kind:s=is|p=are} saved with the book: use Save.</source>
+        <translation>{Kind} „%1” {kind:s=zapisuje|p=zapisują} się razem z książką: użyj polecenia „Zapisz”.</translation>
+    </message>
+    <message>
+        <source>No book is open</source>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>Do you want to save changes to &apos;%1&apos; before closing the book?</source>
+        <translation>Czy zapisać zmiany w „%1” przed zamknięciem książki?</translation>
+    </message>
+    <message>
+        <source>This file belongs to the open book: it is the {kind} &quot;%1&quot;.</source>
+        <translation>Ten plik należy do otwartej książki: to {kind} „%1”.</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is the file of the {kind} &quot;%2&quot; in the open book. Choose another name.</source>
+        <translation>„%1” to plik {kind:genitive} „%2” z otwartej książki. Wybierz inną nazwę.</translation>
+    </message>
+    <message>
+        <source>Files of this book that were open on their own are open as its elements now: %1</source>
+        <translation>Pliki tej książki otwarte wcześniej osobno są teraz otwarte jako jej elementy: %1</translation>
     </message>
 </context>
 <context>

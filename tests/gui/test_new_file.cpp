@@ -38,7 +38,6 @@
 #include <QToolBar>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
-#include <QWindow>
 
 #include <functional>
 #include <string>
@@ -46,6 +45,9 @@
 using namespace kalahari;
 using core::BookPlace;
 using gui::dialogs::NewFileDialog;
+using test::onScreen;
+using test::OwnFileDialogs;
+using test::SHOWN_TICKS;
 
 namespace {
 
@@ -126,16 +128,6 @@ std::string titlesOf(const QList<core::ProjectElement>& elements) {
     return titles.join(QStringLiteral(", ")).toStdString();
 }
 
-/// The ticks of 10 ms a test waits for the system to show a window before it answers the window
-/// all the same, so that it never waits for ever
-constexpr int SHOWN_TICKS = 200;
-
-/// @brief Whether the system shows @p dialog on the screen
-bool onScreen(const QDialog& dialog) {
-    const QWindow* window = dialog.windowHandle();
-    return window != nullptr && window->isExposed();
-}
-
 /// @brief The Cancel button of the New File window
 QAbstractButton* cancelButton(const NewFileDialog& dialog) {
     const auto* buttons = dialog.findChild<QDialogButtonBox*>();
@@ -189,22 +181,6 @@ int pressing(const std::function<void()>& command,
     CHECK_FALSE(noButton);
     return shown;
 }
-
-/// @brief The program's own window that saves a file, not the one of the system, until the
-/// test ends: a test can choose the file in it on every system
-class OwnFileDialogs {
-public:
-    OwnFileDialogs()
-        : m_saved(QCoreApplication::testAttribute(Qt::AA_DontUseNativeDialogs)) {
-        QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs, true);
-    }
-    ~OwnFileDialogs() { QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs, m_saved); }
-    OwnFileDialogs(const OwnFileDialogs&) = delete;
-    OwnFileDialogs& operator=(const OwnFileDialogs&) = delete;
-
-private:
-    bool m_saved;
-};
 
 /// @brief Run @p command, choosing the file @p path in the window that saves a file; the file
 /// the window proposes goes to @p proposed

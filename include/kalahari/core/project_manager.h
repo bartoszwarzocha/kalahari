@@ -335,6 +335,11 @@ public:
     ProjectElement* findElement(const QString& elementId);
     const ProjectElement* findElement(const QString& elementId) const;
 
+    /// @brief The element of the project whose file is @p path (absolute), also when the path
+    /// names it in another way (another case of letters on Windows, a link); nullptr when no
+    /// element has it
+    const ProjectElement* elementWithFile(const QString& path) const;
+
     /// @brief Add a new element of @p kind with @p title to @p place of the book, or to group
     /// @p groupId
     ///
@@ -483,8 +488,14 @@ public:
     /// @brief Set the notes of a text element and write them to its chapter file
     bool setNotes(const QString& elementId, const QString& notes);
 
-    /// @brief Words of a text element, as its chapter file counts them
+    /// @brief Words of a text element: of its text in the editor while its changes are not
+    /// saved (setEditorWordCount()), else as its chapter file counts them
     int wordCount(const QString& elementId) const;
+
+    /// @brief Words of the text of a text element in its editor, with changes that are not
+    /// saved: the counts of the book show them until the text is saved or its changes are
+    /// discarded
+    void setEditorWordCount(const QString& elementId, int words);
 
     /// @brief Words and statuses of the text elements of @p elements and of their groups
     TextStatistics statisticsOf(const QList<ProjectElement>& elements) const;
@@ -642,6 +653,8 @@ private:
         bool loaded = false;   ///< content holds the text
         bool dirty = false;    ///< content is not saved
         int wordCount = 0;     ///< Words, as the chapter file counts them
+        /// Words of the text in its editor, with changes that are not saved
+        std::optional<int> editorWordCount;
         QString notes;         ///< Notes of the chapter file
     };
 

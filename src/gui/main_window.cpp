@@ -81,7 +81,6 @@ MainWindow::MainWindow(QWidget* parent)
     , m_settingsCoordinator(nullptr)
     , m_navigatorCoordinator(nullptr)
     , m_documentCoordinator(nullptr)
-    , m_isDirty(false)
 {
     auto& logger = core::Logger::getInstance();
     logger.info("MainWindow constructor called");
@@ -202,8 +201,6 @@ MainWindow::MainWindow(QWidget* parent)
         m_navigatorCoordinator,
         m_dockCoordinator->standaloneInfoBar(),
         statusBar(),
-        [this]() { return m_isDirty; },
-        [this](bool dirty) { setDirty(dirty); },
         [this]() { updateWindowTitle(); },
         [this]() {
             // An annotation being written is kept before the documents are saved or closed
@@ -1350,8 +1347,7 @@ bool MainWindow::hasUnsavedChanges() const {
 
     auto& pm = core::ProjectManager::getInstance();
     if (!pm.isProjectOpen()) {
-        // Phase-0 / standalone single-file document flag.
-        return m_isDirty;
+        return false;  // without a book, only the files outside a book have changes
     }
 
     // Project open. Unsaved CONTENT is tracked per OPEN editor tab (m_dirtyChapters),
@@ -1452,29 +1448,15 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 }
 
 // Helper methods (Task #00008)
-void MainWindow::setDirty(bool dirty) {
-    m_isDirty = dirty;
-    updateWindowTitle();
-}
-
 void MainWindow::updateWindowTitle() {
-    // The open book, as when it is opened, else the document of the window: "Rain - Kalahari";
-    // with nothing open, the name of the program alone, as when a book is closed
-    QString name;
+    // The open book, as when it is opened: "Rain - Kalahari"; without a book, the name of
+    // the program alone, as when a book is closed
     const auto& pm = core::ProjectManager::getInstance();
-    if (pm.isProjectOpen() && pm.book()) {
-        name = pm.book()->title;
-    } else if (m_documentCoordinator && !m_documentCoordinator->currentFilePath().empty()) {
-        name = QString::fromStdString(m_documentCoordinator->currentFilePath().filename().string());
-    }
-    if (name.isEmpty()) {
+    if (pm.isProjectOpen() && pm.book() && !pm.book()->title.isEmpty()) {
+        setWindowTitle(pm.book()->title + QStringLiteral(" - Kalahari"));
+    } else {
         setWindowTitle(QStringLiteral("Kalahari"));
-        return;
     }
-    if (m_isDirty) {
-        name.prepend(QLatin1Char('*'));
-    }
-    setWindowTitle(name + QStringLiteral(" - Kalahari"));
 }
 
 void MainWindow::toggleFullScreen() {
@@ -1506,8 +1488,6 @@ void MainWindow::toggleFullScreen() {
     // This synchronizes the QAction's checked state with actual window state
     CommandRegistry::getInstance().updateActionState("view.fullScreen");
 }
-
-// NOTE: getPhase0Content and setPhase0Content moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
 
 EditorPanel* MainWindow::getCurrentEditor() {
     // Task #00015: Get active EditorPanel tab (or nullptr)

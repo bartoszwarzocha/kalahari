@@ -10,10 +10,7 @@
 #include <QString>
 #include <QStringList>
 #include <functional>
-#include <optional>
-#include <filesystem>
 #include <memory>
-#include "kalahari/core/document.h"
 
 namespace kalahari::editor {
 class StyleResolver;
@@ -51,9 +48,8 @@ class EditorPanel;
 ///     mainWindow, centralTabs, navigatorPanel, propertiesPanel,
 ///     dashboardPanel, navigatorCoordinator, standaloneInfoBar,
 ///     statusBar,
-///     [this]() { return m_isDirty; },
-///     [this](bool d) { setDirty(d); },
 ///     [this]() { updateWindowTitle(); },
+///     [this]() { return hasUnsavedChanges(); },
 ///     this
 /// );
 /// @endcode
@@ -61,12 +57,6 @@ class DocumentCoordinator : public QObject {
     Q_OBJECT
 
 public:
-    /// @brief Callback type for checking dirty state
-    using DirtyStateGetter = std::function<bool()>;
-
-    /// @brief Callback type for setting dirty state
-    using DirtySetter = std::function<void(bool)>;
-
     /// @brief Callback type for updating window title
     using WindowTitleUpdater = std::function<void()>;
 
@@ -86,9 +76,8 @@ public:
     /// @param navigatorCoordinator NavigatorCoordinator for dirty chapter tracking
     /// @param standaloneInfoBar Info bar for standalone files
     /// @param statusBar Status bar for feedback messages
-    /// @param isDirty Callback to check if document is dirty
-    /// @param setDirty Callback to set dirty state
     /// @param updateTitle Callback to update window title
+    /// @param hasUnsavedChanges Callback that tells whether anything has unsaved changes
     /// @param parent Parent QObject
     explicit DocumentCoordinator(QMainWindow* mainWindow,
                                   QTabWidget* centralTabs,
@@ -98,8 +87,6 @@ public:
                                   NavigatorCoordinator* navigatorCoordinator,
                                   StandaloneInfoBar* standaloneInfoBar,
                                   QStatusBar* statusBar,
-                                  DirtyStateGetter isDirty,
-                                  DirtySetter setDirty,
                                   WindowTitleUpdater updateTitle,
                                   HasUnsavedChangesGetter hasUnsavedChanges,
                                   QObject* parent = nullptr);
@@ -110,16 +97,6 @@ public:
     // =========================================================================
     // Document state accessors
     // =========================================================================
-
-    /// @brief Get current document (if loaded)
-    [[nodiscard]] std::optional<core::Document>& currentDocument() { return m_currentDocument; }
-    [[nodiscard]] const std::optional<core::Document>& currentDocument() const { return m_currentDocument; }
-
-    /// @brief Get current file path
-    [[nodiscard]] const std::filesystem::path& currentFilePath() const { return m_currentFilePath; }
-
-    /// @brief Set current file path
-    void setCurrentFilePath(const std::filesystem::path& path) { m_currentFilePath = path; }
 
     /// @brief Get the files of the navigator's "Other Files" (opened outside the project)
     [[nodiscard]] const QStringList& standaloneFilePaths() const { return m_standaloneFilePaths; }
@@ -135,7 +112,7 @@ public:
     // =========================================================================
 
     /// @brief Check whether one editor tab has unsaved changes
-    /// @param editor Editor tab: project chapter, standalone file or single-file document
+    /// @param editor Editor tab: a chapter of the book or a file outside it
     [[nodiscard]] bool isEditorDirty(const EditorPanel* editor) const;
 
     /// @brief Save one editor tab
@@ -172,14 +149,15 @@ public slots:
     /// @brief Open document via file dialog
     void onOpenDocument();
 
-    /// @brief Open a recent file
+    /// @brief Open a recent file: a book, or another file outside a book
     /// @param filePath Path to the file to open
     void onOpenRecentFile(const QString& filePath);
 
     /// @brief Save current document
     void onSaveDocument();
 
-    /// @brief Save document with new name
+    /// @brief Save the file of the current tab under a name the writer chooses; a chapter of
+    /// the book is saved with the book, and the status bar says so
     void onSaveAsDocument();
 
     /// @brief Save the book: its changed chapters and its data; what cannot be saved is
@@ -192,7 +170,8 @@ public slots:
     /// save, the status bar says so.
     void onSaveAll();
 
-    /// @brief Close current document
+    /// @brief Close the book: its chapters close with it, and the files open outside it stay
+    /// open with their changes, so only the book's unsaved changes are asked about
     void onCloseDocument();
 
     // =========================================================================
@@ -205,7 +184,8 @@ public slots:
     /// @brief Open a chapter (.kchapter) or text file (.txt) outside the project
     /// @param path Absolute path to the file
     ///
-    /// A file already open in a tab is shown there; other files get a message.
+    /// A file already open in a tab is shown there, and the file of an element of the open
+    /// book opens as the element; other files get a message.
     void openStandaloneFile(const QString& path);
 
     /// @brief Add the standalone file of the info bar (the current tab's) to the project
@@ -289,10 +269,6 @@ signals:
     void windowTitleChanged(const QString& title);
 
 private:
-    /// @brief Ask user to save if document is dirty
-    /// @return true if operation should continue, false if cancelled
-    bool maybeSave();
-
     /// @brief Before a command that puts another book in the place of the open one: asks
     /// whether to save the book's changes or, without changes, whether to close it
     /// @param saveQuestion The question with unsaved changes; "%1" is the book's title
@@ -341,16 +317,6 @@ private:
     /// @return Active EditorPanel or nullptr if not an editor tab
     EditorPanel* getCurrentEditor() const;
 
-    /// @brief Get text from first chapter metadata (Phase 0 temporary hack)
-    /// @param doc Document to extract text from
-    /// @return Editor text content, or empty string if no content
-    QString getPhase0Content(const core::Document& doc) const;
-
-    /// @brief Set text in first chapter metadata (Phase 0 temporary hack)
-    /// @param doc Document to update
-    /// @param text Editor text content
-    void setPhase0Content(core::Document& doc, const QString& text);
-
     /// @brief Tab of a standalone file, or nullptr when the file is not open
     EditorPanel* findStandaloneEditor(const QString& path) const;
 
@@ -374,11 +340,9 @@ private:
     /// change of its text
     void trackStandaloneChanges(EditorPanel* editor);
 
-    /// @brief Save an editor's text as the single-file (Phase 0) document
-    /// @param editor Editor whose text is saved
-    /// @param askForPath Ask for a new file name (Save As) instead of using the current one
-    /// @return true when the document was written
-    bool saveSingleDocument(EditorPanel* editor, bool askForPath);
+    /// @brief The files of the open book that are open outside it become the tabs of their
+    /// elements, in their places and with their unsaved changes: one file is edited in one tab
+    void adoptBookFiles();
 
     QMainWindow* m_mainWindow;
     QTabWidget* m_centralTabs;
@@ -390,16 +354,8 @@ private:
     bool m_infoBarAllowed{true};    ///< The info bar may show (not in Distraction-Free)
     QStatusBar* m_statusBar;
 
-    DirtyStateGetter m_isDirty;
-    DirtySetter m_setDirty;
     WindowTitleUpdater m_updateWindowTitle;
     HasUnsavedChangesGetter m_hasUnsavedChanges;
-
-    /// @brief Current loaded document
-    std::optional<core::Document> m_currentDocument;
-
-    /// @brief Current .klh file path
-    std::filesystem::path m_currentFilePath;
 
     /// @brief Files of the navigator's "Other Files" (opened outside the project)
     QStringList m_standaloneFilePaths;

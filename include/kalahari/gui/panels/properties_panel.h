@@ -113,7 +113,8 @@ public slots:
     /// @param editorPanel EditorPanel to track (nullptr to disconnect)
     ///
     /// Connects to BookEditor's selectionChanged signal for real-time
-    /// updates of selection statistics.
+    /// updates of selection statistics. Without an editor (another tab in front, or none),
+    /// the page of the editor gives way to the page of the book, or to the page without one.
     void setActiveEditor(EditorPanel* editorPanel);
 
     /// @brief Set the style resolver for style operations
@@ -127,6 +128,10 @@ public slots:
     ///
     /// Re-reads data from ProjectManager and updates displayed values.
     void refresh();
+
+    /// @brief Show the words ProjectManager counts now on the current page, also of the
+    /// changes that are not saved; the fields the writer edits stay as they are
+    void updateWordCounts();
 
 private slots:
     /// @brief Handle project opened signal

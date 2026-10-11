@@ -10,6 +10,7 @@
 #include <QString>
 #include <QMap>
 #include <QList>
+#include <QSet>
 #include <functional>
 #include <optional>
 
@@ -18,6 +19,7 @@
 
 class QTabWidget;
 class QStatusBar;
+class QTimer;
 
 namespace kalahari {
 namespace core {
@@ -105,6 +107,12 @@ public:
 
     /// @brief Clear current element ID (on project close)
     void clearCurrentElement() { m_currentElementId.clear(); }
+
+    /// @brief Give ProjectManager the words of the chapters changed in their tabs since they
+    /// were counted, for the counts of the book, and show them in the Properties panel
+    ///
+    /// A change in a chapter's editor does it a moment after the last change.
+    void countWords();
 
     /// @brief Refresh navigator with the open project, keeping its expanded items
     void refreshNavigator();
@@ -301,6 +309,12 @@ private:
 
     /// @brief Statistics collector for editor panels (OpenSpec #00042 Task 7.7)
     editor::StatisticsCollector* m_statisticsCollector{nullptr};
+
+    /// @brief Counts the words of the changed chapters a moment after the last change
+    QTimer* m_wordCountTimer{nullptr};
+
+    /// @brief Chapters changed since their words were counted
+    QSet<QString> m_uncountedChapters;
 };
 
 } // namespace gui

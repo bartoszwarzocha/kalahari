@@ -229,6 +229,7 @@ QWidget* PropertiesPanel::createProjectPage() {
 
     // Total words of the main section
     m_projectWordsLabel = new QLabel("0", statsGroup);
+    m_projectWordsLabel->setObjectName(QStringLiteral("projectWordsLabel"));
     statsLayout->addRow(tr("Total Words:"), m_projectWordsLabel);
 
     // Created date
@@ -304,6 +305,7 @@ QWidget* PropertiesPanel::createChapterPage() {
 
     // Word count (read-only)
     m_chapterWordCountLabel = new QLabel("0", infoGroup);
+    m_chapterWordCountLabel->setObjectName(QStringLiteral("chapterWordCountLabel"));
     infoLayout->addRow(tr("Word Count:"), m_chapterWordCountLabel);
 
     // Status
@@ -694,6 +696,14 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
 
     if (!editorPanel) {
         logger.debug("PropertiesPanel::setActiveEditor() - Disconnected from editor");
+        // Another tab in front, or none: the statistics of an editor are not shown
+        if (currentPage() == Page::Editor) {
+            if (core::ProjectManager::getInstance().isProjectOpen()) {
+                showProjectProperties();
+            } else {
+                showNoProject();
+            }
+        }
         return;
     }
 
@@ -778,6 +788,36 @@ void PropertiesPanel::refresh() {
         case Page::Editor:
             updateEditorStatistics();
             break;
+    }
+}
+
+void PropertiesPanel::updateWordCounts() {
+    const auto& pm = core::ProjectManager::getInstance();
+    if (!pm.isProjectOpen()) {
+        return;
+    }
+    switch (currentPage()) {
+        case Page::Project:
+            updateProjectStatistics();
+            break;
+        case Page::Chapter:
+            if (pm.findElement(m_currentChapterId)) {
+                m_chapterWordCountLabel->setText(QString::number(pm.wordCount(m_currentChapterId)));
+            }
+            break;
+        case Page::Section:
+            if (!m_currentSectionType.isEmpty()) {
+                populateSectionFields(m_currentSectionType);
+            }
+            break;
+        case Page::Part:
+            if (pm.findElement(m_currentPartId)) {
+                populatePartFields(m_currentPartId);
+            }
+            break;
+        case Page::NoProject:
+        case Page::Editor:
+            break;  // No counts of the book
     }
 }
 

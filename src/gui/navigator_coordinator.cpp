@@ -23,9 +23,11 @@
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
 #include <QStatusBar>
+#include <QTimer>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -38,6 +40,10 @@ namespace kalahari {
 namespace gui {
 
 namespace {
+
+/// How long after the last change in a chapter its words are counted for the counts of the
+/// book: often enough to follow the writing, not at each key
+constexpr int WORD_COUNT_DELAY_MS = 500;
 
 /// A section of the book as the Navigator names its item, with its icon
 struct SectionItem {
@@ -93,7 +99,13 @@ NavigatorCoordinator::NavigatorCoordinator(NavigatorPanel* navigatorPanel,
     , m_propertiesPanel(propertiesPanel)
     , m_centralTabs(centralTabs)
     , m_statusBar(statusBar)
+    , m_wordCountTimer(new QTimer(this))
 {
+    // The counts of the book follow the text being written, without counting at each key
+    m_wordCountTimer->setSingleShot(true);
+    m_wordCountTimer->setInterval(WORD_COUNT_DELAY_MS);
+    connect(m_wordCountTimer, &QTimer::timeout, this, &NavigatorCoordinator::countWords);
+
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorCoordinator created");
 }
@@ -108,22 +120,50 @@ void NavigatorCoordinator::setChapterDirty(const QString& elementId, bool dirty)
 
 void NavigatorCoordinator::clearDirtyChapters() {
     m_dirtyChapters.clear();
+    m_uncountedChapters.clear();
 }
 
 void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
 
-    // Forget the unsaved text ProjectManager keeps (single source of truth)
+    // Forget the unsaved text ProjectManager keeps (single source of truth), with its words
     core::ProjectManager::getInstance().discardChapterContent(elementId);
 
     // Clear the display cache
     m_dirtyChapters[elementId] = false;
+    m_uncountedChapters.remove(elementId);
 
     // Clear the navigator "*" indicator
     emit chapterDirtyStateChanged(elementId, false);
 
+    // The counts of the book are those of the file again
+    m_propertiesPanel->updateWordCounts();
+
     logger.debug("NavigatorCoordinator: Discarded changes for chapter: {}",
                  elementId.toStdString());
+}
+
+void NavigatorCoordinator::countWords() {
+    auto& pm = core::ProjectManager::getInstance();
+    const QSet<QString> changed = std::exchange(m_uncountedChapters, {});
+    if (!pm.isProjectOpen() || changed.isEmpty()) {
+        return;
+    }
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+        if (!editor) {
+            continue;
+        }
+        // A chapter saved or with its changes discarded meanwhile has the words of its file
+        const QString elementId = editor->property("elementId").toString();
+        if (!changed.contains(elementId) || !m_dirtyChapters.value(elementId, false)) {
+            continue;
+        }
+        if (const editor::BookEditor* bookEditor = editor->getBookEditor()) {
+            pm.setEditorWordCount(elementId, static_cast<int>(bookEditor->wordCount()));
+        }
+    }
+    m_propertiesPanel->updateWordCounts();
 }
 
 EditorPanel* NavigatorCoordinator::getCurrentEditor() const {
@@ -265,6 +305,9 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
 
                         emit documentModified();
                     }
+                    // The words of the book follow the text, before it is saved
+                    m_uncountedChapters.insert(elementId);
+                    m_wordCountTimer->start();
                 }
             });
 
