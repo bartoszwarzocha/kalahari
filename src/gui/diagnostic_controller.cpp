@@ -7,6 +7,8 @@
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/dialogs/progress_dialog.h"
 #include "kalahari/gui/main_window.h"
 #include "kalahari/editor/editor_benchmark.h"
 #include "kalahari/editor/book_editor.h"
@@ -19,11 +21,9 @@
 #include <QStatusBar>
 #include <QDockWidget>
 #include <QAction>
-#include <QMessageBox>
 #include <QSysInfo>
 #include <QCoreApplication>
 #include <QDir>
-#include <QProgressDialog>
 
 #include <spdlog/spdlog.h>
 
@@ -423,7 +423,7 @@ void DiagnosticController::onDiagPerformanceBenchmark() {
     EditorPanel* editorPanel = mainWindow->getCurrentEditor();
     if (!editorPanel) {
         logger.error("Cannot run benchmark: No editor open");
-        QMessageBox::warning(m_mainWindow, tr("Benchmark"),
+        dialogs::MessageDialog::warning(m_mainWindow, tr("Benchmark"),
             tr("Please open a document before running the benchmark."));
         return;
     }
@@ -431,19 +431,19 @@ void DiagnosticController::onDiagPerformanceBenchmark() {
     editor::BookEditor* bookEditor = editorPanel->getBookEditor();
     if (!bookEditor) {
         logger.error("Cannot run benchmark: BookEditor not available");
-        QMessageBox::warning(m_mainWindow, tr("Benchmark"),
+        dialogs::MessageDialog::warning(m_mainWindow, tr("Benchmark"),
             tr("BookEditor not available."));
         return;
     }
 
     // Confirm benchmark will modify document temporarily
-    auto reply = QMessageBox::question(m_mainWindow, tr("Editor Benchmark"),
+    const bool run = dialogs::MessageDialog::confirm(m_mainWindow, tr("Editor Benchmark"),
         tr("This benchmark will temporarily modify the editor content.\n"
-           "The original content will NOT be preserved.\n\n"
-           "Do you want to continue?"),
-        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+           "The original content will NOT be preserved."),
+        tr("&Run Benchmark"), dialogs::MessageDialog::Kind::Warning,
+        dialogs::MessageDialog::DefaultButton::Cancel);
 
-    if (reply != QMessageBox::Yes) {
+    if (!run) {
         logger.info("Benchmark cancelled by user");
         return;
     }
@@ -454,16 +454,16 @@ void DiagnosticController::onDiagPerformanceBenchmark() {
     benchmark.setWarmupIterations(50);
 
     // Show progress dialog
-    QProgressDialog progress(tr("Running Editor Benchmark..."), tr("Cancel"), 0, 100, m_mainWindow);
-    progress.setWindowModality(Qt::WindowModal);
-    progress.setMinimumDuration(0);
+    // The benchmark cannot stop halfway: its dialog has no Cancel
+    dialogs::ProgressDialog progress(tr("Editor Benchmark"), tr("Running Editor Benchmark..."),
+                                     m_mainWindow);
+    progress.setCancelVisible(false);
     progress.show();
 
     // Connect progress signal
     connect(&benchmark, &editor::EditorBenchmark::progressUpdated,
             [&progress](int current, int total) {
                 progress.setValue(current * 100 / total);
-                QCoreApplication::processEvents();
             });
 
     // Run all benchmarks
@@ -495,7 +495,7 @@ void DiagnosticController::onDiagPerformanceBenchmark() {
     }
     summary += tr("\nDetails logged to Log Panel.");
 
-    QMessageBox::information(m_mainWindow, tr("Benchmark Complete"), summary);
+    dialogs::MessageDialog::information(m_mainWindow, tr("Benchmark Complete"), summary);
 
     if (m_statusBar) {
         m_statusBar->showMessage(tr("Performance benchmark complete - see log"), 5000);
@@ -534,15 +534,14 @@ void DiagnosticController::onDiagForceCrash() {
     logger.critical("User requested application crash - SIMULATING CRITICAL ERROR");
 
     // Show confirmation
-    QMessageBox::StandardButton reply = QMessageBox::critical(m_mainWindow,
+    const bool crash = dialogs::MessageDialog::confirm(m_mainWindow,
         tr("Force Crash"),
         tr("This will IMMEDIATELY crash the application!\n\n"
-           "All unsaved work will be LOST.\n\n"
-           "Are you sure you want to continue?"),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No);
+           "All unsaved work will be LOST."),
+        tr("&Crash Now"), dialogs::MessageDialog::Kind::Error,
+        dialogs::MessageDialog::DefaultButton::Cancel);
 
-    if (reply == QMessageBox::Yes) {
+    if (crash) {
         logger.critical("Crashing application NOW!");
         std::abort();  // Immediate crash
     } else {

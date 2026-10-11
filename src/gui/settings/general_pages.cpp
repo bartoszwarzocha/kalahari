@@ -2,13 +2,13 @@
 /// @brief Settings pages: General, Appearance > General and Dashboard, Advanced
 
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/core/theme_manager.h"
 
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFormLayout>
 #include <QLabel>
-#include <QMessageBox>
 #include <QSpinBox>
 #include <QVBoxLayout>
 
@@ -143,11 +143,12 @@ AdvancedGeneralPage::AdvancedGeneralPage(bool diagnosticMode, QWidget* parent)
         if (!checked) {
             return;
         }
-        const auto reply = QMessageBox::warning(this, tr("Enable Diagnostic Menu"),
-            tr("Are you sure you want to enable diagnostic menu?\n\n"
+        const bool enable = dialogs::MessageDialog::confirm(this, tr("Enable Diagnostic Menu"),
+            tr("Do you want to enable the diagnostic menu?\n\n"
                "This exposes advanced debugging tools."),
-            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-        if (reply != QMessageBox::Yes) {
+            tr("&Enable"), dialogs::MessageDialog::Kind::Warning,
+            dialogs::MessageDialog::DefaultButton::Cancel);
+        if (!enable) {
             diagnosticMenu->setChecked(false);
         }
     });
