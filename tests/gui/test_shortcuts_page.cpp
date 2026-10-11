@@ -772,6 +772,25 @@ TEST_CASE("Shortcuts page: the search by keys", "[gui][shortcuts][page]") {
     CHECK(isShown(close));
 }
 
+TEST_CASE("Shortcuts page: opened from the Help menu, its search has the cursor",
+          "[gui][shortcuts][page]") {
+    registerCommands();
+    SettingsDialog dialog(nullptr);
+    dialog.showShortcutsPage();
+    auto* stack = dialog.findChild<QStackedWidget*>();
+    REQUIRE(stack != nullptr);
+    auto* scrollArea = qobject_cast<QScrollArea*>(stack->currentWidget());
+    REQUIRE(scrollArea != nullptr);
+    auto* page = qobject_cast<ShortcutsPage*>(scrollArea->widget());
+    REQUIRE(page != nullptr);
+    dialog.show();
+    QApplication::processEvents();
+
+    // The keys typed at once go to the search, not to Apply of the window
+    auto* search = child<ShortcutRecorder>(*page, QStringLiteral("shortcutsSearch"));
+    CHECK(dialog.focusWidget() == search);
+}
+
 TEST_CASE("Shortcuts page: the keys of the list do not close the window",
           "[gui][shortcuts][page]") {
     registerCommands();

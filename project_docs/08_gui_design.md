@@ -1787,7 +1787,8 @@ are added:
 ### Shortcut Customization
 
 **Access:** Settings > Keyboard Shortcuts (Edit > Preferences...); Help > Keyboard Shortcuts
-opens Settings on this page. `src/gui/settings/shortcuts_page.cpp`.
+opens Settings on this page, with the cursor in its search, as the shortcuts editors of Visual
+Studio Code and Visual Studio. `src/gui/settings/shortcuts_page.cpp`.
 
 ```
 ┌ Settings ──────────────────────────────────────────────────────────────────────────┐

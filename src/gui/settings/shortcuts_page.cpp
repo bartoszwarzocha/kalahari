@@ -390,6 +390,9 @@ ShortcutsPage::ShortcutsPage(QWidget* parent)
     createDetail();
     createButtons();
     buildList();
+    // Opened by Help > Keyboard Shortcuts, the page takes the keys in its search, as the
+    // shortcuts editors of Visual Studio Code and Visual Studio do
+    setFocusProxy(m_search);
 
     // The keys go through the page as they are seen: the search, the list, the selected
     // command and its message, the buttons under it

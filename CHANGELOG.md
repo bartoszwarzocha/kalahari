@@ -40,7 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   system's are refused with the reason; keys another command has are taken from it only
   when the user says so; keys a Linux desktop or macOS may take bring a warning. Remove,
   Restore Default, Restore All Defaults, Import and Export (a JSON file, e.g. for another
-  computer); everything works from the keyboard. The page fits a 1366 × 768 screen at 125%
+  computer); everything works from the keyboard, and Help > Keyboard Shortcuts opens the
+  page with the cursor in its search. The page fits a 1366 × 768 screen at 125%
   and 150%: the Settings window is 840 px wide where the screen allows and its list of
   groups only as wide as the longest of them, the list of commands gives up its rows first,
   no text is cut, and the page scrolls only when nothing else is left. The menus, the
