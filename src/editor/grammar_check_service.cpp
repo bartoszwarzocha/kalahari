@@ -276,7 +276,11 @@ void GrammarCheckService::sendWaiting()
         httpRequest.setHeader(QNetworkRequest::ContentTypeHeader,
                               QByteArrayLiteral("application/x-www-form-urlencoded"));
         httpRequest.setTransferTimeout(TRANSFER_TIMEOUT_MS);
-        const QByteArray form = "text=" + QUrl::toPercentEncoding(text) +
+        // A line break in a paragraph (Shift+Enter, U+2028) goes as an ordinary new line,
+        // which LanguageTool reads as white space; the length and the places stay the same
+        QString sentText = text;
+        sentText.replace(QChar(QChar::LineSeparator), QLatin1Char('\n'));
+        const QByteArray form = "text=" + QUrl::toPercentEncoding(sentText) +
                                 "&language=" + QUrl::toPercentEncoding(m_language);
         QNetworkReply* reply = m_network->post(httpRequest, form);
         m_sent.emplace(reply, std::make_pair(request, std::move(text)));

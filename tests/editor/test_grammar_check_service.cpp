@@ -162,6 +162,28 @@ TEST_CASE("Grammar service: a text is checked on the server", "[editor][grammar]
     CHECK(answers.errors.isEmpty());
 }
 
+TEST_CASE("Grammar service: a line break in a paragraph goes as a new line",
+          "[editor][grammar]") {
+    FakeLanguageTool server;
+    server.addIssue({QStringLiteral("kat"), QStringLiteral("TEST_RULE")});
+    auto service = serviceOn(server);
+    service->setLanguage(QStringLiteral("en_US"));
+    Answers answers(*service);
+
+    // Shift+Enter keeps the line break inside the paragraph as U+2028
+    const QString text =
+        QStringLiteral("First line") + QChar(QChar::LineSeparator) + QStringLiteral("the kat");
+    const quint64 request = service->check(text);
+    REQUIRE(waitUntil([&answers, request]() { return answers.answered(request); }, 5000));
+    CHECK(server.texts() == QStringList{QStringLiteral("First line\nthe kat")});
+
+    // The places of the issues are those of the text in the editor
+    const QList<GrammarError>& errors = answers.checked[request];
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].startPos == 15);
+    CHECK(errors[0].text == QStringLiteral("kat"));
+}
+
 TEST_CASE("Grammar service: spelling and the rules ignored are not reported",
           "[editor][grammar]") {
     FakeLanguageTool server;

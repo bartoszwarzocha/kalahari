@@ -334,7 +334,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Only the paragraphs on the screen and some around them are sent, a moment after the
     writer stops typing. The lines of an issue move with the text edited around it and stay
     until its paragraph is checked again; an issue that applies only to finished sentences
-    waits until its sentence is finished.
+    waits until its sentence is finished. A line break inside a paragraph (Shift+Enter) is
+    read as a space between words.
   - A right click on an issue shows what is wrong, whole, up to five replacements in bold
     and Ignore This Rule (until the program closes), above the usual commands. Spelling
     issues are left to the dictionary.
