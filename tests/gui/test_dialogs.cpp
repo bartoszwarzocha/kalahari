@@ -16,10 +16,12 @@
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
 #include "kalahari/gui/section_words.h"
+#include "kalahari/gui/widgets/fitting_scroll_area.h"
 
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDialogButtonBox>
 #include <QDir>
 #include <QFile>
 #include <QFrame>
@@ -29,6 +31,8 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QScreen>
+#include <QScrollBar>
 #include <QTemporaryDir>
 #include <QTextBrowser>
 #include <QListWidget>
@@ -1501,4 +1505,43 @@ TEST_CASE("Move: in a book without sections the list is one, and every press mov
     CHECK_FALSE(moveButton(dialog, QStringLiteral("Move the table of contents up"))->isEnabled());
     press(list, Qt::Key_Down);
     CHECK(dialog.place() == ElementPlace{BookPlace::Front, QString(), 1});
+}
+
+TEST_CASE("New Book: on a small screen the buttons stay in view and the details scroll",
+          "[gui][dialogs]") {
+    NewItemDialog dialog(NewItemMode::Project);
+    dialog.show();
+    QApplication::processEvents();
+    const QRect available = dialog.screen()->availableGeometry();
+    CHECK(dialog.width() <= available.width());
+    CHECK(dialog.height() <= available.height());
+
+    // A window lower than its templates and details, as on 1366x768 at 150%
+    dialog.resize(dialog.width(), 360);
+    QApplication::processEvents();
+    QApplication::processEvents();
+    REQUIRE(dialog.height() == 360);
+    auto* area = dialog.findChild<kalahari::gui::FittingScrollArea*>();
+    REQUIRE(area != nullptr);
+    CHECK(area->verticalScrollBar()->isVisible());
+    const auto* buttons = dialog.findChild<QDialogButtonBox*>();
+    REQUIRE(buttons != nullptr);
+    REQUIRE(buttons->buttons().size() == 2);
+    for (const QAbstractButton* button : buttons->buttons()) {
+        INFO(button->text().toStdString());
+        CHECK(dialog.rect().contains(QRect(button->mapTo(&dialog, QPoint(0, 0)), button->size())));
+    }
+
+    // The last field of the details scrolls into view
+    QLineEdit* location = nullptr;
+    for (QLineEdit* field : dialog.findChildren<QLineEdit*>()) {
+        if (field->placeholderText() == QStringLiteral("Select book folder...")) {
+            location = field;
+        }
+    }
+    REQUIRE(location != nullptr);
+    area->ensureWidgetVisible(location);
+    QApplication::processEvents();
+    CHECK(area->viewport()->rect().contains(
+        QRect(location->mapTo(area->viewport(), QPoint(0, 0)), location->size())));
 }

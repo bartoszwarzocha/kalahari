@@ -7,7 +7,9 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/utils/program_folders.h"
+#include "kalahari/gui/widgets/fitting_scroll_area.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -19,6 +21,7 @@
 #include <QPixmap>
 #include <QScrollArea>
 #include <QSignalBlocker>
+#include <QSize>
 
 #include <algorithm>
 #include <string>
@@ -28,6 +31,9 @@ using namespace kalahari::gui::dialogs;
 using kalahari::gui::ProgramFolders;
 
 namespace {
+
+constexpr int MINIMUM_WIDTH = 700;          ///< The description and two templates in a row
+constexpr QSize DEFAULT_SIZE{850, 620};     ///< The templates and the details without scrolling
 
 /// The writer's last choice in the Sections field for a template that shows sections
 constexpr const char* SECTIONS_SETTING = "project.sectionSet";
@@ -81,9 +87,9 @@ NewItemDialog::NewItemDialog(NewItemMode mode, QWidget* parent)
         setWindowTitle(tr("New File"));
     }
 
-    // Set dialog size constraints
-    setMinimumSize(700, 500);
-    resize(850, 620);
+    // As wide as the description and two templates in a row; the height of the content can
+    // be lower: on a small screen (1366x768 at 150%) the content scrolls under the buttons
+    setMinimumWidth(MINIMUM_WIDTH);
 
     // Initialize result structure
     m_result.mode = m_mode;
@@ -100,6 +106,9 @@ NewItemDialog::NewItemDialog(NewItemMode mode, QWidget* parent)
     }
 
     validateInput();
+
+    // The size of a big screen, or less on a smaller one
+    kalahari::gui::utils::resizeWithinScreen(this, DEFAULT_SIZE);
 }
 
 // ============================================================================
@@ -119,8 +128,15 @@ void NewItemDialog::setupUI() {
     mainLayout->setSpacing(11);
     mainLayout->setContentsMargins(11, 11, 11, 11);
 
+    // The templates and the details, which scroll in a window lower than they are; the
+    // buttons stay under them
+    auto* content = new QWidget(this);
+    auto* contentLayout = new QVBoxLayout(content);
+    contentLayout->setSpacing(11);
+    contentLayout->setContentsMargins(0, 0, 0, 0);
+
     // Create splitter for left/right panels
-    QSplitter* splitter = new QSplitter(Qt::Horizontal, this);
+    QSplitter* splitter = new QSplitter(Qt::Horizontal, content);
     splitter->setChildrenCollapsible(false);
 
     // Add description panel (LEFT) and template grid (RIGHT)
@@ -130,10 +146,11 @@ void NewItemDialog::setupUI() {
     // Set initial sizes: 250px for description, rest for templates
     splitter->setSizes({250, 500});
 
-    mainLayout->addWidget(splitter, 1);
+    contentLayout->addWidget(splitter, 1);
 
     // Add details group (BOTTOM)
-    mainLayout->addWidget(createDetailsGroup(), 0);
+    contentLayout->addWidget(createDetailsGroup(), 0);
+    mainLayout->addWidget(new kalahari::gui::FittingScrollArea(content, this), 1);
 
     // Dialog buttons
     m_buttonBox = new QDialogButtonBox(this);
