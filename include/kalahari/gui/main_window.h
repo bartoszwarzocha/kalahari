@@ -284,9 +284,6 @@ private slots:
     /// @brief Slot for Help > About action
     void onAbout();
 
-    /// @brief Slot for Help > About Qt action
-    void onAboutQt();
-
     /// @brief Slot for Navigator element selection (Task #00015, OpenSpec #00033)
     /// @param elementId Unique ID of the selected element (BookElement::getId())
     /// @param elementTitle Display title of the element
