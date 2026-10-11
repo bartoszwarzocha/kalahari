@@ -401,9 +401,10 @@ void ArchiveDialog::fitHeight()
     const int wanted = height - area->sizeHint().height() +
                        area->contentHeightForWidth(area->maximumViewportSize().width());
     // Within the screen, where the content scrolls; a window that grew past the bottom of the
-    // screen moves up
+    // screen moves up. The layout has just taken in the content: asking it again would bring
+    // another LayoutRequest, and a window that cannot grow would never stop asking.
     if (wanted > this->height()) {
-        fitToScreen(QSize(width(), wanted));
+        resizeOnScreen(QSize(width(), wanted));
     }
 }
 
@@ -416,11 +417,9 @@ void ArchiveDialog::bringIntoView(QWidget* widget)
     // The window grows for what it shows now (fitHeight()) and the content takes its place,
     // before the area scrolls to it
     QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
-    area->ensureWidgetVisible(widget, 0, 0);
-    // A result higher than the area shows its sentence, with the details under it
-    if (widget == m_result) {
-        area->ensureWidgetVisible(m_resultText, 0, 0);
-    }
+    // It stays in view in a window the system or the writer makes lower later; a result
+    // higher than the area shows its sentence, with the details under it
+    area->keepInView(widget, widget == m_result ? m_resultText : nullptr);
 }
 
 // =============================================================================

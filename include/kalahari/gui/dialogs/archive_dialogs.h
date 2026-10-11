@@ -157,7 +157,8 @@ private:
     void fitHeight();
 
     /// @brief Scroll the content to @p widget, which the writer waits for (the progress or the
-    /// result): on a low screen the window stops at the screen and the content scrolls
+    /// result), and keep it in view: on a low screen the window stops at the screen and the
+    /// content scrolls
     void bringIntoView(QWidget* widget);
 
     /// @brief The state of the work

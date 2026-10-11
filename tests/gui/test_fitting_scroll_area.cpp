@@ -2,12 +2,16 @@
 /// @brief A scroll area as large as its content, which scrolls only on a small screen
 
 #include <catch2/catch_test_macros.hpp>
+#include "../editor/editor_test_utils.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 
 #include <QApplication>
+#include <QGuiApplication>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
+#include <QPushButton>
 #include <QScreen>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -23,6 +27,55 @@ namespace {
 const QString LONG_MESSAGE = QStringLiteral(
     "The screen is small, so the panels on the right are hidden. View > Panels shows them "
     "again.");
+
+/// @brief An area half as high as its content: a field at the top, 30 lines, and a last line
+struct LowArea {
+    QWidget host;  ///< A child area: the system keeps a window within the screen (macOS)
+    FittingScrollArea* area = nullptr;
+    QLineEdit* field = nullptr;
+    QLabel* middle = nullptr;
+    QLabel* last = nullptr;
+
+    LowArea() {
+        auto* content = new QWidget();
+        auto* lines = new QVBoxLayout(content);
+        field = new QLineEdit();
+        // Only a click takes the writer there: a window the system makes active does not
+        field->setFocusPolicy(Qt::ClickFocus);
+        lines->addWidget(field);
+        for (int i = 0; i < 30; ++i) {
+            auto* line = new QLabel(QStringLiteral("Line %1").arg(i));
+            lines->addWidget(line);
+            if (i == 15) {
+                middle = line;
+            }
+        }
+        last = new QLabel(QStringLiteral("The last line"));
+        lines->addWidget(last);
+        area = new FittingScrollArea(content, &host);
+        area->resize(area->sizeHint().width(), area->sizeHint().height() / 2);
+        host.resize(area->size());
+    }
+
+    /// @brief Whether @p widget is wholly in the part of the content in view
+    bool inView(const QWidget* widget) const {
+        const QRect place(widget->mapTo(area->viewport(), QPoint(0, 0)), widget->size());
+        return area->viewport()->rect().contains(place);
+    }
+
+    /// @brief Make the area lower, as the system or the writer makes a window lower
+    void lower() {
+        area->resize(area->width(), area->height() - 40);
+        settle();
+    }
+
+    /// @brief Deliver the events of a change, with the call the area queues after it to scroll,
+    /// in the same way on each system
+    static void settle() {
+        QApplication::sendPostedEvents();
+        QApplication::processEvents();
+    }
+};
 
 }  // anonymous namespace
 
@@ -111,6 +164,62 @@ TEST_CASE("Fitting scroll area: a panel's area can be lower than a dialog's", "[
     CHECK(area.minimumSizeHint().height() == 3 * lineSpacing);
     area.setMinimumLines(0);  // at least a line
     CHECK(area.minimumSizeHint().height() == lineSpacing);
+}
+
+TEST_CASE("Fitting scroll area: a widget kept in view stays there while the area gets lower",
+          "[gui][widgets]") {
+    // The progress of an export stays in view in a window the system or the writer makes
+    // lower while the work runs
+    LowArea low;
+    low.host.show();
+    LowArea::settle();
+
+    low.area->keepInView(low.last);
+    CHECK(low.inView(low.last));
+    low.lower();
+    CHECK(low.inView(low.last));
+
+    SECTION("The writer scrolls: the area stays where the writer took it") {
+        low.area->verticalScrollBar()->triggerAction(QAbstractSlider::SliderToMinimum);
+        low.lower();
+        CHECK(low.area->verticalScrollBar()->value() == 0);
+        CHECK_FALSE(low.inView(low.last));
+    }
+
+    SECTION("Another widget is kept in view instead") {
+        low.area->keepInView(low.middle);
+        CHECK(low.inView(low.middle));
+        low.lower();
+        CHECK(low.inView(low.middle));
+        CHECK_FALSE(low.inView(low.last));
+    }
+}
+
+TEST_CASE("Fitting scroll area: a field the writer goes to is not scrolled away",
+          "[gui][widgets]") {
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("needs an active window without a window on screen: "
+             "run with QT_QPA_PLATFORM=offscreen");
+    }
+    LowArea low;
+    // A button of the window outside the area, as the buttons of a dialog
+    auto* button = new QPushButton(QStringLiteral("Close"), &low.host);
+    button->move(0, low.area->height());
+    low.host.show();
+    low.host.activateWindow();
+    REQUIRE(kalahari::test::waitUntil(
+        [&low] { return QApplication::activeWindow() == &low.host; }));
+    button->setFocus();
+    low.area->keepInView(low.last);
+    REQUIRE(low.inView(low.last));
+
+    // The writer clicks the field at the top, after a failed export
+    low.area->ensureWidgetVisible(low.field);
+    low.field->setFocus(Qt::MouseFocusReason);
+    const int atField = low.area->verticalScrollBar()->value();
+    low.lower();
+    CHECK(low.area->verticalScrollBar()->value() == atField);
+    CHECK_FALSE(low.inView(low.last));
 }
 
 TEST_CASE("Own dialogs: a wrapped text of the content leaves no gap above the buttons",

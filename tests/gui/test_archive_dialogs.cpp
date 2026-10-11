@@ -3,6 +3,7 @@
 /// them, and the progress and the result of the work in the window
 
 #include <catch2/catch_test_macros.hpp>
+#include "../editor/editor_test_utils.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/project_manager.h"
@@ -15,6 +16,7 @@
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QDir>
+#include <QEvent>
 #include <QFile>
 #include <QFileInfo>
 #include <QGroupBox>
@@ -455,12 +457,44 @@ TEST_CASE("Export Project Archive: in a low window the progress and the result a
         const QRect place(widget->mapTo(area->viewport(), QPoint(0, 0)), widget->size());
         return area->viewport()->rect().contains(place);
     };
+    // Where @p widget is, for the message of a failure
+    const auto where = [&area, &shown](const QWidget* widget) {
+        const int top = widget->mapTo(area->viewport(), QPoint(0, 0)).y();
+        return QStringLiteral(
+                   "%1..%2 in a view %3 high, scrolled %4 of %5, in a window %6 high (%7)")
+            .arg(top)
+            .arg(top + widget->height())
+            .arg(area->viewport()->height())
+            .arg(area->verticalScrollBar()->value())
+            .arg(area->verticalScrollBar()->maximum())
+            .arg(shown->height())
+            .arg(QApplication::activeWindow() == shown ? QStringLiteral("active")
+                                                       : QStringLiteral("not active"))
+            .toStdString();
+    };
     ExportArchiveDialog dialog(book, folder,
                                [&](const QString& archive, bool,
                                    const ArchiveDialog::Progress& progress,
                                    QStringList* problems) {
+                                   // The window takes its place in a few passes of the event
+                                   // loop while the work goes on, one more when the system
+                                   // changes the window
+                                   const auto progressInView = [&] {
+                                       return kalahari::test::waitUntil(
+                                           [&] { return inView(shown->progressBar()); });
+                                   };
                                    progress(40);
-                                   CHECK(inView(shown->progressBar()));
+                                   const bool atStart = progressInView();
+                                   INFO("The progress is at " << where(shown->progressBar()));
+                                   CHECK(atStart);
+                                   // A window the system or the writer makes lower while
+                                   // the work runs keeps the progress in view
+                                   shown->setMaximumHeight(shown->height() - 40);
+                                   progress(60);
+                                   const bool lower = progressInView();
+                                   INFO("Lower, the progress is at "
+                                        << where(shown->progressBar()));
+                                   CHECK(lower);
                                    if (!succeeds) {
                                        problems->append(
                                            QStringLiteral("Travels.klh.zip: the disk is full"));
@@ -485,6 +519,7 @@ TEST_CASE("Export Project Archive: in a low window the progress and the result a
         REQUIRE(area->verticalScrollBar()->maximum() > 0);
         const QLabel* result = labelWith(dialog, dialog.resultText());
         REQUIRE(result != nullptr);
+        INFO("The result is at " << where(result));
         CHECK(inView(result));
     }
 
@@ -496,8 +531,52 @@ TEST_CASE("Export Project Archive: in a low window the progress and the result a
         REQUIRE(area->verticalScrollBar()->maximum() > 0);
         const QLabel* result = labelWith(dialog, dialog.resultText());
         REQUIRE(result != nullptr);
+        INFO("The result is at " << where(result));
         CHECK(inView(result));
     }
+}
+
+TEST_CASE("Export Project Archive: a window that cannot grow for its content stays still",
+          "[gui][dialogs][archive]") {
+    // Regression: the window asked for its layout again and again, in every pass of the event
+    // loop, as long as it was lower than its content (a small screen): the program never
+    // rested while the window was open
+    QTemporaryDir dir;
+    ExportArchiveDialog::Book book{QStringLiteral("Travels"), {}, false, 0};
+    for (int i = 1; i <= 4; ++i) {
+        book.unready.append({QStringLiteral("Chapter %1").arg(i), QStringLiteral("draft"),
+                             QStringLiteral("template.chapter")});
+    }
+    ExportArchiveDialog dialog(book, dir.path(),
+                               [](const QString& archive, bool, const ArchiveDialog::Progress&,
+                                  QStringList*) {
+                                   writeFile(archive, "archive");
+                                   return true;
+                               });
+    dialog.show();
+    settle();
+    // As high as the screen allows: the result does not fit
+    dialog.setMaximumHeight(dialog.height());
+    dialog.accept();
+    settle();
+    REQUIRE(dialog.isDone());
+
+    // Counts the layouts the window asks for
+    struct LayoutRequests : QObject {
+        int count = 0;
+        bool eventFilter(QObject*, QEvent* event) override {
+            if (event->type() == QEvent::LayoutRequest) {
+                ++count;
+            }
+            return false;
+        }
+    } requests;
+    dialog.installEventFilter(&requests);
+    settle();
+    settle();
+    // The window asked for a layout in each of the 12 passes; one or two may still come from
+    // the system
+    CHECK(requests.count <= 2);
 }
 
 TEST_CASE("Export Project Archive: a line under a field is as high as its sentence",

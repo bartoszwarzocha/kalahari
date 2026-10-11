@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <QMetaObject>
 #include <QScrollArea>
 #include <QSize>
 
@@ -33,6 +34,8 @@ public:
     /// @param parent Parent widget
     explicit FittingScrollArea(QWidget* content, QWidget* parent = nullptr);
 
+    ~FittingScrollArea() override;
+
     /// @brief The size the content needs
     QSize sizeHint() const override;
 
@@ -49,6 +52,15 @@ public:
     /// lines they need at that width
     int contentHeightForWidth(int width) const;
 
+    /// @brief Scroll to @p widget of the content and keep it in view while the window
+    /// settles: after a later change of the area's height or the content's (a window the
+    /// system or the writer makes lower, a scroll bar that comes or goes) the area scrolls to
+    /// it again, until the writer scrolls the area or works in a widget of the content
+    /// @param widget The widget; nullptr: none is kept in view
+    /// @param first The part of @p widget in view first when @p widget is higher than the
+    /// area (the sentence of a result, above its details); nullptr: the middle of @p widget
+    void keepInView(QWidget* widget, QWidget* first = nullptr);
+
 protected:
     /// @brief A change of the content (a list shown, a longer text) changes the hints
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -57,8 +69,18 @@ private:
     /// @brief The frame around the content, both sides together
     QSize borders() const;
 
+    /// @brief Scroll to the widget kept in view, when it is shown
+    void scrollToKept();
+
+    /// @brief Keep no widget in view
+    void stopKeeping();
+
     QWidget* m_content;  ///< The content, inside the area's widget
     int m_minimumLines;  ///< Height of the area in a lowered window, in lines
+    QWidget* m_kept = nullptr;                ///< The widget kept in view; nullptr: none
+    QWidget* m_keptFirst = nullptr;           ///< Its part in view first, in a lower area
+    QMetaObject::Connection m_keptGone;       ///< Keeps no widget once the widget is deleted
+    QMetaObject::Connection m_keptFirstGone;  ///< The same for its part
 };
 
 } // namespace gui
