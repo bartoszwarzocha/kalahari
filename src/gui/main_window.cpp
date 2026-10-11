@@ -1320,13 +1320,17 @@ void MainWindow::updateBookCommands() {
                                        ? projects.chapterKindFor(core::BookPlace::Main)
                                        : core::KindRef{};
         //: In Polish: {kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...
+        const QString text = tr("New {Kind}...");
         const QString label =
-            kind ? core::fillWords(tr("New {Kind}..."), {{QStringLiteral("kind"), wordsOf(kind)}})
+            kind ? core::fillWords(text, {{QStringLiteral("kind"), wordsOf(kind)}})
                  : QCoreApplication::translate("CommandRegistrar", "New Chapter...");
         newText->label = label.toStdString();
         newText->tooltip = newText->label;
         if (QAction* action = registry.getAction(std::string("book.newChapter"))) {
-            action->setText(QString(label).replace('&', QStringLiteral("&&")));
+            // Only a '&' of the kind's name is doubled: the text's own '&' marks its access key
+            action->setText(
+                kind ? core::fillWords(text, {{QStringLiteral("kind"), menuWords(wordsOf(kind))}})
+                     : QString(label).replace('&', QStringLiteral("&&")));
         }
     }
     registry.updateActionState("book.newChapter");

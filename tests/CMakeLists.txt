@@ -67,6 +67,7 @@ set(TEST_SOURCES
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
     gui/test_recent_book_cards.cpp               # Dashboard: the data of the recent books
+    gui/test_kind_names.cpp                      # Names of kinds in menu commands
     gui/test_navigator_panel.cpp                 # Navigator tree of a book project
     gui/test_navigator_coordinator.cpp           # Navigator commands on the open project
     gui/test_panel_toggle.cpp                    # Panel toggles follow open panels

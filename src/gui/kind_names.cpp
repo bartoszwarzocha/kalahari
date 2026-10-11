@@ -44,6 +44,13 @@ core::KindWords wordsOf(const core::KindRef& kind) {
     return kind ? kind.kind->wordsIn(programLanguage()) : core::KindWords{};
 }
 
+core::KindWords menuWords(core::KindWords words) {
+    for (QString& form : words.forms) {
+        form.replace(QLatin1Char('&'), QStringLiteral("&&"));
+    }
+    return words;
+}
+
 core::KindWords wordsOf(const core::BookTypeRegistry& registry,
                         const core::ProjectElement& element) {
     if (const core::KindRef kind = core::BookProject::kindOf(registry, element)) {

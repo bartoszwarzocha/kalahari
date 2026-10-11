@@ -41,6 +41,11 @@ QString typeNameOf(const core::BookTypeRegistry& registry, const core::BookProje
 /// @brief Forms of the name of @p kind in the program's language; none without a kind
 core::KindWords wordsOf(const core::KindRef& kind);
 
+/// @brief @p words for the text of a menu command: each '&' of a form doubled, so that the menu
+/// shows it and does not take it for the mark of an access key; the command's own text keeps
+/// its mark ("&New {Kind}...")
+core::KindWords menuWords(core::KindWords words);
+
 /// @brief Forms of the name of the kind of @p element, a kind of @p registry; when the registry
 /// does not have the kind (its package is not installed), the id of the kind stands for its name
 core::KindWords wordsOf(const core::BookTypeRegistry& registry,
