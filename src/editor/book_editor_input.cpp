@@ -127,7 +127,7 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
         if (block.isValid()) {
             QTextCursor cursor(m_textBuffer.get());
             cursor.setPosition(block.position() + m_cursorPosition.offset);
-            cursor.insertText(preeditString, insertionFormat(cursor));
+            cursor.insertText(preeditString, typingFormat());
         }
 
         // Move cursor to end of preedit

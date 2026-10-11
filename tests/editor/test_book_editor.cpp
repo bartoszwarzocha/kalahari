@@ -276,8 +276,8 @@ TEST_CASE("BookEditor appearance", "[editor][book_editor]") {
 
 TEST_CASE("BookEditor toolbar font change with no selection leaves global appearance untouched",
           "[editor][book_editor][regression]") {
-    // Regression: the toolbar font combo is a selection-only formatting control.
-    // With no selection it must NOT mutate the editor's global default font
+    // Regression: with no selection the toolbar font combo formats the word with the
+    // cursor or the text typed next. It must NOT mutate the editor's global default font
     // (m_appearance) — that font is owned solely by the settings dialog. When it
     // did, saving settings appeared to "revert" the font, because
     // applyEditorSettingsToAllPanels re-applied editor.fontFamily over the

@@ -536,6 +536,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   arrows of the size field do not take the cursor; in the fields one types as before, and Tab
   goes from one to the other.
 
+- **Formats given without a selection** - 2026-10-11. Bold, italic, underline and
+  strikethrough turned on without a selection (Ctrl+B, Ctrl+I, Ctrl+U, the toolbar) did not
+  reach the typed text: the button showed the format on, the text was typed without it, and
+  the button stayed on after the cursor moved away. The font and the size chosen in the
+  toolbar without a selection did nothing. Now, as in Word and LibreOffice, with the cursor
+  inside a word they go on the whole word; elsewhere on the text typed next at the cursor,
+  also after Enter, with an input method and in plain text pasted there. Moving the cursor,
+  selecting, Undo and Redo drop them; given where the text has the format, the typed text is
+  without it. Undoing a format brings back the cursor and the selection it was given with.
+
 - **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
   texts of the Settings pages and the descriptions of the planned pages had a contrast of
   2.3:1 with the window in the light theme and 3.6:1 in the dark one. They now have at

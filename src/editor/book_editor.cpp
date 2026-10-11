@@ -505,6 +505,13 @@ void BookEditor::syncPipelineCursor()
 {
     syncSearchOrigin();
 
+    // A format given for the text typed next stays at its place: typing there (the text has
+    // it, and what is typed after it follows it), moving the cursor or selecting drops it.
+    // Text composed with an input method moves the cursor, but is typed there.
+    if (!m_hasComposition && (hasSelection() || m_cursorPosition != m_pendingFormatAt)) {
+        m_pendingFormat = QTextCharFormat();
+    }
+
     // Lightweight sync - only cursor and selection
     if (!m_renderPipeline) {
         return;
@@ -712,6 +719,7 @@ bool BookEditor::fromKml(const QString& kml)
     m_textBuffer.reset();
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
+    m_pendingFormat = QTextCharFormat();  // it was given for the old text
 
     // Unreadable KML gives the paragraphs read before the error
     KmlDocumentModel content;
@@ -776,6 +784,7 @@ void BookEditor::replaceWithKml(const QString& kml)
 
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
+    m_pendingFormat = QTextCharFormat();  // it was given for the old text
     clearSelection();
     m_cursorPosition = validateCursorPosition(m_cursorPosition);
 

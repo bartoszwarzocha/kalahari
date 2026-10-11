@@ -983,6 +983,17 @@ One of Kalahari's most powerful features is fully customizable toolbars. Users c
 #### 2. Format Toolbar
 **Commands:** `[B] [I] [U] [S] | [Font ▼] [Size ▼] | [Style ▼] | [Color]`
 
+Bold, italic, underline, strikethrough (also Ctrl+B, Ctrl+I, Ctrl+U), the font and its size
+go on the selection. Without one, as in Word and LibreOffice, they go on the word the cursor
+is inside of; elsewhere (between words, at the start or end of a word, in an empty paragraph)
+on the text typed next at the cursor: typed, also after Enter, composed with an input method
+or pasted as plain text. Moving the cursor, selecting, Undo and Redo drop such a format.
+Given where the text has it, it turns it off for the typed text; given twice, the typed text
+is as without it. The buttons and the fields show the format the typed text gets, and the
+editor's own font stays the one of the settings. Undoing a format brings back the cursor and
+the selection it was given with (`src/editor/book_editor_formatting.cpp`, checked by
+`tests/editor/test_format_without_selection.cpp`).
+
 #### 3. Edit Toolbar (hidden by default)
 **Commands:** `[Find] [Replace] | [Spell Check] | [Word Count]`
 

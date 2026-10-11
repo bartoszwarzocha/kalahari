@@ -57,6 +57,7 @@ set(TEST_SOURCES
     editor/test_editor_stage4.cpp                # Editor Stage 4: page mode, zoom, typewriter scrolling
     editor/test_editor_stage5.cpp                # Editor Stage 5: highlight layer
     editor/test_text_keys.cpp                    # The keys of the text on each system
+    editor/test_format_without_selection.cpp     # Formats given without a selection
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     gui/test_command_registry.cpp
