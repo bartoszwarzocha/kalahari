@@ -1523,6 +1523,8 @@ Rules for a new shortcut:
 - Not Ctrl+W: next to Ctrl+S and Ctrl+E, it would close the book by mistake while writing.
 - No Ctrl+Alt on Windows and Linux: Windows takes it for AltGr, which types letters
   (ą, ć, ę...).
+- No Alt with a letter on Windows and Linux: it opens the menu with that letter underlined
+  (see Access Keys). Alt with a digit and Alt+Shift with a letter are free.
 - No key a desktop takes for itself: Ctrl+F1–F4 on KDE (desktops 1–4), Ctrl+F1–F12 on Xfce
   (workspaces 1–12); on macOS Cmd+H (hides the program) and F11 (shows the desktop).
   Close Book keeps Ctrl+F4, the Windows key (see Linux Desktops).
@@ -1598,12 +1600,15 @@ may have them too.
 - **Tabs of the texts:** Ctrl+Tab and Ctrl+Shift+Tab – the next and the previous tab.
 - **Find bar:** Enter – next match, Shift+Enter – previous match, Enter in the replace
   field – replace, Esc – close, Alt+C – match case, Alt+W – whole words, Alt+R – regular
-  expression.
+  expression (in the bar and in the text under it, before the menus with these letters).
 - **Annotation frame:** Ctrl+Enter – keep the text, Esc – drop it.
 - **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –
   edit, Space – done or resolved, Delete – delete, the Menu key or Shift+F10 – its menu,
   Esc – back to the text.
-- **Distraction-Free:** Esc – leave it.
+- **Distraction-Free:** Esc – leave it; Alt with the letter of a menu – the menus at the
+  top with that menu open.
+- **Menus (Windows and Linux):** Alt with the underlined letter of a menu's name opens it; in
+  an open menu the underlined letter of an item chooses it (see Access Keys).
 - **The system:** Tab and Shift+Tab move between the fields of a window; the keys that
   switch windows or programs, open the system's menus or take screenshots do not reach the
   program. Settings > Keyboard Shortcuts lists them for the system it runs on.
@@ -1629,7 +1634,55 @@ of the desktop. The program gives them the keys of Windows on Linux as well
 On Windows and Linux a read-only text and a label whose text can be selected keep Ctrl+C,
 Ctrl+Insert and Ctrl+A for themselves (the window's Copy and Select All copied and selected
 the book's text), and the context menus of the fields show the keys of their items, also
-where a command of the window has the same keys. macOS keeps the keys of its own fields.
+where a command of the window has the same keys. Alt with a letter types nothing in a
+field, and a drop-down list one cannot type into does not look for the letter with it (Qt
+did both, on Windows too): the key goes on to the menus, as in the fields of Windows. AltGr
+types as before. macOS keeps the keys of its own fields.
+
+#### Access Keys
+
+On Windows and Linux every item of every menu has an access key, a letter of its name
+underlined: Alt with the letter of a menu opens it (Alt+F – File, in Polish Alt+P – Plik),
+and in an open menu the letter of an item chooses it. So does every context menu: of the
+text, of the Navigator, of the toolbars, of the annotations, of the fields, and of the menu
+bar and the panels' titles. The keys are in the texts ("Save &As...", in Polish "Zapisz
+&jako..."): `src/gui/command_registrar.cpp` for the commands, `src/gui/menu_builder.cpp` for
+the menus, the code of a context menu for its items, the translation for Polish. Each item
+has one key, a Latin letter or a digit (Polish letters are typed with AltGr), which no other
+item of the same menu has. The text's context menu also has three commands of the Insert menu
+(Add Comment, Add To Do, Add Note): their keys are unique there too, beside Cut, Copy and
+Paste.
+
+Names and words a menu shows as they are get free keys (`src/gui/utils/access_keys.cpp`): the
+first letter of one of their words that is free, else another of their letters or digits;
+where all of them are taken, a name before it takes another of its own and leaves it one.
+These are the name the user gave a toolbar; the words for a misspelled word and for a grammar
+issue, which WidgetKeys gives keys as the menu shows (`giveFreeAccessKeys()`); and the panels
+and the toolbars in Qt's menu of the menu bar and of the panels' titles, which MainWindow
+shows as a copy with keys (`menuWithAccessKeys()`), so that the panels and the toolbars keep
+their names. A line that only tells something (what is wrong in a grammar issue, "(No
+suggestions)", "No Recent Files") is disabled and has no key. The recent books are numbered
+(&1 to &9, then 1&0...).
+
+Qt's fields name the items of their context menus in Qt's words. Where the English words have
+no key (Delete, Select All) or share one (a number field's Select All and Step up, its Step
+down and Delete), WidgetKeys gives them those of the fields of Windows (&Delete, Select &All,
+Step d&own); the Polish translation has its own. In both languages they are the letters of
+the Edit menu. A label has a menu only over a link (Copy &Link Location).
+
+`tests/gui/test_menu_access_keys.cpp` checks every menu and every context menu, in English and
+in Polish: as the program makes them (each item of its own with its key) and as Windows and
+Linux show them (the words and the items of Qt's fields too).
+
+Alt with a letter types nothing in the text and in the fields, as in the fields of Windows;
+it goes on to the menus. AltGr types: Windows reports it as Ctrl+Alt, Linux as the letter it
+gives. So does Alt with the digits of the keypad (Alt+0233 – é). Settings > Keyboard
+Shortcuts keeps Alt with a letter for the menus (Fixed: the menus). The options of the find
+bar keep Alt+C, Alt+W and Alt+R while the bar shows, in the bar and in the text under it
+(in Polish the menus Pomo&c and &Widok have these letters); elsewhere these keys open the
+menus. In Distraction-Free, where the menu bar is hidden, Alt with the letter of a menu shows
+the menus at the top with that menu open; once it closes, they hide when the mouse is away
+from them.
 
 #### The Edit Commands
 
@@ -1674,6 +1727,9 @@ Ctrl is Cmd. Where the system needs it, a command has the keys of macOS:
 - View > Full Screen – Control+Cmd+F (F11 shows the desktop);
 - the options of the find bar – Option+Cmd+C, Option+Cmd+W and Option+Cmd+R (Option with a
   letter types a character: Option+C is "ć" on the Polish keyboard).
+
+The menus have no access keys, as the menus of macOS: Option with a letter types a
+character.
 
 The text has the keys of the text fields of macOS: Option+Left and Option+Right – by a word,
 Cmd+Left and Cmd+Right – the line, Option+Up and Option+Down – the paragraph, Cmd+Up and
@@ -1747,12 +1803,12 @@ opens Settings on this page. `src/gui/settings/shortcuts_page.cpp`.
 
 - **The list:** the commands in the groups and the order of the menus (a submenu as
   "Open › Open File..."), then the fixed keys of each place (Fixed: in the text, tabs, the
-  find bar, the annotation frame, the Annotations panel, Distraction-Free) and the keys of
-  the system (Fixed: the Windows system, the Linux desktop or the macOS system), muted, with
-  a lock after the name. A changed shortcut is bold with a mark (●), and its tooltip names
-  the default. A command the program does not run yet says so after its name ("not
-  available yet" for Kalahari Help, "in preparation" for the others) and keeps its keys for
-  later.
+  find bar, the annotation frame, the Annotations panel, Distraction-Free, the menus on
+  Windows and Linux) and the keys of the system (Fixed: the Windows system, the Linux
+  desktop or the macOS system), muted, with a lock after the name. A changed shortcut is
+  bold with a mark (●), and its tooltip names the default. A command the program does not
+  run yet says so after its name ("not available yet" for Kalahari Help, "in preparation"
+  for the others) and keeps its keys for later.
 - **Under the list** the selected row: its menu and name, its keys, and a note – the
   default keys, a shortcut kept for a command not available yet, that Alt+F4 closes the
   window also without the shortcut of Exit; for fixed keys and the keys of the system, what

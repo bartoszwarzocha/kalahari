@@ -7,8 +7,10 @@
 /// arrow over a selection jumps to its edge, Shift+F10 opens no menu, and on GNOME and Xfce
 /// Enter presses the button that has the keys instead of the window's default button.
 /// WidgetKeys, a filter of the whole application, gives the widgets on Linux the keys they
-/// have on Windows. On both it lets read-only texts copy what is selected in them and shows
-/// the keys in the context menus of the fields. macOS keeps the keys of its own fields.
+/// have on Windows. On both it lets read-only texts copy what is selected in them, keeps
+/// Alt with a letter (the access key of a menu item) from typing in the fields, as Windows
+/// does, shows the keys in the context menus of the fields and gives every item of every
+/// menu an access key (giveFreeAccessKeys()). macOS keeps the keys of its own fields.
 
 #pragma once
 
@@ -77,7 +79,8 @@ private:
     /// @brief Deliver a copy of a key again, past this filter
     void deliverAgain(QWidget* widget, QKeyEvent* event);
 
-    /// @brief The keys of Windows in the context menu of a field
+    /// @brief The keys of Windows in the context menu of a field, and the access keys of the
+    ///        fields of Windows where Qt's English words have none or share one
     static void showKeys(QMenu* menu);
 
     bool m_active;                          ///< Not on macOS

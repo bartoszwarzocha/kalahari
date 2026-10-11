@@ -42,13 +42,10 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
         handled = true;
     }
 
-    // Handle printable characters (if not already handled)
-    // Note: On Windows, AltGr sends Ctrl+Alt, so we must allow text when both are pressed
-    // Only block Ctrl-only combinations (real shortcuts like Ctrl+C)
-    const bool ctrl = event->modifiers() & Qt::ControlModifier;
-    const bool alt = event->modifiers() & Qt::AltModifier;
-    const bool ctrlOnly = ctrl && !alt;
-    if (!handled && !ctrlOnly && !event->text().isEmpty()) {
+    // Type the character of the key (if not already handled), unless its modifiers give a
+    // command or make it the access key of a menu item (typesText())
+    if (!handled && typesText(event->key(), event->modifiers(), isMacOS()) &&
+        !event->text().isEmpty()) {
         QString text = event->text();
         // Only handle printable characters
         if (!text.isEmpty() && text.at(0).isPrint()) {
@@ -677,18 +674,19 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         setCursorPosition(pos);
     }
 
-    // Default context menu
+    // Default context menu. Each item with its access key, unique in the menu with the
+    // commands below and the items of spelling (test_menu_access_keys)
     QMenu menu(this);
 
     if (hasSelection()) {
-        menu.addAction(tr("Cut"), this, &BookEditor::cut);
-        menu.addAction(tr("Copy"), this, &BookEditor::copy);
+        menu.addAction(tr("Cu&t"), this, &BookEditor::cut);
+        menu.addAction(tr("&Copy"), this, &BookEditor::copy);
     }
-    menu.addAction(tr("Paste"), this, &BookEditor::paste);
+    menu.addAction(tr("&Paste"), this, &BookEditor::paste);
 
     if (hasSelection()) {
         menu.addSeparator();
-        menu.addAction(tr("Select All"), this, &BookEditor::selectAll);
+        menu.addAction(tr("Select &All"), this, &BookEditor::selectAll);
     }
 
     // The application's commands for the text (adding annotations)
@@ -707,8 +705,8 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
     // Color mode toggle
     menu.addSeparator();
     QString colorModeText = (m_appearance.colorMode == EditorColorMode::Light)
-        ? tr("Switch to Dark Mode")
-        : tr("Switch to Light Mode");
+        ? tr("Switch to Dar&k Mode")
+        : tr("Switch to &Light Mode");
     menu.addAction(colorModeText, this, &BookEditor::toggleEditorColorMode);
 
     menu.exec(event->globalPos());

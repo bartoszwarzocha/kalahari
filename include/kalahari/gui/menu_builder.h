@@ -113,7 +113,13 @@ public:
     /// @return QMenu pointer or nullptr if not found
     QMenu* getMenu(const std::string& technicalName) const;
 
-    /// @brief The translated title of a menu or a submenu ("FILE" → "File", "Zoom" → "Zoom")
+    /// @brief The translated text of a menu or a submenu in the menus, with its access key
+    ///        ("FILE" → "&File", "Zoom" → "&Zoom")
+    /// @param technicalName A part of Command::menuPath
+    [[nodiscard]] static QString menuText(const std::string& technicalName);
+
+    /// @brief The translated title of a menu or a submenu, without its access key, as lists
+    ///        show it ("FILE" → "File", "Zoom" → "Zoom")
     /// @param technicalName A part of Command::menuPath
     [[nodiscard]] static QString menuTitle(const std::string& technicalName);
 

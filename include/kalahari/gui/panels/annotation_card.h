@@ -11,6 +11,7 @@
 
 class QCheckBox;
 class QLabel;
+class QMenu;
 class QToolButton;
 
 namespace kalahari::gui {
@@ -68,6 +69,9 @@ public:
 
     /// @brief Show the card's menu under its menu button (also asked for with the keys)
     void showMenu();
+
+    /// @brief Fill a menu with the items of the card's menu
+    void fillMenu(QMenu* menu);
 
 signals:
     /// @brief The card was clicked outside its check box and menu button

@@ -4,600 +4,600 @@
 <context>
     <name>CommandRegistrar</name>
     <message>
-        <source>New File</source>
-        <translation>Nowy plik</translation>
-    </message>
-    <message>
-        <source>New Book...</source>
-        <translation>Nowa książka...</translation>
-    </message>
-    <message>
-        <source>Open Book...</source>
-        <translation>Otwórz książkę...</translation>
-    </message>
-    <message>
-        <source>Open File...</source>
-        <translation>Otwórz plik...</translation>
-    </message>
-    <message>
-        <source>Close Book</source>
-        <translation>Zamknij książkę</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <translation>Zapisz</translation>
-    </message>
-    <message>
-        <source>Save As...</source>
-        <translation>Zapisz jako...</translation>
-    </message>
-    <message>
-        <source>Save All</source>
-        <translation>Zapisz wszystko</translation>
-    </message>
-    <message>
-        <source>DOCX Document...</source>
-        <translation>Dokument DOCX...</translation>
-    </message>
-    <message>
-        <source>PDF Reference...</source>
-        <translation>Materiał źródłowy PDF...</translation>
-    </message>
-    <message>
-        <source>Plain Text...</source>
-        <translation>Zwykły tekst...</translation>
-    </message>
-    <message>
-        <source>Scrivener Project...</source>
-        <translation>Projekt Scrivenera...</translation>
-    </message>
-    <message>
-        <source>Project Archive...</source>
-        <translation>Archiwum projektu...</translation>
-    </message>
-    <message>
-        <source>DOCX</source>
-        <translation>DOCX</translation>
-    </message>
-    <message>
-        <source>PDF</source>
-        <translation>PDF</translation>
-    </message>
-    <message>
-        <source>Markdown</source>
-        <translation>Markdown</translation>
-    </message>
-    <message>
-        <source>EPUB</source>
-        <translation>EPUB</translation>
-    </message>
-    <message>
-        <source>MOBI</source>
-        <translation>MOBI</translation>
-    </message>
-    <message>
-        <source>InDesign ICML</source>
-        <translation>InDesign ICML</translation>
-    </message>
-    <message>
-        <source>LaTeX</source>
-        <translation>LaTeX</translation>
-    </message>
-    <message>
-        <source>Export Settings...</source>
-        <translation>Ustawienia eksportu...</translation>
-    </message>
-    <message>
-        <source>Exit</source>
-        <translation>Zakończ</translation>
-    </message>
-    <message>
-        <source>Undo</source>
-        <translation>Cofnij</translation>
-    </message>
-    <message>
-        <source>Redo</source>
-        <translation>Ponów</translation>
-    </message>
-    <message>
-        <source>Cut</source>
-        <translation>Wytnij</translation>
-    </message>
-    <message>
-        <source>Copy</source>
-        <translation>Kopiuj</translation>
-    </message>
-    <message>
-        <source>Paste</source>
-        <translation>Wklej</translation>
-    </message>
-    <message>
-        <source>Paste Special...</source>
-        <translation>Wklej specjalnie...</translation>
-    </message>
-    <message>
-        <source>Delete</source>
-        <translation>Usuń</translation>
-    </message>
-    <message>
-        <source>Select All</source>
-        <translation>Zaznacz wszystko</translation>
-    </message>
-    <message>
-        <source>Select Word</source>
-        <translation>Zaznacz słowo</translation>
-    </message>
-    <message>
-        <source>Select Paragraph</source>
-        <translation>Zaznacz akapit</translation>
-    </message>
-    <message>
-        <source>Find...</source>
-        <translation>Znajdź...</translation>
-    </message>
-    <message>
-        <source>Find Next</source>
-        <translation>Znajdź następny</translation>
-    </message>
-    <message>
-        <source>Find Previous</source>
-        <translation>Znajdź poprzedni</translation>
-    </message>
-    <message>
-        <source>Find &amp; Replace...</source>
-        <translation>Znajdź i zamień...</translation>
-    </message>
-    <message>
-        <source>Find in Book...</source>
-        <translation>Znajdź w książce...</translation>
-    </message>
-    <message>
-        <source>Preferences...</source>
-        <translation>Preferencje...</translation>
-    </message>
-    <message>
-        <source>Settings...</source>
-        <translation>Ustawienia...</translation>
-    </message>
-    <message>
-        <source>New Chapter...</source>
-        <translation>Nowy rozdział...</translation>
-    </message>
-    <message>
-        <source>New Scene...</source>
-        <translation>Nowa scena...</translation>
-    </message>
-    <message>
-        <source>New Character...</source>
-        <translation>Nowa postać...</translation>
-    </message>
-    <message>
-        <source>New Location...</source>
-        <translation>Nowe miejsce...</translation>
-    </message>
-    <message>
-        <source>New Item...</source>
-        <translation>Nowy element...</translation>
-    </message>
-    <message>
-        <source>New Mind Map...</source>
-        <translation>Nowa mapa myśli...</translation>
-    </message>
-    <message>
-        <source>New Timeline...</source>
-        <translation>Nowa oś czasu...</translation>
-    </message>
-    <message>
-        <source>Chapter Break</source>
-        <translation>Podział rozdziału</translation>
-    </message>
-    <message>
-        <source>Scene Break</source>
-        <translation>Podział sceny</translation>
-    </message>
-    <message>
-        <source>Book Properties...</source>
-        <translation>Właściwości książki...</translation>
-    </message>
-    <message>
-        <source>Image...</source>
-        <translation>Obraz...</translation>
-    </message>
-    <message>
-        <source>Table...</source>
-        <translation>Tabela...</translation>
-    </message>
-    <message>
-        <source>Link...</source>
-        <translation>Łącze...</translation>
-    </message>
-    <message>
-        <source>Footnote</source>
-        <translation>Przypis dolny</translation>
-    </message>
-    <message>
-        <source>Endnote</source>
-        <translation>Przypis końcowy</translation>
-    </message>
-    <message>
-        <source>Special Character...</source>
-        <translation>Znak specjalny...</translation>
-    </message>
-    <message>
-        <source>Date &amp; Time</source>
-        <translation>Data i godzina</translation>
-    </message>
-    <message>
-        <source>Field...</source>
-        <translation>Pole...</translation>
-    </message>
-    <message>
-        <source>Font...</source>
-        <translation>Czcionka...</translation>
-    </message>
-    <message>
-        <source>Paragraph...</source>
-        <translation>Akapit...</translation>
-    </message>
-    <message>
-        <source>Heading 1</source>
-        <translation>Nagłówek 1</translation>
-    </message>
-    <message>
-        <source>Heading 2</source>
-        <translation>Nagłówek 2</translation>
-    </message>
-    <message>
-        <source>Heading 3</source>
-        <translation>Nagłówek 3</translation>
-    </message>
-    <message>
-        <source>Body Text</source>
-        <translation>Tekst podstawowy</translation>
-    </message>
-    <message>
-        <source>Quote</source>
-        <translation>Cytat</translation>
-    </message>
-    <message>
-        <source>Code</source>
-        <translation>Kod</translation>
-    </message>
-    <message>
-        <source>Manage Styles...</source>
-        <translation>Zarządzaj stylami...</translation>
-    </message>
-    <message>
-        <source>Bold</source>
-        <translation>Pogrubienie</translation>
-    </message>
-    <message>
-        <source>Italic</source>
-        <translation>Kursywa</translation>
-    </message>
-    <message>
-        <source>Underline</source>
-        <translation>Podkreślenie</translation>
-    </message>
-    <message>
-        <source>Strikethrough</source>
-        <translation>Przekreślenie</translation>
-    </message>
-    <message>
-        <source>Align Left</source>
-        <translation>Wyrównaj do lewej</translation>
-    </message>
-    <message>
-        <source>Align Center</source>
-        <translation>Wyśrodkuj</translation>
-    </message>
-    <message>
-        <source>Align Right</source>
-        <translation>Wyrównaj do prawej</translation>
-    </message>
-    <message>
-        <source>Justify</source>
-        <translation>Wyjustuj</translation>
-    </message>
-    <message>
-        <source>Increase Indent</source>
-        <translation>Zwiększ wcięcie</translation>
-    </message>
-    <message>
-        <source>Decrease Indent</source>
-        <translation>Zmniejsz wcięcie</translation>
-    </message>
-    <message>
-        <source>Bullets</source>
-        <translation>Punktory</translation>
-    </message>
-    <message>
-        <source>Numbering</source>
-        <translation>Numerowanie</translation>
-    </message>
-    <message>
-        <source>Color</source>
-        <translation>Kolor</translation>
-    </message>
-    <message>
-        <source>Clear Formatting</source>
-        <translation>Wyczyść formatowanie</translation>
-    </message>
-    <message>
-        <source>Full Statistics...</source>
-        <translation>Pełne statystyki...</translation>
-    </message>
-    <message>
-        <source>Word Count</source>
-        <translation>Liczba słów</translation>
-    </message>
-    <message>
-        <source>Spellchecker</source>
-        <translation>Sprawdzanie pisowni</translation>
-    </message>
-    <message>
-        <source>Grammar Check</source>
-        <translation>Sprawdzanie gramatyki</translation>
-    </message>
-    <message>
-        <source>Readability Score</source>
-        <translation>Ocena czytelności</translation>
-    </message>
-    <message>
-        <source>Distraction-Free</source>
-        <translation>Bez rozpraszania</translation>
-    </message>
-    <message>
-        <source>Backup Now</source>
-        <translation>Utwórz kopię zapasową</translation>
-    </message>
-    <message>
-        <source>Auto-Save Settings...</source>
-        <translation>Ustawienia autozapisu...</translation>
-    </message>
-    <message>
-        <source>Version History...</source>
-        <translation>Historia wersji...</translation>
-    </message>
-    <message>
-        <source>Plugin Manager...</source>
-        <translation>Menedżer wtyczek...</translation>
-    </message>
-    <message>
-        <source>Check for Updates...</source>
-        <translation>Sprawdź aktualizacje...</translation>
-    </message>
-    <message>
-        <source>Reload Plugins</source>
-        <translation>Wczytaj ponownie wtyczki</translation>
-    </message>
-    <message>
-        <source>Challenges &amp; Badges...</source>
-        <translation>Wyzwania i odznaki...</translation>
-    </message>
-    <message>
-        <source>Writing Goals &amp; Deadlines...</source>
-        <translation>Cele i terminy pisania...</translation>
-    </message>
-    <message>
-        <source>Customize Toolbars...</source>
-        <translation>Dostosuj paski narzędzi...</translation>
-    </message>
-    <message>
-        <source>Ask Assistant...</source>
-        <translation>Zapytaj asystenta...</translation>
-    </message>
-    <message>
-        <source>Switch Assistant...</source>
-        <translation>Zmień asystenta...</translation>
-    </message>
-    <message>
-        <source>Check Grammar</source>
-        <translation>Sprawdź gramatykę</translation>
-    </message>
-    <message>
-        <source>Improve Style</source>
-        <translation>Popraw styl</translation>
-    </message>
-    <message>
-        <source>Analyze Plot</source>
-        <translation>Analizuj fabułę</translation>
-    </message>
-    <message>
-        <source>Research Topic...</source>
-        <translation>Zbadaj temat...</translation>
-    </message>
-    <message>
-        <source>Speed Draft Mode</source>
-        <translation>Tryb szybkiego szkicu</translation>
-    </message>
-    <message>
-        <source>Assistant Settings...</source>
-        <translation>Ustawienia asystenta...</translation>
-    </message>
-    <message>
-        <source>Dashboard</source>
-        <translation>Pulpit</translation>
-    </message>
-    <message>
-        <source>Navigator</source>
-        <translation>Nawigator</translation>
-    </message>
-    <message>
-        <source>Properties</source>
-        <translation>Właściwości</translation>
-    </message>
-    <message>
-        <source>Log</source>
-        <translation>Dziennik</translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation>Wyszukiwanie</translation>
-    </message>
-    <message>
-        <source>Assistant</source>
-        <translation>Asystent</translation>
-    </message>
-    <message>
-        <source>Continuous</source>
-        <translation>Ciągły</translation>
-    </message>
-    <message>
-        <source>Page Layout</source>
-        <translation>Układ strony</translation>
-    </message>
-    <message>
-        <source>Focus</source>
-        <translation>Skupienie</translation>
-    </message>
-    <message>
-        <source>Typewriter Scrolling</source>
-        <translation>Przewijanie jak w maszynie do pisania</translation>
-    </message>
-    <message>
-        <source>Dark Paper</source>
-        <translation>Ciemny papier</translation>
-    </message>
-    <message>
-        <source>Writer</source>
-        <translation>Pisarz</translation>
-    </message>
-    <message>
-        <source>Editor</source>
-        <translation>Redaktor</translation>
-    </message>
-    <message>
-        <source>Researcher</source>
-        <translation>Badacz</translation>
-    </message>
-    <message>
-        <source>Planner</source>
-        <translation>Planista</translation>
-    </message>
-    <message>
-        <source>Save Current Perspective...</source>
-        <translation>Zapisz bieżącą perspektywę...</translation>
-    </message>
-    <message>
-        <source>Manage Perspectives...</source>
-        <translation>Zarządzaj perspektywami...</translation>
-    </message>
-    <message>
-        <source>Show Status Bar</source>
-        <translation>Pokaż pasek stanu</translation>
-    </message>
-    <message>
-        <source>Show Statistics Bar</source>
-        <translation>Pokaż pasek statystyk</translation>
-    </message>
-    <message>
-        <source>Show Formatting Marks</source>
-        <translation>Pokaż znaki formatowania</translation>
-    </message>
-    <message>
-        <source>Zoom In</source>
-        <translation>Powiększ</translation>
-    </message>
-    <message>
-        <source>Zoom Out</source>
-        <translation>Pomniejsz</translation>
-    </message>
-    <message>
-        <source>Zoom 100%</source>
-        <translation>Powiększenie 100%</translation>
-    </message>
-    <message>
-        <source>Page Width</source>
-        <translation>Szerokość strony</translation>
-    </message>
-    <message>
-        <source>Whole Page</source>
-        <translation>Cała strona</translation>
-    </message>
-    <message>
-        <source>Full Screen</source>
-        <translation>Pełny ekran</translation>
-    </message>
-    <message>
-        <source>Reset Layout</source>
-        <translation>Przywróć domyślny układ</translation>
-    </message>
-    <message>
-        <source>Kalahari Help</source>
-        <translation>Pomoc programu Kalahari</translation>
-    </message>
-    <message>
-        <source>Getting Started Tutorial</source>
-        <translation>Samouczek dla początkujących</translation>
-    </message>
-    <message>
-        <source>Keyboard Shortcuts</source>
-        <translation>Skróty klawiszowe</translation>
-    </message>
-    <message>
-        <source>Tips &amp; Tricks</source>
-        <translation>Porady i wskazówki</translation>
-    </message>
-    <message>
-        <source>What&apos;s New</source>
-        <translation>Co nowego</translation>
-    </message>
-    <message>
-        <source>Report a Bug...</source>
-        <translation>Zgłoś błąd...</translation>
-    </message>
-    <message>
-        <source>Suggest a Feature...</source>
-        <translation>Zaproponuj funkcję...</translation>
-    </message>
-    <message>
-        <source>Community Forum</source>
-        <translation>Forum społeczności</translation>
-    </message>
-    <message>
-        <source>About Kalahari</source>
-        <translation>O programie Kalahari</translation>
-    </message>
-    <message>
-        <source>Add Annotation...</source>
-        <translation>Dodaj uwagę...</translation>
-    </message>
-    <message>
-        <source>Add Comment</source>
-        <translation>Dodaj komentarz</translation>
-    </message>
-    <message>
-        <source>Add To Do</source>
-        <translation>Dodaj uwagę do zrobienia</translation>
-    </message>
-    <message>
-        <source>Add Note</source>
-        <translation>Dodaj notatkę</translation>
-    </message>
-    <message>
-        <source>Next To Do</source>
-        <translation>Następna uwaga do zrobienia</translation>
-    </message>
-    <message>
-        <source>Previous To Do</source>
-        <translation>Poprzednia uwaga do zrobienia</translation>
-    </message>
-    <message>
-        <source>Annotations</source>
-        <translation>Uwagi</translation>
-    </message>
-    <message>
         <source>not available yet</source>
         <comment>Kalahari Help</comment>
         <translation>jeszcze niedostępna</translation>
+    </message>
+    <message>
+        <source>&amp;New File</source>
+        <translation>Nowy &amp;plik</translation>
+    </message>
+    <message>
+        <source>New &amp;Book...</source>
+        <translation>&amp;Nowa książka...</translation>
+    </message>
+    <message>
+        <source>&amp;Open Book...</source>
+        <translation>&amp;Otwórz książkę...</translation>
+    </message>
+    <message>
+        <source>&amp;Open File...</source>
+        <translation>&amp;Otwórz plik...</translation>
+    </message>
+    <message>
+        <source>&amp;Close Book</source>
+        <translation>Za&amp;mknij książkę</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>Save &amp;As...</source>
+        <translation>Zapisz &amp;jako...</translation>
+    </message>
+    <message>
+        <source>Save A&amp;ll</source>
+        <translation>Zapisz &amp;wszystko</translation>
+    </message>
+    <message>
+        <source>&amp;DOCX Document...</source>
+        <translation>&amp;Dokument DOCX...</translation>
+    </message>
+    <message>
+        <source>&amp;PDF Reference...</source>
+        <translation>&amp;Materiał źródłowy PDF...</translation>
+    </message>
+    <message>
+        <source>Plain &amp;Text...</source>
+        <translation>&amp;Zwykły tekst...</translation>
+    </message>
+    <message>
+        <source>&amp;Scrivener Project...</source>
+        <translation>Projekt &amp;Scrivenera...</translation>
+    </message>
+    <message>
+        <source>Project &amp;Archive...</source>
+        <translation>&amp;Archiwum projektu...</translation>
+    </message>
+    <message>
+        <source>&amp;DOCX</source>
+        <translation>&amp;DOCX</translation>
+    </message>
+    <message>
+        <source>&amp;PDF</source>
+        <translation>&amp;PDF</translation>
+    </message>
+    <message>
+        <source>&amp;Markdown</source>
+        <translation>&amp;Markdown</translation>
+    </message>
+    <message>
+        <source>&amp;EPUB</source>
+        <translation>&amp;EPUB</translation>
+    </message>
+    <message>
+        <source>M&amp;OBI</source>
+        <translation>M&amp;OBI</translation>
+    </message>
+    <message>
+        <source>&amp;InDesign ICML</source>
+        <translation>&amp;InDesign ICML</translation>
+    </message>
+    <message>
+        <source>&amp;LaTeX</source>
+        <translation>&amp;LaTeX</translation>
+    </message>
+    <message>
+        <source>Export &amp;Settings...</source>
+        <translation>&amp;Ustawienia eksportu...</translation>
+    </message>
+    <message>
+        <source>E&amp;xit</source>
+        <translation>Za&amp;kończ</translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>&amp;Redo</source>
+        <translation>&amp;Ponów</translation>
+    </message>
+    <message>
+        <source>Cu&amp;t</source>
+        <translation>Wy&amp;tnij</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>&amp;Paste</source>
+        <translation>Wk&amp;lej</translation>
+    </message>
+    <message>
+        <source>Paste &amp;Special...</source>
+        <translation>Wklej &amp;specjalnie...</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Select &amp;All</source>
+        <translation>Zaznacz &amp;wszystko</translation>
+    </message>
+    <message>
+        <source>Select &amp;Word</source>
+        <translation>Zaznacz sł&amp;owo</translation>
+    </message>
+    <message>
+        <source>Select Paragrap&amp;h</source>
+        <translation>Zaznacz &amp;akapit</translation>
+    </message>
+    <message>
+        <source>&amp;Find...</source>
+        <translation>&amp;Znajdź...</translation>
+    </message>
+    <message>
+        <source>Find &amp;Next</source>
+        <translation>Znajdź &amp;następny</translation>
+    </message>
+    <message>
+        <source>Find Pre&amp;vious</source>
+        <translation>Znajdź pop&amp;rzedni</translation>
+    </message>
+    <message>
+        <source>Find &amp;&amp; Rep&amp;lace...</source>
+        <translation>Znajdź i za&amp;mień...</translation>
+    </message>
+    <message>
+        <source>Find in &amp;Book...</source>
+        <translation>Znajdź w ks&amp;iążce...</translation>
+    </message>
+    <message>
+        <source>Ne&amp;xt To Do</source>
+        <translation>Następna uwa&amp;ga do zrobienia</translation>
+    </message>
+    <message>
+        <source>Previ&amp;ous To Do</source>
+        <translation>Poprzednia uwaga &amp;do zrobienia</translation>
+    </message>
+    <message>
+        <source>Pr&amp;eferences...</source>
+        <translation>Pre&amp;ferencje...</translation>
+    </message>
+    <message>
+        <source>Settin&amp;gs...</source>
+        <translation>Ustawi&amp;enia...</translation>
+    </message>
+    <message>
+        <source>&amp;New Chapter...</source>
+        <translation>&amp;Nowy rozdział...</translation>
+    </message>
+    <message>
+        <source>New &amp;Scene...</source>
+        <translation>Nowa &amp;scena...</translation>
+    </message>
+    <message>
+        <source>New &amp;Character...</source>
+        <translation>Nowa &amp;postać...</translation>
+    </message>
+    <message>
+        <source>New &amp;Location...</source>
+        <translation>Nowe &amp;miejsce...</translation>
+    </message>
+    <message>
+        <source>New &amp;Item...</source>
+        <translation>Nowy &amp;element...</translation>
+    </message>
+    <message>
+        <source>New &amp;Mind Map...</source>
+        <translation>Nowa m&amp;apa myśli...</translation>
+    </message>
+    <message>
+        <source>New &amp;Timeline...</source>
+        <translation>Nowa &amp;oś czasu...</translation>
+    </message>
+    <message>
+        <source>Chapter &amp;Break</source>
+        <translation>Po&amp;dział rozdziału</translation>
+    </message>
+    <message>
+        <source>Sc&amp;ene Break</source>
+        <translation>Podział s&amp;ceny</translation>
+    </message>
+    <message>
+        <source>Book &amp;Properties...</source>
+        <translation>&amp;Właściwości książki...</translation>
+    </message>
+    <message>
+        <source>&amp;Image...</source>
+        <translation>&amp;Obraz...</translation>
+    </message>
+    <message>
+        <source>&amp;Link...</source>
+        <translation>Łą&amp;cze...</translation>
+    </message>
+    <message>
+        <source>F&amp;ootnote</source>
+        <translation>Przypis &amp;dolny</translation>
+    </message>
+    <message>
+        <source>&amp;Endnote</source>
+        <translation>Przypis &amp;końcowy</translation>
+    </message>
+    <message>
+        <source>Add &amp;Annotation...</source>
+        <translation>Dodaj &amp;uwagę...</translation>
+    </message>
+    <message>
+        <source>Add To &amp;Do</source>
+        <translation>Dodaj uwagę do &amp;zrobienia</translation>
+    </message>
+    <message>
+        <source>Add &amp;Note</source>
+        <translation>Dodaj &amp;notatkę</translation>
+    </message>
+    <message>
+        <source>&amp;Special Character...</source>
+        <translation>Znak &amp;specjalny...</translation>
+    </message>
+    <message>
+        <source>&amp;Field...</source>
+        <translation>&amp;Pole...</translation>
+    </message>
+    <message>
+        <source>&amp;Font...</source>
+        <translation>&amp;Czcionka...</translation>
+    </message>
+    <message>
+        <source>&amp;Paragraph...</source>
+        <translation>&amp;Akapit...</translation>
+    </message>
+    <message>
+        <source>Heading &amp;1</source>
+        <translation>Nagłówek &amp;1</translation>
+    </message>
+    <message>
+        <source>Heading &amp;2</source>
+        <translation>Nagłówek &amp;2</translation>
+    </message>
+    <message>
+        <source>Heading &amp;3</source>
+        <translation>Nagłówek &amp;3</translation>
+    </message>
+    <message>
+        <source>&amp;Body Text</source>
+        <translation>&amp;Tekst podstawowy</translation>
+    </message>
+    <message>
+        <source>&amp;Quote</source>
+        <translation>&amp;Cytat</translation>
+    </message>
+    <message>
+        <source>&amp;Code</source>
+        <translation>&amp;Kod</translation>
+    </message>
+    <message>
+        <source>&amp;Manage Styles...</source>
+        <translation>&amp;Zarządzaj stylami...</translation>
+    </message>
+    <message>
+        <source>&amp;Bold</source>
+        <translation>Pogru&amp;bienie</translation>
+    </message>
+    <message>
+        <source>&amp;Italic</source>
+        <translation>&amp;Kursywa</translation>
+    </message>
+    <message>
+        <source>&amp;Underline</source>
+        <translation>Po&amp;dkreślenie</translation>
+    </message>
+    <message>
+        <source>Stri&amp;kethrough</source>
+        <translation>P&amp;rzekreślenie</translation>
+    </message>
+    <message>
+        <source>Align &amp;Left</source>
+        <translation>Wyrównaj do &amp;lewej</translation>
+    </message>
+    <message>
+        <source>Align &amp;Center</source>
+        <translation>W&amp;yśrodkuj</translation>
+    </message>
+    <message>
+        <source>Align &amp;Right</source>
+        <translation>Wyrównaj do &amp;prawej</translation>
+    </message>
+    <message>
+        <source>&amp;Justify</source>
+        <translation>Wy&amp;justuj</translation>
+    </message>
+    <message>
+        <source>Incre&amp;ase Indent</source>
+        <translation>&amp;Zwiększ wcięcie</translation>
+    </message>
+    <message>
+        <source>&amp;Decrease Indent</source>
+        <translation>Z&amp;mniejsz wcięcie</translation>
+    </message>
+    <message>
+        <source>Bull&amp;ets</source>
+        <translation>P&amp;unktory</translation>
+    </message>
+    <message>
+        <source>&amp;Numbering</source>
+        <translation>&amp;Numerowanie</translation>
+    </message>
+    <message>
+        <source>C&amp;olor</source>
+        <translation>K&amp;olor</translation>
+    </message>
+    <message>
+        <source>Clear For&amp;matting</source>
+        <translation>Wyczyść &amp;formatowanie</translation>
+    </message>
+    <message>
+        <source>&amp;Full Statistics...</source>
+        <translation>&amp;Pełne statystyki...</translation>
+    </message>
+    <message>
+        <source>&amp;Word Count</source>
+        <translation>&amp;Liczba słów</translation>
+    </message>
+    <message>
+        <source>S&amp;pellchecker</source>
+        <translation>Sprawdzanie &amp;pisowni</translation>
+    </message>
+    <message>
+        <source>&amp;Grammar Check</source>
+        <translation>Sprawdzanie &amp;gramatyki</translation>
+    </message>
+    <message>
+        <source>&amp;Readability Score</source>
+        <translation>&amp;Ocena czytelności</translation>
+    </message>
+    <message>
+        <source>&amp;Backup Now</source>
+        <translation>Utwórz &amp;kopię zapasową</translation>
+    </message>
+    <message>
+        <source>&amp;Auto-Save Settings...</source>
+        <translation>Ustawienia &amp;autozapisu...</translation>
+    </message>
+    <message>
+        <source>&amp;Version History...</source>
+        <translation>&amp;Historia wersji...</translation>
+    </message>
+    <message>
+        <source>Plugin &amp;Manager...</source>
+        <translation>&amp;Menedżer wtyczek...</translation>
+    </message>
+    <message>
+        <source>Check for &amp;Updates...</source>
+        <translation>Sprawdź &amp;aktualizacje...</translation>
+    </message>
+    <message>
+        <source>&amp;Reload Plugins</source>
+        <translation>&amp;Wczytaj ponownie wtyczki</translation>
+    </message>
+    <message>
+        <source>&amp;Challenges &amp;&amp; Badges...</source>
+        <translation>Wy&amp;zwania i odznaki...</translation>
+    </message>
+    <message>
+        <source>&amp;Writing Goals &amp;&amp; Deadlines...</source>
+        <translation>&amp;Cele i terminy pisania...</translation>
+    </message>
+    <message>
+        <source>Customize &amp;Toolbars...</source>
+        <translation>&amp;Dostosuj paski narzędzi...</translation>
+    </message>
+    <message>
+        <source>&amp;Ask Assistant...</source>
+        <translation>&amp;Zapytaj asystenta...</translation>
+    </message>
+    <message>
+        <source>&amp;Switch Assistant...</source>
+        <translation>Z&amp;mień asystenta...</translation>
+    </message>
+    <message>
+        <source>Check &amp;Grammar</source>
+        <translation>Sprawdź &amp;gramatykę</translation>
+    </message>
+    <message>
+        <source>&amp;Improve Style</source>
+        <translation>&amp;Popraw styl</translation>
+    </message>
+    <message>
+        <source>&amp;Analyze Plot</source>
+        <translation>&amp;Analizuj fabułę</translation>
+    </message>
+    <message>
+        <source>&amp;Research Topic...</source>
+        <translation>&amp;Zbadaj temat...</translation>
+    </message>
+    <message>
+        <source>&amp;Speed Draft Mode</source>
+        <translation>&amp;Tryb szybkiego szkicu</translation>
+    </message>
+    <message>
+        <source>Assistant Se&amp;ttings...</source>
+        <translation>&amp;Ustawienia asystenta...</translation>
+    </message>
+    <message>
+        <source>&amp;Dashboard</source>
+        <translation>&amp;Pulpit</translation>
+    </message>
+    <message>
+        <source>&amp;Navigator</source>
+        <translation>&amp;Nawigator</translation>
+    </message>
+    <message>
+        <source>&amp;Properties</source>
+        <translation>&amp;Właściwości</translation>
+    </message>
+    <message>
+        <source>&amp;Log</source>
+        <translation>&amp;Dziennik</translation>
+    </message>
+    <message>
+        <source>&amp;Search</source>
+        <translation>Wy&amp;szukiwanie</translation>
+    </message>
+    <message>
+        <source>&amp;Assistant</source>
+        <translation>&amp;Asystent</translation>
+    </message>
+    <message>
+        <source>Ann&amp;otations</source>
+        <translation>&amp;Uwagi</translation>
+    </message>
+    <message>
+        <source>&amp;Continuous</source>
+        <translation>&amp;Ciągły</translation>
+    </message>
+    <message>
+        <source>&amp;Page Layout</source>
+        <translation>&amp;Układ strony</translation>
+    </message>
+    <message>
+        <source>D&amp;istraction-Free</source>
+        <translation>&amp;Bez rozpraszania</translation>
+    </message>
+    <message>
+        <source>Type&amp;writer Scrolling</source>
+        <translation>Przewijanie jak w &amp;maszynie do pisania</translation>
+    </message>
+    <message>
+        <source>&amp;Focus</source>
+        <translation>S&amp;kupienie</translation>
+    </message>
+    <message>
+        <source>Dar&amp;k Paper</source>
+        <translation>&amp;Ciemny papier</translation>
+    </message>
+    <message>
+        <source>&amp;Writer</source>
+        <translation>&amp;Pisarz</translation>
+    </message>
+    <message>
+        <source>&amp;Editor</source>
+        <translation>&amp;Redaktor</translation>
+    </message>
+    <message>
+        <source>&amp;Researcher</source>
+        <translation>&amp;Badacz</translation>
+    </message>
+    <message>
+        <source>&amp;Planner</source>
+        <translation>P&amp;lanista</translation>
+    </message>
+    <message>
+        <source>&amp;Save Current Perspective...</source>
+        <translation>&amp;Zapisz bieżącą perspektywę...</translation>
+    </message>
+    <message>
+        <source>&amp;Manage Perspectives...</source>
+        <translation>Z&amp;arządzaj perspektywami...</translation>
+    </message>
+    <message>
+        <source>Show &amp;Status Bar</source>
+        <translation>Pokaż pasek &amp;stanu</translation>
+    </message>
+    <message>
+        <source>Show Statistics &amp;Bar</source>
+        <translation>Pokaż pasek statyst&amp;yk</translation>
+    </message>
+    <message>
+        <source>Show Formattin&amp;g Marks</source>
+        <translation>Pokaż &amp;znaki formatowania</translation>
+    </message>
+    <message>
+        <source>Zoom &amp;In</source>
+        <translation>&amp;Powiększ</translation>
+    </message>
+    <message>
+        <source>Zoom &amp;Out</source>
+        <translation>Po&amp;mniejsz</translation>
+    </message>
+    <message>
+        <source>Zoom &amp;100%</source>
+        <translation>Powiększenie &amp;100%</translation>
+    </message>
+    <message>
+        <source>&amp;Page Width</source>
+        <translation>&amp;Szerokość strony</translation>
+    </message>
+    <message>
+        <source>&amp;Whole Page</source>
+        <translation>&amp;Cała strona</translation>
+    </message>
+    <message>
+        <source>F&amp;ull Screen</source>
+        <translation>Pełny &amp;ekran</translation>
+    </message>
+    <message>
+        <source>Reset &amp;Layout</source>
+        <translation>Przywróć &amp;domyślny układ</translation>
+    </message>
+    <message>
+        <source>Kalahari &amp;Help</source>
+        <translation>&amp;Pomoc programu Kalahari</translation>
+    </message>
+    <message>
+        <source>&amp;Getting Started Tutorial</source>
+        <translation>&amp;Samouczek dla początkujących</translation>
+    </message>
+    <message>
+        <source>&amp;Keyboard Shortcuts</source>
+        <translation>Skróty &amp;klawiszowe</translation>
+    </message>
+    <message>
+        <source>&amp;Tips &amp;&amp; Tricks</source>
+        <translation>Porady i &amp;wskazówki</translation>
+    </message>
+    <message>
+        <source>&amp;What&apos;s New</source>
+        <translation>&amp;Co nowego</translation>
+    </message>
+    <message>
+        <source>&amp;Report a Bug...</source>
+        <translation>&amp;Zgłoś błąd...</translation>
+    </message>
+    <message>
+        <source>&amp;Suggest a Feature...</source>
+        <translation>Zaproponuj &amp;funkcję...</translation>
+    </message>
+    <message>
+        <source>&amp;Community Forum</source>
+        <translation>Fo&amp;rum społeczności</translation>
+    </message>
+    <message>
+        <source>&amp;About Kalahari</source>
+        <translation>&amp;O programie Kalahari</translation>
+    </message>
+    <message>
+        <source>Ta&amp;ble...</source>
+        <translation>&amp;Tabela...</translation>
+    </message>
+    <message>
+        <source>Add Co&amp;mment</source>
+        <translation>Dodaj ko&amp;mentarz</translation>
+    </message>
+    <message>
+        <source>Date &amp;&amp; &amp;Time</source>
+        <translation>Data i &amp;godzina</translation>
     </message>
 </context>
 <context>
     <name>QAbstractSpinBox</name>
     <message>
         <source>&amp;Select All</source>
-        <translation>&amp;Zaznacz wszystko</translation>
+        <translation>Zaznacz &amp;wszystko</translation>
     </message>
     <message>
         <source>&amp;Step up</source>
@@ -628,15 +628,15 @@
     </message>
     <message>
         <source>&amp;Paste</source>
-        <translation>&amp;Wklej</translation>
+        <translation>Wk&amp;lej</translation>
     </message>
     <message>
         <source>Delete</source>
-        <translation>Usuń</translation>
+        <translation>&amp;Usuń</translation>
     </message>
     <message>
         <source>Select All</source>
-        <translation>Zaznacz wszystko</translation>
+        <translation>Zaznacz &amp;wszystko</translation>
     </message>
 </context>
 <context>
@@ -674,144 +674,12 @@
         <translation>Zamknij</translation>
     </message>
     <message>
-        <source>Panels</source>
-        <translation>Panele</translation>
-    </message>
-    <message>
         <source>Settings applied</source>
         <translation>Zastosowano ustawienia</translation>
     </message>
     <message>
         <source>Settings changes discarded</source>
         <translation>Odrzucono zmiany ustawień</translation>
-    </message>
-    <message>
-        <source>File</source>
-        <translation>Plik</translation>
-    </message>
-    <message>
-        <source>Edit</source>
-        <translation>Edycja</translation>
-    </message>
-    <message>
-        <source>Book</source>
-        <translation>Książka</translation>
-    </message>
-    <message>
-        <source>Insert</source>
-        <translation>Wstaw</translation>
-    </message>
-    <message>
-        <source>Format</source>
-        <translation>Format</translation>
-    </message>
-    <message>
-        <source>Tools</source>
-        <translation>Narzędzia</translation>
-    </message>
-    <message>
-        <source>View</source>
-        <translation>Widok</translation>
-    </message>
-    <message>
-        <source>Help</source>
-        <translation>Pomoc</translation>
-    </message>
-    <message>
-        <source>Open</source>
-        <translation>Otwórz</translation>
-    </message>
-    <message>
-        <source>Import</source>
-        <translation>Importuj</translation>
-    </message>
-    <message>
-        <source>Export</source>
-        <translation>Eksportuj</translation>
-    </message>
-    <message>
-        <source>Text Style</source>
-        <translation>Styl tekstu</translation>
-    </message>
-    <message>
-        <source>Statistics</source>
-        <translation>Statystyki</translation>
-    </message>
-    <message>
-        <source>Plugins</source>
-        <translation>Wtyczki</translation>
-    </message>
-    <message>
-        <source>Assistant Actions</source>
-        <translation>Działania asystenta</translation>
-    </message>
-    <message>
-        <source>View Mode</source>
-        <translation>Tryb widoku</translation>
-    </message>
-    <message>
-        <source>Zoom</source>
-        <translation>Powiększenie</translation>
-    </message>
-    <message>
-        <source>Perspectives</source>
-        <translation>Perspektywy</translation>
-    </message>
-    <message>
-        <source>Toolbars</source>
-        <translation>Paski narzędzi</translation>
-    </message>
-    <message>
-        <source>Recent Books</source>
-        <translation>Ostatnie książki</translation>
-    </message>
-    <message>
-        <source>File Toolbar</source>
-        <translation>Plik</translation>
-    </message>
-    <message>
-        <source>Edit Toolbar</source>
-        <translation>Edycja</translation>
-    </message>
-    <message>
-        <source>Book Toolbar</source>
-        <translation>Książka</translation>
-    </message>
-    <message>
-        <source>Panels Toolbar</source>
-        <translation>Panele</translation>
-    </message>
-    <message>
-        <source>Tools Toolbar</source>
-        <translation>Narzędzia</translation>
-    </message>
-    <message>
-        <source>Views Toolbar</source>
-        <translation>Widoki</translation>
-    </message>
-    <message>
-        <source>Format Toolbar</source>
-        <translation>Formatowanie</translation>
-    </message>
-    <message>
-        <source>Insert Toolbar</source>
-        <translation>Wstawianie</translation>
-    </message>
-    <message>
-        <source>Styles Toolbar</source>
-        <translation>Style</translation>
-    </message>
-    <message>
-        <source>Quick Actions</source>
-        <translation>Szybki dostęp</translation>
-    </message>
-    <message>
-        <source>Help Toolbar</source>
-        <translation>Pomoc</translation>
-    </message>
-    <message>
-        <source>Toolbar Manager...</source>
-        <translation>Menedżer pasków narzędzi...</translation>
     </message>
     <message>
         <source>Toolbar configuration saved</source>
@@ -826,28 +694,12 @@
         <translation>Rozmiar czcionki</translation>
     </message>
     <message>
-        <source>Lock Toolbar Positions</source>
-        <translation>Zablokuj położenie pasków narzędzi</translation>
-    </message>
-    <message>
-        <source>Customize...</source>
-        <translation>Dostosuj...</translation>
-    </message>
-    <message>
-        <source>Reset to Default</source>
-        <translation>Przywróć domyślne</translation>
-    </message>
-    <message>
         <source>Reset Toolbars</source>
         <translation>Przywróć paski narzędzi</translation>
     </message>
     <message>
         <source>Reset all toolbars to default configuration?</source>
         <translation>Przywrócić domyślną konfigurację wszystkich pasków narzędzi?</translation>
-    </message>
-    <message>
-        <source>Toolbar Manager</source>
-        <translation>Menedżer pasków narzędzi</translation>
     </message>
     <message>
         <source>Grammar Issue</source>
@@ -872,6 +724,154 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>Annotations</source>
         <translation>Uwagi</translation>
+    </message>
+    <message>
+        <source>&amp;File</source>
+        <translation>&amp;Plik</translation>
+    </message>
+    <message>
+        <source>&amp;Edit</source>
+        <translation>&amp;Edycja</translation>
+    </message>
+    <message>
+        <source>&amp;Book</source>
+        <translation>&amp;Książka</translation>
+    </message>
+    <message>
+        <source>&amp;Insert</source>
+        <translation>W&amp;staw</translation>
+    </message>
+    <message>
+        <source>F&amp;ormat</source>
+        <translation>&amp;Format</translation>
+    </message>
+    <message>
+        <source>&amp;Tools</source>
+        <translation>&amp;Narzędzia</translation>
+    </message>
+    <message>
+        <source>&amp;Assistant</source>
+        <translation>&amp;Asystent</translation>
+    </message>
+    <message>
+        <source>&amp;View</source>
+        <translation>&amp;Widok</translation>
+    </message>
+    <message>
+        <source>&amp;Help</source>
+        <translation>Pomo&amp;c</translation>
+    </message>
+    <message>
+        <source>O&amp;pen</source>
+        <translation>O&amp;twórz</translation>
+    </message>
+    <message>
+        <source>&amp;Import</source>
+        <translation>&amp;Importuj</translation>
+    </message>
+    <message>
+        <source>&amp;Export</source>
+        <translation>&amp;Eksportuj</translation>
+    </message>
+    <message>
+        <source>Text &amp;Style</source>
+        <translation>&amp;Styl tekstu</translation>
+    </message>
+    <message>
+        <source>&amp;Statistics</source>
+        <translation>&amp;Statystyki</translation>
+    </message>
+    <message>
+        <source>P&amp;lugins</source>
+        <translation>&amp;Wtyczki</translation>
+    </message>
+    <message>
+        <source>Assistant A&amp;ctions</source>
+        <translation>&amp;Działania asystenta</translation>
+    </message>
+    <message>
+        <source>View &amp;Mode</source>
+        <translation>&amp;Tryb widoku</translation>
+    </message>
+    <message>
+        <source>&amp;Zoom</source>
+        <translation>Po&amp;większenie</translation>
+    </message>
+    <message>
+        <source>&amp;Panels</source>
+        <translation>P&amp;anele</translation>
+    </message>
+    <message>
+        <source>Pe&amp;rspectives</source>
+        <translation>Pe&amp;rspektywy</translation>
+    </message>
+    <message>
+        <source>&amp;Toolbars</source>
+        <translation>Paski &amp;narzędzi</translation>
+    </message>
+    <message>
+        <source>&amp;Recent Books</source>
+        <translation>O&amp;statnie książki</translation>
+    </message>
+    <message>
+        <source>&amp;File Toolbar</source>
+        <translation>&amp;Plik</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Toolbar</source>
+        <translation>&amp;Edycja</translation>
+    </message>
+    <message>
+        <source>&amp;Book Toolbar</source>
+        <translation>&amp;Książka</translation>
+    </message>
+    <message>
+        <source>&amp;Panels Toolbar</source>
+        <translation>P&amp;anele</translation>
+    </message>
+    <message>
+        <source>&amp;Tools Toolbar</source>
+        <translation>&amp;Narzędzia</translation>
+    </message>
+    <message>
+        <source>&amp;Views Toolbar</source>
+        <translation>W&amp;idoki</translation>
+    </message>
+    <message>
+        <source>F&amp;ormat Toolbar</source>
+        <translation>&amp;Formatowanie</translation>
+    </message>
+    <message>
+        <source>&amp;Insert Toolbar</source>
+        <translation>&amp;Wstawianie</translation>
+    </message>
+    <message>
+        <source>&amp;Styles Toolbar</source>
+        <translation>&amp;Style</translation>
+    </message>
+    <message>
+        <source>&amp;Quick Actions</source>
+        <translation>Szybki &amp;dostęp</translation>
+    </message>
+    <message>
+        <source>&amp;Help Toolbar</source>
+        <translation>P&amp;omoc</translation>
+    </message>
+    <message>
+        <source>Toolbar &amp;Manager...</source>
+        <translation>&amp;Menedżer pasków narzędzi...</translation>
+    </message>
+    <message>
+        <source>&amp;Lock Toolbar Positions</source>
+        <translation>&amp;Zablokuj położenie pasków narzędzi</translation>
+    </message>
+    <message>
+        <source>&amp;Customize...</source>
+        <translation>Dos&amp;tosuj...</translation>
+    </message>
+    <message>
+        <source>&amp;Reset to Default</source>
+        <translation>P&amp;rzywróć domyślne</translation>
     </message>
 </context>
 <context>
@@ -1072,15 +1072,15 @@ Uruchomić ponownie teraz?</translation>
     </message>
     <message>
         <source>&amp;Paste</source>
-        <translation>&amp;Wklej</translation>
+        <translation>Wk&amp;lej</translation>
     </message>
     <message>
         <source>Delete</source>
-        <translation>Usuń</translation>
+        <translation>&amp;Usuń</translation>
     </message>
     <message>
         <source>Select All</source>
-        <translation>Zaznacz wszystko</translation>
+        <translation>Zaznacz &amp;wszystko</translation>
     </message>
 </context>
 <context>
@@ -1441,52 +1441,52 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Słowa: %1</translation>
     </message>
     <message>
-        <source>Cut</source>
-        <translation>Wytnij</translation>
-    </message>
-    <message>
-        <source>Copy</source>
-        <translation>Kopiuj</translation>
-    </message>
-    <message>
-        <source>Paste</source>
-        <translation>Wklej</translation>
-    </message>
-    <message>
-        <source>Select All</source>
-        <translation>Zaznacz wszystko</translation>
-    </message>
-    <message>
-        <source>Switch to Dark Mode</source>
-        <translation>Przełącz na tryb ciemny</translation>
-    </message>
-    <message>
-        <source>Switch to Light Mode</source>
-        <translation>Przełącz na tryb jasny</translation>
-    </message>
-    <message>
         <source>(No suggestions)</source>
         <translation>(Brak podpowiedzi)</translation>
-    </message>
-    <message>
-        <source>Add to Dictionary</source>
-        <translation>Dodaj do słownika</translation>
-    </message>
-    <message>
-        <source>Ignore</source>
-        <translation>Pomiń</translation>
     </message>
     <message>
         <source>Error: &quot;%1&quot;</source>
         <translation>Błąd: „%1”</translation>
     </message>
     <message>
-        <source>Explanation...</source>
-        <translation>Wyjaśnienie...</translation>
+        <source>Add t&amp;o Dictionary</source>
+        <translation>Dodaj do &amp;słownika</translation>
     </message>
     <message>
-        <source>Ignore this rule</source>
-        <translation>Pomijaj tę regułę</translation>
+        <source>&amp;Ignore</source>
+        <translation>&amp;Pomiń</translation>
+    </message>
+    <message>
+        <source>&amp;Explanation...</source>
+        <translation>&amp;Wyjaśnienie...</translation>
+    </message>
+    <message>
+        <source>&amp;Ignore this rule</source>
+        <translation>&amp;Pomijaj tę regułę</translation>
+    </message>
+    <message>
+        <source>Cu&amp;t</source>
+        <translation>Wy&amp;tnij</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>&amp;Paste</source>
+        <translation>Wk&amp;lej</translation>
+    </message>
+    <message>
+        <source>Select &amp;All</source>
+        <translation>Zaznacz &amp;wszystko</translation>
+    </message>
+    <message>
+        <source>Switch to Dar&amp;k Mode</source>
+        <translation>Przełącz na tryb &amp;ciemny</translation>
+    </message>
+    <message>
+        <source>Switch to &amp;Light Mode</source>
+        <translation>Przełącz na tryb &amp;jasny</translation>
     </message>
 </context>
 <context>
@@ -1777,28 +1777,28 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>%1, %2</translation>
     </message>
     <message>
-        <source>Restore</source>
-        <translation>Przywróć</translation>
-    </message>
-    <message>
-        <source>Mark as Done</source>
-        <translation>Oznacz jako zrobione</translation>
-    </message>
-    <message>
-        <source>Mark as Resolved</source>
-        <translation>Oznacz jako rozwiązany</translation>
-    </message>
-    <message>
-        <source>Delete</source>
-        <translation>Usuń</translation>
-    </message>
-    <message>
         <source>(no text)</source>
         <translation>(bez treści)</translation>
     </message>
     <message>
-        <source>Edit</source>
-        <translation>Edytuj</translation>
+        <source>&amp;Edit</source>
+        <translation>&amp;Edytuj</translation>
+    </message>
+    <message>
+        <source>&amp;Restore</source>
+        <translation>&amp;Przywróć</translation>
+    </message>
+    <message>
+        <source>&amp;Mark as Done</source>
+        <translation>&amp;Oznacz jako zrobione</translation>
+    </message>
+    <message>
+        <source>&amp;Mark as Resolved</source>
+        <translation>&amp;Oznacz jako rozwiązany</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
     </message>
 </context>
 <context>
@@ -2138,86 +2138,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Wyłączono tryb diagnostyczny</translation>
     </message>
     <message>
-        <source>&amp;Diagnostics</source>
-        <translation>&amp;Diagnostyka</translation>
-    </message>
-    <message>
-        <source>System Information</source>
-        <translation>Informacje o systemie</translation>
-    </message>
-    <message>
-        <source>Qt Environment</source>
-        <translation>Środowisko Qt</translation>
-    </message>
-    <message>
-        <source>File System Check</source>
-        <translation>Sprawdzenie systemu plików</translation>
-    </message>
-    <message>
-        <source>Settings Dump</source>
-        <translation>Zrzut ustawień</translation>
-    </message>
-    <message>
-        <source>Memory Statistics</source>
-        <translation>Statystyki pamięci</translation>
-    </message>
-    <message>
-        <source>Open Documents Statistics</source>
-        <translation>Statystyki otwartych dokumentów</translation>
-    </message>
-    <message>
-        <source>Logger Test</source>
-        <translation>Test dziennika</translation>
-    </message>
-    <message>
-        <source>Event Bus Test</source>
-        <translation>Test szyny zdarzeń</translation>
-    </message>
-    <message>
-        <source>Plugin Manager Check</source>
-        <translation>Sprawdzenie menedżera wtyczek</translation>
-    </message>
-    <message>
-        <source>Command Registry Dump</source>
-        <translation>Zrzut rejestru poleceń</translation>
-    </message>
-    <message>
-        <source>Python Environment</source>
-        <translation>Środowisko Pythona</translation>
-    </message>
-    <message>
-        <source>Python Import Test</source>
-        <translation>Test importu Pythona</translation>
-    </message>
-    <message>
-        <source>Python Memory Test</source>
-        <translation>Test pamięci Pythona</translation>
-    </message>
-    <message>
-        <source>Embedded Interpreter Status</source>
-        <translation>Stan wbudowanego interpretera</translation>
-    </message>
-    <message>
-        <source>Performance Benchmark</source>
-        <translation>Test wydajności</translation>
-    </message>
-    <message>
-        <source>Render Statistics</source>
-        <translation>Statystyki rysowania</translation>
-    </message>
-    <message>
-        <source>Clear Log</source>
-        <translation>Wyczyść dziennik</translation>
-    </message>
-    <message>
-        <source>Force Crash (Debug Only)</source>
-        <translation>Wymuś awarię (tylko wersja debug)</translation>
-    </message>
-    <message>
-        <source>Memory Leak Test (Debug Only)</source>
-        <translation>Test wycieku pamięci (tylko wersja debug)</translation>
-    </message>
-    <message>
         <source>System information logged</source>
         <translation>Informacje o systemie zapisano w dzienniku</translation>
     </message>
@@ -2375,15 +2295,95 @@ Czy na pewno kontynuować?</translation>
     </message>
     <message>
         <source>&amp;Dev Tools</source>
-        <translation>&amp;Narzędzia deweloperskie</translation>
-    </message>
-    <message>
-        <source>Icon Downloader</source>
-        <translation>Pobieranie ikon</translation>
+        <translation>Narzędzia &amp;deweloperskie</translation>
     </message>
     <message>
         <source>Download Material Design icons for the project</source>
         <translation>Pobiera ikony Material Design do projektu</translation>
+    </message>
+    <message>
+        <source>&amp;System Information</source>
+        <translation>&amp;Informacje o systemie</translation>
+    </message>
+    <message>
+        <source>&amp;Qt Environment</source>
+        <translation>Środowisko &amp;Qt</translation>
+    </message>
+    <message>
+        <source>&amp;File System Check</source>
+        <translation>Sprawdzenie systemu &amp;plików</translation>
+    </message>
+    <message>
+        <source>Settings &amp;Dump</source>
+        <translation>Zrzut &amp;ustawień</translation>
+    </message>
+    <message>
+        <source>&amp;Memory Statistics</source>
+        <translation>Statystyki pa&amp;mięci</translation>
+    </message>
+    <message>
+        <source>&amp;Open Documents Statistics</source>
+        <translation>Statystyki &amp;otwartych dokumentów</translation>
+    </message>
+    <message>
+        <source>&amp;Logger Test</source>
+        <translation>Test &amp;dziennika</translation>
+    </message>
+    <message>
+        <source>&amp;Event Bus Test</source>
+        <translation>Test szyny &amp;zdarzeń</translation>
+    </message>
+    <message>
+        <source>&amp;Plugin Manager Check</source>
+        <translation>Sprawdzenie me&amp;nedżera wtyczek</translation>
+    </message>
+    <message>
+        <source>Command &amp;Registry Dump</source>
+        <translation>Zrzut &amp;rejestru poleceń</translation>
+    </message>
+    <message>
+        <source>P&amp;ython Environment</source>
+        <translation>Środowisko P&amp;ythona</translation>
+    </message>
+    <message>
+        <source>Python &amp;Import Test</source>
+        <translation>&amp;Test importu Pythona</translation>
+    </message>
+    <message>
+        <source>Python Memory &amp;Test</source>
+        <translation>Test pamięci Pyt&amp;hona</translation>
+    </message>
+    <message>
+        <source>Em&amp;bedded Interpreter Status</source>
+        <translation>&amp;Stan wbudowanego interpretera</translation>
+    </message>
+    <message>
+        <source>Performance Be&amp;nchmark</source>
+        <translation>Test wyd&amp;ajności</translation>
+    </message>
+    <message>
+        <source>Render St&amp;atistics</source>
+        <translation>Statysty&amp;ki rysowania</translation>
+    </message>
+    <message>
+        <source>&amp;Clear Log</source>
+        <translation>Wy&amp;czyść dziennik</translation>
+    </message>
+    <message>
+        <source>Force Cras&amp;h (Debug Only)</source>
+        <translation>&amp;Wymuś awarię (tylko wersja debug)</translation>
+    </message>
+    <message>
+        <source>Memory Lea&amp;k Test (Debug Only)</source>
+        <translation>Test wyci&amp;eku pamięci (tylko wersja debug)</translation>
+    </message>
+    <message>
+        <source>Dia&amp;gnostics</source>
+        <translation>Dia&amp;gnostyka</translation>
+    </message>
+    <message>
+        <source>&amp;Icon Downloader</source>
+        <translation>&amp;Pobieranie ikon</translation>
     </message>
 </context>
 <context>
@@ -3647,30 +3647,6 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Inne pliki</translation>
     </message>
     <message>
-        <source>Open</source>
-        <translation>Otwórz</translation>
-    </message>
-    <message>
-        <source>Rename...</source>
-        <translation>Zmień nazwę...</translation>
-    </message>
-    <message>
-        <source>Delete</source>
-        <translation>Usuń</translation>
-    </message>
-    <message>
-        <source>Move Up</source>
-        <translation>Przenieś w górę</translation>
-    </message>
-    <message>
-        <source>Move Down</source>
-        <translation>Przenieś w dół</translation>
-    </message>
-    <message>
-        <source>Set Status</source>
-        <translation>Ustaw stan</translation>
-    </message>
-    <message>
         <source>Draft</source>
         <translation>Szkic</translation>
     </message>
@@ -3679,36 +3655,76 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Poprawki</translation>
     </message>
     <message>
-        <source>Final</source>
-        <translation>Gotowy</translation>
+        <source>&amp;Open</source>
+        <translation>&amp;Otwórz</translation>
     </message>
     <message>
-        <source>Properties...</source>
-        <translation>Właściwości...</translation>
+        <source>Rena&amp;me...</source>
+        <translation>Zmień &amp;nazwę...</translation>
     </message>
     <message>
-        <source>Add Chapter</source>
-        <translation>Dodaj rozdział</translation>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
     </message>
     <message>
-        <source>Add Part</source>
-        <translation>Dodaj część</translation>
+        <source>Move &amp;Up</source>
+        <translation>Przenieś w &amp;górę</translation>
     </message>
     <message>
-        <source>Add Item</source>
-        <translation>Dodaj element</translation>
+        <source>Move Do&amp;wn</source>
+        <translation>Przenieś w &amp;dół</translation>
     </message>
     <message>
-        <source>Project Properties...</source>
-        <translation>Właściwości projektu...</translation>
+        <source>Set &amp;Status</source>
+        <translation>Ustaw &amp;stan</translation>
     </message>
     <message>
-        <source>Add to Project</source>
-        <translation>Dodaj do projektu</translation>
+        <source>&amp;Draft</source>
+        <translation>&amp;Szkic</translation>
     </message>
     <message>
-        <source>Remove from List</source>
-        <translation>Usuń z listy</translation>
+        <source>&amp;Revision</source>
+        <translation>&amp;Poprawki</translation>
+    </message>
+    <message>
+        <source>&amp;Final</source>
+        <translation>&amp;Gotowy</translation>
+    </message>
+    <message>
+        <source>P&amp;roperties...</source>
+        <translation>&amp;Właściwości...</translation>
+    </message>
+    <message>
+        <source>&amp;Add Chapter</source>
+        <translation>&amp;Dodaj rozdział</translation>
+    </message>
+    <message>
+        <source>&amp;Expand All</source>
+        <translation>&amp;Rozwiń wszystko</translation>
+    </message>
+    <message>
+        <source>&amp;Collapse All</source>
+        <translation>&amp;Zwiń wszystko</translation>
+    </message>
+    <message>
+        <source>&amp;Add Part</source>
+        <translation>&amp;Dodaj część</translation>
+    </message>
+    <message>
+        <source>&amp;Add Item</source>
+        <translation>&amp;Dodaj element</translation>
+    </message>
+    <message>
+        <source>Project P&amp;roperties...</source>
+        <translation>&amp;Właściwości projektu...</translation>
+    </message>
+    <message>
+        <source>&amp;Add to Project</source>
+        <translation>&amp;Dodaj do projektu</translation>
+    </message>
+    <message>
+        <source>&amp;Remove from List</source>
+        <translation>&amp;Usuń z listy</translation>
     </message>
 </context>
 <context>
@@ -4065,16 +4081,12 @@ Tej operacji nie można cofnąć.</translation>
 <context>
     <name>kalahari::gui::RecentBooksMenu</name>
     <message>
-        <source>Recent Books</source>
-        <translation>Ostatnie książki</translation>
-    </message>
-    <message>
         <source>No Recent Files</source>
         <translation>Brak ostatnich plików</translation>
     </message>
     <message>
-        <source>Clear Recent Files</source>
-        <translation>Wyczyść listę ostatnich plików</translation>
+        <source>&amp;Clear Recent Files</source>
+        <translation>&amp;Wyczyść listę ostatnich plików</translation>
     </message>
 </context>
 <context>
@@ -4971,6 +4983,18 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>a key of the system</source>
         <translation>klawisz systemu</translation>
+    </message>
+    <message>
+        <source>Fixed: the menus</source>
+        <translation>Stałe: menu</translation>
+    </message>
+    <message>
+        <source>Open a menu (underlined letter)</source>
+        <translation>Otwórz menu (podkreślona litera)</translation>
+    </message>
+    <message>
+        <source>%1 is kept for the menus: Alt with a letter opens the menu with that letter underlined in its name.</source>
+        <translation>%1 jest zarezerwowany dla menu: Alt z literą otwiera menu, w którego nazwie ta litera jest podkreślona.</translation>
     </message>
 </context>
 <context>

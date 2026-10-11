@@ -8,6 +8,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QCursor>
 #include <QDockWidget>
 #include <QElapsedTimer>
 #include <QGuiApplication>
@@ -44,9 +45,29 @@ protected:
     }
 };
 
-/// A main window like the program's: a menu bar with shortcuts (also in a submenu), two
-/// toolbars (one hidden), three panels (two in tabs, one closed), the chapter tabs and a
-/// status bar
+/// A widget that keeps every key from the shortcuts, as the frame of an annotation does
+class KeyKeeper : public QWidget {
+public:
+    using QWidget::QWidget;
+    int presses = 0;
+
+protected:
+    bool event(QEvent* event) override {
+        if (event->type() == QEvent::ShortcutOverride) {
+            event->accept();
+            return true;
+        }
+        return QWidget::event(event);
+    }
+    void keyPressEvent(QKeyEvent* event) override {
+        ++presses;
+        event->accept();
+    }
+};
+
+/// A main window like the program's: a menu bar with access keys and shortcuts (also in a
+/// submenu), two toolbars (one hidden), three panels (two in tabs, one closed), the chapter
+/// tabs and a status bar
 struct TestWindow {
     QMainWindow window;
     QMenuBar* menuBar = nullptr;
@@ -69,17 +90,17 @@ struct TestWindow {
         menuBar->setObjectName(QStringLiteral("menuBar"));
         menuBar->setNativeMenuBar(false);
         window.setMenuBar(menuBar);
-        QMenu* file = menuBar->addMenu(QStringLiteral("File"));
-        save = file->addAction(QStringLiteral("Save"));
+        QMenu* file = menuBar->addMenu(QStringLiteral("&File"));
+        save = file->addAction(QStringLiteral("&Save"));
         save->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_S));
-        quit = new QAction(QStringLiteral("Exit"), &window);
+        quit = new QAction(QStringLiteral("E&xit"), &window);
         quit->setShortcut(QKeySequence(Qt::ALT | Qt::Key_F4));
         file->addAction(quit);
         window.addAction(quit);
-        QMenu* zoom = menuBar->addMenu(QStringLiteral("View"))->addMenu(QStringLiteral("Zoom"));
-        zoomIn = zoom->addAction(QStringLiteral("Zoom In"));
+        QMenu* zoom = menuBar->addMenu(QStringLiteral("&View"))->addMenu(QStringLiteral("&Zoom"));
+        zoomIn = zoom->addAction(QStringLiteral("Zoom &In"));
         zoomIn->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Equal));
-        about = menuBar->addMenu(QStringLiteral("Help"))->addAction(QStringLiteral("About"));
+        about = menuBar->addMenu(QStringLiteral("&Help"))->addAction(QStringLiteral("&About"));
 
         fileBar = window.addToolBar(QStringLiteral("File"));
         fileBar->setObjectName(QStringLiteral("fileBar"));
@@ -454,5 +475,86 @@ TEST_CASE("Distraction-Free layout: an open menu keeps the menus at the top",
         CHECK(menus->isHidden());
         CHECK(w.text->hasFocus());
         CHECK(layout.isActive());
+    }
+}
+
+TEST_CASE("Distraction-Free layout: Alt with the letter of a menu opens it at the top",
+          "[gui][distraction-free]") {
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("opens a menu in an active window without a window on screen: run with "
+             "QT_QPA_PLATFORM=offscreen");
+    }
+    TestWindow w;
+    auto* keeper = new KeyKeeper(w.tabs->widget(0));
+    keeper->setFocusPolicy(Qt::StrongFocus);
+    w.window.show();
+    w.window.activateWindow();
+    REQUIRE(waitFor([&w] { return QApplication::activeWindow() == &w.window; }));
+    w.text->setFocus();
+    DistractionFreeLayout layout(&w.window);
+    layout.setActive(true, {w.tabs->tabBar()}, false);
+    QApplication::processEvents();
+    QCursor::setPos(w.window.mapToGlobal(QPoint(320, 200)));  // the mouse over the text
+    QMenuBar* menus = topMenus(w.window);
+    REQUIRE(menus != nullptr);
+    REQUIRE(menus->isHidden());
+    QAction* file = w.menuBar->actions().constFirst();
+
+    // A letter no menu has, Alt with Shift, and a key a widget keeps open nothing
+    press(w.text, Qt::Key_Q, Qt::AltModifier);
+    press(w.text, Qt::Key_F, Qt::AltModifier | Qt::ShiftModifier);
+    press(keeper, Qt::Key_F, Qt::AltModifier);
+    CHECK(keeper->presses == 1);
+    QApplication::processEvents();
+    CHECK(QApplication::activePopupWidget() == nullptr);
+    CHECK(menus->isHidden());
+
+    // Alt+F: the menus show at the top with File open, as on the menu bar
+    press(w.text, Qt::Key_F, Qt::AltModifier);
+    REQUIRE(waitFor([file] { return QApplication::activePopupWidget() == file->menu(); }));
+    // Let the window system show the menu now: offscreen activates the menu's window, and
+    // an activation that came after the menu closed would leave the main window inactive
+    QApplication::processEvents();
+    CHECK_FALSE(menus->isHidden());
+
+    SECTION("an item chosen: the menus hide, the keys are the text's again") {
+        int saved = 0;
+        QObject::connect(w.save, &QAction::triggered, [&saved] { ++saved; });
+        file->menu()->setActiveAction(w.save);
+        press(file->menu(), Qt::Key_Return);
+        CHECK(saved == 1);
+        CHECK(waitFor([menus] { return menus->isHidden(); }));
+        CHECK(w.text->hasFocus());
+        CHECK(layout.isActive());
+    }
+
+    SECTION("Esc closes the menu, a second Esc gives the keys back to the text") {
+        press(file->menu(), Qt::Key_Escape);
+        REQUIRE(QApplication::activePopupWidget() == nullptr);
+        REQUIRE(menus->hasFocus());
+        QApplication::processEvents();
+        CHECK_FALSE(menus->isHidden());  // the keys move through the menus
+        press(menus, Qt::Key_Escape);
+        CHECK(waitFor([menus] { return menus->isHidden(); }));
+        CHECK(w.text->hasFocus());
+        CHECK(layout.isActive());
+    }
+
+    SECTION("the arrow keys open the next menu: the menus stay") {
+        QAction* view = w.menuBar->actions().at(1);
+        press(file->menu(), Qt::Key_Right);
+        REQUIRE(waitFor([view] { return QApplication::activePopupWidget() == view->menu(); }));
+        QApplication::processEvents();
+        CHECK_FALSE(menus->isHidden());
+        view->menu()->close();
+    }
+
+    SECTION("closed with the mouse at the top, the menus stay until it moves away") {
+        QCursor::setPos(w.window.mapToGlobal(QPoint(320, 1)));
+        file->menu()->close();
+        QApplication::processEvents();
+        CHECK_FALSE(menus->isHidden());
+        moveMouse(w.window, QPoint(320, 200));
+        CHECK(menus->isHidden());
     }
 }

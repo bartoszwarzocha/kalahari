@@ -91,6 +91,18 @@ struct TextKey {
 /// @return The key of the text, or one with TextKeyAction::None
 [[nodiscard]] TextKey textKeyFor(int key, Qt::KeyboardModifiers modifiers, bool macOS);
 
+/// @brief Whether a key press with a character types it in the text
+///
+/// Ctrl gives a command (Cmd on macOS). On Windows and Linux Alt with a letter is the access
+/// key of a menu item and types nothing, as in the fields of the system; AltGr types
+/// (Windows reports it as Ctrl+Alt, Linux as the key of the character it gives, without
+/// Alt), and so does the character Alt with the digits of the keypad composes, which comes
+/// without a key. On macOS Option types: Option+A is "ą" on the Polish keyboard.
+/// @param key The key (Qt::Key); 0 or Qt::Key_unknown for a character without one
+/// @param modifiers The modifiers of the key press
+/// @param macOS The keys of macOS
+[[nodiscard]] bool typesText(int key, Qt::KeyboardModifiers modifiers, bool macOS);
+
 /// @brief Whether the program runs on macOS (its keys of the text)
 constexpr bool isMacOS() {
 #ifdef Q_OS_MACOS

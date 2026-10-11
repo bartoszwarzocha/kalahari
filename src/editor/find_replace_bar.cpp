@@ -5,7 +5,9 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/editor/search_engine.h"
+#include "kalahari/editor/text_keys.h"
 
+#include <QCoreApplication>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QLabel>
@@ -14,6 +16,7 @@
 #include <QToolButton>
 #include <QShortcut>
 #include <QKeyEvent>
+#include <QKeySequence>
 
 namespace kalahari::editor {
 
@@ -165,28 +168,40 @@ void FindReplaceBar::createShortcuts()
     // Escape to close
     m_escapeShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
 
-    // Alt+C, Alt+W and Alt+R turn the options on and off. On macOS Option+Cmd: there Option
-    // with a letter types a character (Option+C is "ć" on the Polish keyboard)
-#ifdef Q_OS_MACOS
-    const Qt::KeyboardModifiers toggleModifiers = Qt::ControlModifier | Qt::AltModifier;
-#else
-    const Qt::KeyboardModifiers toggleModifiers = Qt::AltModifier;
-#endif
-    m_toggleCaseShortcut =
-        new QShortcut(QKeySequence(QKeyCombination(toggleModifiers, Qt::Key_C)), this);
-    m_toggleWordShortcut =
-        new QShortcut(QKeySequence(QKeyCombination(toggleModifiers, Qt::Key_W)), this);
-    m_toggleRegexShortcut =
-        new QShortcut(QKeySequence(QKeyCombination(toggleModifiers, Qt::Key_R)), this);
-
-    // The tooltips show the keys as the system writes them
-    const auto keysOf = [](const QShortcut* shortcut) {
-        return shortcut->key().toString(QKeySequence::NativeText);
+    // The options' keys: eventFilter(). The tooltips show them as the system writes them
+    const QList<QKeyCombination> keys = optionKeys();
+    const auto keysOf = [&keys](qsizetype option) {
+        return QKeySequence(keys.at(option)).toString(QKeySequence::NativeText);
     };
-    m_caseSensitiveBtn->setToolTip(tr("Match Case (%1)").arg(keysOf(m_toggleCaseShortcut)));
-    m_wholeWordBtn->setToolTip(tr("Match Whole Word (%1)").arg(keysOf(m_toggleWordShortcut)));
-    m_regexBtn->setToolTip(
-        tr("Use Regular Expression (%1)").arg(keysOf(m_toggleRegexShortcut)));
+    m_caseSensitiveBtn->setToolTip(tr("Match Case (%1)").arg(keysOf(0)));
+    m_wholeWordBtn->setToolTip(tr("Match Whole Word (%1)").arg(keysOf(1)));
+    m_regexBtn->setToolTip(tr("Use Regular Expression (%1)").arg(keysOf(2)));
+}
+
+QList<QKeyCombination> FindReplaceBar::optionKeys()
+{
+    const Qt::KeyboardModifiers modifiers =
+        isMacOS() ? (Qt::ControlModifier | Qt::AltModifier) : Qt::AltModifier;
+    return {QKeyCombination(modifiers, Qt::Key_C), QKeyCombination(modifiers, Qt::Key_W),
+            QKeyCombination(modifiers, Qt::Key_R)};
+}
+
+QToolButton* FindReplaceBar::optionFor(const QKeyEvent* event) const
+{
+    // In the order of optionKeys()
+    const QList<QToolButton*> options = {m_caseSensitiveBtn, m_wholeWordBtn, m_regexBtn};
+    const qsizetype option = optionKeys().indexOf(event->keyCombination());
+    return option >= 0 && option < options.size() ? options.at(option) : nullptr;
+}
+
+bool FindReplaceBar::takesOptionKeys(const QObject* watched) const
+{
+    if (!watched->isWidgetType()) {
+        return false;
+    }
+    const auto* widget = static_cast<const QWidget*>(watched);
+    return widget == this || isAncestorOf(widget) ||
+           (parentWidget() != nullptr && widget == parentWidget());
 }
 
 void FindReplaceBar::createConnections()
@@ -225,12 +240,6 @@ void FindReplaceBar::createConnections()
     // Keyboard shortcuts
     connect(m_escapeShortcut, &QShortcut::activated,
             this, &FindReplaceBar::onClose);
-    connect(m_toggleCaseShortcut, &QShortcut::activated,
-            m_caseSensitiveBtn, &QToolButton::toggle);
-    connect(m_toggleWordShortcut, &QShortcut::activated,
-            m_wholeWordBtn, &QToolButton::toggle);
-    connect(m_toggleRegexShortcut, &QShortcut::activated,
-            m_regexBtn, &QToolButton::toggle);
 }
 
 // =============================================================================
@@ -320,6 +329,21 @@ void FindReplaceBar::keyPressEvent(QKeyEvent* event)
 
 bool FindReplaceBar::eventFilter(QObject* watched, QEvent* event)
 {
+    // The options' keys, in the bar and in the text under it: the widget with the keys keeps
+    // them from the shortcuts, so they come before the access keys of the menus with the
+    // same letters (Pomo&c and &Widok in Polish), and the key press turns the option on or off
+    if ((event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress) &&
+        takesOptionKeys(watched)) {
+        auto* keyEvent = static_cast<QKeyEvent*>(event);
+        if (QToolButton* option = optionFor(keyEvent)) {
+            if (event->type() == QEvent::KeyPress && !keyEvent->isAutoRepeat()) {
+                option->toggle();
+            }
+            keyEvent->accept();
+            return true;
+        }
+    }
+
     // Enter is taken before the field gets it: QLineEdit leaves it unused, so it went on
     // to the editor, which replaced the match just found with a new paragraph
     if (event->type() == QEvent::KeyPress &&
@@ -337,6 +361,18 @@ bool FindReplaceBar::eventFilter(QObject* watched, QEvent* event)
         }
     }
     return QWidget::eventFilter(watched, event);
+}
+
+void FindReplaceBar::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+    QCoreApplication::instance()->installEventFilter(this);
+}
+
+void FindReplaceBar::hideEvent(QHideEvent* event)
+{
+    QWidget::hideEvent(event);
+    QCoreApplication::instance()->removeEventFilter(this);
 }
 
 // =============================================================================

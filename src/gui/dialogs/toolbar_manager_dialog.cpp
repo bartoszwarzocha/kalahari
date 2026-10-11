@@ -7,6 +7,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/gui/utils/access_keys.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -513,7 +514,7 @@ void ToolbarManagerDialog::populateCurrentToolbar(const QString& toolbarId) {
             // Get shared QAction from CommandRegistry (OpenSpec #00040 - Phase 3)
             QAction* action = registry.getAction(cmdId);
             if (action) {
-                item->setText(action->text());
+                item->setText(kalahari::gui::withoutAccessKey(action->text()));
                 item->setData(Qt::UserRole, cmdId);
 
                 if (!action->icon().isNull()) {

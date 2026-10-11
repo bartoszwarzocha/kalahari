@@ -279,13 +279,12 @@ QAction* CommandRegistry::getAction(const std::string& commandId) {
 }
 
 QAction* CommandRegistry::createActionForCommand(const QString& commandId, const Command& cmd) {
-    // Use ArtProvider to create self-updating action with icon
-    // Labels like "Find & Replace..." hold a literal '&'; QAction treats '&' as a
-    // mnemonic marker, so escape it (the tooltip fallback strips "&&" back to "&")
+    // Use ArtProvider to create self-updating action with icon. The text has the command's
+    // access key ("Save &As..."); a toolbar button and its tooltip show it without
     auto& artProvider = core::ArtProvider::getInstance();
     QAction* action = artProvider.createAction(
         commandId,
-        QString::fromStdString(cmd.label).replace('&', QStringLiteral("&&")),
+        cmd.actionText(),
         this,  // CommandRegistry owns the action
         core::IconContext::Toolbar  // Default context, menu/toolbar will use appropriate size
     );

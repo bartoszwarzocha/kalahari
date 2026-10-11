@@ -15,6 +15,7 @@
 #include "editor_test_utils.h"
 
 #include <QAbstractTextDocumentLayout>
+#include <QApplication>
 #include <QDragLeaveEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
@@ -22,11 +23,13 @@
 #include <QImage>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QMainWindow>
+#include <QMenu>
+#include <QMenuBar>
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QScrollBar>
-#include <QShortcut>
 #include <QStringList>
 #include <QTextBlock>
 #include <QTextLayout>
@@ -712,8 +715,8 @@ TEST_CASE("Stage3 find: the options have the keys their tooltips show",
 #endif
     FindReplaceBar bar;
     QStringList keys;
-    for (const QShortcut* shortcut : bar.findChildren<QShortcut*>()) {
-        keys << shortcut->key().toString(QKeySequence::PortableText);
+    for (const QKeyCombination optionKeys : FindReplaceBar::optionKeys()) {
+        keys << QKeySequence(optionKeys).toString(QKeySequence::PortableText);
     }
     QStringList tooltips;
     for (const QToolButton* option : bar.findChildren<QToolButton*>()) {
@@ -732,6 +735,98 @@ TEST_CASE("Stage3 find: the options have the keys their tooltips show",
         CHECK(std::any_of(tooltips.cbegin(), tooltips.cend(),
                           [&shown](const QString& tooltip) { return tooltip.endsWith(shown); }));
     }
+}
+
+TEST_CASE("Stage3 find: the options' keys come before the menus' in the bar and in the text",
+          "[editor][stage3][search]") {
+    // Regression: in Polish Alt+W opened the View menu (&Widok) and Alt+C the Help menu
+    // (Pomo&c) instead of turning Whole Words and Match Case on: the access keys of the
+    // menus are shortcuts, which come before the keys of the widgets
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("needs an active window without a window on screen: "
+             "run with QT_QPA_PLATFORM=offscreen");
+    }
+    QMainWindow window;
+    auto* menuBar = new QMenuBar(&window);
+    menuBar->setNativeMenuBar(false);
+    window.setMenuBar(menuBar);
+    QMenu* view = menuBar->addMenu(QStringLiteral("&Widok"));
+    view->addAction(QStringLiteral("&Nawigator"));
+    auto* central = new QWidget(&window);
+    auto* layout = new QVBoxLayout(central);
+    auto* outside = new QLineEdit(central);  // a field of another panel
+    layout->addWidget(outside);
+    auto* editor = new BookEditor(central);
+    layout->addWidget(editor);
+    window.setCentralWidget(central);
+    window.resize(600, 400);
+    editor->fromKml(kWords);
+    window.show();
+    window.activateWindow();
+    REQUIRE(waitUntil([&window] { return window.isActiveWindow(); }));
+    editor->showFind();
+    FindReplaceBar* bar = findBar(*editor);
+    REQUIRE(bar != nullptr);
+    REQUIRE(bar->isVisible());
+
+    QToolButton* wholeWords = nullptr;
+    for (QToolButton* button : bar->findChildren<QToolButton*>()) {
+        if (button->isCheckable() && button->toolTip().startsWith(QStringLiteral("Match Whole"))) {
+            wholeWords = button;
+        }
+    }
+    REQUIRE(wholeWords != nullptr);
+    QLineEdit* find = nullptr;
+    for (QLineEdit* input : bar->findChildren<QLineEdit*>()) {
+        if (input->placeholderText() == QStringLiteral("Find...")) {
+            find = input;
+        }
+    }
+    REQUIRE(find != nullptr);
+
+    // Alt+W, Option+Cmd+W on macOS; a key pressed in a widget meets the shortcuts first
+    const QKeyCombination keys = FindReplaceBar::optionKeys().at(1);
+    const auto press = [keys](QWidget* widget, bool autoRepeat = false) {
+        QKeyEvent event(QEvent::KeyPress, keys.key(), keys.keyboardModifiers(),
+                        QStringLiteral("w"), autoRepeat);
+        QCoreApplication::sendEvent(widget, &event);
+    };
+    // Whether the View menu opened; it is closed again
+    const auto viewOpened = [view] {
+        const bool opened =
+            waitUntil([view] { return QApplication::activePopupWidget() == view; }, 200);
+        // Offscreen activates the menu's window: while it is open, not after it closed
+        QApplication::processEvents();
+        if (QWidget* popup = QApplication::activePopupWidget()) {
+            popup->close();
+        }
+        return opened;
+    };
+
+    // In the bar's field and in the text the key turns the option over
+    press(find);
+    CHECK(wholeWords->isChecked());
+    CHECK_FALSE(viewOpened());
+    press(editor);
+    CHECK_FALSE(wholeWords->isChecked());
+    CHECK_FALSE(viewOpened());
+
+    // A held key does not turn it over and over
+    press(find);
+    press(find, true);
+    CHECK(wholeWords->isChecked());
+
+    // In another panel it opens the menu (no access keys on macOS)
+    press(outside);
+    CHECK(wholeWords->isChecked());
+    CHECK(viewOpened() == !isMacOS());
+
+    // With the bar closed, everywhere
+    editor->hideFindReplace();
+    REQUIRE_FALSE(bar->isVisible());
+    press(editor);
+    CHECK(wholeWords->isChecked());
+    CHECK(viewOpened() == !isMacOS());
 }
 
 TEST_CASE("Stage3 find: after an edit, Find Next goes on from the cursor",

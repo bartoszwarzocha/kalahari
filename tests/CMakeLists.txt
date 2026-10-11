@@ -72,6 +72,7 @@ set(TEST_SOURCES
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
+    gui/test_menu_access_keys.cpp                # The access keys of the menus, in both languages
     gui/test_panel_toggle.cpp                    # Panel toggles follow open panels
     gui/test_setting_toggle.cpp                  # Toggles follow on/off settings
     gui/test_dialogs.cpp                         # The program's own dialogs
@@ -168,6 +169,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_settings.cpp       # The user's keys in the settings and files
     ${CMAKE_SOURCE_DIR}/src/gui/widget_keys.cpp             # Qt's widgets have the keys of Windows
     ${CMAKE_SOURCE_DIR}/src/gui/menu_builder.cpp            # Menu titles and order for the shortcuts list
+    ${CMAKE_SOURCE_DIR}/src/gui/diagnostic_menus.cpp        # The items of the Diagnostics and Dev Tools menus
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/access_keys.cpp       # The access keys of menu texts
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/length_spin_box.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/shortcut_recorder.cpp  # A field that records key presses
@@ -289,6 +292,17 @@ target_include_directories(kalahari-tests PRIVATE
 # Source tree, for tests that read files of the repository (the example project)
 target_compile_definitions(kalahari-tests PRIVATE
     KALAHARI_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# The Polish translation, under :/i18n as in the program, for the tests of the menus in Polish
+qt_add_lrelease(kalahari-tests
+    TS_FILES ${CMAKE_SOURCE_DIR}/translations/kalahari_pl.ts
+    QM_FILES_OUTPUT_VARIABLE KALAHARI_TEST_QM_FILES
+)
+qt_add_resources(kalahari-tests "kalahari_test_translations"
+    PREFIX "/i18n"
+    BASE ${CMAKE_CURRENT_BINARY_DIR}
+    FILES ${KALAHARI_TEST_QM_FILES}
 )
 
 # Link libraries

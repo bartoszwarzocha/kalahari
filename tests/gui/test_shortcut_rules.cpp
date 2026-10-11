@@ -46,7 +46,7 @@ TEST_CASE("Shortcut rules: keys that type text are refused", "[gui][shortcuts][r
         CHECK(resultOf(platform, keys(SHIFT, Qt::Key_5)) == Result::Refused);
         CHECK(resultOf(platform, keys(NONE, Qt::Key_Exclam)) == Result::Refused);
         CHECK(resultOf(platform, keys(CTRL, Qt::Key_K)) == Result::Allowed);
-        CHECK(resultOf(platform, keys(ALT, Qt::Key_K)) == Result::Allowed);
+        CHECK(resultOf(platform, keys(ALT | SHIFT, Qt::Key_K)) == Result::Allowed);
         CHECK(resultOf(platform, keys(CTRL | SHIFT, Qt::Key_K)) == Result::Allowed);
         CHECK(resultOf(platform, keys(NONE, Qt::Key_F7)) == Result::Allowed);
         const KeyCheck typing = ShortcutRules(platform).check(keys(NONE, Qt::Key_K), "file.close");
@@ -62,6 +62,33 @@ TEST_CASE("Shortcut rules: keys that type text are refused", "[gui][shortcuts][r
     CHECK(resultOf(mac, keys(CTRL, Qt::Key_K)) == Result::Allowed);
     CHECK(resultOf(mac, keys(META, Qt::Key_G)) == Result::Allowed);
     CHECK(resultOf(mac, keys(CTRL | ALT, Qt::Key_K)) == Result::Allowed);
+}
+
+TEST_CASE("Shortcut rules: Alt with a letter is kept for the menus", "[gui][shortcuts][rules]") {
+    // Regression: a command could get Alt+P, the access key of the File menu in Polish
+    // (&Plik), and then neither the command nor the menu worked with it
+    for (const ShortcutPlatform platform : {ShortcutPlatform::Windows, ShortcutPlatform::Linux}) {
+        const ShortcutRules rules(platform);
+        for (int key = Qt::Key_A; key <= Qt::Key_Z; ++key) {
+            const QKeyCombination letter = keys(ALT, static_cast<Qt::Key>(key));
+            INFO(ShortcutRules::keysText(letter).toStdString());
+            CHECK(rules.check(letter, "file.close").result == Result::Refused);
+        }
+        const KeyCheck menu = rules.check(keys(ALT, Qt::Key_P), "file.close");
+        CHECK(menu.reason == QStringLiteral("%1 is kept for the menus: Alt with a letter opens "
+                                            "the menu with that letter underlined in its name.")
+                                     .arg(ShortcutRules::keysText(keys(ALT, Qt::Key_P))) +
+                                 QStringLiteral(" It is a fixed key: choose another shortcut."));
+        CHECK(menu.brief == QStringLiteral("a fixed key"));
+
+        // Alt with other keys, and with Shift, stays free; the keys of the find bar say what
+        // they do there
+        CHECK(rules.check(keys(ALT, Qt::Key_1), "file.close").result == Result::Allowed);
+        CHECK(rules.check(keys(ALT, Qt::Key_F7), "file.close").result != Result::Refused);
+        CHECK(rules.check(keys(ALT | SHIFT, Qt::Key_P), "file.close").result == Result::Allowed);
+        CHECK(rules.check(keys(ALT, Qt::Key_W), "file.close").reason.startsWith(
+            QStringLiteral("In the find bar ")));
+    }
 }
 
 TEST_CASE("Shortcut rules: Ctrl+Alt is AltGr on Windows and the desktop's on Linux",
@@ -252,15 +279,19 @@ TEST_CASE("Shortcut rules: the list shows every key of the text", "[gui][shortcu
 }
 
 TEST_CASE("Shortcut rules: the keys of the find bar are fixed", "[gui][shortcuts][rules]") {
-    // The bar's shortcuts work while it is shown: a command with one of them would be
-    // ambiguous there
+    // The bar's keys work while it is shown: a command with one of them would not get it
+    // there, or be ambiguous
     kalahari::editor::FindReplaceBar bar;
+    QList<QKeyCombination> barKeys = kalahari::editor::FindReplaceBar::optionKeys();
     const QList<QShortcut*> shortcuts = bar.findChildren<QShortcut*>();
     REQUIRE_FALSE(shortcuts.isEmpty());
-    const ShortcutRules rules;
     for (const QShortcut* shortcut : shortcuts) {
-        INFO(shortcut->key().toString(QKeySequence::PortableText).toStdString());
-        CHECK(rules.check(shortcut->key()[0], "file.close").result == Result::Refused);
+        barKeys.append(shortcut->key()[0]);
+    }
+    const ShortcutRules rules;
+    for (const QKeyCombination keys : barKeys) {
+        INFO(QKeySequence(keys).toString(QKeySequence::PortableText).toStdString());
+        CHECK(rules.check(keys, "file.close").result == Result::Refused);
     }
 }
 

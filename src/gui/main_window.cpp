@@ -31,6 +31,7 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
+#include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/utils/distraction_free_layout.h"
 #include "kalahari/gui/utils/setting_toggle.h"
 #include "kalahari/core/logger.h"
@@ -72,6 +73,7 @@
 #include <QTimer>
 #include <QAbstractItemView>
 #include <map>
+#include <memory>
 
 namespace kalahari {
 namespace gui {
@@ -1237,6 +1239,13 @@ void MainWindow::createDocks() {
 void MainWindow::resetLayout() {
     m_dockCoordinator->resetLayout(isDiagnosticMode(), isDevMode());
     statusBar()->showMessage(tr("Layout reset to default"), 2000);
+}
+
+QMenu* MainWindow::createPopupMenu() {
+    // Qt's menu names the panels and the toolbars after their titles, without access keys:
+    // a copy gives them keys, and the panels and the toolbars keep their titles
+    const std::unique_ptr<QMenu> qtMenu(QMainWindow::createPopupMenu());
+    return qtMenu != nullptr ? menuWithAccessKeys(*qtMenu, this) : nullptr;
 }
 
 bool MainWindow::hasUnsavedChanges() const {

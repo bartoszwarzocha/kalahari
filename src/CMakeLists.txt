@@ -149,6 +149,7 @@ set(KALAHARI_SOURCES
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)
     gui/command_registrar.cpp  # CommandRegistrar - Command registration extracted from MainWindow (OpenSpec #00038)
     gui/diagnostic_controller.cpp  # DiagnosticController - Diagnostic/dev mode extracted from MainWindow (OpenSpec #00038)
+    gui/diagnostic_menus.cpp  # The items of the Diagnostics and Dev Tools menus
     gui/dock_coordinator.cpp  # DockCoordinator - Dock/panel management extracted from MainWindow (OpenSpec #00038 Phase 4)
     gui/settings_coordinator.cpp  # SettingsCoordinator - Settings management extracted from MainWindow (OpenSpec #00038 Phase 5)
     gui/navigator_coordinator.cpp  # NavigatorCoordinator - Navigator handlers extracted from MainWindow (OpenSpec #00038 Phase 6)
@@ -190,6 +191,7 @@ set(KALAHARI_SOURCES
     gui/panels/properties_panel.cpp
     gui/panels/search_panel.cpp
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
+    gui/utils/access_keys.cpp  # The access keys of menu texts
     gui/utils/layout_utils.cpp  # OpenSpec #00038: Layout utilities (clearLayout)
     gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting

@@ -56,7 +56,8 @@ public:
     /// @brief Toolbar configuration descriptor
     struct ToolbarConfig {
         std::string id;                  ///< Unique toolbar ID ("file", "edit")
-        std::string label;               ///< Display label ("File Toolbar")
+        std::string label;               ///< Display label, with its access key in the
+                                         ///< menus ("&File Toolbar")
         Qt::ToolBarArea defaultArea;     ///< Default dock area (Qt::TopToolBarArea)
         bool defaultVisible;             ///< Default visibility (true)
         std::vector<std::string> commandIds; ///< Command IDs to show in toolbar
@@ -226,6 +227,11 @@ public:
     /// @param globalPos Global screen position to show menu at
     void showContextMenu(const QPoint& globalPos);
 
+    /// @brief Fill the toolbars' context menu: the toolbars to show or hide, locking their
+    /// positions, customizing them and their default configuration
+    /// @param menu The menu to add the items to
+    void fillContextMenu(QMenu* menu);
+
     /// @brief Set toolbar positions locked/unlocked
     /// @param locked true to lock (prevent moving), false to unlock
     void setToolbarsLocked(bool locked);
@@ -298,6 +304,10 @@ private:
     std::unordered_map<std::string, QToolBar*> m_toolbars;       ///< Toolbars by ID
     std::unordered_map<std::string, ToolbarConfig> m_configs;    ///< Toolbar configs
     std::unordered_map<std::string, QAction*> m_viewActions;     ///< View menu actions
+    QMenu* m_toolbarsMenu{nullptr};     ///< View > Toolbars (its texts are translated); none
+                                        ///< once it is gone
+    QAction* m_managerAction{nullptr};  ///< Toolbar Manager... in it
+    QMetaObject::Connection m_toolbarsMenuGone;  ///< Forgets the menu and its items as it goes
 
     // OpenSpec #00031: Customization support
     QMap<QString, QStringList> m_toolbarCommands;    ///< Toolbar configurations (toolbar ID -> command list)

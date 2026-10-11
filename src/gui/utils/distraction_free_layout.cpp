@@ -2,9 +2,11 @@
 /// @brief Implementation of the main window's layout for Distraction-Free writing
 
 #include "kalahari/gui/utils/distraction_free_layout.h"
+#include "kalahari/gui/utils/access_keys.h"
 
 #include <QAction>
 #include <QApplication>
+#include <QCursor>
 #include <QDockWidget>
 #include <QEvent>
 #include <QKeyEvent>
@@ -14,6 +16,7 @@
 #include <QMouseEvent>
 #include <QScopedValueRollback>
 #include <QStatusBar>
+#include <QTimer>
 #include <QToolBar>
 #include <QVariant>
 
@@ -68,9 +71,30 @@ void DistractionFreeLayout::setActive(bool active, const QList<QWidget*>& widget
 bool DistractionFreeLayout::eventFilter(QObject* watched, QEvent* event) {
     // Every event of the program passes here while the layout is on
     switch (event->type()) {
+    case QEvent::ShortcutOverride:
+        // The widget with the keys gets it, and its parents while none of them keeps the key
+        // from the shortcuts: the access key of a menu that reaches the window opens the
+        // menu, as the menu bar does while it shows (the press of the key, below)
+        if (m_menus != nullptr) {
+            const auto* key = static_cast<QKeyEvent*>(event);
+            m_accessKey = key->keyCombination();
+            m_accessKeyOpensMenu =
+                watched == m_window && m_menus->isHidden() && menuWithAccessKey(key) != nullptr;
+        }
+        break;
     case QEvent::KeyPress: {
-        // A key no widget used goes up to the window
         const auto* key = static_cast<QKeyEvent*>(event);
+        if (m_accessKeyOpensMenu) {
+            m_accessKeyOpensMenu = false;
+            QAction* menu = key->keyCombination() == m_accessKey ? menuWithAccessKey(key)
+                                                                 : nullptr;
+            if (menu != nullptr) {
+                openMenuWithKeys(menu);
+                return true;
+            }
+        }
+
+        // A key no widget used goes up to the window
         if (watched == m_window && m_active && !m_endingMenuKeys && key->key() == Qt::Key_Escape
             && key->modifiers() == Qt::NoModifier) {
             setActive(false);
@@ -78,6 +102,14 @@ bool DistractionFreeLayout::eventFilter(QObject* watched, QEvent* event) {
         }
         break;
     }
+    case QEvent::Hide:
+    case QEvent::FocusOut:
+        // A menu closed, or the keys left the menus
+        if (m_menusWithKeys && (watched == m_menus || qobject_cast<QMenu*>(watched) != nullptr)) {
+            // Once the menu bar opened the next menu, or gave the keys back to the text
+            QTimer::singleShot(0, this, &DistractionFreeLayout::endMenusWithKeys);
+        }
+        break;
     case QEvent::MouseMove:
     case QEvent::MouseButtonPress: {
         // The mouse over any widget of the window: the text, the menus at the top
@@ -144,6 +176,43 @@ void DistractionFreeLayout::showMenus() {
 
 void DistractionFreeLayout::placeMenus() {
     m_menus->setGeometry(0, 0, m_window->width(), m_menus->sizeHint().height());
+}
+
+QAction* DistractionFreeLayout::menuWithAccessKey(const QKeyEvent* event) const {
+    const int key = event->key();
+    const bool letterOrDigit =
+        (key >= Qt::Key_A && key <= Qt::Key_Z) || (key >= Qt::Key_0 && key <= Qt::Key_9);
+    const auto* menuBar = qobject_cast<QMenuBar*>(m_window->menuWidget());
+    if (menuBar == nullptr || event->modifiers() != Qt::AltModifier || !letterOrDigit) {
+        return nullptr;
+    }
+    const QChar pressed(static_cast<char16_t>(key));  // Qt::Key_A is 'A'
+    const QList<QAction*> menus = menuBar->actions();
+    for (QAction* menu : menus) {
+        if (menu->menu() != nullptr && menu->isVisible() && menu->isEnabled() &&
+            accessKeyOf(menu->text()) == pressed) {
+            return menu;
+        }
+    }
+    return nullptr;
+}
+
+void DistractionFreeLayout::openMenuWithKeys(QAction* menu) {
+    showMenus();
+    m_menusWithKeys = true;
+    m_menus->setActiveAction(menu);
+}
+
+void DistractionFreeLayout::endMenusWithKeys() {
+    if (!m_menusWithKeys || m_menus == nullptr || QApplication::activePopupWidget() != nullptr ||
+        m_menus->hasFocus()) {
+        return;
+    }
+    m_menusWithKeys = false;
+    // The mouse at the top keeps them, until it goes away (followMouse())
+    if (m_window->mapFromGlobal(QCursor::pos()).y() >= m_menus->height() + MENUS_HIDE_DISTANCE) {
+        m_menus->hide();
+    }
 }
 
 void DistractionFreeLayout::hideParts(const QList<QWidget*>& widgets, bool fullScreen) {
@@ -219,6 +288,8 @@ void DistractionFreeLayout::updateShortcuts() {
 
 void DistractionFreeLayout::showParts() {
     QCoreApplication::instance()->removeEventFilter(this);
+    m_accessKeyOpensMenu = false;
+    m_menusWithKeys = false;
     if (m_menus != nullptr) {
         // Deleted later: the layout may be turned off from one of its menus
         m_menus->hide();

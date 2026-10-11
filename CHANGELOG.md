@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Menus: access keys** - 2026-10-11. Every item of every menu has an underlined letter, in
+  English and in Polish: Alt with the letter of a menu opens it (Alt+F – File, in Polish
+  Alt+P – Plik), and in an open menu the letter of an item chooses it. So do the context
+  menus: of the text (also the words for a misspelled word and for a grammar issue), of the
+  Navigator, of the toolbars, of the annotations, of the fields (where Qt's English words
+  have none, those of Windows: &Delete, Select &All), and of the menu bar and the panels'
+  titles. No two items of a menu share a letter; a toolbar the user names, the words a menu
+  shows and the panels get free ones, and the recent books are numbered. A line that only
+  tells something has none. On Windows and Linux Alt with a letter types nothing in the
+  text and in the fields, as in the fields of Windows; AltGr types the Polish letters as
+  before (on Windows it is Ctrl+Alt). Settings > Keyboard Shortcuts keeps Alt with a letter
+  for the menus. The options of the find bar keep Alt+C, Alt+W and Alt+R while it shows, in
+  the bar and in the text (in Polish the Help and View menus have these letters). In
+  Distraction-Free Alt with the letter of a menu shows the menus at the top with that menu
+  open. macOS has no access keys: Option with a letter types a character there.
+
 - **Settings > Keyboard Shortcuts** - 2026-10-10. A page of its own (also Help > Keyboard
   Shortcuts) where the commands get other keys. The list has the commands in the order of
   the menus, then the fixed keys of the text, the bars and the panels and the keys of the

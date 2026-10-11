@@ -39,6 +39,7 @@
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -112,16 +113,18 @@ void checkMenuKeys(const QMenu& menu, const char* context) {
     const std::pair<const char*, QKeyCombination> items[] = {
         {"&Undo", QKeyCombination(CTRL, Qt::Key_Z)}, {"&Redo", QKeyCombination(CTRL, Qt::Key_Y)},
         {"Cu&t", QKeyCombination(CTRL, Qt::Key_X)},  {"&Copy", QKeyCombination(CTRL, Qt::Key_C)},
-        {"&Paste", QKeyCombination(CTRL, Qt::Key_V)},
-        {"Select All", QKeyCombination(CTRL, Qt::Key_A)}};
+        {"&Paste", QKeyCombination(CTRL, Qt::Key_V)}};
     for (const auto& [label, keys] : items) {
         CAPTURE(label);
         CHECK(itemText(menu, QCoreApplication::translate(context, label)) ==
               withKeys(context, label, keys));
     }
-    // An item without keys stays as it is
-    const QString deleteLabel = QCoreApplication::translate(context, "Delete");
-    CHECK(itemText(menu, deleteLabel) == deleteLabel);
+
+    // Qt's English words without an access key get those of Windows; Delete has no keys
+    const QString selectAll = QStringLiteral("Select &All");
+    const QString selectAllKeys = ShortcutRules::keysText(QKeyCombination(CTRL, Qt::Key_A));
+    CHECK(itemText(menu, selectAll) == selectAll + QLatin1Char('\t') + selectAllKeys);
+    CHECK(itemText(menu, QStringLiteral("&Delete")) == QStringLiteral("&Delete"));
 }
 
 bool clipboardWorks() {
@@ -350,6 +353,84 @@ TEST_CASE("The keys Qt gives the fields on Linux only do nothing there",
     CHECK_FALSE(keepsFromShortcuts(&spin, Qt::Key_U, CTRL));
     press(&spin, Qt::Key_U, CTRL);
     CHECK(spin.text() == QStringLiteral("57"));
+}
+
+TEST_CASE("Alt with a letter types nothing in a field, AltGr types", "[gui][widget_keys]") {
+    if (onMacOS()) {
+        SKIP("macOS keeps the keys of its own fields: Option types the characters it gives");
+    }
+    // Qt's fields type Alt with a letter, on Windows too; the fields of Windows give it to
+    // the menus, whose access key it is
+    const ShortcutPlatform platform =
+        GENERATE(ShortcutPlatform::Windows, ShortcutPlatform::Linux);
+    CAPTURE(static_cast<int>(platform));
+    const InstalledKeys keys(platform);
+    const QString polishA = QStringLiteral("ą");
+
+    SECTION("A line, a text and a list one types into") {
+        QLineEdit line;
+        QPlainTextEdit plain;
+        QTextEdit rich;
+        QComboBox combo;
+        combo.setEditable(true);
+        const std::pair<QWidget*, std::function<QString()>> fields[] = {
+            {&line, [&line] { return line.text(); }},
+            {&plain, [&plain] { return plain.toPlainText(); }},
+            {&rich, [&rich] { return rich.toPlainText(); }},
+            {&combo, [&combo] { return combo.currentText(); }}};
+        for (const auto& [field, textOf] : fields) {
+            CAPTURE(field->metaObject()->className());
+            // On to the window, where it opens the menu with the letter
+            CHECK_FALSE(keepsFromShortcuts(field, Qt::Key_P, ALT));
+            CHECK_FALSE(press(field, Qt::Key_P, ALT, QStringLiteral("p")));
+            CHECK_FALSE(press(field, Qt::Key_P, ALT | SHIFT, QStringLiteral("P")));
+            CHECK_FALSE(press(field, Qt::Key_1, ALT, QStringLiteral("1")));
+            CHECK(textOf().isEmpty());
+
+            // AltGr: Ctrl+Alt on Windows, the key of the letter on Linux
+            CHECK(press(field, Qt::Key_A, CTRL | ALT, polishA));
+            CHECK(press(field, 0x104, NONE, polishA));
+            // Alt with 0233 on the keypad: the character it composes, without a key
+            CHECK(press(field, 0, ALT, QStringLiteral("é")));
+            CHECK(textOf() == QStringLiteral("ąąé"));
+        }
+    }
+
+    SECTION("A number field") {
+        QSpinBox spin;
+        spin.setRange(0, 999);
+        spin.setValue(5);
+        press(&spin, Qt::Key_End);
+        CHECK_FALSE(press(&spin, Qt::Key_7, ALT, QStringLiteral("7")));
+        CHECK(spin.text() == QStringLiteral("5"));
+        press(&spin, Qt::Key_7, NONE, QStringLiteral("7"));
+        CHECK(spin.text() == QStringLiteral("57"));
+    }
+
+    SECTION("A list one cannot type into does not look for the letter") {
+        const QStringList items = {QStringLiteral("kot"), QStringLiteral("pies"),
+                                   QStringLiteral("ąb")};
+        QComboBox combo;
+        combo.addItems(items);
+        CHECK_FALSE(press(&combo, Qt::Key_P, ALT, QStringLiteral("p")));
+        CHECK(combo.currentIndex() == 0);
+        press(&combo, Qt::Key_P, NONE, QStringLiteral("p"));
+        CHECK(combo.currentIndex() == 1);
+
+        // AltGr looks for the Polish letter (in another list: one adds the letters typed
+        // one after another to what it looks for)
+        QComboBox other;
+        other.addItems(items);
+        press(&other, Qt::Key_A, CTRL | ALT, polishA);
+        CHECK(other.currentIndex() == 2);
+    }
+
+    SECTION("A read-only field passes it on as before") {
+        QLineEdit line(QStringLiteral("kot"));
+        line.setReadOnly(true);
+        CHECK_FALSE(press(&line, Qt::Key_P, ALT, QStringLiteral("p")));
+        CHECK(line.text() == QStringLiteral("kot"));
+    }
 }
 
 TEST_CASE("Left and Right over a selection move the cursor from where it is",
@@ -657,6 +738,12 @@ TEST_CASE("A field that records shortcuts gets every key while it records",
         press(&recorder, pressed.key(), pressed.keyboardModifiers());
     }
     CHECK(recorded == pressedKeys);
+
+    // Also Alt with a letter, which types nothing in the fields (the page says it is kept
+    // for the menus)
+    press(&recorder, Qt::Key_P, ALT, QStringLiteral("p"));
+    REQUIRE_FALSE(recorded.isEmpty());
+    CHECK(recorded.constLast() == QKeyCombination(ALT, Qt::Key_P));
     CHECK(recorder.isRecording());
 }
 

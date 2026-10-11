@@ -121,6 +121,10 @@ public:
     /// @note Public wrapper for onNavigatorElementSelected for CLI/benchmark use
     void openChapter(const QString& elementId, const QString& elementTitle);
 
+    /// @brief The menu of the menu bar and of the panels' titles: Qt's panels and toolbars,
+    ///        each with an access key
+    QMenu* createPopupMenu() override;
+
 private:
     /// @brief Register all commands in CommandRegistry
     ///
