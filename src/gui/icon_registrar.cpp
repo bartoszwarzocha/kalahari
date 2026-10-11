@@ -213,6 +213,7 @@ void registerAllIcons() {
     // -------------------------------------------------------------------------
     // COMMON/UTILITY ICONS (for UI elements, dialogs, etc.)
     // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("common.palette", "resources/icons/twotone/palette.svg", "Color");
     iconRegistry.registerIcon("common.check", "resources/icons/twotone/check.svg", "Check");
     iconRegistry.registerIcon("common.checkCircle", "resources/icons/twotone/check_circle.svg", "Check Circle");
     iconRegistry.registerIcon("common.cancel", "resources/icons/twotone/cancel.svg", "Cancel");
