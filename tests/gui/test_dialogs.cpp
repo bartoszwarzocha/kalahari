@@ -1102,7 +1102,9 @@ TEST_CASE("Delete from Book: what goes, named after its kind, and where its file
     }
 
     SECTION("A story") {
-        content.element = content.element.elements.first();
+        // A copy: the assignment frees the list that holds the story
+        const ProjectElement story = content.element.elements.first();
+        content.element = story;
         content.files = {content.files.first()};
         DeleteFromBookDialog dialog(content, builtInTypes());
         CHECK(dialog.clipboardText().startsWith(

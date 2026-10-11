@@ -320,21 +320,30 @@ public:
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override {
-        // The panel's menu is polished before it shows, with all its actions
+        // The panel's menu is polished before it shows, with all its actions. A style that
+        // sets window flags of the menu as it polishes it (Windows 11) polishes it again, and
+        // the menu is still read once.
         if (watched == m_panel && event->type() == QEvent::ChildPolished) {
             if (auto* menu = qobject_cast<QMenu*>(static_cast<QChildEvent*>(event)->child())) {
-                connect(menu, &QMenu::aboutToShow, this, [this, menu]() {
-                    menu->setAttribute(Qt::WA_DontShowOnScreen);
-                    m_read(*menu);
-                    // Closed once it is open, the menu ends its event loop
-                    QTimer::singleShot(0, menu, [menu]() { menu->close(); });
-                });
+                connect(menu, &QMenu::aboutToShow, this, &MenuReader::read, Qt::UniqueConnection);
             }
         }
         return QObject::eventFilter(watched, event);
     }
 
 private:
+    /// @brief Read the menu that is about to show, and close it once it is open
+    void read() {
+        auto* menu = qobject_cast<QMenu*>(sender());
+        if (!menu) {
+            return;
+        }
+        menu->setAttribute(Qt::WA_DontShowOnScreen);
+        m_read(*menu);
+        // Closed once it is open, the menu ends its event loop
+        QTimer::singleShot(0, menu, [menu]() { menu->close(); });
+    }
+
     QWidget* m_panel;
     std::function<void(QMenu&)> m_read;
 };
