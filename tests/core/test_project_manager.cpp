@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -144,6 +145,36 @@ void writeArchive(const QString& path, const QList<Entry>& entries) {
         REQUIRE(zip_file_add(archive, entry.first.constData(), source, ZIP_FL_ENC_RAW) >= 0);
     }
     REQUIRE(zip_close(archive) == 0);
+}
+
+/// The file of a book, which libzip packs to a part of its size
+QByteArray compressibleBook() {
+    QByteArray book("{ \"notes\": [");
+    for (int i = 0; i < 50; ++i) {
+        book += "\"a note of the book\", ";
+    }
+    return book + "\"\" ] }";
+}
+
+/// Change the bytes of archive @p path with @p change, which gets them with the start of the
+/// packed data of the first entry and the start of its record in the list of entries
+void changeFirstEntry(const QString& path,
+                      const std::function<void(QByteArray&, qsizetype, qsizetype)>& change) {
+    QFile file(path);
+    REQUIRE(file.open(QIODevice::ReadWrite));
+    QByteArray data = file.readAll();
+    REQUIRE(data.startsWith("PK\x03\x04"));
+    // The local header: 30 bytes, the name and the extra field
+    const auto word = [&data](qsizetype at) {
+        return static_cast<qsizetype>(static_cast<unsigned char>(data.at(at)) |
+                                      (static_cast<unsigned char>(data.at(at + 1)) << 8));
+    };
+    const qsizetype start = 30 + word(26) + word(28);
+    const qsizetype central = data.indexOf("PK\x01\x02");
+    REQUIRE(central > start + 16);
+    change(data, start, central);
+    REQUIRE(file.seek(0));
+    REQUIRE(file.write(data) == data.size());
 }
 
 /// Names of the entries of archive @p path, sorted
@@ -1918,11 +1949,12 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
     // The archive has the files of the book, without its lock, the log files of its database
     // and the backups; the book stays open
     const QString archive = project.filePath("Travels.klh.zip");
-    QStringList problems;
+    ArchiveProblem problem;
     QList<int> progress;
     REQUIRE(pm.exportArchive(archive, [&progress](int percent) { progress << percent; },
-                             &problems));
-    CHECK(problems.isEmpty());
+                             &problem));
+    CHECK(problem.kind == ArchiveProblem::Kind::None);
+    CHECK(problem.lines.isEmpty());
     REQUIRE_FALSE(progress.isEmpty());
     CHECK(std::is_sorted(progress.cbegin(), progress.cend()));
     CHECK(progress.last() == 100);
@@ -1937,8 +1969,8 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
 
     // The imported book opens in a folder of its own, with its text and its styles
     const QString target = QDir(dir.path()).filePath("imported");
-    REQUIRE(pm.importArchive(archive, target, nullptr, &problems));
-    CHECK(problems.isEmpty());
+    REQUIRE(pm.importArchive(archive, target, nullptr, &problem));
+    CHECK(problem.lines.isEmpty());
     const QDir imported(QDir(target).filePath("Travels"));
     CHECK(QFileInfo(pm.getProjectPath()) == QFileInfo(imported.path()));
     CHECK(pm.book()->title == "Travels");
@@ -1950,9 +1982,10 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
 
     // A second import does not touch the folder of the first
     writeFile(imported.filePath("mine.txt"), "mine");
-    CHECK_FALSE(pm.importArchive(archive, target, nullptr, &problems));
-    REQUIRE(problems.size() == 1);
-    CHECK(problems.first().endsWith(": the folder already exists"));
+    CHECK_FALSE(pm.importArchive(archive, target, nullptr, &problem));
+    CHECK(problem.kind == ArchiveProblem::Kind::FolderExists);
+    REQUIRE(problem.lines.size() == 1);
+    CHECK(problem.lines.first().endsWith(": the folder already exists"));
     CHECK(QFileInfo::exists(imported.filePath("mine.txt")));
     CHECK_FALSE(pm.isProjectOpen());
 }
@@ -1985,9 +2018,9 @@ TEST_CASE("ProjectManager imports an archive of an earlier version", "[project_m
     const QString archive = QDir(dir.path()).filePath("Old Archive.klh.zip");
     writeArchive(archive, entries);
 
-    QStringList problems;
-    REQUIRE(pm.importArchive(archive, QDir(dir.path()).filePath("imported"), nullptr, &problems));
-    CHECK(problems.isEmpty());
+    ArchiveProblem problem;
+    REQUIRE(pm.importArchive(archive, QDir(dir.path()).filePath("imported"), nullptr, &problem));
+    CHECK(problem.lines.isEmpty());
     const QDir imported(QDir(dir.path()).filePath("imported/Old Archive"));
     CHECK(QFileInfo(pm.getProjectPath()) == QFileInfo(imported.path()));
     CHECK(QFileInfo(imported.filePath("book/chapter_001.kchapter")).isFile());
@@ -2035,9 +2068,10 @@ TEST_CASE("ProjectManager imports only what goes into the book's folder",
     SECTION("An archive without a book") {
         const QString notes = QDir(dir.path()).filePath("Notes.klh.zip");
         writeArchive(notes, {{"notes.txt", "x"}});
-        QStringList problems;
-        CHECK_FALSE(pm.importArchive(notes, target, nullptr, &problems));
-        CHECK(problems == QStringList{"Notes.klh.zip: the archive has no .klh file"});
+        ArchiveProblem problem;
+        CHECK_FALSE(pm.importArchive(notes, target, nullptr, &problem));
+        CHECK(problem.kind == ArchiveProblem::Kind::NoBook);
+        CHECK(problem.lines == QStringList{"Notes.klh.zip: the archive has no .klh file"});
         CHECK_FALSE(QFileInfo::exists(QDir(target).filePath("Notes")));
     }
 }
@@ -2053,10 +2087,11 @@ TEST_CASE("ProjectManager reads the book of an archive without unpacking it",
     const QStringList before =
         QDir(dir.path()).entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
 
-    QStringList problems;
-    const std::optional<BookProject> project = ProjectManager::readArchive(archive, &problems);
+    ArchiveProblem problem;
+    const std::optional<BookProject> project = ProjectManager::readArchive(archive, &problem);
     REQUIRE(project.has_value());
-    CHECK(problems.isEmpty());
+    CHECK(problem.kind == ArchiveProblem::Kind::None);
+    CHECK(problem.lines.isEmpty());
     REQUIRE(project->books.size() == 1);
     CHECK(project->books.first().title == "Travels");
     CHECK(project->books.first().author == "Anna");
@@ -2068,18 +2103,18 @@ TEST_CASE("ProjectManager reads the book of an archive without unpacking it",
     SECTION("An archive without a book") {
         const QString notes = QDir(dir.path()).filePath("Notes.klh.zip");
         writeArchive(notes, {{"notes.txt", "x"}, {"book/Inside.klh", "{}"}});
-        CHECK_FALSE(ProjectManager::readArchive(notes, &problems).has_value());
-        CHECK(problems == QStringList{"Notes.klh.zip: the archive has no .klh file"});
+        CHECK_FALSE(ProjectManager::readArchive(notes, &problem).has_value());
+        CHECK(problem.kind == ArchiveProblem::Kind::NoBook);
+        CHECK(problem.lines == QStringList{"Notes.klh.zip: the archive has no .klh file"});
     }
 
     SECTION("A book whose file is not JSON") {
         const QString broken = QDir(dir.path()).filePath("Broken.klh.zip");
         writeArchive(broken, {{"Broken.klh", "{ not JSON"}});
-        bool newer = true;
-        CHECK_FALSE(ProjectManager::readArchive(broken, &problems, nullptr, &newer).has_value());
-        REQUIRE(problems.size() == 1);
-        CHECK(problems.first().startsWith("Broken.klh: not valid JSON"));
-        CHECK_FALSE(newer);
+        CHECK_FALSE(ProjectManager::readArchive(broken, &problem).has_value());
+        CHECK(problem.kind == ArchiveProblem::Kind::DamagedBook);
+        REQUIRE(problem.lines.size() == 1);
+        CHECK(problem.lines.first().startsWith("Broken.klh: not valid JSON"));
     }
 
     SECTION("A book of a newer version of Kalahari") {
@@ -2087,17 +2122,52 @@ TEST_CASE("ProjectManager reads the book of an archive without unpacking it",
         writeArchive(future, {{"Future.klh", QByteArray("{ \"format\": ") +
                                                  QByteArray::number(BookProject::FORMAT + 1) +
                                                  QByteArray(", \"id\": \"p\" }")}});
-        bool newer = false;
-        CHECK_FALSE(ProjectManager::readArchive(future, &problems, nullptr, &newer).has_value());
-        CHECK(newer);
+        CHECK_FALSE(ProjectManager::readArchive(future, &problem).has_value());
+        CHECK(problem.kind == ArchiveProblem::Kind::NewerBook);
     }
 
     SECTION("A file that is not an archive") {
         const QString text = QDir(dir.path()).filePath("Text.klh.zip");
         writeFile(text, "plain text");
-        CHECK_FALSE(ProjectManager::readArchive(text, &problems).has_value());
-        REQUIRE(problems.size() == 1);
-        CHECK(problems.first().startsWith("Text.klh.zip: "));
+        CHECK_FALSE(ProjectManager::readArchive(text, &problem).has_value());
+        CHECK(problem.kind == ArchiveProblem::Kind::NotArchive);
+        REQUIRE(problem.lines.size() == 1);
+        CHECK(problem.lines.first().startsWith("Text.klh.zip: "));
+    }
+
+    SECTION("An archive that is not there") {
+        const QString gone = QDir(dir.path()).filePath("Gone.klh.zip");
+        CHECK_FALSE(ProjectManager::readArchive(gone, &problem).has_value());
+        CHECK(problem.kind == ArchiveProblem::Kind::NotFound);
+        REQUIRE(problem.lines.size() == 1);
+        CHECK(problem.lines.first().startsWith("Gone.klh.zip: "));
+    }
+
+    SECTION("An archive whose data are damaged") {
+        const QString damaged = QDir(dir.path()).filePath("Damaged.klh.zip");
+        writeArchive(damaged, {{"Damaged.klh", compressibleBook()}});
+        changeFirstEntry(damaged, [](QByteArray& data, qsizetype start, qsizetype) {
+            // The middle of the packed data of the book's file
+            for (qsizetype i = start + 4; i < start + 16; ++i) {
+                data[i] = static_cast<char>(~data[i]);
+            }
+        });
+        CHECK_FALSE(ProjectManager::readArchive(damaged, &problem).has_value());
+        CHECK(problem.kind == ArchiveProblem::Kind::Damaged);
+        REQUIRE(problem.lines.size() == 1);
+        CHECK(problem.lines.first().startsWith("Damaged.klh: "));
+    }
+
+    SECTION("An encrypted archive") {
+        const QString encrypted = QDir(dir.path()).filePath("Encrypted.klh.zip");
+        writeArchive(encrypted, {{"Encrypted.klh", compressibleBook()}});
+        changeFirstEntry(encrypted, [](QByteArray& data, qsizetype, qsizetype central) {
+            // The flag of an encrypted entry, in the entry and in the list of entries
+            data[6] = static_cast<char>(data[6] | 1);
+            data[central + 8] = static_cast<char>(data[central + 8] | 1);
+        });
+        CHECK_FALSE(ProjectManager::readArchive(encrypted, &problem).has_value());
+        CHECK(problem.kind == ArchiveProblem::Kind::Unsupported);
     }
 
     SECTION("The book that unpackArchive() unpacks: the first .klh file at the top") {
@@ -2105,7 +2175,7 @@ TEST_CASE("ProjectManager reads the book of an archive without unpacking it",
         QFile file(QDir(dir.path()).filePath("Travels/Travels.klh"));
         REQUIRE(file.open(QIODevice::ReadOnly));
         writeArchive(two, {{"b.klh", "{ not JSON"}, {"A.KLH", file.readAll()}});
-        const std::optional<BookProject> first = ProjectManager::readArchive(two, &problems);
+        const std::optional<BookProject> first = ProjectManager::readArchive(two, &problem);
         REQUIRE(first.has_value());
         CHECK(first->books.first().title == "Travels");
     }
@@ -2125,11 +2195,12 @@ TEST_CASE("ProjectManager unpacks an archive without opening its book",
 
     // The open book stays open; the unpacked one is in a folder named after the archive
     const QString target = QDir(dir.path()).filePath("imported");
-    QStringList problems;
+    ArchiveProblem problem;
     int progress = 0;
     const QString manifest = ProjectManager::unpackArchive(
-        archive, target, [&progress](int percent) { progress = percent; }, &problems);
-    CHECK(problems.isEmpty());
+        archive, target, [&progress](int percent) { progress = percent; }, &problem);
+    CHECK(problem.kind == ArchiveProblem::Kind::None);
+    CHECK(problem.lines.isEmpty());
     CHECK(progress == 100);
     CHECK(QFileInfo(manifest) == QFileInfo(QDir(target).filePath("Travels copy/Travels.klh")));
     CHECK(pm.getManifestPath() == open);
@@ -2143,18 +2214,61 @@ TEST_CASE("ProjectManager unpacks an archive without opening its book",
     SECTION("A book whose file cannot be read does not stay behind") {
         const QString broken = QDir(dir.path()).filePath("Broken.klh.zip");
         writeArchive(broken, {{"Broken.klh", "{ not JSON"}, {"book/chapter_001.kchapter", "x"}});
-        CHECK(ProjectManager::unpackArchive(broken, target, nullptr, &problems).isEmpty());
-        REQUIRE(problems.size() == 1);
-        CHECK(problems.first().startsWith("Broken.klh: not valid JSON"));
+        CHECK(ProjectManager::unpackArchive(broken, target, nullptr, &problem).isEmpty());
+        CHECK(problem.kind == ArchiveProblem::Kind::DamagedBook);
+        REQUIRE(problem.lines.size() == 1);
+        CHECK(problem.lines.first().startsWith("Broken.klh: not valid JSON"));
         CHECK_FALSE(QFileInfo::exists(QDir(target).filePath("Broken")));
 
         // Nor when it is imported
-        problems.clear();
-        CHECK_FALSE(pm.importArchive(broken, target, nullptr, &problems));
-        CHECK_FALSE(problems.isEmpty());
+        problem = ArchiveProblem();
+        CHECK_FALSE(pm.importArchive(broken, target, nullptr, &problem));
+        CHECK(problem.kind == ArchiveProblem::Kind::DamagedBook);
+        CHECK_FALSE(problem.lines.isEmpty());
         CHECK_FALSE(QFileInfo::exists(QDir(target).filePath("Broken")));
         CHECK_FALSE(pm.isProjectOpen());
     }
+
+    SECTION("A folder in which the book cannot be made") {
+        // A file in the place of a folder of the path
+        const QString file = QDir(dir.path()).filePath("file.txt");
+        writeFile(file, "x");
+        CHECK(ProjectManager::unpackArchive(archive, QDir(file).filePath("Books"), nullptr,
+                                            &problem)
+                  .isEmpty());
+        CHECK(problem.kind == ArchiveProblem::Kind::CannotWrite);
+        REQUIRE(problem.lines.size() == 1);
+        CHECK(problem.lines.first().endsWith(": the folder cannot be made"));
+    }
+
+    SECTION("A book that cannot be opened does not stay behind") {
+        // A folder in the place of the database of the book
+        const QString strange = QDir(dir.path()).filePath("Strange.klh.zip");
+        QFile file(QDir(dir.path()).filePath("Travels/Travels.klh"));
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        writeArchive(strange, {{"Strange.klh", file.readAll()}, {"project.db/notes.txt", "x"}});
+        CHECK_FALSE(pm.importArchive(strange, target, nullptr, &problem));
+        CHECK(problem.kind == ArchiveProblem::Kind::NotOpened);
+        CHECK_FALSE(problem.lines.isEmpty());
+        CHECK_FALSE(QFileInfo::exists(QDir(target).filePath("Strange")));
+        CHECK_FALSE(pm.isProjectOpen());
+    }
+}
+
+TEST_CASE("ProjectManager says why an archive cannot be written", "[project_manager][archive]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Travels", "Anna", "en", true, "kalahari.novel"));
+
+    // A folder that is not there: libzip cannot make the file of the archive in it
+    const QString archive = QDir(dir.path()).filePath("Missing/Travels.klh.zip");
+    ArchiveProblem problem;
+    CHECK_FALSE(pm.exportArchive(archive, nullptr, &problem));
+    CHECK(problem.kind == ArchiveProblem::Kind::CannotWrite);
+    REQUIRE(problem.lines.size() == 1);
+    CHECK(problem.lines.first().startsWith("Travels.klh.zip: "));
+    CHECK_FALSE(QFileInfo::exists(archive));
+    REQUIRE(pm.closeProject(false));
 }
 
 TEST_CASE("The backups of the database go to an archive when the writer wants them",
@@ -2189,28 +2303,28 @@ TEST_CASE("The backups of the database go to an archive when the writer wants th
 
     // Without them the archive is as before; with them, they are in its .backups folder
     const QString archive = root.filePath("Travels copy.klh.zip");
-    QStringList problems;
-    REQUIRE(pm.exportArchive(archive, nullptr, &problems));
+    ArchiveProblem problem;
+    REQUIRE(pm.exportArchive(archive, nullptr, &problem));
     CHECK(entriesOf(archive).filter(".backups").isEmpty());
     int count = -1;
-    REQUIRE(ProjectManager::readArchive(archive, &problems, &count).has_value());
+    REQUIRE(ProjectManager::readArchive(archive, &problem, &count).has_value());
     CHECK(count == 0);
-    REQUIRE(pm.exportArchive(archive, nullptr, &problems, true));
-    CHECK(problems.isEmpty());
+    REQUIRE(pm.exportArchive(archive, nullptr, &problem, true));
+    CHECK(problem.lines.isEmpty());
     const QStringList archived{".backups/project_20000101_000000.db",
                                ".backups/project_20000102_000000.db",
                                ".backups/project_20000103_000000.db"};
     CHECK(entriesOf(archive).filter(".backups") == archived);
-    REQUIRE(ProjectManager::readArchive(archive, &problems, &count).has_value());
+    REQUIRE(ProjectManager::readArchive(archive, &problem, &count).has_value());
     CHECK(count == 3);
     REQUIRE(pm.closeProject(false));
 
     // The import takes them, with their times, where the settings keep the backups, to a
     // folder of the imported book
     const QString manifest =
-        ProjectManager::unpackArchive(archive, root.filePath("Imported"), nullptr, &problems);
+        ProjectManager::unpackArchive(archive, root.filePath("Imported"), nullptr, &problem);
     REQUIRE_FALSE(manifest.isEmpty());
-    CHECK(problems.isEmpty());
+    CHECK(problem.lines.isEmpty());
     const QDir imported(QFileInfo(manifest).absolutePath());
     CHECK_FALSE(QFileInfo::exists(imported.filePath(".backups")));
     REQUIRE(pm.openProject(manifest));
@@ -2226,7 +2340,7 @@ TEST_CASE("The backups of the database go to an archive when the writer wants th
     // Without a common folder they stay in the book's own .backups folder
     BackupFolder::set(QString());
     const QString second =
-        ProjectManager::unpackArchive(archive, root.filePath("Imported 2"), nullptr, &problems);
+        ProjectManager::unpackArchive(archive, root.filePath("Imported 2"), nullptr, &problem);
     REQUIRE_FALSE(second.isEmpty());
     const QDir own(QDir(QFileInfo(second).absolutePath()).filePath(".backups"));
     CHECK(own.entryList(QDir::Files, QDir::Name) ==

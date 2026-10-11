@@ -39,6 +39,7 @@
 #include <optional>
 #include <vector>
 
+#include "kalahari/core/archive_problem.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 // OpenSpec #00041: SQLite Project Database
@@ -561,26 +562,24 @@ public:
     /// they are kept (databaseBackups()).
     /// @param outputPath Path of the .klh.zip file
     /// @param progressCallback Optional callback for progress (0-100)
-    /// @param problems What went wrong, one problem per line; may be nullptr
+    /// @param problem Gets what went wrong; may be nullptr
     /// @param withBackups Whether the backups of the database go to the archive
     /// @return true if the archive was written
     bool exportArchive(const QString& outputPath,
                        const std::function<void(int)>& progressCallback = nullptr,
-                       QStringList* problems = nullptr, bool withBackups = false);
+                       ArchiveProblem* problem = nullptr, bool withBackups = false);
 
     /// @brief Read the project of a .klh.zip archive without unpacking it: its .klh file, the
     /// one unpackArchive() finds at the top of the project
     /// @param archivePath Path of the .klh.zip file
-    /// @param problems What went wrong, one problem per line; may be nullptr
+    /// @param problem Gets what went wrong, e.g. that the book of the archive is of a newer
+    /// format, saved by a newer version of Kalahari; may be nullptr
     /// @param backups Gets the number of the backups of the database in the archive; may be
     /// nullptr
-    /// @param newerFormat Gets whether the book of the archive is of a newer format, saved by a
-    /// newer version of Kalahari; may be nullptr
     /// @return The project, or nullopt when the archive or its .klh file cannot be read
     static std::optional<BookProject> readArchive(const QString& archivePath,
-                                                  QStringList* problems = nullptr,
-                                                  int* backups = nullptr,
-                                                  bool* newerFormat = nullptr);
+                                                  ArchiveProblem* problem = nullptr,
+                                                  int* backups = nullptr);
 
     /// @brief Unpack a .klh.zip archive to a new folder, without opening the project in it
     ///
@@ -593,12 +592,12 @@ public:
     /// @param archivePath Path of the .klh.zip file
     /// @param targetDir Folder in which the project's folder is made
     /// @param progressCallback Optional callback for progress (0-100)
-    /// @param problems What went wrong, one problem per line; may be nullptr
+    /// @param problem Gets what went wrong; may be nullptr
     /// @return Path of the .klh file of the unpacked project; empty when it was not unpacked
     static QString unpackArchive(const QString& archivePath,
                                  const QString& targetDir,
                                  const std::function<void(int)>& progressCallback = nullptr,
-                                 QStringList* problems = nullptr);
+                                 ArchiveProblem* problem = nullptr);
 
     /// @brief Unpack a .klh.zip archive to a new folder and open the project in it
     ///
@@ -607,12 +606,12 @@ public:
     /// @param archivePath Path of the .klh.zip file
     /// @param targetDir Folder in which the project's folder is made
     /// @param progressCallback Optional callback for progress (0-100)
-    /// @param problems What went wrong, one problem per line; may be nullptr
+    /// @param problem Gets what went wrong; may be nullptr
     /// @return true if the project was unpacked and opened
     bool importArchive(const QString& archivePath,
                        const QString& targetDir,
                        const std::function<void(int)>& progressCallback = nullptr,
-                       QStringList* problems = nullptr);
+                       ArchiveProblem* problem = nullptr);
 
     /// @brief Name of the folder that unpackArchive() makes for @p archivePath: the archive's
     /// name without ".klh.zip"

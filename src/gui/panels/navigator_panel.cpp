@@ -334,8 +334,10 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     m_treeWidget->setIconSize(QSize(m_currentIconSize, m_currentIconSize));
     logger.debug("NavigatorPanel: Initial icon size set to {}px", m_currentIconSize);
 
-    // No project loaded yet - tree will be populated via loadProject()
-    m_treeWidget->setHeaderLabel(tr("Project Structure (no document loaded)"));
+    // No book is open yet - loadProject() fills the tree
+    //: The header of the Navigator while no book is open. In Polish: Żadna książka nie jest
+    //: otwarta
+    m_treeWidget->setHeaderLabel(tr("No book is open"));
 
     // Enable drag & drop for reordering (OpenSpec #00034 Phase D); a collapsed group or
     // section that the dragged element rests on opens (NavigatorTree), so that it can go inside
@@ -421,7 +423,9 @@ void NavigatorPanel::clearDocument() {
     m_unassignedExpanded = true;
     m_projectFolder.clear();
     m_standaloneFiles.clear();
-    m_treeWidget->setHeaderLabel(tr("Project Structure (no document loaded)"));
+    //: The header of the Navigator while no book is open. In Polish: Żadna książka nie jest
+    //: otwarta
+    m_treeWidget->setHeaderLabel(tr("No book is open"));
 }
 
 void NavigatorPanel::loadProject(const core::BookProject& project,
@@ -448,7 +452,8 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
     m_highlightedItem = nullptr;
     m_unassignedItem = nullptr;
     m_standaloneFiles.clear();
-    m_treeWidget->setHeaderLabel(tr("Project Structure"));
+    //: The header of the Navigator with the open book. In Polish: Struktura książki
+    m_treeWidget->setHeaderLabel(tr("Book Structure"));
 
     // Create root item: the title of the book
     QTreeWidgetItem* rootItem = new QTreeWidgetItem(m_treeWidget);

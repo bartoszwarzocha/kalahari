@@ -142,6 +142,21 @@ TEST_CASE("Navigator: the elements of a book in its three sections", "[gui][navi
     CHECK(findItem(tree, "Chapter 1")->text(0) == QStringLiteral("*Chapter 1 [Draft]"));
 }
 
+TEST_CASE("Navigator: the header says whether a book is open", "[gui][navigator]") {
+    gui::NavigatorPanel panel;
+    auto* tree = panel.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    CHECK(tree->headerItem()->text(0) == QStringLiteral("No book is open"));
+
+    panel.loadProject(novel({}, {element("Chapter 1", "kalahari.base:chapter",
+                                         "book/chapter_001.kchapter")}),
+                      registry());
+    CHECK(tree->headerItem()->text(0) == QStringLiteral("Book Structure"));
+
+    panel.clearDocument();
+    CHECK(tree->headerItem()->text(0) == QStringLiteral("No book is open"));
+}
+
 TEST_CASE("Navigator: the sections have the names the book gives them", "[gui][navigator]") {
     core::BookProject project = novel({}, {element("Chapter 1", "kalahari.base:chapter")},
                                       {element("Afterword", "kalahari.base:afterword")});

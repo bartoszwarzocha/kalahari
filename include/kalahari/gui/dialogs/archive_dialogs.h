@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "kalahari/core/archive_problem.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -21,7 +22,6 @@ class QGridLayout;
 class QGroupBox;
 class QLabel;
 class QLineEdit;
-class QPlainTextEdit;
 class QProgressBar;
 class QPushButton;
 class QTreeWidget;
@@ -43,8 +43,9 @@ class RowList;
 ///
 /// The accept button does the work. While it lasts, the fields and the buttons wait, and the
 /// window cannot be closed. A success shows the result with Show in Folder, and the accept
-/// button becomes Close. A failure shows what went wrong, with Copy, and the fields can be
-/// changed for another try.
+/// button becomes Close. A failure shows what went wrong in the language of the program, with
+/// Copy, and the fields can be changed for another try. The description of Kalahari and of its
+/// libraries, in English, goes only to the clipboard, with what the window says.
 class ArchiveDialog : public KalahariDialog {
     Q_OBJECT
 
@@ -58,14 +59,20 @@ public:
     /// @brief The sentence of the result, or of what went wrong; empty before the work
     QString resultText() const;
 
-    /// @brief What went wrong, one problem a line; empty when nothing did
+    /// @brief Why the work failed, as the window says it under resultText(); empty when the
+    /// work did not fail
+    QString reasonText() const;
+
+    /// @brief How the work failed, one problem a line, as the log has it: the description of
+    /// Kalahari and of its libraries, which only Copy puts on the clipboard; empty when the
+    /// work did not fail
     QString detailsText() const;
 
     /// @brief Copy, shown when something went wrong
     QPushButton* copyButton() const { return m_copyButton; }
 
-    /// @brief What Copy puts on the clipboard: the title of the window, the sentence of what
-    /// went wrong and the problems
+    /// @brief What Copy puts on the clipboard: the title of the window, what the window says
+    /// went wrong, and how, as the log has it
     QString clipboardText() const;
 
     /// @brief Whether the work is done: the window shows its result, and Close
@@ -144,9 +151,23 @@ protected:
     /// @brief The work is done: the result, Show in Folder for @p path, and Close
     void finishWork(const QString& text, const QString& path);
 
-    /// @brief The work failed: what went wrong, the problems, Copy, and the fields for another
-    /// try
-    void failWork(const QString& text, const QStringList& problems);
+    /// @brief The work failed: sentence @p text, why it failed (@p reason), Copy, and the
+    /// fields for another try; @p details, how it failed, go only to the clipboard
+    ///
+    /// Without a reason, a window with details says that Copy puts them on the clipboard.
+    void failWork(const QString& text, const QString& reason, const QStringList& details);
+
+    /// @brief The writer changed a field after a failure: the failure, which was about the
+    /// fields as they were, goes from the window and from Copy, and the hint shows again
+    void dropFailure();
+
+    /// @brief Set what went wrong with a field, as its line says it (@p text), and how
+    /// (@p details), for Copy, which shows while the window has it; an empty text: nothing
+    void setFieldProblem(const QString& text, const QStringList& details);
+
+    /// @brief The sentence of a failure whose kind the window does not name: Copy puts its
+    /// description on the clipboard
+    static QString copyHint();
 
     /// @brief A change of what the window shows makes it as high as it needs
     bool event(QEvent* event) override;
@@ -160,6 +181,9 @@ private:
     /// result), and keep it in view: on a low screen the window stops at the screen and the
     /// content scrolls
     void bringIntoView(QWidget* widget);
+
+    /// @brief Show Copy while the window has something that went wrong
+    void updateCopyButton();
 
     /// @brief The state of the work
     enum class State {
@@ -177,10 +201,14 @@ private:
     QWidget* m_result = nullptr;
     QLabel* m_resultIcon = nullptr;
     QLabel* m_resultText = nullptr;
+    QLabel* m_reasonText = nullptr;
     QLabel* m_showLink = nullptr;
-    QPlainTextEdit* m_details = nullptr;
     QPushButton* m_copyButton = nullptr;
     QString m_resultPath;
+    bool m_failed = false;          ///< The result is a failure
+    QStringList m_details;          ///< How the work failed, for Copy
+    QString m_fieldProblem;         ///< What went wrong with a field, as its line says it
+    QStringList m_fieldDetails;     ///< How, for Copy
 };
 
 /// @brief Export Project Archive: the folder and the name of the archive, the files that are
@@ -210,9 +238,9 @@ public:
     };
 
     /// @brief Writes the archive to @p path, with the backups of the database when
-    /// @p withBackups is true; false, with the problems, when it cannot
+    /// @p withBackups is true; false, with what went wrong in @p problem, when it cannot
     using Exporter = std::function<bool(const QString& path, bool withBackups,
-                                        const Progress& progress, QStringList* problems)>;
+                                        const Progress& progress, core::ArchiveProblem* problem)>;
 
     /// @brief What the window says about the book open in the program, without its changes
     /// that are not saved, which the caller knows
@@ -277,6 +305,10 @@ private:
     /// @brief Why the name cannot be the name of a file; empty when it can
     QString nameProblem() const;
 
+    /// @brief Why the archive could not be saved, as the window says it; empty for a cause
+    /// the window does not name
+    QString reasonOf(const core::ArchiveProblem& problem) const;
+
     Book m_book;
     Exporter m_exporter;
     QString m_folder;
@@ -313,9 +345,10 @@ public:
     using OpeningQuestion = std::function<Opening(const QString& title)>;
 
     /// @brief Unpacks archive @p archive to a new folder in @p folder and, when @p open is
-    /// true, opens its book; false, with the problems, when it cannot
-    using Importer = std::function<bool(const QString& archive, const QString& folder, bool open,
-                                        const Progress& progress, QStringList* problems)>;
+    /// true, opens its book; false, with what went wrong in @p problem, when it cannot
+    using Importer =
+        std::function<bool(const QString& archive, const QString& folder, bool open,
+                           const Progress& progress, core::ArchiveProblem* problem)>;
 
     /// @brief Create the window without an archive
     /// @param registry The book types, for the names of the type and the kinds
@@ -382,14 +415,17 @@ private:
     /// @brief The title of the book of the archive; the name of the archive when it has none
     QString bookTitle() const;
 
+    /// @brief Why the book of the archive cannot be read or imported, as the window says it;
+    /// empty for a cause the window does not name
+    QString reasonOf(const core::ArchiveProblem& problem) const;
+
     const core::BookTypeRegistry* m_registry;
     Importer m_importer;
     OpeningQuestion m_openingQuestion;
     QString m_archive;
     QString m_folder;
     std::optional<core::BookProject> m_project;
-    QStringList m_archiveProblems;
-    bool m_newerFormat = false;  ///< The book of the archive is of a newer Kalahari
+    core::ArchiveProblem m_archiveProblem;  ///< Why the book of the archive cannot be read
     QLineEdit* m_archiveField = nullptr;
     QLineEdit* m_folderField = nullptr;
     FieldNote m_archiveNote;

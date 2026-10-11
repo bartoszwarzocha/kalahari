@@ -24,6 +24,7 @@
 #include <QLabel>
 #include <QLayout>
 #include <QLineEdit>
+#include <QPlainTextEdit>
 #include <QProgressBar>
 #include <QProxyStyle>
 #include <QPushButton>
@@ -59,6 +60,21 @@ const core::BookTypeRegistry& builtInTypes() {
 bool showsText(const QDialog& dialog, const QString& text) {
     for (const QLabel* label : dialog.findChildren<QLabel*>()) {
         if (label->isVisibleTo(&dialog) && label->text() == text) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// @brief Whether @p dialog shows @p text anywhere: in a label or in a box of text
+bool showsAnywhere(const QDialog& dialog, const QString& text) {
+    for (const QLabel* label : dialog.findChildren<QLabel*>()) {
+        if (label->isVisibleTo(&dialog) && label->text().contains(text)) {
+            return true;
+        }
+    }
+    for (const QPlainTextEdit* box : dialog.findChildren<QPlainTextEdit*>()) {
+        if (box->isVisibleTo(&dialog) && box->toPlainText().contains(text)) {
             return true;
         }
     }
@@ -251,7 +267,7 @@ TEST_CASE("Export Project Archive: the folder and the name of the archive",
     const QString folder = QDir(dir.path()).filePath(QStringLiteral("Archives"));
     ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, folder,
                                [](const QString&, bool, const ArchiveDialog::Progress&,
-                                  QStringList*) { return true; });
+                                  core::ArchiveProblem*) { return true; });
 
     CHECK(dialog.windowTitle() == QStringLiteral("Export Project Archive"));
     CHECK(dialog.acceptButton()->text() == QStringLiteral("Export"));
@@ -336,7 +352,7 @@ TEST_CASE("Export Project Archive: the files that are not ready and the unsaved 
         0};
     ExportArchiveDialog dialog(book, dir.path(),
                                [](const QString&, bool, const ArchiveDialog::Progress&,
-                                  QStringList*) { return true; });
+                                  core::ArchiveProblem*) { return true; });
 
     REQUIRE(dialog.unreadyGroup()->isVisibleTo(&dialog));
     CHECK(dialog.unreadyGroup()->title() == QStringLiteral("Files Not Ready (2)"));
@@ -364,7 +380,7 @@ TEST_CASE("Export Project Archive: the progress and the result in the window",
     ExportArchiveDialog dialog(
         {QStringLiteral("Travels"), {}, false, 0}, folder,
         [&](const QString& archive, bool, const ArchiveDialog::Progress& progress,
-            QStringList* problems) {
+            core::ArchiveProblem* problem) {
             written << archive;
             // While the work lasts, the window waits and cannot be closed
             progress(40);
@@ -376,7 +392,9 @@ TEST_CASE("Export Project Archive: the progress and the result in the window",
             shown->reject();
             CHECK(shown->isVisible());
             if (!succeeds) {
-                problems->append(QStringLiteral("Travels.klh.zip: the disk is full"));
+                problem->kind = core::ArchiveProblem::Kind::DiskFull;
+                problem->lines.append(
+                    QStringLiteral("Travels.klh.zip: Write error: No space left on device"));
                 return false;
             }
             writeFile(archive, "archive");
@@ -418,11 +436,19 @@ TEST_CASE("Export Project Archive: the progress and the result in the window",
         CHECK_FALSE(dialog.isDone());
         CHECK(dialog.isVisible());
         CHECK(dialog.resultText() == QStringLiteral("The archive could not be saved."));
-        CHECK(dialog.detailsText() == QStringLiteral("Travels.klh.zip: the disk is full"));
+        CHECK(dialog.reasonText() == QStringLiteral("There is no room left on the disk. Free some "
+                                                    "space or choose another folder."));
+        CHECK(showsText(dialog, dialog.reasonText()));
+        // The description of libzip only goes to the clipboard
+        CHECK(dialog.detailsText() ==
+              QStringLiteral("Travels.klh.zip: Write error: No space left on device"));
+        CHECK_FALSE(showsAnywhere(dialog, QStringLiteral("No space left on device")));
         CHECK(dialog.copyButton()->isVisibleTo(&dialog));
         CHECK(dialog.clipboardText() ==
-              QStringLiteral("Export Project Archive\n\nThe archive could not be saved.\n\n"
-                             "Travels.klh.zip: the disk is full"));
+              QStringLiteral("Export Project Archive\n\nThe archive could not be saved.\n"
+                             "There is no room left on the disk. Free some space or choose "
+                             "another folder.\n\n"
+                             "Travels.klh.zip: Write error: No space left on device"));
         CHECK_FALSE(dialog.progressBar()->isVisibleTo(&dialog));
         CHECK(dialog.acceptButton()->text() == QStringLiteral("Export"));
         CHECK(dialog.acceptButton()->isEnabled());
@@ -433,10 +459,96 @@ TEST_CASE("Export Project Archive: the progress and the result in the window",
         succeeds = true;
         dialog.accept();
         CHECK(dialog.isDone());
+        CHECK(dialog.reasonText().isEmpty());
+        CHECK_FALSE(showsText(dialog, QStringLiteral("There is no room left on the disk. Free "
+                                                     "some space or choose another folder.")));
         CHECK(dialog.detailsText().isEmpty());
         CHECK_FALSE(dialog.copyButton()->isVisibleTo(&dialog));
         CHECK(written == QStringList{path, path});
     }
+}
+
+TEST_CASE("Export Project Archive: why the archive could not be saved",
+          "[gui][dialogs][archive]") {
+    using Kind = core::ArchiveProblem::Kind;
+    QTemporaryDir dir;
+    const QString folder = QDir(dir.path()).filePath(QStringLiteral("Archives"));
+    Kind failure = Kind::Other;
+    ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, folder,
+                               [&failure](const QString&, bool, const ArchiveDialog::Progress&,
+                                          core::ArchiveProblem* problem) {
+                                   problem->kind = failure;
+                                   if (failure != Kind::ChangesNotSaved) {
+                                       problem->lines.append(
+                                           QStringLiteral("Travels.klh.zip: what went wrong"));
+                                   }
+                                   return false;
+                               });
+    const QList<std::pair<Kind, QString>> reasons{
+        {Kind::ChangesNotSaved,
+         QStringLiteral("Some changes in the book could not be saved. Check the log for "
+                        "details.")},
+        {Kind::UnreadableFile, QStringLiteral("Kalahari cannot read one of the files of the book.")},
+        {Kind::CannotWrite, QStringLiteral("Kalahari cannot save files in the folder %1. Choose "
+                                           "another folder.")
+                                .arg(QDir::toNativeSeparators(folder))},
+        {Kind::DiskFull, QStringLiteral("There is no room left on the disk. Free some space or "
+                                        "choose another folder.")},
+        // A cause the window does not name is in the details, which Copy puts on the clipboard
+        {Kind::Other,
+         QStringLiteral("Copy puts the technical description of the error on the clipboard.")},
+        {Kind::Damaged,
+         QStringLiteral("Copy puts the technical description of the error on the clipboard.")}};
+    for (const auto& [kind, reason] : reasons) {
+        CAPTURE(static_cast<int>(kind));
+        failure = kind;
+        dialog.accept();
+        CHECK(dialog.resultText() == QStringLiteral("The archive could not be saved."));
+        CHECK(dialog.reasonText() == reason);
+        CHECK(showsText(dialog, reason));
+        CHECK_FALSE(showsAnywhere(dialog, QStringLiteral("what went wrong")));
+        CHECK(dialog.copyButton()->isVisibleTo(&dialog));
+    }
+}
+
+TEST_CASE("Export Project Archive: a changed field takes away the failure of the last try",
+          "[gui][dialogs][archive]") {
+    QTemporaryDir dir;
+    const QString folder = QDir(dir.path()).filePath(QStringLiteral("Archives"));
+    ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 2}, folder,
+                               [](const QString&, bool, const ArchiveDialog::Progress&,
+                                  core::ArchiveProblem* problem) {
+                                   problem->kind = core::ArchiveProblem::Kind::DiskFull;
+                                   problem->lines.append(QStringLiteral(
+                                       "Travels.klh.zip: Write error: No space left on device"));
+                                   return false;
+                               });
+    dialog.show();
+    const QString hint = QStringLiteral("The progress and the result will show here.");
+    dialog.accept();
+    REQUIRE(dialog.resultText() == QStringLiteral("The archive could not be saved."));
+    REQUIRE_FALSE(showsText(dialog, hint));
+
+    SECTION("The name") {
+        dialog.nameField()->setText(QStringLiteral("Travels 2"));
+    }
+    SECTION("The folder") {
+        dialog.setFolder(QDir(dir.path()).filePath(QStringLiteral("Other")));
+    }
+    SECTION("The backups of the database") {
+        dialog.backupsBox()->setChecked(true);
+    }
+
+    // The failure was about the fields as they were
+    CHECK(dialog.resultText().isEmpty());
+    CHECK(dialog.reasonText().isEmpty());
+    CHECK(dialog.detailsText().isEmpty());
+    CHECK_FALSE(showsText(dialog, QStringLiteral("There is no room left on the disk. Free some "
+                                                 "space or choose another folder.")));
+    CHECK(showsText(dialog, hint));
+    CHECK_FALSE(dialog.copyButton()->isVisibleTo(&dialog));
+    CHECK(dialog.clipboardText() == QStringLiteral("Export Project Archive"));
+    CHECK(dialog.acceptButton()->isEnabled());
 }
 
 TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dialogs][archive]") {
@@ -451,7 +563,7 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
     }
     ExportArchiveDialog dialog(book, folder,
                                [](const QString& archive, bool, const ArchiveDialog::Progress&,
-                                  QStringList*) {
+                                  core::ArchiveProblem*) {
                                    writeFile(archive, "archive");
                                    return true;
                                });
@@ -490,7 +602,7 @@ TEST_CASE("Export Project Archive: the window that grew shows the whole result",
     QTemporaryDir dir;
     ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, dir.path(),
                                [](const QString&, bool, const ArchiveDialog::Progress&,
-                                  QStringList*) { return true; });
+                                  core::ArchiveProblem*) { return true; });
     // A long name of short words: the sentence of the result takes a few lines, and more
     // beside the bar
     QString name;
@@ -569,7 +681,7 @@ TEST_CASE("Export Project Archive: in a low window the progress and the result a
     ExportArchiveDialog dialog(book, folder,
                                [&](const QString& archive, bool,
                                    const ArchiveDialog::Progress& progress,
-                                   QStringList* problems) {
+                                   core::ArchiveProblem* problem) {
                                    // The window takes its place in a few passes of the event
                                    // loop while the work goes on, one more when the system
                                    // changes the window
@@ -590,8 +702,10 @@ TEST_CASE("Export Project Archive: in a low window the progress and the result a
                                         << where(shown->progressBar()));
                                    CHECK(lower);
                                    if (!succeeds) {
-                                       problems->append(
-                                           QStringLiteral("Travels.klh.zip: the disk is full"));
+                                       problem->kind = core::ArchiveProblem::Kind::DiskFull;
+                                       problem->lines.append(
+                                           QStringLiteral("Travels.klh.zip: Write error: No "
+                                                          "space left on device"));
                                        return false;
                                    }
                                    writeFile(archive, "archive");
@@ -644,7 +758,7 @@ TEST_CASE("Export Project Archive: a window that cannot grow for its content sta
     }
     ExportArchiveDialog dialog(book, dir.path(),
                                [](const QString& archive, bool, const ArchiveDialog::Progress&,
-                                  QStringList*) {
+                                  core::ArchiveProblem*) {
                                    writeFile(archive, "archive");
                                    return true;
                                });
@@ -680,7 +794,7 @@ TEST_CASE("Export Project Archive: a line under a field is as high as its senten
     writeFile(QDir(dir.path()).filePath(QStringLiteral("Travels.klh.zip")), "old");
     ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, dir.path(),
                                [](const QString&, bool, const ArchiveDialog::Progress&,
-                                  QStringList*) { return true; });
+                                  core::ArchiveProblem*) { return true; });
     dialog.show();
     settle();
 
@@ -720,7 +834,7 @@ TEST_CASE("Export Project Archive: the backups of the database go when the write
     QTemporaryDir dir;
     QList<bool> withBackups;
     const auto exporter = [&withBackups](const QString& archive, bool backups,
-                                         const ArchiveDialog::Progress&, QStringList*) {
+                                         const ArchiveDialog::Progress&, core::ArchiveProblem*) {
         withBackups << backups;
         writeFile(archive, "archive");
         return true;
@@ -773,7 +887,8 @@ TEST_CASE("Import Project Archive: the book of the archive before the import",
     const QString place = QDir(dir.path()).filePath(QStringLiteral("Imported"));
     ImportArchiveDialog dialog(builtInTypes(), place,
                                [](const QString&, const QString&, bool,
-                                  const ArchiveDialog::Progress&, QStringList*) { return true; });
+                                  const ArchiveDialog::Progress&,
+                                  core::ArchiveProblem*) { return true; });
 
     // Without an archive, there is nothing to import
     CHECK(dialog.windowTitle() == QStringLiteral("Import Project Archive"));
@@ -814,17 +929,22 @@ TEST_CASE("Import Project Archive: the book of the archive before the import",
         const QString notes = QDir(dir.path()).filePath(QStringLiteral("Notes.klh.zip"));
         writeArchive(notes, "notes.txt", "notes");
         dialog.setArchive(notes);
-        CHECK(dialog.archiveNote() ==
-              QStringLiteral("Kalahari cannot read the book of this archive.\n"
-                             "Notes.klh.zip: the archive has no .klh file"));
+        CHECK(dialog.archiveNote() == QStringLiteral("This archive has no Kalahari book."));
         CHECK(dialog.bookText().isEmpty());
         // Without a book, the window does not say where it goes
         CHECK(dialog.folderNote().isEmpty());
         CHECK_FALSE(dialog.acceptButton()->isEnabled());
+        // The description of the program only goes to the clipboard
+        CHECK_FALSE(showsAnywhere(dialog, QStringLiteral(".klh file")));
+        CHECK(dialog.copyButton()->isVisibleTo(&dialog));
+        CHECK(dialog.clipboardText() ==
+              QStringLiteral("Import Project Archive\n\nThis archive has no Kalahari book.\n\n"
+                             "Notes.klh.zip: the archive has no .klh file"));
 
         // Another archive replaces it
         dialog.setArchive(archive);
         CHECK(dialog.archiveNote().isEmpty());
+        CHECK_FALSE(dialog.copyButton()->isVisibleTo(&dialog));
         CHECK(dialog.bookText().startsWith(QStringLiteral("Title: Travels\n")));
         CHECK(dialog.folderNote() == QStringLiteral("The book goes to the folder \"Travels\"."));
         CHECK(dialog.acceptButton()->isEnabled());
@@ -847,10 +967,30 @@ TEST_CASE("Import Project Archive: the book of the archive before the import",
         CHECK_FALSE(dialog.acceptButton()->isEnabled());
     }
 
+    SECTION("A file that is not an archive") {
+        const QString text = QDir(dir.path()).filePath(QStringLiteral("Text.klh.zip"));
+        writeFile(text, "plain text");
+        dialog.setArchive(text);
+        CHECK(dialog.archiveNote() ==
+              QStringLiteral("This file is not a ZIP archive, or it is damaged."));
+        CHECK_FALSE(dialog.acceptButton()->isEnabled());
+        CHECK(dialog.clipboardText().startsWith(
+            QStringLiteral("Import Project Archive\n\nThis file is not a ZIP archive, or it is "
+                           "damaged.\n\nText.klh.zip: ")));
+    }
+
+    SECTION("A book file that Kalahari cannot read") {
+        const QString broken = QDir(dir.path()).filePath(QStringLiteral("Broken.klh.zip"));
+        writeArchive(broken, "Broken.klh", "{ not JSON");
+        dialog.setArchive(broken);
+        CHECK(dialog.archiveNote() ==
+              QStringLiteral("The book file in this archive is damaged."));
+        CHECK_FALSE(showsAnywhere(dialog, QStringLiteral("not valid JSON")));
+        CHECK(dialog.clipboardText().contains(QStringLiteral("Broken.klh: not valid JSON")));
+    }
+
     SECTION("A book without an author, with a Workshop, of a type that is not installed") {
-        QStringList problems;
-        std::optional<core::BookProject> project =
-            core::ProjectManager::readArchive(archive, &problems);
+        std::optional<core::BookProject> project = core::ProjectManager::readArchive(archive);
         REQUIRE(project.has_value());
         project->books.first().author.clear();
         project->type->id = QStringLiteral("acme.saga");
@@ -889,7 +1029,8 @@ TEST_CASE("Import Project Archive: each row of the book is as high as its senten
 
     ImportArchiveDialog dialog(builtInTypes(), QDir(dir.path()).filePath(QStringLiteral("Books")),
                                [](const QString&, const QString&, bool,
-                                  const ArchiveDialog::Progress&, QStringList*) { return true; });
+                                  const ArchiveDialog::Progress&,
+                                  core::ArchiveProblem*) { return true; });
     dialog.show();
     settle();
     dialog.setArchive(other);
@@ -915,7 +1056,8 @@ TEST_CASE("Import Project Archive: the backups of the database in the archive",
     const QByteArray manifest = QJsonDocument(project->toJson()).toJson();
     ImportArchiveDialog dialog(builtInTypes(), QDir(dir.path()).filePath(QStringLiteral("Books")),
                                [](const QString&, const QString&, bool,
-                                  const ArchiveDialog::Progress&, QStringList*) { return true; });
+                                  const ArchiveDialog::Progress&,
+                                  core::ArchiveProblem*) { return true; });
 
     const QString two = QDir(dir.path()).filePath(QStringLiteral("Two.klh.zip"));
     writeArchive(two, {{"Two.klh", manifest},
@@ -999,7 +1141,7 @@ TEST_CASE("Import Project Archive: the open book, the progress and the result",
     ImportArchiveDialog dialog(
         builtInTypes(), place,
         [&](const QString& file, const QString& folder, bool open,
-            const ArchiveDialog::Progress& progress, QStringList* problems) {
+            const ArchiveDialog::Progress& progress, core::ArchiveProblem* problem) {
             calls.append({file, folder, open});
             progress(50);
             CHECK(shown->progressBar()->value() == 50);
@@ -1009,7 +1151,8 @@ TEST_CASE("Import Project Archive: the open book, the progress and the result",
             if (!succeeds) {
                 // A folder made before the failure stays in the way of the next try
                 CHECK(QDir().mkpath(bookFolder));
-                problems->append(QStringLiteral("Travels.klh: not valid JSON"));
+                problem->kind = core::ArchiveProblem::Kind::DamagedBook;
+                problem->lines.append(QStringLiteral("Travels.klh: not valid JSON"));
                 return false;
             }
             CHECK(QDir().mkpath(bookFolder));
@@ -1070,14 +1213,130 @@ TEST_CASE("Import Project Archive: the open book, the progress and the result",
         dialog.accept();
         CHECK_FALSE(dialog.isDone());
         CHECK(dialog.resultText() == QStringLiteral("The archive could not be imported."));
+        CHECK(dialog.reasonText() == QStringLiteral("The book file in this archive is damaged."));
         CHECK(dialog.detailsText() == QStringLiteral("Travels.klh: not valid JSON"));
+        CHECK_FALSE(showsAnywhere(dialog, QStringLiteral("not valid JSON")));
         CHECK(dialog.copyButton()->isVisibleTo(&dialog));
         CHECK(dialog.clipboardText() ==
-              QStringLiteral("Import Project Archive\n\nThe archive could not be imported.\n\n"
+              QStringLiteral("Import Project Archive\n\nThe archive could not be imported.\n"
+                             "The book file in this archive is damaged.\n\n"
                              "Travels.klh: not valid JSON"));
         CHECK(dialog.folderNote() == QStringLiteral("The folder \"Travels\" is already here. "
                                                     "Choose another place for the book."));
         CHECK_FALSE(dialog.acceptButton()->isEnabled());
         CHECK(dialog.cancelButton()->isEnabled());
     }
+}
+
+TEST_CASE("Import Project Archive: why the archive could not be imported",
+          "[gui][dialogs][archive]") {
+    using Kind = core::ArchiveProblem::Kind;
+    QTemporaryDir dir;
+    const QString archive = novelArchive(dir);
+    const QString place = QDir(dir.path()).filePath(QStringLiteral("Imported"));
+    Kind failure = Kind::Other;
+    ImportArchiveDialog dialog(builtInTypes(), place,
+                               [&failure](const QString&, const QString&, bool,
+                                          const ArchiveDialog::Progress&,
+                                          core::ArchiveProblem* problem) {
+                                   problem->kind = failure;
+                                   problem->lines.append(
+                                       QStringLiteral("Travels.klh.zip: what went wrong"));
+                                   return false;
+                               });
+    dialog.setArchive(archive);
+    const QString unnamed =
+        QStringLiteral("Copy puts the technical description of the error on the clipboard.");
+    const QList<std::pair<Kind, QString>> reasons{
+        {Kind::NotFound, QStringLiteral("This file no longer exists.")},
+        {Kind::CannotRead,
+         QStringLiteral("Kalahari cannot read this file. Check that you have access to it.")},
+        {Kind::NotArchive, QStringLiteral("This file is not a ZIP archive, or it is damaged.")},
+        {Kind::Damaged, QStringLiteral("This archive is damaged.")},
+        {Kind::Unsupported, QStringLiteral("This archive is encrypted or packed in a way that "
+                                           "Kalahari does not support.")},
+        {Kind::NoBook, QStringLiteral("This archive has no Kalahari book.")},
+        {Kind::DamagedBook, QStringLiteral("The book file in this archive is damaged.")},
+        {Kind::NewerBook, QStringLiteral("This book was saved in a newer version of Kalahari. "
+                                         "Update the program to import it.")},
+        {Kind::FolderExists, QStringLiteral("The folder \"Travels\" is already here. Choose "
+                                            "another place for the book.")},
+        {Kind::CannotWrite, QStringLiteral("Kalahari cannot save files in the folder %1. Choose "
+                                           "another place for the book.")
+                                .arg(QDir::toNativeSeparators(place))},
+        {Kind::DiskFull, QStringLiteral("There is no room left on the disk. Free some space or "
+                                        "choose another place for the book.")},
+        {Kind::NotOpened, QStringLiteral("Kalahari cannot open the book of this archive.")},
+        // A cause the window does not name is in the details, which Copy puts on the clipboard
+        {Kind::Other, unnamed},
+        {Kind::UnreadableFile, unnamed}};
+    for (const auto& [kind, reason] : reasons) {
+        CAPTURE(static_cast<int>(kind));
+        failure = kind;
+        dialog.accept();
+        CHECK(dialog.resultText() == QStringLiteral("The archive could not be imported."));
+        CHECK(dialog.reasonText() == reason);
+        CHECK(showsText(dialog, reason));
+        CHECK_FALSE(showsAnywhere(dialog, QStringLiteral("what went wrong")));
+        CHECK(dialog.detailsText() == QStringLiteral("Travels.klh.zip: what went wrong"));
+    }
+}
+
+TEST_CASE("Import Project Archive: a changed field takes away the failure of the last try",
+          "[gui][dialogs][archive]") {
+    QTemporaryDir dir;
+    const QString archive = novelArchive(dir);
+    const QString place = QDir(dir.path()).filePath(QStringLiteral("Imported"));
+    ImportArchiveDialog dialog(builtInTypes(), place,
+                               [](const QString&, const QString&, bool,
+                                  const ArchiveDialog::Progress&, core::ArchiveProblem* problem) {
+                                   problem->kind = core::ArchiveProblem::Kind::Damaged;
+                                   problem->lines.append(QStringLiteral(
+                                       "book/chapter_001.kchapter: Zlib error: data error"));
+                                   return false;
+                               });
+    dialog.setArchive(archive);
+    dialog.show();
+    const QString hint = QStringLiteral("The progress of the import will show here. When "
+                                        "something goes wrong, the description of the error "
+                                        "stays in this window, and Copy puts it on the "
+                                        "clipboard.");
+    dialog.accept();
+    REQUIRE(dialog.reasonText() == QStringLiteral("This archive is damaged."));
+    REQUIRE_FALSE(showsText(dialog, hint));
+
+    SECTION("Another archive") {
+        const QString other = QDir(dir.path()).filePath(QStringLiteral("Other.klh.zip"));
+        REQUIRE(QFile::copy(archive, other));
+        dialog.setArchive(other);
+        CHECK(dialog.clipboardText() == QStringLiteral("Import Project Archive"));
+        CHECK_FALSE(dialog.copyButton()->isVisibleTo(&dialog));
+        CHECK(dialog.acceptButton()->isEnabled());
+    }
+
+    SECTION("A file that is not an archive: Copy has what its line says, without the failure") {
+        const QString text = QDir(dir.path()).filePath(QStringLiteral("Text.klh.zip"));
+        writeFile(text, "plain text");
+        dialog.setArchive(text);
+        CHECK(dialog.archiveNote() ==
+              QStringLiteral("This file is not a ZIP archive, or it is damaged."));
+        CHECK(dialog.copyButton()->isVisibleTo(&dialog));
+        CHECK(dialog.clipboardText().startsWith(
+            QStringLiteral("Import Project Archive\n\nThis file is not a ZIP archive, or it is "
+                           "damaged.\n\nText.klh.zip: ")));
+        CHECK_FALSE(dialog.clipboardText().contains(QStringLiteral("Zlib error")));
+    }
+
+    SECTION("Another place") {
+        dialog.setFolder(QDir(dir.path()).filePath(QStringLiteral("Elsewhere")));
+        CHECK(dialog.clipboardText() == QStringLiteral("Import Project Archive"));
+        CHECK_FALSE(dialog.copyButton()->isVisibleTo(&dialog));
+    }
+
+    // The failure was about the fields as they were
+    CHECK(dialog.resultText().isEmpty());
+    CHECK(dialog.reasonText().isEmpty());
+    CHECK(dialog.detailsText().isEmpty());
+    CHECK_FALSE(showsText(dialog, QStringLiteral("This archive is damaged.")));
+    CHECK(showsText(dialog, hint));
 }

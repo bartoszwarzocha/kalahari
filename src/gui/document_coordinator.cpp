@@ -1348,16 +1348,15 @@ void DocumentCoordinator::onExportArchive() {
         book, ProgramFolders::startFolder(ProgramFolders::Operation::ExportArchive),
         [this, &pm, &logger](const QString& path, bool withBackups,
                              const dialogs::ArchiveDialog::Progress& progress,
-                             QStringList* problems) {
+                             core::ArchiveProblem* problem) {
             ProgramFolders::remember(ProgramFolders::Operation::ExportArchive,
                                      QFileInfo(path).absolutePath());
             // The archive has the book as the writer sees it
             if (bookHasUnsavedChanges() && !saveBook()) {
-                problems->append(tr(
-                    "Some changes in the book could not be saved. Check the log for details."));
+                problem->kind = core::ArchiveProblem::Kind::ChangesNotSaved;
                 return false;
             }
-            if (!pm.exportArchive(path, progress, problems, withBackups)) {
+            if (!pm.exportArchive(path, progress, problem, withBackups)) {
                 logger.error("Failed to export project archive");
                 return false;
             }
@@ -1376,16 +1375,17 @@ void DocumentCoordinator::onImportArchive() {
     dialogs::ImportArchiveDialog dialog(
         pm.bookTypes(), ProgramFolders::startFolder(ProgramFolders::Operation::ImportDestination),
         [&pm, &logger](const QString& archive, const QString& folder, bool open,
-                       const dialogs::ArchiveDialog::Progress& progress, QStringList* problems) {
+                       const dialogs::ArchiveDialog::Progress& progress,
+                       core::ArchiveProblem* problem) {
             ProgramFolders::remember(ProgramFolders::Operation::ImportDestination, folder);
             QString manifest;
             if (open) {
                 // ProjectManager closes the open book, and onProjectOpened() shows this one
-                if (pm.importArchive(archive, folder, progress, problems)) {
+                if (pm.importArchive(archive, folder, progress, problem)) {
                     manifest = pm.getManifestPath();
                 }
             } else {
-                manifest = core::ProjectManager::unpackArchive(archive, folder, progress, problems);
+                manifest = core::ProjectManager::unpackArchive(archive, folder, progress, problem);
             }
             if (manifest.isEmpty()) {
                 logger.error("Failed to import project archive");

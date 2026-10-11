@@ -4466,14 +4466,6 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
         <translation>Zwiń wszystko</translation>
     </message>
     <message>
-        <source>Project Structure (no document loaded)</source>
-        <translation>Struktura projektu (brak dokumentu)</translation>
-    </message>
-    <message>
-        <source>Project Structure</source>
-        <translation>Struktura projektu</translation>
-    </message>
-    <message>
         <source>Files</source>
         <translation>Pliki</translation>
     </message>
@@ -4610,6 +4602,14 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
     <message>
         <source>The program does not have the package of this element&apos;s kind.</source>
         <translation>Program nie ma pakietu, z którego pochodzi rodzaj tego elementu.</translation>
+    </message>
+    <message>
+        <source>No book is open</source>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>Book Structure</source>
+        <translation>Struktura książki</translation>
     </message>
 </context>
 <context>
@@ -6192,10 +6192,6 @@ Harmonogram projektu:
         <translation>Otwórz folder w menedżerze plików</translation>
     </message>
     <message>
-        <source>Details</source>
-        <translation>Szczegóły</translation>
-    </message>
-    <message>
         <source>The file manager of the system could not show:
 %1</source>
         <translation>Menedżer plików nie mógł pokazać tego miejsca:
@@ -6208,6 +6204,10 @@ Harmonogram projektu:
     <message>
         <source>Close</source>
         <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Copy puts the technical description of the error on the clipboard.</source>
+        <translation>Opis techniczny błędu skopiujesz przyciskiem „Kopiuj”.</translation>
     </message>
 </context>
 <context>
@@ -6460,6 +6460,22 @@ Harmonogram projektu:
         <source>The book has no backups of its database yet: Kalahari makes them when the book is closed.</source>
         <translation>Książka nie ma jeszcze kopii bazy: program robi je przy zamykaniu książki.</translation>
     </message>
+    <message>
+        <source>Some changes in the book could not be saved. Check the log for details.</source>
+        <translation>Nie udało się zapisać niektórych zmian w książce. Szczegóły są w dzienniku.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot read one of the files of the book.</source>
+        <translation>Kalahari nie może odczytać jednego z plików książki.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot save files in the folder %1. Choose another folder.</source>
+        <translation>Kalahari nie może zapisywać plików w folderze %1. Wybierz inny folder.</translation>
+    </message>
+    <message>
+        <source>There is no room left on the disk. Free some space or choose another folder.</source>
+        <translation>Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz inny folder.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::FilePreviewDialog</name>
@@ -6649,6 +6665,46 @@ Harmonogram projektu:
             <numerusform>%n kopie bazy</numerusform>
             <numerusform>%n kopii bazy</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>This file no longer exists.</source>
+        <translation>Ten plik już nie istnieje.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot read this file. Check that you have access to it.</source>
+        <translation>Kalahari nie może odczytać tego pliku. Sprawdź, czy masz do niego dostęp.</translation>
+    </message>
+    <message>
+        <source>This file is not a ZIP archive, or it is damaged.</source>
+        <translation>Ten plik nie jest archiwum ZIP albo jest uszkodzony.</translation>
+    </message>
+    <message>
+        <source>This archive is damaged.</source>
+        <translation>To archiwum jest uszkodzone.</translation>
+    </message>
+    <message>
+        <source>This archive is encrypted or packed in a way that Kalahari does not support.</source>
+        <translation>To archiwum jest zaszyfrowane albo spakowane w sposób, którego Kalahari nie obsługuje.</translation>
+    </message>
+    <message>
+        <source>This archive has no Kalahari book.</source>
+        <translation>W tym archiwum nie ma książki programu Kalahari.</translation>
+    </message>
+    <message>
+        <source>The book file in this archive is damaged.</source>
+        <translation>Plik książki w tym archiwum jest uszkodzony.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot save files in the folder %1. Choose another place for the book.</source>
+        <translation>Kalahari nie może zapisywać plików w folderze %1. Wybierz dla książki inne miejsce.</translation>
+    </message>
+    <message>
+        <source>There is no room left on the disk. Free some space or choose another place for the book.</source>
+        <translation>Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz dla książki inne miejsce.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot open the book of this archive.</source>
+        <translation>Kalahari nie może otworzyć książki z tego archiwum.</translation>
     </message>
 </context>
 <context>

@@ -23,6 +23,7 @@
 #include <QUuid>
 
 #include <algorithm>
+#include <cerrno>
 #include <utility>
 
 #include <zip.h>
@@ -246,9 +247,98 @@ zip_source_t* fileSource(const QString& path, zip_error_t* error) {
 #endif
 }
 
-/// Archive @p path opened with libzip's @p flags; nullptr, with the reason in @p error, when
-/// it cannot be opened
-zip_t* openZip(const QString& path, int flags, QString* error) {
+/// What libzip says went wrong
+struct ZipFailure {
+    QString text;              ///< Its description, in English
+    int zipError = ZIP_ER_OK;  ///< Its error, ZIP_ER_*
+    int systemError = 0;       ///< The error of the system (errno); 0 when it has none
+};
+
+/// The failure that libzip's @p error describes
+ZipFailure failureOf(zip_error_t* error) {
+    return {QString::fromUtf8(zip_error_strerror(error)), zip_error_code_zip(error),
+            zip_error_system_type(error) == ZIP_ET_SYS ? zip_error_code_system(error) : 0};
+}
+
+/// Whether the error of the system @p systemError says that the disk has no room left
+bool isDiskFull(int systemError) {
+#ifdef EDQUOT
+    if (systemError == EDQUOT) {
+        return true;
+    }
+#endif
+    return systemError == ENOSPC;
+}
+
+/// What went wrong when libzip read an archive, as @p failure says it
+ArchiveProblem::Kind readingKind(const ZipFailure& failure) {
+    using Kind = ArchiveProblem::Kind;
+    switch (failure.zipError) {
+        case ZIP_ER_NOENT:
+            return Kind::NotFound;
+        case ZIP_ER_OPEN:
+        case ZIP_ER_READ:
+        case ZIP_ER_SEEK:
+        case ZIP_ER_TELL:
+            return failure.systemError == ENOENT ? Kind::NotFound : Kind::CannotRead;
+        case ZIP_ER_NOZIP:  // also an archive without its end
+            return Kind::NotArchive;
+        case ZIP_ER_INCONS:
+        case ZIP_ER_CRC:
+        case ZIP_ER_ZLIB:
+        case ZIP_ER_EOF:
+#ifdef ZIP_ER_COMPRESSED_DATA
+        case ZIP_ER_COMPRESSED_DATA:  // libzip 1.6
+#endif
+#ifdef ZIP_ER_TRUNCATED_ZIP
+        case ZIP_ER_TRUNCATED_ZIP:  // libzip 1.11
+#endif
+            return Kind::Damaged;
+        case ZIP_ER_MULTIDISK:
+        case ZIP_ER_COMPNOTSUPP:
+        case ZIP_ER_ENCRNOTSUPP:
+        case ZIP_ER_NOPASSWD:
+        case ZIP_ER_WRONGPASSWD:
+            return Kind::Unsupported;
+        default:
+            return Kind::Other;
+    }
+}
+
+/// What went wrong when libzip wrote an archive, as @p failure says it; @p readsFiles: whether
+/// libzip was reading the files that go to the archive, as it does when the archive is closed
+ArchiveProblem::Kind writingKind(const ZipFailure& failure, bool readsFiles) {
+    using Kind = ArchiveProblem::Kind;
+    if (readsFiles && (failure.zipError == ZIP_ER_OPEN || failure.zipError == ZIP_ER_READ)) {
+        return Kind::UnreadableFile;
+    }
+    switch (failure.zipError) {
+        case ZIP_ER_OPEN:  // the archive that the new one replaces
+        case ZIP_ER_READ:
+        case ZIP_ER_TMPOPEN:
+        case ZIP_ER_WRITE:
+        case ZIP_ER_RENAME:
+        case ZIP_ER_CLOSE:
+        case ZIP_ER_REMOVE:
+        case ZIP_ER_SEEK:
+        case ZIP_ER_TELL:
+        case ZIP_ER_RDONLY:
+            return isDiskFull(failure.systemError) ? Kind::DiskFull : Kind::CannotWrite;
+        default:
+            return Kind::Other;
+    }
+}
+
+/// What went wrong when @p file was written
+ArchiveProblem::Kind writingKind(const QFileDevice& file) {
+    // Qt says that the disk has no room left with ResourceError
+    return file.error() == QFileDevice::ResourceError ? ArchiveProblem::Kind::DiskFull
+                                                       : ArchiveProblem::Kind::CannotWrite;
+}
+
+/// Archive @p path opened with libzip's @p flags; nullptr, with what went wrong in @p failure,
+/// when it cannot be opened
+zip_t* openZip(const QString& path, int flags, ZipFailure* failure) {
     zip_error_t zipError;
     zip_error_init(&zipError);
     zip_source_t* source = fileSource(path, &zipError);
@@ -257,7 +347,7 @@ zip_t* openZip(const QString& path, int flags, QString* error) {
         if (source) {
             zip_source_free(source);
         }
-        *error = QString::fromUtf8(zip_error_strerror(&zipError));
+        *failure = failureOf(&zipError);
     }
     zip_error_fini(&zipError);
     return archive;
@@ -1960,18 +2050,19 @@ QStringList ProjectManager::databaseBackups() const {
 
 bool ProjectManager::exportArchive(const QString& outputPath,
                                    const std::function<void(int)>& progressCallback,
-                                   QStringList* problems, bool withBackups) {
+                                   ArchiveProblem* problem, bool withBackups) {
     auto& logger = Logger::getInstance();
-    const auto fail = [&logger, problems](const QString& problem) {
-        logger.error("exportArchive: {}", problem.toStdString());
-        if (problems) {
-            problems->append(problem);
+    const auto fail = [&logger, problem](ArchiveProblem::Kind kind, const QString& line) {
+        logger.error("exportArchive: {}", line.toStdString());
+        if (problem) {
+            problem->kind = kind;
+            problem->lines.append(line);
         }
         return false;
     };
 
     if (!isProjectOpen()) {
-        return fail(QStringLiteral("no project is open"));
+        return fail(ArchiveProblem::Kind::Other, QStringLiteral("no project is open"));
     }
     logger.info("Exporting project to: {}", outputPath.toStdString());
 
@@ -1987,13 +2078,14 @@ bool ProjectManager::exportArchive(const QString& outputPath,
         }
     }
     if (files.isEmpty()) {
-        return fail(QStringLiteral("the project folder has no files"));
+        return fail(ArchiveProblem::Kind::Other, QStringLiteral("the project folder has no files"));
     }
 
-    QString error;
-    zip_t* archive = openZip(outputPath, ZIP_CREATE | ZIP_TRUNCATE, &error);
+    ZipFailure failure;
+    zip_t* archive = openZip(outputPath, ZIP_CREATE | ZIP_TRUNCATE, &failure);
     if (!archive) {
-        return fail(QStringLiteral("%1: %2").arg(QFileInfo(outputPath).fileName(), error));
+        return fail(writingKind(failure, false),
+                    QStringLiteral("%1: %2").arg(QFileInfo(outputPath).fileName(), failure.text));
     }
 
     // The files of the folder, and the backups of the database from wherever they are kept
@@ -2017,15 +2109,18 @@ bool ProjectManager::exportArchive(const QString& outputPath,
         zip_source_t* source = fileSource(path, &sourceError);
         if (!source || zip_file_add(archive, name.toUtf8().constData(), source,
                                     ZIP_FL_ENC_UTF_8 | ZIP_FL_OVERWRITE) < 0) {
-            const QString reason = source ? QString::fromUtf8(zip_strerror(archive))
-                                          : QString::fromUtf8(zip_error_strerror(&sourceError));
+            // A file of the book that cannot be read, or an entry libzip does not take
+            const ArchiveProblem::Kind kind =
+                source ? ArchiveProblem::Kind::Other : ArchiveProblem::Kind::UnreadableFile;
+            const QString reason =
+                (source ? failureOf(zip_get_error(archive)) : failureOf(&sourceError)).text;
             zip_error_fini(&sourceError);
             if (source) {
                 zip_source_free(source);
             }
             zip_discard(archive);
             QFile::remove(outputPath);
-            return fail(QStringLiteral("%1: %2").arg(name, reason));
+            return fail(kind, QStringLiteral("%1: %2").arg(name, reason));
         }
         zip_error_fini(&sourceError);
     }
@@ -2041,10 +2136,11 @@ bool ProjectManager::exportArchive(const QString& outputPath,
             nullptr, &progress);
     }
     if (zip_close(archive) < 0) {
-        const QString reason = QString::fromUtf8(zip_strerror(archive));
+        failure = failureOf(zip_get_error(archive));
         zip_discard(archive);
         QFile::remove(outputPath);
-        return fail(QStringLiteral("%1: %2").arg(QFileInfo(outputPath).fileName(), reason));
+        return fail(writingKind(failure, true),
+                    QStringLiteral("%1: %2").arg(QFileInfo(outputPath).fileName(), failure.text));
     }
     if (progress) {
         progress(100);
@@ -2055,33 +2151,31 @@ bool ProjectManager::exportArchive(const QString& outputPath,
 }
 
 std::optional<BookProject> ProjectManager::readArchive(const QString& archivePath,
-                                                       QStringList* problems, int* backups,
-                                                       bool* newerFormat) {
+                                                       ArchiveProblem* problem, int* backups) {
     if (backups) {
         *backups = 0;
     }
-    if (newerFormat) {
-        *newerFormat = false;
-    }
     QStringList found;
-    const auto fail = [&found, problems](const QString& problem) -> std::optional<BookProject> {
-        if (!problem.isEmpty()) {
-            found.append(problem);
+    const auto fail = [&found, problem](ArchiveProblem::Kind kind,
+                                        const QString& line) -> std::optional<BookProject> {
+        if (!line.isEmpty()) {
+            found.append(line);
         }
-        for (const QString& line : found) {
-            Logger::getInstance().warn("readArchive: {}", line.toStdString());
+        for (const QString& each : std::as_const(found)) {
+            Logger::getInstance().warn("readArchive: {}", each.toStdString());
         }
-        if (problems) {
-            problems->append(found);
+        if (problem) {
+            problem->kind = kind;
+            problem->lines.append(found);
         }
         return std::nullopt;
     };
 
     const QString archiveName = QFileInfo(archivePath).fileName();
-    QString error;
-    zip_t* archive = openZip(archivePath, ZIP_RDONLY, &error);
+    ZipFailure failure;
+    zip_t* archive = openZip(archivePath, ZIP_RDONLY, &failure);
     if (!archive) {
-        return fail(QStringLiteral("%1: %2").arg(archiveName, error));
+        return fail(readingKind(failure), QStringLiteral("%1: %2").arg(archiveName, failure.text));
     }
 
     // The .klh file at the top of the project that unpackArchive() finds: the first by name
@@ -2109,14 +2203,18 @@ std::optional<BookProject> ProjectManager::readArchive(const QString& archivePat
     }
     if (manifest.isEmpty()) {
         zip_close(archive);
-        return fail(QStringLiteral("%1: the archive has no .klh file").arg(archiveName));
+        return fail(ArchiveProblem::Kind::NoBook,
+                    QStringLiteral("%1: the archive has no .klh file").arg(archiveName));
     }
 
     QByteArray data;
     QString reason;
+    ArchiveProblem::Kind kind = ArchiveProblem::Kind::None;
     zip_file_t* entry = zip_fopen_index(archive, manifestIndex, 0);
     if (!entry) {
-        reason = QString::fromUtf8(zip_strerror(archive));
+        failure = failureOf(zip_get_error(archive));
+        reason = failure.text;
+        kind = readingKind(failure);
     } else {
         char buffer[8192];
         zip_int64_t read = 0;
@@ -2124,25 +2222,28 @@ std::optional<BookProject> ProjectManager::readArchive(const QString& archivePat
             data.append(buffer, static_cast<qsizetype>(read));
             if (data.size() > MAX_ARCHIVED_MANIFEST) {
                 reason = QStringLiteral("too large for the file of a book");
+                kind = ArchiveProblem::Kind::DamagedBook;
                 break;
             }
         }
         if (read < 0) {
-            reason = QString::fromUtf8(zip_file_strerror(entry));
+            failure = failureOf(zip_file_get_error(entry));
+            reason = failure.text;
+            kind = readingKind(failure);
         }
         zip_fclose(entry);
     }
     zip_close(archive);
-    if (!reason.isEmpty()) {
-        return fail(QStringLiteral("%1: %2").arg(manifest, reason));
+    if (kind != ArchiveProblem::Kind::None) {
+        return fail(kind, QStringLiteral("%1: %2").arg(manifest, reason));
     }
 
     std::optional<BookProject> project = BookProject::read(data, manifest, found);
     if (!project) {
-        if (newerFormat) {
-            *newerFormat = BookProject::isNewerFormat(data);
-        }
-        return fail(QString());
+        // A book of a newer version is not damaged: the writer needs a newer program
+        return fail(BookProject::isNewerFormat(data) ? ArchiveProblem::Kind::NewerBook
+                                                     : ArchiveProblem::Kind::DamagedBook,
+                    QString());
     }
     if (backups) {
         *backups = backupCount;
@@ -2153,12 +2254,15 @@ std::optional<BookProject> ProjectManager::readArchive(const QString& archivePat
 QString ProjectManager::unpackArchive(const QString& archivePath,
                                       const QString& targetDir,
                                       const std::function<void(int)>& progressCallback,
-                                      QStringList* problems) {
+                                      ArchiveProblem* problem) {
     auto& logger = Logger::getInstance();
-    const auto fail = [&logger, problems](const QString& problem) {
-        logger.error("unpackArchive: {}", problem.toStdString());
-        if (problems) {
-            problems->append(problem);
+    const auto fail = [&logger, problem](ArchiveProblem::Kind kind, const QStringList& lines) {
+        for (const QString& line : lines) {
+            logger.error("unpackArchive: {}", line.toStdString());
+        }
+        if (problem) {
+            problem->kind = kind;
+            problem->lines.append(lines);
         }
         return QString();
     };
@@ -2168,19 +2272,23 @@ QString ProjectManager::unpackArchive(const QString& archivePath,
     // The project goes to a new folder named after the archive
     const QString extractDir = QDir(targetDir).filePath(archiveProjectName(archivePath));
     if (QFileInfo::exists(extractDir)) {
-        return fail(QStringLiteral("%1: the folder already exists")
-                        .arg(QDir::toNativeSeparators(extractDir)));
+        return fail(ArchiveProblem::Kind::FolderExists,
+                    {QStringLiteral("%1: the folder already exists")
+                         .arg(QDir::toNativeSeparators(extractDir))});
     }
 
-    QString error;
-    zip_t* archive = openZip(archivePath, ZIP_RDONLY, &error);
+    ZipFailure failure;
+    zip_t* archive = openZip(archivePath, ZIP_RDONLY, &failure);
     if (!archive) {
-        return fail(QStringLiteral("%1: %2").arg(QFileInfo(archivePath).fileName(), error));
+        return fail(readingKind(failure),
+                    {QStringLiteral("%1: %2").arg(QFileInfo(archivePath).fileName(),
+                                                  failure.text)});
     }
     if (!QDir().mkpath(extractDir)) {
         zip_close(archive);
-        return fail(QStringLiteral("%1: the folder cannot be made")
-                        .arg(QDir::toNativeSeparators(extractDir)));
+        return fail(ArchiveProblem::Kind::CannotWrite,
+                    {QStringLiteral("%1: the folder cannot be made")
+                         .arg(QDir::toNativeSeparators(extractDir))});
     }
 
     // Nothing of a failed import stays behind
@@ -2212,14 +2320,18 @@ QString ProjectManager::unpackArchive(const QString& archivePath,
 
         const QString filePath = dir.filePath(path);
         QString reason;
+        ArchiveProblem::Kind kind = ArchiveProblem::Kind::None;
         zip_file_t* entry = zip_fopen_index(archive, static_cast<zip_uint64_t>(i), 0);
         if (!entry) {
-            reason = QString::fromUtf8(zip_strerror(archive));
+            failure = failureOf(zip_get_error(archive));
+            reason = failure.text;
+            kind = readingKind(failure);
         } else {
             QSaveFile file(filePath);
             if (!QDir().mkpath(QFileInfo(filePath).absolutePath()) ||
                 !file.open(QIODevice::WriteOnly)) {
                 reason = file.errorString();
+                kind = writingKind(file);
             } else {
                 char buffer[8192];
                 zip_int64_t read = 0;
@@ -2229,17 +2341,20 @@ QString ProjectManager::unpackArchive(const QString& archivePath,
                     }
                 }
                 if (read < 0) {
-                    reason = QString::fromUtf8(zip_file_strerror(entry));
+                    failure = failureOf(zip_file_get_error(entry));
+                    reason = failure.text;
+                    kind = readingKind(failure);
                 } else if (read > 0 || !file.commit()) {
                     reason = file.errorString();
+                    kind = writingKind(file);
                 }
             }
             zip_fclose(entry);
         }
-        if (!reason.isNull()) {
+        if (kind != ArchiveProblem::Kind::None) {
             zip_close(archive);
             undo();
-            return fail(QStringLiteral("%1: %2").arg(path, reason));
+            return fail(kind, {QStringLiteral("%1: %2").arg(path, reason)});
         }
 
         // A backup keeps its time, by which the backups of a book are sorted
@@ -2263,8 +2378,9 @@ QString ProjectManager::unpackArchive(const QString& archivePath,
     const QStringList manifests = dir.entryList({QStringLiteral("*.klh")}, QDir::Files);
     if (manifests.isEmpty()) {
         undo();
-        return fail(QStringLiteral("%1: the archive has no .klh file")
-                        .arg(QFileInfo(archivePath).fileName()));
+        return fail(ArchiveProblem::Kind::NoBook,
+                    {QStringLiteral("%1: the archive has no .klh file")
+                         .arg(QFileInfo(archivePath).fileName())});
     }
 
     // A book whose .klh file cannot be read does not stay behind
@@ -2275,14 +2391,12 @@ QString ProjectManager::unpackArchive(const QString& archivePath,
         if (found.isEmpty()) {
             found.append(QStringLiteral("%1: cannot be read").arg(manifests.first()));
         }
+        // A book of a newer version is not damaged: the writer needs a newer program
+        const ArchiveProblem::Kind kind = BookProject::isNewerFormatFile(manifest)
+                                              ? ArchiveProblem::Kind::NewerBook
+                                              : ArchiveProblem::Kind::DamagedBook;
         undo();
-        for (const QString& line : found) {
-            logger.error("unpackArchive: {}", line.toStdString());
-        }
-        if (problems) {
-            problems->append(found);
-        }
-        return QString();
+        return fail(kind, found);
     }
 
     // The backups of the database go where the Folders page keeps the backups of books
@@ -2303,8 +2417,8 @@ QString ProjectManager::unpackArchive(const QString& archivePath,
 bool ProjectManager::importArchive(const QString& archivePath,
                                    const QString& targetDir,
                                    const std::function<void(int)>& progressCallback,
-                                   QStringList* problems) {
-    const QString manifest = unpackArchive(archivePath, targetDir, progressCallback, problems);
+                                   ArchiveProblem* problem) {
+    const QString manifest = unpackArchive(archivePath, targetDir, progressCallback, problem);
     if (manifest.isEmpty()) {
         return false;
     }
@@ -2315,8 +2429,9 @@ bool ProjectManager::importArchive(const QString& archivePath,
     QStringList found;
     if (!openProject(manifest, &found)) {
         QDir(QFileInfo(manifest).absolutePath()).removeRecursively();
-        if (problems) {
-            problems->append(found);
+        if (problem) {
+            problem->kind = ArchiveProblem::Kind::NotOpened;
+            problem->lines.append(found);
         }
         return false;
     }

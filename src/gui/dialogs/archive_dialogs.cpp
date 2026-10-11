@@ -22,7 +22,6 @@
 #include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QFontDatabase>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -31,11 +30,9 @@
 #include <QLineEdit>
 #include <QLocale>
 #include <QMargins>
-#include <QPlainTextEdit>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QStyle>
-#include <QTextDocument>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
@@ -49,7 +46,6 @@ namespace dialogs {
 namespace {
 
 constexpr int WIDTH_IN_CHARACTERS = 80;  ///< The window has room for a path of this length
-constexpr int DETAILS_LINES = 4;         ///< Height of the problems, in lines
 constexpr int RESULT_SPACING = 8;        ///< Between the icon of the result and its sentence
 
 /// Characters that file systems do not allow in a name
@@ -116,7 +112,7 @@ ArchiveDialog::ArchiveDialog(QWidget* parent)
     m_progressBar->hide();
     contentLayout()->addWidget(m_progressBar);
 
-    // The result: its icon, the sentence and Show in Folder, or the problems of the work
+    // The result: its icon, the sentence and Show in Folder, or why the work failed
     m_result = new QWidget(this);
     auto* resultLayout = new QHBoxLayout(m_result);
     resultLayout->setContentsMargins(0, 0, 0, 0);
@@ -127,6 +123,9 @@ ArchiveDialog::ArchiveDialog(QWidget* parent)
     auto* resultTexts = new QVBoxLayout();
     m_resultText = newValue(m_result);
     resultTexts->addWidget(m_resultText);
+    m_reasonText = newValue(m_result);
+    m_reasonText->hide();
+    resultTexts->addWidget(m_reasonText);
     m_showLink = new QLabel(m_result);
     m_showLink->setTextFormat(Qt::RichText);
     //: A link under the result of an export or an import. In Polish: Pokaż w folderze
@@ -137,15 +136,6 @@ ArchiveDialog::ArchiveDialog(QWidget* parent)
     m_showLink->setToolTip(tr("Open the folder in the file manager of the system"));
     connect(m_showLink, &QLabel::linkActivated, this, &ArchiveDialog::showResult);
     resultTexts->addWidget(m_showLink, 0, Qt::AlignLeft);
-    m_details = new QPlainTextEdit(m_result);
-    m_details->setReadOnly(true);
-    m_details->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-    m_details->setFixedHeight(
-        m_details->fontMetrics().lineSpacing() * DETAILS_LINES +
-        2 * (m_details->frameWidth() + qRound(m_details->document()->documentMargin())));
-    //: The problems under the sentence of what went wrong. In Polish: Szczegóły
-    m_details->setAccessibleName(tr("Details"));
-    resultTexts->addWidget(m_details);
     resultLayout->addLayout(resultTexts, 1);
     m_result->hide();
     contentLayout()->addWidget(m_result);
@@ -160,20 +150,31 @@ QString ArchiveDialog::resultText() const
     return m_result->isVisibleTo(this) ? m_resultText->text() : QString();
 }
 
+QString ArchiveDialog::reasonText() const
+{
+    return m_result->isVisibleTo(this) && m_failed ? m_reasonText->text() : QString();
+}
+
 QString ArchiveDialog::detailsText() const
 {
-    return m_result->isVisibleTo(this) && m_details->isVisibleTo(this)
-               ? m_details->toPlainText()
-               : QString();
+    return m_result->isVisibleTo(this) && m_failed ? m_details.join(QLatin1Char('\n'))
+                                                   : QString();
 }
 
 QString ArchiveDialog::clipboardText() const
 {
-    QString text = windowTitle() + QStringLiteral("\n\n") + resultText();
-    if (!detailsText().isEmpty()) {
-        text += QStringLiteral("\n\n") + detailsText();
+    // What the window says went wrong, each followed by how, as the log has it
+    QStringList parts{windowTitle()};
+    if (!m_fieldProblem.isEmpty()) {
+        parts << m_fieldProblem << m_fieldDetails.join(QLatin1Char('\n'));
     }
-    return text;
+    if (m_result->isVisibleTo(this)) {
+        QStringList sentences{resultText(), reasonText()};
+        sentences.removeAll(QString());
+        parts << sentences.join(QLatin1Char('\n')) << detailsText();
+    }
+    parts.removeAll(QString());
+    return parts.join(QStringLiteral("\n\n"));
 }
 
 void ArchiveDialog::showResult()
@@ -317,10 +318,12 @@ void ArchiveDialog::setHint(const QString& text)
 void ArchiveDialog::startWork()
 {
     m_state = State::Working;
+    m_failed = false;
+    m_details.clear();
     m_fields->setEnabled(false);
     acceptButton()->setEnabled(false);
     cancelButton()->setEnabled(false);
-    m_copyButton->hide();
+    updateCopyButton();
     m_hint.widget->hide();
     m_result->hide();
     m_progressBar->setValue(0);
@@ -346,8 +349,8 @@ void ArchiveDialog::finishWork(const QString& text, const QString& path)
     m_progressBar->setValue(100);
     setNoteIcon(m_resultIcon, QStringLiteral("common.checkCircle"));
     m_resultText->setText(text);
+    m_reasonText->hide();
     m_showLink->show();
-    m_details->hide();
     m_result->show();
 
     // The fields stay as the work used them; the window has only Close
@@ -359,23 +362,58 @@ void ArchiveDialog::finishWork(const QString& text, const QString& path)
     bringIntoView(m_result);
 }
 
-void ArchiveDialog::failWork(const QString& text, const QStringList& problems)
+void ArchiveDialog::failWork(const QString& text, const QString& reason,
+                             const QStringList& details)
 {
     m_state = State::Ready;
+    m_failed = true;
+    m_details = details;
     m_progressBar->hide();
     setNoteIcon(m_resultIcon, QStringLiteral("common.error"));
     m_resultText->setText(text);
+    // A cause the window does not name is in the details
+    m_reasonText->setText(reason.isEmpty() && !details.isEmpty() ? copyHint() : reason);
+    m_reasonText->setVisible(!m_reasonText->text().isEmpty());
     m_showLink->hide();
-    m_details->setPlainText(problems.join(QLatin1Char('\n')));
-    m_details->setVisible(!problems.isEmpty());
     m_result->show();
-    m_copyButton->show();
+    updateCopyButton();
 
     // Another try: the fields can be changed again
     m_fields->setEnabled(true);
     acceptButton()->setEnabled(true);
     cancelButton()->setEnabled(true);
     bringIntoView(m_result);
+}
+
+void ArchiveDialog::dropFailure()
+{
+    if (m_state != State::Ready || !m_failed) {
+        return;
+    }
+    m_failed = false;
+    m_details.clear();
+    m_result->hide();
+    m_hint.widget->setVisible(!m_hint.text->text().isEmpty());
+    updateCopyButton();
+}
+
+void ArchiveDialog::setFieldProblem(const QString& text, const QStringList& details)
+{
+    m_fieldProblem = text;
+    m_fieldDetails = text.isEmpty() ? QStringList() : details;
+    updateCopyButton();
+}
+
+QString ArchiveDialog::copyHint()
+{
+    //: Under what went wrong when the program does not know its cause. In Polish: Opis
+    //: techniczny błędu skopiujesz przyciskiem „Kopiuj”.
+    return tr("Copy puts the technical description of the error on the clipboard.");
+}
+
+void ArchiveDialog::updateCopyButton()
+{
+    m_copyButton->setVisible(m_state == State::Ready && (m_failed || !m_fieldProblem.isEmpty()));
 }
 
 bool ArchiveDialog::event(QEvent* event)
@@ -424,7 +462,7 @@ void ArchiveDialog::bringIntoView(QWidget* widget)
     // before the area scrolls to it
     QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
     // It stays in view in a window the system or the writer makes lower later; a result
-    // higher than the area shows its sentence, with the details under it
+    // higher than the area shows its sentence, with the reason under it
     area->keepInView(widget, widget == m_result ? m_resultText : nullptr);
 }
 
@@ -477,6 +515,7 @@ ExportArchiveDialog::ExportArchiveDialog(const Book& book, const QString& folder
     addRow(archive, tr("Name:"), m_nameField);
     m_nameNote = addNote(archive);
     connect(browseButton, &QPushButton::clicked, this, &ExportArchiveDialog::browse);
+    connect(m_nameField, &QLineEdit::textChanged, this, &ExportArchiveDialog::dropFailure);
     connect(m_nameField, &QLineEdit::textChanged, this, &ExportArchiveDialog::updateFields);
 
     // The backups of the database go only when the writer wants them
@@ -485,6 +524,7 @@ ExportArchiveDialog::ExportArchiveDialog(const Book& book, const QString& folder
     m_backupsBox = new QCheckBox(tr("Include the database backups (%1)").arg(m_book.backups),
                                  archive->parentWidget());
     m_backupsBox->setEnabled(m_book.backups > 0);
+    connect(m_backupsBox, &QCheckBox::toggled, this, &ExportArchiveDialog::dropFailure);
     archive->addWidget(m_backupsBox, nextRow(archive), 1);
     m_backupsNote = addNote(archive);
     if (m_book.backups > 0) {
@@ -553,6 +593,7 @@ void ExportArchiveDialog::setFolder(const QString& folder)
 {
     m_folder = ProgramFolders::cleanPath(folder);
     showPath(m_folderField, m_folder);
+    dropFailure();
     updateFields();
 }
 
@@ -577,23 +618,63 @@ void ExportArchiveDialog::run()
         return;
     }
     startWork();
-    QStringList problems;
+    QString reason;
+    core::ArchiveProblem problem;
     bool written = false;
     if (!QDir().mkpath(m_folder)) {
         //: %1: the folder of the archive. In Polish: Kalahari nie może utworzyć folderu %1.
-        problems.append(
-            tr("Kalahari cannot create the folder %1.").arg(QDir::toNativeSeparators(m_folder)));
+        reason =
+            tr("Kalahari cannot create the folder %1.").arg(QDir::toNativeSeparators(m_folder));
     } else {
-        written = m_exporter(path, m_backupsBox->isChecked(), progress(), &problems);
+        written = m_exporter(path, m_backupsBox->isChecked(), progress(), &problem);
+        reason = reasonOf(problem);
     }
     if (written) {
         //: %1: the path of the archive. In Polish: Zapisano archiwum %1.
         finishWork(tr("Saved the archive %1.").arg(QDir::toNativeSeparators(path)), path);
     } else {
         //: In Polish: Nie udało się zapisać archiwum.
-        failWork(tr("The archive could not be saved."), problems);
+        failWork(tr("The archive could not be saved."), reason, problem.lines);
         updateFields();
     }
+}
+
+QString ExportArchiveDialog::reasonOf(const core::ArchiveProblem& problem) const
+{
+    using Kind = core::ArchiveProblem::Kind;
+    switch (problem.kind) {
+        case Kind::None:
+            return QString();
+        case Kind::ChangesNotSaved:
+            //: In Polish: Nie udało się zapisać niektórych zmian w książce. Szczegóły są
+            //: w dzienniku.
+            return tr("Some changes in the book could not be saved. Check the log for details.");
+        case Kind::UnreadableFile:
+            //: In Polish: Kalahari nie może odczytać jednego z plików książki.
+            return tr("Kalahari cannot read one of the files of the book.");
+        case Kind::CannotWrite:
+            //: %1: the folder of the archive. In Polish: Kalahari nie może zapisywać plików
+            //: w folderze %1. Wybierz inny folder.
+            return tr("Kalahari cannot save files in the folder %1. Choose another folder.")
+                .arg(QDir::toNativeSeparators(m_folder));
+        case Kind::DiskFull:
+            //: In Polish: Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz inny folder.
+            return tr("There is no room left on the disk. Free some space or choose another "
+                      "folder.");
+        case Kind::Other:
+        case Kind::NotFound:
+        case Kind::CannotRead:
+        case Kind::NotArchive:
+        case Kind::Damaged:
+        case Kind::Unsupported:
+        case Kind::NoBook:
+        case Kind::DamagedBook:
+        case Kind::NewerBook:
+        case Kind::FolderExists:
+        case Kind::NotOpened:
+            break;  // Not named, or not of an export
+    }
+    return QString();
 }
 
 void ExportArchiveDialog::browse()
@@ -778,14 +859,13 @@ void ImportArchiveDialog::setArchive(const QString& path)
 {
     m_archive = path;
     showPath(m_archiveField, path);
-    m_archiveProblems.clear();
+    m_archiveProblem = core::ArchiveProblem();
     m_project.reset();
     m_backups = 0;
-    m_newerFormat = false;
     if (!path.isEmpty()) {
-        m_project = core::ProjectManager::readArchive(path, &m_archiveProblems, &m_backups,
-                                                      &m_newerFormat);
+        m_project = core::ProjectManager::readArchive(path, &m_archiveProblem, &m_backups);
     }
+    dropFailure();
     showBook();
     updateFields();
 }
@@ -794,6 +874,7 @@ void ImportArchiveDialog::setFolder(const QString& folder)
 {
     m_folder = ProgramFolders::cleanPath(folder);
     showPath(m_folderField, m_folder);
+    dropFailure();
     updateFields();
 }
 
@@ -892,8 +973,8 @@ void ImportArchiveDialog::run()
 
     startWork();
     const QString folder = bookFolder();
-    QStringList problems;
-    if (m_importer(m_archive, m_folder, open, progress(), &problems)) {
+    core::ArchiveProblem problem;
+    if (m_importer(m_archive, m_folder, open, progress(), &problem)) {
         const QString shown = QDir::toNativeSeparators(folder);
         QString text;
         if (open) {
@@ -909,7 +990,7 @@ void ImportArchiveDialog::run()
         finishWork(text.arg(bookTitle(), shown), folder);
     } else {
         //: In Polish: Nie udało się zaimportować archiwum.
-        failWork(tr("The archive could not be imported."), problems);
+        failWork(tr("The archive could not be imported."), reasonOf(problem), problem.lines);
         updateFields();
     }
 }
@@ -950,26 +1031,23 @@ void ImportArchiveDialog::browseFolder()
 
 void ImportArchiveDialog::updateFields()
 {
-    // The archive: why its book cannot be read. A book of a newer version is not damaged: the
-    // writer needs a newer program
-    if (!m_archive.isEmpty() && !m_project && m_newerFormat) {
-        //: Under an archive with a book of a newer version of the program. In Polish: Tę książkę
-        //: zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją
-        //: zaimportować.
-        showNote(m_archiveNote,
-                 tr("This book was saved in a newer version of Kalahari. Update the program to "
-                    "import it."),
-                 QStringLiteral("common.warning"));
-    } else if (!m_archive.isEmpty() && !m_project) {
-        //: Under an archive whose book cannot be read; the problems follow it. In Polish:
-        //: Kalahari nie może odczytać książki z tego archiwum.
-        QString text = tr("Kalahari cannot read the book of this archive.");
-        if (!m_archiveProblems.isEmpty()) {
-            text += QLatin1Char('\n') + m_archiveProblems.join(QLatin1Char('\n'));
+    // The archive: why its book cannot be read, with Copy for how
+    if (!m_archive.isEmpty() && !m_project) {
+        QString text = reasonOf(m_archiveProblem);
+        if (text.isEmpty()) {
+            // A cause the window does not name is in the details
+            //: Under an archive whose book cannot be read. In Polish: Kalahari nie może
+            //: odczytać książki z tego archiwum.
+            text = tr("Kalahari cannot read the book of this archive.");
+            if (!m_archiveProblem.lines.isEmpty()) {
+                text += QLatin1Char(' ') + copyHint();
+            }
         }
         showNote(m_archiveNote, text, QStringLiteral("common.warning"));
+        setFieldProblem(text, m_archiveProblem.lines);
     } else {
         showNote(m_archiveNote, QString());
+        setFieldProblem(QString(), {});
     }
 
     // The folder: where the book of the archive goes, or why it cannot go there
@@ -1053,6 +1131,71 @@ void ImportArchiveDialog::showBook()
         tr("After the import the backups are where Kalahari keeps backups (Settings > Files > "
            "Folders)."));
     setRowVisible(m_backupsValue, m_backups > 0);
+}
+
+QString ImportArchiveDialog::reasonOf(const core::ArchiveProblem& problem) const
+{
+    using Kind = core::ArchiveProblem::Kind;
+    switch (problem.kind) {
+        case Kind::None:
+            return QString();
+        case Kind::NotFound:
+            //: Under an archive, or why it could not be imported. In Polish: Ten plik już nie
+            //: istnieje.
+            return tr("This file no longer exists.");
+        case Kind::CannotRead:
+            //: In Polish: Kalahari nie może odczytać tego pliku. Sprawdź, czy masz do niego
+            //: dostęp.
+            return tr("Kalahari cannot read this file. Check that you have access to it.");
+        case Kind::NotArchive:
+            //: In Polish: Ten plik nie jest archiwum ZIP albo jest uszkodzony.
+            return tr("This file is not a ZIP archive, or it is damaged.");
+        case Kind::Damaged:
+            //: In Polish: To archiwum jest uszkodzone.
+            return tr("This archive is damaged.");
+        case Kind::Unsupported:
+            //: In Polish: To archiwum jest zaszyfrowane albo spakowane w sposób, którego
+            //: Kalahari nie obsługuje.
+            return tr("This archive is encrypted or packed in a way that Kalahari does not "
+                      "support.");
+        case Kind::NoBook:
+            //: In Polish: W tym archiwum nie ma książki programu Kalahari.
+            return tr("This archive has no Kalahari book.");
+        case Kind::DamagedBook:
+            //: In Polish: Plik książki w tym archiwum jest uszkodzony.
+            return tr("The book file in this archive is damaged.");
+        case Kind::NewerBook:
+            // Not a damaged archive: the writer needs a newer program
+            //: Under an archive with a book of a newer version of the program. In Polish: Tę
+            //: książkę zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby
+            //: ją zaimportować.
+            return tr("This book was saved in a newer version of Kalahari. Update the program "
+                      "to import it.");
+        case Kind::FolderExists:
+            //: %1: the name of the folder of the book. In Polish: W tym miejscu jest już
+            //: folder „%1”. Wybierz dla książki inne miejsce.
+            return tr("The folder \"%1\" is already here. Choose another place for the book.")
+                .arg(core::ProjectManager::archiveProjectName(m_archive));
+        case Kind::CannotWrite:
+            //: %1: the folder in which the folder of the book is made. In Polish: Kalahari nie
+            //: może zapisywać plików w folderze %1. Wybierz dla książki inne miejsce.
+            return tr("Kalahari cannot save files in the folder %1. Choose another place for "
+                      "the book.")
+                .arg(QDir::toNativeSeparators(m_folder));
+        case Kind::DiskFull:
+            //: In Polish: Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz dla książki
+            //: inne miejsce.
+            return tr("There is no room left on the disk. Free some space or choose another "
+                      "place for the book.");
+        case Kind::NotOpened:
+            //: In Polish: Kalahari nie może otworzyć książki z tego archiwum.
+            return tr("Kalahari cannot open the book of this archive.");
+        case Kind::Other:
+        case Kind::ChangesNotSaved:
+        case Kind::UnreadableFile:
+            break;  // Not named, or not of an import
+    }
+    return QString();
 }
 
 QString ImportArchiveDialog::bookTitle() const

@@ -89,8 +89,9 @@ MainWindow::MainWindow(QWidget* parent)
     auto& logger = core::Logger::getInstance();
     logger.info("MainWindow constructor called");
 
-    // Set window properties
-    setWindowTitle("Kalahari Writer's IDE");
+    // Set window properties: no book is open yet, so the title is the name of the program
+    // alone, as after a book is closed (updateWindowTitle())
+    setWindowTitle(QStringLiteral("Kalahari"));
     utils::resizeWithinScreen(this, QSize(1280, 720));
 
     // Create UI components (Command Registry pattern)
