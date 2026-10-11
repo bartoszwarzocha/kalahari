@@ -65,6 +65,7 @@
 #pragma once
 
 #include <kalahari/core/book_type_registry.h>
+#include <QByteArray>
 #include <QDateTime>
 #include <QJsonObject>
 #include <QList>
@@ -327,6 +328,13 @@ struct BookProject {
     /// @param problems Gets one line per problem: "<field>: <what is wrong>"
     /// @return The project, or nullopt when the file cannot be read or has problems
     static std::optional<BookProject> load(const QString& path, QStringList& problems);
+
+    /// @brief Read the project of @p data, the contents of a .klh file (e.g. in an archive)
+    /// @param name Name of the file, for the problems of its JSON
+    /// @param problems Gets one line per problem: "<field>: <what is wrong>"
+    /// @return The project, or nullopt when the contents have problems
+    static std::optional<BookProject> read(const QByteArray& data, const QString& name,
+                                           QStringList& problems);
 };
 
 }  // namespace kalahari::core

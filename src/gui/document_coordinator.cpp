@@ -12,6 +12,7 @@
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
+#include "kalahari/gui/dialogs/archive_dialogs.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/gui/kind_names.h"
@@ -39,10 +40,7 @@
 #include <QFileInfo>
 #include <QFile>
 #include <QDir>
-#include <QProgressDialog>
-#include <QApplication>
 #include <functional>
-#include <map>
 
 Q_DECLARE_METATYPE(kalahari::core::StandaloneFile)
 
@@ -342,6 +340,55 @@ bool DocumentCoordinator::agreeToCloseBook(const QString& saveQuestion,
     // the book, and its projectAboutToClose() prepares the services for that.
     return dialogs::MessageDialog::confirm(m_mainWindow, tr("Close Book?"),
                                            closeQuestion.arg(bookName), tr("&Close Book"));
+}
+
+DocumentCoordinator::OpenBookChoice DocumentCoordinator::askAboutOpenBook(
+    QWidget* parent, const QString& description, const QString& note, const QString& closeText,
+    const QString& keepText, const QString& saveQuestion) {
+    auto& pm = core::ProjectManager::getInstance();
+    if (!pm.isProjectOpen()) {
+        return OpenBookChoice::Close;
+    }
+
+    QString bookName = pm.book() ? pm.book()->title : QString();
+    if (bookName.isEmpty()) {
+        bookName = QFileInfo(pm.getProjectPath()).fileName();
+    }
+
+    //: The heading of the question; %1: the title of the open book. In Polish: Zamknąć „%1”?
+    const QString heading = tr("Close \"%1\"?").arg(bookName);
+    dialogs::MessageDialog question(dialogs::MessageDialog::Kind::Question, heading, note, parent);
+    question.setHeading(heading, description);
+    question.setWindowTitle(tr("Close Book?"));
+    question.setQuestionButtons(closeText);
+    question.setAlternativeText(keepText);
+    question.exec();
+    switch (question.answer()) {
+        case dialogs::MessageDialog::Answer::Accept:
+            break;
+        case dialogs::MessageDialog::Answer::Alternative:
+            return OpenBookChoice::KeepOpen;
+        case dialogs::MessageDialog::Answer::Cancel:
+            return OpenBookChoice::Cancel;
+    }
+
+    // The open book closes: its changes are saved first, or not, as the writer says. The
+    // standalone files stay open without the book, with their changes.
+    if (bookHasUnsavedChanges()) {
+        const auto reply = dialogs::MessageDialog::ask(parent, tr("Unsaved Changes"),
+                                                       saveQuestion.arg(bookName), tr("&Save"),
+                                                       tr("Do&n't Save"));
+        if (reply == dialogs::MessageDialog::Answer::Cancel) {
+            return OpenBookChoice::Cancel;
+        }
+        if (reply == dialogs::MessageDialog::Answer::Accept && !saveBook()) {
+            dialogs::MessageDialog::warning(
+                parent, tr("Save Warning"),
+                tr("Some changes in the book could not be saved. Check the log for details."));
+            return OpenBookChoice::Cancel;  // a failed save stops the command
+        }
+    }
+    return OpenBookChoice::Close;
 }
 
 void DocumentCoordinator::showOpenError(const QString& path, const QStringList& problems) {
@@ -794,6 +841,33 @@ void DocumentCoordinator::onSaveAll() {
         return;
     }
 
+    if (!saveBook()) {
+        dialogs::MessageDialog::warning(
+            m_mainWindow, tr("Save Warning"),
+            tr("Some changes in the book could not be saved. Check the log for details."));
+    }
+}
+
+bool DocumentCoordinator::bookHasUnsavedChanges() const {
+    auto& pm = core::ProjectManager::getInstance();
+    if (!pm.isProjectOpen()) {
+        return false;
+    }
+    if (m_navigatorCoordinator) {
+        const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
+        for (auto it = dirtyChapters.constBegin(); it != dirtyChapters.constEnd(); ++it) {
+            if (it.value()) {
+                return true;
+            }
+        }
+    }
+    return pm.isDirty();
+}
+
+bool DocumentCoordinator::saveBook() {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
     // First, give ProjectManager the text of all dirty chapters from open tabs
     const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
     for (int i = 0; i < m_centralTabs->count(); ++i) {
@@ -840,13 +914,11 @@ void DocumentCoordinator::onSaveAll() {
         pm.setDirty(false);
         logger.info("All chapters and manifest saved successfully");
         m_statusBar->showMessage(tr("All changes saved"), 2000);
-    } else {
-        logger.error("Failed to save some chapters");
-        m_statusBar->showMessage(tr("Some changes could not be saved"), 3000);
-        dialogs::MessageDialog::warning(
-            m_mainWindow, tr("Save Warning"),
-            tr("Some changes in the book could not be saved. Check the log for details."));
+        return true;
     }
+    logger.error("Failed to save some chapters");
+    m_statusBar->showMessage(tr("Some changes could not be saved"), 3000);
+    return false;
 }
 
 void DocumentCoordinator::onCloseDocument() {
@@ -1238,154 +1310,91 @@ void DocumentCoordinator::onExportArchive() {
         return;
     }
 
-    // Get project title for default filename
-    QString defaultName = pm.book() ? pm.book()->title : QStringLiteral("project");
-
-    QString outputPath = QFileDialog::getSaveFileName(
-        m_mainWindow,
-        tr("Export Project Archive"),
-        QDir(ProgramFolders::windowFolder(ProgramFolders::Operation::ExportArchive))
-            .filePath(defaultName + QStringLiteral(".klh.zip")),
-        tr("Kalahari Archive (*.klh.zip)")
-    );
-
-    if (outputPath.isEmpty()) return;
-    ProgramFolders::remember(ProgramFolders::Operation::ExportArchive,
-                             QFileInfo(outputPath).absolutePath());
-
-    // Check for incomplete elements (not final status)
-    auto incompleteElements = pm.getIncompleteElements();
-    if (!incompleteElements.empty()) {
-        QString warningText = tr("The project contains %1 file(s) that are not marked as final:").arg(incompleteElements.size());
-        warningText += QStringLiteral("\n\n");
-
-        // Group by status
-        std::map<QString, QStringList> byStatus;
-        for (const auto& [id, status] : incompleteElements) {
-            const core::ProjectElement* element = pm.findElement(id);
-            QString title = element ? element->title : id;
-            byStatus[status].append(title);
-        }
-
-        // The statuses by the names the Navigator gives them
-        for (const auto& [status, titles] : byStatus) {
-            const QString name = status == QLatin1String("draft")      ? tr("Draft")
-                                 : status == QLatin1String("revision") ? tr("Revision")
-                                                                       : status;
-            warningText += name + QStringLiteral(": ") + titles.join(QStringLiteral(", ")) +
-                           QStringLiteral("\n");
-        }
-
-        warningText += QStringLiteral("\n") + tr("Do you want to export anyway?");
-
-        if (!dialogs::MessageDialog::confirm(m_mainWindow, tr("Incomplete Files"), warningText,
-                                             tr("&Export"),
-                                             dialogs::MessageDialog::Kind::Warning,
-                                             dialogs::MessageDialog::DefaultButton::Cancel)) {
-            logger.info("Export cancelled due to incomplete files");
-            return;
-        }
-    }
-
-    // Create progress dialog
-    QProgressDialog progress(tr("Exporting project archive..."), tr("Cancel"), 0, 100, m_mainWindow);
-    progress.setWindowModality(Qt::WindowModal);
-    progress.setMinimumDuration(500);
-
-    QStringList problems;
-    const bool success = pm.exportArchive(
-        outputPath,
-        [&progress](int percent) {
-            progress.setValue(percent);
-            QApplication::processEvents();
+    // One window: the archive, the files that are not ready, the progress and the result
+    dialogs::ExportArchiveDialog::Book book = dialogs::ExportArchiveDialog::openBook();
+    book.unsavedChanges = bookHasUnsavedChanges();
+    dialogs::ExportArchiveDialog dialog(
+        book, ProgramFolders::startFolder(ProgramFolders::Operation::ExportArchive),
+        [this, &pm, &logger](const QString& path,
+                             const dialogs::ArchiveDialog::Progress& progress,
+                             QStringList* problems) {
+            ProgramFolders::remember(ProgramFolders::Operation::ExportArchive,
+                                     QFileInfo(path).absolutePath());
+            // The archive has the book as the writer sees it
+            if (bookHasUnsavedChanges() && !saveBook()) {
+                problems->append(tr(
+                    "Some changes in the book could not be saved. Check the log for details."));
+                return false;
+            }
+            if (!pm.exportArchive(path, progress, problems)) {
+                logger.error("Failed to export project archive");
+                return false;
+            }
+            logger.info("Project exported to: {}", path.toStdString());
+            return true;
         },
-        &problems);
-
-    if (success) {
-        dialogs::MessageDialog::information(
-            m_mainWindow, tr("Export Complete"),
-            tr("Project exported successfully to:\n%1").arg(QDir::toNativeSeparators(outputPath)));
-        logger.info("Project exported to: {}", outputPath.toStdString());
-    } else {
-        dialogs::MessageDialog::error(m_mainWindow, tr("Export Failed"),
-                                      tr("Failed to export project archive."),
-                                      detailsOf(problems));
-        logger.error("Failed to export project archive");
-    }
+        m_mainWindow);
+    dialog.exec();
 }
 
 void DocumentCoordinator::onImportArchive() {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
-    // Select archive to import
-    QString archivePath = QFileDialog::getOpenFileName(
-        m_mainWindow,
-        tr("Import Project Archive"),
-        ProgramFolders::windowFolder(ProgramFolders::Operation::ImportArchive),
-        tr("Kalahari Archive (*.klh.zip)")
-    );
-
-    if (archivePath.isEmpty()) return;
-    ProgramFolders::remember(ProgramFolders::Operation::ImportArchive,
-                             QFileInfo(archivePath).absolutePath());
-
-    // Select target directory
-    QString targetDir = QFileDialog::getExistingDirectory(
-        m_mainWindow,
-        tr("Select Destination Folder"),
-        ProgramFolders::windowFolder(ProgramFolders::Operation::ImportDestination)
-    );
-
-    if (targetDir.isEmpty()) return;
-    ProgramFolders::remember(ProgramFolders::Operation::ImportDestination, targetDir);
-
-    // The book gets a folder of its own there
-    const QString projectName = core::ProjectManager::archiveProjectName(archivePath);
-    if (QFileInfo::exists(QDir(targetDir).filePath(projectName))) {
-        if (dialogs::MessageDialog::confirm(
-                m_mainWindow, tr("Folder Exists"),
-                tr("A folder named '%1' already exists in the destination.\n"
-                   "Do you want to choose a different location?").arg(projectName),
-                tr("C&hoose Another Folder"))) {
-            onImportArchive();  // Retry
-        }
-        return;
-    }
-
-    // The imported book takes the place of the open one
-    if (!agreeToCloseBook(
-            tr("Do you want to save changes to '%1' before importing the archive?"),
-            tr("Do you want to close '%1' and open the imported book?"))) {
-        logger.debug("User cancelled importing an archive");
-        return;
-    }
-
-    // Create progress dialog
-    QProgressDialog progress(tr("Importing project archive..."), tr("Cancel"), 0, 100, m_mainWindow);
-    progress.setWindowModality(Qt::WindowModal);
-    progress.setMinimumDuration(500);
-
-    QStringList problems;
-    const bool success = pm.importArchive(
-        archivePath, targetDir,
-        [&progress](int percent) {
-            progress.setValue(percent);
-            QApplication::processEvents();
+    // One window: the archive and its book, the folder, the progress and the result
+    dialogs::ImportArchiveDialog dialog(
+        pm.bookTypes(), ProgramFolders::startFolder(ProgramFolders::Operation::ImportDestination),
+        [&pm, &logger](const QString& archive, const QString& folder, bool open,
+                       const dialogs::ArchiveDialog::Progress& progress, QStringList* problems) {
+            ProgramFolders::remember(ProgramFolders::Operation::ImportDestination, folder);
+            QString manifest;
+            if (open) {
+                // ProjectManager closes the open book, and onProjectOpened() shows this one
+                if (pm.importArchive(archive, folder, progress, problems)) {
+                    manifest = pm.getManifestPath();
+                }
+            } else {
+                manifest = core::ProjectManager::unpackArchive(archive, folder, progress, problems);
+            }
+            if (manifest.isEmpty()) {
+                logger.error("Failed to import project archive");
+                return false;
+            }
+            // Opened or not, the book is on the Dashboard and in Recent Books
+            core::RecentBooksManager::getInstance().addRecentFile(manifest);
+            logger.info("Project imported from: {}", archive.toStdString());
+            return true;
         },
-        &problems);
-
-    if (success) {
-        dialogs::MessageDialog::information(
-            m_mainWindow, tr("Import Complete"),
-            tr("The book was imported to:\n%1").arg(QDir::toNativeSeparators(pm.getProjectPath())));
-        logger.info("Project imported from: {}", archivePath.toStdString());
-    } else {
-        dialogs::MessageDialog::error(m_mainWindow, tr("Import Failed"),
-                                      tr("Failed to import project archive."),
-                                      detailsOf(problems));
-        logger.error("Failed to import project archive");
-    }
+        m_mainWindow);
+    dialog.setOpeningQuestion([this, &dialog](const QString& title) {
+        const OpenBookChoice choice = askAboutOpenBook(
+            &dialog,
+            //: %1: the title of the book in the archive. In Polish: Książka „%1” z archiwum może
+            //: zastąpić otwartą albo zostać zaimportowana bez otwierania.
+            tr("The book \"%1\" from the archive can take the place of the open one or be "
+               "imported without opening.")
+                .arg(title),
+            //: In Polish: Książkę zaimportowaną bez otwierania znajdziesz na Pulpicie i w Plik >
+            //: Ostatnie książki. „Anuluj” wraca do okna „Importuj archiwum projektu”
+            //: z wpisanymi danymi.
+            tr("A book imported without opening is on the Dashboard and in File > Recent Books. "
+               "Cancel returns to the Import Project Archive window with your choices."),
+            //: In Polish: Zamknij i otwórz zaimportowaną
+            tr("Close and Open Imported"),
+            //: In Polish: Importuj bez otwierania
+            tr("Import Without Opening"),
+            tr("Do you want to save changes to '%1' before importing the archive?"));
+        switch (choice) {
+            case OpenBookChoice::Close:
+                return dialogs::ImportArchiveDialog::Opening::Open;
+            case OpenBookChoice::KeepOpen:
+                return dialogs::ImportArchiveDialog::Opening::DontOpen;
+            case OpenBookChoice::Cancel:
+                break;
+        }
+        return dialogs::ImportArchiveDialog::Opening::Cancel;
+    });
+    dialog.exec();
 }
 
 // =============================================================================

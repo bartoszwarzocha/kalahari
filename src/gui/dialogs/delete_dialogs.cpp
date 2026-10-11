@@ -5,24 +5,21 @@
 #include "kalahari/gui/dialogs/delete_dialogs.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/gui/dialogs/dialog_parts.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/utils/file_location.h"
 
-#include <QApplication>
 #include <QCheckBox>
-#include <QClipboard>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
 #include <QHBoxLayout>
-#include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QStackedWidget>
-#include <QTimer>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
@@ -36,62 +33,11 @@ namespace dialogs {
 
 namespace {
 
-constexpr int LIST_ROWS = 8;            ///< Rows the list shows at most; the others scroll
-constexpr int MINIMUM_ROWS = 3;         ///< Rows the list keeps on a small screen
-constexpr int NOTE_ICON_SIZE = 16;      ///< Size of the icon of the note about the files
-constexpr int COPIED_NOTICE_MS = 2000;  ///< How long Copy says "Copied"
-
 #if defined(Q_OS_WIN)
 constexpr bool RECYCLE_BIN = true;      ///< The system's Trash is the Recycle Bin of Windows
 #else
 constexpr bool RECYCLE_BIN = false;
 #endif
-
-/// The list of a window, as high as its rows, up to LIST_ROWS
-class RowList : public QTreeWidget {
-public:
-    using QTreeWidget::QTreeWidget;
-
-    /// Set the number of rows the list has; its height follows it
-    void setRows(int rows) {
-        m_rows = rows;
-        updateGeometry();
-    }
-
-    QSize sizeHint() const override {
-        return {QTreeWidget::sizeHint().width(), heightFor(qBound(1, m_rows, LIST_ROWS))};
-    }
-
-    QSize minimumSizeHint() const override {
-        return {QTreeWidget::minimumSizeHint().width(),
-                heightFor(qBound(1, m_rows, MINIMUM_ROWS))};
-    }
-
-private:
-    int heightFor(int rows) const {
-        const int measured = topLevelItemCount() > 0 ? sizeHintForRow(0) : 0;
-        const int rowHeight =
-            qMax(measured, qMax(fontMetrics().height() + 6, iconSize().height() + 4));
-        return rowHeight * rows + 2 * frameWidth();
-    }
-
-    int m_rows = 0;
-};
-
-/// A list of what a window deletes: a title with its icon, and the name of its file
-RowList* newList(QWidget* parent, const QString& accessibleName) {
-    auto* list = new RowList(parent);
-    list->setColumnCount(2);
-    list->setHeaderHidden(true);
-    list->setRootIsDecorated(false);
-    list->setItemsExpandable(false);
-    list->setSelectionMode(QAbstractItemView::NoSelection);
-    list->setAccessibleName(accessibleName);
-    list->header()->setStretchLastSection(false);
-    list->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-    list->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    return list;
-}
 
 /// The column of the files of @p item: the name of @p path, grey, with the whole path in its
 /// tooltip
@@ -99,47 +45,6 @@ void showFile(QTreeWidgetItem* item, const QString& path, const QTreeWidget* lis
     item->setText(1, QFileInfo(path).fileName());
     item->setToolTip(1, QDir::toNativeSeparators(path));
     item->setForeground(1, list->palette().brush(QPalette::PlaceholderText));
-}
-
-/// A note of a window: an icon, and a sentence beside it
-QWidget* newNote(QWidget* parent, QLabel** icon, QLabel** text) {
-    auto* note = new QWidget(parent);
-    auto* layout = new QHBoxLayout(note);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(8);
-    *icon = new QLabel(note);
-    (*icon)->setAlignment(Qt::AlignTop);
-    layout->addWidget(*icon);
-    *text = new QLabel(note);
-    (*text)->setTextFormat(Qt::PlainText);
-    (*text)->setWordWrap(true);
-    (*text)->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    layout->addWidget(*text, 1);
-    return note;
-}
-
-void setNoteIcon(QLabel* icon, const QString& iconId) {
-    icon->setPixmap(core::ArtProvider::getInstance().getIcon(iconId).pixmap(NOTE_ICON_SIZE,
-                                                                            NOTE_ICON_SIZE));
-}
-
-/// Make @p button the Copy button of a window: it puts @p text() on the clipboard and says so
-/// for a while
-void setUpCopyButton(QPushButton* button, const std::function<QString()>& text) {
-    const QString name = QCoreApplication::translate("DeleteDialogs", "&Copy");
-    const QString copied = QCoreApplication::translate("DeleteDialogs", "Copied");
-    button->setToolTip(
-        QCoreApplication::translate("DeleteDialogs", "Copy what the window says to the clipboard"));
-    // As wide as its longest text, so "Copied" does not move the other buttons
-    button->setText(copied);
-    const int copiedWidth = button->sizeHint().width();
-    button->setText(name);
-    button->setMinimumWidth(std::max(copiedWidth, button->sizeHint().width()));
-    QObject::connect(button, &QPushButton::clicked, button, [button, text, name, copied]() {
-        QApplication::clipboard()->setText(text());
-        button->setText(copied);
-        QTimer::singleShot(COPIED_NOTICE_MS, button, [button, name]() { button->setText(name); });
-    });
 }
 
 /// Make Cancel the button that Enter presses, with the focus: deleting needs the click of
@@ -176,17 +81,6 @@ void appendAll(const core::ProjectElement& element, QList<const core::ProjectEle
     for (const core::ProjectElement& inner : element.elements) {
         appendAll(inner, all);
     }
-}
-
-/// Whether @p a and @p b are elements of the same kind
-bool sameKind(const core::BookTypeRegistry& registry, const core::ProjectElement& a,
-              const core::ProjectElement& b) {
-    const core::KindRef kindA = core::BookProject::kindOf(registry, a);
-    const core::KindRef kindB = core::BookProject::kindOf(registry, b);
-    if (kindA || kindB) {
-        return kindA && kindB && kindA.kind == kindB.kind;
-    }
-    return a.kind.kindId == b.kind.kindId;
 }
 
 /// The words of the kind of @p elements when they all have the same one, else the word
@@ -278,7 +172,7 @@ DeleteFromBookDialog::DeleteFromBookDialog(const Content& content,
     setHeadingIcon(QStringLiteral("help.help"));
 
     // The list of what goes: the element and the elements inside it, with their files
-    auto* list = newList(this, tr("Elements to delete"));
+    auto* list = newRowList(this, tr("Elements to delete"));
     m_list = list;
     int rows = 0;
     const std::function<void(QTreeWidgetItem*, const core::ProjectElement&)> addRow =
@@ -502,7 +396,7 @@ DeleteFilesDialog::DeleteFilesDialog(const QList<core::UnassignedFile>& files,
     setHeadingIcon(QStringLiteral("common.warning"));
 
     // The files: the title of the text in each, and its name
-    auto* list = newList(this, tr("Files to delete"));
+    auto* list = newRowList(this, tr("Files to delete"));
     m_list = list;
     for (const core::UnassignedFile& file : files) {
         auto* item = new QTreeWidgetItem(list);

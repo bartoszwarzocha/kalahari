@@ -23,6 +23,7 @@ class StatisticsCollector;
 class QMainWindow;
 class QTabWidget;
 class QStatusBar;
+class QWidget;
 
 namespace kalahari {
 namespace gui {
@@ -214,10 +215,10 @@ public slots:
     // Archive operations
     // =========================================================================
 
-    /// @brief Export current project to archive
+    /// @brief Export the open book to an archive, in the Export Project Archive window
     void onExportArchive();
 
-    /// @brief Import project from archive
+    /// @brief Import a book from an archive, in the Import Project Archive window
     void onImportArchive();
 
     // =========================================================================
@@ -290,6 +291,35 @@ private:
     /// @param closeQuestion The question without them; "%1" is the book's title
     /// @return true when no book is open or the writer agreed; false: the command stops
     bool agreeToCloseBook(const QString& saveQuestion, const QString& closeQuestion);
+
+    /// @brief What the writer chose to do with the open book when another book comes
+    enum class OpenBookChoice {
+        Close,     ///< The open book closes, with its changes saved or not, as the writer said
+        KeepOpen,  ///< The open book stays open, and the other book does not open
+        Cancel     ///< Nothing happens; the writer returns to the window that asked
+    };
+
+    /// @brief Before another book comes while a book is open: asks whether the open book
+    /// closes and the other one opens, or the open book stays and the other one does not open;
+    /// before the open book closes, asks about its unsaved changes
+    /// @param parent The window that asks
+    /// @param description Sentence under the heading: what can happen to the other book
+    /// @param note Where the book that does not open is found, and where Cancel returns
+    /// @param closeText Text of the button that closes the open book and opens the other one
+    /// @param keepText Text of the button that keeps the open book open
+    /// @param saveQuestion The question about the unsaved changes; "%1" is the book's title
+    /// @return The choice; Close when no book is open
+    OpenBookChoice askAboutOpenBook(QWidget* parent, const QString& description,
+                                    const QString& note, const QString& closeText,
+                                    const QString& keepText, const QString& saveQuestion);
+
+    /// @brief Whether the open book has unsaved changes: the text of its chapters open in
+    /// tabs, or the book's data; the standalone files are not the book's
+    [[nodiscard]] bool bookHasUnsavedChanges() const;
+
+    /// @brief Save the text of the book's chapters open in tabs and the book's data
+    /// @return false when some changes could not be saved
+    bool saveBook();
 
     /// @brief Tell the writer that the book of @p path cannot be opened, with @p problems
     /// under Show Details

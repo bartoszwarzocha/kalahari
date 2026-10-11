@@ -302,7 +302,7 @@ TEST_CASE("Folders: the field of a folder", "[gui][folders]") {
     CHECK_FALSE(restore->isEnabled());
     field.lineEdit()->clear();
     CHECK_FALSE(restore->isEnabled());
-    CHECK(buttonOf(field, QStringLiteral("Choose...")) != nullptr);
+    CHECK(buttonOf(field, QStringLiteral("Browse...")) != nullptr);
 
     // A field that is not used says nothing about its folder
     field.setFolder(root.filePath("file.txt"));

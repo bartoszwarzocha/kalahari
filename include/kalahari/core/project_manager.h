@@ -479,12 +479,34 @@ public:
                        const std::function<void(int)>& progressCallback = nullptr,
                        QStringList* problems = nullptr);
 
-    /// @brief Unpack a .klh.zip archive to a new folder and open the project in it
+    /// @brief Read the project of a .klh.zip archive without unpacking it: its .klh file, the
+    /// one unpackArchive() finds at the top of the project
+    /// @param archivePath Path of the .klh.zip file
+    /// @param problems What went wrong, one problem per line; may be nullptr
+    /// @return The project, or nullopt when the archive or its .klh file cannot be read
+    static std::optional<BookProject> readArchive(const QString& archivePath,
+                                                  QStringList* problems = nullptr);
+
+    /// @brief Unpack a .klh.zip archive to a new folder, without opening the project in it
     ///
     /// The project goes to targetDir/<archiveProjectName()>, which must not exist yet. Entries
     /// that would land outside that folder are skipped, and so are the lock and the database's
     /// shared memory file that archives of earlier versions have. When the project cannot be
-    /// unpacked or opened, the new folder is removed.
+    /// unpacked or its .klh file cannot be read, the new folder is removed.
+    /// @param archivePath Path of the .klh.zip file
+    /// @param targetDir Folder in which the project's folder is made
+    /// @param progressCallback Optional callback for progress (0-100)
+    /// @param problems What went wrong, one problem per line; may be nullptr
+    /// @return Path of the .klh file of the unpacked project; empty when it was not unpacked
+    static QString unpackArchive(const QString& archivePath,
+                                 const QString& targetDir,
+                                 const std::function<void(int)>& progressCallback = nullptr,
+                                 QStringList* problems = nullptr);
+
+    /// @brief Unpack a .klh.zip archive to a new folder and open the project in it
+    ///
+    /// The project is unpacked as unpackArchive() does it. When it cannot be opened, the new
+    /// folder is removed.
     /// @param archivePath Path of the .klh.zip file
     /// @param targetDir Folder in which the project's folder is made
     /// @param progressCallback Optional callback for progress (0-100)
@@ -495,9 +517,16 @@ public:
                        const std::function<void(int)>& progressCallback = nullptr,
                        QStringList* problems = nullptr);
 
-    /// @brief Name of the folder that importArchive() makes for @p archivePath: the archive's
+    /// @brief Name of the folder that unpackArchive() makes for @p archivePath: the archive's
     /// name without ".klh.zip"
     static QString archiveProjectName(const QString& archivePath);
+
+    /// @brief Extension of the archives of books
+    static constexpr const char* ARCHIVE_EXTENSION = ".klh.zip";
+
+    /// @brief Name of the archive of book @p title: the title, without the characters that file
+    /// systems do not allow, and ".klh.zip"
+    static QString archiveFileName(const QString& title);
 
 signals:
     /// @brief Emitted when a project is successfully opened

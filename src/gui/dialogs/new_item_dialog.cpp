@@ -312,7 +312,7 @@ QWidget* NewItemDialog::createDetailsGroup() {
         m_locationEdit->setToolTip(tr("The folder where the book will be created"));
         layout->addWidget(m_locationEdit, row, 1);
 
-        m_browseBtn = new QPushButton(tr("Choose..."), group);
+        m_browseBtn = new QPushButton(tr("Browse..."), group);
         m_browseBtn->setToolTip(tr("Choose the folder in the system window"));
         layout->addWidget(m_browseBtn, row, 2);
         row++;

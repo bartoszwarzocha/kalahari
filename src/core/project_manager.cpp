@@ -163,6 +163,9 @@ QString freeChapterFile(const BookProject& project, const QString& projectDir,
 /// Log of the database of a project, which has the changes not yet written to project.db
 constexpr QLatin1String DATABASE_LOG("project.db-wal");
 
+/// Largest .klh file that readArchive() reads from an archive; a book's has a few kilobytes
+constexpr qsizetype MAX_ARCHIVED_MANIFEST = 16 * 1024 * 1024;
+
 /// Whether file @p path of a project, relative to its folder, serves only the project open
 /// in this place: its lock, the log files of its database and the database's backups
 bool isLocalFile(const QString& path) {
@@ -1742,9 +1745,8 @@ bool ProjectManager::exportArchive(const QString& outputPath,
     }
 
     const QDir dir(projectDir);
-    for (qsizetype i = 0; i < files.size(); ++i) {
+    for (const QString& name : std::as_const(files)) {
         // Entries are named with "/" in UTF-8, so the archive opens on every system
-        const QString& name = files.at(i);
         zip_error_t sourceError;
         zip_error_init(&sourceError);
         zip_source_t* source = fileSource(dir.filePath(name), &sourceError);
@@ -1761,37 +1763,124 @@ bool ProjectManager::exportArchive(const QString& outputPath,
             return fail(QStringLiteral("%1: %2").arg(name, reason));
         }
         zip_error_fini(&sourceError);
-        if (progressCallback) {
-            progressCallback(static_cast<int>((i + 1) * 100 / files.size()));
-        }
     }
 
-    // The files are read and packed here
+    // The files are read and packed here, so the progress is that of closing the archive
+    std::function<void(int)> progress = progressCallback;
+    if (progress) {
+        zip_register_progress_callback_with_state(
+            archive, 0.01,
+            [](zip_t*, double done, void* callback) {
+                (*static_cast<std::function<void(int)>*>(callback))(static_cast<int>(done * 100));
+            },
+            nullptr, &progress);
+    }
     if (zip_close(archive) < 0) {
         const QString reason = QString::fromUtf8(zip_strerror(archive));
         zip_discard(archive);
         QFile::remove(outputPath);
         return fail(QStringLiteral("%1: %2").arg(QFileInfo(outputPath).fileName(), reason));
     }
+    if (progress) {
+        progress(100);
+    }
 
     logger.info("exportArchive: Exported {} files", files.size());
     return true;
 }
 
-bool ProjectManager::importArchive(const QString& archivePath,
-                                   const QString& targetDir,
-                                   const std::function<void(int)>& progressCallback,
-                                   QStringList* problems) {
+std::optional<BookProject> ProjectManager::readArchive(const QString& archivePath,
+                                                       QStringList* problems) {
+    QStringList found;
+    const auto fail = [&found, problems](const QString& problem) -> std::optional<BookProject> {
+        if (!problem.isEmpty()) {
+            found.append(problem);
+        }
+        for (const QString& line : found) {
+            Logger::getInstance().warn("readArchive: {}", line.toStdString());
+        }
+        if (problems) {
+            problems->append(found);
+        }
+        return std::nullopt;
+    };
+
+    const QString archiveName = QFileInfo(archivePath).fileName();
+    QString error;
+    zip_t* archive = openZip(archivePath, ZIP_RDONLY, &error);
+    if (!archive) {
+        return fail(QStringLiteral("%1: %2").arg(archiveName, error));
+    }
+
+    // The .klh file at the top of the project that unpackArchive() finds: the first by name
+    QString manifest;
+    zip_uint64_t manifestIndex = 0;
+    const zip_int64_t count = zip_get_num_entries(archive, 0);
+    for (zip_int64_t i = 0; i < count; ++i) {
+        const char* rawName = zip_get_name(archive, static_cast<zip_uint64_t>(i), 0);
+        const QString name = rawName ? QString::fromUtf8(rawName) : QString();
+        const QString path = entryPath(name);
+        if (path.isEmpty() || path.contains(QLatin1Char('/')) ||
+            name.endsWith(QLatin1Char('/')) || name.endsWith(QLatin1Char('\\')) ||
+            !path.endsWith(QLatin1String(BookProject::FILE_EXTENSION), Qt::CaseInsensitive)) {
+            continue;
+        }
+        if (manifest.isEmpty() || path.compare(manifest, Qt::CaseInsensitive) < 0) {
+            manifest = path;
+            manifestIndex = static_cast<zip_uint64_t>(i);
+        }
+    }
+    if (manifest.isEmpty()) {
+        zip_close(archive);
+        return fail(QStringLiteral("%1: the archive has no .klh file").arg(archiveName));
+    }
+
+    QByteArray data;
+    QString reason;
+    zip_file_t* entry = zip_fopen_index(archive, manifestIndex, 0);
+    if (!entry) {
+        reason = QString::fromUtf8(zip_strerror(archive));
+    } else {
+        char buffer[8192];
+        zip_int64_t read = 0;
+        while ((read = zip_fread(entry, buffer, sizeof(buffer))) > 0) {
+            data.append(buffer, static_cast<qsizetype>(read));
+            if (data.size() > MAX_ARCHIVED_MANIFEST) {
+                reason = QStringLiteral("too large for the file of a book");
+                break;
+            }
+        }
+        if (read < 0) {
+            reason = QString::fromUtf8(zip_file_strerror(entry));
+        }
+        zip_fclose(entry);
+    }
+    zip_close(archive);
+    if (!reason.isEmpty()) {
+        return fail(QStringLiteral("%1: %2").arg(manifest, reason));
+    }
+
+    std::optional<BookProject> project = BookProject::read(data, manifest, found);
+    if (!project) {
+        return fail(QString());
+    }
+    return project;
+}
+
+QString ProjectManager::unpackArchive(const QString& archivePath,
+                                      const QString& targetDir,
+                                      const std::function<void(int)>& progressCallback,
+                                      QStringList* problems) {
     auto& logger = Logger::getInstance();
     const auto fail = [&logger, problems](const QString& problem) {
-        logger.error("importArchive: {}", problem.toStdString());
+        logger.error("unpackArchive: {}", problem.toStdString());
         if (problems) {
             problems->append(problem);
         }
-        return false;
+        return QString();
     };
 
-    logger.info("Importing archive: {} to {}", archivePath.toStdString(), targetDir.toStdString());
+    logger.info("Unpacking archive: {} to {}", archivePath.toStdString(), targetDir.toStdString());
 
     // The project goes to a new folder named after the archive
     const QString extractDir = QDir(targetDir).filePath(archiveProjectName(archivePath));
@@ -1822,7 +1911,7 @@ bool ProjectManager::importArchive(const QString& archivePath,
         const QString path = entryPath(name);
         if (path.isEmpty()) {
             if (!name.isEmpty() && !name.endsWith(QLatin1Char('/'))) {
-                logger.warn("importArchive: Skipped {}, which is outside the project",
+                logger.warn("unpackArchive: Skipped {}, which is outside the project",
                             name.toStdString());
             }
             continue;
@@ -1832,7 +1921,7 @@ bool ProjectManager::importArchive(const QString& archivePath,
             continue;
         }
         if (isArchivedLocalFile(path)) {
-            logger.debug("importArchive: Skipped {}, which served the project where it was "
+            logger.debug("unpackArchive: Skipped {}, which served the project where it was "
                          "archived",
                          path.toStdString());
             continue;
@@ -1884,16 +1973,49 @@ bool ProjectManager::importArchive(const QString& archivePath,
                         .arg(QFileInfo(archivePath).fileName()));
     }
 
-    logger.info("importArchive: Opening extracted project: {}", manifests.first().toStdString());
-    QStringList found;
-    if (!openProject(dir.filePath(manifests.first()), &found)) {
+    // A book whose .klh file cannot be read does not stay behind
+    const QString manifest = dir.filePath(manifests.first());
+    const QStringList found = projectFileProblems(manifest);
+    if (!found.isEmpty()) {
         undo();
+        for (const QString& line : found) {
+            logger.error("unpackArchive: {}", line.toStdString());
+        }
+        if (problems) {
+            problems->append(found);
+        }
+        return QString();
+    }
+    logger.info("unpackArchive: Unpacked {}", manifest.toStdString());
+    return manifest;
+}
+
+bool ProjectManager::importArchive(const QString& archivePath,
+                                   const QString& targetDir,
+                                   const std::function<void(int)>& progressCallback,
+                                   QStringList* problems) {
+    const QString manifest = unpackArchive(archivePath, targetDir, progressCallback, problems);
+    if (manifest.isEmpty()) {
+        return false;
+    }
+
+    // Nothing of a book that cannot be opened stays behind
+    Logger::getInstance().info("importArchive: Opening extracted project: {}",
+                               manifest.toStdString());
+    QStringList found;
+    if (!openProject(manifest, &found)) {
+        QDir(QFileInfo(manifest).absolutePath()).removeRecursively();
         if (problems) {
             problems->append(found);
         }
         return false;
     }
     return true;
+}
+
+QString ProjectManager::archiveFileName(const QString& title) {
+    const QString name = safeFileName(title);
+    return (name.isEmpty() ? QStringLiteral("project") : name) + QLatin1String(ARCHIVE_EXTENSION);
 }
 
 QString ProjectManager::archiveProjectName(const QString& archivePath) {

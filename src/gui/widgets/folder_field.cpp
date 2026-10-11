@@ -31,7 +31,7 @@ constexpr int STATE_DELAY_MS = 300;
 FolderField::FolderField(QWidget* parent)
     : QWidget(parent)
     , m_edit(new QLineEdit(this))
-    , m_chooseButton(new QPushButton(tr("Choose..."), this))
+    , m_chooseButton(new QPushButton(tr("Browse..."), this))
     , m_restoreButton(new QPushButton(tr("Restore Default"), this))
     , m_stateIcon(new QLabel(this))
     , m_stateText(new QLabel(this))

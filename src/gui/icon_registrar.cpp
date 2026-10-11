@@ -33,12 +33,14 @@ void registerAllIcons() {
     iconRegistry.registerIcon("file.import.pdf", "resources/icons/twotone/picture_as_pdf.svg", "Import PDF");
     iconRegistry.registerIcon("file.import.text", "resources/icons/twotone/text_snippet.svg", "Import Text");
     iconRegistry.registerIcon("file.import.scrivener", "resources/icons/twotone/integration_instructions.svg", "Import Scrivener");
+    iconRegistry.registerIcon("file.import.archive", "resources/icons/twotone/upload_file.svg", "Import Project Archive");
     iconRegistry.registerIcon("file.export.docx", "resources/icons/twotone/download.svg", "Export DOCX");
     iconRegistry.registerIcon("file.export.pdf", "resources/icons/twotone/picture_as_pdf.svg", "Export PDF");
     iconRegistry.registerIcon("file.export.markdown", "resources/icons/twotone/code.svg", "Export Markdown");
     iconRegistry.registerIcon("file.export.epub", "resources/icons/twotone/auto_stories.svg", "Export EPUB");
     iconRegistry.registerIcon("file.export.mobi", "resources/icons/twotone/smartphone.svg", "Export MOBI");
     iconRegistry.registerIcon("file.export.latex", "resources/icons/twotone/functions.svg", "Export LaTeX");
+    iconRegistry.registerIcon("file.export.archive", "resources/icons/twotone/download.svg", "Export Project Archive");
 
     // -------------------------------------------------------------------------
     // EDIT MENU ICONS

@@ -587,6 +587,17 @@
 <context>
     <name>DeleteDialogs</name>
     <message>
+        <source>Recycle Bin</source>
+        <translation>Kosz</translation>
+    </message>
+    <message>
+        <source>Trash</source>
+        <translation>Kosz</translation>
+    </message>
+</context>
+<context>
+    <name>DialogParts</name>
+    <message>
         <source>&amp;Copy</source>
         <translation>&amp;Kopiuj</translation>
     </message>
@@ -597,14 +608,6 @@
     <message>
         <source>Copy what the window says to the clipboard</source>
         <translation>Kopiuj treść okna do schowka</translation>
-    </message>
-    <message>
-        <source>Recycle Bin</source>
-        <translation>Kosz</translation>
-    </message>
-    <message>
-        <source>Trash</source>
-        <translation>Kosz</translation>
     </message>
 </context>
 <context>
@@ -1596,10 +1599,6 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
 <context>
     <name>kalahari::gui::FolderField</name>
     <message>
-        <source>Choose...</source>
-        <translation>Wybierz...</translation>
-    </message>
-    <message>
         <source>Restore Default</source>
         <translation>Przywróć domyślny</translation>
     </message>
@@ -1614,6 +1613,10 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     <message>
         <source>Kalahari will create this folder when it is first needed.</source>
         <translation>Kalahari utworzy ten folder, gdy będzie potrzebny.</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>Przeglądaj...</translation>
     </message>
 </context>
 <context>
@@ -2812,86 +2815,6 @@ Czy na pewno kontynuować?</translation>
         <translation>Przed eksportem otwórz projekt.</translation>
     </message>
     <message>
-        <source>Export Project Archive</source>
-        <translation>Eksportuj archiwum projektu</translation>
-    </message>
-    <message>
-        <source>Kalahari Archive (*.klh.zip)</source>
-        <translation>Archiwum Kalahari (*.klh.zip)</translation>
-    </message>
-    <message>
-        <source>The project contains %1 file(s) that are not marked as final:</source>
-        <translation>Pliki projektu nieoznaczone jako gotowe (%1):</translation>
-    </message>
-    <message>
-        <source>Do you want to export anyway?</source>
-        <translation>Czy mimo to wyeksportować?</translation>
-    </message>
-    <message>
-        <source>Incomplete Files</source>
-        <translation>Niegotowe pliki</translation>
-    </message>
-    <message>
-        <source>Exporting project archive...</source>
-        <translation>Trwa eksport archiwum projektu...</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Anuluj</translation>
-    </message>
-    <message>
-        <source>Export Complete</source>
-        <translation>Eksport zakończony</translation>
-    </message>
-    <message>
-        <source>Project exported successfully to:
-%1</source>
-        <translation>Wyeksportowano projekt do:
-%1</translation>
-    </message>
-    <message>
-        <source>Export Failed</source>
-        <translation>Eksport nie powiódł się</translation>
-    </message>
-    <message>
-        <source>Failed to export project archive.</source>
-        <translation>Nie udało się wyeksportować archiwum projektu.</translation>
-    </message>
-    <message>
-        <source>Import Project Archive</source>
-        <translation>Importuj archiwum projektu</translation>
-    </message>
-    <message>
-        <source>Select Destination Folder</source>
-        <translation>Wybierz folder docelowy</translation>
-    </message>
-    <message>
-        <source>Folder Exists</source>
-        <translation>Folder już istnieje</translation>
-    </message>
-    <message>
-        <source>A folder named &apos;%1&apos; already exists in the destination.
-Do you want to choose a different location?</source>
-        <translation>W wybranym miejscu jest już folder „%1”.
-Czy wybrać inne miejsce?</translation>
-    </message>
-    <message>
-        <source>Importing project archive...</source>
-        <translation>Trwa import archiwum projektu...</translation>
-    </message>
-    <message>
-        <source>Import Complete</source>
-        <translation>Import zakończony</translation>
-    </message>
-    <message>
-        <source>Import Failed</source>
-        <translation>Import nie powiódł się</translation>
-    </message>
-    <message>
-        <source>Failed to import project archive.</source>
-        <translation>Nie udało się zaimportować archiwum projektu.</translation>
-    </message>
-    <message>
         <source>Book opened: %1</source>
         <translation>Otwarto książkę: %1</translation>
     </message>
@@ -2940,16 +2863,6 @@ Czy wybrać inne miejsce?</translation>
         <translation>Czy zapisać zmiany w „%1” przed importem archiwum?</translation>
     </message>
     <message>
-        <source>Do you want to close &apos;%1&apos; and open the imported book?</source>
-        <translation>Czy zamknąć „%1” i otworzyć zaimportowaną książkę?</translation>
-    </message>
-    <message>
-        <source>The book was imported to:
-%1</source>
-        <translation>Książka została zaimportowana do folderu:
-%1</translation>
-    </message>
-    <message>
         <source>&amp;Save</source>
         <translation>&amp;Zapisz</translation>
     </message>
@@ -2960,14 +2873,6 @@ Czy wybrać inne miejsce?</translation>
     <message>
         <source>&amp;Close Book</source>
         <translation>&amp;Zamknij książkę</translation>
-    </message>
-    <message>
-        <source>&amp;Export</source>
-        <translation>&amp;Eksportuj</translation>
-    </message>
-    <message>
-        <source>C&amp;hoose Another Folder</source>
-        <translation>&amp;Wybierz inny folder</translation>
     </message>
     <message>
         <source>New Book</source>
@@ -2988,14 +2893,6 @@ Czy wybrać inne miejsce?</translation>
     <message>
         <source>Do you want to close &apos;%1&apos; and open the selected book?</source>
         <translation>Czy zamknąć „%1” i otworzyć wybraną książkę?</translation>
-    </message>
-    <message>
-        <source>Draft</source>
-        <translation>Szkic</translation>
-    </message>
-    <message>
-        <source>Revision</source>
-        <translation>Poprawki</translation>
     </message>
     <message>
         <source>Some changes could not be saved</source>
@@ -3064,6 +2961,26 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>{Kind} added to the book: %1</source>
         <translation>Dodano {kind:accusative} do książki: %1</translation>
+    </message>
+    <message>
+        <source>Close &quot;%1&quot;?</source>
+        <translation>Zamknąć „%1”?</translation>
+    </message>
+    <message>
+        <source>The book &quot;%1&quot; from the archive can take the place of the open one or be imported without opening.</source>
+        <translation>Książka „%1” z archiwum może zastąpić otwartą albo zostać zaimportowana bez otwierania.</translation>
+    </message>
+    <message>
+        <source>A book imported without opening is on the Dashboard and in File &gt; Recent Books. Cancel returns to the Import Project Archive window with your choices.</source>
+        <translation>Książkę zaimportowaną bez otwierania znajdziesz na Pulpicie i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Importuj archiwum projektu” z wpisanymi danymi.</translation>
+    </message>
+    <message>
+        <source>Close and Open Imported</source>
+        <translation>Zamknij i otwórz zaimportowaną</translation>
+    </message>
+    <message>
+        <source>Import Without Opening</source>
+        <translation>Importuj bez otwierania</translation>
     </message>
 </context>
 <context>
@@ -5763,6 +5680,39 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::ArchiveDialog</name>
+    <message>
+        <source>Progress</source>
+        <translation>Postęp</translation>
+    </message>
+    <message>
+        <source>Show in Folder</source>
+        <translation>Pokaż w folderze</translation>
+    </message>
+    <message>
+        <source>Open the folder in the file manager of the system</source>
+        <translation>Otwórz folder w menedżerze plików</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>Szczegóły</translation>
+    </message>
+    <message>
+        <source>The file manager of the system could not show:
+%1</source>
+        <translation>Menedżer plików nie mógł pokazać tego miejsca:
+%1</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>Przeglądaj...</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::DeleteFilesDialog</name>
     <message>
         <source>Delete the file &quot;%1&quot;?</source>
@@ -5911,6 +5861,97 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::ExportArchiveDialog</name>
+    <message>
+        <source>Export Project Archive</source>
+        <translation>Eksportuj archiwum projektu</translation>
+    </message>
+    <message>
+        <source>The archive holds the whole book &quot;%1&quot;: the project file, the files of the elements and the database.</source>
+        <translation>Archiwum zawiera całą książkę „%1”: plik projektu, pliki elementów i bazę.</translation>
+    </message>
+    <message>
+        <source>Archive</source>
+        <translation>Archiwum</translation>
+    </message>
+    <message>
+        <source>Folder:</source>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>Name:</source>
+        <translation>Nazwa:</translation>
+    </message>
+    <message>
+        <source>Files Not Ready (%1)</source>
+        <translation>Niegotowe pliki (%1)</translation>
+    </message>
+    <message>
+        <source>Files not ready</source>
+        <translation>Niegotowe pliki</translation>
+    </message>
+    <message>
+        <source>These files go to the archive as they are. You change their status in the Navigator.</source>
+        <translation>Te pliki trafią do archiwum w obecnym stanie. Stan zmienisz w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>Kalahari saves the unsaved changes before the export.</source>
+        <translation>Niezapisane zmiany program zapisze przed eksportem.</translation>
+    </message>
+    <message>
+        <source>The progress and the result will show here.</source>
+        <translation>Postęp i wynik pokażą się tutaj.</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>Eksportuj</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot create the folder %1.</source>
+        <translation>Kalahari nie może utworzyć folderu %1.</translation>
+    </message>
+    <message>
+        <source>Saved the archive %1.</source>
+        <translation>Zapisano archiwum %1.</translation>
+    </message>
+    <message>
+        <source>The archive could not be saved.</source>
+        <translation>Nie udało się zapisać archiwum.</translation>
+    </message>
+    <message>
+        <source>Folder of the Archive</source>
+        <translation>Folder archiwum</translation>
+    </message>
+    <message>
+        <source>Kalahari creates this folder during the export.</source>
+        <translation>Kalahari utworzy ten folder podczas eksportu.</translation>
+    </message>
+    <message>
+        <source>The folder has a folder named &quot;%1&quot;. Choose another name.</source>
+        <translation>W tym folderze jest folder „%1”. Wybierz inną nazwę.</translation>
+    </message>
+    <message>
+        <source>The folder already has the archive &quot;%1&quot;. The export replaces it.</source>
+        <translation>W tym folderze jest już archiwum „%1”. Eksport je zastąpi.</translation>
+    </message>
+    <message>
+        <source>The archive gets the name &quot;%1&quot;.</source>
+        <translation>Archiwum dostanie nazwę „%1”.</translation>
+    </message>
+    <message>
+        <source>Type the name of the archive.</source>
+        <translation>Wpisz nazwę archiwum.</translation>
+    </message>
+    <message>
+        <source>A name cannot have the characters %1.</source>
+        <translation>Nazwa nie może zawierać znaków %1.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::FilePreviewDialog</name>
     <message>
         <source>Status: %1</source>
@@ -5943,6 +5984,145 @@ Harmonogram projektu:
     <message>
         <source>&amp;Delete File...</source>
         <translation>&amp;Usuń plik...</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ImportArchiveDialog</name>
+    <message>
+        <source>Import Project Archive</source>
+        <translation>Importuj archiwum projektu</translation>
+    </message>
+    <message>
+        <source>The book from the archive goes to a new folder and opens in the program.</source>
+        <translation>Książka z archiwum trafi do nowego folderu i otworzy się w programie.</translation>
+    </message>
+    <message>
+        <source>Archive</source>
+        <translation>Archiwum</translation>
+    </message>
+    <message>
+        <source>File:</source>
+        <translation>Plik:</translation>
+    </message>
+    <message>
+        <source>Choose the archive with Browse...</source>
+        <translation>Wybierz archiwum przyciskiem „Przeglądaj...”</translation>
+    </message>
+    <message>
+        <source>Choose the archive in the system window</source>
+        <translation>Wybierz archiwum w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>Title:</source>
+        <translation>Tytuł:</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <translation>Autor:</translation>
+    </message>
+    <message>
+        <source>Type:</source>
+        <translation>Typ:</translation>
+    </message>
+    <message>
+        <source>Contents:</source>
+        <translation>Zawartość:</translation>
+    </message>
+    <message>
+        <source>Workshop:</source>
+        <translation>Warsztat:</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Folder:</source>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>The progress of the import will show here. When something goes wrong, the description of the error stays in this window, and Copy puts it on the clipboard.</source>
+        <translation>Postęp importu pokaże się tutaj. Gdy coś się nie uda, opis błędu zostanie w tym oknie i skopiujesz go przyciskiem „Kopiuj”.</translation>
+    </message>
+    <message>
+        <source>Import</source>
+        <translation>Importuj</translation>
+    </message>
+    <message>
+        <source>no elements</source>
+        <translation>brak elementów</translation>
+    </message>
+    <message>
+        <source>1 {kind}</source>
+        <translation>1 {kind}</translation>
+    </message>
+    <message>
+        <source>{kind:indefinite}</source>
+        <translation>{kind}</translation>
+    </message>
+    <message>
+        <source>Imported &quot;%1&quot; to the folder %2. The book is open.</source>
+        <translation>Zaimportowano „%1” do folderu %2. Książka jest już otwarta.</translation>
+    </message>
+    <message>
+        <source>Imported &quot;%1&quot; to the folder %2. The book is on the Dashboard and in File &gt; Recent Books.</source>
+        <translation>Zaimportowano „%1” do folderu %2. Książkę znajdziesz na Pulpicie i w menu Plik &gt; Ostatnie książki.</translation>
+    </message>
+    <message>
+        <source>The archive could not be imported.</source>
+        <translation>Nie udało się zaimportować archiwum.</translation>
+    </message>
+    <message>
+        <source>Choose the Archive</source>
+        <translation>Wybierz archiwum</translation>
+    </message>
+    <message>
+        <source>Kalahari Archive (*.klh.zip)</source>
+        <translation>Archiwum Kalahari (*.klh.zip)</translation>
+    </message>
+    <message>
+        <source>Place of the Book</source>
+        <translation>Miejsce książki</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot read the book of this archive.</source>
+        <translation>Kalahari nie może odczytać książki z tego archiwum.</translation>
+    </message>
+    <message>
+        <source>The folder &quot;%1&quot; is already here. Choose another place for the book.</source>
+        <translation>W tym miejscu jest już folder „%1”. Wybierz dla książki inne miejsce.</translation>
+    </message>
+    <message>
+        <source>The book goes to the folder &quot;%1&quot;.</source>
+        <translation>Książka powstanie w folderze „%1”.</translation>
+    </message>
+    <message>
+        <source>User Project</source>
+        <translation>Projekt użytkownika</translation>
+    </message>
+    <message>
+        <source>%1 (not installed)</source>
+        <translation>%1 (typ niezainstalowany)</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n {kind:plural}</source>
+        <translation>
+            <numerusform>%n {kind}</numerusform>
+            <numerusform>%n {kind:plural}</numerusform>
+            <numerusform>%n {kind:genitivePlural}</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n elements: %1</source>
+        <translation>
+            <numerusform>%n element: %1</numerusform>
+            <numerusform>%n elementy: %1</numerusform>
+            <numerusform>%n elementów: %1</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -6308,12 +6488,12 @@ Harmonogram projektu:
         <translation>Nazwy sekcji:</translation>
     </message>
     <message>
-        <source>Choose...</source>
-        <translation>Wybierz...</translation>
-    </message>
-    <message>
         <source>Choose the folder in the system window</source>
         <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>Przeglądaj...</translation>
     </message>
 </context>
 <context>

@@ -1,5 +1,5 @@
 /// @file folder_field.h
-/// @brief Field of a folder: its path, Choose... and Restore Default
+/// @brief Field of a folder: its path, Browse... and Restore Default
 
 #pragma once
 
@@ -14,7 +14,7 @@ class QTimer;
 namespace kalahari {
 namespace gui {
 
-/// @brief Field of a folder: the path, Choose... (the system window choosing a folder) and
+/// @brief Field of a folder: the path, Browse... (the system window choosing a folder) and
 /// Restore Default, with a line under them that says why the program cannot use the folder,
 /// or that the program creates the folder when it is first needed
 ///

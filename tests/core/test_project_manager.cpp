@@ -1673,11 +1673,13 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
     // and the backups; the book stays open
     const QString archive = project.filePath("Travels.klh.zip");
     QStringList problems;
-    int progress = 0;
-    REQUIRE(pm.exportArchive(archive, [&progress](int percent) { progress = percent; },
+    QList<int> progress;
+    REQUIRE(pm.exportArchive(archive, [&progress](int percent) { progress << percent; },
                              &problems));
     CHECK(problems.isEmpty());
-    CHECK(progress == 100);
+    REQUIRE_FALSE(progress.isEmpty());
+    CHECK(std::is_sorted(progress.cbegin(), progress.cend()));
+    CHECK(progress.last() == 100);
     CHECK(pm.isProjectOpen());
     const QStringList entries{"Travels.klh", "book/chapter_001.kchapter",
                               "book/title_page_001.kchapter", "project.db"};
@@ -1792,6 +1794,117 @@ TEST_CASE("ProjectManager imports only what goes into the book's folder",
         CHECK(problems == QStringList{"Notes.klh.zip: the archive has no .klh file"});
         CHECK_FALSE(QFileInfo::exists(QDir(target).filePath("Notes")));
     }
+}
+
+TEST_CASE("ProjectManager reads the book of an archive without unpacking it",
+          "[project_manager][archive]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Travels", "Anna", "en", true, "kalahari.novel"));
+    const QString archive = QDir(dir.path()).filePath("Travels.klh.zip");
+    REQUIRE(pm.exportArchive(archive));
+    REQUIRE(pm.closeProject(false));
+    const QStringList before =
+        QDir(dir.path()).entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+
+    QStringList problems;
+    const std::optional<BookProject> project = ProjectManager::readArchive(archive, &problems);
+    REQUIRE(project.has_value());
+    CHECK(problems.isEmpty());
+    REQUIRE(project->books.size() == 1);
+    CHECK(project->books.first().title == "Travels");
+    CHECK(project->books.first().author == "Anna");
+    REQUIRE(project->type.has_value());
+    CHECK(project->type->id == "kalahari.novel");
+    CHECK(titles(project->books.first().mainElements) == "Chapter 1");
+    CHECK(QDir(dir.path()).entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot) == before);
+
+    SECTION("An archive without a book") {
+        const QString notes = QDir(dir.path()).filePath("Notes.klh.zip");
+        writeArchive(notes, {{"notes.txt", "x"}, {"book/Inside.klh", "{}"}});
+        CHECK_FALSE(ProjectManager::readArchive(notes, &problems).has_value());
+        CHECK(problems == QStringList{"Notes.klh.zip: the archive has no .klh file"});
+    }
+
+    SECTION("A book whose file is not JSON") {
+        const QString broken = QDir(dir.path()).filePath("Broken.klh.zip");
+        writeArchive(broken, {{"Broken.klh", "{ not JSON"}});
+        CHECK_FALSE(ProjectManager::readArchive(broken, &problems).has_value());
+        REQUIRE(problems.size() == 1);
+        CHECK(problems.first().startsWith("Broken.klh: not valid JSON"));
+    }
+
+    SECTION("A file that is not an archive") {
+        const QString text = QDir(dir.path()).filePath("Text.klh.zip");
+        writeFile(text, "plain text");
+        CHECK_FALSE(ProjectManager::readArchive(text, &problems).has_value());
+        REQUIRE(problems.size() == 1);
+        CHECK(problems.first().startsWith("Text.klh.zip: "));
+    }
+
+    SECTION("The book that unpackArchive() unpacks: the first .klh file at the top") {
+        const QString two = QDir(dir.path()).filePath("Two.klh.zip");
+        QFile file(QDir(dir.path()).filePath("Travels/Travels.klh"));
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        writeArchive(two, {{"b.klh", "{ not JSON"}, {"A.KLH", file.readAll()}});
+        const std::optional<BookProject> first = ProjectManager::readArchive(two, &problems);
+        REQUIRE(first.has_value());
+        CHECK(first->books.first().title == "Travels");
+    }
+}
+
+TEST_CASE("ProjectManager unpacks an archive without opening its book",
+          "[project_manager][archive]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Travels", "Anna", "en", true, "kalahari.novel"));
+    const QString chapter = pm.book()->mainElements.first().id;
+    pm.setChapterContent(chapter, kmlWith("Far away"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    const QString archive = QDir(dir.path()).filePath("Travels copy.klh.zip");
+    REQUIRE(pm.exportArchive(archive));
+    const QString open = pm.getManifestPath();
+
+    // The open book stays open; the unpacked one is in a folder named after the archive
+    const QString target = QDir(dir.path()).filePath("imported");
+    QStringList problems;
+    int progress = 0;
+    const QString manifest = ProjectManager::unpackArchive(
+        archive, target, [&progress](int percent) { progress = percent; }, &problems);
+    CHECK(problems.isEmpty());
+    CHECK(progress == 100);
+    CHECK(QFileInfo(manifest) == QFileInfo(QDir(target).filePath("Travels copy/Travels.klh")));
+    CHECK(pm.getManifestPath() == open);
+    REQUIRE(pm.closeProject(false));
+
+    // It opens later as any book does
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.loadChapterContent(chapter) == kmlWith("Far away"));
+    REQUIRE(pm.closeProject(false));
+
+    SECTION("A book whose file cannot be read does not stay behind") {
+        const QString broken = QDir(dir.path()).filePath("Broken.klh.zip");
+        writeArchive(broken, {{"Broken.klh", "{ not JSON"}, {"book/chapter_001.kchapter", "x"}});
+        CHECK(ProjectManager::unpackArchive(broken, target, nullptr, &problems).isEmpty());
+        REQUIRE(problems.size() == 1);
+        CHECK(problems.first().startsWith("Broken.klh: not valid JSON"));
+        CHECK_FALSE(QFileInfo::exists(QDir(target).filePath("Broken")));
+
+        // Nor when it is imported
+        problems.clear();
+        CHECK_FALSE(pm.importArchive(broken, target, nullptr, &problems));
+        CHECK_FALSE(problems.isEmpty());
+        CHECK_FALSE(QFileInfo::exists(QDir(target).filePath("Broken")));
+        CHECK_FALSE(pm.isProjectOpen());
+    }
+}
+
+TEST_CASE("An archive is named after its book", "[project_manager][archive]") {
+    CHECK(ProjectManager::archiveFileName("Test powieści") == "Test powieści.klh.zip");
+    CHECK(ProjectManager::archiveFileName(" Who? Me: \"Anna\" ") == "Who_ Me_ _Anna_.klh.zip");
+    CHECK(ProjectManager::archiveFileName("") == "project.klh.zip");
+    CHECK(ProjectManager::archiveProjectName(ProjectManager::archiveFileName("Travels")) ==
+          "Travels");
 }
 
 TEST_CASE("An imported book takes the name of its archive", "[project_manager][archive]") {

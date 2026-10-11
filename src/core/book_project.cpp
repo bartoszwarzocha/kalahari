@@ -1072,17 +1072,22 @@ std::optional<BookProject> BookProject::load(const QString& path, QStringList& p
         addProblem(problems, field, QStringLiteral("cannot be read"));
         return std::nullopt;
     }
+    return read(file.readAll(), field, problems);
+}
+
+std::optional<BookProject> BookProject::read(const QByteArray& data, const QString& name,
+                                             QStringList& problems) {
     QJsonParseError error{};
-    const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
+    const QJsonDocument document = QJsonDocument::fromJson(data, &error);
     if (error.error != QJsonParseError::NoError) {
-        addProblem(problems, field,
+        addProblem(problems, name,
                    QStringLiteral("not valid JSON: %1 at character %2")
                        .arg(error.errorString())
                        .arg(error.offset));
         return std::nullopt;
     }
     if (!document.isObject()) {
-        addProblem(problems, field, QStringLiteral("must be a JSON object"));
+        addProblem(problems, name, QStringLiteral("must be a JSON object"));
         return std::nullopt;
     }
     return fromJson(document.object(), problems);

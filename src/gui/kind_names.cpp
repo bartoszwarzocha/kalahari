@@ -47,6 +47,16 @@ core::KindWords wordsOf(const core::ProjectElement& element) {
     return wordsOf(core::ProjectManager::getInstance().bookTypes(), element);
 }
 
+bool sameKind(const core::BookTypeRegistry& registry, const core::ProjectElement& a,
+              const core::ProjectElement& b) {
+    const core::KindRef kindA = core::BookProject::kindOf(registry, a);
+    const core::KindRef kindB = core::BookProject::kindOf(registry, b);
+    if (kindA || kindB) {
+        return kindA && kindB && kindA.kind == kindB.kind;
+    }
+    return a.kind.kindId == b.kind.kindId;
+}
+
 core::KindWords mainWords() {
     return wordsOf(core::ProjectManager::getInstance().mainTextKind());
 }
