@@ -1189,7 +1189,7 @@ void DocumentCoordinator::addToProject(const QString& filePath) {
             m_navigatorPanel->removeStandaloneFile(filePath);
             m_standaloneFilePaths.removeAll(filePath);
             if (fileEditor) {
-                utils::removeTabKeepingFocus(*m_centralTabs, m_centralTabs->indexOf(fileEditor));
+                m_centralTabs->removeTab(m_centralTabs->indexOf(fileEditor));
                 fileEditor->deleteLater();
                 if (m_navigatorCoordinator) {
                     m_navigatorCoordinator->onElementSelected(elementId, result.newTitle);

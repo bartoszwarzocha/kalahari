@@ -466,8 +466,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   closed with its ×, the keyboard focus went to the font box of the toolbar, so the text
   typed next landed there instead of in the document now in front. That document now gets
   the keys, at the place it had them last, as in Word and LibreOffice; a focus elsewhere,
-  for example in a panel, stays where it was. The same holds for the tabs that close when
-  a book is closed and when a file is added to the book.
+  for example in a panel, stays where it was. The same holds for the chapter tabs that close
+  with the book.
 
 - **Distraction-Free without a document** - 2026-10-08. View > Distraction-Free
   (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in
