@@ -87,6 +87,23 @@ void pressTextKey(BookEditor& editor, TextKeyAction action) {
     QCoreApplication::sendEvent(&editor, &press);
 }
 
+/// The menu key: the context menu from the keyboard, at the cursor
+void pressMenuKey(BookEditor& editor) {
+    QContextMenuEvent event(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+    QCoreApplication::sendEvent(&editor, &event);
+}
+
+/// Shift+F10, the second key of the context menu on Windows and Linux; macOS has the keys of
+/// its own text fields, without it, so there the menu key opens the menu
+void pressShiftF10(BookEditor& editor) {
+    if constexpr (isMacOS()) {
+        pressMenuKey(editor);
+    } else {
+        QKeyEvent press(QEvent::KeyPress, Qt::Key_F10, Qt::ShiftModifier);
+        QCoreApplication::sendEvent(&editor, &press);
+    }
+}
+
 }  // namespace
 
 TEST_CASE("Spelling: the misspelled words of a shown editor get waves", "[editor][spelling]") {
@@ -392,28 +409,14 @@ TEST_CASE("Spelling: the menu key and Shift+F10 offer what to put in place of th
                words.contains(QStringLiteral("Paste"));
     };
 
-    const auto menuKey = [&editor]() {
-        QContextMenuEvent event(QContextMenuEvent::Keyboard, QPoint(), QPoint());
-        QCoreApplication::sendEvent(editor.get(), &event);
-    };
-    // Shift+F10 is the second key of the context menu of Windows and Linux; macOS has the keys
-    // of its own text fields, without it, so there the menu key opens the menu
-    const auto shiftF10 = [&editor, &menuKey]() {
-        if constexpr (isMacOS()) {
-            menuKey();
-        } else {
-            QKeyEvent press(QEvent::KeyPress, Qt::Key_F10, Qt::ShiftModifier);
-            QCoreApplication::sendEvent(editor.get(), &press);
-        }
-    };
-
     SECTION("the menu key") {
-        const QStringList texts = runPopupMenu(menuKey);
+        const QStringList texts = runPopupMenu([&editor]() { pressMenuKey(*editor); });
         CHECK(offered(texts));
     }
 
     SECTION("Shift+F10, choosing a word") {
-        const QStringList texts = runPopupMenu(shiftF10, QStringLiteral("spelling"));
+        const QStringList texts =
+            runPopupMenu([&editor]() { pressShiftF10(*editor); }, QStringLiteral("spelling"));
         CHECK(offered(texts));
         CHECK(editor->textDocument()->findBlockByNumber(0).text() ==
               QStringLiteral("The spelling is bad."));
@@ -422,7 +425,8 @@ TEST_CASE("Spelling: the menu key and Shift+F10 offer what to put in place of th
     SECTION("the word just typed, before its wave") {
         editor->setCursorPosition({0, 19});
         type(*editor, QStringLiteral(" Erorr"));
-        const QStringList texts = runPopupMenu(shiftF10, QStringLiteral("Error"));
+        const QStringList texts =
+            runPopupMenu([&editor]() { pressShiftF10(*editor); }, QStringLiteral("Error"));
         CHECK(texts.contains(QStringLiteral("Add t&o Dictionary")));
         CHECK(editor->textDocument()->findBlockByNumber(0).text() ==
               QStringLiteral("The speling is bad. Error"));
