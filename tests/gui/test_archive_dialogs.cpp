@@ -24,6 +24,7 @@
 #include <QLineEdit>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QScreen>
 #include <QTemporaryDir>
 #include <QTranslator>
 #include <QTreeWidget>
@@ -416,11 +417,20 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
     dialog.accept();
     settle();
     REQUIRE(dialog.isDone());
-    // The list keeps its rows, and the result has room for its lines
+    // The list keeps its rows, and the result has room for its lines: the window grows for
+    // them as far as the screen allows, and on a lower screen the content scrolls
     CHECK(list->height() == rowsHeight);
     const auto* area = dialog.findChild<gui::FittingScrollArea*>();
     REQUIRE(area != nullptr);
-    CHECK(area->viewport()->height() >= area->contentHeightForWidth(area->viewport()->width()));
+    const int needed = area->contentHeightForWidth(area->viewport()->width());
+    const int screenHeight = dialog.screen()->availableGeometry().height();
+    const int windowHeight = dialog.frameGeometry().height();
+    INFO("The window is " << windowHeight << " high on a screen " << screenHeight
+                          << " high; the content needs " << needed << " and has "
+                          << area->viewport()->height());
+    const bool fits = area->viewport()->height() >= needed;
+    const bool asHighAsTheScreen = windowHeight >= screenHeight;
+    CHECK((fits || asHighAsTheScreen));
 }
 
 TEST_CASE("Export Project Archive: a line under a field is as high as its sentence",
