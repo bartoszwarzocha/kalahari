@@ -1850,9 +1850,13 @@ bool ProjectManager::exportArchive(const QString& outputPath,
 }
 
 std::optional<BookProject> ProjectManager::readArchive(const QString& archivePath,
-                                                       QStringList* problems, int* backups) {
+                                                       QStringList* problems, int* backups,
+                                                       bool* newerFormat) {
     if (backups) {
         *backups = 0;
+    }
+    if (newerFormat) {
+        *newerFormat = false;
     }
     QStringList found;
     const auto fail = [&found, problems](const QString& problem) -> std::optional<BookProject> {
@@ -1930,6 +1934,9 @@ std::optional<BookProject> ProjectManager::readArchive(const QString& archivePat
 
     std::optional<BookProject> project = BookProject::read(data, manifest, found);
     if (!project) {
+        if (newerFormat) {
+            *newerFormat = BookProject::isNewerFormat(data);
+        }
         return fail(QString());
     }
     if (backups) {

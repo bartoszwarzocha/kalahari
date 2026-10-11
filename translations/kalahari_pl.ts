@@ -2731,6 +2731,14 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <translation>Błąd otwierania</translation>
     </message>
     <message>
+        <source>Book of a Newer Version</source>
+        <translation>Książka z nowszej wersji</translation>
+    </message>
+    <message>
+        <source>This book was saved in a newer version of Kalahari. Update the program to open it.</source>
+        <translation>Tę książkę zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją otworzyć.</translation>
+    </message>
+    <message>
         <source>Failed to open book: %1</source>
         <translation>Nie udało się otworzyć książki: %1</translation>
     </message>
@@ -6111,6 +6119,10 @@ Harmonogram projektu:
     <message>
         <source>Place of the Book</source>
         <translation>Miejsce książki</translation>
+    </message>
+    <message>
+        <source>This book was saved in a newer version of Kalahari. Update the program to import it.</source>
+        <translation>Tę książkę zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją zaimportować.</translation>
     </message>
     <message>
         <source>Kalahari cannot read the book of this archive.</source>

@@ -755,8 +755,10 @@ void ImportArchiveDialog::setArchive(const QString& path)
     m_archiveProblems.clear();
     m_project.reset();
     m_backups = 0;
+    m_newerFormat = false;
     if (!path.isEmpty()) {
-        m_project = core::ProjectManager::readArchive(path, &m_archiveProblems, &m_backups);
+        m_project = core::ProjectManager::readArchive(path, &m_archiveProblems, &m_backups,
+                                                      &m_newerFormat);
     }
     showBook();
     updateFields();
@@ -922,8 +924,17 @@ void ImportArchiveDialog::browseFolder()
 
 void ImportArchiveDialog::updateFields()
 {
-    // The archive: why its book cannot be read
-    if (!m_archive.isEmpty() && !m_project) {
+    // The archive: why its book cannot be read. A book of a newer version is not damaged: the
+    // writer needs a newer program
+    if (!m_archive.isEmpty() && !m_project && m_newerFormat) {
+        //: Under an archive with a book of a newer version of the program. In Polish: Tę książkę
+        //: zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją
+        //: zaimportować.
+        showNote(m_archiveNote,
+                 tr("This book was saved in a newer version of Kalahari. Update the program to "
+                    "import it."),
+                 QStringLiteral("common.warning"));
+    } else if (!m_archive.isEmpty() && !m_project) {
         //: Under an archive whose book cannot be read; the problems follow it. In Polish:
         //: Kalahari nie może odczytać książki z tego archiwum.
         QString text = tr("Kalahari cannot read the book of this archive.");

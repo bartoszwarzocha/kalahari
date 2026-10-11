@@ -384,6 +384,7 @@ private:
     QString m_folder;
     std::optional<core::BookProject> m_project;
     QStringList m_archiveProblems;
+    bool m_newerFormat = false;  ///< The book of the archive is of a newer Kalahari
     QLineEdit* m_archiveField = nullptr;
     QLineEdit* m_folderField = nullptr;
     FieldNote m_archiveNote;

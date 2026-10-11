@@ -394,6 +394,15 @@ DocumentCoordinator::OpenBookChoice DocumentCoordinator::askAboutOpenBook(
 }
 
 void DocumentCoordinator::showOpenError(const QString& path, const QStringList& problems) {
+    // A book of a newer version is not damaged: the writer needs a newer program
+    if (core::BookProject::isNewerFormatFile(path)) {
+        dialogs::MessageDialog::warning(
+            m_mainWindow, tr("Book of a Newer Version"),
+            tr("This book was saved in a newer version of Kalahari. Update the program to "
+               "open it."),
+            QDir::toNativeSeparators(path));
+        return;
+    }
     dialogs::MessageDialog::error(
         m_mainWindow, tr("Open Error"),
         tr("Failed to open book: %1").arg(QDir::toNativeSeparators(path)), detailsOf(problems));

@@ -968,6 +968,21 @@ QJsonObject BookProject::toJson() const {
     return json;
 }
 
+bool BookProject::isNewerFormat(const QJsonObject& json) {
+    const QJsonValue format = json.value(QLatin1String("format"));
+    return isWholeNumber(format) && format.toDouble() > FORMAT;
+}
+
+bool BookProject::isNewerFormat(const QByteArray& data) {
+    const QJsonDocument document = QJsonDocument::fromJson(data);
+    return document.isObject() && isNewerFormat(document.object());
+}
+
+bool BookProject::isNewerFormatFile(const QString& path) {
+    QFile file(path);
+    return file.open(QIODevice::ReadOnly) && isNewerFormat(file.readAll());
+}
+
 std::optional<BookProject> BookProject::fromJson(const QJsonObject& json,
                                                  QStringList& problems) {
     const qsizetype problemsBefore = problems.size();

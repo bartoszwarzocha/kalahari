@@ -1872,9 +1872,21 @@ TEST_CASE("ProjectManager reads the book of an archive without unpacking it",
     SECTION("A book whose file is not JSON") {
         const QString broken = QDir(dir.path()).filePath("Broken.klh.zip");
         writeArchive(broken, {{"Broken.klh", "{ not JSON"}});
-        CHECK_FALSE(ProjectManager::readArchive(broken, &problems).has_value());
+        bool newer = true;
+        CHECK_FALSE(ProjectManager::readArchive(broken, &problems, nullptr, &newer).has_value());
         REQUIRE(problems.size() == 1);
         CHECK(problems.first().startsWith("Broken.klh: not valid JSON"));
+        CHECK_FALSE(newer);
+    }
+
+    SECTION("A book of a newer version of Kalahari") {
+        const QString future = QDir(dir.path()).filePath("Future.klh.zip");
+        writeArchive(future, {{"Future.klh", QByteArray("{ \"format\": ") +
+                                                 QByteArray::number(BookProject::FORMAT + 1) +
+                                                 QByteArray(", \"id\": \"p\" }")}});
+        bool newer = false;
+        CHECK_FALSE(ProjectManager::readArchive(future, &problems, nullptr, &newer).has_value());
+        CHECK(newer);
     }
 
     SECTION("A file that is not an archive") {

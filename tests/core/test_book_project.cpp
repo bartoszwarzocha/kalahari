@@ -1152,6 +1152,46 @@ TEST_CASE("Book project: a .klh file that cannot be read", "[core][bookproject]"
     CHECK(problemsOfFile(write("List.klh", "[]")) == "List.klh: must be a JSON object");
 }
 
+TEST_CASE("Book project: a file of a newer version of Kalahari is told apart from a damaged one",
+          "[core][bookproject]") {
+    const auto data = [](const char* text) { return QByteArray(text); };
+    const QByteArray newer = data(R"({ "format": )") +
+                             QByteArray::number(BookProject::FORMAT + 1) +
+                             data(R"(, "id": "p", "chapters": [] })");
+
+    // A newer format: a whole number above the format of this version
+    CHECK(BookProject::isNewerFormat(newer));
+    CHECK(BookProject::isNewerFormat(jsonOf(newer)));
+    CHECK(BookProject::isNewerFormat(data(R"({ "format": 1e20 })")));
+
+    // The format of this version, an earlier one, and files without a format of a book
+    const std::vector<QByteArray> others = {
+        data(R"({ "format": )") + QByteArray::number(BookProject::FORMAT) + data(" }"),
+        data(R"({ "format": 1 })"),
+        data(R"({ "kalahari": { "version": "1.0" }, "document": { "title": "Old" } })"),
+        data(R"({ "format": "3" })"),
+        data(R"({ "format": 3.5 })"),
+        data(R"({ "format": 3, )"),
+        data(R"([ { "format": 3 } ])"),
+        QByteArray(),
+    };
+    for (const QByteArray& other : others) {
+        INFO(other.toStdString());
+        CHECK_FALSE(BookProject::isNewerFormat(other));
+    }
+
+    // A file of a newer version, and a file that cannot be read
+    QTemporaryDir directory;
+    REQUIRE(directory.isValid());
+    const QString path = directory.filePath(QStringLiteral("Future.klh"));
+    QFile file(path);
+    REQUIRE(file.open(QIODevice::WriteOnly));
+    REQUIRE(file.write(newer) == newer.size());
+    file.close();
+    CHECK(BookProject::isNewerFormatFile(path));
+    CHECK_FALSE(BookProject::isNewerFormatFile(directory.filePath(QStringLiteral("Missing.klh"))));
+}
+
 TEST_CASE("Book project: saving to a folder that does not exist fails", "[core][bookproject]") {
     QTemporaryDir directory;
     REQUIRE(directory.isValid());

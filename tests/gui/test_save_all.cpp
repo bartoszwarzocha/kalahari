@@ -1,8 +1,9 @@
 /// @file test_save_all.cpp
 /// @brief "Save All" saves the book and every open file outside it; closing the book asks only
-/// about the changes of the book
+/// about the changes of the book; a book of a newer version of Kalahari has its own window
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/recent_books_manager.h>
 #include <kalahari/editor/statistics_collector.h>  // members of DocumentCoordinator
@@ -308,4 +309,58 @@ TEST_CASE("Opening another book asks only about the changes of the open book",
     CHECK(window.tabs->indexOf(notesTab) >= 0);
     CHECK(notesTab->property("dirty").toBool());
     CHECK(readText(notes) == "Notes");
+}
+
+TEST_CASE("Opening a book of a newer version of Kalahari says so, and the open book stays open",
+          "[gui][save]") {
+    const RecentBooks recent;
+    auto& pm = core::ProjectManager::getInstance();
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString future = QDir(files.path()).filePath(QStringLiteral("Future.klh"));
+    writeText(future, QByteArray("{ \"format\": ") +
+                          QByteArray::number(core::BookProject::FORMAT + 1) +
+                          QByteArray(", \"id\": \"p\" }"));
+    const QString broken = QDir(files.path()).filePath(QStringLiteral("Broken.klh"));
+    writeText(broken, "{ \"format\": 2, ");
+
+    const QString newerTitle = QStringLiteral("Book of a Newer Version ");
+    const QString newerText = QStringLiteral("This book was saved in a newer version of Kalahari. "
+                                             "Update the program to open it.");
+
+    SECTION("Without an open book") {
+        if (pm.isProjectOpen()) {
+            pm.closeProject(false);
+        }
+        Window window;
+        QStringList said;
+        CHECK(accepting([&] { window.documents.onOpenRecentFile(future); }, &said) == 1);
+        INFO(said.join(QLatin1Char('\n')).toStdString());
+        REQUIRE(said.size() == 1);
+        CHECK(said.first().startsWith(newerTitle));
+        CHECK(said.first().contains(newerText));
+        CHECK_FALSE(pm.isProjectOpen());
+
+        // A damaged book is an error of opening, not a book of a newer version
+        said.clear();
+        CHECK(accepting([&] { window.documents.onOpenRecentFile(broken); }, &said) == 1);
+        REQUIRE(said.size() == 1);
+        CHECK(said.first().startsWith(QStringLiteral("Open Error ")));
+        CHECK_FALSE(said.first().contains(newerText));
+    }
+
+    SECTION("With an open book") {
+        OpenNovel novel(QStringLiteral("Open Book"));
+        const QString open = pm.getManifestPath();
+        Window window;
+
+        // The window comes before the question about closing the open book, which stays open
+        QStringList said;
+        CHECK(accepting([&] { window.documents.onOpenRecentFile(future); }, &said) == 1);
+        INFO(said.join(QLatin1Char('\n')).toStdString());
+        REQUIRE(said.size() == 1);
+        CHECK(said.first().startsWith(newerTitle));
+        CHECK(said.first().contains(newerText));
+        CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(open));
+    }
 }

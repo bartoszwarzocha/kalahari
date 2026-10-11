@@ -589,6 +589,23 @@ TEST_CASE("Import Project Archive: the book of the archive before the import",
         CHECK(dialog.acceptButton()->isEnabled());
     }
 
+    SECTION("A book of a newer version of Kalahari") {
+        const QString future = QDir(dir.path()).filePath(QStringLiteral("Future.klh.zip"));
+        writeArchive(future, "Future.klh",
+                     QByteArray("{ \"format\": ") +
+                         QByteArray::number(core::BookProject::FORMAT + 1) +
+                         QByteArray(", \"id\": \"p\" }"));
+        dialog.setArchive(future);
+
+        // Not a damaged archive: the writer needs a newer program
+        CHECK(dialog.archiveNote() ==
+              QStringLiteral("This book was saved in a newer version of Kalahari. Update the "
+                             "program to import it."));
+        CHECK(dialog.bookText().isEmpty());
+        CHECK(dialog.folderNote().isEmpty());
+        CHECK_FALSE(dialog.acceptButton()->isEnabled());
+    }
+
     SECTION("A book without an author, with a Workshop, of a type that is not installed") {
         QStringList problems;
         std::optional<core::BookProject> project =

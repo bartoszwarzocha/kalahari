@@ -493,10 +493,13 @@ public:
     /// @param problems What went wrong, one problem per line; may be nullptr
     /// @param backups Gets the number of the backups of the database in the archive; may be
     /// nullptr
+    /// @param newerFormat Gets whether the book of the archive is of a newer format, saved by a
+    /// newer version of Kalahari; may be nullptr
     /// @return The project, or nullopt when the archive or its .klh file cannot be read
     static std::optional<BookProject> readArchive(const QString& archivePath,
                                                   QStringList* problems = nullptr,
-                                                  int* backups = nullptr);
+                                                  int* backups = nullptr,
+                                                  bool* newerFormat = nullptr);
 
     /// @brief Unpack a .klh.zip archive to a new folder, without opening the project in it
     ///

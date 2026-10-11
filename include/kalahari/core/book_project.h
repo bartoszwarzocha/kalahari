@@ -320,6 +320,18 @@ struct BookProject {
     /// @return The project, or nullopt when it has problems
     static std::optional<BookProject> fromJson(const QJsonObject& json, QStringList& problems);
 
+    /// @brief Whether @p json is a project file of a format newer than FORMAT: saved by a newer
+    /// version of Kalahari, which this version cannot read
+    static bool isNewerFormat(const QJsonObject& json);
+
+    /// @brief Whether @p data, the contents of a .klh file, is a project file of a newer format;
+    /// false when it is not an object of JSON
+    static bool isNewerFormat(const QByteArray& data);
+
+    /// @brief Whether the .klh file @p path is a project file of a newer format; false when it
+    /// cannot be read as an object of JSON
+    static bool isNewerFormatFile(const QString& path);
+
     /// @brief Save the project to the .klh file @p path, replacing it in one step
     /// @return false, with the reason in the log, when the file cannot be written
     bool save(const QString& path) const;
