@@ -21,6 +21,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QChildEvent>
 #include <QComboBox>
 #include <QDialog>
 #include <QDir>
@@ -44,6 +45,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 
 using namespace kalahari;
 
@@ -300,6 +302,43 @@ struct OpenNovel {
     }
 };
 
+/// @brief Reads each menu of @p panel with @p read as the menu is about to show, and closes it
+///
+/// The menu runs as for the writer: with its actions, the item they act on and the action
+/// chosen while it is open. It gets no window on the screen, where the platform decides about
+/// a popup: on macOS and Windows the popup of a test window was sometimes closed before the
+/// test could read it.
+class MenuReader : public QObject {
+public:
+    MenuReader(QWidget* panel, std::function<void(QMenu&)> read)
+        : m_panel(panel), m_read(std::move(read)) {
+        m_panel->installEventFilter(this);
+    }
+    ~MenuReader() override { m_panel->removeEventFilter(this); }
+    MenuReader(const MenuReader&) = delete;
+    MenuReader& operator=(const MenuReader&) = delete;
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        // The panel's menu is polished before it shows, with all its actions
+        if (watched == m_panel && event->type() == QEvent::ChildPolished) {
+            if (auto* menu = qobject_cast<QMenu*>(static_cast<QChildEvent*>(event)->child())) {
+                connect(menu, &QMenu::aboutToShow, this, [this, menu]() {
+                    menu->setAttribute(Qt::WA_DontShowOnScreen);
+                    m_read(*menu);
+                    // Closed once it is open, the menu ends its event loop
+                    QTimer::singleShot(0, menu, [menu]() { menu->close(); });
+                });
+            }
+        }
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    QWidget* m_panel;
+    std::function<void(QMenu&)> m_read;
+};
+
 /// @brief The Navigator with its coordinator
 struct Navigator {
     QWidget window;
@@ -381,19 +420,13 @@ struct Navigator {
         REQUIRE(tree != nullptr);
         REQUIRE(found != nullptr);
         tree->scrollToItem(found);
+        const QPoint at = tree->visualItemRect(found).center();
+        REQUIRE(tree->itemAt(at) == found);
         bool enabled = false;
         bool shown = false;
-        QTimer timer;
-        timer.setInterval(10);
-        QObject::connect(&timer, &QTimer::timeout,
-                         [&timer, &enabled, &shown, &text, choose, toolTip]() {
-            auto* menu = qobject_cast<QMenu*>(QApplication::activePopupWidget());
-            if (!menu) {
-                return;
-            }
-            timer.stop();
+        MenuReader reader(panel, [&enabled, &shown, &text, choose, toolTip](QMenu& menu) {
             shown = true;
-            for (QAction* action : menu->actions()) {
+            for (QAction* action : menu.actions()) {
                 if (toolTip && action->text() == text) {
                     *toolTip = action->toolTip();
                 }
@@ -404,10 +437,8 @@ struct Navigator {
                     }
                 }
             }
-            menu->close();
         });
-        timer.start();
-        emit tree->customContextMenuRequested(tree->visualItemRect(found).center());
+        emit tree->customContextMenuRequested(at);
         REQUIRE(shown);
         return enabled;
     }
@@ -1473,6 +1504,7 @@ TEST_CASE("Properties panel: the sections of the book and their names, saved at 
                      &gui::NavigatorCoordinator::refreshNavigator);
     QObject::connect(navigator.panel, &gui::NavigatorPanel::requestShowSections, &coordinator,
                      &gui::NavigatorCoordinator::onRequestShowSections);
+    navigator.panel->resize(400, 600);
     navigator.window.resize(400, 600);
     navigator.window.show();
     properties->showProjectProperties();

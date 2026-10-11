@@ -1131,13 +1131,13 @@ void showStatistics(const core::TextStatistics& statistics, int count, QLabel* e
     int draftCount = 0;
     int revisionCount = 0;
     int finalCount = 0;
-    for (const auto& [status, count] : statistics.statuses) {
+    for (const auto& [status, number] : statistics.statuses) {
         if (status == QLatin1String("revision")) {
-            revisionCount += count;
+            revisionCount += number;
         } else if (status == QLatin1String("final")) {
-            finalCount += count;
+            finalCount += number;
         } else {
-            draftCount += count;
+            draftCount += number;
         }
     }
 
