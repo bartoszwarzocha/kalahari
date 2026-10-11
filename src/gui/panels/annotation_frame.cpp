@@ -123,18 +123,19 @@ AnnotationFrame::AnnotationFrame(QWidget* editor)
     m_authorLabel->hide();
     header->addWidget(m_authorLabel, 1);
 
-    // The X closes the frame for the mouse, the text kept; the keys have Esc and Ctrl+Enter
+    // The X drops the text for the mouse, as Esc does, like the X of a window; the keys have
+    // Esc and Ctrl+Enter
     m_closeButton = new QToolButton(this);
     m_closeButton->setObjectName(QStringLiteral("annotationFrameClose"));
     m_closeButton->setText(QString(QChar(0x00D7)));  // the multiplication sign: an X
     QFont closeFont = font();
     closeFont.setPointSizeF(closeFont.pointSizeF() * 1.2);
     m_closeButton->setFont(closeFont);
-    m_closeButton->setToolTip(tr("Close (the text is kept)"));
-    m_closeButton->setAccessibleName(tr("Close"));
+    m_closeButton->setToolTip(tr("Cancel (Esc)"));
+    m_closeButton->setAccessibleName(tr("Cancel"));
     m_closeButton->setFocusPolicy(Qt::NoFocus);
     m_closeButton->setAutoRaise(true);
-    connect(m_closeButton, &QToolButton::clicked, this, &AnnotationFrame::requestClose);
+    connect(m_closeButton, &QToolButton::clicked, this, &AnnotationFrame::requestCancel);
     header->addWidget(m_closeButton);
     layout->addLayout(header);
 

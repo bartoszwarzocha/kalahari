@@ -684,8 +684,8 @@ TEST_CASE("Annotations frame: the keys stay in it; saving, closing and quitting 
     CHECK(counter.keys == 0);
 }
 
-TEST_CASE("Annotations frame: its X and a click anywhere else in the program close it, the "
-          "text kept",
+TEST_CASE("Annotations frame: a click anywhere else in the program closes it, the text kept; "
+          "its X drops the text",
           "[gui][annotations]") {
     QWidget window;
     window.resize(1000, 600);
@@ -710,13 +710,19 @@ TEST_CASE("Annotations frame: its X and a click anywhere else in the program clo
     QObject::connect(frame, &AnnotationFrame::saveRequested, [&saved]() { ++saved; });
     QObject::connect(frame, &AnnotationFrame::cancelRequested, [&cancelled]() { ++cancelled; });
 
-    SECTION("its X is for the mouse: the keys stay in the text") {
+    SECTION("its X drops the text, as Esc does; it is for the mouse: the keys stay in the text") {
         auto* close = frame->findChild<QToolButton*>(QStringLiteral("annotationFrameClose"));
         REQUIRE(close != nullptr);
         CHECK(close->focusPolicy() == Qt::NoFocus);
         CHECK_FALSE(close->toolTip().isEmpty());
         close->click();
-        CHECK(closed == 1);
+        CHECK(cancelled == 1);
+        CHECK(closed == 0);
+        CHECK(saved == 0);
+
+        // Nothing is asked after it: a click beside the frame keeps nothing
+        click(editor, QPointF(20, 20));
+        CHECK(closed == 0);
     }
 
     SECTION("a click in the editor beside it goes on to the editor") {
@@ -988,7 +994,8 @@ TEST_CASE("Annotations: one frame at a time; the text of the open one is kept",
     CHECK(desk.coordinator->frame()->text().isEmpty());
 }
 
-TEST_CASE("Annotations: the X of the frame and a click anywhere else keep what was written",
+TEST_CASE("Annotations: a click anywhere else keeps what was written; the X of the frame "
+          "drops it",
           "[gui][annotations]") {
     Desk desk(kmlWith(record(QStringLiteral("c1"), QStringLiteral("comment"), QStringLiteral("Old")),
                       {QStringLiteral("One two <anchor ref=\"c1\">three</anchor>")}));
@@ -1029,7 +1036,7 @@ TEST_CASE("Annotations: the X of the frame and a click anywhere else keep what w
         CHECK(desk.annotation(QStringLiteral("c1")).text == QStringLiteral("Old"));
     }
 
-    SECTION("its X: a new annotation is added with its text") {
+    SECTION("its X: a new annotation is not added, as with Esc") {
         desk.editor().setSelection({{0, 0}, {0, 3}});
         REQUIRE(desk.coordinator->addAnnotation(AnnotationKind::Todo));
         desk.frameText()->setPlainText(QStringLiteral("Check"));
@@ -1038,11 +1045,25 @@ TEST_CASE("Annotations: the X of the frame and a click anywhere else keep what w
         REQUIRE(close != nullptr);
         close->click();
         CHECK_FALSE(desk.coordinator->isWriting());
-        REQUIRE(desk.editor().annotations().size() == 2);
-        const editor::AnnotationPlace added = desk.editor().annotations().front();
-        CHECK(added.start == 0);
-        CHECK(added.annotation.kind == AnnotationKind::Todo);
-        CHECK(added.annotation.text == QStringLiteral("Check"));
+        CHECK(desk.editor().annotations().size() == 1);
+        CHECK_FALSE(desk.editor().canUndo());
+    }
+
+    SECTION("its X: an annotation edited again keeps its old text; the keys go back to the "
+            "text") {
+        desk.tabs.activateWindow();
+        REQUIRE(test::waitUntil([&desk] { return QApplication::activeWindow() == &desk.tabs; }));
+        REQUIRE(desk.coordinator->editAnnotation(QString(), QStringLiteral("c1"), false));
+        desk.frameText()->setPlainText(QStringLiteral("Newer"));
+        desk.frameText()->setFocus(Qt::OtherFocusReason);
+        auto* close = desk.coordinator->frame()->findChild<QToolButton*>(
+            QStringLiteral("annotationFrameClose"));
+        REQUIRE(close != nullptr);
+        close->click();
+        CHECK_FALSE(desk.coordinator->isWriting());
+        CHECK(desk.annotation(QStringLiteral("c1")).text == QStringLiteral("Old"));
+        CHECK_FALSE(desk.editor().canUndo());
+        CHECK(QApplication::focusWidget() == &desk.editor());
     }
 
     SECTION("a new one left empty: nothing is added") {

@@ -1709,12 +1709,12 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Zapisz (%1)</translation>
     </message>
     <message>
-        <source>Close (the text is kept)</source>
-        <translation>Zamknij (tekst zostanie zapisany)</translation>
+        <source>Cancel (Esc)</source>
+        <translation>Anuluj (Esc)</translation>
     </message>
     <message>
-        <source>Close</source>
-        <translation>Zamknij</translation>
+        <source>Cancel</source>
+        <translation>Anuluj</translation>
     </message>
 </context>
 <context>

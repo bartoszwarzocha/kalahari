@@ -22,8 +22,8 @@ namespace kalahari::gui {
 ///
 /// Looks like a card of the Annotations panel and lies over the editor, under the place
 /// of the annotation (above it when there is no room below), within the text column. Enter
-/// starts a new line; Ctrl+Enter or Save keeps the text, Esc drops it - the frame says so.
-/// Going anywhere else in the program closes it, the text kept: its X in the corner, a
+/// starts a new line; Ctrl+Enter or Save keeps the text, Esc or its X in the corner drops
+/// it - the frame says so. Going anywhere else in the program closes it, the text kept: a
 /// click outside it, or the keys going to another place of the program. It stays open
 /// while another application is in front, for a menu or a list over it (its own context
 /// menu) and for the editor's scroll bars (it goes along with its place; the keys stay in
@@ -92,11 +92,11 @@ signals:
     /// @brief Ctrl+Enter or Save: keep the text
     void saveRequested();
 
-    /// @brief Esc: drop the text
+    /// @brief Esc or its X: drop the text
     void cancelRequested();
 
-    /// @brief Its X, or going anywhere else in the program: close it, the text kept. Asked
-    /// once, and never after Esc
+    /// @brief Going anywhere else in the program: close it, the text kept. Asked once, and
+    /// never after Esc or its X
     void closeRequested();
 
 protected:
@@ -113,7 +113,7 @@ private:
     /// @brief Ctrl+Enter: keep the text, when there is any
     void requestSave();
 
-    /// @brief Esc: drop the text
+    /// @brief Esc or its X: drop the text
     void requestCancel();
 
     /// @brief Close the frame, the text kept (once)
