@@ -1,5 +1,6 @@
 /// @file spelling_coordinator.cpp
-/// @brief Spelling as you type: the dictionary of the editors, its language and its command
+/// @brief Spelling as you type: the dictionaries of the editors, their languages and the
+///        commands
 
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/core/document.h"
@@ -17,6 +18,8 @@
 #include <QMetaObject>
 #include <QStatusBar>
 #include <QTabWidget>
+#include <QTimer>
+#include <QVariant>
 
 #include <string>
 
@@ -47,6 +50,24 @@ constexpr int DICTIONARY_MESSAGE_MS = 5000;
 ///        (ms), as the message that there is no to-do
 constexpr int NEXT_MESSAGE_MS = 3000;
 
+/// @brief The language chosen in the settings (empty: the book's)
+QString chosenLanguage() {
+    return QString::fromStdString(core::SettingsManager::getInstance().get<std::string>(
+                                      LANGUAGE_KEY, std::string()))
+        .trimmed();
+}
+
+/// @brief The language of the program
+QString programLanguage() {
+    return QString::fromStdString(core::SettingsManager::getInstance().getLanguage());
+}
+
+/// @brief Whether an editor shows a chapter of the book, which NavigatorCoordinator tags
+///        with its element, not a document outside the book
+bool isChapter(const EditorPanel& panel) {
+    return !panel.property("elementId").toString().isEmpty();
+}
+
 }  // namespace
 
 SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* statusBar,
@@ -55,16 +76,27 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
     , m_centralTabs(centralTabs)
     , m_statusBar(statusBar)
     , m_service(new editor::SpellCheckService(this))
+    , m_otherService(new editor::SpellCheckService(this))
+    , m_editorsTimer(new QTimer(this))
 {
+    // The writer's own words are the same in every language
     m_service->setUserDictionaryFile(userDictionaryFile());
-    connect(m_service, &editor::SpellCheckService::dictionaryError, this,
-            [this](const QString& error) { showMessage(error, DICTIONARY_MESSAGE_MS); });
+    m_otherService->shareOwnWordsWith(*m_service);
+    for (editor::SpellCheckService* service : {m_service, m_otherService}) {
+        connect(service, &editor::SpellCheckService::dictionaryError, this,
+                [this](const QString& error) { showMessage(error, DICTIONARY_MESSAGE_MS); });
+    }
 
-    // The editor of a document checks with the dictionary from the time its tab is shown;
-    // Next Misspelling is for the document in front
+    // The editor of a document checks with its dictionary from the time its tab is shown;
+    // Next Misspelling is for the document in front. A chapter is told from a document
+    // outside the book only after its tab is shown (NavigatorCoordinator tags it then), so
+    // the editors get their dictionaries when the event loop runs next.
+    m_editorsTimer->setSingleShot(true);
+    m_editorsTimer->setInterval(0);
+    connect(m_editorsTimer, &QTimer::timeout, this, &SpellingCoordinator::updateEditors);
     if (m_centralTabs != nullptr) {
         connect(m_centralTabs, &QTabWidget::currentChanged, this, [this]() {
-            attachEditors();
+            m_editorsTimer->start();
             CommandRegistry::getInstance().updateActionState(NEXT_COMMAND_ID);
         });
     }
@@ -86,7 +118,6 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
         });
 
     updateDictionary();
-    attachEditors();
 }
 
 SpellingCoordinator::~SpellingCoordinator() {
@@ -124,7 +155,11 @@ bool SpellingCoordinator::goToNextMisspelling() {
     if (bookEditor == nullptr) {
         return false;
     }
-    if (!m_service->isActive()) {
+    if (m_editorsTimer->isActive()) {
+        updateEditors();  // the document shown just now gets its dictionary first
+    }
+    const editor::SpellCheckService* service = bookEditor->spellCheckService();
+    if (service == nullptr || !service->isActive()) {
         showMessage(tr("The spelling is not checked"), NEXT_MESSAGE_MS);
         return false;
     }
@@ -140,9 +175,7 @@ bool SpellingCoordinator::goToNextMisspelling() {
 }
 
 QString SpellingCoordinator::wantedLanguage() {
-    auto& settings = core::SettingsManager::getInstance();
-    QString language =
-        QString::fromStdString(settings.get<std::string>(LANGUAGE_KEY, std::string())).trimmed();
+    QString language = chosenLanguage();
     if (!language.isEmpty()) {
         return language;
     }
@@ -155,7 +188,12 @@ QString SpellingCoordinator::wantedLanguage() {
             return bookLanguage;
         }
     }
-    return QString::fromStdString(settings.getLanguage());
+    return programLanguage();
+}
+
+QString SpellingCoordinator::defaultLanguage() {
+    QString language = chosenLanguage();
+    return language.isEmpty() ? programLanguage() : language;
 }
 
 QString SpellingCoordinator::userDictionaryFile() {
@@ -165,45 +203,75 @@ QString SpellingCoordinator::userDictionaryFile() {
 }
 
 void SpellingCoordinator::updateDictionary() {
-    auto& logger = core::Logger::getInstance();
     const bool enabled = core::SettingsManager::getInstance().get<bool>(ENABLED_KEY, true);
     m_service->setEnabled(enabled);
-    if (!enabled) {
-        // Its dictionary is loaded when the checking is turned on; the writer is told again
-        // of a missing one then
+    m_otherService->setEnabled(enabled);
+    if (enabled) {
+        const QString language = wantedLanguage();
+        const QString dictionary = editor::SpellCheckService::dictionaryFor(language);
+        useDictionary(*m_service, language, dictionary, m_missingLanguage);
+
+        // The documents outside the book: a dictionary of their own when the book's is not
+        // the one of their language
+        const QString otherLanguage = defaultLanguage();
+        const QString otherDictionary = editor::SpellCheckService::dictionaryFor(otherLanguage);
+        const bool ownDictionary = otherDictionary != dictionary;
+        m_otherLanguage = ownDictionary ? otherLanguage : QString();
+        m_otherDictionary = ownDictionary ? otherDictionary : QString();
+    } else {
+        // The dictionaries are loaded when the checking is turned on; the writer is told
+        // again of a missing one then
         m_missingLanguage.clear();
-        return;
+        m_otherMissingLanguage.clear();
+    }
+    updateEditors();
+}
+
+void SpellingCoordinator::updateEditors() {
+    m_editorsTimer->stop();
+    bool otherDocuments = false;
+    if (m_centralTabs != nullptr) {
+        for (int index = 0; index < m_centralTabs->count(); ++index) {
+            auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(index));
+            if (panel == nullptr || panel->getBookEditor() == nullptr) {
+                continue;
+            }
+            const bool chapter = isChapter(*panel);
+            otherDocuments = otherDocuments || !chapter;
+            panel->getBookEditor()->setSpellCheckService(
+                chapter || m_otherLanguage.isEmpty() ? m_service : m_otherService);
+        }
     }
 
-    const QString language = wantedLanguage();
-    const QString dictionary = editor::SpellCheckService::dictionaryFor(language);
+    if (m_otherLanguage.isEmpty()) {
+        // The book's dictionary checks every document: the other one does not take memory
+        m_otherService->releaseDictionary();
+        m_otherMissingLanguage.clear();
+    } else if (otherDocuments && m_otherService->isEnabled()) {
+        // Loaded for the first document that needs it, and kept for the next ones
+        useDictionary(*m_otherService, m_otherLanguage, m_otherDictionary,
+                      m_otherMissingLanguage);
+    }
+}
+
+void SpellingCoordinator::useDictionary(editor::SpellCheckService& service,
+                                        const QString& language, const QString& dictionary,
+                                        QString& missingLanguage) {
     if (!dictionary.isEmpty()) {
-        m_missingLanguage.clear();
-        m_service->loadDictionaryInBackground(dictionary);
+        missingLanguage.clear();
+        service.loadDictionaryInBackground(dictionary);
         return;
     }
 
-    m_service->unloadDictionary();
-    if (language != m_missingLanguage) {
-        m_missingLanguage = language;
-        logger.info("SpellingCoordinator: No dictionary for the language '{}'",
-                    language.toStdString());
+    service.unloadDictionary();
+    if (language != missingLanguage) {
+        missingLanguage = language;
+        core::Logger::getInstance().info("SpellingCoordinator: No dictionary for the language '{}'",
+                                         language.toStdString());
         //: %1 is the name of the language as in a list of languages (in Polish: francuski)
         showMessage(tr("No spelling dictionary for %1: the spelling is not checked")
                         .arg(utils::languageName(language)),
                     DICTIONARY_MESSAGE_MS);
-    }
-}
-
-void SpellingCoordinator::attachEditors() {
-    if (m_centralTabs == nullptr) {
-        return;
-    }
-    for (int index = 0; index < m_centralTabs->count(); ++index) {
-        auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(index));
-        if (panel != nullptr && panel->getBookEditor() != nullptr) {
-            panel->getBookEditor()->setSpellCheckService(m_service);
-        }
     }
 }
 

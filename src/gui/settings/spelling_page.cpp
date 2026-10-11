@@ -125,7 +125,10 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
                           stored);
     }
     QLabel* languageLabel = addField(checking, tr("Language:"), language, LANGUAGE_KEY);
-    addNote(checking, tr("A misspelled word is underlined with a wavy line; right-click it for "
+    addNote(checking, tr("With Language of the book the chapters are checked in the language "
+                         "of the book, set in its properties, and other documents, such as a "
+                         "file opened from the disk, in the language of the program. A "
+                         "misspelled word is underlined with a wavy line; right-click it for "
                          "suggestions. Tools > Check Spelling as You Type (Shift+F7) turns the "
                          "checking on and off."));
     const auto syncLanguage = [enabled, language, languageLabel]() {

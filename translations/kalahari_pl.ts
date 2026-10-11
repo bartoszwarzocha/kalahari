@@ -3369,8 +3369,8 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
         <translation>Język:</translation>
     </message>
     <message>
-        <source>A misspelled word is underlined with a wavy line; right-click it for suggestions. Tools &gt; Check Spelling as You Type (Shift+F7) turns the checking on and off.</source>
-        <translation>Błędnie zapisane słowo jest podkreślone falistą linią; po kliknięciu go prawym przyciskiem myszy pojawiają się podpowiedzi. Sprawdzanie włącza się i wyłącza poleceniem Narzędzia &gt; Sprawdzaj pisownię podczas pisania (Shift+F7).</translation>
+        <source>With Language of the book the chapters are checked in the language of the book, set in its properties, and other documents, such as a file opened from the disk, in the language of the program. A misspelled word is underlined with a wavy line; right-click it for suggestions. Tools &gt; Check Spelling as You Type (Shift+F7) turns the checking on and off.</source>
+        <translation>Przy ustawieniu Język książki rozdziały są sprawdzane w języku książki, ustawionym w jej właściwościach, a inne dokumenty, np. plik otwarty z dysku, w języku programu. Błędnie zapisane słowo jest podkreślone falistą linią; po kliknięciu go prawym przyciskiem myszy pojawiają się podpowiedzi. Sprawdzanie włącza się i wyłącza poleceniem Narzędzia &gt; Sprawdzaj pisownię podczas pisania (Shift+F7).</translation>
     </message>
     <message>
         <source>Your Words</source>

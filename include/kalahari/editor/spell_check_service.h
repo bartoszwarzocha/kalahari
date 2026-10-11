@@ -5,15 +5,16 @@
 
 #include <QList>
 #include <QObject>
-#include <QSet>
 #include <QString>
 #include <QStringList>
 
 #include <memory>
 #include <string>
+#include <vector>
 
 class Hunspell;  // hunspell/hunspell.hxx
 class QThread;
+class QTimer;
 
 namespace kalahari::editor {
 
@@ -29,10 +30,12 @@ struct SpellErrorInfo {
     bool operator==(const SpellErrorInfo& other) const = default;
 };
 
-/// @brief The spelling dictionary every editor checks its text with
+/// @brief The spelling dictionary the editors check their text with
 ///
-/// One for the whole application: each editor checks its own text with it, a paragraph at
-/// a time (BookEditor::setSpellCheckService()), and checks it again on wordsChanged().
+/// Each editor checks its own text with it, a paragraph at a time
+/// (BookEditor::setSpellCheckService()), and checks it again on wordsChanged(). The
+/// application has one for the chapters of the book and one for the documents outside it
+/// written in another language (SpellingCoordinator).
 ///
 /// A dictionary is a Hunspell one: an .aff and a .dic file, shipped in the resources
 /// (pl_PL, en_US) or installed on the computer. Loading a large one takes a while, so the
@@ -45,9 +48,10 @@ struct SpellErrorInfo {
 /// whole is reported by its wrong parts.
 ///
 /// The writer's own words are right too: the user dictionary (kept in a file, see
-/// setUserDictionaryFile()) and the words ignored until the application closes. A word in
-/// lower case there is right in any case (kalahari, Kalahari), one with capitals only with
-/// them, and either one also with an ending after an apostrophe (Kalahari's).
+/// setUserDictionaryFile()) and the words ignored until the application closes, the same
+/// for the services of every language (shareOwnWordsWith()). A word in lower case there is
+/// right in any case (kalahari, Kalahari), one with capitals only with them, and either one
+/// also with an ending after an apostrophe (Kalahari's).
 class SpellCheckService : public QObject {
     Q_OBJECT
 
@@ -95,8 +99,14 @@ public:
 
     /// @brief Stop checking with the dictionary: nothing is reported until one is loaded
     ///
-    /// For a language without a dictionary. A dictionary being loaded is dropped.
+    /// For a language without a dictionary. A dictionary being loaded is dropped. The
+    /// dictionary stays in memory, so it checks again at once when its language comes back.
     void unloadDictionary();
+
+    /// @brief Stop checking with the dictionary and free the memory it takes
+    ///
+    /// For a dictionary no document needs any more. A dictionary being loaded is dropped.
+    void releaseDictionary();
 
     /// @brief The dictionary loaded (pl_PL, en_US), or empty without one
     QString currentDictionary() const;
@@ -137,6 +147,13 @@ public:
     // =========================================================================
     // The writer's own words
     // =========================================================================
+
+    /// @brief Check with the writer's own words of another service from now on
+    ///
+    /// For the services of documents in different languages: the user dictionary and the
+    /// words ignored are the same for all of them, and a word added or ignored in one is
+    /// right in every one. The words this service had before are dropped.
+    void shareOwnWordsWith(SpellCheckService& other);
 
     /// @brief The file the user dictionary is kept in, and read from now
     /// @param path One word per line, UTF-8; empty: the words are kept only while the
@@ -183,6 +200,8 @@ private slots:
     void onLoaderFinished();
 
 private:
+    struct OwnWords;  ///< The writer's own words, shared by services (shareOwnWordsWith())
+
     /// @brief Load the dictionary wanted in the background, unless it is loaded or loading
     void startLoader();
 
@@ -191,6 +210,17 @@ private:
 
     /// @brief Stop waiting for the dictionary being loaded, dropping it
     void dropLoader();
+
+    /// @brief Destroy a dictionary not used any more, now or once no dictionary is being
+    ///        made (see the members)
+    void retire(std::unique_ptr<Hunspell> hunspell);
+
+    /// @brief Destroy the dictionaries not used any more, unless a dictionary is being made:
+    ///        then a little later, so the window does not wait for it
+    void destroyRetired();
+
+    /// @brief Every service checking with the writer's own words checks its text again
+    void emitOwnWordsChanged();
 
     /// @brief Whether a word (or a part of a hyphenated one) is right
     bool isWordCorrect(const QString& word) const;
@@ -207,9 +237,10 @@ private:
     /// @brief Save the user dictionary to its file
     void saveUserDictionary() const;
 
-    // Hunspell keeps tables shared by its dictionaries, so they are made and destroyed one at
-    // a time: a dictionary is made on the loader's thread only while no other one is made or
-    // destroyed, and the one checking stays until the loader is done.
+    // Hunspell keeps tables shared by all its dictionaries, so in the whole application they
+    // are made and destroyed one at a time, under one lock: a dictionary is made on the
+    // loader's thread, and one not used any more is destroyed on the window's thread while
+    // no other one is being made (retire()).
     std::unique_ptr<Hunspell> m_hunspell;  ///< The last dictionary loaded
     QString m_dictionary;                  ///< Its name
     bool m_inUse = false;                  ///< The words are checked with it
@@ -221,9 +252,10 @@ private:
     QString m_loadingDictionary;         ///< The dictionary it loads
     std::unique_ptr<Hunspell> m_loaded;  ///< What it loaded (written on its thread)
 
-    QString m_userDictionaryFile;  ///< Where the user dictionary is kept (empty: nowhere)
-    QSet<QString> m_userWords;     ///< The user dictionary
-    QSet<QString> m_ignoredWords;  ///< The words ignored until the application closes
+    std::vector<std::unique_ptr<Hunspell>> m_retired;  ///< Not used any more, to destroy
+    QTimer* m_retireTimer;                             ///< Destroys them a little later
+
+    std::shared_ptr<OwnWords> m_ownWords;  ///< The writer's own words
 };
 
 }  // namespace kalahari::editor

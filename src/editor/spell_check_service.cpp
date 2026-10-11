@@ -12,12 +12,15 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QSaveFile>
+#include <QSet>
 #include <QStandardPaths>
 #include <QStringView>
 #include <QTextStream>
 #include <QThread>
+#include <QTimer>
 
 #include <algorithm>
+#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -92,6 +95,24 @@ QByteArray hunspellPath(const QString& path) {
 #else
     return QFile::encodeName(path);
 #endif
+}
+
+// =============================================================================
+// Dictionaries in memory
+// =============================================================================
+
+/// @brief How long a dictionary not used any more waits before it is destroyed again while
+///        another one is being made (ms)
+constexpr int RETIRE_RETRY_MS = 50;
+
+/// @brief Held while a dictionary is made or destroyed
+///
+/// Hunspell keeps tables shared by all its dictionaries, with a count of the dictionaries
+/// using them that is not safe across threads: the dictionaries of all the services are
+/// made and destroyed one at a time.
+std::mutex& hunspellMutex() {
+    static std::mutex mutex;
+    return mutex;
 }
 
 // =============================================================================
@@ -342,18 +363,38 @@ QStringList inTurns(const QStringList& first, const QStringList& second) {
 
 }  // anonymous namespace
 
+/// @brief The writer's own words, shared by the services of documents in different languages
+struct SpellCheckService::OwnWords {
+    QString file;                        ///< Where the user dictionary is kept (empty: nowhere)
+    QSet<QString> userWords;             ///< The user dictionary
+    QSet<QString> ignoredWords;          ///< The words ignored until the application closes
+    QList<SpellCheckService*> services;  ///< The services checking with them
+};
+
 // =============================================================================
 // Construction
 // =============================================================================
 
 SpellCheckService::SpellCheckService(QObject* parent)
     : QObject(parent)
+    , m_retireTimer(new QTimer(this))
+    , m_ownWords(std::make_shared<OwnWords>())
 {
+    m_retireTimer->setSingleShot(true);
+    m_retireTimer->setInterval(RETIRE_RETRY_MS);
+    connect(m_retireTimer, &QTimer::timeout, this, &SpellCheckService::destroyRetired);
+    m_ownWords->services.append(this);
 }
 
 SpellCheckService::~SpellCheckService()
 {
+    m_ownWords->services.removeOne(this);
     dropLoader();
+
+    // Its dictionaries go now, after the one being made for another service
+    const std::lock_guard<std::mutex> lock(hunspellMutex());
+    m_retired.clear();
+    m_hunspell.reset();
 }
 
 // =============================================================================
@@ -425,12 +466,17 @@ bool SpellCheckService::loadDictionary(const QString& dictionary)
 
     dropLoader();
     m_wantedDictionary = dictionary;
-    install(std::make_unique<Hunspell>(
-                hunspellPath(folder + QLatin1Char('/') + dictionary + QStringLiteral(".aff"))
-                    .constData(),
-                hunspellPath(folder + QLatin1Char('/') + dictionary + QStringLiteral(".dic"))
-                    .constData()),
-            dictionary);
+    std::unique_ptr<Hunspell> hunspell;
+    {
+        // After the one being made for another service, if any
+        const std::lock_guard<std::mutex> lock(hunspellMutex());
+        hunspell = std::make_unique<Hunspell>(
+            hunspellPath(folder + QLatin1Char('/') + dictionary + QStringLiteral(".aff"))
+                .constData(),
+            hunspellPath(folder + QLatin1Char('/') + dictionary + QStringLiteral(".dic"))
+                .constData());
+    }
+    install(std::move(hunspell), dictionary);
     return true;
 }
 
@@ -447,13 +493,20 @@ bool SpellCheckService::isLoading() const
 
 void SpellCheckService::unloadDictionary()
 {
-    // The dictionary stays made until another one is (see the members), unused
+    // The dictionary stays made until another one is, unused
     m_wantedDictionary.clear();
     if (m_inUse) {
         m_inUse = false;
         core::Logger::getInstance().info("SpellCheckService: No dictionary checks the words");
         emit wordsChanged();
     }
+}
+
+void SpellCheckService::releaseDictionary()
+{
+    unloadDictionary();
+    m_dictionary.clear();
+    retire(std::move(m_hunspell));
 }
 
 QString SpellCheckService::currentDictionary() const
@@ -494,6 +547,7 @@ void SpellCheckService::startLoader()
         hunspellPath(folder + QLatin1Char('/') + dictionary + QStringLiteral(".dic"));
     m_loadingDictionary = dictionary;
     m_loader = QThread::create([this, affixPath, wordsPath]() {
+        const std::lock_guard<std::mutex> lock(hunspellMutex());
         m_loaded = std::make_unique<Hunspell>(affixPath.constData(), wordsPath.constData());
     });
     connect(m_loader, &QThread::finished, this, &SpellCheckService::onLoaderFinished);
@@ -515,8 +569,8 @@ void SpellCheckService::onLoaderFinished()
     if (dictionary == m_wantedDictionary) {
         install(std::move(loaded), dictionary);
     } else {
-        // Another dictionary is wanted now: this one goes before it is loaded
-        loaded.reset();
+        // Another dictionary is wanted now, or none: this one goes
+        retire(std::move(loaded));
         startLoader();
     }
 }
@@ -529,8 +583,29 @@ void SpellCheckService::dropLoader()
     m_loader->wait();
     delete m_loader;
     m_loader = nullptr;
-    m_loaded.reset();
     m_loadingDictionary.clear();
+    retire(std::move(m_loaded));
+}
+
+void SpellCheckService::retire(std::unique_ptr<Hunspell> hunspell)
+{
+    if (hunspell) {
+        m_retired.push_back(std::move(hunspell));
+    }
+    destroyRetired();
+}
+
+void SpellCheckService::destroyRetired()
+{
+    if (m_retired.empty()) {
+        return;
+    }
+    const std::unique_lock<std::mutex> lock(hunspellMutex(), std::try_to_lock);
+    if (!lock.owns_lock()) {
+        m_retireTimer->start();  // after the dictionary being made
+        return;
+    }
+    m_retired.clear();
 }
 
 void SpellCheckService::install(std::unique_ptr<Hunspell> hunspell, const QString& dictionary)
@@ -545,7 +620,7 @@ void SpellCheckService::install(std::unique_ptr<Hunspell> hunspell, const QStrin
             dictionary.toStdString(), encoding);
     }
 
-    m_hunspell = std::move(hunspell);
+    retire(std::exchange(m_hunspell, std::move(hunspell)));
     m_dictionary = dictionary;
     m_inUse = true;
     core::Logger::getInstance().info("SpellCheckService: Dictionary {} loaded",
@@ -634,7 +709,7 @@ QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestio
     // suggestions not closer to it than they are
     const int farthest = lettersOf(asked).size() <= 4 ? LETTER_COST : 2 * LETTER_COST;
     QList<std::pair<int, QString>> ownWords;
-    for (const QString& own : m_userWords) {
+    for (const QString& own : std::as_const(m_ownWords->userWords)) {
         const QString offered = capitalizedWord ? capitalized(own) : own;
         const int distance = distanceBetween(asked, offered);
         if (distance <= farthest && offered != asked) {
@@ -714,11 +789,12 @@ bool SpellCheckService::isWordCorrect(const QString& word) const
 
 bool SpellCheckService::isOwnWord(const QString& word) const
 {
-    if (m_userWords.isEmpty() && m_ignoredWords.isEmpty()) {
+    const OwnWords& own = *m_ownWords;
+    if (own.userWords.isEmpty() && own.ignoredWords.isEmpty()) {
         return false;
     }
-    const auto known = [this](const QString& candidate) {
-        return m_userWords.contains(candidate) || m_ignoredWords.contains(candidate);
+    const auto known = [&own](const QString& candidate) {
+        return own.userWords.contains(candidate) || own.ignoredWords.contains(candidate);
     };
     // As it is written, or in lower case (Kalahari for kalahari)
     const auto knownInAnyCase = [&known](const QString& candidate) {
@@ -752,9 +828,29 @@ QString SpellCheckService::fromDictionary(const std::string& word) const
 // The writer's own words
 // =============================================================================
 
+void SpellCheckService::shareOwnWordsWith(SpellCheckService& other)
+{
+    if (m_ownWords == other.m_ownWords) {
+        return;
+    }
+    m_ownWords->services.removeOne(this);
+    m_ownWords = other.m_ownWords;
+    m_ownWords->services.append(this);
+    emit wordsChanged();
+}
+
+void SpellCheckService::emitOwnWordsChanged()
+{
+    // Kept while the services check their text again
+    const std::shared_ptr<OwnWords> ownWords = m_ownWords;
+    for (qsizetype i = 0; i < ownWords->services.size(); ++i) {
+        emit ownWords->services.at(i)->wordsChanged();
+    }
+}
+
 void SpellCheckService::setUserDictionaryFile(const QString& path)
 {
-    m_userDictionaryFile = path;
+    m_ownWords->file = path;
     QSet<QString> words;
     QFile file(path);
     if (!path.isEmpty() && file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -769,33 +865,33 @@ void SpellCheckService::setUserDictionaryFile(const QString& path)
         core::Logger::getInstance().debug("SpellCheckService: {} words in the user dictionary",
                                           words.size());
     }
-    if (words != m_userWords) {
-        m_userWords = std::move(words);
-        emit wordsChanged();
+    if (words != m_ownWords->userWords) {
+        m_ownWords->userWords = std::move(words);
+        emitOwnWordsChanged();
     }
 }
 
 QString SpellCheckService::userDictionaryFile() const
 {
-    return m_userDictionaryFile;
+    return m_ownWords->file;
 }
 
 void SpellCheckService::addToUserDictionary(const QString& word)
 {
     const QString added = word.trimmed();
-    if (added.isEmpty() || m_userWords.contains(added)) {
+    if (added.isEmpty() || m_ownWords->userWords.contains(added)) {
         return;
     }
-    m_userWords.insert(added);
+    m_ownWords->userWords.insert(added);
     saveUserDictionary();
-    emit wordsChanged();
+    emitOwnWordsChanged();
 }
 
 void SpellCheckService::removeFromUserDictionary(const QString& word)
 {
-    if (m_userWords.remove(word.trimmed())) {
+    if (m_ownWords->userWords.remove(word.trimmed())) {
         saveUserDictionary();
-        emit wordsChanged();
+        emitOwnWordsChanged();
     }
 }
 
@@ -808,21 +904,22 @@ void SpellCheckService::setUserDictionaryWords(const QStringList& words)
             kept.insert(trimmed);
         }
     }
-    if (kept != m_userWords) {
-        m_userWords = std::move(kept);
+    if (kept != m_ownWords->userWords) {
+        m_ownWords->userWords = std::move(kept);
         saveUserDictionary();
-        emit wordsChanged();
+        emitOwnWordsChanged();
     }
 }
 
 bool SpellCheckService::isInUserDictionary(const QString& word) const
 {
-    return m_userWords.contains(word);
+    return m_ownWords->userWords.contains(word);
 }
 
 QStringList SpellCheckService::userDictionaryWords() const
 {
-    QStringList words(m_userWords.begin(), m_userWords.end());
+    const QSet<QString>& userWords = m_ownWords->userWords;
+    QStringList words(userWords.cbegin(), userWords.cend());
     words.sort();
     return words;
 }
@@ -830,30 +927,31 @@ QStringList SpellCheckService::userDictionaryWords() const
 void SpellCheckService::ignoreWord(const QString& word)
 {
     const QString ignored = word.trimmed();
-    if (ignored.isEmpty() || m_ignoredWords.contains(ignored)) {
+    if (ignored.isEmpty() || m_ownWords->ignoredWords.contains(ignored)) {
         return;
     }
-    m_ignoredWords.insert(ignored);
-    emit wordsChanged();
+    m_ownWords->ignoredWords.insert(ignored);
+    emitOwnWordsChanged();
 }
 
 bool SpellCheckService::isIgnored(const QString& word) const
 {
-    return m_ignoredWords.contains(word);
+    return m_ownWords->ignoredWords.contains(word);
 }
 
 void SpellCheckService::saveUserDictionary() const
 {
-    if (m_userDictionaryFile.isEmpty()) {
+    const QString& path = m_ownWords->file;
+    if (path.isEmpty()) {
         return;
     }
-    QDir().mkpath(QFileInfo(m_userDictionaryFile).absolutePath());
+    QDir().mkpath(QFileInfo(path).absolutePath());
 
     // Written whole, in place of the old file only when it is complete
-    QSaveFile file(m_userDictionaryFile);
+    QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         core::Logger::getInstance().error("SpellCheckService: Cannot write the user dictionary {}",
-                                          m_userDictionaryFile.toStdString());
+                                          path.toStdString());
         return;
     }
     QTextStream out(&file);
@@ -865,7 +963,7 @@ void SpellCheckService::saveUserDictionary() const
     out.flush();
     if (!file.commit()) {
         core::Logger::getInstance().error("SpellCheckService: Cannot write the user dictionary {}",
-                                          m_userDictionaryFile.toStdString());
+                                          path.toStdString());
     }
 }
 
