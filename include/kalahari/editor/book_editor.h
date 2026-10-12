@@ -119,6 +119,17 @@ public:
     /// the new text. KML that is not well-formed gives the text read before the error.
     void replaceWithKml(const QString& kml);
 
+    /// @brief Whether the content differs from the saved content: the one loaded by
+    ///        fromKml(), or the one marked with setUnmodified()
+    ///
+    /// Only the content counts, not the edits made: a letter, a sentence or a paragraph
+    /// typed and deleted again, an edit undone or formatting given and taken back leave the
+    /// content as it was, so it is not modified.
+    bool isModified() const;
+
+    /// @brief Mark the content now as the saved content (after saving it)
+    void setUnmodified();
+
     // =========================================================================
     // Content Access (New Architecture API)
     // =========================================================================
@@ -942,6 +953,13 @@ signals:
     /// Use this to track content changes (e.g., for statistics, auto-save).
     void contentChanged();
 
+    /// @brief Emitted when the content starts or stops differing from the saved content
+    ///        (see isModified())
+    ///
+    /// A content as long as the saved one is compared with it when the editing pauses; until
+    /// then isModified() gives the answer.
+    void modifiedChanged(bool modified);
+
     /// @brief Emitted when the word and character counts change while the text stays the
     ///        same (they follow new rules of setWordCountRules())
     void countsChanged();
@@ -1591,6 +1609,35 @@ private:
 
     /// @brief Create an empty document if there is none yet (before the first edit)
     void ensureDocument();
+
+    // The saved content isModified() compares with
+    mutable QString m_savedSource;  ///< The KML it was loaded from, until savedKml() reads it
+    mutable std::optional<QString> m_savedKml;  ///< As toKml() writes it (see savedKml())
+    int m_savedLength = 1;                      ///< Its QTextDocument::characterCount()
+    bool m_modified = false;                    ///< What modifiedChanged() said last
+    QTimer* m_modifiedCheck{nullptr};           ///< Compares the content when editing pauses
+
+    /// @brief The document just created holds the saved content, loaded from @p kml
+    ///
+    /// The saved content as toKml() writes it is made from @p kml only when it is needed (see
+    /// savedKml()), so loading takes no longer.
+    void startFromSaved(const QString& kml);
+
+    /// @brief After an edit: whether the content differs from the saved one now
+    ///
+    /// A content of another length differs, and one with no edit left since it was saved (or
+    /// every one undone) does not; one as long as the saved one is compared in full when the
+    /// editing pauses, so typing does not wait for it.
+    void checkModified();
+
+    /// @brief Whether the content differs from the saved one, compared in full when needed
+    bool differsFromSaved() const;
+
+    /// @brief The saved content as toKml() writes it
+    const QString& savedKml() const;
+
+    /// @brief Set what modifiedChanged() says, saying it when it changes
+    void setModifiedState(bool modified);
 
     /// @brief Viewport manager for scroll and visibility coordination (Task 8.4)
     std::unique_ptr<ViewportManager> m_viewportManager;
