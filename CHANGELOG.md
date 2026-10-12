@@ -377,6 +377,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   project archive, InDesign ICML, export settings, Find in book, saving the current
   perspective) and the log warned about each of them when the menus were built.
 
+- **Plain text files take no annotations** - 2026-10-11. A plain text file (`.txt`) cannot
+  keep annotations, so those added to it were lost when it was saved. The commands that add
+  them (Insert > Add Annotation..., Add Comment, Add To Do, Add Note, Ctrl+Shift+M and the
+  editor's context menu) are now off for it, the Annotations panel says why and that the
+  file added to the book takes annotations, and text pasted or dropped into it comes
+  without them. Saved as a chapter file (`.kchapter`), it takes annotations again.
+
 ### Added
 
 - **Book projects: a new project file in core** - 2026-10-09. A new model in core reads and

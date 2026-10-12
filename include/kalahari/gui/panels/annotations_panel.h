@@ -78,6 +78,10 @@ public:
     /// @brief Whether the whole book can be listed (a book is open)
     void setBookScopeAvailable(bool available);
 
+    /// @brief Whether the document in front takes annotations (a plain text file does not:
+    /// the empty panel says why, and what to do)
+    void setAnnotationsAllowed(bool allowed);
+
     /// @brief Whether a chapter or document is in front (what the empty panel says)
     void setDocumentAvailable(bool available);
 
@@ -203,6 +207,7 @@ private:
     AnnotationFilter m_filter;
     AnnotationSort m_sort = AnnotationSort::TextOrder;
     AnnotationScope m_scope = AnnotationScope::Chapter;
+    bool m_annotationsAllowed = true;
     bool m_documentAvailable = false;
     std::optional<core::KindWords> m_inFront;    ///< Kind of the element in front, if any
     std::optional<core::KindWords> m_bookTexts;  ///< Main texts of the open book, if any

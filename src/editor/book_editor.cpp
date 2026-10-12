@@ -871,6 +871,7 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     m_textBuffer = std::make_unique<QTextDocument>();
     m_textBuffer->setUndoRedoEnabled(false);
     m_textBuffer->setDocumentMargin(0);  // Remove default document margins
+    setKeepsAnnotations(*m_textBuffer, m_annotationsAllowed);  // see setAnnotationsAllowed()
 
     // Use custom layout that positions lines at y=0 without Qt's leading gaps
     m_textBuffer->setDocumentLayout(new KalahariTextDocumentLayout(m_textBuffer.get()));
