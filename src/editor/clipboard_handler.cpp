@@ -7,6 +7,9 @@
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QRegularExpression>
+#include <QTextDocument>
+#include <QUrl>
+#include <QVariant>
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 #include <algorithm>
@@ -47,6 +50,53 @@ QString inlineStyleCss(const QXmlStreamAttributes& attrs)
         }
     }
     return css.join(QLatin1Char(';'));
+}
+
+/// @brief A document that loads nothing an HTML text refers to: a style sheet or an image
+///        of a pasted page may be a file of the computer or of a network share
+class ResourcelessDocument : public QTextDocument {
+protected:
+    QVariant loadResource(int /*type*/, const QUrl& /*name*/) override { return {}; }
+};
+
+/// @brief A character the matching of a plain text with its HTML passes over: white space,
+///        the marks of images and tables, and the invisible ones (a soft hyphen)
+bool skippedInMatching(QChar ch)
+{
+    const char16_t code = ch.unicode();
+    return ch.isSpace() || code == QChar::ObjectReplacementCharacter || code == 0xFDD0 ||
+           code == 0xFDD1 || ch.category() == QChar::Other_Format;
+}
+
+/// @brief A character of the HTML's text that ends a paragraph: a block's end, or a table's
+///        start or end (QTextBeginningOfFrame, QTextEndOfFrame)
+bool endsParagraph(QChar ch)
+{
+    const char16_t code = ch.unicode();
+    return code == QChar::ParagraphSeparator || code == 0xFDD0 || code == 0xFDD1;
+}
+
+/// @brief The white space between two paragraphs of a text with no more line ends than
+///        @p kept: the last ones, with the white space after them (a CR LF is one line end)
+///
+/// The browsers leave a blank line between two paragraphs in the plain text, which their
+/// HTML does not have; @p kept is at least 1.
+QString withLastLineEnds(const QString& space, int kept)
+{
+    qsizetype keepFrom = space.size();
+    int lineEnds = 0;
+    for (qsizetype i = space.size() - 1; i >= 0; --i) {
+        const QChar ch = space.at(i);
+        if (ch == u'\r' && i + 1 < space.size() && space.at(i + 1) == u'\n') {
+            keepFrom = i;  // the CR of a CR LF kept
+        } else if (ch == u'\n' || ch == u'\r') {
+            if (++lineEnds > kept) {
+                return space.mid(keepFrom);
+            }
+            keepFrom = i;
+        }
+    }
+    return space;
 }
 
 }  // namespace
@@ -156,6 +206,7 @@ QString ClipboardHandler::kmlToHtml(const QString& kml)
     };
     std::vector<OpenElement> open;
     bool emptyParagraph = false;
+    bool endsWithBreak = false;  ///< The paragraph's text so far ends with a line break
 
     QString html;
     QXmlStreamWriter writer(&html);
@@ -167,6 +218,14 @@ QString ClipboardHandler::kmlToHtml(const QString& kml)
                 const QString tag = reader.name().toString();
                 if (tag == QStringLiteral("annotations")) {
                     reader.skipCurrentElement();
+                    break;
+                }
+                if (tag == QStringLiteral("br")) {
+                    // A line break in the paragraph
+                    writer.writeEmptyElement(QStringLiteral("br"));
+                    reader.skipCurrentElement();
+                    emptyParagraph = false;
+                    endsWithBreak = true;
                     break;
                 }
                 const QXmlStreamAttributes attrs = reader.attributes();
@@ -181,6 +240,7 @@ QString ClipboardHandler::kmlToHtml(const QString& kml)
                     }
                     element = {true, true};
                     emptyParagraph = true;
+                    endsWithBreak = false;
                 } else if (KmlFormatRegistry::isFormattingTag(tag)) {
                     const QString name = KmlFormatRegistry::canonicalFormattingTag(tag);
                     const QString style = inlineStyleCss(attrs);
@@ -200,8 +260,9 @@ QString ClipboardHandler::kmlToHtml(const QString& kml)
                 if (!open.empty()) {
                     const OpenElement element = open.back();
                     open.pop_back();
-                    if (element.paragraph && emptyParagraph) {
-                        // Most programs drop an empty paragraph - a no-break space keeps the line
+                    if (element.paragraph && (emptyParagraph || endsWithBreak)) {
+                        // Most programs drop an empty paragraph, and the empty line after a
+                        // line break at a paragraph's end - a no-break space keeps the line
                         writer.writeCharacters(QString(QChar(QChar::Nbsp)));
                     }
                     if (element.written) {
@@ -217,6 +278,7 @@ QString ClipboardHandler::kmlToHtml(const QString& kml)
                 if (!reader.text().isEmpty() && (inParagraph || !reader.isWhitespace())) {
                     writer.writeCharacters(reader.text().toString());
                     emptyParagraph = false;
+                    endsWithBreak = false;
                 }
                 break;
             }
@@ -309,6 +371,8 @@ QString ClipboardHandler::textToKml(const QString& text)
     QStringList paragraphs = text.split('\n');
 
     for (QString& para : paragraphs) {
+        // A line break in the paragraph: U+2028, or a vertical tab, as Word writes it
+        para.replace(QLatin1Char('\v'), QChar(QChar::LineSeparator));
         // XML has no place for control characters other than tab, and a CR left by a CR LF
         // line end would come back as one more paragraph break
         para.removeIf([](QChar ch) {
@@ -317,11 +381,72 @@ QString ClipboardHandler::textToKml(const QString& text)
         });
         writer.writeStartElement("p");
         writer.writeStartElement("text");
-        writer.writeCharacters(para);
+        const QStringList parts = para.split(QChar(QChar::LineSeparator));
+        for (qsizetype i = 0; i < parts.size(); ++i) {
+            if (i > 0) {
+                writer.writeEmptyElement("br");
+            }
+            writer.writeCharacters(parts.at(i));
+        }
         writer.writeEndElement();  // text
         writer.writeEndElement();  // p
     }
 
+    return result;
+}
+
+QString ClipboardHandler::withLineEndsOf(const QString& text, const QString& html)
+{
+    if (html.isEmpty() || (!text.contains(u'\n') && !text.contains(u'\r'))) {
+        return text;
+    }
+    ResourcelessDocument document;
+    document.setHtml(html);
+    const QString structure = document.toRawText();
+
+    // The characters of the text and of the HTML's text, one by one: between two of them
+    // the line ends of the text are line breaks where the HTML has one and no paragraph end,
+    // and no more than the HTML's line ends where it has a paragraph end
+    QString result;
+    result.reserve(text.size());
+    qsizetype inText = 0;
+    qsizetype inHtml = 0;
+    while (inText < text.size()) {
+        // The white space of the text up to its next character...
+        const qsizetype spaceStart = inText;
+        while (inText < text.size() && skippedInMatching(text.at(inText))) {
+            ++inText;
+        }
+        // ... and of the HTML's text
+        bool lineBreak = false;
+        bool paragraphEnd = false;
+        int lineEnds = 0;  // the line breaks and paragraph ends of the HTML
+        while (inHtml < structure.size() && skippedInMatching(structure.at(inHtml))) {
+            const QChar ch = structure.at(inHtml);
+            lineBreak = lineBreak || ch == QChar::LineSeparator;
+            paragraphEnd = paragraphEnd || endsParagraph(ch);
+            lineEnds += (ch == QChar::LineSeparator || endsParagraph(ch)) ? 1 : 0;
+            ++inHtml;
+        }
+        QString space = text.mid(spaceStart, inText - spaceStart);
+        if (lineBreak && !paragraphEnd) {
+            space.replace(QStringLiteral("\r\n"), QString(QChar(QChar::LineSeparator)));
+            space.replace(QLatin1Char('\n'), QChar(QChar::LineSeparator));
+            space.replace(QLatin1Char('\r'), QChar(QChar::LineSeparator));
+        } else if (paragraphEnd && spaceStart > 0 && inText < text.size()) {
+            space = withLastLineEnds(space, lineEnds);
+        }
+        result += space;
+        if (inText == text.size()) {
+            break;
+        }
+        if (inHtml == structure.size() || structure.at(inHtml) != text.at(inText)) {
+            return text;  // another text: its HTML says nothing about its lines
+        }
+        result += text.at(inText);
+        ++inText;
+        ++inHtml;
+    }
     return result;
 }
 

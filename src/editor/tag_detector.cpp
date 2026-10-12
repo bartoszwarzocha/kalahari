@@ -10,8 +10,9 @@ namespace kalahari::editor {
 // Static regex pattern for tag detection
 // Matches: TODO, FIX, CHECK, NOTE, WARNING followed by optional colon and content
 // Pattern: word boundary + keyword + optional whitespace + optional colon + rest of line
+// (up to a line break in the paragraph, U+2028)
 const QRegularExpression TagDetector::s_tagPattern(
-    QStringLiteral("\\b(TODO|FIX|CHECK|NOTE|WARNING)\\s*:?\\s*(.*)"),
+    QStringLiteral("\\b(TODO|FIX|CHECK|NOTE|WARNING)\\s*:?\\s*([^\\n\\x{2028}]*)"),
     QRegularExpression::CaseInsensitiveOption
 );
 
