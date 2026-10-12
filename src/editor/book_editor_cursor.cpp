@@ -1143,8 +1143,9 @@ void BookEditor::performTextKey(TextKeyAction action, bool select)
         scrollTo(0.0, false);
         return;
     case Action::ScrollToEnd:
+        // To the end of the text, not into the blank paper below it (as Ctrl+End)
         if (m_viewportManager) {
-            scrollTo(m_viewportManager->maxScrollPosition(), false);
+            scrollTo(textEndScrollPosition(), false);
         }
         return;
     case Action::CenterCursor:

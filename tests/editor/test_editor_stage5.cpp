@@ -887,6 +887,27 @@ TEST_CASE("Stage5 Ctrl+End: a text shorter than a page stays in view",
     }
 }
 
+TEST_CASE("Stage5 End on macOS: a text shorter than a page stays in view",
+          "[editor][stage5][continuous]") {
+    // End on macOS moves the view only, to where Ctrl+End puts it: the view went to the
+    // bottom of the page, so the few lines of a note left it
+    for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {
+        CAPTURE(static_cast<int>(mode));
+        auto editor = editorWith(kmlOf({QStringLiteral("The first line of the note."),
+                                        QStringLiteral("The second line of the note."),
+                                        QStringLiteral("They met on Tuesday morning.")}));
+        editor->setViewMode(mode);
+        QScrollBar* vertical = scrollBar(*editor, Qt::Vertical);
+        REQUIRE(vertical != nullptr);
+        REQUIRE(vertical->maximum() > 0);  // the page is higher than the view
+        const CursorPosition cursor = editor->cursorPosition();
+
+        editor->performTextKey(TextKeyAction::ScrollToEnd);
+        CHECK(editor->scrollOffset() == 0.0);  // the text from its first line
+        CHECK(editor->cursorPosition() == cursor);
+    }
+}
+
 TEST_CASE("Stage5 Ctrl+End: a last page the text fills at its top ends as a long chapter does",
           "[editor][stage5][continuous]") {
     // Regression: Ctrl+End in the page view scrolled to the bottom of the last page, far
