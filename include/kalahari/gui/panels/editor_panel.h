@@ -73,6 +73,13 @@ public:
     /// Converts KML to HTML for export.
     QString getContent() const;
 
+    /// @brief Whether the text differs from the text loaded or last saved (see
+    ///        editor::BookEditor::isModified())
+    bool isModified() const;
+
+    /// @brief Mark the text now as the saved text (after saving it)
+    void setUnmodified();
+
     /// @brief Get the underlying BookEditor widget
     /// @return Pointer to BookEditor widget
     ///
@@ -112,6 +119,11 @@ signals:
     ///
     /// Forwarded from BookEditor content changes.
     void contentChanged();
+
+    /// @brief Emitted when the text starts or stops differing from the saved text
+    ///
+    /// Forwarded from editor::BookEditor::modifiedChanged().
+    void modifiedChanged(bool modified);
 
 protected:
     /// @brief Keeps the pages at their size on paper when the panel is shown or moves to

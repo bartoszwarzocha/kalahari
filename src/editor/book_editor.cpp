@@ -38,6 +38,9 @@ constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;
 // The longest text of an annotation its mark's tooltip shows
 constexpr qsizetype MARK_TOOLTIP_LENGTH = 600;
 
+// How long the editing pauses before a content as long as the saved one is compared with it
+constexpr int MODIFIED_CHECK_DELAY_MS = 150;
+
 namespace {
 
 /// @brief The colors the render pipeline draws with, on the paper of a mode
@@ -157,6 +160,13 @@ BookEditor::BookEditor(QWidget* parent)
         m_uiOpacity = 0.0;
         update();
     });
+
+    // A content as long as the saved one is compared with it when the editing pauses
+    m_modifiedCheck = new QTimer(this);
+    m_modifiedCheck->setSingleShot(true);
+    m_modifiedCheck->setInterval(MODIFIED_CHECK_DELAY_MS);
+    connect(m_modifiedCheck, &QTimer::timeout, this,
+            [this]() { setModifiedState(differsFromSaved()); });
 
     // m_textBuffer and m_textCursor are created by createDocument()
 
@@ -811,6 +821,7 @@ bool BookEditor::fromKml(const QString& kml)
     // The document is built with undo disabled, so the load itself is not undoable
     // (undo starts fresh from the user's first edit)
     createDocument(content);
+    startFromSaved(kml);  // what isModified() compares the content with
     updateScrollBarRange();
     logElapsed("Document created");
 
@@ -898,6 +909,10 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     cursor.endEditBlock();
     m_textBuffer->setUndoRedoEnabled(true);
 
+    // From now on an edit can make the content differ from the saved one, or bring it back
+    connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this,
+            &BookEditor::checkModified);
+
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());
 
@@ -936,6 +951,79 @@ void BookEditor::ensureDocument()
 {
     if (!m_textBuffer) {
         createDocument(KmlDocumentModel{});
+        setUnmodified();  // the empty text is the saved one
+    }
+}
+
+// =============================================================================
+// Saved content
+// =============================================================================
+
+bool BookEditor::isModified() const
+{
+    // A comparison waiting for the editing to pause is made now
+    return m_modifiedCheck->isActive() ? differsFromSaved() : m_modified;
+}
+
+void BookEditor::setUnmodified()
+{
+    if (m_textBuffer) {
+        startFromSaved(QString());
+        m_savedKml = toKml();  // the content now: there is nothing to read
+    }
+}
+
+void BookEditor::startFromSaved(const QString& kml)
+{
+    m_textBuffer->setModified(false);  // undoing back to here brings the saved content back
+    m_savedSource = kml;
+    m_savedKml.reset();
+    m_savedLength = m_textBuffer->characterCount();
+    m_modifiedCheck->stop();
+    setModifiedState(false);
+}
+
+void BookEditor::checkModified()
+{
+    if (m_textBuffer->isModified() && m_textBuffer->characterCount() == m_savedLength) {
+        m_modifiedCheck->start();
+    } else {
+        m_modifiedCheck->stop();
+        setModifiedState(m_textBuffer->isModified());
+    }
+}
+
+bool BookEditor::differsFromSaved() const
+{
+    if (!m_textBuffer || !m_textBuffer->isModified()) {
+        return false;
+    }
+    return m_textBuffer->characterCount() != m_savedLength || toKml() != savedKml();
+}
+
+const QString& BookEditor::savedKml() const
+{
+    if (!m_savedKml) {
+        // Read as fromKml() reads it, and written as toKml() writes the content
+        KmlDocumentModel content;
+        content.loadKml(m_savedSource);
+        QTextDocument document;
+        document.setUndoRedoEnabled(false);
+        QTextCursor cursor(&document);
+        cursor.beginEditBlock();
+        appendParagraphs(cursor, content);
+        cursor.endEditBlock();
+        m_savedKml = KmlSerializer().toKml(&document);
+        m_savedSource.clear();
+    }
+    return *m_savedKml;
+}
+
+void BookEditor::setModifiedState(bool modified)
+{
+    if (modified != m_modified) {
+        m_modified = modified;
+        emit modifiedChanged(modified);
     }
 }
 
