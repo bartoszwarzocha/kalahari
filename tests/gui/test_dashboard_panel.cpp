@@ -413,8 +413,8 @@ TEST_CASE("Dashboard: the shortcuts one under another on a narrow panel", "[gui]
     // The keys as the menus write them: Ctrl+Shift+N, on macOS Shift and Command with N
     const QString newBookKeys =
         QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N).toString(QKeySequence::NativeText);
-    CHECK(shortcuts[0].keys->text().contains(QLatin1Char('>') + newBookKeys + QLatin1Char('<')));
-    CHECK(shortcuts[0].command->text() == QStringLiteral("New Book"));
+    CHECK(shortcuts[1].keys->text().contains(QLatin1Char('>') + newBookKeys + QLatin1Char('<')));
+    CHECK(shortcuts[1].command->text() == QStringLiteral("New Book"));
 
     // One row on a wide panel, each command beside its keys
     dashboard.resize(AT_125_PANELS_CLOSED);

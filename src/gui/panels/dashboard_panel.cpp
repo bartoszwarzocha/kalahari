@@ -347,9 +347,10 @@ void DashboardPanel::updateShortcutLabels()
     m_shortcutLabels.clear();
 
     // The commands to start with, named as in the menus and with the keys they have
-    // (written here a second time, they drifted apart: Ctrl+N was shown as New Chapter)
+    // (written here a second time, they drifted apart: Ctrl+N was shown as New Chapter), in
+    // the order of the File menu
     const CommandRegistry& registry = CommandRegistry::getInstance();
-    for (const char* id : {"file.new.project", "file.open", "file.open.file"}) {
+    for (const char* id : {"file.open.file", "file.new.project", "file.open"}) {
         const Command* command = registry.getCommand(id);
         if (command == nullptr || command->shortcut.isEmpty()) {
             continue;

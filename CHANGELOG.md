@@ -147,12 +147,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   section or part moves it in the book (before, the move was lost). Move to Start and Move to
   End join Move Up and Move Down and keep a prologue first and an epilogue last, and the
   Navigator shows a new or moved element, also inside a collapsed part. Deleting an element
-  says that its file stays in the book's folder. Add to Project asks for the kind of the new
-  element and can add a chapter to the body itself.
-  The File menu has Open File under Open Book instead of an Open submenu, and the File and
-  Quick Actions toolbars start with the same buttons: New File, New Book, Open Book, Open
-  File, Save, Save As, Save All and Close Book. A toolbar customized before gets the buttons
-  it did not have once, where the default toolbar has them.
+  says that its file stays in the book's folder. Add to Book (before: Add to Project) asks
+  for the kind of the new element and can add a chapter to the body itself. A new file that
+  was never saved it adds at once, without the window and without the question about a copy:
+  the file becomes an element of the main text kind (in a novel a chapter) at its default
+  place, with the default title, and opens in its tab. Save and Save As still save a new
+  file in any folder.
+  The File menu has New File, Open File, New Book and Open Book, in this order, instead of
+  an Open submenu, and the File and Quick Actions toolbars start with the same buttons: New
+  File, Open File, New Book, Open Book, Save, Save As, Save All and Close Book. The
+  Dashboard names Open File, New Book and Open Book in this order too. A toolbar customized
+  before gets the buttons it did not have once, where the default toolbar has them, and its
+  file commands in the new order, in the places they had.
   A project archive leaves out the lock, the database log
   files and the backups of the open book, whose log is first written to its database, and
   import skips the lock and the database's shared memory that earlier archives have, so an

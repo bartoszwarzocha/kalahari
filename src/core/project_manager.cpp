@@ -1079,7 +1079,8 @@ const ProjectElement* ProjectManager::elementWithFile(const QString& path) const
 
 QString ProjectManager::addElement(const KindRef& kind, const QString& title, BookPlace place,
                                    const QString& groupId, qsizetype index,
-                                   const QStringList& takeInside) {
+                                   const QStringList& takeInside,
+                                   const std::optional<QString>& text) {
     auto& logger = Logger::getInstance();
     if (!m_project) {
         logger.error("addElement: No project is open");
@@ -1134,7 +1135,12 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     if (kind.kind->form == ElementForm::Text) {
         element.file = newChapterFile(kind, place);
         element.status = QStringLiteral("draft");
-        if (!writeChapterFile(element, book() ? startingText(kind, *book()) : QString())) {
+        // The text given, else the text of the kind's template
+        QString kml = text.value_or(QString());
+        if (!text && book()) {
+            kml = startingText(kind, *book());
+        }
+        if (!writeChapterFile(element, kml)) {
             m_elementStates.remove(element.id);
             return QString();
         }

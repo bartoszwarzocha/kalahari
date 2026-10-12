@@ -344,20 +344,23 @@ public:
     /// @brief Add a new element of @p kind with @p title to @p place of the book, or to group
     /// @p groupId
     ///
-    /// A text element gets a chapter file of its own in the book's folder, with the text of
-    /// its kind's template, and the status "draft". A group can take elements of the book
-    /// inside it, at its end, in the order given: a new part takes the epilogue from the end of
-    /// the last part, so that the chapters added to the new part go before it. Saves the .klh
-    /// file.
+    /// A text element gets a chapter file of its own in the book's folder, with @p text or
+    /// else the text of its kind's template, and the status "draft". A group can take elements
+    /// of the book inside it, at its end, in the order given: a new part takes the epilogue
+    /// from the end of the last part, so that the chapters added to the new part go before it.
+    /// Saves the .klh file.
     /// @param index Place of the element in its list; -1: the place of its kind, newPlaceOf(),
     ///        which can be in a group of the body of the book
     /// @param takeInside Ids of elements that the new group takes inside it
+    /// @param text The text of a text element (KML), such as the text of a new file that the
+    ///        writer adds to the book; none: the text of its kind's template
     /// @return The new element's id; empty when the kind cannot be there or is a window kind,
     ///         the project has no group @p groupId, @p index is beyond the list, an element of
     ///         @p takeInside cannot be inside the group, or a file cannot be written
     QString addElement(const KindRef& kind, const QString& title, BookPlace place,
                        const QString& groupId = QString(), qsizetype index = -1,
-                       const QStringList& takeInside = {});
+                       const QStringList& takeInside = {},
+                       const std::optional<QString>& text = std::nullopt);
 
     /// @brief Place in @p elements that a new element of @p kind takes when the writer does not
     /// choose it

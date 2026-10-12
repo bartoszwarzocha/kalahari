@@ -168,15 +168,20 @@ TEST_CASE("Info bar: its button and its close button", "[gui][widgets]") {
 
 TEST_CASE("Info bar: a file outside the book offers to add it", "[gui][widgets]") {
     StandaloneInfoBar bar;
+    auto* action = bar.findChild<QPushButton*>();
+    REQUIRE(action != nullptr);
+    // A new file goes into the book at once: no window follows the button
+    CHECK(action->text() == QStringLiteral("Add to Book"));
+
+    // A file on the disk goes in the Add to Book window
     bar.setFilePath(QStringLiteral("/notes/notes.txt"));
     CHECK(bar.filePath() == QStringLiteral("/notes/notes.txt"));
+    CHECK(action->text() == QStringLiteral("Add to Book..."));
     CHECK_FALSE(bar.message().isEmpty());
 
     int requests = 0;
     QObject::connect(&bar, &StandaloneInfoBar::addToProjectClicked,
                      [&requests]() { ++requests; });
-    auto* action = bar.findChild<QPushButton*>();
-    REQUIRE(action != nullptr);
     REQUIRE(action->isVisibleTo(&bar));
     action->click();
     CHECK(requests == 1);

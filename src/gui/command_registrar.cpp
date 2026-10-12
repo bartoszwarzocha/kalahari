@@ -168,6 +168,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // FILE MENU
     // =========================================================================
 
+    // The files first, then the books: New File, Open File, New Book, Open Book, in this order
+    // also on the File and Quick Actions toolbars and on the Dashboard
+
     // A new file of the open book, of the kind and at the place the writer chooses; without a
     // book, a new file outside one
     REG_CMD_TOOL_ICON("file.new", QT_TRANSLATE_NOOP("CommandRegistrar", "&New File..."), "FILE/New File...", 10, false, 0,
@@ -175,22 +178,22 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onNewDocument);
 
+    // A file outside the book (Ctrl+Shift+O)
+    REG_CMD_TOOL_ICON("file.open.file", QT_TRANSLATE_NOOP("CommandRegistrar", "Open &File..."), "FILE/Open File...", 15, false, 0,
+                      KeyboardShortcut(Qt::Key_O, Qt::ControlModifier | Qt::ShiftModifier),
+                      IconSet(),
+                      callbacks.onOpenStandaloneFile);
+
     // OpenSpec #00033: New Book command (Ctrl+Shift+N)
-    REG_CMD_TOOL_ICON("file.new.project", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Book..."), "FILE/New Book...", 15, false, 0,
+    REG_CMD_TOOL_ICON("file.new.project", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Book..."), "FILE/New Book...", 20, false, 0,
                       KeyboardShortcut(Qt::Key_N, Qt::ControlModifier | Qt::ShiftModifier),
                       IconSet(),
                       callbacks.onNewProject);
 
-    REG_CMD_TOOL_ICON("file.open", QT_TRANSLATE_NOOP("CommandRegistrar", "&Open Book..."), "FILE/Open Book...", 20, false, 0,
+    REG_CMD_TOOL_ICON("file.open", QT_TRANSLATE_NOOP("CommandRegistrar", "&Open Book..."), "FILE/Open Book...", 25, false, 0,
                       KeyboardShortcut(Qt::Key_O, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onOpenDocument);
-
-    // A file outside the book (Ctrl+Shift+O), right under Open Book
-    REG_CMD_TOOL_ICON("file.open.file", QT_TRANSLATE_NOOP("CommandRegistrar", "Open &File..."), "FILE/Open File...", 25, false, 0,
-                      KeyboardShortcut(Qt::Key_O, Qt::ControlModifier | Qt::ShiftModifier),
-                      IconSet(),
-                      callbacks.onOpenStandaloneFile);
 
     // Recent Books - dynamic submenu (registered separately)
 

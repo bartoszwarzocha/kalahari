@@ -1240,18 +1240,63 @@ bool DocumentCoordinator::saveStandaloneFileAs(EditorPanel* editor) {
 }
 
 void DocumentCoordinator::onAddToProject() {
-    // The info bar shows the file of the current tab; a new file that has no file yet is
-    // saved first, where the writer chooses
-    QString path = m_standaloneInfoBar->filePath();
+    // The info bar shows the file of the current tab. A new file that has no file yet goes
+    // into the book at once, asked nothing: the command says where it goes, and Save and
+    // Save As keep a file of its own, in the folder the writer chooses.
+    const QString path = m_standaloneInfoBar->filePath();
     EditorPanel* editor = getCurrentEditor();
     if (path.isEmpty() && editor && editorKind(editor) == EditorKind::StandaloneFile
         && core::ProjectManager::getInstance().isProjectOpen()) {
-        if (!saveStandaloneFileAs(editor)) {
-            return;
-        }
-        path = standaloneFileOf(editor).path();
+        addNewFileToProject(editor);
+        return;
     }
     addToProject(path);
+}
+
+void DocumentCoordinator::addNewFileToProject(EditorPanel* editor) {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: Add to Book, a new file");
+    auto& pm = core::ProjectManager::getInstance();
+
+    // The main text kind of the book, at the place of its kind and with the title of a new
+    // element of it, as the Add to Book window proposes them
+    const dialogs::AddToBookDialog::Book book = dialogs::AddToBookDialog::openBook(QString());
+    if (book.choices.isEmpty()) {
+        dialogs::MessageDialog::warning(m_mainWindow, tr("Add to Book"),
+                                        tr("No element of this book can have a text."));
+        return;
+    }
+    const dialogs::NewElementChoice& choice = book.choices.at(book.current);
+    const QString title = pm.defaultTitle(choice.kind);
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(choice.kind)}};
+    const QString elementId =
+        pm.addElement(choice.kind, title, choice.place.place, choice.place.groupId,
+                      choice.place.index, {}, editor->getContent());
+    if (elementId.isEmpty()) {
+        //: In Polish: Nie udało się dodać {kind:genitive}
+        dialogs::MessageDialog::warning(
+            m_mainWindow, core::fillWords(tr("Add {Kind} Failed"), nouns),
+            tr("The file could not be added to the book. The program's log has the details."));
+        logger.error("Add to Book: Failed to add a new file");
+        return;
+    }
+
+    // The element takes the place of the file's tab, with its text
+    if (m_navigatorCoordinator) {
+        m_navigatorCoordinator->refreshNavigator();
+    }
+    m_navigatorPanel->revealElement(elementId);
+    utils::removeTabKeepingFocus(*m_centralTabs, m_centralTabs->indexOf(editor));
+    editor->deleteLater();
+    if (m_navigatorCoordinator) {
+        m_navigatorCoordinator->onElementSelected(elementId, title);
+    }
+    updateStandaloneInfoBar();
+
+    //: In Polish: Dodano {kind:accusative} do książki: %1
+    m_statusBar->showMessage(
+        core::fillWords(tr("{Kind} added to the book: %1"), nouns).arg(title), 3000);
+    logger.info("Add to Book: Added a new file as {}", elementId.toStdString());
 }
 
 void DocumentCoordinator::addToProject(const QString& filePath) {

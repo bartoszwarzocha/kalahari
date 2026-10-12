@@ -3,6 +3,7 @@
 /// book; Open File in the File menu and on the toolbars
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/chapter_document.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/gui/command_registrar.h>
@@ -26,6 +27,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFrame>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLabel>
@@ -258,7 +260,7 @@ void click(QWidget& widget, Qt::MouseButton button) {
 // The File menu and the toolbars
 // ----------------------------------------------------------------------------
 
-TEST_CASE("New File: Open File under Open Book in the File menu, without an Open submenu",
+TEST_CASE("New File: the files first, then the books in the File menu, without an Open submenu",
           "[gui][newfile]") {
     gui::registerAllCommands(gui::CommandCallbacks{});
     gui::CommandRegistry& registry = gui::CommandRegistry::getInstance();
@@ -270,10 +272,10 @@ TEST_CASE("New File: Open File under Open Book in the File menu, without an Open
     auto* recentBooks = new gui::RecentBooksMenu(file);
     recentBooks->insertInto(file);
 
-    // New File opens a window, so it has an ellipsis; the other items keep their order
+    // New File opens a window, so it has an ellipsis; Recent Books follows Open Book
     const QStringList items = itemsOf(*file);
     CHECK(joined(items.mid(0, 10)) ==
-          "New File... | New Book... | Open Book... | Open File... | Recent Books | Close Book | "
+          "New File... | Open File... | New Book... | Open Book... | Recent Books | Close Book | "
           "- | Save | Save As... | Save All");
     CHECK_FALSE(items.contains(QStringLiteral("Open")));
 
@@ -284,7 +286,7 @@ TEST_CASE("New File: Open File under Open Book in the File menu, without an Open
           QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_O));
 }
 
-TEST_CASE("New File: Open File after Open Book on the File and Quick Actions toolbars",
+TEST_CASE("New File: the files first, then the books on the File and Quick Actions toolbars",
           "[gui][newfile]") {
     gui::registerAllCommands(gui::CommandCallbacks{});
     gui::registerAllIcons();
@@ -295,7 +297,7 @@ TEST_CASE("New File: Open File after Open Book on the File and Quick Actions too
 
     const QStringList file = manager.getToolbarCommands(QStringLiteral("file"));
     CHECK(joined(file) ==
-          "file.new | file.new.project | file.open | file.open.file | file.save | file.saveAs | "
+          "file.new | file.open.file | file.new.project | file.open | file.save | file.saveAs | "
           "file.saveAll | file.close");
 
     // Quick Actions starts with every command of the File toolbar, in its order
@@ -306,11 +308,29 @@ TEST_CASE("New File: Open File after Open Book on the File and Quick Actions too
     QToolBar* toolbar = manager.getToolbar("quickActions");
     REQUIRE(toolbar != nullptr);
     REQUIRE(toolbar->actions().size() > 3);
-    CHECK(toolbar->actions().at(3) == registry.getAction(std::string("file.open.file")));
+    CHECK(toolbar->actions().at(1) == registry.getAction(std::string("file.open.file")));
+}
+
+TEST_CASE("New File: the Dashboard names the commands to start with in the order of the File "
+          "menu",
+          "[gui][newfile]") {
+    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::DashboardPanel dashboard;
+    auto* section = dashboard.findChild<QFrame*>(QStringLiteral("shortcutsFrame"));
+    REQUIRE(section != nullptr);
+
+    // The names of the commands, each beside its keys or under them (not the section's title)
+    QStringList names;
+    for (const QLabel* label : section->findChildren<QLabel*>()) {
+        if (label->parentWidget() != section && label->textFormat() == Qt::PlainText) {
+            names << label->text();
+        }
+    }
+    CHECK(joined(names) == "Open File | New Book | Open Book");
 }
 
 TEST_CASE("New File: a toolbar customized before gets Open File once, where the default one "
-          "has it",
+          "has it, and the new order of the file commands",
           "[gui][newfile]") {
     gui::registerAllCommands(gui::CommandCallbacks{});
     auto& settings = core::SettingsManager::getInstance();
@@ -327,10 +347,10 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
             R"("file":["file.new","file.open","file.save","file.close"]}})");
         gui::ToolbarManager manager(&window);
         CHECK(joined(manager.getToolbarCommands(quickActions)) ==
-              "file.new | file.open | file.open.file | file.save | file.saveAs | file.close | "
+              "file.new | file.open.file | file.open | file.save | file.saveAs | file.close | "
               "edit.find");
         CHECK(joined(manager.getToolbarCommands(QStringLiteral("file"))) ==
-              "file.new | file.open | file.open.file | file.save | file.saveAll | file.close");
+              "file.new | file.open.file | file.open | file.save | file.saveAll | file.close");
 
         // A command the writer removes after that stays removed
         QStringList without = manager.getToolbarCommands(quickActions);
@@ -340,14 +360,36 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
         CHECK(joined(next.getToolbarCommands(quickActions)) == joined(without));
     }
 
-    SECTION("without the commands Open File follows in the default toolbar") {
+    SECTION("without the commands a new command follows in the default toolbar") {
         settings.set<std::string>(
             "toolbars.configurations",
             R"({"builtIn":{"quickActions":["edit.find","file.new.project","file.close"]}})");
         gui::ToolbarManager manager(&window);
         // After the nearest command before it in the default toolbar that the toolbar has
+        // (Save As after New Book), at the start when it has none (Open File)
         CHECK(joined(manager.getToolbarCommands(quickActions)) ==
-              "edit.find | file.new.project | file.open.file | file.saveAs | file.close");
+              "file.open.file | edit.find | file.new.project | file.saveAs | file.close");
+    }
+
+    SECTION("the file commands in the order of the File menu, in the places they had") {
+        // Customized with the commands added before
+        settings.set<std::string>(
+            "toolbars.configurations",
+            R"({"builtIn":{"quickActions":["file.new","file.new.project","file.open",)"
+            R"("file.open.file","edit.find"],"file":["file.open","file.save","file.open.file"]}})");
+        settings.set<int>("toolbars.addedCommands", 1);
+        gui::ToolbarManager manager(&window);
+        CHECK(joined(manager.getToolbarCommands(quickActions)) ==
+              "file.new | file.open.file | file.new.project | file.open | edit.find");
+        CHECK(joined(manager.getToolbarCommands(QStringLiteral("file"))) ==
+              "file.open.file | file.save | file.open");
+
+        // An order the writer gives them after that stays
+        const QStringList own{QStringLiteral("file.open"), QStringLiteral("file.new"),
+                              QStringLiteral("edit.find")};
+        manager.setToolbarCommands(quickActions, own);
+        gui::ToolbarManager next(&window);
+        CHECK(joined(next.getToolbarCommands(quickActions)) == joined(own));
     }
 
     SECTION("toolbars with the defaults stay as they are") {
@@ -540,6 +582,81 @@ TEST_CASE("New File: without a book, an untitled file saved where the writer cho
     test::write(*story, QStringLiteral("Once upon a time there was a storm"));
     CHECK(savingAs([&window]() { window.documents.onSaveDocument(); }, path, nullptr) == 0);
     CHECK(window.tabs->tabText(0) == QStringLiteral("Story.kchapter"));
+}
+
+TEST_CASE("New File: Add to Book puts a new file into the open book at once, asking nothing",
+          "[gui][newfile]") {
+    test::RecentBooks keepRecentBooks;
+    auto& pm = core::ProjectManager::getInstance();
+    QTemporaryDir books;
+    REQUIRE(books.isValid());
+    pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    REQUIRE(pm.createProject(books.path(), QStringLiteral("Rain"), QStringLiteral("Author"),
+                             QStringLiteral("en"), true, QStringLiteral("kalahari.novel")));
+    const QString manifest = pm.getManifestPath();
+    REQUIRE(pm.closeProject(false));
+
+    // A new file written before the book opens (the flag outlives the window and its tabs)
+    bool fileClosed = false;
+    test::Window window;
+    window.documents.onNewDocument();
+    gui::EditorPanel* file = window.editor(0);
+    QObject::connect(file, &QObject::destroyed, [&fileClosed]() { fileClosed = true; });
+    test::write(*file, QStringLiteral("Ideas for a new book"));
+    REQUIRE(test::accepting([&]() { window.documents.onOpenRecentFile(manifest); }) == 0);
+    REQUIRE(pm.isProjectOpen());
+    window.tabs->setCurrentWidget(file);
+    CHECK_FALSE(window.infoBar->isHidden());
+    auto* button = window.infoBar->findChild<QPushButton*>();
+    REQUIRE(button != nullptr);
+    // No window follows, so no ellipsis
+    CHECK(button->text() == QStringLiteral("Add to Book"));
+
+    // No window to save the file, no question whether to copy or move it
+    QStringList said;
+    CHECK(test::accepting([&]() { window.documents.onAddToProject(); }, &said) == 0);
+    INFO(said.join(QStringLiteral("\n")).toStdString());
+
+    // A chapter at the end of the main text, with the title of a new chapter and the text of
+    // the file, in a file of its own in the book's folder
+    const QList<core::ProjectElement>& main = pm.project()->elementsIn(BookPlace::Main);
+    REQUIRE_FALSE(main.isEmpty());
+    const core::ProjectElement& added = main.last();
+    CHECK(added.title == QStringLiteral("Chapter 2"));
+    const QString addedPath = pm.filePathOf(added);
+    CHECK(addedPath.startsWith(QFileInfo(manifest).absolutePath()));
+    const std::optional<core::ChapterDocument> chapter = core::ChapterDocument::load(addedPath);
+    REQUIRE(chapter.has_value());
+    CHECK(core::ChapterDocument::kmlToPlainText(chapter->kml()).trimmed() ==
+          QStringLiteral("Ideas for a new book"));
+
+    // The chapter takes the place of the file's tab, which goes with its info bar
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    CHECK(fileClosed);
+    CHECK(window.tabs->tabText(window.tabs->currentIndex()) == QStringLiteral("Chapter 2"));
+    CHECK(window.editor(window.tabs->currentIndex())->getText().trimmed() ==
+          QStringLiteral("Ideas for a new book"));
+    CHECK(window.infoBar->isHidden());
+    CHECK(window.statusBar.currentMessage() ==
+          QStringLiteral("Chapter added to the book: Chapter 2"));
+
+    // A file on the disk goes to the book in the Add to Book window, which asks whether to copy
+    // or move it
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString notePath = QDir(files.path()).filePath(QStringLiteral("note.txt"));
+    {
+        QFile note(notePath);
+        REQUIRE(note.open(QIODevice::WriteOnly));
+        note.write("A note");
+    }
+    window.documents.openStandaloneFile(notePath);
+    CHECK(window.infoBar->filePath() == notePath);
+    CHECK(button->text() == QStringLiteral("Add to Book..."));
+    said.clear();
+    CHECK(test::accepting([&]() { window.documents.onAddToProject(); }, &said) == 1);
+    CHECK(said.join(QStringLiteral("\n")).contains(QStringLiteral("Add the File to the Book")));
+    pm.closeProject(false);
 }
 
 TEST_CASE("New File: a book opened from Recent Books leaves the changed files outside it open "

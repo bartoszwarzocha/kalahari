@@ -188,7 +188,8 @@ public slots:
     /// book opens as the element; other files get a message.
     void openStandaloneFile(const QString& path);
 
-    /// @brief Add the standalone file of the info bar (the current tab's) to the project
+    /// @brief Add the standalone file of the info bar (the current tab's) to the project: a new
+    /// file that has no file yet at once, any other file in the Add to Book window
     void onAddToProject();
 
     /// @brief Add a standalone file to the project, saving its tab's changes first
@@ -342,6 +343,12 @@ private:
     /// a new file starts in the folder of Open File
     /// @return true when the file was written
     bool saveStandaloneFileAs(EditorPanel* editor);
+
+    /// @brief Add the text of the new file of @p editor, which has no file yet, to the open
+    /// book, asking nothing: an element of the main text kind of the book, at the place of its
+    /// kind and with the title of a new element of it, whose file is in the book's folder; the
+    /// element takes the place of the file's tab
+    void addNewFileToProject(EditorPanel* editor);
 
     /// @brief Mark a standalone file tab as changed, with "*" before its name, at the first
     /// change of its text

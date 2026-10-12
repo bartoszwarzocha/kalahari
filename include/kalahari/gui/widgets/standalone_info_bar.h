@@ -49,8 +49,9 @@ public:
     /// @brief Destructor
     ~StandaloneInfoBar() override = default;
 
-    /// @brief Set the file path being displayed
-    /// @param path Path to the standalone file
+    /// @brief Set the file path being displayed; its button says "Add to Book" for a new file,
+    /// which goes into the book at once, and "Add to Book..." for a file on the disk
+    /// @param path Path to the standalone file; empty for a new file that has no file yet
     void setFilePath(const QString& path);
 
     /// @brief Get the current file path
@@ -58,7 +59,7 @@ public:
     QString filePath() const { return m_filePath; }
 
 signals:
-    /// @brief Emitted when "Add to Book..." button is clicked
+    /// @brief Emitted when the "Add to Book" button is clicked
     void addToProjectClicked();
 
 private:
