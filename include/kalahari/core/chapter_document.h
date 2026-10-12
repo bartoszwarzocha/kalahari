@@ -219,8 +219,8 @@ public:
 
     /// @brief Extract plain text from KML
     /// @param kml KML string
-    /// @return Text of the paragraphs, one per line, with entities decoded - the same
-    ///         text the editor shows
+    /// @return Text of the paragraphs, one per line, with entities decoded and the line
+    ///         breaks in them as QChar::LineSeparator - the same text the editor shows
     static QString kmlToPlainText(const QString& kml);
 
 private:

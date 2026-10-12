@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
+#include "kalahari/core/kind_words.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme.h"
 #include "kalahari/editor/book_editor.h"
@@ -423,10 +424,16 @@ TEST_CASE("Annotations panel: the hint of a chapter without annotations has the 
         return QString();
     };
 
+    // A chapter of the open book in front
+    const core::KindWords chapter{{{QStringLiteral("singular"), QStringLiteral("chapter")},
+                                   {QStringLiteral("plural"), QStringLiteral("chapters")}},
+                                  core::Gender::Masculine};
+
     SECTION("The command's keys") {
         registerAllCommands(CommandCallbacks{});
         AnnotationsPanel panel;
         panel.setDocumentAvailable(true);
+        panel.setKindNames(chapter, std::nullopt, true);
         panel.setEntries({});
         const Command* add = CommandRegistry::getInstance().getCommand("insert.annotation");
         REQUIRE(add != nullptr);
@@ -448,6 +455,7 @@ TEST_CASE("Annotations panel: the hint of a chapter without annotations has the 
         CommandRegistry::getInstance().clear();  // the singletons are reset once per test case
         AnnotationsPanel panel;
         panel.setDocumentAvailable(true);
+        panel.setKindNames(chapter, std::nullopt, true);
         panel.setEntries({});
         CHECK(hintOf(panel).endsWith(QStringLiteral("or a note from the context menu.")));
     }

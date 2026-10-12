@@ -1595,9 +1595,9 @@ may have them too.
   paragraph (there already: of the one before), Ctrl+Down – to the start of the next one;
   Home and End – the line; Ctrl+Home and Ctrl+End – the text; Page Up and Page Down – a
   screen; with Shift they select. Backspace (also Shift+Backspace) and Delete delete a
-  character, Ctrl+Backspace and Ctrl+Delete a word; a selection goes whole. Enter starts a
-  paragraph, and so do Shift+Enter and Ctrl+Enter for now (a line break inside a paragraph
-  needs a line break in KML). The second keys of the text fields of Windows: Ctrl+Shift+Z
+  character, Ctrl+Backspace and Ctrl+Delete a word; a selection goes whole. Enter and
+  Ctrl+Enter start a paragraph, Shift+Enter a new line in the paragraph (a line break, `<br/>`
+  in KML). The second keys of the text fields of Windows: Ctrl+Shift+Z
   and Alt+Shift+Backspace – redo, Alt+Backspace – undo, Shift+Delete – cut, Ctrl+Insert –
   copy, Shift+Insert – paste; Shift+F10 and the Menu key – the context menu. The table is
   `src/editor/text_keys.cpp`.
@@ -1757,8 +1757,9 @@ Option+Delete delete a word, Cmd+Backspace to the start of the line, Control+Bac
 last mark of a character. The Control keys: A and E – the start and the end of the
 paragraph; B, F, P, N – a character or a line; V – a screen down; H and D – delete; K – cut
 to the end of the paragraph, Y – paste it; T – swap the characters; O – a paragraph after
-the cursor; L – the line to the middle of the view. Cmd+Tab belongs to the system, so the
-tabs of the texts have no keys there.
+the cursor; L – the line to the middle of the view. Return, Cmd+Return and Option+Return
+start a paragraph, Shift+Return a new line in the paragraph. Cmd+Tab belongs to the system, so
+the tabs of the texts have no keys there.
 
 On Apple laptops the F keys are pressed with Fn.
 
@@ -1837,9 +1838,10 @@ Studio Code and Visual Studio. `src/gui/settings/shortcuts_page.cpp`.
 - **Search:** by the name of a command or the text of its keys ("ctrl+f" finds Ctrl+F). The
   words of a name may come in any order, and a word of five letters or more finds its other
   forms too, without its last letter (two of a word of seven): "książka" finds "Otwórz
-  książkę..." and "Zamknij książkę"; a word with other characters than letters stays whole
-  (a key is not a word with an ending). A whole key name finds that key: "ctrl+h" finds Ctrl+H
-  and not Ctrl+Home, "f1" finds F1 and not F10–F12; while no keys have it, it is a name being
+  książkę..." and "Zamknij książkę", "akapit" finds "Nowy wiersz w akapicie"; a word with
+  other characters than letters stays whole (a key is not a word with an ending). A whole key
+  name finds that key: "ctrl+h" finds Ctrl+H and not Ctrl+Home, "f1" finds F1 and not
+  F10–F12; while no keys have it, it is a name being
   written and finds the keys it begins ("shift+f1" finds Shift+F11). **Search by Keys** –
   press a shortcut, and the list shows what has it (a fixed key with what it does, a key
   that types text says so), or says it is free; Esc goes back to the search by text. **Only

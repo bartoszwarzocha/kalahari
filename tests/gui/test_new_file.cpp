@@ -12,6 +12,7 @@
 #include <kalahari/gui/menu_builder.h>
 #include <kalahari/gui/recent_books_menu.h>
 #include <kalahari/gui/toolbar_manager.h>
+#include <kalahari/gui/utils/access_keys.h>
 #include <kalahari/gui/utils/program_folders.h>
 #include <kalahari/gui/widgets/element_place_picker.h>
 
@@ -57,7 +58,8 @@ namespace {
 QStringList itemsOf(const QMenu& menu) {
     QStringList items;
     for (const QAction* action : menu.actions()) {
-        items << (action->isSeparator() ? QStringLiteral("-") : action->text());
+        items << (action->isSeparator() ? QStringLiteral("-")
+                                        : gui::withoutAccessKey(action->text()));
     }
     return items;
 }

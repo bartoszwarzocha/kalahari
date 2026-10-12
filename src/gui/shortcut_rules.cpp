@@ -247,6 +247,7 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
                 {A::KillToParagraphEnd, A::Yank}));
     row(keysFor(tr("Swap the characters around the cursor"), {A::Transpose}));
     row(keysFor(tr("New paragraph"), {A::NewParagraph}));
+    row(keysFor(tr("New line in the paragraph"), {A::NewLine}));
     row(keysFor(tr("New paragraph after the cursor"), {A::OpenLine}));
     row(keysFor(tr("Undo (second shortcut)"), {A::Undo}));
     row(keysFor(tr("Redo (second shortcut)"), {A::Redo}));
@@ -609,6 +610,9 @@ QString ShortcutRules::textKeyReason(QKeyCombination keys, TextKeyAction action,
         break;
     case TextKeyAction::NewParagraph:
         does = tr("starts a new paragraph");
+        break;
+    case TextKeyAction::NewLine:
+        does = tr("starts a new line in the paragraph");
         break;
     case TextKeyAction::OpenLine:
         does = tr("starts a new paragraph after the cursor");

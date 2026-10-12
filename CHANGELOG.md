@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Editor: a new line in the paragraph (Shift+Enter)** - 2026-10-11. Shift+Enter starts a
+  new line in the paragraph, as a manual line break in Word: the lines keep the paragraph's
+  alignment, spacing and formatting, and the break with the text typed after it is one undo
+  step. Enter and Ctrl+Enter start a paragraph as before. In the chapter's KML the break is
+  `<br/>`. Ctrl+Left and Ctrl+Right stop at it, Ctrl+Backspace and Ctrl+Delete next to it
+  delete only the break, and Home and End go to the ends of its line. The counts of words and
+  characters take it for a space. Copied, it is a line break for other programs (`<br>` in
+  HTML, a line end in plain text); the line breaks of a paragraph pasted from Word,
+  LibreOffice or a browser stay line breaks (also Word's vertical tab in plain text), while a
+  line end of plain text starts a paragraph as before. A `.txt` file gets a line end there,
+  and so do the grammar check, reading aloud and screen readers; a TODO in the text ends with
+  its line. In a justified paragraph the line before a break is not stretched to the right
+  edge, as the last line of a paragraph. Settings > Keyboard Shortcuts lists the key as "New
+  line in the paragraph". `docs/kml_format.md` tells how the formats to come (DOCX, Markdown,
+  EPUB and others) are to export and import the break.
+
 - **Menus: access keys** - 2026-10-11. Every item of every menu has an underlined letter, in
   English and in Polish: Alt with the letter of a menu opens it (Alt+F – File, in Polish Alt+P
   – Plik), and in an open menu the letter of an item chooses it. So do the context menus: of
@@ -771,6 +787,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   also after Enter, with an input method and in plain text pasted there. Moving the cursor,
   selecting, Undo and Redo drop them; given where the text has the format, the typed text is
   without it. Undoing a format brings back the cursor and the selection it was given with.
+
+- **Editor: text pasted from a web page without empty paragraphs** - 2026-10-11. Text
+  copied in a browser came into the book with an empty paragraph after each paragraph and
+  heading: the browsers leave a blank line between them in the plain text they copy. Now the
+  paragraphs come as they are on the page, read off the copied HTML; an empty paragraph of
+  the page stays, and the text of other programs comes as before.
 
 - **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
   texts of the Settings pages and the descriptions of the planned pages had a contrast of

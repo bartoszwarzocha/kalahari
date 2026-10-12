@@ -602,7 +602,7 @@ TEST_CASE("Dashboard: the text of the auto-load checkbox changes it", "[gui][das
         showOffScreen(dashboard);
         auto* checkBox = dashboard.findChild<QCheckBox*>();
         REQUIRE(checkBox != nullptr);
-        QLabel* text = labelWith(dashboard, QStringLiteral("Open last project on startup"));
+        QLabel* text = labelWith(dashboard, QStringLiteral("Open last book on startup"));
         CHECK(checkBox->accessibleName() == text->text());
         CHECK(text->buddy() == checkBox);
         REQUIRE_FALSE(checkBox->isChecked());

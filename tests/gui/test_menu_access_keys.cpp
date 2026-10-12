@@ -873,7 +873,7 @@ TEST_CASE("Menu access keys: a name the user gave gets a key no other item has",
     core::RecentBooksManager::getInstance().clearRecentFiles();
     REQUIRE(recentBooks->actions().size() == 1);
     const QAction* none = recentBooks->actions().constFirst();
-    CHECK(none->text() == QStringLiteral("No Recent Files"));
+    CHECK(none->text() == QStringLiteral("No Recent Books"));
     CHECK_FALSE(none->isEnabled());
 }
 

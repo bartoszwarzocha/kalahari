@@ -82,9 +82,13 @@ void BookEditor::syncSearchOrigin()
 
 void BookEditor::takeSearchTextFromSelection()
 {
-    // The search goes paragraph by paragraph: text across paragraphs would never be found
+    // The search goes paragraph by paragraph: text across paragraphs would never be found.
+    // A line break would show in the field as a space, which it does not find.
     if (hasSelection() && m_selection.start.paragraph == m_selection.end.paragraph) {
-        m_findReplaceBar->setSearchText(selectedText());
+        const QString text = selectedText();
+        if (!text.contains(QChar::LineSeparator)) {
+            m_findReplaceBar->setSearchText(text);
+        }
     }
 }
 

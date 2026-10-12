@@ -86,12 +86,13 @@ QString BookEditorAccessible::text(QAccessible::Text t) const
         return tr("Text editor for writing and editing book content");
 
     case QAccessible::Value:
-        // Return current line text for screen readers (Phase 11: QTextDocument)
+        // Return current line text for screen readers (Phase 11: QTextDocument), with its
+        // line breaks as line ends, as in the text of the whole document (toPlainText())
         if (auto* doc = editor->textDocument()) {
             const auto& pos = editor->cursorPosition();
             QTextBlock block = doc->findBlockByNumber(pos.paragraph);
             if (block.isValid()) {
-                return block.text();
+                return block.text().replace(QChar(QChar::LineSeparator), QLatin1Char('\n'));
             }
         }
         return QString();

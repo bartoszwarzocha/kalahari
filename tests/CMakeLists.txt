@@ -61,6 +61,7 @@ set(TEST_SOURCES
     editor/test_editor_stage5.cpp                # Editor Stage 5: highlight layer
     editor/test_text_keys.cpp                    # The keys of the text on each system
     editor/test_format_without_selection.cpp     # Formats given without a selection
+    editor/test_line_breaks.cpp                  # Line breaks in a paragraph (Shift+Enter)
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     gui/test_command_registry.cpp
@@ -283,12 +284,14 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/word_frequency_analyzer.cpp # Phase 6/Task 7.17: Word frequency
     ${CMAKE_SOURCE_DIR}/src/editor/spell_check_service.cpp     # Phase 6.4-6.9: Spell check service
     ${CMAKE_SOURCE_DIR}/src/editor/grammar_check_service.cpp  # Phase 6.14-6.17: Grammar check service
+    ${CMAKE_SOURCE_DIR}/src/editor/tag_detector.cpp           # Task 7.10: TODO and other tags
     # MOC headers for Q_OBJECT classes
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/statistics_collector.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/tag_detector.h  # TagDetector with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h  # ViewportManager with Q_OBJECT (OpenSpec #00043)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h   # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/style_resolver.h  # Sub-Project C WS4.4: StyleResolver with Q_OBJECT

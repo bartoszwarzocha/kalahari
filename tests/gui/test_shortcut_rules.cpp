@@ -278,6 +278,35 @@ TEST_CASE("Shortcut rules: the list shows every key of the text", "[gui][shortcu
     }
 }
 
+TEST_CASE("Shortcut rules: Shift+Enter starts a new line in the paragraph",
+          "[gui][shortcuts][rules][linebreak]") {
+    for (const ShortcutPlatform platform :
+         {ShortcutPlatform::Windows, ShortcutPlatform::Linux, ShortcutPlatform::MacOS}) {
+        const ShortcutRules rules(platform);
+        const std::vector<FixedKeyGroup> groups = rules.fixedGroups();
+        REQUIRE_FALSE(groups.empty());
+        const std::vector<FixedKeys>& rows = groups.front().rows;  // the keys of the text
+        const auto rowOf = [&rows](const QString& label) -> const FixedKeys* {
+            const auto it = std::find_if(rows.cbegin(), rows.cend(),
+                                         [&label](const FixedKeys& r) { return r.label == label; });
+            return it != rows.cend() ? &*it : nullptr;
+        };
+        const FixedKeys* newLine = rowOf(QStringLiteral("New line in the paragraph"));
+        const FixedKeys* newParagraph = rowOf(QStringLiteral("New paragraph"));
+        REQUIRE(newLine != nullptr);
+        REQUIRE(newParagraph != nullptr);
+
+        CHECK(newLine->covers(keys(SHIFT, Qt::Key_Return)));
+        CHECK(newLine->covers(QKeyCombination(SHIFT | Qt::KeypadModifier, Qt::Key_Enter)));
+        CHECK_FALSE(newParagraph->covers(keys(SHIFT, Qt::Key_Return)));
+        CHECK(newParagraph->covers(keys(NONE, Qt::Key_Return)));
+
+        const KeyCheck check = rules.check(keys(SHIFT, Qt::Key_Return), "file.close");
+        CHECK(check.result == Result::Refused);
+        CHECK(check.reason.contains(QStringLiteral("starts a new line in the paragraph")));
+    }
+}
+
 TEST_CASE("Shortcut rules: the keys of the find bar are fixed", "[gui][shortcuts][rules]") {
     // The bar's keys work while it is shown: a command with one of them would not get it
     // there, or be ambiguous
