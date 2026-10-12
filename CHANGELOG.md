@@ -89,7 +89,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Navigator shows a new or moved element, also inside a collapsed part. Deleting an element
   says that its file stays in the book's folder. Add to Project asks for the kind of the new
   element and can add a chapter to the body itself.
-  Close Book is on the File toolbar. A project archive leaves out the lock, the database log
+  The File menu has Open File under Open Book instead of an Open submenu, and the File and
+  Quick Actions toolbars start with the same buttons: New File, New Book, Open Book, Open
+  File, Save, Save As, Save All and Close Book. A toolbar customized before gets the buttons
+  it did not have once, where the default toolbar has them.
+  A project archive leaves out the lock, the database log
   files and the backups of the open book, whose log is first written to its database, and
   import skips the lock and the database's shared memory that earlier archives have, so an
   archive of an open book imports again; a failed import removes what it wrote. The book,

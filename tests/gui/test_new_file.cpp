@@ -291,15 +291,14 @@ TEST_CASE("New File: Open File after Open Book on the File and Quick Actions too
     gui::ToolbarManager manager(&window);
     manager.createToolbars(registry);
 
-    CHECK(joined(manager.getToolbarCommands(QStringLiteral("file"))) ==
-          "file.new | file.new.project | file.open | file.open.file | file.save | file.saveAs | "
-          "file.close");
-
-    // Quick Actions has every command of the File toolbar, in its order, and Save All
-    const QStringList quick = manager.getToolbarCommands(QStringLiteral("quickActions"));
-    CHECK(joined(quick.mid(0, 8)) ==
+    const QStringList file = manager.getToolbarCommands(QStringLiteral("file"));
+    CHECK(joined(file) ==
           "file.new | file.new.project | file.open | file.open.file | file.save | file.saveAs | "
           "file.saveAll | file.close");
+
+    // Quick Actions starts with every command of the File toolbar, in its order
+    const QStringList quick = manager.getToolbarCommands(QStringLiteral("quickActions"));
+    CHECK(joined(quick.mid(0, file.size())) == joined(file));
 
     // The buttons are the commands of the menu
     QToolBar* toolbar = manager.getToolbar("quickActions");
@@ -326,9 +325,10 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
             R"("file":["file.new","file.open","file.save","file.close"]}})");
         gui::ToolbarManager manager(&window);
         CHECK(joined(manager.getToolbarCommands(quickActions)) ==
-              "file.new | file.open | file.open.file | file.save | file.saveAs | edit.find");
+              "file.new | file.open | file.open.file | file.save | file.saveAs | file.close | "
+              "edit.find");
         CHECK(joined(manager.getToolbarCommands(QStringLiteral("file"))) ==
-              "file.new | file.open | file.open.file | file.save | file.close");
+              "file.new | file.open | file.open.file | file.save | file.saveAll | file.close");
 
         // A command the writer removes after that stays removed
         QStringList without = manager.getToolbarCommands(quickActions);
@@ -353,6 +353,9 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
         const QStringList quick = manager.getToolbarCommands(quickActions);
         CHECK(quick.count(QStringLiteral("file.open.file")) == 1);
         CHECK(quick.count(QStringLiteral("file.saveAs")) == 1);
+        CHECK(quick.count(QStringLiteral("file.close")) == 1);
+        CHECK(manager.getToolbarCommands(QStringLiteral("file")).count(
+                  QStringLiteral("file.saveAll")) == 1);
         CHECK(settings.get<std::string>("toolbars.configurations") == "{}");
     }
 }

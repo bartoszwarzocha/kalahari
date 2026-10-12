@@ -46,11 +46,14 @@ struct AddedCommand {
 /// The commands added to the built-in toolbars. A toolbar that the writer customized before
 /// gets each of them once, where the default toolbar has it; a writer who removes one keeps it
 /// removed. Version history:
-///   1: Open File on the File and Quick Actions toolbars, Save As on Quick Actions
-constexpr std::array<AddedCommand, 3> ADDED_COMMANDS{{
+///   1: Open File and Save All on the File toolbar; Open File, Save As and Close Book on
+///      Quick Actions
+constexpr std::array<AddedCommand, 5> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
+    {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
     {"quickActions", "file.saveAs", 1},
+    {"quickActions", "file.close", 1},
 }};
 
 /// The version of ADDED_COMMANDS: of its last commands
@@ -106,7 +109,7 @@ void ToolbarManager::initializeConfigs() {
         Qt::TopToolBarArea,
         false,  // hidden by default (accessible via Quick Actions)
         {"file.new", "file.new.project", "file.open", "file.open.file", "file.save",
-         "file.saveAs", "file.close"}
+         "file.saveAs", "file.saveAll", "file.close"}
     };
 
     // Edit Toolbar
@@ -194,7 +197,7 @@ void ToolbarManager::initializeConfigs() {
 
     // Quick Actions Toolbar (OpenSpec #00037 - Phase C)
     // Consolidated toolbar with most frequently used actions for rapid access: every command
-    // of the File toolbar, as text editors have them, and Save All
+    // of the File toolbar, in its order, as text editors have them
     // Note: Undo/Redo are in Edit toolbar, not duplicated here
     m_configs["quickActions"] = {
         "quickActions",
