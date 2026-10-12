@@ -14,6 +14,14 @@
 #include <functional>
 #include <utility>
 
+#if defined(Q_OS_WIN)
+#include <QStorageInfo>
+
+#include <string>
+
+#include <windows.h>
+#endif
+
 using namespace kalahari::core;
 
 namespace {
@@ -57,6 +65,63 @@ struct TestTrashInUse {
     TestTrashInUse(const TestTrashInUse&) = delete;
     TestTrashInUse& operator=(const TestTrashInUse&) = delete;
 };
+
+#if defined(Q_OS_WIN)
+
+/// @brief HKEY_CURRENT_USER of the program is a key of the test until the test ends: the test
+/// gives it the settings it needs, and the writer's settings stay as they are
+///
+/// Windows keeps the key of the test in memory only (a volatile key), and the test deletes it
+/// when it ends.
+class CurrentUserOfTest {
+public:
+    CurrentUserOfTest()
+        : m_name(L"Software\\Kalahari Tests\\File Trash " +
+                 std::to_wstring(GetCurrentProcessId())) {
+        if (RegCreateKeyExW(HKEY_CURRENT_USER, m_name.c_str(), 0, nullptr, REG_OPTION_VOLATILE,
+                            KEY_ALL_ACCESS, nullptr, &m_key, nullptr) == ERROR_SUCCESS) {
+            m_ready = RegOverridePredefKey(HKEY_CURRENT_USER, m_key) == ERROR_SUCCESS;
+        }
+    }
+    ~CurrentUserOfTest() {
+        if (m_ready) {
+            RegOverridePredefKey(HKEY_CURRENT_USER, nullptr);
+        }
+        if (m_key) {
+            RegCloseKey(m_key);
+            RegDeleteTreeW(HKEY_CURRENT_USER, m_name.c_str());
+            RegDeleteKeyW(HKEY_CURRENT_USER, m_name.c_str());
+            RegDeleteKeyW(HKEY_CURRENT_USER, L"Software\\Kalahari Tests");  // when it is empty
+        }
+    }
+    CurrentUserOfTest(const CurrentUserOfTest&) = delete;
+    CurrentUserOfTest& operator=(const CurrentUserOfTest&) = delete;
+
+    /// @brief Whether HKEY_CURRENT_USER of the program is the key of the test
+    [[nodiscard]] bool ready() const { return m_ready; }
+
+    /// @brief Set the number @p name in key @p key of the test's HKEY_CURRENT_USER
+    [[nodiscard]] bool setNumber(const std::wstring& key, const wchar_t* name,
+                                 DWORD value) const {
+        HKEY inner = nullptr;
+        if (RegCreateKeyExW(m_key, key.c_str(), 0, nullptr, REG_OPTION_VOLATILE, KEY_SET_VALUE,
+                            nullptr, &inner, nullptr) != ERROR_SUCCESS) {
+            return false;
+        }
+        const LSTATUS status =
+            RegSetValueExW(inner, name, 0, REG_DWORD, reinterpret_cast<const BYTE*>(&value),
+                           static_cast<DWORD>(sizeof(value)));
+        RegCloseKey(inner);
+        return status == ERROR_SUCCESS;
+    }
+
+private:
+    std::wstring m_name;
+    HKEY m_key = nullptr;
+    bool m_ready = false;
+};
+
+#endif
 
 }  // namespace
 
@@ -128,6 +193,69 @@ TEST_CASE("The user's Trash when the folder of the user's data is missing", "[fi
         QFileInfo::exists(QDir::current().filePath(QStringLiteral("files/chapter_001.kchapter"))));
 #else
     SKIP("The Trash of the system is checked on Linux, where the test has a Trash of its own");
+#endif
+}
+
+TEST_CASE("A drive whose Recycle Bin is switched off has no Trash", "[file_trash]") {
+#if defined(Q_OS_WIN)
+    QTemporaryDir books;
+    REQUIRE(books.isValid());
+    const QString path = QDir(books.path()).filePath(QStringLiteral("chapter_001.kchapter"));
+    writeFile(path, "{}");
+
+    // The drive of the test's folder and the GUID of its volume, under which Windows keeps the
+    // writer's settings of the drive's Recycle Bin
+    std::wstring root =
+        QDir::toNativeSeparators(QStorageInfo(books.path()).rootPath()).toStdWString();
+    if (!root.ends_with(L'\\')) {
+        root += L'\\';
+    }
+    wchar_t volume[MAX_PATH] = {};
+    if (GetDriveTypeW(root.c_str()) != DRIVE_FIXED ||
+        !GetVolumeNameForVolumeMountPointW(root.c_str(), volume, MAX_PATH)) {
+        SKIP("The folder of the test is not on a fixed drive with a volume");
+    }
+    const std::wstring volumeName(volume);
+    const std::size_t open = volumeName.find(L'{');
+    const std::size_t close = volumeName.find(L'}', open);
+    REQUIRE(open != std::wstring::npos);
+    REQUIRE(close != std::wstring::npos);
+    const std::wstring drive =
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\BitBucket\\Volume\\" +
+        volumeName.substr(open, close - open + 1);
+    const std::wstring policies =
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer";
+
+    // A policy of the computer switches the Recycle Bin off for every user
+    DWORD machinePolicy = 0;
+    DWORD size = static_cast<DWORD>(sizeof(machinePolicy));
+    if (RegGetValueW(HKEY_LOCAL_MACHINE, policies.c_str(), L"NoRecycleFiles", RRF_RT_REG_DWORD,
+                     nullptr, &machinePolicy, &size) == ERROR_SUCCESS &&
+        machinePolicy != 0) {
+        SKIP("A policy of this computer switches the Recycle Bin off");
+    }
+
+    const CurrentUserOfTest user;
+    REQUIRE(user.ready());
+    CHECK(canMoveToTrash(path));
+
+    SECTION("The writer switched the Recycle Bin of the drive off, and on again") {
+        REQUIRE(user.setNumber(drive, L"NukeOnDelete", 1));
+        CHECK_FALSE(canMoveToTrash(path));
+        CHECK_FALSE(canMoveToTrash(books.path()));
+
+        REQUIRE(user.setNumber(drive, L"NukeOnDelete", 0));
+        CHECK(canMoveToTrash(path));
+    }
+
+    SECTION("A policy of the user switches the Recycle Bin off") {
+        REQUIRE(user.setNumber(policies, L"NoRecycleFiles", 1));
+        CHECK_FALSE(canMoveToTrash(path));
+    }
+
+    CHECK(QFileInfo::exists(path));
+#else
+    SKIP("The Recycle Bin of a drive is a setting of Windows");
 #endif
 }
 

@@ -36,6 +36,49 @@ TestTrash& testTrash() {
     return trash;
 }
 
+#if defined(Q_OS_WIN)
+
+/// Whether the number @p name in key @p key of the registry @p root is there and is not 0
+bool registryFlag(HKEY root, const std::wstring& key, const wchar_t* name) {
+    DWORD value = 0;
+    DWORD size = static_cast<DWORD>(sizeof(value));
+    return RegGetValueW(root, key.c_str(), name, RRF_RT_REG_DWORD, nullptr, &value, &size) ==
+               ERROR_SUCCESS &&
+           value != 0;
+}
+
+/// Whether the Recycle Bin of the drive with the root folder @p root is switched off, so that
+/// Windows deletes its files for good: the writer chose "Don't move files to the Recycle Bin"
+/// for the drive, or a policy of the user or of the computer says "Do not move deleted files to
+/// the Recycle Bin"
+bool recycleBinSwitchedOff(const std::wstring& root) {
+    const std::wstring policies =
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer";
+    if (registryFlag(HKEY_CURRENT_USER, policies, L"NoRecycleFiles") ||
+        registryFlag(HKEY_LOCAL_MACHINE, policies, L"NoRecycleFiles")) {
+        return true;
+    }
+
+    // The settings of a drive are under the GUID of its volume, the part in braces of the name
+    // of the volume
+    wchar_t volume[MAX_PATH] = {};
+    if (!GetVolumeNameForVolumeMountPointW(root.c_str(), volume, MAX_PATH)) {
+        return false;
+    }
+    const std::wstring name(volume);
+    const std::size_t open = name.find(L'{');
+    const std::size_t close = name.find(L'}', open);
+    if (open == std::wstring::npos || close == std::wstring::npos) {
+        return false;
+    }
+    const std::wstring drive =
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\BitBucket\\Volume\\" +
+        name.substr(open, close - open + 1);
+    return registryFlag(HKEY_CURRENT_USER, drive, L"NukeOnDelete");
+}
+
+#endif
+
 #if !defined(Q_OS_WIN) && !defined(Q_OS_MACOS)
 
 /// Whether folder @p name in @p parent can hold the user's deleted files: it is a folder the
@@ -111,13 +154,13 @@ bool canMoveToTrash(const QString& path) {
         return false;
     }
 #if defined(Q_OS_WIN)
-    // Only fixed drives have a Recycle Bin
+    // Only fixed drives have a Recycle Bin, and the writer or a policy can switch it off
     QString root = QDir::toNativeSeparators(storage.rootPath());
     if (!root.endsWith(QLatin1Char('\\'))) {
         root += QLatin1Char('\\');
     }
     const std::wstring rootName = root.toStdWString();
-    return GetDriveTypeW(rootName.c_str()) == DRIVE_FIXED;
+    return GetDriveTypeW(rootName.c_str()) == DRIVE_FIXED && !recycleBinSwitchedOff(rootName);
 #elif defined(Q_OS_MACOS)
     // Local volumes are devices; network volumes are named after their server
     return storage.device().startsWith("/dev/");
