@@ -145,5 +145,7 @@ TEST_CASE("Panels: the panels on the right can be made narrow", "[gui][panels]")
     QDockWidget* annotations = panels.docks->annotationsDock();
     panels.window.resizeDocks({annotations}, {100}, Qt::Horizontal);
     QApplication::processEvents();
-    CHECK(annotations->width() <= 200);
+    // The panel is narrow; the dock adds its frame, wider in some styles (macOS)
+    CHECK(annotations->widget()->minimumSizeHint().width() <= 200);
+    CHECK(annotations->width() <= annotations->minimumSizeHint().width());
 }

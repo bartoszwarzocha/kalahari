@@ -146,19 +146,21 @@ TEST_CASE("Panels: a row of buttons goes on in the next line where the panel is 
           "[gui][panels]") {
     QWidget panel;
     auto* row = new FlowLayout(&panel, 6, 4);
-    std::vector<QPushButton*> buttons;
     for (const char* text : {"Comments 12", "To-dos 3", "Notes 7"}) {
-        auto* button = new QPushButton(QString::fromLatin1(text), &panel);
-        row->addWidget(button);
-        buttons.push_back(button);
+        row->addWidget(new QPushButton(QString::fromLatin1(text), &panel));
+    }
+    // The layout places the items, whose rectangles on macOS leave out the buttons' bezels
+    std::vector<QLayoutItem*> items;
+    for (int i = 0; i < row->count(); ++i) {
+        items.push_back(row->itemAt(i));
     }
     int widest = 0;
     int allInLine = -row->spacing();
-    for (QPushButton* button : buttons) {
-        widest = std::max(widest, button->sizeHint().width());
-        allInLine += button->sizeHint().width() + row->spacing();
+    for (QLayoutItem* item : items) {
+        widest = std::max(widest, item->sizeHint().width());
+        allInLine += item->sizeHint().width() + row->spacing();
     }
-    const int lineHeight = buttons.front()->sizeHint().height();
+    const int lineHeight = items.front()->sizeHint().height();
 
     SECTION("as narrow as its widest button") {
         CHECK(row->minimumSize().width() == widest);
@@ -166,16 +168,16 @@ TEST_CASE("Panels: a row of buttons goes on in the next line where the panel is 
     SECTION("in one line where it has the room") {
         row->setGeometry(QRect(0, 0, allInLine, row->heightForWidth(allInLine)));
         CHECK(row->heightForWidth(allInLine) == lineHeight);
-        CHECK(buttons.at(1)->y() == buttons.at(0)->y());
-        CHECK(buttons.at(2)->y() == buttons.at(0)->y());
+        CHECK(items.at(1)->geometry().y() == items.at(0)->geometry().y());
+        CHECK(items.at(2)->geometry().y() == items.at(0)->geometry().y());
     }
     SECTION("in three lines where only one button fits a line") {
         row->setGeometry(QRect(0, 0, widest, row->heightForWidth(widest)));
         CHECK(row->heightForWidth(widest) == 3 * lineHeight + 2 * row->lineSpacing());
-        CHECK(buttons.at(1)->y() > buttons.at(0)->y());
-        CHECK(buttons.at(2)->y() > buttons.at(1)->y());
-        for (QPushButton* button : buttons) {
-            CHECK(button->x() == 0);
+        CHECK(items.at(1)->geometry().y() > items.at(0)->geometry().y());
+        CHECK(items.at(2)->geometry().y() > items.at(1)->geometry().y());
+        for (QLayoutItem* item : items) {
+            CHECK(item->geometry().x() == 0);
         }
     }
 }
