@@ -560,7 +560,13 @@ void BookEditor::undoWithoutRedo()
 void BookEditor::clearUndoStack()
 {
     if (m_textBuffer) {
+        // QTextDocument would take the start of the new history for the saved content: it is
+        // told whether the content is the saved one (setModified() does nothing when the
+        // document already says so, hence the opposite first)
+        const bool modified = isModified();
         m_textBuffer->clearUndoRedoStacks();
+        m_textBuffer->setModified(!modified);
+        m_textBuffer->setModified(modified);
     }
 }
 
