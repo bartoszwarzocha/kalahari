@@ -196,8 +196,10 @@ TEST_CASE("The user's Trash when the folder of the user's data is missing", "[fi
 #endif
 }
 
-TEST_CASE("A drive whose Recycle Bin is switched off has no Trash", "[file_trash]") {
+// A test of Windows only: with the Catch2 of Linux (3.4), CTest takes a test case that only
+// skips for a failure
 #if defined(Q_OS_WIN)
+TEST_CASE("A drive whose Recycle Bin is switched off has no Trash", "[file_trash]") {
     QTemporaryDir books;
     REQUIRE(books.isValid());
     const QString path = QDir(books.path()).filePath(QStringLiteral("chapter_001.kchapter"));
@@ -254,10 +256,8 @@ TEST_CASE("A drive whose Recycle Bin is switched off has no Trash", "[file_trash
     }
 
     CHECK(QFileInfo::exists(path));
-#else
-    SKIP("The Recycle Bin of a drive is a setting of Windows");
-#endif
 }
+#endif
 
 TEST_CASE("A test puts its own Trash in place of the system's", "[file_trash]") {
     QTemporaryDir books;
