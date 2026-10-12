@@ -490,6 +490,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **End on macOS in a short text** - 2026-10-12. End, which on macOS moves only the view,
+  still scrolled to the bottom of the page below a text shorter than a page; it now goes to
+  the end of the text, as Ctrl+End does.
+
 - **Ctrl+End in a short text** - 2026-10-11. Ctrl+End and Ctrl+Shift+End scrolled to the
   bottom of the page, so the lines of a text shorter than a page left the view and only
   blank paper showed; the page view did the same on a last page filled only at its top. The
