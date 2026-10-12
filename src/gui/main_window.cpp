@@ -1299,17 +1299,12 @@ void MainWindow::updateBookCommands() {
     auto& registry = CommandRegistry::getInstance();
     if (Command* newText = registry.getCommand("book.newChapter")) {
         // Named after the texts it adds: "New Story..." in a collection of short stories,
-        // "New Chapter..." without a book. Only a '&' of the kind's name is doubled: the
-        // text's own '&' marks its access key
+        // "New Chapter..." without a book
         const auto& projects = core::ProjectManager::getInstance();
         const core::KindRef kind = projects.isProjectOpen()
                                        ? projects.chapterKindFor(core::BookPlace::Main)
                                        : core::KindRef{};
-        //: In Polish: &{kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...
-        const QString text = tr("&New {Kind}...");
-        const QString menuText =
-            kind ? core::fillWords(text, {{QStringLiteral("kind"), menuWords(wordsOf(kind))}})
-                 : QCoreApplication::translate("CommandRegistrar", "&New Chapter...");
+        const QString menuText = newTextMenuText(kind);
         newText->menuText = menuText.toStdString();
         newText->label = withoutAccessKey(menuText).toStdString();
         newText->tooltip = newText->label;

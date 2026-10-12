@@ -699,6 +699,11 @@
         <extracomment>The type of a book whose package is not installed; %1: the id of the type. In Polish: %1 (typ niezainstalowany)</extracomment>
         <translation>%1 (typ niezainstalowany)</translation>
     </message>
+    <message>
+        <source>&amp;New {Kind}...</source>
+        <extracomment>Book &gt; New Chapter... named after the texts it adds, e.g. New Story... In Polish: &amp;{kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...</extracomment>
+        <translation>&amp;{kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...</translation>
+    </message>
 </context>
 <context>
     <name>KindPalette</name>
@@ -5119,11 +5124,6 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Do&amp;n&apos;t Save</source>
         <translation>&amp;Nie zapisuj</translation>
-    </message>
-    <message>
-        <source>&amp;New {Kind}...</source>
-        <extracomment>In Polish: &amp;{kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...</extracomment>
-        <translation>&amp;{kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...</translation>
     </message>
 </context>
 <context>

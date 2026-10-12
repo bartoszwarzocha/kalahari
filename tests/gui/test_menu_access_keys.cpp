@@ -7,12 +7,15 @@
 /// which no other item of the same menu has, in English and in the Polish translation the
 /// program ships (embedded under :/i18n, as in the program). So do the context menus: of the
 /// text (with the words for a misspelled word and for a grammar issue), of the Navigator, of
-/// Qt's fields and of the panels' titles. A line that only tells something has none.
+/// Qt's fields and of the panels' titles. A line that only tells something has none. Book > New
+/// Chapter..., named after the texts of the open book ("New Story..."), keeps its key with the
+/// name of each kind of the installed book types.
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
 #include "context_menu_reader.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/editor/annotation.h"
@@ -24,6 +27,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/diagnostic_menus.h"
 #include "kalahari/gui/dock_coordinator.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/annotation_card.h"
@@ -74,16 +78,21 @@ using namespace kalahari::gui;
 
 namespace {
 
-/// The menus in Polish while it lives: the translation the program ships
+/// The menus in Polish while it lives: the translation the program ships, with the names of
+/// the kinds of elements in Polish
 class Polish {
 public:
-    Polish() {
+    Polish() : m_language(programLanguage()) {
         m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
         if (m_loaded) {
             QCoreApplication::installTranslator(&m_translator);
         }
+        setProgramLanguage(QStringLiteral("pl"));
     }
-    ~Polish() { QCoreApplication::removeTranslator(&m_translator); }
+    ~Polish() {
+        QCoreApplication::removeTranslator(&m_translator);
+        setProgramLanguage(m_language);
+    }
     Polish(const Polish&) = delete;
     Polish& operator=(const Polish&) = delete;
 
@@ -91,6 +100,7 @@ public:
 
 private:
     QTranslator m_translator;
+    QString m_language;  ///< The program's language before
     bool m_loaded = false;
 };
 
@@ -237,6 +247,7 @@ public:
     }
 
     [[nodiscard]] QMenuBar* menuBar() { return m_window.menuBar(); }
+    [[nodiscard]] QMenu* menu(const std::string& path) const { return m_builder.getMenu(path); }
     [[nodiscard]] ToolbarManager& toolbars() { return *m_toolbars; }
     [[nodiscard]] const QString& userToolbar() const { return m_userToolbar; }
 
@@ -267,6 +278,27 @@ void checkEveryMenu() {
     const QList<test::MenuItem> menuBar = test::menuItems(menus.menuBar()->actions());
     collectProblems(menuBar, QStringLiteral("Menu bar"), {}, problems);
     CHECK(itemCount(menuBar) > 150);
+
+    // Book > New Chapter... as MainWindow names it after the texts of the open book
+    // ("&New Story..."): with the name of each kind of the installed types, it keeps its key
+    QMenu* bookMenu = menus.menu("BOOK");
+    QAction* newText = CommandRegistry::getInstance().getAction(QStringLiteral("book.newChapter"));
+    REQUIRE(bookMenu != nullptr);
+    REQUIRE(newText != nullptr);
+    const QString commandText = newText->text();
+    CHECK(newTextMenuText({}) == commandText);
+    core::BookTypeRegistry types;
+    types.load({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    const QList<core::KindRef> kinds = types.allKinds();
+    CHECK(kinds.size() > 20);
+    for (const core::KindRef& kind : kinds) {
+        newText->setText(newTextMenuText(kind));
+        INFO(newText->text().toStdString());
+        CHECK(accessKeyOf(newText->text()) == accessKeyOf(commandText));
+        collectProblems(test::menuItems(bookMenu->actions()),
+                        QStringLiteral("Book with ") + kind.reference(), {}, problems);
+    }
+    newText->setText(commandText);
 
     // Alt with a letter opens a menu: Settings > Keyboard Shortcuts keeps those for them
     for (const QAction* menu : menus.menuBar()->actions()) {
@@ -531,8 +563,8 @@ void checkTextMenus(bool shown, QStringList& problems) {
 }
 
 /// The context menus of the Navigator, for every kind of its items: a novel with a part, an
-/// element of the back matter and a chapter file that no element has, with its sections shown
-/// and hidden, and a file outside the book
+/// element of the back matter, an element that opens in a window of its own and a chapter file
+/// that no element has, with its sections shown and hidden, and a file outside the book
 void checkNavigatorMenus(QStringList& problems) {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
@@ -556,6 +588,14 @@ void checkNavigatorMenus(QStringList& problems) {
     REQUIRE_FALSE(
         pm.addElement(backKinds.first(), QStringLiteral("Afterword"), core::BookPlace::Back)
             .isEmpty());
+    // The program makes no element that opens in a window yet: the book has one, as a book of
+    // a later version can
+    core::ProjectElement contents;
+    contents.id = QStringLiteral("contents");
+    contents.kind = *core::KindReference::parse(QStringLiteral("kalahari.base:toc"));
+    contents.title = QStringLiteral("Contents");
+    REQUIRE(pm.book() != nullptr);
+    pm.book()->frontElements.append(contents);
 
     QWidget window;
     window.setAttribute(Qt::WA_DontShowOnScreen);
@@ -589,14 +629,17 @@ void checkNavigatorMenus(QStringList& problems) {
           QSet<QString>{QStringLiteral("document"), QStringLiteral("section_frontmatter"),
                         QStringLiteral("section_body"), QStringLiteral("section_backmatter"),
                         QStringLiteral("text_element"), QStringLiteral("group_element"),
-                        QStringLiteral("unassigned_files"), QStringLiteral("unassigned_file"),
-                        QStringLiteral("other_files"), QStringLiteral("standalone_file")});
+                        QStringLiteral("window_element"), QStringLiteral("unassigned_files"),
+                        QStringLiteral("unassigned_file"), QStringLiteral("other_files"),
+                        QStringLiteral("standalone_file")});
 
     // Without sections the book's item adds the elements, also of the front and back matter
     REQUIRE(pm.setSections({false, QString(), {}}));
     coordinator.refreshNavigator();
-    CHECK(readMenus(QStringLiteral("Navigator without sections › "))
-              .contains(QStringLiteral("document")));
+    const QSet<QString> withoutSections =
+        readMenus(QStringLiteral("Navigator without sections › "));
+    CHECK(withoutSections.contains(QStringLiteral("document")));
+    CHECK(withoutSections.contains(QStringLiteral("window_element")));
     pm.closeProject(false);
 }
 

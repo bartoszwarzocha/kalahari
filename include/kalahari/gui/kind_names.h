@@ -46,6 +46,11 @@ core::KindWords wordsOf(const core::KindRef& kind);
 /// its mark ("&New {Kind}...")
 core::KindWords menuWords(core::KindWords words);
 
+/// @brief Text of Book > New Chapter... in the menu, named after @p kind, the kind of the texts
+/// the command adds: "&New Story...", with the command's access key and each '&' of the name
+/// doubled (menuWords()); without a kind, the command's own text, "&New Chapter..."
+QString newTextMenuText(const core::KindRef& kind);
+
 /// @brief Forms of the name of the kind of @p element, a kind of @p registry; when the registry
 /// does not have the kind (its package is not installed), the id of the kind stands for its name
 core::KindWords wordsOf(const core::BookTypeRegistry& registry,

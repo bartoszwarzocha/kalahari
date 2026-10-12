@@ -51,6 +51,16 @@ core::KindWords menuWords(core::KindWords words) {
     return words;
 }
 
+QString newTextMenuText(const core::KindRef& kind) {
+    if (!kind) {
+        return QCoreApplication::translate("CommandRegistrar", "&New Chapter...");
+    }
+    //: Book > New Chapter... named after the texts it adds, e.g. New Story... In Polish:
+    //: &{kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...
+    return core::fillWords(QCoreApplication::translate("KindNames", "&New {Kind}..."),
+                           {{QStringLiteral("kind"), menuWords(wordsOf(kind))}});
+}
+
 core::KindWords wordsOf(const core::BookTypeRegistry& registry,
                         const core::ProjectElement& element) {
     if (const core::KindRef kind = core::BookProject::kindOf(registry, element)) {
