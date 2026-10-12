@@ -570,9 +570,7 @@ void BookEditor::updateScrollBarRange()
     if (m_viewportManager) {
         maxOffset = m_viewportManager->maxScrollPosition();
         // The view below the find/replace bar over its top
-        const double topBar = m_renderPipeline ? m_renderPipeline->context().topBarHeight : 0.0;
-        pageStep = m_viewportManager->visibleDocumentHeight() -
-                   topBar / m_viewportManager->viewScale();
+        pageStep = viewHeightBelowBar();
     }
 
     // Update scrollbar without triggering signals

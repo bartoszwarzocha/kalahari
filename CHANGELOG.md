@@ -742,10 +742,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   background of its own: the text scrolled under it showed between its fields and over the
   number of matches. It now covers the text under it, and a match the view scrolls to is
   shown below the bar, not under it (Find Previous put it at the top of the view, under the
-  bar). Tab goes from the search text to the replacement and its buttons, then to the
-  options, the arrows and Close, as in Word's Find and Replace (it went through the six
-  buttons of the search row first); Enter presses the button with the cursor, as Space does
-  (it did nothing).
+  bar). On macOS Page Up and Page Down, which move the view only, scroll by the part of the
+  view below the bar, and Control+L puts the cursor's line in the middle of that part (no
+  line goes by unseen under the bar). Tab goes from the search text to the replacement and
+  its buttons, then to the options, the arrows and Close, as in Word's Find and Replace (it
+  went through the six buttons of the search row first); Enter presses the button with the
+  cursor, as Space does (it did nothing).
 
 - **Find bar: undoing a replacement** - 2026-10-11. Undoing Replace All put the cursor at
   the start of the chapter, far from where the writer was. Undoing a replacement now brings

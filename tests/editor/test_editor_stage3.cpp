@@ -1539,8 +1539,11 @@ TEST_CASE("Stage3 find: with the bar open the whole text comes into view",
     const auto caret = [&editor] {
         return editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
     };
+    // A key that moves the cursor: on macOS Page Up and Page Down do with Option (alone they
+    // move the view only, as in the text fields of macOS)
     const auto press = [&editor](Qt::Key key) {
-        QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
+        const Qt::KeyboardModifiers modifiers = isMacOS() ? Qt::AltModifier : Qt::NoModifier;
+        QKeyEvent event(QEvent::KeyPress, key, modifiers);
         QCoreApplication::sendEvent(editor.get(), &event);
     };
 
@@ -1548,6 +1551,24 @@ TEST_CASE("Stage3 find: with the bar open the whole text comes into view",
         editor->setCursorPosition({299, static_cast<int>(paragraphs[299].size())});
         CHECK(caret().top() >= bar->geometry().bottom());
         CHECK(caret().bottom() <= editor->height());
+    }
+
+    SECTION("Page Down and Page Up of macOS scroll by the view below the bar") {
+        // They move the view only: no line goes by unseen under the bar
+        const double belowBar = (editor->height() - bar->height()) / editor->zoomFactor();
+        const qreal top = editor->scrollOffset();
+        editor->performTextKey(TextKeyAction::ScrollPageDown);
+        CHECK(editor->scrollOffset() == Approx(top + belowBar).margin(1.0));
+        editor->performTextKey(TextKeyAction::ScrollPageUp);
+        CHECK(editor->scrollOffset() == Approx(top).margin(1.0));
+        CHECK(editor->cursorPosition() == CursorPosition{0, 0});
+    }
+
+    SECTION("Control+L of macOS puts the cursor's line in the middle of the view below the bar") {
+        editor->setCursorPosition({150, 0});
+        editor->performTextKey(TextKeyAction::CenterCursor);
+        const double middle = (bar->height() + editor->height()) / 2.0;
+        CHECK(std::abs(caret().center().y() - middle) < caret().height());
     }
 
     SECTION("a click beside the scroll bar's handle scrolls by the view below the bar") {

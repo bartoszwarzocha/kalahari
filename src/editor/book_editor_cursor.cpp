@@ -601,8 +601,7 @@ void BookEditor::moveCursorByViewHeight(double direction)
     }
     // The view below the find/replace bar over its top
     const double topBar = m_renderPipeline->context().topBarHeight;
-    const double viewHeight =
-        m_viewportManager->visibleDocumentHeight() - topBar / m_viewportManager->viewScale();
+    const double viewHeight = viewHeightBelowBar();
     if (viewHeight <= 0.0) {
         return;
     }
@@ -1436,12 +1435,22 @@ CursorPosition BookEditor::lineEndOf(const CursorPosition& position) const
     return {position.paragraph, end};
 }
 
+double BookEditor::viewHeightBelowBar() const
+{
+    if (!m_viewportManager) {
+        return 0.0;
+    }
+    const double topBar = m_renderPipeline ? m_renderPipeline->context().topBarHeight : 0.0;
+    return m_viewportManager->visibleDocumentHeight() - topBar / m_viewportManager->viewScale();
+}
+
 void BookEditor::scrollByViewHeight(double direction)
 {
     if (!m_viewportManager) {
         return;
     }
-    scrollTo(scrollOffset() + direction * m_viewportManager->visibleDocumentHeight(), false);
+    // No line goes by unseen under the find/replace bar
+    scrollTo(scrollOffset() + direction * std::max(0.0, viewHeightBelowBar()), false);
 }
 
 void BookEditor::centerCursorInView()
@@ -1453,11 +1462,12 @@ void BookEditor::centerCursorInView()
     if (caret.isNull()) {
         return;
     }
-    // In document units: where the cursor's line is and where the middle of the view is
+    // In document units: where the cursor's line is and where the middle of the view below
+    // the find/replace bar is
+    const double topBar = m_renderPipeline->context().topBarHeight;
     const double caretMiddle = m_renderPipeline->widgetToDocument(caret.center()).y();
-    const double viewMiddle =
-        m_renderPipeline->widgetToDocument(QPointF(0.0, 0.0)).y() +
-        m_viewportManager->visibleDocumentHeight() / 2.0;
+    const double viewMiddle = m_renderPipeline->widgetToDocument(QPointF(0.0, topBar)).y() +
+                              viewHeightBelowBar() / 2.0;
     scrollTo(scrollOffset() + caretMiddle - viewMiddle, false);
 }
 

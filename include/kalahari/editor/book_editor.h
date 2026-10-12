@@ -1424,10 +1424,15 @@ private:
     ///        wrapped line breaks at)
     CursorPosition lineEndOf(const CursorPosition& position) const;
 
-    /// @brief Scroll the view by its height (-1 up, 1 down); the cursor stays
+    /// @brief The height of the view below the find/replace bar over its top, in document
+    ///        units (the whole view while the bar is closed)
+    [[nodiscard]] double viewHeightBelowBar() const;
+
+    /// @brief Scroll the view by its height below the find/replace bar (-1 up, 1 down); the
+    ///        cursor stays
     void scrollByViewHeight(double direction);
 
-    /// @brief Scroll the cursor's line to the middle of the view
+    /// @brief Scroll the cursor's line to the middle of the view below the find/replace bar
     void centerCursorInView();
 
     /// @brief Delete from the cursor to a position, or the selection when there is one
