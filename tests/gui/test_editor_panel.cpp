@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <vector>
 
 using namespace kalahari;
 using Catch::Approx;
@@ -188,4 +189,32 @@ TEST_CASE("Editor panel: the text's context menu has the commands of the Edit me
     REQUIRE_FALSE(edit.contains(nullptr));
     REQUIRE(commands.size() > edit.size());
     CHECK(commands.mid(0, edit.size()) == edit);
+}
+
+TEST_CASE("Editor panel: says whether its text differs from the saved text", "[gui][editor]") {
+    gui::EditorPanel panel;
+    REQUIRE(panel.setContent(test::kmlOf({QStringLiteral("One two.")})));
+    std::vector<bool> said;  // what modifiedChanged() said, in order
+    QObject::connect(&panel, &gui::EditorPanel::modifiedChanged,
+                     [&said](bool modified) { said.push_back(modified); });
+    CHECK_FALSE(panel.isModified());
+
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    bookEditor->setCursorPosition({0, 3});
+    bookEditor->insertText(QStringLiteral(","));
+    CHECK(panel.isModified());
+    CHECK(said == std::vector<bool>{true});
+
+    panel.setUnmodified();  // as after saving it
+    CHECK_FALSE(panel.isModified());
+    CHECK(said == std::vector<bool>{true, false});
+
+    // The text of a plain text file, typed in and brought back
+    panel.setText(QStringLiteral("Line one\nLine two"));
+    bookEditor->setCursorPosition({1, 0});
+    bookEditor->insertText(QStringLiteral("x"));
+    CHECK(panel.isModified());
+    bookEditor->deleteBackward();
+    CHECK_FALSE(panel.isModified());
+    CHECK(test::waitUntil([&said]() { return !said.back(); }));
 }

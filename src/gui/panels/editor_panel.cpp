@@ -49,6 +49,8 @@ EditorPanel::EditorPanel(QWidget* parent)
     // Connect BookEditor's contentChanged signal to our signal
     connect(m_bookEditor, &editor::BookEditor::contentChanged,
             this, &EditorPanel::contentChanged);
+    connect(m_bookEditor, &editor::BookEditor::modifiedChanged, this,
+            &EditorPanel::modifiedChanged);
 
     // The text's context menu cuts, copies, pastes and selects all with the commands of the
     // Edit menu: their icons and keys, enabled as there
@@ -166,6 +168,16 @@ QString EditorPanel::getContent() const {
         return m_bookEditor->toKml();
     }
     return QString();
+}
+
+bool EditorPanel::isModified() const {
+    return m_bookEditor && m_bookEditor->isModified();
+}
+
+void EditorPanel::setUnmodified() {
+    if (m_bookEditor) {
+        m_bookEditor->setUnmodified();
+    }
 }
 
 void EditorPanel::applySettings() {
