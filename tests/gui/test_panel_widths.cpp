@@ -151,6 +151,7 @@ TEST_CASE("Panels: a row of buttons goes on in the next line where the panel is 
     }
     // The layout places the items, whose rectangles on macOS leave out the buttons' bezels
     std::vector<QLayoutItem*> items;
+    items.reserve(static_cast<std::size_t>(row->count()));
     for (int i = 0; i < row->count(); ++i) {
         items.push_back(row->itemAt(i));
     }
