@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/panels/assistant_panel.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/gui/widgets/wrapping_label.h"
 #include <QLabel>
 #include <QVBoxLayout>
 
@@ -19,8 +20,8 @@ AssistantPanel::AssistantPanel(QWidget* parent)
     // Create layout
     QVBoxLayout* layout = new QVBoxLayout(this);
 
-    // Create placeholder label
-    m_placeholderLabel = new QLabel(tr("Assistant Panel\n🦁\n(Placeholder - full implementation in Phase 2+)"), this);
+    // Create placeholder label; it wraps on a narrow panel
+    m_placeholderLabel = new WrappingLabel(tr("Assistant Panel\n🦁\n(Placeholder - full implementation in Phase 2+)"), this);
     m_placeholderLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(m_placeholderLabel);
 

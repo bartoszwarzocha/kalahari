@@ -7,7 +7,9 @@
 
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/panels/dashboard_layouts.h"
+#include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/widgets/path_label.h"
 #include "kalahari/gui/widgets/wrapping_label.h"
@@ -746,7 +748,13 @@ void DashboardPanel::applyThemeColors()
     QString borderColor = theme.palette.mid.name();
     QString primaryColor = theme.colors.infoHeader.name();
     QString textColor = theme.palette.windowText.name();
-    QString mutedColor = theme.palette.placeholderText.name();
+    // Muted texts: the color of the notes, readable on what each of them lies on (the
+    // window, the shortcuts frame, a file card under the mouse)
+    const QColor mutedOnWindow = SettingsPage::noteColorOn(theme.palette.window);
+    QString mutedColor = mutedOnWindow.name();
+    QString mutedOnFrame = SettingsPage::noteColorOn(theme.palette.base).name();
+    QString mutedOnCard =
+        readableColor(mutedOnWindow, theme.palette.alternateBase, MIN_TEXT_CONTRAST).name();
 
     // Apply to scroll area
     m_scrollArea->setStyleSheet(QString("QScrollArea { background: %1; border: none; }").arg(bgColor));
@@ -773,7 +781,7 @@ void DashboardPanel::applyThemeColors()
 
     // Shortcuts title
     if (m_shortcutsTitleLabel) {
-        m_shortcutsTitleLabel->setStyleSheet(QString("color: %1; background: transparent;").arg(mutedColor));
+        m_shortcutsTitleLabel->setStyleSheet(QString("color: %1; background: transparent;").arg(mutedOnFrame));
     }
 
     // Shortcut labels - ensure transparent background
@@ -833,9 +841,9 @@ void DashboardPanel::applyThemeColors()
 
     // Card text styling - ALL must have transparent background for hover to work!
     QString cardTitleStyle = QString("color: %1; background: transparent;").arg(textColor);
-    QString cardDescStyle = QString("color: %1; background: transparent;").arg(mutedColor);
-    QString cardPathStyle = QString("color: %1; background: transparent;").arg(mutedColor);
-    QString cardDateStyle = QString("color: %1; background: transparent;").arg(mutedColor);
+    QString cardDescStyle = QString("color: %1; background: transparent;").arg(mutedOnCard);
+    QString cardPathStyle = QString("color: %1; background: transparent;").arg(mutedOnCard);
+    QString cardDateStyle = QString("color: %1; background: transparent;").arg(mutedOnCard);
 
     QList<QLabel*> titles = m_filesListWidget->findChildren<QLabel*>("cardTitle");
     for (auto* label : titles) {

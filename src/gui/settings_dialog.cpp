@@ -66,6 +66,9 @@ SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode,
     contentLayout()->addWidget(splitter, 1);
 
     createNavigationTree();
+    updatePlannedItemColors();
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
+            &SettingsDialog::updatePlannedItemColors);
 
     // The groups as wide as the longest of them, with room for a scroll bar on a low screen:
     // the pages get the rest
@@ -201,9 +204,17 @@ void SettingsDialog::addPlannedPage(QTreeWidgetItem* parent, const QString& titl
         layout->addStretch();
         return placeholder;
     });
-    // Greyed out in the tree, like the options the program does not use yet
-    item->setForeground(0, core::ThemeManager::getInstance().getCurrentTheme().palette.mid);
+    // Muted in the tree, like the notes, and still readable on the list
+    m_plannedItems.push_back(item);
     item->setToolTip(0, tr("Coming in future version"));
+}
+
+void SettingsDialog::updatePlannedItemColors() {
+    const QColor color =
+        SettingsPage::noteColorOn(core::ThemeManager::getInstance().getCurrentTheme().palette.base);
+    for (QTreeWidgetItem* item : m_plannedItems) {
+        item->setForeground(0, color);
+    }
 }
 
 void SettingsDialog::showPage(QTreeWidgetItem* item) {

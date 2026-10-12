@@ -14,6 +14,7 @@
 #include <QMainWindow>
 #include <QMetaObject>
 #include <QStatusBar>
+#include <QStyle>
 #include <QTabBar>
 #include <QTemporaryDir>
 #include <QTreeWidget>
@@ -137,4 +138,22 @@ TEST_CASE("Panels: the Properties command of the Navigator brings the Properties
     QApplication::processEvents();
 
     CHECK(panels.onTop(panels.docks->propertiesDock()));
+}
+
+TEST_CASE("Panels: the panels on the right can be made narrow", "[gui][panels]") {
+    // On a small screen (1366x768 at 150%) wide panels on the right left the editor little room
+    // The program's style (Fusion): its tab bars scroll, the macOS style's are as wide as their tabs
+    const QString systemStyle = QApplication::style()->name();
+    QApplication::setStyle(QStringLiteral("Fusion"));
+    struct StyleBack {
+        QString name;
+        ~StyleBack() { QApplication::setStyle(name); }
+    } styleBack{systemStyle};
+    Panels panels;
+    QDockWidget* annotations = panels.docks->annotationsDock();
+    panels.window.resizeDocks({annotations}, {100}, Qt::Horizontal);
+    QApplication::processEvents();
+    // The panel is narrow; the dock adds its frame, wider in some styles (macOS)
+    CHECK(annotations->widget()->minimumSizeHint().width() <= 200);
+    CHECK(annotations->width() <= annotations->minimumSizeHint().width());
 }

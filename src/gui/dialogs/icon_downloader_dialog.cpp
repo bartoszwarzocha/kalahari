@@ -8,6 +8,7 @@
 #include "kalahari/core/utils/svg_converter.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/gui/settings/settings_page.h"
 
 #include <QVBoxLayout>
 #include <QScrollArea>
@@ -74,15 +75,15 @@ void IconDownloaderDialog::setupUi() {
     QGroupBox* urlGroup = new QGroupBox(tr("Icon URL"), this);
     QVBoxLayout* urlLayout = new QVBoxLayout(urlGroup);
 
-    // Use theme-aware muted text color
     const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
     QLabel* urlHint = new QLabel(
         tr("Enter full URL to SVG icon. Example:") + QStringLiteral("\n"
         "https://raw.githubusercontent.com/google/material-design-icons/master/src/content/save/materialiconstwotone/24px.svg"),
         urlGroup);
     urlHint->setWordWrap(true);
+    // The color of the notes: readable in the group
     urlHint->setStyleSheet(QString("color: %1; font-size: 11px;")
-        .arg(theme.palette.mid.name()));
+        .arg(SettingsPage::noteColor().name()));
     urlLayout->addWidget(urlHint);
 
     m_sourceUrlEdit = new QLineEdit(urlGroup);
