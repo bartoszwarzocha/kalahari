@@ -4770,6 +4770,10 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Nowy akapit</translation>
     </message>
     <message>
+        <source>New line in the paragraph</source>
+        <translation>Nowy wiersz w akapicie</translation>
+    </message>
+    <message>
         <source>New paragraph after the cursor</source>
         <translation>Nowy akapit za kursorem</translation>
     </message>
@@ -5320,6 +5324,10 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>starts a new paragraph</source>
         <translation>zaczyna nowy akapit</translation>
+    </message>
+    <message>
+        <source>starts a new line in the paragraph</source>
+        <translation>zaczyna nowy wiersz w akapicie</translation>
     </message>
     <message>
         <source>starts a new paragraph after the cursor</source>

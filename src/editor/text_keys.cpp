@@ -31,11 +31,11 @@ public:
         return this->key(key, modifiers, action).key(key, modifiers | SHIFT, action, true);
     }
 
-    /// Enter of the main keyboard and of the keypad starts a paragraph
-    Table& newParagraph(std::initializer_list<Qt::KeyboardModifiers> modifiers) {
+    /// Enter of the main keyboard and of the keypad, with each of the modifiers
+    Table& enter(std::initializer_list<Qt::KeyboardModifiers> modifiers, Action action) {
         for (const Qt::Key enter : {Qt::Key_Return, Qt::Key_Enter}) {
             for (const Qt::KeyboardModifiers modifier : modifiers) {
-                key(enter, modifier, Action::NewParagraph);
+                key(enter, modifier, action);
             }
         }
         return *this;
@@ -69,7 +69,8 @@ std::vector<TextKey> windowsKeys() {
         .key(Qt::Key_Delete, NONE, Action::DeleteForward)
         .key(Qt::Key_Backspace, CTRL, Action::DeleteWordBackward)
         .key(Qt::Key_Delete, CTRL, Action::DeleteWordForward)
-        .newParagraph({NONE, SHIFT, CTRL})
+        .enter({NONE, CTRL}, Action::NewParagraph)
+        .enter({SHIFT}, Action::NewLine)
         // The second keys of the commands, those of every Windows text field
         .key(Qt::Key_Z, CTRL | SHIFT, Action::Redo)
         .key(Qt::Key_Backspace, ALT, Action::Undo)
@@ -116,7 +117,8 @@ std::vector<TextKey> macKeys() {
         .key(Qt::Key_Delete, ALT, Action::DeleteToWordEnd)
         .key(Qt::Key_Backspace, CTRL, Action::DeleteToLineStart)
         .key(Qt::Key_Backspace, META, Action::DeleteDiacritic)
-        .newParagraph({NONE, SHIFT, CTRL, ALT})
+        .enter({NONE, CTRL, ALT}, Action::NewParagraph)
+        .enter({SHIFT}, Action::NewLine)
         .key(Qt::Key_Z, CTRL | SHIFT, Action::Redo)
         // The Control keys of the text fields of macOS
         .move(Qt::Key_A, META, Action::ParagraphStart)

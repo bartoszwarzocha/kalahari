@@ -130,6 +130,10 @@ private:
     /// It goes on the last character read, or on the paragraph's start.
     static void anchorAfterText(Paragraph& para, const Annotation& annotation);
 
+    /// @brief Append text read in a format to a paragraph: a format run when the format
+    ///        has any property
+    static void appendText(Paragraph& para, const QString& text, const QTextCharFormat& format);
+
     std::vector<Paragraph> m_paragraphs;    ///< All paragraphs
     QHash<QString, Annotation> m_annotations;  ///< The annotations of the section, by id
     QSet<QString> m_anchoredIds;            ///< Ids of the annotations anchored in the text
