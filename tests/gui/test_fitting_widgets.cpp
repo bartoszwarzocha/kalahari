@@ -37,9 +37,7 @@ const QString LONG_MESSAGE = QStringLiteral(
 
 TEST_CASE("Flow layout: items side by side, in more rows when narrow", "[gui][widgets]") {
     QWidget panel;
-    auto* layout = new FlowLayout(&panel);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(10);
+    auto* layout = new FlowLayout(&panel, 10, 10);
     QWidget* first = box(&panel, 100);
     QWidget* second = box(&panel, 100);
     QWidget* third = box(&panel, 100);
@@ -96,9 +94,7 @@ TEST_CASE("Flow layout: items side by side, in more rows when narrow", "[gui][wi
 TEST_CASE("Flow layout: an item that expands takes the room left in its row",
           "[gui][widgets]") {
     QWidget panel;
-    auto* layout = new FlowLayout(&panel);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(10);
+    auto* layout = new FlowLayout(&panel, 10, 10);
     auto* field = new QLineEdit(&panel);
     field->setMinimumWidth(50);
     field->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);

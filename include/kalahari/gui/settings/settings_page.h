@@ -66,6 +66,10 @@ public:
     ///        the window needs to read it (WCAG AA, as normal text)
     [[nodiscard]] static QColor noteColor();
 
+    /// @brief The color of the notes on another background (a list, a card): darker or
+    ///        lighter as far as @p background needs to read it too
+    [[nodiscard]] static QColor noteColorOn(const QColor& background);
+
 protected:
     /// @brief How one control is bound to a setting
     struct Binding {

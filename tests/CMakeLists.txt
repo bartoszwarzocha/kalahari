@@ -112,6 +112,7 @@ set(TEST_SOURCES
     gui/test_fitting_widgets.cpp                 # Widgets that fit a small screen
     gui/test_dashboard_panel.cpp                 # The Dashboard on a small screen
     gui/test_wrapping_labels.cpp                 # Labels that wrap on a narrow panel
+    gui/test_panel_widths.cpp                    # Side panels fit a narrow dock, muted texts read
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -239,6 +240,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/standalone_info_bar.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/path_label.cpp  # The paths of the recent books
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/wrapping_label.cpp  # Texts that wrap only where they must
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp  # Rows of buttons that wrap on a narrow panel
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/segmented_layout.cpp  # Joined buttons on a narrow panel
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/height_for_width_scroll_area.cpp  # Filters that scroll in a low panel
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/tool_button_columns.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/fitting_scroll_area.cpp
     ${CMAKE_SOURCE_DIR}/src/core/log_panel_sink.cpp

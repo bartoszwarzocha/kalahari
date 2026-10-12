@@ -1,191 +1,198 @@
 /// @file flow_layout.cpp
-/// @brief A layout that puts its items side by side and goes on in the next row when a row is
-/// full
+/// @brief A row of items that goes on in the next line where the panel is too narrow
 
 #include "kalahari/gui/widgets/flow_layout.h"
 
+#include <QGuiApplication>
 #include <QLayoutItem>
+#include <QRect>
 #include <QStyle>
-#include <QtAlgorithms>
 #include <QWidget>
+
+#include <algorithm>
+#include <vector>
 
 namespace kalahari {
 namespace gui {
 
 namespace {
 
-/// @brief An item in its row, with its width there
-struct RowItem {
-    QLayoutItem* item = nullptr;
-    int width = 0;
-};
-
-/// @brief The height of an item in its row
-int itemHeight(const QLayoutItem* item)
-{
+/// @brief The height of @p item at @p width: as its height for that width, or as it likes
+/// within its minimum and maximum
+int heightOf(const QLayoutItem* item, int width) {
+    if (item->hasHeightForWidth()) {
+        return item->heightForWidth(width);
+    }
     return item->sizeHint().expandedTo(item->minimumSize()).boundedTo(item->maximumSize()).height();
 }
 
-} // anonymous namespace
+} // namespace
 
-FlowLayout::FlowLayout(QWidget* parent)
-    : QLayout(parent)
-{
+FlowLayout::FlowLayout(QWidget* parent, int spacing, int lineSpacing)
+    : QLayout(parent), m_lineSpacing(lineSpacing) {
+    setContentsMargins(0, 0, 0, 0);
+    setSpacing(spacing);
 }
 
-FlowLayout::~FlowLayout()
-{
+FlowLayout::~FlowLayout() {
     qDeleteAll(m_items);
+    m_items.clear();
 }
 
-void FlowLayout::addItem(QLayoutItem* item)
-{
+void FlowLayout::addItem(QLayoutItem* item) {
     m_items.append(item);
     invalidate();
 }
 
-int FlowLayout::count() const
-{
+void FlowLayout::addLayout(QLayout* layout) {
+    addChildLayout(layout);
+    addItem(layout);
+}
+
+int FlowLayout::count() const {
     return static_cast<int>(m_items.size());
 }
 
-QLayoutItem* FlowLayout::itemAt(int index) const
-{
+QLayoutItem* FlowLayout::itemAt(int index) const {
     return index >= 0 && index < m_items.size() ? m_items.at(index) : nullptr;
 }
 
-QLayoutItem* FlowLayout::takeAt(int index)
-{
+QLayoutItem* FlowLayout::takeAt(int index) {
     if (index < 0 || index >= m_items.size()) {
         return nullptr;
     }
-    QLayoutItem* item = m_items.takeAt(index);
     invalidate();
-    return item;
+    return m_items.takeAt(index);
 }
 
-Qt::Orientations FlowLayout::expandingDirections() const
-{
+Qt::Orientations FlowLayout::expandingDirections() const {
     return {};
 }
 
-bool FlowLayout::hasHeightForWidth() const
-{
+bool FlowLayout::hasHeightForWidth() const {
     return true;
 }
 
-int FlowLayout::heightForWidth(int width) const
-{
+int FlowLayout::heightForWidth(int width) const {
     return arrange(QRect(0, 0, width, 0), false);
 }
 
-QSize FlowLayout::sizeHint() const
-{
-    QSize size(0, 0);
-    int items = 0;
+QSize FlowLayout::sizeHint() const {
+    int width = 0;
+    int height = 0;
+    int shown = 0;
     for (const QLayoutItem* item : m_items) {
         if (item->isEmpty()) {
             continue;
         }
-        size.rwidth() += item->sizeHint().expandedTo(item->minimumSize()).width();
-        size.setHeight(qMax(size.height(), itemHeight(item)));
-        ++items;
+        const QSize hint = item->sizeHint();
+        width += hint.width() + (shown > 0 ? spacing() : 0);
+        height = std::max(height, hint.height());
+        ++shown;
     }
-    size.rwidth() += qMax(0, items - 1) * gap();
     const QMargins margins = contentsMargins();
-    return size + QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
+    return {width + margins.left() + margins.right(), height + margins.top() + margins.bottom()};
 }
 
-QSize FlowLayout::minimumSize() const
-{
-    QSize size(0, 0);
+QSize FlowLayout::minimumSize() const {
+    QSize least;
     for (const QLayoutItem* item : m_items) {
         if (!item->isEmpty()) {
-            size = size.expandedTo(item->minimumSize());
+            least = least.expandedTo(item->minimumSize());
         }
     }
+    // The height of one line: the lines a width needs come from heightForWidth()
     const QMargins margins = contentsMargins();
-    return size + QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
+    return least + QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
 }
 
-void FlowLayout::setGeometry(const QRect& rect)
-{
+void FlowLayout::setGeometry(const QRect& rect) {
     QLayout::setGeometry(rect);
     arrange(rect, true);
 }
 
-int FlowLayout::arrange(const QRect& rect, bool place) const
-{
-    const QMargins margins = contentsMargins();
-    const QRect area = rect.marginsRemoved(margins);
-    const int space = gap();
+int FlowLayout::arrange(const QRect& rect, bool place) const {
+    const QRect area = rect.marginsRemoved(contentsMargins());
+    const int lineWidth = std::max(area.width(), 0);
 
-    // The rows: each takes the items that fit in it at their preferred widths, and at least
-    // one item, however narrow the layout is
-    QList<QList<RowItem>> rows;
-    int taken = 0;  // width the items of the last row take, with the spaces between them
+    // The items in lines: each as wide as it likes, or as the line where that is less
+    struct Placed {
+        QLayoutItem* item;
+        int width;
+    };
+    std::vector<std::vector<Placed>> lines(1);
+    int used = 0;
     for (QLayoutItem* item : m_items) {
         if (item->isEmpty()) {
             continue;
         }
-        const int minimum = item->minimumSize().width();
-        const int width =
-            qMax(minimum, qMin(item->sizeHint().expandedTo(item->minimumSize()).width(),
-                               area.width()));
-        if (rows.isEmpty() || taken + space + width > area.width()) {
-            rows.append(QList<RowItem>());
-            taken = width;
-        } else {
-            taken += space + width;
+        const int width = std::max(std::min(item->sizeHint().width(), lineWidth),
+                                   item->minimumSize().width());
+        std::vector<Placed>& line = lines.back();
+        if (!line.empty() && used + spacing() + width > lineWidth) {
+            lines.emplace_back();
+            used = 0;
         }
-        rows.last().append(RowItem{item, width});
+        used += (lines.back().empty() ? 0 : spacing()) + width;
+        lines.back().push_back({item, width});
     }
 
     const QWidget* widget = parentWidget();
     const Qt::LayoutDirection direction =
-        widget != nullptr ? widget->layoutDirection() : Qt::LeftToRight;
+        widget != nullptr ? widget->layoutDirection() : QGuiApplication::layoutDirection();
     int y = area.top();
-    for (const QList<RowItem>& row : rows) {
-        int rowHeight = 0;
-        int rowWidth = -space;
+    bool first = true;
+    for (std::vector<Placed>& line : lines) {
+        if (line.empty()) {
+            continue;
+        }
+        // The room the line leaves goes to the items that expand sideways, as far as their
+        // maximum widths allow; the rest stays empty at the end of the line
+        int lineUsed = 0;
         int expanding = 0;
-        for (const RowItem& placed : row) {
-            rowHeight = qMax(rowHeight, itemHeight(placed.item));
-            rowWidth += space + placed.width;
+        for (const Placed& placed : line) {
+            lineUsed += placed.width;
             if (placed.item->expandingDirections() & Qt::Horizontal) {
                 ++expanding;
             }
         }
-        if (place) {
-            // The room left in the row goes to the items that expand, in equal shares, as far
-            // as their maximum widths allow; the rest stays empty at the end of the row
-            int left = qMax(0, area.width() - rowWidth);
-            int x = area.left();
-            for (const RowItem& placed : row) {
-                int width = placed.width;
-                if (expanding > 0 && (placed.item->expandingDirections() & Qt::Horizontal)) {
-                    const int share = left / expanding;
-                    width = qMax(width, qMin(width + share, placed.item->maximumSize().width()));
-                    left -= width - placed.width;
-                    --expanding;
-                }
-                const int height = itemHeight(placed.item);
-                const QRect itemRect(x, y + (rowHeight - height) / 2, width, height);
-                placed.item->setGeometry(QStyle::visualRect(direction, area, itemRect));
-                x += width + space;
+        lineUsed += spacing() * static_cast<int>(line.size() - 1);
+        int room = std::max(lineWidth - lineUsed, 0);
+        for (Placed& placed : line) {
+            if (expanding > 0 && (placed.item->expandingDirections() & Qt::Horizontal)) {
+                const int share = room / expanding;
+                const int grown = std::max(
+                    placed.width,
+                    std::min(placed.width + share, placed.item->maximumSize().width()));
+                room -= grown - placed.width;
+                placed.width = grown;
+                --expanding;
             }
         }
-        y += rowHeight + space;
-    }
-    if (!rows.isEmpty()) {
-        y -= space;
-    }
-    return y - area.top() + margins.top() + margins.bottom();
-}
 
-int FlowLayout::gap() const
-{
-    return qMax(0, spacing());
+        int height = 0;
+        for (const Placed& placed : line) {
+            height = std::max(height, heightOf(placed.item, placed.width));
+        }
+        if (!first) {
+            y += m_lineSpacing;
+        }
+        first = false;
+        if (place) {
+            // Each item in the middle of the line's height; from the right in a right-to-left
+            // layout
+            int x = area.left();
+            for (const Placed& placed : line) {
+                const int itemHeight = heightOf(placed.item, placed.width);
+                const QRect itemRect(x, y + (height - itemHeight) / 2, placed.width, itemHeight);
+                placed.item->setGeometry(QStyle::visualRect(direction, area, itemRect));
+                x += placed.width + spacing();
+            }
+        }
+        y += height;
+    }
+    const QMargins margins = contentsMargins();
+    return y - area.top() + margins.top() + margins.bottom();
 }
 
 } // namespace gui

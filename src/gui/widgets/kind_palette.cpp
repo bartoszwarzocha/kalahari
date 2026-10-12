@@ -250,9 +250,8 @@ KindPalette::KindPalette(const core::BookTypeRegistry& registry, QWidget* parent
         layout->addWidget(line);
 
         auto* tiles = new QWidget(this);
-        auto* flow = new FlowLayout(tiles);
-        flow->setContentsMargins(0, 0, 0, 0);
-        flow->setSpacing(TILE_SPACING);
+        auto* flow = new FlowLayout(nullptr, TILE_SPACING, TILE_SPACING);
+        tiles->setLayout(flow);
         for (const core::KindRef& kind : kinds) {
             if (!kind.kind->allows(place)) {
                 continue;

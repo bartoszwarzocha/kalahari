@@ -221,6 +221,7 @@ private:
     QColor m_highlight;
     QColor m_highlightedText;
 
+    QScrollArea* m_filterArea{nullptr};  ///< The filters, which scroll in a low panel
     QLineEdit* m_searchEdit{nullptr};
     std::array<QToolButton*, 3> m_kindButtons{};  ///< Comment, to-do, note
     QButtonGroup* m_stateGroup{nullptr};
@@ -234,7 +235,6 @@ private:
     QVBoxLayout* m_listLayout{nullptr};
     QLabel* m_emptyLabel{nullptr};
     QLabel* m_todoLabel{nullptr};
-    QWidget* m_todoButtons{nullptr};  ///< The previous and next to-do buttons
     QToolButton* m_previousTodoButton{nullptr};
     QToolButton* m_nextTodoButton{nullptr};
 };

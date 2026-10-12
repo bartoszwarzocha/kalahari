@@ -85,8 +85,7 @@ void FindReplaceBar::setupUi()
     // screen) the groups go on in the next row, and Close stays at the end of the first
     QHBoxLayout* findRow = new QHBoxLayout();
     findRow->setSpacing(4);
-    auto* findItems = new gui::FlowLayout();
-    findItems->setSpacing(GROUP_SPACING);
+    auto* findItems = new gui::FlowLayout(nullptr, GROUP_SPACING, GROUP_SPACING);
     findRow->addLayout(findItems, 1);
 
     // Search input
@@ -168,9 +167,7 @@ void FindReplaceBar::setupUi()
     // =========================================================================
     // In a narrow text area the buttons go on in the next row
     m_replaceSection = new QWidget(this);
-    auto* replaceRow = new gui::FlowLayout(m_replaceSection);
-    replaceRow->setContentsMargins(0, 0, 0, 0);
-    replaceRow->setSpacing(GROUP_SPACING);
+    auto* replaceRow = new gui::FlowLayout(m_replaceSection, GROUP_SPACING, GROUP_SPACING);
 
     // Replace input
     m_replaceInput = new QLineEdit(m_replaceSection);

@@ -5,9 +5,12 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/panels/annotation_card.h"
 #include "kalahari/gui/widgets/flow_layout.h"
+#include "kalahari/gui/widgets/height_for_width_scroll_area.h"
+#include "kalahari/gui/widgets/segmented_layout.h"
 #include "kalahari/core/theme.h"
 #include "kalahari/core/theme_manager.h"
 
+#include <QAbstractItemView>
 #include <QAction>
 #include <QApplication>
 #include <QButtonGroup>
@@ -15,7 +18,6 @@
 #include <QContextMenuEvent>
 #include <QFocusEvent>
 #include <QFontMetrics>
-#include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLabel>
@@ -25,6 +27,9 @@
 #include <QScopedValueRollback>
 #include <QScrollArea>
 #include <QStringList>
+#include <QStyle>
+#include <QStyleOptionComboBox>
+#include <QStylePainter>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -44,6 +49,9 @@ constexpr std::array<editor::AnnotationKind, 3> KINDS = {
 /// @brief The kind buttons' names in the style sheet
 constexpr std::array<const char*, 3> KIND_STYLE_NAMES = {"comment", "todo", "note"};
 
+/// @brief The height of the filters in a panel too low for all of them, in lines of text
+constexpr int FILTER_LINES = 3;
+
 /// @brief How far the less important texts are from the text, toward the background
 constexpr double SECONDARY_SHARE = 0.38;
 
@@ -61,10 +69,11 @@ std::size_t kindIndex(editor::AnnotationKind kind) {
     return static_cast<std::size_t>(std::find(KINDS.begin(), KINDS.end(), kind) - KINDS.begin());
 }
 
-/// @brief The panel's look: kind buttons as rounded chips, joined buttons of a choice. The
-/// colors are written in (a style sheet keeps them through every polish): %1 the borders,
-/// %2 the less important texts, %3 the text, %4 the base, %5 the highlight, %6 the text on
-/// it, %7 the text of a control that is off. A focused control has a thicker border.
+/// @brief The panel's look: kind buttons as rounded chips, joined buttons of a choice (in a
+/// row, or one under another on a narrow panel). The colors are written in (a style sheet
+/// keeps them through every polish): %1 the borders, %2 the less important texts, %3 the
+/// text, %4 the base, %5 the highlight, %6 the text on it, %7 the text of a control that is
+/// off. A focused control has a thicker border.
 const char* const PANEL_STYLE = R"(
 QToolButton#annotationKindButton {
     border: 1px solid %1; border-radius: 10px; padding: 2px 8px;
@@ -73,10 +82,19 @@ QToolButton#annotationKindButton {
 QToolButton[segment] {
     border: 1px solid %1; padding: 2px 8px; color: %3; background: %4;
 }
-QToolButton[segment="first"] { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
-QToolButton[segment="middle"] { border-left: none; }
-QToolButton[segment="last"] {
+QToolButton[segment="first"][stacked="false"] {
+    border-top-left-radius: 6px; border-bottom-left-radius: 6px;
+}
+QToolButton[segment="middle"][stacked="false"] { border-left: none; }
+QToolButton[segment="last"][stacked="false"] {
     border-left: none; border-top-right-radius: 6px; border-bottom-right-radius: 6px;
+}
+QToolButton[segment="first"][stacked="true"] {
+    border-top-left-radius: 6px; border-top-right-radius: 6px;
+}
+QToolButton[segment="middle"][stacked="true"] { border-top: none; }
+QToolButton[segment="last"][stacked="true"] {
+    border-top: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;
 }
 QToolButton[segment]:checked { background: %5; color: %6; }
 QToolButton[segment]:disabled { color: %7; }
@@ -99,9 +117,8 @@ QToolButton#annotationKindButton:focus, QToolButton[segment]:focus {
 )";
 
 /// @brief Joined buttons of which one is on, numbered from 0 in the group
-QHBoxLayout* choiceButtons(QWidget* parent, QButtonGroup* group, const QStringList& texts) {
-    auto* layout = new QHBoxLayout();
-    layout->setSpacing(0);
+SegmentedLayout* choiceButtons(QWidget* parent, QButtonGroup* group, const QStringList& texts) {
+    auto* layout = new SegmentedLayout();
     for (int i = 0; i < texts.size(); ++i) {
         auto* button = new QToolButton(parent);
         button->setText(texts.at(i));
@@ -113,6 +130,40 @@ QHBoxLayout* choiceButtons(QWidget* parent, QButtonGroup* group, const QStringLi
     }
     group->setExclusive(true);
     return layout;
+}
+
+/// @brief A combo box that can be narrower than its text: the text ends with "…" there
+class ElidingComboBox : public QComboBox {
+public:
+    explicit ElidingComboBox(QWidget* parent) : QComboBox(parent) {}
+
+protected:
+    void paintEvent(QPaintEvent* /*event*/) override {
+        QStylePainter painter(this);
+        QStyleOptionComboBox option;
+        initStyleOption(&option);
+        painter.drawComplexControl(QStyle::CC_ComboBox, option);
+        const QRect field =
+            style()->subControlRect(QStyle::CC_ComboBox, &option, QStyle::SC_ComboBoxEditField, this);
+        option.currentText = fontMetrics().elidedText(option.currentText, Qt::ElideRight, field.width());
+        painter.drawControl(QStyle::CE_ComboBoxLabel, option);
+    }
+};
+
+/// @brief A combo box that can be narrower than its texts on a narrow panel: about a dozen
+/// characters of them are seen there, all of them in its list
+void makeShrinkable(QComboBox* combo) {
+    constexpr int SEEN_CHARACTERS = 12;
+    QStyleOptionComboBox option;
+    option.initFrom(combo);
+    const QFontMetrics metrics = combo->fontMetrics();
+    const QSize text(metrics.horizontalAdvance(QLatin1Char('x')) * SEEN_CHARACTERS,
+                     metrics.height());
+    const int least =
+        combo->style()->sizeFromContents(QStyle::CT_ComboBox, &option, text, combo).width();
+    combo->setMinimumWidth(std::min(least, combo->sizeHint().width()));
+    combo->view()->setMinimumWidth(combo->view()->sizeHintForColumn(0) +
+                                   combo->view()->frameWidth() * 2);
 }
 
 /// @brief A dot in a kind's color, for its button
@@ -172,20 +223,26 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
     layout->setContentsMargins(8, 8, 8, 8);
     layout->setSpacing(6);
 
+    // The filters; on a narrow panel their rows wrap, and in a panel too low for all their
+    // lines they scroll (the cards keep their room)
+    auto* filters = new QWidget();
+    auto* filterLayout = new QVBoxLayout(filters);
+    filterLayout->setContentsMargins(0, 0, 0, 0);
+    filterLayout->setSpacing(6);
+
     // Search in the text of the annotations; Down goes on to the list
-    m_searchEdit = new QLineEdit(this);
+    m_searchEdit = new QLineEdit(filters);
     m_searchEdit->setPlaceholderText(tr("Search the annotations..."));
     m_searchEdit->setClearButtonEnabled(true);
     m_searchEdit->installEventFilter(this);
     connect(m_searchEdit, &QLineEdit::textChanged, this, &AnnotationsPanel::readFilters);
-    layout->addWidget(m_searchEdit);
+    filterLayout->addWidget(m_searchEdit);
 
-    // Kinds: on or off, with their counts; in more rows in a narrow panel
-    auto* kinds = new FlowLayout();
-    kinds->setSpacing(5);
+    // Kinds: on or off, with their counts; in more lines on a narrow panel
+    auto* kinds = new FlowLayout(nullptr, 5, 5);
     for (std::size_t i = 0; i < m_kindButtons.size(); ++i) {
         QToolButton*& button = m_kindButtons.at(i);
-        button = new QToolButton(this);
+        button = new QToolButton(filters);
         button->setObjectName(QStringLiteral("annotationKindButton"));
         button->setProperty("kind", QString::fromLatin1(KIND_STYLE_NAMES.at(i)));
         button->setCheckable(true);
@@ -194,24 +251,19 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
         connect(button, &QToolButton::toggled, this, &AnnotationsPanel::readFilters);
         kinds->addWidget(button);
     }
-    layout->addLayout(kinds);
+    filterLayout->addLayout(kinds);
 
-    // State
+    // State; one under another on a narrow panel
     m_stateGroup = new QButtonGroup(this);
-    auto* states = choiceButtons(this, m_stateGroup, {tr("Open"), tr("Done"), tr("All")});
+    auto* states = choiceButtons(filters, m_stateGroup, {tr("Open"), tr("Done"), tr("All")});
     m_stateGroup->button(static_cast<int>(AnnotationStateFilter::Open))->setChecked(true);
     connect(m_stateGroup, &QButtonGroup::idClicked, this, &AnnotationsPanel::readFilters);
-    states->addStretch(1);
-    layout->addLayout(states);
+    filterLayout->addLayout(states);
 
     // Scope and date; the first button names the text in front (updateScopeText()). The date
-    // goes under the scope in a narrow panel
+    // goes under the scope on a narrow panel
     m_scopeGroup = new QButtonGroup(this);
-    auto* scopeButtons = new QWidget(this);
-    QHBoxLayout* scopeLayout =
-        choiceButtons(scopeButtons, m_scopeGroup, {tr("File"), tr("Book")});
-    scopeLayout->setContentsMargins(0, 0, 0, 0);
-    scopeButtons->setLayout(scopeLayout);
+    auto* scopeButtons = choiceButtons(filters, m_scopeGroup, {tr("File"), tr("Book")});
     m_scopeGroup->button(static_cast<int>(AnnotationScope::Chapter))->setChecked(true);
     m_textScopeButton = m_scopeGroup->button(static_cast<int>(AnnotationScope::Chapter));
     m_bookScopeButton = m_scopeGroup->button(static_cast<int>(AnnotationScope::Book));
@@ -224,25 +276,30 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
             rebuild();
         }
     });
-    m_dateCombo = new QComboBox(this);
+    m_dateCombo = new ElidingComboBox(filters);
     m_dateCombo->addItems({tr("Date: any"), tr("Date: today"), tr("Date: last 7 days"),
                            tr("Date: last 30 days")});
-    m_dateCombo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);  // to the edge
+    m_dateCombo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    makeShrinkable(m_dateCombo);
     connect(m_dateCombo, &QComboBox::currentIndexChanged, this, &AnnotationsPanel::readFilters);
-    auto* scopeRow = new FlowLayout();
-    scopeRow->setSpacing(6);
-    scopeRow->addWidget(scopeButtons);
+    auto* scopeRow = new FlowLayout(nullptr, 6, 6);
+    scopeRow->addLayout(scopeButtons);
     scopeRow->addWidget(m_dateCombo);
-    layout->addLayout(scopeRow);
+    filterLayout->addLayout(scopeRow);
 
     // Order (in the order of AnnotationSort)
-    m_sortCombo = new QComboBox(this);
+    m_sortCombo = new ElidingComboBox(filters);
     m_sortCombo->addItems({tr("Sort: text order"), tr("Sort: newest first"), tr("Sort: by kind")});
+    makeShrinkable(m_sortCombo);
     connect(m_sortCombo, &QComboBox::currentIndexChanged, this, &AnnotationsPanel::readFilters);
-    layout->addWidget(m_sortCombo);
+    filterLayout->addWidget(m_sortCombo);
+
+    m_filterArea = new HeightForWidthScrollArea(filters, FILTER_LINES, this);
+    layout->addWidget(m_filterArea);
 
     // The cards; a click on one gives the keys to the list
     m_listWidget = new QWidget();
+    m_listWidget->setObjectName(QStringLiteral("annotationList"));
     m_listWidget->setFocusPolicy(Qt::StrongFocus);
     m_listWidget->setAccessibleName(tr("Annotations"));
     m_listWidget->installEventFilter(this);
@@ -263,32 +320,24 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
     m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     layout->addWidget(m_scrollArea, 1);
 
-    // To do: previous and next; the buttons go under the words in a narrow panel
+    // To do: previous and next; in more lines on a narrow panel
+    auto* todoRow = new FlowLayout(nullptr, 6, 6);
     m_todoLabel = new QLabel(tr("To do:"), this);
     m_todoLabel->setObjectName(QStringLiteral("annotationSecondary"));
-    m_todoButtons = new QWidget(this);
-    m_todoButtons->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    auto* todoButtonsLayout = new QHBoxLayout(m_todoButtons);
-    todoButtonsLayout->setContentsMargins(0, 0, 0, 0);
-    todoButtonsLayout->setSpacing(6);
-    m_previousTodoButton = new QToolButton(m_todoButtons);
+    todoRow->addWidget(m_todoLabel);
+    m_previousTodoButton = new QToolButton(this);
     m_previousTodoButton->setText(tr("Previous"));
-    m_nextTodoButton = new QToolButton(m_todoButtons);
+    m_nextTodoButton = new QToolButton(this);
     m_nextTodoButton->setText(tr("Next"));
     for (QToolButton* button : {m_previousTodoButton, m_nextTodoButton}) {
         button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
         button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-        todoButtonsLayout->addWidget(button);
+        todoRow->addWidget(button);
     }
     m_nextTodoButton->setLayoutDirection(Qt::RightToLeft);  // its arrow after the text
     m_todoLabel->hide();
-    m_todoButtons->hide();
     m_previousTodoButton->hide();
     m_nextTodoButton->hide();
-    auto* todoRow = new FlowLayout();
-    todoRow->setSpacing(6);
-    todoRow->addWidget(m_todoLabel);
-    todoRow->addWidget(m_todoButtons);
     layout->addLayout(todoRow);
 
     auto& themes = core::ThemeManager::getInstance();
@@ -419,7 +468,6 @@ void AnnotationsPanel::setTodoActions(QAction* previous, QAction* next) {
     follow(m_previousTodoButton, previous);
     follow(m_nextTodoButton, next);
     m_todoLabel->setVisible(previous != nullptr || next != nullptr);
-    m_todoButtons->setVisible(previous != nullptr || next != nullptr);
 }
 
 void AnnotationsPanel::selectAnnotation(const QString& key) {

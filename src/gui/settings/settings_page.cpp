@@ -287,6 +287,10 @@ QColor SettingsPage::noteColor() {
     return readableColor(onWindow, groupFillOn(window), MIN_TEXT_CONTRAST);
 }
 
+QColor SettingsPage::noteColorOn(const QColor& background) {
+    return readableColor(noteColor(), background, MIN_TEXT_CONTRAST);
+}
+
 void SettingsPage::updateNoteColors() {
     const QString styleSheet = noteStyleSheet();
     for (QLabel* note : m_notes) {

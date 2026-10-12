@@ -192,6 +192,9 @@ set(KALAHARI_SOURCES
     gui/widgets/length_spin_box.cpp
     gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
+    gui/widgets/flow_layout.cpp  # A row of buttons that wraps on a narrow panel
+    gui/widgets/segmented_layout.cpp  # Joined buttons, one under another on a narrow panel
+    gui/widgets/height_for_width_scroll_area.cpp  # Rows that wrap, and scroll in a low panel
     gui/widgets/shortcut_recorder.cpp  # A field that records key presses
     gui/widgets/tool_button_columns.cpp  # Panel buttons that wrap into columns
     gui/widgets/fitting_scroll_area.cpp  # Content that scrolls only on a small screen
