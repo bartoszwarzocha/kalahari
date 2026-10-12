@@ -32,6 +32,7 @@
 #include <QListWidget>
 #include <QMainWindow>
 #include <QMenu>
+#include <QMouseEvent>
 #include <QPushButton>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -39,6 +40,7 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
+#include <algorithm>
 #include <functional>
 #include <string>
 
@@ -224,6 +226,28 @@ bool listsFile(const test::Window& window, const QString& path) {
         }
     }
     return false;
+}
+
+/// @brief The card of the recent book @p path on the Dashboard of @p window
+QWidget* recentBookCard(const test::Window& window, const QString& path) {
+    const QList<QWidget*> cards =
+        window.dashboard->findChildren<QWidget*>(QStringLiteral("recentFileCard"));
+    const auto card = std::find_if(cards.cbegin(), cards.cend(), [&path](const QWidget* widget) {
+        return widget->property("filePath").toString() == path;
+    });
+    REQUIRE(card != cards.cend());
+    return *card;
+}
+
+/// @brief A click of the mouse @p button in the middle of @p widget
+void click(QWidget& widget, Qt::MouseButton button) {
+    const QPointF at(widget.width() / 2.0, widget.height() / 2.0);
+    QMouseEvent press(QEvent::MouseButtonPress, at, widget.mapToGlobal(at), button, button,
+                      Qt::NoModifier);
+    QCoreApplication::sendEvent(&widget, &press);
+    QMouseEvent release(QEvent::MouseButtonRelease, at, widget.mapToGlobal(at), button,
+                        Qt::NoButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(&widget, &release);
 }
 
 } // namespace
@@ -541,6 +565,48 @@ TEST_CASE("New File: a book opened from Recent Books leaves the changed files ou
     CHECK(test::accepting([&]() { window.documents.onOpenRecentFile(manifest); }, &said) == 0);
     INFO(said.join(QStringLiteral("\n")).toStdString());
     CHECK(pm.isProjectOpen());
+    CHECK(window.tabs->indexOf(note) >= 0);
+    CHECK(note->property("dirty").toBool());
+    pm.closeProject(false);
+}
+
+TEST_CASE("New File: a book opened from its card on the Dashboard leaves the changed files "
+          "outside it open without asking",
+          "[gui][newfile]") {
+    test::RecentBooks keepRecentBooks;
+    auto& pm = core::ProjectManager::getInstance();
+    QTemporaryDir books;
+    REQUIRE(books.isValid());
+    pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    REQUIRE(pm.createProject(books.path(), QStringLiteral("Rain"), QStringLiteral("Author"),
+                             QStringLiteral("en"), true, QStringLiteral("kalahari.novel")));
+    const QString manifest = pm.getManifestPath();
+    REQUIRE(pm.closeProject(false));
+    core::RecentBooksManager::getInstance().addRecentFile(manifest);
+
+    // The card opens the book as in the main window
+    test::Window window;
+    QObject::connect(window.dashboard, &gui::DashboardPanel::openRecentBookRequested,
+                     &window.documents, &gui::DocumentCoordinator::onOpenRecentFile);
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString notePath = QDir(files.path()).filePath(QStringLiteral("note.txt"));
+    {
+        QFile note(notePath);
+        REQUIRE(note.open(QIODevice::WriteOnly));
+        note.write("A note");
+    }
+    gui::EditorPanel* note = window.writeFile(notePath, QStringLiteral("A changed note"));
+
+    // A right click opens nothing; a left click opens the book, and asks nothing
+    QWidget* card = recentBookCard(window, manifest);
+    QStringList said;
+    CHECK(test::accepting([&]() { click(*card, Qt::RightButton); }, &said) == 0);
+    CHECK_FALSE(pm.isProjectOpen());
+    CHECK(test::accepting([&]() { click(*card, Qt::LeftButton); }, &said) == 0);
+    INFO(said.join(QStringLiteral("\n")).toStdString());
+    CHECK(pm.isProjectOpen());
+    CHECK(pm.getManifestPath() == manifest);
     CHECK(window.tabs->indexOf(note) >= 0);
     CHECK(note->property("dirty").toBool());
     pm.closeProject(false);
