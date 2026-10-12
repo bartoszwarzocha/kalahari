@@ -1,17 +1,94 @@
 #!/usr/bin/env python3
 """
-Convert filled SVG icons to use color placeholders.
+Convert SVG icons to use color placeholders.
 
-This script processes SVG files in the filled icons directory and adds
-{COLOR_PRIMARY} placeholder to path elements that don't have fill="none".
+This script processes the SVG files of every icon theme folder and gives
+{COLOR_PRIMARY} to the shapes that are drawn: those with a color of their own,
+or with no fill when no group around them has fill="none".
 
 Usage:
-    python scripts/convert_filled_icons.py
+    python scripts/convert_all_icons.py
 """
 
 import os
 import re
 from pathlib import Path
+
+
+# A tag: closing slash, name, attributes, self-closing slash
+TAG_PATTERN = re.compile(r'<(/?)([A-Za-z][\w:.-]*)([^>]*?)(/?)>')
+FILL_PATTERN = re.compile(r'\bfill\s*=\s*["\']([^"\']*)["\']')
+DRAWABLE_TAGS = {'path', 'rect', 'circle', 'polygon', 'ellipse', 'line', 'polyline'}
+
+
+def convert_drawable(tag: str, own_fill, inherited_fill) -> str:
+    """
+    Give one shape the color placeholder.
+
+    Args:
+        tag: The shape's tag
+        own_fill: Its fill attribute, or None
+        inherited_fill: The fill of the nearest group that sets one, or None
+
+    Returns:
+        The tag with the placeholder, or as it was
+    """
+    # Skip if already has placeholder
+    if '{COLOR_PRIMARY}' in tag or '{COLOR_SECONDARY}' in tag:
+        return tag
+
+    if own_fill is not None:
+        if own_fill == 'none':
+            return tag
+        # A color: the placeholder takes its place
+        return FILL_PATTERN.sub('fill="{COLOR_PRIMARY}"', tag, count=1)
+
+    # No fill of its own: a group's fill="none" keeps it invisible, as the square that
+    # Material icons draw in <g fill="none"> to mark their size
+    if inherited_fill == 'none':
+        return tag
+
+    # Add one before the closing > (self-closing <path ... /> or opening <path ...>)
+    if tag.endswith('/>'):
+        return tag[:-2].rstrip() + ' fill="{COLOR_PRIMARY}"/>'
+    return tag[:-1] + ' fill="{COLOR_PRIMARY}">'
+
+
+def convert_svg_content(content: str) -> str:
+    """
+    Give the shapes of an SVG the color placeholder.
+
+    Args:
+        content: The SVG
+
+    Returns:
+        The SVG with the placeholders
+    """
+    # The fill each open element sets (None: it sets none)
+    open_fills = []
+
+    def inherited_fill():
+        for fill in reversed(open_fills):
+            if fill is not None:
+                return fill
+        return None
+
+    def replace_tag(match):
+        closing, name, attributes, self_closing = match.groups()
+        tag = match.group(0)
+        if closing:
+            if open_fills:
+                open_fills.pop()
+            return tag
+        fill_match = FILL_PATTERN.search(attributes)
+        own_fill = fill_match.group(1) if fill_match else None
+        if name in DRAWABLE_TAGS:
+            tag = convert_drawable(tag, own_fill, inherited_fill())
+        if not self_closing:
+            open_fills.append(own_fill)
+        return tag
+
+    return TAG_PATTERN.sub(replace_tag, content)
 
 
 def convert_svg_file(filepath: Path) -> bool:
@@ -26,52 +103,10 @@ def convert_svg_file(filepath: Path) -> bool:
     """
     try:
         content = filepath.read_text(encoding='utf-8')
-        original = content
+        converted = convert_svg_content(content)
 
-        # Pattern to match path elements
-        # We need to add fill="{COLOR_PRIMARY}" to paths that:
-        # 1. Don't have fill attribute at all
-        # 2. Have fill with a color (not "none")
-
-        def replace_path(match):
-            path_tag = match.group(0)
-
-            # Skip if already has placeholder
-            if '{COLOR_PRIMARY}' in path_tag or '{COLOR_SECONDARY}' in path_tag:
-                return path_tag
-
-            # Check if has fill="none" - skip these
-            if 'fill="none"' in path_tag or "fill='none'" in path_tag:
-                return path_tag
-
-            # Check if has fill attribute with a color
-            fill_match = re.search(r'fill="([^"]*)"', path_tag)
-            if fill_match:
-                fill_value = fill_match.group(1)
-                if fill_value != 'none':
-                    # Replace the fill value with placeholder
-                    return re.sub(r'fill="[^"]*"', 'fill="{COLOR_PRIMARY}"', path_tag)
-                return path_tag
-
-            # No fill attribute - add one before the closing >
-            # Handle self-closing tags <path ... />
-            if path_tag.endswith('/>'):
-                return path_tag[:-2] + ' fill="{COLOR_PRIMARY}"/>'
-            # Handle opening tags <path ...>
-            elif path_tag.endswith('>'):
-                return path_tag[:-1] + ' fill="{COLOR_PRIMARY}">'
-
-            return path_tag
-
-        # Match <path ...> or <path ... />
-        content = re.sub(r'<path[^>]*/?>', replace_path, content)
-
-        # Also handle <rect>, <circle>, <polygon>, <ellipse> if present
-        for tag in ['rect', 'circle', 'polygon', 'ellipse', 'line', 'polyline']:
-            content = re.sub(rf'<{tag}[^>]*/?>', replace_path, content)
-
-        if content != original:
-            filepath.write_text(content, encoding='utf-8')
+        if converted != content:
+            filepath.write_text(converted, encoding='utf-8')
             return True
 
         return False

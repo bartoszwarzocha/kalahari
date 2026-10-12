@@ -12,6 +12,8 @@
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/command.h"
+#include "kalahari/gui/menu_builder.h"
+#include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_appearance.h"
@@ -77,6 +79,15 @@ constexpr const char* ADDED_COMMANDS_SETTING = "toolbars.addedCommands";
 // new version would also discard the saved places of the panels.
 static constexpr int TOOLBAR_CONFIG_VERSION = 5;
 
+namespace {
+
+/// A built-in toolbar's name in the menus, with its access key ("&Edit Toolbar")
+QString menuTextOf(const ToolbarManager::ToolbarConfig& config) {
+    return QObject::tr(config.label.c_str());
+}
+
+}  // namespace
+
 ToolbarManager::ToolbarManager(QMainWindow* mainWindow)
     : m_mainWindow(mainWindow)
 {
@@ -105,7 +116,7 @@ void ToolbarManager::initializeConfigs() {
     // File Toolbar
     m_configs["file"] = {
         "file",
-        QT_TRANSLATE_NOOP("QObject", "File Toolbar"),
+        QT_TRANSLATE_NOOP("QObject", "&File Toolbar"),
         Qt::TopToolBarArea,
         false,  // hidden by default (accessible via Quick Actions)
         {"file.new", "file.new.project", "file.open", "file.open.file", "file.save",
@@ -115,7 +126,7 @@ void ToolbarManager::initializeConfigs() {
     // Edit Toolbar
     m_configs["edit"] = {
         "edit",
-        QT_TRANSLATE_NOOP("QObject", "Edit Toolbar"),
+        QT_TRANSLATE_NOOP("QObject", "&Edit Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
         {"edit.undo", "edit.redo", SEPARATOR_ID,
@@ -125,7 +136,7 @@ void ToolbarManager::initializeConfigs() {
     // Book Toolbar
     m_configs["book"] = {
         "book",
-        QT_TRANSLATE_NOOP("QObject", "Book Toolbar"),
+        QT_TRANSLATE_NOOP("QObject", "&Book Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"book.newChapter", "book.newCharacter", "book.newLocation", "book.properties"}
@@ -134,7 +145,7 @@ void ToolbarManager::initializeConfigs() {
     // Panels Toolbar (panel toggles)
     m_configs["view"] = {
         "view",
-        QT_TRANSLATE_NOOP("QObject", "Panels Toolbar"),
+        QT_TRANSLATE_NOOP("QObject", "&Panels Toolbar"),
         Qt::TopToolBarArea,
         false,  // hidden by default (accessible via menu)
         {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.search", "view.assistant", "view.annotations", "view.log"}
@@ -143,7 +154,7 @@ void ToolbarManager::initializeConfigs() {
     // Tools Toolbar
     m_configs["tools"] = {
         "tools",
-        QT_TRANSLATE_NOOP("QObject", "Tools Toolbar"),
+        QT_TRANSLATE_NOOP("QObject", "&Tools Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"tools.spellcheck", "tools.stats.wordCount"}
@@ -153,7 +164,7 @@ void ToolbarManager::initializeConfigs() {
     // as in the View menu
     m_configs["views"] = {
         "views",
-        QT_TRANSLATE_NOOP("QObject", "Views Toolbar"),
+        QT_TRANSLATE_NOOP("QObject", "&Views Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"view.mode.continuous", "view.mode.page", SEPARATOR_ID,
@@ -165,7 +176,7 @@ void ToolbarManager::initializeConfigs() {
     // Special widget IDs: WIDGET_FONT_COMBO_ID, WIDGET_FONT_SIZE_ID
     m_configs["format"] = {
         "format",
-        QT_TRANSLATE_NOOP("QObject", "Format Toolbar"),
+        QT_TRANSLATE_NOOP("QObject", "F&ormat Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
         {WIDGET_FONT_COMBO_ID, WIDGET_FONT_SIZE_ID, SEPARATOR_ID,
@@ -178,7 +189,7 @@ void ToolbarManager::initializeConfigs() {
     // Insert Toolbar (quick access to insert elements)
     m_configs["insert"] = {
         "insert",
-        QT_TRANSLATE_NOOP("QObject", "Insert Toolbar"),
+        QT_TRANSLATE_NOOP("QObject", "&Insert Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
         {"insert.image", "insert.table", "insert.link", SEPARATOR_ID,
@@ -188,7 +199,7 @@ void ToolbarManager::initializeConfigs() {
     // Styles Toolbar (quick paragraph styles)
     m_configs["styles"] = {
         "styles",
-        QT_TRANSLATE_NOOP("QObject", "Styles Toolbar"),
+        QT_TRANSLATE_NOOP("QObject", "&Styles Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"format.style.heading1", "format.style.heading2", "format.style.heading3",
@@ -201,7 +212,7 @@ void ToolbarManager::initializeConfigs() {
     // Note: Undo/Redo are in Edit toolbar, not duplicated here
     m_configs["quickActions"] = {
         "quickActions",
-        QT_TRANSLATE_NOOP("QObject", "Quick Actions"),
+        QT_TRANSLATE_NOOP("QObject", "&Quick Actions"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
         {"file.new", "file.new.project", "file.open", "file.open.file", "file.save",
@@ -216,7 +227,7 @@ void ToolbarManager::initializeConfigs() {
     // Quick access to help resources, keyboard shortcuts, updates, and about info
     m_configs["help"] = {
         "help",
-        QT_TRANSLATE_NOOP("QObject", "Help Toolbar"),
+        QT_TRANSLATE_NOOP("QObject", "&Help Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"help.manual", "help.shortcuts", "help.checkUpdates", "help.about"}
@@ -308,7 +319,7 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
     auto& logger = core::Logger::getInstance();
 
     // Create toolbar
-    QToolBar* toolbar = new QToolBar(QObject::tr(config.label.c_str()), m_mainWindow);
+    QToolBar* toolbar = new QToolBar(withoutAccessKey(menuTextOf(config)), m_mainWindow);
     toolbar->setObjectName(QString::fromStdString(config.id));  // For QMainWindow::saveState()
 
     // OpenSpec #00031 FIX: Use m_toolbarCommands (loaded from settings) instead of
@@ -458,7 +469,21 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
 
     // OpenSpec #00030: Create Toolbars submenu instead of adding directly to VIEW menu
     // Structure: Standard Toolbars → separator → User-defined (future) → separator → Toolbar Manager...
-    QMenu* toolbarsMenu = viewMenu->addMenu(QObject::tr("Toolbars"));
+    QMenu* toolbarsMenu = viewMenu->addMenu(MenuBuilder::menuText("Toolbars"));
+    // The menu and its items are forgotten when it goes; an earlier menu going later does not
+    // touch this one's
+    QObject::disconnect(m_toolbarsMenuGone);
+    m_toolbarsMenu = toolbarsMenu;
+    m_toolbarsMenuGone = QObject::connect(toolbarsMenu, &QObject::destroyed,
+                                          &m_connectionContext, [this]() {
+                                              m_toolbarsMenu = nullptr;
+                                              m_managerAction = nullptr;
+                                              m_viewActions.clear();
+                                          });
+
+    // The access keys of the menu's own items, which a user toolbar's name does not get
+    const QString managerText = QObject::tr("Toolbar &Manager...");
+    QSet<QChar> usedKeys = {accessKeyOf(managerText)};
 
     // Create checkable action for each toolbar
     // OpenSpec #00037: Order matches layout - Row 1 visible, Row 2 visible, then hidden
@@ -477,7 +502,8 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
         }
 
         // Create checkable action
-        QString actionText = QObject::tr(config.label.c_str());
+        QString actionText = menuTextOf(config);
+        usedKeys.insert(accessKeyOf(actionText));
         QAction* action = new QAction(actionText, toolbarsMenu);
         action->setCheckable(true);
         action->setChecked(toolbar->isVisible());
@@ -507,15 +533,26 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
     if (!m_userToolbarNames.isEmpty()) {
         toolbarsMenu->addSeparator();
 
+        // Their names with keys the other items do not have, as many of them as can have one
+        QStringList toolbarIds;
+        QList<QToolBar*> toolbars;
+        QStringList names;
         for (auto it = m_userToolbarNames.constBegin(); it != m_userToolbarNames.constEnd(); ++it) {
-            const QString& toolbarId = it.key();
-            const QString& displayName = it.value();
-            std::string id = toolbarId.toStdString();
-
-            QToolBar* toolbar = getToolbar(id);
+            QToolBar* toolbar = getToolbar(it.key().toStdString());
             if (!toolbar) continue;
 
-            QAction* action = new QAction(displayName, toolbarsMenu);
+            toolbarIds.append(it.key());
+            toolbars.append(toolbar);
+            names.append(it.value());
+        }
+        const QStringList texts = withFreeAccessKeys(names, usedKeys);
+
+        for (qsizetype index = 0; index < toolbarIds.size(); ++index) {
+            const QString& toolbarId = toolbarIds.at(index);
+            std::string id = toolbarId.toStdString();
+            QToolBar* toolbar = toolbars.at(index);
+
+            QAction* action = new QAction(texts.at(index), toolbarsMenu);
             action->setCheckable(true);
             action->setChecked(toolbar->isVisible());
             action->setData(toolbarId);
@@ -539,8 +576,9 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
 
     // Add separator and Toolbar Manager... action
     toolbarsMenu->addSeparator();
-    QAction* managerAction = new QAction(QObject::tr("Toolbar Manager..."), toolbarsMenu);
+    QAction* managerAction = new QAction(managerText, toolbarsMenu);
     toolbarsMenu->addAction(managerAction);
+    m_managerAction = managerAction;
 
     // OpenSpec #00031: Connect Toolbar Manager dialog
     QObject::connect(managerAction, &QAction::triggered, &m_connectionContext, [this]() {
@@ -619,7 +657,7 @@ QString ToolbarManager::getToolbarName(const QString& toolbarId) const {
     std::string id = toolbarId.toStdString();
     auto it = m_configs.find(id);
     if (it != m_configs.end()) {
-        return QObject::tr(it->second.label.c_str());
+        return withoutAccessKey(menuTextOf(it->second));
     }
 
     return toolbarId;
@@ -730,6 +768,14 @@ bool ToolbarManager::renameUserToolbar(const QString& toolbarId, const QString& 
         it->second->setWindowTitle(newName);
     }
 
+    // And its item in View > Toolbars, with a key the other items do not have
+    auto actionIt = m_viewActions.find(id);
+    if (actionIt != m_viewActions.end() && actionIt->second != nullptr &&
+        m_toolbarsMenu != nullptr) {
+        QSet<QChar> usedKeys = accessKeysIn(m_toolbarsMenu, actionIt->second);
+        actionIt->second->setText(withFreeAccessKey(newName, usedKeys));
+    }
+
     saveConfigurations();
 
     logger.debug("ToolbarManager: Renamed toolbar '{}' to '{}'",
@@ -786,6 +832,8 @@ void ToolbarManager::addToolbarItem(QToolBar* toolbar, const QString& cmdId, Com
         sizeSpinner->setSuffix(" pt");
         sizeSpinner->setMinimumWidth(60);
         sizeSpinner->setMaximumWidth(80);
+        // The size typed goes on the text at Enter, not at each digit (7 of 72)
+        sizeSpinner->setKeyboardTracking(false);
         // TODO: Connect to editor when available
         toolbar->addWidget(sizeSpinner);
         m_fontSizeSpinner = sizeSpinner;
@@ -1046,8 +1094,22 @@ void ToolbarManager::addNewCommands() {
 
 void ToolbarManager::showContextMenu(const QPoint& globalPos) {
     QMenu menu;
+    fillContextMenu(&menu);
+    menu.exec(globalPos);
+}
 
-    // Add toolbar visibility toggles
+void ToolbarManager::fillContextMenu(QMenu* menu) {
+    // The access keys of the built-in items first: the names of the user's toolbars get
+    // others, as many of them as can have one
+    const QString lockText = QObject::tr("&Lock Toolbar Positions");
+    const QString customizeText = QObject::tr("&Customize...");
+    const QString resetText = QObject::tr("&Reset to Default");
+    QSet<QChar> usedKeys = {accessKeyOf(lockText), accessKeyOf(customizeText),
+                            accessKeyOf(resetText)};
+    QList<QToolBar*> toolbars;
+    QStringList texts;
+    QList<qsizetype> userItems;  // the places of the user's toolbars among them
+    QStringList userNames;
     for (const QString& id : getToolbarIds()) {
         std::string idStd = id.toStdString();
         auto it = m_toolbars.find(idStd);
@@ -1055,7 +1117,26 @@ void ToolbarManager::showContextMenu(const QPoint& globalPos) {
         QToolBar* toolbar = it->second;
         if (!toolbar) continue;
 
-        QAction* action = menu.addAction(getToolbarName(id));
+        toolbars.append(toolbar);
+        auto config = m_configs.find(idStd);
+        if (config != m_configs.end() && !isUserToolbar(id)) {
+            texts.append(menuTextOf(config->second));
+            usedKeys.insert(accessKeyOf(texts.constLast()));
+        } else {
+            userItems.append(texts.size());
+            userNames.append(getToolbarName(id));
+            texts.append(QString());
+        }
+    }
+    const QStringList userTexts = withFreeAccessKeys(userNames, usedKeys);
+    for (qsizetype index = 0; index < userItems.size(); ++index) {
+        texts[userItems.at(index)] = userTexts.at(index);
+    }
+
+    // Add toolbar visibility toggles
+    for (qsizetype index = 0; index < toolbars.size(); ++index) {
+        QToolBar* toolbar = toolbars.at(index);
+        QAction* action = menu->addAction(texts.at(index));
         action->setCheckable(true);
         action->setChecked(toolbar->isVisible());
         QObject::connect(action, &QAction::toggled, toolbar, [toolbar](bool checked) {
@@ -1063,27 +1144,27 @@ void ToolbarManager::showContextMenu(const QPoint& globalPos) {
         });
     }
 
-    menu.addSeparator();
+    menu->addSeparator();
 
     // Lock toggle
-    QAction* lockAction = menu.addAction(QObject::tr("Lock Toolbar Positions"));
+    QAction* lockAction = menu->addAction(lockText);
     lockAction->setCheckable(true);
     lockAction->setChecked(m_toolbarsLocked);
     QObject::connect(lockAction, &QAction::toggled, &m_connectionContext, [this](bool checked) {
         setToolbarsLocked(checked);
     });
 
-    menu.addSeparator();
+    menu->addSeparator();
 
     // Customize
-    QAction* customizeAction = menu.addAction(QObject::tr("Customize..."));
+    QAction* customizeAction = menu->addAction(customizeText);
     QObject::connect(customizeAction, &QAction::triggered, &m_connectionContext, [this]() {
         dialogs::ToolbarManagerDialog dialog(this, m_mainWindow);
         dialog.exec();
     });
 
     // Reset
-    QAction* resetAction = menu.addAction(QObject::tr("Reset to Default"));
+    QAction* resetAction = menu->addAction(resetText);
     QObject::connect(resetAction, &QAction::triggered, &m_connectionContext, [this]() {
         // Confirm before reset
         if (dialogs::MessageDialog::confirm(
@@ -1093,8 +1174,6 @@ void ToolbarManager::showContextMenu(const QPoint& globalPos) {
             resetToDefaults();
         }
     });
-
-    menu.exec(globalPos);
 }
 
 void ToolbarManager::setToolbarsLocked(bool locked) {
@@ -1163,25 +1242,8 @@ void ToolbarManager::addViewMenuAction(const QString& toolbarId, const QString& 
     QToolBar* toolbar = getToolbar(id);
     if (!toolbar || !m_mainWindow) return;
 
-    QMenuBar* menuBar = m_mainWindow->menuBar();
-    if (!menuBar) return;
-
-    // Find View menu, then Toolbars submenu
-    QMenu* toolbarsMenu = nullptr;
-    for (QAction* menuAction : menuBar->actions()) {
-        QMenu* menu = menuAction->menu();
-        if (menu && (menu->title().contains(QObject::tr("View")) || menu->title().contains("View"))) {
-            for (QAction* subAction : menu->actions()) {
-                QMenu* subMenu = subAction->menu();
-                if (subMenu && (subMenu->title().contains(QObject::tr("Toolbars")) || subMenu->title().contains("Toolbar"))) {
-                    toolbarsMenu = subMenu;
-                    break;
-                }
-            }
-            break;
-        }
-    }
-
+    // View > Toolbars, as createViewMenuActions() made it (its texts are translated)
+    QMenu* toolbarsMenu = m_toolbarsMenu;
     if (!toolbarsMenu) {
         logger.warn("ToolbarManager: Could not find Toolbars submenu for adding '{}'", id);
         return;
@@ -1190,19 +1252,16 @@ void ToolbarManager::addViewMenuAction(const QString& toolbarId, const QString& 
     // Find position before "Toolbar Manager..." action
     QList<QAction*> actions = toolbarsMenu->actions();
     QAction* insertBefore = nullptr;
-    for (int i = actions.size() - 1; i >= 0; --i) {
-        if (actions[i]->text().contains(QObject::tr("Toolbar Manager")) || actions[i]->text().contains("Toolbar Manager")) {
-            if (i > 0 && actions[i-1]->isSeparator()) {
-                insertBefore = actions[i-1];
-            } else {
-                insertBefore = actions[i];
-            }
-            break;
-        }
+    const qsizetype managerIndex = actions.indexOf(m_managerAction);
+    if (managerIndex > 0 && actions[managerIndex - 1]->isSeparator()) {
+        insertBefore = actions[managerIndex - 1];
+    } else if (managerIndex >= 0) {
+        insertBefore = actions[managerIndex];
     }
 
-    // Create action for the toolbar
-    QAction* action = new QAction(name, toolbarsMenu);
+    // Create action for the toolbar, with a key the other items do not have
+    QSet<QChar> usedKeys = accessKeysIn(toolbarsMenu);
+    QAction* action = new QAction(withFreeAccessKey(name, usedKeys), toolbarsMenu);
     action->setCheckable(true);
     action->setChecked(toolbar->isVisible());
     action->setData(toolbarId);
@@ -1252,10 +1311,11 @@ void ToolbarManager::connectFontWidgets(std::function<EditorPanel*()> getEditor)
 
     m_getEditorCallback = getEditor;
 
-    // Connect font family combo
+    // Connect font family combo: a family chosen in the list, with the arrows, or typed and
+    // taken with Enter. Not at each letter typed, which put "F", "Fr"... on the text
     if (m_fontComboBox) {
-        QObject::connect(m_fontComboBox, &QFontComboBox::currentFontChanged, &m_connectionContext,
-                         [this](const QFont& font) {
+        QObject::connect(m_fontComboBox, &QComboBox::activated, &m_connectionContext,
+                         [this](int index) {
             if (m_fontWidgetsSyncing || !m_getEditorCallback) {
                 return;
             }
@@ -1265,13 +1325,13 @@ void ToolbarManager::connectFontWidgets(std::function<EditorPanel*()> getEditor)
                 return;
             }
 
+            const QString family = m_fontComboBox->itemText(index);
             auto& logger = core::Logger::getInstance();
-            logger.debug("ToolbarManager: Font family changed to '{}'",
-                         font.family().toStdString());
+            logger.debug("ToolbarManager: Font family changed to '{}'", family.toStdString());
 
             // Apply font family to selection or default font
             editor::BookEditor* bookEditor = editor->getBookEditor();
-            bookEditor->setSelectionFontFamily(font.family());
+            bookEditor->setSelectionFontFamily(family);
         });
 
         logger.debug("ToolbarManager: Font combo connected");

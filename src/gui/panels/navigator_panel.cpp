@@ -10,6 +10,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/utils/file_location.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/book_project.h"
@@ -1189,7 +1190,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     logger.debug("NavigatorPanel::showContextMenu() - Type: {}, ID: {}",
                  elementType.toStdString(), elementId.toStdString());
 
-    // Create context menu; an action that cannot be used may say why in its tooltip
+    // Create context menu: each item with its access key, unique in its menu
+    // (test_menu_access_keys); an action that cannot be used may say why in its tooltip
     QMenu menu(this);
     menu.setToolTipsVisible(true);
 
@@ -1204,7 +1206,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         const bool knownKind = element && pm.kindOf(*element);
         QAction* moveToAction = menu.addAction(
             artProvider.getIcon("common.driveFileMove", core::IconContext::Menu),
-            tr("Move..."));
+            tr("Mo&ve..."));
         connect(moveToAction, &QAction::triggered, this,
                 [this, elementId]() { emit requestMoveTo(elementId); });
 
@@ -1240,26 +1242,26 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
         QAction* moveToStartAction = menu.addAction(
             artProvider.getIcon("navigation.top", core::IconContext::Menu),
-            tr("Move to Start"));
+            tr("Move to S&tart"));
         connect(moveToStartAction, &QAction::triggered, this,
                 [this, elementId, startIndex]() { emit elementMoved(elementId, startIndex); });
         moveToStartAction->setEnabled(startIndex >= 0 && index > startIndex);
 
         QAction* moveUpAction = menu.addAction(
             artProvider.getIcon("navigation.up", core::IconContext::Menu),
-            tr("Move Up"));
+            tr("Move &Up"));
         connect(moveUpAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuMoveUp);
         moveUpAction->setEnabled(index > 0);
 
         QAction* moveDownAction = menu.addAction(
             artProvider.getIcon("navigation.down", core::IconContext::Menu),
-            tr("Move Down"));
+            tr("Move Do&wn"));
         connect(moveDownAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuMoveDown);
         moveDownAction->setEnabled(index >= 0 && index < siblingCount - 1);
 
         QAction* moveToEndAction = menu.addAction(
             artProvider.getIcon("navigation.bottom", core::IconContext::Menu),
-            tr("Move to End"));
+            tr("Move to E&nd"));
         connect(moveToEndAction, &QAction::triggered, this,
                 [this, elementId, endIndex]() { emit elementMoved(elementId, endIndex); });
         moveToEndAction->setEnabled(index >= 0 && index < endIndex);
@@ -1279,30 +1281,31 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         }
         return menu.addAction(
             artProvider.getIcon(iconId, core::IconContext::Menu),
-            core::fillWords(tr("Add {Kind}..."), {{QStringLiteral("kind"), wordsOf(kind)}}));
+            core::fillWords(tr("Add {Kind}..."),
+                            {{QStringLiteral("kind"), menuWords(wordsOf(kind))}}));
     };
 
     const auto addRenameDeleteActions = [&]() {
         QAction* renameAction = menu.addAction(
             artProvider.getIcon("edit.rename", core::IconContext::Menu),
-            tr("Rename..."));
+            tr("Rena&me..."));
         connect(renameAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuRename);
 
         QAction* deleteAction = menu.addAction(
             artProvider.getIcon("edit.delete", core::IconContext::Menu),
-            tr("Delete..."));
+            tr("&Delete..."));
         connect(deleteAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuDelete);
     };
 
     const auto addExpandCollapseActions = [&]() {
         QAction* expandAllAction = menu.addAction(
             artProvider.getIcon("common.expand", core::IconContext::Menu),
-            tr("Expand All"));
+            tr("&Expand All"));
         connect(expandAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuExpandAll);
 
         QAction* collapseAllAction = menu.addAction(
             artProvider.getIcon("common.collapse", core::IconContext::Menu),
-            tr("Collapse All"));
+            tr("&Collapse All"));
         connect(collapseAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuCollapseAll);
     };
 
@@ -1311,7 +1314,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         // Text elements (chapters, front/back matter items)
         QAction* openAction = menu.addAction(
             artProvider.getIcon("file.open", core::IconContext::Menu),
-            tr("Open"));
+            tr("&Open"));
         connect(openAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuOpen);
 
         menu.addSeparator();
@@ -1321,7 +1324,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
 
         // Add "Set Status" submenu for text elements
-        QMenu* statusMenu = menu.addMenu(tr("Set Status"));
+        QMenu* statusMenu = menu.addMenu(tr("Set &Status"));
 
         QActionGroup* statusGroup = new QActionGroup(statusMenu);
         statusGroup->setExclusive(true);
@@ -1333,19 +1336,19 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         }
 
         // Create radio actions
-        QAction* draftAction = statusMenu->addAction(tr("Draft"));
+        QAction* draftAction = statusMenu->addAction(tr("&Draft"));
         draftAction->setCheckable(true);
         draftAction->setChecked(currentStatus == "draft");
         draftAction->setData("draft");
         statusGroup->addAction(draftAction);
 
-        QAction* revisionAction = statusMenu->addAction(tr("Revision"));
+        QAction* revisionAction = statusMenu->addAction(tr("&Revision"));
         revisionAction->setCheckable(true);
         revisionAction->setChecked(currentStatus == "revision");
         revisionAction->setData("revision");
         statusGroup->addAction(revisionAction);
 
-        QAction* finalAction = statusMenu->addAction(tr("Final"));
+        QAction* finalAction = statusMenu->addAction(tr("&Final"));
         finalAction->setCheckable(true);
         finalAction->setChecked(currentStatus == "final");
         finalAction->setData("final");
@@ -1358,7 +1361,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("common.properties", core::IconContext::Menu),
-            tr("Properties..."));
+            tr("P&roperties..."));
         connect(propertiesAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuProperties);
 
     } else if (elementType == "group_element") {
@@ -1403,7 +1406,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                                               : core::BookPlace::Back;
             QAction* addItemAction = menu.addAction(
                 artProvider.getIcon("template.chapter", core::IconContext::Menu),
-                tr("Add Item..."));
+                tr("&Add Item..."));
             connect(addItemAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddItem);
             addItemAction->setEnabled(projectOpen && !pm.textKindsFor(place).isEmpty());
         }
@@ -1411,7 +1414,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         // The writer can name each section
         menu.addSeparator();
         QAction* renameAction = menu.addAction(
-            artProvider.getIcon("edit.rename", core::IconContext::Menu), tr("Rename..."));
+            artProvider.getIcon("edit.rename", core::IconContext::Menu), tr("Rena&me..."));
         connect(renameAction, &QAction::triggered, this,
                 [this, elementType]() { emit requestRenameSection(elementType); });
         renameAction->setEnabled(projectOpen);
@@ -1437,14 +1440,14 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
             QAction* addFirstAction = menu.addAction(
                 artProvider.getIcon("structure.frontmatter", core::IconContext::Menu),
-                tr("Add Item at the Beginning of the Book..."));
+                tr("Add Item at the &Beginning of the Book..."));
             connect(addFirstAction, &QAction::triggered, this,
                     [this]() { emit requestAddItem(QStringLiteral("front_matter")); });
             addFirstAction->setEnabled(!pm.textKindsFor(core::BookPlace::Front).isEmpty());
 
             QAction* addLastAction = menu.addAction(
                 artProvider.getIcon("structure.backmatter", core::IconContext::Menu),
-                tr("Add Item at the End of the Book..."));
+                tr("Add Item at the &End of the Book..."));
             connect(addLastAction, &QAction::triggered, this,
                     [this]() { emit requestAddItem(QStringLiteral("back_matter")); });
             addLastAction->setEnabled(!pm.textKindsFor(core::BookPlace::Back).isEmpty());
@@ -1453,7 +1456,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         }
         if (projectOpen) {
             // Showing or hiding the sections moves no element
-            QAction* showSectionsAction = menu.addAction(tr("Show Sections"));
+            QAction* showSectionsAction = menu.addAction(tr("&Show Sections"));
             showSectionsAction->setCheckable(true);
             showSectionsAction->setChecked(sectionsShown);
             connect(showSectionsAction, &QAction::toggled, this,
@@ -1463,47 +1466,47 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("common.properties", core::IconContext::Menu),
-            tr("Book Properties..."));
+            tr("Book P&roperties..."));
         connect(propertiesAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuProperties);
 
     } else if (elementType == "standalone_file") {
         // Standalone file
         QAction* openAction = menu.addAction(
             artProvider.getIcon("file.open", core::IconContext::Menu),
-            tr("Open"));
+            tr("&Open"));
         connect(openAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuOpen);
 
         menu.addSeparator();
 
         QAction* addToProjectAction = menu.addAction(
             artProvider.getIcon("book.newItem", core::IconContext::Menu),
-            tr("Add to Book..."));
+            tr("&Add to Book..."));
         connect(addToProjectAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddToProject);
 
         QAction* removeFromListAction = menu.addAction(
             artProvider.getIcon("edit.delete", core::IconContext::Menu),
-            tr("Remove from List"));
+            tr("&Remove from List"));
         connect(removeFromListAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuRemoveFromList);
 
     } else if (elementType == "unassigned_file") {
         // A chapter file that no element has: its text, back to the book, or deleted
         const QString path = QDir::cleanPath(QDir(m_projectFolder).filePath(elementId));
         QAction* previewAction = menu.addAction(
-            artProvider.getIcon("common.preview", core::IconContext::Menu), tr("Preview"));
+            artProvider.getIcon("common.preview", core::IconContext::Menu), tr("&Preview"));
         connect(previewAction, &QAction::triggered, this,
                 [this, elementId]() { emit requestPreviewUnassigned(elementId); });
         QAction* addAction = menu.addAction(
-            artProvider.getIcon("book.newItem", core::IconContext::Menu), tr("Add to Book..."));
+            artProvider.getIcon("book.newItem", core::IconContext::Menu), tr("&Add to Book..."));
         connect(addAction, &QAction::triggered, this,
                 [this, elementId]() { emit requestAddUnassigned(elementId); });
         menu.addSeparator();
         QAction* showAction = menu.addAction(
-            artProvider.getIcon("common.folder", core::IconContext::Menu), tr("Show in Folder"));
+            artProvider.getIcon("common.folder", core::IconContext::Menu), tr("Show in &Folder"));
         connect(showAction, &QAction::triggered, this,
                 [this, path]() { showInFileManager(path); });
         menu.addSeparator();
         QAction* deleteAction = menu.addAction(
-            artProvider.getIcon("edit.delete", core::IconContext::Menu), tr("Delete File..."));
+            artProvider.getIcon("edit.delete", core::IconContext::Menu), tr("&Delete File..."));
         connect(deleteAction, &QAction::triggered, this,
                 [this, elementId]() { emit requestDeleteUnassigned(elementId); });
 
@@ -1514,12 +1517,12 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         const QString folder =
             QFileInfo(QDir::cleanPath(QDir(m_projectFolder).filePath(first))).absolutePath();
         QAction* showAction = menu.addAction(
-            artProvider.getIcon("common.folder", core::IconContext::Menu), tr("Show in Folder"));
+            artProvider.getIcon("common.folder", core::IconContext::Menu), tr("Show in &Folder"));
         connect(showAction, &QAction::triggered, this,
                 [this, folder]() { showInFileManager(folder); });
         menu.addSeparator();
         QAction* deleteAllAction = menu.addAction(
-            artProvider.getIcon("edit.delete", core::IconContext::Menu), tr("Delete All..."));
+            artProvider.getIcon("edit.delete", core::IconContext::Menu), tr("&Delete All..."));
         connect(deleteAllAction, &QAction::triggered, this,
                 [this]() { emit requestDeleteAllUnassigned(); });
         menu.addSeparator();
@@ -1535,6 +1538,10 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         m_contextMenuItem = nullptr;
         return;
     }
+
+    // The items named after the kinds of the book ("Add Story...") get keys that no other item
+    // of the menu has
+    giveFreeAccessKeys(&menu);
 
     // Show menu at global position
     menu.exec(m_treeWidget->viewport()->mapToGlobal(pos));

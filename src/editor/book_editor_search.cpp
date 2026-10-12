@@ -4,7 +4,10 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/find_replace_bar.h>
+#include <kalahari/editor/search_engine.h>
+#include "book_editor_internal.h"
 #include <QScrollBar>
+#include <QTextBlock>
 
 namespace kalahari::editor {
 
@@ -37,8 +40,23 @@ void BookEditor::setupFindReplace()
             this, &BookEditor::onTextReplaced);
     connect(m_findReplaceBar, &FindReplaceBar::closed,
             this, &BookEditor::hideFindReplace);
+    connect(m_findReplaceBar, &FindReplaceBar::textFocusRequested,
+            this, [this]() { setFocus(); });
     connect(m_searchEngine.get(), &SearchEngine::matchesChanged,
             this, [this]() { update(); });  // Repaint on match change
+
+    // Undoing a replacement brings back the cursor and selection it was made with, redoing
+    // it the cursor at the end of the replaced text: after undoing Replace All QTextDocument
+    // would put the cursor at the start of the text. Of the step's undo items, the first is
+    // undone last and the last redone last.
+    connect(m_searchEngine.get(), &SearchEngine::replacementStepBegun, this, [this]() {
+        m_searchEngine->document()->appendUndoItem(new CallbackUndoItem(
+            [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+    });
+    connect(m_searchEngine.get(), &SearchEngine::replacementStepEnding, this, [this]() {
+        m_searchEngine->document()->appendUndoItem(new CallbackUndoItem(
+            [this, state = StepCursor{replacedTextEnd(), {}}] { m_stepCursor = state; }));
+    });
     syncSearchOrigin();
 }
 
@@ -77,10 +95,7 @@ void BookEditor::showFind()
     }
 
     takeSearchTextFromSelection();
-
-    m_findReplaceBar->showFind();
-    placeFindReplaceBar();
-    m_findReplaceBar->show();
+    openFindBar(false);
     m_findReplaceBar->focusSearchInput();
 }
 
@@ -91,11 +106,37 @@ void BookEditor::showFindReplace()
     }
 
     takeSearchTextFromSelection();
+    openFindBar(true);
+    m_findReplaceBar->focusSearchInput();
+}
 
-    m_findReplaceBar->showFindReplace();
+void BookEditor::openFindBar(bool replace)
+{
+    if (replace) {
+        m_findReplaceBar->showFindReplace();
+    } else {
+        m_findReplaceBar->showFind();
+    }
     placeFindReplaceBar();
     m_findReplaceBar->show();
-    m_findReplaceBar->focusSearchInput();
+}
+
+bool BookEditor::resumeSearch()
+{
+    if (m_searchEngine && m_searchEngine->isActive()) {
+        return true;
+    }
+
+    // Without a search term, open the bar to type one
+    if (!m_findReplaceBar || m_findReplaceBar->searchText().isEmpty()) {
+        showFind();
+        return false;
+    }
+
+    // The bar was closed (Esc): it shows again, in its mode and with its text, and the keys
+    // stay in the text, as F3 goes on in Word, the browsers and the code editors
+    openFindBar(m_findReplaceBar->isReplaceMode());
+    return m_searchEngine->isActive();
 }
 
 void BookEditor::placeFindReplaceBar()
@@ -126,9 +167,7 @@ void BookEditor::setTopBarHeight(int height)
 
 void BookEditor::findNext()
 {
-    // Without a search term, open the bar to type one
-    if (!m_searchEngine || !m_searchEngine->isActive()) {
-        showFind();
+    if (!resumeSearch()) {
         return;
     }
     auto match = m_searchEngine->nextMatch();
@@ -139,8 +178,7 @@ void BookEditor::findNext()
 
 void BookEditor::findPrevious()
 {
-    if (!m_searchEngine || !m_searchEngine->isActive()) {
-        showFind();
+    if (!resumeSearch()) {
         return;
     }
     auto match = m_searchEngine->previousMatch();
@@ -177,12 +215,24 @@ void BookEditor::onNavigateToMatch(const SearchMatch& match)
     update();
 }
 
+CursorPosition BookEditor::replacedTextEnd() const
+{
+    const int end = m_searchEngine ? m_searchEngine->replacementEnd() : -1;
+    const QTextBlock block =
+        end >= 0 && m_textBuffer ? m_textBuffer->findBlock(end) : QTextBlock();
+    return block.isValid() ? CursorPosition{block.blockNumber(), end - block.position()}
+                           : m_cursorPosition;
+}
+
 void BookEditor::onTextReplaced()
 {
-    // The replaced text may be shorter than the selected match the cursor stood on
+    // The cursor goes to the end of the replaced text, after Replace All to the end of the
+    // last replacement: where it stood, at the end of the match, the replacement may be
+    // longer or shorter, and the cursor would land inside a word
     clearSelection();
-    m_cursorPosition = validateCursorPosition(m_cursorPosition);
+    m_cursorPosition = validateCursorPosition(replacedTextEnd());
 
+    ensureCursorVisible();
     syncPipelineCursor();
     update();
     emit contentChanged();

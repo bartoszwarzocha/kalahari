@@ -9,6 +9,7 @@
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/gui/utils/access_keys.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -16,6 +17,7 @@
 #include <QGroupBox>
 #include <QLabel>
 #include <QHeaderView>
+#include <QKeySequence>
 #include <QRegularExpression>
 
 using namespace kalahari::gui::dialogs;
@@ -452,7 +454,10 @@ void ToolbarManagerDialog::populateAvailableCommands() {
         QString category = QString::fromStdString(cmd.category);
         QString cmdId = QString::fromStdString(cmd.id);
         QString label = QString::fromStdString(cmd.label);
-        QString shortcut = cmd.shortcut.toString();
+        // As the menus write the keys
+        const QString shortcut = cmd.shortcut.isEmpty()
+            ? QString()
+            : cmd.shortcut.toQKeySequence().toString(QKeySequence::NativeText);
 
         // Create category item if needed
         if (!categoryItems.contains(category)) {
@@ -517,7 +522,7 @@ void ToolbarManagerDialog::populateCurrentToolbar(const QString& toolbarId) {
             // Get shared QAction from CommandRegistry (OpenSpec #00040 - Phase 3)
             QAction* action = registry.getAction(cmdId);
             if (action) {
-                item->setText(action->text());
+                item->setText(kalahari::gui::withoutAccessKey(action->text()));
                 item->setData(Qt::UserRole, cmdId);
 
                 if (!action->icon().isNull()) {

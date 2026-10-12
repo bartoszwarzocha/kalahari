@@ -19,6 +19,7 @@
 
 class QAction;
 class QDockWidget;
+class QMenu;
 class QStatusBar;
 class QTabWidget;
 class QTimer;
@@ -97,6 +98,10 @@ public:
 
     /// @brief The small menu of the kinds of annotations at the cursor (Add Annotation)
     void showAddMenu();
+
+    /// @brief Fill the menu of the kinds of annotations (showAddMenu()): each item's data is
+    ///        its editor::AnnotationKind
+    static void fillAddMenu(QMenu* menu);
 
     /// @brief Edit an annotation's text in a frame at its place
     /// @param elementId Its chapter (empty: the document in front); its tab is brought to

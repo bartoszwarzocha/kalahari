@@ -166,7 +166,10 @@ struct Command {
     // Identification
     // ========================================================================
     std::string id;              ///< Unique command ID ("file.save", "edit.undo")
-    std::string label;           ///< Display label ("Save", "Undo")
+    std::string label;           ///< Display label ("Save", "Save As...")
+    std::string menuText;        ///< The label in a menu, with its access key ("&Save",
+                                 ///< "Save &As...", "&&" for an ampersand); empty: the label
+                                 ///< with none (gui/utils/access_keys.h)
     std::string tooltip;         ///< Tooltip text ("Save current document")
     std::string category;        ///< Category for grouping ("File", "Edit", "View")
 
@@ -190,6 +193,9 @@ struct Command {
     // ========================================================================
     KeyboardShortcut shortcut;   ///< Keyboard shortcut
     bool isShortcutCustomizable = true; ///< Allow user to change shortcut
+    std::string unavailableNote; ///< What the list of the shortcuts says after the label while
+                                 ///< the command does not run yet ("not available yet");
+                                 ///< empty: "in preparation"
 
     // ========================================================================
     // Execution Logic
@@ -223,6 +229,10 @@ struct Command {
     bool checkChecked() const {
         return isChecked ? isChecked() : false;
     }
+
+    /// @brief The text of the command's action: its menu text, or its label with no access
+    /// key
+    [[nodiscard]] QString actionText() const;
 
     /// @brief Convert to QAction for Qt integration
     /// @param parent Parent QObject for memory management

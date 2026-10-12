@@ -2,6 +2,7 @@
 /// @brief Editor panel implementation with BookEditor (OpenSpec #00042 Phase 7.1)
 
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
@@ -51,6 +52,15 @@ EditorPanel::EditorPanel(QWidget* parent)
             this, &EditorPanel::contentChanged);
     connect(m_bookEditor, &editor::BookEditor::modifiedChanged, this,
             &EditorPanel::modifiedChanged);
+
+    // The text's context menu cuts, copies, pastes and selects all with the commands of the
+    // Edit menu: their icons and keys, enabled as there
+    auto& registry = CommandRegistry::getInstance();
+    m_bookEditor->setContextMenuEditActions(
+        {registry.getAction(QStringLiteral("edit.cut")),
+         registry.getAction(QStringLiteral("edit.copy")),
+         registry.getAction(QStringLiteral("edit.paste")),
+         registry.getAction(QStringLiteral("edit.selectAll"))});
 
     // The light or dark paper chosen in the editor's context menu is the setting of all
     // editors, kept between sessions

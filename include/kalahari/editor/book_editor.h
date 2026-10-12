@@ -25,6 +25,7 @@
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/editor_render_pipeline.h>  // Phase 12.3: Unified render pipeline
+#include <kalahari/editor/text_keys.h>
 #include <QWidget>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -337,10 +338,12 @@ public:
     /// If at paragraph end, moves to start of next paragraph.
     void moveCursorWordRight();
 
-    /// @brief Move cursor to start of current line (Home)
+    /// @brief Move cursor to the start of its line on the screen (Home)
     void moveCursorToLineStart();
 
-    /// @brief Move cursor to end of current line (End)
+    /// @brief Move cursor to the end of its line on the screen (End)
+    ///
+    /// A line wrapped at a space ends before that space, so the cursor stays on the line.
     void moveCursorToLineEnd();
 
     /// @brief Move cursor to document start (Ctrl+Home)
@@ -362,6 +365,16 @@ public:
     /// page mode both move by one page: the next page shows where this one was, the cursor
     /// on the same line of it.
     void moveCursorPageDown();
+
+    /// @brief Do what a key of the text does (see text_keys.h)
+    ///
+    /// keyPressEvent() calls it for the keys of the system the program runs on; the action
+    /// of any system works on every one.
+    /// @param action What the key does
+    /// @param select A move extends the selection (the key with Shift) instead of dropping
+    ///        it; Left and Right without it take the cursor to the start or the end of the
+    ///        selection
+    void performTextKey(TextKeyAction action, bool select = false);
 
     // =========================================================================
     // Selection (Phase 3.10/3.12)
@@ -505,66 +518,61 @@ public:
 
     // =========================================================================
     // Formatting (Phase 7.2)
+    //
+    // As in Word and LibreOffice, a character format goes on the selection; without one, on
+    // the word the cursor is inside of, else on the text typed next at the cursor, until
+    // the cursor moves.
     // =========================================================================
 
-    /// @brief Toggle bold formatting on selection or at cursor
-    ///
-    /// If text is selected, toggles bold on the selection.
-    /// If no selection, toggles bold mode for next typed characters.
+    /// @brief Toggle bold on the selection, the word with the cursor or the text typed next
     void toggleBold();
 
-    /// @brief Toggle italic formatting on selection or at cursor
-    ///
-    /// If text is selected, toggles italic on the selection.
-    /// If no selection, toggles italic mode for next typed characters.
+    /// @brief Toggle italic on the selection, the word with the cursor or the text typed next
     void toggleItalic();
 
-    /// @brief Toggle underline formatting on selection or at cursor
-    ///
-    /// If text is selected, toggles underline on the selection.
-    /// If no selection, toggles underline mode for next typed characters.
+    /// @brief Toggle underline on the selection, the word with the cursor or the text typed
+    ///        next
     void toggleUnderline();
 
-    /// @brief Toggle strikethrough formatting on selection or at cursor
-    ///
-    /// If text is selected, toggles strikethrough on the selection.
-    /// If no selection, toggles strikethrough mode for next typed characters.
+    /// @brief Toggle strikethrough on the selection, the word with the cursor or the text
+    ///        typed next
     void toggleStrikethrough();
 
-    /// @brief Check if current selection/cursor position has bold formatting
-    /// @return true if text at cursor/selection is bold
+    /// @brief Whether all of the selection is bold, or the text typed at the cursor would be
     bool isBold() const;
 
-    /// @brief Check if current selection/cursor position has italic formatting
-    /// @return true if text at cursor/selection is italic
+    /// @brief Whether all of the selection is italic, or the text typed at the cursor would be
     bool isItalic() const;
 
-    /// @brief Check if current selection/cursor position has underline formatting
-    /// @return true if text at cursor/selection is underlined
+    /// @brief Whether all of the selection is underlined, or the text typed at the cursor
+    ///        would be
     bool isUnderline() const;
 
-    /// @brief Check if current selection/cursor position has strikethrough formatting
-    /// @return true if text at cursor/selection has strikethrough
+    /// @brief Whether all of the selection is struck through, or the text typed at the cursor
+    ///        would be
     bool isStrikethrough() const;
 
     // =========================================================================
-    // Font Selection (applies to selection if any, otherwise default font)
+    // Font of the selection, the word with the cursor or the text typed next. The editor's
+    // own font stays: it is the one of the settings (editor.fontFamily, editor.fontSize).
     // =========================================================================
 
-    /// @brief Set font family for selection or default font if no selection
+    /// @brief Set the font family of the selection, the word with the cursor or the text
+    ///        typed next
     /// @param family The font family name
     void setSelectionFontFamily(const QString& family);
 
-    /// @brief Set font size for selection or default font if no selection
+    /// @brief Set the font size of the selection, the word with the cursor or the text typed
+    ///        next
     /// @param pointSize The font size in points
     void setSelectionFontSize(int pointSize);
 
-    /// @brief Get font family at current cursor position
-    /// @return Font family name at cursor
+    /// @brief The font family of the text typed at the cursor
+    /// @return Its own family, or the editor's
     QString currentFontFamily() const;
 
-    /// @brief Get font size at current cursor position
-    /// @return Font size in points at cursor
+    /// @brief The font size of the text typed at the cursor
+    /// @return Its own size in points, or the editor's
     int currentFontSize() const;
 
     // =========================================================================
@@ -673,6 +681,25 @@ public:
     /// The application's commands, e.g. adding a comment; the editor only shows them.
     /// Null entries are left out.
     void setContextMenuActions(const QList<QAction*>& actions);
+
+    /// @brief The application's Cut, Copy, Paste and Select All (setContextMenuEditActions())
+    struct ContextMenuEditActions {
+        QAction* cut = nullptr;
+        QAction* copy = nullptr;
+        QAction* paste = nullptr;
+        QAction* selectAll = nullptr;
+    };
+
+    /// @brief The commands of the Edit menu the text's context menu shows as its editing
+    ///        items, with their icons and keys
+    ///
+    /// They take the places of the editor's own Cut, Copy, Paste and Select All (Cut and
+    /// Copy only with a selection) and are enabled as in the Edit menu. They work on the
+    /// element with the keys, the editor whose menu is open: a right click gives it the keys,
+    /// and the keyboard opens the menu of the editor that has them. An item without a
+    /// command is the editor's own. The application keeps the commands while the editor
+    /// lives.
+    void setContextMenuEditActions(const ContextMenuEditActions& actions);
 
     /// @brief Show the text's context menu under the cursor, as the menu key and Shift+F10
     ///        do: for a misspelled word at the cursor it offers what to put in its place
@@ -901,9 +928,12 @@ public:
     void showFindReplace();
 
     /// @brief Navigate to the next search match
+    ///
+    /// After the bar was closed, it shows again with its text and the search goes on, while
+    /// the keys stay in the text; without a search text, the bar opens to type one.
     void findNext();
 
-    /// @brief Navigate to the previous search match
+    /// @brief Navigate to the previous search match (as findNext())
     void findPrevious();
 
     /// @brief Hide the find/replace bar and clear search highlights
@@ -1075,7 +1105,9 @@ protected:
     /// @brief Key press event handler
     /// @param event The key event
     ///
-    /// Handles keyboard navigation (arrow keys, Home, End, Page Up/Down).
+    /// The keys of the text (text_keys.h) for the system the program runs on, and typed
+    /// characters. The shortcuts of the commands never come here: the window's actions take
+    /// them first.
     void keyPressEvent(QKeyEvent* event) override;
 
     /// @brief Mouse press event handler (Phase 3.9/3.11)
@@ -1175,8 +1207,10 @@ private:
     /// @brief Align the paragraph at the cursor, or the selected ones, as one undo step
     void setParagraphAlignment(Qt::Alignment alignment);
 
-    /// @brief Put back the cursor and selection a step that changes no text (a paragraph
-    /// format step, a step of annotations) just undone or redone was made with
+    /// @brief Put back the cursor and selection the undo step just undone or redone
+    /// recorded: the ones a step that changes no text (a paragraph format step, a step of
+    /// annotations) was made with; for a replacement those before it when it is undone,
+    /// the end of the replaced text when it is redone
     void restoreStepCursor();
 
     /// @brief Start an undo step of annotations, or join the last undo step
@@ -1355,18 +1389,47 @@ private:
     /// @param newCursor The new cursor position
     void extendSelection(const CursorPosition& newCursor);
 
-    /// @brief Move cursor with optional selection extension
-    /// @param extend If true, extend selection rather than clear it
-    void moveCursorLeftWithSelection(bool extend);
-    void moveCursorRightWithSelection(bool extend);
-    void moveCursorUpWithSelection(bool extend);
-    void moveCursorDownWithSelection(bool extend);
-    void moveCursorWordLeftWithSelection(bool extend);
-    void moveCursorWordRightWithSelection(bool extend);
-    void moveCursorToLineStartWithSelection(bool extend);
-    void moveCursorToLineEndWithSelection(bool extend);
-    void moveCursorToDocStartWithSelection(bool extend);
-    void moveCursorToDocEndWithSelection(bool extend);
+    // =========================================================================
+    // The keys of the text (text_keys.h)
+    // =========================================================================
+
+    /// @brief Where a move of the keys of the text by words, lines on the screen or
+    ///        paragraphs takes the cursor from a position (the position itself for any
+    ///        other action)
+    CursorPosition textKeyTarget(TextKeyAction action, const CursorPosition& from) const;
+
+    /// @brief The start of the line on the screen a position is on
+    CursorPosition lineStartOf(const CursorPosition& position) const;
+
+    /// @brief The end of the line on the screen a position is on (before the space a
+    ///        wrapped line breaks at)
+    CursorPosition lineEndOf(const CursorPosition& position) const;
+
+    /// @brief Scroll the view by its height (-1 up, 1 down); the cursor stays
+    void scrollByViewHeight(double direction);
+
+    /// @brief Scroll the cursor's line to the middle of the view
+    void centerCursorInView();
+
+    /// @brief Delete from the cursor to a position, or the selection when there is one
+    ///
+    /// The annotations of the deleted text stay on its place.
+    void deleteTo(const CursorPosition& position);
+
+    /// @brief Delete the last mark of the character before the cursor (é becomes e), or
+    ///        the character when it has none
+    void deleteDiacritic();
+
+    /// @brief Delete to the end of the paragraph, or the paragraph break at its end, and
+    ///        keep the text for yank(); presses in a row keep all they deleted
+    void killToParagraphEnd();
+
+    /// @brief Type the text the last presses of killToParagraphEnd() deleted
+    void yank();
+
+    /// @brief Swap the characters on both sides of the cursor and go past them; at the end
+    ///        of a paragraph swap the two before it
+    void transposeCharacters();
 
     // =========================================================================
     // Distraction-Free writing
@@ -1393,17 +1456,52 @@ private:
     /// @brief Inline formatting the bold, italic, underline and strikethrough commands toggle
     enum class InlineFormat { Bold, Italic, Underline, Strikethrough };
 
-    /// @brief Toggle inline formatting on selection or set pending format
-    /// @param formatType The type of formatting
+    /// @brief Toggle an inline format on the selection, the word with the cursor or the text
+    ///        typed next
     ///
-    /// If text is selected, toggles the format on the selection.
-    /// If no selection, toggles the pending format state for next typed text.
+    /// On text, the format goes when all of it has it, else all of it gets it. For the text
+    /// typed next the format is relative to the one the text there has: given twice, it is
+    /// as without it.
     void toggleFormat(InlineFormat formatType);
 
-    /// @brief Check if text at cursor/selection has specific formatting
-    /// @param formatType The type of formatting to check
-    /// @return true if current position has the specified formatting
+    /// @brief Whether all of the selection has an inline format, or the text typed at the
+    ///        cursor would have it
     bool hasFormat(InlineFormat formatType) const;
+
+    /// @brief Whether every character of a range has an inline format
+    bool rangeHasFormat(const SelectionRange& range, InlineFormat formatType) const;
+
+    /// @brief Whether a character format has an inline format
+    static bool formatHas(const QTextCharFormat& format, InlineFormat formatType);
+
+    /// @brief The text a character format given now goes on: the selection, or the word the
+    ///        cursor is inside of (not at its start or end)
+    /// @return None elsewhere: the format goes on the text typed next
+    std::optional<SelectionRange> formatRange() const;
+
+    /// @brief Merge a character format into a range, as one undo step
+    ///
+    /// Undoing or redoing it brings back the cursor and selection it was made with.
+    void applyCharFormat(const SelectionRange& range, const QTextCharFormat& format);
+
+    /// @brief The format given without a selection for the text typed next, while the
+    ///        cursor is at its place with no selection (else an empty format)
+    QTextCharFormat pendingFormat() const;
+
+    /// @brief Make a format the one of the text typed next at the cursor's place
+    void setPendingFormat(const QTextCharFormat& format);
+
+    /// @brief The format the cursor's place gives typed text (insertionFormat())
+    QTextCharFormat placeFormat() const;
+
+    /// @brief The format of the text typed at the cursor: the place's with the pending one
+    QTextCharFormat typingFormat() const;
+
+    /// @brief The font family text with a format shows: its own, or the editor's
+    QString fontFamilyOf(const QTextCharFormat& format) const;
+
+    /// @brief The font size text with a format shows: its own, or the editor's
+    int fontSizeOf(const QTextCharFormat& format) const;
 
     QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
     QScrollBar* m_horizontalScrollBar = nullptr;            ///< Horizontal scrollbar (zoomed pages)
@@ -1446,6 +1544,11 @@ private:
     double m_pageMovesDirection = 0.0;                      ///< Their way: 1 down, -1 up
     CursorPosition m_pageMoveCursor{-1, -1};                ///< Cursor position the last of them gave
 
+    // killToParagraphEnd() presses in a row: the cursor and the document's revision the
+    // last of them left
+    CursorPosition m_killCursor{-1, -1};
+    int m_killRevision = -1;
+
     // Selection state (Phase 3.10)
     SelectionRange m_selection;                             ///< Current selection range
     CursorPosition m_selectionAnchor;                       ///< Anchor point for selection
@@ -1466,6 +1569,7 @@ private:
     bool m_autoScrollForDrop = false;   ///< Scrolling for dragged text (else: for a mouse selection)
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
     QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
+    ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
 
     // IME composition state (Phase 4.5/4.6/4.7)
@@ -1476,11 +1580,11 @@ private:
     // Undo/Redo: QTextDocument's native undo is the single source of truth
     // (text AND formatting) — see undo()/redo(). No separate QUndoStack.
 
-    // Pending format state (Phase 7.2)
-    bool m_pendingBold{false};                              ///< Apply bold to next typed text
-    bool m_pendingItalic{false};                            ///< Apply italic to next typed text
-    bool m_pendingUnderline{false};                         ///< Apply underline to next typed text
-    bool m_pendingStrikethrough{false};                     ///< Apply strikethrough to next typed text
+    // A format given without a selection outside a word, for the text typed next at its
+    // place: typing there and Enter keep it, moving the cursor, selecting, undo, redo and
+    // another text drop it (see pendingFormat())
+    QTextCharFormat m_pendingFormat;   ///< Only the properties given
+    CursorPosition m_pendingFormatAt;  ///< The cursor's place when it was given
 
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
@@ -1590,14 +1694,14 @@ private:
     /// @brief QTextCursor for direct cursor operations (Phase 11.6)
     QTextCursor m_textCursor;
 
-    /// @brief Cursor and selection a step that changes no text was made with
+    /// @brief Cursor and selection an undo step brings back (restoreStepCursor())
     struct StepCursor {
         CursorPosition cursor;
         SelectionRange selection;
     };
 
-    /// @brief Set by the undo item of a step that changes no text being undone or redone
-    /// (see setParagraphAlignment() and beginAnnotationStep())
+    /// @brief Set by the undo items of a step being undone or redone (see
+    /// setParagraphAlignment(), beginAnnotationStep() and setupFindReplace())
     std::optional<StepCursor> m_stepCursor;
 
     /// @brief Create the document with the given content and connect it to the view
@@ -1687,6 +1791,12 @@ private:
     /// @brief Start the pages below a bar over the top of the view (the find/replace bar; 0:
     /// none), so that no line is hidden under it
     void setTopBarHeight(int height);
+    /// @brief Show the find bar at the top of the text, in the find or the replace mode
+    void openFindBar(bool replace);
+
+    /// @brief The search for Find Next and Find Previous: the bar's, shown again if closed
+    /// @return False without a text to search for: the bar opens to type one
+    bool resumeSearch();
 
     /// @brief Navigate cursor to a search match
     /// @param match The search match to navigate to
@@ -1697,6 +1807,10 @@ private:
     /// Replacements edit the document directly, outside the editor's own editing
     /// operations: keep the cursor inside the changed text and emit contentChanged().
     void onTextReplaced();
+
+    /// @brief Where the text put in by the last replacement ends (after Replace All, the
+    /// last replacement in the text), or the cursor if nothing was replaced
+    CursorPosition replacedTextEnd() const;
 };
 
 }  // namespace kalahari::editor

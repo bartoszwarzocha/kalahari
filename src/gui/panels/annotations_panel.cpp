@@ -2,6 +2,7 @@
 /// @brief The Annotations panel: the comments, to-dos and notes of a chapter or the book
 
 #include "kalahari/gui/panels/annotations_panel.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/panels/annotation_card.h"
 #include "kalahari/gui/widgets/flow_layout.h"
 #include "kalahari/core/theme.h"
@@ -293,6 +294,13 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
     auto& themes = core::ThemeManager::getInstance();
     connect(&themes, &core::ThemeManager::themeChanged, this, &AnnotationsPanel::applyTheme);
     applyTheme(themes.getCurrentTheme());
+
+    // The text of an empty list names the keys of Insert > Add Annotation
+    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, this, [this]() {
+        if (!m_emptyLabel->isHidden()) {
+            updateEmptyText(false);
+        }
+    });
 }
 
 void AnnotationsPanel::setEntries(const std::vector<AnnotationEntry>& entries) {
@@ -738,28 +746,43 @@ void AnnotationsPanel::updateEmptyText(bool anyShown) {
         } else {
             m_emptyLabel->setText(tr("Open a book or a file to see the annotations."));
         }
+    } else if (m_entries.empty() && m_scope == AnnotationScope::Book) {
+        m_emptyLabel->setText(tr("The book has no annotations."));
     } else if (m_entries.empty()) {
-        // The keys of Add Annotation
-        const QString addKeys = QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_M)
-                                    .toString(QKeySequence::NativeText);
-        if (m_scope == AnnotationScope::Book) {
-            m_emptyLabel->setText(tr("The book has no annotations."));
-        } else if (m_inFront) {
+        // The keys of Insert > Add Annotation, as the program has them (written here a second
+        // time, they could drift apart, as on the Dashboard)
+        const Command* add = CommandRegistry::getInstance().getCommand("insert.annotation");
+        const QString addKeys =
+            add != nullptr ? add->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
+                           : QString();
+        if (m_inFront) {
+            //: In Polish: {kind:m=Ten|f=Ta|n=To|p=Te} {kind} nie {kind:m=ma|f=ma|n=ma|p=mają}
+            //: uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do
+            //: zrobienia lub notatkę z menu podręcznego.
+            const QString noKeys = tr("{kind:s=This|p=These} {kind} {kind:s=has|p=have} no "
+                                      "annotations. Select a fragment or put the cursor in the "
+                                      "text and add a comment, a to-do or a note from the "
+                                      "context menu.");
             //: In Polish: {kind:m=Ten|f=Ta|n=To|p=Te} {kind} nie {kind:m=ma|f=ma|n=ma|p=mają}
             //: uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do
             //: zrobienia lub notatkę skrótem %1 albo z menu podręcznego.
-            m_emptyLabel->setText(
-                core::fillWords(tr("{kind:s=This|p=These} {kind} {kind:s=has|p=have} no "
-                                   "annotations. Select a fragment or put the cursor in the "
-                                   "text and add a comment, a to-do or a note with %1 or from "
-                                   "the context menu."),
-                                {{QStringLiteral("kind"), *m_inFront}})
-                    .arg(addKeys));
+            const QString withKeys = tr("{kind:s=This|p=These} {kind} {kind:s=has|p=have} no "
+                                        "annotations. Select a fragment or put the cursor in "
+                                        "the text and add a comment, a to-do or a note with %1 "
+                                        "or from the context menu.");
+            const QString text =
+                core::fillWords(addKeys.isEmpty() ? noKeys : withKeys,
+                                {{QStringLiteral("kind"), *m_inFront}});
+            m_emptyLabel->setText(addKeys.isEmpty() ? text : text.arg(addKeys));
         } else {
-            m_emptyLabel->setText(tr("This file has no annotations. Select a fragment or put the "
-                                     "cursor in the text and add a comment, a to-do or a note "
-                                     "with %1 or from the context menu.")
-                                      .arg(addKeys));
+            m_emptyLabel->setText(
+                addKeys.isEmpty()
+                    ? tr("This file has no annotations. Select a fragment or put the cursor in "
+                         "the text and add a comment, a to-do or a note from the context menu.")
+                    : tr("This file has no annotations. Select a fragment or put the cursor in "
+                         "the text and add a comment, a to-do or a note with %1 or from the "
+                         "context menu.")
+                          .arg(addKeys));
         }
     } else {
         m_emptyLabel->setText(tr("No annotation matches the filters."));

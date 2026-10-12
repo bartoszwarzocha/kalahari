@@ -2,11 +2,10 @@
 /// @brief Qt's own texts that Kalahari translates
 ///
 /// Qt translates its standard buttons, the menus of text fields, number fields and
-/// scroll bars, its panel and tab buttons and its own file window through
-/// QCoreApplication::translate() with its own contexts. Kalahari ships no
-/// qtbase translations, so these entries put the texts into kalahari_*.ts
+/// scroll bars, its panel and tab buttons, its own file window and the names of the keys
+/// in shortcuts through QCoreApplication::translate() with its own contexts. Kalahari
+/// ships no qtbase translations, so these entries put the texts into kalahari_*.ts
 /// (lupdate reads the QT_TRANSLATE_NOOP markers; the array is never used).
-/// The names of keys (context QShortcut) are not here.
 
 #include <QtGlobal>
 
@@ -51,7 +50,8 @@ namespace {
     QT_TRANSLATE_NOOP("QLineEdit", "Delete"),
     QT_TRANSLATE_NOOP("QLineEdit", "Select All"),
 
-    // Context menu of multi-line text fields (QTextEdit, QPlainTextEdit)
+    // Context menu of texts and of labels whose text can be selected (QTextEdit,
+    // QPlainTextEdit, QLabel)
     QT_TRANSLATE_NOOP("QWidgetTextControl", "&Undo"),
     QT_TRANSLATE_NOOP("QWidgetTextControl", "&Redo"),
     QT_TRANSLATE_NOOP("QWidgetTextControl", "Cu&t"),
@@ -171,6 +171,32 @@ namespace {
     QT_TRANSLATE_NOOP("QFileSystemModel", "Kind"),
     QT_TRANSLATE_NOOP("QFileSystemModel", "Date Modified"),
     QT_TRANSLATE_NOOP("QFileSystemModel", "Computer"),
+
+    // Keys as the menus and Settings > Keyboard Shortcuts write them (QKeySequence::NativeText)
+    QT_TRANSLATE_NOOP("QShortcut", "Ctrl"),
+    QT_TRANSLATE_NOOP("QShortcut", "Shift"),
+    QT_TRANSLATE_NOOP("QShortcut", "Alt"),
+    QT_TRANSLATE_NOOP("QShortcut", "Meta"),
+    QT_TRANSLATE_NOOP("QShortcut", "F%1"),
+    QT_TRANSLATE_NOOP("QShortcut", "Esc"),
+    QT_TRANSLATE_NOOP("QShortcut", "Tab"),
+    QT_TRANSLATE_NOOP("QShortcut", "Backspace"),
+    QT_TRANSLATE_NOOP("QShortcut", "Return"),
+    QT_TRANSLATE_NOOP("QShortcut", "Enter"),
+    QT_TRANSLATE_NOOP("QShortcut", "Space"),
+    QT_TRANSLATE_NOOP("QShortcut", "Ins"),
+    QT_TRANSLATE_NOOP("QShortcut", "Del"),
+    QT_TRANSLATE_NOOP("QShortcut", "Home"),
+    QT_TRANSLATE_NOOP("QShortcut", "End"),
+    QT_TRANSLATE_NOOP("QShortcut", "PgUp"),
+    QT_TRANSLATE_NOOP("QShortcut", "PgDown"),
+    QT_TRANSLATE_NOOP("QShortcut", "Left"),
+    QT_TRANSLATE_NOOP("QShortcut", "Up"),
+    QT_TRANSLATE_NOOP("QShortcut", "Right"),
+    QT_TRANSLATE_NOOP("QShortcut", "Down"),
+    QT_TRANSLATE_NOOP("QShortcut", "Menu"),
+    QT_TRANSLATE_NOOP("QShortcut", "Print"),
+    QT_TRANSLATE_NOOP("QShortcut", "Pause"),
 };
 
 }  // namespace

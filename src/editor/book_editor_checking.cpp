@@ -137,6 +137,11 @@ void storeCheckResults(const QTextDocument* doc, int paragraph,
     }
 }
 
+/// @brief A text shown in a menu as it is: an ampersand stays one, not an access key
+QString menuText(QString text) {
+    return text.replace(QLatin1Char('&'), QStringLiteral("&&"));
+}
+
 }  // anonymous namespace
 
 // =============================================================================
@@ -512,7 +517,8 @@ std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int
 void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIndex,
                                     int startOffset, int endOffset)
 {
-    // The words to put in its place, in bold as in other word processors
+    // The words to put in its place, in bold as in other word processors. They get free
+    // access keys as the menu shows (gui::giveFreeAccessKeys()); the other items have their own
     const QStringList suggestions = m_spellCheckService != nullptr
                                         ? m_spellCheckService->suggestions(word, MAX_SUGGESTIONS)
                                         : QStringList();
@@ -520,7 +526,7 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIn
         menu.addAction(tr("(No suggestions)"))->setEnabled(false);
     }
     for (const QString& suggestion : suggestions) {
-        QAction* action = menu.addAction(suggestion);
+        QAction* action = menu.addAction(menuText(suggestion));
         QFont bold = action->font();
         bold.setBold(true);
         action->setFont(bold);
@@ -533,13 +539,13 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIn
 
     // The word is right from now on: in every document (Ignore All until the application
     // closes, Add to Dictionary for good)
-    QAction* ignore = menu.addAction(tr("Ignore All"));
+    QAction* ignore = menu.addAction(tr("&Ignore All"));
     connect(ignore, &QAction::triggered, this, [this, word]() {
         if (m_spellCheckService != nullptr) {
             m_spellCheckService->ignoreWord(word);
         }
     });
-    QAction* add = menu.addAction(tr("Add to Dictionary"));
+    QAction* add = menu.addAction(tr("Add t&o Dictionary"));
     connect(add, &QAction::triggered, this, [this, word]() {
         if (m_spellCheckService != nullptr) {
             m_spellCheckService->addToUserDictionary(word);
@@ -648,13 +654,16 @@ QMenu* BookEditor::createGrammarContextMenu(const GrammarError& error, int paraI
 {
     QMenu* menu = new QMenu(this);
 
-    // Show the error message as a disabled item (header)
-    QAction* headerAction = menu->addAction(error.shortMessage.isEmpty() ? error.message : error.shortMessage);
+    // Show the error message as a disabled item (header): disabled, the lines that only
+    // tell something have no access keys; the words to put in place get free ones as the
+    // menu shows (gui::giveFreeAccessKeys())
+    QAction* headerAction = menu->addAction(
+        menuText(error.shortMessage.isEmpty() ? error.message : error.shortMessage));
     headerAction->setEnabled(false);
 
     // Show the problematic text
     if (!error.text.isEmpty()) {
-        QAction* textAction = menu->addAction(tr("Error: \"%1\"").arg(error.text));
+        QAction* textAction = menu->addAction(tr("Error: \"%1\"").arg(menuText(error.text)));
         textAction->setEnabled(false);
     }
 
@@ -663,7 +672,7 @@ QMenu* BookEditor::createGrammarContextMenu(const GrammarError& error, int paraI
     // Add suggestions
     if (!error.suggestions.isEmpty()) {
         for (const QString& suggestion : error.suggestions) {
-            QAction* action = menu->addAction(suggestion);
+            QAction* action = menu->addAction(menuText(suggestion));
             connect(action, &QAction::triggered, this, [this, paraIndex, error, suggestion]() {
                 replaceWord(paraIndex, error.startPos, error.startPos + error.length, suggestion);
             });
@@ -673,7 +682,7 @@ QMenu* BookEditor::createGrammarContextMenu(const GrammarError& error, int paraI
 
     // Show full explanation if different from short message
     if (!error.message.isEmpty() && error.message != error.shortMessage) {
-        QAction* explainAction = menu->addAction(tr("Explanation..."));
+        QAction* explainAction = menu->addAction(tr("&Explanation..."));
         connect(explainAction, &QAction::triggered, this, [error]() {
             QMessageBox::information(nullptr, QObject::tr("Grammar Issue"),
                 QObject::tr("<b>%1</b><br><br>%2<br><br><i>Rule: %3 (%4)</i>")
@@ -685,7 +694,7 @@ QMenu* BookEditor::createGrammarContextMenu(const GrammarError& error, int paraI
     }
 
     // Ignore rule option
-    QAction* ignoreAction = menu->addAction(tr("Ignore this rule"));
+    QAction* ignoreAction = menu->addAction(tr("&Ignore this rule"));
     connect(ignoreAction, &QAction::triggered, this, [this, error]() {
         if (m_grammarCheckService) {
             m_grammarCheckService->ignoreRule(error.ruleId);

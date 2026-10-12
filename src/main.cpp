@@ -34,6 +34,7 @@
 #include "kalahari/editor/editor_benchmark.h"
 #include "kalahari/gui/kalahari_style.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/widget_keys.h"
 
 // ============================================================================
 // DownloadHelper - Qt Signal/Slot helper for CLI icon downloads
@@ -77,6 +78,9 @@ int main(int argc, char *argv[]) {
 
     // Screen readers see the book editor as editable text
     kalahari::editor::installBookEditorAccessibility();
+
+    // Qt's fields, lists and buttons have the keys of Windows, also on Linux
+    kalahari::gui::installWidgetKeys(app);
 
     // Initialize core systems
     auto& logger = kalahari::core::Logger::getInstance();

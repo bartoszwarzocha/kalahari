@@ -11,10 +11,14 @@
 
 #pragma once
 
+#include <QKeyCombination>
+#include <QList>
 #include <QWidget>
 #include <QString>
 
+class QAbstractButton;
 class QHBoxLayout;
+class QKeyEvent;
 class QLabel;
 class QLineEdit;
 class QPushButton;
@@ -51,6 +55,8 @@ struct SearchMatch;
 /// - Alt+C: Toggle case sensitive
 /// - Alt+W: Toggle whole word
 /// - Alt+R: Toggle regex
+///
+/// The options' keys work in the bar and in the text under it (optionKeys()).
 class FindReplaceBar : public QWidget {
     Q_OBJECT
 
@@ -87,6 +93,14 @@ public:
     /// @return true if replace section is visible
     bool isReplaceMode() const;
 
+    /// @brief The keys that turn the options on and off, in the bar and in the text under it:
+    ///        Alt+C (match case), Alt+W (whole words) and Alt+R (regular expression)
+    ///
+    /// On macOS Option+Cmd with the letter: there Option with a letter types a character
+    /// (Option+C is "ć" on the Polish keyboard). While the bar shows, they come before the
+    /// access keys of the menus with the same letters (Pomo&c and &Widok in Polish).
+    [[nodiscard]] static QList<QKeyCombination> optionKeys();
+
 signals:
     /// @brief Emitted when user navigates to a match
     /// @param match The match to navigate to
@@ -106,16 +120,28 @@ signals:
     /// @param text The new search text
     void searchTextChanged(const QString& text);
 
+    /// @brief Emitted when the keys go back to the text
+    ///
+    /// A button that turns off with the keys (Replace on the last match) would give them to
+    /// the next element of the window, the font box of the toolbar.
+    void textFocusRequested();
+
 protected:
     /// @brief Keep the keys typed in the bar away from the editor under it
     /// @param event Key event
     void keyPressEvent(QKeyEvent* event) override;
 
-    /// @brief Enter in the fields: Find Next (Shift+Enter: Find Previous) or Replace
+    /// @brief Enter in the fields: Find Next (Shift+Enter: Find Previous) or Replace; the
+    ///        options' keys, while the bar shows (it filters the application's events then)
     bool eventFilter(QObject* watched, QEvent* event) override;
 
     /// @brief A line under the bar parts it from the text
     void paintEvent(QPaintEvent* event) override;
+    /// @brief The options' keys start to work
+    void showEvent(QShowEvent* event) override;
+
+    /// @brief The options' keys stop working
+    void hideEvent(QHideEvent* event) override;
 
 private slots:
     /// @brief Handle search text changes
@@ -165,6 +191,17 @@ private:
     /// @brief Search for the field's text again when the search engine has another one
     void searchAgain();
 
+    /// @brief The option a key press turns on and off (optionKeys()), or none
+    QToolButton* optionFor(const QKeyEvent* event) const;
+
+    /// @brief Whether the options' keys work in a widget: the bar, a widget in it, or the
+    ///        text under it (the editor the bar belongs to)
+    bool takesOptionKeys(const QObject* watched) const;
+
+    /// @brief The buttons Enter presses when they have the keys, as Space does: all but
+    ///        the options, which are check boxes
+    QList<QAbstractButton*> enterButtons() const;
+
     // =========================================================================
     // UI Components - Row 1 (Find)
     // =========================================================================
@@ -202,9 +239,6 @@ private:
     QShortcut* m_escapeShortcut = nullptr;    ///< Escape to close
     QShortcut* m_findNextShortcut = nullptr;  ///< Enter to find next
     QShortcut* m_findPrevShortcut = nullptr;  ///< Shift+Enter to find previous
-    QShortcut* m_toggleCaseShortcut = nullptr;   ///< Alt+C for case
-    QShortcut* m_toggleWordShortcut = nullptr;   ///< Alt+W for whole word
-    QShortcut* m_toggleRegexShortcut = nullptr;  ///< Alt+R for regex
 };
 
 }  // namespace kalahari::editor

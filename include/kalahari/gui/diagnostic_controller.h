@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "kalahari/gui/diagnostic_menus.h"
+
 #include <QObject>
 
 class QMainWindow;
@@ -133,6 +135,9 @@ private:
 
     /// @brief Remove dev tools menu
     void removeDevToolsMenu();
+
+    /// @brief Run the tool of an item of the Diagnostics or Dev Tools menu
+    void runTool(DiagnosticTool tool);
 
     // =========================================================================
     // Members

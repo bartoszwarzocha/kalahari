@@ -18,6 +18,7 @@
 #include <kalahari/gui/panels/editor_panel.h>
 #include <kalahari/gui/panels/navigator_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
+#include <kalahari/gui/utils/access_keys.h>
 #include <kalahari/gui/utils/file_location.h>
 
 #include <QAction>
@@ -446,10 +447,12 @@ struct Navigator {
         MenuReader reader(panel, [&enabled, &shown, &text, choose, toolTip](QMenu& menu) {
             shown = true;
             for (QAction* action : menu.actions()) {
-                if (toolTip && action->text() == text) {
+                // The text without its access key ("Mo&ve..." is "Move...")
+                const bool named = gui::withoutAccessKey(action->text()) == text;
+                if (toolTip && named) {
                     *toolTip = action->toolTip();
                 }
-                if (action->text() == text && action->isEnabled()) {
+                if (named && action->isEnabled()) {
                     enabled = true;
                     if (choose) {
                         action->trigger();

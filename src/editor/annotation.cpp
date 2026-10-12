@@ -614,9 +614,12 @@ AnnotationList removeForReplacement(QTextCursor& cursor) {
     return fragments;
 }
 
-void insertKeepingAnnotations(QTextCursor& cursor, const QString& text) {
+void insertKeepingAnnotations(QTextCursor& cursor, const QString& text,
+                              const QTextCharFormat& typed) {
     if (!cursor.hasSelection()) {
-        insertLines(cursor, text, insertionFormat(cursor));
+        QTextCharFormat format = insertionFormat(cursor);
+        format.merge(typed);
+        insertLines(cursor, text, format);
         return;
     }
     if (text.isEmpty()) {
@@ -627,6 +630,7 @@ void insertKeepingAnnotations(QTextCursor& cursor, const QString& text) {
     cursor.beginEditBlock();
     const AnnotationList fragments = removeForReplacement(cursor);
     QTextCharFormat format = insertionFormat(cursor);
+    format.merge(typed);
     setAnnotations(format, fragments);
     insertLines(cursor, text, format);
     cursor.endEditBlock();

@@ -6,7 +6,10 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/editor/search_engine.h"
 #include "kalahari/gui/widgets/flow_layout.h"
+#include "kalahari/editor/text_keys.h"
 
+#include <QAbstractButton>
+#include <QCoreApplication>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QLabel>
@@ -16,6 +19,7 @@
 #include <QShortcut>
 #include <QKeyEvent>
 #include <QPainter>
+#include <QKeySequence>
 
 namespace kalahari::editor {
 
@@ -41,6 +45,8 @@ constexpr int GROUP_SPACING = 8;
 FindReplaceBar::FindReplaceBar(QWidget* parent)
     : QWidget(parent)
 {
+    // The bar lies over the top of the text: its own background hides the text under it
+    setAutoFillBackground(true);
     setupUi();
     createShortcuts();
     createConnections();
@@ -93,6 +99,7 @@ void FindReplaceBar::setupUi()
     findItems->addWidget(m_searchInput);
 
     // Option toggle buttons
+    // The tooltips, with the keys: createShortcuts()
     auto* options = new QWidget(this);
     auto* optionsLayout = new QHBoxLayout(options);
     optionsLayout->setContentsMargins(0, 0, 0, 0);
@@ -101,21 +108,18 @@ void FindReplaceBar::setupUi()
     m_caseSensitiveBtn = new QToolButton(options);
     m_caseSensitiveBtn->setText(tr("Aa"));
     m_caseSensitiveBtn->setCheckable(true);
-    m_caseSensitiveBtn->setToolTip(tr("Match Case (Alt+C)"));
     m_caseSensitiveBtn->setFixedSize(28, 24);
     optionsLayout->addWidget(m_caseSensitiveBtn);
 
     m_wholeWordBtn = new QToolButton(options);
     m_wholeWordBtn->setText(tr("W"));
     m_wholeWordBtn->setCheckable(true);
-    m_wholeWordBtn->setToolTip(tr("Match Whole Word (Alt+W)"));
     m_wholeWordBtn->setFixedSize(28, 24);
     optionsLayout->addWidget(m_wholeWordBtn);
 
     m_regexBtn = new QToolButton(options);
     m_regexBtn->setText(tr(".*"));
     m_regexBtn->setCheckable(true);
-    m_regexBtn->setToolTip(tr("Use Regular Expression (Alt+R)"));
     m_regexBtn->setFixedSize(28, 24);
     optionsLayout->addWidget(m_regexBtn);
 
@@ -197,6 +201,16 @@ void FindReplaceBar::setupUi()
 
     mainLayout->addWidget(m_replaceSection);
 
+    // Tab goes from the search text to the replacement and its buttons, then to the
+    // options, the arrows and Close, as in Word's Find and Replace (the replace row is
+    // skipped while it is hidden)
+    const QList<QWidget*> tabOrder = {m_searchInput, m_replaceInput, m_replaceBtn,
+                                      m_replaceAllBtn, m_caseSensitiveBtn, m_wholeWordBtn,
+                                      m_regexBtn, m_prevBtn, m_nextBtn, m_closeBtn};
+    for (qsizetype i = 1; i < tabOrder.size(); ++i) {
+        setTabOrder(tabOrder.at(i - 1), tabOrder.at(i));
+    }
+
     // Initial button states
     updateButtonStates();
 }
@@ -206,14 +220,45 @@ void FindReplaceBar::createShortcuts()
     // Escape to close
     m_escapeShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
 
-    // Alt+C for case sensitive
-    m_toggleCaseShortcut = new QShortcut(QKeySequence(Qt::ALT | Qt::Key_C), this);
+    // The options' keys: eventFilter(). The tooltips show them as the system writes them
+    const QList<QKeyCombination> keys = optionKeys();
+    const auto keysOf = [&keys](qsizetype option) {
+        return QKeySequence(keys.at(option)).toString(QKeySequence::NativeText);
+    };
+    m_caseSensitiveBtn->setToolTip(tr("Match Case (%1)").arg(keysOf(0)));
+    m_wholeWordBtn->setToolTip(tr("Match Whole Word (%1)").arg(keysOf(1)));
+    m_regexBtn->setToolTip(tr("Use Regular Expression (%1)").arg(keysOf(2)));
+}
 
-    // Alt+W for whole word
-    m_toggleWordShortcut = new QShortcut(QKeySequence(Qt::ALT | Qt::Key_W), this);
+QList<QKeyCombination> FindReplaceBar::optionKeys()
+{
+    const Qt::KeyboardModifiers modifiers =
+        isMacOS() ? (Qt::ControlModifier | Qt::AltModifier) : Qt::AltModifier;
+    return {QKeyCombination(modifiers, Qt::Key_C), QKeyCombination(modifiers, Qt::Key_W),
+            QKeyCombination(modifiers, Qt::Key_R)};
+}
 
-    // Alt+R for regex
-    m_toggleRegexShortcut = new QShortcut(QKeySequence(Qt::ALT | Qt::Key_R), this);
+QToolButton* FindReplaceBar::optionFor(const QKeyEvent* event) const
+{
+    // In the order of optionKeys()
+    const QList<QToolButton*> options = {m_caseSensitiveBtn, m_wholeWordBtn, m_regexBtn};
+    const qsizetype option = optionKeys().indexOf(event->keyCombination());
+    return option >= 0 && option < options.size() ? options.at(option) : nullptr;
+}
+
+QList<QAbstractButton*> FindReplaceBar::enterButtons() const
+{
+    return {m_prevBtn, m_nextBtn, m_closeBtn, m_replaceBtn, m_replaceAllBtn};
+}
+
+bool FindReplaceBar::takesOptionKeys(const QObject* watched) const
+{
+    if (!watched->isWidgetType()) {
+        return false;
+    }
+    const auto* widget = static_cast<const QWidget*>(watched);
+    return widget == this || isAncestorOf(widget) ||
+           (parentWidget() != nullptr && widget == parentWidget());
 }
 
 void FindReplaceBar::createConnections()
@@ -224,6 +269,9 @@ void FindReplaceBar::createConnections()
     // Enter: eventFilter()
     m_searchInput->installEventFilter(this);
     m_replaceInput->installEventFilter(this);
+    for (QAbstractButton* button : enterButtons()) {
+        button->installEventFilter(this);
+    }
 
     // Option toggles
     connect(m_caseSensitiveBtn, &QToolButton::toggled,
@@ -252,12 +300,6 @@ void FindReplaceBar::createConnections()
     // Keyboard shortcuts
     connect(m_escapeShortcut, &QShortcut::activated,
             this, &FindReplaceBar::onClose);
-    connect(m_toggleCaseShortcut, &QShortcut::activated,
-            m_caseSensitiveBtn, &QToolButton::toggle);
-    connect(m_toggleWordShortcut, &QShortcut::activated,
-            m_wholeWordBtn, &QToolButton::toggle);
-    connect(m_toggleRegexShortcut, &QShortcut::activated,
-            m_regexBtn, &QToolButton::toggle);
 }
 
 // =============================================================================
@@ -345,6 +387,36 @@ void FindReplaceBar::keyPressEvent(QKeyEvent* event)
 
 bool FindReplaceBar::eventFilter(QObject* watched, QEvent* event)
 {
+    // The options' keys, in the bar and in the text under it: the widget with the keys keeps
+    // them from the shortcuts, so they come before the access keys of the menus with the
+    // same letters (Pomo&c and &Widok in Polish), and the key press turns the option on or off
+    if ((event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress) &&
+        takesOptionKeys(watched)) {
+        auto* keyEvent = static_cast<QKeyEvent*>(event);
+        if (QToolButton* option = optionFor(keyEvent)) {
+            if (event->type() == QEvent::KeyPress && !keyEvent->isAutoRepeat()) {
+                option->toggle();
+            }
+            keyEvent->accept();
+            return true;
+        }
+    }
+
+    // Enter presses the button with the keys, as Space does: Qt presses a button with Enter
+    // only in a dialog, and the bar takes the keys its buttons leave unused
+    if (event->type() == QEvent::KeyPress) {
+        const auto* keyEvent = static_cast<QKeyEvent*>(event);
+        auto* button = qobject_cast<QAbstractButton*>(watched);
+        const bool enter = keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter;
+        if (enter && (keyEvent->modifiers() & ~Qt::KeypadModifier) == Qt::NoModifier &&
+            button != nullptr && enterButtons().contains(button)) {
+            if (!keyEvent->isAutoRepeat() && button->isEnabled()) {
+                button->click();
+            }
+            return true;
+        }
+    }
+
     // Enter is taken before the field gets it: QLineEdit leaves it unused, so it went on
     // to the editor, which replaced the match just found with a new paragraph
     if (event->type() == QEvent::KeyPress &&
@@ -371,6 +443,18 @@ void FindReplaceBar::paintEvent(QPaintEvent* event)
     QPainter painter(this);
     painter.setPen(palette().color(QPalette::Mid));
     painter.drawLine(0, height() - 1, width() - 1, height() - 1);
+}
+
+void FindReplaceBar::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+    QCoreApplication::instance()->installEventFilter(this);
+}
+
+void FindReplaceBar::hideEvent(QHideEvent* event)
+{
+    QWidget::hideEvent(event);
+    QCoreApplication::instance()->removeEventFilter(this);
 }
 
 // =============================================================================
@@ -519,6 +603,16 @@ void FindReplaceBar::updateButtonStates()
 {
     bool hasMatches = m_searchEngine && m_searchEngine->totalMatchCount() > 0;
     bool canReplace = hasMatches;
+
+    // A button that turns off with the keys would give them to the next element of the
+    // window, the font box of the toolbar: they go back to the text, where Undo takes back
+    // the replacement just done
+    const QWidget* keys = window()->focusWidget();
+    if (!hasMatches && keys != nullptr &&
+        (keys == m_prevBtn || keys == m_nextBtn || keys == m_replaceBtn ||
+         keys == m_replaceAllBtn)) {
+        emit textFocusRequested();
+    }
 
     // Navigation buttons
     m_prevBtn->setEnabled(hasMatches);
