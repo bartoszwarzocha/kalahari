@@ -563,10 +563,26 @@ void BookEditor::moveCursorToDocEnd()
 
     setCursorPosition({lastPara, lastOffset});
 
-    // Scroll to bottom (typewriter scrolling has put the last line at its height instead)
+    // Scroll to the end of the text, not into the blank paper below it (typewriter
+    // scrolling has put the last line at its height instead)
     if (!m_appearance.typewriter.enabled) {
-        setScrollOffset(m_viewportManager->maxScrollPosition());
+        setScrollOffset(textEndScrollPosition());
     }
+}
+
+qreal BookEditor::textEndScrollPosition() const
+{
+    if (!m_textBuffer || !m_viewportManager) {
+        return 0.0;
+    }
+    // The scroll range ends at the bottom of the page the text ends on: back from there by
+    // the blank paper below the text (estimated heights above the last block do not change
+    // the difference)
+    const QAbstractTextDocumentLayout* layout = m_textBuffer->documentLayout();
+    const qreal textBottom = layout->blockBoundingRect(m_textBuffer->lastBlock()).bottom();
+    const qreal blank = std::max(0.0, layout->documentSize().height() - textBottom);
+    const qreal maxScroll = m_viewportManager->maxScrollPosition();
+    return std::clamp(maxScroll - blank, 0.0, maxScroll);
 }
 
 void BookEditor::moveCursorPageUp()
