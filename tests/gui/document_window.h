@@ -7,6 +7,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/recent_books_manager.h>
+#include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/statistics_collector.h>  // members of DocumentCoordinator
 #include <kalahari/editor/style_resolver.h>
 #include <kalahari/gui/dialogs/kalahari_dialog.h>
@@ -54,6 +56,13 @@ inline QDialog* shownDialog() {
         }
     }
     return nullptr;
+}
+
+/// @brief Write @p text in place of the text of @p panel, as the writer does: one edit, after
+/// which the text differs from the saved text (EditorPanel::setText() loads a text, which is the
+/// saved text then)
+inline void write(gui::EditorPanel& panel, const QString& text) {
+    panel.getBookEditor()->replaceWithKml(editor::ClipboardHandler::textToKml(text));
 }
 
 /// @brief The title and the texts of @p dialog, in one line
@@ -283,7 +292,7 @@ struct Window {
     void writeChapter(const QString& chapterId, const QString& text) {
         navigator.onElementSelected(chapterId, QStringLiteral("The Storm"));
         REQUIRE(tabs->count() > 0);
-        editor(tabs->currentIndex())->setText(text);
+        write(*editor(tabs->currentIndex()), text);
         REQUIRE(navigator.isChapterDirty(chapterId));
     }
 
@@ -292,7 +301,7 @@ struct Window {
         documents.openStandaloneFile(path);
         gui::EditorPanel* file = editor(tabs->currentIndex());
         REQUIRE(file->property("standaloneFilePath").toString() == path);
-        file->setText(text);
+        write(*file, text);
         REQUIRE(file->property("dirty").toBool());
         return file;
     }

@@ -8,6 +8,8 @@
 #include <kalahari/core/file_trash.h>
 #include <kalahari/core/kind_words.h>
 #include <kalahari/core/project_manager.h>
+#include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/gui/dialogs/add_to_book_dialog.h>
 #include <kalahari/gui/dialogs/delete_dialogs.h>
 #include <kalahari/gui/dialogs/file_preview_dialog.h>
@@ -53,6 +55,14 @@ namespace {
 
 /// @brief What answers a dialog a command shows
 using Answer = std::function<void(QDialog&)>;
+
+/// @brief Write @p text in place of the text of the editor of tab @p index, as the writer
+/// does: its text differs from the saved text then
+void write(const QTabWidget& tabs, int index, const QString& text) {
+    auto* panel = qobject_cast<gui::EditorPanel*>(tabs.widget(index));
+    REQUIRE(panel != nullptr);
+    panel->getBookEditor()->replaceWithKml(editor::ClipboardHandler::textToKml(text));
+}
 
 /// @brief The dialog shown now, if any
 QDialog* shownDialog() {
@@ -691,7 +701,8 @@ TEST_CASE("Navigator commands: renaming, moving and deleting, saved at once",
     // The chapter is open, with unsaved changes
     navigator.coordinator.onElementSelected(chapter.id, chapter.title);
     REQUIRE(navigator.tabs->count() == 1);
-    navigator.coordinator.setChapterDirty(chapter.id, true);
+    write(*navigator.tabs, 0, QStringLiteral("The storm came."));
+    REQUIRE(navigator.coordinator.isChapterDirty(chapter.id));
 
     SECTION("Renaming changes the title in the project, the tree and the tab") {
         CHECK(answering([&] { navigator.coordinator.onRequestRename(chapter.id, QString()); },
@@ -816,9 +827,7 @@ TEST_CASE("Navigator commands: renaming, moving and deleting, saved at once",
         CHECK(navigator.coordinator.isChapterDirty(chapter.id));
 
         // Deleted: the text of the chapter's tab goes to its file first
-        auto* editor = qobject_cast<gui::EditorPanel*>(navigator.tabs->widget(0));
-        REQUIRE(editor != nullptr);
-        editor->setText(QStringLiteral("The storm came at night."));
+        write(*navigator.tabs, 0, QStringLiteral("The storm came at night."));
         navigator.properties->showChapterProperties(chapter.id);
         CHECK(answering([&] { navigator.coordinator.onRequestDelete(partId); },
                         {answerDelete(true)}) == 1);
@@ -861,10 +870,8 @@ TEST_CASE("Navigator commands: the files deleted with an element go to the Trash
     const QStringList files{pm.filePathOf(chapters.at(0)), pm.filePathOf(chapters.at(1))};
     navigator.coordinator.onElementSelected(chapters.at(0).id, chapters.at(0).title);
     REQUIRE(navigator.tabs->count() == 1);
-    auto* editor = qobject_cast<gui::EditorPanel*>(navigator.tabs->widget(0));
-    REQUIRE(editor != nullptr);
-    editor->setText(QStringLiteral("The storm came at night."));
-    navigator.coordinator.setChapterDirty(chapters.at(0).id, true);
+    write(*navigator.tabs, 0, QStringLiteral("The storm came at night."));
+    REQUIRE(navigator.coordinator.isChapterDirty(chapters.at(0).id));
 
     SECTION("To the Trash, with the text of the open tab") {
         QString said;

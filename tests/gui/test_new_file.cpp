@@ -504,7 +504,7 @@ TEST_CASE("New File: without a book, an untitled file saved where the writer cho
     CHECK(window.documents.unsavedDocumentNames().isEmpty());
 
     // A change gets the "*" of a changed file
-    story->setText(QStringLiteral("Once upon a time"));
+    test::write(*story, QStringLiteral("Once upon a time"));
     CHECK(window.tabs->tabText(0) == QStringLiteral("*Untitled 1"));
     CHECK(window.documents.unsavedDocumentNames() == QStringList{QStringLiteral("Untitled 1")});
 
@@ -532,7 +532,7 @@ TEST_CASE("New File: without a book, an untitled file saved where the writer cho
     CHECK(listsFile(window, path));
 
     // The next save writes the file without asking
-    story->setText(QStringLiteral("Once upon a time there was a storm"));
+    test::write(*story, QStringLiteral("Once upon a time there was a storm"));
     CHECK(savingAs([&window]() { window.documents.onSaveDocument(); }, path, nullptr) == 0);
     CHECK(window.tabs->tabText(0) == QStringLiteral("Story.kchapter"));
 }

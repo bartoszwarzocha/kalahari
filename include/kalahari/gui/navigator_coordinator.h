@@ -102,7 +102,8 @@ public:
     /// - the unsaved text ProjectManager keeps (single source of truth)
     /// - the m_dirtyChapters display cache
     /// - the navigator "*" indicator (via chapterDirtyStateChanged)
-    /// Does NOT persist any content. Used by the tab-close discard path.
+    /// Does NOT persist any content. Used by the tab-close discard path, and when the text
+    /// of the chapter's tab is the saved text again.
     void discardChapterChanges(const QString& elementId);
 
     /// @brief Clear current element ID (on project close)
@@ -263,6 +264,10 @@ private:
 
     /// @brief Close the editor tabs of @p element and of the elements inside it
     void closeTabsOf(const core::ProjectElement& element);
+
+    /// @brief The tab @p editor of element @p elementId and the Navigator show whether its
+    /// text differs from the saved text; back to the saved text, it has no changes to keep
+    void showChapterModified(const QString& elementId, EditorPanel* editor, bool modified);
 
     /// @brief Write the unsaved text of @p element and of the elements inside it to their
     /// chapter files, with the changes of their open tabs; a tab whose text is written no

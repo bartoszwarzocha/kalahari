@@ -1,10 +1,12 @@
 /// @file test_book_tabs.cpp
 /// @brief The tabs of the open book: one file is edited in one tab, Save As and Close Book
-/// with a book open, the Properties panel without an editor in front, and the words of the
-/// book while the changes of its chapters are not saved
+/// with a book open, the Properties panel without an editor in front, the words of the book
+/// while the changes of its chapters are not saved, and the changes: only a text that differs
+/// from the saved one has them
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/project_manager.h>
+#include <kalahari/editor/book_editor.h>
 #include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/panels/editor_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
@@ -349,11 +351,123 @@ TEST_CASE("Book tabs: the words of a chapter count in the book before it is save
 
     // More words, then the tab closed without saving them: the words of the file again
     gui::EditorPanel* editor = window.editor(0);
-    editor->setText(QStringLiteral("The storm came at night and it rained."));
+    test::write(*editor, QStringLiteral("The storm came at night and it rained."));
     CHECK(waitFor([&]() { return bookWords->text() == QStringLiteral("8"); }));
     window.documents.discardEditorChanges(editor);
     window.tabs->removeTab(0);
     editor->deleteLater();
     CHECK(novel.pm.wordCount(novel.chapterId) == 5);
     CHECK(bookWords->text() == QStringLiteral("5"));
+}
+
+// ----------------------------------------------------------------------------
+// Changes
+// ----------------------------------------------------------------------------
+
+namespace {
+
+/// A chapter of the open book and a file outside it, each open in its tab
+struct ChangedTabs {
+    OpenNovel novel{QStringLiteral("Rain")};
+    QTemporaryDir files;
+    QString notes;
+    Window window;
+    gui::EditorPanel* notesTab = nullptr;
+    gui::EditorPanel* chapterTab = nullptr;
+
+    ChangedTabs() {
+        REQUIRE(files.isValid());
+        notes = QDir(files.path()).filePath(QStringLiteral("notes.txt"));
+        writeText(notes, "Notes");
+        followBook(window);
+        window.documents.openStandaloneFile(notes);
+        notesTab = window.editor(window.tabs->currentIndex());
+        window.navigator.onElementSelected(novel.chapterId, QStringLiteral("The Storm"));
+        chapterTab = window.editor(window.tabs->currentIndex());
+        REQUIRE(notesTab != chapterTab);
+    }
+
+    /// Type @p letter in both tabs, where their cursors are
+    void type(const QString& letter) const {
+        notesTab->getBookEditor()->insertText(letter);
+        chapterTab->getBookEditor()->insertText(letter);
+    }
+
+    /// Delete the letter before the cursor in both tabs
+    void deleteLetter() const {
+        notesTab->getBookEditor()->deleteBackward();
+        chapterTab->getBookEditor()->deleteBackward();
+    }
+
+    /// The text of the tab of @p editor
+    [[nodiscard]] QString tabText(const gui::EditorPanel* editor) const {
+        return window.tabs->tabText(window.tabs->indexOf(editor));
+    }
+
+    /// Whether the tabs and the Navigator show changes ("*")
+    [[nodiscard]] bool showChanges() const {
+        return tabText(notesTab) == QStringLiteral("*notes.txt") &&
+               tabText(chapterTab) == QStringLiteral("*The Storm") &&
+               notesTab->property("dirty").toBool() &&
+               window.navigator.isChapterDirty(novel.chapterId);
+    }
+
+    /// Whether the tabs and the Navigator show no changes
+    [[nodiscard]] bool showNoChanges() const {
+        return tabText(notesTab) == QStringLiteral("notes.txt") &&
+               tabText(chapterTab) == QStringLiteral("The Storm") &&
+               !notesTab->property("dirty").toBool() &&
+               !window.navigator.isChapterDirty(novel.chapterId);
+    }
+};
+
+} // namespace
+
+TEST_CASE("Book tabs: a letter typed and deleted again leaves no changes to save or to ask about",
+          "[gui][booktabs]") {
+    ChangedTabs tabs;
+    CHECK(tabs.showNoChanges());
+
+    // A letter typed: the tabs and the Navigator show the changes, which the book and the file
+    // have to save
+    tabs.type(QStringLiteral("x"));
+    CHECK(tabs.showChanges());
+    CHECK(tabs.window.documents.unsavedDocumentNames() ==
+          QStringList({QStringLiteral("Rain"), QStringLiteral("notes.txt")}));
+
+    // Deleted again: the texts are the saved ones, so there is nothing to save, and Close Book
+    // does not ask
+    tabs.deleteLetter();
+    CHECK(tabs.window.documents.unsavedDocumentNames().isEmpty());
+    CHECK_FALSE(tabs.window.documents.isEditorDirty(tabs.chapterTab));
+    CHECK_FALSE(tabs.window.documents.isEditorDirty(tabs.notesTab));
+    CHECK(waitFor([&tabs]() { return tabs.showNoChanges(); }));
+    QStringList said;
+    CHECK(answering([&tabs]() { tabs.window.documents.onCloseDocument(); },
+                    MessageDialog::Answer::Cancel, said) == 0);
+    CHECK_FALSE(tabs.novel.pm.isProjectOpen());
+    CHECK(readText(tabs.notes) == "Notes");
+}
+
+TEST_CASE("Book tabs: after a save, a change is a change of the text saved last",
+          "[gui][booktabs]") {
+    ChangedTabs tabs;
+    tabs.type(QStringLiteral("x"));
+    REQUIRE(tabs.showChanges());
+
+    // Saved: the tabs show no changes
+    tabs.window.documents.onSaveBook();
+    tabs.window.tabs->setCurrentWidget(tabs.notesTab);
+    tabs.window.documents.onSaveDocument();
+    CHECK(tabs.showNoChanges());
+    CHECK(tabs.window.documents.unsavedDocumentNames().isEmpty());
+    CHECK(readText(tabs.notes) == "xNotes");
+
+    // Another letter is a change, and deleted again it is not: the saved texts have the first
+    // one
+    tabs.type(QStringLiteral("y"));
+    CHECK(tabs.showChanges());
+    tabs.deleteLetter();
+    CHECK(tabs.window.documents.unsavedDocumentNames().isEmpty());
+    CHECK(waitFor([&tabs]() { return tabs.showNoChanges(); }));
 }

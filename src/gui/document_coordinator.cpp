@@ -27,6 +27,7 @@
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/standalone_file.h"
+#include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/style_resolver.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QMainWindow>
@@ -642,11 +643,9 @@ bool DocumentCoordinator::isEditorDirty(const EditorPanel* editor) const {
     }
     switch (editorKind(editor)) {
     case EditorKind::ProjectChapter:
-        // Per-open-tab flag (reliable; set only on real edits)
-        return m_navigatorCoordinator
-            && m_navigatorCoordinator->isChapterDirty(editor->property("elementId").toString());
     case EditorKind::StandaloneFile:
-        return editor->property("dirty").toBool();
+        // Its text differs from the saved text: typed and deleted again, it does not
+        return editor->isModified();
     case EditorKind::Opening:
         return false;
     }
@@ -718,18 +717,9 @@ QStringList DocumentCoordinator::unsavedDocumentNames() const {
     QStringList names;
 
     // Chapters and structure are saved together, as the book
-    auto& pm = core::ProjectManager::getInstance();
-    if (pm.isProjectOpen()) {
-        bool bookChanged = pm.isDirty();
-        if (m_navigatorCoordinator) {
-            for (const bool dirty : m_navigatorCoordinator->dirtyChapters()) {
-                bookChanged = bookChanged || dirty;
-            }
-        }
-        const core::ProjectBook* book = pm.book();
-        if (bookChanged && book) {
-            names << book->title;
-        }
+    const core::ProjectBook* book = core::ProjectManager::getInstance().book();
+    if (book && bookHasUnsavedChanges()) {
+        names << book->title;
     }
 
     for (int i = 0; i < m_centralTabs->count(); ++i) {
@@ -810,12 +800,11 @@ bool DocumentCoordinator::bookHasUnsavedChanges() const {
     if (!pm.isProjectOpen()) {
         return false;
     }
-    if (m_navigatorCoordinator) {
-        const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
-        for (auto it = dirtyChapters.constBegin(); it != dirtyChapters.constEnd(); ++it) {
-            if (it.value()) {
-                return true;
-            }
+    // The texts of its open elements that differ from their saved texts, and its data
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        const auto* editor = qobject_cast<const EditorPanel*>(m_centralTabs->widget(i));
+        if (editor && editorKind(editor) == EditorKind::ProjectChapter && isEditorDirty(editor)) {
+            return true;
         }
     }
     return pm.isDirty();
@@ -825,17 +814,14 @@ bool DocumentCoordinator::saveBook() {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
-    // First, give ProjectManager the text of all dirty chapters from open tabs
-    const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
+    // First, give ProjectManager the texts of the chapters whose tabs have changes
+    QList<EditorPanel*> changed;
     for (int i = 0; i < m_centralTabs->count(); ++i) {
-        EditorPanel* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
-        if (!editor) continue;
-
-        QString elemId = editor->property("elementId").toString();
-        if (elemId.isEmpty()) continue;
-
-        if (dirtyChapters.value(elemId, false)) {
+        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+        if (editor && editorKind(editor) == EditorKind::ProjectChapter && isEditorDirty(editor)) {
+            const QString elemId = editor->property("elementId").toString();
             pm.setChapterContent(elemId, editor->getContent());
+            changed.append(editor);
             logger.debug("Updated content cache for: {}", elemId.toStdString());
         }
     }
@@ -847,21 +833,15 @@ bool DocumentCoordinator::saveBook() {
     bool manifestSaved = pm.saveManifest();
 
     if (success && manifestSaved) {
-        // Clear dirty flags and update tab titles
-        for (int i = 0; i < m_centralTabs->count(); ++i) {
-            EditorPanel* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
-            if (!editor) continue;
-
-            QString elemId = editor->property("elementId").toString();
-            if (!elemId.isEmpty() && dirtyChapters.value(elemId, false)) {
-                // Clear dirty flag via NavigatorCoordinator
-                m_navigatorCoordinator->setChapterDirty(elemId, false);
-
-                // Remove asterisk from tab title
-                QString tabText = m_centralTabs->tabText(i);
-                if (tabText.startsWith("*")) {
-                    m_centralTabs->setTabText(i, tabText.mid(1));
-                }
+        // The tabs no longer show changes: their texts are the saved texts now
+        for (EditorPanel* editor : std::as_const(changed)) {
+            m_navigatorCoordinator->setChapterDirty(editor->property("elementId").toString(),
+                                                    false);
+            editor->setUnmodified();
+            const int index = m_centralTabs->indexOf(editor);
+            const QString tabText = m_centralTabs->tabText(index);
+            if (tabText.startsWith(QLatin1Char('*'))) {
+                m_centralTabs->setTabText(index, tabText.mid(1));
             }
         }
 
@@ -1030,8 +1010,8 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     newEditor->setProperty("standaloneFile", QVariant::fromValue(*file));
     newEditor->setProperty("standaloneFilePath", path);
     newEditor->setProperty("isStandaloneFile", true);
-    // Per-tab content-dirty flag, seeded clean. Set true on genuine edits below and
-    // consulted by MainWindow::hasUnsavedChanges() and the tab-close prompt.
+    // Whether the tab shows changes, seeded clean; trackStandaloneChanges() keeps it as the
+    // editor says (the questions ask the editor itself)
     newEditor->setProperty("dirty", false);
 
     // Set content
@@ -1073,17 +1053,16 @@ EditorPanel* DocumentCoordinator::findStandaloneEditor(const QString& path) cons
 }
 
 void DocumentCoordinator::trackStandaloneChanges(EditorPanel* editor) {
-    connect(editor, &EditorPanel::contentChanged, this, [this, editor]() {
-        // Real per-tab dirty flag (source of truth for standalone tabs).
-        editor->setProperty("dirty", true);
-
-        // Mark tab title with asterisk
+    // The tab shows a "*" while the text differs from the saved text: a letter typed and
+    // deleted again, or an edit undone, leaves none
+    connect(editor, &EditorPanel::modifiedChanged, this, [this, editor](bool modified) {
+        editor->setProperty("dirty", modified);
         const int index = m_centralTabs->indexOf(editor);
-        if (index >= 0) {
-            const QString tabText = m_centralTabs->tabText(index);
-            if (!tabText.startsWith(QLatin1Char('*'))) {
-                m_centralTabs->setTabText(index, QLatin1Char('*') + tabText);
-            }
+        const QString tabText = index >= 0 ? m_centralTabs->tabText(index) : QString();
+        if (index >= 0 && modified && !tabText.startsWith(QLatin1Char('*'))) {
+            m_centralTabs->setTabText(index, QLatin1Char('*') + tabText);
+        } else if (!modified && tabText.startsWith(QLatin1Char('*'))) {
+            m_centralTabs->setTabText(index, tabText.mid(1));
         }
     });
 }
@@ -1139,7 +1118,7 @@ bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString
         return false;
     }
     editor->setProperty("standaloneFile", QVariant::fromValue(file));
-    editor->setProperty("dirty", false);
+    editor->setUnmodified();  // its text is the saved text now
 
     const int index = m_centralTabs->indexOf(editor);
     if (path != oldPath) {
@@ -1589,7 +1568,8 @@ void DocumentCoordinator::adoptBookFiles() {
             continue;  // it could not be opened: the file stays in its tab
         }
         if (changed) {
-            chapter->setContent(text);  // the changes are the chapter's now, not saved yet
+            // The changes are the chapter's now, not saved yet: one edit, which undo takes back
+            chapter->getBookEditor()->replaceWithKml(text);
         }
         m_centralTabs->tabBar()->moveTab(m_centralTabs->indexOf(chapter),
                                          m_centralTabs->indexOf(file));

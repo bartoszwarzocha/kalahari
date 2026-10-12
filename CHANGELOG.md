@@ -393,6 +393,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Kalahari Documents type); Cancel writes nothing. Save All and the question on closing ask
   the same.
 
+- **A text typed and deleted again has no changes** - 2026-10-12. The tab of a chapter or a
+  file and the Navigator show a "*", and closing asks whether to save, only while the text
+  differs from the saved one: a letter or a sentence typed and deleted again, an edit undone
+  or formatting given and taken back leave no "*" and nothing to save. After a save, the text
+  saved is the one a change is compared with.
+
 ### Added
 
 - **Book projects: a new project file in core** - 2026-10-09. A new model in core reads and

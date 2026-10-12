@@ -368,13 +368,10 @@ private:
     /// @brief Single source-of-truth predicate for unsaved changes
     /// @return true if there are any unsaved changes anywhere
     ///
-    /// Consolidates all dirty concepts into one coherent check:
-    /// - project open: dirty CONTENT elements (ProjectManager::hasDirtyElements)
-    ///   OR dirty STRUCTURE/manifest (ProjectManager::isDirty)
-    /// - always: any dirty standalone editor tab (per-tab "dirty" property)
-    ///
-    /// Every save/close prompt path consults this predicate so the flag that a
-    /// prompt reads is always the flag that edits set.
+    /// What DocumentCoordinator::unsavedDocumentNames() names, as the questions do:
+    /// - book open: the open elements whose texts differ from their saved texts, or the
+    ///   data of the book (ProjectManager::isDirty)
+    /// - always: the files outside the book whose texts differ from their saved texts
     [[nodiscard]] bool hasUnsavedChanges() const;
 
     /// @brief The title of the window: the open book, "Rain - Kalahari"; without a book,

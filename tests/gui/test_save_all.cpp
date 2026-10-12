@@ -75,7 +75,7 @@ TEST_CASE("Save All: the book and every open file outside it are saved", "[gui][
 
     // Without a book, the files outside it are saved too
     novel.pm.closeProject(false);
-    notesTab->setText(QStringLiteral("Notes of the morning"));
+    test::write(*notesTab, QStringLiteral("Notes of the morning"));
     window.documents.onSaveAll();
     CHECK(readText(notes) == "Notes of the morning");
     CHECK(window.statusBar.currentMessage() == QStringLiteral("All changes saved"));

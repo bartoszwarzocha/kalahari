@@ -1349,40 +1349,9 @@ void MainWindow::updateBookCommands() {
 }
 
 bool MainWindow::hasUnsavedChanges() const {
-    // Any dirty standalone editor tab (per-tab "dirty" property). Checked
-    // regardless of project state because standalone tabs can coexist with a project.
-    if (m_dockCoordinator) {
-        if (QTabWidget* tabs = m_dockCoordinator->centralTabs()) {
-            for (int i = 0; i < tabs->count(); ++i) {
-                EditorPanel* editor = qobject_cast<EditorPanel*>(tabs->widget(i));
-                if (editor && editor->property("isStandaloneFile").toBool()
-                    && editor->property("dirty").toBool()) {
-                    return true;
-                }
-            }
-        }
-    }
-
-    auto& pm = core::ProjectManager::getInstance();
-    if (!pm.isProjectOpen()) {
-        return false;  // without a book, only the files outside a book have changes
-    }
-
-    // Project open. Unsaved CONTENT is tracked per OPEN editor tab (m_dirtyChapters),
-    // set only on genuine edits because the slot is connected AFTER load. We do NOT
-    // consult the unsaved text ProjectManager keeps (getDirtyElements()) here: it is set
-    // only when the tabs' text is handed over for saving. Book data dirtiness (the
-    // properties of the book) is the separate pm.isDirty() axis; add/rename/move/delete
-    // are saved at once.
-    if (m_navigatorCoordinator) {
-        const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
-        for (auto it = dirtyChapters.constBegin(); it != dirtyChapters.constEnd(); ++it) {
-            if (it.value()) {
-                return true;
-            }
-        }
-    }
-    return pm.isDirty();
+    // The book (the texts of its open elements and its data) and the files outside it whose
+    // texts differ from their saved texts; the files are checked with or without a book
+    return m_documentCoordinator && !m_documentCoordinator->unsavedDocumentNames().isEmpty();
 }
 
 // Perspective save/restore

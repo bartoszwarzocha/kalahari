@@ -267,49 +267,25 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     newEditor->setProperty("elementId", elementId);
     m_currentElementId = elementId;
 
-    // Set content BEFORE wiring dirty tracking. BookEditor::fromKml() emits
-    // contentChanged while loading; if the dirty-tracking slot were connected first,
-    // merely opening a chapter would mark it modified (spurious "*" in the tab + a
-    // "save changes?" prompt on close/switch with no real edit). The standalone-file
-    // path already connects after setContent for exactly this reason.
+    // The text loaded is the saved text (BookEditor::fromKml()); the signals below are
+    // connected after it, so loading counts no words
     logElapsed("Before setContent");
     const bool complete = newEditor->setContent(content);
     logElapsed("After setContent");
 
-    // Connect contentChanged signal for per-chapter dirty tracking (AFTER load, so
-    // only genuine user edits mark the chapter dirty).
-    connect(newEditor, &EditorPanel::contentChanged,
-            this, [this, elementId, elementTitle, newEditor]() {
-                auto& pm = core::ProjectManager::getInstance();
-                if (pm.isProjectOpen()) {
-                    // Mark chapter as dirty
-                    if (!m_dirtyChapters.value(elementId, false)) {
-                        m_dirtyChapters[elementId] = true;
-                        // Chapter CONTENT dirtiness is tracked per open tab here, set
-                        // ONLY on genuine edits (this slot is connected AFTER load).
-                        // Do NOT mark the project (.klh) dirty: its structure and data
-                        // have not changed, and a dirty project resurfaces as a spurious
-                        // save prompt.
-
-                        // Update tab title with asterisk
-                        int currentIdx = m_centralTabs->indexOf(newEditor);
-                        if (currentIdx >= 0) {
-                            QString tabText = m_centralTabs->tabText(currentIdx);
-                            if (!tabText.startsWith("*")) {
-                                m_centralTabs->setTabText(currentIdx, "*" + tabText);
-                            }
-                        }
-
-                        // Notify NavigatorPanel about dirty state (OpenSpec #00042 Phase 7.5)
-                        emit chapterDirtyStateChanged(elementId, true);
-
-                        emit documentModified();
-                    }
-                    // The words of the book follow the text, before it is saved
-                    m_uncountedChapters.insert(elementId);
-                    m_wordCountTimer->start();
-                }
+    // The tab and the Navigator show a "*" while the text differs from the saved text: a
+    // letter typed and deleted again, or an edit undone, leaves none
+    connect(newEditor, &EditorPanel::modifiedChanged, this,
+            [this, elementId, newEditor](bool modified) {
+                showChapterModified(elementId, newEditor, modified);
             });
+    // The words of the book follow the text, before it is saved
+    connect(newEditor, &EditorPanel::contentChanged, this, [this, elementId]() {
+        if (core::ProjectManager::getInstance().isProjectOpen()) {
+            m_uncountedChapters.insert(elementId);
+            m_wordCountTimer->start();
+        }
+    });
 
     // Connect to statistics collector if available (OpenSpec #00042 Task 7.7)
     if (m_statisticsCollector) {
@@ -493,24 +469,26 @@ QList<const core::ProjectElement*> NavigatorCoordinator::saveTextsOf(
     // A text with a file gets the changes of its open tab; a part or a window element has no
     // text
     if (pm.formOf(element) == core::ElementForm::Text && !element.file.isEmpty()) {
-        const bool dirtyTab = m_dirtyChapters.value(element.id, false);
-        int tab = -1;
-        for (int i = 0; i < m_centralTabs->count() && tab < 0; ++i) {
-            auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
-            if (editor && editor->property("elementId").toString() == element.id) {
-                tab = i;
-                if (dirtyTab) {
-                    pm.setChapterContent(element.id, editor->getContent());
-                }
+        EditorPanel* editor = nullptr;
+        for (int i = 0; i < m_centralTabs->count() && !editor; ++i) {
+            auto* tab = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+            if (tab && tab->property("elementId").toString() == element.id) {
+                editor = tab;
             }
+        }
+        const bool changed = editor && editor->isModified();  // than the saved text
+        if (changed) {
+            pm.setChapterContent(element.id, editor->getContent());
         }
         if (!pm.saveChapterContent(element.id)) {
             unsaved.append(&element);
-        } else if (dirtyTab) {
+        } else if (changed) {
             // Saved: the tab and the Navigator no longer show changes
             m_dirtyChapters[element.id] = false;
             emit chapterDirtyStateChanged(element.id, false);
-            if (tab >= 0 && m_centralTabs->tabText(tab).startsWith(QLatin1Char('*'))) {
+            editor->setUnmodified();
+            const int tab = m_centralTabs->indexOf(editor);
+            if (m_centralTabs->tabText(tab).startsWith(QLatin1Char('*'))) {
                 m_centralTabs->setTabText(tab, m_centralTabs->tabText(tab).mid(1));
             }
         }
@@ -766,6 +744,32 @@ void NavigatorCoordinator::closeTabsOf(const core::ProjectElement& element) {
 
     for (const core::ProjectElement& inner : element.elements) {
         closeTabsOf(inner);
+    }
+}
+
+void NavigatorCoordinator::showChapterModified(const QString& elementId, EditorPanel* editor,
+                                              bool modified) {
+    if (!core::ProjectManager::getInstance().isProjectOpen()
+        || modified == m_dirtyChapters.value(elementId, false)) {
+        return;  // shown already, e.g. by the save that made the text the saved text
+    }
+    const int index = m_centralTabs->indexOf(editor);
+    const QString tabText = index >= 0 ? m_centralTabs->tabText(index) : QString();
+    if (modified) {
+        // Only the text of the chapter changed, not the book (.klh): its structure and data are
+        // saved at once
+        m_dirtyChapters[elementId] = true;
+        if (index >= 0 && !tabText.startsWith(QLatin1Char('*'))) {
+            m_centralTabs->setTabText(index, QLatin1Char('*') + tabText);
+        }
+        emit chapterDirtyStateChanged(elementId, true);
+        emit documentModified();
+    } else {
+        // Back to the saved text: nothing to save, and the words are those of its file
+        discardChapterChanges(elementId);
+        if (tabText.startsWith(QLatin1Char('*'))) {
+            m_centralTabs->setTabText(index, tabText.mid(1));
+        }
     }
 }
 
