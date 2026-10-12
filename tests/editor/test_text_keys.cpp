@@ -106,8 +106,11 @@ TEST_CASE("Text keys: Windows and Linux have the keys of Windows word processors
     CHECK(isKey(WINDOWS, Qt::Key_Backspace, CTRL, Action::DeleteWordBackward));
     CHECK(isKey(WINDOWS, Qt::Key_Delete, CTRL, Action::DeleteWordForward));
     CHECK(isKey(WINDOWS, Qt::Key_Backspace, SHIFT, Action::DeleteBackward));
-    CHECK(isKey(WINDOWS, Qt::Key_Return, SHIFT, Action::NewParagraph));
+    CHECK(isKey(WINDOWS, Qt::Key_Return, CTRL, Action::NewParagraph));
     CHECK(isKey(WINDOWS, Qt::Key_Enter, Qt::KeypadModifier, Action::NewParagraph));
+    // Shift+Enter breaks the line in the paragraph, as in Word
+    CHECK(isKey(WINDOWS, Qt::Key_Return, SHIFT, Action::NewLine));
+    CHECK(isKey(WINDOWS, Qt::Key_Enter, SHIFT | Qt::KeypadModifier, Action::NewLine));
 
     // The second keys of the commands, those of every Windows text field
     CHECK(isKey(WINDOWS, Qt::Key_Z, CTRL | SHIFT, Action::Redo));
@@ -153,6 +156,7 @@ TEST_CASE("Text keys: macOS has the keys of its text fields", "[editor][textkeys
     CHECK(isKey(MAC, Qt::Key_Backspace, META, Action::DeleteDiacritic));
     CHECK(isKey(MAC, Qt::Key_Z, CTRL | SHIFT, Action::Redo));
     CHECK(isKey(MAC, Qt::Key_Return, ALT, Action::NewParagraph));
+    CHECK(isKey(MAC, Qt::Key_Return, SHIFT, Action::NewLine));
 
     // The Control keys
     CHECK(isKey(MAC, Qt::Key_A, META, Action::ParagraphStart));

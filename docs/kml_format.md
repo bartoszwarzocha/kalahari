@@ -14,7 +14,8 @@ The code that defines the format:
 | Reading | `KmlDocumentModel::loadKml()`, called by `BookEditor::fromKml()` |
 | Writing | `KmlSerializer::toKml()`, called by `BookEditor::toKml()` |
 | Annotations in the editor's document | `include/kalahari/editor/annotation.h` |
-| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp` |
+| The clipboard's KML, HTML and plain text | `ClipboardHandler` (`include/kalahari/editor/clipboard_handler.h`) |
+| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp` |
 
 ## Where KML is stored
 
@@ -67,13 +68,43 @@ for paragraphs that have their own alignment. Other attributes are ignored and n
 - Spaces and tabs are kept exactly as written, also at the start and end of a paragraph.
 - XML entities (`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`) and numeric character references
   are decoded. On writing, `&`, `<`, `>`, `"` and `'` are written as entities.
-- The format has no line break element. A line break in the text of a paragraph (a newline
-  character or `&#10;`) starts a new paragraph, and the indentation of the next line becomes
-  the start of its text.
+- `<br/>` is a line break: the paragraph goes on in a new line, as after Shift+Enter in the
+  editor (a manual line break in Word). The lines keep the paragraph's alignment, spacing and
+  formatting, and a paragraph may end with a break, which leaves its last line empty. In the
+  editor's text the break is the character U+2028 (line separator); written in the text
+  (`&#x2028;`), it is read as a break too, and written back as `<br/>`. For the word and
+  character counts the break is whitespace, as a space is.
+- A newline character in the text of a paragraph (or `&#10;`) is not a line break: it starts
+  a new paragraph, and the indentation of the next line becomes the start of its text.
 - `<t>` and `<text>` hold plain text, which belongs to the paragraph; the editor writes the
   text without them.
 - Elements inside a paragraph other than those described in this document are skipped
   together with everything inside them.
+
+## Line breaks in other formats
+
+Where the text leaves the editor, a line break becomes what the other format has for it, and
+comes back as a break where that format tells it apart from the end of a paragraph:
+
+| Where | A line break is written as | Read as a line break |
+|-------|----------------------------|----------------------|
+| Clipboard, KML | `<br/>` | `<br/>` |
+| Clipboard, HTML (Word, LibreOffice, browsers) | `<br/>` inside the paragraph | `<br>` or `<br/>` inside a paragraph |
+| Clipboard, plain text | A line end, as the end of a paragraph | A vertical tab (Word writes a manual line break so) or U+2028; a line end starts a new paragraph |
+| Plain text files (`.txt`) | A line end | As the plain text of the clipboard |
+| Grammar check (LanguageTool) | A line end | – |
+
+Export and import of other formats are not written yet; they are to keep a line break so:
+
+| Format | Export | Import |
+|--------|--------|--------|
+| DOCX | `<w:br/>` in the run | `<w:br/>` without a type or with `w:type="textWrapping"`, and `<w:cr/>`; a page or column break is not a line break |
+| Markdown | A backslash at the end of the line (a hard line break) | A backslash or two spaces at the end of the line |
+| EPUB, MOBI | `<br/>` | – |
+| PDF | A new line of the same paragraph, without the paragraph's spacing and first-line indent | – |
+| InDesign ICML | The character U+2028 (a forced line break) | – |
+| LaTeX | `\\` at the end of the line | – |
+| Scrivener (RTF) | – | `\line` |
 
 ## Inline formatting
 
@@ -185,13 +216,12 @@ Elements of the product specification that the editor does not read yet:
 - lists `<ul>`, `<ol>`, `<li>`,
 - images `<img>`,
 - tables `<table>`, `<tr>`, `<td>`, `<th>`,
-- the annotations `<endnote>` and the references `<item-ref>`, `<cite>`,
+- the annotations `<endnote>` and the references `<itemref>`, `<cite>`,
 - the paragraph attribute `style` (paragraph styles) and the root attributes `version` and
   `lang`.
 
-The specification names the character and location references `<char-ref>` and `<loc-ref>`;
-the editor uses `<charref>` and `<locref>`. Its `<comment>`, `<todo>` and `<note>` elements are
-annotations of the `<annotations>` section, of the kinds `comment`, `todo` and `note`.
+The specification's `<comment>`, `<todo>` and `<note>` elements are annotations of the
+`<annotations>` section, of the kinds `comment`, `todo` and `note`.
 
 The editor skips these elements, together with everything inside them, when it loads a
 chapter, and ignores the attributes. The next save writes the chapter without them, so a file

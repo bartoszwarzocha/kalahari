@@ -12,8 +12,6 @@
 #include <QJsonDocument>
 #include <QXmlStreamReader>
 
-#include <algorithm>
-
 namespace kalahari {
 namespace core {
 
@@ -96,18 +94,10 @@ void ChapterDocument::touch()
 
 void ChapterDocument::recalculateStatistics()
 {
-    const TextCounts counts = countText(m_plainText);
+    const TextCounts counts = countText(m_plainText, wordCountRules());
     m_wordCount = counts.words;
     m_characterCount = counts.nonSpaceCharacters;
-    m_paragraphCount = calculateParagraphCount(m_plainText);
-}
-
-int ChapterDocument::calculateParagraphCount(const QString& text)
-{
-    const auto lines = QStringView(text).split(QLatin1Char('\n'));
-    return static_cast<int>(std::count_if(lines.begin(), lines.end(), [](QStringView line) {
-        return !line.trimmed().isEmpty();
-    }));
+    m_paragraphCount = counts.paragraphs;
 }
 
 // =============================================================================
@@ -391,6 +381,9 @@ void appendParagraphText(QXmlStreamReader& reader, QString& text)
             if (editor::KmlFormatRegistry::isInlineTextTag(reader.name().toString())) {
                 ++depth;
             } else {
+                if (reader.name() == u"br") {
+                    text += QChar(QChar::LineSeparator);  // a line break in the paragraph
+                }
                 reader.skipCurrentElement();  // with everything inside it
             }
             break;
@@ -412,7 +405,8 @@ QString ChapterDocument::kmlToPlainText(const QString& kml)
 {
     // Collect the text of the paragraphs in a single streaming pass, by the editor's
     // rules (KmlDocumentModel): a fragment gets the same root element, only <p> and
-    // <paragraph> children of the root are paragraphs, and elements other than
+    // <paragraph> children of the root are paragraphs, <br/> is a line break in the
+    // paragraph (QChar::LineSeparator, as in the editor's text), and elements other than
     // formatting, metadata and text runs are skipped with everything inside them.
     // Inline tags vanish without splitting words and entities are decoded - so the
     // statistics match the editor's.

@@ -14,10 +14,10 @@
 
 #pragma once
 
+#include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
-#include <kalahari/editor/spell_check_service.h>  // For SpellErrorInfo
 #include <kalahari/editor/grammar_check_service.h> // For GrammarError, GrammarIssueType (Phase 6.17)
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
@@ -44,6 +44,8 @@ class QKeyEvent;
 class QMouseEvent;
 class QVariantAnimation;
 class QScreen;
+class QShowEvent;
+class QTextBlock;
 class QScrollBar;
 class QTimer;
 class QMenu;
@@ -118,6 +120,17 @@ public:
     /// the new text. KML that is not well-formed gives the text read before the error.
     void replaceWithKml(const QString& kml);
 
+    /// @brief Whether the content differs from the saved content: the one loaded by
+    ///        fromKml(), or the one marked with setUnmodified()
+    ///
+    /// Only the content counts, not the edits made: a letter, a sentence or a paragraph
+    /// typed and deleted again, an edit undone or formatting given and taken back leave the
+    /// content as it was, so it is not modified.
+    bool isModified() const;
+
+    /// @brief Mark the content now as the saved content (after saving it)
+    void setUnmodified();
+
     // =========================================================================
     // Content Access (New Architecture API)
     // =========================================================================
@@ -132,11 +145,14 @@ public:
     QString paragraphPlainText(size_t index) const;
 
     /// @brief Get the full plain text of the document
-    /// @return Concatenation of all paragraph texts with newlines (no-break spaces stay)
+    /// @return Concatenation of all paragraph texts with newlines; no-break spaces and the
+    ///         line breaks in the paragraphs (QChar::LineSeparator) stay, as in
+    ///         ChapterDocument::kmlToPlainText()
     QString plainText() const;
 
     /// @brief Get total character count in the document
-    /// @return Character count from QTextDocument
+    /// @return Characters with spaces, without the paragraph and line breaks, cached per
+    ///         paragraph like wordCount()
     size_t characterCount() const;
 
     /// @brief Get total word count in the document
@@ -147,6 +163,28 @@ public:
     /// @brief Get character count without spaces
     /// @return Non-space character count, cached per paragraph like wordCount()
     size_t characterCountNoSpaces() const;
+
+    /// @brief The word, character and paragraph counts of the whole text, in one pass over
+    ///        the paragraphs' cached counts
+    ///
+    /// The paragraphs are those with text (core::countText()); paragraphCount() counts the
+    /// empty ones too.
+    core::TextCounts textCounts() const;
+
+    /// @brief The word, character and paragraph counts of the selected text (zeros without
+    ///        one)
+    ///
+    /// A word cut by an edge of the selection counts as a word, and a paragraph as a
+    /// paragraph when the selection has some of its text, as in Word and LibreOffice.
+    core::TextCounts selectionCounts() const;
+
+    /// @brief Set what the counts take for a word (the settings' choice)
+    ///
+    /// The counts follow the new rules at once, and countsChanged() says they changed.
+    void setWordCountRules(const core::WordCountRules& rules);
+
+    /// @brief What the counts take for a word
+    const core::WordCountRules& wordCountRules() const { return m_wordCountRules; }
 
     /// @brief Get the underlying QTextDocument (read-only for accessibility)
     /// @return Pointer to the QTextDocument, or nullptr if not initialized
@@ -247,6 +285,20 @@ public:
     /// Used when cursor position is set to the same location (click on same spot).
     /// Resets blink state to visible and restarts timer, but does not adjust scroll.
     void resetCursorBlink();
+
+    /// @brief The height of the cursor line in the view, as a part of the view's height
+    /// @return The top of the line: 0 at the top edge of the view, 1 at its bottom edge, less
+    ///         or more for a line above or below the view
+    qreal cursorLineViewHeight() const;
+
+    /// @brief Scroll the cursor line to @p height in the view (see cursorLineViewHeight())
+    ///
+    /// The line stays fully in the view, off its edges, and the view does not scroll past the
+    /// top and the bottom of the text. With typewriter scrolling the line goes to the focus
+    /// height instead. Until the view is painted first, a new size of it (the panels around a
+    /// new tab settle, as the bar of a file outside the book hides) puts the line at the height
+    /// again, unless the cursor moved.
+    void scrollCursorLineTo(qreal height);
 
     // =========================================================================
     // Cursor Navigation (Phase 3.6/3.7/3.8)
@@ -375,6 +427,14 @@ public:
     /// If there is an active selection, it is deleted first.
     /// The cursor moves to the start of the new paragraph.
     void insertNewline();
+
+    /// @brief Start a new line in the paragraph (Shift+Enter), as Word's line break
+    ///
+    /// The break is a QChar::LineSeparator in the paragraph's text (<br/> in KML), so the
+    /// lines keep the paragraph's format and spacing. It replaces the selection, and the
+    /// cursor goes to the start of the new line. The break and the text typed after it are
+    /// one undo step, apart from the text typed before it.
+    void insertLineBreak();
 
     /// @brief Delete character before cursor (Backspace)
     ///
@@ -607,6 +667,17 @@ public:
     /// @return false when the chapter has no annotation with this id
     bool goToAnnotation(const QString& id);
 
+    /// @brief Whether annotations can be anchored to the text
+    ///
+    /// A plain text file keeps none: no annotation is added to it, and text pasted or
+    /// dropped into it comes without them.
+    bool annotationsAllowed() const;
+
+    /// @brief Let the text take annotations or not (see annotationsAllowed())
+    ///
+    /// It holds for content loaded later too. The annotations the text already has stay.
+    void setAnnotationsAllowed(bool allowed);
+
     /// @brief Go to the next TODO not done yet, after the cursor
     /// @return Its id; empty when there is none after the cursor
     QString goToNextTodo();
@@ -620,6 +691,29 @@ public:
     /// The application's commands, e.g. adding a comment; the editor only shows them.
     /// Null entries are left out.
     void setContextMenuActions(const QList<QAction*>& actions);
+
+    /// @brief The application's Cut, Copy, Paste and Select All (setContextMenuEditActions())
+    struct ContextMenuEditActions {
+        QAction* cut = nullptr;
+        QAction* copy = nullptr;
+        QAction* paste = nullptr;
+        QAction* selectAll = nullptr;
+    };
+
+    /// @brief The commands of the Edit menu the text's context menu shows as its editing
+    ///        items, with their icons and keys
+    ///
+    /// They take the places of the editor's own Cut, Copy, Paste and Select All (Cut and
+    /// Copy only with a selection) and are enabled as in the Edit menu. They work on the
+    /// element with the keys, the editor whose menu is open: a right click gives it the keys,
+    /// and the keyboard opens the menu of the editor that has them. An item without a
+    /// command is the editor's own. The application keeps the commands while the editor
+    /// lives.
+    void setContextMenuEditActions(const ContextMenuEditActions& actions);
+
+    /// @brief Show the text's context menu under the cursor, as the menu key and Shift+F10
+    ///        do: for a misspelled word at the cursor it offers what to put in its place
+    void showContextMenuAtCursor();
 
     // =========================================================================
     // View Mode (Phase 5.1)
@@ -762,25 +856,37 @@ public:
     const EditorAppearance& appearance() const;
 
     // =========================================================================
-    // Spell Check Integration (Phase 6.9)
+    // Spelling
     // =========================================================================
 
-    /// @brief Set the spell check service to use
-    /// @param service Pointer to SpellCheckService (not owned, must outlive editor)
+    /// @brief Check the text's spelling with a dictionary
     ///
-    /// Connects the service's paragraphChecked signal to update paragraph layouts
-    /// with spell error underlines. Pass nullptr to disable spell checking.
+    /// The editor checks its paragraphs itself, in short turns while it is shown: those in
+    /// view first, then the others. A paragraph is checked again after it is edited, and
+    /// every one after the dictionary changes (SpellCheckService::wordsChanged()). A
+    /// misspelled word gets a wave under it, but the word being typed: it gets one when the
+    /// cursor leaves it.
+    /// @param service The dictionary (not owned); nullptr, or one not active: no waves
     void setSpellCheckService(SpellCheckService* service);
 
-    /// @brief Get the current spell check service
-    /// @return Pointer to the service, or nullptr if not set
+    /// @brief The dictionary the spelling is checked with, or nullptr
     SpellCheckService* spellCheckService() const;
 
-    /// @brief Request spell check for entire document
+    /// @brief Check the spelling of every paragraph again
     ///
-    /// Triggers asynchronous spell checking of all paragraphs.
-    /// Results are received via paragraphChecked signal and rendered automatically.
+    /// The waves stay until their paragraphs are checked.
     void requestSpellCheck();
+
+    /// @brief Whether a turn of the spelling check is due (it runs while the editor is shown)
+    bool isSpellCheckPending() const;
+
+    /// @brief Select the next misspelled word: the one the cursor is in or the first after
+    ///        it (after the selection, when there is one), from the start of the text after
+    ///        its end
+    ///
+    /// The paragraphs not checked yet are checked on the way; the word being typed counts.
+    /// @return false when the text has no misspelled word or the spelling is not checked
+    bool goToNextMisspelling();
 
     // =========================================================================
     // Grammar Check Integration (Phase 6.17)
@@ -887,6 +993,17 @@ signals:
     /// Use this to track content changes (e.g., for statistics, auto-save).
     void contentChanged();
 
+    /// @brief Emitted when the content starts or stops differing from the saved content
+    ///        (see isModified())
+    ///
+    /// A content as long as the saved one is compared with it when the editing pauses; until
+    /// then isModified() gives the answer.
+    void modifiedChanged(bool modified);
+
+    /// @brief Emitted when the word and character counts change while the text stays the
+    ///        same (they follow new rules of setWordCountRules())
+    void countsChanged();
+
     /// @brief Emitted when the document reference changes
     ///
     /// This signal is emitted whenever the document reference changes
@@ -985,6 +1102,9 @@ protected:
     /// Triggers repaint to hide cursor when editor loses focus.
     void focusOutEvent(QFocusEvent* event) override;
 
+    /// @brief The spelling check, which waits while the editor is hidden, goes on
+    void showEvent(QShowEvent* event) override;
+
     /// @brief Mouse wheel event handler
     /// @param event The wheel event
     ///
@@ -1044,7 +1164,8 @@ protected:
     /// @param event The context menu event
     ///
     /// Shows context menu with spell check suggestions if over a misspelled word,
-    /// otherwise shows default editing menu.
+    /// otherwise shows default editing menu. From the keyboard it is the menu of the
+    /// cursor's place (showContextMenuAtCursor()).
     void contextMenuEvent(QContextMenuEvent* event) override;
 
     /// @brief Input method event handler (Phase 4.5/4.6)
@@ -1065,11 +1186,6 @@ private slots:
     /// @brief Handle scrollbar value change
     /// @param value New scrollbar value
     void onScrollBarValueChanged(int value);
-
-    /// @brief Handle spell check results for a paragraph (Phase 6.9)
-    /// @param paragraphIndex The paragraph index
-    /// @param errors List of spelling errors found
-    void onSpellCheckParagraph(int paragraphIndex, const QList<SpellErrorInfo>& errors);
 
     /// @brief Handle grammar check results for a paragraph (Phase 6.17)
     /// @param paragraphIndex The paragraph index
@@ -1142,6 +1258,10 @@ private:
 
     /// @brief Apply shrinkToPageWidthOnFirstShow() while it waits for the first paint
     void applyFirstShowShrink();
+
+    /// @brief Put the cursor line at the height of scrollCursorLineTo() again while it waits
+    ///        for the first paint
+    void applyFirstShowCursorLine();
 
     /// @brief Give the pipeline the page size, margins, gap and page numbers
     void applyPageLayout();
@@ -1320,9 +1440,6 @@ private:
     ///        of a paragraph swap the two before it
     void transposeCharacters();
 
-    /// @brief Open the context menu at the cursor, as the menu key does
-    void showContextMenuFromKeyboard();
-
     // =========================================================================
     // Distraction-Free writing
     // =========================================================================
@@ -1409,6 +1526,8 @@ private:
     bool m_paintingWholeView = false;                       ///< A paint of the whole view runs
     bool m_shrinkOnFirstShow = false;                       ///< shrinkToPageWidthOnFirstShow() waits
                                                             ///< for the first paint
+    qreal m_cursorLineHeightOnFirstShow = -1.0;             ///< scrollCursorLineTo() waits for the
+                                                            ///< first paint (none below 0)
 
     // Cursor state (Phase 3.4 + 3.5)
     CursorPosition m_cursorPosition;                        ///< Current cursor position
@@ -1459,6 +1578,8 @@ private:
     bool m_autoScrollForDrop = false;   ///< Scrolling for dragged text (else: for a mouse selection)
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
     QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
+    ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
+    bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
 
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string
@@ -1477,6 +1598,7 @@ private:
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
+    core::WordCountRules m_wordCountRules;                  ///< What the counts take for a word
 
     // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h
 
@@ -1485,22 +1607,68 @@ private:
     qreal m_uiOpacity{0.0};                                 ///< Opacity for UI overlay elements
     QTimer* m_uiFadeTimer{nullptr};                         ///< Timer for UI fade effect
 
-    // Spell Check (Phase 6.9)
-    SpellCheckService* m_spellCheckService{nullptr};        ///< Spell check service (not owned)
+    // Spelling
+    SpellCheckService* m_spellCheckService{nullptr};  ///< The dictionary (not owned)
+    QTimer* m_spellTimer{nullptr};                    ///< Runs the next turn of the check
+    int m_spellNext{0};             ///< The paragraph the next turn goes on from (not in view)
+    int m_spellTyping{-1};          ///< Where the cursor stands after typing (-1: not typing)
+    bool m_spellTypingEdit{false};  ///< The writer is typing (a character, Backspace, Delete)
+
+    /// @brief Run a turn of the spelling check after @p delayMs, unless one is due sooner
+    void scheduleSpellCheck(int delayMs);
+
+    /// @brief A turn of the spelling check: the paragraphs due, those in view first, for a
+    ///        few milliseconds; another turn follows while any is due
+    void runSpellCheck();
+
+    /// @brief Check a paragraph's spelling
+    /// @return Whether its waves changed
+    bool checkSpelling(const QTextBlock& block);
+
+    /// @brief Keep the spelling results of the words an edit left as they were, moved with
+    ///        the text; the paragraphs it changed are due to be checked
+    void adjustSpellingToEdit(int from, int charsRemoved, int charsAdded);
+
+    /// @brief The dictionary changed or went: check every paragraph again, or drop the waves
+    void onSpellingWordsChanged();
+
+    /// @brief The dictionary was destroyed
+    void onSpellCheckServiceDestroyed();
+
+    /// @brief The cursor moved: when it left the place it was typing at, the word typed
+    ///        there is checked
+    void onSpellingCursorMoved();
+
+    /// @brief Note where typing left the cursor (after an edit while m_spellTypingEdit)
+    void noteSpellingTyping();
+
+    /// @brief The writer stopped typing: the word typed is checked
+    void endSpellingTyping();
+
+    /// @brief The word typed last counts and the paragraph of the cursor is checked now when
+    ///        it is due: the menu asked for from the keyboard knows a misspelled word at the
+    ///        cursor before its wave shows
+    void checkSpellingAtCursor();
+
+    /// @brief Drop every spelling result
+    void clearSpelling();
+
+    /// @brief Show the context menu of a place of the text
+    /// @param pos The place: what is offered is for the misspelled word there
+    /// @param globalPos Where the menu opens, on the screen
+    /// @param fromMouse A right click: outside the selection it puts the cursor at @p pos
+    void showContextMenu(const CursorPosition& pos, const QPoint& globalPos, bool fromMouse);
 
     /// @brief Find misspelled word at given position
     /// @param paraIndex Paragraph index
-    /// @param offset Character offset within paragraph
+    /// @param offset Character offset within paragraph (also right after the word)
     /// @return The misspelled word and its range, or empty if no error at position
     std::tuple<QString, int, int> getMisspelledWordAt(int paraIndex, int offset) const;
 
-    /// @brief Create context menu for spell check
-    /// @param word The misspelled word
-    /// @param paraIndex Paragraph index
-    /// @param startOffset Start position of word
-    /// @param endOffset End position of word
-    /// @return Context menu with suggestions
-    QMenu* createSpellCheckContextMenu(const QString& word, int paraIndex, int startOffset, int endOffset);
+    /// @brief Put on the context menu what is offered for a misspelled word: the words to
+    ///        put in its place, Ignore All, Add to Dictionary
+    void addSpellingActions(QMenu& menu, const QString& word, int paraIndex, int startOffset,
+                            int endOffset);
 
     /// @brief Replace word in document
     /// @param paraIndex Paragraph index
@@ -1555,6 +1723,35 @@ private:
 
     /// @brief Create an empty document if there is none yet (before the first edit)
     void ensureDocument();
+
+    // The saved content isModified() compares with
+    mutable QString m_savedSource;  ///< The KML it was loaded from, until savedKml() reads it
+    mutable std::optional<QString> m_savedKml;  ///< As toKml() writes it (see savedKml())
+    int m_savedLength = 1;                      ///< Its QTextDocument::characterCount()
+    bool m_modified = false;                    ///< What modifiedChanged() said last
+    QTimer* m_modifiedCheck{nullptr};           ///< Compares the content when editing pauses
+
+    /// @brief The document just created holds the saved content, loaded from @p kml
+    ///
+    /// The saved content as toKml() writes it is made from @p kml only when it is needed (see
+    /// savedKml()), so loading takes no longer.
+    void startFromSaved(const QString& kml);
+
+    /// @brief After an edit: whether the content differs from the saved one now
+    ///
+    /// A content of another length differs, and one with no edit left since it was saved (or
+    /// every one undone) does not; one as long as the saved one is compared in full when the
+    /// editing pauses, so typing does not wait for it.
+    void checkModified();
+
+    /// @brief Whether the content differs from the saved one, compared in full when needed
+    bool differsFromSaved() const;
+
+    /// @brief The saved content as toKml() writes it
+    const QString& savedKml() const;
+
+    /// @brief Set what modifiedChanged() says, saying it when it changes
+    void setModifiedState(bool modified);
 
     /// @brief Viewport manager for scroll and visibility coordination (Task 8.4)
     std::unique_ptr<ViewportManager> m_viewportManager;

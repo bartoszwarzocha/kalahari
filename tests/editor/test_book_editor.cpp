@@ -2,16 +2,21 @@
 /// @brief Unit tests for BookEditor (OpenSpec #00042 Phase 3.1-3.5)
 /// Phase 11: Rewritten for QTextDocument-based architecture
 
+#include "editor_test_utils.h"
+
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/book_editor_accessible.h>
 #include <QAccessible>
 #include <QApplication>
+#include <QContextMenuEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QWheelEvent>
+#include <algorithm>
 #include <memory>
+#include <vector>
 
 using namespace kalahari::editor;
 
@@ -379,4 +384,231 @@ TEST_CASE("BookEditor is editable text for screen readers", "[editor][book_edito
     editor.insertText(QStringLiteral("X"));
     CHECK(text->text(0, 4) == QStringLiteral("XAla"));
     CHECK(text->characterCount() == editor.plainText().length());
+}
+
+TEST_CASE("BookEditor context menu offers Select All also without a selection",
+          "[editor][book_editor]") {
+    BookEditor editor;
+    editor.fromKml(kalahari::test::kmlOf({QStringLiteral("First line."), QStringLiteral("Last.")}));
+    editor.resize(400, 300);
+    editor.show();
+    editor.setCursorPosition(CursorPosition{0, 3});
+    REQUIRE_FALSE(editor.hasSelection());
+
+    // As in the program's text fields: the whole text is selected from the menu
+    const QStringList texts = kalahari::test::runPopupMenu(
+        [&editor]() {
+            QContextMenuEvent event(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+            QCoreApplication::sendEvent(&editor, &event);
+        },
+        QStringLiteral("Select &All"));
+    CHECK(texts.contains(QStringLiteral("&Paste")));
+    CHECK(texts.contains(QStringLiteral("Select &All")));
+    const SelectionRange all = editor.selection();
+    CHECK(all.start == CursorPosition{0, 0});
+    CHECK(all.end == CursorPosition{1, 5});
+}
+
+// =============================================================================
+// Saved content
+// =============================================================================
+
+namespace {
+
+/// A chapter with what KML can hold, written as a person would write it (indented): the
+/// editor writes it otherwise, and the content is the same
+QString richKml() {
+    return QStringLiteral(
+        "<kml>\n"
+        "  <annotations>\n"
+        "    <annotation id=\"a1\" kind=\"comment\" author=\"Bartosz\" "
+        "created=\"2026-10-08T12:00:00Z\" done=\"true\">Check the date.</annotation>\n"
+        "    <annotation id=\"a2\" kind=\"todo\">Describe the weather.</annotation>\n"
+        "  </annotations>\n"
+        "  <p align=\"center\"><b>Chapter One</b></p>\n"
+        "  <p>Plain text, <i>italic</i>, <b><i>bold italic</i></b> and "
+        "<span color=\"#aa0000\">red</span>.</p>\n"
+        "  <p>She met <charref id=\"r1\" target=\"anna\">Anna</charref> in <locref id=\"r2\" "
+        "target=\"krakow\">Krakow</locref> <anchor ref=\"a1\">on a Tuesday</anchor>.<anchor "
+        "ref=\"a2\"/></p>\n"
+        "</kml>");
+}
+
+}  // anonymous namespace
+
+TEST_CASE("BookEditor: the content is modified only when it differs from the saved one",
+          "[editor][book_editor][modified]") {
+    BookEditor editor;
+    editor.fromKml(richKml());
+    std::vector<bool> said;  // what modifiedChanged() said, in order
+    QObject::connect(&editor, &BookEditor::modifiedChanged,
+                     [&said](bool modified) { said.push_back(modified); });
+    // A content as long as the saved one is compared with it when the editing pauses
+    const auto saysAtPause = [&said](bool modified) {
+        return kalahari::test::waitUntil(
+            [&said, modified]() { return !said.empty() && said.back() == modified; });
+    };
+    REQUIRE_FALSE(editor.isModified());
+
+    SECTION("a letter typed and deleted") {
+        editor.setCursorPosition({1, 5});
+        editor.insertText(QStringLiteral("x"));
+        CHECK(editor.isModified());
+        CHECK(said == std::vector<bool>{true});
+
+        editor.deleteBackward();
+        CHECK_FALSE(editor.isModified());  // at once, while the comparison waits
+        CHECK(saysAtPause(false));
+        CHECK(said == std::vector<bool>{true, false});
+    }
+
+    SECTION("a sentence and a paragraph typed and deleted") {
+        const CursorPosition end{1, static_cast<int>(editor.paragraphPlainText(1).length())};
+        editor.setCursorPosition(end);
+        editor.insertText(QStringLiteral(" Another sentence."));
+        editor.insertNewline();
+        editor.insertText(QStringLiteral("A paragraph of its own."));
+        CHECK(editor.isModified());
+
+        editor.setSelection({end, editor.cursorPosition()});
+        editor.deleteSelectedText();
+        CHECK_FALSE(editor.isModified());
+        CHECK(saysAtPause(false));
+    }
+
+    SECTION("another letter in place of one, then the first one again") {
+        editor.setSelection({{1, 0}, {1, 1}});
+        editor.insertText(QStringLiteral("Q"));
+        CHECK(editor.isModified());
+        CHECK(saysAtPause(true));
+
+        editor.setSelection({{1, 0}, {1, 1}});
+        editor.insertText(QStringLiteral("P"));
+        CHECK_FALSE(editor.isModified());
+        CHECK(saysAtPause(false));
+    }
+
+    SECTION("formatting given and taken back") {
+        editor.setSelection({{1, 0}, {1, 5}});
+        editor.toggleBold();
+        CHECK(editor.isModified());
+        CHECK(saysAtPause(true));
+
+        editor.toggleBold();
+        CHECK_FALSE(editor.isModified());
+        CHECK(saysAtPause(false));
+    }
+
+    SECTION("an annotation added and removed") {
+        editor.setSelection({{1, 0}, {1, 5}});
+        const Annotation added =
+            editor.addAnnotation(AnnotationKind::Comment, QStringLiteral("Why?"), QString());
+        CHECK(editor.isModified());
+        CHECK(saysAtPause(true));
+
+        REQUIRE(editor.removeAnnotation(added.id));
+        CHECK_FALSE(editor.isModified());
+        CHECK(saysAtPause(false));
+    }
+
+    SECTION("an annotation's text and state changed and changed back") {
+        // As the annotation frame and the Annotations panel change them
+        const std::vector<AnnotationPlace> places = editor.annotations();
+        const auto first = std::find_if(places.begin(), places.end(), [](const auto& place) {
+            return place.annotation.id == QStringLiteral("a1");
+        });
+        REQUIRE(first != places.end());
+        Annotation annotation = first->annotation;
+        const Annotation saved = annotation;
+
+        annotation.text = QStringLiteral("Check the time.");
+        annotation.done = false;
+        REQUIRE(editor.updateAnnotation(annotation, false));
+        CHECK(editor.isModified());
+        CHECK(saysAtPause(true));
+
+        REQUIRE(editor.updateAnnotation(saved, false));
+        CHECK_FALSE(editor.isModified());
+        CHECK(saysAtPause(false));
+    }
+
+    SECTION("an edit undone and redone") {
+        editor.setCursorPosition({1, 5});
+        editor.insertText(QStringLiteral("x"));
+        editor.undo();
+        CHECK_FALSE(editor.isModified());
+        CHECK(said == std::vector<bool>{true, false});  // at once: no edit is left
+        editor.redo();
+        CHECK(editor.isModified());
+        CHECK(said == std::vector<bool>{true, false, true});
+    }
+
+    SECTION("the content saved") {
+        editor.setCursorPosition({1, 5});
+        editor.insertText(QStringLiteral("x"));
+        editor.setUnmodified();
+        CHECK_FALSE(editor.isModified());
+        CHECK(said == std::vector<bool>{true, false});
+
+        // The content loaded is no longer the saved one
+        editor.undo();
+        CHECK(editor.isModified());
+        editor.redo();
+        CHECK_FALSE(editor.isModified());
+
+        editor.deleteBackward();
+        CHECK(editor.isModified());
+        editor.insertText(QStringLiteral("x"));
+        CHECK_FALSE(editor.isModified());
+        CHECK(saysAtPause(false));
+    }
+
+    SECTION("other content loaded") {
+        editor.setCursorPosition({1, 5});
+        editor.insertText(QStringLiteral("x"));
+        editor.fromKml(kalahari::test::kmlOf({QStringLiteral("Other text.")}));
+        CHECK_FALSE(editor.isModified());
+        CHECK(said == std::vector<bool>{true, false});
+    }
+
+    SECTION("a snapshot of the saved content restored") {
+        const QString saved = editor.toKml();
+        editor.setCursorPosition({1, 5});
+        editor.insertText(QStringLiteral("x"));
+        editor.replaceWithKml(saved);
+        CHECK_FALSE(editor.isModified());
+        CHECK(saysAtPause(false));
+    }
+
+    SECTION("the undo history cleared") {
+        editor.setCursorPosition({1, 5});
+        editor.insertText(QStringLiteral("x"));
+        editor.clearUndoStack();
+        CHECK(editor.isModified());
+
+        // Undoing back to the start of the history does not bring the saved content back,
+        editor.insertText(QStringLiteral("y"));
+        editor.undo();
+        CHECK(editor.isModified());
+
+        // unless the content was the saved one then
+        editor.deleteBackward();
+        REQUIRE_FALSE(editor.isModified());
+        editor.clearUndoStack();
+        editor.insertText(QStringLiteral("y"));
+        editor.undo();
+        CHECK_FALSE(editor.isModified());
+        CHECK(saysAtPause(false));
+    }
+}
+
+TEST_CASE("BookEditor: text typed into an empty editor and deleted leaves it unmodified",
+          "[editor][book_editor][modified]") {
+    BookEditor editor;  // nothing loaded: the first edit makes an empty document
+    CHECK_FALSE(editor.isModified());
+
+    editor.insertText(QStringLiteral("a"));
+    CHECK(editor.isModified());
+    editor.deleteBackward();
+    CHECK_FALSE(editor.isModified());
 }

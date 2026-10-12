@@ -41,6 +41,10 @@ void SettingsCoordinator::setDiagnosticModeGetter(std::function<bool()> callback
     m_diagnosticModeGetter = std::move(callback);
 }
 
+void SettingsCoordinator::setSpellCheckService(editor::SpellCheckService* service) {
+    m_spellCheckService = service;
+}
+
 void SettingsCoordinator::openSettingsDialog() {
     core::Logger::getInstance().info("Action triggered: Settings");
     runSettingsDialog(false);
@@ -54,7 +58,7 @@ void SettingsCoordinator::openKeyboardShortcuts() {
 void SettingsCoordinator::runSettingsDialog(bool shortcuts) {
     auto& logger = core::Logger::getInstance();
 
-    SettingsDialog dialog(m_mainWindow, m_diagnosticModeGetter());
+    SettingsDialog dialog(m_mainWindow, m_diagnosticModeGetter(), m_spellCheckService);
     if (shortcuts) {
         dialog.showShortcutsPage();
     }

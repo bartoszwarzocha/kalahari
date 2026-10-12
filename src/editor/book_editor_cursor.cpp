@@ -25,6 +25,12 @@ bool isWordCharacter(QChar ch) {
     return ch.isLetterOrNumber() || ch.isMark();
 }
 
+/// @brief A line break in a paragraph (Shift+Enter): moves by words stop at it as at the
+///        end of a paragraph
+bool isLineBreak(QChar ch) {
+    return ch == QChar::LineSeparator;
+}
+
 /// @brief The offset one character before or after an offset of a paragraph's text: a
 ///        letter goes with its marks, a surrogate pair whole
 int characterBoundary(const QString& text, int offset, bool forward) {
@@ -53,6 +59,9 @@ void BookEditor::setCursorPosition(const CursorPosition& position)
     CursorPosition validatedPos = validateCursorPosition(position);
 
     if (m_cursorPosition != validatedPos) {
+        // A cursor moved does not go back to a height of scrollCursorLineTo()
+        m_cursorLineHeightOnFirstShow = -1.0;
+
         // Track old position for focus mode optimization
         CursorPosition oldPos = m_cursorPosition;
         m_cursorPosition = validatedPos;
@@ -254,6 +263,58 @@ void BookEditor::scrollToCursorLine()
         setScrollOffset(qMax(0.0, newScroll));
     }
     // If line is fully visible, don't scroll
+}
+
+qreal BookEditor::cursorLineViewHeight() const
+{
+    if (!m_viewportManager || height() <= 0) {
+        return 0.0;
+    }
+    // The scroll position is drawn at the view's top inset, and the zoom scales by the view
+    // scale
+    const qreal top = (getCursorDocumentY() - m_viewportManager->scrollPosition()) *
+                          m_viewportManager->viewScale() +
+                      m_viewportManager->viewTopInset();
+    return top / static_cast<qreal>(height());
+}
+
+void BookEditor::scrollCursorLineTo(qreal heightInView)
+{
+    if (!m_textBuffer || !m_viewportManager || height() <= 0) {
+        return;
+    }
+    // Until the first paint a new size of the view puts the line there again
+    m_cursorLineHeightOnFirstShow = heightInView;
+    if (m_appearance.typewriter.enabled) {
+        updateTypewriterScroll(false);
+        return;
+    }
+
+    // The top of the line goes to the height, not nearer the top edge of the view than
+    // scrolling to the cursor goes. The blocks above the line that come into view are laid
+    // out first: with estimated heights the line could end up above or below the height.
+    const qreal scale = m_viewportManager->viewScale();
+    const qreal inset = m_viewportManager->viewTopInset();
+    const qreal top =
+        std::max(heightInView * static_cast<qreal>(height()), CURSOR_SCROLL_MARGIN);
+    auto* layout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+    qreal newScroll = 0.0;
+    do {
+        newScroll = getCursorDocumentY() - (top - inset) / scale;
+    } while (layout != nullptr &&
+             layout->ensureLaidOut(layout->blockNumberAtY(newScroll - inset / scale),
+                                   m_cursorPosition.paragraph - 1));
+    setScrollOffset(std::max(0.0, newScroll));
+
+    // A line too near the bottom edge, or below it, comes fully into the view
+    scrollToCursorLine();
+}
+
+void BookEditor::applyFirstShowCursorLine()
+{
+    if (m_cursorLineHeightOnFirstShow >= 0.0) {
+        scrollCursorLineTo(m_cursorLineHeightOnFirstShow);
+    }
 }
 
 void BookEditor::scrollSidewaysToCursor()
@@ -1111,6 +1172,9 @@ void BookEditor::performTextKey(TextKeyAction action, bool select)
     case Action::NewParagraph:
         insertNewline();
         return;
+    case Action::NewLine:
+        insertLineBreak();
+        return;
     case Action::OpenLine:
         // The paragraph break goes after the cursor
         insertNewline();
@@ -1138,7 +1202,7 @@ void BookEditor::performTextKey(TextKeyAction action, bool select)
         paste();
         return;
     case Action::ContextMenu:
-        showContextMenuFromKeyboard();
+        showContextMenuAtCursor();
         return;
     default:
         break;  // A move of the cursor
@@ -1213,7 +1277,8 @@ CursorPosition BookEditor::textKeyTarget(TextKeyAction action, const CursorPosit
     switch (action) {
     case Action::WordLeft: {
         // Back over the spaces and punctuation, then over the word; at the start of a
-        // paragraph to the end of the one before
+        // paragraph to the end of the one before, at the start of a line after a line break
+        // to the end of the line before
         if (position.offset == 0) {
             if (position.paragraph == 0) {
                 return position;
@@ -1221,7 +1286,11 @@ CursorPosition BookEditor::textKeyTarget(TextKeyAction action, const CursorPosit
             return {position.paragraph - 1, paragraphLength(doc, position.paragraph - 1)};
         }
         int offset = position.offset;
-        while (offset > 0 && !isWordCharacter(text.at(offset - 1))) {
+        if (isLineBreak(text.at(offset - 1))) {
+            return {position.paragraph, offset - 1};
+        }
+        while (offset > 0 && !isWordCharacter(text.at(offset - 1)) &&
+               !isLineBreak(text.at(offset - 1))) {
             --offset;
         }
         while (offset > 0 && isWordCharacter(text.at(offset - 1))) {
@@ -1231,16 +1300,21 @@ CursorPosition BookEditor::textKeyTarget(TextKeyAction action, const CursorPosit
     }
     case Action::WordRight: {
         // Over the rest of the word, then over the spaces and punctuation; at the end of a
-        // paragraph to the start of the next one
+        // paragraph to the start of the next one, at the end of a line before a line break
+        // to the start of the line after it
         if (position.offset >= length) {
             return position.paragraph < lastParagraph ? CursorPosition{position.paragraph + 1, 0}
                                                       : position;
         }
         int offset = position.offset;
+        if (isLineBreak(text.at(offset))) {
+            return {position.paragraph, offset + 1};
+        }
         while (offset < length && isWordCharacter(text.at(offset))) {
             ++offset;
         }
-        while (offset < length && !isWordCharacter(text.at(offset))) {
+        while (offset < length && !isWordCharacter(text.at(offset)) &&
+               !isLineBreak(text.at(offset))) {
             ++offset;
         }
         return {position.paragraph, offset};

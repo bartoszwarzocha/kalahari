@@ -167,6 +167,83 @@ TEST_CASE("ClipboardHandler kmlToHtml conversion", "[editor][clipboard]") {
     }
 }
 
+TEST_CASE("ClipboardHandler: line breaks in a paragraph", "[editor][clipboard][linebreak]") {
+    const QChar lineBreak(QChar::LineSeparator);
+
+    SECTION("textToKml: U+2028 and Word's vertical tab are <br/>, a line end a paragraph") {
+        CHECK(ClipboardHandler::textToKml(QStringLiteral("a") + lineBreak +
+                                          QStringLiteral("b\vc\nd")) ==
+              QStringLiteral("<p><text>a<br/>b<br/>c</text></p><p><text>d</text></p>"));
+    }
+
+    SECTION("kmlToHtml: <br/>, and a no-break space for the line after a final break") {
+        CHECK(ClipboardHandler::kmlToHtml(QStringLiteral("<kml><p>a<br/>b</p></kml>")) ==
+              QStringLiteral("<p>a<br/>b</p>"));
+        CHECK(ClipboardHandler::kmlToHtml(QStringLiteral("<kml><p><b>a<br/></b></p></kml>")) ==
+              QStringLiteral("<p><b>a<br/></b>\u00A0</p>"));
+        CHECK(ClipboardHandler::kmlToHtml(QStringLiteral("<kml><p><br/></p></kml>")) ==
+              QStringLiteral("<p><br/>\u00A0</p>"));
+    }
+
+    SECTION("kmlToText: a line end") {
+        CHECK(ClipboardHandler::kmlToText(QStringLiteral("<p>a<br/>b</p><p>c</p>")) ==
+              QStringLiteral("a\nb\nc"));
+    }
+}
+
+TEST_CASE("ClipboardHandler: the line ends of a text are read off its HTML",
+          "[editor][clipboard][linebreak]") {
+    const QChar lineBreak(QChar::LineSeparator);
+    const auto withBreaks = [](const char* text, const char* html) {
+        return ClipboardHandler::withLineEndsOf(QString::fromUtf8(text), QString::fromUtf8(html));
+    };
+
+    SECTION("A line end at <br> is a line break, one at a paragraph's end stays") {
+        CHECK(withBreaks("a\nb\nc", "<p>a<br>b</p><p>c</p>") ==
+              QStringLiteral("a") + lineBreak + QStringLiteral("b\nc"));
+        CHECK(withBreaks("a\r\nb", "<p>a<br>b</p>") ==
+              QStringLiteral("a") + lineBreak + QStringLiteral("b"));
+        CHECK(withBreaks("a\n\nb", "<p>a<br><br>b</p>") ==
+              QStringLiteral("a") + lineBreak + lineBreak + QStringLiteral("b"));
+        // A break that ends a paragraph is the paragraph's end
+        CHECK(withBreaks("a\n\nb", "<p>a<br></p><p>b</p>") == QStringLiteral("a\n\nb"));
+    }
+
+    SECTION("A browser's blank line between two paragraphs goes, an empty paragraph stays") {
+        // The browsers leave a blank line between two paragraphs, and after a heading
+        CHECK(withBreaks("a\n\nb", "<p>a</p><p>b</p>") == QStringLiteral("a\nb"));
+        CHECK(withBreaks("Title\n\na\n\nb", "<h1>Title</h1><p>a</p><p>b</p>") ==
+              QStringLiteral("Title\na\nb"));
+        CHECK(withBreaks("a\r\n\r\nb", "<p>a</p><p>b</p>") == QStringLiteral("a\r\nb"));
+        CHECK(withBreaks("a\nb\n\nc", "<p>a<br>b</p><p>c</p>") ==
+              QStringLiteral("a") + lineBreak + QStringLiteral("b\nc"));
+        // The white space that starts the next paragraph stays with it
+        CHECK(withBreaks("a\n\n  b", "<p>a</p><p>&nbsp; b</p>") == QStringLiteral("a\n  b"));
+        // An empty paragraph of the HTML stays
+        CHECK(withBreaks("a\n\n \n\nb", "<p>a</p><p>&nbsp;</p><p>b</p>") ==
+              QStringLiteral("a\n\nb"));
+        CHECK(withBreaks("a\r\n\r\nb", "<p>a</p><p>&nbsp;</p><p>b</p>") ==
+              QStringLiteral("a\r\n\r\nb"));
+        // The line ends that start or end the text are not between two paragraphs
+        CHECK(withBreaks("\n\na\n\n", "<p>a</p>") == QStringLiteral("\n\na\n\n"));
+    }
+
+    SECTION("White space, images and invisible characters are passed over") {
+        CHECK(withBreaks("copy right\nnext", "<p>co&shy;py&nbsp;right <img src=\"x.png\"><br>\n"
+                                              "next</p>") ==
+              QStringLiteral("copy right") + lineBreak + QStringLiteral("next"));
+        CHECK(withBreaks("a\tb\nc", "<table><tr><td>a</td><td>b</td></tr></table><p>c</p>") ==
+              QStringLiteral("a\tb\nc"));
+    }
+
+    SECTION("Without HTML, without a line end, or with another text: the text as it is") {
+        CHECK(withBreaks("a\nb", "") == QStringLiteral("a\nb"));
+        CHECK(withBreaks("a b", "<p>a<br>b</p>") == QStringLiteral("a b"));
+        CHECK(withBreaks("a\nc", "<p>a<br>b</p>") == QStringLiteral("a\nc"));
+        CHECK(withBreaks("a\nb\nextra", "<p>a<br>b</p>") == QStringLiteral("a\nb\nextra"));
+    }
+}
+
 // =============================================================================
 // Clipboard Paste Tests (require QApplication)
 // =============================================================================

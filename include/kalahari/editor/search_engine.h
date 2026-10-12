@@ -230,6 +230,10 @@ public:
 signals:
     /// @brief Emitted when the matches change, or which of them is the current one
     /// without a navigation (setOrigin())
+    ///
+    /// After an edit of the document, once the document has the edit laid out
+    /// (QTextDocument::contentsChanged): a listener may give the keys to the text, which
+    /// places the cursor by the lines of the edited paragraph.
     void matchesChanged();
 
     /// @brief Emitted when current match changes
@@ -308,6 +312,7 @@ private:
     int m_characterCount = 0;                 ///< Document length the matches are for
     int m_blockCount = 0;                     ///< Paragraph count the matches are for
     bool m_changeReported = false;            ///< The document reported the latest edit's range
+    bool m_announceAfterLayout = false;       ///< matchesChanged() once the edit is laid out
 };
 
 }  // namespace kalahari::editor

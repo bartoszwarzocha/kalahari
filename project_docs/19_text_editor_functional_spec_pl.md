@@ -78,7 +78,7 @@ Zamiast czystego HTML, używamy własnego języka znaczników HTML-like. Kontrol
   <scene-break type="ornament" />
 
   <p style="normal">
-    Spotkał <char-ref id="anna">Annę</char-ref> na ulicy.
+    Spotkał <charref id="r1" target="anna">Annę</charref> na ulicy.
     <comment author="Autor" date="2025-12-18" collapsed="true">
       Sprawdzić czy to pasuje do timeline'u
     </comment>
@@ -102,6 +102,7 @@ Zamiast czystego HTML, używamy własnego języka znaczników HTML-like. Kontrol
 |---------|------|
 | `<kml>` | Root element, atrybuty: version, lang |
 | `<p>` | Akapit, atrybut: style (ID stylu) |
+| `<br/>` | Złamanie wiersza w akapicie (Shift+Enter): akapit biegnie dalej w nowym wierszu, z tym samym wyrównaniem i odstępami |
 | `<h1>`, `<h2>`, `<h3>` | Nagłówki poziom 1-3 |
 | `<scene-break>` | Separator sceny (wizualizacja zależna od motywu) |
 
@@ -188,9 +189,9 @@ Zamiast czystego HTML, używamy własnego języka znaczników HTML-like. Kontrol
 #### Referencje do bibliotek
 | Element | Opis |
 |---------|------|
-| `<char-ref>` | Link do postaci, atrybut: id |
-| `<loc-ref>` | Link do lokacji, atrybut: id |
-| `<item-ref>` | Link do przedmiotu, atrybut: id |
+| `<charref>` | Link do postaci, atrybuty: id, target |
+| `<locref>` | Link do lokacji, atrybuty: id, target |
+| `<itemref>` | Link do przedmiotu, atrybuty: id, target |
 | `<cite>` | Cytowanie bibliograficzne, atrybut: id |
 
 ### 4.4. Renderowanie adnotacji
@@ -275,7 +276,7 @@ Kontrolka wspiera **3 tryby widoku** z szybkim przełączaniem.
 - Stabilny układ: przewijanie ciągłe z wyraźnymi stronami.
 
 **Zachowanie edycji:**
-- Enter tworzy nowy akapit; Shift+Enter nową linię w akapicie.
+- Enter tworzy nowy akapit; Shift+Enter – nowy wiersz w akapicie.
 - Wstawianie twardego podziału strony jako osobna operacja.
 
 **Ustawienia:**
@@ -380,9 +381,9 @@ Kontrolka wspiera **3 tryby widoku** z szybkim przełączaniem.
 **Klawisze tekstu** (Windows i Linux; tabela: `src/editor/text_keys.cpp`; w programie lista w Ustawieniach > Skróty klawiszowe, żadne polecenie nie może ich dostać):
 - Strzałki – znak i wiersz; Ctrl+← i Ctrl+→ – wyraz; Ctrl+↑ – początek akapitu (gdy kursor już tam jest – poprzedniego), Ctrl+↓ – początek następnego akapitu; Home i End – wiersz; Ctrl+Home i Ctrl+End – cały tekst; Page Up i Page Down – ekran. Z Shiftem zaznaczają.
 - Backspace (także Shift+Backspace) i Delete usuwają znak, Ctrl+Backspace i Ctrl+Delete – wyraz; zaznaczenie znika w całości.
-- Enter tworzy nowy akapit; Shift+Enter i Ctrl+Enter na razie również (nowy wiersz w akapicie wymaga podziału wiersza w KML).
+- Enter i Ctrl+Enter tworzą nowy akapit; Shift+Enter zaczyna nowy wiersz w akapicie (złamanie wiersza, w KML `<br/>`).
 - Drugie skróty pól tekstowych Windows: Ctrl+Shift+Z i Alt+Shift+Backspace – ponów, Alt+Backspace – cofnij, Shift+Delete – wytnij, Ctrl+Insert – kopiuj, Shift+Insert – wklej; Shift+F10 i klawisz menu – menu kontekstowe.
-- macOS: klawisze pól tekstowych systemu (Option+←/→ – wyraz, Cmd+←/→ – wiersz, Option+↑/↓ – akapit, Cmd+↑/↓ – tekst; Home, End, Page Up i Page Down przesuwają tylko widok; klawisze z Control: A, E, K, Y, T, O, L i inne). Pełna lista: `08_gui_design.md`, Keyboard Shortcuts.
+- macOS: klawisze pól tekstowych systemu (Option+←/→ – wyraz, Cmd+←/→ – wiersz, Option+↑/↓ – akapit, Cmd+↑/↓ – tekst; Home, End, Page Up i Page Down przesuwają tylko widok; klawisze z Control: A, E, K, Y, T, O, L i inne; Return, Cmd+Return i Option+Return – nowy akapit, Shift+Return – nowy wiersz w akapicie). Pełna lista: `08_gui_design.md`, Keyboard Shortcuts.
 
 **Model pozycjonowania kursora:**
 
@@ -658,8 +659,10 @@ character_styles (
 ## 8. Funkcje dedykowane pisarzom
 
 ### 8.1. Statystyki na bieżąco
-- Licznik: słowa, znaki (ze spacjami i bez), akapity
-- Przybliżony czas czytania
+- Licznik: słowa, znaki (ze spacjami i bez; końce akapitów nie są znakami), akapity z tekstem
+  (pustych się nie liczy, jak w Wordzie i LibreOffice)
+- Przybliżony czas czytania: 200 słów na minutę, od godziny w godzinach i minutach
+  („12 godz. 31 min”)
 - Licznik kontekstowy: całość dokumentu vs zaznaczenie
 - **Rozszerzone:**
   - Czytelność (indeks Flescha-Kincaida lub polski odpowiednik)

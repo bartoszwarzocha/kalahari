@@ -1566,6 +1566,8 @@ Rules for a new shortcut:
 | Format > Align Center | Ctrl+E |
 | Format > Align Right | Ctrl+R |
 | Format > Justify | Ctrl+J |
+| Tools > Check Spelling as You Type | Shift+F7 |
+| Tools > Next Misspelling | F7 |
 | View > Panels > Navigator | F2 |
 | View > Panels > Log | F4 |
 | View > Panels > Search | F5 |
@@ -1593,9 +1595,9 @@ may have them too.
   paragraph (there already: of the one before), Ctrl+Down – to the start of the next one;
   Home and End – the line; Ctrl+Home and Ctrl+End – the text; Page Up and Page Down – a
   screen; with Shift they select. Backspace (also Shift+Backspace) and Delete delete a
-  character, Ctrl+Backspace and Ctrl+Delete a word; a selection goes whole. Enter starts a
-  paragraph, and so do Shift+Enter and Ctrl+Enter for now (a line break inside a paragraph
-  needs a line break in KML). The second keys of the text fields of Windows: Ctrl+Shift+Z
+  character, Ctrl+Backspace and Ctrl+Delete a word; a selection goes whole. Enter and
+  Ctrl+Enter start a paragraph, Shift+Enter a new line in the paragraph (a line break, `<br/>`
+  in KML). The second keys of the text fields of Windows: Ctrl+Shift+Z
   and Alt+Shift+Backspace – redo, Alt+Backspace – undo, Shift+Delete – cut, Ctrl+Insert –
   copy, Shift+Insert – paste; Shift+F10 and the Menu key – the context menu. The table is
   `src/editor/text_keys.cpp`.
@@ -1651,9 +1653,9 @@ bar and the panels' titles. The keys are in the texts ("Save &As...", in Polish 
 &jako..."): `src/gui/command_registrar.cpp` for the commands, `src/gui/menu_builder.cpp` for
 the menus, the code of a context menu for its items, the translation for Polish. Each item
 has one key, a Latin letter or a digit (Polish letters are typed with AltGr), which no other
-item of the same menu has. The text's context menu also has three commands of the Insert menu
-(Add Comment, Add To Do, Add Note): their keys are unique there too, beside Cut, Copy and
-Paste.
+item of the same menu has. The text's context menu has commands of the Edit menu (Cut, Copy,
+Paste, Select All) and three of the Insert menu (Add Comment, Add To Do, Add Note): their keys
+are unique there too.
 
 Names and words a menu shows as they are get free keys (`src/gui/utils/access_keys.cpp`): the
 first letter of one of their words that is free, else another of their letters or digits;
@@ -1711,6 +1713,12 @@ it to the next element of the window, the font box of the toolbar. After a repla
 cursor stands at the end of the replaced text, and after Replace All at the end of the last
 replacement, shown in the view; Replace with more matches after it selects the next one.
 
+The text's context menu has the same Cut, Copy, Paste and Select All, with their icons and
+keys, enabled as in the Edit menu (Cut and Copy only with a selection): EditorPanel gives them
+to its editor (`BookEditor::setContextMenuEditActions()`), which without them has items of its
+own. They work on the text whose menu it is: a right click gives it the cursor, and the menu
+key and Shift+F10 open the menu of the text that has it.
+
 The commands that work on the document in front, a chapter or a text file – Find, Find Next,
 Find Previous and Find and Replace, the character formats, the alignments, the view mode and
 the zoom – are greyed out, also their keys, while there is none (the Dashboard in front, no
@@ -1749,8 +1757,9 @@ Option+Delete delete a word, Cmd+Backspace to the start of the line, Control+Bac
 last mark of a character. The Control keys: A and E – the start and the end of the
 paragraph; B, F, P, N – a character or a line; V – a screen down; H and D – delete; K – cut
 to the end of the paragraph, Y – paste it; T – swap the characters; O – a paragraph after
-the cursor; L – the line to the middle of the view. Cmd+Tab belongs to the system, so the
-tabs of the texts have no keys there.
+the cursor; L – the line to the middle of the view. Return, Cmd+Return and Option+Return
+start a paragraph, Shift+Return a new line in the paragraph. Cmd+Tab belongs to the system, so
+the tabs of the texts have no keys there.
 
 On Apple laptops the F keys are pressed with Fn.
 
@@ -1772,7 +1781,6 @@ Commands without keys yet, with keys that are still free:
 - `Ctrl+Shift+T` - Timeline
 - `Alt+1`, `Alt+2`, `Alt+3` - Heading 1–3, `Alt+0` - Normal style (on macOS Option+Cmd with
   the digit)
-- `F7` / `Shift+F7` - Next Misspelling / Check Spelling as You Type (in open pull requests)
 - `F10` - Focused Mode (see Focus Modes)
 
 Keys planned before that other commands have now; these commands get new keys when they
@@ -1830,9 +1838,10 @@ Studio Code and Visual Studio. `src/gui/settings/shortcuts_page.cpp`.
 - **Search:** by the name of a command or the text of its keys ("ctrl+f" finds Ctrl+F). The
   words of a name may come in any order, and a word of five letters or more finds its other
   forms too, without its last letter (two of a word of seven): "książka" finds "Otwórz
-  książkę..." and "Zamknij książkę"; a word with other characters than letters stays whole
-  (a key is not a word with an ending). A whole key name finds that key: "ctrl+h" finds Ctrl+H
-  and not Ctrl+Home, "f1" finds F1 and not F10–F12; while no keys have it, it is a name being
+  książkę..." and "Zamknij książkę", "akapit" finds "Nowy wiersz w akapicie"; a word with
+  other characters than letters stays whole (a key is not a word with an ending). A whole key
+  name finds that key: "ctrl+h" finds Ctrl+H and not Ctrl+Home, "f1" finds F1 and not
+  F10–F12; while no keys have it, it is a name being
   written and finds the keys it begins ("shift+f1" finds Shift+F11). **Search by Keys** –
   press a shortcut, and the list shows what has it (a fixed key with what it does, a key
   that types text says so), or says it is free; Esc goes back to the search by text. **Only

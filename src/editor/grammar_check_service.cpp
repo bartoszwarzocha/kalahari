@@ -505,9 +505,12 @@ void GrammarCheckService::sendApiRequest(const QString& text, int paragraphIndex
     request.setHeader(QNetworkRequest::UserAgentHeader,
                       "Kalahari/1.0 (Grammar Checker)");
 
-    // Build request parameters
+    // Build request parameters. A line break in the paragraph goes as a line end, which
+    // LanguageTool reads as one; the text keeps its length, so the errors' offsets hold.
+    QString sentText = text;
+    sentText.replace(QChar(QChar::LineSeparator), QLatin1Char('\n'));
     QUrlQuery params;
-    params.addQueryItem("text", text);
+    params.addQueryItem("text", sentText);
     params.addQueryItem("language", m_language);
 
     // Add enabled categories if specified

@@ -339,19 +339,24 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
         noteAnnotation(annotations, annotation);
     }
 
-    // Escape XML special characters in text content; the annotations on places inside the
-    // run go after their characters
+    // Escape XML special characters in text content, a line break in the paragraph is the
+    // element <br/>; the annotations on places inside the run go after their characters
+    const auto textKml = [](const QString& part) {
+        QString kml = KmlFormatRegistry::escapeXml(part);
+        kml.replace(QChar(QChar::LineSeparator), QStringLiteral("<br/>"));
+        return kml;
+    };
     QString escapedText;
     qsizetype written = 0;
     for (const auto& [offset, placeAnnotations] : places) {
-        escapedText += KmlFormatRegistry::escapeXml(text.mid(written, offset - written));
+        escapedText += textKml(text.mid(written, offset - written));
         written = offset;
         for (const Annotation& annotation : placeAnnotations) {
             escapedText += anchorTag(annotation.id, true);
             noteAnnotation(annotations, annotation);
         }
     }
-    escapedText += KmlFormatRegistry::escapeXml(text.mid(written));
+    escapedText += textKml(text.mid(written));
 
     // Build inline style attributes (font, size, color, bg)
     QString inlineAttrs = buildInlineStyleAttributes(format);

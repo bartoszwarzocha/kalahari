@@ -349,10 +349,6 @@
         <translation>&amp;Liczba słów</translation>
     </message>
     <message>
-        <source>S&amp;pellchecker</source>
-        <translation>Sprawdzanie &amp;pisowni</translation>
-    </message>
-    <message>
         <source>&amp;Grammar Check</source>
         <translation>Sprawdzanie &amp;gramatyki</translation>
     </message>
@@ -591,6 +587,337 @@
     <message>
         <source>Date &amp;&amp; &amp;Time</source>
         <translation>Data i &amp;godzina</translation>
+    </message>
+    <message>
+        <source>Check S&amp;pelling as You Type</source>
+        <translation>Sprawdzaj &amp;pisownię podczas pisania</translation>
+    </message>
+    <message>
+        <source>&amp;Next Misspelling</source>
+        <translation>&amp;Następny błąd pisowni</translation>
+    </message>
+</context>
+<context>
+    <name>LanguageNames</name>
+    <message>
+        <source>Afrikaans</source>
+        <translation>afrikaans</translation>
+    </message>
+    <message>
+        <source>Aragonese</source>
+        <translation>aragoński</translation>
+    </message>
+    <message>
+        <source>Arabic</source>
+        <translation>arabski</translation>
+    </message>
+    <message>
+        <source>Belarusian</source>
+        <translation>białoruski</translation>
+    </message>
+    <message>
+        <source>Bulgarian</source>
+        <translation>bułgarski</translation>
+    </message>
+    <message>
+        <source>Bengali</source>
+        <translation>bengalski</translation>
+    </message>
+    <message>
+        <source>Tibetan</source>
+        <translation>tybetański</translation>
+    </message>
+    <message>
+        <source>Breton</source>
+        <translation>bretoński</translation>
+    </message>
+    <message>
+        <source>Bosnian</source>
+        <translation>bośniacki</translation>
+    </message>
+    <message>
+        <source>Catalan</source>
+        <translation>kataloński</translation>
+    </message>
+    <message>
+        <source>Kurdish (Sorani)</source>
+        <translation>kurdyjski (sorani)</translation>
+    </message>
+    <message>
+        <source>Czech</source>
+        <translation>czeski</translation>
+    </message>
+    <message>
+        <source>Welsh</source>
+        <translation>walijski</translation>
+    </message>
+    <message>
+        <source>Danish</source>
+        <translation>duński</translation>
+    </message>
+    <message>
+        <source>German</source>
+        <translation>niemiecki</translation>
+    </message>
+    <message>
+        <source>Greek</source>
+        <translation>grecki</translation>
+    </message>
+    <message>
+        <source>English</source>
+        <translation>angielski</translation>
+    </message>
+    <message>
+        <source>Esperanto</source>
+        <translation>esperanto</translation>
+    </message>
+    <message>
+        <source>Spanish</source>
+        <translation>hiszpański</translation>
+    </message>
+    <message>
+        <source>Estonian</source>
+        <translation>estoński</translation>
+    </message>
+    <message>
+        <source>Basque</source>
+        <translation>baskijski</translation>
+    </message>
+    <message>
+        <source>Persian</source>
+        <translation>perski</translation>
+    </message>
+    <message>
+        <source>Finnish</source>
+        <translation>fiński</translation>
+    </message>
+    <message>
+        <source>Faroese</source>
+        <translation>farerski</translation>
+    </message>
+    <message>
+        <source>French</source>
+        <translation>francuski</translation>
+    </message>
+    <message>
+        <source>Western Frisian</source>
+        <translation>zachodniofryzyjski</translation>
+    </message>
+    <message>
+        <source>Irish</source>
+        <translation>irlandzki</translation>
+    </message>
+    <message>
+        <source>Scottish Gaelic</source>
+        <translation>szkocki gaelicki</translation>
+    </message>
+    <message>
+        <source>Galician</source>
+        <translation>galicyjski</translation>
+    </message>
+    <message>
+        <source>Gujarati</source>
+        <translation>gudżarati</translation>
+    </message>
+    <message>
+        <source>Guarani</source>
+        <translation>guarani</translation>
+    </message>
+    <message>
+        <source>Hebrew</source>
+        <translation>hebrajski</translation>
+    </message>
+    <message>
+        <source>Hindi</source>
+        <translation>hindi</translation>
+    </message>
+    <message>
+        <source>Croatian</source>
+        <translation>chorwacki</translation>
+    </message>
+    <message>
+        <source>Hungarian</source>
+        <translation>węgierski</translation>
+    </message>
+    <message>
+        <source>Armenian</source>
+        <translation>ormiański</translation>
+    </message>
+    <message>
+        <source>Indonesian</source>
+        <translation>indonezyjski</translation>
+    </message>
+    <message>
+        <source>Icelandic</source>
+        <translation>islandzki</translation>
+    </message>
+    <message>
+        <source>Italian</source>
+        <translation>włoski</translation>
+    </message>
+    <message>
+        <source>Japanese</source>
+        <translation>japoński</translation>
+    </message>
+    <message>
+        <source>Georgian</source>
+        <translation>gruziński</translation>
+    </message>
+    <message>
+        <source>Kazakh</source>
+        <translation>kazachski</translation>
+    </message>
+    <message>
+        <source>Khmer</source>
+        <translation>khmerski</translation>
+    </message>
+    <message>
+        <source>Kurdish (Kurmanji)</source>
+        <translation>kurdyjski (kurmandżi)</translation>
+    </message>
+    <message>
+        <source>Korean</source>
+        <translation>koreański</translation>
+    </message>
+    <message>
+        <source>Kurdish</source>
+        <translation>kurdyjski</translation>
+    </message>
+    <message>
+        <source>Latin</source>
+        <translation>łaciński</translation>
+    </message>
+    <message>
+        <source>Luxembourgish</source>
+        <translation>luksemburski</translation>
+    </message>
+    <message>
+        <source>Lao</source>
+        <translation>laotański</translation>
+    </message>
+    <message>
+        <source>Lithuanian</source>
+        <translation>litewski</translation>
+    </message>
+    <message>
+        <source>Latvian</source>
+        <translation>łotewski</translation>
+    </message>
+    <message>
+        <source>Macedonian</source>
+        <translation>macedoński</translation>
+    </message>
+    <message>
+        <source>Mongolian</source>
+        <translation>mongolski</translation>
+    </message>
+    <message>
+        <source>Malay</source>
+        <translation>malajski</translation>
+    </message>
+    <message>
+        <source>Maltese</source>
+        <translation>maltański</translation>
+    </message>
+    <message>
+        <source>Norwegian</source>
+        <translation>norweski</translation>
+    </message>
+    <message>
+        <source>Nepali</source>
+        <translation>nepalski</translation>
+    </message>
+    <message>
+        <source>Dutch</source>
+        <translation>niderlandzki</translation>
+    </message>
+    <message>
+        <source>Norwegian Nynorsk</source>
+        <translation>norweski (nynorsk)</translation>
+    </message>
+    <message>
+        <source>Occitan</source>
+        <translation>oksytański</translation>
+    </message>
+    <message>
+        <source>Polish</source>
+        <translation>polski</translation>
+    </message>
+    <message>
+        <source>Portuguese</source>
+        <translation>portugalski</translation>
+    </message>
+    <message>
+        <source>Romanian</source>
+        <translation>rumuński</translation>
+    </message>
+    <message>
+        <source>Russian</source>
+        <translation>rosyjski</translation>
+    </message>
+    <message>
+        <source>Sinhala</source>
+        <translation>syngaleski</translation>
+    </message>
+    <message>
+        <source>Slovak</source>
+        <translation>słowacki</translation>
+    </message>
+    <message>
+        <source>Slovenian</source>
+        <translation>słoweński</translation>
+    </message>
+    <message>
+        <source>Albanian</source>
+        <translation>albański</translation>
+    </message>
+    <message>
+        <source>Serbian</source>
+        <translation>serbski</translation>
+    </message>
+    <message>
+        <source>Swedish</source>
+        <translation>szwedzki</translation>
+    </message>
+    <message>
+        <source>Swahili</source>
+        <translation>suahili</translation>
+    </message>
+    <message>
+        <source>Tamil</source>
+        <translation>tamilski</translation>
+    </message>
+    <message>
+        <source>Telugu</source>
+        <translation>telugu</translation>
+    </message>
+    <message>
+        <source>Thai</source>
+        <translation>tajski</translation>
+    </message>
+    <message>
+        <source>Turkish</source>
+        <translation>turecki</translation>
+    </message>
+    <message>
+        <source>Ukrainian</source>
+        <translation>ukraiński</translation>
+    </message>
+    <message>
+        <source>Urdu</source>
+        <translation>urdu</translation>
+    </message>
+    <message>
+        <source>Uzbek</source>
+        <translation>uzbecki</translation>
+    </message>
+    <message>
+        <source>Vietnamese</source>
+        <translation>wietnamski</translation>
+    </message>
+    <message>
+        <source>Chinese</source>
+        <translation>chiński</translation>
     </message>
 </context>
 <context>
@@ -1457,10 +1784,6 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Dodaj do &amp;słownika</translation>
     </message>
     <message>
-        <source>&amp;Ignore</source>
-        <translation>&amp;Pomiń</translation>
-    </message>
-    <message>
         <source>&amp;Explanation...</source>
         <translation>&amp;Wyjaśnienie...</translation>
     </message>
@@ -1491,6 +1814,10 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
     <message>
         <source>Switch to &amp;Light Mode</source>
         <translation>Przełącz na tryb &amp;jasny</translation>
+    </message>
+    <message>
+        <source>&amp;Ignore All</source>
+        <translation>&amp;Pomijaj to słowo</translation>
     </message>
 </context>
 <context>
@@ -1604,16 +1931,8 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
 <context>
     <name>kalahari::editor::SpellCheckService</name>
     <message>
-        <source>Dictionary not found for language: %1</source>
-        <translation>Nie znaleziono słownika dla języka: %1</translation>
-    </message>
-    <message>
-        <source>Dictionary files missing for: %1</source>
-        <translation>Brak plików słownika dla: %1</translation>
-    </message>
-    <message>
-        <source>Failed to initialize Hunspell for: %1</source>
-        <translation>Nie udało się uruchomić Hunspella dla: %1</translation>
+        <source>No dictionary %1 was found</source>
+        <translation>Nie znaleziono słownika %1</translation>
     </message>
 </context>
 <context>
@@ -1827,6 +2146,14 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>Save (%1)</source>
         <translation>Zapisz (%1)</translation>
     </message>
+    <message>
+        <source>Cancel (Esc)</source>
+        <translation>Anuluj (Esc)</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Anuluj</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AnnotationsCoordinator</name>
@@ -1971,6 +2298,10 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>No annotation matches the filters.</source>
         <translation>Żadna uwaga nie pasuje do filtrów.</translation>
+    </message>
+    <message>
+        <source>A plain text file (.txt) does not keep annotations, so they cannot be added to it. To add annotations, add the file to the book.</source>
+        <translation>Plik tekstowy (.txt) nie przechowuje uwag, więc nie można ich w nim dodawać. Aby dodawać uwagi, dodaj ten plik do książki.</translation>
     </message>
     <message>
         <source>Annotations</source>
@@ -2880,6 +3211,22 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Działanie edytora</translation>
     </message>
     <message>
+        <source>Where You Last Edited</source>
+        <translation>W miejscu ostatniej edycji</translation>
+    </message>
+    <message>
+        <source>At the Beginning</source>
+        <translation>Na początku</translation>
+    </message>
+    <message>
+        <source>Open a Chapter:</source>
+        <translation>Otwieraj rozdział:</translation>
+    </message>
+    <message>
+        <source>The place of the cursor is kept in the book for every chapter, also after the program is closed.</source>
+        <translation>Miejsce kursora jest zapamiętywane w książce dla każdego rozdziału, także po zamknięciu programu.</translation>
+    </message>
+    <message>
         <source> spaces</source>
         <translation> spacji</translation>
     </message>
@@ -2930,6 +3277,18 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>Cursor Line Height:</source>
         <translation>Wysokość wiersza z kursorem:</translation>
+    </message>
+    <message>
+        <source>Word Count</source>
+        <translation>Liczenie słów</translation>
+    </message>
+    <message>
+        <source>Count standalone dialogue dashes as words</source>
+        <translation>Licz samodzielne myślniki dialogowe jako słowa</translation>
+    </message>
+    <message>
+        <source>A dash separated by spaces from the words around it, as at the start of a line of dialogue. Microsoft Word counts it as a word, LibreOffice does not.</source>
+        <translation>Myślnik oddzielony spacjami od sąsiednich słów, na przykład na początku kwestii dialogowej. Microsoft Word liczy go jako słowo, LibreOffice – nie.</translation>
     </message>
     <message>
         <source>Smooth scrolling</source>
@@ -3110,6 +3469,58 @@ Saving the chapter keeps only this text. Close it without saving to leave the fi
         <translation>Rozdział „%1” jest uszkodzony, dlatego widać tylko tekst sprzed uszkodzonego miejsca.
 
 Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, zamknij rozdział bez zapisywania.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorSpellingPage</name>
+    <message>
+        <source>Spelling as You Type</source>
+        <translation>Sprawdzanie pisowni podczas pisania</translation>
+    </message>
+    <message>
+        <source>Check spelling as you type</source>
+        <translation>Sprawdzaj pisownię podczas pisania</translation>
+    </message>
+    <message>
+        <source>Language of the book</source>
+        <translation>Język książki</translation>
+    </message>
+    <message>
+        <source>%1: no dictionary</source>
+        <extracomment>%1 is the language as in the list, for example French (fr_FR)</extracomment>
+        <translation>%1: brak słownika</translation>
+    </message>
+    <message>
+        <source>Language:</source>
+        <translation>Język:</translation>
+    </message>
+    <message>
+        <source>With &quot;Language of the book&quot; the chapters are checked in the language of the book, set in its properties, and other documents, such as a file opened from the disk, in the language of the program. A misspelled word is underlined with a wavy line; right-click it for suggestions. Tools &gt; Check Spelling as You Type (Shift+F7) turns the checking on and off.</source>
+        <translation>Przy ustawieniu „Język książki” rozdziały są sprawdzane w języku książki, ustawionym w jej właściwościach, a inne dokumenty, np. plik otwarty z dysku, w języku programu. Błędnie zapisane słowo jest podkreślone falistą linią, a po kliknięciu go prawym przyciskiem myszy pojawiają się podpowiedzi. Sprawdzanie włącza się i wyłącza poleceniem Narzędzia &gt; Sprawdzaj pisownię podczas pisania (Shift+F7).</translation>
+    </message>
+    <message>
+        <source>Your Words</source>
+        <translation>Twoje słowa</translation>
+    </message>
+    <message>
+        <source>Your words</source>
+        <translation>Twoje słowa</translation>
+    </message>
+    <message>
+        <source>A word to add</source>
+        <translation>Słowo do dodania</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Words that are right whatever the dictionary says; &quot;Add to Dictionary&quot; in the context menu of a misspelled word puts it here. A word in lower case is right also with capital letters.</source>
+        <translation>Słowa poprawne bez względu na słownik; trafia tu każde słowo dodane poleceniem „Dodaj do słownika” z menu podręcznego. Słowo dodane małymi literami jest poprawne także pisane wielkimi literami.</translation>
     </message>
 </context>
 <context>
@@ -3329,18 +3740,6 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
         <translation>Gotowe</translation>
     </message>
     <message>
-        <source>Words: 0</source>
-        <translation>Słowa: 0</translation>
-    </message>
-    <message>
-        <source>Characters: 0</source>
-        <translation>Znaki: 0</translation>
-    </message>
-    <message>
-        <source>Reading: 0 min</source>
-        <translation>Czytanie: 0 min</translation>
-    </message>
-    <message>
         <source>Undo performed</source>
         <translation>Cofnięto</translation>
     </message>
@@ -3419,18 +3818,6 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Do you want to save changes to %1?</source>
         <translation>Czy zapisać zmiany w %1?</translation>
-    </message>
-    <message>
-        <source>Words: %1</source>
-        <translation>Słowa: %1</translation>
-    </message>
-    <message>
-        <source>Characters: %1</source>
-        <translation>Znaki: %1</translation>
-    </message>
-    <message>
-        <source>Reading: %1 min</source>
-        <translation>Czytanie: %1 min</translation>
     </message>
     <message>
         <source>Page %1 of %2</source>
@@ -3994,8 +4381,8 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Akapity:</translation>
     </message>
     <message>
-        <source>Estimated reading time at 200 words per minute</source>
-        <translation>Szacowany czas czytania przy 200 słowach na minutę</translation>
+        <source>Estimated reading time at %1 words per minute</source>
+        <translation>Szacowany czas czytania w tempie %1 słów na minutę</translation>
     </message>
     <message>
         <source>Reading time:</source>
@@ -4068,10 +4455,6 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Selection Statistics</source>
         <translation>Statystyki zaznaczenia</translation>
-    </message>
-    <message>
-        <source>%1 min</source>
-        <translation>%1 min</translation>
     </message>
 </context>
 <context>
@@ -4200,16 +4583,6 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Planned features:
-- Spell check language selection
-- Custom dictionary management
-- Ignore rules for technical terms</source>
-        <translation>Planowane funkcje:
-- wybór języka sprawdzania pisowni
-- zarządzanie własnym słownikiem
-- reguły pomijania terminów technicznych</translation>
-    </message>
-    <message>
-        <source>Planned features:
 - Automatic capitalization
 - Common typo corrections
 - Custom replacement rules</source>
@@ -4307,6 +4680,30 @@ Tej operacji nie można cofnąć.</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::SpellingCoordinator</name>
+    <message>
+        <source>No spelling dictionary for %1: the spelling is not checked</source>
+        <extracomment>%1 is the name of the language as in a list of languages (in Polish: francuski)</extracomment>
+        <translation>Język %1 nie ma słownika pisowni: pisownia nie jest sprawdzana</translation>
+    </message>
+    <message>
+        <source>Spelling as you type: on</source>
+        <translation>Sprawdzanie pisowni podczas pisania: włączone</translation>
+    </message>
+    <message>
+        <source>Spelling as you type: off</source>
+        <translation>Sprawdzanie pisowni podczas pisania: wyłączone</translation>
+    </message>
+    <message>
+        <source>The spelling is not checked</source>
+        <translation>Pisownia nie jest sprawdzana</translation>
+    </message>
+    <message>
+        <source>No misspelled words</source>
+        <translation>Brak błędów pisowni</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::ShortcutRules</name>
     <message>
         <source>Character left / right</source>
@@ -4371,6 +4768,10 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>New paragraph</source>
         <translation>Nowy akapit</translation>
+    </message>
+    <message>
+        <source>New line in the paragraph</source>
+        <translation>Nowy wiersz w akapicie</translation>
     </message>
     <message>
         <source>New paragraph after the cursor</source>
@@ -4925,6 +5326,10 @@ Tej operacji nie można cofnąć.</translation>
         <translation>zaczyna nowy akapit</translation>
     </message>
     <message>
+        <source>starts a new line in the paragraph</source>
+        <translation>zaczyna nowy wiersz w akapicie</translation>
+    </message>
+    <message>
         <source>starts a new paragraph after the cursor</source>
         <translation>zaczyna nowy akapit za kursorem</translation>
     </message>
@@ -5321,6 +5726,56 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Dismiss this message</source>
         <translation>Ukryj ten komunikat</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::utils::ReadingTime</name>
+    <message>
+        <source>%1 min</source>
+        <translation>%1 min</translation>
+    </message>
+    <message>
+        <source>%1 h</source>
+        <translation>%1 godz.</translation>
+    </message>
+    <message>
+        <source>%1 h %2 min</source>
+        <translation>%1 godz. %2 min</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::StatusBarStatistics</name>
+    <message>
+        <source>Words in the document. With a selection: words in the selection and in the whole document.</source>
+        <translation>Słowa w dokumencie. Przy zaznaczeniu: słowa w zaznaczeniu i w całym dokumencie.</translation>
+    </message>
+    <message>
+        <source>Characters with spaces, without paragraph ends. With a selection: characters in the selection and in the whole document.</source>
+        <translation>Znaki ze spacjami, bez końców akapitów. Przy zaznaczeniu: znaki w zaznaczeniu i w całym dokumencie.</translation>
+    </message>
+    <message>
+        <source>Reading time of the whole document at %1 words a minute</source>
+        <translation>Czas czytania całego dokumentu w tempie %1 słów na minutę</translation>
+    </message>
+    <message>
+        <source>Words: %1 of %2</source>
+        <translation>Słowa: %1 z %2</translation>
+    </message>
+    <message>
+        <source>Characters: %1 of %2</source>
+        <translation>Znaki: %1 z %2</translation>
+    </message>
+    <message>
+        <source>Words: %1</source>
+        <translation>Słowa: %1</translation>
+    </message>
+    <message>
+        <source>Characters: %1</source>
+        <translation>Znaki: %1</translation>
+    </message>
+    <message>
+        <source>Reading: %1</source>
+        <translation>Czytanie: %1</translation>
     </message>
 </context>
 <context>
@@ -7041,15 +7496,15 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     <name>QAbstractSpinBox</name>
     <message>
         <source>&amp;Select All</source>
-        <translation>&amp;Zaznacz wszystko</translation>
+        <translation>Zaznacz &amp;wszystko</translation>
     </message>
     <message>
         <source>&amp;Step up</source>
-        <translation>Krok w &amp;górę</translation>
+        <translation>Zwięk&amp;sz</translation>
     </message>
     <message>
         <source>Step &amp;down</source>
-        <translation>Krok w &amp;dół</translation>
+        <translation>Z&amp;mniejsz</translation>
     </message>
 </context>
 <context>
@@ -7481,15 +7936,15 @@ Czy mimo to go usunąć?</translation>
     </message>
     <message>
         <source>&amp;Paste</source>
-        <translation>&amp;Wklej</translation>
+        <translation>Wk&amp;lej</translation>
     </message>
     <message>
         <source>Delete</source>
-        <translation>Usuń</translation>
+        <translation>&amp;Usuń</translation>
     </message>
     <message>
         <source>Select All</source>
-        <translation>Zaznacz wszystko</translation>
+        <translation>Zaznacz &amp;wszystko</translation>
     </message>
 </context>
 </TS>

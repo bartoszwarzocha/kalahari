@@ -16,10 +16,16 @@
 
 class QComboBox;
 class QHBoxLayout;
+class QLineEdit;
+class QListWidget;
+class QPushButton;
 
 namespace kalahari {
 namespace core {
 struct Theme;
+}
+namespace editor {
+class SpellCheckService;
 }
 namespace gui {
 
@@ -141,6 +147,35 @@ class EditorCursorPage : public SettingsPage {
     Q_OBJECT
 public:
     explicit EditorCursorPage(QWidget* parent = nullptr);
+};
+
+/// @brief Editor > Spelling: checking as you type, its language and the writer's own words
+class EditorSpellingPage : public SettingsPage {
+    Q_OBJECT
+public:
+    /// @param spelling The dictionary of the editors: the page lists its own words and
+    ///        changes them when applied (none: the page does not list them)
+    explicit EditorSpellingPage(editor::SpellCheckService* spelling = nullptr,
+                                QWidget* parent = nullptr);
+
+protected:
+    /// @brief Enter in the field of a new word adds it, and does not close the dialog
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
+private:
+    /// @brief Add the word of the field to the list
+    void addWord();
+
+    /// @brief Take the selected words off the list
+    void removeWords();
+
+    /// @brief Enable the buttons that can do something now
+    void updateButtons();
+
+    QListWidget* m_words = nullptr;   ///< The writer's own words
+    QLineEdit* m_newWord = nullptr;   ///< A word to add
+    QPushButton* m_add = nullptr;
+    QPushButton* m_remove = nullptr;
 };
 
 /// @brief Editor > Pages and Margins

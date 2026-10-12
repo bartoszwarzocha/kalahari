@@ -110,7 +110,7 @@ public:
     int characterCount() const;
 
     /// @brief Get paragraph count
-    /// @return Number of paragraphs containing text
+    /// @return Number of paragraphs containing text, as counted by core::countText()
     int paragraphCount() const;
 
     /// @brief Get last modification timestamp
@@ -219,18 +219,13 @@ public:
 
     /// @brief Extract plain text from KML
     /// @param kml KML string
-    /// @return Text of the paragraphs, one per line, with entities decoded - the same
-    ///         text the editor shows
+    /// @return Text of the paragraphs, one per line, with entities decoded and the line
+    ///         breaks in them as QChar::LineSeparator - the same text the editor shows
     static QString kmlToPlainText(const QString& kml);
 
 private:
     /// @brief Recalculate statistics from current content
     void recalculateStatistics();
-
-    /// @brief Calculate paragraph count from plain text
-    /// @param text Plain text string, one paragraph per line
-    /// @return Number of lines containing text
-    static int calculateParagraphCount(const QString& text);
 
     // =========================================================================
     // Member Variables
