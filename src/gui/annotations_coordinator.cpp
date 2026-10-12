@@ -255,22 +255,28 @@ void AnnotationsCoordinator::showAddMenu() {
         return;
     }
 
-    auto& art = core::ArtProvider::getInstance();
     QMenu menu(editor);
-    QAction* comment = menu.addAction(art.getIcon("insert.comment"), tr("&Comment"));
-    QAction* todo = menu.addAction(art.getIcon("insert.todo"), tr("&To do"));
-    QAction* note = menu.addAction(art.getIcon("insert.note"), tr("&Note"));
+    fillAddMenu(&menu);
 
     // Under the cursor
     const QRect cursor = editor->inputMethodQuery(Qt::ImCursorRectangle).toRect();
     const QAction* chosen = menu.exec(editor->mapToGlobal(cursor.bottomLeft()));
-    if (chosen == comment) {
-        addAnnotation(editor::AnnotationKind::Comment);
-    } else if (chosen == todo) {
-        addAnnotation(editor::AnnotationKind::Todo);
-    } else if (chosen == note) {
-        addAnnotation(editor::AnnotationKind::Note);
+    if (chosen != nullptr) {
+        addAnnotation(static_cast<editor::AnnotationKind>(chosen->data().toInt()));
     }
+}
+
+void AnnotationsCoordinator::fillAddMenu(QMenu* menu) {
+    // Each with its access key, unique in the menu (test_menu_access_keys)
+    auto& art = core::ArtProvider::getInstance();
+    const auto add = [menu, &art](const char* icon, const QString& text,
+                                  editor::AnnotationKind kind) {
+        menu->addAction(art.getIcon(QString::fromLatin1(icon)), text)
+            ->setData(static_cast<int>(kind));
+    };
+    add("insert.comment", tr("&Comment"), editor::AnnotationKind::Comment);
+    add("insert.todo", tr("&To do"), editor::AnnotationKind::Todo);
+    add("insert.note", tr("&Note"), editor::AnnotationKind::Note);
 }
 
 bool AnnotationsCoordinator::editAnnotation(const QString& elementId, const QString& annotationId,

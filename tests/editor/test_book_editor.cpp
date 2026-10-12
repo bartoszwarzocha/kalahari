@@ -281,8 +281,8 @@ TEST_CASE("BookEditor appearance", "[editor][book_editor]") {
 
 TEST_CASE("BookEditor toolbar font change with no selection leaves global appearance untouched",
           "[editor][book_editor][regression]") {
-    // Regression: the toolbar font combo is a selection-only formatting control.
-    // With no selection it must NOT mutate the editor's global default font
+    // Regression: with no selection the toolbar font combo formats the word with the
+    // cursor or the text typed next. It must NOT mutate the editor's global default font
     // (m_appearance) — that font is owned solely by the settings dialog. When it
     // did, saving settings appeared to "revert" the font, because
     // applyEditorSettingsToAllPanels re-applied editor.fontFamily over the
@@ -401,9 +401,9 @@ TEST_CASE("BookEditor context menu offers Select All also without a selection",
             QContextMenuEvent event(QContextMenuEvent::Keyboard, QPoint(), QPoint());
             QCoreApplication::sendEvent(&editor, &event);
         },
-        QStringLiteral("Select All"));
-    CHECK(texts.contains(QStringLiteral("Paste")));
-    CHECK(texts.contains(QStringLiteral("Select All")));
+        QStringLiteral("Select &All"));
+    CHECK(texts.contains(QStringLiteral("&Paste")));
+    CHECK(texts.contains(QStringLiteral("Select &All")));
     const SelectionRange all = editor.selection();
     CHECK(all.start == CursorPosition{0, 0});
     CHECK(all.end == CursorPosition{1, 5});

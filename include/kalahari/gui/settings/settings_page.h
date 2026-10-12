@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QColor>
 #include <QWidget>
 
 #include <nlohmann/json.hpp>
@@ -44,6 +45,13 @@ public:
     /// @brief Write the changed values
     /// @return Keys of the settings written (session-only options have no key)
     virtual std::vector<std::string> apply();
+
+    /// @brief The muted explanatory texts of the page (addNote())
+    [[nodiscard]] const std::vector<QLabel*>& notes() const { return m_notes; }
+
+    /// @brief The color of the notes: the theme's muted one, darker or lighter as far as
+    ///        the window needs to read it (WCAG AA, as normal text)
+    [[nodiscard]] static QColor noteColor();
 
 protected:
     /// @brief How one control is bound to a setting
@@ -91,6 +99,9 @@ protected:
     QCheckBox* addCheckBox(QFormLayout* form, const QString& text, const std::string& key);
 
     /// @brief Add a muted explanatory text to a layout
+    ///
+    /// Muted, yet readable: it has at least the contrast of normal text (WCAG AA) with the
+    /// window in every theme, also after the theme changes.
     QLabel* addNote(QLayout* layout, const QString& text);
 
     /// @brief Grey out an option the program does not use yet
@@ -106,9 +117,13 @@ protected:
     [[nodiscard]] static QString restartText();
 
 private:
+    /// @brief Give the notes the theme's muted color, readable on the window
+    void updateNoteColors();
+
     QVBoxLayout* m_layout;
     std::deque<Binding> m_bindings;  ///< A deque keeps references to bindings valid
     std::vector<std::function<void()>> m_afterLoad;
+    std::vector<QLabel*> m_notes;    ///< The notes, widgets of the page as long as it lives
 };
 
 } // namespace gui

@@ -4,7 +4,9 @@
 /// OpenSpec #00038 - Phase 5: Extract Settings Management from MainWindow
 
 #include "kalahari/gui/settings_coordinator.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/shortcut_settings.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
@@ -44,10 +46,22 @@ void SettingsCoordinator::setSpellCheckService(editor::SpellCheckService* servic
 }
 
 void SettingsCoordinator::openSettingsDialog() {
+    core::Logger::getInstance().info("Action triggered: Settings");
+    runSettingsDialog(false);
+}
+
+void SettingsCoordinator::openKeyboardShortcuts() {
+    core::Logger::getInstance().info("Action triggered: Keyboard Shortcuts");
+    runSettingsDialog(true);
+}
+
+void SettingsCoordinator::runSettingsDialog(bool shortcuts) {
     auto& logger = core::Logger::getInstance();
-    logger.info("Action triggered: Settings");
 
     SettingsDialog dialog(m_mainWindow, m_diagnosticModeGetter(), m_spellCheckService);
+    if (shortcuts) {
+        dialog.showShortcutsPage();
+    }
     connect(&dialog, &SettingsDialog::settingsApplied,
             this, &SettingsCoordinator::onApplySettings);
     connect(&dialog, &SettingsDialog::diagnosticModeChanged, this, [this](bool enabled) {
@@ -108,6 +122,13 @@ void SettingsCoordinator::onApplySettings(const QStringList& changedKeys) {
 
     if (changed(QStringLiteral("ui.language"))) {
         m_languageChanged = true;
+    }
+
+    // The keys of the commands: the menus, the toolbars and the texts that show them follow
+    // CommandRegistry::shortcutsChanged()
+    if (changed(QString::fromLatin1(SHORTCUTS_SETTING))) {
+        CommandRegistry::getInstance().setCustomShortcuts(loadCustomShortcuts());
+        logger.info("SettingsCoordinator: Keyboard shortcuts updated");
     }
 
     // Log panel: buffer size and colors (theme switch or per-theme colors)

@@ -6,7 +6,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/spell_check_service.h>
+#include <kalahari/editor/text_keys.h>
 #include <kalahari/editor/text_source_adapter.h>
+#include <kalahari/gui/utils/access_keys.h>
 #include "editor_test_utils.h"
 #include "../benchmarks/test_document_generator.h"
 
@@ -73,6 +75,35 @@ void pressKey(BookEditor& editor, int key) {
     QCoreApplication::sendEvent(&editor, &press);
 }
 
+/// Press the key the text has for a move on the program's system: the start of the line is
+/// Home on Windows and Linux, Cmd+Left on macOS, where Home moves only the view
+void pressTextKey(BookEditor& editor, TextKeyAction action) {
+    const std::vector<TextKey>& keys = textKeys(isMacOS());
+    const auto key = std::find_if(keys.begin(), keys.end(), [action](const TextKey& textKey) {
+        return textKey.action == action && !textKey.extendSelection;
+    });
+    REQUIRE(key != keys.end());
+    QKeyEvent press(QEvent::KeyPress, key->keys.key(), key->keys.keyboardModifiers());
+    QCoreApplication::sendEvent(&editor, &press);
+}
+
+/// The menu key: the context menu from the keyboard, at the cursor
+void pressMenuKey(BookEditor& editor) {
+    QContextMenuEvent event(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+    QCoreApplication::sendEvent(&editor, &event);
+}
+
+/// Shift+F10, the second key of the context menu on Windows and Linux; macOS has the keys of
+/// its own text fields, without it, so there the menu key opens the menu
+void pressShiftF10(BookEditor& editor) {
+    if constexpr (isMacOS()) {
+        pressMenuKey(editor);
+    } else {
+        QKeyEvent press(QEvent::KeyPress, Qt::Key_F10, Qt::ShiftModifier);
+        QCoreApplication::sendEvent(&editor, &press);
+    }
+}
+
 }  // namespace
 
 TEST_CASE("Spelling: the misspelled words of a shown editor get waves", "[editor][spelling]") {
@@ -126,7 +157,7 @@ TEST_CASE("Spelling: the word being typed gets its wave when the cursor leaves i
     type(*editor, QStringLiteral("zz"));
     REQUIRE(checked(*editor));
     CHECK(wavyWords(*editor, 0) == QStringList{"mistakke"});
-    pressKey(*editor, Qt::Key_Home);
+    pressTextKey(*editor, TextKeyAction::LineStart);
     REQUIRE(checked(*editor));
     CHECK(wavyWords(*editor, 0) == QStringList({"mistakke", "andzz"}));
 }
@@ -366,28 +397,26 @@ TEST_CASE("Spelling: the menu key and Shift+F10 offer what to put in place of th
     REQUIRE(checked(*editor));
     editor->setCursorPosition({0, 11});  // right after the word
 
+    // The items' words, without their access keys
     const auto offered = [](const QStringList& texts) {
-        return texts.contains(QStringLiteral("spelling")) &&
-               texts.contains(QStringLiteral("Ignore All")) &&
-               texts.contains(QStringLiteral("Add to Dictionary")) &&
-               texts.contains(QStringLiteral("Paste"));
+        QStringList words;
+        for (const QString& text : texts) {
+            words << kalahari::gui::withoutAccessKey(text);
+        }
+        return words.contains(QStringLiteral("spelling")) &&
+               words.contains(QStringLiteral("Ignore All")) &&
+               words.contains(QStringLiteral("Add to Dictionary")) &&
+               words.contains(QStringLiteral("Paste"));
     };
 
     SECTION("the menu key") {
-        const QStringList texts = runPopupMenu([&editor]() {
-            QContextMenuEvent event(QContextMenuEvent::Keyboard, QPoint(), QPoint());
-            QCoreApplication::sendEvent(editor.get(), &event);
-        });
+        const QStringList texts = runPopupMenu([&editor]() { pressMenuKey(*editor); });
         CHECK(offered(texts));
     }
 
     SECTION("Shift+F10, choosing a word") {
-        const QStringList texts = runPopupMenu(
-            [&editor]() {
-                QKeyEvent press(QEvent::KeyPress, Qt::Key_F10, Qt::ShiftModifier);
-                QCoreApplication::sendEvent(editor.get(), &press);
-            },
-            QStringLiteral("spelling"));
+        const QStringList texts =
+            runPopupMenu([&editor]() { pressShiftF10(*editor); }, QStringLiteral("spelling"));
         CHECK(offered(texts));
         CHECK(editor->textDocument()->findBlockByNumber(0).text() ==
               QStringLiteral("The spelling is bad."));
@@ -396,13 +425,9 @@ TEST_CASE("Spelling: the menu key and Shift+F10 offer what to put in place of th
     SECTION("the word just typed, before its wave") {
         editor->setCursorPosition({0, 19});
         type(*editor, QStringLiteral(" Erorr"));
-        const QStringList texts = runPopupMenu(
-            [&editor]() {
-                QKeyEvent press(QEvent::KeyPress, Qt::Key_F10, Qt::ShiftModifier);
-                QCoreApplication::sendEvent(editor.get(), &press);
-            },
-            QStringLiteral("Error"));
-        CHECK(texts.contains(QStringLiteral("Add to Dictionary")));
+        const QStringList texts =
+            runPopupMenu([&editor]() { pressShiftF10(*editor); }, QStringLiteral("Error"));
+        CHECK(texts.contains(QStringLiteral("Add t&o Dictionary")));
         CHECK(editor->textDocument()->findBlockByNumber(0).text() ==
               QStringLiteral("The speling is bad. Error"));
     }

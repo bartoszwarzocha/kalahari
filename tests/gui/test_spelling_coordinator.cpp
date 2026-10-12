@@ -469,7 +469,7 @@ TEST_CASE("Spelling coordinator: Next Misspelling selects the next misspelled wo
         QStringList texts = kalahari::test::runPopupMenu([action]() { action->trigger(); });
         CHECK(bookEditor->selectedText() == QStringLiteral("mistakke"));
         CHECK(texts.contains(QStringLiteral("mistake")));
-        CHECK(texts.contains(QStringLiteral("Add to Dictionary")));
+        CHECK(texts.contains(QStringLiteral("Add t&o Dictionary")));
 
         // The next one, and a word chosen from the menu
         texts = kalahari::test::runPopupMenu([action]() { action->trigger(); },

@@ -317,33 +317,22 @@ bool SplitEditorPanel::restoreState(const QByteArray& state)
 
 void SplitEditorPanel::keyPressEvent(QKeyEvent* event)
 {
-    // Handle split shortcuts
-    if (event->modifiers() == Qt::ControlModifier) {
-        // Ctrl+\ - Split horizontal
-        if (event->key() == Qt::Key_Backslash) {
-            if (!isSplit()) {
-                splitHorizontal();
-                event->accept();
-                return;
-            }
+    // Ctrl+\ splits the view side by side, Ctrl+Shift+\ one above the other, and either
+    // closes the split. Not Ctrl+W: the program leaves it unused, so that it closes nothing
+    // by mistake. With Shift the key may come as the bar, the character it types.
+    const Qt::KeyboardModifiers modifiers = event->modifiers() & ~Qt::KeypadModifier;
+    const bool backslash = event->key() == Qt::Key_Backslash || event->key() == Qt::Key_Bar;
+    if (backslash && (modifiers == Qt::ControlModifier ||
+                      modifiers == (Qt::ControlModifier | Qt::ShiftModifier))) {
+        if (isSplit()) {
+            closeSplit();
+        } else if (modifiers.testFlag(Qt::ShiftModifier)) {
+            splitVertical();
+        } else {
+            splitHorizontal();
         }
-        // Ctrl+W - Close split
-        else if (event->key() == Qt::Key_W) {
-            if (isSplit()) {
-                closeSplit();
-                event->accept();
-                return;
-            }
-        }
-    } else if (event->modifiers() == (Qt::ControlModifier | Qt::ShiftModifier)) {
-        // Ctrl+Shift+\ - Split vertical
-        if (event->key() == Qt::Key_Backslash) {
-            if (!isSplit()) {
-                splitVertical();
-                event->accept();
-                return;
-            }
-        }
+        event->accept();
+        return;
     }
 
     QWidget::keyPressEvent(event);

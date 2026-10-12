@@ -7,6 +7,7 @@
 #include <QAbstractTextDocumentLayout>
 #include <QTextBlock>
 #include <QFont>
+#include <utility>
 #include <vector>
 
 class QTextLayout;
@@ -183,6 +184,12 @@ protected:
     void documentChanged(int from, int charsRemoved, int charsAdded) override;
 
 private:
+    /// @brief The first and the last block a change of the text touched (new coordinates)
+    std::pair<QTextBlock, QTextBlock> changedBlocks(int from, int charsAdded) const;
+
+    /// @brief Blocks [first, last] lose their lines (they wait for documentChanged())
+    static void clearLines(const QTextBlock& first, const QTextBlock& last);
+
     /// @brief Replace the cache entries of blocks [first, last] after an edit
     ///
     /// A small range is laid out at once; a large one waits for layout.
