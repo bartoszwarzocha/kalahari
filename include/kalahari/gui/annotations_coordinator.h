@@ -53,6 +53,9 @@ class EditorPanel;
 /// each a step of the document's undo history. An annotation of a chapter not in front is
 /// gone to or changed after its chapter's tab is brought to the front (the chapter opened
 /// when it is not): the writer sees the change, and Ctrl+Z undoes it in that chapter.
+///
+/// A plain text file (.txt) keeps no annotations: the commands that add them are off for
+/// it, and the empty panel says why.
 class AnnotationsCoordinator : public QObject {
     Q_OBJECT
 
@@ -88,7 +91,8 @@ public:
     ///
     /// It goes on the selection, or on the cursor's place without one, when its text is
     /// saved.
-    /// @return Whether the frame opened (not without a document in front)
+    /// @return Whether the frame opened (not without a document in front, nor for a plain
+    ///         text file, which keeps no annotations)
     bool addAnnotation(editor::AnnotationKind kind);
 
     /// @brief The small menu of the kinds of annotations at the cursor (Add Annotation)
@@ -145,7 +149,8 @@ public:
     void finishWriting(const editor::BookEditor* editor = nullptr);
 
 protected:
-    /// @brief F9 (the shortcut of Annotations): togglePanelFocus()
+    /// @brief F9 (the shortcut of Annotations): togglePanelFocus(); the file of a document
+    /// set or changed: followFileType()
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
@@ -176,6 +181,12 @@ private:
     // Documents
     EditorPanel* currentEditorPanel() const;
     editor::BookEditor* currentEditor() const;
+
+    /// @brief Let a document's editor take annotations as its file does: a plain text file
+    /// (.txt) keeps none
+    /// @return Whether that changed
+    bool followFileType(EditorPanel* panel);
+
     QString elementIdOf(const EditorPanel* panel) const;
     QString titleOf(const EditorPanel* panel) const;
 

@@ -851,6 +851,110 @@ TEST_CASE("Annotations editing: pasted and dropped text brings its annotations",
     }
 }
 
+TEST_CASE("Annotations editing: a plain text file takes none", "[editor][annotations][editing]") {
+    // Text copied from a chapter: "quick" with a comment, a place after "fox", a place at the
+    // start of "End"
+    const auto chapter =
+        editorWith(kmlWith(record(QStringLiteral("a")) +
+                               record(QStringLiteral("p"), QStringLiteral("todo")) +
+                               record(QStringLiteral("s"), QStringLiteral("note")),
+                           {QStringLiteral("The <anchor ref=\"a\">quick</anchor> fox<anchor ref=\"p\"/>"),
+                            QStringLiteral("<anchor ref=\"s\"/>End")}));
+    chapter->selectAll();
+    const auto data = chapter->createMimeDataFromSelection();
+    REQUIRE(kmlData(*data).contains(QStringLiteral("<annotation")));
+
+    // As a plain text file opens: the editor is told before its text is loaded
+    auto editor = std::make_unique<BookEditor>();
+    CHECK(editor->annotationsAllowed());
+    editor->setAnnotationsAllowed(false);
+    editor->fromKml(kmlWith(QString(), {QStringLiteral("Plain")}));
+    CHECK_FALSE(editor->annotationsAllowed());
+    CHECK_FALSE(keepsAnnotations(*editor->textDocument()));
+    const QString plainKml = editor->toKml();
+
+    SECTION("no annotation is added to it") {
+        editor->setSelection({{0, 0}, {0, 5}});
+        CHECK(editor->addAnnotation(AnnotationKind::Comment, QStringLiteral("Why?"), QString())
+                  .id.isEmpty());
+        CHECK(editor->addAnnotation(0, 0, AnnotationKind::Note, QStringLiteral("Mine"), QString())
+                  .id.isEmpty());
+        CHECK(editor->annotations().empty());
+        CHECK(editor->toKml() == plainKml);
+        CHECK_FALSE(editor->canUndo());
+    }
+
+    SECTION("pasted text comes without them") {
+        editor->setCursorPosition({0, 5});
+        editor->insertFromMimeData(data.get());
+        CHECK(editor->plainText() == QStringLiteral("PlainThe quick fox\nEnd"));
+        CHECK(editor->annotations().empty());
+        CHECK_FALSE(editor->toKml().contains(QStringLiteral("annotation")));
+    }
+
+    SECTION("dropped text comes without them") {
+        REQUIRE(editor->dropMimeData(data.get(), {0, 0}, false));
+        CHECK(editor->plainText() == QStringLiteral("The quick fox\nEndPlain"));
+        CHECK(editor->annotations().empty());
+    }
+
+    SECTION("allowed again, it takes them") {
+        editor->setAnnotationsAllowed(true);
+        CHECK(keepsAnnotations(*editor->textDocument()));
+        editor->setCursorPosition({0, 5});
+        editor->insertFromMimeData(data.get());
+        CHECK(editor->annotations().size() == 3);
+        editor->setSelection({{0, 0}, {0, 5}});
+        CHECK_FALSE(editor->addAnnotation(AnnotationKind::Todo, QStringLiteral("Check"), QString())
+                        .id.isEmpty());
+        CHECK(editor->annotations().size() == 4);
+    }
+
+    SECTION("its text loaded again, it still takes none") {
+        editor->fromKml(kmlWith(QString(), {QStringLiteral("Other")}));
+        CHECK_FALSE(keepsAnnotations(*editor->textDocument()));
+        editor->insertFromMimeData(data.get());
+        CHECK(editor->annotations().empty());
+    }
+}
+
+TEST_CASE("Annotations editing: text inserted into a document that keeps none loses them",
+          "[editor][annotations][editing]") {
+    QTextDocument document;
+    CHECK(keepsAnnotations(document));
+    setKeepsAnnotations(document, false);
+    CHECK_FALSE(keepsAnnotations(document));
+
+    // "Bold" is bold and carries a comment; the second paragraph starts with a note
+    Annotation comment;
+    comment.id = QStringLiteral("c");
+    Annotation note;
+    note.id = QStringLiteral("n");
+    note.kind = AnnotationKind::Note;
+    note.point = true;
+    QTextDocument content;
+    QTextCursor cursor(&content);
+    QTextCharFormat bold;
+    bold.setFontWeight(QFont::Bold);
+    setAnnotations(bold, {comment});
+    cursor.insertText(QStringLiteral("Bold"), bold);
+    cursor.insertBlock();
+    QTextCharFormat start;
+    setAnnotations(start, {note});
+    cursor.setBlockCharFormat(start);
+    cursor.insertText(QStringLiteral("Next"), QTextCharFormat());
+    REQUIRE(annotationsIn(content).size() == 2);
+
+    // Its other formatting stays
+    prepareForInsertion(content, document, {comment});
+    CHECK(annotationsIn(content).empty());
+    CHECK(content.toPlainText() == QStringLiteral("Bold\nNext"));
+    CHECK(content.firstBlock().begin().fragment().charFormat().fontWeight() == QFont::Bold);
+
+    setKeepsAnnotations(document, true);
+    CHECK(keepsAnnotations(document));
+}
+
 TEST_CASE("Annotations editing: cut text takes its annotations to the clipboard",
           "[editor][annotations][editing][clipboard]") {
     auto editor = editorWith(kmlWith(record(QStringLiteral("a")) +
