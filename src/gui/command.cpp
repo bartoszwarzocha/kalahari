@@ -4,6 +4,7 @@
 #include "kalahari/gui/command.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/icon_registry.h"
+#include "kalahari/gui/utils/access_keys.h"
 #include <QFile>
 #include <QImageReader>
 #include <QApplication>
@@ -257,9 +258,13 @@ KeyboardShortcut KeyboardShortcut::fromString(const QString& str) {
 // Command Implementation
 // ============================================================================
 
+QString Command::actionText() const {
+    return menuText.empty() ? literalMenuText(QString::fromStdString(label))
+                            : QString::fromStdString(menuText);
+}
+
 QAction* Command::toQAction(QObject* parent) const {
-    // Escape the literal '&' in labels like "Find & Replace..." (QAction mnemonic marker)
-    QAction* action = new QAction(QString::fromStdString(label).replace('&', QStringLiteral("&&")), parent);
+    QAction* action = new QAction(actionText(), parent);
 
     // Set tooltip
     if (!tooltip.empty()) {

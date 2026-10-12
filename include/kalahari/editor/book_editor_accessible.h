@@ -9,6 +9,7 @@
 
 #include <QAccessibleWidget>
 #include <QAccessibleTextInterface>
+#include <QCoreApplication>
 
 class QTextDocument;
 
@@ -33,6 +34,10 @@ class BookEditor;
 /// - Navigate document structure
 /// - Report formatting information
 class BookEditorAccessible : public QAccessibleWidget, public QAccessibleTextInterface {
+    // Without it tr() would be that of QAccessibleActionInterface, whose context has none
+    // of the translations of this class
+    Q_DECLARE_TR_FUNCTIONS(kalahari::editor::BookEditorAccessible)
+
 public:
     /// @brief Construct accessibility interface for BookEditor
     /// @param editor The BookEditor widget to provide accessibility for

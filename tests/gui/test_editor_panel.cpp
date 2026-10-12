@@ -4,16 +4,25 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
+#include "context_menu_reader.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/statistics_collector.h"
+#include "kalahari/gui/command_registrar.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/panels/editor_panel.h"
 
+#include <QAction>
+#include <QApplication>
+#include <QContextMenuEvent>
+#include <QCoreApplication>
+#include <QList>
 #include <QScreen>
 #include <QTabWidget>
 
 #include <algorithm>
 #include <memory>
+#include <vector>
 
 using namespace kalahari;
 using Catch::Approx;
@@ -148,4 +157,64 @@ TEST_CASE("Editor panel: the words written are counted in the chapter in front",
     // The chapter in front closed: it is forgotten
     delete first;
     CHECK(collector.wordCount() == 0);
+}
+
+TEST_CASE("Editor panel: the text's context menu has the commands of the Edit menu",
+          "[gui][editor]") {
+    // Regression: the menu cut, copied, pasted and selected all with items of its own,
+    // without the icons and the keys of the Edit menu
+    gui::registerAllCommands(gui::CommandCallbacks{});
+    auto& registry = gui::CommandRegistry::getInstance();
+    gui::EditorPanel panel;
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    bookEditor->fromKml(test::kmlOf({QStringLiteral("One two")}));
+    bookEditor->selectAll();
+
+    // The menu key opens it at the cursor
+    test::ContextMenuReader reader(bookEditor);
+    QContextMenuEvent event(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+    QCoreApplication::sendEvent(bookEditor, &event);
+    CHECK(test::waitUntil([] { return QApplication::activePopupWidget() == nullptr; }));
+    REQUIRE(reader.menusRead() == 1);
+    QList<const QAction*> commands;
+    for (const test::MenuItem& item : reader.items()) {
+        if (!item.separator) {
+            commands.append(item.action);
+        }
+    }
+    const QList<const QAction*> edit = {registry.getAction(QStringLiteral("edit.cut")),
+                                        registry.getAction(QStringLiteral("edit.copy")),
+                                        registry.getAction(QStringLiteral("edit.paste")),
+                                        registry.getAction(QStringLiteral("edit.selectAll"))};
+    REQUIRE_FALSE(edit.contains(nullptr));
+    REQUIRE(commands.size() > edit.size());
+    CHECK(commands.mid(0, edit.size()) == edit);
+}
+
+TEST_CASE("Editor panel: says whether its text differs from the saved text", "[gui][editor]") {
+    gui::EditorPanel panel;
+    REQUIRE(panel.setContent(test::kmlOf({QStringLiteral("One two.")})));
+    std::vector<bool> said;  // what modifiedChanged() said, in order
+    QObject::connect(&panel, &gui::EditorPanel::modifiedChanged,
+                     [&said](bool modified) { said.push_back(modified); });
+    CHECK_FALSE(panel.isModified());
+
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    bookEditor->setCursorPosition({0, 3});
+    bookEditor->insertText(QStringLiteral(","));
+    CHECK(panel.isModified());
+    CHECK(said == std::vector<bool>{true});
+
+    panel.setUnmodified();  // as after saving it
+    CHECK_FALSE(panel.isModified());
+    CHECK(said == std::vector<bool>{true, false});
+
+    // The text of a plain text file, typed in and brought back
+    panel.setText(QStringLiteral("Line one\nLine two"));
+    bookEditor->setCursorPosition({1, 0});
+    bookEditor->insertText(QStringLiteral("x"));
+    CHECK(panel.isModified());
+    bookEditor->deleteBackward();
+    CHECK_FALSE(panel.isModified());
+    CHECK(test::waitUntil([&said]() { return !said.back(); }));
 }

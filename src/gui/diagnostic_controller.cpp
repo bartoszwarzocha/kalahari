@@ -132,83 +132,14 @@ void DiagnosticController::createDiagnosticMenu() {
     }
 
     // Create menu (inserted between Help and existing menus)
-    m_diagnosticMenu = m_mainWindow->menuBar()->addMenu(tr("&Diagnostics"));
-
-    // === CATEGORY 1: System Information ===
-    QAction* sysInfoAction = m_diagnosticMenu->addAction(tr("System Information"));
-    connect(sysInfoAction, &QAction::triggered, this, &DiagnosticController::onDiagSystemInfo);
-
-    QAction* qtEnvAction = m_diagnosticMenu->addAction(tr("Qt Environment"));
-    connect(qtEnvAction, &QAction::triggered, this, &DiagnosticController::onDiagQtEnvironment);
-
-    QAction* fsCheckAction = m_diagnosticMenu->addAction(tr("File System Check"));
-    connect(fsCheckAction, &QAction::triggered, this, &DiagnosticController::onDiagFileSystemCheck);
-
-    m_diagnosticMenu->addSeparator();
-
-    // === CATEGORY 2: Application State ===
-    QAction* settingsDumpAction = m_diagnosticMenu->addAction(tr("Settings Dump"));
-    connect(settingsDumpAction, &QAction::triggered, this, &DiagnosticController::onDiagSettingsDump);
-
-    QAction* memStatsAction = m_diagnosticMenu->addAction(tr("Memory Statistics"));
-    connect(memStatsAction, &QAction::triggered, this, &DiagnosticController::onDiagMemoryStats);
-
-    QAction* openDocsAction = m_diagnosticMenu->addAction(tr("Open Documents Statistics"));
-    connect(openDocsAction, &QAction::triggered, this, &DiagnosticController::onDiagOpenDocsStats);
-
-    m_diagnosticMenu->addSeparator();
-
-    // === CATEGORY 3: Core Systems ===
-    QAction* loggerTestAction = m_diagnosticMenu->addAction(tr("Logger Test"));
-    connect(loggerTestAction, &QAction::triggered, this, &DiagnosticController::onDiagLoggerTest);
-
-    QAction* eventBusTestAction = m_diagnosticMenu->addAction(tr("Event Bus Test"));
-    connect(eventBusTestAction, &QAction::triggered, this, &DiagnosticController::onDiagEventBusTest);
-
-    QAction* pluginCheckAction = m_diagnosticMenu->addAction(tr("Plugin Manager Check"));
-    connect(pluginCheckAction, &QAction::triggered, this, &DiagnosticController::onDiagPluginCheck);
-
-    QAction* cmdRegistryDumpAction = m_diagnosticMenu->addAction(tr("Command Registry Dump"));
-    connect(cmdRegistryDumpAction, &QAction::triggered, this, &DiagnosticController::onDiagCommandRegistryDump);
-
-    m_diagnosticMenu->addSeparator();
-
-    // === CATEGORY 4: Python Environment ===
-    QAction* pyEnvAction = m_diagnosticMenu->addAction(tr("Python Environment"));
-    connect(pyEnvAction, &QAction::triggered, this, &DiagnosticController::onDiagPythonEnvironment);
-
-    QAction* pyImportAction = m_diagnosticMenu->addAction(tr("Python Import Test"));
-    connect(pyImportAction, &QAction::triggered, this, &DiagnosticController::onDiagPythonImportTest);
-
-    QAction* pyMemoryAction = m_diagnosticMenu->addAction(tr("Python Memory Test"));
-    connect(pyMemoryAction, &QAction::triggered, this, &DiagnosticController::onDiagPythonMemoryTest);
-
-    QAction* pyInterpAction = m_diagnosticMenu->addAction(tr("Embedded Interpreter Status"));
-    connect(pyInterpAction, &QAction::triggered, this, &DiagnosticController::onDiagEmbeddedInterpreterStatus);
-
-    m_diagnosticMenu->addSeparator();
-
-    // === CATEGORY 5: Performance ===
-    QAction* perfBenchAction = m_diagnosticMenu->addAction(tr("Performance Benchmark"));
-    connect(perfBenchAction, &QAction::triggered, this, &DiagnosticController::onDiagPerformanceBenchmark);
-
-    QAction* renderStatsAction = m_diagnosticMenu->addAction(tr("Render Statistics"));
-    connect(renderStatsAction, &QAction::triggered, this, &DiagnosticController::onDiagRenderStats);
-
-    m_diagnosticMenu->addSeparator();
-
-    // === CATEGORY 6: Quick Actions ===
-    QAction* clearLogAction = m_diagnosticMenu->addAction(tr("Clear Log"));
-    connect(clearLogAction, &QAction::triggered, this, &DiagnosticController::onDiagClearLog);
-
+    m_diagnosticMenu = m_mainWindow->menuBar()->addMenu(diagnosticsMenuTitle());
 #ifdef _DEBUG
-    m_diagnosticMenu->addSeparator();
-    QAction* forceCrashAction = m_diagnosticMenu->addAction(tr("Force Crash (Debug Only)"));
-    connect(forceCrashAction, &QAction::triggered, this, &DiagnosticController::onDiagForceCrash);
-
-    QAction* memLeakAction = m_diagnosticMenu->addAction(tr("Memory Leak Test (Debug Only)"));
-    connect(memLeakAction, &QAction::triggered, this, &DiagnosticController::onDiagMemoryLeakTest);
+    constexpr bool debugTools = true;
+#else
+    constexpr bool debugTools = false;
 #endif
+    fillDiagnosticsMenu(m_diagnosticMenu, debugTools, this,
+                        [this](DiagnosticTool tool) { runTool(tool); });
 
     logger.debug("Diagnostics menu created successfully with 18 tools");
 }
@@ -646,12 +577,8 @@ void DiagnosticController::createDevToolsMenu() {
     }
 
     // Create menu (inserted before Help menu)
-    m_devToolsMenu = m_mainWindow->menuBar()->addMenu(tr("&Dev Tools"));
-
-    // === Icon Downloader ===
-    QAction* iconDownloaderAction = m_devToolsMenu->addAction(tr("Icon Downloader"));
-    iconDownloaderAction->setToolTip(tr("Download Material Design icons for the project"));
-    connect(iconDownloaderAction, &QAction::triggered, this, &DiagnosticController::onDevToolsIconDownloader);
+    m_devToolsMenu = m_mainWindow->menuBar()->addMenu(devToolsMenuTitle());
+    fillDevToolsMenu(m_devToolsMenu, this, [this](DiagnosticTool tool) { runTool(tool); });
 
     logger.info("Dev Tools menu created");
 }
@@ -678,6 +605,37 @@ void DiagnosticController::removeDevToolsMenu() {
     m_devToolsMenu = nullptr;
 
     logger.info("Dev Tools menu removed");
+}
+
+void DiagnosticController::runTool(DiagnosticTool tool) {
+    switch (tool) {
+    case DiagnosticTool::SystemInfo: onDiagSystemInfo(); break;
+    case DiagnosticTool::QtEnvironment: onDiagQtEnvironment(); break;
+    case DiagnosticTool::FileSystemCheck: onDiagFileSystemCheck(); break;
+    case DiagnosticTool::SettingsDump: onDiagSettingsDump(); break;
+    case DiagnosticTool::MemoryStats: onDiagMemoryStats(); break;
+    case DiagnosticTool::OpenDocsStats: onDiagOpenDocsStats(); break;
+    case DiagnosticTool::LoggerTest: onDiagLoggerTest(); break;
+    case DiagnosticTool::EventBusTest: onDiagEventBusTest(); break;
+    case DiagnosticTool::PluginCheck: onDiagPluginCheck(); break;
+    case DiagnosticTool::CommandRegistryDump: onDiagCommandRegistryDump(); break;
+    case DiagnosticTool::PythonEnvironment: onDiagPythonEnvironment(); break;
+    case DiagnosticTool::PythonImportTest: onDiagPythonImportTest(); break;
+    case DiagnosticTool::PythonMemoryTest: onDiagPythonMemoryTest(); break;
+    case DiagnosticTool::EmbeddedInterpreterStatus: onDiagEmbeddedInterpreterStatus(); break;
+    case DiagnosticTool::PerformanceBenchmark: onDiagPerformanceBenchmark(); break;
+    case DiagnosticTool::RenderStats: onDiagRenderStats(); break;
+    case DiagnosticTool::ClearLog: onDiagClearLog(); break;
+#ifdef _DEBUG
+    case DiagnosticTool::ForceCrash: onDiagForceCrash(); break;
+    case DiagnosticTool::MemoryLeakTest: onDiagMemoryLeakTest(); break;
+#else
+    case DiagnosticTool::ForceCrash:
+    case DiagnosticTool::MemoryLeakTest:
+        break;  // tools of a debug build, not in the menu of this one
+#endif
+    case DiagnosticTool::IconDownloader: onDevToolsIconDownloader(); break;
+    }
 }
 
 // =============================================================================

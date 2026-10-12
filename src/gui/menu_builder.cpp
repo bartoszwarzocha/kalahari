@@ -6,6 +6,7 @@
 
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/gui/utils/access_keys.h"
 #include <QAction>
 #include <QApplication>
 #include <QMenuBar>
@@ -16,36 +17,48 @@
 namespace kalahari {
 namespace gui {
 
-// Helper: Translate technical menu names to display names (i18n)
-static QString translateMenuName(const std::string& technicalName) {
+// Translate technical menu names to display names (i18n), with their access keys: unique
+// among the menus of the menu bar and in each menu (test_menu_access_keys)
+QString MenuBuilder::menuText(const std::string& technicalName) {
     // Top-level menus
-    if (technicalName == "FILE") return QObject::tr("File");
-    if (technicalName == "EDIT") return QObject::tr("Edit");
-    if (technicalName == "BOOK") return QObject::tr("Book");
-    if (technicalName == "INSERT") return QObject::tr("Insert");
-    if (technicalName == "FORMAT") return QObject::tr("Format");
-    if (technicalName == "TOOLS") return QObject::tr("Tools");
-    if (technicalName == "ASSISTANT") return QObject::tr("Assistant");
-    if (technicalName == "VIEW") return QObject::tr("View");
-    if (technicalName == "HELP") return QObject::tr("Help");
+    if (technicalName == "FILE") return QObject::tr("&File");
+    if (technicalName == "EDIT") return QObject::tr("&Edit");
+    if (technicalName == "BOOK") return QObject::tr("&Book");
+    if (technicalName == "INSERT") return QObject::tr("&Insert");
+    if (technicalName == "FORMAT") return QObject::tr("F&ormat");
+    if (technicalName == "TOOLS") return QObject::tr("&Tools");
+    if (technicalName == "ASSISTANT") return QObject::tr("&Assistant");
+    if (technicalName == "VIEW") return QObject::tr("&View");
+    if (technicalName == "HELP") return QObject::tr("&Help");
 
     // Submenus
-    if (technicalName == "Open") return QObject::tr("Open");
-    if (technicalName == "Import") return QObject::tr("Import");
-    if (technicalName == "Export") return QObject::tr("Export");
-    if (technicalName == "Text Style") return QObject::tr("Text Style");
-    if (technicalName == "Statistics") return QObject::tr("Statistics");
-    if (technicalName == "Plugins") return QObject::tr("Plugins");
-    if (technicalName == "Assistant Actions") return QObject::tr("Assistant Actions");
-    if (technicalName == "View Mode") return QObject::tr("View Mode");
-    if (technicalName == "Zoom") return QObject::tr("Zoom");
-    if (technicalName == "Panels") return QObject::tr("Panels");
-    if (technicalName == "Perspectives") return QObject::tr("Perspectives");
-    if (technicalName == "Toolbars") return QObject::tr("Toolbars");
-    if (technicalName == "Recent Books") return QObject::tr("Recent Books");
+    if (technicalName == "Open") return QObject::tr("O&pen");
+    if (technicalName == "Import") return QObject::tr("&Import");
+    if (technicalName == "Export") return QObject::tr("&Export");
+    if (technicalName == "Text Style") return QObject::tr("Text &Style");
+    if (technicalName == "Statistics") return QObject::tr("&Statistics");
+    if (technicalName == "Plugins") return QObject::tr("P&lugins");
+    if (technicalName == "Assistant Actions") return QObject::tr("Assistant A&ctions");
+    if (technicalName == "View Mode") return QObject::tr("View &Mode");
+    if (technicalName == "Zoom") return QObject::tr("&Zoom");
+    if (technicalName == "Panels") return QObject::tr("&Panels");
+    if (technicalName == "Perspectives") return QObject::tr("Pe&rspectives");
+    if (technicalName == "Toolbars") return QObject::tr("&Toolbars");
+    if (technicalName == "Recent Books") return QObject::tr("&Recent Books");
 
-    // Fallback: return as-is
-    return QString::fromStdString(technicalName);
+    // Fallback: as it is, with no access key
+    return literalMenuText(QString::fromStdString(technicalName));
+}
+
+QString MenuBuilder::menuTitle(const std::string& technicalName) {
+    return withoutAccessKey(menuText(technicalName));
+}
+
+const std::vector<std::string>& MenuBuilder::topLevelMenus() {
+    static const std::vector<std::string> menus = {
+        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TOOLS", "ASSISTANT", "VIEW", "HELP"
+    };
+    return menus;
 }
 
 void MenuBuilder::buildMenuBar(CommandRegistry& registry, QMainWindow* parent) {
@@ -77,7 +90,7 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
     auto& logger = core::Logger::getInstance();
 
     // Group commands by top-level menu (first element of menuPath)
-    std::map<std::string, std::vector<Command>> topLevelMenus;
+    std::map<std::string, std::vector<Command>> commandsByMenu;
 
     for (const Command& cmd : commands) {
         if (!cmd.showInMenu || cmd.menuPath.empty()) {
@@ -89,25 +102,20 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
         std::string topLevel;
         std::getline(pathStream, topLevel, '/');
 
-        topLevelMenus[topLevel].push_back(cmd);
+        commandsByMenu[topLevel].push_back(cmd);
     }
 
-    // Define menu order (FILE, EDIT, BOOK, INSERT, FORMAT, TOOLS, ASSISTANT, VIEW, HELP)
-    std::vector<std::string> menuOrder = {
-        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TOOLS", "ASSISTANT", "VIEW", "HELP"
-    };
-
     // Create top-level menus in order
-    for (const std::string& topLevel : menuOrder) {
-        auto it = topLevelMenus.find(topLevel);
-        if (it == topLevelMenus.end()) {
+    for (const std::string& topLevel : topLevelMenus()) {
+        auto it = commandsByMenu.find(topLevel);
+        if (it == commandsByMenu.end()) {
             continue;  // No commands for this menu
         }
 
-        // Create top-level menu (translated)
-        QString menuTitle = translateMenuName(topLevel);
+        // Create top-level menu (translated, with its access key)
+        QString title = menuText(topLevel);
 
-        QMenu* topMenu = menuBar->addMenu(menuTitle);
+        QMenu* topMenu = menuBar->addMenu(title);
         // Menus hide action tooltips by default; they explain why a command is disabled
         topMenu->setToolTipsVisible(true);
         topMenu->setObjectName(QString::fromStdString(topLevel + "Menu"));  // e.g., "VIEWMenu"
@@ -138,10 +146,10 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
                 continue;
             }
 
-            // Navigate/create submenu hierarchy (translated)
+            // Navigate/create submenu hierarchy (translated, with access keys)
             QMenu* currentMenu = topMenu;
             for (size_t j = 1; j < levels.size() - 1; ++j) {  // Skip first (top-level) and last (action)
-                currentMenu = getOrCreateSubmenu(currentMenu, translateMenuName(levels[j]));
+                currentMenu = getOrCreateSubmenu(currentMenu, menuText(levels[j]));
             }
 
             // Create action and add to menu

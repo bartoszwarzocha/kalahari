@@ -8,6 +8,7 @@
 #include <QRegularExpression>
 #include <algorithm>
 #include <iterator>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -47,9 +48,11 @@ void SearchEngine::setDocument(QTextDocument* document) {
         disconnect(m_documentChange);
         m_document = document;
         m_origin = QTextCursor();
+        m_replacementEnd = QTextCursor();
         m_matchesDirty = true;
         m_currentMatchIndex = -1;
         m_matches.clear();
+        m_announceAfterLayout = false;
 
         if (m_document) {
             // The matches follow the edits: only the edited paragraphs are searched again
@@ -67,6 +70,12 @@ void SearchEngine::setDocument(QTextDocument* document) {
                     m_currentMatchIndex = -1;
                 }
                 m_changeReported = false;
+
+                // The matches followed the edit (onContentsChange()); the edited paragraphs
+                // are laid out now
+                if (std::exchange(m_announceAfterLayout, false)) {
+                    emit matchesChanged();
+                }
             });
         }
     }
@@ -247,12 +256,17 @@ bool SearchEngine::replaceCurrent() {
     // A copy: the edit below updates m_matches
     const SearchMatch match = m_matches[static_cast<size_t>(m_currentMatchIndex)];
 
-    // A direct edit, recorded by the document's native undo; the annotations of the
-    // replaced text stay
+    // A direct edit, recorded by the document's native undo as one step; the annotations
+    // of the replaced text stay
     QTextCursor cursor(m_document);
+    cursor.beginEditBlock();
+    emit replacementStepBegun();
     cursor.setPosition(static_cast<int>(match.start));
     cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
     insertKeepingAnnotations(cursor, m_replaceText);
+    m_replacementEnd = cursor;
+    emit replacementStepEnding();
+    cursor.endEditBlock();
 
     // The matches have followed the edit (searched again here if the document reports
     // no edited ranges); go on with the match after the replaced text
@@ -286,13 +300,21 @@ int SearchEngine::replaceAll() {
     // Direct replacement — recorded by QTextDocument's native undo as ONE step
     // (beginEditBlock/endEditBlock). Process in reverse order to keep positions valid.
     QTextCursor cursor(m_document);
+    m_replacementEnd = QTextCursor();
     cursor.beginEditBlock();
+    emit replacementStepBegun();
     for (auto it = m_matches.rbegin(); it != m_matches.rend(); ++it) {
         const SearchMatch& match = *it;
         cursor.setPosition(static_cast<int>(match.start));
         cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
         insertKeepingAnnotations(cursor, m_replaceText);
+        if (m_replacementEnd.isNull()) {
+            // The end of the last replacement in the text, moved by those before it
+            m_replacementEnd = QTextCursor(m_document);
+            m_replacementEnd.setPosition(cursor.position());
+        }
     }
+    emit replacementStepEnding();
     cursor.endEditBlock();
 
     // The matches have followed the edit (searched again here if the document reports
@@ -303,6 +325,10 @@ int SearchEngine::replaceAll() {
     m_currentMatchIndex = -1;
 
     return count;
+}
+
+int SearchEngine::replacementEnd() const {
+    return m_replacementEnd.isNull() ? -1 : m_replacementEnd.position();
 }
 
 // =============================================================================
@@ -319,6 +345,7 @@ const std::vector<SearchMatch>& SearchEngine::matches() const {
 void SearchEngine::clear() {
     m_searchText.clear();
     m_replaceText.clear();
+    m_replacementEnd = QTextCursor();
     m_matches.clear();
     m_currentMatchIndex = -1;
     m_matchesDirty = true;
@@ -483,7 +510,11 @@ void SearchEngine::onContentsChange(int position, int charsRemoved, int charsAdd
 
     // The selection the search goes on from has moved with the edit as well
     m_currentMatchIndex = originMatchIndex();
-    emit matchesChanged();
+
+    // Announced once the document has the edit laid out: the document reports the change
+    // before that, while the edited paragraphs still have the lines of their old text, and
+    // a listener (the find bar giving the keys to the text) would place the cursor by them
+    m_announceAfterLayout = true;
 }
 
 int SearchEngine::firstMatchFrom(size_t position) const {

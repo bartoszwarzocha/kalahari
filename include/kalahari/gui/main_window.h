@@ -53,6 +53,7 @@ class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
 class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
+class EditCoordinator;
 class SpellingCoordinator;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
@@ -122,6 +123,10 @@ public:
     /// @param elementTitle Display title of the element
     /// @note Public wrapper for onNavigatorElementSelected for CLI/benchmark use
     void openChapter(const QString& elementId, const QString& elementTitle);
+
+    /// @brief The menu of the menu bar and of the panels' titles: Qt's panels and toolbars,
+    ///        each with an access key
+    QMenu* createPopupMenu() override;
 
 private:
     /// @brief Register all commands in CommandRegistry
@@ -273,9 +278,13 @@ private slots:
 
     /// @brief Update action states based on editor state
     ///
-    /// Called when cursor position or selection changes in BookEditor.
-    /// Updates enabled/checked state for Edit and Format menu actions.
+    /// Called when cursor position or selection changes in BookEditor, and when the tab
+    /// in front changes. Updates enabled/checked state for Edit and Format menu actions;
+    /// without a document in front the commands of the document are greyed out.
     void updateEditorActionStates();
+
+    /// @brief Whether a document (a chapter or a text file) is in front
+    [[nodiscard]] bool hasDocumentInFront();
 
     /// @brief Slot for Help > About action
     void onAbout();
@@ -335,6 +344,9 @@ private:
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
+
+    /// @brief Undo, Redo, Cut, Copy, Paste and Select All on the element with the keys
+    EditCoordinator* m_editCoordinator{nullptr};
 
     // Document dirty state (kept in MainWindow, shared with DocumentCoordinator via callbacks)
     bool m_isDirty;                                   ///< Unsaved changes flag

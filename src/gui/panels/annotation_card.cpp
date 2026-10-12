@@ -227,30 +227,34 @@ void AnnotationCard::updateElidedLabels() {
 }
 
 void AnnotationCard::showMenu() {
-    const editor::Annotation& annotation = m_entry.annotation;
     QMenu menu(this);
+    fillMenu(&menu);
+    menu.exec(m_menuButton->mapToGlobal(QPoint(0, m_menuButton->height())));
+}
+
+void AnnotationCard::fillMenu(QMenu* menu) {
+    const editor::Annotation& annotation = m_entry.annotation;
 
     // The keys are shown only: the panel handles them
-    QAction* editAction = menu.addAction(tr("Edit"), this, &AnnotationCard::editRequested);
+    QAction* editAction = menu->addAction(tr("&Edit"), this, &AnnotationCard::editRequested);
     editAction->setShortcut(QKeySequence(Qt::Key_F2));
 
     QString doneText;
     if (annotation.kind == editor::AnnotationKind::Todo) {
-        doneText = annotation.done ? tr("Restore") : tr("Mark as Done");
+        doneText = annotation.done ? tr("&Restore") : tr("&Mark as Done");
     } else if (annotation.kind == editor::AnnotationKind::Comment) {
-        doneText = annotation.done ? tr("Restore") : tr("Mark as Resolved");
+        doneText = annotation.done ? tr("&Restore") : tr("&Mark as Resolved");
     }
     if (!doneText.isEmpty()) {
         const bool done = !annotation.done;
         QAction* doneAction =
-            menu.addAction(doneText, this, [this, done]() { emit doneToggled(done); });
+            menu->addAction(doneText, this, [this, done]() { emit doneToggled(done); });
         doneAction->setShortcut(QKeySequence(Qt::Key_Space));
     }
-    menu.addSeparator();
-    QAction* deleteAction = menu.addAction(tr("Delete"), this, &AnnotationCard::deleteRequested);
-    deleteAction->setShortcut(QKeySequence::Delete);
-
-    menu.exec(m_menuButton->mapToGlobal(QPoint(0, m_menuButton->height())));
+    menu->addSeparator();
+    QAction* deleteAction =
+        menu->addAction(tr("&Delete"), this, &AnnotationCard::deleteRequested);
+    deleteAction->setShortcut(QKeySequence(Qt::Key_Delete));
 }
 
 void AnnotationCard::paintEvent(QPaintEvent* event) {

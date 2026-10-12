@@ -197,11 +197,13 @@ AnnotationList removeForReplacement(QTextCursor& cursor);
 
 /// @brief Type text at the cursor, replacing its selection
 ///
-/// The text gets insertionFormat(); replacing a selection, it also joins the fragments
-/// the whole selection belongs to, and the other annotations of the selection stay on its
-/// place. A line break ("\n") starts a new paragraph. Without a selection, consecutive
-/// calls make one undo step, as typing does.
-void insertKeepingAnnotations(QTextCursor& cursor, const QString& text);
+/// The text gets insertionFormat() with @p typed on top (a format given for the text typed
+/// next); replacing a selection, it also joins the fragments the whole selection belongs
+/// to, and the other annotations of the selection stay on its place. A line break ("\n")
+/// starts a new paragraph. Without a selection, consecutive calls make one undo step, as
+/// typing does.
+void insertKeepingAnnotations(QTextCursor& cursor, const QString& text,
+                              const QTextCharFormat& typed = QTextCharFormat());
 
 /// @brief Start a new paragraph at the cursor, replacing its selection
 ///
@@ -223,12 +225,22 @@ QTextCharFormat withRenamedAnnotations(QTextCharFormat format, const QHash<QStri
 ///
 /// Its annotations whose ids @p document already has become copies with new ids, and its
 /// characters join @p fragments - the fragments of the place. Paragraph starts keep only
-/// their annotations on a place.
+/// their annotations on a place. A document that keeps no annotations (see
+/// keepsAnnotations()) gets the text without them.
 /// @param content The text to insert (changed in place; its undo is not recorded)
 /// @param document The document the text goes into
 /// @param fragments Fragments the inserted text joins
 void prepareForInsertion(QTextDocument& content, const QTextDocument& document,
                          const AnnotationList& fragments);
+
+/// @brief Whether a document keeps annotations
+///
+/// A plain text file keeps none, so text inserted into its document comes without them. A
+/// document keeps them unless setKeepsAnnotations() said otherwise.
+bool keepsAnnotations(const QTextDocument& document);
+
+/// @brief Let a document keep annotations or not (see keepsAnnotations())
+void setKeepsAnnotations(QTextDocument& document, bool keeps);
 
 }  // namespace kalahari::editor
 
