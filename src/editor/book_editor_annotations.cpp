@@ -26,6 +26,9 @@ Annotation BookEditor::addAnnotation(AnnotationKind kind, const QString& text,
 Annotation BookEditor::addAnnotation(int from, int to, AnnotationKind kind, const QString& text,
                                      const QString& author)
 {
+    if (!m_annotationsAllowed) {
+        return {};  // a plain text file keeps no annotations
+    }
     ensureDocument();
 
     Annotation annotation;
@@ -151,6 +154,19 @@ bool BookEditor::goToAnnotation(const QString& id)
     }
     ensureCursorVisible();
     return true;
+}
+
+bool BookEditor::annotationsAllowed() const
+{
+    return m_annotationsAllowed;
+}
+
+void BookEditor::setAnnotationsAllowed(bool allowed)
+{
+    m_annotationsAllowed = allowed;
+    if (m_textBuffer) {
+        setKeepsAnnotations(*m_textBuffer, allowed);  // for text pasted or dropped into it
+    }
 }
 
 QString BookEditor::goToNextTodo()

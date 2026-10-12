@@ -1273,6 +1273,46 @@ TEST_CASE("Annotations: the commands work on the document in front", "[gui][anno
     CHECK_FALSE(nextTodo->isEnabled());
 }
 
+TEST_CASE("Annotations: a plain text file takes none; the panel says why", "[gui][annotations]") {
+    registerAllCommands(CommandCallbacks{});
+    Desk desk(test::kmlOf({QStringLiteral("One two")}));
+    desk.coordinator->connectCommands();
+    auto& registry = CommandRegistry::getInstance();
+    const auto enabled = [&registry](const char* id) {
+        QAction* action = registry.getAction(QString::fromLatin1(id));
+        REQUIRE(action != nullptr);
+        return action->isEnabled();
+    };
+    const auto emptyText = [&desk]() {
+        desk.coordinator->refresh();  // as when the panel's list is made again
+        const QList<QLabel*> labels =
+            listOf(desk.panel)->findChildren<QLabel*>(QString(), Qt::FindDirectChildrenOnly);
+        REQUIRE(labels.size() == 1);  // the cards are not labels of the list
+        return labels.front()->isVisible() ? labels.front()->text() : QString();
+    };
+    REQUIRE(enabled("insert.annotation"));
+
+    // The file of the document, set as it opens
+    desk.document->setProperty("standaloneFilePath", QStringLiteral("/home/writer/notes.txt"));
+    CHECK_FALSE(enabled("insert.annotation"));
+    CHECK_FALSE(enabled("insert.comment"));
+    CHECK_FALSE(enabled("insert.todo"));
+    CHECK_FALSE(enabled("insert.note"));
+    CHECK(enabled("edit.nextTodo"));  // going to to-dos changes nothing
+    CHECK_FALSE(desk.coordinator->addAnnotation(AnnotationKind::Comment));
+    CHECK_FALSE(desk.coordinator->isWriting());
+    CHECK(emptyText().contains(QStringLiteral(".txt")));
+
+    // Saved as a chapter file: annotations can be added again
+    desk.document->setProperty("standaloneFilePath",
+                               QStringLiteral("/home/writer/notes.kchapter"));
+    CHECK(enabled("insert.annotation"));
+    CHECK(enabled("insert.note"));
+    CHECK_FALSE(emptyText().contains(QStringLiteral(".txt")));
+    CHECK(desk.coordinator->addAnnotation(AnnotationKind::Comment));
+    CHECK(desk.coordinator->isWriting());
+}
+
 TEST_CASE("Annotations: F9 goes to the panel and back to the text", "[gui][annotations]") {
     if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
         SKIP("needs an active window without a window on screen: run with QT_QPA_PLATFORM=offscreen");
