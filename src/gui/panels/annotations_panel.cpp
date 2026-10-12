@@ -310,6 +310,13 @@ void AnnotationsPanel::setBookScopeAvailable(bool available) {
     }
 }
 
+void AnnotationsPanel::setAnnotationsAllowed(bool allowed) {
+    if (allowed != m_annotationsAllowed) {
+        m_annotationsAllowed = allowed;
+        updateEmptyText(!m_cards.isEmpty());
+    }
+}
+
 void AnnotationsPanel::setDocumentAvailable(bool available) {
     if (available != m_documentAvailable) {
         m_documentAvailable = available;
@@ -664,6 +671,12 @@ void AnnotationsPanel::updateKindCounts() {
 void AnnotationsPanel::updateEmptyText(bool anyShown) {
     m_emptyLabel->setVisible(!anyShown);
     if (anyShown) {
+        return;
+    }
+    if (m_scope == AnnotationScope::Chapter && !m_annotationsAllowed && m_entries.empty()) {
+        m_emptyLabel->setText(tr("A plain text file (.txt) does not keep annotations, so they "
+                                 "cannot be added to it. To add annotations, add the file to "
+                                 "the book."));
         return;
     }
     if (m_scope == AnnotationScope::Chapter && !m_documentAvailable) {
