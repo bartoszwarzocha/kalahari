@@ -10,6 +10,7 @@
 #include <kalahari/editor/statistics_collector.h>  // members of DocumentCoordinator
 #include <kalahari/editor/style_resolver.h>
 #include <kalahari/gui/dialogs/kalahari_dialog.h>
+#include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/document_coordinator.h>
 #include <kalahari/gui/navigator_coordinator.h>
 #include <kalahari/gui/panels/dashboard_panel.h>
@@ -18,12 +19,16 @@
 #include <kalahari/gui/panels/properties_panel.h>
 #include <kalahari/gui/widgets/standalone_info_bar.h>
 
+#include <QAbstractButton>
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDialog>
 #include <QFile>
+#include <QFileDialog>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMainWindow>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QStatusBar>
 #include <QTabWidget>
@@ -107,6 +112,63 @@ inline int accepting(const std::function<void()>& command, QStringList* said = n
             own->acceptButton()->click();
         } else {
             dialog->accept();
+        }
+    });
+    timer.start();
+    command();
+    return shown;
+}
+
+/// @brief Run @p command, answering each window it shows once the system shows it: the
+/// program's windows with the button of @p answer, the window that saves a file with the file
+/// @p file, and its question whether to replace the file with Yes. The title and the texts of
+/// each window go to @p said, one window a line.
+/// @return The number of windows the command showed
+inline int answering(const std::function<void()>& command,
+                     gui::dialogs::MessageDialog::Answer answer, QStringList& said,
+                     const QString& file = QString()) {
+    using gui::dialogs::MessageDialog;
+    int shown = 0;
+    int waited = 0;
+    QTimer timer;
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&]() {
+        QDialog* dialog = shownDialog();
+        if (!dialog || dialog->property("handled").toBool()) {
+            return;  // A window answered closes in its loop
+        }
+        if (!onScreen(*dialog) && ++waited < SHOWN_TICKS) {
+            return;
+        }
+        waited = 0;
+        dialog->setProperty("handled", true);
+        ++shown;
+        if (auto* files = qobject_cast<QFileDialog*>(dialog)) {
+            said << files->windowTitle();
+            if (auto* name = files->findChild<QLineEdit*>(QStringLiteral("fileNameEdit"))) {
+                name->setText(file);
+            } else {
+                files->selectFile(file);
+            }
+            QMetaObject::invokeMethod(files, "accept", Qt::QueuedConnection);
+            return;
+        }
+        QAbstractButton* button = nullptr;
+        if (auto* question = qobject_cast<QMessageBox*>(dialog)) {
+            said << question->text();
+            button = question->button(QMessageBox::Yes);
+        } else if (auto* message = qobject_cast<MessageDialog*>(dialog)) {
+            said << textsOf(*message);
+            button = answer == MessageDialog::Answer::Accept        ? message->acceptButton()
+                     : answer == MessageDialog::Answer::Alternative ? message->alternativeButton()
+                                                                    : message->cancelButton();
+        } else {
+            said << textsOf(*dialog);
+        }
+        if (button) {
+            QMetaObject::invokeMethod(button, "click", Qt::QueuedConnection);
+        } else {
+            QMetaObject::invokeMethod(dialog, "reject", Qt::QueuedConnection);
         }
     });
     timer.start();

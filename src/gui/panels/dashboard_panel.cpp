@@ -197,8 +197,8 @@ void DashboardPanel::setupUI()
     QHBoxLayout* checkboxLayout = new QHBoxLayout(checkboxContainer);
     checkboxLayout->setContentsMargins(0, 24, 0, 32);  // Extra bottom margin
 
-    m_autoLoadCheckbox = new QCheckBox(tr("Open last project on startup"), checkboxContainer);
-    m_autoLoadCheckbox->setToolTip(tr("Automatically open the most recently used project when Kalahari starts"));
+    m_autoLoadCheckbox = new QCheckBox(tr("Open last book on startup"), checkboxContainer);
+    m_autoLoadCheckbox->setToolTip(tr("Automatically open the most recently used book when Kalahari starts"));
 
     checkboxLayout->addStretch();
     checkboxLayout->addWidget(m_autoLoadCheckbox);

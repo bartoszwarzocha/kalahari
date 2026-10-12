@@ -22,6 +22,16 @@ public:
     /// @brief Kind of the file at @p path
     static Type typeOf(const QString& path);
 
+    /// @brief What a plain text file does not keep of a content
+    struct TextLoss {
+        bool formatting = false;   ///< Formatting of characters or paragraphs (e.g. bold)
+        bool annotations = false;  ///< Annotations
+    };
+
+    /// @brief What a plain text file would not keep of the content @p kml: all but the text
+    ///        of its paragraphs
+    static TextLoss lostAsText(const QString& kml);
+
     /// @brief Read a chapter or plain text file
     /// @param kml Set to the file's content as KML; the lines of a text file become paragraphs
     /// @param error Set to the reason when a text file cannot be read (a chapter's is logged)

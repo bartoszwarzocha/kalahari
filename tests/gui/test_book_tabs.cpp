@@ -11,16 +11,12 @@
 
 #include "document_window.h"
 
-#include <QAbstractButton>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFile>
-#include <QFileDialog>
 #include <QFileInfo>
 #include <QLabel>
-#include <QLineEdit>
-#include <QMessageBox>
 #include <QTemporaryDir>
 #include <QTimer>
 
@@ -28,6 +24,7 @@
 
 using namespace kalahari;
 using gui::dialogs::MessageDialog;
+using test::answering;
 using test::OpenNovel;
 using test::Window;
 
@@ -53,61 +50,6 @@ QString fileOf(const QString& elementId) {
     const core::ProjectElement* element = pm.findElement(elementId);
     REQUIRE(element != nullptr);
     return pm.filePathOf(*element);
-}
-
-/// @brief Run @p command, answering each window it shows once the system shows it: the
-/// program's windows with the button of @p answer, the window that saves a file with the file
-/// @p file, and its question whether to replace the file with Yes. The title and the texts of
-/// each window go to @p said, one window a line.
-/// @return The number of windows the command showed
-int answering(const std::function<void()>& command, MessageDialog::Answer answer,
-              QStringList& said, const QString& file = QString()) {
-    int shown = 0;
-    int waited = 0;
-    QTimer timer;
-    timer.setInterval(10);
-    QObject::connect(&timer, &QTimer::timeout, [&]() {
-        QDialog* dialog = test::shownDialog();
-        if (!dialog || dialog->property("handled").toBool()) {
-            return;  // A window answered closes in its loop
-        }
-        if (!test::onScreen(*dialog) && ++waited < test::SHOWN_TICKS) {
-            return;
-        }
-        waited = 0;
-        dialog->setProperty("handled", true);
-        ++shown;
-        if (auto* files = qobject_cast<QFileDialog*>(dialog)) {
-            said << files->windowTitle();
-            if (auto* name = files->findChild<QLineEdit*>(QStringLiteral("fileNameEdit"))) {
-                name->setText(file);
-            } else {
-                files->selectFile(file);
-            }
-            QMetaObject::invokeMethod(files, "accept", Qt::QueuedConnection);
-            return;
-        }
-        QAbstractButton* button = nullptr;
-        if (auto* question = qobject_cast<QMessageBox*>(dialog)) {
-            said << question->text();
-            button = question->button(QMessageBox::Yes);
-        } else if (auto* message = qobject_cast<MessageDialog*>(dialog)) {
-            said << test::textsOf(*message);
-            button = answer == MessageDialog::Answer::Accept        ? message->acceptButton()
-                     : answer == MessageDialog::Answer::Alternative ? message->alternativeButton()
-                                                                    : message->cancelButton();
-        } else {
-            said << test::textsOf(*dialog);
-        }
-        if (button) {
-            QMetaObject::invokeMethod(button, "click", Qt::QueuedConnection);
-        } else {
-            QMetaObject::invokeMethod(dialog, "reject", Qt::QueuedConnection);
-        }
-    });
-    timer.start();
-    command();
-    return shown;
 }
 
 /// Let the program work until @p done, for at most five seconds

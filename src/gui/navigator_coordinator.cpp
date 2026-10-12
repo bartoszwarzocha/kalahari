@@ -221,7 +221,7 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     auto& pm = core::ProjectManager::getInstance();
     if (!pm.isProjectOpen()) {
         logger.debug("No project loaded - ignoring Navigator selection");
-        m_statusBar->showMessage(tr("No project loaded"), 2000);
+        m_statusBar->showMessage(tr("No book loaded"), 2000);
         return;
     }
 

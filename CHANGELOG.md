@@ -95,7 +95,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   archive of an open book imports again; a failed import removes what it wrote. The book,
   Navigator and file commands show their messages and questions in the program's own window,
   with what is wrong under Show Details; the export's list of files that are not final names
-  their statuses as the Navigator does (Draft, Revision).
+  their statuses as the Navigator does (Draft, Revision). The option to open the last book
+  at startup (on the Dashboard and in Settings > General), the archive export without an
+  open book and the Navigator's message without a book speak of books too.
 
 - **Annotations: the frame closes when the writer goes elsewhere; its X drops the text** -
   2026-10-10. Going anywhere else in the program closes the frame of an annotation and
@@ -383,6 +385,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   editor's context menu) are now off for it, the Annotations panel says why and that the
   file added to the book takes annotations, and text pasted or dropped into it comes
   without them. Saved as a chapter file (`.kchapter`), it takes annotations again.
+
+- **Plain text files: a question before formatting is lost** - 2026-10-12. A plain text file
+  (`.txt`) keeps only the text, so saving one whose text has formatting (such as bold), or
+  saving a chapter with annotations as a plain text file with Save As, now asks first in the
+  program's own window. It says what will not be saved and how to keep it (Save As with the
+  Kalahari Documents type); Cancel writes nothing. Save All and the question on closing ask
+  the same.
 
 ### Added
 

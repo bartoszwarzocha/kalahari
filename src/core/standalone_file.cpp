@@ -6,6 +6,7 @@
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <QFileInfo>
+#include <QXmlStreamReader>
 
 namespace kalahari::core {
 
@@ -18,6 +19,25 @@ StandaloneFile::Type StandaloneFile::typeOf(const QString& path) {
         return Type::PlainText;
     }
     return Type::Unsupported;
+}
+
+StandaloneFile::TextLoss StandaloneFile::lostAsText(const QString& kml) {
+    // The text of a plain text file is its paragraphs: any other element of the content, and
+    // a paragraph with an alignment of its own, would be lost
+    TextLoss lost;
+    QXmlStreamReader reader(kml);
+    while (!reader.atEnd()) {
+        if (reader.readNext() != QXmlStreamReader::StartElement) {
+            continue;
+        }
+        const QStringView name = reader.name();
+        if (name == u"annotations" || name == u"annotation" || name == u"anchor") {
+            lost.annotations = true;
+        } else if (name != u"kml" && (name != u"p" || !reader.attributes().isEmpty())) {
+            lost.formatting = true;
+        }
+    }
+    return lost;
 }
 
 std::optional<StandaloneFile> StandaloneFile::open(const QString& path, QString& kml,

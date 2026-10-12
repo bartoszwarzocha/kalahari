@@ -1120,10 +1120,18 @@ void DocumentCoordinator::relistStandaloneFiles() {
 bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString& path) {
     auto& logger = core::Logger::getInstance();
 
+    const QString kml = editor->getContent();
+    if (core::StandaloneFile::typeOf(path) == core::StandaloneFile::Type::PlainText &&
+        !agreeToSaveAsText(kml, path)) {
+        logger.info("Not saved as plain text, which would lose formatting or annotations: {}",
+                    path.toStdString());
+        return false;
+    }
+
     core::StandaloneFile file = standaloneFileOf(editor);
     const QString oldPath = file.path();
     QString error;
-    if (!file.saveAs(path, editor->getContent(), editor->getText(), &error)) {
+    if (!file.saveAs(path, kml, editor->getText(), &error)) {
         dialogs::MessageDialog::error(
             m_mainWindow, tr("Save Error"),
             tr("Failed to save file: %1").arg(QDir::toNativeSeparators(path)), error);
@@ -1155,6 +1163,39 @@ bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString
     logger.info("Standalone file saved: {}", path.toStdString());
     m_statusBar->showMessage(tr("Saved: %1").arg(QFileInfo(path).fileName()), 2000);
     return true;
+}
+
+bool DocumentCoordinator::agreeToSaveAsText(const QString& kml, const QString& path) {
+    const core::StandaloneFile::TextLoss lost = core::StandaloneFile::lostAsText(kml);
+    QString text;
+    if (lost.formatting && lost.annotations) {
+        //: %1: the name of the file. In Polish: Plik tekstowy (.txt) przechowuje tylko tekst,
+        //: więc formatowanie (np. pogrubienie) i uwagi nie zostaną zapisane w pliku „%1”.
+        text = tr("A plain text file (.txt) keeps only the text, so the formatting (such as "
+                  "bold) and the annotations will not be saved in \"%1\".");
+    } else if (lost.formatting) {
+        //: %1: the name of the file. In Polish: Plik tekstowy (.txt) przechowuje tylko tekst,
+        //: więc formatowanie (np. pogrubienie) nie zostanie zapisane w pliku „%1”.
+        text = tr("A plain text file (.txt) keeps only the text, so the formatting (such as "
+                  "bold) will not be saved in \"%1\".");
+    } else if (lost.annotations) {
+        //: %1: the name of the file. In Polish: Plik tekstowy (.txt) przechowuje tylko tekst,
+        //: więc uwagi nie zostaną zapisane w pliku „%1”.
+        text = tr("A plain text file (.txt) keeps only the text, so the annotations will not be "
+                  "saved in \"%1\".");
+    } else {
+        return true;  // the file keeps all of it
+    }
+    //: %1: the type of the files of Save As that keeps them. In Polish: Aby zachować wszystko,
+    //: wybierz „Anuluj”, a potem Plik > Zapisz jako... i typ „%1”.
+    text = text.arg(QFileInfo(path).fileName()) + QStringLiteral("\n\n") +
+           tr("To keep everything, choose Cancel, then File > Save As... and the type \"%1\".")
+               .arg(tr("Kalahari Documents (*.kchapter)"));
+    //: In Polish: Zapisać jako plik tekstowy?
+    return dialogs::MessageDialog::confirm(m_mainWindow, tr("Save as Plain Text?"), text,
+                                           tr("Save as &Text"),
+                                           dialogs::MessageDialog::Kind::Warning,
+                                           dialogs::MessageDialog::DefaultButton::Cancel);
 }
 
 bool DocumentCoordinator::saveStandaloneFileAs(EditorPanel* editor) {
@@ -1336,8 +1377,8 @@ void DocumentCoordinator::onExportArchive() {
     auto& pm = core::ProjectManager::getInstance();
 
     if (!pm.isProjectOpen()) {
-        dialogs::MessageDialog::information(m_mainWindow, tr("No Project Open"),
-                                            tr("Please open a project first before exporting."));
+        dialogs::MessageDialog::information(m_mainWindow, tr("No Book Open"),
+                                            tr("Please open a book first before exporting."));
         return;
     }
 

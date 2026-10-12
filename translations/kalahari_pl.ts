@@ -2735,14 +2735,6 @@ Przyciski na pasku panelu dziennika pozwalają:
 <context>
     <name>kalahari::gui::DashboardPanel</name>
     <message>
-        <source>Open last project on startup</source>
-        <translation>Otwieraj ostatni projekt przy starcie</translation>
-    </message>
-    <message>
-        <source>Automatically open the most recently used project when Kalahari starts</source>
-        <translation>Po uruchomieniu Kalahari otwiera ostatnio używany projekt</translation>
-    </message>
-    <message>
         <source>Logo</source>
         <translation>Logo</translation>
     </message>
@@ -2797,6 +2789,14 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>No recent books.</source>
         <translation>Lista ostatnich książek jest pusta.</translation>
+    </message>
+    <message>
+        <source>Open last book on startup</source>
+        <translation>Otwieraj ostatnią książkę przy starcie</translation>
+    </message>
+    <message>
+        <source>Automatically open the most recently used book when Kalahari starts</source>
+        <translation>Po uruchomieniu Kalahari otwiera ostatnio używaną książkę</translation>
     </message>
 </context>
 <context>
@@ -3133,14 +3133,6 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <translation>Otwarto: %1</translation>
     </message>
     <message>
-        <source>No Project Open</source>
-        <translation>Brak otwartego projektu</translation>
-    </message>
-    <message>
-        <source>Please open a project first before exporting.</source>
-        <translation>Przed eksportem otwórz projekt.</translation>
-    </message>
-    <message>
         <source>Book opened: %1</source>
         <translation>Otwarto książkę: %1</translation>
     </message>
@@ -3367,6 +3359,34 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>Files of this book that were open on their own are open as its elements now: %1</source>
         <translation>Pliki tej książki otwarte wcześniej osobno są teraz otwarte jako jej elementy: %1</translation>
+    </message>
+    <message>
+        <source>Please open a book first before exporting.</source>
+        <translation>Przed eksportem otwórz książkę.</translation>
+    </message>
+    <message>
+        <source>A plain text file (.txt) keeps only the text, so the formatting (such as bold) and the annotations will not be saved in &quot;%1&quot;.</source>
+        <translation>Plik tekstowy (.txt) przechowuje tylko tekst, więc formatowanie (np. pogrubienie) i uwagi nie zostaną zapisane w pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>A plain text file (.txt) keeps only the text, so the formatting (such as bold) will not be saved in &quot;%1&quot;.</source>
+        <translation>Plik tekstowy (.txt) przechowuje tylko tekst, więc formatowanie (np. pogrubienie) nie zostanie zapisane w pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>A plain text file (.txt) keeps only the text, so the annotations will not be saved in &quot;%1&quot;.</source>
+        <translation>Plik tekstowy (.txt) przechowuje tylko tekst, więc uwagi nie zostaną zapisane w pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>To keep everything, choose Cancel, then File &gt; Save As... and the type &quot;%1&quot;.</source>
+        <translation>Aby zachować wszystko, wybierz „Anuluj”, a potem Plik &gt; Zapisz jako... i typ „%1”.</translation>
+    </message>
+    <message>
+        <source>Save as Plain Text?</source>
+        <translation>Zapisać jako plik tekstowy?</translation>
+    </message>
+    <message>
+        <source>Save as &amp;Text</source>
+        <translation>Zapisz jako &amp;tekst</translation>
     </message>
 </context>
 <context>
@@ -3902,14 +3922,6 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Uruchamianie</translation>
     </message>
     <message>
-        <source>Open last project on startup</source>
-        <translation>Otwieraj ostatni projekt przy starcie</translation>
-    </message>
-    <message>
-        <source>Automatically open the most recently used project when Kalahari starts</source>
-        <translation>Po uruchomieniu Kalahari otwiera ostatnio używany projekt</translation>
-    </message>
-    <message>
         <source>Units</source>
         <translation>Jednostki</translation>
     </message>
@@ -3940,6 +3952,14 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Length unit:</source>
         <translation>Jednostka długości:</translation>
+    </message>
+    <message>
+        <source>Open last book on startup</source>
+        <translation>Otwieraj ostatnią książkę przy starcie</translation>
+    </message>
+    <message>
+        <source>Automatically open the most recently used book when Kalahari starts</source>
+        <translation>Po uruchomieniu Kalahari otwiera ostatnio używaną książkę</translation>
     </message>
 </context>
 <context>
@@ -4219,10 +4239,6 @@ Czy zapisać go przed zamknięciem?</translation>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
     <message>
-        <source>No project loaded</source>
-        <translation>Nie wczytano projektu</translation>
-    </message>
-    <message>
         <source>Opened: %1</source>
         <translation>Otwarto: %1</translation>
     </message>
@@ -4425,6 +4441,10 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
     <message>
         <source>{Kind} moved: %1</source>
         <translation>Przeniesiono {kind:accusative}: %1</translation>
+    </message>
+    <message>
+        <source>No book loaded</source>
+        <translation>Nie wczytano książki</translation>
     </message>
 </context>
 <context>

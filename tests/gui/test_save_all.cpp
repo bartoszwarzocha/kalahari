@@ -1,10 +1,14 @@
 /// @file test_save_all.cpp
 /// @brief "Save All" saves the book and every open file outside it; closing the book asks only
-/// about the changes of the book; a book of a newer version of Kalahari has its own window
+/// about the changes of the book; a book of a newer version of Kalahari has its own window; a
+/// plain text file asks before it loses the formatting or the annotations of its text
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/chapter_document.h>
 #include <kalahari/core/project_manager.h>
+#include <kalahari/editor/book_editor.h>
+#include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/panels/editor_panel.h>
 
 #include "document_window.h"
@@ -15,7 +19,9 @@
 #include <QTemporaryDir>
 
 using namespace kalahari;
+using gui::dialogs::MessageDialog;
 using test::accepting;
+using test::answering;
 using test::OpenNovel;
 using test::RecentBooks;
 using test::Window;
@@ -188,4 +194,94 @@ TEST_CASE("Opening a book of a newer version of Kalahari says so, and the open b
         CHECK(said.first().contains(newerText));
         CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(open));
     }
+}
+
+// ----------------------------------------------------------------------------
+// Plain text files
+// ----------------------------------------------------------------------------
+
+TEST_CASE("Save: a plain text file with formatting asks first, as it keeps the text only",
+          "[gui][save]") {
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString notes = QDir(files.path()).filePath(QStringLiteral("notes.txt"));
+    writeText(notes, "Notes");
+
+    Window window;
+    gui::EditorPanel* tab = window.writeFile(notes, QStringLiteral("Notes of the night"));
+    QStringList said;
+
+    SECTION("Its text alone is saved without a question") {
+        CHECK(answering([&] { window.documents.onSaveDocument(); },
+                        MessageDialog::Answer::Cancel, said) == 0);
+        CHECK(readText(notes) == "Notes of the night");
+        CHECK_FALSE(tab->property("dirty").toBool());
+    }
+
+    SECTION("Bold text: the question says what the file loses") {
+        tab->getBookEditor()->selectAll();
+        tab->getBookEditor()->toggleBold();
+
+        // Cancel: nothing is written, and the changes wait in the tab
+        CHECK(answering([&] { window.documents.onSaveDocument(); },
+                        MessageDialog::Answer::Cancel, said) == 1);
+        INFO(said.join(QLatin1Char('\n')).toStdString());
+        REQUIRE(said.size() == 1);
+        CHECK(said.first().contains(QStringLiteral("Save as Plain Text?")));
+        CHECK(said.first().contains(QStringLiteral(
+            "A plain text file (.txt) keeps only the text, so the formatting (such as bold) "
+            "will not be saved in \"notes.txt\".")));
+        CHECK(said.first().contains(QStringLiteral(
+            "To keep everything, choose Cancel, then File > Save As... and the type \"Kalahari "
+            "Documents (*.kchapter)\".")));
+        CHECK(readText(notes) == "Notes");
+        CHECK(tab->property("dirty").toBool());
+
+        // Save as Text: the text is written, without its formatting
+        CHECK(answering([&] { window.documents.onSaveDocument(); },
+                        MessageDialog::Answer::Accept, said) == 1);
+        CHECK(readText(notes) == "Notes of the night");
+        CHECK_FALSE(tab->property("dirty").toBool());
+    }
+}
+
+TEST_CASE("Save As: a chapter with annotations saved as a plain text file asks first",
+          "[gui][save]") {
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QDir folder(files.path());
+    const QString chapterPath = folder.filePath(QStringLiteral("storm.kchapter"));
+    const QString textPath = folder.filePath(QStringLiteral("storm.txt"));
+    core::ChapterDocument chapter;
+    chapter.setTitle(QStringLiteral("Storm"));
+    chapter.setKml(QStringLiteral(
+        "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Which day?</annotation>"
+        "</annotations><p>They met on <anchor ref=\"c1\">Tuesday</anchor>.</p></kml>"));
+    REQUIRE(chapter.save(chapterPath));
+
+    Window window;
+    window.documents.openStandaloneFile(chapterPath);
+    gui::EditorPanel* tab = window.editor(window.tabs->currentIndex());
+    REQUIRE(tab->property("standaloneFilePath").toString() == chapterPath);
+
+    // Cancel: no file is written, and the tab keeps its chapter
+    const test::OwnFileDialogs own;
+    QStringList said;
+    CHECK(answering([&] { window.documents.onSaveAsDocument(); },
+                    MessageDialog::Answer::Cancel, said, textPath) == 2);
+    INFO(said.join(QLatin1Char('\n')).toStdString());
+    REQUIRE(said.size() == 2);
+    CHECK(said.at(0) == QStringLiteral("Save File As"));
+    CHECK(said.at(1).contains(QStringLiteral(
+        "A plain text file (.txt) keeps only the text, so the annotations will not be saved in "
+        "\"storm.txt\".")));
+    CHECK_FALSE(QFileInfo::exists(textPath));
+    CHECK(tab->property("standaloneFilePath").toString() == chapterPath);
+
+    // Save as Text: the text without the annotation, and the tab takes the text file
+    said.clear();
+    CHECK(answering([&] { window.documents.onSaveAsDocument(); },
+                    MessageDialog::Answer::Accept, said, textPath) == 2);
+    CHECK(readText(textPath) == "They met on Tuesday.");
+    CHECK(tab->property("standaloneFilePath").toString() == textPath);
 }
