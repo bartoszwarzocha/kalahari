@@ -1474,6 +1474,18 @@ TEST_CASE("ProjectManager makes a chapter of a text file added to the project",
         CHECK(model.paragraphText(1) == "Second & last");
     }
 
+    SECTION("An empty line before the last line end stays an empty paragraph") {
+        writeFile(textPath, "First line\n\n");
+        const QString id = pm.addFile(textPath, true, chapter, "Notes", BookPlace::Main);
+        REQUIRE_FALSE(id.isEmpty());
+
+        kalahari::editor::KmlDocumentModel model;
+        REQUIRE(model.loadKml(pm.loadChapterContent(id)));
+        REQUIRE(model.paragraphCount() == 2);
+        CHECK(model.paragraphText(0) == "First line");
+        CHECK(model.paragraphText(1).isEmpty());
+    }
+
     SECTION("Moved") {
         const QString id = pm.addFile(textPath, false, chapter, "Notes", BookPlace::Main);
         REQUIRE_FALSE(id.isEmpty());

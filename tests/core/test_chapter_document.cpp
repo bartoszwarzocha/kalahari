@@ -15,10 +15,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/chapter_document.h>
+#include <QDir>
 #include <QTemporaryDir>
 #include <QFile>
 #include <QJsonDocument>
 #include <QThread>
+
+#include <filesystem>
 
 using namespace kalahari::core;
 
@@ -541,6 +544,33 @@ TEST_CASE("ChapterDocument file I/O", "[core][chapter_document][io]") {
         CHECK(loaded->wordCount() == original.wordCount());
         REQUIRE(loaded->color().has_value());
         CHECK(loaded->color()->name() == original.color()->name());
+    }
+
+    SECTION("save replaces the file instead of writing into it") {
+        // Regression: the chapter was written into the existing file, so a save that failed
+        // halfway (a full disk, a crash) left neither the old nor the new chapter. A second
+        // name of the same file keeps the old text only when the save puts a new file in
+        // its place.
+        ChapterDocument original;
+        original.setKml("<kml><p>Old text</p></kml>");
+        const QString filePath = tempDir.path() + "/replaced.kchapter";
+        const QString linkPath = tempDir.path() + "/old.kchapter";
+        REQUIRE(original.save(filePath));
+        std::filesystem::create_hard_link(filePath.toStdU16String(), linkPath.toStdU16String());
+
+        ChapterDocument changed;
+        changed.setKml("<kml><p>New text</p></kml>");
+        REQUIRE(changed.save(filePath));
+
+        const auto saved = ChapterDocument::load(filePath);
+        REQUIRE(saved.has_value());
+        CHECK(saved->kml() == changed.kml());
+        const auto old = ChapterDocument::load(linkPath);
+        REQUIRE(old.has_value());
+        CHECK(old->kml() == original.kml());
+        // No temporary file is left next to the chapter
+        CHECK(QDir(tempDir.path()).entryList(QDir::Files, QDir::Name)
+              == QStringList{"old.kchapter", "replaced.kchapter"});
     }
 
     SECTION("load returns nullopt for non-existent file") {

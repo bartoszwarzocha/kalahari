@@ -47,10 +47,11 @@ TEST_CASE("A UTF-8 text file is written back as it was", "[core][text_file]") {
     SECTION("Windows line ends") {
         const QByteArray data = "One\r\n" + POLISH.toUtf8() + "\r\n";
         CHECK(roundTrip(dir, data, content) == data);
-        CHECK(content.text == "One\n" + POLISH + "\n");
+        CHECK(content.text == "One\n" + POLISH);
         CHECK(content.format.encoding == QStringConverter::Utf8);
         CHECK_FALSE(content.format.byteOrderMark);
         CHECK(content.format.crlf);
+        CHECK(content.format.finalLineEnd);
     }
 
     SECTION("Unix line ends, no line end at the end") {
@@ -58,18 +59,49 @@ TEST_CASE("A UTF-8 text file is written back as it was", "[core][text_file]") {
         CHECK(roundTrip(dir, data, content) == data);
         CHECK(content.text == "One\n" + POLISH);
         CHECK_FALSE(content.format.crlf);
+        CHECK_FALSE(content.format.finalLineEnd);
     }
 
     SECTION("Byte order mark") {
         const QByteArray data = "\xEF\xBB\xBF" + POLISH.toUtf8() + "\n";
         CHECK(roundTrip(dir, data, content) == data);
-        CHECK(content.text == POLISH + "\n");  // without the mark
+        CHECK(content.text == POLISH);  // without the mark and the last line end
         CHECK(content.format.byteOrderMark);
     }
 
     SECTION("Empty file") {
         CHECK(roundTrip(dir, QByteArray(), content).isEmpty());
         CHECK(content.text.isEmpty());
+        CHECK_FALSE(content.format.finalLineEnd);
+    }
+}
+
+TEST_CASE("The line end of the last line is not an empty line of the text",
+          "[core][text_file]") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    TextFileContent content;
+
+    SECTION("only the last line end is kept apart: an empty line before it stays") {
+        const QByteArray data = "One\n\n";
+        CHECK(roundTrip(dir, data, content) == data);
+        CHECK(content.text == "One\n");
+        CHECK(content.format.finalLineEnd);
+    }
+
+    SECTION("a file of one line end is one empty line") {
+        const QByteArray data = "\r\n";
+        CHECK(roundTrip(dir, data, content) == data);
+        CHECK(content.text.isEmpty());
+        CHECK(content.format.finalLineEnd);
+    }
+
+    SECTION("changed text keeps the file's last line end") {
+        writeBytes(dir.filePath("notes.txt"), "One\r\n");
+        auto read = readTextFile(dir.filePath("notes.txt"));
+        REQUIRE(read.has_value());
+        REQUIRE(writeTextFile(dir.filePath("notes.txt"), "One\nTwo", read->format));
+        CHECK(bytesOf(dir.filePath("notes.txt")) == "One\r\nTwo\r\n");
     }
 }
 
@@ -95,7 +127,7 @@ TEST_CASE("A text file that is not UTF-8 is read in an 8-bit encoding", "[core][
     // "Caf\u00E9" with a Latin-1 / Windows-1250 / Windows-1252 e acute
     const QByteArray data = "Caf\xE9\nTwo\n";
     CHECK(roundTrip(dir, data, content) == data);
-    CHECK(content.text == QStringLiteral("Caf\u00E9\nTwo\n"));
+    CHECK(content.text == QStringLiteral("Caf\u00E9\nTwo"));
     CHECK(content.format.encoding != QStringConverter::Utf8);
 
     SECTION("Text the encoding cannot hold is written as UTF-8") {
@@ -103,7 +135,7 @@ TEST_CASE("A text file that is not UTF-8 is read in an 8-bit encoding", "[core][
         const QString text = content.text + QStringLiteral("\u4E2D");  // in no 8-bit code page
         REQUIRE(writeTextFile(dir.filePath("out.txt"), text, format));
         CHECK(format.encoding == QStringConverter::Utf8);
-        CHECK(bytesOf(dir.filePath("out.txt")) == text.toUtf8());
+        CHECK(bytesOf(dir.filePath("out.txt")) == text.toUtf8() + "\n");
     }
 }
 
@@ -114,14 +146,16 @@ TEST_CASE("Old Mac line ends are read as line ends", "[core][text_file]") {
 
     const auto content = readTextFile(dir.filePath("mac.txt"));
     REQUIRE(content.has_value());
-    CHECK(content->text == "One\nTwo\n");
+    CHECK(content->text == "One\nTwo");
     CHECK_FALSE(content->format.crlf);
+    CHECK(content->format.finalLineEnd);
 }
 
 TEST_CASE("A new text file is UTF-8 with the system's line ends", "[core][text_file]") {
     const TextFileFormat format = TextFileFormat::newFile();
     CHECK(format.encoding == QStringConverter::Utf8);
     CHECK_FALSE(format.byteOrderMark);
+    CHECK_FALSE(format.finalLineEnd);
 #ifdef Q_OS_WIN
     CHECK(format.crlf);
 #else

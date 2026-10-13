@@ -1267,12 +1267,9 @@ QString ProjectManager::addFile(const QString& sourcePath, bool copy, const Kind
 
     bool written = false;
     if (fileType == StandaloneFile::Type::PlainText) {
-        // Its lines become the chapter's paragraphs
+        // Its lines become the chapter's paragraphs (the line end of the last line is not a
+        // line of the text, see readTextFile())
         if (std::optional<TextFileContent> content = readTextFile(sourcePath)) {
-            // The line end of the last line is no empty paragraph
-            if (content->text.endsWith(QLatin1Char('\n'))) {
-                content->text.chop(1);
-            }
             written = writeChapterFile(element, editor::ClipboardHandler::textToKml(content->text));
         }
     } else if (QDir().mkpath(QFileInfo(target).absolutePath()) &&
