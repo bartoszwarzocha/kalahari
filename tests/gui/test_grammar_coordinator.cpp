@@ -574,7 +574,7 @@ TEST_CASE("Grammar coordinator: the status bar says when the text is not checked
         coordinator.server()->start();
         const QString message =
             QStringLiteral("Grammar is not checked: LanguageTool did not start. Details: Edit > "
-                           "Preferences..., Editor > Grammar.");
+                           "Settings..., Editor > Grammar.");
         CHECK(waitUntil([&statusBar, &message]() { return statusBar.currentMessage() == message; },
                         ANSWER_MS));
     }

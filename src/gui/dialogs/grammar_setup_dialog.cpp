@@ -371,7 +371,7 @@ QWidget* GrammarSetupDialog::createDonePage() {
 
     layout->addWidget(textLabel(tr("Right-click an underline (or press the menu key) to see "
                                    "the suggestion. F7 goes to the next issue.")));
-    layout->addWidget(noteLabel(tr("Settings of the grammar: Edit > Preferences..., group "
+    layout->addWidget(noteLabel(tr("Settings of the grammar: Edit > Settings..., group "
                                    "Editor > Grammar.")));
     layout->addStretch(1);
     return page;

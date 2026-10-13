@@ -2,9 +2,10 @@
 /// @brief A stand-in for Java running the LanguageTool server, for the grammar tests
 ///
 /// Started as LanguageToolServer starts Java (-cp languagetool-server.jar
-/// org.languagetool.server.HTTPServer --port N), it answers on localhost:N as LanguageTool
-/// does: GET /v2/languages with its languages, POST /v2/check with no issues. The
-/// environment tells it to do otherwise:
+/// org.languagetool.server.HTTPServer --port N --config FILE), it answers on localhost:N as
+/// LanguageTool does: GET /v2/languages with its languages, POST /v2/check with no issues.
+/// It says the settings of the file given with --config, one line each, and ends at once when
+/// it cannot read that file, as LanguageTool does. The environment tells it to do otherwise:
 /// - KALAHARI_FAKE_JAVA_FAIL: it says it cannot load the server and ends at once;
 /// - KALAHARI_FAKE_JAVA_TAKEN_PORT: started on that port, it says the port is taken and ends;
 /// - KALAHARI_FAKE_JAVA_EXIT_MS: it ends that long after its first answer;
@@ -90,6 +91,23 @@ int main(int argc, char* argv[]) {
     if (qEnvironmentVariableIsSet("KALAHARI_FAKE_JAVA_FAIL")) {
         say("Error: Could not find or load main class org.languagetool.server.HTTPServer");
         return FAILURE_EXIT_CODE;
+    }
+    // The settings are read before the server starts; LanguageTool ends without them
+    const qsizetype configAt = arguments.indexOf(QStringLiteral("--config"));
+    if (configAt >= 0 && configAt + 1 < arguments.size()) {
+        QFile config(arguments.at(configAt + 1));
+        if (!config.open(QIODevice::ReadOnly)) {
+            std::printf("Exception in thread \"main\" java.lang.RuntimeException: Could not load "
+                        "properties from '%s'\n",
+                        qPrintable(config.fileName()));
+            std::fflush(stdout);
+            return FAILURE_EXIT_CODE;
+        }
+        for (const QByteArray& line : config.readAll().split('\n')) {
+            if (!line.trimmed().isEmpty()) {
+                std::printf("Setting: %s\n", line.trimmed().constData());
+            }
+        }
     }
     QTcpServer server;
     if (qEnvironmentVariableIntValue("KALAHARI_FAKE_JAVA_TAKEN_PORT") == port ||

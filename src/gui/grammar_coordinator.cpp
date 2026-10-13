@@ -336,7 +336,7 @@ void GrammarCoordinator::onServerState() {
         clearMessage(restartingMessage());
         if (local && !preparing) {
             showMessage(tr("Grammar is not checked: LanguageTool did not start. Details: Edit "
-                           "> Preferences..., Editor > Grammar."),
+                           "> Settings..., Editor > Grammar."),
                         SERVER_MESSAGE_MS);
         }
         break;
@@ -406,7 +406,7 @@ void GrammarCoordinator::askToPrepare(QWidget* parent) {
         dialogs::MessageDialog::Kind::Question, tr("Prepare grammar checking?"),
         first + QStringLiteral("\n\n") +
             tr("Checking on a server in the internet can be chosen in the settings: Edit > "
-               "Preferences..., group Editor > Grammar."),
+               "Settings..., group Editor > Grammar."),
         parent != nullptr ? parent : mainWindow());
     dialog.setWindowTitle(tr("Grammar"));
     dialog.setQuestionButtons(tr("&Prepare Now"), tr("&Not Now"));

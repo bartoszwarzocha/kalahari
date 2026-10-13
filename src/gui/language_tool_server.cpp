@@ -17,6 +17,7 @@
 #include <QNetworkRequest>
 #include <QProcess>
 #include <QTcpServer>
+#include <QTemporaryFile>
 #include <QTimer>
 #include <QUrl>
 
@@ -76,6 +77,12 @@ constexpr int CLOSE_TIMEOUT_MS = 3000;
 
 /// @brief The server of LanguageTool, in its folder
 constexpr const char* SERVER_JAR = "languagetool-server.jar";
+
+/// @brief The settings the server is started with: what it checks a language with is kept
+///        from one text to the next, so a paragraph is checked in some 20 ms instead of 150
+constexpr const char* SERVER_SETTINGS = "pipelineCaching=true\n"
+                                        "maxPipelinePoolSize=10\n"
+                                        "pipelineExpireTimeInSeconds=1800\n";
 
 /// @brief Whether Java says the port is taken
 bool portTaken(const QString& output) {
@@ -370,9 +377,14 @@ void LanguageToolServer::launch(int fromPort)
     setState(State::Starting);
     m_startTimer->start(m_startTimeoutMs);
     const QString jar = QDir(m_folder).filePath(QLatin1String(SERVER_JAR));
-    m_process->start(m_java, {QStringLiteral("-cp"), jar,
-                              QStringLiteral("org.languagetool.server.HTTPServer"),
-                              QStringLiteral("--port"), QString::number(m_port)});
+    QStringList arguments{QStringLiteral("-cp"), jar,
+                          QStringLiteral("org.languagetool.server.HTTPServer"),
+                          QStringLiteral("--port"), QString::number(m_port)};
+    const QString settings = settingsFile();
+    if (!settings.isEmpty()) {
+        arguments << QStringLiteral("--config") << settings;
+    }
+    m_process->start(m_java, arguments);
     if (m_process != nullptr) {
 #if defined(Q_OS_WIN)
         if (!endWithProgram(*m_process)) {
@@ -425,6 +437,32 @@ void LanguageToolServer::closeProcess()
     process->kill();
     process->waitForFinished(CLOSE_TIMEOUT_MS);
     delete process;
+}
+
+QString LanguageToolServer::settingsFile()
+{
+    if (m_settings == nullptr) {
+        // Java starts in the LanguageTool folder: a relative path would not reach the file, and
+        // the temporary folder's path is empty when that folder does not exist
+        const QString folder = QDir::tempPath();
+        if (!QDir::isAbsolutePath(folder)) {
+            core::Logger::getInstance().warn("LanguageToolServer: No settings file, the server "
+                                             "checks slower: no temporary folder");
+            return QString();
+        }
+        const QString name = QStringLiteral("kalahari-languagetool-XXXXXX.properties");
+        auto* file = new QTemporaryFile(QDir(folder).filePath(name), this);
+        if (!file->open() || file->write(SERVER_SETTINGS) < 0) {
+            core::Logger::getInstance().warn("LanguageToolServer: No settings file, the server "
+                                             "checks slower: {}",
+                                             file->errorString().toStdString());
+            delete file;
+            return QString();
+        }
+        file->close();
+        m_settings = file;
+    }
+    return m_settings->fileName();
 }
 
 int LanguageToolServer::freePort(int from)

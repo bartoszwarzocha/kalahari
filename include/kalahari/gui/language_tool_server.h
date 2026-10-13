@@ -11,6 +11,7 @@
 class QNetworkAccessManager;
 class QNetworkReply;
 class QProcess;
+class QTemporaryFile;
 class QTimer;
 
 namespace kalahari::gui {
@@ -153,6 +154,10 @@ private:
     /// @brief Close the java program, without telling it
     void closeProcess();
 
+    /// @brief The file of the settings the server is started with (written once, removed with
+    ///        this); empty when it cannot be written: the server checks slower then
+    QString settingsFile();
+
     /// @brief A port nothing listens on here, from the one given
     static int freePort(int from);
 
@@ -161,6 +166,7 @@ private:
     QTimer* m_startTimer;   ///< How long it may take to start
     QProcess* m_process{nullptr};
     QNetworkReply* m_probeReply{nullptr};
+    QTemporaryFile* m_settings{nullptr};  ///< The settings the server is started with
 
     QString m_java;
     QString m_folder;

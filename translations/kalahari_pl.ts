@@ -3989,8 +3989,8 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
         <translation>Gramatyka nie jest sprawdzana: LanguageTool przestał odpowiadać. Program uruchamia go ponownie.</translation>
     </message>
     <message>
-        <source>Grammar is not checked: LanguageTool did not start. Details: Edit &gt; Preferences..., Editor &gt; Grammar.</source>
-        <translation>Gramatyka nie jest sprawdzana: LanguageTool się nie uruchomił. Szczegóły: Edycja &gt; Preferencje..., Edytor &gt; Gramatyka.</translation>
+        <source>Grammar is not checked: LanguageTool did not start. Details: Edit &gt; Settings..., Editor &gt; Grammar.</source>
+        <translation>Gramatyka nie jest sprawdzana: LanguageTool się nie uruchomił. Szczegóły: Edycja &gt; Ustawienia..., Edytor &gt; Gramatyka.</translation>
     </message>
     <message>
         <source>The server refused the request because the limit was exceeded. The program will try again in a moment.</source>
@@ -4025,8 +4025,8 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
         <translation>Przygotować sprawdzanie gramatyki?</translation>
     </message>
     <message>
-        <source>Checking on a server in the internet can be chosen in the settings: Edit &gt; Preferences..., group Editor &gt; Grammar.</source>
-        <translation>Sprawdzanie na serwerze w internecie można wybrać w ustawieniach: Edycja &gt; Preferencje..., grupa Edytor &gt; Gramatyka.</translation>
+        <source>Checking on a server in the internet can be chosen in the settings: Edit &gt; Settings..., group Editor &gt; Grammar.</source>
+        <translation>Sprawdzanie na serwerze w internecie można wybrać w ustawieniach: Edycja &gt; Ustawienia..., grupa Edytor &gt; Gramatyka.</translation>
     </message>
     <message>
         <source>Grammar</source>
@@ -7285,8 +7285,8 @@ Harmonogram projektu:
         <translation>Podpowiedź zobaczysz po kliknięciu podkreślenia prawym przyciskiem myszy (albo po naciśnięciu klawisza menu). Klawisz F7 przechodzi do następnego błędu.</translation>
     </message>
     <message>
-        <source>Settings of the grammar: Edit &gt; Preferences..., group Editor &gt; Grammar.</source>
-        <translation>Ustawienia gramatyki: Edycja &gt; Preferencje..., grupa Edytor &gt; Gramatyka.</translation>
+        <source>Settings of the grammar: Edit &gt; Settings..., group Editor &gt; Grammar.</source>
+        <translation>Ustawienia gramatyki: Edycja &gt; Ustawienia..., grupa Edytor &gt; Gramatyka.</translation>
     </message>
     <message>
         <source>What Will Be Downloaded</source>

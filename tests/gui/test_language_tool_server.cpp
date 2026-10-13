@@ -152,6 +152,9 @@ TEST_CASE("LanguageTool server: the program starts it with Java and closes it",
     CHECK(states == QList<LanguageToolServer::State>({LanguageToolServer::State::Starting,
                                                       LanguageToolServer::State::Running}));
     CHECK(server.details().contains(QStringLiteral("Starting LanguageTool")));
+    // What it checks a language with is kept from one text to the next: some 20 ms for a
+    // paragraph instead of 150
+    CHECK(server.details().contains(QStringLiteral("Setting: pipelineCaching=true")));
 
     // Started again while it runs: nothing happens
     server.start();
@@ -165,6 +168,28 @@ TEST_CASE("LanguageTool server: the program starts it with Java and closes it",
     server.stop();
     CHECK(server.state() == LanguageToolServer::State::Stopped);
 }
+
+#if !defined(Q_OS_WIN)
+TEST_CASE("LanguageTool server: started also when the temporary folder does not exist",
+          "[gui][grammar]") {
+    LanguageToolFolder folder;
+    // The settings file would land in the working folder of the program, and Qt may give its
+    // path as relative, which Java, started in the LanguageTool folder, does not find: the
+    // server starts without it and checks slower
+    const ScopedEnvironment temporary("TMPDIR",
+                                      QDir(folder.path()).filePath(QStringLiteral("no")).toUtf8());
+    LanguageToolServer server;
+    server.setJava(fakeJavaProgram());
+    server.setFolder(folder.path());
+    server.setPort(freePort());
+
+    server.start();
+    const bool running = reaches(server, LanguageToolServer::State::Running);
+    INFO(account(server));
+    REQUIRE(running);
+    CHECK_FALSE(server.details().contains(QStringLiteral("Setting:")));
+}
+#endif
 
 TEST_CASE("LanguageTool server: nothing to start, or Java that does not start it",
           "[gui][grammar]") {
