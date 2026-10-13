@@ -131,8 +131,8 @@ int foldersPageOverflow(const QString& category, const QString& title) {
     auto* scrollArea = qobject_cast<QScrollArea*>(page->parentWidget()->parentWidget());
     REQUIRE(scrollArea != nullptr);
     REQUIRE(scrollArea->widget() == page);
-    INFO(title.toStdString() << ": " << page->minimumSizeHint().width() << " px wide, "
-                             << scrollArea->viewport()->width() << " px of place");
+    UNSCOPED_INFO(title.toStdString() << ": " << page->minimumSizeHint().width() << " px wide, "
+                                      << scrollArea->viewport()->width() << " px of place");
     return page->minimumSizeHint().width() - scrollArea->viewport()->width();
 }
 

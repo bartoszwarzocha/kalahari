@@ -4585,7 +4585,7 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <name>kalahari::gui::FolderField</name>
     <message>
         <source>Restore Default</source>
-        <translation>Przywróć domyślny</translation>
+        <translation>Domyślny</translation>
     </message>
     <message>
         <source>Choose the folder in the system window</source>
