@@ -854,13 +854,14 @@ void NewFileDialog::showPlainFile()
 
 void NewFileDialog::updateKindIcon()
 {
+    const bool plain = plainChosen();
     const NewFileKind* entry = chosen();
-    if (!entry && !plainChosen()) {
+    if (!plain && !entry) {
         m_iconLabel->clear();
         return;
     }
     const QIcon icon = core::ArtProvider::getInstance().getThemedIcon(
-        plainChosen() ? PLAIN_FILE_ICON : NavigatorPanel::iconIdOf(entry->kind));
+        plain ? PLAIN_FILE_ICON : NavigatorPanel::iconIdOf(entry->kind));
     m_iconLabel->setPixmap(icon.pixmap(QSize(DESCRIPTION_ICON_SIZE, DESCRIPTION_ICON_SIZE),
                                        devicePixelRatioF()));
 }
