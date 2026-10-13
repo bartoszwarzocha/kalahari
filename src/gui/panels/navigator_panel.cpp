@@ -1486,6 +1486,11 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             artProvider.getIcon("book.newItem", core::IconContext::Menu),
             tr("&Add to Book..."));
         connect(addToProjectAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddToProject);
+        // Without a book it could only say that one must be opened first
+        addToProjectAction->setEnabled(projectOpen);
+        if (!projectOpen) {
+            addToProjectAction->setToolTip(tr("No book is open"));
+        }
 
         QAction* removeFromListAction = menu.addAction(
             artProvider.getIcon("edit.delete", core::IconContext::Menu),

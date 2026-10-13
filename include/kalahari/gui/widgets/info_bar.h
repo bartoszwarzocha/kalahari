@@ -40,6 +40,9 @@ public:
     /// @brief The tooltip of the button
     void setActionToolTip(const QString& toolTip);
 
+    /// @brief Whether the button can be clicked; greyed out when not
+    void setActionEnabled(bool enabled);
+
 signals:
     /// @brief The button was clicked
     void actionClicked();

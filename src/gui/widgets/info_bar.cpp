@@ -90,6 +90,11 @@ void InfoBar::setActionToolTip(const QString& toolTip)
     m_actionButton->setToolTip(toolTip);
 }
 
+void InfoBar::setActionEnabled(bool enabled)
+{
+    m_actionButton->setEnabled(enabled);
+}
+
 void InfoBar::updateStyling()
 {
     const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();

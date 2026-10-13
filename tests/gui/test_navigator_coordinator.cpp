@@ -1407,6 +1407,33 @@ TEST_CASE("Navigator menu: moving an element to the start and to the end of its 
     CHECK(navigator.current() == first);
 }
 
+TEST_CASE("Navigator menu: a file outside the book is added to an open book only",
+          "[gui][navigator]") {
+    // Round 3 report 19.2: without a book, Add to Book could only say that one must be opened
+    // first. It is greyed out, and its tooltip says why.
+    const QString path = QDir::temp().absoluteFilePath(QStringLiteral("notes.txt"));
+    QString toolTip;
+    {
+        Navigator navigator;
+        navigator.panel->resize(400, 600);
+        navigator.window.resize(400, 600);
+        navigator.window.show();
+        navigator.panel->addStandaloneFile(path);
+        CHECK_FALSE(navigator.inMenuOf(navigator.item(path), QStringLiteral("Add to Book..."),
+                                       false, &toolTip));
+        CHECK(toolTip == QStringLiteral("No book is open"));
+        CHECK(navigator.inMenuOf(navigator.item(path), QStringLiteral("Open"), false));
+    }
+
+    OpenNovel novel;
+    Navigator navigator;
+    navigator.panel->resize(400, 600);
+    navigator.window.resize(400, 600);
+    navigator.window.show();
+    navigator.panel->addStandaloneFile(path);
+    CHECK(navigator.inMenuOf(navigator.item(path), QStringLiteral("Add to Book..."), false));
+}
+
 TEST_CASE("Navigator commands: the sections are hidden, shown and renamed, saved at once",
           "[gui][navigator]") {
     OpenNovel novel;

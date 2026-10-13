@@ -662,16 +662,28 @@ TEST_CASE("New File: Add to Book puts a new file into the open book at once, ask
     // A new file written before the book opens (the flag outlives the window and its tabs)
     bool fileClosed = false;
     test::Window window;
+    // The window follows the book as the main window does, its info bar too
+    QObject::connect(&pm, &core::ProjectManager::projectOpened, &window.documents,
+                     &gui::DocumentCoordinator::onProjectOpened);
+    QObject::connect(&pm, &core::ProjectManager::projectAboutToClose, &window.documents,
+                     &gui::DocumentCoordinator::prepareForProjectClose);
+    QObject::connect(&pm, &core::ProjectManager::projectClosed, &window.documents,
+                     &gui::DocumentCoordinator::onProjectClosed);
     window.documents.onNewDocument();
     gui::EditorPanel* file = window.editor(0);
     QObject::connect(file, &QObject::destroyed, [&fileClosed]() { fileClosed = true; });
     test::write(*file, QStringLiteral("Ideas for a new book"));
+    // Without a book the file can go into none: the button of its info bar is greyed out
+    // (round 3 report 19.2)
+    CHECK_FALSE(window.infoBar->isHidden());
+    auto* button = window.infoBar->findChild<QPushButton*>();
+    REQUIRE(button != nullptr);
+    CHECK_FALSE(button->isEnabled());
     REQUIRE(test::accepting([&]() { window.documents.onOpenRecentFile(manifest); }) == 0);
     REQUIRE(pm.isProjectOpen());
     window.tabs->setCurrentWidget(file);
     CHECK_FALSE(window.infoBar->isHidden());
-    auto* button = window.infoBar->findChild<QPushButton*>();
-    REQUIRE(button != nullptr);
+    CHECK(button->isEnabled());
     // No window follows, so no ellipsis
     CHECK(button->text() == QStringLiteral("Add to Book"));
 

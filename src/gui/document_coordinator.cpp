@@ -1087,12 +1087,15 @@ void DocumentCoordinator::updateStandaloneInfoBar() {
     }
 
     m_standaloneInfoBar->setFilePath(editor->property("standaloneFilePath").toString());
-    if (core::ProjectManager::getInstance().isProjectOpen()) {
+    const bool bookOpen = core::ProjectManager::getInstance().isProjectOpen();
+    if (bookOpen) {
         m_standaloneInfoBar->setMessage(tr("This file is not part of the open book."));
     } else {
         m_standaloneInfoBar->setMessage(
             tr("This file is not part of a book. Some features are not available."));
     }
+    // Without a book, Add to Book could only say that one must be opened first
+    m_standaloneInfoBar->setActionEnabled(bookOpen);
     m_standaloneInfoBar->show();
 }
 

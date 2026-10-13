@@ -316,7 +316,7 @@ MainWindow::MainWindow(QWidget* parent)
             this, &MainWindow::rememberChapterCursors);
     logger.debug("MainWindow: Connected ProjectManager signals to DocumentCoordinator");
 
-    // The Book menu follows the open book
+    // The Book menu and the commands of the open book follow it
     connect(&pm, &core::ProjectManager::projectOpened, this, &MainWindow::updateBookCommands);
     connect(&pm, &core::ProjectManager::projectClosed, this, &MainWindow::updateBookCommands);
     updateBookCommands();
@@ -563,6 +563,12 @@ void MainWindow::registerCommands() {
     // front: without one (the Dashboard, no tab) they are greyed out with their keys, as in
     // Word without a document. The tab in front updates them (updateEditorActionStates())
     utils::bindToDocument(registry, [this]() { return hasDocumentInFront(); });
+
+    // Close Book and the export of the book's archive work on the open book: without one
+    // they are greyed out, as the Book menu (updateBookCommands())
+    utils::bindToOpenBook(registry, []() {
+        return core::ProjectManager::getInstance().isProjectOpen();
+    });
 
     // The paper, Typewriter Scrolling and Focus are settings of every editor: their toggles
     // show them also before an editor opens, and follow the editor's context menu and the
@@ -1314,6 +1320,7 @@ void MainWindow::updateBookCommands() {
     }
     registry.updateActionState("book.newChapter");
     registry.updateActionState("book.properties");
+    utils::updateOpenBookCommands(registry);
 }
 
 QMenu* MainWindow::createPopupMenu() {

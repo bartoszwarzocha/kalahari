@@ -167,10 +167,11 @@ private:
     /// properties, its first field ready for typing
     void showBookProperties();
 
-    /// @brief Make the Book menu follow the open book
+    /// @brief Make the Book menu and the commands of the open book follow it
     ///
     /// New Chapter... is named after the texts it adds (New Story... in a collection of short
-    /// stories) and, like Book Properties..., works only with a book open.
+    /// stories) and, like Book Properties..., Close Book and the export of the book's archive,
+    /// works only with a book open.
     void updateBookCommands();
 
     // NOTE: createDiagnosticMenu, removeDiagnosticMenu, createDevToolsMenu, removeDevToolsMenu
