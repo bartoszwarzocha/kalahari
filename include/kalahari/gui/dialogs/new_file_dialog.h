@@ -15,6 +15,7 @@
 
 class QEvent;
 class QLabel;
+class QLayout;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
@@ -42,12 +43,13 @@ struct NewFileKind {
 
 /// @brief New File: a new element of the open book, which opens in the editor
 ///
-/// The kinds of the book are tiles in groups of the parts of the book (front, main and back),
-/// named as the Navigator names them; the groups of a book without sections are named after
-/// their place in the book ("Content"). At the left the window describes the chosen kind:
-/// where its elements can be, how many the book can have, the file a new one gets and the
-/// type of book the kind belongs to. Under the tiles are the title of the new element and its
-/// place in the list of the part of the book of its tile.
+/// The title of the new element comes first, at the top of the window, where it stays in view
+/// also when the rest scrolls on a small screen. Under it the kinds of the book are tiles in
+/// groups of the parts of the book (front, main and back), named as the Navigator names them;
+/// the groups of a book without sections are named after their place in the book ("Content").
+/// At the left the window describes the chosen kind: where its elements can be, how many the
+/// book can have, the file a new one gets and the type of book the kind belongs to. Under the
+/// tiles is the place of the new element in the list of the part of the book of its tile.
 ///
 /// A kind of which the book has as many elements as it can (a title page), and a kind that
 /// opens in a window the program does not have yet (a table of contents), have greyed tiles,
@@ -130,8 +132,11 @@ private:
     /// @brief The tiles of the kinds
     QWidget* createKindsGroup(QWidget* parent);
 
-    /// @brief The title and the place of the new element
-    QWidget* createDetailsGroup(QWidget* parent);
+    /// @brief The title of the new element, with its label
+    QLayout* createTitleRow();
+
+    /// @brief The place of the new element
+    QWidget* createPlaceGroup(QWidget* parent);
 
     /// @brief The groups of the parts of the book with their tiles
     void fillKinds();

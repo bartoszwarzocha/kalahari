@@ -16,6 +16,7 @@
 #include <kalahari/gui/utils/access_keys.h>
 #include <kalahari/gui/utils/program_folders.h>
 #include <kalahari/gui/widgets/element_place_picker.h>
+#include <kalahari/gui/widgets/fitting_scroll_area.h>
 
 #include "document_window.h"
 
@@ -37,6 +38,7 @@
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPushButton>
+#include <QScrollBar>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QToolBar>
@@ -483,6 +485,45 @@ TEST_CASE("New File: the chosen kind, the title of the new element and its place
         CHECK_FALSE(titlePage->flags().testFlag(Qt::ItemIsSelectable));
         CHECK_FALSE(titlePage->flags().testFlag(Qt::ItemIsEnabled));
     }
+}
+
+TEST_CASE("New File: the title is the first field, above the tiles and the place, and in view "
+          "on a small screen",
+          "[gui][newfile]") {
+    test::OpenNovel book(QStringLiteral("Rain"));
+    NewFileDialog dialog(NewFileDialog::openBook(), book.pm.bookTypes());
+    dialog.show();
+    QCoreApplication::processEvents();
+
+    // The title at the top, then the tiles of the kinds, then the place
+    const auto topOf = [&dialog](const QWidget* widget) {
+        return widget->mapTo(&dialog, QPoint(0, 0)).y();
+    };
+    CHECK(topOf(dialog.titleEdit()) < topOf(dialog.kindList()));
+    CHECK(topOf(dialog.kindList()) < topOf(dialog.picker()));
+
+    // Tab goes from the title to the tiles
+    QWidget* next = dialog.titleEdit()->nextInFocusChain();
+    while (next != dialog.titleEdit() &&
+           ((next->focusPolicy() & Qt::TabFocus) == 0 || !next->isVisible())) {
+        next = next->nextInFocusChain();
+    }
+    CHECK(next == dialog.kindList());
+
+    // A window lower than the tiles and the place, as on 1366x768 at 150%: they scroll, and
+    // the title stays in view
+    dialog.resize(dialog.width(), 360);
+    QCoreApplication::processEvents();
+    QCoreApplication::processEvents();
+    REQUIRE(dialog.height() == 360);
+    auto* area = dialog.findChild<gui::FittingScrollArea*>();
+    REQUIRE(area != nullptr);
+    CHECK(area->verticalScrollBar()->isVisible());
+    CHECK_FALSE(area->isAncestorOf(dialog.titleEdit()));
+    area->verticalScrollBar()->setValue(area->verticalScrollBar()->maximum());
+    QCoreApplication::processEvents();
+    const QLineEdit* title = dialog.titleEdit();
+    CHECK(dialog.rect().contains(QRect(title->mapTo(&dialog, QPoint(0, 0)), title->size())));
 }
 
 TEST_CASE("New File: Create adds the element at its place and opens it in the editor",

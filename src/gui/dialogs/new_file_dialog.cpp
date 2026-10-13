@@ -49,7 +49,7 @@ namespace dialogs {
 namespace {
 
 constexpr int MINIMUM_WIDTH = 700;         ///< The description and three tiles in a row
-constexpr QSize DEFAULT_SIZE{880, 740};    ///< The tiles of the main part and the details in view
+constexpr QSize DEFAULT_SIZE{880, 740};    ///< The tiles of the main part and the place in view
 constexpr int DESCRIPTION_WIDTH = 250;     ///< Of the description at the left, as in New Book
 constexpr int DESCRIPTION_ICON_SIZE = 64;  ///< Of the icon above the description
 constexpr int NAME_POINT_SIZE = 12;        ///< Of the name of the kind above its description
@@ -382,6 +382,10 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     mainLayout->setSpacing(11);
     mainLayout->setContentsMargins(11, 11, 11, 11);
 
+    // The title first, above the kinds and the place, so that it is the first field of the
+    // window; it does not scroll with them on a small screen
+    mainLayout->addLayout(createTitleRow());
+
     auto* content = new QWidget(this);
     auto* contentLayout = new QVBoxLayout(content);
     contentLayout->setSpacing(11);
@@ -391,7 +395,7 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     top->addWidget(createDescriptionPanel(content));
     top->addWidget(createKindsGroup(content), 1);
     contentLayout->addLayout(top, 1);
-    contentLayout->addWidget(createDetailsGroup(content));
+    contentLayout->addWidget(createPlaceGroup(content));
     mainLayout->addWidget(new FittingScrollArea(content, this), 1);
 
     auto* buttons = new QDialogButtonBox(this);
@@ -543,30 +547,29 @@ QWidget* NewFileDialog::createKindsGroup(QWidget* parent)
     return group;
 }
 
-QWidget* NewFileDialog::createDetailsGroup(QWidget* parent)
+QLayout* NewFileDialog::createTitleRow()
 {
-    //: The title and the place of the new element. In Polish: Szczegóły
-    auto* group = new QGroupBox(tr("Details"), parent);
-    auto* grid = new QGridLayout(group);
-    grid->setSpacing(6);
-    grid->setContentsMargins(11, 11, 11, 11);
-    grid->setColumnStretch(1, 1);
-    grid->setRowStretch(1, 1);
-
+    auto* row = new QHBoxLayout();
+    row->setSpacing(8);
     //: In Polish: &Tytuł:
-    auto* titleLabel = new QLabel(tr("&Title:"), group);
-    m_titleEdit = new QLineEdit(group);
+    auto* titleLabel = new QLabel(tr("&Title:"), this);
+    m_titleEdit = new QLineEdit(this);
     titleLabel->setBuddy(m_titleEdit);
-    grid->addWidget(titleLabel, 0, 0);
-    grid->addWidget(m_titleEdit, 0, 1);
+    row->addWidget(titleLabel);
+    row->addWidget(m_titleEdit, 1);
+    return row;
+}
 
-    // The list of the part of the book with the element in its place, named beside it
-    //: The place of the new element in the book. In Polish: Miejsce:
-    auto* placeLabel = new QLabel(tr("Place:"), group);
+QWidget* NewFileDialog::createPlaceGroup(QWidget* parent)
+{
+    //: The place of the new element in the book. In Polish: Miejsce
+    auto* group = new QGroupBox(tr("Place"), parent);
+    auto* layout = new QVBoxLayout(group);
+
+    // The list of the part of the book with the element in its place, named by the group
     m_picker = new ElementPlacePicker(group);
     m_picker->setLabel(QString());
-    grid->addWidget(placeLabel, 1, 0, Qt::AlignTop);
-    grid->addWidget(m_picker, 1, 1);
+    layout->addWidget(m_picker);
     return group;
 }
 

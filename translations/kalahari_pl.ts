@@ -9146,19 +9146,14 @@ The button that moves the element. In Polish: Przenieś</extracomment>
         <translation>Rodzaje</translation>
     </message>
     <message>
-        <source>Details</source>
-        <extracomment>The title and the place of the new element. In Polish: Szczegóły</extracomment>
-        <translation>Szczegóły</translation>
+        <source>Place</source>
+        <extracomment>The place of the new element in the book. In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
     </message>
     <message>
         <source>&amp;Title:</source>
         <extracomment>In Polish: &amp;Tytuł:</extracomment>
         <translation>&amp;Tytuł:</translation>
-    </message>
-    <message>
-        <source>Place:</source>
-        <extracomment>The place of the new element in the book. In Polish: Miejsce:</extracomment>
-        <translation>Miejsce:</translation>
     </message>
 </context>
 <context>
