@@ -312,6 +312,10 @@ void LanguageToolServer::probe()
     }
     QNetworkRequest request(QUrl(address() + QStringLiteral("/v2/languages")));
     request.setTransferTimeout(PROBE_TIMEOUT_MS);
+    // Every probe on a new connection: one that went wrong is not used again. On macOS the
+    // first one can reach itself over IPv6 (a port next to the last one the system gave is
+    // the one it gives next); kept, it would try only IPv6, where nothing listens.
+    request.setAttribute(QNetworkRequest::ConnectionCacheExpiryTimeoutSecondsAttribute, 0);
     QNetworkReply* reply = m_network->get(request);
     m_probeReply = reply;
     connect(reply, &QNetworkReply::finished, this, [this, reply]() { onProbeReply(reply); });

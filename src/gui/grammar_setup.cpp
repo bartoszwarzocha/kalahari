@@ -365,10 +365,13 @@ bool GrammarSetup::canWrite()
     if (!QDir().mkpath(folder)) {
         return false;
     }
-    QTemporaryFile file(QDir(folder).filePath(QStringLiteral("write-XXXXXX.tmp")));
-    const bool writable = file.open();
-    file.close();
-    if (!existed && writable) {
+    bool writable = false;
+    {
+        // Removed with the object, before the folder (on Linux it never has a name)
+        QTemporaryFile file(QDir(folder).filePath(QStringLiteral("write-XXXXXX.tmp")));
+        writable = file.open();
+    }
+    if (!existed) {
         QDir().rmdir(folder);
     }
     return writable;

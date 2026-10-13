@@ -15,6 +15,8 @@
 #include <QTcpServer>
 #include <QTemporaryDir>
 
+#include <string>
+
 using namespace kalahari::gui;
 using namespace kalahari::test;
 
@@ -49,6 +51,16 @@ int freePort() {
 bool reaches(const LanguageToolServer& server, LanguageToolServer::State state,
              int timeoutMs = START_MS) {
     return waitUntil([&server, state]() { return server.state() == state; }, timeoutMs);
+}
+
+/// Where a server got to, for a test that fails
+std::string account(const LanguageToolServer& server) {
+    return QStringLiteral("state %1, failure %2, port %3: %4")
+        .arg(static_cast<int>(server.state()))
+        .arg(static_cast<int>(server.failure()))
+        .arg(server.port())
+        .arg(server.details())
+        .toStdString();
 }
 
 /// Keep the states a server goes through
@@ -187,7 +199,9 @@ TEST_CASE("LanguageTool server: a port taken by another program, another one is 
         REQUIRE(other.listen(QHostAddress::LocalHost));
         server.setPort(other.serverPort());
         server.start();
-        REQUIRE(reaches(server, LanguageToolServer::State::Running));
+        const bool running = reaches(server, LanguageToolServer::State::Running);
+        INFO(account(server));
+        REQUIRE(running);
         REQUIRE(ports.size() == 1);
         CHECK(ports.first() != other.serverPort());
         CHECK(server.port() == ports.first());
@@ -198,7 +212,9 @@ TEST_CASE("LanguageTool server: a port taken by another program, another one is 
         ScopedEnvironment taken("KALAHARI_FAKE_JAVA_TAKEN_PORT", QByteArray::number(port));
         server.setPort(port);
         server.start();
-        REQUIRE(reaches(server, LanguageToolServer::State::Running));
+        const bool running = reaches(server, LanguageToolServer::State::Running);
+        INFO(account(server));
+        REQUIRE(running);
         REQUIRE_FALSE(ports.isEmpty());
         CHECK(server.port() != port);
     }
