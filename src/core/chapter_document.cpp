@@ -10,6 +10,7 @@
 
 #include <QFile>
 #include <QJsonDocument>
+#include <QSaveFile>
 #include <QXmlStreamReader>
 
 namespace kalahari {
@@ -329,7 +330,9 @@ bool ChapterDocument::save(const QString& path) const
 {
     auto& logger = Logger::getInstance();
 
-    QFile file(path);
+    // QSaveFile writes a temporary file and renames it over the chapter only when all of it
+    // is written, so a failed save (a full disk, a crash) leaves the previous chapter whole
+    QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         logger.error("ChapterDocument::save: Cannot open file for writing: {}",
                      path.toStdString());
@@ -340,11 +343,15 @@ bool ChapterDocument::save(const QString& path) const
     const QByteArray data = jsonDoc.toJson(QJsonDocument::Indented);
 
     const qint64 written = file.write(data);
-    file.close();
-
     if (written != data.size()) {
         logger.error("ChapterDocument::save: Write incomplete: {} of {} bytes",
                      written, data.size());
+        file.cancelWriting();
+        return false;
+    }
+    if (!file.commit()) {
+        logger.error("ChapterDocument::save: Cannot replace {}: {}", path.toStdString(),
+                     file.errorString().toStdString());
         return false;
     }
 
