@@ -25,7 +25,7 @@ EditorAutoCorrectPage::EditorAutoCorrectPage(QWidget* parent)
     addCheckBox(replace, tr("Straight quotes with typographic ones"), "editor.autoCorrect.quotes");
     addCheckBox(replace, tr("Apostrophe ' with ’"), "editor.autoCorrect.apostrophe");
     QCheckBox* dialogueDash = addCheckBox(
-        replace, tr("Hyphen at the start of a paragraph with a dash"), "editor.autoCorrect.dialogueDash");
+        replace, tr("Hyphen opening a paragraph with a dash"), "editor.autoCorrect.dialogueDash");
 
     // The dash, chosen only for the hyphen changed
     auto* dash = new QComboBox();

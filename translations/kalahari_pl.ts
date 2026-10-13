@@ -3079,7 +3079,7 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
         <translation>Apostrof &apos; na ’</translation>
     </message>
     <message>
-        <source>Hyphen at the start of a paragraph with a dash</source>
+        <source>Hyphen opening a paragraph with a dash</source>
         <translation>Dywiz na początku akapitu na myślnik</translation>
     </message>
     <message>
@@ -3331,8 +3331,8 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Liczenie słów</translation>
     </message>
     <message>
-        <source>Count standalone dialogue dashes as words</source>
-        <translation>Licz samodzielne myślniki dialogowe jako słowa</translation>
+        <source>Count standalone dashes as words</source>
+        <translation>Licz samodzielne myślniki jako słowa</translation>
     </message>
     <message>
         <source>A dash separated by spaces from the words around it, as at the start of a line of dialogue. Microsoft Word counts it as a word, LibreOffice does not.</source>

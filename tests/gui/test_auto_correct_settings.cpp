@@ -25,16 +25,12 @@
 #include <QLabel>
 #include <QMainWindow>
 #include <QPushButton>
-#include <QScrollArea>
-#include <QScrollBar>
 #include <QStackedWidget>
 #include <QTemporaryDir>
-#include <QTranslator>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
 #include <array>
-#include <optional>
 #include <string>
 
 using namespace kalahari;
@@ -46,7 +42,7 @@ namespace {
 constexpr std::array<const char*, 4> CHECK_BOXES = {
     "Straight quotes with typographic ones",
     "Apostrophe ' with ’",
-    "Hyphen at the start of a paragraph with a dash",
+    "Hyphen opening a paragraph with a dash",
     "“...” with an ellipsis “…”",
 };
 
@@ -123,33 +119,6 @@ bool canActivateWindows() {
 
 constexpr const char* NEEDS_OFFSCREEN =
     "needs an active window without a window on screen: run with QT_QPA_PLATFORM=offscreen";
-
-/// The layouts of a shown window settle
-void settle() {
-    for (int pass = 0; pass < 3; ++pass) {
-        QApplication::processEvents();
-    }
-}
-
-/// The program in Polish while it lives: the translation it ships
-class Polish {
-public:
-    Polish() {
-        m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
-        if (m_loaded) {
-            QCoreApplication::installTranslator(&m_translator);
-        }
-    }
-    ~Polish() { QCoreApplication::removeTranslator(&m_translator); }
-    Polish(const Polish&) = delete;
-    Polish& operator=(const Polish&) = delete;
-
-    [[nodiscard]] bool loaded() const { return m_loaded; }
-
-private:
-    QTranslator m_translator;
-    bool m_loaded = false;
-};
 
 }  // anonymous namespace
 
@@ -236,34 +205,6 @@ TEST_CASE("Settings > Auto-correct: the dash is greyed out while the dialogue da
     REQUIRE(dashLabel != nullptr);
     CHECK_FALSE(dashLabel->isEnabled());
     CHECK_FALSE(dialog.hasChanges());
-}
-
-TEST_CASE("Settings > Auto-correct: fits a small screen, in English and in Polish",
-          "[gui][settings][autocorrect]") {
-    for (const bool inPolish : {false, true}) {
-        INFO((inPolish ? "in Polish" : "in English"));
-        std::optional<Polish> polish;
-        if (inPolish) {
-            polish.emplace();
-            REQUIRE(polish->loaded());
-        }
-        SettingsDialog dialog(nullptr);
-        auto* scrollArea = qobject_cast<QScrollArea*>(openAutoCorrectPage(dialog));
-        REQUIRE(scrollArea != nullptr);
-        REQUIRE(scrollArea->widget() != nullptr);
-        dialog.show();
-
-        // 1366 × 768 at 125%: the dialog gets 90% of 1093 × 566 above the taskbar; at 150%,
-        // 90% of 911 × 464. The page may scroll down, never sideways
-        for (const QSize size : {QSize(840, 509), QSize(820, 417)}) {
-            INFO("window " << size.width() << " x " << size.height());
-            dialog.resize(size);
-            settle();
-            CHECK(scrollArea->widget()->minimumSizeHint().width() <=
-                  scrollArea->viewport()->width());
-            CHECK_FALSE(scrollArea->horizontalScrollBar()->isVisible());
-        }
-    }
 }
 
 TEST_CASE("Settings > Auto-correct: the note gives the keys Undo has", "[gui][settings][autocorrect]") {

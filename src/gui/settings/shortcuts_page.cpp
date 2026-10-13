@@ -9,6 +9,7 @@
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/shortcut_settings.h"
+#include "kalahari/gui/widgets/flow_layout.h"
 #include "kalahari/gui/widgets/shortcut_recorder.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
@@ -458,9 +459,9 @@ void ShortcutsPage::createSearch() {
     m_onlyChanged->setObjectName(QStringLiteral("shortcutsOnlyChanged"));
     m_onlyChanged->setToolTip(tr("Show only the shortcuts you changed"));
 
+    // In a line of their own where the page is narrower still
     m_searchOptions = new QWidget();
-    auto* options = new QHBoxLayout(m_searchOptions);
-    options->setContentsMargins(0, 0, 0, 0);
+    auto* options = new FlowLayout(m_searchOptions);
     options->addWidget(m_byKeysButton);
     options->addWidget(m_onlyChanged);
     m_searchRow->addWidget(m_searchLabel, 0, 0);
@@ -564,9 +565,9 @@ void ShortcutsPage::createDetail() {
     m_removeButton->setToolTip(tr("Leave the command without a shortcut"));
     m_restoreButton = new QPushButton(tr("Restore &Default"));
     m_restoreButton->setToolTip(tr("Give the command its default shortcut"));
+    // In two lines where the page is narrower still
     m_keyButtons = new QWidget();
-    auto* buttonsLayout = new QHBoxLayout(m_keyButtons);
-    buttonsLayout->setContentsMargins(0, 0, 0, 0);
+    auto* buttonsLayout = new FlowLayout(m_keyButtons);
     buttonsLayout->addWidget(m_changeButton);
     buttonsLayout->addWidget(m_removeButton);
     buttonsLayout->addWidget(m_restoreButton);
@@ -635,7 +636,6 @@ void ShortcutsPage::createDetail() {
 }
 
 void ShortcutsPage::createButtons() {
-    auto* row = new QHBoxLayout();
     m_restoreAllButton = new QPushButton(tr("Restore &All Defaults"));
     m_restoreAllButton->setToolTip(tr("Give every command its default shortcut"));
     m_importButton = new QPushButton(tr("&Import..."));
@@ -643,10 +643,16 @@ void ShortcutsPage::createButtons() {
     m_exportButton = new QPushButton(tr("&Export..."));
     m_exportButton->setToolTip(
         tr("Save your changed shortcuts to a file, e.g. for another computer"));
-    row->addWidget(m_restoreAllButton);
-    row->addStretch();
-    row->addWidget(m_importButton);
-    row->addWidget(m_exportButton);
+    // Restore All on the left and the files on the right, or under it on a narrow page
+    auto* restore = new QHBoxLayout();
+    restore->addWidget(m_restoreAllButton);
+    restore->addStretch();
+    auto* files = new QHBoxLayout();
+    files->addWidget(m_importButton);
+    files->addWidget(m_exportButton);
+    auto* row = new FlowLayout();
+    row->addLayout(restore);
+    row->addLayout(files);
     pageLayout()->addLayout(row);
 
     connect(m_restoreAllButton, &QPushButton::clicked, this, &ShortcutsPage::restoreAllDefaults);
