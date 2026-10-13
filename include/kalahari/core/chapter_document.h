@@ -202,6 +202,9 @@ public:
     static std::optional<ChapterDocument> load(const QString& path);
 
     /// @brief Save document to .kchapter file
+    ///
+    /// The file is replaced only when the whole document is written; a failed save leaves
+    /// the previous file as it was.
     /// @param path File path
     /// @return true if saved successfully
     bool save(const QString& path) const;

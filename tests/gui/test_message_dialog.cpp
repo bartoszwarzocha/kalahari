@@ -56,7 +56,7 @@ void whenShown(std::function<void(Dialog*)> action) {
 
 } // anonymous namespace
 
-TEST_CASE("Own messages: a message with OK, its text and Copy", "[gui][dialogs]") {
+TEST_CASE("Own messages: a message with OK, its text and Copy", "[gui][dialogs][clipboard]") {
     MessageDialog dialog(MessageDialog::Kind::Error, QStringLiteral("Import Failed"),
                          QStringLiteral("The archive could not be read."));
 

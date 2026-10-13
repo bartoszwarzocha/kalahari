@@ -171,7 +171,7 @@ QList<const QAction*> actionsOf(const QList<test::MenuItem>& items) {
 // =============================================================================
 
 TEST_CASE("Edit commands: a read-only field copies and selects all, and changes nothing",
-          "[gui][edit]") {
+          "[gui][edit][clipboard]") {
     EditCoordinator coordinator(noBook);
     QGuiApplication::clipboard()->setText(QStringLiteral("Pasted"));
 
@@ -220,7 +220,7 @@ TEST_CASE("Edit commands: a read-only field copies and selects all, and changes 
     }
 }
 
-TEST_CASE("Edit commands: a field one types into does them all", "[gui][edit]") {
+TEST_CASE("Edit commands: a field one types into does them all", "[gui][edit][clipboard]") {
     EditCoordinator coordinator(noBook);
     QGuiApplication::clipboard()->setText(QStringLiteral("Pasted"));
 
@@ -276,7 +276,7 @@ TEST_CASE("Edit commands: a field one types into does them all", "[gui][edit]") 
 }
 
 TEST_CASE("Edit commands: the field of a spin box and of a combo box one types into",
-          "[gui][edit]") {
+          "[gui][edit][clipboard]") {
     EditCoordinator coordinator(noBook);
     QGuiApplication::clipboard()->setText(QStringLiteral("24"));
 
@@ -307,7 +307,7 @@ TEST_CASE("Edit commands: the field of a spin box and of a combo box one types i
     }
 }
 
-TEST_CASE("Edit commands: the book's text", "[gui][edit]") {
+TEST_CASE("Edit commands: the book's text", "[gui][edit][clipboard]") {
     EditCoordinator coordinator(noBook);
     editor::BookEditor book;
     test::resizeWidget(book, QSize(600, 400));
@@ -335,7 +335,7 @@ TEST_CASE("Edit commands: the book's text", "[gui][edit]") {
 }
 
 TEST_CASE("Edit commands: a list copies its current item and selects all where it can",
-          "[gui][edit]") {
+          "[gui][edit][clipboard]") {
     EditCoordinator coordinator(noBook);
     QGuiApplication::clipboard()->setText(QStringLiteral("Pasted"));
     QTreeWidget list;
@@ -359,7 +359,7 @@ TEST_CASE("Edit commands: a list copies its current item and selects all where i
 
 TEST_CASE("Edit commands: in the find bar and in the Annotations panel, Undo and Redo work on "
           "the text",
-          "[gui][edit]") {
+          "[gui][edit][clipboard]") {
     editor::BookEditor book;
     test::resizeWidget(book, QSize(600, 400));
     book.fromKml(test::kmlOf({QStringLiteral("One two")}));
@@ -406,7 +406,7 @@ TEST_CASE("Edit commands: in the find bar and in the Annotations panel, Undo and
     }
 }
 
-TEST_CASE("Edit commands: elsewhere they do nothing", "[gui][edit]") {
+TEST_CASE("Edit commands: elsewhere they do nothing", "[gui][edit][clipboard]") {
     EditCoordinator coordinator(noBook);
     QGuiApplication::clipboard()->setText(QStringLiteral("Pasted"));
     QPushButton button(QStringLiteral("Open"));
@@ -485,7 +485,7 @@ TEST_CASE("Edit commands: the commands ask no coordinator that is gone", "[gui][
     }
 }
 
-TEST_CASE("Edit commands: the keys work on the element with the cursor", "[gui][edit]") {
+TEST_CASE("Edit commands: the keys work on the element with the cursor", "[gui][edit][clipboard]") {
     if (!canActivateWindows()) {
         SKIP(NEEDS_OFFSCREEN);
     }
@@ -547,7 +547,7 @@ TEST_CASE("Edit commands: the keys work on the element with the cursor", "[gui][
 }
 
 TEST_CASE("Edit commands: the text's context menu gives them to its text with their keys",
-          "[gui][edit]") {
+          "[gui][edit][clipboard]") {
     if (!canActivateWindows()) {
         SKIP(NEEDS_OFFSCREEN);
     }

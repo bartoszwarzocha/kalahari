@@ -429,8 +429,19 @@ add_dependencies(kalahari-tests kalahari-fake-java)
 # build does not depend on runtime DLLs (Qt, Python) being on PATH.
 include(Catch)
 catch_discover_tests(kalahari-tests
+    TEST_SPEC "~[clipboard]"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DISCOVERY_MODE PRE_TEST
+)
+
+# Test cases tagged [clipboard] use the system clipboard. On Windows and macOS there is one
+# for the whole computer, so two of them in parallel (ctest --parallel) would change each
+# other's clipboard: they run one at a time.
+catch_discover_tests(kalahari-tests
+    TEST_SPEC "[clipboard]"
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    DISCOVERY_MODE PRE_TEST
+    PROPERTIES RESOURCE_LOCK clipboard
 )
 
 # Process exit with a plugin still loaded, PluginManager created before the
