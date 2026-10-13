@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "kalahari/core/standalone_file.h"
+
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -329,15 +331,23 @@ private:
 
     /// @brief Write a standalone file tab's content in the file's own format
     ///
-    /// A plain text file keeps the text only: the formatting and the annotations it would
-    /// lose are written only after the writer agrees (agreeToSaveAsText()).
+    /// A plain text file keeps the text only: a content with formatting or annotations is
+    /// written only after the writer agrees (agreeToSaveAsText()), and then the tab shows
+    /// the text of the file (showTextOfFile()).
     /// @param path The tab's file (Save) or a new file the tab moves to (Save As)
     /// @return true when the file was written
     bool writeStandaloneFile(EditorPanel* editor, const QString& path);
 
-    /// @brief Whether to write the content @p kml to the plain text file @p path: a content
-    /// with formatting or annotations, which such a file loses, asks first
-    bool agreeToSaveAsText(const QString& kml, const QString& path);
+    /// @brief Whether to write to the plain text file @p path a content that loses @p lost
+    /// there: the writer is asked
+    bool agreeToSaveAsText(const core::StandaloneFile::TextLoss& lost, const QString& path);
+
+    /// @brief Show in the tab of @p editor the text of the plain text file @p path it was
+    /// saved in, without the formatting and the annotations the file does not keep
+    ///
+    /// One edit, which brings them back when undone. The cursor stays at its place in the
+    /// text, also when a line break became the end of a paragraph.
+    void showTextOfFile(EditorPanel* editor, const QString& path);
 
     /// @brief Save a standalone file tab under a name the user chooses (chapter or text file);
     /// a new file starts in the folder of Open File

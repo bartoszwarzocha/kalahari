@@ -28,6 +28,7 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/standalone_file.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/buffer_commands.h"
 #include "kalahari/editor/style_resolver.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QMainWindow>
@@ -1105,8 +1106,12 @@ bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString
     auto& logger = core::Logger::getInstance();
 
     const QString kml = editor->getContent();
-    if (core::StandaloneFile::typeOf(path) == core::StandaloneFile::Type::PlainText &&
-        !agreeToSaveAsText(kml, path)) {
+    const core::StandaloneFile::TextLoss lost =
+        core::StandaloneFile::typeOf(path) == core::StandaloneFile::Type::PlainText
+            ? core::StandaloneFile::lostAsText(kml)
+            : core::StandaloneFile::TextLoss{};
+    const bool loses = lost.formatting || lost.annotations;
+    if (loses && !agreeToSaveAsText(lost, path)) {
         logger.info("Not saved as plain text, which would lose formatting or annotations: {}",
                     path.toStdString());
         return false;
@@ -1123,6 +1128,9 @@ bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString
         return false;
     }
     editor->setProperty("standaloneFile", QVariant::fromValue(file));
+    if (loses) {
+        showTextOfFile(editor, path);  // the text the file keeps, as the question said
+    }
     editor->setUnmodified();  // its text is the saved text now
 
     const int index = m_centralTabs->indexOf(editor);
@@ -1149,8 +1157,8 @@ bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString
     return true;
 }
 
-bool DocumentCoordinator::agreeToSaveAsText(const QString& kml, const QString& path) {
-    const core::StandaloneFile::TextLoss lost = core::StandaloneFile::lostAsText(kml);
+bool DocumentCoordinator::agreeToSaveAsText(const core::StandaloneFile::TextLoss& lost,
+                                            const QString& path) {
     QString text;
     if (lost.formatting && lost.annotations) {
         //: %1: the name of the file. In Polish: Plik tekstowy (.txt) przechowuje tylko tekst,
@@ -1162,13 +1170,11 @@ bool DocumentCoordinator::agreeToSaveAsText(const QString& kml, const QString& p
         //: więc formatowanie (np. pogrubienie) nie zostanie zapisane w pliku „%1”.
         text = tr("A plain text file (.txt) keeps only the text, so the formatting (such as "
                   "bold) will not be saved in \"%1\".");
-    } else if (lost.annotations) {
+    } else {
         //: %1: the name of the file. In Polish: Plik tekstowy (.txt) przechowuje tylko tekst,
         //: więc uwagi nie zostaną zapisane w pliku „%1”.
         text = tr("A plain text file (.txt) keeps only the text, so the annotations will not be "
                   "saved in \"%1\".");
-    } else {
-        return true;  // the file keeps all of it
     }
     //: %1: the type of the files of Save As that keeps them. In Polish: Aby zachować wszystko,
     //: wybierz „Anuluj”, a potem Plik > Zapisz jako... i typ „%1”.
@@ -1180,6 +1186,23 @@ bool DocumentCoordinator::agreeToSaveAsText(const QString& kml, const QString& p
                                            tr("Save as &Text"),
                                            dialogs::MessageDialog::Kind::Warning,
                                            dialogs::MessageDialog::DefaultButton::Cancel);
+}
+
+void DocumentCoordinator::showTextOfFile(EditorPanel* editor, const QString& path) {
+    QString kml;
+    QString error;
+    if (!core::StandaloneFile::open(path, kml, &error)) {
+        core::Logger::getInstance().warn("Saved plain text file not read again, its tab keeps "
+                                         "the formatting: {} ({})",
+                                         path.toStdString(), error.toStdString());
+        return;
+    }
+    editor::BookEditor* bookEditor = editor->getBookEditor();
+    const int place = editor::calculateAbsolutePosition(bookEditor->textDocument(),
+                                                        bookEditor->cursorPosition());
+    bookEditor->replaceWithKml(kml);
+    bookEditor->setCursorPosition(
+        editor::absoluteToCursorPosition(bookEditor->textDocument(), place));
 }
 
 bool DocumentCoordinator::saveStandaloneFileAs(EditorPanel* editor) {

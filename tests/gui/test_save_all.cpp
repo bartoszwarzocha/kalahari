@@ -1,12 +1,14 @@
 /// @file test_save_all.cpp
 /// @brief "Save All" saves the book and every open file outside it; closing the book asks only
 /// about the changes of the book; a book of a newer version of Kalahari has its own window; a
-/// plain text file asks before it loses the formatting or the annotations of its text
+/// plain text file asks before it loses the formatting or the annotations of its text, and its
+/// tab loses them too
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/project_manager.h>
+#include <kalahari/core/standalone_file.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/panels/editor_panel.h>
@@ -17,6 +19,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QTemporaryDir>
+#include <QTextDocument>
 
 using namespace kalahari;
 using gui::dialogs::MessageDialog;
@@ -237,10 +240,29 @@ TEST_CASE("Save: a plain text file with formatting asks first, as it keeps the t
         CHECK(readText(notes) == "Notes");
         CHECK(tab->property("dirty").toBool());
 
-        // Save as Text: the text is written, without its formatting
+        // Save as Text: the text is written without its formatting, which the tab loses too
         CHECK(answering([&] { window.documents.onSaveDocument(); },
                         MessageDialog::Answer::Accept, said) == 1);
         CHECK(readText(notes) == "Notes of the night");
+        CHECK_FALSE(tab->property("dirty").toBool());
+        CHECK(tab->getText() == QStringLiteral("Notes of the night"));
+        CHECK_FALSE(core::StandaloneFile::lostAsText(tab->getContent()).formatting);
+
+        // Undo brings the formatting back, as a change not saved
+        tab->getBookEditor()->undo();
+        CHECK(core::StandaloneFile::lostAsText(tab->getContent()).formatting);
+        CHECK(tab->isModified());
+    }
+
+    SECTION("A line break: the tab shows the lines of the file, the cursor stays in its place") {
+        editor::BookEditor* bookEditor = tab->getBookEditor();
+        bookEditor->replaceWithKml(QStringLiteral("<kml><p>Notes of<br/>the night</p></kml>"));
+        bookEditor->setCursorPosition({0, 11});  // "th|e night"
+        CHECK(answering([&] { window.documents.onSaveDocument(); },
+                        MessageDialog::Answer::Accept, said) == 1);
+        CHECK(readText(notes) == "Notes of\nthe night");
+        CHECK(bookEditor->textDocument()->blockCount() == 2);
+        CHECK(bookEditor->cursorPosition() == editor::CursorPosition{1, 2});
         CHECK_FALSE(tab->property("dirty").toBool());
     }
 }
@@ -278,10 +300,14 @@ TEST_CASE("Save As: a chapter with annotations saved as a plain text file asks f
     CHECK_FALSE(QFileInfo::exists(textPath));
     CHECK(tab->property("standaloneFilePath").toString() == chapterPath);
 
-    // Save as Text: the text without the annotation, and the tab takes the text file
+    // Save as Text: the text without the annotation, and the tab takes the text file, without
+    // the annotation too
     said.clear();
     CHECK(answering([&] { window.documents.onSaveAsDocument(); },
                     MessageDialog::Answer::Accept, said, textPath) == 2);
     CHECK(readText(textPath) == "They met on Tuesday.");
     CHECK(tab->property("standaloneFilePath").toString() == textPath);
+    CHECK(tab->getText() == QStringLiteral("They met on Tuesday."));
+    CHECK_FALSE(core::StandaloneFile::lostAsText(tab->getContent()).annotations);
+    CHECK_FALSE(tab->property("dirty").toBool());
 }
