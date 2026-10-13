@@ -70,6 +70,10 @@ std::map<std::string, json> buildDefaults() {
         {"dashboard.showKalahariNews", true},
         {"dashboard.showRecentFiles", true},
         {"startup.autoLoadLastProject", false},
+        // The book opened last (its .klh file), opened at startup with the option above. A book
+        // created or imported without opening is the first of the recent books but not this
+        // one. Empty: the first of the recent books
+        {"startup.lastBook", ""},
 
         // Annotations: the name new ones are made with. Empty: by no one named
         {"annotations.author", ""},

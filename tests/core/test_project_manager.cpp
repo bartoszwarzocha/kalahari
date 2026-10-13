@@ -1935,6 +1935,47 @@ TEST_CASE("A new book is added to the recent books", "[project_manager]") {
     recent.removeRecentFile(manifest);
 }
 
+TEST_CASE("The book opened at startup is the book opened last, not one added without opening",
+          "[project_manager]") {
+    // Regression: a book created or imported without opening goes to the top of the recent
+    // books, and the program opened it at startup in place of the book the writer worked on
+    QTemporaryDir dir;
+    auto& recent = RecentBooksManager::getInstance();
+    auto& pm = projects();
+    const QStringList saved = recent.getRecentFiles();
+
+    REQUIRE(pm.createProject(dir.path(), "Opened", "Author", "en", true, "kalahari.novel"));
+    const QString opened = QFileInfo(pm.getManifestPath()).absoluteFilePath();
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.createProject(dir.path(), "Added", "Author", "en", true, "kalahari.novel"));
+    const QString added = QFileInfo(pm.getManifestPath()).absoluteFilePath();
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(opened));
+    CHECK(recent.lastOpenedBook() == opened);
+
+    // The other book goes to the top of the list, as a book created without opening does
+    recent.addRecentFile(added);
+    CHECK(recent.getRecentFiles().first() == added);
+    CHECK(recent.lastOpenedBook() == opened);
+    REQUIRE(pm.closeProject(false));
+    CHECK(recent.lastOpenedBook() == opened);
+
+    // Opened, it is the book of the startup
+    REQUIRE(pm.openProject(added));
+    CHECK(recent.lastOpenedBook() == added);
+    REQUIRE(pm.closeProject(false));
+
+    // Gone from the list, the first of the list is opened
+    recent.removeRecentFile(added);
+    REQUIRE(recent.getRecentFiles().value(0) == opened);
+    CHECK(recent.lastOpenedBook() == opened);
+
+    recent.removeRecentFile(opened);
+    for (auto it = saved.crbegin(); it != saved.crend(); ++it) {
+        recent.addRecentFile(*it);
+    }
+}
+
 // =============================================================================
 // Archives
 // =============================================================================

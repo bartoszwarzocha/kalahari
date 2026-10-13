@@ -1664,10 +1664,9 @@ void MainWindow::showEvent(QShowEvent* event) {
         auto& settingsManager = core::SettingsManager::getInstance();
         bool autoLoad = settingsManager.get<bool>("startup.autoLoadLastProject", false);
         if (autoLoad) {
-            auto& recentManager = core::RecentBooksManager::getInstance();
-            QStringList recentFiles = recentManager.getRecentFiles();
-            if (!recentFiles.isEmpty()) {
-                QString lastFile = recentFiles.first();
+            // The book opened last, not one created or imported without opening since
+            const QString lastFile = core::RecentBooksManager::getInstance().lastOpenedBook();
+            if (!lastFile.isEmpty()) {
                 logger.info("Auto-loading last project: {}", lastFile.toStdString());
                 // Use QTimer::singleShot to defer opening after window is fully shown
                 QTimer::singleShot(100, this, [this, lastFile]() {

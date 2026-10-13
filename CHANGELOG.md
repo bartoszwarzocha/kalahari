@@ -168,7 +168,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with what is wrong under Show Details; the export's list of files that are not final names
   their statuses as the Navigator does (Draft, Revision). The option to open the last book
   at startup (on the Dashboard and in Settings > General), the archive export without an
-  open book and the Navigator's message without a book speak of books too.
+  open book and the Navigator's message without a book speak of books too. A book created or
+  imported without opening is the first of the recent books, but the book opened at startup
+  is still the one opened last.
 
 - **Side panels on a small screen** - 2026-10-11. The panels on the right can be made much
   narrower, so that the text keeps its room on a 1366 × 768 screen at 125% and 150%. In the
