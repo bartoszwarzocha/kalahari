@@ -597,7 +597,7 @@ TEST_CASE("Text keys: Alt with a letter goes on to the menus, AltGr types in the
     CHECK(textOf(*editor) == QStringLiteral("kotąĄąé"));
 }
 
-TEST_CASE("Text keys: the second keys of the clipboard commands", "[editor][textkeys]") {
+TEST_CASE("Text keys: the second keys of the clipboard commands", "[editor][textkeys][clipboard]") {
     if (!clipboardWorks()) {
         SKIP("Clipboard not functional in headless environment");
     }

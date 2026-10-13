@@ -49,6 +49,10 @@ e.g. `./bin/kalahari-tests "[.dll-boundary]"`.
   or `TMP`/`TEMP` on Windows point to it, so settings, archives and databases written
   by one test process are invisible to the others. This is what makes parallel
   `ctest` runs safe. The directory is removed at exit.
+- The system clipboard is one for the whole computer on Windows and macOS (on Linux the
+  offscreen platform keeps its own in each process). Test cases that use it are tagged
+  `[clipboard]`: CTest runs them one at a time (`RESOURCE_LOCK clipboard`), and
+  `./bin/kalahari-tests "~[clipboard]"` leaves the clipboard of the computer alone.
 - `KALAHARI_TEST_MODE=1`, so `SettingsManager` uses the temporary directory.
 - `kalahari::test::resetSingletons()` before every test case
   (`test_support/reset_singletons.cpp`).
@@ -68,7 +72,8 @@ TEST_CASE("KML load: one paragraph", "[editor][kml][load]") {
 }
 ```
 
-- Tag every test case with its module (`[core]`, `[editor]`, `[gui]`) and class.
+- Tag every test case with its module (`[core]`, `[editor]`, `[gui]`) and class, and
+  with `[clipboard]` when it reads or writes the system clipboard.
 - Use `INFO(...)` to attach context that is printed when an assertion fails.
 - Asynchronous Qt work (queued connections, `QMetaObject::invokeMethod`) needs
   `QCoreApplication::processEvents()` before the assertion.
