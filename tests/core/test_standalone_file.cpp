@@ -70,10 +70,11 @@ TEST_CASE("A text file opens as paragraphs and is saved in its own format",
     REQUIRE(file.has_value());
     CHECK(file->type() == StandaloneFile::Type::PlainText);
     CHECK(file->path() == path);
-    CHECK(paragraphsOf(kml) == QStringList{"One", "Two & <three>", ""});
+    // The line end of the last line is no empty paragraph; saved, the file keeps it
+    CHECK(paragraphsOf(kml) == QStringList{"One", "Two & <three>"});
 
     REQUIRE(file->save("<p><t>unused</t></p>", "One\nTwo & <three>\nFour"));
-    CHECK(bytesOf(path) == "\xEF\xBB\xBFOne\r\nTwo & <three>\r\nFour");
+    CHECK(bytesOf(path) == "\xEF\xBB\xBFOne\r\nTwo & <three>\r\nFour\r\n");
 
     SECTION("Control characters do not break its paragraphs") {
         static constexpr char bytes[] = "a\fb\0c\nd\te";
@@ -97,7 +98,7 @@ TEST_CASE("A line break in a paragraph is a line end in a text file",
         REQUIRE(file.has_value());
         REQUIRE(file->save("<p><t>unused</t></p>",
                            "Roses are red," + lineBreak + "violets are blue\nNext"));
-        CHECK(bytesOf(path) == "\xEF\xBB\xBFRoses are red,\r\nviolets are blue\r\nNext");
+        CHECK(bytesOf(path) == "\xEF\xBB\xBFRoses are red,\r\nviolets are blue\r\nNext\r\n");
     }
 
     SECTION("a vertical tab, as Word writes a line break, opens as one") {
