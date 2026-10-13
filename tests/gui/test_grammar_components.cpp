@@ -140,7 +140,9 @@ TEST_CASE("Grammar components: what a Java and a LanguageTool folder are", "[gui
     SECTION("Java: its release file, in its folder or under Contents/Home on macOS") {
         const QString java = root.filePath(QStringLiteral("jdk/bin/") + javaProgramName());
         writeFile(java, "program");
-        CHECK_FALSE(GrammarComponents::inspectJava(java).found);  // no release file
+        // No release file, and not run: it is no program (Windows would show a message of its
+        // own and wait)
+        CHECK_FALSE(GrammarComponents::inspectJava(java).found);
         writeFile(root.filePath(QStringLiteral("jdk/release")),
                   "JAVA_VERSION=\"21.0.5\"\nIMPLEMENTOR=\"Eclipse Adoptium\"\n");
         const GrammarComponents::JavaInfo info = GrammarComponents::inspectJava(java);

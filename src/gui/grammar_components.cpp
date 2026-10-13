@@ -72,6 +72,17 @@ QString vendorOf(const QString& implementor, const QString& implementorVersion) 
     return implementor;
 }
 
+/// @brief Whether a file is a program the system runs. On Windows a file that is not one (no
+///        "MZ" at its start) makes the system show a message of its own and wait for it.
+bool isProgram(const QString& path) {
+#ifdef Q_OS_WIN
+    QFile file(path);
+    return file.open(QIODevice::ReadOnly) && file.read(2) == "MZ";
+#else
+    return QFileInfo(path).isExecutable();
+#endif
+}
+
 /// @brief The version in the manifest of a jar (Implementation-Version); empty: none
 QString jarVersion(const QString& jar) {
     // libzip takes the names in UTF-8, also on Windows
@@ -311,7 +322,8 @@ GrammarComponents::JavaInfo GrammarComponents::inspectJava(const QString& java) 
 
     // What it says of itself: only a java program is run
     const QString name = QFileInfo(program).completeBaseName().toLower();
-    if (name != QLatin1String("java") && name != QLatin1String("javaw")) {
+    const bool javaName = name == QLatin1String("java") || name == QLatin1String("javaw");
+    if (!javaName || !isProgram(program)) {
         return info;
     }
     QProcess process;
