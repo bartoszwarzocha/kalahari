@@ -8,6 +8,7 @@
 #include <kalahari/editor/grammar_check_service.h>
 #include <kalahari/editor/spell_check_service.h>
 #include <kalahari/editor/text_source_adapter.h>
+#include <kalahari/gui/utils/access_keys.h>
 #include "editor_test_utils.h"
 #include "fake_language_tool.h"
 
@@ -89,12 +90,12 @@ void pressKey(BookEditor& editor, int key) {
 
 /// What the context menu at the cursor offered
 struct MenuSeen {
-    QStringList texts;  ///< Its items ("-": a separator)
+    QStringList texts;  ///< Its items, without their access keys ("-": a separator)
     QList<bool> bold;   ///< Whether they are in bold
 };
 
-/// Open the context menu at the cursor (as the menu key does) and choose an item of it
-/// (none: the menu closes)
+/// Open the context menu at the cursor (as the menu key does) and choose an item of it by its
+/// text without the access key (none: the menu closes)
 MenuSeen contextMenuAtCursor(BookEditor& editor, const QString& choice = QString()) {
     MenuSeen seen;
     int ticks = 0;
@@ -110,9 +111,10 @@ MenuSeen contextMenuAtCursor(BookEditor& editor, const QString& choice = QString
         poll.stop();
         QAction* chosen = nullptr;
         for (QAction* action : menu->actions()) {
-            seen.texts << (action->isSeparator() ? QStringLiteral("-") : action->text());
+            const QString text = kalahari::gui::withoutAccessKey(action->text());
+            seen.texts << (action->isSeparator() ? QStringLiteral("-") : text);
             seen.bold << action->font().bold();
-            if (!choice.isEmpty() && action->text() == choice) {
+            if (!choice.isEmpty() && text == choice) {
                 chosen = action;
             }
         }

@@ -1,6 +1,6 @@
 /// @file test_spell_check_service.cpp
-/// @brief The spelling dictionary: loading (also in the background), what is checked and
-///        the writer's own words
+/// @brief The spelling dictionary: loading (also in the background, also for two services
+///        at a time), what is checked and the writer's own words (also shared)
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -171,6 +171,63 @@ TEST_CASE("SpellCheckService: a dictionary loaded in the background", "[editor][
     }
 }
 
+TEST_CASE("SpellCheckService: a dictionary released", "[editor][spell_check]") {
+    auto service = english();
+    const ServiceSignals told(*service);
+
+    service->releaseDictionary();
+    CHECK_FALSE(service->isDictionaryLoaded());
+    CHECK(service->currentDictionary().isEmpty());
+    CHECK(told.changed == 1);
+    CHECK(service->checkParagraph(QStringLiteral("errrors")).isEmpty());
+
+    // Its memory is gone: the dictionary is loaded again, not checked with at once
+    service->loadDictionaryInBackground(QStringLiteral("en_US"));
+    CHECK(service->isLoading());
+    REQUIRE(waitUntil([&told]() { return told.loaded == QStringList{"en_US"}; },
+                      DICTIONARY_WAIT_MS));
+    CHECK(misspelled(*service, QStringLiteral("errrors")) == QStringList{"errrors"});
+
+    // Released while it loads: it is not checked with when it is ready
+    service->releaseDictionary();
+    service->loadDictionaryInBackground(QStringLiteral("pl_PL"));
+    service->releaseDictionary();
+    REQUIRE(waitUntil([&service]() { return !service->isLoading(); }, DICTIONARY_WAIT_MS));
+    CHECK_FALSE(service->isDictionaryLoaded());
+    CHECK(told.loaded == QStringList{"en_US"});
+}
+
+TEST_CASE("SpellCheckService: dictionaries of two services loaded at the same time",
+          "[editor][spell_check]") {
+    // Hunspell's tables shared by its dictionaries: they are made and destroyed one at a time
+    SpellCheckService polish;
+    SpellCheckService english;
+    polish.loadDictionaryInBackground(QStringLiteral("pl_PL"));
+    english.loadDictionaryInBackground(QStringLiteral("en_US"));
+    REQUIRE(waitUntil([&polish, &english]() { return !polish.isLoading() && !english.isLoading(); },
+                      DICTIONARY_WAIT_MS));
+    CHECK(polish.currentDictionary() == QStringLiteral("pl_PL"));
+    CHECK(english.currentDictionary() == QStringLiteral("en_US"));
+    CHECK(misspelled(polish, QStringLiteral("To jest b\u0142\u0105d: ksi\u0105rzka.")) ==
+          QStringList{QStringLiteral("ksi\u0105rzka")});
+    CHECK(misspelled(english, QStringLiteral("This is an errror.")) == QStringList{"errror"});
+
+    // One is released and another destroyed while a dictionary is being made: they go once
+    // it is made, and the one made checks the words
+    english.loadDictionaryInBackground(QStringLiteral("pl_PL"));
+    polish.releaseDictionary();
+    auto third = std::make_unique<SpellCheckService>();
+    REQUIRE(third->loadDictionary(QStringLiteral("en_US")));
+    third->loadDictionaryInBackground(QStringLiteral("pl_PL"));
+    third.reset();
+    REQUIRE(waitUntil([&english]() { return !english.isLoading(); }, DICTIONARY_WAIT_MS));
+    runEventLoop(100);
+    CHECK_FALSE(polish.isDictionaryLoaded());
+    CHECK(english.currentDictionary() == QStringLiteral("pl_PL"));
+    CHECK(misspelled(english, QStringLiteral("To jest b\u0142\u0105d: ksi\u0105rzka.")) ==
+          QStringList{QStringLiteral("ksi\u0105rzka")});
+}
+
 TEST_CASE("SpellCheckService: closed while a dictionary loads", "[editor][spell_check]") {
     // The loading thread is waited for: nothing is left behind (sanitizers)
     auto service = std::make_unique<SpellCheckService>();
@@ -259,6 +316,74 @@ TEST_CASE("SpellCheckService: the words checked", "[editor][spell_check]") {
         CHECK(misspelled(polish, QStringLiteral("Bia\u0142o-czerwona flaga, \u017c\u00f3\u0142w i "
                                                 "\u017c\u00f3\u0142f.")) ==
               QStringList{QStringLiteral("\u017c\u00f3\u0142f")});
+    }
+}
+
+TEST_CASE("SpellCheckService: the suggestions, the likeliest first", "[editor][spell_check]") {
+    SECTION("a word typed without its accents: the word with them first") {
+        SpellCheckService polish;
+        REQUIRE(polish.loadDictionary(QStringLiteral("pl_PL")));
+        CHECK(polish.suggestions(QStringLiteral("ktory")).value(0) ==
+              QStringLiteral("kt\u00f3ry"));
+        // Also at the start of a sentence, where the dictionary offers names first (Kory, Tory)
+        CHECK(polish.suggestions(QStringLiteral("Ktory")).value(0) ==
+              QStringLiteral("Kt\u00f3ry"));
+        CHECK(polish.suggestions(QStringLiteral("Dzis")).value(0) == QStringLiteral("Dzi\u015b"));
+        CHECK(polish.suggestions(QStringLiteral("Zolw")).value(0) ==
+              QStringLiteral("\u017b\u00f3\u0142w"));
+        // Each of the words with the same letters before any other (Lod, Lodzi)
+        const QStringList lodz = polish.suggestions(QStringLiteral("Lodz"));
+        REQUIRE(lodz.size() >= 3);
+        CHECK(lodz.mid(0, 3).contains(QStringLiteral("\u0141\u00f3d\u017a")));
+    }
+
+    SECTION("a word starting a sentence: the word written small, with its capital") {
+        auto service = english();
+        CHECK(service->suggestions(QStringLiteral("teh")).value(0) == QStringLiteral("the"));
+        CHECK(service->suggestions(QStringLiteral("Teh")).value(0) == QStringLiteral("The"));
+        CHECK(service->suggestions(QStringLiteral("Thier")).value(0) == QStringLiteral("Their"));
+    }
+
+    SECTION("a misspelled name: the name first") {
+        auto service = english();
+        CHECK(service->suggestions(QStringLiteral("Amercia")).value(0) ==
+              QStringLiteral("America"));
+        CHECK(service->suggestions(QStringLiteral("Sarha")).value(0) == QStringLiteral("Sarah"));
+    }
+
+    SECTION("never the word itself, never twice, no more than asked for") {
+        auto service = english();
+        QStringList suggestions = service->suggestions(QStringLiteral("Teh"), 3);
+        CHECK(suggestions.size() == 3);
+        CHECK_FALSE(suggestions.contains(QStringLiteral("Teh")));
+        CHECK(suggestions.removeDuplicates() == 0);
+        suggestions = service->suggestions(QStringLiteral("Teh"), 50);
+        CHECK(suggestions.size() > 5);
+        CHECK_FALSE(suggestions.contains(QStringLiteral("Teh")));
+        CHECK(suggestions.removeDuplicates() == 0);
+    }
+
+    SECTION("the writer's own words close to the word") {
+        auto service = english();
+        service->addToUserDictionary(QStringLiteral("Ysolde"));
+        service->addToUserDictionary(QStringLiteral("zorblax"));
+        service->addToUserDictionary(QStringLiteral("Tehk"));
+
+        // Before the dictionary's words farther from the word typed (Soled)
+        CHECK(service->suggestions(QStringLiteral("Ysoled")).value(0) ==
+              QStringLiteral("Ysolde"));
+        // A word written small with a capital at the start of a sentence
+        CHECK(service->suggestions(QStringLiteral("Zorbalx")).value(0) ==
+              QStringLiteral("Zorblax"));
+        CHECK(service->suggestions(QStringLiteral("zorbalx")).value(0) ==
+              QStringLiteral("zorblax"));
+        // But after the dictionary's words closer to it
+        const QStringList teh = service->suggestions(QStringLiteral("Teh"));
+        CHECK(teh.value(0) == QStringLiteral("The"));
+        CHECK(teh.contains(QStringLiteral("Tehk")));
+        // And not at all when far from it
+        CHECK_FALSE(service->suggestions(QStringLiteral("Ysoled")).contains(
+            QStringLiteral("zorblax"), Qt::CaseInsensitive));
     }
 }
 
@@ -357,6 +482,58 @@ TEST_CASE("SpellCheckService: the user dictionary is kept in a file", "[editor][
     CHECK(service.userDictionaryWords().isEmpty());
     service.addToUserDictionary(QStringLiteral("zorblax"));
     CHECK(linesOf(path).size() == 6);
+}
+
+TEST_CASE("SpellCheckService: services of two languages share the writer's own words",
+          "[editor][spell_check]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    const QString path = folder.filePath(QStringLiteral("user_dictionary.txt"));
+    auto english = std::make_unique<SpellCheckService>();
+    REQUIRE(english->loadDictionary(QStringLiteral("en_US")));
+    english->setUserDictionaryFile(path);
+    english->addToUserDictionary(QStringLiteral("glorptik"));
+    SpellCheckService polish;
+    REQUIRE(polish.loadDictionary(QStringLiteral("pl_PL")));
+    polish.addToUserDictionary(QStringLiteral("zorblax"));
+    const ServiceSignals toldEnglish(*english);
+    const ServiceSignals toldPolish(polish);
+
+    // The words it had before are dropped
+    polish.shareOwnWordsWith(*english);
+    CHECK(toldPolish.changed == 1);
+    CHECK(toldEnglish.changed == 0);
+    CHECK(polish.userDictionaryFile() == path);
+    CHECK(polish.userDictionaryWords() == QStringList{"glorptik"});
+    CHECK(misspelled(polish, QStringLiteral("glorptik zorblax")) == QStringList{"zorblax"});
+    polish.shareOwnWordsWith(*english);
+    CHECK(toldPolish.changed == 1);
+
+    // A word added in one is right in both, and kept in the file once
+    polish.addToUserDictionary(QStringLiteral("Quuxly"));
+    CHECK(toldPolish.changed == 2);
+    CHECK(toldEnglish.changed == 1);
+    CHECK(misspelled(*english, QStringLiteral("Quuxly glorptik")).isEmpty());
+    CHECK(linesOf(path).mid(1) == QStringList({"Quuxly", "glorptik"}));
+
+    // A word ignored in one is ignored in both; the words of the settings go to both
+    english->ignoreWord(QStringLiteral("Zorblax"));
+    CHECK(polish.isIgnored(QStringLiteral("Zorblax")));
+    CHECK(toldPolish.changed == 3);
+    polish.setUserDictionaryWords({QStringLiteral("glorptik")});
+    CHECK(english->userDictionaryWords() == QStringList{"glorptik"});
+    CHECK(toldEnglish.changed == 3);
+    english->removeFromUserDictionary(QStringLiteral("glorptik"));
+    CHECK(polish.userDictionaryWords().isEmpty());
+    CHECK(toldPolish.changed == 5);
+
+    // The service gone, the other keeps the words
+    english->addToUserDictionary(QStringLiteral("kalahari"));
+    english.reset();
+    polish.addToUserDictionary(QStringLiteral("Quuxly"));
+    CHECK(polish.userDictionaryWords() == QStringList({"Quuxly", "kalahari"}));
+    CHECK(polish.isIgnored(QStringLiteral("Zorblax")));
+    CHECK(linesOf(path).mid(1) == QStringList({"Quuxly", "kalahari"}));
 }
 
 TEST_CASE("SpellErrorInfo", "[editor][spell_check]") {

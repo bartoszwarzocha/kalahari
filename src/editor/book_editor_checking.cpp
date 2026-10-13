@@ -631,7 +631,8 @@ std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int
 void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIndex,
                                     int startOffset, int endOffset)
 {
-    // The words to put in its place, in bold as in other word processors
+    // The words to put in its place, in bold as in other word processors. They get free
+    // access keys as the menu shows (gui::giveFreeAccessKeys()); the other items have their own
     const QStringList suggestions = m_spellCheckService != nullptr
                                         ? m_spellCheckService->suggestions(word, MAX_SUGGESTIONS)
                                         : QStringList();
@@ -639,7 +640,7 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIn
         menu.addAction(tr("(No suggestions)"))->setEnabled(false);
     }
     for (const QString& suggestion : suggestions) {
-        QAction* action = menu.addAction(suggestion);
+        QAction* action = menu.addAction(menuText(suggestion));
         QFont bold = action->font();
         bold.setBold(true);
         action->setFont(bold);
@@ -652,13 +653,13 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIn
 
     // The word is right from now on: in every document (Ignore All until the application
     // closes, Add to Dictionary for good)
-    QAction* ignore = menu.addAction(tr("Ignore All"));
+    QAction* ignore = menu.addAction(tr("&Ignore All"));
     connect(ignore, &QAction::triggered, this, [this, word]() {
         if (m_spellCheckService != nullptr) {
             m_spellCheckService->ignoreWord(word);
         }
     });
-    QAction* add = menu.addAction(tr("Add to Dictionary"));
+    QAction* add = menu.addAction(tr("Add t&o Dictionary"));
     connect(add, &QAction::triggered, this, [this, word]() {
         if (m_spellCheckService != nullptr) {
             m_spellCheckService->addToUserDictionary(word);
@@ -1040,7 +1041,7 @@ void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error, int p
     menu.addSeparator();
 
     // The rule is not reported again, in any document (until the application closes)
-    QAction* ignore = menu.addAction(tr("Ignore This Rule"));
+    QAction* ignore = menu.addAction(tr("&Ignore This Rule"));
     connect(ignore, &QAction::triggered, this, [this, ruleId = error.ruleId]() {
         if (m_grammarCheckService != nullptr) {
             m_grammarCheckService->ignoreRule(ruleId);

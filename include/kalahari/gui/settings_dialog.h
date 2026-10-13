@@ -61,6 +61,10 @@ public:
     /// @return Keys of the settings written
     QStringList applyChanges();
 
+    /// @brief Open the Keyboard Shortcuts page (Help > Keyboard Shortcuts), the cursor in its
+    /// search
+    void showShortcutsPage();
+
 public slots:
     /// @brief OK: write the changed settings, then close
     void accept() override;
@@ -82,8 +86,11 @@ private:
     /// @brief Add a page to the tree; it is built when first opened
     QTreeWidgetItem* addPage(QTreeWidgetItem* parent, const QString& title, PageFactory factory);
 
-    /// @brief Add a greyed-out page for planned options
+    /// @brief Add a muted page for planned options
     void addPlannedPage(QTreeWidgetItem* parent, const QString& title, const QString& description);
+
+    /// @brief Color the planned pages in the tree for the current theme
+    void updatePlannedItemColors();
 
     /// @brief Show a page, building it on first use
     void showPage(QTreeWidgetItem* item);
@@ -108,6 +115,8 @@ private:
     std::vector<SettingsPage*> m_pages;                  ///< Built pages with settings
     ThemePage* m_themePage = nullptr;
     IconsPage* m_iconsPage = nullptr;
+    QTreeWidgetItem* m_shortcutsItem = nullptr;
+    std::vector<QTreeWidgetItem*> m_plannedItems;  ///< Pages of options not available yet
 };
 
 } // namespace gui

@@ -5,7 +5,9 @@
 #include <kalahari/editor/book_editor_accessible.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/text_keys.h>
 #include <QAbstractTextDocumentLayout>
+#include <QKeySequence>
 #include <QTextBlock>
 #include <QTextBlockFormat>
 #include <QTextDocument>
@@ -14,6 +16,20 @@
 #include <QWidget>
 
 namespace kalahari::editor {
+
+namespace {
+
+/// The key that moves the cursor where the action goes, as the system writes it
+QString keyText(TextKeyAction action) {
+    for (const TextKey& textKey : textKeys(isMacOS())) {
+        if (textKey.action == action && !textKey.extendSelection) {
+            return QKeySequence(textKey.keys).toString(QKeySequence::NativeText);
+        }
+    }
+    return QString();
+}
+
+}  // namespace
 
 BookEditorAccessible::BookEditorAccessible(BookEditor* editor)
     : QAccessibleWidget(editor, QAccessible::EditableText, tr("Book Editor"))
@@ -70,18 +86,22 @@ QString BookEditorAccessible::text(QAccessible::Text t) const
         return tr("Text editor for writing and editing book content");
 
     case QAccessible::Value:
-        // Return current line text for screen readers (Phase 11: QTextDocument)
+        // Return current line text for screen readers (Phase 11: QTextDocument), with its
+        // line breaks as line ends, as in the text of the whole document (toPlainText())
         if (auto* doc = editor->textDocument()) {
             const auto& pos = editor->cursorPosition();
             QTextBlock block = doc->findBlockByNumber(pos.paragraph);
             if (block.isValid()) {
-                return block.text();
+                return block.text().replace(QChar(QChar::LineSeparator), QLatin1Char('\n'));
             }
         }
         return QString();
 
     case QAccessible::Help:
-        return tr("Use arrow keys to navigate, Ctrl+Home/End for document start/end");
+        // The keys of the editor on the system the program runs on
+        return tr("The arrow keys move the cursor; %1 and %2 go to the start and the end of the "
+                  "text")
+            .arg(keyText(TextKeyAction::DocumentStart), keyText(TextKeyAction::DocumentEnd));
 
     default:
         return QAccessibleWidget::text(t);

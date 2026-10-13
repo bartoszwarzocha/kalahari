@@ -443,6 +443,24 @@ private:
 - ---
 - Copy Full Path
 
+**Dashboard** (the first tab, `DashboardPanel`): the logo with the title and the tagline,
+the keys of New Book, Open Book and Open File, the news and the recent books (cards), and
+Open last project on startup. On a small screen (1366 × 768 at 125% and 150%, the side
+panels open or closed) nothing of it is cut off:
+- the content takes three quarters of a wide panel, more where it needs it, and all of a
+  narrow one but 16 px on each side;
+- the logo is at most 256 px and 40% of the panel's height; where the title and the tagline
+  do not fit beside a logo of 96 px, it goes above them at that size, and they are
+  centered and wrap;
+- the hints of the shortcuts go one under another where one row is too narrow for them,
+  with the keys and the commands in two columns in the middle; where even the columns do
+  not fit, each command goes under its keys;
+- below 750 px the news and the recent books go one under the other; a narrow card puts the
+  book's icon above its texts, which wrap (a book's path also inside a name too long for the
+  line);
+- the text of the check box wraps, and a click on it changes the box;
+- only a panel narrower than the longest word scrolls sideways.
+
 **Implementation:**
 ```cpp
 class EditorNotebook : public wxAuiNotebook {
@@ -965,6 +983,17 @@ One of Kalahari's most powerful features is fully customizable toolbars. Users c
 #### 2. Format Toolbar
 **Commands:** `[B] [I] [U] [S] | [Font ▼] [Size ▼] | [Style ▼] | [Color]`
 
+Bold, italic, underline, strikethrough (also Ctrl+B, Ctrl+I, Ctrl+U), the font and its size
+go on the selection. Without one, as in Word and LibreOffice, they go on the word the cursor
+is inside of; elsewhere (between words, at the start or end of a word, in an empty paragraph)
+on the text typed next at the cursor: typed, also after Enter, composed with an input method
+or pasted as plain text. Moving the cursor, selecting, Undo and Redo drop such a format.
+Given where the text has it, it turns it off for the typed text; given twice, the typed text
+is as without it. The buttons and the fields show the format the typed text gets, and the
+editor's own font stays the one of the settings. Undoing a format brings back the cursor and
+the selection it was given with (`src/editor/book_editor_formatting.cpp`, checked by
+`tests/editor/test_format_without_selection.cpp`).
+
 #### 3. Edit Toolbar (hidden by default)
 **Commands:** `[Find] [Replace] | [Spell Check] | [Word Count]`
 
@@ -1479,92 +1508,383 @@ Motivate writers through achievements, challenges, and statistics.
 
 ## Keyboard Shortcuts
 
-### Default Shortcuts (80+ total)
+### Shortcuts in the Program
 
-#### File (10)
-- `Ctrl+N` - New Project
-- `Ctrl+O` - Open Project
-- `Ctrl+S` - Save
-- `Ctrl+Shift+S` - Save As
-- `Ctrl+W` - Close Document
+One set, the same on Windows and Linux; the Windows keys are the reference. On macOS Ctrl
+is Cmd, with the few keys of macOS listed below. Every shortcut is written out in
+`src/gui/command_registrar.cpp`, and `tests/gui/test_command_shortcuts.cpp` lists them all:
+a command that gets or changes a shortcut changes that list and this table. Another test
+fails when two commands share a key, and another when the code takes a key from the system
+(Qt's standard keys, `QKeySequence::StandardKey`, which differ between the systems and the
+Linux desktops). The tables list the program's keys; the user can give the commands others
+(see Shortcut Customization).
+
+Rules for a new shortcut:
+- Not Ctrl+W: next to Ctrl+S and Ctrl+E, it would close the book by mistake while writing.
+- No Ctrl+Alt on Windows and Linux: Windows takes it for AltGr, which types letters
+  (ą, ć, ę...).
+- No Alt with a letter on Windows and Linux: it opens the menu with that letter underlined
+  (see Access Keys). Alt with a digit and Alt+Shift with a letter are free; Alt with a digit
+  of the keypad runs no shortcut (on Windows it gives the code of a character: Alt+0150
+  types an en dash).
+- No key a desktop takes for itself: Ctrl+F1–F4 on KDE (desktops 1–4), Ctrl+F1–F12 on Xfce
+  (workspaces 1–12); on macOS Cmd+H (hides the program) and F11 (shows the desktop).
+  Close Book keeps Ctrl+F4, the Windows key (see Linux Desktops).
+- No key that types text and no key of Keys Outside the Menus: Settings > Keyboard
+  Shortcuts refuses them, and `tests/gui/test_shortcut_rules.cpp` checks the program's own
+  keys against the same rules (`src/gui/shortcut_rules.cpp`).
+
+#### Menu Commands
+
+| Command | Shortcut |
+|---|---|
+| File > New File | Ctrl+N |
+| File > New Book... | Ctrl+Shift+N |
+| File > Open Book... | Ctrl+O |
+| File > Open > Open File... | Ctrl+Shift+O |
+| File > Close Book | Ctrl+F4 |
+| File > Save | Ctrl+S |
+| File > Save As... | Ctrl+Shift+S |
+| File > Exit | Alt+F4 |
+| Edit > Undo | Ctrl+Z |
+| Edit > Redo | Ctrl+Y (in the text also Ctrl+Shift+Z) |
+| Edit > Cut | Ctrl+X |
+| Edit > Copy | Ctrl+C |
+| Edit > Paste | Ctrl+V |
+| Edit > Select All | Ctrl+A |
+| Edit > Find... | Ctrl+F |
+| Edit > Find Next | F3 |
+| Edit > Find Previous | Shift+F3 |
+| Edit > Find & Replace... | Ctrl+H |
+| Edit > Next To Do | Alt+Down |
+| Edit > Previous To Do | Alt+Up |
+| Insert > Add Annotation... | Ctrl+Shift+M |
+| Format > Bold | Ctrl+B |
+| Format > Italic | Ctrl+I |
+| Format > Underline | Ctrl+U |
+| Format > Align Left | Ctrl+L |
+| Format > Align Center | Ctrl+E |
+| Format > Align Right | Ctrl+R |
+| Format > Justify | Ctrl+J |
+| Tools > Check Spelling as You Type | Shift+F7 |
+| Tools > Next Misspelling | F7 |
+| View > Panels > Navigator | F2 |
+| View > Panels > Log | F4 |
+| View > Panels > Search | F5 |
+| View > Panels > Assistant | F6 |
+| View > Panels > Properties | F8 |
+| View > Panels > Annotations | F9 |
+| View > View Mode > Continuous | Ctrl+1 |
+| View > View Mode > Page Layout | Ctrl+2 |
+| View > Typewriter Scrolling | Ctrl+3 |
+| View > Focus | Ctrl+4 |
+| View > Distraction-Free | Shift+F11 |
+| View > Zoom > Zoom In | Ctrl++ |
+| View > Zoom > Zoom Out | Ctrl+- |
+| View > Zoom > Zoom 100% | Ctrl+0 |
+| View > Full Screen | F11 |
+| Help > Kalahari Help | F1 |
+
+#### Keys Outside the Menus
+
+These keys are fixed: Settings > Keyboard Shortcuts lists them after the commands, and no
+command can have them. The keys of the Annotations panel work only in its list, so a command
+may have them too.
+
+- **Text:** the arrows; Ctrl+Left and Ctrl+Right – by a word; Ctrl+Up – to the start of the
+  paragraph (there already: of the one before), Ctrl+Down – to the start of the next one;
+  Home and End – the line; Ctrl+Home and Ctrl+End – the text; Page Up and Page Down – a
+  screen; with Shift they select. Backspace (also Shift+Backspace) and Delete delete a
+  character, Ctrl+Backspace and Ctrl+Delete a word; a selection goes whole. Enter and
+  Ctrl+Enter start a paragraph, Shift+Enter a new line in the paragraph (a line break, `<br/>`
+  in KML). The second keys of the text fields of Windows: Ctrl+Shift+Z
+  and Alt+Shift+Backspace – redo, Alt+Backspace – undo, Shift+Delete – cut, Ctrl+Insert –
+  copy, Shift+Insert – paste; Shift+F10 and the Menu key – the context menu. The table is
+  `src/editor/text_keys.cpp`.
+- **Tabs of the texts:** Ctrl+Tab and Ctrl+Shift+Tab – the next and the previous tab.
+- **Find bar:** Enter – next match, Shift+Enter – previous match, Enter in the replace
+  field – replace, Esc – close, Alt+C – match case, Alt+W – whole words, Alt+R – regular
+  expression (in the bar and in the text under it, before the menus with these letters).
+- **Annotation frame:** Ctrl+Enter – keep the text, Esc – drop it.
+- **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –
+  edit, Space – done or resolved, Delete – delete, the Menu key or Shift+F10 – its menu,
+  Esc – back to the text.
+- **Distraction-Free:** Esc – leave it; Alt with the letter of a menu – the menus at the
+  top with that menu open.
+- **Menus (Windows and Linux):** Alt with the underlined letter of a menu's name opens it; in
+  an open menu the underlined letter of an item chooses it (see Access Keys).
+- **The system:** Tab and Shift+Tab move between the fields of a window; the keys that
+  switch windows or programs, open the system's menus or take screenshots do not reach the
+  program. Settings > Keyboard Shortcuts lists them for the system it runs on.
+
+#### Fields, Lists and Buttons
+
+Qt gives its fields, lists and buttons the keys of the system it runs on, and on Linux those
+of the desktop. The program gives them the keys of Windows on Linux as well
+(`src/gui/widget_keys.cpp`, checked by `tests/gui/test_widget_keys.cpp`):
+- in a field Ctrl+Z and Alt+Backspace undo; Ctrl+Y, Ctrl+Shift+Z and Alt+Shift+Backspace
+  redo;
+- Ctrl+D, Ctrl+E, Ctrl+K, Ctrl+U, Ctrl+Shift+A, Ctrl+Shift+Insert and the keys of Sun
+  keyboards F14, F16, F18 and F20 do nothing in a field or a list (on Linux Qt deletes, goes
+  to the end of the line, deselects, pastes, undoes, copies or cuts with them), so Align
+  Center and Underline work from a field too;
+- Left and Right over a selection move the cursor from where it is (on Linux Qt jumps to
+  the edge of the selection);
+- Shift+F10, like the Menu key, opens the context menu of the widget with the keys;
+- Enter on a check box, an option, a drop-down list or a button that is not the default one
+  goes to the window's default button (on GNOME, Xfce and the other GTK desktops it pressed
+  the button or opened the list); Space presses the button or opens the list, as before.
+
+On Windows and Linux a read-only text and a label whose text can be selected keep Ctrl+C,
+Ctrl+Insert and Ctrl+A for themselves (the window's Copy and Select All copied and selected
+the book's text), and the context menus of the fields show the keys of their items, also
+where a command of the window has the same keys. Alt with a letter types nothing in a
+field, and a drop-down list one cannot type into does not look for the letter with it (Qt
+did both, on Windows too): the key goes on to the menus, as in the fields of Windows. AltGr
+types as before. macOS keeps the keys of its own fields.
+
+#### Access Keys
+
+On Windows and Linux every item of every menu has an access key, a letter of its name
+underlined: Alt with the letter of a menu opens it (Alt+F – File, in Polish Alt+P – Plik),
+and in an open menu the letter of an item chooses it. So does every context menu: of the
+text, of the Navigator, of the toolbars, of the annotations, of the fields, and of the menu
+bar and the panels' titles. The keys are in the texts ("Save &As...", in Polish "Zapisz
+&jako..."): `src/gui/command_registrar.cpp` for the commands, `src/gui/menu_builder.cpp` for
+the menus, the code of a context menu for its items, the translation for Polish. Each item
+has one key, a Latin letter or a digit (Polish letters are typed with AltGr), which no other
+item of the same menu has. The text's context menu has commands of the Edit menu (Cut, Copy,
+Paste, Select All) and three of the Insert menu (Add Comment, Add To Do, Add Note): their keys
+are unique there too.
+
+Names and words a menu shows as they are get free keys (`src/gui/utils/access_keys.cpp`): the
+first letter of one of their words that is free, else another of their letters or digits;
+where all of them are taken, a name before it takes another of its own and leaves it one.
+These are the name the user gave a toolbar; the words for a misspelled word and for a grammar
+issue, which WidgetKeys gives keys as the menu shows (`giveFreeAccessKeys()`); and the panels
+and the toolbars in Qt's menu of the menu bar and of the panels' titles, which MainWindow
+shows as a copy with keys (`menuWithAccessKeys()`), so that the panels and the toolbars keep
+their names. A line that only tells something (what is wrong in a grammar issue, "(No
+suggestions)", "No Recent Files") is disabled and has no key. The recent books are numbered
+(&1 to &9, then 1&0...).
+
+Qt's fields name the items of their context menus in Qt's words. Where the English words have
+no key (Delete, Select All) or share one (a number field's Select All and Step up, its Step
+down and Delete), WidgetKeys gives them those of the fields of Windows (&Delete, Select &All,
+Step d&own); the Polish translation has its own. In both languages they are the letters of
+the Edit menu. A label has a menu only over a link (Copy &Link Location).
+
+`tests/gui/test_menu_access_keys.cpp` checks every menu and every context menu, in English and
+in Polish: as the program makes them (each item of its own with its key) and as Windows and
+Linux show them (the words and the items of Qt's fields too).
+
+Alt with a letter types nothing in the text and in the fields, as in the fields of Windows;
+it goes on to the menus. AltGr types: Windows reports it as Ctrl+Alt, Linux as the letter it
+gives. So does Alt with the digits of the keypad (Alt+0233 – é): they run no shortcut, not
+even one with Alt and the same digit above the letters, which Qt would take them for
+(WidgetKeys); on Linux they do nothing. Settings > Keyboard Shortcuts keeps Alt with a
+letter for the menus (Fixed: the menus). The options of the find bar keep Alt+C, Alt+W and
+Alt+R while the bar shows, in the bar and in the text under it (in Polish the menus Pomo&c
+and &Widok have these letters); elsewhere these keys open the menus. In Distraction-Free,
+where the menu bar is hidden, Alt with the letter of a menu shows the menus at the top with
+that menu open; once it closes, they hide when the mouse is away from them.
+
+#### The Edit Commands
+
+Undo, Redo, Cut, Copy, Paste and Select All, with their keys, from the Edit menu and from the
+toolbar, work on the element with the cursor and on no other (`src/gui/edit_coordinator.cpp`,
+checked by `tests/gui/test_edit_coordinator.cpp`):
+- the book's text, a field of a panel, the field of a spin box or of a combo box one types
+  into: every command;
+- a text or a field that only shows (the Log): Copy and Select All; Cut, Paste, Undo and Redo
+  do nothing;
+- a list: Copy takes the text of its current item; Select All selects all its items where it
+  can select more than one;
+- the Annotations panel and the find bar outside their fields: Undo and Redo undo what was
+  done there in the text (an annotation marked done or deleted, a replacement);
+- elsewhere (a button, the Dashboard): nothing.
+
+The menu bar (Alt, F10) and the window's toolbars, also a floating one, give the commands to
+the element that had the cursor. The commands are enabled only where they can do something:
+they follow the cursor from element to element, the selection, the text and the clipboard. A
+button of the find bar that turns off with the cursor (Replace on the last match, Replace
+All) gives the cursor back to the text, where Undo takes the replacement back; Qt would give
+it to the next element of the window, the font box of the toolbar. After a replacement the
+cursor stands at the end of the replaced text, and after Replace All at the end of the last
+replacement, shown in the view; Replace with more matches after it selects the next one.
+
+The text's context menu has the same Cut, Copy, Paste and Select All, with their icons and
+keys, enabled as in the Edit menu (Cut and Copy only with a selection): EditorPanel gives them
+to its editor (`BookEditor::setContextMenuEditActions()`), which without them has items of its
+own. They work on the text whose menu it is: a right click gives it the cursor, and the menu
+key and Shift+F10 open the menu of the text that has it.
+
+The commands that work on the document in front, a chapter or a text file – Find, Find Next,
+Find Previous and Find and Replace, the character formats, the alignments, the view mode and
+the zoom – are greyed out, also their keys, while there is none (the Dashboard in front, no
+tab), and none of them is checked, as in Word without a document
+(`src/gui/utils/document_commands.cpp`, checked by `tests/gui/test_document_commands.cpp`).
+
+After a command given in a toolbar the cursor goes back where it was, as in Word and
+LibreOffice (`src/gui/toolbar_keys.cpp`, checked by `tests/gui/test_toolbar_keys.cpp`). In the
+font and size fields one types: what was typed goes on the text at Enter, as one step to undo,
+and Escape drops it. Enter, Escape and a choice in the font list give the cursor back to the
+text or the panel's field that had it. The arrow keys in a field go through its values, each
+going on the text, and Tab goes to the other field. The arrows of the size field, like the
+buttons, do not take the cursor. A floating toolbar is a
+window of its own: shown floating it does not take the cursor, and a click on it that is not
+in one of its fields, or a command given there, gives the cursor back at once.
+
+#### macOS
+
+Ctrl is Cmd. Where the system needs it, a command has the keys of macOS:
+- File > Exit – Cmd+Q (programs quit with it; Alt+F4 does nothing there);
+- Edit > Find & Replace – Option+Cmd+F (Cmd+H hides the program);
+- Edit > Next To Do and Previous To Do – Option+Cmd+Down and Option+Cmd+Up (Option+Down and
+  Option+Up move the cursor by paragraphs);
+- View > Full Screen – Control+Cmd+F (F11 shows the desktop);
+- the options of the find bar – Option+Cmd+C, Option+Cmd+W and Option+Cmd+R (Option with a
+  letter types a character: Option+C is "ć" on the Polish keyboard).
+
+The menus have no access keys, as the menus of macOS: Option with a letter types a
+character.
+
+The text has the keys of the text fields of macOS: Option+Left and Option+Right – by a word,
+Cmd+Left and Cmd+Right – the line, Option+Up and Option+Down – the paragraph, Cmd+Up and
+Cmd+Down – the text; Home, End, Page Up and Page Down move the view only (with Shift they
+select, Option+Page Up and Option+Page Down move the cursor); Option+Backspace and
+Option+Delete delete a word, Cmd+Backspace to the start of the line, Control+Backspace the
+last mark of a character. The Control keys: A and E – the start and the end of the
+paragraph; B, F, P, N – a character or a line; V – a screen down; H and D – delete; K – cut
+to the end of the paragraph, Y – paste it; T – swap the characters; O – a paragraph after
+the cursor; L – the line to the middle of the view. Return, Cmd+Return and Option+Return
+start a paragraph, Shift+Return a new line in the paragraph. Cmd+Tab belongs to the system, so
+the tabs of the texts have no keys there.
+
+On Apple laptops the F keys are pressed with Fn.
+
+#### Linux Desktops
+
+KDE and Xfce take Ctrl+F4 for themselves by default (desktop or workspace 4), so there Close
+Book is in the File menu only, unless the user gives it another key in Settings > Keyboard
+Shortcuts. That page warns when a command gets a key such a desktop may take (Ctrl+F1–F12,
+Alt+F1–F10) and leaves the choice to the user; the program's own keys bring no warning.
+
+### Planned Shortcuts
+
+Commands without keys yet, with keys that are still free:
 - `Ctrl+P` - Print
-- `Ctrl+Q` - Exit
-
-#### Edit (15)
-- `Ctrl+Z` - Undo
-- `Ctrl+Y` / `Ctrl+Shift+Z` - Redo
-- `Ctrl+X` - Cut
-- `Ctrl+C` - Copy
-- `Ctrl+V` - Paste
-- `Ctrl+A` - Select All
-- `Ctrl+F` - Find
-- `Ctrl+H` - Replace
 - `Ctrl+G` - Go to Line
-- `F3` - Find Next
-
-#### Format (10)
-- `Ctrl+B` - Bold
-- `Ctrl+I` - Italic
-- `Ctrl+U` - Underline
-- `Ctrl+Shift+K` - Strikethrough
-- `Ctrl+0` - Normal style
-- `Ctrl+1` - Heading 1
-- `Ctrl+2` - Heading 2
-
-#### View (10)
-- `F11` - Fullscreen
-- `F9` - Normal mode
-- `F10` - Focused mode
-- `Ctrl+\` - Toggle Focus Mode
-- `F5-F8` - Quick perspective switch
-- `Ctrl+1-5` - Toggle panels
-
-#### Tools (8)
-- `F7` - Spell Check
+- `Ctrl+Shift+K` - Small Caps (Strikethrough, in the Format menu, has no keys, as in Word
+  and LibreOffice)
 - `Ctrl+Shift+C` - Word Count
 - `Ctrl+Shift+T` - Timeline
-- `Ctrl+Shift+M` - Mind Map
+- `Alt+1`, `Alt+2`, `Alt+3` - Heading 1–3, `Alt+0` - Normal style (on macOS Option+Cmd with
+  the digit)
+- `F10` - Focused Mode (see Focus Modes)
 
-#### Window (5)
-- `Ctrl+Tab` - Next Tab
-- `Ctrl+Shift+Tab` - Previous Tab
-- `Ctrl+F4` - Close Tab
+Keys planned before that other commands have now; these commands get new keys when they
+are added:
+- Normal Mode (`F9`: the Annotations panel), Toggle Focus Mode (`Ctrl+\`: splitting the
+  editor, in `SplitEditorPanel`, which the program does not use yet)
+- Quick perspective switch (`F5`–`F8`: the panels), panel toggles (`Ctrl+1`–`Ctrl+5`: the
+  view modes, Typewriter Scrolling and Focus)
+- Mind Map (`Ctrl+Shift+M`: Add Annotation)
+- Close Tab (`Ctrl+F4`: Close Book)
 
 ### Shortcut Customization
 
-**Access:** Tools → Options → Keyboard Shortcuts
+**Access:** Settings > Keyboard Shortcuts (Edit > Preferences...); Help > Keyboard Shortcuts
+opens Settings on this page, with the cursor in its search, as the shortcuts editors of Visual
+Studio Code and Visual Studio. `src/gui/settings/shortcuts_page.cpp`.
 
 ```
-┌─────────────────────────────────────────────────┐
-│ Keyboard Shortcuts                        [X]   │
-├─────────────────────────────────────────────────┤
-│ Search: [________]  🔍                          │
-│                                                  │
-│ Command          │ Shortcut   │ [Assign] [Clear]│
-├──────────────────┼────────────┤                 │
-│ File: Save       │ Ctrl+S     │                 │
-│ File: Save As    │ Ctrl+Sh+S  │                 │
-│ Edit: Undo       │ Ctrl+Z     │                 │
-│ Edit: Redo       │ Ctrl+Y     │                 │
-│ Format: Bold     │ Ctrl+B     │                 │
-│ AI: Suggest      │ Ctrl+Sh+A  │ ← Plugin        │
-│ ...                                             │
-├─────────────────────────────────────────────────┤
-│ Conflict detection: ✅ Enabled                  │
-│                                                  │
-│ [Reset to Defaults]  [Import...]  [Export...]  │
-│                                                  │
-│                    [OK]  [Cancel]  [Apply]      │
-└─────────────────────────────────────────────────┘
+┌ Settings ──────────────────────────────────────────────────────────────────────────┐
+│ Search: [Command name or keys, e.g. Ctrl+H] [Search by Keys] [ ] Only Changed      │
+│ ┌ Command ───────────────────────────────────────┬ Shortcut ─────────────────────┐ │
+│ │ ▾ File                                         │                               │ │
+│ │     New File                                   │ Ctrl+N                        │ │
+│ │     Open › Open File...                        │ Ctrl+Shift+O                  │ │
+│ │     Close Book                                 │ Ctrl+F4                       │ │
+│ │ ...                                            │                               │ │
+│ │ ▾ Help                                         │                               │ │
+│ │     Kalahari Help (not available yet)          │ F1                            │ │
+│ │ ▾ Fixed: in the text (lock)                    │                               │ │
+│ │     Word left / right                          │ Ctrl+Left, Ctrl+Right         │ │
+│ │ ▾ Fixed: the Windows system (lock)             │                               │ │
+│ └────────────────────────────────────────────────┴───────────────────────────────┘ │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ File › Close Book                                                              │ │
+│ │ Shortcut: [Ctrl+F4                  ] [Change...] [Remove] [Restore Default]   │ │
+│ │ Default: Ctrl+F4.                                                              │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│ [Restore All Defaults]                                     [Import...] [Export...] │
+└────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Features:**
-- Search/filter commands
-- Assign new shortcut (click command, press keys)
-- Clear shortcut
-- Conflict detection (warns if shortcut already used)
-- Import/export profiles
-- Reset to defaults
+- **The list:** the commands in the groups and the order of the menus (a submenu as
+  "Open › Open File..."), then the fixed keys of each place (Fixed: in the text, tabs, the
+  find bar, the annotation frame, the Annotations panel, Distraction-Free, the menus on
+  Windows and Linux) and the keys of the system (Fixed: the Windows system, the Linux
+  desktop or the macOS system), muted, with a lock after the name. A changed shortcut is
+  bold with a mark (●), and its tooltip names the default. A command the program does not
+  run yet says so after its name ("not available yet" for Kalahari Help, "in preparation"
+  for the others) and keeps its keys for later.
+- **Under the list** the selected row: its menu and name, its keys, and a note – the
+  default keys, a shortcut kept for a command not available yet, that Alt+F4 closes the
+  window also without the shortcut of Exit; for fixed keys and the keys of the system, what
+  they are and that they cannot be changed. A message under the keys takes the place of the
+  note.
+- **Search:** by the name of a command or the text of its keys ("ctrl+f" finds Ctrl+F). The
+  words of a name may come in any order, and a word of five letters or more finds its other
+  forms too, without its last letter (two of a word of seven): "książka" finds "Otwórz
+  książkę..." and "Zamknij książkę", "akapit" finds "Nowy wiersz w akapicie"; a word with
+  other characters than letters stays whole (a key is not a word with an ending). A whole key
+  name finds that key: "ctrl+h" finds Ctrl+H and not Ctrl+Home, "f1" finds F1 and not
+  F10–F12; while no keys have it, it is a name being
+  written and finds the keys it begins ("shift+f1" finds Shift+F11). **Search by Keys** –
+  press a shortcut, and the list shows what has it (a fixed key with what it does, a key
+  that types text says so), or says it is free; Esc goes back to the search by text. **Only
+  Changed** shows only the changed shortcuts.
+- **Change...** (also Enter, F2 or a double click in the list, or a click in the field) –
+  the field asks for the new shortcut ("Press the new shortcut... (Esc – cancel)"). Every key
+  is checked (`ShortcutRules`):
+  - keys that type text, fixed keys and the keys of the system are refused, with the reason;
+  - keys another command has bring a question: Assign Anyway takes them from it;
+  - keys a desktop may take bring a warning, and Assign Anyway gives them all the same: on
+    Linux Ctrl+F1–F12 (KDE switches its desktops with Ctrl+F1–F4, Xfce with all of them) and
+    Alt+F1–F10 (the menus and windows of the desktops; Alt+F4 only Exit can have), on macOS
+    F11 (it shows the desktop).
+- **Remove** (Delete in the list) leaves the command without a shortcut. **Restore Default**
+  gives it the program's keys; when another command has them now, it asks first. **Restore
+  All Defaults** drops every change (or says there is none).
+- **Import...** reads a file of shortcuts in place of the changes on the page and names the
+  keys it leaves out, with the reason; **Export...** saves the changed shortcuts to a file
+  (JSON, format `kalahari-keyboard-shortcuts`), e.g. for another computer, and with no
+  changed shortcuts says the file would be empty.
+- **Apply / OK** save the changes; the menus, the toolbars and every text that names a key
+  (the Dashboard, the hint of the Annotations panel, the note on Typewriter Scrolling, the
+  toolbar manager) change at once. Cancel drops them.
+- **Keyboard:** every button and field has its letter (Alt+S Search, Alt+K Search by Keys,
+  Alt+O Only Changed, Alt+C Change..., Alt+R Remove, Alt+D Restore Default, Alt+A Restore
+  All Defaults, Alt+I Import..., Alt+E Export...); Down or Enter in the search goes to the
+  list; Enter in the list changes the keys and does not close the window; Esc on the
+  buttons of a message closes the message; after a change the keys go back to where it
+  started.
+- **Small screens** (1366 × 768 at 125% and 150%): Settings opens 840 px wide where the
+  screen allows (820 at 150%), and its list of groups is only as wide as the longest of
+  them, so the search and the keys of the selected command have one row each, with their
+  prompts whole. Where a row has too little room (a larger font), the options go under the
+  search field and the buttons under the keys; the rows keep room for a scroll bar, so one
+  that comes with a message moves nothing. The list gives up its rows first, down to three;
+  only then does the page scroll. A message under the keys scrolls into sight, and the
+  selected command stays in sight in the list, also when the search is cleared.
+
+**Settings:** `keyboard.shortcuts` holds only the shortcuts the user changed: command id to
+keys in the portable form ("Ctrl+Shift+F"), "" for none. At start the program leaves out the
+keys the rules refuse (e.g. from the settings of another system) and, of two commands given
+the same keys, keeps them for the first by id. Keys a new version gives a command, which the
+user gave another command before, stay that command's.
 
 ---
 
@@ -1572,7 +1892,9 @@ Motivate writers through achievements, challenges, and statistics.
 
 **3 modes for different concentration levels:**
 
-### Normal Mode (F9)
+### Normal Mode
+
+**Key:** to be chosen (F9 is the Annotations panel).
 
 **Layout:**
 - All panels visible (per current perspective)
@@ -1601,7 +1923,9 @@ Motivate writers through achievements, challenges, and statistics.
 
 ---
 
-### Distraction-Free Mode (F11)
+### Distraction-Free Mode (Shift+F11)
+
+In the program: View > Distraction-Free (F11 is View > Full Screen).
 
 **Layout:**
 - Fullscreen
@@ -1895,9 +2219,8 @@ This section documents the **complete vision** for Kalahari's settings hierarchy
 │  ├─ Font size (10-24pt)
 │  ├─ Line height (1.0-2.0)
 │  └─ Letter spacing
-├─ ⌨️ Keybindings                     [Phase 2]
-│  ├─ Preset (Default/Vim/Emacs)
-│  └─ Custom shortcuts
+├─ ⌨️ Keyboard Shortcuts              [Phase 1] ✅ a page of its own
+│  └─ see Keyboard Shortcuts > Shortcut Customization
 ├─ 📐 Layout & Panels                 [Phase 2]
 │  ├─ Default perspective
 │  ├─ Panel positions (saved per perspective)

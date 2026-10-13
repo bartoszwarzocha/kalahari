@@ -11,6 +11,7 @@
 #include "kalahari/core/part.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/standalone_file.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_appearance.h"
@@ -169,13 +170,18 @@ void AnnotationsCoordinator::connectCommands() {
     };
 
     const auto hasDocument = [this]() { return currentEditor() != nullptr; };
-    connectCommand("insert.annotation", [this]() { showAddMenu(); }, hasDocument);
+    // A plain text file keeps no annotations: none is added to it
+    const auto canAnnotate = [this]() {
+        const editor::BookEditor* editor = currentEditor();
+        return editor != nullptr && editor->annotationsAllowed();
+    };
+    connectCommand("insert.annotation", [this]() { showAddMenu(); }, canAnnotate);
     connectCommand(
-        "insert.comment", [this]() { addAnnotation(editor::AnnotationKind::Comment); }, hasDocument);
+        "insert.comment", [this]() { addAnnotation(editor::AnnotationKind::Comment); }, canAnnotate);
     connectCommand(
-        "insert.todo", [this]() { addAnnotation(editor::AnnotationKind::Todo); }, hasDocument);
+        "insert.todo", [this]() { addAnnotation(editor::AnnotationKind::Todo); }, canAnnotate);
     connectCommand(
-        "insert.note", [this]() { addAnnotation(editor::AnnotationKind::Note); }, hasDocument);
+        "insert.note", [this]() { addAnnotation(editor::AnnotationKind::Note); }, canAnnotate);
     connectCommand("edit.nextTodo", [this]() { goToNextTodo(); }, hasDocument);
     connectCommand("edit.previousTodo", [this]() { goToPreviousTodo(); }, hasDocument);
 
@@ -201,6 +207,18 @@ bool AnnotationsCoordinator::eventFilter(QObject* watched, QEvent* event) {
         togglePanelFocus();
         return true;
     }
+
+    // The file of a document, set when it opens or saved under another name: a plain text
+    // file keeps no annotations
+    if (event->type() == QEvent::DynamicPropertyChange &&
+        static_cast<QDynamicPropertyChangeEvent*>(event)->propertyName() ==
+            "standaloneFilePath") {
+        auto* panel = qobject_cast<EditorPanel*>(watched);
+        if (followFileType(panel) && panel == currentEditorPanel()) {
+            updateCommandStates();
+            scheduleRefresh();
+        }
+    }
     return QObject::eventFilter(watched, event);
 }
 
@@ -211,7 +229,7 @@ bool AnnotationsCoordinator::eventFilter(QObject* watched, QEvent* event) {
 bool AnnotationsCoordinator::addAnnotation(editor::AnnotationKind kind) {
     EditorPanel* panel = currentEditorPanel();
     editor::BookEditor* editor = panel != nullptr ? panel->getBookEditor() : nullptr;
-    if (editor == nullptr) {
+    if (editor == nullptr || !editor->annotationsAllowed()) {
         return false;
     }
     finishWriting();  // the text of the open frame is kept
@@ -237,22 +255,28 @@ void AnnotationsCoordinator::showAddMenu() {
         return;
     }
 
-    auto& art = core::ArtProvider::getInstance();
     QMenu menu(editor);
-    QAction* comment = menu.addAction(art.getIcon("insert.comment"), tr("&Comment"));
-    QAction* todo = menu.addAction(art.getIcon("insert.todo"), tr("&To do"));
-    QAction* note = menu.addAction(art.getIcon("insert.note"), tr("&Note"));
+    fillAddMenu(&menu);
 
     // Under the cursor
     const QRect cursor = editor->inputMethodQuery(Qt::ImCursorRectangle).toRect();
     const QAction* chosen = menu.exec(editor->mapToGlobal(cursor.bottomLeft()));
-    if (chosen == comment) {
-        addAnnotation(editor::AnnotationKind::Comment);
-    } else if (chosen == todo) {
-        addAnnotation(editor::AnnotationKind::Todo);
-    } else if (chosen == note) {
-        addAnnotation(editor::AnnotationKind::Note);
+    if (chosen != nullptr) {
+        addAnnotation(static_cast<editor::AnnotationKind>(chosen->data().toInt()));
     }
+}
+
+void AnnotationsCoordinator::fillAddMenu(QMenu* menu) {
+    // Each with its access key, unique in the menu (test_menu_access_keys)
+    auto& art = core::ArtProvider::getInstance();
+    const auto add = [menu, &art](const char* icon, const QString& text,
+                                  editor::AnnotationKind kind) {
+        menu->addAction(art.getIcon(QString::fromLatin1(icon)), text)
+            ->setData(static_cast<int>(kind));
+    };
+    add("insert.comment", tr("&Comment"), editor::AnnotationKind::Comment);
+    add("insert.todo", tr("&To do"), editor::AnnotationKind::Todo);
+    add("insert.note", tr("&Note"), editor::AnnotationKind::Note);
 }
 
 bool AnnotationsCoordinator::editAnnotation(const QString& elementId, const QString& annotationId,
@@ -401,6 +425,7 @@ void AnnotationsCoordinator::refresh() {
     const bool bookOpen = projects.isProjectOpen();
     EditorPanel* current = currentEditorPanel();
     const editor::BookEditor* editor = current != nullptr ? current->getBookEditor() : nullptr;
+    m_panel->setAnnotationsAllowed(editor == nullptr || editor->annotationsAllowed());
     m_panel->setBookScopeAvailable(bookOpen);
     m_panel->setDocumentAvailable(editor != nullptr);
     m_stale = false;
@@ -435,6 +460,22 @@ EditorPanel* AnnotationsCoordinator::currentEditorPanel() const {
 editor::BookEditor* AnnotationsCoordinator::currentEditor() const {
     EditorPanel* panel = currentEditorPanel();
     return panel != nullptr ? panel->getBookEditor() : nullptr;
+}
+
+bool AnnotationsCoordinator::followFileType(EditorPanel* panel) {
+    editor::BookEditor* editor = panel != nullptr ? panel->getBookEditor() : nullptr;
+    if (editor == nullptr) {
+        return false;
+    }
+    // A chapter of the book has no file of its own, and a new file not saved yet no path
+    const QString path = panel->property("standaloneFilePath").toString();
+    const bool allowed = path.isEmpty() || core::StandaloneFile::typeOf(path) !=
+                                               core::StandaloneFile::Type::PlainText;
+    if (allowed == editor->annotationsAllowed()) {
+        return false;
+    }
+    editor->setAnnotationsAllowed(allowed);
+    return true;
 }
 
 QString AnnotationsCoordinator::elementIdOf(const EditorPanel* panel) const {
@@ -588,6 +629,11 @@ QString AnnotationsCoordinator::keyAtCursor() const {
 
 void AnnotationsCoordinator::onCurrentTabChanged() {
     if (editor::BookEditor* editor = currentEditor()) {
+        // Its file may be set later, or be saved as another type (eventFilter())
+        EditorPanel* panel = currentEditorPanel();
+        panel->installEventFilter(this);
+        followFileType(panel);
+
         auto& registry = CommandRegistry::getInstance();
         editor->setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
                                        registry.getAction(QStringLiteral("insert.todo")),
@@ -687,6 +733,7 @@ void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& te
     frame->setText(text);
     connect(frame, &AnnotationFrame::saveRequested, this, &AnnotationsCoordinator::saveWriting);
     connect(frame, &AnnotationFrame::cancelRequested, this, &AnnotationsCoordinator::cancelWriting);
+    connect(frame, &AnnotationFrame::closeRequested, this, [this]() { finishWriting(); });
 
     // A closed tab takes the frame with its editor: nothing is left to write
     connect(frame, &QObject::destroyed, this, [this]() {

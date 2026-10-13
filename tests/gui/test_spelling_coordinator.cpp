@@ -1,13 +1,15 @@
 /// @file test_spelling_coordinator.cpp
 /// @brief Spelling as you type in the window: the dictionary follows the settings and the
-///        book, the editors of the documents check with it, Tools > Check Spelling as You
-///        Type turns it on and off, and Editor > Spelling in the settings chooses its
-///        language and edits the writer's own words
+///        book, the editors of the documents check with it (a document outside the book in
+///        the default language), Tools > Check Spelling as You Type turns it on and off, and
+///        Editor > Spelling in the settings chooses its language and edits the writer's own
+///        words
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
 #include "../editor/fake_language_tool.h"
 #include "kalahari/core/document.h"
+#include "kalahari/core/icon_registry.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
@@ -16,18 +18,22 @@
 #include "kalahari/editor/text_source_adapter.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/spelling_coordinator.h"
 
 #include <QAction>
 #include <QCheckBox>
+#include <QCollator>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QFileInfo>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QLocale>
 #include <QPushButton>
 #include <QStatusBar>
 #include <QTabWidget>
@@ -38,6 +44,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <string>
+#include <utility>
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -50,16 +57,19 @@ namespace {
 constexpr const char* ENABLED_KEY = "editor.spellCheck.enabled";
 constexpr const char* LANGUAGE_KEY = "editor.spellCheck.language";
 
-/// Gives the spelling settings back as they were before the test
+/// Gives the spelling settings and the language of the program back as they were before
+/// the test
 class KeptSpellingSettings {
 public:
     KeptSpellingSettings()
         : m_enabled(settings().get<bool>(ENABLED_KEY, true))
-        , m_language(settings().get<std::string>(LANGUAGE_KEY, std::string())) {}
+        , m_language(settings().get<std::string>(LANGUAGE_KEY, std::string()))
+        , m_program(settings().getLanguage()) {}
     ~KeptSpellingSettings() {
         try {
             settings().set<bool>(ENABLED_KEY, m_enabled);
             settings().set<std::string>(LANGUAGE_KEY, m_language);
+            settings().setLanguage(m_program);
         } catch (...) {
             // Left as the test made them; the next tests set what they need
             std::fputs("The spelling settings could not be given back\n", stderr);
@@ -73,6 +83,7 @@ public:
 private:
     bool m_enabled;
     std::string m_language;
+    std::string m_program;
 };
 
 /// Run the event loop until the coordinator checks with @p dictionary
@@ -168,7 +179,8 @@ TEST_CASE("Spelling coordinator: the dictionary follows the settings", "[gui][sp
     settings.set<bool>(ENABLED_KEY, true);
     settings.set<std::string>(LANGUAGE_KEY, "en");
 
-    SpellingCoordinator coordinator(nullptr, nullptr);
+    QStatusBar statusBar;
+    SpellingCoordinator coordinator(nullptr, &statusBar);
     editor::SpellCheckService* service = coordinator.service();
     CHECK(service->userDictionaryFile() == SpellingCoordinator::userDictionaryFile());
     CHECK(SpellingCoordinator::userDictionaryFile().endsWith(
@@ -180,9 +192,20 @@ TEST_CASE("Spelling coordinator: the dictionary follows the settings", "[gui][sp
     settings.set<std::string>(LANGUAGE_KEY, "pl_PL");
     CHECK(checksWith(coordinator, QStringLiteral("pl_PL")));
 
-    // A language without a dictionary: nothing is checked
-    settings.set<std::string>(LANGUAGE_KEY, "xx");
+    // A language without a dictionary (Hunspell has none for Japanese): nothing is checked,
+    // and the status bar names the language in the language of the program
+    settings.set<std::string>(LANGUAGE_KEY, "ja");
     CHECK(waitUntil([service]() { return !service->isDictionaryLoaded(); }));
+    CHECK_FALSE(service->isActive());
+    CHECK(statusBar.currentMessage() ==
+          QStringLiteral("No spelling dictionary for Japanese: the spelling is not checked"));
+
+    // A language the program has no name for goes by its code
+    settings.set<std::string>(LANGUAGE_KEY, "xx");
+    CHECK(waitUntil([&statusBar]() {
+        return statusBar.currentMessage() ==
+               QStringLiteral("No spelling dictionary for xx: the spelling is not checked");
+    }));
     CHECK_FALSE(service->isActive());
 
     // Turned off and on again
@@ -247,11 +270,15 @@ TEST_CASE("Spelling coordinator: the editors of the documents check with its dic
     SpellingCoordinator coordinator(&tabs, nullptr);
     CHECK(first->getBookEditor()->spellCheckService() == coordinator.service());
 
-    // A document opened later, in a tab of its own
+    // A document opened later, in a tab of its own: once the event loop runs, as a chapter
+    // is tagged after its tab is shown
     auto* second = new EditorPanel();
     second->setContent(kmlOf({QStringLiteral("Two mistakkes.")}));
     tabs.setCurrentIndex(tabs.addTab(second, QStringLiteral("Two")));
-    CHECK(second->getBookEditor()->spellCheckService() == coordinator.service());
+    const editor::BookEditor* added = second->getBookEditor();
+    CHECK(waitUntil([added, &coordinator]() {
+        return added->spellCheckService() == coordinator.service();
+    }));
 
     // The editor shown gets its waves
     tabs.resize(700, 500);
@@ -261,6 +288,121 @@ TEST_CASE("Spelling coordinator: the editors of the documents check with its dic
     CHECK(waitUntil(
         [shown]() { return wavyWords(*shown, 0) == QStringList{QStringLiteral("mistakkes")}; },
         DICTIONARY_WAIT_MS));
+}
+
+TEST_CASE("Spelling coordinator: a document outside the book is checked in the default "
+          "language",
+          "[gui][spelling]") {
+    KeptSpellingSettings kept;
+    auto& settings = KeptSpellingSettings::settings();
+    settings.set<bool>(ENABLED_KEY, true);
+    settings.set<std::string>(LANGUAGE_KEY, "");
+    settings.setLanguage("en");
+    auto& projects = core::ProjectManager::getInstance();
+    REQUIRE(projects.closeProject(false));
+
+    registerAllCommands(CommandCallbacks{});
+    auto& registry = CommandRegistry::getInstance();
+    QStatusBar statusBar;
+    QTabWidget tabs;
+    tabs.resize(700, 500);
+    tabs.show();
+    {
+        SpellingCoordinator coordinator(&tabs, &statusBar);
+        coordinator.connectCommands();
+        const editor::SpellCheckService* book = coordinator.service();
+        CHECK(SpellingCoordinator::defaultLanguage() == QStringLiteral("en"));
+
+        // A book in Polish, with a chapter: NavigatorCoordinator tags it after its tab is shown
+        QTemporaryDir folder;
+        REQUIRE(folder.isValid());
+        REQUIRE(projects.createProject(folder.path(), QStringLiteral("Spelling Test"),
+                                       QStringLiteral("Author"), QStringLiteral("pl"), true));
+        REQUIRE(checksWith(coordinator, QStringLiteral("pl_PL")));
+        CHECK(SpellingCoordinator::defaultLanguage() == QStringLiteral("en"));
+        auto* chapter = new EditorPanel();
+        chapter->setContent(kmlOf({QStringLiteral("Ta ksi\u0105\u017cka ma b\u0142\u0105d: "
+                                                  "ksi\u0105rzka.")}));
+        tabs.setCurrentIndex(tabs.addTab(chapter, QStringLiteral("Chapter")));
+        chapter->setProperty("elementId", QStringLiteral("chapter-1"));
+        const editor::BookEditor* chapterEditor = chapter->getBookEditor();
+        CHECK(waitUntil(
+            [chapterEditor]() {
+                return wavyWords(*chapterEditor, 0) == QStringList{QStringLiteral("ksi\u0105rzka")};
+            },
+            DICTIONARY_WAIT_MS));
+        CHECK(chapterEditor->spellCheckService() == book);
+
+        // A file opened from the disk: in the language of the program, with a dictionary of
+        // its own
+        auto* note = new EditorPanel();
+        note->setContent(kmlOf({QStringLiteral("This note has one mistakke.")}));
+        tabs.setCurrentIndex(tabs.addTab(note, QStringLiteral("note.txt")));
+        note->setProperty("isStandaloneFile", true);
+        const editor::BookEditor* noteEditor = note->getBookEditor();
+        CHECK(waitUntil(
+            [noteEditor]() {
+                return wavyWords(*noteEditor, 0) == QStringList{QStringLiteral("mistakke")};
+            },
+            DICTIONARY_WAIT_MS));
+        editor::SpellCheckService* other = noteEditor->spellCheckService();
+        REQUIRE(other != nullptr);
+        CHECK(other != book);
+        CHECK(other->currentDictionary() == QStringLiteral("en_US"));
+        CHECK(book->currentDictionary() == QStringLiteral("pl_PL"));
+        CHECK(chapterEditor->spellCheckService() == book);
+
+        // The writer's own words are the same in both: a word ignored in the note is right in
+        // the chapter
+        other->ignoreWord(QStringLiteral("ksi\u0105rzka"));
+        CHECK(book->isIgnored(QStringLiteral("ksi\u0105rzka")));
+        tabs.setCurrentIndex(0);
+        CHECK(waitUntil([chapterEditor]() { return wavyWords(*chapterEditor, 0).isEmpty(); }));
+        tabs.setCurrentIndex(1);
+
+        // The book's language without a dictionary: its chapters are not checked, the note
+        // is, and Next Spelling or Grammar Issue goes to the note's word
+        projects.getDocument()->setLanguage("ja");
+        coordinator.updateDictionary();
+        CHECK(waitUntil([book]() { return !book->isDictionaryLoaded(); }));
+        CHECK(statusBar.currentMessage() ==
+              QStringLiteral("No spelling dictionary for Japanese: the spelling is not checked"));
+        CHECK(noteEditor->spellCheckService() == other);
+        CHECK(wavyWords(*noteEditor, 0) == QStringList{QStringLiteral("mistakke")});
+        QAction* next = registry.getAction(std::string("tools.nextMisspelling"));
+        REQUIRE(next != nullptr);
+        note->getBookEditor()->setCursorPosition({0, 0});
+        const QStringList texts = kalahari::test::runPopupMenu([next]() { next->trigger(); });
+        CHECK(noteEditor->selectedText() == QStringLiteral("mistakke"));
+        CHECK(texts.contains(QStringLiteral("mistake")));
+
+        // The book in the language of the program: one dictionary for every document
+        projects.getDocument()->setLanguage("en");
+        coordinator.updateDictionary();
+        CHECK(checksWith(coordinator, QStringLiteral("en_US")));
+        CHECK(noteEditor->spellCheckService() == book);
+        CHECK(chapterEditor->spellCheckService() == book);
+
+        // The language of the program without a dictionary: the note is not checked, and the
+        // status bar says so
+        settings.setLanguage("xx");
+        CHECK(waitUntil([noteEditor, other]() {
+            return noteEditor->spellCheckService() == other && !other->isDictionaryLoaded();
+        }));
+        CHECK(statusBar.currentMessage() ==
+              QStringLiteral("No spelling dictionary for xx: the spelling is not checked"));
+        CHECK(waitUntil([noteEditor]() { return wavyWords(*noteEditor, 0).isEmpty(); }));
+        CHECK(book->currentDictionary() == QStringLiteral("en_US"));
+
+        // A language chosen in the settings: every document in it
+        settings.set<std::string>(LANGUAGE_KEY, "pl_PL");
+        CHECK(checksWith(coordinator, QStringLiteral("pl_PL")));
+        CHECK(noteEditor->spellCheckService() == book);
+        CHECK(chapterEditor->spellCheckService() == book);
+
+        REQUIRE(projects.closeProject(false));
+    }
+    registry.clear();
 }
 
 TEST_CASE("Spelling coordinator: Check Spelling as You Type turns the checking on and off",
@@ -339,7 +481,7 @@ TEST_CASE("Spelling coordinator: Next Spelling or Grammar Issue selects the next
         QStringList texts = kalahari::test::runPopupMenu([action]() { action->trigger(); });
         CHECK(bookEditor->selectedText() == QStringLiteral("mistakke"));
         CHECK(texts.contains(QStringLiteral("mistake")));
-        CHECK(texts.contains(QStringLiteral("Add to Dictionary")));
+        CHECK(texts.contains(QStringLiteral("Add t&o Dictionary")));
 
         // The next one, and a word chosen from the menu
         texts = kalahari::test::runPopupMenu([action]() { action->trigger(); },
@@ -367,7 +509,7 @@ TEST_CASE("Spelling coordinator: Next Spelling or Grammar Issue selects the next
             bookEditor->setCursorPosition({0, 0});
             texts = kalahari::test::runPopupMenu([action]() { action->trigger(); });
             CHECK(bookEditor->selectedText() == QStringLiteral("kat"));
-            CHECK(texts.contains(QStringLiteral("Ignore This Rule")));
+            CHECK(texts.contains(QStringLiteral("&Ignore This Rule")));
 
             bookEditor->fromKml(kmlOf({QStringLiteral("All good here.")}));
             REQUIRE(waitUntil([bookEditor]() { return !bookEditor->isGrammarCheckPending(); },
@@ -430,7 +572,19 @@ TEST_CASE("Spelling settings: the language and the writer's own words",
     REQUIRE(language != nullptr);
     CHECK(language->currentIndex() == 0);
     CHECK(language->currentData().toString().isEmpty());
-    CHECK(language->findData(QStringLiteral("pl_PL")) >= 0);
+    CHECK(language->itemText(0) == QStringLiteral("Language of the book"));
+
+    // The dictionaries by their languages in the language of the program, in the order of
+    // the names
+    CHECK(language->itemText(language->findData(QStringLiteral("pl_PL"))) ==
+          QStringLiteral("Polish (pl_PL)"));
+    CHECK(language->itemText(language->findData(QStringLiteral("en_US"))) ==
+          QStringLiteral("English (en_US)"));
+    const QCollator collator(QLocale(QString::fromStdString(settings.getLanguage())));
+    for (int index = 1; index + 1 < language->count(); ++index) {
+        INFO(language->itemText(index).toStdString());
+        CHECK(collator.compare(language->itemText(index), language->itemText(index + 1)) <= 0);
+    }
 
     QListWidget* words = wordList(dialog);
     REQUIRE(words != nullptr);
@@ -501,16 +655,45 @@ TEST_CASE("Spelling settings: a language whose dictionary is gone is kept",
     KeptSpellingSettings kept;
     auto& settings = KeptSpellingSettings::settings();
     settings.set<bool>(ENABLED_KEY, true);
-    settings.set<std::string>(LANGUAGE_KEY, "xx_YY");
 
-    // Without the dictionary of the editors the page does not list its words
-    SettingsDialog dialog(nullptr);
-    openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Spelling"));
-    CHECK(wordList(dialog) == nullptr);
+    // A language the program knows (Hunspell has no dictionary for Japanese), and one it
+    // does not know
+    const std::pair<std::string, QString> gone[] = {
+        {"ja_JP", QStringLiteral("Japanese (ja_JP): no dictionary")},
+        {"xx_YY", QStringLiteral("xx_YY: no dictionary")}};
+    for (const auto& [stored, shown] : gone) {
+        INFO(stored);
+        settings.set<std::string>(LANGUAGE_KEY, stored);
 
-    QComboBox* language = languageBox(dialog);
-    REQUIRE(language != nullptr);
-    CHECK(language->currentData().toString() == QStringLiteral("xx_YY"));
-    CHECK(language->currentText() == QStringLiteral("xx_YY (no dictionary)"));
-    CHECK_FALSE(dialog.hasChanges());
+        // Without the dictionary of the editors the page does not list its words
+        SettingsDialog dialog(nullptr);
+        openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Spelling"));
+        CHECK(wordList(dialog) == nullptr);
+
+        QComboBox* language = languageBox(dialog);
+        REQUIRE(language != nullptr);
+        CHECK(language->currentData().toString() == QString::fromStdString(stored));
+        CHECK(language->currentText() == shown);
+        CHECK_FALSE(dialog.hasChanges());
+    }
+}
+
+TEST_CASE("Spelling commands: each has an icon of its own in every icon theme",
+          "[gui][spelling]") {
+    registerAllIcons();
+    const auto& icons = core::IconRegistry::getInstance();
+    QStringList files;
+    for (const char* id : {"tools.spellcheck", "tools.nextMisspelling"}) {
+        INFO(id);
+        const core::IconDescriptor* icon = icons.getIconDescriptor(QString::fromLatin1(id));
+        REQUIRE(icon != nullptr);
+        const QString file = QFileInfo(icon->defaultSVGPath).fileName();
+        CHECK_FALSE(files.contains(file));
+        files.append(file);
+        for (const char* theme : {"twotone", "filled", "outlined", "rounded"}) {
+            INFO(theme);
+            CHECK(QFileInfo::exists(QStringLiteral(KALAHARI_SOURCE_DIR "/resources/icons/%1/%2")
+                                        .arg(QLatin1String(theme), file)));
+        }
+    }
 }

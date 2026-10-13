@@ -33,12 +33,16 @@ void registerAllIcons() {
     iconRegistry.registerIcon("file.import.pdf", "resources/icons/twotone/picture_as_pdf.svg", "Import PDF");
     iconRegistry.registerIcon("file.import.text", "resources/icons/twotone/text_snippet.svg", "Import Text");
     iconRegistry.registerIcon("file.import.scrivener", "resources/icons/twotone/integration_instructions.svg", "Import Scrivener");
+    iconRegistry.registerIcon("file.import.archive", "resources/icons/twotone/folder_open.svg", "Import Project Archive");
     iconRegistry.registerIcon("file.export.docx", "resources/icons/twotone/download.svg", "Export DOCX");
     iconRegistry.registerIcon("file.export.pdf", "resources/icons/twotone/picture_as_pdf.svg", "Export PDF");
     iconRegistry.registerIcon("file.export.markdown", "resources/icons/twotone/code.svg", "Export Markdown");
     iconRegistry.registerIcon("file.export.epub", "resources/icons/twotone/auto_stories.svg", "Export EPUB");
     iconRegistry.registerIcon("file.export.mobi", "resources/icons/twotone/smartphone.svg", "Export MOBI");
     iconRegistry.registerIcon("file.export.latex", "resources/icons/twotone/functions.svg", "Export LaTeX");
+    iconRegistry.registerIcon("file.export.icml", "resources/icons/twotone/view_quilt.svg", "Export InDesign ICML");
+    iconRegistry.registerIcon("file.export.settings", "resources/icons/twotone/tune.svg", "Export Settings");
+    iconRegistry.registerIcon("file.export.archive", "resources/icons/twotone/drive_file_move.svg", "Export Project Archive");
 
     // -------------------------------------------------------------------------
     // EDIT MENU ICONS
@@ -57,6 +61,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("edit.findNext", "resources/icons/twotone/navigate_next.svg", "Find Next");
     iconRegistry.registerIcon("edit.findPrevious", "resources/icons/twotone/navigate_before.svg", "Find Previous");
     iconRegistry.registerIcon("edit.findReplace", "resources/icons/twotone/find_replace.svg", "Find & Replace");
+    iconRegistry.registerIcon("edit.findInBook", "resources/icons/twotone/search.svg", "Find in Book");
     iconRegistry.registerIcon("edit.nextTodo", "resources/icons/twotone/navigate_next.svg", "Next To Do");
     iconRegistry.registerIcon("edit.previousTodo", "resources/icons/twotone/navigate_before.svg", "Previous To Do");
     iconRegistry.registerIcon("edit.preferences", "resources/icons/twotone/settings.svg", "Preferences");
@@ -125,6 +130,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("tools.stats.full", "resources/icons/twotone/analytics.svg", "Full Statistics");
     iconRegistry.registerIcon("tools.stats.wordCount", "resources/icons/twotone/label.svg", "Word Count");
     iconRegistry.registerIcon("tools.spellcheck", "resources/icons/twotone/spellcheck.svg", "Spellcheck");
+    iconRegistry.registerIcon("tools.nextMisspelling", "resources/icons/twotone/fact_check.svg", "Next Misspelling");
     iconRegistry.registerIcon("tools.grammar", "resources/icons/twotone/grading.svg", "Grammar Check");
     iconRegistry.registerIcon("tools.backupNow", "resources/icons/twotone/backup.svg", "Backup Now");
     iconRegistry.registerIcon("tools.autoSaveSettings", "resources/icons/twotone/sync.svg", "Auto-Save Settings");
@@ -165,6 +171,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.perspectives.researcher", "resources/icons/twotone/science.svg", "Researcher Perspective");
     iconRegistry.registerIcon("view.perspectives.planner", "resources/icons/twotone/event_note.svg", "Planner Perspective");
     iconRegistry.registerIcon("view.perspectives.manage", "resources/icons/twotone/dashboard.svg", "Manage Perspectives");
+    iconRegistry.registerIcon("view.perspectives.save", "resources/icons/twotone/save_as.svg", "Save Current Perspective");
     iconRegistry.registerIcon("view.toolbars.standard", "resources/icons/twotone/view_headline.svg", "Standard Toolbar");
     iconRegistry.registerIcon("view.toolbars.format", "resources/icons/twotone/text_format.svg", "Format Toolbar");
     iconRegistry.registerIcon("view.toolbars.book", "resources/icons/twotone/menu_book.svg", "Book Toolbar");
@@ -213,6 +220,7 @@ void registerAllIcons() {
     // -------------------------------------------------------------------------
     // COMMON/UTILITY ICONS (for UI elements, dialogs, etc.)
     // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("common.palette", "resources/icons/twotone/palette.svg", "Color");
     iconRegistry.registerIcon("common.check", "resources/icons/twotone/check.svg", "Check");
     iconRegistry.registerIcon("common.checkCircle", "resources/icons/twotone/check_circle.svg", "Check Circle");
     iconRegistry.registerIcon("common.cancel", "resources/icons/twotone/cancel.svg", "Cancel");

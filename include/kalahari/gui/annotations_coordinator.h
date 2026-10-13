@@ -19,6 +19,7 @@
 
 class QAction;
 class QDockWidget;
+class QMenu;
 class QStatusBar;
 class QTabWidget;
 class QTimer;
@@ -42,7 +43,9 @@ class EditorPanel;
 /// An annotation's text is written in a frame at its place in the text: a new one's (on
 /// the selection, or on the cursor's place), and one's edited again (from its card, or with
 /// a click on its mark). Saving the frame is one step of the document's undo history - the
-/// new annotation, or its new text; dropping it (Esc) changes nothing. One frame is open at
+/// new annotation, or its new text; dropping it (Esc or its X) changes nothing. Going
+/// anywhere else in the program closes it, the text kept: a click outside it, the keys going
+/// to another place; it stays open while another application is in front. One frame is open at
 /// a time: opening another keeps the text of the open one, and so do saving and closing
 /// documents (finishWriting()).
 ///
@@ -51,6 +54,9 @@ class EditorPanel;
 /// each a step of the document's undo history. An annotation of a chapter not in front is
 /// gone to or changed after its chapter's tab is brought to the front (the chapter opened
 /// when it is not): the writer sees the change, and Ctrl+Z undoes it in that chapter.
+///
+/// A plain text file (.txt) keeps no annotations: the commands that add them are off for
+/// it, and the empty panel says why.
 class AnnotationsCoordinator : public QObject {
     Q_OBJECT
 
@@ -86,11 +92,16 @@ public:
     ///
     /// It goes on the selection, or on the cursor's place without one, when its text is
     /// saved.
-    /// @return Whether the frame opened (not without a document in front)
+    /// @return Whether the frame opened (not without a document in front, nor for a plain
+    ///         text file, which keeps no annotations)
     bool addAnnotation(editor::AnnotationKind kind);
 
     /// @brief The small menu of the kinds of annotations at the cursor (Add Annotation)
     void showAddMenu();
+
+    /// @brief Fill the menu of the kinds of annotations (showAddMenu()): each item's data is
+    ///        its editor::AnnotationKind
+    static void fillAddMenu(QMenu* menu);
 
     /// @brief Edit an annotation's text in a frame at its place
     /// @param elementId Its chapter (empty: the document in front); its tab is brought to
@@ -143,7 +154,8 @@ public:
     void finishWriting(const editor::BookEditor* editor = nullptr);
 
 protected:
-    /// @brief F9 (the shortcut of Annotations): togglePanelFocus()
+    /// @brief F9 (the shortcut of Annotations): togglePanelFocus(); the file of a document
+    /// set or changed: followFileType()
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
@@ -174,6 +186,12 @@ private:
     // Documents
     EditorPanel* currentEditorPanel() const;
     editor::BookEditor* currentEditor() const;
+
+    /// @brief Let a document's editor take annotations as its file does: a plain text file
+    /// (.txt) keeps none
+    /// @return Whether that changed
+    bool followFileType(EditorPanel* panel);
+
     QString elementIdOf(const EditorPanel* panel) const;
     QString titleOf(const EditorPanel* panel) const;
 

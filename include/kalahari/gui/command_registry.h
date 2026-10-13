@@ -30,7 +30,10 @@
 #include <QObject>
 #include <QHash>
 #include <QList>
+#include <QKeySequence>
+#include <map>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <string>
 #include <mutex>
@@ -82,10 +85,17 @@ using CommandErrorHandler = std::function<void(const std::string& commandId, con
 /// - Actions are auto-configured with icon, shortcut, tooltip from Command
 /// - Actions auto-refresh on theme change via ArtProvider::createAction()
 /// - Menu/Toolbar/Dialog = renderers that GET actions, not create them
+///
+/// Keyboard shortcuts: a command is registered with the program's keys; the user's keys
+/// (Settings > Keyboard Shortcuts, setCustomShortcuts()) take their place. Command::shortcut
+/// and the command's action always have the keys the command has now.
 class CommandRegistry : public QObject {
     Q_OBJECT
 
 public:
+    /// @brief The keys of the commands, by command id
+    using ShortcutMap = std::map<std::string, KeyboardShortcut>;
+
     /// @brief Get singleton instance (thread-safe, C++11+)
     /// @return Reference to the single CommandRegistry instance
     static CommandRegistry& getInstance();
@@ -237,6 +247,45 @@ public:
     /// @note Convenience method to update all actions after major state change
     void updateAllActionStates();
 
+    // ========================================================================
+    // Keyboard shortcuts (Settings > Keyboard Shortcuts)
+    // ========================================================================
+
+    /// @brief Give the commands the user's keys; the others keep the program's
+    ///
+    /// Command::shortcut and the actions get the keys at once, and commands registered
+    /// later get theirs when they are registered. Emits shortcutsChanged().
+    /// @param custom The user's keys by command id (empty keys: none), also of commands
+    ///               not registered now (a plugin's)
+    void setCustomShortcuts(const ShortcutMap& custom);
+
+    /// @brief The user's keys, as setCustomShortcuts() gave them
+    [[nodiscard]] ShortcutMap customShortcuts() const;
+
+    /// @brief The program's keys of a command (Command::shortcut has the keys it has now)
+    /// @return The keys, empty for a command without keys or not registered
+    [[nodiscard]] KeyboardShortcut defaultShortcut(const std::string& commandId) const;
+
+    /// @brief The program's keys of all registered commands
+    [[nodiscard]] ShortcutMap defaultShortcuts() const;
+
+    /// @brief The keys the commands have: the user's where given, else the program's
+    ///
+    /// The program's keys of a command are no command's when the user gave them to
+    /// another command (e.g. keys a new version gives a command, which the user gave to
+    /// another one before). Of commands the user gave the same keys, the first by id
+    /// keeps them. Only the user's keys of registered commands count.
+    /// @param defaults The program's keys of the registered commands
+    /// @param custom The user's keys
+    /// @return The keys of the registered commands
+    [[nodiscard]] static ShortcutMap resolveShortcuts(const ShortcutMap& defaults,
+                                                      const ShortcutMap& custom);
+
+signals:
+    /// @brief The keys of the commands changed (the user's keys were given, or a command
+    ///        registered later took or freed keys of other commands)
+    void shortcutsChanged();
+
 private:
     // Singleton pattern (Meyers)
     CommandRegistry();
@@ -249,6 +298,18 @@ private:
     /// @param cmd Command reference
     /// @return Created QAction
     QAction* createActionForCommand(const QString& commandId, const Command& cmd);
+
+    /// @brief An action whose keys changed, and its new keys
+    using ShortcutChange = std::pair<QAction*, QKeySequence>;
+
+    /// @brief Give the commands the keys resolveShortcuts() finds (with m_mutex held)
+    /// @param skipId A command whose change is not reported (the one being registered)
+    /// @param othersChanged Set when another command's keys changed
+    /// @return The actions to give their new keys once m_mutex is released
+    std::vector<ShortcutChange> applyShortcuts(const std::string& skipId, bool* othersChanged);
+
+    /// @brief Give actions their new keys and report the change (without m_mutex held)
+    void finishShortcutChanges(const std::vector<ShortcutChange>& changes, bool notify);
 
     /// @brief Apply enabled state and tooltip to an action
     /// @param action Action to update
@@ -263,6 +324,12 @@ private:
     /// @brief QAction cache (key = command ID, value = owned QAction)
     /// Actions are created on-demand via getAction() and owned by CommandRegistry
     QHash<QString, QAction*> m_actions;
+
+    /// @brief The program's keys of the registered commands
+    ShortcutMap m_defaultShortcuts;
+
+    /// @brief The user's keys (setCustomShortcuts())
+    ShortcutMap m_customShortcuts;
 
     /// @brief Custom error handler (nullptr if not set)
     CommandErrorHandler m_errorHandler = nullptr;

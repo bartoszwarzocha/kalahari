@@ -26,11 +26,14 @@
 #include <QGuiApplication>
 #include <QHelpEvent>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMainWindow>
+#include <QMouseEvent>
 #include <QPushButton>
 #include <QResizeEvent>
-#include <QScrollArea>
+#include <QScrollBar>
 #include <QTabWidget>
 #include <QTextDocument>
 #include <QTextEdit>
@@ -109,7 +112,9 @@ bool keepsFromShortcuts(QWidget* widget, int key, Qt::KeyboardModifiers modifier
 
 /// The widget of the panel's list of cards, which has the keys of the list
 QWidget* listOf(const AnnotationsPanel& panel) {
-    return panel.findChild<QScrollArea*>()->widget();
+    auto* list = panel.findChild<QWidget*>(QStringLiteral("annotationList"));
+    REQUIRE(list != nullptr);
+    return list;
 }
 
 /// A theme of the application, as its file has it
@@ -129,6 +134,39 @@ struct KeyCounter : QObject {
         return QObject::eventFilter(watched, event);
     }
 };
+
+/// Counts the presses of a mouse button that reach a widget
+struct PressCounter : QObject {
+    int presses = 0;
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (event->type() == QEvent::MouseButtonPress) {
+            ++presses;
+        }
+        return QObject::eventFilter(watched, event);
+    }
+};
+
+/// A click of a mouse button, the left one unless told, on a widget (and on to its parents,
+/// as long as none takes it)
+void click(QWidget* widget, const QPointF& pos, Qt::MouseButton button = Qt::LeftButton) {
+    const QPointF globalPos = widget->mapToGlobal(pos);
+    QMouseEvent press(QEvent::MouseButtonPress, pos, globalPos, button, button, Qt::NoModifier);
+    QApplication::sendEvent(widget, &press);
+    QMouseEvent release(QEvent::MouseButtonRelease, pos, globalPos, button, Qt::NoButton,
+                        Qt::NoModifier);
+    QApplication::sendEvent(widget, &release);
+}
+
+/// The second click of a double click: its press comes as a double click
+void secondClick(QWidget* widget, const QPointF& pos) {
+    const QPointF globalPos = widget->mapToGlobal(pos);
+    QMouseEvent press(QEvent::MouseButtonDblClick, pos, globalPos, Qt::LeftButton, Qt::LeftButton,
+                      Qt::NoModifier);
+    QApplication::sendEvent(widget, &press);
+    QMouseEvent release(QEvent::MouseButtonRelease, pos, globalPos, Qt::LeftButton, Qt::NoButton,
+                        Qt::NoModifier);
+    QApplication::sendEvent(widget, &release);
+}
 
 /// A document outside the book in a tab, the Annotations panel and their coordinator
 struct Desk {
@@ -369,6 +407,50 @@ TEST_CASE("Annotations panel: cards of the annotations that pass the filters",
     panel.setEntries({comment});
     CHECK(idsOf(panel.shownEntries()) == QStringLiteral("c"));
     CHECK(panel.card(note.key()) == nullptr);
+}
+
+TEST_CASE("Annotations panel: the hint of a chapter without annotations has the keys of Add "
+          "Annotation",
+          "[gui][annotations]") {
+    // The keys come from the command: written in the panel a second time, they could drift
+    // apart from it, as the Dashboard's did
+    const auto hintOf = [](const AnnotationsPanel& panel) {
+        for (const QLabel* label : panel.findChildren<QLabel*>()) {
+            if (label->text().startsWith(QStringLiteral("This chapter has no annotations."))) {
+                return label->text();
+            }
+        }
+        return QString();
+    };
+
+    SECTION("The command's keys") {
+        registerAllCommands(CommandCallbacks{});
+        AnnotationsPanel panel;
+        panel.setDocumentAvailable(true);
+        panel.setEntries({});
+        const Command* add = CommandRegistry::getInstance().getCommand("insert.annotation");
+        REQUIRE(add != nullptr);
+        const QString keys = add->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
+        CHECK(hintOf(panel).contains(QStringLiteral(" with %1 or ").arg(keys)));
+
+        // The keys the user gives the command (Settings > Keyboard Shortcuts)
+        const KeyboardShortcut userKeys(Qt::Key_F12, Qt::ControlModifier);
+        CommandRegistry::getInstance().setCustomShortcuts({{"insert.annotation", userKeys}});
+        CHECK(hintOf(panel).contains(
+            QStringLiteral(" with %1 or ")
+                .arg(userKeys.toQKeySequence().toString(QKeySequence::NativeText))));
+        CommandRegistry::getInstance().setCustomShortcuts(
+            {{"insert.annotation", KeyboardShortcut()}});
+        CHECK(hintOf(panel).endsWith(QStringLiteral("or a note from the context menu.")));
+    }
+
+    SECTION("No keys, no mention of them") {
+        CommandRegistry::getInstance().clear();  // the singletons are reset once per test case
+        AnnotationsPanel panel;
+        panel.setDocumentAvailable(true);
+        panel.setEntries({});
+        CHECK(hintOf(panel).endsWith(QStringLiteral("or a note from the context menu.")));
+    }
 }
 
 TEST_CASE("Annotations panel: a card shows who made the annotation", "[gui][annotations]") {
@@ -621,6 +703,7 @@ TEST_CASE("Annotations frame: Enter starts a new line, Ctrl+Enter and Save keep 
 
 TEST_CASE("Annotations frame: the keys stay in it; saving, closing and quitting go through",
           "[gui][annotations]") {
+    registerAllCommands(CommandCallbacks{});  // the window's commands and their keys
     QWidget editor;
     editor.resize(800, 600);
     auto* frame = new AnnotationFrame(&editor);
@@ -636,16 +719,114 @@ TEST_CASE("Annotations frame: the keys stay in it; saving, closing and quitting 
     CHECK(keepsFromShortcuts(text, Qt::Key_Down, Qt::AltModifier));
     CHECK(keepsFromShortcuts(text, Qt::Key_F9, Qt::NoModifier));
     CHECK(keepsFromShortcuts(save, Qt::Key_F9, Qt::NoModifier));
+
+    // Saving, closing the book and quitting go through, with the program's keys for them,
+    // the same on every system (Qt's standard Close is Ctrl+W on Linux)
     CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_S, Qt::ControlModifier));
-    for (const QKeySequence& close : QKeySequence::keyBindings(QKeySequence::Close)) {
-        const QKeyCombination combination = close[0];
-        CHECK_FALSE(keepsFromShortcuts(text, combination.key(), combination.keyboardModifiers()));
-    }
+    CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_S, Qt::ControlModifier | Qt::ShiftModifier));
+    CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_F4, Qt::ControlModifier));
+    const Command* exitCommand = CommandRegistry::getInstance().getCommand("file.exit");
+    REQUIRE(exitCommand != nullptr);
+    const QKeyCombination exitKeys = exitCommand->shortcut.toQKeySequence()[0];
+    CHECK_FALSE(keepsFromShortcuts(text, exitKeys.key(), exitKeys.keyboardModifiers()));
+    CHECK(keepsFromShortcuts(text, Qt::Key_W, Qt::ControlModifier));
 
     // A key the frame does not use does not reach the editor under it
     press(text, Qt::Key_B, Qt::ControlModifier);
     press(save, Qt::Key_F9);
     CHECK(counter.keys == 0);
+}
+
+TEST_CASE("Annotations frame: a click anywhere else in the program closes it, the text kept; "
+          "its X drops the text",
+          "[gui][annotations]") {
+    QWidget window;
+    window.resize(1000, 600);
+    auto* editor = new QWidget(&window);
+    editor->setGeometry(0, 0, 800, 600);
+    auto* scrollBar = new QScrollBar(Qt::Vertical, editor);
+    scrollBar->setGeometry(780, 0, 20, 600);
+    auto* panel = new QLineEdit(&window);
+    panel->setGeometry(820, 20, 160, 30);
+    auto* toolButton = new QToolButton(&window);  // as on a toolbar: a click leaves the keys
+    toolButton->setGeometry(820, 60, 30, 30);
+    PressCounter counter;
+    editor->installEventFilter(&counter);
+    auto* frame = new AnnotationFrame(editor);
+    frame->setGeometry(100, 100, 400, 160);
+    frame->setText(QStringLiteral("Note"));
+    window.show();  // the frame watches the program while it is shown
+    int closed = 0;
+    int saved = 0;
+    int cancelled = 0;
+    QObject::connect(frame, &AnnotationFrame::closeRequested, [&closed]() { ++closed; });
+    QObject::connect(frame, &AnnotationFrame::saveRequested, [&saved]() { ++saved; });
+    QObject::connect(frame, &AnnotationFrame::cancelRequested, [&cancelled]() { ++cancelled; });
+
+    SECTION("its X drops the text, as Esc does; it is for the mouse: the keys stay in the text") {
+        auto* close = frame->findChild<QToolButton*>(QStringLiteral("annotationFrameClose"));
+        REQUIRE(close != nullptr);
+        CHECK(close->focusPolicy() == Qt::NoFocus);
+        CHECK_FALSE(close->toolTip().isEmpty());
+        close->click();
+        CHECK(cancelled == 1);
+        CHECK(closed == 0);
+        CHECK(saved == 0);
+
+        // Nothing is asked after it: a click beside the frame keeps nothing
+        click(editor, QPointF(20, 20));
+        CHECK(closed == 0);
+    }
+
+    SECTION("a click in the editor beside it goes on to the editor") {
+        click(editor, QPointF(20, 20));
+        CHECK(closed == 1);
+        CHECK(counter.presses == 1);
+    }
+
+    SECTION("a click in another place of the window") {
+        click(panel, QPointF(5, 5));
+        CHECK(closed == 1);
+    }
+
+    SECTION("a click on a button that leaves the keys where they are") {
+        click(toolButton, QPointF(5, 5));
+        CHECK(closed == 1);
+    }
+
+    SECTION("asked once") {
+        click(editor, QPointF(20, 20));
+        click(panel, QPointF(5, 5));
+        CHECK(closed == 1);
+    }
+
+    SECTION("not by a click on it, on the editor's scroll bar or in a menu over it") {
+        click(frame, QPointF(10, 10));
+        click(frame->findChild<QTextEdit*>()->viewport(), QPointF(5, 5));
+        click(scrollBar, QPointF(5, 5));
+        QWidget menu(&window, Qt::Popup);
+        menu.resize(50, 50);
+        click(&menu, QPointF(5, 5));
+        CHECK(closed == 0);
+        CHECK(counter.presses == 0);  // nothing reached the editor
+    }
+
+    SECTION("not after Esc: nothing is kept") {
+        press(frame->findChild<QTextEdit*>(), Qt::Key_Escape);
+        click(editor, QPointF(20, 20));
+        CHECK(cancelled == 1);
+        CHECK(closed == 0);
+    }
+
+    SECTION("not while it is hidden, nor after it is gone") {
+        frame->hide();
+        click(editor, QPointF(20, 20));
+        delete frame;
+        click(editor, QPointF(20, 20));
+        CHECK(closed == 0);
+        CHECK(counter.presses == 2);
+    }
+    CHECK(saved == 0);
 }
 
 TEST_CASE("Annotations frame: under its place within the text column, above it without room "
@@ -866,6 +1047,88 @@ TEST_CASE("Annotations: one frame at a time; the text of the open one is kept",
     CHECK(desk.coordinator->frame()->text().isEmpty());
 }
 
+TEST_CASE("Annotations: a click anywhere else keeps what was written; the X of the frame "
+          "drops it",
+          "[gui][annotations]") {
+    Desk desk(kmlWith(record(QStringLiteral("c1"), QStringLiteral("comment"), QStringLiteral("Old")),
+                      {QStringLiteral("One two <anchor ref=\"c1\">three</anchor>")}));
+    desk.tabs.show();  // the frame watches the program while it is shown
+    PressCounter counter;
+    desk.editor().installEventFilter(&counter);
+
+    SECTION("a click beside it: the new text in a step of its own; the click goes on to the "
+            "text") {
+        REQUIRE(desk.coordinator->editAnnotation(QString(), QStringLiteral("c1"), false));
+        desk.frameText()->setPlainText(QStringLiteral("Newer"));
+        click(&desk.editor(), QPointF(5, 5));
+        CHECK_FALSE(desk.coordinator->isWriting());
+        CHECK(desk.coordinator->frame() == nullptr);
+        CHECK(counter.presses == 1);
+        CHECK(desk.annotation(QStringLiteral("c1")).text == QStringLiteral("Newer"));
+        desk.editor().undo();
+        CHECK(desk.annotation(QStringLiteral("c1")).text == QStringLiteral("Old"));
+    }
+
+    SECTION("a click in the panel: the new text is kept first; the click goes on to the panel") {
+        REQUIRE(desk.coordinator->editAnnotation(QString(), QStringLiteral("c1"), false));
+        desk.frameText()->setPlainText(QStringLiteral("Newer"));
+        PressCounter panelCounter;
+        desk.panel.installEventFilter(&panelCounter);
+        click(&desk.panel, QPointF(5, 5));
+        CHECK_FALSE(desk.coordinator->isWriting());
+        CHECK(panelCounter.presses == 1);
+        CHECK(counter.presses == 0);
+        CHECK(desk.annotation(QStringLiteral("c1")).text == QStringLiteral("Newer"));
+    }
+
+    SECTION("the editor's scroll bar only moves the view: the frame stays open") {
+        REQUIRE(desk.coordinator->editAnnotation(QString(), QStringLiteral("c1"), false));
+        desk.frameText()->setPlainText(QStringLiteral("Newer"));
+        click(desk.editor().verticalScrollBar(), QPointF(2, 2));
+        CHECK(desk.coordinator->isWriting());
+        CHECK(desk.annotation(QStringLiteral("c1")).text == QStringLiteral("Old"));
+    }
+
+    SECTION("its X: a new annotation is not added, as with Esc") {
+        desk.editor().setSelection({{0, 0}, {0, 3}});
+        REQUIRE(desk.coordinator->addAnnotation(AnnotationKind::Todo));
+        desk.frameText()->setPlainText(QStringLiteral("Check"));
+        auto* close = desk.coordinator->frame()->findChild<QToolButton*>(
+            QStringLiteral("annotationFrameClose"));
+        REQUIRE(close != nullptr);
+        close->click();
+        CHECK_FALSE(desk.coordinator->isWriting());
+        CHECK(desk.editor().annotations().size() == 1);
+        CHECK_FALSE(desk.editor().canUndo());
+    }
+
+    SECTION("its X: an annotation edited again keeps its old text; the keys go back to the "
+            "text") {
+        desk.tabs.activateWindow();
+        REQUIRE(test::waitUntil([&desk] { return QApplication::activeWindow() == &desk.tabs; }));
+        REQUIRE(desk.coordinator->editAnnotation(QString(), QStringLiteral("c1"), false));
+        desk.frameText()->setPlainText(QStringLiteral("Newer"));
+        desk.frameText()->setFocus(Qt::OtherFocusReason);
+        auto* close = desk.coordinator->frame()->findChild<QToolButton*>(
+            QStringLiteral("annotationFrameClose"));
+        REQUIRE(close != nullptr);
+        close->click();
+        CHECK_FALSE(desk.coordinator->isWriting());
+        CHECK(desk.annotation(QStringLiteral("c1")).text == QStringLiteral("Old"));
+        CHECK_FALSE(desk.editor().canUndo());
+        CHECK(QApplication::focusWidget() == &desk.editor());
+    }
+
+    SECTION("a new one left empty: nothing is added") {
+        desk.editor().setCursorPosition({0, 3});
+        REQUIRE(desk.coordinator->addAnnotation(AnnotationKind::Note));
+        click(&desk.editor(), QPointF(5, 5));
+        CHECK_FALSE(desk.coordinator->isWriting());
+        CHECK(desk.editor().annotations().size() == 1);
+        CHECK_FALSE(desk.editor().canUndo());
+    }
+}
+
 TEST_CASE("Annotations: a click on a mark opens its annotation; the cursor stays",
           "[gui][annotations]") {
     Desk desk(kmlWith(record(QStringLiteral("t1"), QStringLiteral("todo"), QStringLiteral("Fix")),
@@ -1011,6 +1274,46 @@ TEST_CASE("Annotations: the commands work on the document in front", "[gui][anno
     CHECK_FALSE(nextTodo->isEnabled());
 }
 
+TEST_CASE("Annotations: a plain text file takes none; the panel says why", "[gui][annotations]") {
+    registerAllCommands(CommandCallbacks{});
+    Desk desk(test::kmlOf({QStringLiteral("One two")}));
+    desk.coordinator->connectCommands();
+    auto& registry = CommandRegistry::getInstance();
+    const auto enabled = [&registry](const char* id) {
+        QAction* action = registry.getAction(QString::fromLatin1(id));
+        REQUIRE(action != nullptr);
+        return action->isEnabled();
+    };
+    const auto emptyText = [&desk]() {
+        desk.coordinator->refresh();  // as when the panel's list is made again
+        const QList<QLabel*> labels =
+            listOf(desk.panel)->findChildren<QLabel*>(QString(), Qt::FindDirectChildrenOnly);
+        REQUIRE(labels.size() == 1);  // the cards are not labels of the list
+        return labels.front()->isVisible() ? labels.front()->text() : QString();
+    };
+    REQUIRE(enabled("insert.annotation"));
+
+    // The file of the document, set as it opens
+    desk.document->setProperty("standaloneFilePath", QStringLiteral("/home/writer/notes.txt"));
+    CHECK_FALSE(enabled("insert.annotation"));
+    CHECK_FALSE(enabled("insert.comment"));
+    CHECK_FALSE(enabled("insert.todo"));
+    CHECK_FALSE(enabled("insert.note"));
+    CHECK(enabled("edit.nextTodo"));  // going to to-dos changes nothing
+    CHECK_FALSE(desk.coordinator->addAnnotation(AnnotationKind::Comment));
+    CHECK_FALSE(desk.coordinator->isWriting());
+    CHECK(emptyText().contains(QStringLiteral(".txt")));
+
+    // Saved as a chapter file: annotations can be added again
+    desk.document->setProperty("standaloneFilePath",
+                               QStringLiteral("/home/writer/notes.kchapter"));
+    CHECK(enabled("insert.annotation"));
+    CHECK(enabled("insert.note"));
+    CHECK_FALSE(emptyText().contains(QStringLiteral(".txt")));
+    CHECK(desk.coordinator->addAnnotation(AnnotationKind::Comment));
+    CHECK(desk.coordinator->isWriting());
+}
+
 TEST_CASE("Annotations: F9 goes to the panel and back to the text", "[gui][annotations]") {
     if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
         SKIP("needs an active window without a window on screen: run with QT_QPA_PLATFORM=offscreen");
@@ -1063,6 +1366,123 @@ TEST_CASE("Annotations: F9 goes to the panel and back to the text", "[gui][annot
     coordinator.cancelWriting();
     CHECK(panel->hasFocusInside());
     CHECK(panel->selectedKey() == annotationKey(QString(), QStringLiteral("c1")));
+}
+
+TEST_CASE("Annotations: the keys going elsewhere in the program close the frame, the text "
+          "kept",
+          "[gui][annotations]") {
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("needs an active window without a window on screen: run with QT_QPA_PLATFORM=offscreen");
+    }
+    QMainWindow window;
+    auto* tabs = new QTabWidget();
+    window.setCentralWidget(tabs);
+    auto* document = new EditorPanel();
+    document->setContent(test::kmlOf({QStringLiteral("One two three")}));
+    tabs->addTab(document, QStringLiteral("Notes"));
+    auto* dock = new QDockWidget(QStringLiteral("Annotations"), &window);
+    auto* panel = new AnnotationsPanel();
+    dock->setWidget(panel);
+    window.addDockWidget(Qt::RightDockWidgetArea, dock);
+    AnnotationsCoordinator coordinator(panel, dock, tabs, nullptr, nullptr);
+    window.show();
+    window.activateWindow();
+    REQUIRE(test::waitUntil([&window] { return QApplication::activeWindow() == &window; }));
+    editor::BookEditor* editor = document->getBookEditor();
+    editor->setFocus();
+    editor->setSelection({{0, 4}, {0, 7}});
+    REQUIRE(coordinator.addAnnotation(AnnotationKind::Comment));
+    QTextEdit* text = coordinator.frame()->findChild<QTextEdit*>();
+    REQUIRE(text->hasFocus());
+    text->setPlainText(QStringLiteral("Check"));
+    auto* search = panel->findChild<QLineEdit*>();
+    REQUIRE(search != nullptr);
+
+    SECTION("to a panel: the annotation is added with its text, and the keys stay there") {
+        search->setFocus(Qt::OtherFocusReason);
+        CHECK_FALSE(coordinator.isWriting());
+        REQUIRE(editor->annotations().size() == 1);
+        CHECK(editor->annotations().front().annotation.text == QStringLiteral("Check"));
+        CHECK(search->hasFocus());
+    }
+
+    SECTION("to another application and back: the frame stays open") {
+        text->clearFocus();  // no window of the program has the keys
+        CHECK(coordinator.isWriting());
+        text->setFocus(Qt::ActiveWindowFocusReason);
+        CHECK(coordinator.isWriting());
+        CHECK(editor->annotations().empty());
+    }
+
+    SECTION("to another application, and then to another place of the program") {
+        text->clearFocus();
+        search->setFocus(Qt::ActiveWindowFocusReason);
+        CHECK_FALSE(coordinator.isWriting());
+        CHECK(editor->annotations().size() == 1);
+    }
+
+    SECTION("to a menu or a list over it: the frame stays open") {
+        QWidget popup(&window, Qt::Popup);
+        auto* field = new QLineEdit(&popup);
+        popup.show();
+        field->setFocus(Qt::PopupFocusReason);
+        CHECK(field->hasFocus());
+        CHECK(coordinator.isWriting());
+        popup.close();
+        CHECK(coordinator.isWriting());
+        CHECK(editor->annotations().empty());
+    }
+
+    SECTION("after Esc nothing is kept, though the keys leave the frame") {
+        press(text, Qt::Key_Escape);
+        CHECK_FALSE(coordinator.isWriting());
+        CHECK(editor->annotations().empty());
+        CHECK(editor->hasFocus());
+    }
+
+    // Qt gives the keys to the first widget under a click that takes them, before the click
+    // arrives (the editor, for a click on its scroll bar): done so here before each click
+
+    SECTION("a click on the editor's scroll bar, also of the right button and with nothing to "
+            "scroll: the frame stays open, the keys come back") {
+        QScrollBar* bar = editor->verticalScrollBar();
+        REQUIRE(bar->isVisible());
+        REQUIRE(bar->maximum() == bar->minimum());  // the short text fits in the view
+        editor->setFocus(Qt::MouseFocusReason);
+        click(bar, QPointF(2, 2));
+        QApplication::processEvents();
+        REQUIRE(coordinator.isWriting());
+        CHECK(text->hasFocus());
+        editor->setFocus(Qt::MouseFocusReason);
+        secondClick(bar, QPointF(2, 2));
+        QApplication::processEvents();
+        REQUIRE(coordinator.isWriting());
+        CHECK(text->hasFocus());
+        editor->setFocus(Qt::MouseFocusReason);
+        click(bar, QPointF(2, 2), Qt::RightButton);
+        QApplication::processEvents();
+        REQUIRE(coordinator.isWriting());
+        CHECK(text->hasFocus());
+        CHECK(editor->annotations().empty());
+    }
+
+    SECTION("a click in the text: the annotation is added, the keys stay in the editor") {
+        editor->setFocus(Qt::MouseFocusReason);
+        click(editor, QPointF(5, 5));
+        QApplication::processEvents();
+        CHECK_FALSE(coordinator.isWriting());
+        CHECK(editor->annotations().size() == 1);
+        CHECK(editor->hasFocus());
+    }
+
+    SECTION("the wheel turning a field takes the keys there, with no click: the annotation is "
+            "added") {
+        search->setFocus(Qt::MouseFocusReason);
+        QApplication::processEvents();
+        CHECK_FALSE(coordinator.isWriting());
+        CHECK(editor->annotations().size() == 1);
+        CHECK(search->hasFocus());
+    }
 }
 
 TEST_CASE("Annotations: who the new annotations are by", "[gui][annotations]") {

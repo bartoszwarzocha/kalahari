@@ -111,6 +111,22 @@ TEST_CASE("SvgConverter validates SVG syntax", "[svg][validation]") {
         REQUIRE_FALSE(result.success);
     }
 
+    SECTION("Names the root element of a file that is not an SVG image") {
+        auto result = converter.validate(QStringLiteral("<html><body/></html>"));
+
+        REQUIRE_FALSE(result.success);
+        REQUIRE(result.errorMessage == QStringLiteral(
+            "The file is not an SVG image (its root element is <html>)"));
+    }
+
+    SECTION("Rejects an SVG image without viewBox") {
+        auto result = converter.validate(
+            QStringLiteral(R"(<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0h4"/></svg>)"));
+
+        REQUIRE_FALSE(result.success);
+        REQUIRE(result.errorMessage == QStringLiteral("The <svg> element has no viewBox attribute"));
+    }
+
     SECTION("Accepts valid SVG") {
         QString validSvg = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
   <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
@@ -145,6 +161,21 @@ TEST_CASE("SvgConverter handles edge cases", "[svg][edge-cases]") {
         REQUIRE(result.success);
         // Should replace fill with color placeholder
         REQUIRE(result.svg.contains("{COLOR_PRIMARY}"));
+    }
+
+    SECTION("Keeps the fill=\"none\" a group gives its paths") {
+        // The invisible square of the Material icons (lock, input)
+        QString svgWithNoneGroup = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <g fill="none"><path d="M0 0h24v24H0V0z"/><path d="M0 0h24v24H0V0z" opacity=".87"/></g>
+  <path d="M6 20h12V10H6v10z"/>
+</svg>)";
+
+        auto result = converter.convertToTemplate(svgWithNoneGroup);
+
+        REQUIRE(result.success);
+        // Only the lock's body gets a color, not the squares
+        REQUIRE(result.svg.count("{COLOR_PRIMARY}") == 1);
+        REQUIRE_FALSE(result.svg.contains("{COLOR_SECONDARY}"));
     }
 
     SECTION("Handles SVG with xmlns attributes") {

@@ -7,8 +7,10 @@
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/spell_check_service.h"
+#include "kalahari/gui/utils/language_names.h"
 
 #include <QCheckBox>
+#include <QCollator>
 #include <QComboBox>
 #include <QEvent>
 #include <QFormLayout>
@@ -22,6 +24,8 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace kalahari {
 namespace gui {
@@ -33,15 +37,26 @@ using json = nlohmann::json;
 /// @brief The setting of the language checked
 constexpr const char* LANGUAGE_KEY = "editor.spellCheck.language";
 
-/// @brief The name of a dictionary in the list: its language in that language, and its code
+/// @brief The name of a dictionary in the list: its language in the language of the program,
+///        and its code (Polish (pl_PL)); just the code when the language is not known
 QString dictionaryName(const QString& dictionary) {
-    const QLocale locale(dictionary);
-    QString name = locale.language() == QLocale::C ? QString() : locale.nativeLanguageName();
-    if (name.isEmpty()) {
-        return dictionary;
+    const QString code = dictionary.trimmed();
+    const QString name = utils::languageName(code);
+    return name == code ? code : QStringLiteral("%1 (%2)").arg(name, code);
+}
+
+/// @brief The dictionaries found, with their names in the list, in the order of the names
+std::vector<std::pair<QString, QString>> namedDictionaries() {
+    std::vector<std::pair<QString, QString>> named;
+    for (const QString& dictionary : editor::SpellCheckService::availableDictionaries()) {
+        named.emplace_back(dictionaryName(dictionary), dictionary);
     }
-    name[0] = name[0].toUpper();
-    return QStringLiteral("%1 (%2)").arg(name, dictionary);
+    const QCollator collator(QLocale(
+        QString::fromStdString(core::SettingsManager::getInstance().getLanguage())));
+    std::sort(named.begin(), named.end(), [&collator](const auto& first, const auto& second) {
+        return collator.compare(first.first, second.first) < 0;
+    });
+    return named;
 }
 
 /// @brief Words as a value of a binding
@@ -96,21 +111,24 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
     // The dictionaries found; the language of the book is the one set in its properties
     auto* language = new QComboBox();
     language->addItem(tr("Language of the book"), QString());
-    const QStringList dictionaries = editor::SpellCheckService::availableDictionaries();
-    for (const QString& dictionary : dictionaries) {
-        language->addItem(dictionaryName(dictionary), dictionary);
+    for (const auto& [name, dictionary] : namedDictionaries()) {
+        language->addItem(name, dictionary);
     }
     // A language chosen before whose dictionary is gone stays until another one is chosen
     const QString stored = QString::fromStdString(
         core::SettingsManager::getInstance().get<std::string>(LANGUAGE_KEY, std::string()));
     if (!stored.trimmed().isEmpty() && language->findData(stored) < 0) {
+        //: %1 is the language as in the list, for example French (fr_FR)
         language->addItem(editor::SpellCheckService::dictionaryFor(stored).isEmpty()
-                              ? tr("%1 (no dictionary)").arg(stored)
-                              : stored,
+                              ? tr("%1: no dictionary").arg(dictionaryName(stored))
+                              : dictionaryName(stored),
                           stored);
     }
     QLabel* languageLabel = addField(checking, tr("Language:"), language, LANGUAGE_KEY);
-    addNote(checking, tr("A misspelled word is underlined with a wavy line; right-click it for "
+    addNote(checking, tr("With \"Language of the book\" the chapters are checked in the "
+                         "language of the book, set in its properties, and other documents, such "
+                         "as a file opened from the disk, in the language of the program. A "
+                         "misspelled word is underlined with a wavy line; right-click it for "
                          "suggestions. Tools > Check Spelling as You Type (Shift+F7) turns the "
                          "checking on and off."));
     const auto syncLanguage = [enabled, language, languageLabel]() {
@@ -143,8 +161,8 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
     row->addWidget(m_add);
     row->addWidget(m_remove);
     own->addRow(row);
-    addNote(own, tr("Words that are right whatever the dictionary says; Add to Dictionary in the "
-                    "context menu of a misspelled word puts it here. A word in lower case is "
+    addNote(own, tr("Words that are right whatever the dictionary says; \"Add to Dictionary\" in "
+                    "the context menu of a misspelled word puts it here. A word in lower case is "
                     "right also with capital letters."));
 
     connect(m_add, &QPushButton::clicked, this, &EditorSpellingPage::addWord);

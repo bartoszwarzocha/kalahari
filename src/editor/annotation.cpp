@@ -183,6 +183,31 @@ void insertLines(QTextCursor& cursor, const QString& text, const QTextCharFormat
     cursor.endEditBlock();
 }
 
+/// @brief Take every annotation off the text of a document
+void stripAnnotations(QTextDocument& document) {
+    std::vector<FormatPiece> pieces;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        QTextCharFormat paragraph = block.charFormat();
+        if (!annotationsOf(paragraph).isEmpty()) {
+            setAnnotations(paragraph, {});
+            pieces.push_back({block.position(), -1, paragraph});
+        }
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            QTextCharFormat format = fragment.charFormat();
+            if (!annotationsOf(format).isEmpty()) {
+                setAnnotations(format, {});
+                pieces.push_back(
+                    {fragment.position(), fragment.position() + fragment.length(), format});
+            }
+        }
+    }
+    applyPieces(document, pieces);
+}
+
+/// @brief The property of a document that keeps no annotations (see keepsAnnotations())
+constexpr char NO_ANNOTATIONS_PROPERTY[] = "kalahariKeepsNoAnnotations";
+
 }  // namespace
 
 // =============================================================================
@@ -589,9 +614,12 @@ AnnotationList removeForReplacement(QTextCursor& cursor) {
     return fragments;
 }
 
-void insertKeepingAnnotations(QTextCursor& cursor, const QString& text) {
+void insertKeepingAnnotations(QTextCursor& cursor, const QString& text,
+                              const QTextCharFormat& typed) {
     if (!cursor.hasSelection()) {
-        insertLines(cursor, text, insertionFormat(cursor));
+        QTextCharFormat format = insertionFormat(cursor);
+        format.merge(typed);
+        insertLines(cursor, text, format);
         return;
     }
     if (text.isEmpty()) {
@@ -602,6 +630,7 @@ void insertKeepingAnnotations(QTextCursor& cursor, const QString& text) {
     cursor.beginEditBlock();
     const AnnotationList fragments = removeForReplacement(cursor);
     QTextCharFormat format = insertionFormat(cursor);
+    format.merge(typed);
     setAnnotations(format, fragments);
     insertLines(cursor, text, format);
     cursor.endEditBlock();
@@ -686,6 +715,12 @@ QTextCharFormat withRenamedAnnotations(QTextCharFormat format, const QHash<QStri
 
 void prepareForInsertion(QTextDocument& content, const QTextDocument& document,
                          const AnnotationList& fragments) {
+    // A plain text file keeps no annotations: the text goes into it without them
+    if (!keepsAnnotations(document)) {
+        stripAnnotations(content);
+        return;
+    }
+
     // Annotations the document already has come in as copies, unless the text goes into
     // them: then it simply joins them
     const QSet<QString> taken = annotationIdsIn(document);
@@ -721,6 +756,14 @@ void prepareForInsertion(QTextDocument& content, const QTextDocument& document,
         }
     }
     applyPieces(content, pieces);
+}
+
+bool keepsAnnotations(const QTextDocument& document) {
+    return !document.property(NO_ANNOTATIONS_PROPERTY).toBool();
+}
+
+void setKeepsAnnotations(QTextDocument& document, bool keeps) {
+    document.setProperty(NO_ANNOTATIONS_PROPERTY, keeps ? QVariant() : QVariant(true));
 }
 
 }  // namespace kalahari::editor

@@ -38,6 +38,9 @@ constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;
 // The longest text of an annotation its mark's tooltip shows
 constexpr qsizetype MARK_TOOLTIP_LENGTH = 600;
 
+// How long the editing pauses before a content as long as the saved one is compared with it
+constexpr int MODIFIED_CHECK_DELAY_MS = 150;
+
 namespace {
 
 /// @brief The colors the render pipeline draws with, on the paper of a mode
@@ -65,20 +68,35 @@ LayoutTypography layoutTypography(const EditorTypography& typography) {
     return result;
 }
 
-/// @brief Word and character counts of the whole document, from the paragraphs' counts
+/// @brief Add the counts @p part to @p total
+void addCounts(core::TextCounts& total, const core::TextCounts& part) {
+    total.words += part.words;
+    total.characters += part.characters;
+    total.nonSpaceCharacters += part.nonSpaceCharacters;
+    total.paragraphs += part.paragraphs;
+}
+
+/// @brief The counts of a paragraph, counted when its cached counts are stale
+const core::TextCounts& paragraphCounts(const QTextBlock& block,
+                                        const core::WordCountRules& rules) {
+    ParagraphData* data = ParagraphData::of(block);
+    if (!data->countsValid) {
+        data->counts = core::countText(block.text(), rules);
+        data->countsValid = true;
+    }
+    return data->counts;
+}
+
+/// @brief Word, character and paragraph counts of the whole document, from the paragraphs'
+///        counts
 ///
 /// Document statistics are sums of per-paragraph counts, so after an edit only the
-/// paragraphs it touched are counted again.
-core::TextCounts countDocument(const QTextDocument* doc) {
+/// paragraphs it touched are counted again. A word never goes on past the end of its
+/// paragraph, so the sums are the counts of the whole text.
+core::TextCounts countDocument(const QTextDocument* doc, const core::WordCountRules& rules) {
     core::TextCounts total;
     for (QTextBlock block = doc->begin(); block.isValid(); block = block.next()) {
-        ParagraphData* data = ParagraphData::of(block);
-        if (!data->countsValid) {
-            data->counts = core::countText(block.text());
-            data->countsValid = true;
-        }
-        total.words += data->counts.words;
-        total.nonSpaceCharacters += data->counts.nonSpaceCharacters;
+        addCounts(total, paragraphCounts(block, rules));
     }
     return total;
 }
@@ -142,6 +160,13 @@ BookEditor::BookEditor(QWidget* parent)
         m_uiOpacity = 0.0;
         update();
     });
+
+    // A content as long as the saved one is compared with it when the editing pauses
+    m_modifiedCheck = new QTimer(this);
+    m_modifiedCheck->setSingleShot(true);
+    m_modifiedCheck->setInterval(MODIFIED_CHECK_DELAY_MS);
+    connect(m_modifiedCheck, &QTimer::timeout, this,
+            [this]() { setModifiedState(differsFromSaved()); });
 
     // m_textBuffer and m_textCursor are created by createDocument()
 
@@ -378,8 +403,10 @@ bool BookEditor::event(QEvent* event)
 
 void BookEditor::paintEvent(QPaintEvent* event)
 {
-    // The zoom is on the screen now: from here on it changes only when asked for
+    // The zoom and the cursor line are on the screen now: from here on they change only when
+    // asked for
     m_shrinkOnFirstShow = false;
+    m_cursorLineHeightOnFirstShow = -1.0;
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::TextAntialiasing, true);
@@ -422,6 +449,7 @@ void BookEditor::resizeEvent(QResizeEvent* event)
     applyFirstShowShrink();  // the view's new width, until the first paint
 
     updateScrollBarRange();
+    applyFirstShowCursorLine();  // the view's new size, until the first paint
     update();
 }
 
@@ -507,6 +535,13 @@ void BookEditor::syncPipelineState()
 void BookEditor::syncPipelineCursor()
 {
     syncSearchOrigin();
+
+    // A format given for the text typed next stays at its place: typing there (the text has
+    // it, and what is typed after it follows it), moving the cursor or selecting drops it.
+    // Text composed with an input method moves the cursor, but is typed there.
+    if (!m_hasComposition && (hasSelection() || m_cursorPosition != m_pendingFormatAt)) {
+        m_pendingFormat = QTextCharFormat();
+    }
 
     // Lightweight sync - only cursor and selection
     if (!m_renderPipeline) {
@@ -648,12 +683,12 @@ QString BookEditor::plainText() const
     if (!m_textBuffer) {
         return QString();
     }
-    // As toPlainText(), which would also turn no-break spaces into spaces
+    // As toPlainText(), which would also turn no-break spaces into spaces and the line
+    // breaks in the paragraphs into newlines
     QString text = m_textBuffer->toRawText();
     for (QChar& ch : text) {
         switch (ch.unicode()) {
         case QChar::ParagraphSeparator:
-        case QChar::LineSeparator:
         case 0xFDD0:  // QTextBeginningOfFrame
         case 0xFDD1:  // QTextEndOfFrame
             ch = QLatin1Char('\n');
@@ -667,22 +702,70 @@ QString BookEditor::plainText() const
 
 size_t BookEditor::characterCount() const
 {
-    if (!m_textBuffer) {
-        return 0;
-    }
-    // QTextDocument::characterCount() includes trailing block separator, subtract 1
-    int count = m_textBuffer->characterCount();
-    return static_cast<size_t>(std::max(0, count - 1));
+    return static_cast<size_t>(textCounts().characters);
 }
 
 size_t BookEditor::wordCount() const
 {
-    return m_textBuffer ? static_cast<size_t>(countDocument(m_textBuffer.get()).words) : 0;
+    return static_cast<size_t>(textCounts().words);
 }
 
 size_t BookEditor::characterCountNoSpaces() const
 {
-    return m_textBuffer ? static_cast<size_t>(countDocument(m_textBuffer.get()).nonSpaceCharacters) : 0;
+    return static_cast<size_t>(textCounts().nonSpaceCharacters);
+}
+
+core::TextCounts BookEditor::textCounts() const
+{
+    return m_textBuffer ? countDocument(m_textBuffer.get(), m_wordCountRules) : core::TextCounts{};
+}
+
+core::TextCounts BookEditor::selectionCounts() const
+{
+    core::TextCounts total;
+    if (!m_textBuffer || m_selection.isEmpty()) {
+        return total;
+    }
+
+    // The paragraphs selected whole have their cached counts; the first and the last one
+    // may be selected in part
+    const SelectionRange range = m_selection.normalized();
+    int number = range.start.paragraph;
+    for (QTextBlock block = m_textBuffer->findBlockByNumber(number);
+         block.isValid() && number <= range.end.paragraph; block = block.next(), ++number) {
+        const int length = block.length() - 1;  // without the paragraph's end
+        const int start =
+            number == range.start.paragraph ? std::clamp(range.start.offset, 0, length) : 0;
+        const int end =
+            number == range.end.paragraph ? std::clamp(range.end.offset, 0, length) : length;
+        if (start == 0 && end == length) {
+            addCounts(total, paragraphCounts(block, m_wordCountRules));
+        } else if (end > start) {
+            const QString text = block.text();
+            addCounts(total,
+                      core::countText(QStringView(text).mid(start, end - start), m_wordCountRules));
+        }
+    }
+    return total;
+}
+
+void BookEditor::setWordCountRules(const core::WordCountRules& rules)
+{
+    if (rules == m_wordCountRules) {
+        return;
+    }
+    m_wordCountRules = rules;
+
+    // Every paragraph is counted again, by the new rules, when the counts are asked for
+    if (m_textBuffer) {
+        for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+            if (ParagraphData* paragraph = ParagraphData::find(block)) {
+                paragraph->countsValid = false;
+            }
+        }
+    }
+    update();  // the word count of Distraction-Free writing
+    emit countsChanged();
 }
 
 QTextDocument* BookEditor::textDocument() const
@@ -719,6 +802,7 @@ bool BookEditor::fromKml(const QString& kml)
     m_textBuffer.reset();
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
+    m_pendingFormat = QTextCharFormat();  // it was given for the old text
 
     // Unreadable KML gives the paragraphs read before the error
     KmlDocumentModel content;
@@ -745,6 +829,7 @@ bool BookEditor::fromKml(const QString& kml)
     // The document is built with undo disabled, so the load itself is not undoable
     // (undo starts fresh from the user's first edit)
     createDocument(content);
+    startFromSaved(kml);  // what isModified() compares the content with
     updateScrollBarRange();
     logElapsed("Document created");
 
@@ -781,6 +866,7 @@ void BookEditor::replaceWithKml(const QString& kml)
 
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
+    m_pendingFormat = QTextCharFormat();  // it was given for the old text
     clearSelection();
     m_cursorPosition = validateCursorPosition(m_cursorPosition);
 
@@ -805,6 +891,7 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     m_textBuffer = std::make_unique<QTextDocument>();
     m_textBuffer->setUndoRedoEnabled(false);
     m_textBuffer->setDocumentMargin(0);  // Remove default document margins
+    setKeepsAnnotations(*m_textBuffer, m_annotationsAllowed);  // see setAnnotationsAllowed()
 
     // Use custom layout that positions lines at y=0 without Qt's leading gaps
     m_textBuffer->setDocumentLayout(new KalahariTextDocumentLayout(m_textBuffer.get()));
@@ -835,6 +922,10 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     // content put in above is not an edit: it is checked at once)
     connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
             &BookEditor::adjustGrammarToEdit);
+
+    // From now on an edit can make the content differ from the saved one, or bring it back
+    connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this,
+            &BookEditor::checkModified);
 
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());
@@ -876,6 +967,79 @@ void BookEditor::ensureDocument()
 {
     if (!m_textBuffer) {
         createDocument(KmlDocumentModel{});
+        setUnmodified();  // the empty text is the saved one
+    }
+}
+
+// =============================================================================
+// Saved content
+// =============================================================================
+
+bool BookEditor::isModified() const
+{
+    // A comparison waiting for the editing to pause is made now
+    return m_modifiedCheck->isActive() ? differsFromSaved() : m_modified;
+}
+
+void BookEditor::setUnmodified()
+{
+    if (m_textBuffer) {
+        startFromSaved(QString());
+        m_savedKml = toKml();  // the content now: there is nothing to read
+    }
+}
+
+void BookEditor::startFromSaved(const QString& kml)
+{
+    m_textBuffer->setModified(false);  // undoing back to here brings the saved content back
+    m_savedSource = kml;
+    m_savedKml.reset();
+    m_savedLength = m_textBuffer->characterCount();
+    m_modifiedCheck->stop();
+    setModifiedState(false);
+}
+
+void BookEditor::checkModified()
+{
+    if (m_textBuffer->isModified() && m_textBuffer->characterCount() == m_savedLength) {
+        m_modifiedCheck->start();
+    } else {
+        m_modifiedCheck->stop();
+        setModifiedState(m_textBuffer->isModified());
+    }
+}
+
+bool BookEditor::differsFromSaved() const
+{
+    if (!m_textBuffer || !m_textBuffer->isModified()) {
+        return false;
+    }
+    return m_textBuffer->characterCount() != m_savedLength || toKml() != savedKml();
+}
+
+const QString& BookEditor::savedKml() const
+{
+    if (!m_savedKml) {
+        // Read as fromKml() reads it, and written as toKml() writes the content
+        KmlDocumentModel content;
+        content.loadKml(m_savedSource);
+        QTextDocument document;
+        document.setUndoRedoEnabled(false);
+        QTextCursor cursor(&document);
+        cursor.beginEditBlock();
+        appendParagraphs(cursor, content);
+        cursor.endEditBlock();
+        m_savedKml = KmlSerializer().toKml(&document);
+        m_savedSource.clear();
+    }
+    return *m_savedKml;
+}
+
+void BookEditor::setModifiedState(bool modified)
+{
+    if (modified != m_modified) {
+        m_modified = modified;
+        emit modifiedChanged(modified);
     }
 }
 

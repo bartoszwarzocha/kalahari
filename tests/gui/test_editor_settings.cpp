@@ -11,6 +11,7 @@
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QDoubleSpinBox>
+#include <QPushButton>
 #include <QSpinBox>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
@@ -187,6 +188,45 @@ TEST_CASE("Settings dialog: the editor options the editor does not use yet are g
     CHECK_FALSE(left->isHidden());
     CHECK(inner->isHidden());
     CHECK(outer->isHidden());
+
+    restore(before);
+}
+
+TEST_CASE("Settings dialog: the dialogue dashes counted as words, in the open editors too",
+          "[gui][settings][statistics]") {
+    // Microsoft Word counts a dash standing alone as a word, LibreOffice does not
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.wordCount.dashesAsWords"});
+    settings.set<bool>("editor.wordCount.dashesAsWords", false);
+    gui::EditorPanel panel;
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    bookEditor->fromKml(QStringLiteral("<kml><p>– Tak – powiedział.</p></kml>"));
+    REQUIRE(bookEditor->wordCount() == 2);
+
+    gui::SettingsDialog dialog(nullptr);
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        if ((*it)->text(0) == QStringLiteral("General") && (*it)->parent() &&
+            (*it)->parent()->text(0) == QStringLiteral("Editor")) {
+            tree->setCurrentItem(*it);
+        }
+    }
+    QCheckBox* dashes =
+        checkBoxOf(dialog, QStringLiteral("Count standalone dialogue dashes as words"));
+    REQUIRE(dashes != nullptr);
+    CHECK_FALSE(dashes->isChecked());
+
+    dashes->setChecked(true);
+    dialog.applyButton()->click();
+    CHECK(settings.get<bool>("editor.wordCount.dashesAsWords"));
+    QCoreApplication::processEvents();
+    CHECK(bookEditor->wordCount() == 4);
+
+    dashes->setChecked(false);
+    dialog.applyButton()->click();
+    QCoreApplication::processEvents();
+    CHECK(bookEditor->wordCount() == 2);
 
     restore(before);
 }

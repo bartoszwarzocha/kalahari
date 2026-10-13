@@ -9,7 +9,187 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Editor: a new line in the paragraph (Shift+Enter)** - 2026-10-11. Shift+Enter starts a
+  new line in the paragraph, as a manual line break in Word: the lines keep the paragraph's
+  alignment, spacing and formatting, and the break with the text typed after it is one undo
+  step. Enter and Ctrl+Enter start a paragraph as before. In the chapter's KML the break is
+  `<br/>`. Ctrl+Left and Ctrl+Right stop at it, Ctrl+Backspace and Ctrl+Delete next to it
+  delete only the break, and Home and End go to the ends of its line. The counts of words and
+  characters take it for a space. Copied, it is a line break for other programs (`<br>` in
+  HTML, a line end in plain text); the line breaks of a paragraph pasted from Word,
+  LibreOffice or a browser stay line breaks (also Word's vertical tab in plain text), while a
+  line end of plain text starts a paragraph as before. A `.txt` file gets a line end there,
+  and so do the grammar check, reading aloud and screen readers; a TODO in the text ends with
+  its line. In a justified paragraph the line before a break is not stretched to the right
+  edge, as the last line of a paragraph. Settings > Keyboard Shortcuts lists the key as "New
+  line in the paragraph". `docs/kml_format.md` tells how the formats to come (DOCX, Markdown,
+  EPUB and others) are to export and import the break.
+
+- **Menus: access keys** - 2026-10-11. Every item of every menu has an underlined letter, in
+  English and in Polish: Alt with the letter of a menu opens it (Alt+F – File, in Polish Alt+P
+  – Plik), and in an open menu the letter of an item chooses it. So do the context menus: of
+  the text (also the words for a misspelled word and for a grammar issue), of the Navigator,
+  of the toolbars, of the annotations, of the fields (where Qt's English words have none,
+  those of Windows: &Delete, Select &All), and of the menu bar and the panels' titles. No two
+  items of a menu share a letter; a toolbar the user names, the words a menu shows and the
+  panels get free ones, and the recent books are numbered. A line that only tells something
+  has none. On Windows and Linux Alt with a letter types nothing in the text and in the
+  fields, as in the fields of Windows; AltGr types the Polish letters as before (on Windows it
+  is Ctrl+Alt). Alt with the digits of the keypad runs no shortcut, so on Windows it types the
+  character with that code as before (Alt+0150 is an en dash), also where a command has Alt
+  with a digit. Settings > Keyboard Shortcuts keeps Alt with a letter for the menus. The
+  options of the find bar keep Alt+C, Alt+W and Alt+R while it shows, in the bar and in the
+  text (in Polish the Help and View menus have these letters). In Distraction-Free Alt with
+  the letter of a menu shows the menus at the top with that menu open. macOS has no access
+  keys: Option with a letter types a character there.
+
+- **Settings > Keyboard Shortcuts** - 2026-10-10. A page of its own (also Help > Keyboard
+  Shortcuts) where the commands get other keys. The list has the commands in the order of
+  the menus, then the fixed keys of the text, the bars and the panels and the keys of the
+  system, which no command can have; under it, the selected row with its keys and what
+  they do. It searches by name (the words in any order and in their other forms: "książka"
+  finds "Zamknij książkę"), by keys ("ctrl+h" finds Ctrl+H and not Ctrl+Home, "f1" finds F1
+  and not F10–F12), or by a shortcut pressed (Search by Keys), and can show only the
+  changed shortcuts. Every key is checked: keys that type text, fixed keys and the
+  system's are refused with the reason; keys another command has are taken from it only
+  when the user says so; keys a Linux desktop or macOS may take bring a warning. Remove,
+  Restore Default, Restore All Defaults, Import and Export (a JSON file, e.g. for another
+  computer); everything works from the keyboard, and Help > Keyboard Shortcuts opens the
+  page with the cursor in its search. The page fits a 1366 × 768 screen at 125%
+  and 150%: the Settings window is 840 px wide where the screen allows and its list of
+  groups only as wide as the longest of them, the list of commands gives up its rows first,
+  no text is cut, and the page scrolls only when nothing else is left. The menus, the
+  toolbars and every text that names a key follow the new keys at once; the settings keep
+  only the changed ones (`keyboard.shortcuts`).
+
+- **Editor: the keys of word processors** - 2026-10-10. Ctrl+Backspace and Ctrl+Delete
+  delete a word, Ctrl+Up and Ctrl+Down move to the start of the paragraph and the next
+  one, and the second keys of the text fields of Windows work in the text (Alt+Backspace,
+  Shift+Delete, Ctrl+Insert, Shift+Insert, Shift+F10). On macOS the text has the keys of
+  the system's text fields: Option and Cmd with the arrows, Home and End move the view,
+  and the Control keys (Control+A, E, K, Y, T, O, L and others).
+
+- **Own windows instead of the system ones** - 2026-10-10. The benchmark, the forced crash,
+  the icon downloader, the Toolbar Manager (new, renamed and deleted toolbars, reset), the Log
+  panel, the diagnostic menu setting, the language restart question, the damaged chapter
+  warning and the command line help now use the program's own message, question, text and
+  progress windows. Questions name their action on the button ("Delete", "Reset"), and for
+  steps that cannot be undone Enter presses Cancel. The color buttons in Settings open the
+  program's own color window: a palette, recently used colors, the previous and the new
+  color side by side, HEX and RGB fields, all usable from the keyboard. The unused About Qt
+  command is gone; About Kalahari already names the Qt version.
+
+- **A chapter opens where it was last edited** - 2026-10-11. Every chapter opened with its
+  cursor at the start. The book now keeps, for every chapter, where its cursor was when the
+  chapter was closed (with its tab, with the book or with the program), and the chapter
+  opens there, ready for typing, with the cursor's line at the same height in the window as
+  then (in the window also when the cursor was scrolled out of it). Settings > Editor >
+  General > Open a Chapter chooses between Where You Last Edited (the default) and At the
+  Beginning. The place is kept in the book's database, as Word and LibreOffice keep it in
+  the document, so a copy of the book opens there too.
+
+- **Windows that fit small screens** - 2026-10-10. The program's own windows never grow
+  past the screen (for example 1366×768 at 125–150% scaling): their content scrolls while
+  the heading and the buttons stay in view, and a window opens as tall as the screen allows
+  before it scrolls. In a lower window lists first give up their room, and only then the
+  content scrolls; wrapped texts leave no empty line above the buttons, and the title bar
+  stays on the screen. About, the Toolbar Manager, the icon downloader and the main window
+  also open within the screen. The command line help (`--help`) and its errors show in the
+  program's window, in Polish when the program runs in Polish. In the Toolbar Manager a
+  renamed toolbar stays selected and the command names are no longer cut off. The icon
+  downloader's texts and its download errors are translated too. The Log panel's buttons
+  wrap into a second column when the panel is low instead of hiding behind an arrow, and
+  they can be reached with Tab.
+
+- **Qt's own texts in Polish** - 2026-10-10. The menus Qt builds itself are in Polish when
+  the program runs in Polish: the scroll bar menu (Przewiń tutaj, Do góry, Strona w dół...),
+  the menu of multi-line text fields and of number fields (Krok w górę, Krok w dół), the
+  names screen readers hear for panel and tab buttons and for their actions, and Qt's own
+  file window where the system has none (some Linux desktops).
+
+- **Own window for messages and questions** - 2026-10-10. A message, a warning, an error with
+  its details, a question with buttons named after the action, and a typed text now have the
+  program's own window, in the look of its other dialogs, in place of the system ones. Copy
+  puts the message and its details on the clipboard; every button works from the keyboard.
+  The program's messages move to it in the following changes.
+
+- **Word count: a dialogue dash as a word, if chosen** - 2026-10-10. Settings > Editor >
+  General > Word Count can count a dash separated by spaces from the words around it, as
+  at the start of a line of dialogue, as a word, as Microsoft Word does; by default it is
+  not one, as in LibreOffice. The status bar, the Properties panel and Distraction-Free
+  writing count anew at once, the chapters' counts in the book when they are saved or the
+  book is opened again.
+
 ### Changed
+
+- **Side panels on a small screen** - 2026-10-11. The panels on the right can be made much
+  narrower, so that the text keeps its room on a 1366 × 768 screen at 125% and 150%. In the
+  Annotations panel the kind buttons and the To-do buttons go on in the next line, the
+  Open/Done/All and Chapter/Book buttons go one under another (still joined), the date list
+  goes under the scope and both lists get narrower; in a panel too low for all of that the
+  filters scroll, the cards keep their room, and no control is drawn over another. The text
+  of the Assistant panel wraps.
+
+- **Keyboard shortcuts: one set on every system** - 2026-10-10. Every shortcut is written
+  out in the program and is the same on Windows and Linux; macOS shows Cmd for Ctrl. Eight
+  commands took the keys Qt gives each system and desktop, so Close Book was Ctrl+F4 on
+  Windows and Ctrl+W on Linux. They now have the Windows keys everywhere: Close Book
+  Ctrl+F4, Exit Alt+F4 (now also shown in the menu), Redo Ctrl+Y (in the text Ctrl+Shift+Z
+  as well), Find Next F3, Find Previous Shift+F3, Find & Replace Ctrl+H (on Linux it was
+  Ctrl+H on GNOME, Align Right's Ctrl+R on KDE and nothing elsewhere), Full Screen F11,
+  Help F1. Ctrl+W does nothing, so it cannot close the book by mistake.
+  - macOS has its own keys where its system needs them: Exit Cmd+Q, Find & Replace
+    Option+Cmd+F (Cmd+H hides the program), Full Screen Control+Cmd+F (F11 shows the
+    desktop), and the options of the find bar Option+Cmd+C, W and R (Option with a letter
+    types a character there, Option+C is "ć" on the Polish keyboard).
+  - The frame of an annotation lets Save, Save As, Close Book and Exit through with these
+    keys; on Linux, Ctrl+F4 did not reach the window from it.
+  - The Dashboard shows the names and keys of its commands as the menus have them: New
+    Book, Open Book and Open File (it showed Ctrl+N as New Chapter, which is New File). The
+    hint of the Annotations panel and the tooltips of the find bar's options take their keys
+    from the program as well.
+  - On macOS Next To Do and Previous To Do are Option+Cmd+Down and Option+Cmd+Up: Option
+    with the arrows moves the cursor by paragraphs there.
+  - The fields, lists and buttons of the windows have the keys of Windows on Linux too: in
+    a field Ctrl+Y redoes and Alt+Backspace undoes; Ctrl+E and Ctrl+U center and underline
+    also from a field (Qt went to the end of the line and deleted it there), and Ctrl+D,
+    Ctrl+K, Ctrl+Shift+A and Ctrl+Shift+Insert do nothing in a field (Qt deleted,
+    deselected and pasted with them); Left and Right over a selection move the cursor from
+    where it is; Shift+F10 opens the context menu; Enter on a check box, an option, a
+    drop-down list or a button that is not the default one goes to the window's default
+    button (on GNOME, Xfce and the other GTK desktops it pressed the button or opened the
+    list). On Windows and Linux a read-only text and a selectable label keep Ctrl+C,
+    Ctrl+Insert and Ctrl+A for themselves (in the Log they copied and selected the book's
+    text), and the context menus of the fields always show their keys (Qt left out the keys
+    a command of the window has too).
+  - In Polish the keys have Polish names in the menus, the tooltips and the settings
+    (Strzałka w górę, Spacja, Enter).
+
+- **The text's context menu: the commands of the Edit menu** - 2026-10-11. Cut, Copy, Paste
+  and Select All in the text's context menu are the commands of the Edit menu, with their
+  icons and keys (Ctrl+X, Ctrl+C, Ctrl+V and Ctrl+A, or those set in Settings > Keyboard
+  Shortcuts); the menu had items of its own without them. Paste is greyed out where there is
+  nothing to paste, as in the Edit menu. macOS shows no keys in context menus.
+
+- **Dashboard on a small screen** - 2026-10-10. On a 1366 × 768 screen at 125% and 150%,
+  with the side panels open or closed, nothing of the Dashboard is cut off. The hints of
+  the shortcuts go one under another where one row is too narrow for them, with the keys
+  and the commands in two columns, and on the narrowest panel each command goes under its
+  keys. The title, the tagline, the headings, the cards of the recent books (a book's path
+  also inside a name too long for the line) and the text of the check box wrap. The logo
+  is at most 40% of the panel's height and goes above the title on a narrow panel; a
+  narrow card puts the book's icon above its texts. The content takes three quarters of a
+  wide panel, more where it needs it, and only a panel narrower than the longest word
+  scrolls sideways.
+- **Annotations: the frame closes when the writer goes elsewhere; its X drops the text** -
+  2026-10-10. Going anywhere else in the program closes the frame of an annotation and
+  keeps what was written, as Ctrl+Enter does: a click outside it (in the text, a panel, a
+  toolbar or the menu bar) or the keys going to another place of the program; a new
+  annotation left empty is not added. The X in its top right corner drops what was
+  written, as Esc does. The frame stays open while another application is in front, for
+  its own context menu and while the text is scrolled with the scroll bars.
 
 - **One version number** - 2026-10-09. The About window, the program and the command
   line show the version from the project definition (0.3.0-alpha); before, they showed
@@ -277,6 +457,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Menu commands and settings page for features that will not be built:
   Browse Marketplace, Cloud Sync, Collaboration - 2026-10-03
 
+### Fixed
+
+- **End on macOS in a short text** - 2026-10-12. End, which on macOS moves only the view,
+  still scrolled to the bottom of the page below a text shorter than a page; it now goes to
+  the end of the text, as Ctrl+End does.
+
+- **Ctrl+End in a short text** - 2026-10-11. Ctrl+End and Ctrl+Shift+End scrolled to the
+  bottom of the page, so the lines of a text shorter than a page left the view and only
+  blank paper showed; the page view did the same on a last page filled only at its top. The
+  view now goes to the end of the text, the last line with the page's bottom margin below
+  it, as at the end of a long chapter, and a short text that fits in the window stays put.
+
+- **Menu icons** - 2026-10-10. Six menu commands had no icon (import and export of a
+  project archive, InDesign ICML, export settings, Find in book, saving the current
+  perspective) and the log warned about each of them when the menus were built.
+
+- **Plain text files take no annotations** - 2026-10-11. A plain text file (`.txt`) cannot
+  keep annotations, so those added to it were lost when it was saved. The commands that add
+  them (Insert > Add Annotation..., Add Comment, Add To Do, Add Note, Ctrl+Shift+M and the
+  editor's context menu) are now off for it, the Annotations panel says why and that the
+  file added to the book takes annotations, and text pasted or dropped into it comes
+  without them. Saved as a chapter file (`.kchapter`), it takes annotations again.
+
 ### Added
 
 - **Book projects: a new project file in core** - 2026-10-09. A new model in core reads and
@@ -305,24 +508,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   works as before; the New Book and Add Element windows will use it in later stages.
 - **Spelling as you type** - 2026-10-09
   - The editor underlines misspelled words with a wavy line, in the book's language (set in
-    its properties) or in the language chosen in Settings > Editor > Spelling. Polish and
-    English dictionaries come with the program; those of LibreOffice and of the system
-    (Linux, macOS) are found too. When the language has no dictionary, the status bar
-    says so.
+    its properties) or in the language chosen in Settings > Editor > Spelling. A document
+    outside the book, such as a file opened from the disk, is checked in the language
+    chosen in the settings, else in the language of the program, not in the book's, as a
+    new document is in Word and LibreOffice; its dictionary is loaded when the first such
+    document is opened. Polish and English dictionaries come with the program; those of
+    LibreOffice and of the system (Linux, macOS) are found too. When the language has no
+    dictionary, the status bar says so. The languages go by their names in the language of
+    the program (in the Polish one: francuski), also in the list of the dictionaries in the
+    settings.
   - The paragraphs on the screen are checked first, the rest of the chapter in short steps
     between the key presses, so typing stays smooth also in a long chapter. The word being
     typed gets its line when the cursor leaves it, and the lines of the other words stay
     in place while the text around them is edited.
   - A right click on a misspelled word offers up to five words to put in its place,
     Ignore All (the word is right until the program closes) and Add to Dictionary (right
-    for good), above the usual commands.
+    for good), above the usual commands. Select All is among them also when nothing is
+    selected, as in the program's text fields.
+  - The likeliest word comes first: a word typed without its accents gets the word with
+    them (ktory: który, Lodz: Łódź), a word starting a sentence also gets the words written
+    small (Teh: The), while a misspelled name still gets the name, and the writer's own
+    words close to the misspelled one are offered too.
   - From the keyboard: Tools > Next Spelling or Grammar Issue (F7) selects the next
     misspelled word, from the cursor round the chapter, and opens the same menu under it;
     the menu key and Shift+F10 open it for the word at the cursor.
   - Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off for all
-    chapters, and remembers it. Settings > Editor > Spelling has the same switch, the
+    documents, and remembers it. Settings > Editor > Spelling has the same switch, the
     language and the list of the writer's own words, which can be added and removed there;
-    they are kept in `user_dictionary.txt` next to `settings.json`.
+    they are the same in every language and kept in `user_dictionary.txt` next to
+    `settings.json`.
   - The dictionary is loaded in the background, once for all open chapters, and a
     language change does not stop the work.
 - **Grammar as you type, on the writer's LanguageTool server** - 2026-10-09
@@ -468,12 +682,166 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Muted texts that could not be read** - 2026-10-11. The planned pages in the Settings
+  list (nearly invisible in the Dark theme), the hint under the address in the icon
+  downloader and the muted texts of the Dashboard (the tagline, the shortcuts heading, the
+  description, path and date of a recent book, "no items") have the color of the notes of
+  the Settings pages, readable on what they lie on in both themes (at least 4.5:1); the
+  Settings list follows a change of the theme.
+
+- **Clipboard and undo on the element with the cursor** - 2026-10-10. Undo, Redo, Cut,
+  Copy, Paste and Select All, with their keys, from the Edit menu and from the toolbar,
+  work on the element with the cursor and on no other: the book's text, a field of a
+  panel, a list. Ctrl+V in the Log pasted into the book, and the Edit menu and the toolbar
+  worked on the book wherever the cursor was. In a text that only shows (the Log) Paste,
+  Cut, Undo and Redo do nothing, Copy and Select All work; a list copies its current item.
+  In the Annotations panel and the find bar, outside their fields, Undo and Redo undo what
+  was done there in the text (an annotation marked done, a replacement). Elsewhere (a
+  button, the Dashboard) the commands do nothing, and the menu and the toolbar show them
+  disabled wherever they can do nothing.
+
+- **The commands of the document without a document** - 2026-10-11. Over the Dashboard,
+  without a tab and after the book was closed, Find, Find Next, Find Previous, Find and
+  Replace, Bold, Italic, Underline, Strikethrough, the alignments, the view mode and the zoom
+  were enabled in the menus and on the toolbars (Bold and the alignment of the last chapter
+  even checked) and did nothing, also with their keys. They are now greyed out, with nothing
+  checked, until a chapter or a text file is in front, as in Word without a document.
+
+- **Find bar: the cursor goes back to the text after the last replacement** - 2026-10-10.
+  Replace on the last match and Replace All turn their button off, and the cursor went on to
+  the font box of the toolbar: Undo did not take the replacement back, and what was typed
+  changed the font name. The cursor now goes back to the text, where Undo takes the
+  replacement back.
+
+- **Find bar: the cursor at the end of the replaced text** - 2026-10-11. After Replace All,
+  and after Replace on the last match, the cursor kept its place in the paragraph: with a
+  longer or shorter replacement it landed inside a word. It now stands at the end of the
+  replaced text; after Replace All, at the end of the last replacement, shown in the view.
+
+- **Find bar: F3 after the bar is closed** - 2026-10-11. After Escape closed the find bar,
+  the first F3 (Find Next) or Shift+F3 (Find Previous) only opened the bar again, with the
+  cursor in its field. Now, as in Word, the browsers and the code editors, the bar shows again
+  with its text and mode, the next or the previous match is selected, and the cursor stays in
+  the text; without a text to search for, F3 opens the bar to type one, as before.
+
+- **Find bar: over the text, and from the keyboard** - 2026-10-11. The bar had no
+  background of its own: the text scrolled under it showed between its fields and over the
+  number of matches. It now covers the text under it, and a match the view scrolls to is
+  shown below the bar, not under it (Find Previous put it at the top of the view, under the
+  bar). Tab goes from the search text to the replacement and its buttons, then to the
+  options, the arrows and Close, as in Word's Find and Replace (it went through the six
+  buttons of the search row first); Enter presses the button with the cursor, as Space does
+  (it did nothing).
+
+- **Find bar: undoing a replacement** - 2026-10-11. Undoing Replace All put the cursor at
+  the start of the chapter, far from where the writer was. Undoing a replacement now brings
+  back the cursor and selection it was made with (the replaced match is selected again, and
+  the next Replace replaces it), and redoing it puts the cursor at the end of the replaced
+  text.
+
+- **Editor: Replace All in a long chapter** - 2026-10-11. After an edit of many paragraphs
+  at once (Replace All, a long paste), the paragraphs waiting to be laid out again kept the
+  lines of their old text, and a cursor placed in a paragraph that got shorter read past its
+  end: a debug build stopped on Replace All. Such paragraphs now have no lines until they are
+  laid out, as in Qt's own layout.
+
+- **Find bar: replacing the last match** - 2026-10-11. Replace (Enter or F3 and Enter) on
+  the last match, often the only one with whole words on, stopped a debug build on an
+  assertion of Qt (QList::at), and so did Replace All and Undo given in the bar when they
+  took the last match away. The bar gave the cursor back to the text while the document was
+  still reporting the edit, before the paragraph was laid out again, and the cursor was
+  placed by the lines of its old text, past the end of a shorter one. The bar now learns of
+  the changed matches once the paragraph is laid out, and while an edit is reported the
+  changed paragraphs have no lines of their old text.
+
+- **Toolbars: the font and the size go on the text at Enter** - 2026-10-11. Each letter typed
+  in the font field went on the text as a font ("F", "Fr"..., so the text showed in another
+  font) and each number typed in the size field as a size (7 of 72), one step to undo each,
+  and Escape left them there. Now what was typed goes on the text at Enter, as one step to
+  undo, and Escape leaves the text as it was; a choice in the font list and the arrows go on
+  it at once, as before.
+
+- **Toolbars: the cursor goes back where it was after a command** - 2026-10-11. A click on a
+  floating toolbar took the cursor: after its command, what was typed reached neither the
+  text nor a field. In the font and size fields of a toolbar, docked or floating, the cursor
+  stayed after the choice, and what was typed changed the font name. Now, as in Word and
+  LibreOffice, after a command, after Enter or Escape in a field and after a choice in the
+  font list, the cursor goes back where it was: to the text or to the field of a panel. The
+  arrows of the size field do not take the cursor; in the fields one types as before, and Tab
+  goes from one to the other.
+
+- **Formats given without a selection** - 2026-10-11. Bold, italic, underline and
+  strikethrough turned on without a selection (Ctrl+B, Ctrl+I, Ctrl+U, the toolbar) did not
+  reach the typed text: the button showed the format on, the text was typed without it, and
+  the button stayed on after the cursor moved away. The font and the size chosen in the
+  toolbar without a selection did nothing. Now, as in Word and LibreOffice, with the cursor
+  inside a word they go on the whole word; elsewhere on the text typed next at the cursor,
+  also after Enter, with an input method and in plain text pasted there. Moving the cursor,
+  selecting, Undo and Redo drop them; given where the text has the format, the typed text is
+  without it. Undoing a format brings back the cursor and the selection it was given with.
+
+- **Editor: text pasted from a web page without empty paragraphs** - 2026-10-11. Text
+  copied in a browser came into the book with an empty paragraph after each paragraph and
+  heading: the browsers leave a blank line between them in the plain text they copy. Now the
+  paragraphs come as they are on the page, read off the copied HTML; an empty paragraph of
+  the page stays, and the text of other programs comes as before.
+
+- **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
+  texts of the Settings pages and the descriptions of the planned pages had a contrast of
+  2.3:1 with the window in the light theme and 3.6:1 in the dark one. They now have at
+  least 4.5:1 (WCAG AA), also inside the groups, and a theme applied while the window is
+  open changes them too. The titles of the planned pages kept the color of the theme they
+  were opened in: black on the dark window.
+
+- **Icons: the lock and the input icon** - 2026-10-10. The lock (Settings > Keyboard
+  Shortcuts) and the input icon showed as a black square: their invisible frame got the
+  icon color. The build script that converts the icons (`scripts/convert_all_icons.py`),
+  the program's converter of downloaded icons and `scripts/convert_svg_templates.py` now
+  leave a shape without a fill when its group has `fill="none"`.
+- **Editor: a press on its scroll bars stays with them** - 2026-10-10. With Qt 6.9, a
+  click on the editor's scroll bar when there was nothing to scroll went on to the text
+  under it: it moved the cursor, and a double click selected a word. Such a click, and a
+  press of the right mouse button on the scroll bars, also closed the frame of an
+  annotation being written. A press on a scroll bar now stays with it; the right button
+  still opens the scroll bar's menu.
+
 - **Panels: the Navigator no longer covers the panel in front** - 2026-10-09. Choosing an
   element in the Navigator (a click, the arrow keys, opening a chapter, a new status)
   brought the Properties panel to the front of its tab group, so the Annotations panel
   seemed to disappear, for example after the book was closed and opened again. The
   Navigator now only fills the Properties panel; its context menu item Properties... still
   brings the panel to the front.
+
+- **Status bar: the counts of the document in front** - 2026-10-10. The words, characters
+  and reading time in the status bar are those of the tab in front, a chapter or a file
+  outside the book, and change with the tab; over the Dashboard there are none, and no zoom
+  either. With a selection they show its counts out of the whole text ("Words: 12 of
+  3,480"), and the Properties panel counts a selection the same way. Before, they followed
+  the chapter opened last, stayed empty for a file outside the book and went to zero when
+  any tab was closed, and the zoom of the last document stayed over the Dashboard. The
+  characters no longer include the paragraph ends, as in Word and LibreOffice, and the
+  numbers are written in the system's way (3 480 in Polish), in Distraction-Free writing
+  too. A reading time of an hour or more is given in hours and minutes ("Reading: 12 h
+  31 min" instead of "Reading: 751 min"). The Properties panel writes the numbers and the
+  reading time the same way, and its paragraphs are the paragraphs with text, as in Word
+  and LibreOffice: a one-line text file had two paragraphs, its empty last line being the
+  second.
+
+- **Distraction-Free writing: a readable word count** - 2026-10-10. The word count at the
+  bottom of the view was drawn straight over the lines of text and mixed with them. The
+  count and the clock now have a plate of the paper's color under them, which fades out
+  with them.
+
+- **Writing statistics: only the words written** - 2026-10-10. The words written and
+  deleted in a writing session are counted in the chapter in front. A chapter opened in the
+  editor, or a new way of counting, no longer counts as words written, and the words typed
+  just before switching to another tab are not lost.
+
+- **KML format description: the elements as the program writes them** - 2026-10-10. The
+  format description and the editor's functional specification name the links to
+  characters, places and items as the program reads and writes them (`<charref>`,
+  `<locref>`, `<itemref>`, with `id` and `target`), and describe comments, to-dos and notes
+  as annotations of the `<annotations>` section.
 
 - **File > Recent Books in its place in Polish** - 2026-10-09. The submenu was put before
   the item whose text contains "Close", so in the Polish program („Zamknij książkę") it went
@@ -483,6 +851,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The status of an element in the Navigator in Polish** - 2026-10-09. The Navigator showed
   the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names
   it "Szkic"; it now shows the same names as the menu (Szkic, Poprawki).
+
+- **Mouse wheel: it changes only the field one works in** - 2026-10-10. Scrolling a page of
+  the settings with the mouse wheel changed every number field and drop-down list that
+  passed under the mouse (for example the line spacing), and the wheel over the font and
+  its size in the toolbar changed them too. As on Windows, the wheel now changes only the
+  field with the keyboard focus, after a click or Tab in it; over any other field it
+  scrolls the page. While the wheel scrolls the page, the field with the focus does not
+  stop it when it passes under the mouse, as in web browsers; after a short pause, or once
+  the mouse moves, the wheel over that field changes it again.
 
 - **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
   shows the pages at their size on paper; when the display scaling (for example 125% to
@@ -495,6 +872,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   its menu item was deleted reached freed memory. Each connection now ends with its menu
   item, toolbar or window.
 
+- **The keys go to the document opened or left in front** - 2026-10-11. A chapter opened
+  from the Navigator (double click, Enter or Open) left the keyboard focus in the Navigator,
+  without a cursor in the text, so what was typed next did not reach the chapter until its
+  text was clicked; after a tab was closed with its ×, the focus went to the font box of the
+  toolbar. Now a chapter or a file opened (from the Navigator, with File > Open > File... or
+  File > New) or brought to the front (from the Navigator or with a click on its tab) gets
+  the keys, with its cursor showing, as in Word and LibreOffice. When the tab in front
+  closes, also with the book or after the question about unsaved changes, the document
+  coming to the front gets them, wherever they were, at the place it had them last; when a
+  tab behind closes, the keys stay where they are, for example in a panel.
+
 - **Distraction-Free without a document** - 2026-10-08. View > Distraction-Free
   (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in
   front: its command is greyed out without one, and it goes off when the Dashboard or no
@@ -503,6 +891,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   put it on the list of recent books, so a book just created was missing from the
   Dashboard and the Recent Books menu until it was opened again. Every book opened or
   created now goes to the top of the list.
+
+- **Tests: no files in the user's profile** - 2026-10-11. The test program unpacked its test
+  plugin in the program's folder of the user's profile (on Windows
+  `%LOCALAPPDATA%\Kalahari\plugins\temp`), wrote a log to a `tmp` folder at the root of the
+  drive, and after one test ran under the program's own name, so files that later tests
+  wrote through Qt's standard folders went to the user's Kalahari folder. Tests now keep the
+  plugin and the log in their own temporary folder, removed after the run, and keep the
+  name of the test program.
 
 - **A chapter added in the Navigator was damaged** - 2026-10-08. Add Chapter (and Add
   Item in the front or back matter) made a chapter without a file, so its text was saved

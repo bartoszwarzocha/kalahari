@@ -58,25 +58,50 @@ set(TEST_SOURCES
     editor/test_editor_stage3.cpp                # Editor Stage 3: drag and drop, find and replace, cursor
     editor/test_editor_stage4.cpp                # Editor Stage 4: page mode, zoom, typewriter scrolling
     editor/test_editor_stage5.cpp                # Editor Stage 5: highlight layer
+    editor/test_text_keys.cpp                    # The keys of the text on each system
+    editor/test_format_without_selection.cpp     # Formats given without a selection
+    editor/test_line_breaks.cpp                  # Line breaks in a paragraph (Shift+Enter)
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     gui/test_command_registry.cpp
     gui/test_command_registry_execution.cpp
+    gui/test_command_icons.cpp                   # Every command in a menu has an icon
     gui/test_command_shortcuts.cpp               # Editor Stage 3: one command per shortcut
+    gui/test_shortcut_rules.cpp                  # Which keys a command can have, on each system
+    gui/test_shortcut_customization.cpp          # The user's keys: registry, settings, files
+    gui/test_shortcuts_page.cpp                  # Settings > Keyboard Shortcuts
+    gui/test_widget_keys.cpp                     # Qt's widgets have the keys of Windows
+    gui/test_edit_coordinator.cpp                # Clipboard and undo on the element with the keys
+    gui/test_toolbar_keys.cpp                    # A toolbar gives the keys back after a command
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
+    gui/test_menu_access_keys.cpp                # The access keys of the menus, in both languages
     gui/test_panel_toggle.cpp                    # Panel toggles follow open panels
     gui/test_setting_toggle.cpp                  # Toggles follow on/off settings
+    gui/test_document_commands.cpp               # Document commands greyed out without one
     gui/test_spelling_coordinator.cpp            # Spelling as you type: dictionary, command, settings page
     gui/test_grammar_coordinator.cpp             # Grammar as you type: server, language, command, settings page
+    gui/test_language_names.cpp                  # Names of languages in the program's language
     gui/test_dialogs.cpp                         # The program's own dialogs
+    gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
+    gui/test_widget_wheel.cpp                    # The mouse wheel changes only the field with the focus
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing
+    gui/test_tab_focus.cpp                       # The keys go to the page in front of the tabs
+    gui/test_chapter_cursor.cpp                  # A chapter opens where its cursor was
     gui/test_editor_panel.cpp                    # Editor panel between the settings and its editor
+    gui/test_status_bar_statistics.cpp           # Counts of the document in front in the status bar
+    gui/test_reading_time.cpp                    # The reading time of a text as the program shows it
+    gui/test_properties_panel.cpp                # Properties panel: the counts of the editor in front
     gui/test_views_toolbar.cpp                   # Views toolbar: view modes and switches
+    gui/test_tool_button_columns.cpp             # Panel buttons that wrap into columns
+    gui/test_fitting_scroll_area.cpp             # Content that scrolls only on a small screen
     gui/test_editor_settings.cpp                 # Editors follow the editor settings
     gui/test_annotations_panel.cpp               # Annotations panel and its coordinator
     gui/test_dock_layout.cpp                     # The panels on the right: Annotations on top
+    gui/test_dashboard_panel.cpp                 # The Dashboard on a small screen
+    gui/test_wrapping_labels.cpp                 # Labels that wrap on a narrow panel
+    gui/test_panel_widths.cpp                    # Side panels fit a narrow dock, muted texts read
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -137,6 +162,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/find_replace_bar.cpp       # Find/Replace bar of the editor
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_accessible.cpp  # Task 7.16: Accessibility
     ${CMAKE_SOURCE_DIR}/src/editor/buffer_commands.cpp       # Cursor position helpers
+    ${CMAKE_SOURCE_DIR}/src/editor/text_keys.cpp             # The keys of the text on each system
     ${CMAKE_SOURCE_DIR}/src/editor/search_engine.cpp        # OpenSpec #00044 Task 9.4: SearchEngine
     ${CMAKE_SOURCE_DIR}/src/editor/kml_document_model.cpp  # KML reader
     ${CMAKE_SOURCE_DIR}/src/editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout
@@ -157,12 +183,24 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/appearance_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/editor_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
+    ${CMAKE_SOURCE_DIR}/src/gui/shortcut_rules.cpp          # Which keys a command can have
+    ${CMAKE_SOURCE_DIR}/src/gui/shortcut_settings.cpp       # The user's keys in the settings and files
+    ${CMAKE_SOURCE_DIR}/src/gui/widget_keys.cpp             # Qt's widgets have the keys of Windows
+    ${CMAKE_SOURCE_DIR}/src/gui/menu_builder.cpp            # Menu titles and order for the shortcuts list
+    ${CMAKE_SOURCE_DIR}/src/gui/diagnostic_menus.cpp        # The items of the Diagnostics and Dev Tools menus
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/access_keys.cpp       # The access keys of menu texts
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/length_spin_box.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/shortcut_recorder.cpp  # A field that records key presses
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/language_names.cpp    # Names of languages in the program's language
     ${CMAKE_SOURCE_DIR}/src/gui/utils/layout_utils.cpp      # clearLayout for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/utils/panel_toggle.cpp      # Show/hide toggles of the dock panels
     ${CMAKE_SOURCE_DIR}/src/gui/utils/setting_toggle.cpp    # Toggles that show an on/off setting
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/document_commands.cpp  # The commands of the document in front
     ${CMAKE_SOURCE_DIR}/src/gui/utils/distraction_free_layout.cpp  # The window's layout for Distraction-Free writing
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/tab_focus.cpp         # The keys go to the page in front of the tabs
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/chapter_cursor.cpp    # A chapter opens where its cursor was
     ${CMAKE_SOURCE_DIR}/src/gui/panels/editor_panel.cpp     # Editor panel: settings to and from its editor
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_coordinator.cpp    # Spelling as you type: the editors' dictionary
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_coordinator.cpp     # Grammar as you type: the editors' LanguageTool server
@@ -172,18 +210,33 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_frame.cpp  # Annotations: the frame text is written in
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotations_panel.cpp # Annotations panel
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
+    ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
+    ${CMAKE_SOURCE_DIR}/src/gui/toolbar_keys.cpp            # A toolbar gives the keys back after a command
     ${CMAKE_SOURCE_DIR}/src/gui/dock_coordinator.cpp        # The panels of the main window and their layout
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # The Navigator's requests
     ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Panels of DockCoordinator
     ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_panel.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_layouts.cpp  # The Dashboard on a narrow panel
     ${CMAKE_SOURCE_DIR}/src/gui/panels/log_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/search_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/assistant_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/standalone_info_bar.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/path_label.cpp  # The paths of the recent books
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/wrapping_label.cpp  # Texts that wrap only where they must
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp  # Rows of buttons that wrap on a narrow panel
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/segmented_layout.cpp  # Joined buttons on a narrow panel
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/height_for_width_scroll_area.cpp  # Filters that scroll in a low panel
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/tool_button_columns.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/fitting_scroll_area.cpp
     ${CMAKE_SOURCE_DIR}/src/core/log_panel_sink.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/status_bar_statistics.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/reading_time.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_manager.cpp         # Toolbars of the main window
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/toolbar_manager_dialog.cpp  # Toolbar Manager dialog for ToolbarManager
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/kalahari_dialog.cpp          # Base of the program's own dialogs
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/message_dialog.cpp           # Own messages, questions and typed texts
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/progress_dialog.cpp          # Own window for the progress of a long task
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/color_dialog.cpp             # Own window for choosing a color
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_element_dialog.cpp       # New element of the book in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/icon_registrar.cpp          # Icons of the application's commands
@@ -191,18 +244,21 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/theme.cpp                 # Theme for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/theme_manager.cpp         # ThemeManager for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/resource_paths.cpp        # ResourcePaths for ThemeManager/IconRegistry
+    ${CMAKE_SOURCE_DIR}/src/gui/widget_wheel.cpp            # The mouse wheel changes only the field with the focus
     ${CMAKE_SOURCE_DIR}/src/editor/clipboard_handler.cpp     # Phase 4.13-4.16: Clipboard
     ${CMAKE_SOURCE_DIR}/src/editor/editor_appearance.cpp    # Phase 5: Editor appearance
     ${CMAKE_SOURCE_DIR}/src/editor/statistics_collector.cpp   # Phase 6/Task 7.17: Statistics
     ${CMAKE_SOURCE_DIR}/src/editor/word_frequency_analyzer.cpp # Phase 6/Task 7.17: Word frequency
     ${CMAKE_SOURCE_DIR}/src/editor/spell_check_service.cpp     # Phase 6.4-6.9: Spell check service
     ${CMAKE_SOURCE_DIR}/src/editor/grammar_check_service.cpp  # Phase 6.14-6.17: Grammar check service
+    ${CMAKE_SOURCE_DIR}/src/editor/tag_detector.cpp           # Task 7.10: TODO and other tags
     # MOC headers for Q_OBJECT classes
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/statistics_collector.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/tag_detector.h  # TagDetector with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h  # ViewportManager with Q_OBJECT (OpenSpec #00043)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h   # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/style_resolver.h  # Sub-Project C WS4.4: StyleResolver with Q_OBJECT
@@ -212,8 +268,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h  # SettingsDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/shortcuts_page.h  # ShortcutsPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h  # ShortcutRecorder with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h  # RecentBooksMenu with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
@@ -223,6 +282,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h  # AnnotationFrame with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h  # AnnotationsPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # Panels of DockCoordinator with Q_OBJECT
@@ -231,9 +292,15 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/progress_dialog.h  # ProgressDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/color_dialog.h  # ColorDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
@@ -269,6 +336,17 @@ target_include_directories(kalahari-tests PRIVATE
 # Source tree, for tests that read files of the repository (the example project)
 target_compile_definitions(kalahari-tests PRIVATE
     KALAHARI_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# The Polish translation, under :/i18n as in the program, for the tests of the menus in Polish
+qt_add_lrelease(kalahari-tests
+    TS_FILES ${CMAKE_SOURCE_DIR}/translations/kalahari_pl.ts
+    QM_FILES_OUTPUT_VARIABLE KALAHARI_TEST_QM_FILES
+)
+qt_add_resources(kalahari-tests "kalahari_test_translations"
+    PREFIX "/i18n"
+    BASE ${CMAKE_CURRENT_BINARY_DIR}
+    FILES ${KALAHARI_TEST_QM_FILES}
 )
 
 # Link libraries

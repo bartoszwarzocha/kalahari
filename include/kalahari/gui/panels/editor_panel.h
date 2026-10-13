@@ -66,6 +66,13 @@ public:
     /// Converts KML to HTML for export.
     QString getContent() const;
 
+    /// @brief Whether the text differs from the text loaded or last saved (see
+    ///        editor::BookEditor::isModified())
+    bool isModified() const;
+
+    /// @brief Mark the text now as the saved text (after saving it)
+    void setUnmodified();
+
     /// @brief Get the underlying BookEditor widget
     /// @return Pointer to BookEditor widget
     ///
@@ -83,9 +90,10 @@ public:
     /// @brief Set the statistics collector for this editor
     /// @param collector Pointer to shared StatisticsCollector (nullptr to disconnect)
     ///
-    /// When set, the collector will track document changes from this editor.
-    /// The collector is typically owned by DocumentCoordinator and shared
-    /// across all editor panels in a project.
+    /// When set, the collector tracks this editor while its tab is the one in front: it
+    /// takes the editor now if the panel is shown, and again whenever it is shown. The
+    /// collector is typically owned by DocumentCoordinator and shared across all editor
+    /// panels in a project.
     void setStatisticsCollector(editor::StatisticsCollector* collector);
 
     /// @brief Get the current statistics collector
@@ -105,9 +113,14 @@ signals:
     /// Forwarded from BookEditor content changes.
     void contentChanged();
 
+    /// @brief Emitted when the text starts or stops differing from the saved text
+    ///
+    /// Forwarded from editor::BookEditor::modifiedChanged().
+    void modifiedChanged(bool modified);
+
 protected:
     /// @brief Keeps the pages at their size on paper when the panel is shown or moves to
-    ///        another screen
+    ///        another screen; shown, it gives its editor to the statistics collector
     bool event(QEvent* event) override;
 
 private slots:
@@ -120,6 +133,9 @@ private:
     /// Runs when the panel is shown or moves to another screen, and when a screen's display
     /// scaling or resolution changes.
     void applyPaperScale();
+
+    /// @brief Give the editor to the statistics collector, if the panel is shown
+    void trackStatistics();
 
     /// @brief Run applySettings() once the event loop runs, once for all the settings
     ///        changed until then

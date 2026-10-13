@@ -62,8 +62,9 @@ public:
 
     /// @brief Convert KML to HTML for other programs
     ///
-    /// Paragraphs keep their alignment, formatting tags become b/i/u/s/sub/sup and inline
-    /// styles (font, size, color, bg) CSS. Metadata tags keep only their text.
+    /// Paragraphs keep their alignment and their line breaks (br), formatting tags become
+    /// b/i/u/s/sub/sup and inline styles (font, size, color, bg) CSS. Metadata tags keep
+    /// only their text.
     /// @param kml KML markup string
     /// @return HTML string with equivalent formatting
     static QString kmlToHtml(const QString& kml);
@@ -74,9 +75,28 @@ public:
     static QString htmlToKml(const QString& html);
 
     /// @brief Convert plain text to KML
+    ///
+    /// Each line is a paragraph; U+2028 and a vertical tab (as Word writes it) are a line
+    /// break in the paragraph (<br/>). Other control characters than tab are dropped.
     /// @param text Plain text string
-    /// @return KML string with escaped characters and paragraph breaks
+    /// @return KML string with escaped characters, paragraph and line breaks
     static QString textToKml(const QString& text);
+
+    /// @brief The plain text another program gave with its HTML, with the line ends of the
+    ///        HTML: U+2028 for its line breaks in a paragraph, no blank line it does not have
+    ///
+    /// Word and the browsers give a line break in a paragraph (Shift+Enter, <br>) as a line
+    /// end in the plain text, like a paragraph end, and the browsers leave a blank line
+    /// between two paragraphs; their HTML tells them apart. The characters of the text are
+    /// matched with those of the HTML: a line end of the text becomes U+2028 where the HTML
+    /// has a line break and no paragraph end, and where the HTML has a paragraph end, the
+    /// text keeps no more line ends than the HTML has there. Where the two differ in
+    /// anything but white space, the text comes back as it is. The HTML is read without
+    /// anything it refers to (style sheets, images).
+    /// @param text The plain text (text/plain)
+    /// @param html The HTML of the same content (text/html), may be empty
+    /// @return The text, with U+2028 for the line breaks
+    static QString withLineEndsOf(const QString& text, const QString& html);
 
     /// @brief Extract plain text from KML
     /// @param kml KML markup string

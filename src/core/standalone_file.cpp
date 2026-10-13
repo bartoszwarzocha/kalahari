@@ -74,7 +74,10 @@ bool StandaloneFile::saveAs(const QString& path, const QString& kml, const QStri
     }
     case Type::PlainText: {
         TextFileFormat format = m_type == Type::PlainText ? m_textFormat : TextFileFormat::newFile();
-        if (!writeTextFile(path, text, format, error)) {
+        // A text file has only lines: a line break in a paragraph ends one too
+        QString lines = text;
+        lines.replace(QChar(QChar::LineSeparator), QLatin1Char('\n'));
+        if (!writeTextFile(path, lines, format, error)) {
             return false;
         }
         m_textFormat = format;

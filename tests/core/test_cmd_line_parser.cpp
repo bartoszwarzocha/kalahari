@@ -112,9 +112,26 @@ TEST_CASE("CmdLineParser edge cases", "[cmdline]") {
         REQUIRE(parser.hasSwitch("v") == false);
     }
 
-    // SECTION "Switch not added to parser" REMOVED
-    // Reason: parse() failure triggers wxMessageBox on Windows due to wxCMD_LINE_OPTION_HELP flag
-    // This shows GUI dialog during tests, which breaks console-only CI/CD execution
+    SECTION("--help leaves the help to the caller instead of exiting") {
+        char* argv[] = { const_cast<char*>("kalahari"), const_cast<char*>("--help") };
+        CmdLineParser parser(2, argv);
+        parser.addSwitch("d", "diag", "Enable diagnostic mode");
+
+        REQUIRE(parser.parse() == false);
+        REQUIRE(parser.helpRequested());
+        REQUIRE(parser.helpText().contains(QStringLiteral("--diag")));
+        REQUIRE(parser.helpText().contains(QStringLiteral("Enable diagnostic mode")));
+    }
+
+    SECTION("An unknown switch is an error the caller can show") {
+        char* argv[] = { const_cast<char*>("kalahari"), const_cast<char*>("--unknown") };
+        CmdLineParser parser(2, argv);
+        parser.addSwitch("d", "diag", "Enable diagnostic mode");
+
+        REQUIRE(parser.parse() == false);
+        REQUIRE_FALSE(parser.helpRequested());
+        REQUIRE(parser.errorText().contains(QStringLiteral("unknown")));
+    }
 }
 
 TEST_CASE("The program version comes from the project version", "[cmdline][version]") {
@@ -124,6 +141,10 @@ TEST_CASE("The program version comes from the project version", "[cmdline][versi
 
     char* argv[] = { const_cast<char*>("kalahari") };
     CmdLineParser parser(1, argv);
-    parser.setApplicationDescription("Kalahari", "Writer's IDE");
+    // The test program keeps its own name: under the program's name, files that later tests
+    // write through QStandardPaths would land in the user's Kalahari folder
+    const QString testProgramName = QCoreApplication::applicationName();
+    parser.setApplicationDescription(testProgramName, "Writer's IDE");
     REQUIRE(QCoreApplication::applicationVersion() == shown);
+    REQUIRE(QCoreApplication::applicationName() == testProgramName);
 }

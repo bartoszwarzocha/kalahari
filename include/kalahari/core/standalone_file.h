@@ -39,7 +39,8 @@ public:
     /// A chapter keeps its other data (title, status, notes), a text file its encoding and
     /// line ends.
     /// @param kml Content as KML, written to a chapter
-    /// @param text Content as plain text, paragraphs separated by '\n', written to a text file
+    /// @param text Content as plain text, paragraphs separated by '\n', written to a text file;
+    ///        a line break in a paragraph (QChar::LineSeparator) ends a line there too
     /// @param error Set to the reason when a text file cannot be written
     bool save(const QString& kml, const QString& text, QString* error = nullptr);
 

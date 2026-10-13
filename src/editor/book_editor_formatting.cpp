@@ -4,6 +4,9 @@
 #include <kalahari/editor/book_editor.h>
 #include "book_editor_internal.h"
 #include <kalahari/core/logger.h>
+#include <kalahari/editor/buffer_commands.h>
+#include <QTextBoundaryFinder>
+#include <algorithm>
 
 namespace kalahari::editor {
 
@@ -33,42 +36,21 @@ void BookEditor::toggleStrikethrough()
 
 bool BookEditor::isBold() const
 {
-    // If no selection, check pending state or cursor position
-    if (!hasSelection()) {
-        if (m_pendingBold) {
-            return true;
-        }
-    }
     return hasFormat(InlineFormat::Bold);
 }
 
 bool BookEditor::isItalic() const
 {
-    if (!hasSelection()) {
-        if (m_pendingItalic) {
-            return true;
-        }
-    }
     return hasFormat(InlineFormat::Italic);
 }
 
 bool BookEditor::isUnderline() const
 {
-    if (!hasSelection()) {
-        if (m_pendingUnderline) {
-            return true;
-        }
-    }
     return hasFormat(InlineFormat::Underline);
 }
 
 bool BookEditor::isStrikethrough() const
 {
-    if (!hasSelection()) {
-        if (m_pendingStrikethrough) {
-            return true;
-        }
-    }
     return hasFormat(InlineFormat::Strikethrough);
 }
 
@@ -141,7 +123,8 @@ void BookEditor::setParagraphAlignment(Qt::Alignment alignment)
 
 void BookEditor::restoreStepCursor()
 {
-    // The step changed no text, so its cursor and selection fit the text on both sides of it
+    // A step that changed no text has one cursor and selection for both sides of it; a
+    // replacement recorded its own for each side
     if (m_stepCursor) {
         m_cursorPosition = validateCursorPosition(m_stepCursor->cursor);
         setSelection(m_stepCursor->selection);
@@ -185,73 +168,58 @@ void BookEditor::toggleFormat(InlineFormat formatType)
         return;
     }
 
-    if (hasSelection()) {
-        // Phase 11: Use QTextCursor for formatting selection
-        SelectionRange normRange = m_selection.normalized();
-        bool alreadyHasFormat = hasFormat(formatType);
-
-        // Create QTextCursor with selection
-        QTextBlock startBlock = m_textBuffer->findBlockByNumber(normRange.start.paragraph);
-        QTextBlock endBlock = m_textBuffer->findBlockByNumber(normRange.end.paragraph);
-        if (!startBlock.isValid() || !endBlock.isValid()) return;
-
-        int startPos = startBlock.position() + normRange.start.offset;
-        int endPos = endBlock.position() + normRange.end.offset;
-
-        QTextCursor cursor(m_textBuffer.get());
-        cursor.setPosition(startPos);
-        cursor.setPosition(endPos, QTextCursor::KeepAnchor);
-
-        // Create format to apply/remove
-        QTextCharFormat fmt;
+    // A format with the inline format on (true), off (false), or without it (nullopt): as
+    // the text's place gives it
+    const auto withFormat = [formatType](QTextCharFormat format, std::optional<bool> on) {
         switch (formatType) {
             case InlineFormat::Bold:
-                fmt.setFontWeight(alreadyHasFormat ? QFont::Normal : QFont::Bold);
+                format.clearProperty(QTextFormat::FontWeight);
+                if (on) {
+                    format.setFontWeight(*on ? QFont::Bold : QFont::Normal);
+                }
                 break;
             case InlineFormat::Italic:
-                fmt.setFontItalic(!alreadyHasFormat);
+                format.clearProperty(QTextFormat::FontItalic);
+                if (on) {
+                    format.setFontItalic(*on);
+                }
                 break;
             case InlineFormat::Underline:
-                fmt.setFontUnderline(!alreadyHasFormat);
+                format.clearProperty(QTextFormat::FontUnderline);
+                format.clearProperty(QTextFormat::TextUnderlineStyle);
+                if (on) {
+                    format.setFontUnderline(*on);
+                }
                 break;
             case InlineFormat::Strikethrough:
-                fmt.setFontStrikeOut(!alreadyHasFormat);
+                format.clearProperty(QTextFormat::FontStrikeOut);
+                if (on) {
+                    format.setFontStrikeOut(*on);
+                }
                 break;
         }
+        return format;
+    };
 
-        // Apply format (QTextDocument handles undo/redo)
-        cursor.mergeCharFormat(fmt);
-
-        emit contentChanged();
-        update();
-
+    // Text: the selection, or the word with the cursor inside it. The format goes when all
+    // of it has it, else all of it gets it.
+    if (const std::optional<SelectionRange> range = formatRange()) {
+        const bool on = !rangeHasFormat(*range, formatType);
+        applyCharFormat(*range, withFormat(QTextCharFormat(), on));
         core::Logger::getInstance().debug("BookEditor::toggleFormat() - formatting {} {}",
-            alreadyHasFormat ? "removed" : "applied", formatName());
-    } else {
-        // Toggle pending format for next typed characters
-        switch (formatType) {
-            case InlineFormat::Bold:
-                m_pendingBold = !m_pendingBold;
-                core::Logger::getInstance().debug("BookEditor::toggleFormat() - "
-                    "pending bold={}", m_pendingBold);
-                break;
-            case InlineFormat::Italic:
-                m_pendingItalic = !m_pendingItalic;
-                core::Logger::getInstance().debug("BookEditor::toggleFormat() - "
-                    "pending italic={}", m_pendingItalic);
-                break;
-            case InlineFormat::Underline:
-                m_pendingUnderline = !m_pendingUnderline;
-                core::Logger::getInstance().debug("BookEditor::toggleFormat() - "
-                    "pending underline={}", m_pendingUnderline);
-                break;
-            case InlineFormat::Strikethrough:
-                m_pendingStrikethrough = !m_pendingStrikethrough;
-                core::Logger::getInstance().debug("BookEditor::toggleFormat() - "
-                    "pending strikethrough={}", m_pendingStrikethrough);
-                break;
-        }
+            on ? "applied" : "removed", formatName());
+        return;
     }
+
+    // Elsewhere, the text typed next: it gets the format when it would be without it, and
+    // the other way round. When the place gives it so, the format given goes: given twice,
+    // the typed text is as without it.
+    const bool on = !formatHas(typingFormat(), formatType);
+    const bool placeHasIt = formatHas(placeFormat(), formatType);
+    setPendingFormat(
+        withFormat(pendingFormat(), placeHasIt == on ? std::nullopt : std::optional<bool>(on)));
+    core::Logger::getInstance().debug("BookEditor::toggleFormat() - text typed next: {} {}",
+        formatName(), on ? "on" : "off");
 }
 
 bool BookEditor::hasFormat(InlineFormat formatType) const
@@ -259,78 +227,156 @@ bool BookEditor::hasFormat(InlineFormat formatType) const
     if (!m_textBuffer) {
         return false;
     }
-
-    // Phase 11: Check QTextCharFormat for formatting
-    auto checkCharFormat = [formatType](const QTextCharFormat& fmt) -> bool {
-        switch (formatType) {
-            case InlineFormat::Bold:
-                return fmt.fontWeight() >= QFont::Bold;
-            case InlineFormat::Italic:
-                return fmt.fontItalic();
-            case InlineFormat::Underline:
-                return fmt.fontUnderline();
-            case InlineFormat::Strikethrough:
-                return fmt.fontStrikeOut();
-        }
-        return false;
-    };
-
     if (hasSelection()) {
-        // Check if ALL text in the selection carries this format. Iterate the
-        // document's text FRAGMENTS (runs of uniform formatting) instead of
-        // constructing one QTextCursor per character — the old per-character loop
-        // was O(N) cursor allocations and made "select all + bold" take ~10 s on a
-        // large chapter. Fragment iteration is O(runs), effectively instant.
-        SelectionRange normRange = m_selection.normalized();
+        return rangeHasFormat(m_selection.normalized(), formatType);
+    }
+    return formatHas(typingFormat(), formatType);
+}
 
-        for (int i = normRange.start.paragraph; i <= normRange.end.paragraph; ++i) {
-            QTextBlock block = m_textBuffer->findBlockByNumber(i);
-            if (!block.isValid()) continue;
+bool BookEditor::formatHas(const QTextCharFormat& format, InlineFormat formatType)
+{
+    switch (formatType) {
+        case InlineFormat::Bold:
+            return format.fontWeight() >= QFont::Bold;
+        case InlineFormat::Italic:
+            return format.fontItalic();
+        case InlineFormat::Underline:
+            return format.fontUnderline();
+        case InlineFormat::Strikethrough:
+            return format.fontStrikeOut();
+    }
+    return false;
+}
 
-            int start = (i == normRange.start.paragraph) ? normRange.start.offset : 0;
-            int end = (i == normRange.end.paragraph) ? normRange.end.offset : block.length() - 1;
-            if (end < 0) end = 0;
-            if (start >= end) continue;  // nothing selected in this block
+bool BookEditor::rangeHasFormat(const SelectionRange& range, InlineFormat formatType) const
+{
+    // Iterate the document's text FRAGMENTS (runs of uniform formatting) instead of
+    // constructing one QTextCursor per character — the old per-character loop
+    // was O(N) cursor allocations and made "select all + bold" take ~10 s on a
+    // large chapter. Fragment iteration is O(runs), effectively instant.
+    for (int i = range.start.paragraph; i <= range.end.paragraph; ++i) {
+        QTextBlock block = m_textBuffer->findBlockByNumber(i);
+        if (!block.isValid()) continue;
 
-            // Document-absolute bounds of the selected range within this block.
-            const int selFrom = block.position() + start;
-            const int selTo = block.position() + end;
+        int start = (i == range.start.paragraph) ? range.start.offset : 0;
+        int end = (i == range.end.paragraph) ? range.end.offset : block.length() - 1;
+        if (end < 0) end = 0;
+        if (start >= end) continue;  // nothing selected in this block
 
-            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
-                QTextFragment frag = it.fragment();
-                if (!frag.isValid()) continue;
+        // Document-absolute bounds of the selected range within this block.
+        const int selFrom = block.position() + start;
+        const int selTo = block.position() + end;
 
-                const int fragFrom = frag.position();
-                const int fragTo = fragFrom + frag.length();
-                // Skip fragments outside the selected range.
-                if (fragTo <= selFrom || fragFrom >= selTo) continue;
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            QTextFragment frag = it.fragment();
+            if (!frag.isValid()) continue;
 
-                if (!checkCharFormat(frag.charFormat())) {
-                    return false;
-                }
+            const int fragFrom = frag.position();
+            const int fragTo = fragFrom + frag.length();
+            // Skip fragments outside the selected range.
+            if (fragTo <= selFrom || fragFrom >= selTo) continue;
+
+            if (!formatHas(frag.charFormat(), formatType)) {
+                return false;
             }
         }
-        return true;
-    } else {
-        // Check format at cursor position
-        QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
-        if (!block.isValid()) return false;
-
-        // If cursor is at end of paragraph, check previous character
-        int checkOffset = m_cursorPosition.offset;
-        if (checkOffset > 0) {
-            checkOffset--;
-        }
-
-        QTextCursor cursor(m_textBuffer.get());
-        cursor.setPosition(block.position() + checkOffset);
-        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
-        return checkCharFormat(cursor.charFormat());
     }
+    return true;
+}
+
+std::optional<SelectionRange> BookEditor::formatRange() const
+{
+    if (hasSelection()) {
+        return m_selection.normalized();
+    }
+
+    // The word the cursor is inside of, as in Word and LibreOffice: at its start or end the
+    // format is for the text typed next
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    const QString text = block.isValid() ? block.text() : QString();
+    const int offset = m_cursorPosition.offset;
+    if (offset <= 0 || offset >= text.size()) {
+        return std::nullopt;
+    }
+    QTextBoundaryFinder finder(QTextBoundaryFinder::Word, text);
+    finder.setPosition(offset);
+    if (finder.isAtBoundary()) {
+        return std::nullopt;
+    }
+    const qsizetype start = finder.toPreviousBoundary();
+    finder.setPosition(offset);
+    const qsizetype end = finder.toNextBoundary();
+
+    // Letters or digits, with what joins them (an apostrophe); not spaces kept together
+    const QStringView word = QStringView(text).mid(start, end - start);
+    if (start < 0 || end < 0 ||
+        std::none_of(word.begin(), word.end(), [](QChar ch) { return ch.isLetterOrNumber(); })) {
+        return std::nullopt;
+    }
+    const int paragraph = m_cursorPosition.paragraph;
+    return SelectionRange{{paragraph, static_cast<int>(start)}, {paragraph, static_cast<int>(end)}};
+}
+
+void BookEditor::applyCharFormat(const SelectionRange& range, const QTextCharFormat& format)
+{
+    // One undo step. Undoing or redoing it brings back the cursor and selection it was made
+    // with: QTextDocument would put the cursor at the end of the text it changed, with no
+    // selection.
+    QTextCursor cursor = createCursor(m_textBuffer.get(), range.start, range.end);
+    cursor.beginEditBlock();
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+    cursor.mergeCharFormat(format);
+    cursor.endEditBlock();
+
+    emit contentChanged();
+    update();
+}
+
+QTextCharFormat BookEditor::pendingFormat() const
+{
+    // The cursor may have left without the pipeline having been told yet
+    if (hasSelection() || m_cursorPosition != m_pendingFormatAt) {
+        return {};
+    }
+    return m_pendingFormat;
+}
+
+void BookEditor::setPendingFormat(const QTextCharFormat& format)
+{
+    m_pendingFormat = format;
+    m_pendingFormatAt = m_cursorPosition;
+}
+
+QTextCharFormat BookEditor::placeFormat() const
+{
+    if (!m_textBuffer) {
+        return {};
+    }
+    return insertionFormat(createCursor(m_textBuffer.get(), m_cursorPosition));
+}
+
+QTextCharFormat BookEditor::typingFormat() const
+{
+    QTextCharFormat format = placeFormat();
+    format.merge(pendingFormat());
+    return format;
+}
+
+QString BookEditor::fontFamilyOf(const QTextCharFormat& format) const
+{
+    const QStringList families = format.fontFamilies().toStringList();
+    return families.isEmpty() ? m_appearance.typography.textFont.family() : families.first();
+}
+
+int BookEditor::fontSizeOf(const QTextCharFormat& format) const
+{
+    const int size = static_cast<int>(format.fontPointSize());
+    return size > 0 ? size : m_appearance.typography.textFont.pointSize();
 }
 
 // =============================================================================
-// Font Selection (applies to selection if any, otherwise default font)
+// Font of the selection, the word with the cursor or the text typed next
 // =============================================================================
 
 void BookEditor::setSelectionFontFamily(const QString& family)
@@ -339,36 +385,22 @@ void BookEditor::setSelectionFontFamily(const QString& family)
         return;
     }
 
-    if (hasSelection()) {
-        // Apply to selection
-        SelectionRange normRange = m_selection.normalized();
-        QTextBlock startBlock = m_textBuffer->findBlockByNumber(static_cast<int>(normRange.start.paragraph));
-        QTextBlock endBlock = m_textBuffer->findBlockByNumber(static_cast<int>(normRange.end.paragraph));
-
-        if (!startBlock.isValid() || !endBlock.isValid()) {
-            return;
-        }
-
-        int startPos = startBlock.position() + normRange.start.offset;
-        int endPos = endBlock.position() + normRange.end.offset;
-
-        QTextCursor cursor(m_textBuffer.get());
-        cursor.setPosition(startPos);
-        cursor.setPosition(endPos, QTextCursor::KeepAnchor);
-
-        QTextCharFormat fmt;
-        fmt.setFontFamilies({family});
-        cursor.mergeCharFormat(fmt);
-
-        emit contentChanged();
-        update();
+    QTextCharFormat format;
+    format.setFontFamilies({family});
+    if (const std::optional<SelectionRange> range = formatRange()) {
+        applyCharFormat(*range, format);
+        return;
     }
-    // No selection: the toolbar font combo is a selection-only formatting control,
-    // like a classic word processor. With no selection we intentionally do nothing.
-    // The editor's global default font is owned solely by the settings dialog
-    // (editor.fontFamily); the toolbar must never mutate it here, or saving settings
-    // would appear to "revert" the font (it was only ever an unpersisted live change
-    // on m_appearance, which applyEditorSettingsToAllPanels then overwrote).
+
+    // The text typed next. The editor's own font stays: the settings dialog owns it
+    // (editor.fontFamily), and saving the settings would bring it back.
+    QTextCharFormat pending = pendingFormat();
+    if (family == fontFamilyOf(placeFormat())) {
+        pending.clearProperty(QTextFormat::FontFamilies);
+    } else {
+        pending.setFontFamilies({family});
+    }
+    setPendingFormat(pending);
 }
 
 void BookEditor::setSelectionFontSize(int pointSize)
@@ -377,71 +409,31 @@ void BookEditor::setSelectionFontSize(int pointSize)
         return;
     }
 
-    if (hasSelection()) {
-        // Apply to selection
-        SelectionRange normRange = m_selection.normalized();
-        QTextBlock startBlock = m_textBuffer->findBlockByNumber(static_cast<int>(normRange.start.paragraph));
-        QTextBlock endBlock = m_textBuffer->findBlockByNumber(static_cast<int>(normRange.end.paragraph));
-
-        if (!startBlock.isValid() || !endBlock.isValid()) {
-            return;
-        }
-
-        int startPos = startBlock.position() + normRange.start.offset;
-        int endPos = endBlock.position() + normRange.end.offset;
-
-        QTextCursor cursor(m_textBuffer.get());
-        cursor.setPosition(startPos);
-        cursor.setPosition(endPos, QTextCursor::KeepAnchor);
-
-        QTextCharFormat fmt;
-        fmt.setFontPointSize(pointSize);
-        cursor.mergeCharFormat(fmt);
-
-        emit contentChanged();
-        update();
+    QTextCharFormat format;
+    format.setFontPointSize(pointSize);
+    if (const std::optional<SelectionRange> range = formatRange()) {
+        applyCharFormat(*range, format);
+        return;
     }
-    // No selection: selection-only control, same as setSelectionFontFamily above.
-    // The global default font size is owned by the settings dialog (editor.fontSize).
+
+    // The text typed next; the editor's own size stays (editor.fontSize, see above)
+    QTextCharFormat pending = pendingFormat();
+    if (pointSize == fontSizeOf(placeFormat())) {
+        pending.clearProperty(QTextFormat::FontPointSize);
+    } else {
+        pending.setFontPointSize(pointSize);
+    }
+    setPendingFormat(pending);
 }
 
 QString BookEditor::currentFontFamily() const
 {
-    if (!m_textBuffer) {
-        return m_appearance.typography.textFont.family();
-    }
-
-    // Get font at cursor position
-    QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(m_cursorPosition.paragraph));
-    if (!block.isValid()) {
-        return m_appearance.typography.textFont.family();
-    }
-
-    QTextCursor cursor(m_textBuffer.get());
-    cursor.setPosition(block.position() + m_cursorPosition.offset);
-    QVariant families = cursor.charFormat().fontFamilies();
-    if (families.isValid() && families.toStringList().size() > 0) {
-        return families.toStringList().first();
-    }
-    return m_appearance.typography.textFont.family();
+    return fontFamilyOf(typingFormat());
 }
 
 int BookEditor::currentFontSize() const
 {
-    if (!m_textBuffer) {
-        return m_appearance.typography.textFont.pointSize();
-    }
-
-    // Get font at cursor position
-    QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(m_cursorPosition.paragraph));
-    if (!block.isValid()) {
-        return m_appearance.typography.textFont.pointSize();
-    }
-
-    QTextCursor cursor(m_textBuffer.get());
-    cursor.setPosition(block.position() + m_cursorPosition.offset);
-    int size = static_cast<int>(cursor.charFormat().fontPointSize());
-    return size > 0 ? size : m_appearance.typography.textFont.pointSize();
+    return fontSizeOf(typingFormat());
 }
 
 }  // namespace kalahari::editor

@@ -34,14 +34,14 @@ constexpr qreal AUTO_SCROLL_MAX_STEP = 60.0;       // px
 
 namespace {
 
-/// @brief Whether a key types: a character (also with AltGr), Backspace or Delete
+/// @brief Whether a key types: a character (also with AltGr), Backspace or Delete. A
+///        character as keyPressEvent() types it (typesText())
 bool isTypingKey(const QKeyEvent* event) {
     if (event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete) {
         return true;
     }
-    const bool ctrlOnly = (event->modifiers() & Qt::ControlModifier) &&
-                          !(event->modifiers() & Qt::AltModifier);
-    return !ctrlOnly && !event->text().isEmpty() && event->text().at(0).isPrint();
+    return typesText(event->key(), event->modifiers(), isMacOS()) && !event->text().isEmpty() &&
+           event->text().at(0).isPrint();
 }
 
 }  // namespace
@@ -51,182 +51,18 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
     // The word being typed gets no spelling wave until the cursor leaves it
     const QScopedValueRollback<bool> typing(m_spellTypingEdit, isTypingKey(event));
 
-    // Handle cursor navigation keys
+    // The keys of the text, those of the system the program runs on
     bool handled = false;
-    bool ctrl = event->modifiers() & Qt::ControlModifier;
-    bool shift = event->modifiers() & Qt::ShiftModifier;
-
-    switch (event->key()) {
-        case Qt::Key_Left:
-            if (ctrl && shift) {
-                moveCursorWordLeftWithSelection(true);
-            } else if (ctrl) {
-                moveCursorWordLeftWithSelection(false);
-            } else if (shift) {
-                moveCursorLeftWithSelection(true);
-            } else {
-                moveCursorLeftWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_Right:
-            if (ctrl && shift) {
-                moveCursorWordRightWithSelection(true);
-            } else if (ctrl) {
-                moveCursorWordRightWithSelection(false);
-            } else if (shift) {
-                moveCursorRightWithSelection(true);
-            } else {
-                moveCursorRightWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_Up:
-            if (shift) {
-                moveCursorUpWithSelection(true);
-            } else {
-                moveCursorUpWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_Down:
-            if (shift) {
-                moveCursorDownWithSelection(true);
-            } else {
-                moveCursorDownWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_Home:
-            if (ctrl && shift) {
-                moveCursorToDocStartWithSelection(true);
-            } else if (ctrl) {
-                moveCursorToDocStartWithSelection(false);
-            } else if (shift) {
-                moveCursorToLineStartWithSelection(true);
-            } else {
-                moveCursorToLineStartWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_End:
-            if (ctrl && shift) {
-                moveCursorToDocEndWithSelection(true);
-            } else if (ctrl) {
-                moveCursorToDocEndWithSelection(false);
-            } else if (shift) {
-                moveCursorToLineEndWithSelection(true);
-            } else {
-                moveCursorToLineEndWithSelection(false);
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_PageUp:
-        case Qt::Key_PageDown:
-            // One view height in every view mode (Ctrl+PageUp/PageDown would be the page
-            // jumps of a word processor); Shift extends the selection
-            if (shift && m_selection.isEmpty()) {
-                m_selectionAnchor = m_cursorPosition;
-            }
-            if (event->key() == Qt::Key_PageUp) {
-                moveCursorPageUp();
-            } else {
-                moveCursorPageDown();
-            }
-            if (shift) {
-                extendSelection(m_cursorPosition);
-            } else {
-                clearSelection();
-            }
-            handled = true;
-            break;
-
-        case Qt::Key_A:
-            if (ctrl) {
-                selectAll();
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_Z:
-            if (ctrl && !shift) {
-                undo();
-                handled = true;
-            } else if (ctrl && shift) {
-                redo();  // Ctrl+Shift+Z is redo on some platforms
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_Y:
-            if (ctrl) {
-                redo();
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_C:
-            if (ctrl) {
-                copy();
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_X:
-            if (ctrl) {
-                cut();
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_V:
-            if (ctrl) {
-                paste();
-                handled = true;
-            }
-            break;
-
-        case Qt::Key_Return:
-        case Qt::Key_Enter:
-            insertNewline();
-            handled = true;
-            break;
-
-        case Qt::Key_Backspace:
-            deleteBackward();
-            handled = true;
-            break;
-
-        case Qt::Key_Delete:
-            deleteForward();
-            handled = true;
-            break;
-
-        case Qt::Key_F10:
-            // Shift+F10 opens the context menu, as the menu key does, also where the system
-            // does not make a context menu event of it
-            if (event->modifiers() == Qt::ShiftModifier) {
-                showContextMenuAtCursor();
-                handled = true;
-            }
-            break;
-
-        default:
-            break;
+    const TextKey textKey = textKeyFor(event->key(), event->modifiers(), isMacOS());
+    if (textKey.action != TextKeyAction::None) {
+        performTextKey(textKey.action, textKey.extendSelection);
+        handled = true;
     }
 
-    // Handle printable characters (if not already handled)
-    // Note: On Windows, AltGr sends Ctrl+Alt, so we must allow text when both are pressed
-    // Only block Ctrl-only combinations (real shortcuts like Ctrl+C)
-    bool alt = event->modifiers() & Qt::AltModifier;
-    bool ctrlOnly = ctrl && !alt;
-    if (!handled && !ctrlOnly && !event->text().isEmpty()) {
+    // Type the character of the key (if not already handled), unless its modifiers give a
+    // command or make it the access key of a menu item (typesText())
+    if (!handled && typesText(event->key(), event->modifiers(), isMacOS()) &&
+        !event->text().isEmpty()) {
         QString text = event->text();
         // Only handle printable characters
         if (!text.isEmpty() && text.at(0).isPrint()) {
@@ -313,7 +149,7 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
         if (block.isValid()) {
             QTextCursor cursor(m_textBuffer.get());
             cursor.setPosition(block.position() + m_cursorPosition.offset);
-            cursor.insertText(preeditString, insertionFormat(cursor));
+            cursor.insertText(preeditString, typingFormat());
         }
 
         // Move cursor to end of preedit
@@ -805,6 +641,11 @@ void BookEditor::setContextMenuActions(const QList<QAction*>& actions)
     m_contextMenuActions = actions;
 }
 
+void BookEditor::setContextMenuEditActions(const ContextMenuEditActions& actions)
+{
+    m_contextMenuEditActions = actions;
+}
+
 void BookEditor::contextMenuEvent(QContextMenuEvent* event)
 {
     if (!m_textBuffer) {
@@ -862,7 +703,8 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         setCursorPosition(pos);
     }
 
-    // Default context menu
+    // Default context menu. Each item with its access key, unique in the menu with the
+    // commands below and the items of spelling (test_menu_access_keys)
     QMenu menu(this);
     if (!word.isEmpty()) {
         addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
@@ -870,16 +712,26 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         addGrammarActions(menu, *grammarError, pos.paragraph);
     }
 
+    // The editing items: the Edit menu's commands with their icons and keys, where the
+    // application gives them; else the editor's own
+    const auto addEditItem = [this, &menu](QAction* command, const QString& text,
+                                           void (BookEditor::*edit)()) {
+        if (command != nullptr) {
+            menu.addAction(command);
+        } else {
+            menu.addAction(text, this, edit);
+        }
+    };
+    const ContextMenuEditActions& commands = m_contextMenuEditActions;
     if (hasSelection()) {
-        menu.addAction(tr("Cut"), this, &BookEditor::cut);
-        menu.addAction(tr("Copy"), this, &BookEditor::copy);
+        addEditItem(commands.cut, tr("Cu&t"), &BookEditor::cut);
+        addEditItem(commands.copy, tr("&Copy"), &BookEditor::copy);
     }
-    menu.addAction(tr("Paste"), this, &BookEditor::paste);
+    addEditItem(commands.paste, tr("&Paste"), &BookEditor::paste);
 
-    if (hasSelection()) {
-        menu.addSeparator();
-        menu.addAction(tr("Select All"), this, &BookEditor::selectAll);
-    }
+    // Also without a selection, as in the program's text fields
+    menu.addSeparator();
+    addEditItem(commands.selectAll, tr("Select &All"), &BookEditor::selectAll);
 
     // The application's commands for the text (adding annotations)
     bool separated = false;
@@ -897,8 +749,8 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
     // Color mode toggle
     menu.addSeparator();
     QString colorModeText = (m_appearance.colorMode == EditorColorMode::Light)
-        ? tr("Switch to Dark Mode")
-        : tr("Switch to Light Mode");
+        ? tr("Switch to Dar&k Mode")
+        : tr("Switch to &Light Mode");
     menu.addAction(colorModeText, this, &BookEditor::toggleEditorColorMode);
 
     menu.exec(globalPos);

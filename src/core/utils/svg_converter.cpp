@@ -3,11 +3,33 @@
 
 #include "kalahari/core/utils/svg_converter.h"
 #include "kalahari/core/logger.h"
+#include <QCoreApplication>
 #include <QDomDocument>
 #include <QRegularExpression>
 #include <QXmlStreamReader>
 
 using namespace kalahari::core;
+
+namespace {
+
+/// Whether an element gets fill="none" from the nearest ancestor that sets a fill, as the
+/// invisible square of the Material icons does from its <g fill="none">
+bool inheritsNoFill(const QDomElement& element) {
+    for (QDomNode node = element.parentNode(); node.isElement(); node = node.parentNode()) {
+        const QDomElement ancestor = node.toElement();
+        if (ancestor.hasAttribute("fill")) {
+            return ancestor.attribute("fill") == "none";
+        }
+    }
+    return false;
+}
+
+/// @brief A message for the writer, translated (lupdate finds it in gui/utils/core_texts.cpp)
+QString message(const char* source) {
+    return QCoreApplication::translate("kalahari::core::SvgConverter", source);
+}
+
+} // anonymous namespace
 
 // ============================================================================
 // SvgConverter Implementation
@@ -35,7 +57,7 @@ SvgConversionResult SvgConverter::convertToTemplate(const QString& svgData) {
     if (!finalValidation.success) {
         Logger::getInstance().error("SvgConverter: Converted SVG is invalid: {}",
                                     finalValidation.errorMessage.toStdString());
-        return {false, QString(), "Conversion produced invalid SVG: " + finalValidation.errorMessage};
+        return {false, QString(), message("Conversion produced invalid SVG: %1").arg(finalValidation.errorMessage)};
     }
 
     Logger::getInstance().info("SvgConverter: ✓ Conversion successful ({} → {} bytes)",
@@ -46,7 +68,7 @@ SvgConversionResult SvgConverter::convertToTemplate(const QString& svgData) {
 
 SvgConversionResult SvgConverter::validate(const QString& svgData) {
     if (svgData.isEmpty()) {
-        return {false, QString(), "SVG data is empty"};
+        return {false, QString(), message("The SVG file is empty")};
     }
 
     // Check 1: Valid XML syntax
@@ -56,7 +78,7 @@ SvgConversionResult SvgConverter::validate(const QString& svgData) {
     // Qt 6.5+: Use ParseResult struct
     auto parseResult = doc.setContent(svgData);
     if (!parseResult) {
-        QString error = QString("Invalid XML syntax at line %1, column %2: %3")
+        QString error = message("Invalid XML in line %1, column %2: %3")
                        .arg(parseResult.errorLine)
                        .arg(parseResult.errorColumn)
                        .arg(parseResult.errorMessage);
@@ -68,7 +90,7 @@ SvgConversionResult SvgConverter::validate(const QString& svgData) {
     int errorLine = 0;
     int errorColumn = 0;
     if (!doc.setContent(svgData, &errorMsg, &errorLine, &errorColumn)) {
-        QString error = QString("Invalid XML syntax at line %1, column %2: %3")
+        QString error = message("Invalid XML in line %1, column %2: %3")
                        .arg(errorLine)
                        .arg(errorColumn)
                        .arg(errorMsg);
@@ -79,12 +101,12 @@ SvgConversionResult SvgConverter::validate(const QString& svgData) {
     // Check 2: Root element is <svg>
     QDomElement root = doc.documentElement();
     if (root.tagName() != "svg") {
-        return {false, QString(), QString("Root element is not <svg> (found: %1)").arg(root.tagName())};
+        return {false, QString(), message("The file is not an SVG image (its root element is <%1>)").arg(root.tagName())};
     }
 
     // Check 3: Has viewBox attribute
     if (!root.hasAttribute("viewBox") && !root.hasAttribute("viewbox")) {
-        return {false, QString(), "Missing required 'viewBox' attribute on <svg> element"};
+        return {false, QString(), message("The <svg> element has no viewBox attribute")};
     }
 
     // Note: SVG with no drawable elements is valid - just nothing to convert
@@ -133,7 +155,10 @@ QString SvgConverter::replaceColorPlaceholders(const QString& svgXml) {
             if (element.hasAttribute("fill") && element.attribute("fill") != "none") {
                 element.setAttribute("fill", colorPlaceholder);
             }
-            // Case 2: Add fill if missing (and not fill="none")
+            // Case 2: Add fill if missing (and not fill="none", also not one inherited)
+            else if (!element.hasAttribute("fill") && inheritsNoFill(element)) {
+                // Stays invisible
+            }
             else if (!element.hasAttribute("fill") && element.hasAttribute("d")) {
                 // Only add fill to <path> with data
                 element.setAttribute("fill", colorPlaceholder);

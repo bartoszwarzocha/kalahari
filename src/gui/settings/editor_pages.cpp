@@ -4,8 +4,10 @@
 /// The editors follow these settings by themselves (EditorPanel subscribes to them).
 
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
+#include "kalahari/gui/utils/chapter_cursor.h"
 #include "kalahari/editor/editor_appearance.h"
 
 #include <QCheckBox>
@@ -13,6 +15,7 @@
 #include <QDoubleSpinBox>
 #include <QFontComboBox>
 #include <QFormLayout>
+#include <QKeySequence>
 #include <QLabel>
 #include <QSpinBox>
 #include <QVBoxLayout>
@@ -36,8 +39,16 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     size->setSuffix(tr(" pt"));
     addField(font, tr("Font Size:"), size, "editor.fontSize");
 
-    // The editor does not use these options yet
     QFormLayout* behavior = addGroup(tr("Editor Behavior"));
+    // A chapter opens where its cursor was when it was closed last, or at its start
+    auto* opensAt = new QComboBox();
+    opensAt->addItem(tr("Where You Last Edited"),
+                     QString::fromLatin1(utils::CHAPTER_OPENS_WHERE_LEFT));
+    opensAt->addItem(tr("At the Beginning"), QString::fromLatin1(utils::CHAPTER_OPENS_AT_START));
+    addField(behavior, tr("Open a Chapter:"), opensAt, utils::CHAPTER_OPENS_AT_KEY);
+    addNote(behavior, tr("The place of the cursor is kept in the book for every chapter, also "
+                         "after the program is closed."));
+    // The editor does not use these options yet
     auto* tabSize = new QSpinBox();
     tabSize->setRange(2, 8);
     tabSize->setSuffix(tr(" spaces"));
@@ -66,8 +77,24 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
 
     // Turned on and off with View > Typewriter Scrolling
     QFormLayout* typewriter = addGroup(tr("Typewriter Scrolling"));
-    addNote(typewriter, tr("View > Typewriter Scrolling (Ctrl+3) keeps the line you write at one "
-                           "height of the view, in the Continuous and the Page Layout view."));
+    QLabel* typewriterNote = addNote(typewriter, QString());
+    // With the keys the command has now (the user may change them)
+    const auto showTypewriterKeys = [typewriterNote]() {
+        const Command* command = CommandRegistry::getInstance().getCommand("view.typewriter");
+        const QString keys = command != nullptr && !command->shortcut.isEmpty()
+            ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
+            : QString();
+        typewriterNote->setText(
+            keys.isEmpty()
+                ? tr("View > Typewriter Scrolling keeps the line you write at one height of the "
+                     "view, in the Continuous and the Page Layout view.")
+                : tr("View > Typewriter Scrolling (%1) keeps the line you write at one height of "
+                     "the view, in the Continuous and the Page Layout view.")
+                      .arg(keys));
+    };
+    showTypewriterKeys();
+    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, typewriterNote,
+            showTypewriterKeys);
     auto* focus = new QSpinBox();
     focus->setRange(10, 90);
     focus->setSingleStep(5);
@@ -77,6 +104,14 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     addField(typewriter, tr("Cursor Line Height:"), focus, "editor.typewriter.focusPosition", 100.0);
     addCheckBox(typewriter, tr("Smooth scrolling"), "editor.typewriter.smoothScroll")
         ->setToolTip(tr("Glide to the next line instead of jumping"));
+
+    // The counts of the whole program: the status bar, the panels, Distraction-Free writing
+    QFormLayout* wordCount = addGroup(tr("Word Count"));
+    addCheckBox(wordCount, tr("Count standalone dialogue dashes as words"),
+                "editor.wordCount.dashesAsWords");
+    addNote(wordCount, tr("A dash separated by spaces from the words around it, as at the start "
+                          "of a line of dialogue. Microsoft Word counts it as a word, LibreOffice "
+                          "does not."));
 
     pageLayout()->addStretch();
 }

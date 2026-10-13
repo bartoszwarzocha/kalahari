@@ -12,6 +12,9 @@
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QMimeData>
+#include <QTextBoundaryFinder>
+#include <QTextDocumentFragment>
+#include <algorithm>
 
 namespace kalahari::editor {
 
@@ -29,9 +32,10 @@ namespace {
 
 /// @brief Clipboard text as the editor can store and save it
 ///
-/// Line and paragraph breaks of every platform become paragraph breaks. Characters XML
-/// cannot hold (control characters other than tab, unpaired surrogates, U+FFFE, U+FFFF)
-/// are dropped, so pasted text cannot make the chapter file unreadable.
+/// The line ends of every platform become paragraph breaks; U+2028 and a vertical tab (a
+/// line break of Word) are a line break in the paragraph. Characters XML cannot hold
+/// (control characters other than tab, unpaired surrogates, U+FFFE, U+FFFF) are dropped,
+/// so pasted text cannot make the chapter file unreadable.
 QString pastedPlainText(const QString& text) {
     QString result;
     result.reserve(text.size());
@@ -41,8 +45,10 @@ QString pastedPlainText(const QString& text) {
         if (code == u'\r' && i + 1 < text.size() && text.at(i + 1) == u'\n') {
             continue;  // the \n that follows makes the break
         }
-        if (code == u'\n' || code == u'\r' || code == u'\v' || code == u'\f' ||
-            code == QChar::LineSeparator || code == QChar::ParagraphSeparator) {
+        if (code == u'\v' || code == QChar::LineSeparator) {
+            result += QChar(QChar::LineSeparator);
+        } else if (code == u'\n' || code == u'\r' || code == u'\f' ||
+                   code == QChar::ParagraphSeparator) {
             result += u'\n';
         } else if (ch.isHighSurrogate() && i + 1 < text.size() && text.at(i + 1).isLowSurrogate()) {
             result += ch;
@@ -115,9 +121,12 @@ void insertAnnotatedDocument(QTextCursor& cursor, QTextDocument& content) {
 ///
 /// Kalahari content (KML) is parsed like a chapter file, so formatting, alignment and
 /// annotations survive; text from other programs takes the formatting of the insertion
-/// point. Only the document changes: the editor's cursor and view follow once the outermost
-/// edit block has ended. The cursor ends after the inserted text.
-void insertMimeData(QTextCursor& cursor, const QMimeData& source) {
+/// point, with @p typed on top (a format given for the text typed next), and its HTML
+/// tells its line breaks from its paragraph ends. Only the document changes: the editor's
+/// cursor and view follow once the outermost edit block has ended. The cursor ends after
+/// the inserted text.
+void insertMimeData(QTextCursor& cursor, const QMimeData& source,
+                    const QTextCharFormat& typed = QTextCharFormat()) {
     if (source.hasFormat(QString::fromLatin1(MIME_KML))) {
         KmlDocumentModel model;
         if (model.loadKml(QString::fromUtf8(source.data(QString::fromLatin1(MIME_KML)))) &&
@@ -132,9 +141,17 @@ void insertMimeData(QTextCursor& cursor, const QMimeData& source) {
         core::Logger::getInstance().warn("BookEditor: unreadable KML, inserting the text");
     }
 
+    const QString text = ClipboardHandler::withLineEndsOf(source.text(), source.html());
     cursor.beginEditBlock();  // the replaced selection and the text: one undo step
-    insertKeepingAnnotations(cursor, pastedPlainText(source.text()));
+    insertKeepingAnnotations(cursor, pastedPlainText(text), typed);
     cursor.endEditBlock();
+}
+
+/// @brief The text the last Control+K presses in a row deleted (macOS), for Control+Y: one
+///        for all the editors, as on macOS
+QString& killedText() {
+    static QString text;
+    return text;
 }
 
 }  // anonymous namespace
@@ -154,12 +171,13 @@ void BookEditor::insertText(const QString& text)
     // Direct QTextCursor edit - recorded by QTextDocument's native undo: the replaced
     // selection with the text as one step, typed text with the text typed before it
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
         const SelectionRange sel = m_selection.normalized();
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
         clearSelection();
     }
-    insertKeepingAnnotations(cursor, text);
+    insertKeepingAnnotations(cursor, text, pending);
 
     // Mirror the resulting QTextCursor into the editor's cursor model.
     m_cursorPosition.paragraph = cursor.blockNumber();
@@ -213,6 +231,7 @@ void BookEditor::insertNewline()
     // The new paragraph inherits the current block format (zero margins + alignment), so
     // it keeps the same layout.
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
         const SelectionRange sel = m_selection.normalized();
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
@@ -222,12 +241,35 @@ void BookEditor::insertNewline()
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
+    if (!pending.isEmpty()) {
+        setPendingFormat(pending);  // the text typed in the new paragraph gets it
+    }
 
     ensureCursorVisible();
     syncPipelineCursor();
     update();
     emit contentChanged();
     emit paragraphInserted(m_cursorPosition.paragraph);
+}
+
+void BookEditor::insertLineBreak()
+{
+    ensureDocument();
+
+    // A character of the paragraph, typed as text: it takes the format of the place and
+    // the one given for the text typed next, which the text after it keeps. Its own edit
+    // block parts it from the text typed before it in the undo history.
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    const QTextCharFormat pending = pendingFormat();
+    if (hasSelection()) {
+        const SelectionRange sel = m_selection.normalized();
+        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        clearSelection();
+    }
+    cursor.beginEditBlock();
+    insertKeepingAnnotations(cursor, QString(QChar(QChar::LineSeparator)), pending);
+    cursor.endEditBlock();
+    finishEdit(cursor);
 }
 
 void BookEditor::deleteBackward()
@@ -299,6 +341,177 @@ void BookEditor::deleteForward()
     }
 }
 
+void BookEditor::deleteTo(const CursorPosition& position)
+{
+    if (hasSelection()) {
+        deleteSelectedText();
+        return;
+    }
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
+        return;
+    }
+    const CursorPosition target = validateCursorPosition(position);
+    if (target == m_cursorPosition) {
+        return;
+    }
+
+    // One step of QTextDocument's native undo
+    const int paragraphs = m_textBuffer->blockCount();
+    QTextCursor cursor = createCursor(m_textBuffer.get(), std::min(target, m_cursorPosition),
+                                      std::max(target, m_cursorPosition));
+    removeKeepingAnnotations(cursor);
+
+    m_cursorPosition.paragraph = cursor.blockNumber();
+    m_cursorPosition.offset = cursor.positionInBlock();
+
+    ensureCursorVisible();
+    syncPipelineCursor();
+    update();
+    emit contentChanged();
+    // The paragraphs joined to the cursor's one go, as with Backspace and Delete
+    for (int removed = paragraphs - m_textBuffer->blockCount(); removed > 0; --removed) {
+        emit paragraphRemoved(m_cursorPosition.paragraph + 1);
+    }
+    emit paragraphModified(m_cursorPosition.paragraph);
+}
+
+void BookEditor::deleteDiacritic()
+{
+    if (hasSelection() || !m_textBuffer || m_cursorPosition.offset == 0) {
+        deleteBackward();  // The selection, or the paragraph break before the cursor
+        return;
+    }
+
+    // The character before the cursor, with its marks, written as a letter and its marks
+    const QString text = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph).text();
+    QTextBoundaryFinder finder(QTextBoundaryFinder::Grapheme, text);
+    finder.setPosition(m_cursorPosition.offset);
+    const qsizetype start = finder.toPreviousBoundary();
+    if (start < 0) {
+        deleteBackward();
+        return;
+    }
+    QString character = text.mid(start, m_cursorPosition.offset - start)
+                            .normalized(QString::NormalizationForm_D);
+    if (character.size() < 2 || !character.back().isMark()) {
+        deleteBackward();  // No mark: the character goes
+        return;
+    }
+    character.chop(1);
+
+    // The character keeps its format and annotations: one step of the native undo
+    QTextCursor cursor = createCursor(m_textBuffer.get(),
+                                      {m_cursorPosition.paragraph, static_cast<int>(start)},
+                                      m_cursorPosition);
+    const QTextCharFormat format = cursor.charFormat();
+    cursor.insertText(character.normalized(QString::NormalizationForm_C), format);
+    finishEdit(cursor);
+}
+
+void BookEditor::killToParagraphEnd()
+{
+    if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
+        return;
+    }
+
+    // The selection; or to the end of the paragraph, or the paragraph break at its end
+    const bool selected = hasSelection();
+    CursorPosition from = m_cursorPosition;
+    CursorPosition to = m_cursorPosition;
+    if (selected) {
+        const SelectionRange selection = m_selection.normalized();
+        from = selection.start;
+        to = selection.end;
+    } else if (const int length = paragraphLength(m_textBuffer.get(), from.paragraph);
+               from.offset < length) {
+        to.offset = length;
+    } else if (from.paragraph + 1 < m_textBuffer->blockCount()) {
+        to = {from.paragraph + 1, 0};
+    } else {
+        return;  // The end of the text
+    }
+
+    QString text = createCursor(m_textBuffer.get(), from, to).selectedText();
+    text.replace(QChar::ParagraphSeparator, QLatin1Char('\n'));
+    const bool inARow = !selected && m_killCursor == m_cursorPosition &&
+                        m_killRevision == m_textBuffer->revision();
+    killedText() = inARow ? killedText() + text : text;
+
+    if (selected) {
+        deleteSelectedText();
+    } else {
+        deleteTo(to);
+    }
+    m_killCursor = m_cursorPosition;
+    m_killRevision = m_textBuffer->revision();
+}
+
+void BookEditor::yank()
+{
+    if (killedText().isEmpty()) {
+        return;
+    }
+    ensureDocument();
+
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    if (hasSelection()) {
+        const SelectionRange selection = m_selection.normalized();
+        cursor = createCursor(m_textBuffer.get(), selection.start, selection.end);
+        clearSelection();
+    }
+    cursor.beginEditBlock();  // One undo step, apart from the typing before it
+    insertKeepingAnnotations(cursor, killedText());
+    cursor.endEditBlock();
+    finishEdit(cursor);
+}
+
+void BookEditor::transposeCharacters()
+{
+    if (!m_textBuffer || hasSelection()) {
+        return;
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    const QString text = block.text();
+    const int length = static_cast<int>(text.size());
+    if (m_cursorPosition.offset == 0 || length < 2) {
+        return;
+    }
+
+    // The characters on both sides of the cursor; at the end of the paragraph the two
+    // before it
+    QTextBoundaryFinder finder(QTextBoundaryFinder::Grapheme, text);
+    const auto boundary = [&finder](int offset, bool forward) {
+        finder.setPosition(offset);
+        const qsizetype next = forward ? finder.toNextBoundary() : finder.toPreviousBoundary();
+        return static_cast<int>(next);
+    };
+    const int middle = m_cursorPosition.offset < length ? m_cursorPosition.offset
+                                                        : boundary(length, false);
+    const int first = boundary(middle, false);
+    const int last = boundary(middle, true);
+    if (first < 0 || last < 0 || first >= middle || last <= middle) {
+        return;
+    }
+
+    // The second goes before the first, each with its format; the cursor goes past both
+    QTextDocument* doc = m_textBuffer.get();
+    const int base = block.position();
+    QTextCursor second(doc);
+    second.setPosition(base + middle);
+    second.setPosition(base + last, QTextCursor::KeepAnchor);
+    const QTextDocumentFragment moved = second.selection();
+    second.beginEditBlock();
+    second.removeSelectedText();
+    QTextCursor before(doc);
+    before.setPosition(base + first);
+    before.insertFragment(moved);
+    second.endEditBlock();
+
+    QTextCursor after(doc);
+    after.setPosition(base + last);
+    finishEdit(after);
+}
+
 // =============================================================================
 // Undo/Redo (Phase 4.8)
 // =============================================================================
@@ -321,8 +534,9 @@ void BookEditor::undo()
 
     // QTextDocument's native undo is the single source of truth for BOTH text and
     // formatting. undo(&cursor) also positions the cursor at the change — mirror it
-    // into the editor's own cursor model.
+    // into the editor's own cursor model. A format given for the text typed next goes.
     m_stepCursor.reset();
+    m_pendingFormat = QTextCharFormat();
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->undo(&cursor);
     m_cursorPosition.paragraph = cursor.blockNumber();
@@ -344,6 +558,7 @@ void BookEditor::redo()
     }
 
     m_stepCursor.reset();
+    m_pendingFormat = QTextCharFormat();  // as undo() does
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->redo(&cursor);
     m_cursorPosition.paragraph = cursor.blockNumber();
@@ -370,7 +585,13 @@ void BookEditor::undoWithoutRedo()
 void BookEditor::clearUndoStack()
 {
     if (m_textBuffer) {
+        // QTextDocument would take the start of the new history for the saved content: it is
+        // told whether the content is the saved one (setModified() does nothing when the
+        // document already says so, hence the opposite first)
+        const bool modified = isModified();
         m_textBuffer->clearUndoRedoStacks();
+        m_textBuffer->setModified(!modified);
+        m_textBuffer->setModified(modified);
     }
 }
 
@@ -415,9 +636,10 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
     const QString kml =
         KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd());
 
-    // Paragraphs separated by line breaks
+    // Lines: the paragraphs and the line breaks in them end one
     QString text = range.selectedText();
     text.replace(QChar::ParagraphSeparator, QLatin1Char('\n'));
+    text.replace(QChar::LineSeparator, QLatin1Char('\n'));
 
     auto mimeData = std::make_unique<QMimeData>();
     mimeData->setText(text);
@@ -445,12 +667,13 @@ void BookEditor::insertFromMimeData(const QMimeData* source)
     ensureDocument();
 
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
         const SelectionRange sel = m_selection.normalized();
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
         clearSelection();
     }
-    insertMimeData(cursor, *source);
+    insertMimeData(cursor, *source, pending);
     finishEdit(cursor);
 }
 

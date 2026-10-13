@@ -83,6 +83,32 @@ TEST_CASE("A text file opens as paragraphs and is saved in its own format",
     }
 }
 
+TEST_CASE("A line break in a paragraph is a line end in a text file",
+          "[core][standalone_file][linebreak]") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QString path = dir.filePath("poem.txt");
+    const QString lineBreak(QChar::LineSeparator);
+
+    SECTION("saved, the lines of a paragraph end as the paragraphs do") {
+        writeBytes(path, "\xEF\xBB\xBFOld\r\n");
+        QString kml;
+        auto file = StandaloneFile::open(path, kml);
+        REQUIRE(file.has_value());
+        REQUIRE(file->save("<p><t>unused</t></p>",
+                           "Roses are red," + lineBreak + "violets are blue\nNext"));
+        CHECK(bytesOf(path) == "\xEF\xBB\xBFRoses are red,\r\nviolets are blue\r\nNext");
+    }
+
+    SECTION("a vertical tab, as Word writes a line break, opens as one") {
+        writeBytes(path, "Roses are red,\vviolets are blue\nNext");
+        QString kml;
+        REQUIRE(StandaloneFile::open(path, kml).has_value());
+        CHECK(paragraphsOf(kml) ==
+              QStringList{"Roses are red," + lineBreak + "violets are blue", "Next"});
+    }
+}
+
 TEST_CASE("A chapter file keeps its other data when saved", "[core][standalone_file]") {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());

@@ -30,6 +30,8 @@ std::map<std::string, json> buildDefaults() {
         {"ui.language", "en"},
         // Unit the length fields show (px, mm, cm, in, pt); each setting keeps its own
         {"ui.lengthUnit", "mm"},
+        // Colors chosen last in the color window, newest first ("#rrggbb")
+        {"ui.recentColors", json::array()},
         {"appearance.theme", "Light"},
         {"appearance.uiFontSize", 12},
         {"appearance.iconTheme", "twotone"},
@@ -49,6 +51,10 @@ std::map<std::string, json> buildDefaults() {
         {"toolbars.locked", false},
         {"toolbars.configurations", "{}"},
         {"toolbars.configVersion", 0},
+
+        // Keyboard shortcuts the user changed: command id -> keys ("Ctrl+Shift+F", "" for
+        // none); the other commands have the program's (Settings > Keyboard Shortcuts)
+        {"keyboard.shortcuts", json::object()},
 
         // Log panel
         {"log.bufferSize", 500},
@@ -78,6 +84,9 @@ std::map<std::string, json> buildDefaults() {
         {"editor.tabSize", 4},
         {"editor.lineNumbers", true},
         {"editor.wordWrap", false},
+        // Where a chapter opens: "lastEdit", where its cursor was when it was closed last, or
+        // "start"
+        {"editor.chapterOpensAt", "lastEdit"},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},
@@ -142,6 +151,9 @@ std::map<std::string, json> buildDefaults() {
         // Editor: the size of the annotations' marks in the text, in percent of the size
         // the text's font gives them
         {"editor.annotationMarkSize", 100},
+
+        // Word count in the whole program: a dash standing alone (a dialogue dash) is a word
+        {"editor.wordCount.dashesAsWords", false},
     };
 }
 

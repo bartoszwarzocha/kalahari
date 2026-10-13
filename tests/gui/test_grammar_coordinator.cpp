@@ -244,7 +244,7 @@ TEST_CASE("Grammar coordinator: Check Grammar as You Type turns the checking on 
         const editor::GrammarCheckService* service = coordinator.service();
         QAction* action = registry.getAction(std::string("tools.grammar"));
         REQUIRE(action != nullptr);
-        CHECK(action->text() == QStringLiteral("Check Grammar as You Type"));
+        CHECK(action->text() == QStringLiteral("Check &Grammar as You Type"));
         CHECK(action->isCheckable());
         CHECK(action->isChecked());
 

@@ -552,14 +552,17 @@ TEST_CASE("Stage2 paste: text from other programs takes the format of the insert
               QStringLiteral("<kml><p align=\"center\">A <b>bold</b> word</p></kml>"));
     }
 
-    SECTION("line breaks of every platform, without characters a file cannot hold") {
+    SECTION("line ends of every platform, line breaks, without characters a file cannot hold") {
+        // A vertical tab (Word) and U+2028 are line breaks in the paragraph
         editor->setCursorPosition({0, 0});
+        const QChar lineBreak(QChar::LineSeparator);
         const QString text = QStringLiteral("a") + QChar(0x01) + QStringLiteral("b") + QChar(0x0B) +
-                             QStringLiteral("c\r\nd\re") + QChar(QChar::LineSeparator) +
-                             QStringLiteral("f\tg\n");
+                             QStringLiteral("c\r\nd\re") + lineBreak + QStringLiteral("f\tg\n");
         editor->insertFromMimeData(plainText(text).get());
         const QString kml = editor->toKml();
-        CHECK(editor->plainText() == QStringLiteral("ab\nc\nd\ne\nf\tg\nA bold word"));
+        CHECK(editor->plainText() == QStringLiteral("ab") + lineBreak + QStringLiteral("c\nd\ne") +
+                                         lineBreak + QStringLiteral("f\tg\nA bold word"));
+        CHECK(kml.count(QStringLiteral("<br/>")) == 2);
 
         // The saved chapter loads again
         auto reloaded = editorWith(kml);
@@ -770,6 +773,100 @@ TEST_CASE("Stage2 on demand: small edits are laid out at once, a large paste wai
     reference.load(text);
     reference.layout->layoutPendingBlocks();
     CHECK(d.layout->documentSize() == reference.layout->documentSize());
+}
+
+TEST_CASE("Stage2 on demand: an edited block waiting for layout has no lines of its old text",
+          "[editor][stage2][ondemand]") {
+    // Regression: Qt keeps the lines of an edited block until it is laid out again, and a
+    // QTextCursor placed in one measured the new text by them, past its end after a
+    // shorter replacement (Replace All stopped on an assertion in Qt's debug build)
+    TypesetDocument d;
+    d.load(mixedParagraphs(60));
+    d.layout->layoutPendingBlocks();
+    REQUIRE(d.block(0).layout()->lineCount() > 0);
+
+    // One edit from the first block to the last, too large to be laid out at once: the
+    // first block gets shorter
+    QTextCursor cursor(d.doc.get());
+    cursor.beginEditBlock();
+    cursor.setPosition(d.block(59).position());
+    cursor.insertText(QStringLiteral("End. "));
+    cursor.setPosition(0);
+    cursor.setPosition(d.block(0).length() / 2, QTextCursor::KeepAnchor);
+    cursor.removeSelectedText();
+    cursor.endEditBlock();
+    REQUIRE_FALSE(d.layout->isLaidOut(0));
+    REQUIRE_FALSE(d.layout->isLaidOut(59));
+
+    for (QTextBlock block = d.doc->begin(); block.isValid(); block = block.next()) {
+        INFO("block " << block.blockNumber());
+        const QTextLayout* lines = block.layout();
+        if (d.layout->isLaidOut(block.blockNumber())) {
+            REQUIRE(lines->lineCount() > 0);
+            const QTextLine lastLine = lines->lineAt(lines->lineCount() - 1);
+            CHECK(lastLine.textStart() + lastLine.textLength() == block.text().size());
+        } else {
+            CHECK(lines->lineCount() == 0);
+        }
+    }
+
+    // Laid out, the block has the lines of its new text
+    const QTextLayout* first = KalahariTextDocumentLayout::blockLayout(d.block(0));
+    REQUIRE(first->lineCount() > 0);
+    const QTextLine lastLine = first->lineAt(first->lineCount() - 1);
+    CHECK(lastLine.textStart() + lastLine.textLength() == d.block(0).text().size());
+}
+
+TEST_CASE("Stage2 on demand: the edited blocks have no lines of their old text while the "
+          "edit is reported",
+          "[editor][stage2][ondemand]") {
+    // Regression: the document reports an edit (contentsChange) before the layout lays out
+    // the edited blocks again, and an edited block kept the lines of its old text until
+    // then. A listener measuring the text by them (the find bar giving the keys to the text,
+    // which placed its cursor) went past its end after a shorter replacement: an assertion
+    // of Qt's debug build (QList::at).
+    const QString replacement = GENERATE(QStringLiteral("w"), QStringLiteral("a long storm"));
+    INFO("replacement: " << replacement.toStdString());
+    TypesetDocument d;
+    d.load({longParagraph(0), longParagraph(1), longParagraph(2)});
+    d.layout->layoutPendingBlocks();
+    REQUIRE(d.block(1).layout()->lineCount() > 1);
+
+    // A listener of the document, connected after its layout, as the editor's are
+    QStringList oldLines;
+    QObject::connect(d.doc.get(), &QTextDocument::contentsChange,
+                     [&d, &oldLines](int from, int, int charsAdded) {
+                         const QTextBlock last = d.doc->findBlock(from + charsAdded);
+                         for (QTextBlock block = d.doc->findBlock(from); block.isValid();
+                              block = block.next()) {
+                             const QTextLayout* lines = block.layout();
+                             if (lines->lineCount() > 0) {
+                                 const QTextLine line = lines->lineAt(lines->lineCount() - 1);
+                                 if (line.textStart() + line.textLength() != block.text().size()) {
+                                     oldLines << QStringLiteral("block %1").arg(block.blockNumber());
+                                 }
+                             }
+                             if (block == last) {
+                                 break;
+                             }
+                         }
+                     });
+
+    // Replaced, the replacement undone and redone
+    QTextCursor cursor(d.block(1));
+    cursor.setPosition(d.block(1).position() + 10);
+    cursor.setPosition(d.block(1).position() + 30, QTextCursor::KeepAnchor);
+    cursor.insertText(replacement);
+    d.doc->undo();
+    d.doc->redo();
+    INFO(oldLines.join(QStringLiteral(", ")).toStdString());
+    CHECK(oldLines.isEmpty());
+
+    // Once reported, the edited block has the lines of its new text
+    const QTextLayout* lines = d.block(1).layout();
+    REQUIRE(lines->lineCount() > 0);
+    const QTextLine lastLine = lines->lineAt(lines->lineCount() - 1);
+    CHECK(lastLine.textStart() + lastLine.textLength() == d.block(1).text().size());
 }
 
 TEST_CASE("Stage2 on demand: the editor lays out what it shows, the rest in the background",
