@@ -590,7 +590,10 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
                           << " high; the content needs " << needed << " and has "
                           << area->viewport()->height());
     const bool fits = area->viewport()->height() >= needed;
-    const bool asHighAsTheScreen = windowHeight >= screenHeight;
+    // Within a pixel: on a macOS runner the window ended one pixel lower than the height Qt
+    // gives for the screen (683 of 684). A window that stopped short of a line of the content
+    // would be a line lower.
+    const bool asHighAsTheScreen = windowHeight >= screenHeight - 1;
     CHECK((fits || asHighAsTheScreen));
 }
 
