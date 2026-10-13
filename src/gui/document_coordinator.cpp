@@ -684,7 +684,10 @@ void DocumentCoordinator::discardEditorChanges(EditorPanel* editor) {
         }
         break;
     case EditorKind::StandaloneFile:
+        // The file stays in the Navigator as it is on the disk
         editor->setProperty("dirty", false);
+        m_navigatorPanel->setFileModified(editor->property("standaloneFilePath").toString(),
+                                          false);
         break;
     case EditorKind::Opening:
         break;
@@ -1053,10 +1056,12 @@ EditorPanel* DocumentCoordinator::findStandaloneEditor(const QString& path) cons
 }
 
 void DocumentCoordinator::trackStandaloneChanges(EditorPanel* editor) {
-    // The tab shows a "*" while the text differs from the saved text: a letter typed and
-    // deleted again, or an edit undone, leaves none
+    // The tab and the file in the Navigator show a "*" while the text differs from the saved
+    // text: a letter typed and deleted again, or an edit undone, leaves none
     connect(editor, &EditorPanel::modifiedChanged, this, [this, editor](bool modified) {
         editor->setProperty("dirty", modified);
+        m_navigatorPanel->setFileModified(editor->property("standaloneFilePath").toString(),
+                                          modified);
         const int index = m_centralTabs->indexOf(editor);
         const QString tabText = index >= 0 ? m_centralTabs->tabText(index) : QString();
         if (index >= 0 && modified && !tabText.startsWith(QLatin1Char('*'))) {

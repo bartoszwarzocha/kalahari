@@ -350,8 +350,8 @@ private:
     /// element takes the place of the file's tab
     void addNewFileToProject(EditorPanel* editor);
 
-    /// @brief Mark a standalone file tab as changed, with "*" before its name, at the first
-    /// change of its text
+    /// @brief Mark a standalone file tab and the file in the Navigator as changed, with "*"
+    /// before its name, while its text differs from the saved text
     void trackStandaloneChanges(EditorPanel* editor);
 
     /// @brief The files of the open book that are open outside it become the tabs of their

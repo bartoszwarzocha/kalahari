@@ -21,6 +21,8 @@
 #include <QLabel>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 
 #include <functional>
 
@@ -64,6 +66,19 @@ bool waitFor(const std::function<bool()>& done) {
         loop.exec();
     }
     return done();
+}
+
+/// The name of the file @p path in the Navigator of @p window, with its marks; empty when the
+/// Navigator does not list the file
+QString nameInNavigator(const Window& window, const QString& path) {
+    auto* tree = window.navigatorPanel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        if ((*it)->data(0, Qt::UserRole).toString() == path) {
+            return (*it)->text(0);
+        }
+    }
+    return {};
 }
 
 /// The tabs of @p window follow the book as in the main window: they take the files of the
@@ -279,6 +294,51 @@ TEST_CASE("Book tabs: Close Book asks only about the changes of the book, and th
     CHECK(window.tabs->indexOf(notesTab) >= 0);
     CHECK(notesTab->property("dirty").toBool());
     CHECK(readText(notes) == "Notes");
+}
+
+TEST_CASE("Book tabs: a changed file outside the book has a star in the Navigator, also when "
+          "the book is saved, closed and opened again",
+          "[gui][booktabs]") {
+    OpenNovel novel(QStringLiteral("Rain"));
+    const QString manifest = novel.pm.getManifestPath();
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString notes = QDir(files.path()).filePath(QStringLiteral("notes.txt"));
+    writeText(notes, "Notes");
+
+    Window window;
+    followBook(window);
+    gui::EditorPanel* notesTab = window.writeFile(notes, QStringLiteral("Notes of the night"));
+    const auto shown = [&window, &notes]() { return nameInNavigator(window, notes); };
+    CHECK(shown() == "*notes.txt");
+
+    // The book is saved without the file
+    window.writeChapter(novel.chapterId, QStringLiteral("The storm came at night."));
+    window.documents.onSaveBook();
+    CHECK_FALSE(window.navigator.isChapterDirty(novel.chapterId));
+    CHECK(shown() == "*notes.txt");
+
+    // The book closes, and the Navigator lists the files outside it alone
+    QStringList said;
+    CHECK(answering([&]() { window.documents.onCloseDocument(); },
+                    MessageDialog::Answer::Cancel, said) == 0);
+    REQUIRE_FALSE(novel.pm.isProjectOpen());
+    CHECK(shown() == "*notes.txt");
+
+    // The book opens again, with the files outside it after its elements
+    REQUIRE(novel.pm.openProject(manifest));
+    CHECK(shown() == "*notes.txt");
+
+    // Saved, the file has no star
+    REQUIRE(window.documents.saveEditor(notesTab));
+    CHECK(readText(notes) == "Notes of the night");
+    CHECK(shown() == "notes.txt");
+
+    // Changed again and closed without saving: the file in the list is the file on the disk
+    test::write(*notesTab, QStringLiteral("Notes of the morning"));
+    CHECK(shown() == "*notes.txt");
+    window.documents.discardEditorChanges(notesTab);
+    CHECK(shown() == "notes.txt");
 }
 
 // ----------------------------------------------------------------------------

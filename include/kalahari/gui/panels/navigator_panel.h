@@ -133,6 +133,7 @@ public:
     /// @brief Add a standalone file to the "Other Files" section
     /// @param path Absolute file path
     /// @note Creates "Other Files" section if not exists
+    /// @note The name has "*" before it while the file has unsaved changes (setFileModified())
     void addStandaloneFile(const QString& path);
 
     /// @brief Remove a standalone file from the "Other Files" section
@@ -185,7 +186,13 @@ public:
 
     /// @brief Clear all modified indicators (OpenSpec #00042 Phase 7.5)
     /// @note Call after project save or close
+    /// @note The files outside the book keep theirs: they are not saved or closed with the book
     void clearAllModifiedIndicators();
+
+    /// @brief Show whether file @p path outside the book has unsaved changes: "*" before its
+    /// name. The mark stays when the tree is built again (a book opened or closed), and goes
+    /// when the file leaves the list.
+    void setFileModified(const QString& path, bool isModified);
 
     /// @brief Destructor
     ~NavigatorPanel() override = default;
@@ -469,6 +476,7 @@ private:
 
     // Modified state tracking (OpenSpec #00042 Phase 7.5)
     QSet<QString> m_modifiedElements;    ///< Set of element IDs with unsaved changes
+    QSet<QString> m_modifiedFiles;       ///< Paths of the files outside the book with changes
 };
 
 } // namespace gui

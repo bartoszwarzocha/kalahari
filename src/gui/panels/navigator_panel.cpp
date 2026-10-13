@@ -961,10 +961,12 @@ void NavigatorPanel::addStandaloneFile(const QString& path) {
     // Ensure "Other Files" section exists
     ensureOtherFilesSection();
 
-    // Create item for the file
+    // Create item for the file, with "*" while it has unsaved changes
     QFileInfo fileInfo(path);
     QTreeWidgetItem* fileItem = new QTreeWidgetItem(m_otherFilesItem);
-    fileItem->setText(0, fileInfo.fileName());
+    fileItem->setText(0, m_modifiedFiles.contains(path)
+                             ? QLatin1Char('*') + fileInfo.fileName()
+                             : fileInfo.fileName());
     fileItem->setData(0, Qt::UserRole, path);  // Store full path as ID
     fileItem->setData(0, Qt::UserRole + 1, "standalone_file");
     fileItem->setToolTip(0, path);
@@ -992,9 +994,10 @@ void NavigatorPanel::removeStandaloneFile(const QString& path) {
         return;
     }
 
-    // Remove the item
+    // Remove the item; the file's changes are no longer shown
     QTreeWidgetItem* item = it.value();
     m_standaloneFiles.erase(it);
+    m_modifiedFiles.remove(path);
     delete item;
 
     // Hide "Other Files" section if empty
@@ -1012,6 +1015,7 @@ void NavigatorPanel::clearStandaloneFiles() {
 
     // Clear all standalone files
     m_standaloneFiles.clear();
+    m_modifiedFiles.clear();
 
     // Remove "Other Files" section
     if (m_otherFilesItem) {
@@ -2189,6 +2193,21 @@ void NavigatorPanel::clearAllModifiedIndicators() {
     }
 
     logger.debug("NavigatorPanel: Cleared all modified indicators");
+}
+
+void NavigatorPanel::setFileModified(const QString& path, bool isModified) {
+    if (path.isEmpty()) {
+        return;  // a new file that has no name yet is not in the list
+    }
+    if (isModified) {
+        m_modifiedFiles.insert(path);
+    } else {
+        m_modifiedFiles.remove(path);
+    }
+    if (QTreeWidgetItem* item = m_standaloneFiles.value(path)) {
+        const QString name = QFileInfo(path).fileName();
+        item->setText(0, isModified ? QLatin1Char('*') + name : name);
+    }
 }
 
 } // namespace gui
