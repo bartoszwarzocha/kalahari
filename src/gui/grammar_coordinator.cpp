@@ -547,6 +547,8 @@ QToolButton* GrammarCoordinator::setupButton() {
         // Before the counts and the zoom of the status bar
         m_statusBar->insertPermanentWidget(0, button);
         m_setupButton = button;
+        // The status bar may delete it before the coordinator goes
+        connect(button, &QObject::destroyed, this, [this]() { m_setupButton = nullptr; });
     }
     return m_setupButton;
 }

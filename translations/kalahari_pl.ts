@@ -3422,8 +3422,8 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Przywróć &amp;wszystkie</translation>
     </message>
     <message>
-        <source>A rule ignored with &quot;Ignore This Rule&quot; in the context menu is not checked in any book. A restored rule works from the next check.</source>
-        <translation>Reguła pominięta poleceniem „Pomijaj tę regułę” z menu kontekstowego nie jest sprawdzana w żadnej książce. Przywrócona reguła działa od następnego sprawdzenia.</translation>
+        <source>A rule ignored with &quot;Ignore This Rule&quot; in the context menu is not checked in any book. A restored rule is checked again after OK or Apply.</source>
+        <translation>Reguła pominięta poleceniem „Pomijaj tę regułę” z menu kontekstowego nie jest sprawdzana w żadnej książce. Przywrócona reguła jest znów sprawdzana po kliknięciu OK albo Zastosuj.</translation>
     </message>
     <message>
         <source>Ad&amp;vanced Settings</source>

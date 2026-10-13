@@ -228,13 +228,19 @@ TEST_CASE("Grammar service: the rules ignored, with what they look for, from the
     CHECK(service->ignoredRules() ==
           QMap<QString, QString>{{QStringLiteral("RULE_A"), QStringLiteral("Animals")}});
 
-    // Those of the settings: a rule added is told, one taken away is reported again
+    // Those of the settings: a rule added is told, one taken away is reported again and the
+    // texts are checked again at once
+    int changes = 0;
+    QObject::connect(service.get(), &GrammarCheckService::checkingChanged, service.get(),
+                     [&changes]() { ++changes; });
     service->setIgnoredRules({{QStringLiteral("RULE_B"), QStringLiteral("Dogs")}});
     CHECK(told == QStringList({"RULE_A=Animals", "RULE_B=Dogs"}));
     CHECK_FALSE(service->isRuleIgnored(QStringLiteral("RULE_A")));
     CHECK(service->isRuleIgnored(QStringLiteral("RULE_B")));
+    CHECK(changes == 1);
     service->setIgnoredRules({{QStringLiteral("RULE_B"), QStringLiteral("Dogs")}});
     CHECK(told.size() == 2);
+    CHECK(changes == 1);
 
     Answers answers(*service);
     const quint64 request = service->check(QStringLiteral("The kat and the dog."));

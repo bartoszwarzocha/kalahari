@@ -191,7 +191,7 @@ bool SpellingCoordinator::goToNextIssue() {
         }
         // What to put in its place, under the word, as the menu key shows it; not when
         // another document came to the front while the grammar was checked
-        if (bookEditor != currentEditor()) {
+        if (bookEditor == nullptr || bookEditor != currentEditor()) {
             return;
         }
         bookEditor->setFocus();

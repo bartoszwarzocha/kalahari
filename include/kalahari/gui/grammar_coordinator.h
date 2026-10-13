@@ -7,7 +7,6 @@
 
 #include <QMap>
 #include <QObject>
-#include <QPointer>
 #include <QString>
 
 class QStatusBar;
@@ -187,8 +186,8 @@ private:
     editor::GrammarCheckService* m_service;
     LanguageToolServer* m_server;
     GrammarSetup* m_setup;
-    QPointer<QToolButton> m_setupButton;
-    QPointer<dialogs::GrammarSetupDialog> m_setupDialog;
+    QToolButton* m_setupButton{nullptr};  ///< In the status bar, which may delete it first
+    dialogs::GrammarSetupDialog* m_setupDialog{nullptr};  ///< While its window is open
     int m_settingsListener{0};
     bool m_restarting{false};     ///< The server stopped by itself and is started again
     bool m_failureUnseen{false};  ///< The preparation failed while its window was closed

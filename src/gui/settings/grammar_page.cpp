@@ -253,8 +253,7 @@ void EditorGrammarPage::createChecking() {
     // The question comes after the click, not inside the switch of the buttons
     connect(m_remote, &QRadioButton::toggled, this, [this](bool checked) {
         if (checked && !m_asking) {
-            QMetaObject::invokeMethod(this, &EditorGrammarPage::askForRemote,
-                                      Qt::QueuedConnection);
+            QMetaObject::invokeMethod(this, "askForRemote", Qt::QueuedConnection);
         }
     });
     connect(m_local, &QRadioButton::toggled, this, [this]() {
@@ -389,7 +388,8 @@ void EditorGrammarPage::createIgnoredRules() {
     column->addLayout(buttons);
     form->addRow(rulesBox);
     addNote(form, tr("A rule ignored with \"Ignore This Rule\" in the context menu is not "
-                     "checked in any book. A restored rule works from the next check."));
+                     "checked in any book. A restored rule is checked again after OK or "
+                     "Apply."));
 
     connect(m_rules, &QListWidget::itemSelectionChanged, this,
             &EditorGrammarPage::updateRuleButtons);

@@ -127,8 +127,8 @@ public:
     void ignoreRule(const QString& ruleId, const QString& description = QString());
 
     /// @brief The rules whose issues are not reported (those kept in the settings): what
-    ///        they look for, by rule; a rule added gets ruleIgnored(), one taken away is
-    ///        reported again from the next check
+    ///        they look for, by rule; a rule added gets ruleIgnored(), one taken away has the
+    ///        texts checked again (checkingChanged())
     void setIgnoredRules(const QMap<QString, QString>& rules);
 
     /// @brief The rules whose issues are not reported: what they look for, by rule

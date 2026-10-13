@@ -287,6 +287,13 @@ void GrammarCheckService::setIgnoredRules(const QMap<QString, QString>& rules)
             emit ruleIgnored(rule.key(), rule.value());
         }
     }
+    // A rule given back: the texts are checked again, so its issues show at once
+    for (auto rule = before.constBegin(); rule != before.constEnd(); ++rule) {
+        if (!rules.contains(rule.key())) {
+            restart();
+            break;
+        }
+    }
 }
 
 QMap<QString, QString> GrammarCheckService::ignoredRules() const

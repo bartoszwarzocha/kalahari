@@ -102,6 +102,11 @@ public:
     ///        program the writer agrees to the internet in a question
     void setRemoteWithoutAsking(bool remote);
 
+private slots:
+    /// @brief The writer chose the server in the internet: ask whether to send the text
+    ///        (called by name, queued after the click)
+    void askForRemote();
+
 private:
     /// @brief The group of the checking: the switch, the card and where to check
     void createChecking();
@@ -114,9 +119,6 @@ private:
 
     /// @brief The advanced settings, under their button
     void createAdvanced();
-
-    /// @brief The writer chose the server in the internet: ask whether to send the text
-    void askForRemote();
 
     /// @brief The card, the switch and the groups for what the page shows
     void updateCard();
