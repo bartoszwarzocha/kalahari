@@ -9,6 +9,7 @@
 #include <QCryptographicHash>
 #include <QDeadlineTimer>
 #include <QDir>
+#include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocalServer>
@@ -42,6 +43,19 @@ const QByteArray TAKEN = QByteArrayLiteral("ok\n");     ///< The answer to a req
 QString lockPath(const QString& key)
 {
     return QDir(QDir::tempPath()).filePath(key + QStringLiteral(".lock"));
+}
+
+/// The channel @p key as a local socket names it: a file in the temporary folder, or in /tmp
+/// when that path is too long for a local socket (a temporary folder with a long path)
+QString serverName(const QString& key)
+{
+#ifdef Q_OS_UNIX
+    constexpr qsizetype MAX_SOCKET_PATH = 103;  // the longest path of a local socket on macOS
+    if (QFile::encodeName(QDir(QDir::tempPath()).filePath(key)).size() > MAX_SOCKET_PATH) {
+        return QStringLiteral("/tmp/") + key;
+    }
+#endif
+    return key;
 }
 
 /// The time left before @p deadline, for the functions that wait
@@ -118,7 +132,7 @@ bool ProgramInstance::handOver(const QString& path, int timeoutMs)
                             "the first one");
                 return false;
             }
-            socket.connectToServer(m_key);
+            socket.connectToServer(serverName(m_key));
             if (!socket.waitForConnected(std::min(STEP_MS, remainingMs(deadline)))) {
                 socket.abort();
                 QThread::msleep(static_cast<unsigned long>(std::min(STEP_MS / 2,
@@ -155,8 +169,9 @@ bool ProgramInstance::listen()
     m_server = new QLocalServer(this);
     m_server->setSocketOptions(QLocalServer::UserAccessOption);
     // A channel left by a program that ended without closing it: the lock says none runs
-    QLocalServer::removeServer(m_key);
-    if (!m_server->listen(m_key)) {
+    const QString name = serverName(m_key);
+    QLocalServer::removeServer(name);
+    if (!m_server->listen(name)) {
         logger.warn("ProgramInstance: the channel cannot be opened ({}), so later starts run on "
                     "their own",
                     m_server->errorString().toStdString());

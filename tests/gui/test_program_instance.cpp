@@ -6,25 +6,54 @@
 #include <kalahari/gui/program_instance.h>
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
+#include <QFile>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <QThread>
 #include <QUuid>
 
 #include <atomic>
 #include <thread>
+#include <utility>
 
 using kalahari::gui::ProgramInstance;
 
 namespace {
 
-/// A channel of its own for each test, so that no test meets a program that runs
+/// A channel of its own for each test, so that no test meets a program that runs. A short
+/// one: on macOS the channel is a file in the temporary folder of the test process, which is
+/// long (/private/var/folders/.../T/kalahari_tests_<pid>), and the path of such a file has at
+/// most 103 bytes there
 QString testKey()
 {
-    return QStringLiteral("kalahari-test-") +
-           QUuid::createUuid().toString(QUuid::Id128).left(12);
+    return QStringLiteral("kt-") + QUuid::createUuid().toString(QUuid::Id128).left(10);
 }
+
+/// A thread joined at the end of the test, also when a REQUIRE ends it before
+class JoinedThread {
+public:
+    template <typename Function>
+    explicit JoinedThread(Function function)
+        : m_thread(std::move(function))
+    {
+    }
+    ~JoinedThread() { join(); }
+    JoinedThread(const JoinedThread&) = delete;
+    JoinedThread& operator=(const JoinedThread&) = delete;
+
+    void join()
+    {
+        if (m_thread.joinable()) {
+            m_thread.join();
+        }
+    }
+
+private:
+    std::thread m_thread;
+};
 
 /// Handle the events of this thread until @p done says so, at most @p timeoutMs
 template <typename Done>
@@ -135,7 +164,7 @@ TEST_CASE("A later start waits for the program that runs while it is still start
     // The first start still makes its window: it listens some time after the later start came
     std::atomic<bool> done{false};
     bool taken = false;
-    std::thread later([&key, &taken, &done]() {
+    JoinedThread later([&key, &taken, &done]() {
         ProgramInstance start(key);
         taken = start.handOver(QStringLiteral("/a.klh"), 10000);
         done = true;
@@ -154,7 +183,7 @@ TEST_CASE("A later start is the first one when the program that ran ends while i
 {
     const QString key = testKey();
     std::atomic<bool> locked{false};
-    std::thread program([&key, &locked]() {
+    JoinedThread program([&key, &locked]() {
         // A program that does not listen yet, and ends
         ProgramInstance first(key);
         locked = !first.handOver(QString(), 1000);
@@ -173,6 +202,34 @@ TEST_CASE("A later start is the first one when the program that ran ends while i
     CHECK(timer.elapsed() < 5000);
     CHECK(later.listen());
     program.join();
+}
+
+TEST_CASE("Later starts reach the program that runs also from a long temporary folder",
+          "[gui][program_instance]")
+{
+    // A temporary folder whose path is longer than the one of a local socket can be (on Linux
+    // and macOS; on Windows the channel is not a file)
+    QTemporaryDir parent;
+    REQUIRE(parent.isValid());
+    const QString folder = QDir(parent.path()).filePath(QString(120, QLatin1Char('t')));
+    REQUIRE(QDir().mkpath(folder));
+    struct TemporaryFolder {
+        QByteArray before = qgetenv("TMPDIR");
+        ~TemporaryFolder() { qputenv("TMPDIR", before); }
+    } restore;
+    qputenv("TMPDIR", QFile::encodeName(folder));
+
+    const QString key = testKey();
+    ProgramInstance first(key);
+    REQUIRE_FALSE(first.handOver(QString(), 1000));
+    REQUIRE(first.listen());
+    QStringList requests;
+    QObject::connect(&first, &ProgramInstance::requested,
+                     [&requests](const QString& path) { requests << path; });
+
+    REQUIRE(handOverFromLaterStart(key, QStringLiteral("/a.klh"), 5000));
+    processEventsUntil([&requests]() { return !requests.isEmpty(); }, 2000);
+    CHECK(requests == QStringList{QStringLiteral("/a.klh")});
 }
 
 TEST_CASE("The channel is the same for every start of the program", "[gui][program_instance]")
