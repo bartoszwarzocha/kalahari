@@ -15,6 +15,7 @@
 #pragma once
 
 #include <kalahari/core/text_statistics.h>
+#include <kalahari/editor/auto_correct.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
@@ -435,6 +436,27 @@ public:
     /// cursor goes to the start of the new line. The break and the text typed after it are
     /// one undo step, apart from the text typed before it.
     void insertLineBreak();
+
+    /// @brief Type text at the cursor, as the keyboard and the input methods do: the text goes
+    ///        in as insertText() puts it, and autocorrect changes what was typed
+    ///
+    /// Each quotation mark, apostrophe, space and period goes in as typed alone, so
+    /// autocorrect sees it with the text before it (an input method can commit several
+    /// characters at once). A change of autocorrect is an undo step of its own: undoing it
+    /// right after brings back the typed characters, with the cursor after them.
+    void typeText(const QString& text);
+
+    /// @brief What autocorrect changes in the text as it is typed (typeText()); everything,
+    ///        until it is set
+    void setAutoCorrect(const AutoCorrectOptions& options);
+
+    /// @brief What autocorrect changes in the text as it is typed
+    const AutoCorrectOptions& autoCorrect() const { return m_autoCorrect; }
+
+    /// @brief Where the editor asks for the language of its text when autocorrect puts in
+    ///        quotation marks: an ISO 639 code, with or without a country ("pl", "pl_PL").
+    ///        Without it, or for an empty code, the marks are English.
+    void setTextLanguage(std::function<QString()> language);
 
     /// @brief Delete character before cursor (Backspace)
     ///
@@ -1603,6 +1625,14 @@ private:
     // another text drop it (see pendingFormat())
     QTextCharFormat m_pendingFormat;   ///< Only the properties given
     CursorPosition m_pendingFormatAt;  ///< The cursor's place when it was given
+
+    // Autocorrect: the changes of the text as it is typed (typeText())
+    AutoCorrectOptions m_autoCorrect;          ///< What is changed
+    std::function<QString()> m_textLanguage;  ///< The language of the text (setTextLanguage())
+
+    /// @brief Make the change autocorrect has for the character typed right before the
+    ///        cursor, as an undo step of its own (see typeText())
+    void autoCorrectTyped();
 
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode

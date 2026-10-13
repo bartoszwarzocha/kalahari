@@ -3065,6 +3065,54 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::EditorAutoCorrectPage</name>
+    <message>
+        <source>Replace as You Type</source>
+        <translation>Zamieniaj podczas pisania</translation>
+    </message>
+    <message>
+        <source>Straight quotes with the typographic ones of the book&apos;s language: „…” and ‚…’ or “…” and ‘…’</source>
+        <translation>Cudzysłowy proste na drukarskie według języka książki: „…” i ‚…’ albo “…” i ‘…’</translation>
+    </message>
+    <message>
+        <source>Apostrophe &apos; with ’</source>
+        <translation>Apostrof &apos; na ’</translation>
+    </message>
+    <message>
+        <source>Hyphen and space at the start of a paragraph with a dialogue dash:</source>
+        <translation>Dywiz i spacja na początku akapitu na myślnik dialogowy:</translation>
+    </message>
+    <message>
+        <source>Em Dash (—)</source>
+        <translation>Pauza (—)</translation>
+    </message>
+    <message>
+        <source>En Dash (–)</source>
+        <translation>Półpauza (–)</translation>
+    </message>
+    <message>
+        <source>Dialogue dash</source>
+        <translation>Myślnik dialogowy</translation>
+    </message>
+    <message>
+        <source>“...” with an ellipsis “…”</source>
+        <translation>„...” na wielokropek „…”</translation>
+    </message>
+    <message>
+        <source>The quotation marks follow the book&apos;s language; outside the book, as in a file opened from the disk, the program&apos;s language. A language chosen on the Spelling page goes before both.</source>
+        <translation>Cudzysłowy są dobierane do języka książki, a poza książką, na przykład w pliku otwartym z dysku – do języka programu. Język wybrany na stronie Pisownia ma pierwszeństwo przed obydwoma.</translation>
+    </message>
+    <message>
+        <source>%1 right after a replacement undoes just the replacement.</source>
+        <extracomment>%1 is the keys of Edit &gt; Undo, as Ctrl+Z</extracomment>
+        <translation>%1 zaraz po zamianie cofa samą zamianę.</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Undo right after a replacement undoes just the replacement.</source>
+        <translation>Edycja &gt; Cofnij zaraz po zamianie cofa samą zamianę.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::EditorColorsPage</name>
     <message>
         <source>Configure editor colors for light and dark mode.
@@ -4580,16 +4628,6 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Coming in future version</source>
         <translation>Dostępne w przyszłej wersji</translation>
-    </message>
-    <message>
-        <source>Planned features:
-- Automatic capitalization
-- Common typo corrections
-- Custom replacement rules</source>
-        <translation>Planowane funkcje:
-- automatyczne wielkie litery
-- poprawianie częstych literówek
-- własne reguły zamiany</translation>
     </message>
     <message>
         <source>Planned features:

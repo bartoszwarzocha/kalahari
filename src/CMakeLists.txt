@@ -170,6 +170,7 @@ set(KALAHARI_SOURCES
     gui/settings/spelling_page.cpp
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
+    gui/settings/auto_correct_page.cpp  # Settings > Editor > Auto-correct
     gui/settings/annotations_page.cpp
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     gui/shortcut_rules.cpp  # Which keys a command can have
@@ -228,6 +229,7 @@ set(KALAHARI_SOURCES
     editor/book_editor_accessible.cpp  # Task 7.16: Accessibility interface
     editor/buffer_commands.cpp  # Cursor position helpers
     editor/text_keys.cpp  # The keys of the text on each system
+    editor/auto_correct.cpp  # Autocorrect: the changes of the text as it is typed
     editor/split_editor_panel.cpp  # Phase 5.8: Split view panel
     editor/statistics_collector.cpp  # Phase 6.10-6.13: Statistics collector
     editor/style_resolver.cpp        # Phase 6.1-6.3: Style resolver with inheritance
