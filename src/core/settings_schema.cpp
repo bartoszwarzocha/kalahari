@@ -76,7 +76,8 @@ std::map<std::string, json> buildDefaults() {
 
         // New projects
         {"project.defaultAuthor", ""},
-        {"project.defaultLanguage", "en"},
+        // Language of new books ("pl"); empty: the language of the program
+        {"project.defaultLanguage", ""},
         // Folder of the books (Settings > Files > Folders); empty: Kalahari in Documents
         {"project.defaultLocation", ""},
         // Folder of the archives of books; empty: Archives in the default folder of the books

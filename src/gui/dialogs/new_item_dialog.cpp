@@ -7,6 +7,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
@@ -552,11 +553,17 @@ void NewItemDialog::loadDefaults() {
             m_authorEdit->setText(QString::fromStdString(defaultAuthor));
         }
 
-        // Load default language
-        std::string defaultLang = settings.get<std::string>("project.defaultLanguage");
-        int langIndex = m_languageCombo->findData(QString::fromStdString(defaultLang));
-        if (langIndex >= 0) {
-            m_languageCombo->setCurrentIndex(langIndex);
+        // The language of new books from the settings, or else the language of the program,
+        // so that the names of the sections are in it too; English when the list does not
+        // have it
+        QString language =
+            QString::fromStdString(settings.get<std::string>("project.defaultLanguage"));
+        if (m_languageCombo->findData(language) < 0) {
+            language = kalahari::gui::programLanguage();
+        }
+        const int languageIndex = m_languageCombo->findData(language);
+        if (languageIndex >= 0) {
+            m_languageCombo->setCurrentIndex(languageIndex);
         }
 
         // The folder of the last new book, at first the folder of the books from the settings

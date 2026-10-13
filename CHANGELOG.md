@@ -135,7 +135,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   book is not closed for a book that cannot be made; a book that cannot be opened (e.g. of
   an older version) is reported before the open book is closed for it, and that one stays
   open. The questions of these commands speak of books, not projects, and the description
-  of a type in the New Book window scrolls. The Navigator shows the
+  of a type in the New Book window scrolls. The window proposes the language of the program
+  for the book (before: always English). The Navigator shows the
   book as before, and its elements take their kinds and icons from the type: Add Chapter
   offers the type's text kinds of the body (in a novel a prologue, a chapter or an epilogue)
   with a numbered title, Add Part its groups and Add Item the kinds of the front or back

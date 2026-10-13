@@ -15,6 +15,7 @@
 #include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/section_words.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 
@@ -949,6 +950,21 @@ struct NewBook {
     QList<QLineEdit*> names;
 };
 
+/// @brief The program in language @p code while it lives, as after loading its translation
+class ProgramLanguage {
+public:
+    explicit ProgramLanguage(const QString& code)
+        : m_before(kalahari::gui::programLanguage()) {
+        kalahari::gui::setProgramLanguage(code);
+    }
+    ~ProgramLanguage() { kalahari::gui::setProgramLanguage(m_before); }
+    ProgramLanguage(const ProgramLanguage&) = delete;
+    ProgramLanguage& operator=(const ProgramLanguage&) = delete;
+
+private:
+    QString m_before;
+};
+
 } // namespace
 
 TEST_CASE("New Book: the sections of the book, in its language", "[gui][dialogs]") {
@@ -1048,6 +1064,38 @@ TEST_CASE("New Book: the sections of the book, in its language", "[gui][dialogs]
         NewBook next;
         next.choose("template.novel");
         CHECK(next.sections->currentData().toString() == QStringLiteral("sections"));
+    }
+}
+
+TEST_CASE("New Book: the book is at first in the language of the program", "[gui][dialogs]") {
+    // Regression: in the program in Polish the window proposed English, so the Sections field
+    // named the sets in English
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.resetToDefaults();
+
+    SECTION("The language of the program, with the names of the sections in it") {
+        const ProgramLanguage polish(QStringLiteral("pl"));
+        NewBook book;
+        book.choose("template.novel");
+        CHECK(book.language->currentData().toString() == QStringLiteral("pl"));
+        CHECK(book.sections->currentText().toStdString() ==
+              "Sekcja początkowa \u00B7 Sekcja główna \u00B7 Sekcja końcowa");
+        book.chooseSections("custom");
+        CHECK(book.namesOf() == "Sekcja początkowa, Sekcja główna, Sekcja końcowa");
+    }
+
+    SECTION("The language of new books in the settings comes first") {
+        const ProgramLanguage polish(QStringLiteral("pl"));
+        settings.set<std::string>("project.defaultLanguage", "de");
+        const NewBook book;
+        CHECK(book.language->currentData().toString() == QStringLiteral("de"));
+        settings.removeKey("project.defaultLanguage");
+    }
+
+    SECTION("English when the list has no language of the program") {
+        const ProgramLanguage ukrainian(QStringLiteral("uk"));
+        const NewBook book;
+        CHECK(book.language->currentData().toString() == QStringLiteral("en"));
     }
 }
 
