@@ -307,7 +307,7 @@ TEST_CASE("Fields undo and redo with the keys of Windows", "[gui][widget_keys]")
 }
 
 TEST_CASE("The keys Qt gives the fields on Linux only do nothing there",
-          "[gui][widget_keys]") {
+          "[gui][widget_keys][clipboard]") {
     if (onMacOS()) {
         SKIP("macOS keeps the keys of its own fields");
     }
@@ -534,7 +534,7 @@ TEST_CASE("Left and Right over a selection move the cursor from where it is",
 }
 
 TEST_CASE("Read-only texts and selectable labels copy and select what is in them",
-          "[gui][widget_keys]") {
+          "[gui][widget_keys][clipboard]") {
     if (onMacOS()) {
         SKIP("macOS keeps the keys of its own fields");
     }
