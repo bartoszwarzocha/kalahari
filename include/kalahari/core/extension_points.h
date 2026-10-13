@@ -149,8 +149,11 @@ public:
 ///
 /// **Qt6 Command Registry:**
 /// - Commands are registered with CommandRegistry singleton during plugin activation
-/// - Menu/toolbar updates happen automatically via MenuBuilder/ToolbarBuilder
+/// - MenuBuilder and ToolbarManager build menus and toolbars from the registry
 /// - Keyboard shortcuts, icons, and enable/disable callbacks supported
+///
+/// @note Not wired yet: PluginManager does not call getCommands(), so a plugin's commands
+///       do not reach the registry.
 ///
 /// **Example (C++):**
 /// @code
@@ -196,13 +199,14 @@ public:
 
     /// @brief Get list of commands to register
     ///
-    /// Called once during plugin activation (onActivate()). All returned commands
-    /// are automatically registered with CommandRegistry and appear in menus/toolbars.
+    /// To be called once during plugin activation (onActivate()); the returned commands are
+    /// then registered with CommandRegistry and appear in menus/toolbars. Not wired yet, see
+    /// the class note.
     ///
     /// **Command Lifecycle:**
     /// 1. Plugin activated → getCommands() called
     /// 2. Commands registered with CommandRegistry
-    /// 3. MenuBuilder/ToolbarBuilder query registry → menus/toolbars update
+    /// 3. MenuBuilder and ToolbarManager query registry → menus/toolbars update
     /// 4. User clicks menu item → Command::execute callback invoked
     ///
     /// @return Vector of Command structures to register
