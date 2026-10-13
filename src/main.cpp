@@ -37,6 +37,13 @@
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/widget_keys.h"
 
+namespace {
+
+/// The log file of the program, in its working folder
+constexpr const char* LOG_FILE = "kalahari.log";
+
+} // anonymous namespace
+
 // ============================================================================
 // DownloadHelper - Qt Signal/Slot helper for CLI icon downloads
 // ============================================================================
@@ -83,9 +90,10 @@ int main(int argc, char *argv[]) {
     // Qt's fields, lists and buttons have the keys of Windows, also on Linux
     kalahari::gui::installWidgetKeys(app);
 
-    // Initialize core systems
+    // Initialize core systems. The log file starts once this start runs on its own: a start
+    // that hands its request to the program that runs leaves the file of that program as it is
     auto& logger = kalahari::core::Logger::getInstance();
-    logger.init("kalahari.log");
+    logger.initWithoutFile();
 
     auto& settings = kalahari::core::SettingsManager::getInstance();
     settings.load();
@@ -174,6 +182,9 @@ int main(int argc, char *argv[]) {
     // ========================================================================
     // CLI Mode: Icon Downloader
     // ========================================================================
+    if (cmdLine.hasSwitch("cli")) {
+        logger.openFile(LOG_FILE);
+    }
     if (cmdLine.hasSwitch("cli") && cmdLine.hasOption("get-icon")) {
         logger.info("CLI Mode: Icon download");
 
@@ -304,6 +315,7 @@ int main(int argc, char *argv[]) {
         }
         instance.listen();
     }
+    logger.openFile(LOG_FILE);
 
     kalahari::gui::MainWindow window;
     window.setStartupFile(startupFile);
