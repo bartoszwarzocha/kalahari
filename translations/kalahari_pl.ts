@@ -3071,16 +3071,16 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
         <translation>Zamieniaj podczas pisania</translation>
     </message>
     <message>
-        <source>Straight quotes with the typographic ones of the book&apos;s language: „…” and ‚…’ or “…” and ‘…’</source>
-        <translation>Cudzysłowy proste na drukarskie według języka książki: „…” i ‚…’ albo “…” i ‘…’</translation>
+        <source>Straight quotes with typographic ones</source>
+        <translation>Cudzysłowy proste na drukarskie</translation>
     </message>
     <message>
         <source>Apostrophe &apos; with ’</source>
         <translation>Apostrof &apos; na ’</translation>
     </message>
     <message>
-        <source>Hyphen and space at the start of a paragraph with a dialogue dash:</source>
-        <translation>Dywiz i spacja na początku akapitu na myślnik dialogowy:</translation>
+        <source>Hyphen at the start of a paragraph with a dash</source>
+        <translation>Dywiz na początku akapitu na myślnik</translation>
     </message>
     <message>
         <source>Em Dash (—)</source>
@@ -3091,16 +3091,16 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
         <translation>Półpauza (–)</translation>
     </message>
     <message>
-        <source>Dialogue dash</source>
-        <translation>Myślnik dialogowy</translation>
+        <source>Dialogue dash:</source>
+        <translation>Myślnik dialogowy:</translation>
     </message>
     <message>
         <source>“...” with an ellipsis “…”</source>
         <translation>„...” na wielokropek „…”</translation>
     </message>
     <message>
-        <source>The quotation marks follow the book&apos;s language; outside the book, as in a file opened from the disk, the program&apos;s language. A language chosen on the Spelling page goes before both.</source>
-        <translation>Cudzysłowy są dobierane do języka książki, a poza książką, na przykład w pliku otwartym z dysku – do języka programu. Język wybrany na stronie Pisownia ma pierwszeństwo przed obydwoma.</translation>
+        <source>The quotation marks follow the language of the book: „…” and ‚…’ in Polish, “…” and ‘…’ in English. Outside the book, as in a file opened from the disk, they follow the language of the program. A language chosen on the Spelling page goes before both. The hyphen becomes a dash when a space is typed after it.</source>
+        <translation>Cudzysłowy są dobierane do języka książki: po polsku „…” i ‚…’, po angielsku “…” i ‘…’. Poza książką, na przykład w pliku otwartym z dysku, decyduje język programu. Język wybrany na stronie Pisownia ma pierwszeństwo przed obydwoma. Dywiz zamienia się w myślnik, gdy wpiszesz po nim spację.</translation>
     </message>
     <message>
         <source>%1 right after a replacement undoes just the replacement.</source>

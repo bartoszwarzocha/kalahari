@@ -25,12 +25,16 @@
 #include <QLabel>
 #include <QMainWindow>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QStackedWidget>
 #include <QTemporaryDir>
+#include <QTranslator>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
 #include <array>
+#include <optional>
 #include <string>
 
 using namespace kalahari;
@@ -40,20 +44,22 @@ namespace {
 
 /// The texts of the page's check boxes, in its order
 constexpr std::array<const char*, 4> CHECK_BOXES = {
-    "Straight quotes with the typographic ones of the book's language: „…” and ‚…’ or “…” "
-    "and ‘…’",
+    "Straight quotes with typographic ones",
     "Apostrophe ' with ’",
-    "Hyphen and space at the start of a paragraph with a dialogue dash:",
+    "Hyphen at the start of a paragraph with a dash",
     "“...” with an ellipsis “…”",
 };
 
-/// Open Editor > Auto-correct; the page in front of the dialog
+/// Open Editor > Auto-correct, in the language of the program; the page in front of the
+/// dialog, in its scroll area
 QWidget* openAutoCorrectPage(SettingsDialog& dialog) {
+    const QString page = QCoreApplication::translate("kalahari::gui::SettingsDialog", "Auto-correct");
+    const QString group = QCoreApplication::translate("kalahari::gui::SettingsDialog", "Editor");
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     for (QTreeWidgetItemIterator it(tree); *it; ++it) {
-        if ((*it)->text(0) == QStringLiteral("Auto-correct") && (*it)->parent() != nullptr &&
-            (*it)->parent()->text(0) == QStringLiteral("Editor")) {
+        if ((*it)->text(0) == page && (*it)->parent() != nullptr &&
+            (*it)->parent()->text(0) == group) {
             tree->setCurrentItem(*it);
         }
     }
@@ -68,6 +74,16 @@ QCheckBox* checkBoxOf(const QWidget* page, const char* text) {
     for (QCheckBox* box : page->findChildren<QCheckBox*>()) {
         if (box->text() == QString::fromUtf8(text)) {
             return box;
+        }
+    }
+    return nullptr;
+}
+
+/// The page's label with a text
+QLabel* labelOf(const QWidget* page, const QString& text) {
+    for (QLabel* label : page->findChildren<QLabel*>()) {
+        if (label->text() == text) {
+            return label;
         }
     }
     return nullptr;
@@ -108,6 +124,33 @@ bool canActivateWindows() {
 constexpr const char* NEEDS_OFFSCREEN =
     "needs an active window without a window on screen: run with QT_QPA_PLATFORM=offscreen";
 
+/// The layouts of a shown window settle
+void settle() {
+    for (int pass = 0; pass < 3; ++pass) {
+        QApplication::processEvents();
+    }
+}
+
+/// The program in Polish while it lives: the translation it ships
+class Polish {
+public:
+    Polish() {
+        m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
+        if (m_loaded) {
+            QCoreApplication::installTranslator(&m_translator);
+        }
+    }
+    ~Polish() { QCoreApplication::removeTranslator(&m_translator); }
+    Polish(const Polish&) = delete;
+    Polish& operator=(const Polish&) = delete;
+
+    [[nodiscard]] bool loaded() const { return m_loaded; }
+
+private:
+    QTranslator m_translator;
+    bool m_loaded = false;
+};
+
 }  // anonymous namespace
 
 TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors follow the "
@@ -130,16 +173,20 @@ TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors 
     }
     auto* dash = page->findChild<QComboBox*>();
     REQUIRE(dash != nullptr);
-    CHECK(dash->accessibleName() == QStringLiteral("Dialogue dash"));
+    const QLabel* dashLabel = labelOf(page, QStringLiteral("Dialogue dash:"));
+    REQUIRE(dashLabel != nullptr);
+    CHECK(dashLabel->buddy() == dash);
     CHECK(dash->currentText() == QStringLiteral("Em Dash (—)"));
     CHECK(dash->isEnabled());
 
-    // The dash is chosen only for the dialogue dash turned on
+    // The dash is chosen only for the hyphen changed
     QCheckBox* dialogueDash = checkBoxOf(page, CHECK_BOXES[2]);
     dialogueDash->setChecked(false);
     CHECK_FALSE(dash->isEnabled());
+    CHECK_FALSE(dashLabel->isEnabled());
     dialogueDash->setChecked(true);
     CHECK(dash->isEnabled());
+    CHECK(dashLabel->isEnabled());
 
     // Applied, the settings reach the editors
     checkBoxOf(page, CHECK_BOXES[0])->setChecked(false);
@@ -185,7 +232,38 @@ TEST_CASE("Settings > Auto-correct: the dash is greyed out while the dialogue da
     REQUIRE(dialogueDash != nullptr);
     CHECK_FALSE(dialogueDash->isChecked());
     CHECK_FALSE(page->findChild<QComboBox*>()->isEnabled());
+    const QLabel* dashLabel = labelOf(page, QStringLiteral("Dialogue dash:"));
+    REQUIRE(dashLabel != nullptr);
+    CHECK_FALSE(dashLabel->isEnabled());
     CHECK_FALSE(dialog.hasChanges());
+}
+
+TEST_CASE("Settings > Auto-correct: fits a small screen, in English and in Polish",
+          "[gui][settings][autocorrect]") {
+    for (const bool inPolish : {false, true}) {
+        INFO((inPolish ? "in Polish" : "in English"));
+        std::optional<Polish> polish;
+        if (inPolish) {
+            polish.emplace();
+            REQUIRE(polish->loaded());
+        }
+        SettingsDialog dialog(nullptr);
+        auto* scrollArea = qobject_cast<QScrollArea*>(openAutoCorrectPage(dialog));
+        REQUIRE(scrollArea != nullptr);
+        REQUIRE(scrollArea->widget() != nullptr);
+        dialog.show();
+
+        // 1366 × 768 at 125%: the dialog gets 90% of 1093 × 566 above the taskbar; at 150%,
+        // 90% of 911 × 464. The page may scroll down, never sideways
+        for (const QSize size : {QSize(840, 509), QSize(820, 417)}) {
+            INFO("window " << size.width() << " x " << size.height());
+            dialog.resize(size);
+            settle();
+            CHECK(scrollArea->widget()->minimumSizeHint().width() <=
+                  scrollArea->viewport()->width());
+            CHECK_FALSE(scrollArea->horizontalScrollBar()->isVisible());
+        }
+    }
 }
 
 TEST_CASE("Settings > Auto-correct: the note gives the keys Undo has", "[gui][settings][autocorrect]") {
