@@ -394,8 +394,9 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     top->setSpacing(11);
     top->addWidget(createDescriptionPanel(content));
     top->addWidget(createKindsGroup(content), 1);
-    contentLayout->addLayout(top, 1);
-    contentLayout->addWidget(createPlaceGroup(content));
+    // The tiles and the place share the room the window has above their minimum, 3 to 2
+    contentLayout->addLayout(top, 3);
+    contentLayout->addWidget(createPlaceGroup(content), 2);
     mainLayout->addWidget(new FittingScrollArea(content, this), 1);
 
     auto* buttons = new QDialogButtonBox(this);
@@ -569,6 +570,9 @@ QWidget* NewFileDialog::createPlaceGroup(QWidget* parent)
     // The list of the part of the book with the element in its place, named by the group
     m_picker = new ElementPlacePicker(group);
     m_picker->setLabel(QString());
+    // The list asks for the rows it keeps on a small screen and grows with the window, so
+    // that in a low window the description of the kind keeps all its lines
+    m_picker->setListRows(ElementPlacePicker::MINIMUM_LIST_ROWS);
     layout->addWidget(m_picker);
     return group;
 }

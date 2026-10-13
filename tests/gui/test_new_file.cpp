@@ -526,6 +526,28 @@ TEST_CASE("New File: the title is the first field, above the tiles and the place
     CHECK(dialog.rect().contains(QRect(title->mapTo(&dialog, QPoint(0, 0)), title->size())));
 }
 
+TEST_CASE("New File: the description of the kind keeps all its lines in a low window",
+          "[gui][newfile]") {
+    test::OpenNovel book(QStringLiteral("Rain"));
+    NewFileDialog dialog(NewFileDialog::openBook(), book.pm.bookTypes());
+    dialog.show();
+    QCoreApplication::processEvents();
+
+    // From the default height to a window lower than the content, which scrolls then: the
+    // lists give up their rows, and the lines of the description stay whole
+    for (const int height : {740, 640, 560, 520, 480, 440, 400, 360}) {
+        dialog.resize(dialog.width(), height);
+        QCoreApplication::processEvents();
+        QCoreApplication::processEvents();
+        for (const QLabel* label : {dialog.nameLabel(), dialog.whereLabel(),
+                                    dialog.countLabel(), dialog.fileLabel(),
+                                    dialog.typeLabel()}) {
+            INFO(height << ": " << label->text().toStdString());
+            CHECK(label->height() >= label->heightForWidth(label->width()));
+        }
+    }
+}
+
 TEST_CASE("New File: Create adds the element at its place and opens it in the editor",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));

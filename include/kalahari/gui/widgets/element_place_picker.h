@@ -67,6 +67,9 @@ class ElementPlacePicker : public QWidget {
     Q_OBJECT
 
 public:
+    /// @brief Rows the list keeps on a small screen
+    static constexpr int MINIMUM_LIST_ROWS = 4;
+
     /// @brief Create an empty picker; setBook() and setElement() fill it
     explicit ElementPlacePicker(QWidget* parent = nullptr);
 
@@ -89,6 +92,14 @@ public:
     /// @brief The words above the list; by default "Place"; empty: none, for a dialog that
     /// names the list beside it
     void setLabel(const QString& text);
+
+    /// @brief Rows the list shows when there is room for them: 9 by default, at least
+    /// MINIMUM_LIST_ROWS
+    ///
+    /// A window that gives the list the room its other content leaves asks for
+    /// MINIMUM_LIST_ROWS. A layout gives the picker, which has a wrapped text, at least the
+    /// height it asks for, and in a low window would take it from the wrapped texts beside it.
+    void setListRows(int rows);
 
     /// @brief A sentence under the list, before the hint how to choose the place: "Current
     /// place: at the end of the main section."; empty: none

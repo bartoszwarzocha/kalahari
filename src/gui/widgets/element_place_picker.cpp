@@ -29,13 +29,12 @@ namespace {
 constexpr int PLACE_ROLE = Qt::UserRole;  ///< Index of the place a click on the row chooses; -1:
                                           ///< none
 constexpr int LIST_ROWS = 9;              ///< Rows the list shows when there is room for them
-constexpr int MINIMUM_ROWS = 4;           ///< Rows the list keeps on a small screen
 constexpr int WARNING_ICON_SIZE = 16;     ///< Size of the icon of the warnings
 
 /// Id of the element in the copy of the book that warnings() makes; no element of a book has it
 const QString PLACED_ID = QStringLiteral("<placed>");
 
-/// The list of the book, as high as LIST_ROWS rows when there is room for them
+/// The list of the book, as high as its rows (LIST_ROWS by default) when there is room for them
 class PlaceList : public QTreeWidget {
 public:
     using QTreeWidget::QTreeWidget;
@@ -43,9 +42,18 @@ public:
     /// Height of a row, before the list has rows to measure
     int rowHeight() const { return qMax(fontMetrics().height() + 6, iconSize().height() + 4); }
 
-    QSize sizeHint() const override {
-        return {QTreeWidget::sizeHint().width(), rowHeight() * LIST_ROWS + 2 * frameWidth()};
+    /// Rows the list shows when there is room for them
+    void setRows(int rows) {
+        m_rows = rows;
+        updateGeometry();
     }
+
+    QSize sizeHint() const override {
+        return {QTreeWidget::sizeHint().width(), rowHeight() * m_rows + 2 * frameWidth()};
+    }
+
+private:
+    int m_rows = LIST_ROWS;
 };
 
 /// ArtProvider id of the icon of the row of @p place
@@ -132,7 +140,7 @@ ElementPlacePicker::ElementPlacePicker(QWidget* parent)
     m_list->setHeaderHidden(true);
     m_list->setRootIsDecorated(false);
     m_list->setItemsExpandable(false);
-    m_list->setMinimumHeight(list->rowHeight() * MINIMUM_ROWS + 2 * m_list->frameWidth());
+    m_list->setMinimumHeight(list->rowHeight() * MINIMUM_LIST_ROWS + 2 * m_list->frameWidth());
     m_list->installEventFilter(this);
     connect(m_list, &QTreeWidget::itemClicked, this, &ElementPlacePicker::onItemClicked);
     listRow->addWidget(m_list, 1);
@@ -226,6 +234,11 @@ void ElementPlacePicker::setLabel(const QString& text)
 {
     m_label->setText(text);
     m_label->setVisible(!text.isEmpty());
+}
+
+void ElementPlacePicker::setListRows(int rows)
+{
+    static_cast<PlaceList*>(m_list)->setRows(qMax(rows, MINIMUM_LIST_ROWS));
 }
 
 void ElementPlacePicker::setNote(const QString& text)
