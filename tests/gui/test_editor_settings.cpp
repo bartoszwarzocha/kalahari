@@ -7,7 +7,9 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/utils/setting_toggle.h"
 
+#include <QAction>
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QDoubleSpinBox>
@@ -121,6 +123,48 @@ TEST_CASE("Editor settings: the paper chosen in one editor reaches the others",
     QCoreApplication::processEvents();
     CHECK(first.getBookEditor()->editorColorMode() == editor::EditorColorMode::Dark);
     CHECK(second.getBookEditor()->editorColorMode() == editor::EditorColorMode::Dark);
+
+    restore(before);
+}
+
+TEST_CASE("Editor settings: View > Text Frame Border and the Settings dialog show and hide the "
+          "same border in every editor",
+          "[gui][editor][settings]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.textFrameBorder.show"});
+    settings.set<bool>("editor.textFrameBorder.show", false);
+
+    // The toggle of the View menu and the Views toolbar, as the main window makes it
+    QAction toggle(QStringLiteral("Text Frame Border"));
+    gui::utils::followSetting(&toggle, "editor.textFrameBorder.show");
+    gui::EditorPanel first;
+    gui::EditorPanel second;
+    CHECK_FALSE(toggle.isChecked());
+    CHECK_FALSE(first.getBookEditor()->appearance().textFrameBorder.show);
+
+    // The toggle changes only the setting: every editor draws the border
+    settings.set<bool>("editor.textFrameBorder.show", true);
+    QCoreApplication::processEvents();
+    CHECK(toggle.isChecked());
+    CHECK(first.getBookEditor()->appearance().textFrameBorder.show);
+    CHECK(second.getBookEditor()->appearance().textFrameBorder.show);
+
+    // The check box of the Settings dialog shows the same setting and changes the toggle too
+    gui::SettingsDialog dialog(nullptr);
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        tree->setCurrentItem(*it);  // Pages are built when first opened
+    }
+    QCheckBox* show = checkBoxOf(dialog, QStringLiteral("Show text frame border"));
+    REQUIRE(show != nullptr);
+    CHECK(show->isChecked());
+    show->setChecked(false);
+    dialog.applyButton()->click();
+    QCoreApplication::processEvents();
+    CHECK_FALSE(toggle.isChecked());
+    CHECK_FALSE(first.getBookEditor()->appearance().textFrameBorder.show);
+    CHECK_FALSE(second.getBookEditor()->appearance().textFrameBorder.show);
 
     restore(before);
 }

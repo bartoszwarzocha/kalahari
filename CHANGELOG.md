@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **View: Text Frame Border on the Views toolbar** - 2026-10-13. View > Text Frame Border
+  (also a button on the Views toolbar, next to Dark Paper) shows and hides the border around
+  the text of every editor, the option "Show text frame border" of Settings > Editor > Pages
+  and Margins, which so far was the only place to change it. The button, the menu item and the
+  check box show the same setting whatever changes it, and the program remembers it. The icon
+  is a page with lines of text in a frame (`text_frame.svg` in the four icon themes).
+
 - **Editor: a new line in the paragraph (Shift+Enter)** - 2026-10-11. Shift+Enter starts a
   new line in the paragraph, as a manual line break in Word: the lines keep the paragraph's
   alignment, spacing and formatting, and the break with the text typed after it is one undo

@@ -432,6 +432,7 @@ void MainWindow::registerCommands() {
     callbacks.onTypewriterToggle = [this]() { onTypewriterToggle(); };
     callbacks.onFocusToggle = [this]() { onFocusToggle(); };
     callbacks.onDarkPaperToggle = [this]() { onDarkPaperToggle(); };
+    callbacks.onTextFrameBorderToggle = [this]() { onTextFrameBorderToggle(); };
     callbacks.onDistractionFreeToggle = [this]() { onDistractionFreeToggle(); };
 
     // Zoom commands act on the editor in front
@@ -514,10 +515,12 @@ void MainWindow::registerCommands() {
     // Word without a document. The tab in front updates them (updateEditorActionStates())
     utils::bindToDocument(registry, [this]() { return hasDocumentInFront(); });
 
-    // The paper, Typewriter Scrolling and Focus are settings of every editor: their toggles
-    // show them also before an editor opens, and follow the editor's context menu and the
-    // Settings dialog
+    // The paper, the text frame border, Typewriter Scrolling and Focus are settings of every
+    // editor: their toggles show them also before an editor opens, and follow the editor's
+    // context menu and the Settings dialog
     utils::followSetting(registry.getAction(std::string("view.darkPaper")), "editor.darkMode");
+    utils::followSetting(registry.getAction(std::string("view.textFrameBorder")),
+                         "editor.textFrameBorder.show");
     utils::followSetting(registry.getAction(std::string("view.typewriter")),
                          "editor.typewriter.enabled");
     utils::followSetting(registry.getAction(std::string("view.focus")), "editor.focus.enabled");
@@ -875,6 +878,18 @@ void MainWindow::onDarkPaperToggle() {
     settings.set<bool>("editor.darkMode", dark);
     core::Logger::getInstance().info("Action triggered: Dark Paper {}", dark ? "on" : "off");
     statusBar()->showMessage(dark ? tr("Dark paper: on") : tr("Dark paper: off"), 2000);
+}
+
+void MainWindow::onTextFrameBorderToggle() {
+    auto& settings = core::SettingsManager::getInstance();
+
+    // A setting of all editors, kept between sessions, as in the Settings dialog: every
+    // editor follows it
+    const bool show = !settings.get<bool>("editor.textFrameBorder.show");
+    settings.set<bool>("editor.textFrameBorder.show", show);
+    core::Logger::getInstance().info("Action triggered: Text Frame Border {}", show ? "on" : "off");
+    statusBar()->showMessage(show ? tr("Text frame border: on") : tr("Text frame border: off"),
+                             2000);
 }
 
 bool MainWindow::isDistractionFree() const {

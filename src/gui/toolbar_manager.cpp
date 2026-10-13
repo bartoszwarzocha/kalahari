@@ -127,15 +127,16 @@ void ToolbarManager::initializeConfigs() {
         {"tools.spellcheck", "tools.stats.wordCount"}
     };
 
-    // Views Toolbar: the view modes, the switches on top of them (and the paper) and the zoom,
-    // as in the View menu
+    // Views Toolbar: the view modes, the switches on top of them (and the paper and the text
+    // frame border) and the zoom, as in the View menu
     m_configs["views"] = {
         "views",
         QT_TRANSLATE_NOOP("QObject", "&Views Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"view.mode.continuous", "view.mode.page", SEPARATOR_ID,
-         "view.mode.distraction-free", "view.focus", "view.typewriter", "view.darkPaper", SEPARATOR_ID,
+         "view.mode.distraction-free", "view.focus", "view.typewriter", "view.darkPaper",
+         "view.textFrameBorder", SEPARATOR_ID,
          "view.zoomOut", "view.zoomIn", "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}
     };
 
