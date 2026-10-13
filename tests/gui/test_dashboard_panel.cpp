@@ -9,6 +9,7 @@
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/panels/dashboard_layouts.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
+#include "kalahari/gui/settings_dialog.h"
 
 #include <QAbstractButton>
 #include <QApplication>
@@ -615,4 +616,42 @@ TEST_CASE("Dashboard: the text of the auto-load checkbox changes it", "[gui][das
         CHECK_FALSE(settings.get<bool>("startup.autoLoadLastProject"));
     }
     settings.set("startup.autoLoadLastProject", saved);
+}
+
+TEST_CASE("Dashboard: the auto-load checkbox follows the Settings window", "[gui][dashboard]") {
+    // Round 3 report 19.3: the option changed in the Settings window stayed as it was on the
+    // Dashboard until the program started again
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set("startup.autoLoadLastProject", false);
+    DashboardPanel dashboard;
+    showOffScreen(dashboard);
+    auto* onDashboard = dashboard.findChild<QCheckBox*>();
+    REQUIRE(onDashboard != nullptr);
+    REQUIRE_FALSE(onDashboard->isChecked());
+
+    // The Settings window opens on its General page, with the same option
+    SettingsDialog dialog(nullptr);
+    QCheckBox* inSettings = nullptr;
+    for (QCheckBox* box : dialog.findChildren<QCheckBox*>()) {
+        if (box->text() == QStringLiteral("Open last book on startup")) {
+            inSettings = box;
+        }
+    }
+    REQUIRE(inSettings != nullptr);
+    REQUIRE_FALSE(inSettings->isChecked());
+
+    inSettings->click();
+    CHECK_FALSE(onDashboard->isChecked());  // until Apply or OK
+    dialog.applyChanges();
+    CHECK(onDashboard->isChecked());
+    CHECK(settings.get<bool>("startup.autoLoadLastProject"));
+
+    inSettings->click();
+    dialog.applyChanges();
+    CHECK_FALSE(onDashboard->isChecked());
+    CHECK_FALSE(settings.get<bool>("startup.autoLoadLastProject"));
+
+    // The Dashboard changes it as before
+    onDashboard->click();
+    CHECK(settings.get<bool>("startup.autoLoadLastProject"));
 }

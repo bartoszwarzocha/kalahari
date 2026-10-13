@@ -162,6 +162,11 @@ DashboardPanel::DashboardPanel(QWidget* parent)
     logger.debug("DashboardPanel initialized with native Qt widgets");
 }
 
+DashboardPanel::~DashboardPanel()
+{
+    core::SettingsManager::getInstance().unsubscribe(m_autoLoadSubscription);
+}
+
 void DashboardPanel::setupUI()
 {
     // Main layout for the panel
@@ -248,6 +253,19 @@ void DashboardPanel::setupUI()
     connect(m_autoLoadCheckbox, &QCheckBox::toggled, this, [](bool checked) {
         auto& settings = core::SettingsManager::getInstance();
         settings.set("startup.autoLoadLastProject", checked);
+    });
+
+    // ... and the checkbox follows the setting, whoever changes it (the Settings window
+    // too). A listener runs on the thread that changed the setting. The slot called by name
+    // runs at once on the checkbox's own thread and is queued from any other one; the value
+    // it writes back is the one the setting already has, so nothing changes
+    QCheckBox* checkBox = m_autoLoadCheckbox;
+    m_autoLoadSubscription = settingsMgr.subscribe([checkBox](const std::string& key) {
+        if (key != "startup.autoLoadLastProject") {
+            return;
+        }
+        const bool on = core::SettingsManager::getInstance().get<bool>(key);
+        QMetaObject::invokeMethod(checkBox, "setChecked", Q_ARG(bool, on));
     });
 
     // Apply initial theme colors
@@ -983,17 +1001,7 @@ void DashboardPanel::onSettingsChanged()
     auto& logger = core::Logger::getInstance();
     logger.debug("DashboardPanel::onSettingsChanged - refreshing content with updated settings");
 
-    // Sync auto-load checkbox with settings (in case changed from Settings dialog)
-    if (m_autoLoadCheckbox) {
-        auto& settings = core::SettingsManager::getInstance();
-        bool autoLoad = settings.get<bool>("startup.autoLoadLastProject");
-        if (m_autoLoadCheckbox->isChecked() != autoLoad) {
-            m_autoLoadCheckbox->blockSignals(true);
-            m_autoLoadCheckbox->setChecked(autoLoad);
-            m_autoLoadCheckbox->blockSignals(false);
-            logger.debug("DashboardPanel: Auto-load checkbox synced to {}", autoLoad);
-        }
-    }
+    // The auto-load checkbox follows its setting by itself (setupUI())
 
     // Update column visibility based on settings (News/Recent Files show/hide)
     updateColumnVisibility();

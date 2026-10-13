@@ -505,6 +505,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Dashboard's option to open the last book** - 2026-10-13. Changed in the Settings
+  window, the option stayed as it was on the Dashboard until the program started again; the
+  Dashboard now shows the change at once.
+
 - **An empty paragraph at the end of a text file** - 2026-10-13. A `.txt` file whose last line
   ends with a line end, as most text files do, opened with an empty paragraph after its text.
   The line end of the last line is no longer a paragraph, and the file keeps it when saved.

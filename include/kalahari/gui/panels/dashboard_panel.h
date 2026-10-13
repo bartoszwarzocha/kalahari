@@ -61,8 +61,8 @@ public:
     /// @param parent Parent widget (typically MainWindow or QTabWidget)
     explicit DashboardPanel(QWidget* parent = nullptr);
 
-    /// @brief Destructor
-    ~DashboardPanel() override = default;
+    /// @brief Destructor: the auto-load checkbox no longer follows its setting
+    ~DashboardPanel() override;
 
 signals:
     /// @brief Emitted when user wants to open a recent book
@@ -180,6 +180,7 @@ private:
     // Footer
     QCheckBox* m_autoLoadCheckbox;     ///< Auto-load last project checkbox
     QLabel* m_autoLoadLabel = nullptr;  ///< Its text, which wraps (a QCheckBox cannot)
+    int m_autoLoadSubscription = -1;    ///< The checkbox following its setting (SettingsManager)
 
     // Cached recent file cards for click handling
     std::vector<std::pair<QWidget*, QString>> m_fileCards;  ///< Card widget -> file path
