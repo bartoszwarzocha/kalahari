@@ -58,6 +58,10 @@ public:
     /// @return Current file path
     QString filePath() const { return m_filePath; }
 
+    /// @brief Whether a book is open: without one the file can go into none, so the button is
+    /// greyed out and its tooltip says why
+    void setBookOpen(bool open);
+
 signals:
     /// @brief Emitted when the "Add to Book" button is clicked
     void addToProjectClicked();

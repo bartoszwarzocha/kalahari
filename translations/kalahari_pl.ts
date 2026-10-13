@@ -7247,6 +7247,10 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Add to Book</source>
         <translation>Dodaj do książki</translation>
     </message>
+    <message>
+        <source>No book is open</source>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::StatusBarStatistics</name>

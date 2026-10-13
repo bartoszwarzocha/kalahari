@@ -1095,7 +1095,7 @@ void DocumentCoordinator::updateStandaloneInfoBar() {
             tr("This file is not part of a book. Some features are not available."));
     }
     // Without a book, Add to Book could only say that one must be opened first
-    m_standaloneInfoBar->setActionEnabled(bookOpen);
+    m_standaloneInfoBar->setBookOpen(bookOpen);
     m_standaloneInfoBar->show();
 }
 

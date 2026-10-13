@@ -7,6 +7,7 @@
 
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPalette>
 #include <QPushButton>
 #include <QToolButton>
 
@@ -109,15 +110,32 @@ void InfoBar::updateStyling()
     m_messageLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; }")
                                       .arg(theme.palette.windowText.name()));
 
+    // Greyed out as the theme greys out every button (Theme::Palette::toQPalette): the style
+    // sheet takes the place of the palette, and without its own colors a disabled button
+    // looked the same as one that can be clicked
+    const QPalette palette = theme.palette.toQPalette();
+    const auto disabled = [&palette](QPalette::ColorRole role) {
+        const QColor color = palette.color(QPalette::Disabled, role);
+        return QString("rgba(%1, %2, %3, %4)")
+            .arg(color.red())
+            .arg(color.green())
+            .arg(color.blue())
+            .arg(color.alpha());
+    };
     m_actionButton->setStyleSheet(QString("QPushButton { background-color: %1; color: %2; "
                                           "border: 1px solid %3; border-radius: 3px; "
                                           "padding: 4px 12px; } "
                                           "QPushButton:hover { background-color: %4; } "
-                                          "QPushButton:pressed { background-color: %5; }")
+                                          "QPushButton:pressed { background-color: %5; } "
+                                          "QPushButton:disabled { background-color: %6; "
+                                          "color: %7; border-color: %8; }")
                                       .arg(theme.palette.button.name(),
                                            theme.palette.buttonText.name(),
                                            theme.palette.mid.name(), theme.palette.light.name(),
-                                           theme.palette.mid.name()));
+                                           theme.palette.mid.name())
+                                      .arg(disabled(QPalette::Button),
+                                           disabled(QPalette::ButtonText),
+                                           disabled(QPalette::Mid)));
 }
 
 void InfoBar::updateIcons()

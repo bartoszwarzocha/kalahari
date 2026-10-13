@@ -7,6 +7,7 @@
 #include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 
+#include <QImage>
 #include <QLayoutItem>
 #include <QLineEdit>
 #include <QPushButton>
@@ -181,4 +182,26 @@ TEST_CASE("Info bar: a file outside the book offers to add it", "[gui][widgets]"
     REQUIRE(action->isVisibleTo(&bar));
     action->click();
     CHECK(requests == 1);
+}
+
+TEST_CASE("Info bar: without a book its button is greyed out and says why", "[gui][widgets]") {
+    StandaloneInfoBar bar;
+    bar.setFilePath(QStringLiteral("/notes/notes.txt"));
+    auto* action = bar.findChild<QPushButton*>();
+    REQUIRE(action != nullptr);
+    CHECK(action->isEnabled());
+    CHECK(action->toolTip() == QStringLiteral("Add the file to the open book as a new element"));
+    const QImage clickable = action->grab().toImage();
+
+    // The bar's style sheet draws the button: greyed out, it looked the same as before
+    // (round 3 walk-through)
+    bar.setBookOpen(false);
+    CHECK_FALSE(action->isEnabled());
+    CHECK(action->toolTip() == QStringLiteral("No book is open"));
+    CHECK(action->grab().toImage() != clickable);
+
+    bar.setBookOpen(true);
+    CHECK(action->isEnabled());
+    CHECK(action->toolTip() == QStringLiteral("Add the file to the open book as a new element"));
+    CHECK(action->grab().toImage() == clickable);
 }
