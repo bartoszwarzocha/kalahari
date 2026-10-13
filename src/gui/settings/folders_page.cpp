@@ -46,7 +46,7 @@ FoldersPage::FoldersPage(QWidget* parent)
                          "last, until this setting changes."));
 
     QFormLayout* backups = addGroup(tr("Database Backups"));
-    m_inEachBook = new QRadioButton(tr("In the folder of each book (its .backups folder)"));
+    m_inEachBook = new QRadioButton(tr("In the .backups folder of each book"));
     m_inEachBook->setObjectName(QStringLiteral("backupsInEachBook"));
     m_inOneFolder = new QRadioButton(tr("In one folder for all books:"));
     m_inOneFolder->setObjectName(QStringLiteral("backupsInOneFolder"));

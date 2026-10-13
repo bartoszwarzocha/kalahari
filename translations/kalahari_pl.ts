@@ -4635,8 +4635,8 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Kopie zapasowe bazy</translation>
     </message>
     <message>
-        <source>In the folder of each book (its .backups folder)</source>
-        <translation>W folderze każdej książki (w jej podfolderze .backups)</translation>
+        <source>In the .backups folder of each book</source>
+        <translation>W podfolderze .backups każdej książki</translation>
     </message>
     <message>
         <source>In one folder for all books:</source>

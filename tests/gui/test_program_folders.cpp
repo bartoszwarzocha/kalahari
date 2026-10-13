@@ -7,6 +7,7 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
+#include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/gui/widgets/folder_field.h"
@@ -19,10 +20,12 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QScrollArea>
 #include <QSpinBox>
 #include <QTemporaryDir>
 #include <QTemporaryFile>
 #include <QTimer>
+#include <QTranslator>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
@@ -113,6 +116,45 @@ QPushButton* buttonOf(const gui::FolderField& field, const QString& text) {
     }
     return nullptr;
 }
+
+/// @brief How much wider than its place page Files > Folders is in the narrowest Settings
+/// window; @p category and @p title name the page in the language of the program
+int foldersPageOverflow(const QString& category, const QString& title) {
+    gui::SettingsDialog dialog(nullptr);
+    dialog.resize(dialog.minimumSize());
+    dialog.show();
+    openPage(dialog, category, title);
+    QApplication::processEvents();
+
+    auto* page = dialog.findChild<gui::FoldersPage*>();
+    REQUIRE(page != nullptr);
+    auto* scrollArea = qobject_cast<QScrollArea*>(page->parentWidget()->parentWidget());
+    REQUIRE(scrollArea != nullptr);
+    REQUIRE(scrollArea->widget() == page);
+    INFO(title.toStdString() << ": " << page->minimumSizeHint().width() << " px wide, "
+                             << scrollArea->viewport()->width() << " px of place");
+    return page->minimumSizeHint().width() - scrollArea->viewport()->width();
+}
+
+/// @brief The program in Polish while it lives, with the translation it ships
+class PolishTranslation {
+public:
+    PolishTranslation() {
+        m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
+        if (m_loaded) {
+            QCoreApplication::installTranslator(&m_translator);
+        }
+    }
+    ~PolishTranslation() { QCoreApplication::removeTranslator(&m_translator); }
+    PolishTranslation(const PolishTranslation&) = delete;
+    PolishTranslation& operator=(const PolishTranslation&) = delete;
+
+    [[nodiscard]] bool loaded() const { return m_loaded; }
+
+private:
+    QTranslator m_translator;
+    bool m_loaded = false;
+};
 
 /// @brief The folder field of the New Book window
 QLineEdit* locationOf(const gui::dialogs::NewItemDialog& dialog) {
@@ -482,6 +524,18 @@ TEST_CASE("Folders page: a folder the program cannot use now stays until it is c
     CHECK(messageOf([&dialog, &written]() { written = dialog.applyChanges(); }).isEmpty());
     CHECK(written == QStringList{QStringLiteral("project.backupCount")});
     CHECK(setting(ProgramFolders::BOOKS_SETTING) == blocked.toStdString());
+}
+
+TEST_CASE("Folders page: fits the narrowest Settings window, in English and in Polish",
+          "[gui][settings][folders]") {
+    // Regression: the option of the backups in the folder of each book is one line, and in
+    // the narrowest window it made the page wider than its place (in Polish 377 px of 348 px),
+    // so the page scrolled sideways
+    CHECK(foldersPageOverflow(QStringLiteral("Files"), QStringLiteral("Folders")) <= 0);
+
+    PolishTranslation polish;
+    REQUIRE(polish.loaded());
+    CHECK(foldersPageOverflow(QStringLiteral("Pliki"), QStringLiteral("Foldery")) <= 0);
 }
 
 TEST_CASE("New Book: the book starts in the folder the last book was created in",
