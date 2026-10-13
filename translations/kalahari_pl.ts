@@ -3342,12 +3342,20 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>P&amp;okaż postęp</translation>
     </message>
     <message>
-        <source>On this comp&amp;uter (recommended) - the text does not leave the computer</source>
-        <translation>Na tym &amp;komputerze (zalecane) – tekst nie opuszcza komputera</translation>
+        <source>On this comp&amp;uter (recommended)</source>
+        <translation>Na tym &amp;komputerze (zalecane)</translation>
     </message>
     <message>
-        <source>On a server in the &amp;internet - the text is sent through the internet</source>
-        <translation>Na serwerze w &amp;internecie – tekst jest wysyłany przez internet</translation>
+        <source>On a server in the &amp;internet</source>
+        <translation>Na serwerze w &amp;internecie</translation>
+    </message>
+    <message>
+        <source>The text of the book does not leave the computer.</source>
+        <translation>Tekst książki nie opuszcza komputera.</translation>
+    </message>
+    <message>
+        <source>The text is sent through the internet.</source>
+        <translation>Tekst jest wysyłany przez internet.</translation>
     </message>
     <message>
         <source>Where to check:</source>
@@ -3478,8 +3486,12 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Por&amp;t:</translation>
     </message>
     <message>
-        <source>Co&amp;nnect to a server started outside the program (the program does not start or close it)</source>
-        <translation>Łą&amp;cz z serwerem uruchomionym poza programem (program go nie uruchamia ani nie zamyka)</translation>
+        <source>Co&amp;nnect to a server started outside the program</source>
+        <translation>Łą&amp;cz z serwerem uruchomionym poza programem</translation>
+    </message>
+    <message>
+        <source>The program does not start or close such a server.</source>
+        <translation>Program nie uruchamia ani nie zamyka takiego serwera.</translation>
     </message>
     <message>
         <source>Chec&amp;k</source>

@@ -13,6 +13,7 @@
 #include "kalahari/gui/language_tool_server.h"
 #include "kalahari/gui/spelling_coordinator.h"
 
+#include <QAbstractButton>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
@@ -26,13 +27,13 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
-#include <QLocale>
 #include <QMap>
 #include <QMetaObject>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSpinBox>
+#include <QStyle>
 #include <QToolButton>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -56,9 +57,17 @@ constexpr int RULE_ROWS = 6;  ///< The rows the list of the rules shows
 constexpr const char* TEMURIN_PAGE = "https://adoptium.net/temurin/releases/";
 constexpr const char* LANGUAGE_TOOL_PAGE = "https://languagetool.org/download/";
 
-/// @brief A size as people read it: 450 MB
-QString sizeText(qint64 bytes) {
-    return QLocale().formattedDataSize(bytes, 0, QLocale::DataSizeSIFormat);
+/// @brief Put a note under a check box or a radio button in line with its text
+void alignWithText(QLabel* note, const QAbstractButton* button) {
+    const QStyle* style = button->style();
+    const bool radio = qobject_cast<const QRadioButton*>(button) != nullptr;
+    const int indicator =
+        style->pixelMetric(radio ? QStyle::PM_ExclusiveIndicatorWidth : QStyle::PM_IndicatorWidth,
+                           nullptr, button);
+    const int spacing = style->pixelMetric(
+        radio ? QStyle::PM_RadioButtonLabelSpacing : QStyle::PM_CheckBoxLabelSpacing, nullptr,
+        button);
+    note->setContentsMargins(indicator + spacing, 0, 0, 0);
 }
 
 /// @brief A label of plain text that wraps
@@ -228,15 +237,16 @@ void EditorGrammarPage::createChecking() {
     connect(m_showProgress, &QPushButton::clicked, this, &EditorGrammarPage::prepare);
 
     // Where the text is checked
-    m_local = new QRadioButton(
-        tr("On this comp&uter (recommended) - the text does not leave the computer"));
-    m_remote = new QRadioButton(
-        tr("On a server in the &internet - the text is sent through the internet"));
+    m_local = new QRadioButton(tr("On this comp&uter (recommended)"));
+    m_remote = new QRadioButton(tr("On a server in the &internet"));
     auto* where = new QWidget();
     auto* whereLayout = new QVBoxLayout(where);
     whereLayout->setContentsMargins(0, 0, 0, 0);
     whereLayout->addWidget(m_local);
+    alignWithText(addNote(whereLayout, tr("The text of the book does not leave the computer.")),
+                  m_local);
     whereLayout->addWidget(m_remote);
+    alignWithText(addNote(whereLayout, tr("The text is sent through the internet.")), m_remote);
     auto* whereLabel = new QLabel(tr("Where to check:"));
     whereLabel->setBuddy(m_local);
     form->addRow(whereLabel, where);
@@ -514,11 +524,11 @@ void EditorGrammarPage::createAdvanced() {
     m_portBinding = &lastBinding();
     connect(m_port, qOverload<int>(&QSpinBox::valueChanged), this,
             &EditorGrammarPage::updateServerState);
-    m_external = addCheckBox(form,
-                             tr("Co&nnect to a server started outside the program (the program "
-                                "does not start or close it)"),
+    m_external = addCheckBox(form, tr("Co&nnect to a server started outside the program"),
                              GrammarCoordinator::EXTERNAL_KEY);
     m_externalBinding = &lastBinding();
+    alignWithText(addNote(form, tr("The program does not start or close such a server.")),
+                  m_external);
     connect(m_external, &QCheckBox::toggled, this, [this]() {
         updateCard();
         updateServerState();
@@ -621,7 +631,8 @@ void EditorGrammarPage::updateCard() {
                    .arg(GrammarComponents::downloadSizeText());
         if (GrammarComponents::javaDownloaded() && !GrammarComponents::languageToolDownloaded()) {
             note = tr("Java is downloaded already - LanguageTool is left to download (%1).")
-                       .arg(sizeText(GrammarComponents::LANGUAGE_TOOL_DOWNLOAD_BYTES));
+                       .arg(GrammarComponents::sizeText(
+                           GrammarComponents::LANGUAGE_TOOL_DOWNLOAD_BYTES));
         }
         break;
     case Card::Missing:
@@ -805,7 +816,7 @@ void EditorGrammarPage::updateRemoveRow() {
     if (downloaded) {
         m_removeNote->setText(
             tr("Removes Java and LanguageTool downloaded by the program (about %1).")
-                .arg(sizeText(GrammarComponents::downloadedBytes())));
+                .arg(GrammarComponents::sizeText(GrammarComponents::downloadedBytes())));
     }
 }
 
@@ -867,7 +878,10 @@ void EditorGrammarPage::askForRemote() {
     dialog.exec();
     if (dialog.answer() != dialogs::MessageDialog::Answer::Accept) {
         setRemoteWithoutAsking(false);
+        return;
     }
+    // Chosen to be checked there: the checking is turned on with it
+    m_enabled->setChecked(true);
 }
 
 void EditorGrammarPage::checkRemote() {
@@ -929,7 +943,7 @@ void EditorGrammarPage::removeDownloaded() {
         tr("Java and LanguageTool downloaded by the program will be removed from this computer "
            "(about %1). Grammar checking on this computer stops working until you prepare it "
            "again. Spelling goes on working.")
-            .arg(sizeText(GrammarComponents::downloadedBytes())),
+            .arg(GrammarComponents::sizeText(GrammarComponents::downloadedBytes())),
         this);
     dialog.setWindowTitle(tr("Grammar"));
     dialog.setQuestionButtons(tr("&Remove"));

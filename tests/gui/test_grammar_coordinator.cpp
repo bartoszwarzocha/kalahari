@@ -881,10 +881,11 @@ TEST_CASE("Grammar settings: the text goes to a server in the internet only afte
           "[gui][grammar][settings]") {
     KeptGrammarSettings kept;
     TemporaryGrammarFolder folder;
-    setLocal();
+    setLocal(false);
     EditorGrammarPage page;
     page.load();
     REQUIRE(page.localButton()->isChecked());
+    REQUIRE_FALSE(page.enabledBox()->isChecked());
 
     // Cancel: back to this computer
     QString question;
@@ -916,8 +917,11 @@ TEST_CASE("Grammar settings: the text goes to a server in the internet only afte
     runEventLoop(50);
     CHECK(page.remoteButton()->isChecked());
     CHECK(page.card() == EditorGrammarPage::Card::Remote);
+    // Chosen to be checked there: the checking is turned on with it
+    CHECK(page.enabledBox()->isChecked());
     page.apply();
     CHECK(textSetting(GrammarCoordinator::MODE_KEY) == GrammarCoordinator::REMOTE_MODE);
+    CHECK(KeptGrammarSettings::settings().get<bool>(GrammarCoordinator::ENABLED_KEY, false));
 
     // Agreed before: not asked again
     EditorGrammarPage again;

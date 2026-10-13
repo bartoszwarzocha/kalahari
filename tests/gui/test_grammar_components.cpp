@@ -129,6 +129,8 @@ TEST_CASE("Grammar components: the LanguageTool the program downloads", "[gui][g
     CHECK(languageTool.sha256.size() == 64);
     CHECK(languageTool.size == GrammarComponents::LANGUAGE_TOOL_DOWNLOAD_BYTES);
     CHECK(GrammarComponents::downloadSizeText().contains(QStringLiteral("300")));
+    // The number and its unit stay on one line
+    CHECK_FALSE(GrammarComponents::downloadSizeText().contains(QLatin1Char(' ')));
 }
 
 TEST_CASE("Grammar components: what a Java and a LanguageTool folder are", "[gui][grammar]") {
@@ -201,6 +203,9 @@ TEST_CASE("Grammar components: the files downloaded, in a folder of the program,
     CHECK_FALSE(GrammarComponents::languageToolDownloaded());
     CHECK(GrammarComponents::downloadedJava().isEmpty());
     CHECK(GrammarComponents::downloadedBytes() == 0);
+    // A download that did not start leaves its folder empty: nothing to remove
+    REQUIRE(QDir().mkpath(folder.filePath(QStringLiteral("downloads"))));
+    CHECK_FALSE(GrammarComponents::anythingDownloaded());
     CHECK(GrammarComponents::removeDownloaded());
 
     // The files downloaded, waiting to be unpacked

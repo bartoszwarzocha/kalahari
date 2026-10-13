@@ -256,7 +256,7 @@ TEST_CASE("Grammar setup window: what is downloaded, then the steps, in the back
     CHECK(dialog.windowTitle() == QStringLiteral("Preparing Grammar Checking"));
     CHECK(dialog.acceptButton()->text() == QStringLiteral("&Download and Prepare"));
     CHECK(dialog.acceptButton()->isEnabled());
-    CHECK(shows(dialog, QStringLiteral("about 300 MB")));
+    CHECK(shows(dialog, QStringLiteral("about %1").arg(GrammarComponents::sizeText(300'000'000))));
     CHECK(shows(dialog, QStringLiteral("LanguageTool 6.6")));
 
     // Started: the steps as they go

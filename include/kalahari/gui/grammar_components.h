@@ -101,11 +101,14 @@ public:
     /// @brief The folder the files are downloaded into, in folder()
     static QString archiveFolder();
 
-    /// @brief Whether anything the program downloaded is in folder()
+    /// @brief Whether anything the program downloaded is in folder() (empty folders are not)
     static bool anythingDownloaded();
 
     /// @brief How much what the program downloaded takes on the disk (bytes)
     static qint64 downloadedBytes();
+
+    /// @brief A size as people read it, never split between lines: 450 MB
+    static QString sizeText(qint64 bytes);
 
     /// @brief About how much the program downloads, as people read it: 300 MB (to tens of
     ///        megabytes)

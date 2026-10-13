@@ -175,11 +175,8 @@ bool GrammarComponents::javaDownloaded() {
 }
 
 bool GrammarComponents::anythingDownloaded() {
-    const QDir downloads(folder());
-    if (!downloads.exists()) {
-        return false;
-    }
-    return !downloads.entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden).isEmpty();
+    // Folders left empty by a download that did not start hold nothing to remove
+    return downloadedBytes() > 0;
 }
 
 qint64 GrammarComponents::downloadedBytes() {
@@ -193,10 +190,16 @@ qint64 GrammarComponents::downloadedBytes() {
     return bytes;
 }
 
+QString GrammarComponents::sizeText(qint64 bytes) {
+    return QLocale()
+        .formattedDataSize(bytes, 0, QLocale::DataSizeSIFormat)
+        .replace(QLatin1Char(' '), QChar(QChar::Nbsp));
+}
+
 QString GrammarComponents::downloadSizeText() {
     const qint64 total = LANGUAGE_TOOL_DOWNLOAD_BYTES + JAVA_DOWNLOAD_BYTES;
     const qint64 rounded = (total + DOWNLOAD_ROUNDING / 2) / DOWNLOAD_ROUNDING * DOWNLOAD_ROUNDING;
-    return QLocale().formattedDataSize(rounded, 0, QLocale::DataSizeSIFormat);
+    return sizeText(rounded);
 }
 
 bool GrammarComponents::removeDownloaded() {

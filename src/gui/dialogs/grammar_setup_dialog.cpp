@@ -19,7 +19,6 @@
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QLabel>
-#include <QLocale>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPlainTextEdit>
@@ -49,11 +48,6 @@ constexpr int WAVE_WIDTH = 26;        ///< The underlines of the legend
 constexpr int WAVE_HEIGHT = 8;
 constexpr qint64 MEGABYTE = 1'000'000;
 constexpr qint64 TOTAL_ROUNDING = 10'000'000;  ///< "About 300 MB": to tens of megabytes
-
-/// @brief A size as people read it: 450 MB, 112 GB
-QString sizeText(qint64 bytes) {
-    return QLocale().formattedDataSize(bytes, 0, QLocale::DataSizeSIFormat);
-}
 
 /// @brief Megabytes, rounded
 qint64 megabytes(qint64 bytes) {
@@ -466,31 +460,33 @@ void GrammarSetupDialog::updatePlan() {
     const qint64 javaBytes = javaThere ? 0 : GrammarComponents::JAVA_DOWNLOAD_BYTES;
     const qint64 languageToolBytes =
         languageToolThere ? 0 : GrammarComponents::LANGUAGE_TOOL_DOWNLOAD_BYTES;
-    m_javaSize->setText(javaThere ? tr("downloaded already", "Java") : sizeText(javaBytes));
-    m_languageToolSize->setText(languageToolThere ? tr("downloaded already", "LanguageTool")
-                                                  : sizeText(languageToolBytes));
+    m_javaSize->setText(javaThere ? tr("downloaded already", "Java")
+                                  : GrammarComponents::sizeText(javaBytes));
+    m_languageToolSize->setText(languageToolThere
+                                    ? tr("downloaded already", "LanguageTool")
+                                    : GrammarComponents::sizeText(languageToolBytes));
     const qint64 total = javaBytes + languageToolBytes;
     if (total == 0) {
         m_totalSize->setText(tr("nothing"));
     } else if (javaBytes > 0 && languageToolBytes > 0) {
         const qint64 rounded = (total + TOTAL_ROUNDING / 2) / TOTAL_ROUNDING * TOTAL_ROUNDING;
-        m_totalSize->setText(tr("about %1").arg(sizeText(rounded)));
+        m_totalSize->setText(tr("about %1").arg(GrammarComponents::sizeText(rounded)));
     } else {
-        m_totalSize->setText(sizeText(total));
+        m_totalSize->setText(GrammarComponents::sizeText(total));
     }
 
     // Room for the components and the file of LanguageTool while it is unpacked
     const qint64 free = GrammarSetup::freeBytes();
     const bool room = free >= GrammarComponents::NEEDED_FREE_BYTES;
     const QString disk = GrammarSetup::disk();
+    const QString needed = GrammarComponents::sizeText(GrammarComponents::INSTALLED_BYTES);
+    const QString freeText = GrammarComponents::sizeText(free);
     m_room->setText(room ? tr("There is enough room on the disk %1: the components take about "
                               "%2 (free: %3).")
-                               .arg(disk, sizeText(GrammarComponents::INSTALLED_BYTES),
-                                    sizeText(free))
+                               .arg(disk, needed, freeText)
                          : tr("There is not enough room on the disk %1: the components take "
                               "about %2, and %3 is free. Free some room and click Check Again.")
-                               .arg(disk, sizeText(GrammarComponents::INSTALLED_BYTES),
-                                    sizeText(free)));
+                               .arg(disk, needed, freeText));
     setIcon(m_roomIcon, room ? QStringLiteral("common.check") : QStringLiteral("common.warning"));
     m_checkAgainButton->setVisible(!room);
 
@@ -612,7 +608,8 @@ QString GrammarSetupDialog::message() const {
     case GrammarSetup::Failure::NoRoom:
         return tr("There is not enough room on the disk %1. Free about %2 and click Try "
                   "Again.")
-            .arg(GrammarSetup::disk(), sizeText(GrammarComponents::INSTALLED_BYTES));
+            .arg(GrammarSetup::disk(),
+                 GrammarComponents::sizeText(GrammarComponents::INSTALLED_BYTES));
     case GrammarSetup::Failure::NoFolder:
         return tr("The program cannot write in the folder %1. Check the permissions of the "
                   "folder, or install the components yourself and choose them in the "
