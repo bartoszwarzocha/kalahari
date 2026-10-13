@@ -230,12 +230,14 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_documentCoordinator, &DocumentCoordinator::windowTitleChanged,
             this, &MainWindow::setWindowTitle);
     // A file outside the book opened from the Navigator gets the keys, as a chapter does
-    // (connected after the coordinator, which opens it)
+    // (connected after the coordinator, which opens it); a new file, not saved yet, is
+    // listed by its key
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::standaloneFileSelected, this,
             [this](const QString& path) {
                 const EditorPanel* editor = getCurrentEditor();
                 if (editor != nullptr
-                    && editor->property("standaloneFilePath").toString() == path) {
+                    && (editor->property("standaloneFilePath").toString() == path
+                        || editor->property("newFileKey").toString() == path)) {
                     focusCurrentText();
                 }
             });

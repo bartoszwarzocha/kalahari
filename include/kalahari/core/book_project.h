@@ -31,7 +31,10 @@
 ///               "file": "book/chapter_001.kchapter", "status": "revision" }
 ///           ] }
 ///       ],
-///       "back": []
+///       "back": [],
+///       "files": [
+///         { "id": "e5", "title": "Notatki", "file": "book/file_001.kchapter" }
+///       ]
 ///     }
 ///   ],
 ///   "workshop": {
@@ -48,8 +51,8 @@
 /// - "kinds": kinds taken from other types; in a user project, all its kinds.
 /// - A book has its data (title, author, language, genre), the name of its node ("name";
 ///   none: "Book" in the user's language), whether the Navigator shows its front, main and back
-///   parts ("partsLayer"), the names of these parts ("sections"), the folder of its files and
-///   the elements of each part.
+///   parts ("partsLayer"), the names of these parts ("sections"), the folder of its files, the
+///   elements of each part and its files outside its text ("files").
 /// - "sections" is the id of a set of names in the language of the book ("sections": Front
 ///   Section, Main Section, Back Section; "matter": Front Matter, Body, Back Matter;
 ///   "fragments"; "arc"), or the writer's own names:
@@ -60,6 +63,9 @@
 ///   project folder (if it has one), a status ("draft", "revision" or "final"; groups have
 ///   none) and the elements inside it (groups). The order and nesting of elements are saved
 ///   only here, not in folders.
+/// - A file of a book outside its text, such as notes or a text pasted from elsewhere, has an
+///   id unique in the project, a title and a chapter file, but no kind and no status; the
+///   finished book does not have it. A book without such files has no "files".
 /// - Fields this version of Kalahari does not know are kept and saved back.
 
 #pragma once
@@ -84,6 +90,10 @@ struct ProjectElement {
     QString status;                  ///< "draft", "revision" or "final"; empty: none (groups)
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QJsonObject extra;               ///< Fields this version does not know, saved back
+
+    /// @brief Whether it has a kind: every element of a book and of the Workshop has one, a
+    /// file of a book outside its text (ProjectBook::files) has none
+    bool hasKind() const { return !kind.kindId.isEmpty(); }
 
     /// Not defaulted: a defaulted == would depend on the == of QList<ProjectElement>, which
     /// depends on it, so the compiler would delete it
@@ -145,6 +155,9 @@ struct ProjectBook {
     QList<ProjectElement> frontElements;  ///< Elements of the front part, in reading order
     QList<ProjectElement> mainElements;   ///< Elements of the main part, in reading order
     QList<ProjectElement> backElements;   ///< Elements of the back part, in reading order
+    /// Files of the book outside its text, in the order they were added: empty text files
+    /// that the writer keeps with the book. They have no kind and no status.
+    QList<ProjectElement> files;
     QJsonObject extra;                    ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectBook&) const = default;
@@ -224,11 +237,16 @@ struct BookProject {
     /// @brief Elements of book @p book in reading order, each group before the elements inside it
     QList<const ProjectElement*> readingOrder(qsizetype book = 0) const;
 
-    /// @brief Element @p elementId of a book or of the Workshop, or nullptr
+    /// @brief Element @p elementId of a book or of the Workshop, or a file of a book outside
+    /// its text, or nullptr
     ProjectElement* findElement(const QString& elementId);
     const ProjectElement* findElement(const QString& elementId) const;
 
-    /// @brief List that holds element @p elementId: a part of a book, a group or the Workshop
+    /// @brief Whether @p elementId is a file of a book outside its text (ProjectBook::files)
+    bool isBookFile(const QString& elementId) const;
+
+    /// @brief List that holds element @p elementId: a part of a book, a group, the Workshop or
+    /// the files of a book outside its text
     /// @param index Gets the index of the element in the list
     /// @return The list, or nullptr when the project has no element @p elementId
     QList<ProjectElement>* listOf(const QString& elementId, qsizetype* index = nullptr);
@@ -236,7 +254,7 @@ struct BookProject {
                                         qsizetype* index = nullptr) const;
 
     /// @brief Place of element @p elementId in its book or in the Workshop, or nullopt when the
-    /// project has no such element
+    /// project has no such element; a file of a book outside its text has none
     std::optional<ElementPlace> placeOf(const QString& elementId) const;
 
     /// @brief Take element @p elementId, with the elements inside it, out of the project
@@ -253,7 +271,8 @@ struct BookProject {
     /// places of the Workshop. A place is in the project without the element: its index is
     /// the one the element gets in its new list, so the place the element has now is one of
     /// them. An element whose kind @p registry does not have moves only within its list.
-    /// @return The places; empty when the project has no element @p elementId
+    /// @return The places; empty when the project has no element @p elementId, and for a file
+    ///         of a book outside its text
     QList<ElementPlace> movePlacesOf(const BookTypeRegistry& registry,
                                      const QString& elementId) const;
 
@@ -263,10 +282,12 @@ struct BookProject {
     bool moveElementTo(const BookTypeRegistry& registry, const QString& elementId,
                        const ElementPlace& to);
 
-    /// @brief Whether an element of the project has the file @p file
+    /// @brief Whether an element of the project, or a file of a book outside its text, has the
+    /// file @p file
     bool hasFile(const QString& file) const;
 
-    /// @brief A new id that no element of the project has
+    /// @brief A new id that no element of the project, and no file of a book outside its text,
+    /// has
     QString newElementId() const;
 
     /// @brief Kinds the project offers in @p place: those of its type, then those it took

@@ -351,6 +351,10 @@ public:
     /// that addElement() gives it
     QString newChapterFile(const KindRef& kind, BookPlace place) const;
 
+    /// @brief A free chapter file for a new file of the book outside its text, relative to the
+    /// project: <book folder>/file_001.kchapter; the file that addBookFile() gives it
+    QString newBookFile() const;
+
     // =========================================================================
     // Elements
     // =========================================================================
@@ -384,6 +388,17 @@ public:
                        const QString& groupId = QString(), qsizetype index = -1,
                        const QStringList& takeInside = {},
                        const std::optional<QString>& text = std::nullopt);
+
+    /// @brief Whether @p elementId is a file of the book outside its text (ProjectBook::files)
+    bool isBookFile(const QString& elementId) const;
+
+    /// @brief Add an empty text file with @p title to the files of the book outside its text
+    ///
+    /// The file, such as notes or a text pasted from elsewhere, gets a chapter file of its own
+    /// in the book's folder (newBookFile()), but no kind and no status: it is not an element of
+    /// the text, and the finished book does not have it. Saves the .klh file.
+    /// @return The new file's id; empty when no project is open or a file cannot be written
+    QString addBookFile(const QString& title);
 
     /// @brief Place in @p elements that a new element of @p kind takes when the writer does not
     /// choose it
@@ -506,7 +521,8 @@ public:
 
     /// @brief Set the status of a text element ("draft", "revision" or "final")
     ///
-    /// Saves the .klh file and writes the status to the element's chapter file.
+    /// Saves the .klh file and writes the status to the element's chapter file. A file of the
+    /// book outside its text has no status.
     bool setStatus(const QString& elementId, const QString& status);
 
     /// @brief Notes of a text element, from its chapter file

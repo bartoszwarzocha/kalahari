@@ -294,11 +294,14 @@ private:
     QLabel* m_projectRevisionCountLabel;
     QLabel* m_projectFinalCountLabel;
 
-    // Chapter Page widgets: a text element of any kind
+    // Chapter Page widgets: a text element of any kind, or a file of the book outside its
+    // text, which has only its title and its words
     QGroupBox* m_chapterInfoGroup;  ///< "Chapter Information", "Story Information"
+    QFormLayout* m_chapterInfoLayout;  ///< Rows of the element's information
     QLineEdit* m_chapterTitleEdit;
     QLabel* m_chapterWordCountLabel;
     QComboBox* m_chapterStatusCombo;
+    QGroupBox* m_chapterNotesGroup;
     QTextEdit* m_chapterNotesEdit;
 
     // Section Page widgets

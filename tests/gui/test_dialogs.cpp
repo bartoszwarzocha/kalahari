@@ -1277,6 +1277,38 @@ TEST_CASE("Delete from Book: what goes, named after its kind, and where its file
                                      "restore it from the {bin}, but not from the program.")));
     }
 
+    SECTION("A file of the book outside its text is named as a file, not as the file of an "
+            "element") {
+        ProjectElement notes;
+        notes.id = QStringLiteral("f1");
+        notes.title = QStringLiteral("Notes");
+        notes.file = QStringLiteral("stories/file_001.kchapter");
+        content.element = notes;
+        content.files = {pathOf(notes.file)};
+        DeleteFromBookDialog dialog(content, builtInTypes());
+        CHECK(dialog.clipboardText().startsWith(
+            QStringLiteral("Delete from Book\n\nDelete the file \"Notes\" from the book?\n\n"
+                           "Notes – file_001.kchapter\n\nThe file stays in the book's folder. "
+                           "You will find it in the Navigator, under \"Unassigned Files\"")));
+        CHECK(dialog.deleteFilesBox()->text() ==
+              withBin(QStringLiteral(
+                  "&Also delete the file from the book's folder – it goes to the {bin}")));
+        dialog.deleteFilesBox()->setChecked(true);
+        CHECK(dialog.filesNote()->text() ==
+              withBin(QStringLiteral("The file goes to the system's {bin}. You can restore it "
+                                     "from the {bin}, but not from the program.")));
+
+        content.trash = false;
+        DeleteFromBookDialog withoutTrash(content, builtInTypes());
+        CHECK(withoutTrash.deleteFilesBox()->text() ==
+              QStringLiteral(
+                  "&Also delete the file from the book's folder – it will be gone for good"));
+        withoutTrash.deleteFilesBox()->setChecked(true);
+        CHECK(withoutTrash.filesNote()->text() ==
+              withBin(QStringLiteral("The file will be gone for good: files in this folder "
+                                     "cannot go to the {bin}.")));
+    }
+
     SECTION("Elements of different kinds are elements") {
         content.element.elements.append(storiesElement(QStringLiteral("contributors"),
                                                        QStringLiteral("notes"),

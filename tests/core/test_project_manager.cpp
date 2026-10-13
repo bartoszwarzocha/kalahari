@@ -1721,6 +1721,72 @@ TEST_CASE("ProjectManager lists the chapter files that no element has", "[projec
         pm.listsAsUnassigned(project.filePath(QStringLiteral("book/chapter_001.kchapter"))));
 }
 
+TEST_CASE("ProjectManager keeps empty text files with the book, outside its text",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Book Files", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QDir project(pm.getProjectPath());
+    CHECK(pm.newBookFile() == "book/file_001.kchapter");
+    const std::size_t incomplete = pm.getIncompleteElements().size();
+
+    // A new file gets a chapter file of its own in the book's folder, but no kind and no
+    // status; a file that no element names is not taken
+    writeFile(project.filePath("book/file_001.kchapter"), "");
+    const QString notes = pm.addBookFile("Notes");
+    REQUIRE_FALSE(notes.isEmpty());
+    const ProjectElement* file = pm.findElement(notes);
+    REQUIRE(file != nullptr);
+    CHECK(file->file == "book/file_002.kchapter");
+    CHECK(file->kind.toString().isEmpty());
+    CHECK(file->status.isEmpty());
+    CHECK(pm.isBookFile(notes));
+    CHECK(pm.formOf(*file) == ElementForm::Text);
+    CHECK(chapterFileOf(notes).title() == "Notes");
+    CHECK(chapterFileOf(notes).kml().isEmpty());
+
+    // It is not an element of the text of the book: it has no place there and no status
+    const QList<const ProjectElement*> text = pm.project()->readingOrder();
+    CHECK(std::none_of(text.cbegin(), text.cend(),
+                       [&notes](const ProjectElement* element) { return element->id == notes; }));
+    CHECK(pm.movePlacesOf(notes).isEmpty());
+    CHECK_FALSE(pm.setStatus(notes, "final"));
+    CHECK(pm.getIncompleteElements().size() == incomplete);
+
+    // Its text is saved and its words are counted
+    pm.setChapterContent(notes, kmlWith("Three short words"));
+    CHECK(pm.getDirtyElements() == std::vector<QString>{notes});
+    REQUIRE(pm.saveAllDirty());
+    CHECK(pm.wordCount(notes) == 3);
+    CHECK(fileTitles(pm.unassignedFiles()) == "book/file_001.kchapter: ");
+
+    // The .klh file has it at once, with its new title
+    REQUIRE(pm.renameElement(notes, "Ideas"));
+    CHECK(chapterFileOf(notes).title() == "Ideas");
+    CHECK_FALSE(pm.isDirty());
+    const BookProject saved = savedProject(manifest);
+    REQUIRE(saved.books.first().files.size() == 1);
+    CHECK(saved.books.first().files.first().title == "Ideas");
+    REQUIRE(pm.closeProject(false));
+
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.isBookFile(notes));
+    CHECK(pm.wordCount(notes) == 3);
+    CHECK(pm.loadChapterContent(notes) == kmlWith("Three short words"));
+
+    // Removed, its file stays as a file without an element
+    REQUIRE(pm.removeElement(notes).has_value());
+    CHECK_FALSE(pm.isBookFile(notes));
+    CHECK(fileTitles(pm.unassignedFiles()) ==
+          "book/file_001.kchapter: , book/file_002.kchapter: Ideas");
+    REQUIRE(pm.closeProject(false));
+
+    // Without a book there is no file
+    CHECK(pm.newBookFile().isEmpty());
+    CHECK(pm.addBookFile("Nothing").isEmpty());
+}
+
 TEST_CASE("ProjectManager adds a chapter file that no element has to the book",
           "[project_manager]") {
     QTemporaryDir dir;

@@ -1,6 +1,6 @@
 /// @file new_file_dialog.cpp
 /// @brief New File: a new element of the open book, of the kind, with the title and at the
-/// place the writer chooses, or a plain file, outside the book or in it
+/// place the writer chooses, or an empty text file, outside the book or with it
 
 #include "kalahari/gui/dialogs/new_file_dialog.h"
 #include "kalahari/core/art_provider.h"
@@ -34,6 +34,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QScrollBar>
+#include <QStackedWidget>
 #include <QStyle>
 #include <QStyledItemDelegate>
 #include <QTimer>
@@ -57,7 +58,7 @@ constexpr int DESCRIPTION_ICON_SIZE = 64;  ///< Of the icon above the descriptio
 constexpr int NAME_POINT_SIZE = 12;        ///< Of the name of the kind above its description
 constexpr int KIND_ROLE = Qt::UserRole;          ///< Index of the kind of a tile in Book::kinds
 constexpr int HEADING_ROLE = Qt::UserRole + 1;   ///< The item names a part of the book
-constexpr int PLAIN_ROLE = Qt::UserRole + 2;     ///< The tile of a plain file
+constexpr int EMPTY_FILE_ROLE = Qt::UserRole + 2;  ///< The tile of an empty text file
 constexpr qreal TILE_WIDTH_EMS = 7.5;      ///< Room for a name of two short words in a line
 constexpr int TILE_TEXT_LINES = 2;         ///< Lines of a name the tiles have room for at least
 constexpr int MAXIMUM_TEXT_LINES = 3;      ///< Lines of the longest name the tiles make room for
@@ -70,8 +71,8 @@ constexpr int HEADING_BOTTOM = 3;          ///< Between the name of a part and i
 constexpr std::array<core::BookPlace, 3> BOOK_PLACES{core::BookPlace::Front, core::BookPlace::Main,
                                                      core::BookPlace::Back};
 
-/// The icon of a plain file, as the Navigator shows a file outside the book
-const QString PLAIN_FILE_ICON = QStringLiteral("common.file");
+/// The icon of an empty text file, as the Navigator shows a file of the book outside its text
+const QString EMPTY_FILE_ICON = QStringLiteral("common.file");
 
 /// The tiles of the kinds, with the names of the parts of the book between them: each name has
 /// a row of its own, and only the tiles that are not greyed can be chosen
@@ -355,13 +356,16 @@ NewFileDialog::Book NewFileDialog::openBook(const QString& untitled)
                 entry.file = tr("%1 in the folder \"%2\"").arg(file.fileName(), file.path());
                 if (book.current < 0 && place == core::BookPlace::Main && kind.kind == main.kind) {
                     book.current = static_cast<int>(book.kinds.size());
-                    // A plain file in the book is an element of the main text kind, as Add to
-                    // Book makes a new file
-                    book.plainKind = book.current;
                 }
             }
             book.kinds.append(entry);
         }
+    }
+
+    // An empty text file with the book goes to the files of the book outside its text
+    if (const QString path = pm.newBookFile(); !path.isEmpty()) {
+        const QFileInfo bookFile(path);
+        book.bookFile = tr("%1 in the folder \"%2\"").arg(bookFile.fileName(), bookFile.path());
     }
 
     // Without the main text kind, the first kind of which an element can be made
@@ -434,10 +438,10 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     });
     connect(m_picker, &ElementPlacePicker::placeChanged, this,
             &NewFileDialog::updateCreateButton);
-    // A plain file goes outside the book or into it
+    // An empty text file goes outside the book or with it
     connect(m_insideButton, &QRadioButton::toggled, this, [this]() {
-        if (plainChosen()) {
-            showPlainFile();
+        if (emptyFileChosen()) {
+            showEmptyFile();
         }
     });
     m_titleEdit->installEventFilter(this);
@@ -598,31 +602,43 @@ QWidget* NewFileDialog::createPlaceGroup(QWidget* parent)
     auto* group = new QGroupBox(tr("Place"), parent);
     auto* layout = new QVBoxLayout(group);
 
-    // A plain file goes outside the book, at first, or into it; the other tiles do not have
-    // these buttons
-    auto* plainPlaces = new QHBoxLayout();
-    plainPlaces->setSpacing(16);
-    //: The place of a plain file: not in the book, in a tab of its own. In Polish:
+    // An empty text file goes outside the book, at first, or with it; the other tiles do not
+    // have these buttons
+    auto* emptyFilePlaces = new QHBoxLayout();
+    emptyFilePlaces->setSpacing(16);
+    //: The place of an empty text file: not in the book, in a tab of its own. In Polish:
     //: &Poza książką
     m_outsideButton = new QRadioButton(tr("&Outside the book"), group);
-    //: The place of a plain file: in the book, at the place chosen in the list under it. In
-    //: Polish: &W książce
+    //: The place of an empty text file: in the book, among its files outside its text
+    //: ("Other Files" in the Navigator). In Polish: &W książce
     m_insideButton = new QRadioButton(tr("&In the book"), group);
     m_outsideButton->setChecked(true);
     m_outsideButton->hide();
     m_insideButton->hide();
-    plainPlaces->addWidget(m_outsideButton);
-    plainPlaces->addWidget(m_insideButton);
-    plainPlaces->addStretch(1);
-    layout->addLayout(plainPlaces);
+    emptyFilePlaces->addWidget(m_outsideButton);
+    emptyFilePlaces->addWidget(m_insideButton);
+    emptyFilePlaces->addStretch(1);
+    layout->addLayout(emptyFilePlaces);
 
-    // The list of the part of the book with the element in its place, named by the group
-    m_picker = new ElementPlacePicker(group);
+    // The list of the part of the book with the element in its place, named by the group; an
+    // empty text file has no place in it, and a note says where it goes instead
+    m_placePages = new QStackedWidget(group);
+    m_picker = new ElementPlacePicker(m_placePages);
     m_picker->setLabel(QString());
     // The list asks for the rows it keeps on a small screen and grows with the window, so
     // that in a low window the description of the kind keeps all its lines
     m_picker->setListRows(ElementPlacePicker::MINIMUM_LIST_ROWS);
-    layout->addWidget(m_picker);
+    m_placePages->addWidget(m_picker);
+    auto* notePage = new QWidget(m_placePages);
+    auto* noteLayout = new QVBoxLayout(notePage);
+    noteLayout->setContentsMargins(0, 0, 0, 0);
+    m_placeNote = new QLabel(notePage);
+    m_placeNote->setTextFormat(Qt::PlainText);
+    m_placeNote->setWordWrap(true);
+    noteLayout->addWidget(m_placeNote);
+    noteLayout->addStretch(1);
+    m_placePages->addWidget(notePage);
+    layout->addWidget(m_placePages);
     return group;
 }
 
@@ -669,8 +685,8 @@ void NewFileDialog::fillKinds()
         auto* heading = new QListWidgetItem(tr("Other Files"), m_kindList);
         heading->setData(HEADING_ROLE, true);
         heading->setFlags(Qt::NoItemFlags);
-        auto* tile = new QListWidgetItem(plainFileName(), m_kindList);
-        tile->setData(PLAIN_ROLE, true);
+        auto* tile = new QListWidgetItem(emptyFileName(), m_kindList);
+        tile->setData(EMPTY_FILE_ROLE, true);
         tile->setTextAlignment(Qt::AlignHCenter | Qt::AlignTop);
         tile->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
     }
@@ -695,8 +711,8 @@ void NewFileDialog::sizeTiles()
             continue;
         }
         const QString iconId =
-            item->data(PLAIN_ROLE).toBool()
-                ? PLAIN_FILE_ICON
+            item->data(EMPTY_FILE_ROLE).toBool()
+                ? EMPTY_FILE_ICON
                 : NavigatorPanel::iconIdOf(m_book.kinds.at(item->data(KIND_ROLE).toInt()).kind);
         item->setIcon(artProvider.getIcon(iconId, core::IconContext::Dialog));
         const QRect text = metrics.boundingRect(
@@ -721,13 +737,6 @@ void NewFileDialog::sizeTiles()
 
 const NewFileKind* NewFileDialog::chosen() const
 {
-    // A plain file in the book is an element of the main text kind
-    if (plainChosen()) {
-        return m_insideButton->isChecked() && m_book.plainKind >= 0 &&
-                       m_book.plainKind < m_book.kinds.size()
-                   ? &m_book.kinds.at(m_book.plainKind)
-                   : nullptr;
-    }
     const QListWidgetItem* item = m_kindList ? m_kindList->currentItem() : nullptr;
     if (!item || !item->data(KIND_ROLE).isValid()) {
         return nullptr;
@@ -740,41 +749,41 @@ const NewFileKind* NewFileDialog::chosen() const
     return &m_book.kinds.at(index);
 }
 
-QString NewFileDialog::plainFileName()
+QString NewFileDialog::emptyFileName()
 {
-    //: The tile of a plain file in the New File window, and its name above its description.
-    //: In Polish: Zwykły plik
-    return tr("Plain File");
+    //: The tile of an empty text file in the New File window, and its name above its
+    //: description. In Polish: Pusty plik tekstowy
+    return tr("Empty Text File");
 }
 
-bool NewFileDialog::plainChosen() const
+bool NewFileDialog::emptyFileChosen() const
 {
     const QListWidgetItem* item = m_kindList ? m_kindList->currentItem() : nullptr;
-    return item && item->data(PLAIN_ROLE).toBool();
+    return item && item->data(EMPTY_FILE_ROLE).toBool();
 }
 
 bool NewFileDialog::outsideBook() const
 {
-    return plainChosen() && !m_insideButton->isChecked();
+    return emptyFileChosen() && !m_insideButton->isChecked();
+}
+
+bool NewFileDialog::emptyFileInBook() const
+{
+    return emptyFileChosen() && m_insideButton->isChecked();
 }
 
 void NewFileDialog::onKindChanged()
 {
-    const bool plain = plainChosen();
-    m_outsideButton->setVisible(plain);
-    m_insideButton->setVisible(plain);
-    if (plain) {
-        // The list shows the place in the book of the main text kind, greyed while the file
-        // goes outside the book; the writer's place stays when the file goes in and out
-        if (m_book.plainKind >= 0 && m_book.plainKind < m_book.kinds.size()) {
-            showPlaces(m_book.kinds.at(m_book.plainKind));
-        } else {
-            m_picker->setElement(core::KindRef{}, QString());
-        }
-        showPlainFile();
+    // An empty text file has no place in the list of the book: the note says where it goes
+    const bool emptyFile = emptyFileChosen();
+    m_outsideButton->setVisible(emptyFile);
+    m_insideButton->setVisible(emptyFile);
+    m_placePages->setCurrentWidget(emptyFile ? m_placeNote->parentWidget()
+                                             : static_cast<QWidget*>(m_picker));
+    if (emptyFile) {
+        showEmptyFile();
         return;
     }
-    m_picker->setEnabled(true);
     m_typeCaption->show();
     m_typeLabel->show();
 
@@ -813,63 +822,67 @@ void NewFileDialog::showPlaces(const NewFileKind& entry)
     m_picker->setPlace(entry.place);
 }
 
-void NewFileDialog::showPlainFile()
+void NewFileDialog::showEmptyFile()
 {
-    // In the book the file is an element of the main text kind, which the description names
-    const NewFileKind* entry = chosen();
+    const bool inBook = m_insideButton->isChecked();
     updateKindIcon();
-    m_nameLabel->setText(plainFileName());
-    m_insideButton->setEnabled(m_book.plainKind >= 0);
-    m_picker->setEnabled(entry != nullptr);
-    m_typeCaption->setVisible(entry != nullptr);
-    m_typeLabel->setVisible(entry != nullptr);
-    if (entry) {
-        //: Where a plain file in the book goes: as an element of the main text kind, e.g. as
-        //: a chapter; %1: where the elements of the kind can be. In Polish: w książce jako
-        //: {kind} (%1)
-        m_whereLabel->setText(core::fillWords(tr("in the book, as {kind:indefinite} (%1)"),
-                                              {{QStringLiteral("kind"), wordsOf(entry->kind)}})
-                                  .arg(entry->where));
-        m_countLabel->setText(entry->count);
-        m_fileLabel->setText(entry->file);
-        m_typeLabel->setText(entry->type);
+    m_nameLabel->setText(emptyFileName());
+    m_insideButton->setEnabled(!m_book.bookFile.isEmpty());
+    m_typeCaption->hide();
+    m_typeLabel->hide();
+    //: How many empty text files there can be. In Polish: dowolnie wiele
+    m_countLabel->setText(tr("any number"));
+    if (inBook) {
+        //: Where an empty text file in the book goes: to the files of the book outside its
+        //: text, "Other Files" in the Navigator. In Polish: w książce, w grupie „Inne pliki”,
+        //: poza jej treścią
+        m_whereLabel->setText(tr("in the book, in \"Other Files\", outside its text"));
+        m_fileLabel->setText(m_book.bookFile);
+        //: Where an empty text file in the book goes, in place of the list of places. In
+        //: Polish: Plik trafi do folderu książki i do grupy „Inne pliki” w Nawigatorze. Nie
+        //: należy do treści książki, więc gotowa książka go nie zawiera.
+        m_placeNote->setText(tr("The file goes to the book's folder and to \"Other Files\" in "
+                                "the Navigator. It is not part of the text of the book, so the "
+                                "finished book does not have it."));
     } else {
-        //: Where a plain file outside the book goes. In Polish: poza książką, w nowej karcie
+        //: Where an empty text file outside the book goes. In Polish: poza książką, w nowej
+        //: karcie
         m_whereLabel->setText(tr("outside the book, in a tab of its own"));
-        //: How many plain files there can be. In Polish: dowolnie wiele
-        m_countLabel->setText(tr("any number"));
-        //: The file of a plain file outside the book: the writer chooses it when saving it
-        //: for the first time. In Polish: wybierzesz go przy pierwszym zapisie
+        //: The file of an empty text file outside the book: the writer chooses it when saving
+        //: it for the first time. In Polish: wybierzesz go przy pierwszym zapisie
         m_fileLabel->setText(tr("chosen when it is saved for the first time"));
-        m_typeLabel->clear();
+        //: Where an empty text file outside the book goes, in place of the list of places. In
+        //: Polish: Plik otworzy się w nowej karcie, poza książką. Miejsce i format pliku
+        //: wybierzesz przy pierwszym zapisie.
+        m_placeNote->setText(tr("The file opens in a new tab, outside the book. You choose its "
+                                "place and format when you save it for the first time."));
     }
 
-    // The title follows the place until the writer changes it: the title of a new element in
-    // the book, "Untitled 2" outside it
+    // The title of an empty text file, "Untitled 2", unless the writer changed it
     if (!m_titleChanged) {
-        m_titleEdit->setText(entry ? entry->title : m_book.untitled);
+        m_titleEdit->setText(m_book.untitled);
     }
     updateCreateButton();
 }
 
 void NewFileDialog::updateKindIcon()
 {
-    const bool plain = plainChosen();
+    const bool emptyFile = emptyFileChosen();
     const NewFileKind* entry = chosen();
-    if (!plain && !entry) {
+    if (!emptyFile && !entry) {
         m_iconLabel->clear();
         return;
     }
     const QIcon icon = core::ArtProvider::getInstance().getThemedIcon(
-        plain ? PLAIN_FILE_ICON : NavigatorPanel::iconIdOf(entry->kind));
+        emptyFile ? EMPTY_FILE_ICON : NavigatorPanel::iconIdOf(entry->kind));
     m_iconLabel->setPixmap(icon.pixmap(QSize(DESCRIPTION_ICON_SIZE, DESCRIPTION_ICON_SIZE),
                                        devicePixelRatioF()));
 }
 
 void NewFileDialog::updateCreateButton()
 {
-    // A plain file outside the book needs only its title
-    if (outsideBook()) {
+    // An empty text file needs only its title
+    if (emptyFileChosen()) {
         m_createButton->setEnabled(!title().isEmpty());
         return;
     }

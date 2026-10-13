@@ -145,8 +145,10 @@ public slots:
     // Document operations
     // =========================================================================
 
-    /// @brief New File: with a book open, a new element of the book or a plain file in the New
-    /// File window; without one, an empty file outside a book, saved where the writer chooses
+    /// @brief New File: with a book open, a new element of the book or an empty text file in
+    /// the New File window, with the book (in "Other Files") or outside it; without one, an
+    /// empty file outside a book. A file outside the book is listed in the Navigator at once
+    /// and saved where and as the writer chooses when it is saved for the first time.
     void onNewDocument();
 
     /// @brief Create new project
@@ -333,12 +335,14 @@ private:
     EditorPanel* getCurrentEditor() const;
 
     /// @brief Tab of a standalone file, or nullptr when the file is not open
+    /// @param path The file, or the key of a new file in the Navigator (openNewFile())
     EditorPanel* findStandaloneEditor(const QString& path) const;
 
     /// @brief Show the info bar for the current tab's standalone file, or hide it
     void updateStandaloneInfoBar();
 
-    /// @brief List the standalone files in the navigator again after it was cleared
+    /// @brief List the standalone files in the navigator again after it was cleared, with the
+    /// new files that have no file yet
     void relistStandaloneFiles();
 
     /// @brief Write a standalone file tab's content in the file's own format
@@ -376,8 +380,9 @@ private:
     /// before its name, while its text differs from the saved text
     void trackStandaloneChanges(EditorPanel* editor);
 
-    /// @brief An empty file outside a book in a new tab named @p title; its first save asks
-    /// where to save it, as a Kalahari document or a text file
+    /// @brief An empty file outside a book in a new tab named @p title, listed at once in the
+    /// Navigator under "Files Outside the Book"; its first save asks where to save it, as a
+    /// Kalahari document or a text file
     void openNewFile(const QString& title);
 
     /// @brief The files of the open book that are open outside it become the tabs of their
@@ -400,8 +405,12 @@ private:
     /// @brief Files of the navigator's "Other Files" (opened outside the project)
     QStringList m_standaloneFilePaths;
 
-    /// @brief New files made outside a book so far, for the number in their tabs' names
+    /// @brief Empty text files made so far, outside a book or with it, for the number in the
+    /// names they are given ("Untitled 2")
     int m_newFiles{0};
+
+    /// @brief New files that got a key in the Navigator so far ("untitled:3", openNewFile())
+    int m_newFileKeys{0};
 
     /// @brief Style resolver for the current project (OpenSpec #00042 Task 7.6)
     std::unique_ptr<editor::StyleResolver> m_styleResolver;

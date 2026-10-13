@@ -89,6 +89,13 @@ QString detailsOf(const QStringList& problems) {
     return problems.join(QLatin1Char('\n'));
 }
 
+/// The key of the file of a standalone file tab in the Navigator: its path, or the key of a new
+/// file that has no file yet
+QString listKeyOf(const EditorPanel* editor) {
+    const QString path = editor->property("standaloneFilePath").toString();
+    return path.isEmpty() ? editor->property("newFileKey").toString() : path;
+}
+
 /// Icon of a standalone file's tab
 QString standaloneIconId(const QString& path) {
     return core::StandaloneFile::typeOf(path) == core::StandaloneFile::Type::Chapter
@@ -162,13 +169,18 @@ void DocumentCoordinator::onNewDocument() {
     const QString untitled = tr("Untitled %1").arg(m_newFiles + 1);
 
     // With a book open, the new file is an element of the book, of the kind and at the place
-    // the writer chooses in the New File window, or a plain file, in the book or outside it
+    // the writer chooses in the New File window, or an empty text file, with the book or
+    // outside it
     if (core::ProjectManager::getInstance().isProjectOpen()) {
         if (m_navigatorCoordinator) {
-            const QString title = m_navigatorCoordinator->onRequestNewFile(untitled);
-            if (!title.isEmpty()) {
+            using Made = NavigatorCoordinator::NewFile::Made;
+            const NavigatorCoordinator::NewFile file =
+                m_navigatorCoordinator->onRequestNewFile(untitled);
+            if (file.made == Made::BookFile || file.made == Made::OutsideFile) {
                 ++m_newFiles;
-                openNewFile(title);
+            }
+            if (file.made == Made::OutsideFile) {
+                openNewFile(file.title);
             }
         }
         return;
@@ -191,6 +203,17 @@ void DocumentCoordinator::openNewFile(const QString& title) {
     newEditor->setProperty("isStandaloneFile", true);
     newEditor->setProperty("dirty", false);
     newEditor->setContent(QString());
+
+    // The Navigator lists it at once with the files outside the book, by the name of its tab,
+    // until its first save gives it a file; it leaves the list with its tab
+    const QString key = QStringLiteral("untitled:%1").arg(++m_newFileKeys);
+    newEditor->setProperty("newFileKey", key);
+    newEditor->setProperty("newFileName", title);
+    m_navigatorPanel->addNewFile(key, title);
+    NavigatorPanel* navigator = m_navigatorPanel;
+    connect(newEditor, &QObject::destroyed, navigator,
+            [navigator, key]() { navigator->removeStandaloneFile(key); });
+
     m_centralTabs->setCurrentIndex(tabIndex);
     trackStandaloneChanges(newEditor);
     updateStandaloneInfoBar();
@@ -797,8 +820,7 @@ void DocumentCoordinator::discardEditorChanges(EditorPanel* editor) {
     case EditorKind::StandaloneFile:
         // The file stays in the Navigator as it is on the disk
         editor->setProperty("dirty", false);
-        m_navigatorPanel->setFileModified(editor->property("standaloneFilePath").toString(),
-                                          false);
+        m_navigatorPanel->setFileModified(listKeyOf(editor), false);
         break;
     case EditorKind::Opening:
         break;
@@ -1155,11 +1177,19 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
 }
 
 EditorPanel* DocumentCoordinator::findStandaloneEditor(const QString& path) const {
+    if (path.isEmpty()) {
+        return nullptr;
+    }
     const QFileInfo fileInfo(path);
     for (int i = 0; i < m_centralTabs->count(); ++i) {
         auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
-        if (editor && editor->property("isStandaloneFile").toBool()
-            && QFileInfo(editor->property("standaloneFilePath").toString()) == fileInfo) {
+        if (!editor || !editor->property("isStandaloneFile").toBool()) {
+            continue;
+        }
+        // A new file that has no file yet by its key in the Navigator
+        const QString filePath = editor->property("standaloneFilePath").toString();
+        if (filePath.isEmpty() ? editor->property("newFileKey").toString() == path
+                               : QFileInfo(filePath) == fileInfo) {
             return editor;
         }
     }
@@ -1171,8 +1201,7 @@ void DocumentCoordinator::trackStandaloneChanges(EditorPanel* editor) {
     // text: a letter typed and deleted again, or an edit undone, leaves none
     connect(editor, &EditorPanel::modifiedChanged, this, [this, editor](bool modified) {
         editor->setProperty("dirty", modified);
-        m_navigatorPanel->setFileModified(editor->property("standaloneFilePath").toString(),
-                                          modified);
+        m_navigatorPanel->setFileModified(listKeyOf(editor), modified);
         const int index = m_centralTabs->indexOf(editor);
         const QString tabText = index >= 0 ? m_centralTabs->tabText(index) : QString();
         if (index >= 0 && modified && !tabText.startsWith(QLatin1Char('*'))) {
@@ -1196,9 +1225,15 @@ void DocumentCoordinator::updateStandaloneInfoBar() {
         return;
     }
 
-    m_standaloneInfoBar->setFilePath(editor->property("standaloneFilePath").toString());
+    const QString path = editor->property("standaloneFilePath").toString();
+    m_standaloneInfoBar->setFilePath(path);
     const bool bookOpen = core::ProjectManager::getInstance().isProjectOpen();
-    if (bookOpen) {
+    if (path.isEmpty()) {
+        // A new file: Save asks where it goes and in which format
+        //: The info bar of a new file that has no file yet. In Polish: Nowy plik – jeszcze
+        //: niezapisany
+        m_standaloneInfoBar->setMessage(tr("New file – not saved yet"));
+    } else if (bookOpen) {
         m_standaloneInfoBar->setMessage(tr("This file is not part of the open book."));
     } else {
         m_standaloneInfoBar->setMessage(
@@ -1212,6 +1247,14 @@ void DocumentCoordinator::updateStandaloneInfoBar() {
 void DocumentCoordinator::relistStandaloneFiles() {
     for (const QString& path : std::as_const(m_standaloneFilePaths)) {
         m_navigatorPanel->addStandaloneFile(path);
+    }
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        const auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+        if (editor && editorKind(editor) == EditorKind::StandaloneFile &&
+            editor->property("standaloneFilePath").toString().isEmpty()) {
+            m_navigatorPanel->addNewFile(editor->property("newFileKey").toString(),
+                                         editor->property("newFileName").toString());
+        }
     }
 }
 
@@ -1248,7 +1291,12 @@ bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString
 
     const int index = m_centralTabs->indexOf(editor);
     if (path != oldPath) {
-        // The tab, the "Other Files" list and the info bar follow the file to its new name
+        // The tab, the "Other Files" list and the info bar follow the file to its new name; a
+        // new file leaves its key in the list for its file
+        if (oldPath.isEmpty()) {
+            m_navigatorPanel->removeStandaloneFile(editor->property("newFileKey").toString());
+            editor->setProperty("newFileKey", QVariant());
+        }
         editor->setProperty("standaloneFilePath", path);
         const QString iconId = standaloneIconId(path);
         editor->setProperty("tabIconId", iconId);
@@ -1362,12 +1410,18 @@ bool DocumentCoordinator::saveStandaloneFileAs(EditorPanel* editor) {
         const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
         dialogs::MessageDialog::warning(
             m_mainWindow, tr("Save Error"),
-            //: %1: the name of the file, %2: the title of the element. In Polish: „%1” to plik
-            //: {kind:genitive} „%2” z otwartej książki. Wybierz inną nazwę.
-            core::fillWords(tr("'%1' is the file of the {kind} \"%2\" in the open book. "
-                               "Choose another name."),
-                            nouns)
-                .arg(QFileInfo(path).fileName(), element->title));
+            element->hasKind()
+                //: %1: the name of the file, %2: the title of the element. In Polish: „%1” to
+                //: plik {kind:genitive} „%2” z otwartej książki. Wybierz inną nazwę.
+                ? core::fillWords(tr("'%1' is the file of the {kind} \"%2\" in the open book. "
+                                     "Choose another name."),
+                                  nouns)
+                      .arg(QFileInfo(path).fileName(), element->title)
+                //: A file kept with the book, outside its text; %1: the name of the file, %2:
+                //: its title. In Polish: „%1” to plik „%2” z otwartej książki. Wybierz inną
+                //: nazwę.
+                : tr("'%1' is the file \"%2\" of the open book. Choose another name.")
+                      .arg(QFileInfo(path).fileName(), element->title));
         return false;
     }
     EditorPanel* other = findStandaloneEditor(path);
@@ -1458,6 +1512,13 @@ void DocumentCoordinator::addToProject(const QString& filePath) {
 
     if (filePath.isEmpty()) {
         logger.warn("Add to Book: No file path");
+        return;
+    }
+
+    // A new file that has no file yet, by its key in the Navigator, goes in at once
+    if (EditorPanel* newFile = findStandaloneEditor(filePath);
+        newFile && standaloneFileOf(newFile).path().isEmpty()) {
+        addNewFileToProject(newFile);
         return;
     }
 

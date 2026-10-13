@@ -59,11 +59,13 @@ void appendAll(const QList<ProjectElement>& elements, QList<const ProjectElement
     }
 }
 
-/// Every element of @p project: of the books in reading order, then of the Workshop
+/// Every element of @p project: of the books in reading order, each followed by the files of
+/// the book outside its text, then of the Workshop
 QList<const ProjectElement*> allElements(const BookProject& project) {
     QList<const ProjectElement*> all;
     for (qsizetype book = 0; book < project.books.size(); ++book) {
         all.append(project.readingOrder(book));
+        appendAll(project.books.at(book).files, all);
     }
     appendAll(project.workshop.elements, all);
     return all;
@@ -157,6 +159,9 @@ QString freeChapterFile(const BookProject& project, const QString& projectDir,
         }
     }
 }
+
+/// Name of the chapter files of the files of a book outside its text: file_001.kchapter
+constexpr QLatin1String BOOK_FILE_NAME("file");
 
 /// Log of the database of a project, which has the changes not yet written to project.db
 constexpr QLatin1String DATABASE_LOG("project.db-wal");
@@ -1231,6 +1236,39 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     return element.id;
 }
 
+bool ProjectManager::isBookFile(const QString& elementId) const {
+    return m_project && m_project->isBookFile(elementId);
+}
+
+QString ProjectManager::addBookFile(const QString& title) {
+    auto& logger = Logger::getInstance();
+    ProjectBook* current = book();
+    if (!current) {
+        logger.error("addBookFile: No project is open");
+        return QString();
+    }
+
+    ProjectElement file;
+    file.id = m_project->newElementId();
+    file.title = title;
+    file.file = newBookFile();
+    if (!writeChapterFile(file, QString())) {
+        m_elementStates.remove(file.id);
+        return QString();
+    }
+    current->files.append(file);
+    if (!saveManifest()) {
+        current->files.removeLast();
+        QFile::remove(filePathOf(file));
+        m_elementStates.remove(file.id);
+        return QString();
+    }
+
+    logger.info("addBookFile: Added '{}' (id: {}) as {}", title.toStdString(),
+                file.id.toStdString(), file.file.toStdString());
+    return file.id;
+}
+
 qsizetype ProjectManager::newIndexIn(const QList<ProjectElement>& elements,
                                      const KindRef& kind) const {
     return BookProject::newIndexIn(bookTypes(), elements, kind);
@@ -1692,7 +1730,8 @@ qsizetype ProjectManager::endIndexOf(const QString& elementId) const {
 
 bool ProjectManager::setStatus(const QString& elementId, const QString& status) {
     ProjectElement* element = findElement(elementId);
-    if (!element || !stateOf(elementId) || !textStatuses().contains(status)) {
+    if (!element || !stateOf(elementId) || !textStatuses().contains(status) ||
+        isBookFile(elementId)) {
         Logger::getInstance().warn("setStatus: Cannot set the status {} of {}",
                                    status.toStdString(), elementId.toStdString());
         return false;
@@ -2011,6 +2050,12 @@ bool ProjectManager::writeChapterFile(const ProjectElement& element,
 QString ProjectManager::newChapterFile(const KindRef& kind, BookPlace place) const {
     return freeChapterFile(*m_project, getProjectPath(), folderOf(place, book()),
                            kind ? kind.kind->id : QString());
+}
+
+QString ProjectManager::newBookFile() const {
+    return m_project ? freeChapterFile(*m_project, getProjectPath(),
+                                       folderOf(BookPlace::Main, book()), QString(BOOK_FILE_NAME))
+                     : QString();
 }
 
 QString ProjectManager::startingText(const KindRef& kind, const ProjectBook& book) {

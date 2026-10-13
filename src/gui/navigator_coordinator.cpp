@@ -1014,27 +1014,50 @@ void NavigatorCoordinator::onRequestAddItem(const QString& sectionType) {
                pm.textKindsFor(place), core::KindRef{}, place, QString(), QString());
 }
 
-QString NavigatorCoordinator::onRequestNewFile(const QString& untitled) {
+NavigatorCoordinator::NewFile NavigatorCoordinator::onRequestNewFile(const QString& untitled) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
     auto* window = qobject_cast<QWidget*>(parent());
 
     if (!pm.isProjectOpen()) {
         logger.warn("NavigatorCoordinator: New file requested but no project open");
-        return QString();
+        return {};
     }
 
-    // The writer chooses the kind, the title and the place, or a plain file
+    // The writer chooses the kind, the title and the place, or an empty text file
     dialogs::NewFileDialog dialog(dialogs::NewFileDialog::openBook(untitled), pm.bookTypes(),
                                   window);
     if (dialog.exec() != QDialog::Accepted) {
-        return QString();
+        return {};
     }
-    if (dialog.outsideBook()) {
-        return dialog.title();
-    }
-    const core::KindRef kind = dialog.kind();
     const QString title = dialog.title();
+    if (dialog.outsideBook()) {
+        return {NewFile::Made::OutsideFile, title};
+    }
+
+    // An empty text file of the book is no element of its text: it goes to "Other Files"
+    if (dialog.emptyFileInBook()) {
+        const QString fileId = pm.addBookFile(title);
+        if (fileId.isEmpty()) {
+            logger.error("NavigatorCoordinator: Failed to add the file '{}'", title.toStdString());
+            //: In Polish: Nie udało się dodać pliku
+            dialogs::MessageDialog::warning(window, tr("Add File Failed"),
+                                            tr("Failed to save changes."));
+            return {};
+        }
+        logger.info("NavigatorCoordinator: New file of the book '{}' (id={})",
+                    title.toStdString(), fileId.toStdString());
+        refreshNavigator();
+        m_navigatorPanel->revealElement(fileId);
+        onElementSelected(fileId, title);
+        //: An empty text file added to the files of the book outside its text. In Polish:
+        //: Dodano plik do grupy „Inne pliki”: %1
+        m_statusBar->showMessage(tr("File added to Other Files: %1").arg(title), 2000);
+        emit documentModified();
+        return {NewFile::Made::BookFile, title};
+    }
+
+    const core::KindRef kind = dialog.kind();
     const core::ElementPlace at = dialog.place();
     // The messages name the kind added: "Story added", "Could not add a story"
     const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
@@ -1046,7 +1069,7 @@ QString NavigatorCoordinator::onRequestNewFile(const QString& untitled) {
         //: In Polish: Nie udało się dodać {kind:genitive}
         dialogs::MessageDialog::warning(window, core::fillWords(tr("Add {Kind} Failed"), nouns),
                                         tr("Failed to save changes."));
-        return QString();
+        return {};
     }
     logger.info("NavigatorCoordinator: New file '{}' (id={})", title.toStdString(),
                 elementId.toStdString());
@@ -1058,7 +1081,7 @@ QString NavigatorCoordinator::onRequestNewFile(const QString& untitled) {
     //: In Polish: Dodano {kind:accusative}: %1
     m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(title), 2000);
     emit documentModified();
-    return QString();
+    return {NewFile::Made::Element, title};
 }
 
 void NavigatorCoordinator::onRequestShowSections(bool shown) {

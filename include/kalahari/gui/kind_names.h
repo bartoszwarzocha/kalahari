@@ -52,7 +52,8 @@ core::KindWords menuWords(core::KindWords words);
 QString newTextMenuText(const core::KindRef& kind);
 
 /// @brief Forms of the name of the kind of @p element, a kind of @p registry; when the registry
-/// does not have the kind (its package is not installed), the id of the kind stands for its name
+/// does not have the kind (its package is not installed), the id of the kind stands for its
+/// name; a file of a book outside its text, which has no kind, is named "file" (fileWords())
 core::KindWords wordsOf(const core::BookTypeRegistry& registry,
                         const core::ProjectElement& element);
 
@@ -72,6 +73,10 @@ core::KindWords mainWords();
 /// @brief Forms of the word "element" in the program's language, for a sentence about elements
 /// of different kinds: "3 elements", "the files of the elements"
 core::KindWords elementWords();
+
+/// @brief Forms of the word "file" in the program's language, for a sentence about a file of a
+/// book outside its text, which has no kind: "Delete the file "Notes" from the book?"
+core::KindWords fileWords();
 
 } // namespace gui
 } // namespace kalahari

@@ -148,6 +148,12 @@ BookProject fullProject() {
     first.frontElements = {titlePage};
     first.mainElements = {part};
     first.backElements = {bibliography};
+    ProjectElement notes;
+    notes.id = QStringLiteral("e9");
+    notes.title = QStringLiteral("Notatki");
+    notes.file = QStringLiteral("book/file_001.kchapter");
+    notes.extra.insert(QStringLiteral("pinned"), true);
+    first.files = {notes};
     first.extra.insert(QStringLiteral("cover"), QStringLiteral("cover.jpg"));
 
     ProjectElement nextChapter = element("e6", "kalahari.base", "chapter", "Chapter 1");
@@ -296,6 +302,9 @@ TEST_CASE("Book project: a project is saved and read back unchanged", "[core][bo
     changed = project;
     changed.books[0].sectionNames[1] = QStringLiteral("Historia");
     CHECK_FALSE(changed == project);
+    changed = project;
+    changed.books[0].files[0].title = QStringLiteral("Wycinki");
+    CHECK_FALSE(changed == project);
 }
 
 TEST_CASE("Book project: fields this version does not know are kept", "[core][bookproject]") {
@@ -403,6 +412,70 @@ TEST_CASE("Book project: elements are found, added, moved and taken out",
     CHECK_FALSE(project.takeElement(QStringLiteral("e2")).has_value());
     CHECK(project.takeElement(QStringLiteral("e4")).has_value());
     CHECK(project.workshop.elements.isEmpty());
+}
+
+TEST_CASE("Book project: files of a book outside its text", "[core][bookproject]") {
+    BookTypeRegistry registry;
+    loadBuiltIn(registry);
+    const QByteArray text = R"({
+      "format": 2, "id": "p", "type": { "id": "kalahari.novel", "version": "1.0" },
+      "books": [ { "id": "b", "folder": "book",
+        "main": [ { "id": "c1", "kind": "kalahari.base:chapter", "title": "Chapter 1",
+                    "file": "book/chapter_001.kchapter", "status": "draft" } ],
+        "files": [
+          { "id": "f1", "title": "Notes", "file": "book/file_001.kchapter" },
+          { "id": "f2", "title": "From the web", "file": "book/file_002.kchapter",
+            "pinned": true }
+        ] } ]
+    })";
+    BookProject project = projectOf(text);
+
+    // Read with their ids, titles and files, without a kind and a status
+    const ProjectBook& book = project.books.at(0);
+    REQUIRE(book.files.size() == 2);
+    CHECK(book.files.at(0).id == QStringLiteral("f1"));
+    CHECK(book.files.at(0).title == QStringLiteral("Notes"));
+    CHECK(book.files.at(0).file == QStringLiteral("book/file_001.kchapter"));
+    CHECK(book.files.at(0).kind.toString().isEmpty());
+    CHECK(book.files.at(0).status.isEmpty());
+    CHECK(book.files.at(1).extra.value(QStringLiteral("pinned")).toBool());
+    // Written back as they were read, with the fields the program does not know
+    const auto filesOf = [](const QJsonObject& json) {
+        return json.value(QStringLiteral("books"))
+            .toArray()
+            .at(0)
+            .toObject()
+            .value(QStringLiteral("files"));
+    };
+    CHECK(filesOf(project.toJson()) == filesOf(jsonOf(text)));
+
+    // Found as elements of the project, but not elements of the text of the book
+    REQUIRE(project.findElement(QStringLiteral("f1")) != nullptr);
+    CHECK(project.findElement(QStringLiteral("f1"))->title == QStringLiteral("Notes"));
+    CHECK(project.isBookFile(QStringLiteral("f1")));
+    CHECK_FALSE(project.isBookFile(QStringLiteral("c1")));
+    CHECK_FALSE(project.isBookFile(QString()));
+    CHECK(project.readingOrder().size() == 1);
+    CHECK_FALSE(project.placeOf(QStringLiteral("f2")).has_value());
+    CHECK(project.movePlacesOf(registry, QStringLiteral("f2")).isEmpty());
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("f2"),
+                                      {BookPlace::Main, QString(), 0}));
+    CHECK(BookProject::formOf(registry, book.files.at(0)) == ElementForm::Text);
+    CHECK(project.hasFile(QStringLiteral("book/file_002.kchapter")));
+    qsizetype index = -1;
+    CHECK(project.listOf(QStringLiteral("f2"), &index) == &project.books[0].files);
+    CHECK(index == 1);
+
+    // Taken out, the book has no files: the .klh file has no "files"
+    CHECK(project.takeElement(QStringLiteral("f1")).has_value());
+    CHECK(project.takeElement(QStringLiteral("f2")).has_value());
+    CHECK(project.books.at(0).files.isEmpty());
+    CHECK_FALSE(project.toJson()
+                    .value(QStringLiteral("books"))
+                    .toArray()
+                    .at(0)
+                    .toObject()
+                    .contains(QStringLiteral("files")));
 }
 
 TEST_CASE("Book project: places of elements, and the elements that open and close a part",
@@ -1106,6 +1179,30 @@ TEST_CASE("Book project: a .klh file with problems", "[core][bookproject]") {
                         { "id": "e2", "kind": "kalahari.base:chapter",
                           "file": "book/chapter_001.kchapter" })"),
          "books[0].main[1].file: 'book/chapter_001.kchapter' is already the file of "
+         "books[0].main[0]"},
+        {"files of a book that are not a list",
+         project(R"({ "format": 2, "id": "p",
+                      "books": [ { "id": "b", "folder": "book", "files": {} } ] })"),
+         "books[0].files: must be a list"},
+        {"a file of a book that is not an object",
+         project(R"({ "format": 2, "id": "p",
+                      "books": [ { "id": "b", "folder": "book", "files": ["Notes"] } ] })"),
+         "books[0].files[0]: must be an object"},
+        {"a file of a book without its file",
+         project(R"({ "format": 2, "id": "p", "books": [ { "id": "b", "folder": "book",
+                      "files": [ { "id": "f1", "title": "Notes" } ] } ] })"),
+         "books[0].files[0].file: must be a path inside the project folder"},
+        {"a file of a book with the id of an element",
+         project(R"({ "format": 2, "id": "p", "books": [ { "id": "b", "folder": "book",
+                      "main": [ { "id": "e1", "kind": "kalahari.base:chapter" } ],
+                      "files": [ { "id": "e1", "file": "book/file_001.kchapter" } ] } ] })"),
+         "books[0].files[0].id: 'e1' is already the id of books[0].main[0]"},
+        {"a file of a book with the file of an element",
+         project(R"({ "format": 2, "id": "p", "books": [ { "id": "b", "folder": "book",
+                      "main": [ { "id": "e1", "kind": "kalahari.base:chapter",
+                                  "file": "book/chapter_001.kchapter" } ],
+                      "files": [ { "id": "f1", "file": "book/chapter_001.kchapter" } ] } ] })"),
+         "books[0].files[0].file: 'book/chapter_001.kchapter' is already the file of "
          "books[0].main[0]"},
     };
 

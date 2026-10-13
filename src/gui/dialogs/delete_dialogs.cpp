@@ -199,7 +199,17 @@ DeleteFromBookDialog::DeleteFromBookDialog(const Content& content,
     // The files: they stay unless the writer deletes them too
     const auto files = static_cast<int>(m_content.files.size());
     m_deleteFilesBox = new QCheckBox(this);
-    if (files == 1) {
+    if (files == 1 && !element.hasKind()) {
+        // A file of the book outside its text is no element with a file: it is the file
+        m_deleteFilesBox->setText(
+            m_content.trash
+                //: A file kept with the book, outside its text. In Polish: Usuń &też plik z
+                //: folderu książki – trafi do Kosza
+                ? named(tr("&Also delete the file from the book's folder – it goes to the {bin}"))
+                //: A drive without a Trash. In Polish: Usuń &też plik z folderu książki –
+                //: zniknie na zawsze
+                : tr("&Also delete the file from the book's folder – it will be gone for good"));
+    } else if (files == 1) {
         m_deleteFilesBox->setText(
             m_content.trash
                 //: In Polish: Usuń &też plik {owner:genitive} – trafi do Kosza
@@ -323,8 +333,19 @@ void DeleteFromBookDialog::updateFilesNote()
 QString DeleteFromBookDialog::filesText(bool stay) const
 {
     const bool one = m_content.files.size() == 1;
+    // A file of the book outside its text is the file itself, not the file of an element
+    const bool itself = one && !m_content.element.hasKind();
     QString text;
-    if (!stay && m_content.trash) {
+    if (!stay && m_content.trash && itself) {
+        //: A file kept with the book, outside its text. In Polish: Plik trafi do systemowego
+        //: Kosza. Przywrócisz go z Kosza, ale już nie z programu.
+        text = tr("The file goes to the system's {bin}. You can restore it from the {bin}, but "
+                  "not from the program.");
+    } else if (!stay && itself) {
+        //: In Polish: Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do
+        //: Kosza.
+        text = tr("The file will be gone for good: files in this folder cannot go to the {bin}.");
+    } else if (!stay && m_content.trash) {
         text = one
                    //: In Polish: Plik {owner:genitive} trafi do systemowego Kosza. Przywrócisz go
                    //: z Kosza, ale już nie z programu.

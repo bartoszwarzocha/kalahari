@@ -1,6 +1,6 @@
 /// @file test_new_file.cpp
-/// @brief New File: an element of the open book or a plain file in the New File window, or a
-/// file outside a book; Open File in the File menu and on the toolbars
+/// @brief New File: an element of the open book or an empty text file in the New File window,
+/// or a file outside a book; Open File in the File menu and on the toolbars
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/chapter_document.h>
@@ -22,6 +22,7 @@
 
 #include <QAbstractButton>
 #include <QAction>
+#include <QComboBox>
 #include <QCoreApplication>
 #include <QDialogButtonBox>
 #include <QDir>
@@ -42,6 +43,7 @@
 #include <QRadioButton>
 #include <QScrollBar>
 #include <QTemporaryDir>
+#include <QTextEdit>
 #include <QTimer>
 #include <QToolBar>
 #include <QTreeWidget>
@@ -96,7 +98,8 @@ QStringList rowsOf(const QListWidget& list) {
     return rows;
 }
 
-/// @brief The first tile named @p name in the New File window: of a kind, or of a plain file
+/// @brief The first tile named @p name in the New File window: of a kind, or of an empty text
+/// file
 QListWidgetItem* tileOf(const NewFileDialog& dialog, const QString& name) {
     for (int row = 0; row < dialog.kindList()->count(); ++row) {
         QListWidgetItem* item = dialog.kindList()->item(row);
@@ -195,9 +198,10 @@ int pressing(const std::function<void()>& command,
 }
 
 /// @brief Run @p command, choosing the file @p path in the window that saves a file; the file
-/// the window proposes goes to @p proposed
+/// the window proposes goes to @p proposed, and the types of files it offers to @p types
 /// @return The number of windows that saved a file
-int savingAs(const std::function<void()>& command, const QString& path, QString* proposed) {
+int savingAs(const std::function<void()>& command, const QString& path, QString* proposed,
+             QStringList* types = nullptr) {
     int shown = 0;
     QTimer timer;
     timer.setInterval(10);
@@ -210,6 +214,9 @@ int savingAs(const std::function<void()>& command, const QString& path, QString*
         ++shown;
         if (proposed) {
             *proposed = dialog->selectedFiles().value(0);
+        }
+        if (types) {
+            *types = dialog->nameFilters();
         }
         // The writer types the name in the field of the name. QFileDialog::selectFile() leaves
         // the field as it is while it has the focus, which it has where the system gives the
@@ -224,6 +231,40 @@ int savingAs(const std::function<void()>& command, const QString& path, QString*
     timer.start();
     command();
     return shown;
+}
+
+/// @brief The texts of the items of the Navigator of @p window of the type @p type, in their
+/// order: "standalone_file" for the files outside the book, "book_file" for the files of the
+/// book outside its text
+QStringList navigatorItems(const test::Window& window, const char* type) {
+    auto* tree = window.navigatorPanel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    QStringList texts;
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        if ((*it)->data(0, Qt::UserRole + 1).toString() == QLatin1String(type)) {
+            texts << (*it)->text(0);
+        }
+    }
+    return texts;
+}
+
+/// @brief The item of the Navigator of @p window with the text @p text
+QTreeWidgetItem* navigatorItem(const test::Window& window, const QString& text) {
+    auto* tree = window.navigatorPanel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        if ((*it)->text(0) == text) {
+            return *it;
+        }
+    }
+    FAIL_CHECK("No item " << text.toStdString() << " in the Navigator");
+    return nullptr;
+}
+
+/// @brief Type the character @p ch in the text of @p panel, as the writer does
+void typeInto(gui::EditorPanel& panel, QChar ch) {
+    QKeyEvent press(QEvent::KeyPress, 0, Qt::NoModifier, QString(ch));
+    QCoreApplication::sendEvent(panel.getBookEditor(), &press);
 }
 
 /// @brief Whether the Navigator of @p window lists the file @p path outside the book
@@ -561,8 +602,8 @@ TEST_CASE("New File: a click in the proposed title selects it, so that typing re
     CHECK(title->selectedText().isEmpty());
 }
 
-TEST_CASE("New File: a plain file outside the book, or in it as an element of the main text "
-          "kind",
+TEST_CASE("New File: an empty text file outside the book, or with it in Other Files, outside "
+          "its text",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));
     NewFileDialog dialog(NewFileDialog::openBook(QStringLiteral("Untitled 2")),
@@ -570,25 +611,29 @@ TEST_CASE("New File: a plain file outside the book, or in it as an element of th
 
     // After the parts of the book, the group of the other files
     const QStringList rows = rowsOf(*dialog.kindList());
-    CHECK(joined(rows.mid(rows.size() - 2)) == "# Other Files | Plain File");
+    CHECK(joined(rows.mid(rows.size() - 2)) == "# Other Files | Empty Text File");
 
-    // A chapter at the start, as before; the place of a plain file has no buttons then
+    // A chapter at the start, as before: the list of places, without the buttons of the place
+    // of an empty text file
     CHECK(dialog.nameLabel()->text().toStdString() == "Chapter");
     CHECK_FALSE(dialog.outsideButton()->isVisibleTo(&dialog));
     CHECK_FALSE(dialog.insideButton()->isVisibleTo(&dialog));
+    CHECK(dialog.picker()->isVisibleTo(&dialog));
+    CHECK_FALSE(dialog.placeNote()->isVisibleTo(&dialog));
     CHECK_FALSE(dialog.outsideBook());
+    CHECK_FALSE(dialog.emptyFileInBook());
 
-    choose(dialog, QStringLiteral("Plain File"));
+    choose(dialog, QStringLiteral("Empty Text File"));
 
-    SECTION("outside the book at first: an untitled file, with the places of the book greyed") {
+    SECTION("outside the book at first: an untitled file in a tab of its own") {
         CHECK(dialog.outsideButton()->isVisibleTo(&dialog));
         CHECK(dialog.insideButton()->isVisibleTo(&dialog));
         CHECK(dialog.outsideButton()->isChecked());
         CHECK(dialog.insideButton()->isEnabled());
-        CHECK_FALSE(dialog.picker()->isEnabled());
         CHECK(dialog.outsideBook());
+        CHECK_FALSE(dialog.emptyFileInBook());
         CHECK_FALSE(dialog.kind());
-        CHECK(dialog.nameLabel()->text().toStdString() == "Plain File");
+        CHECK(dialog.nameLabel()->text().toStdString() == "Empty Text File");
         CHECK(dialog.whereLabel()->text().toStdString() ==
               "outside the book, in a tab of its own");
         CHECK(dialog.countLabel()->text().toStdString() == "any number");
@@ -598,35 +643,45 @@ TEST_CASE("New File: a plain file outside the book, or in it as an element of th
         CHECK(dialog.titleEdit()->text().toStdString() == "Untitled 2");
         CHECK(dialog.createButton()->isEnabled());
 
+        // No place in the list of the book: the note says where the file goes
+        CHECK_FALSE(dialog.picker()->isVisibleTo(&dialog));
+        CHECK(dialog.placeNote()->isVisibleTo(&dialog));
+        CHECK(dialog.placeNote()->text().toStdString() ==
+              "The file opens in a new tab, outside the book. You choose its place and format "
+              "when you save it for the first time.");
+
         // No file without a title
         eraseText(dialog.titleEdit());
         CHECK_FALSE(dialog.createButton()->isEnabled());
     }
 
-    SECTION("in the book: a chapter at the place the writer chooses") {
+    SECTION("in the book: a file of the book in Other Files, which is no part of its text") {
         dialog.insideButton()->click();
         CHECK_FALSE(dialog.outsideBook());
-        CHECK(dialog.picker()->isEnabled());
-        REQUIRE(dialog.kind());
-        CHECK(dialog.kind().kind->id.toStdString() == "chapter");
-        CHECK(dialog.nameLabel()->text().toStdString() == "Plain File");
+        CHECK(dialog.emptyFileInBook());
+        CHECK_FALSE(dialog.kind());
+        CHECK(dialog.nameLabel()->text().toStdString() == "Empty Text File");
         CHECK(dialog.whereLabel()->text().toStdString() ==
-              "in the book, as a chapter (in the main section and in parts)");
+              "in the book, in \"Other Files\", outside its text");
+        CHECK(dialog.countLabel()->text().toStdString() == "any number");
         CHECK(dialog.fileLabel()->text().toStdString() ==
-              "chapter_003.kchapter in the folder \"book\"");
-        CHECK(dialog.typeLabel()->isVisibleTo(&dialog));
-        CHECK(dialog.typeLabel()->text().toStdString() == "Novel");
-        CHECK(dialog.titleEdit()->text().toStdString() == "Chapter 3");
-        CHECK(dialog.place() == core::ElementPlace{BookPlace::Main, QString(), 2});
+              "file_001.kchapter in the folder \"book\"");
+        CHECK_FALSE(dialog.typeLabel()->isVisibleTo(&dialog));
+        CHECK(dialog.titleEdit()->text().toStdString() == "Untitled 2");
         CHECK(dialog.createButton()->isEnabled());
 
-        // The place the writer chooses stays when the file goes out of the book and back
-        dialog.picker()->setPlace(core::ElementPlace{BookPlace::Main, QString(), 0});
+        // The list of the book does not choose its place: the note says where it goes
+        CHECK_FALSE(dialog.picker()->isVisibleTo(&dialog));
+        CHECK(dialog.placeNote()->isVisibleTo(&dialog));
+        CHECK(dialog.placeNote()->text().toStdString() ==
+              "The file goes to the book's folder and to \"Other Files\" in the Navigator. It "
+              "is not part of the text of the book, so the finished book does not have it.");
+
+        // Out of the book again
         dialog.outsideButton()->click();
-        CHECK(dialog.titleEdit()->text().toStdString() == "Untitled 2");
-        CHECK_FALSE(dialog.picker()->isEnabled());
-        dialog.insideButton()->click();
-        CHECK(dialog.place() == core::ElementPlace{BookPlace::Main, QString(), 0});
+        CHECK(dialog.outsideBook());
+        CHECK(dialog.whereLabel()->text().toStdString() ==
+              "outside the book, in a tab of its own");
     }
 
     SECTION("the writer's title stays wherever the file goes") {
@@ -638,16 +693,36 @@ TEST_CASE("New File: a plain file outside the book, or in it as an element of th
         CHECK(dialog.titleEdit()->text().toStdString() == "Notes");
     }
 
-    SECTION("another tile hides the buttons of the place of a plain file") {
+    SECTION("another tile brings back the list of places") {
         dialog.insideButton()->click();
         choose(dialog, QStringLiteral("Prologue"));
         CHECK_FALSE(dialog.outsideButton()->isVisibleTo(&dialog));
         CHECK_FALSE(dialog.insideButton()->isVisibleTo(&dialog));
-        CHECK(dialog.picker()->isEnabled());
+        CHECK(dialog.picker()->isVisibleTo(&dialog));
+        CHECK_FALSE(dialog.placeNote()->isVisibleTo(&dialog));
         CHECK(dialog.typeLabel()->isVisibleTo(&dialog));
         CHECK(dialog.titleEdit()->text().toStdString() == "Prologue");
         CHECK(dialog.kind().kind->id.toStdString() == "prologue");
         CHECK_FALSE(dialog.outsideBook());
+        CHECK_FALSE(dialog.emptyFileInBook());
+    }
+}
+
+TEST_CASE("New File: choosing the empty text file moves neither the tiles nor the title",
+          "[gui][newfile]") {
+    test::OpenNovel book(QStringLiteral("Rain"));
+    NewFileDialog dialog(NewFileDialog::openBook(QStringLiteral("Untitled 1")),
+                         book.pm.bookTypes());
+    dialog.show();
+    QCoreApplication::processEvents();
+    const QRect tiles = dialog.kindList()->geometry();
+    const QPoint title = dialog.titleEdit()->mapTo(&dialog, QPoint(0, 0));
+    for (const char* name : {"Empty Text File", "Chapter", "Empty Text File"}) {
+        choose(dialog, QString::fromLatin1(name));
+        QCoreApplication::processEvents();
+        INFO(name);
+        CHECK(dialog.kindList()->geometry() == tiles);
+        CHECK(dialog.titleEdit()->mapTo(&dialog, QPoint(0, 0)) == title);
     }
 }
 
@@ -723,19 +798,20 @@ TEST_CASE("New File: Cancel adds nothing", "[gui][newfile]") {
     CHECK(window.tabs->count() == 0);
 }
 
-TEST_CASE("New File: a plain file outside the open book opens in a tab of its own",
+TEST_CASE("New File: an empty text file outside the open book opens in a tab of its own and "
+          "in the Navigator at once",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));
     test::Window window;
     const std::string elements = titlesOf(book.pm.project()->elementsIn(BookPlace::Main));
 
     QStringList others;
-    const auto plainFile = [](NewFileDialog& dialog) {
-        choose(dialog, QStringLiteral("Plain File"));
+    const auto emptyFile = [](NewFileDialog& dialog) {
+        choose(dialog, QStringLiteral("Empty Text File"));
         return dialog.createButton();
     };
-    CHECK(pressing([&window]() { window.documents.onNewDocument(); }, plainFile, others) == 1);
-    CHECK(pressing([&window]() { window.documents.onNewDocument(); }, plainFile, others) == 1);
+    CHECK(pressing([&window]() { window.documents.onNewDocument(); }, emptyFile, others) == 1);
+    CHECK(pressing([&window]() { window.documents.onNewDocument(); }, emptyFile, others) == 1);
     INFO(others.join(QStringLiteral("\n")).toStdString());
     CHECK(others.isEmpty());
 
@@ -746,9 +822,35 @@ TEST_CASE("New File: a plain file outside the open book opens in a tab of its ow
     CHECK(window.tabs->currentIndex() == 1);
     CHECK(window.editor(1)->property("elementId").toString().isEmpty());
     CHECK(titlesOf(book.pm.project()->elementsIn(BookPlace::Main)) == elements);
+
+    // In the Navigator at once, with the other files outside the book, without the "*" of a
+    // changed file while nothing is written in them; the bar says that the file has no file yet
+    CHECK(joined(navigatorItems(window, "standalone_file")) == "Untitled 1 | Untitled 2");
+    CHECK_FALSE(window.infoBar->isHidden());
+    CHECK(window.infoBar->message() == QStringLiteral("New file – not saved yet"));
+
+    // The first character typed gives the tab and the Navigator the "*"
+    typeInto(*window.editor(1), QLatin1Char('A'));
+    CHECK(window.tabs->tabText(1) == QStringLiteral("*Untitled 2"));
+    CHECK(joined(navigatorItems(window, "standalone_file")) == "Untitled 1 | *Untitled 2");
+
+    // A double click on the file in the Navigator shows its tab
+    auto* tree = window.navigatorPanel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    QTreeWidgetItem* first = navigatorItem(window, QStringLiteral("Untitled 1"));
+    REQUIRE(first != nullptr);
+    emit tree->itemActivated(first, 0);
+    CHECK(window.tabs->currentIndex() == 0);
+
+    // The file leaves the Navigator with its tab, closed as the main window closes it
+    gui::EditorPanel* closed = window.editor(0);
+    window.tabs->removeTab(0);
+    closed->deleteLater();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    CHECK(joined(navigatorItems(window, "standalone_file")) == "*Untitled 2");
 }
 
-TEST_CASE("New File: a plain file in the open book is a chapter at the place the writer chooses",
+TEST_CASE("New File: an empty text file in the open book goes to Other Files, outside its text",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));
     test::Window window;
@@ -757,12 +859,10 @@ TEST_CASE("New File: a plain file in the open book is a chapter at the place the
     const int shown = pressing(
         [&window]() { window.documents.onNewDocument(); },
         [](NewFileDialog& dialog) {
-            choose(dialog, QStringLiteral("Plain File"));
+            choose(dialog, QStringLiteral("Empty Text File"));
             dialog.insideButton()->click();
             eraseText(dialog.titleEdit());
             typeText(dialog.titleEdit(), QStringLiteral("Notes"));
-            // After the first chapter
-            dialog.picker()->setPlace(core::ElementPlace{BookPlace::Main, QString(), 1});
             return dialog.createButton();
         },
         others);
@@ -770,16 +870,45 @@ TEST_CASE("New File: a plain file in the open book is a chapter at the place the
     CHECK(shown == 1);
     CHECK(others.isEmpty());
 
-    // In the book, where the writer put it, with its file, and open in the editor
-    CHECK(titlesOf(book.pm.project()->elementsIn(BookPlace::Main)) ==
-          "Chapter 1, Notes, The Storm");
-    const core::ProjectElement notes = book.pm.project()->elementsIn(BookPlace::Main).at(1);
-    CHECK(notes.kind.kindId == QStringLiteral("chapter"));
+    // No element of the text of the book: a file of the book, with no kind, in its folder
+    CHECK(titlesOf(book.pm.project()->elementsIn(BookPlace::Main)) == "Chapter 1, The Storm");
+    REQUIRE(book.pm.book() != nullptr);
+    REQUIRE(book.pm.book()->files.size() == 1);
+    const core::ProjectElement notes = book.pm.book()->files.first();
+    CHECK(notes.title == QStringLiteral("Notes"));
+    CHECK_FALSE(notes.hasKind());
+    CHECK(notes.file == QStringLiteral("book/file_001.kchapter"));
     CHECK(QFileInfo::exists(book.pm.filePathOf(notes)));
+    CHECK(book.pm.isBookFile(notes.id));
+
+    // Open in the editor
     REQUIRE(window.tabs->count() > 0);
     const int current = window.tabs->currentIndex();
     CHECK(window.tabs->tabText(current) == QStringLiteral("Notes"));
     CHECK(window.editor(current)->property("elementId").toString() == notes.id);
+
+    // In the Navigator in "Other Files" of the book, not among the files outside it
+    CHECK(joined(navigatorItems(window, "book_files")) == "Other Files");
+    CHECK(joined(navigatorItems(window, "book_file")) == "Notes");
+    CHECK(navigatorItems(window, "standalone_file").isEmpty());
+
+    // Its properties: its title and its words, without a status and notes
+    window.properties->showChapterProperties(notes.id);
+    const QList<QComboBox*> boxes = window.properties->findChildren<QComboBox*>();
+    const auto status = std::find_if(boxes.cbegin(), boxes.cend(), [](const QComboBox* box) {
+        return box->findData(QStringLiteral("draft")) >= 0;
+    });
+    REQUIRE(status != boxes.cend());
+    CHECK_FALSE((*status)->isVisibleTo(window.properties));
+    for (const QTextEdit* edit : window.properties->findChildren<QTextEdit*>()) {
+        if (edit->placeholderText() == QStringLiteral("Enter notes...")) {
+            CHECK_FALSE(edit->isVisibleTo(window.properties));
+        }
+    }
+
+    // A chapter has them again
+    window.properties->showChapterProperties(book.chapterId);
+    CHECK((*status)->isVisibleTo(window.properties));
 }
 
 // ----------------------------------------------------------------------------
@@ -797,9 +926,15 @@ TEST_CASE("New File: without a book, an untitled file saved where the writer cho
     gui::EditorPanel* story = window.editor(0);
     CHECK(window.documents.unsavedDocumentNames().isEmpty());
 
-    // A change gets the "*" of a changed file
+    // In the Navigator at once, with the bar that says it has no file yet
+    CHECK(joined(navigatorItems(window, "standalone_file")) == "Untitled 1");
+    CHECK_FALSE(window.infoBar->isHidden());
+    CHECK(window.infoBar->message() == QStringLiteral("New file – not saved yet"));
+
+    // A change gets the "*" of a changed file, in the tab and in the Navigator
     test::write(*story, QStringLiteral("Once upon a time"));
     CHECK(window.tabs->tabText(0) == QStringLiteral("*Untitled 1"));
+    CHECK(joined(navigatorItems(window, "standalone_file")) == "*Untitled 1");
     CHECK(window.documents.unsavedDocumentNames() == QStringList{QStringLiteral("Untitled 1")});
 
     window.documents.onNewDocument();
@@ -807,7 +942,8 @@ TEST_CASE("New File: without a book, an untitled file saved where the writer cho
     CHECK(window.tabs->tabText(1) == QStringLiteral("Untitled 2"));
     CHECK(window.tabs->currentIndex() == 1);
 
-    // The first save asks where, in the folder of Open File, with the name of the tab
+    // The first save asks where and in which format, in the folder of Open File, with the
+    // name of the tab
     OwnFileDialogs own;
     QTemporaryDir folder;
     REQUIRE(folder.isValid());
@@ -815,15 +951,22 @@ TEST_CASE("New File: without a book, an untitled file saved where the writer cho
     window.tabs->setCurrentIndex(0);
     const QString path = QDir(folder.path()).filePath(QStringLiteral("Story.kchapter"));
     QString proposed;
-    CHECK(savingAs([&window]() { window.documents.onSaveDocument(); }, path, &proposed) == 1);
+    QStringList types;
+    CHECK(savingAs([&window]() { window.documents.onSaveDocument(); }, path, &proposed,
+                   &types) == 1);
     CHECK(QFileInfo(proposed) ==
           QFileInfo(QDir(folder.path()).filePath(QStringLiteral("Untitled 1.kchapter"))));
+    CHECK(joined(types) == "Kalahari Documents (*.kchapter) | Text Files (*.txt)");
 
-    // Saved, under its new name, and in the Navigator with the other files outside a book
+    // Saved, under its new name, and in the Navigator by its file with the other files outside
+    // a book
     CHECK(QFileInfo::exists(path));
     CHECK(window.tabs->tabText(0) == QStringLiteral("Story.kchapter"));
     CHECK_FALSE(story->property("dirty").toBool());
     CHECK(listsFile(window, path));
+    CHECK(joined(navigatorItems(window, "standalone_file")) == "Untitled 2 | Story.kchapter");
+    CHECK(window.infoBar->message() ==
+          QStringLiteral("This file is not part of a book. Some features are not available."));
 
     // The next save writes the file without asking
     test::write(*story, QStringLiteral("Once upon a time there was a storm"));

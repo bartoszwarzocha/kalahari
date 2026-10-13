@@ -704,6 +704,66 @@
         <extracomment>Book &gt; New Chapter... named after the texts it adds, e.g. New Story... In Polish: &amp;{kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...</extracomment>
         <translation>&amp;{kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...</translation>
     </message>
+    <message>
+        <source>file</source>
+        <comment>singular</comment>
+        <extracomment>The word &quot;file&quot; in sentences about a file of the book outside its text, such as notes: &quot;Delete the file &quot;Notes&quot; from the book?&quot;. In Polish: plik</extracomment>
+        <translation>plik</translation>
+    </message>
+    <message>
+        <source>files</source>
+        <comment>plural</comment>
+        <extracomment>In Polish: pliki</extracomment>
+        <translation>pliki</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <comment>genitive</comment>
+        <extracomment>In Polish: pliku</extracomment>
+        <translation>pliku</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <comment>dative</comment>
+        <extracomment>In Polish: plikowi</extracomment>
+        <translation>plikowi</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <comment>accusative</comment>
+        <extracomment>In Polish: plik</extracomment>
+        <translation>plik</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <comment>instrumental</comment>
+        <extracomment>In Polish: plikiem</extracomment>
+        <translation>plikiem</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <comment>locative</comment>
+        <extracomment>In Polish: pliku</extracomment>
+        <translation>pliku</translation>
+    </message>
+    <message>
+        <source>files</source>
+        <comment>genitive plural</comment>
+        <extracomment>In Polish: plików</extracomment>
+        <translation>plików</translation>
+    </message>
+    <message>
+        <source>a file</source>
+        <comment>indefinite</comment>
+        <extracomment>With the indefinite article. In Polish: plik</extracomment>
+        <translation>plik</translation>
+    </message>
+    <message>
+        <source>neuter</source>
+        <comment>gender of the word file</comment>
+        <extracomment>The grammatical gender of the word &quot;file&quot; in the translation, for the words that agree with it: one of the English words masculine, feminine, neuter or plural, not translated. In Polish: masculine</extracomment>
+        <translation>masculine</translation>
+    </message>
 </context>
 <context>
     <name>KindPalette</name>
@@ -3991,7 +4051,6 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     </message>
     <message>
         <source>&apos;%1&apos; is the file of the {kind} &quot;%2&quot; in the open book. Choose another name.</source>
-        <extracomment>%1: the name of the file, %2: the title of the element. In Polish: „%1” to plik {kind:genitive} „%2” z otwartej książki. Wybierz inną nazwę.</extracomment>
         <translation>„%1” to plik {kind:genitive} „%2” z otwartej książki. Wybierz inną nazwę.</translation>
     </message>
     <message>
@@ -4034,18 +4093,22 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     </message>
     <message>
         <source>File: %1</source>
+        <extracomment>The first line of the details of a book that cannot be opened. In Polish: Plik: %1</extracomment>
         <translation>Plik: %1</translation>
     </message>
     <message>
         <source>Book Already Open</source>
+        <extracomment>The window of a book that another copy of the program has open. In Polish: Książka jest już otwarta</extracomment>
         <translation>Książka jest już otwarta</translation>
     </message>
     <message>
         <source>The book &quot;%1&quot; is already open in another window of Kalahari. Close it there and click Try Again.</source>
+        <extracomment>%1: the title of the book. In Polish: Książka „%1” jest już otwarta w innym oknie programu Kalahari. Zamknij ją tam i kliknij „Spróbuj ponownie”.</extracomment>
         <translation>Książka „%1” jest już otwarta w innym oknie programu Kalahari. Zamknij ją tam i kliknij „Spróbuj ponownie”.</translation>
     </message>
     <message>
         <source>&amp;Try Again</source>
+        <extracomment>In Polish: &amp;Spróbuj ponownie</extracomment>
         <translation>&amp;Spróbuj ponownie</translation>
     </message>
     <message>
@@ -4054,47 +4117,67 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     </message>
     <message>
         <source>Book Not Found</source>
+        <extracomment>In Polish: Nie znaleziono książki</extracomment>
         <translation>Nie znaleziono książki</translation>
     </message>
     <message>
         <source>There is no book file &quot;%1&quot; in the folder &quot;%2&quot;. The file may have been moved, deleted or renamed.</source>
+        <extracomment>%1: the name of the book file, %2: its folder. In Polish: W folderze „%2” nie ma pliku książki „%1”. Plik mógł zostać przeniesiony, usunięty albo mieć zmienioną nazwę.</extracomment>
         <translation>W folderze „%2” nie ma pliku książki „%1”. Plik mógł zostać przeniesiony, usunięty albo mieć zmienioną nazwę.</translation>
     </message>
     <message>
         <source>Not a Book</source>
+        <extracomment>In Polish: To nie jest książka</extracomment>
         <translation>To nie jest książka</translation>
     </message>
     <message>
         <source>&quot;%1&quot; is not a Kalahari book. A book file has the extension .klh.</source>
+        <extracomment>%1: the name of the file. In Polish: „%1” nie jest książką programu Kalahari. Plik książki ma rozszerzenie .klh.</extracomment>
         <translation>„%1” nie jest książką programu Kalahari. Plik książki ma rozszerzenie .klh.</translation>
     </message>
     <message>
         <source>Book of an Older Version</source>
+        <extracomment>In Polish: Książka starszej wersji</extracomment>
         <translation>Książka starszej wersji</translation>
     </message>
     <message>
         <source>This book was saved by an older version of Kalahari, whose format this version cannot read yet.</source>
+        <extracomment>In Polish: Tę książkę zapisała starsza wersja programu Kalahari, której formatu ta wersja jeszcze nie odczytuje.</extracomment>
         <translation>Tę książkę zapisała starsza wersja programu Kalahari, której formatu ta wersja jeszcze nie odczytuje.</translation>
     </message>
     <message>
         <source>Book Cannot Be Opened</source>
+        <extracomment>In Polish: Nie można otworzyć książki</extracomment>
         <translation>Nie można otworzyć książki</translation>
     </message>
     <message>
         <source>The database of the book cannot be opened: the file project.db in its folder may be damaged or used by another program.</source>
+        <extracomment>In Polish: Nie można otworzyć bazy danych książki: plik project.db w jej folderze może być uszkodzony albo używany przez inny program.</extracomment>
         <translation>Nie można otworzyć bazy danych książki: plik project.db w jej folderze może być uszkodzony albo używany przez inny program.</translation>
     </message>
     <message>
         <source>The open book cannot be closed, so the other one was not opened. The program&apos;s log has the details.</source>
+        <extracomment>In Polish: Nie można zamknąć otwartej książki, więc nie otwarto drugiej. Szczegóły są w dzienniku programu.</extracomment>
         <translation>Nie można zamknąć otwartej książki, więc nie otwarto drugiej. Szczegóły są w dzienniku programu.</translation>
     </message>
     <message>
         <source>Book Cannot Be Read</source>
+        <extracomment>In Polish: Nie można odczytać książki</extracomment>
         <translation>Nie można odczytać książki</translation>
     </message>
     <message>
         <source>The book file &quot;%1&quot; is damaged or incomplete, so the program cannot read it. Show Details says what is wrong in it.</source>
+        <extracomment>%1: the name of the book file. In Polish: Plik książki „%1” jest uszkodzony albo niepełny, więc program nie może go odczytać. Co jest w nim nie tak, pokazuje przycisk „Pokaż szczegóły”.</extracomment>
         <translation>Plik książki „%1” jest uszkodzony albo niepełny, więc program nie może go odczytać. Co jest w nim nie tak, pokazuje przycisk „Pokaż szczegóły”.</translation>
+    </message>
+    <message>
+        <source>New file – not saved yet</source>
+        <extracomment>The info bar of a new file that has no file yet. In Polish: Nowy plik – jeszcze niezapisany</extracomment>
+        <translation>Nowy plik – jeszcze niezapisany</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is the file &quot;%2&quot; of the open book. Choose another name.</source>
+        <translation>„%1” to plik „%2” z otwartej książki. Wybierz inną nazwę.</translation>
     </message>
 </context>
 <context>
@@ -5406,6 +5489,16 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
         <source>No book loaded</source>
         <translation>Nie wczytano książki</translation>
     </message>
+    <message>
+        <source>Add File Failed</source>
+        <extracomment>In Polish: Nie udało się dodać pliku</extracomment>
+        <translation>Nie udało się dodać pliku</translation>
+    </message>
+    <message>
+        <source>File added to Other Files: %1</source>
+        <extracomment>An empty text file added to the files of the book outside its text. In Polish: Dodano plik do grupy „Inne pliki”: %1</extracomment>
+        <translation>Dodano plik do grupy „Inne pliki”: %1</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
@@ -5620,6 +5713,26 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
     <message>
         <source>&amp;Delete All...</source>
         <translation>&amp;Usuń wszystkie...</translation>
+    </message>
+    <message>
+        <source>Other Files</source>
+        <extracomment>The item of the Navigator with the files of the book outside its text, such as notes, which the finished book does not have. In Polish: Inne pliki</extracomment>
+        <translation>Inne pliki</translation>
+    </message>
+    <message>
+        <source>Files kept with the book that are not part of its text: the finished book does not have them</source>
+        <extracomment>In Polish: Pliki trzymane razem z książką, które nie należą do jej treści: gotowa książka ich nie zawiera</extracomment>
+        <translation>Pliki trzymane razem z książką, które nie należą do jej treści: gotowa książka ich nie zawiera</translation>
+    </message>
+    <message>
+        <source>New file – not saved yet</source>
+        <extracomment>The tooltip of a new file in the Navigator, which has no file yet. In Polish: Nowy plik – jeszcze niezapisany</extracomment>
+        <translation>Nowy plik – jeszcze niezapisany</translation>
+    </message>
+    <message>
+        <source>&amp;Add to Book</source>
+        <extracomment>The command of a new file that has no file yet; no window follows. In Polish: &amp;Dodaj do książki</extracomment>
+        <translation>&amp;Dodaj do książki</translation>
     </message>
 </context>
 <context>
@@ -8476,6 +8589,24 @@ Harmonogram projektu:
             <numerusform>Razem z {kind:m=nim|f=nią|n=nim|p=nimi} z książki zniknie %n {child:genitivePlural}.</numerusform>
         </translation>
     </message>
+    <message>
+        <source>&amp;Also delete the file from the book&apos;s folder – it goes to the {bin}</source>
+        <translation>Usuń &amp;też plik z folderu książki – trafi do Kosza</translation>
+    </message>
+    <message>
+        <source>&amp;Also delete the file from the book&apos;s folder – it will be gone for good</source>
+        <translation>Usuń &amp;też plik z folderu książki – zniknie na zawsze</translation>
+    </message>
+    <message>
+        <source>The file goes to the system&apos;s {bin}. You can restore it from the {bin}, but not from the program.</source>
+        <extracomment>A file kept with the book, outside its text. In Polish: Plik trafi do systemowego Kosza. Przywrócisz go z Kosza, ale już nie z programu.</extracomment>
+        <translation>Plik trafi do systemowego Kosza. Przywrócisz go z Kosza, ale już nie z programu.</translation>
+    </message>
+    <message>
+        <source>The file will be gone for good: files in this folder cannot go to the {bin}.</source>
+        <extracomment>In Polish: Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</extracomment>
+        <translation>Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::ExportArchiveDialog</name>
@@ -9141,7 +9272,9 @@ The button that moves the element. In Polish: Przenieś</extracomment>
     </message>
     <message>
         <source>any number</source>
-        <extracomment>How many elements of a kind the book can have. In Polish: dowolnie wiele</extracomment>
+        <extracomment>How many elements of a kind the book can have. In Polish: dowolnie wiele
+----------
+How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <translation>dowolnie wiele</translation>
     </message>
     <message>
@@ -9221,31 +9354,48 @@ The button that moves the element. In Polish: Przenieś</extracomment>
     </message>
     <message>
         <source>&amp;Outside the book</source>
+        <extracomment>The place of an empty text file: not in the book, in a tab of its own. In Polish: &amp;Poza książką</extracomment>
         <translation>&amp;Poza książką</translation>
     </message>
     <message>
         <source>&amp;In the book</source>
+        <extracomment>The place of an empty text file: in the book, among its files outside its text (&quot;Other Files&quot; in the Navigator). In Polish: &amp;W książce</extracomment>
         <translation>&amp;W książce</translation>
     </message>
     <message>
         <source>Other Files</source>
+        <extracomment>The group of the tiles of files that are no kind of the book, after the parts of the book. In Polish: Inne pliki</extracomment>
         <translation>Inne pliki</translation>
     </message>
     <message>
-        <source>Plain File</source>
-        <translation>Zwykły plik</translation>
-    </message>
-    <message>
-        <source>in the book, as {kind:indefinite} (%1)</source>
-        <translation>w książce jako {kind} (%1)</translation>
-    </message>
-    <message>
         <source>outside the book, in a tab of its own</source>
+        <extracomment>Where an empty text file outside the book goes. In Polish: poza książką, w nowej karcie</extracomment>
         <translation>poza książką, w nowej karcie</translation>
     </message>
     <message>
         <source>chosen when it is saved for the first time</source>
+        <extracomment>The file of an empty text file outside the book: the writer chooses it when saving it for the first time. In Polish: wybierzesz go przy pierwszym zapisie</extracomment>
         <translation>wybierzesz go przy pierwszym zapisie</translation>
+    </message>
+    <message>
+        <source>Empty Text File</source>
+        <extracomment>The tile of an empty text file in the New File window, and its name above its description. In Polish: Pusty plik tekstowy</extracomment>
+        <translation>Pusty plik tekstowy</translation>
+    </message>
+    <message>
+        <source>in the book, in &quot;Other Files&quot;, outside its text</source>
+        <extracomment>Where an empty text file in the book goes: to the files of the book outside its text, &quot;Other Files&quot; in the Navigator. In Polish: w książce, w grupie „Inne pliki”, poza jej treścią</extracomment>
+        <translation>w książce, w grupie „Inne pliki”, poza jej treścią</translation>
+    </message>
+    <message>
+        <source>The file goes to the book&apos;s folder and to &quot;Other Files&quot; in the Navigator. It is not part of the text of the book, so the finished book does not have it.</source>
+        <extracomment>Where an empty text file in the book goes, in place of the list of places. In Polish: Plik trafi do folderu książki i do grupy „Inne pliki” w Nawigatorze. Nie należy do treści książki, więc gotowa książka go nie zawiera.</extracomment>
+        <translation>Plik trafi do folderu książki i do grupy „Inne pliki” w Nawigatorze. Nie należy do treści książki, więc gotowa książka go nie zawiera.</translation>
+    </message>
+    <message>
+        <source>The file opens in a new tab, outside the book. You choose its place and format when you save it for the first time.</source>
+        <extracomment>Where an empty text file outside the book goes, in place of the list of places. In Polish: Plik otworzy się w nowej karcie, poza książką. Miejsce i format pliku wybierzesz przy pierwszym zapisie.</extracomment>
+        <translation>Plik otworzy się w nowej karcie, poza książką. Miejsce i format pliku wybierzesz przy pierwszym zapisie.</translation>
     </message>
 </context>
 <context>
@@ -9768,6 +9918,7 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     </message>
     <message>
         <source>A book (.klh file) or another file to open; when the program runs already, its window opens it</source>
+        <extracomment>The argument of the command line without a name. In Polish: Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</extracomment>
         <translation>Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</translation>
     </message>
 </context>

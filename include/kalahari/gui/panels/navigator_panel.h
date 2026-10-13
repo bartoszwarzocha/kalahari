@@ -13,6 +13,7 @@
 #include "kalahari/core/book_project.h"
 
 #include <QWidget>
+#include <QHash>
 #include <QMap>
 #include <QSet>
 #include <QString>
@@ -55,11 +56,16 @@ namespace gui {
 /// that it can go inside. The drop asks for the move (elementMovedTo()), and the tree shows
 /// the book as it is once it is loaded again.
 ///
-/// Item data: Qt::UserRole holds the element ID (the path of a standalone file, the file of an
-/// unassigned file relative to the project folder), Qt::UserRole + 1 the item type: "document",
-/// "section_frontmatter", "section_body", "section_backmatter", "text_element",
-/// "group_element", "window_element", "unassigned_files", "unassigned_file", "other_files" or
-/// "standalone_file".
+/// The files of the book outside its text, such as notes, which the finished book does not
+/// have, are in a group of their own after the sections, "Other Files" (core::ProjectBook::files).
+/// Every file open outside the book is listed under "Files Outside the Book", also a new file
+/// that has no file yet (addNewFile()).
+///
+/// Item data: Qt::UserRole holds the element ID (the path of a standalone file or the key of a
+/// new one, the file of an unassigned file relative to the project folder), Qt::UserRole + 1 the
+/// item type: "document", "section_frontmatter", "section_body", "section_backmatter",
+/// "text_element", "group_element", "window_element", "book_files", "book_file",
+/// "unassigned_files", "unassigned_file", "other_files" or "standalone_file".
 class NavigatorPanel : public QWidget {
     Q_OBJECT
 
@@ -94,7 +100,7 @@ public:
                             const QString& projectFolder);
 
     /// @brief ArtProvider id of the icon of @p element: of its kind or, when @p registry does
-    /// not have its kind, of its form
+    /// not have its kind, of its form; that of a file for a file of the book outside its text
     static QString iconIdOf(const core::BookTypeRegistry& registry,
                             const core::ProjectElement& element);
 
@@ -136,8 +142,15 @@ public:
     /// @note The name has "*" before it while the file has unsaved changes (setFileModified())
     void addStandaloneFile(const QString& path);
 
+    /// @brief Add a new file that has no file yet to the "Other Files" section, named as its
+    /// tab ("Untitled 1"), so that the section lists every file open outside the book
+    /// @param key Key of the file, which no path has ("untitled:1"): the id of its item, which
+    /// standaloneFileSelected(), setFileModified() and removeStandaloneFile() take
+    /// @param name Name of the file: the title of its tab
+    void addNewFile(const QString& key, const QString& name);
+
     /// @brief Remove a standalone file from the "Other Files" section
-    /// @param path Absolute file path
+    /// @param path Absolute file path, or the key of a new file (addNewFile())
     /// @note Hides "Other Files" section if empty after removal
     void removeStandaloneFile(const QString& path);
 
@@ -360,6 +373,10 @@ private:
     void addElementItems(QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements,
                          const core::BookTypeRegistry& registry);
 
+    /// @brief Add the group "Other Files" with the files of the book outside its text, @p files,
+    /// under @p parent; nothing when the book has none
+    void addBookFileItems(QTreeWidgetItem* parent, const QList<core::ProjectElement>& files);
+
     /// @brief Title of an element as the tree shows it: "*" when it has unsaved changes, and
     /// for a text element its status when it is not final ("Chapter 1 [Draft]")
     static QString getDisplayTitle(const core::ProjectElement& element, bool isText,
@@ -448,6 +465,8 @@ private:
     QTreeWidget* m_treeWidget;
     QTreeWidgetItem* m_otherFilesItem;  ///< "Other Files" section (always at bottom)
     QMap<QString, QTreeWidgetItem*> m_standaloneFiles;  ///< path -> tree item
+    /// Key -> name of the new files that have no file yet (addNewFile())
+    QHash<QString, QString> m_newFileNames;
 
     // Unassigned files
     QTreeWidgetItem* m_unassignedItem = nullptr;  ///< "Unassigned Files"; nullptr: no files

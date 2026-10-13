@@ -55,9 +55,11 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_projectRevisionCountLabel(nullptr)
     , m_projectFinalCountLabel(nullptr)
     , m_chapterInfoGroup(nullptr)
+    , m_chapterInfoLayout(nullptr)
     , m_chapterTitleEdit(nullptr)
     , m_chapterWordCountLabel(nullptr)
     , m_chapterStatusCombo(nullptr)
+    , m_chapterNotesGroup(nullptr)
     , m_chapterNotesEdit(nullptr)
     , m_sectionTitleLabel(nullptr)
     , m_sectionChapterCountTitle(nullptr)
@@ -300,6 +302,7 @@ QWidget* PropertiesPanel::createChapterPage() {
     QFormLayout* infoLayout = new QFormLayout(infoGroup);
     infoLayout->setSpacing(6);
     infoLayout->setContentsMargins(11, 11, 11, 11);
+    m_chapterInfoLayout = infoLayout;
 
     // Title
     m_chapterTitleEdit = new QLineEdit(infoGroup);
@@ -321,6 +324,7 @@ QWidget* PropertiesPanel::createChapterPage() {
 
     // Notes group
     QGroupBox* notesGroup = new QGroupBox(tr("Notes"), scrollContent);
+    m_chapterNotesGroup = notesGroup;
     QVBoxLayout* notesLayout = new QVBoxLayout(notesGroup);
     notesLayout->setSpacing(6);
     notesLayout->setContentsMargins(11, 11, 11, 11);
@@ -1142,6 +1146,12 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     //: In Polish: Notatki i uwagi do {kind:genitive}
     m_chapterNotesEdit->setToolTip(
         core::fillWords(tr("Notes and comments for {kind:s=this|p=these} {kind}"), nouns));
+
+    // A file of the book outside its text has no status and no notes: only its title and its
+    // words
+    const bool bookFile = !element->hasKind();
+    m_chapterInfoLayout->setRowVisible(m_chapterStatusCombo, !bookFile);
+    m_chapterNotesGroup->setVisible(!bookFile);
 
     // Set updating flag to prevent recursive updates
     m_isUpdating = true;

@@ -66,6 +66,10 @@ core::KindWords wordsOf(const core::BookTypeRegistry& registry,
     if (const core::KindRef kind = core::BookProject::kindOf(registry, element)) {
         return wordsOf(kind);
     }
+    // A file of the book outside its text has no kind
+    if (!element.hasKind()) {
+        return fileWords();
+    }
     // A kind of a package that is not installed: its id stands for its name
     core::KindWords words;
     words.forms.insert(QStringLiteral("singular"), element.kind.kindId);
@@ -128,6 +132,48 @@ core::KindWords elementWords() {
     //: translated. In Polish: masculine
     const QString gender =
         QCoreApplication::translate("KindNames", "neuter", "gender of the word element");
+    if (!core::KindWords::genderFromName(gender, words.gender)) {
+        words.gender = core::Gender::Neuter;
+    }
+    return words;
+}
+
+core::KindWords fileWords() {
+    // Each form is a text of its own, as in elementWords()
+    core::KindWords words;
+    //: The word "file" in sentences about a file of the book outside its text, such as notes:
+    //: "Delete the file "Notes" from the book?". In Polish: plik
+    words.forms.insert(QStringLiteral("singular"),
+                       QCoreApplication::translate("KindNames", "file", "singular"));
+    //: In Polish: pliki
+    words.forms.insert(QStringLiteral("plural"),
+                       QCoreApplication::translate("KindNames", "files", "plural"));
+    //: In Polish: pliku
+    words.forms.insert(QStringLiteral("genitive"),
+                       QCoreApplication::translate("KindNames", "file", "genitive"));
+    //: In Polish: plikowi
+    words.forms.insert(QStringLiteral("dative"),
+                       QCoreApplication::translate("KindNames", "file", "dative"));
+    //: In Polish: plik
+    words.forms.insert(QStringLiteral("accusative"),
+                       QCoreApplication::translate("KindNames", "file", "accusative"));
+    //: In Polish: plikiem
+    words.forms.insert(QStringLiteral("instrumental"),
+                       QCoreApplication::translate("KindNames", "file", "instrumental"));
+    //: In Polish: pliku
+    words.forms.insert(QStringLiteral("locative"),
+                       QCoreApplication::translate("KindNames", "file", "locative"));
+    //: In Polish: plików
+    words.forms.insert(QStringLiteral("genitivePlural"),
+                       QCoreApplication::translate("KindNames", "files", "genitive plural"));
+    //: With the indefinite article. In Polish: plik
+    words.forms.insert(QStringLiteral("indefinite"),
+                       QCoreApplication::translate("KindNames", "a file", "indefinite"));
+    //: The grammatical gender of the word "file" in the translation, for the words that agree
+    //: with it: one of the English words masculine, feminine, neuter or plural, not
+    //: translated. In Polish: masculine
+    const QString gender =
+        QCoreApplication::translate("KindNames", "neuter", "gender of the word file");
     if (!core::KindWords::genderFromName(gender, words.gender)) {
         words.gender = core::Gender::Neuter;
     }

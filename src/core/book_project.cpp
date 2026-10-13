@@ -173,6 +173,42 @@ struct Seen {
 QList<ProjectElement> readElements(const QJsonArray& array, const QString& field, Seen& seen,
                                    QStringList& problems);
 
+/// The id of the element of @p field, unique in the project
+QString readId(Fields& fields, const QString& field, Seen& seen) {
+    const QString id = fields.string("id", true);
+    if (!id.isEmpty()) {
+        const QString first = seen.ids.value(id);
+        if (first.isEmpty()) {
+            seen.ids.insert(id, field);
+        } else {
+            fields.problem("id", QStringLiteral("'%1' is already the id of %2").arg(id, first));
+        }
+    }
+    return id;
+}
+
+/// The file of the element of @p field, inside the project folder and of no other element;
+/// empty when it has none
+QString readFile(Fields& fields, const QString& field, Seen& seen, bool required) {
+    const QJsonValue value = fields.take("file");
+    if (value.isUndefined() && !required) {
+        return {};
+    }
+    if (!value.isString() || !isPathInside(value.toString())) {
+        fields.problem("file", QStringLiteral("must be a path inside the project folder, "
+                                              "e.g. \"book/chapter_001.kchapter\""));
+        return {};
+    }
+    const QString file = value.toString();
+    const QString first = seen.files.value(file);
+    if (first.isEmpty()) {
+        seen.files.insert(file, field);
+    } else {
+        fields.problem("file", QStringLiteral("'%1' is already the file of %2").arg(file, first));
+    }
+    return file;
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -182,16 +218,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     }
     Fields fields(value.toObject(), field, problems);
 
-    element.id = fields.string("id", true);
-    if (!element.id.isEmpty()) {
-        const QString first = seen.ids.value(element.id);
-        if (first.isEmpty()) {
-            seen.ids.insert(element.id, field);
-        } else {
-            fields.problem("id", QStringLiteral("'%1' is already the id of %2")
-                                     .arg(element.id, first));
-        }
-    }
+    element.id = readId(fields, field, seen);
 
     const QJsonValue kind = fields.take("kind");
     if (const std::optional<KindReference> reference = readKindReference(kind)) {
@@ -201,29 +228,28 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     }
 
     element.title = fields.string("title");
-
-    const QJsonValue file = fields.take("file");
-    if (!file.isUndefined()) {
-        if (!file.isString() || !isPathInside(file.toString())) {
-            fields.problem("file", QStringLiteral("must be a path inside the project folder, "
-                                                  "e.g. \"book/chapter_001.kchapter\""));
-        } else {
-            element.file = file.toString();
-            const QString first = seen.files.value(element.file);
-            if (first.isEmpty()) {
-                seen.files.insert(element.file, field);
-            } else {
-                fields.problem("file", QStringLiteral("'%1' is already the file of %2")
-                                           .arg(element.file, first));
-            }
-        }
-    }
-
+    element.file = readFile(fields, field, seen, false);
     element.status = fields.string("status");
     element.elements = readElements(fields.array("elements"), fields.path("elements"), seen,
                                     problems);
     element.extra = fields.rest();
     return element;
+}
+
+/// A file of a book outside its text: an id, a title and a file, without a kind and a status
+ProjectElement readBookFile(const QJsonValue& value, const QString& field, Seen& seen,
+                            QStringList& problems) {
+    ProjectElement file;
+    if (!value.isObject()) {
+        addProblem(problems, field, QStringLiteral("must be an object"));
+        return file;
+    }
+    Fields fields(value.toObject(), field, problems);
+    file.id = readId(fields, field, seen);
+    file.title = fields.string("title");
+    file.file = readFile(fields, field, seen, true);
+    file.extra = fields.rest();
+    return file;
 }
 
 QList<ProjectElement> readElements(const QJsonArray& array, const QString& field, Seen& seen,
@@ -282,6 +308,12 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
     for (const BookPart& part : BOOK_PARTS) {
         book.*part.elements = readElements(fields.array(part.key), fields.path(part.key), seen,
                                            problems);
+    }
+    const QJsonArray files = fields.array("files");
+    for (qsizetype i = 0; i < files.size(); ++i) {
+        book.files << readBookFile(files.at(i),
+                                   QStringLiteral("%1[%2]").arg(fields.path("files")).arg(i),
+                                   seen, problems);
     }
     book.extra = fields.rest();
     return book;
@@ -391,6 +423,20 @@ QJsonObject bookToJson(const ProjectBook& book) {
     for (const BookPart& part : BOOK_PARTS) {
         json.insert(QLatin1String(part.key), elementsToJson(book.*part.elements));
     }
+    // The files outside the text, which have no kind and no status
+    QJsonArray files;
+    for (const ProjectElement& file : book.files) {
+        QJsonObject fileJson = file.extra;
+        fileJson.insert(QLatin1String("id"), file.id);
+        fileJson.insert(QLatin1String("title"), file.title);
+        fileJson.insert(QLatin1String("file"), file.file);
+        files.append(fileJson);
+    }
+    if (files.isEmpty()) {
+        json.remove(QLatin1String("files"));
+    } else {
+        json.insert(QLatin1String("files"), files);
+    }
     return json;
 }
 
@@ -427,7 +473,8 @@ List* findInList(List& list, const QString& id, qsizetype& index) {
     return nullptr;
 }
 
-/// The list in @p project that holds element @p id; @p index gets its index
+/// The list in @p project that holds element @p id, or the files of a book outside its text
+/// that hold it; @p index gets its index
 template <typename Project>
 ElementList<Project>* findList(Project& project, const QString& id, qsizetype& index) {
     for (auto& book : project.books) {
@@ -435,6 +482,9 @@ ElementList<Project>* findList(Project& project, const QString& id, qsizetype& i
             if (ElementList<Project>* list = findInList(book.*part.elements, id, index)) {
                 return list;
             }
+        }
+        if (ElementList<Project>* files = findInList(book.files, id, index)) {
+            return files;
         }
     }
     return findInList(project.workshop.elements, id, index);
@@ -448,13 +498,15 @@ void forEachElement(const QList<ProjectElement>& elements,
     }
 }
 
-/// Every element of the books and the Workshop of @p project
+/// Every element of the books and the Workshop of @p project, and every file of its books
+/// outside their text
 void forEachElement(const BookProject& project,
                     const std::function<void(const ProjectElement&)>& visit) {
     for (const ProjectBook& book : project.books) {
         for (const BookPart& part : BOOK_PARTS) {
             forEachElement(book.*part.elements, visit);
         }
+        forEachElement(book.files, visit);
     }
     forEachElement(project.workshop.elements, visit);
 }
@@ -674,6 +726,16 @@ const ProjectElement* BookProject::findElement(const QString& elementId) const {
     qsizetype index = -1;
     const QList<ProjectElement>* list = findList(*this, elementId, index);
     return list ? &list->at(index) : nullptr;
+}
+
+bool BookProject::isBookFile(const QString& elementId) const {
+    return !elementId.isEmpty() &&
+           std::any_of(books.cbegin(), books.cend(), [&elementId](const ProjectBook& book) {
+               return std::any_of(book.files.cbegin(), book.files.cend(),
+                                  [&elementId](const ProjectElement& file) {
+                                      return file.id == elementId;
+                                  });
+           });
 }
 
 QList<ProjectElement>* BookProject::listOf(const QString& elementId, qsizetype* index) {

@@ -1,6 +1,6 @@
 /// @file new_file_dialog.h
 /// @brief New File: a new element of the open book, of the kind, with the title and at the
-/// place the writer chooses, or a plain file, outside the book or in it
+/// place the writer chooses, or an empty text file, outside the book or with it
 
 #pragma once
 
@@ -20,6 +20,7 @@ class QLineEdit;
 class QListWidget;
 class QPushButton;
 class QRadioButton;
+class QStackedWidget;
 class QWidget;
 
 namespace kalahari {
@@ -42,7 +43,8 @@ struct NewFileKind {
     QString type;   ///< The type of book the kind belongs to: "Novel"
 };
 
-/// @brief New File: a new element of the open book, which opens in the editor, or a plain file
+/// @brief New File: a new element of the open book, which opens in the editor, or an empty
+/// text file
 ///
 /// The choices go from the top down: the kind, the title, the place. The kinds of the book are
 /// tiles in groups of the parts of the book (front, main and back), named as the Navigator
@@ -57,10 +59,12 @@ struct NewFileKind {
 /// whose tooltips say why. A group (a part) is no file, so it has no tile: the Navigator adds
 /// it.
 ///
-/// The last group, Other Files, has the tile of a plain file. Its place is outside the book
-/// at first: an empty file in a tab of its own, as New File without a book makes it, with the
-/// list of places greyed. In the book it is an element of the main text kind of the book, at
-/// the place the writer chooses in the list.
+/// The last group, Other Files, has the tile of an empty text file, which is no element of
+/// the text of the book. Its place is outside the book at first: an empty file in a tab of its
+/// own, as New File without a book makes it. With the book it is one of the files of the book
+/// outside its text (core::ProjectBook::files), in "Other Files" in the Navigator, which the
+/// finished book does not have. It has no place in the list of the book: a note says where
+/// the file goes instead.
 ///
 /// The title starts as the title of the chosen kind ("Chapter 4"), selected, so typing
 /// replaces it, and a click in it selects it while it is the proposed one; it follows the kind
@@ -78,18 +82,18 @@ public:
         /// Navigator, or in a book without sections its place in the book ("Content")
         QStringList groupNames;
         int current = -1;  ///< Index in @c kinds of the kind chosen at the start; -1: none
-        /// Index in @c kinds of the kind of a plain file in the book: the main text kind of
-        /// the book in its main part; -1: a plain file cannot go into the book
-        int plainKind = -1;
-        /// Title of a plain file outside the book, as New File without a book names it
-        /// ("Untitled 2"); empty: the window has no tile of a plain file
+        /// The file of an empty text file with the book: "file_001.kchapter in the folder
+        /// "book""; empty: an empty text file cannot go with the book
+        QString bookFile;
+        /// Title of an empty text file ("Untitled 2"), as New File without a book names it;
+        /// empty: the window has no tile of an empty text file
         QString untitled;
     };
 
     /// @brief The kinds and the parts of the book open in core::ProjectManager; at the start
     /// the main text kind of the book in its main part is chosen, else the first kind of which
     /// a new element can be made
-    /// @param untitled Title of a plain file outside the book; empty: no plain file
+    /// @param untitled Title of an empty text file; empty: no empty text file
     static Book openBook(const QString& untitled = QString());
 
     /// @brief Create the dialog
@@ -99,13 +103,17 @@ public:
     NewFileDialog(const Book& book, const core::BookTypeRegistry& registry,
                   QWidget* parent = nullptr);
 
-    /// @brief The kind of the new element: of a plain file in the book, the main text kind;
-    /// none when no tile is chosen and for a plain file outside the book
+    /// @brief The kind of the new element; none when no tile is chosen and for an empty text
+    /// file
     core::KindRef kind() const;
 
-    /// @brief A plain file outside the book is chosen: the caller opens an empty file with
-    /// the title in a tab of its own
+    /// @brief An empty text file outside the book is chosen: the caller opens an empty file
+    /// with the title in a tab of its own
     bool outsideBook() const;
+
+    /// @brief An empty text file with the book is chosen: the caller adds it to the files of
+    /// the book outside its text (core::ProjectManager::addBookFile())
+    bool emptyFileInBook() const;
 
     /// @brief The title of the new element, without spaces around it
     QString title() const;
@@ -119,13 +127,16 @@ public:
     /// @brief The title of the new element
     QLineEdit* titleEdit() const { return m_titleEdit; }
 
-    /// @brief The place of the new element in the book
+    /// @brief The place of the new element in the book; hidden for an empty text file
     ElementPlacePicker* picker() const { return m_picker; }
 
-    /// @brief The place of a plain file: outside the book; hidden for the other tiles
+    /// @brief Where an empty text file goes, in place of the list of places
+    QLabel* placeNote() const { return m_placeNote; }
+
+    /// @brief The place of an empty text file: outside the book; hidden for the other tiles
     QRadioButton* outsideButton() const { return m_outsideButton; }
 
-    /// @brief The place of a plain file: in the book; hidden for the other tiles
+    /// @brief The place of an empty text file: with the book; hidden for the other tiles
     QRadioButton* insideButton() const { return m_insideButton; }
 
     /// @brief The button that creates the element
@@ -173,23 +184,23 @@ private:
     /// their icons in the colors of the current icons
     void sizeTiles();
 
-    /// @brief The kind of the chosen tile, or of a plain file in the book; nullptr when none
-    /// is chosen and for a plain file outside the book
+    /// @brief The kind of the chosen tile; nullptr when none is chosen and for an empty text
+    /// file
     const NewFileKind* chosen() const;
 
-    /// @brief The tile of a plain file is chosen
-    bool plainChosen() const;
+    /// @brief The tile of an empty text file is chosen
+    bool emptyFileChosen() const;
 
-    /// @brief The name of a plain file: its tile, and the name above its description
-    static QString plainFileName();
+    /// @brief The name of an empty text file: its tile, and the name above its description
+    static QString emptyFileName();
 
     /// @brief The places of @p entry in the part of the book of its tile, with the new
     /// element at the place it gets when the writer does not choose it
     void showPlaces(const NewFileKind& entry);
 
-    /// @brief The description, the title and the place of a plain file, outside the book or
-    /// in it
-    void showPlainFile();
+    /// @brief The description, the title and the place of an empty text file, outside the book
+    /// or with it
+    void showEmptyFile();
 
     /// @brief A new kind: its description, the title of its element unless the writer has
     /// changed it, and the places in its part of the book
@@ -211,12 +222,16 @@ private:
     QLabel* m_countLabel = nullptr;
     QLabel* m_fileLabel = nullptr;
     QLabel* m_typeLabel = nullptr;
-    QLabel* m_typeCaption = nullptr;  ///< "Type:", hidden with the type of a plain file
+    QLabel* m_typeCaption = nullptr;  ///< "Type:", hidden with the type of an empty text file
     QListWidget* m_kindList = nullptr;
     QLineEdit* m_titleEdit = nullptr;
     QRadioButton* m_outsideButton = nullptr;
     QRadioButton* m_insideButton = nullptr;
+    /// The list of places, or the note of an empty text file in its place: as high as the
+    /// higher one, so that a choice moves nothing in the window
+    QStackedWidget* m_placePages = nullptr;
     ElementPlacePicker* m_picker = nullptr;
+    QLabel* m_placeNote = nullptr;
     QPushButton* m_createButton = nullptr;
 };
 
