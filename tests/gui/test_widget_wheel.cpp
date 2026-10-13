@@ -38,6 +38,17 @@ struct InstalledWheel {
     InstalledWheel& operator=(const InstalledWheel&) = delete;
 };
 
+/// Shows @p window and makes it active; whether the system gave it the keys. Windows does not
+/// let a window of a process in the background take them from the window of another one, as
+/// when the tests run in parallel.
+bool activate(QWidget& window) {
+    window.show();
+    window.activateWindow();
+    return test::waitUntil([&window] { return QApplication::activeWindow() == &window; });
+}
+
+constexpr const char* NOT_ACTIVE = "the system did not make the test's window active";
+
 /// One notch of the wheel away from the user over the middle of @p widget; whether the
 /// widget took it
 bool turnWheel(QWidget& widget) {
@@ -150,9 +161,9 @@ TEST_CASE("Mouse wheel: over a field without the focus it goes on, with the focu
           "the value", "[gui][wheel]") {
     InstalledWheel wheel;
     Fields fields;
-    fields.window.show();
-    fields.window.activateWindow();
-    REQUIRE(test::waitUntil([&fields] { return QApplication::activeWindow() == &fields.window; }));
+    if (!activate(fields.window)) {
+        SKIP(NOT_ACTIVE);
+    }
     // The focus in the text field, as while one types
     fields.text->setFocus(Qt::TabFocusReason);
     REQUIRE(fields.text->hasFocus());
@@ -207,9 +218,9 @@ TEST_CASE("Mouse wheel: a combo box as on macOS takes the focus from Tab, never 
     Fields fields;
     fields.comboBox->setStyle(&style);
     fields.comboBox->setFocusPolicy(Qt::TabFocus);
-    fields.window.show();
-    fields.window.activateWindow();
-    REQUIRE(test::waitUntil([&fields] { return QApplication::activeWindow() == &fields.window; }));
+    if (!activate(fields.window)) {
+        SKIP(NOT_ACTIVE);
+    }
     CHECK(fields.comboBox->focusPolicy() == Qt::TabFocus);
 
     // Without the focus the wheel goes on to the widget around. With it the combo box gets
@@ -244,9 +255,9 @@ TEST_CASE("Mouse wheel: the field with the focus does not stop the page the whee
     area.setWidget(page);
     area.setWidgetResizable(true);
     area.resize(300, 200);
-    area.show();
-    area.activateWindow();
-    REQUIRE(test::waitUntil([&area] { return QApplication::activeWindow() == &area; }));
+    if (!activate(area)) {
+        SKIP(NOT_ACTIVE);
+    }
     QScrollBar* scrollBar = area.verticalScrollBar();
     REQUIRE(scrollBar->maximum() > 0);
     focusedField->setFocus(Qt::MouseFocusReason);
