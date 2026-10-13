@@ -23,6 +23,26 @@
 #include <algorithm>
 #include <utility>
 
+#if defined(Q_OS_WIN)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#elif defined(Q_OS_LINUX)
+#include <csignal>
+#include <sys/prctl.h>
+#include <unistd.h>
+#elif defined(Q_OS_MACOS)
+#include <cerrno>
+#include <csignal>
+#include <cstdint>
+#include <sys/event.h>
+#include <unistd.h>
+#endif
+
 namespace kalahari::gui {
 
 namespace {
@@ -62,6 +82,116 @@ bool portTaken(const QString& output) {
     return output.contains(QLatin1String("Address already in use")) ||
            output.contains(QLatin1String("BindException"));
 }
+
+// =============================================================================
+// Java ends with the program, also when the program ends abruptly (a crash): it does not
+// stay in memory
+// =============================================================================
+
+#if defined(Q_OS_WIN)
+
+/// @brief The job the java programs are put in. Its handle is never closed: Windows closes
+///        it when the program ends, however it ends, and ends the java programs with it.
+HANDLE javaJob() {
+    static const HANDLE job = []() -> HANDLE {
+        const HANDLE created = CreateJobObjectW(nullptr, nullptr);
+        if (created == nullptr) {
+            return nullptr;
+        }
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+        limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        if (SetInformationJobObject(created, JobObjectExtendedLimitInformation, &limits,
+                                    static_cast<DWORD>(sizeof(limits))) == FALSE) {
+            CloseHandle(created);
+            return nullptr;
+        }
+        return created;
+    }();
+    return job;
+}
+
+/// @brief Have the java program just started end with the program
+/// @return Whether it will
+bool endWithProgram(const QProcess& process) {
+    const HANDLE job = javaJob();
+    const qint64 id = process.processId();
+    if (job == nullptr || id <= 0) {
+        return false;
+    }
+    const HANDLE java =
+        OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, FALSE, static_cast<DWORD>(id));
+    if (java == nullptr) {
+        return false;
+    }
+    const bool assigned = AssignProcessToJobObject(job, java) != FALSE;
+    CloseHandle(java);
+    return assigned;
+}
+
+#elif defined(Q_OS_LINUX)
+
+/// @brief Run in the java program before Java starts in it, so only what is safe after
+///        fork(): the system ends it when the program ends, however it ends (when the thread
+///        that starts it ends: the main one)
+/// @param program The program that starts it
+void endWithProgram(pid_t program) {
+    prctl(PR_SET_PDEATHSIG, static_cast<unsigned long>(SIGKILL));
+    if (getppid() != program) {
+        _exit(1);  // the program ended before that
+    }
+}
+
+#elif defined(Q_OS_MACOS)
+
+/// @brief The descriptors the watcher closes: those it got of the program
+constexpr long MAX_WATCHER_DESCRIPTORS = 65536;
+
+/// @brief Run in the java program before Java starts in it, so only what is safe after
+///        fork(). A watcher (a copy of the program that runs none of its code) waits for the
+///        program or Java to end; when the program ends first, however it ends, it ends Java.
+/// @param program The program that starts it
+void endWithProgram(pid_t program) {
+    const pid_t java = getpid();
+    if (fork() != 0) {
+        return;  // Java (not watched when the watcher could not be made)
+    }
+
+    // Nothing of the program kept open: Java's output, the pipe that tells it started
+    long descriptors = sysconf(_SC_OPEN_MAX);
+    if (descriptors <= 0 || descriptors > MAX_WATCHER_DESCRIPTORS) {
+        descriptors = MAX_WATCHER_DESCRIPTORS;
+    }
+    for (int descriptor = 0; descriptor < descriptors; ++descriptor) {
+        close(descriptor);
+    }
+
+    const int queue = kqueue();
+    struct kevent change {};
+    EV_SET(&change, java, EVFILT_PROC, EV_ADD, NOTE_EXIT, 0, nullptr);
+    if (queue < 0 || kevent(queue, &change, 1, nullptr, 0, nullptr) < 0) {
+        _exit(0);
+    }
+    EV_SET(&change, program, EVFILT_PROC, EV_ADD, NOTE_EXIT, 0, nullptr);
+    if (kevent(queue, &change, 1, nullptr, 0, nullptr) == 0) {
+        struct kevent ended {};
+        int count = 0;
+        do {
+            count = kevent(queue, nullptr, 0, &ended, 1, nullptr);
+        } while (count < 0 && errno == EINTR);
+        if (count != 1 || ended.ident != static_cast<std::uintptr_t>(program)) {
+            _exit(0);  // Java ended first
+        }
+    } else if (errno != ESRCH) {
+        _exit(0);  // the program cannot be watched
+    }
+    // The program ended: Java with it, while Java is there (the watcher's parent)
+    if (getppid() == java) {
+        kill(java, SIGKILL);
+    }
+    _exit(0);
+}
+
+#endif
 
 }  // namespace
 
@@ -218,6 +348,9 @@ void LanguageToolServer::launch(int fromPort)
     m_process = new QProcess(this);
     m_process->setProcessChannelMode(QProcess::MergedChannels);
     m_process->setWorkingDirectory(m_folder);
+#if defined(Q_OS_LINUX) || defined(Q_OS_MACOS)
+    m_process->setChildProcessModifier([program = getpid()]() { endWithProgram(program); });
+#endif
     connect(m_process, &QProcess::readyRead, this, [this]() {
         m_output += QString::fromLocal8Bit(m_process->readAll());
         if (m_output.size() > MAX_OUTPUT) {
@@ -241,6 +374,12 @@ void LanguageToolServer::launch(int fromPort)
                               QStringLiteral("org.languagetool.server.HTTPServer"),
                               QStringLiteral("--port"), QString::number(m_port)});
     if (m_process != nullptr) {
+#if defined(Q_OS_WIN)
+        if (!endWithProgram(*m_process)) {
+            core::Logger::getInstance().warn("LanguageToolServer: Java may not end when the "
+                                             "program ends abruptly");
+        }
+#endif
         m_probeTimer->start();
     }
 }

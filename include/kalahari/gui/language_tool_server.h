@@ -18,7 +18,8 @@ namespace kalahari::gui {
 /// @brief The LanguageTool server grammar as you type checks the text on, on this computer
 ///
 /// The program starts the server itself (Java runs languagetool-server.jar of the folder of
-/// LanguageTool) and closes it with itself; the server answers only on this computer. When
+/// LanguageTool) and closes it with itself; the system ends Java also when the program ends
+/// abruptly (a crash). The server answers only on this computer. When
 /// the port is taken by another program, it takes a free one (portChanged()). When the server
 /// stops by itself, it is started again, a few times at most.
 ///

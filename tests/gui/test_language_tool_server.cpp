@@ -9,12 +9,16 @@
 #include "grammar_test_utils.h"
 #include "kalahari/gui/language_tool_server.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QHostAddress>
+#include <QProcess>
 #include <QTcpServer>
+#include <QTcpSocket>
 #include <QTemporaryDir>
 
+#include <cstdio>
 #include <string>
 
 using namespace kalahari::gui;
@@ -24,6 +28,13 @@ namespace {
 
 /// How long the stand-in for Java may take to answer (ms)
 constexpr int START_MS = 20000;
+
+/// What the program started by the test of a program killed says once its server answers,
+/// before the port
+constexpr const char* PORT_SAID = "LanguageTool server port: ";
+
+/// How long that program waits to be killed before it ends by itself (ms)
+constexpr int KILLED_WAIT_MS = 120000;
 
 /// A folder of LanguageTool with its server
 class LanguageToolFolder {
@@ -61,6 +72,13 @@ std::string account(const LanguageToolServer& server) {
         .arg(server.port())
         .arg(server.details())
         .toStdString();
+}
+
+/// Whether something answers on a port of this computer
+bool answers(int port) {
+    QTcpSocket socket;
+    socket.connectToHost(QHostAddress(QHostAddress::LocalHost), static_cast<quint16>(port));
+    return socket.waitForConnected(1000);
 }
 
 /// Keep the states a server goes through
@@ -253,4 +271,51 @@ TEST_CASE("LanguageTool server: stopped by itself, it is started again a few tim
         CHECK(server.failure() == LanguageToolServer::Failure::Stopped);
         CHECK(server.details().contains(QStringLiteral("The server stopped")));
     }
+}
+
+TEST_CASE("LanguageTool server: started by the program the test below kills",
+          "[.languagetool-killed]") {
+    // A program of its own: the test below starts it and kills it once the server answers
+    LanguageToolFolder folder;
+    LanguageToolServer server;
+    server.setJava(fakeJavaProgram());
+    server.setFolder(folder.path());
+    server.setPort(freePort());
+    server.start();
+    const bool running = reaches(server, LanguageToolServer::State::Running);
+    INFO(account(server));
+    REQUIRE(running);
+    std::printf("%s%d\n", PORT_SAID, server.port());
+    std::fflush(stdout);
+    runEventLoop(KILLED_WAIT_MS);
+}
+
+TEST_CASE("LanguageTool server: Java ends with the program that started it, also when the "
+          "program is killed",
+          "[gui][grammar]") {
+    QProcess program;
+    program.start(QCoreApplication::applicationFilePath(),
+                  {QStringLiteral("[.languagetool-killed]")});
+    QByteArray said;
+    int port = 0;
+    waitUntil(
+        [&program, &said, &port]() {
+            said += program.readAllStandardOutput();
+            const qsizetype at = said.indexOf(PORT_SAID);
+            const qsizetype end = at < 0 ? -1 : said.indexOf('\n', at);
+            if (end >= 0) {
+                const qsizetype from = at + qstrlen(PORT_SAID);
+                port = said.mid(from, end - from).trimmed().toInt();
+            }
+            return port > 0 || program.state() == QProcess::NotRunning;
+        },
+        3 * START_MS);
+    INFO(said.toStdString());
+    REQUIRE(port > 0);
+    REQUIRE(answers(port));
+
+    // As a crash: nothing of the program closes the server
+    program.kill();
+    REQUIRE(program.waitForFinished(START_MS));
+    CHECK(waitUntil([port]() { return !answers(port); }, START_MS));
 }
