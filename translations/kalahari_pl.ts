@@ -3914,8 +3914,8 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     </message>
     <message>
         <source>A book imported without opening is on the Dashboard and in File &gt; Recent Books. Cancel returns to the Import Project Archive window with your choices.</source>
-        <extracomment>In Polish: Książkę zaimportowaną bez otwierania znajdziesz na Pulpicie i w Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Importuj archiwum projektu” z wpisanymi danymi.</extracomment>
-        <translation>Książkę zaimportowaną bez otwierania znajdziesz na Pulpicie i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Importuj archiwum projektu” z wpisanymi danymi.</translation>
+        <extracomment>In Polish: Książkę zaimportowaną bez otwierania znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Importuj archiwum projektu” z wpisanymi danymi.</extracomment>
+        <translation>Książkę zaimportowaną bez otwierania znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Importuj archiwum projektu” z wpisanymi danymi.</translation>
     </message>
     <message>
         <source>Close and Open Imported</source>
@@ -3942,7 +3942,7 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     </message>
     <message>
         <source>A book created without opening is on the Dashboard and in File &gt; Recent Books. Cancel returns to the New Book window with your data.</source>
-        <translation>Książkę utworzoną bez otwierania znajdziesz na Pulpicie i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka” z wpisanymi danymi.</translation>
+        <translation>Książkę utworzoną bez otwierania znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka” z wpisanymi danymi.</translation>
     </message>
     <message>
         <source>Close and Open New</source>
@@ -3956,13 +3956,13 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     </message>
     <message>
         <source>Book &quot;%1&quot; created without opening. It is on the Dashboard and in File &gt; Recent Books.</source>
-        <extracomment>%1: the title of the new book. In Polish: Utworzono książkę „%1” bez otwierania. Znajdziesz ją na Pulpicie i w menu Plik &gt; Ostatnie książki.</extracomment>
-        <translation>Utworzono książkę „%1” bez otwierania. Znajdziesz ją na Pulpicie i w menu Plik &gt; Ostatnie książki.</translation>
+        <extracomment>%1: the title of the new book. In Polish: Utworzono książkę „%1” bez otwierania. Znajdziesz ją na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</extracomment>
+        <translation>Utworzono książkę „%1” bez otwierania. Znajdziesz ją na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</translation>
     </message>
     <message>
         <source>A book created without opening is on the Dashboard and in File &gt; Recent Books. Cancel returns to the New Book – User Project window with the kinds you checked.</source>
-        <extracomment>In Polish: Książkę utworzoną bez otwierania znajdziesz na Pulpicie i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka – projekt użytkownika” z zaznaczonymi rodzajami.</extracomment>
-        <translation>Książkę utworzoną bez otwierania znajdziesz na Pulpicie i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka – projekt użytkownika” z zaznaczonymi rodzajami.</translation>
+        <extracomment>In Polish: Książkę utworzoną bez otwierania znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka – projekt użytkownika” z zaznaczonymi rodzajami.</extracomment>
+        <translation>Książkę utworzoną bez otwierania znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka – projekt użytkownika” z zaznaczonymi rodzajami.</translation>
     </message>
     <message>
         <source>Untitled %1</source>
@@ -8696,8 +8696,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>Imported &quot;%1&quot; to the folder %2. The book is on the Dashboard and in File &gt; Recent Books.</source>
-        <extracomment>%1: the title of the book; %2: its folder. In Polish: Zaimportowano „%1” do folderu %2. Książkę znajdziesz na Pulpicie i w Plik &gt; Ostatnie książki.</extracomment>
-        <translation>Zaimportowano „%1” do folderu %2. Książkę znajdziesz na Pulpicie i w menu Plik &gt; Ostatnie książki.</translation>
+        <extracomment>%1: the title of the book; %2: its folder. In Polish: Zaimportowano „%1” do folderu %2. Książkę znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</extracomment>
+        <translation>Zaimportowano „%1” do folderu %2. Książkę znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</translation>
     </message>
     <message>
         <source>The archive could not be imported.</source>

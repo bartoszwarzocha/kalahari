@@ -207,15 +207,15 @@ void DocumentCoordinator::onNewProject() {
                "opening.")
                 .arg(title),
             fromKinds
-                //: In Polish: Książkę utworzoną bez otwierania znajdziesz na Pulpicie i w
-                //: menu Plik > Ostatnie książki. „Anuluj” wraca do okna „Nowa książka –
-                //: projekt użytkownika” z zaznaczonymi rodzajami.
+                //: In Polish: Książkę utworzoną bez otwierania znajdziesz na Pulpicie
+                //: programu i w menu Plik > Ostatnie książki. „Anuluj” wraca do okna „Nowa
+                //: książka – projekt użytkownika” z zaznaczonymi rodzajami.
                 ? tr("A book created without opening is on the Dashboard and in File > Recent "
                      "Books. Cancel returns to the New Book – User Project window with the "
                      "kinds you checked.")
-                //: In Polish: Książkę utworzoną bez otwierania znajdziesz na Pulpicie i w
-                //: menu Plik > Ostatnie książki. „Anuluj” wraca do okna „Nowa książka”
-                //: z wpisanymi danymi.
+                //: In Polish: Książkę utworzoną bez otwierania znajdziesz na Pulpicie
+                //: programu i w menu Plik > Ostatnie książki. „Anuluj” wraca do okna „Nowa
+                //: książka” z wpisanymi danymi.
                 : tr("A book created without opening is on the Dashboard and in File > Recent "
                      "Books. Cancel returns to the New Book window with your data."),
             //: In Polish: Zamknij i otwórz nową
@@ -296,7 +296,7 @@ void DocumentCoordinator::onNewProject() {
         logger.info("Project created without opening: {} in {}", result.title.toStdString(),
                     projectFolder.toStdString());
         //: %1: the title of the new book. In Polish: Utworzono książkę „%1” bez otwierania.
-        //: Znajdziesz ją na Pulpicie i w menu Plik > Ostatnie książki.
+        //: Znajdziesz ją na Pulpicie programu i w menu Plik > Ostatnie książki.
         m_statusBar->showMessage(tr("Book \"%1\" created without opening. It is on the "
                                     "Dashboard and in File > Recent Books.")
                                      .arg(result.title),
@@ -1498,9 +1498,9 @@ void DocumentCoordinator::onImportArchive() {
             tr("The book \"%1\" from the archive can take the place of the open one or be "
                "imported without opening.")
                 .arg(title),
-            //: In Polish: Książkę zaimportowaną bez otwierania znajdziesz na Pulpicie i w Plik >
-            //: Ostatnie książki. „Anuluj” wraca do okna „Importuj archiwum projektu”
-            //: z wpisanymi danymi.
+            //: In Polish: Książkę zaimportowaną bez otwierania znajdziesz na Pulpicie programu
+            //: i w menu Plik > Ostatnie książki. „Anuluj” wraca do okna „Importuj archiwum
+            //: projektu” z wpisanymi danymi.
             tr("A book imported without opening is on the Dashboard and in File > Recent Books. "
                "Cancel returns to the Import Project Archive window with your choices."),
             //: In Polish: Zamknij i otwórz zaimportowaną

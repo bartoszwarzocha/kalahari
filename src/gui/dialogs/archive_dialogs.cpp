@@ -983,7 +983,8 @@ void ImportArchiveDialog::run()
             text = tr("Imported \"%1\" to the folder %2. The book is open.");
         } else {
             //: %1: the title of the book; %2: its folder. In Polish: Zaimportowano „%1” do
-            //: folderu %2. Książkę znajdziesz na Pulpicie i w Plik > Ostatnie książki.
+            //: folderu %2. Książkę znajdziesz na Pulpicie programu i w menu Plik > Ostatnie
+            //: książki.
             text = tr("Imported \"%1\" to the folder %2. The book is on the Dashboard and in "
                       "File > Recent Books.");
         }
