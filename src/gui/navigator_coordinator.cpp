@@ -1014,20 +1014,24 @@ void NavigatorCoordinator::onRequestAddItem(const QString& sectionType) {
                pm.textKindsFor(place), core::KindRef{}, place, QString(), QString());
 }
 
-void NavigatorCoordinator::onRequestNewFile() {
+QString NavigatorCoordinator::onRequestNewFile(const QString& untitled) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
     auto* window = qobject_cast<QWidget*>(parent());
 
     if (!pm.isProjectOpen()) {
         logger.warn("NavigatorCoordinator: New file requested but no project open");
-        return;
+        return QString();
     }
 
-    // The writer chooses the kind, the title and the place
-    dialogs::NewFileDialog dialog(dialogs::NewFileDialog::openBook(), pm.bookTypes(), window);
+    // The writer chooses the kind, the title and the place, or a plain file
+    dialogs::NewFileDialog dialog(dialogs::NewFileDialog::openBook(untitled), pm.bookTypes(),
+                                  window);
     if (dialog.exec() != QDialog::Accepted) {
-        return;
+        return QString();
+    }
+    if (dialog.outsideBook()) {
+        return dialog.title();
     }
     const core::KindRef kind = dialog.kind();
     const QString title = dialog.title();
@@ -1042,7 +1046,7 @@ void NavigatorCoordinator::onRequestNewFile() {
         //: In Polish: Nie udało się dodać {kind:genitive}
         dialogs::MessageDialog::warning(window, core::fillWords(tr("Add {Kind} Failed"), nouns),
                                         tr("Failed to save changes."));
-        return;
+        return QString();
     }
     logger.info("NavigatorCoordinator: New file '{}' (id={})", title.toStdString(),
                 elementId.toStdString());
@@ -1054,6 +1058,7 @@ void NavigatorCoordinator::onRequestNewFile() {
     //: In Polish: Dodano {kind:accusative}: %1
     m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(title), 2000);
     emit documentModified();
+    return QString();
 }
 
 void NavigatorCoordinator::onRequestShowSections(bool shown) {

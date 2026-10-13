@@ -332,6 +332,14 @@ struct BookProject {
     /// cannot be read as an object of JSON
     static bool isNewerFormatFile(const QString& path);
 
+    /// @brief Whether @p json is a project file of a format older than FORMAT, or without a
+    /// format: saved by an older version of Kalahari, which this version cannot read
+    static bool isOlderFormat(const QJsonObject& json);
+
+    /// @brief Whether the .klh file @p path is a project file of an older format; false when it
+    /// cannot be read as an object of JSON
+    static bool isOlderFormatFile(const QString& path);
+
     /// @brief Save the project to the .klh file @p path, replacing it in one step
     /// @return false, with the reason in the log, when the file cannot be written
     bool save(const QString& path) const;

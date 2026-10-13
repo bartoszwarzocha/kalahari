@@ -1,6 +1,6 @@
 /// @file test_new_file.cpp
-/// @brief New File: an element of the open book in the New File window, or a file outside a
-/// book; Open File in the File menu and on the toolbars
+/// @brief New File: an element of the open book or a plain file in the New File window, or a
+/// file outside a book; Open File in the File menu and on the toolbars
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/chapter_document.h>
@@ -28,6 +28,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFocusEvent>
 #include <QFrame>
 #include <QKeyEvent>
 #include <QKeySequence>
@@ -38,6 +39,7 @@
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QScrollBar>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -73,6 +75,9 @@ std::string joined(const QStringList& texts) {
     return texts.join(QStringLiteral(" | ")).toStdString();
 }
 
+/// The role that marks the name of a group of tiles in the list of kinds of the New File window
+constexpr int HEADING_ROLE = Qt::UserRole + 1;
+
 /// @brief The rows of the list of kinds of the New File window: "# Front matter" for the
 /// name of a part of the book, the name of the kind for a tile, and "Title page (greyed): why"
 /// for a greyed tile
@@ -80,8 +85,7 @@ QStringList rowsOf(const QListWidget& list) {
     QStringList rows;
     for (int row = 0; row < list.count(); ++row) {
         const QListWidgetItem* item = list.item(row);
-        // A tile knows its kind; the name of a part of the book does not
-        if (!item->data(Qt::UserRole).isValid()) {
+        if (item->data(HEADING_ROLE).toBool()) {
             rows << QStringLiteral("# ") + item->text();
         } else if (item->flags().testFlag(Qt::ItemIsEnabled)) {
             rows << item->text();
@@ -92,11 +96,11 @@ QStringList rowsOf(const QListWidget& list) {
     return rows;
 }
 
-/// @brief The first tile of the kind named @p name in the New File window
+/// @brief The first tile named @p name in the New File window: of a kind, or of a plain file
 QListWidgetItem* tileOf(const NewFileDialog& dialog, const QString& name) {
     for (int row = 0; row < dialog.kindList()->count(); ++row) {
         QListWidgetItem* item = dialog.kindList()->item(row);
-        if (item->data(Qt::UserRole).isValid() && item->text() == name) {
+        if (!item->data(HEADING_ROLE).toBool() && item->text() == name) {
             return item;
         }
     }
@@ -487,31 +491,38 @@ TEST_CASE("New File: the chosen kind, the title of the new element and its place
     }
 }
 
-TEST_CASE("New File: the title is the first field, above the tiles and the place, and in view "
-          "on a small screen",
+TEST_CASE("New File: the kind, then the title, then the place; the title in view at the start "
+          "also on a small screen",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));
     NewFileDialog dialog(NewFileDialog::openBook(), book.pm.bookTypes());
     dialog.show();
     QCoreApplication::processEvents();
 
-    // The title at the top, then the tiles of the kinds, then the place
-    const auto topOf = [&dialog](const QWidget* widget) {
-        return widget->mapTo(&dialog, QPoint(0, 0)).y();
+    // The tiles of the kinds, the title under them and the place under the title; the
+    // description at the left
+    const auto at = [&dialog](const QWidget* widget) {
+        return widget->mapTo(&dialog, QPoint(0, 0));
     };
-    CHECK(topOf(dialog.titleEdit()) < topOf(dialog.kindList()));
-    CHECK(topOf(dialog.kindList()) < topOf(dialog.picker()));
+    CHECK(at(dialog.kindList()).y() < at(dialog.titleEdit()).y());
+    CHECK(at(dialog.titleEdit()).y() < at(dialog.picker()).y());
+    CHECK(at(dialog.nameLabel()).x() < at(dialog.kindList()).x());
 
-    // Tab goes from the title to the tiles
-    QWidget* next = dialog.titleEdit()->nextInFocusChain();
-    while (next != dialog.titleEdit() &&
-           ((next->focusPolicy() & Qt::TabFocus) == 0 || !next->isVisible())) {
-        next = next->nextInFocusChain();
-    }
-    CHECK(next == dialog.kindList());
+    // The title has the focus; Tab goes from the tiles to the title and on to the place
+    CHECK(dialog.focusWidget() == dialog.titleEdit());
+    const auto nextOf = [](QWidget* widget) {
+        QWidget* next = widget->nextInFocusChain();
+        while (next != widget &&
+               ((next->focusPolicy() & Qt::TabFocus) == 0 || !next->isVisible())) {
+            next = next->nextInFocusChain();
+        }
+        return next;
+    };
+    CHECK(nextOf(dialog.kindList()) == dialog.titleEdit());
+    CHECK(dialog.picker()->isAncestorOf(nextOf(dialog.titleEdit())));
 
-    // A window lower than the tiles and the place, as on 1366x768 at 150%: they scroll, and
-    // the title stays in view
+    // A window lower than the tiles and the place, as on 1366x768 at 150%: the content
+    // scrolls, and the title is in view at the start
     dialog.resize(dialog.width(), 360);
     QCoreApplication::processEvents();
     QCoreApplication::processEvents();
@@ -519,11 +530,125 @@ TEST_CASE("New File: the title is the first field, above the tiles and the place
     auto* area = dialog.findChild<gui::FittingScrollArea*>();
     REQUIRE(area != nullptr);
     CHECK(area->verticalScrollBar()->isVisible());
-    CHECK_FALSE(area->isAncestorOf(dialog.titleEdit()));
-    area->verticalScrollBar()->setValue(area->verticalScrollBar()->maximum());
-    QCoreApplication::processEvents();
+    CHECK(area->verticalScrollBar()->value() == 0);
     const QLineEdit* title = dialog.titleEdit();
-    CHECK(dialog.rect().contains(QRect(title->mapTo(&dialog, QPoint(0, 0)), title->size())));
+    const QRect inView(title->mapTo(area->viewport(), QPoint(0, 0)), title->size());
+    INFO("title at " << inView.y() << ".." << inView.bottom() << " in a view of "
+                     << area->viewport()->height());
+    CHECK(area->viewport()->rect().contains(inView));
+}
+
+TEST_CASE("New File: a click in the proposed title selects it, so that typing replaces it",
+          "[gui][newfile]") {
+    test::OpenNovel book(QStringLiteral("Rain"));
+    NewFileDialog dialog(NewFileDialog::openBook(), book.pm.bookTypes());
+    QLineEdit* title = dialog.titleEdit();
+
+    // The click gives the field the focus, then puts the cursor
+    const auto clickIn = [title]() {
+        title->deselect();
+        QFocusEvent focus(QEvent::FocusIn, Qt::MouseFocusReason);
+        QCoreApplication::sendEvent(title, &focus);
+        QCoreApplication::processEvents();
+    };
+    clickIn();
+    CHECK(title->selectedText().toStdString() == "Chapter 3");
+
+    // In the writer's own title the click only puts the cursor
+    eraseText(title);
+    typeText(title, QStringLiteral("The Calm"));
+    clickIn();
+    CHECK(title->selectedText().isEmpty());
+}
+
+TEST_CASE("New File: a plain file outside the book, or in it as an element of the main text "
+          "kind",
+          "[gui][newfile]") {
+    test::OpenNovel book(QStringLiteral("Rain"));
+    NewFileDialog dialog(NewFileDialog::openBook(QStringLiteral("Untitled 2")),
+                         book.pm.bookTypes());
+
+    // After the parts of the book, the group of the other files
+    const QStringList rows = rowsOf(*dialog.kindList());
+    CHECK(joined(rows.mid(rows.size() - 2)) == "# Other Files | Plain File");
+
+    // A chapter at the start, as before; the place of a plain file has no buttons then
+    CHECK(dialog.nameLabel()->text().toStdString() == "Chapter");
+    CHECK_FALSE(dialog.outsideButton()->isVisibleTo(&dialog));
+    CHECK_FALSE(dialog.insideButton()->isVisibleTo(&dialog));
+    CHECK_FALSE(dialog.outsideBook());
+
+    choose(dialog, QStringLiteral("Plain File"));
+
+    SECTION("outside the book at first: an untitled file, with the places of the book greyed") {
+        CHECK(dialog.outsideButton()->isVisibleTo(&dialog));
+        CHECK(dialog.insideButton()->isVisibleTo(&dialog));
+        CHECK(dialog.outsideButton()->isChecked());
+        CHECK(dialog.insideButton()->isEnabled());
+        CHECK_FALSE(dialog.picker()->isEnabled());
+        CHECK(dialog.outsideBook());
+        CHECK_FALSE(dialog.kind());
+        CHECK(dialog.nameLabel()->text().toStdString() == "Plain File");
+        CHECK(dialog.whereLabel()->text().toStdString() ==
+              "outside the book, in a tab of its own");
+        CHECK(dialog.countLabel()->text().toStdString() == "any number");
+        CHECK(dialog.fileLabel()->text().toStdString() ==
+              "chosen when it is saved for the first time");
+        CHECK_FALSE(dialog.typeLabel()->isVisibleTo(&dialog));
+        CHECK(dialog.titleEdit()->text().toStdString() == "Untitled 2");
+        CHECK(dialog.createButton()->isEnabled());
+
+        // No file without a title
+        eraseText(dialog.titleEdit());
+        CHECK_FALSE(dialog.createButton()->isEnabled());
+    }
+
+    SECTION("in the book: a chapter at the place the writer chooses") {
+        dialog.insideButton()->click();
+        CHECK_FALSE(dialog.outsideBook());
+        CHECK(dialog.picker()->isEnabled());
+        REQUIRE(dialog.kind());
+        CHECK(dialog.kind().kind->id.toStdString() == "chapter");
+        CHECK(dialog.nameLabel()->text().toStdString() == "Plain File");
+        CHECK(dialog.whereLabel()->text().toStdString() ==
+              "in the book, as a chapter (in the main section and in parts)");
+        CHECK(dialog.fileLabel()->text().toStdString() ==
+              "chapter_003.kchapter in the folder \"book\"");
+        CHECK(dialog.typeLabel()->isVisibleTo(&dialog));
+        CHECK(dialog.typeLabel()->text().toStdString() == "Novel");
+        CHECK(dialog.titleEdit()->text().toStdString() == "Chapter 3");
+        CHECK(dialog.place() == core::ElementPlace{BookPlace::Main, QString(), 2});
+        CHECK(dialog.createButton()->isEnabled());
+
+        // The place the writer chooses stays when the file goes out of the book and back
+        dialog.picker()->setPlace(core::ElementPlace{BookPlace::Main, QString(), 0});
+        dialog.outsideButton()->click();
+        CHECK(dialog.titleEdit()->text().toStdString() == "Untitled 2");
+        CHECK_FALSE(dialog.picker()->isEnabled());
+        dialog.insideButton()->click();
+        CHECK(dialog.place() == core::ElementPlace{BookPlace::Main, QString(), 0});
+    }
+
+    SECTION("the writer's title stays wherever the file goes") {
+        eraseText(dialog.titleEdit());
+        typeText(dialog.titleEdit(), QStringLiteral("Notes"));
+        dialog.insideButton()->click();
+        CHECK(dialog.titleEdit()->text().toStdString() == "Notes");
+        dialog.outsideButton()->click();
+        CHECK(dialog.titleEdit()->text().toStdString() == "Notes");
+    }
+
+    SECTION("another tile hides the buttons of the place of a plain file") {
+        dialog.insideButton()->click();
+        choose(dialog, QStringLiteral("Prologue"));
+        CHECK_FALSE(dialog.outsideButton()->isVisibleTo(&dialog));
+        CHECK_FALSE(dialog.insideButton()->isVisibleTo(&dialog));
+        CHECK(dialog.picker()->isEnabled());
+        CHECK(dialog.typeLabel()->isVisibleTo(&dialog));
+        CHECK(dialog.titleEdit()->text().toStdString() == "Prologue");
+        CHECK(dialog.kind().kind->id.toStdString() == "prologue");
+        CHECK_FALSE(dialog.outsideBook());
+    }
 }
 
 TEST_CASE("New File: the description of the kind keeps all its lines in a low window",
@@ -596,6 +721,65 @@ TEST_CASE("New File: Cancel adds nothing", "[gui][newfile]") {
 
     CHECK(book.pm.project()->elementsIn(BookPlace::Main).size() == elements);
     CHECK(window.tabs->count() == 0);
+}
+
+TEST_CASE("New File: a plain file outside the open book opens in a tab of its own",
+          "[gui][newfile]") {
+    test::OpenNovel book(QStringLiteral("Rain"));
+    test::Window window;
+    const std::string elements = titlesOf(book.pm.project()->elementsIn(BookPlace::Main));
+
+    QStringList others;
+    const auto plainFile = [](NewFileDialog& dialog) {
+        choose(dialog, QStringLiteral("Plain File"));
+        return dialog.createButton();
+    };
+    CHECK(pressing([&window]() { window.documents.onNewDocument(); }, plainFile, others) == 1);
+    CHECK(pressing([&window]() { window.documents.onNewDocument(); }, plainFile, others) == 1);
+    INFO(others.join(QStringLiteral("\n")).toStdString());
+    CHECK(others.isEmpty());
+
+    // Untitled files, numbered as without a book; the book as it was
+    REQUIRE(window.tabs->count() == 2);
+    CHECK(window.tabs->tabText(0) == QStringLiteral("Untitled 1"));
+    CHECK(window.tabs->tabText(1) == QStringLiteral("Untitled 2"));
+    CHECK(window.tabs->currentIndex() == 1);
+    CHECK(window.editor(1)->property("elementId").toString().isEmpty());
+    CHECK(titlesOf(book.pm.project()->elementsIn(BookPlace::Main)) == elements);
+}
+
+TEST_CASE("New File: a plain file in the open book is a chapter at the place the writer chooses",
+          "[gui][newfile]") {
+    test::OpenNovel book(QStringLiteral("Rain"));
+    test::Window window;
+
+    QStringList others;
+    const int shown = pressing(
+        [&window]() { window.documents.onNewDocument(); },
+        [](NewFileDialog& dialog) {
+            choose(dialog, QStringLiteral("Plain File"));
+            dialog.insideButton()->click();
+            eraseText(dialog.titleEdit());
+            typeText(dialog.titleEdit(), QStringLiteral("Notes"));
+            // After the first chapter
+            dialog.picker()->setPlace(core::ElementPlace{BookPlace::Main, QString(), 1});
+            return dialog.createButton();
+        },
+        others);
+    INFO(others.join(QStringLiteral("\n")).toStdString());
+    CHECK(shown == 1);
+    CHECK(others.isEmpty());
+
+    // In the book, where the writer put it, with its file, and open in the editor
+    CHECK(titlesOf(book.pm.project()->elementsIn(BookPlace::Main)) ==
+          "Chapter 1, Notes, The Storm");
+    const core::ProjectElement notes = book.pm.project()->elementsIn(BookPlace::Main).at(1);
+    CHECK(notes.kind.kindId == QStringLiteral("chapter"));
+    CHECK(QFileInfo::exists(book.pm.filePathOf(notes)));
+    REQUIRE(window.tabs->count() > 0);
+    const int current = window.tabs->currentIndex();
+    CHECK(window.tabs->tabText(current) == QStringLiteral("Notes"));
+    CHECK(window.editor(current)->property("elementId").toString() == notes.id);
 }
 
 // ----------------------------------------------------------------------------

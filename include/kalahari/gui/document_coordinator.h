@@ -14,6 +14,10 @@
 #include <functional>
 #include <memory>
 
+namespace kalahari::core {
+enum class OpenFailure;
+}
+
 namespace kalahari::editor {
 class StyleResolver;
 class StatisticsCollector;
@@ -141,8 +145,8 @@ public slots:
     // Document operations
     // =========================================================================
 
-    /// @brief New File: with a book open, a new element of the book in the New File window;
-    /// without one, an empty file outside a book, saved where the writer chooses
+    /// @brief New File: with a book open, a new element of the book or a plain file in the New
+    /// File window; without one, an empty file outside a book, saved where the writer chooses
     void onNewDocument();
 
     /// @brief Create new project
@@ -308,9 +312,17 @@ private:
     /// @return false when some changes could not be saved
     bool saveBook();
 
-    /// @brief Tell the writer that the book of @p path cannot be opened, with @p problems
-    /// under Show Details
-    void showOpenError(const QString& path, const QStringList& problems);
+    /// @brief Tell the writer why the book of @p path cannot be opened, in plain words, with
+    /// the path and @p problems under Show Details. A book that another program has open
+    /// can be tried again.
+    void showOpenError(const QString& path, const QStringList& problems,
+                       core::OpenFailure failure);
+
+    /// @brief Tell the writer why the book of @p path cannot be opened, when something keeps
+    /// it from opening (core::ProjectManager::openFailure()), before the open book is closed
+    /// for it
+    /// @return true when the book cannot be opened
+    bool reportOpenFailure(const QString& path);
 
     /// @brief Open the first text of the book's body in the editor, e.g. Chapter 1 of a new
     /// book; nothing when the body has no text
@@ -363,6 +375,10 @@ private:
     /// @brief Mark a standalone file tab and the file in the Navigator as changed, with "*"
     /// before its name, while its text differs from the saved text
     void trackStandaloneChanges(EditorPanel* editor);
+
+    /// @brief An empty file outside a book in a new tab named @p title; its first save asks
+    /// where to save it, as a Kalahari document or a text file
+    void openNewFile(const QString& title);
 
     /// @brief The files of the open book that are open outside it become the tabs of their
     /// elements, in their places and with their unsaved changes: one file is edited in one tab

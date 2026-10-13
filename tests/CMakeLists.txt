@@ -77,6 +77,7 @@ set(TEST_SOURCES
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
+    gui/test_program_instance.cpp                # A later start hands its request to the program that runs
     gui/test_recent_book_cards.cpp               # Dashboard: the data of the recent books
     gui/test_save_all.cpp                        # Save All: the book and the files outside it
     gui/test_new_book.cpp                        # New Book: the kinds of a user project, without opening
@@ -183,6 +184,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/editor_render_pipeline.cpp   # OpenSpec #00043 Phase 12.1: Unified render pipeline
     ${CMAKE_SOURCE_DIR}/src/gui/panels/navigator_panel.cpp  # Navigator expansion state tests
     ${CMAKE_SOURCE_DIR}/src/gui/recent_books_menu.cpp       # File > Recent Books submenu
+    ${CMAKE_SOURCE_DIR}/src/gui/program_instance.cpp        # A later start hands its request over
     ${CMAKE_SOURCE_DIR}/src/gui/menu_builder.cpp            # The menus of the commands: the File menu, the titles and order for the shortcuts list
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # Navigator commands on the open project
     ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Properties panel of the Navigator commands
@@ -311,6 +313,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h  # RecentBooksMenu with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/program_instance.h  # ProgramInstance with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # PropertiesPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT

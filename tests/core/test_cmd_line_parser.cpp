@@ -7,6 +7,7 @@
 
 #include <QCoreApplication>
 #include <QString>
+#include <QStringList>
 
 using namespace kalahari::core;
 
@@ -131,6 +132,31 @@ TEST_CASE("CmdLineParser edge cases", "[cmdline]") {
         REQUIRE(parser.parse() == false);
         REQUIRE_FALSE(parser.helpRequested());
         REQUIRE(parser.errorText().contains(QStringLiteral("unknown")));
+    }
+}
+
+TEST_CASE("CmdLineParser: the book or the file to open, without a name", "[cmdline]") {
+    SECTION("A book after a switch") {
+        char* argv[] = { const_cast<char*>("kalahari"), const_cast<char*>("-d"),
+                         const_cast<char*>("Burza.klh") };
+        CmdLineParser parser(3, argv);
+        parser.addSwitch("d", "diag", "Enable diagnostic mode");
+        parser.addPositionalArgument("file", "A book or another file to open", "[file]");
+
+        REQUIRE(parser.positionalArguments().isEmpty());  // before parse()
+        REQUIRE(parser.parse() == true);
+        REQUIRE(parser.hasSwitch("diag"));
+        REQUIRE(parser.positionalArguments() == QStringList{QStringLiteral("Burza.klh")});
+        REQUIRE(parser.helpText().contains(QStringLiteral("[file]")));
+    }
+
+    SECTION("Nothing to open") {
+        char* argv[] = { const_cast<char*>("kalahari") };
+        CmdLineParser parser(1, argv);
+        parser.addPositionalArgument("file", "A book or another file to open", "[file]");
+
+        REQUIRE(parser.parse() == true);
+        REQUIRE(parser.positionalArguments().isEmpty());
     }
 }
 

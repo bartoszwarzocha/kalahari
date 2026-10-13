@@ -127,6 +127,16 @@ public:
     ///        each with an access key
     QMenu* createPopupMenu() override;
 
+    /// @brief The book or the other file to open when the window is shown first, given on the
+    /// command line; it takes the place of the last book
+    void setStartupFile(const QString& path);
+
+public slots:
+    /// @brief A later start of the program handed over its request: the window comes to the
+    /// front, as it was, and opens @p path (a book or another file; empty: nothing). While a
+    /// window that asks something is open, it comes to the front and nothing is opened.
+    void onLaterStart(const QString& path);
+
 private:
     /// @brief Register all commands in CommandRegistry
     ///
@@ -338,6 +348,9 @@ private:
 
     // First show flag (for geometry restore)
     bool m_firstShow;
+
+    /// The book or file given on the command line, opened at the first show
+    QString m_startupFile;
 
     // Diagnostic/Dev mode controller (OpenSpec #00038)
     DiagnosticController* m_diagnosticController;  ///< Manages diagnostic/dev mode and menus

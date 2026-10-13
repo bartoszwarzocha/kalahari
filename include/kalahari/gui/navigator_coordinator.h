@@ -222,8 +222,11 @@ public slots:
 
     /// @brief New File with a book open: a new element of the kind, with the title and at the
     /// place the writer chooses in the New File window, which opens in the editor; saves the
-    /// .klh file
-    void onRequestNewFile();
+    /// .klh file. A plain file in the book is an element of the main text kind.
+    /// @param untitled Title of a plain file outside the book the window proposes
+    /// @return The title of a plain file outside the book the writer chose, which the caller
+    /// opens in a tab of its own; empty otherwise
+    QString onRequestNewFile(const QString& untitled);
 
     /// @brief Show the sections of the book in the Navigator, or hide them; saves the .klh
     /// file

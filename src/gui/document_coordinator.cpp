@@ -40,8 +40,10 @@
 #include <QFileInfo>
 #include <QFile>
 #include <QDir>
+#include <QTimer>
 #include <functional>
 #include <memory>
+#include <optional>
 
 Q_DECLARE_METATYPE(kalahari::core::StandaloneFile)
 
@@ -155,21 +157,30 @@ void DocumentCoordinator::onNewDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: New File");
 
+    //: The tab of a new file outside a book, before it is saved; %1: its number. In Polish:
+    //: Bez tytułu %1
+    const QString untitled = tr("Untitled %1").arg(m_newFiles + 1);
+
     // With a book open, the new file is an element of the book, of the kind and at the place
-    // the writer chooses in the New File window
+    // the writer chooses in the New File window, or a plain file, in the book or outside it
     if (core::ProjectManager::getInstance().isProjectOpen()) {
         if (m_navigatorCoordinator) {
-            m_navigatorCoordinator->onRequestNewFile();
+            const QString title = m_navigatorCoordinator->onRequestNewFile(untitled);
+            if (!title.isEmpty()) {
+                ++m_newFiles;
+                openNewFile(title);
+            }
         }
         return;
     }
 
-    // Without a book, an empty file outside one; its first save asks where to save it, as a
-    // Kalahari document or a text file
+    // Without a book, an empty file outside one
     ++m_newFiles;
-    //: The tab of a new file outside a book, before it is saved; %1: its number. In Polish:
-    //: Bez tytułu %1
-    const QString title = tr("Untitled %1").arg(m_newFiles);
+    openNewFile(untitled);
+}
+
+void DocumentCoordinator::openNewFile(const QString& title) {
+    auto& logger = core::Logger::getInstance();
     auto* newEditor = new EditorPanel(m_mainWindow);
     const QString iconId = QStringLiteral("template.chapter");
     const int tabIndex = m_centralTabs->addTab(
@@ -412,19 +423,122 @@ DocumentCoordinator::OpenBookChoice DocumentCoordinator::askAboutOpenBook(
     return OpenBookChoice::Close;
 }
 
-void DocumentCoordinator::showOpenError(const QString& path, const QStringList& problems) {
+void DocumentCoordinator::showOpenError(const QString& path, const QStringList& problems,
+                                        core::OpenFailure failure) {
+    const QFileInfo file(path);
+    const QString nativePath = QDir::toNativeSeparators(file.absoluteFilePath());
+
     // A book of a newer version is not damaged: the writer needs a newer program
-    if (core::BookProject::isNewerFormatFile(path)) {
+    if (failure == core::OpenFailure::Newer) {
         dialogs::MessageDialog::warning(
             m_mainWindow, tr("Book of a Newer Version"),
             tr("This book was saved in a newer version of Kalahari. Update the program to "
                "open it."),
-            QDir::toNativeSeparators(path));
+            nativePath);
         return;
     }
-    dialogs::MessageDialog::error(
-        m_mainWindow, tr("Open Error"),
-        tr("Failed to open book: %1").arg(QDir::toNativeSeparators(path)), detailsOf(problems));
+
+    // Under Show Details: the file, then what is wrong, in the words of the log
+    //: The first line of the details of a book that cannot be opened. In Polish: Plik: %1
+    const QString details = detailsOf(QStringList{tr("File: %1").arg(nativePath)} + problems);
+
+    // Another copy of the program has the book open (another build of it, which runs on its
+    // own): the book can be closed there and tried again
+    if (failure == core::OpenFailure::OpenElsewhere) {
+        QStringList ignored;
+        const std::optional<core::BookProject> project = core::BookProject::load(path, ignored);
+        QString title = project && !project->books.isEmpty() ? project->books.first().title
+                                                             : QString();
+        if (title.isEmpty()) {
+            title = file.completeBaseName();
+        }
+        //: The window of a book that another copy of the program has open. In Polish:
+        //: Książka jest już otwarta
+        dialogs::MessageDialog message(
+            dialogs::MessageDialog::Kind::Information, tr("Book Already Open"),
+            //: %1: the title of the book. In Polish: Książka „%1” jest już otwarta w innym
+            //: oknie programu Kalahari. Zamknij ją tam i kliknij „Spróbuj ponownie”.
+            tr("The book \"%1\" is already open in another window of Kalahari. Close it there "
+               "and click Try Again.")
+                .arg(title),
+            m_mainWindow);
+        message.setDetails(details);
+        //: In Polish: &Spróbuj ponownie
+        message.setQuestionButtons(tr("&Try Again"), tr("Close"));
+        message.exec();
+        if (message.answer() == dialogs::MessageDialog::Answer::Accept) {
+            // The same way as from the recent books: the open book is asked about again
+            QTimer::singleShot(0, this, [this, path]() { onOpenRecentFile(path); });
+        }
+        return;
+    }
+
+    QString title;
+    QString text;
+    switch (failure) {
+        case core::OpenFailure::Missing:
+            //: In Polish: Nie znaleziono książki
+            title = tr("Book Not Found");
+            //: %1: the name of the book file, %2: its folder. In Polish: W folderze „%2” nie
+            //: ma pliku książki „%1”. Plik mógł zostać przeniesiony, usunięty albo mieć
+            //: zmienioną nazwę.
+            text = tr("There is no book file \"%1\" in the folder \"%2\". The file may have "
+                      "been moved, deleted or renamed.")
+                       .arg(file.fileName(), QDir::toNativeSeparators(file.absolutePath()));
+            break;
+        case core::OpenFailure::NotBook:
+            //: In Polish: To nie jest książka
+            title = tr("Not a Book");
+            //: %1: the name of the file. In Polish: „%1” nie jest książką programu Kalahari.
+            //: Plik książki ma rozszerzenie .klh.
+            text = tr("\"%1\" is not a Kalahari book. A book file has the extension .klh.")
+                       .arg(file.fileName());
+            break;
+        case core::OpenFailure::Older:
+            //: In Polish: Książka starszej wersji
+            title = tr("Book of an Older Version");
+            //: In Polish: Tę książkę zapisała starsza wersja programu Kalahari, której
+            //: formatu ta wersja jeszcze nie odczytuje.
+            text = tr("This book was saved by an older version of Kalahari, whose format this "
+                      "version cannot read yet.");
+            break;
+        case core::OpenFailure::Database:
+            //: In Polish: Nie można otworzyć książki
+            title = tr("Book Cannot Be Opened");
+            //: In Polish: Nie można otworzyć bazy danych książki: plik project.db w jej
+            //: folderze może być uszkodzony albo używany przez inny program.
+            text = tr("The database of the book cannot be opened: the file project.db in its "
+                      "folder may be damaged or used by another program.");
+            break;
+        case core::OpenFailure::CloseFailed:
+            title = tr("Book Cannot Be Opened");
+            //: In Polish: Nie można zamknąć otwartej książki, więc nie otwarto drugiej.
+            //: Szczegóły są w dzienniku programu.
+            text = tr("The open book cannot be closed, so the other one was not opened. The "
+                      "program's log has the details.");
+            break;
+        default:
+            //: In Polish: Nie można odczytać książki
+            title = tr("Book Cannot Be Read");
+            //: %1: the name of the book file. In Polish: Plik książki „%1” jest uszkodzony
+            //: albo niepełny, więc program nie może go odczytać. Co jest w nim nie tak, pokazuje
+            //: przycisk „Pokaż szczegóły”.
+            text = tr("The book file \"%1\" is damaged or incomplete, so the program cannot "
+                      "read it. Show Details says what is wrong in it.")
+                       .arg(file.fileName());
+            break;
+    }
+    dialogs::MessageDialog::error(m_mainWindow, title, text, details);
+}
+
+bool DocumentCoordinator::reportOpenFailure(const QString& path) {
+    QStringList problems;
+    const core::OpenFailure failure = core::ProjectManager::openFailure(path, &problems);
+    if (failure == core::OpenFailure::None) {
+        return false;
+    }
+    showOpenError(path, problems, failure);
+    return true;
 }
 
 void DocumentCoordinator::openFirstText() {
@@ -487,10 +601,8 @@ void DocumentCoordinator::onOpenDocument() {
             return;
         }
     }
-    // A file that cannot be read is reported before the open book is closed for it
-    if (const QStringList problems = core::ProjectManager::projectFileProblems(filename);
-        !problems.isEmpty()) {
-        showOpenError(filename, problems);
+    // A book that cannot be opened is reported before the open book is closed for it
+    if (reportOpenFailure(filename)) {
         return;
     }
     if (!agreeToCloseBook(
@@ -502,7 +614,7 @@ void DocumentCoordinator::onOpenDocument() {
 
     QStringList problems;
     if (!pm.openProject(filename, &problems)) {
-        showOpenError(filename, problems);
+        showOpenError(filename, problems, pm.lastOpenFailure());
         return;
     }
     // ProjectManager emits projectOpened, which triggers onProjectOpened()
@@ -547,11 +659,9 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
             return;
         }
 
-        // Different project: a file that cannot be read is reported before the open
+        // Different project: a book that cannot be opened is reported before the open
         // book is closed for it, and unsaved changes are handled before closing
-        if (const QStringList problems = core::ProjectManager::projectFileProblems(filePath);
-            !problems.isEmpty()) {
-            showOpenError(filePath, problems);
+        if (reportOpenFailure(filePath)) {
             return;
         }
         if (!agreeToCloseBook(
@@ -574,7 +684,7 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
     // The book cannot be opened: the message says why. It stays in the recent books,
     // as it may be readable later.
     logger.error("Failed to open .klh file as project: {}", filePath.toStdString());
-    showOpenError(filePath, problems);
+    showOpenError(filePath, problems, pm.lastOpenFailure());
 }
 
 void DocumentCoordinator::onSaveDocument() {

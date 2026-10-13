@@ -11,6 +11,8 @@
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/kml_document_model.h>
 
+#include "other_program.h"
+
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
@@ -20,6 +22,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QProcess>
 #include <QTemporaryDir>
 
 #include <zip.h>
@@ -932,6 +935,90 @@ TEST_CASE("ProjectManager does not open a project it cannot read", "[project_man
 
     CHECK_FALSE(pm.isProjectOpen());
     CHECK(pm.getDatabase() == nullptr);
+}
+
+TEST_CASE("ProjectManager says why it does not open a book", "[project_manager]") {
+    QTemporaryDir dir;
+    const QDir parent(dir.path());
+    auto& pm = projects();
+    writeFile(parent.filePath("notes.txt"), "mine");
+    writeFile(parent.filePath("Old.klh"), R"({"title": "Old"})");
+    writeFile(parent.filePath("Future.klh"), R"({"format": 99, "title": "Future"})");
+    writeFile(parent.filePath("Broken.klh"), R"({"format": 2, )");
+
+    CHECK(ProjectManager::openFailure(parent.filePath("None.klh")) == OpenFailure::Missing);
+    CHECK(ProjectManager::openFailure(parent.filePath("notes.txt")) == OpenFailure::NotBook);
+    CHECK(ProjectManager::openFailure(parent.filePath("Old.klh")) == OpenFailure::Older);
+    CHECK(ProjectManager::openFailure(parent.filePath("Future.klh")) == OpenFailure::Newer);
+    QStringList problems;
+    CHECK(ProjectManager::openFailure(parent.filePath("Broken.klh"), &problems) ==
+          OpenFailure::Unreadable);
+    CHECK(problems == ProjectManager::projectFileProblems(parent.filePath("Broken.klh")));
+
+    // The last try to open a book says why it failed
+    for (const auto& [file, failure] :
+         {std::pair{"None.klh", OpenFailure::Missing}, std::pair{"Old.klh", OpenFailure::Older},
+          std::pair{"Broken.klh", OpenFailure::Unreadable}}) {
+        INFO(file);
+        CHECK_FALSE(pm.openProject(parent.filePath(file)));
+        CHECK(pm.lastOpenFailure() == failure);
+    }
+    REQUIRE(pm.createProject(dir.path(), "Opened", "Anna", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.lastOpenFailure() == OpenFailure::None);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager does not open a book that another Kalahari program has open",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Shared", "Anna", "en", true, "kalahari.novel"));
+    const QString shared = pm.getManifestPath();
+    const QString folder = QFileInfo(shared).absolutePath();
+
+    // The lock of this program does not count
+    CHECK(ProjectManager::openFailure(shared) == OpenFailure::None);
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.createProject(dir.path(), "Mine", "Anna", "en", true, "kalahari.novel"));
+    const QString mine = pm.getManifestPath();
+
+    SECTION("a program that runs: the open book stays open") {
+        kalahari::test::OtherProgram other;
+        REQUIRE(other.pid() != 0);
+        REQUIRE(kalahari::test::lockBook(folder, other.pid()));
+        QStringList problems;
+        CHECK(ProjectManager::openFailure(shared, &problems) == OpenFailure::OpenElsewhere);
+        REQUIRE(problems.size() == 1);
+        CHECK(problems.first().startsWith(
+            "Shared.klh: the book is open in another program that is running ("));
+        CHECK_FALSE(pm.openProject(shared));
+        CHECK(pm.lastOpenFailure() == OpenFailure::OpenElsewhere);
+        CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(mine));
+
+        // A program that has ended, e.g. after a crash, leaves a lock that does not count
+        other.stop();
+        CHECK(ProjectManager::openFailure(shared) == OpenFailure::None);
+        REQUIRE(pm.openProject(shared));
+        CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(shared));
+    }
+
+#ifndef Q_OS_WIN
+    SECTION("a program that is no Kalahari program, with the PID of one that has ended") {
+        QProcess sleeper;
+        sleeper.start(QStringLiteral("sleep"), {QStringLiteral("30")});
+        REQUIRE(sleeper.waitForStarted());
+        REQUIRE(kalahari::test::lockBook(folder, sleeper.processId()));
+        CHECK(ProjectManager::openFailure(shared) == OpenFailure::None);
+        REQUIRE(pm.openProject(shared));
+        CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(shared));
+        sleeper.kill();
+        sleeper.waitForFinished();
+    }
+#endif
+    REQUIRE(pm.closeProject(false));
 }
 
 TEST_CASE("ProjectManager opens elements whose package is not installed", "[project_manager]") {

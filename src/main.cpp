@@ -15,6 +15,7 @@
 #include <QThread>
 #include <QTranslator>
 #include "kalahari/gui/main_window.h"
+#include "kalahari/gui/program_instance.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
@@ -140,6 +141,12 @@ int main(int argc, char *argv[]) {
     cmdLine.addOption("", "theme",
         QCoreApplication::translate("main", "Target theme: twotone, rounded, outlined (default: twotone)"),
         "theme");
+    cmdLine.addPositionalArgument("file",
+        //: The argument of the command line without a name. In Polish: Książka (plik .klh) albo
+        //: inny plik do otwarcia; gdy program już działa, otwiera go jego okno
+        QCoreApplication::translate("main", "A book (.klh file) or another file to open; when the "
+                                            "program runs already, its window opens it"),
+        "[file]");
 
     if (!cmdLine.parse()) {
         // In the console the text goes to the output; the program's own window shows it
@@ -282,10 +289,28 @@ int main(int argc, char *argv[]) {
     // ========================================================================
     // GUI Mode
     // ========================================================================
+    const bool benchmarkMode = cmdLine.hasSwitch("benchmark");
+    const QStringList files = cmdLine.positionalArguments();
+    const QString startupFile =
+        files.isEmpty() ? QString() : QFileInfo(files.first()).absoluteFilePath();
+
+    // One program for the writer: a later start hands its file to the program that runs,
+    // which shows its window, and ends. So the book opened at the start is never open twice.
+    kalahari::gui::ProgramInstance instance;
+    if (!benchmarkMode) {
+        if (instance.handOver(startupFile)) {
+            logger.info("Kalahari runs already: its window took this start's request");
+            return 0;
+        }
+        instance.listen();
+    }
+
     kalahari::gui::MainWindow window;
+    window.setStartupFile(startupFile);
+    QObject::connect(&instance, &kalahari::gui::ProgramInstance::requested, &window,
+                     &kalahari::gui::MainWindow::onLaterStart);
 
     // Enable diagnostic mode if --diag flag present or benchmark mode
-    bool benchmarkMode = cmdLine.hasSwitch("benchmark");
     if (cmdLine.isDiagnosticMode() || benchmarkMode) {
         logger.info("Diagnostic mode enabled via --diag flag");
         window.enableDiagnosticMode();

@@ -1,6 +1,6 @@
 /// @file new_file_dialog.cpp
 /// @brief New File: a new element of the open book, of the kind, with the title and at the
-/// place the writer chooses
+/// place the writer chooses, or a plain file, outside the book or in it
 
 #include "kalahari/gui/dialogs/new_file_dialog.h"
 #include "kalahari/core/art_provider.h"
@@ -16,6 +16,7 @@
 #include <QDialogButtonBox>
 #include <QEvent>
 #include <QFileInfo>
+#include <QFocusEvent>
 #include <QFont>
 #include <QFontInfo>
 #include <QFontMetrics>
@@ -31,6 +32,7 @@
 #include <QListWidget>
 #include <QPainter>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QScrollBar>
 #include <QStyle>
 #include <QStyledItemDelegate>
@@ -55,6 +57,7 @@ constexpr int DESCRIPTION_ICON_SIZE = 64;  ///< Of the icon above the descriptio
 constexpr int NAME_POINT_SIZE = 12;        ///< Of the name of the kind above its description
 constexpr int KIND_ROLE = Qt::UserRole;          ///< Index of the kind of a tile in Book::kinds
 constexpr int HEADING_ROLE = Qt::UserRole + 1;   ///< The item names a part of the book
+constexpr int PLAIN_ROLE = Qt::UserRole + 2;     ///< The tile of a plain file
 constexpr qreal TILE_WIDTH_EMS = 7.5;      ///< Room for a name of two short words in a line
 constexpr int TILE_TEXT_LINES = 2;         ///< Lines of a name the tiles have room for at least
 constexpr int MAXIMUM_TEXT_LINES = 3;      ///< Lines of the longest name the tiles make room for
@@ -66,6 +69,9 @@ constexpr int HEADING_BOTTOM = 3;          ///< Between the name of a part and i
 /// The parts of the book, in reading order
 constexpr std::array<core::BookPlace, 3> BOOK_PLACES{core::BookPlace::Front, core::BookPlace::Main,
                                                      core::BookPlace::Back};
+
+/// The icon of a plain file, as the Navigator shows a file outside the book
+const QString PLAIN_FILE_ICON = QStringLiteral("common.file");
 
 /// The tiles of the kinds, with the names of the parts of the book between them: each name has
 /// a row of its own, and only the tiles that are not greyed can be chosen
@@ -221,9 +227,10 @@ public:
 
 } // anonymous namespace
 
-NewFileDialog::Book NewFileDialog::openBook()
+NewFileDialog::Book NewFileDialog::openBook(const QString& untitled)
 {
     Book book;
+    book.untitled = untitled;
     const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
     const core::ProjectBook* projectBook = pm.book();
@@ -348,6 +355,9 @@ NewFileDialog::Book NewFileDialog::openBook()
                 entry.file = tr("%1 in the folder \"%2\"").arg(file.fileName(), file.path());
                 if (book.current < 0 && place == core::BookPlace::Main && kind.kind == main.kind) {
                     book.current = static_cast<int>(book.kinds.size());
+                    // A plain file in the book is an element of the main text kind, as Add to
+                    // Book makes a new file
+                    book.plainKind = book.current;
                 }
             }
             book.kinds.append(entry);
@@ -382,21 +392,21 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     mainLayout->setSpacing(11);
     mainLayout->setContentsMargins(11, 11, 11, 11);
 
-    // The title first, above the kinds and the place, so that it is the first field of the
-    // window; it does not scroll with them on a small screen
-    mainLayout->addLayout(createTitleRow());
-
+    // The description of the chosen kind at the left, along the whole height, and at the
+    // right the choices in their order: the kind, the title, the place. So the title is close
+    // under the tiles and stays in view also when the content scrolls on a small screen.
     auto* content = new QWidget(this);
-    auto* contentLayout = new QVBoxLayout(content);
+    auto* contentLayout = new QHBoxLayout(content);
     contentLayout->setSpacing(11);
     contentLayout->setContentsMargins(0, 0, 0, 0);
-    auto* top = new QHBoxLayout();
-    top->setSpacing(11);
-    top->addWidget(createDescriptionPanel(content));
-    top->addWidget(createKindsGroup(content), 1);
+    contentLayout->addWidget(createDescriptionPanel(content));
+    auto* choices = new QVBoxLayout();
+    choices->setSpacing(11);
     // The tiles and the place share the room the window has above their minimum, 3 to 2
-    contentLayout->addLayout(top, 3);
-    contentLayout->addWidget(createPlaceGroup(content), 2);
+    choices->addWidget(createKindsGroup(content), 3);
+    choices->addLayout(createTitleRow(content));
+    choices->addWidget(createPlaceGroup(content), 2);
+    contentLayout->addLayout(choices, 1);
     mainLayout->addWidget(new FittingScrollArea(content, this), 1);
 
     auto* buttons = new QDialogButtonBox(this);
@@ -424,6 +434,13 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     });
     connect(m_picker, &ElementPlacePicker::placeChanged, this,
             &NewFileDialog::updateCreateButton);
+    // A plain file goes outside the book or into it
+    connect(m_insideButton, &QRadioButton::toggled, this, [this]() {
+        if (plainChosen()) {
+            showPlainFile();
+        }
+    });
+    m_titleEdit->installEventFilter(this);
 
     // New icon colors or sizes (a change of theme or icon settings) redraw the icons
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
@@ -478,6 +495,18 @@ void NewFileDialog::changeEvent(QEvent* event)
     }
 }
 
+bool NewFileDialog::eventFilter(QObject* watched, QEvent* event)
+{
+    // A click in the proposed title selects it, as the window selects it at the start, so
+    // that typing replaces it; in the writer's own title the click puts the cursor. The
+    // selection comes after the click, which puts the cursor first.
+    if (watched == m_titleEdit && event->type() == QEvent::FocusIn && !m_titleChanged &&
+        static_cast<QFocusEvent*>(event)->reason() == Qt::MouseFocusReason) {
+        QTimer::singleShot(0, m_titleEdit, &QLineEdit::selectAll);
+    }
+    return QDialog::eventFilter(watched, event);
+}
+
 QWidget* NewFileDialog::createDescriptionPanel(QWidget* parent)
 {
     auto* panel = new QWidget(parent);
@@ -512,11 +541,12 @@ QWidget* NewFileDialog::createDescriptionPanel(QWidget* parent)
     grid->setVerticalSpacing(6);
     grid->setColumnStretch(1, 1);
     int rows = 0;
-    const auto addRow = [panel, grid, &rows](const QString& words) {
+    QLabel* caption = nullptr;
+    const auto addRow = [panel, grid, &rows, &caption](const QString& words) {
         const int row = rows++;
-        auto* label = new QLabel(words, panel);
-        label->setForegroundRole(QPalette::PlaceholderText);
-        grid->addWidget(label, row, 0, Qt::AlignTop);
+        caption = new QLabel(words, panel);
+        caption->setForegroundRole(QPalette::PlaceholderText);
+        grid->addWidget(caption, row, 0, Qt::AlignTop);
         auto* value = new QLabel(panel);
         value->setTextFormat(Qt::PlainText);
         value->setWordWrap(true);
@@ -532,6 +562,7 @@ QWidget* NewFileDialog::createDescriptionPanel(QWidget* parent)
     m_fileLabel = addRow(tr("File:"));
     //: The type of book the chosen kind belongs to. In Polish: Typ:
     m_typeLabel = addRow(tr("Type:"));
+    m_typeCaption = caption;
     layout->addLayout(grid);
     layout->addStretch(1);
     return panel;
@@ -548,13 +579,13 @@ QWidget* NewFileDialog::createKindsGroup(QWidget* parent)
     return group;
 }
 
-QLayout* NewFileDialog::createTitleRow()
+QLayout* NewFileDialog::createTitleRow(QWidget* parent)
 {
     auto* row = new QHBoxLayout();
     row->setSpacing(8);
     //: In Polish: &Tytuł:
-    auto* titleLabel = new QLabel(tr("&Title:"), this);
-    m_titleEdit = new QLineEdit(this);
+    auto* titleLabel = new QLabel(tr("&Title:"), parent);
+    m_titleEdit = new QLineEdit(parent);
     titleLabel->setBuddy(m_titleEdit);
     row->addWidget(titleLabel);
     row->addWidget(m_titleEdit, 1);
@@ -566,6 +597,24 @@ QWidget* NewFileDialog::createPlaceGroup(QWidget* parent)
     //: The place of the new element in the book. In Polish: Miejsce
     auto* group = new QGroupBox(tr("Place"), parent);
     auto* layout = new QVBoxLayout(group);
+
+    // A plain file goes outside the book, at first, or into it; the other tiles do not have
+    // these buttons
+    auto* plainPlaces = new QHBoxLayout();
+    plainPlaces->setSpacing(16);
+    //: The place of a plain file: not in the book, in a tab of its own. In Polish:
+    //: &Poza książką
+    m_outsideButton = new QRadioButton(tr("&Outside the book"), group);
+    //: The place of a plain file: in the book, at the place chosen in the list under it. In
+    //: Polish: &W książce
+    m_insideButton = new QRadioButton(tr("&In the book"), group);
+    m_outsideButton->setChecked(true);
+    m_outsideButton->hide();
+    m_insideButton->hide();
+    plainPlaces->addWidget(m_outsideButton);
+    plainPlaces->addWidget(m_insideButton);
+    plainPlaces->addStretch(1);
+    layout->addLayout(plainPlaces);
 
     // The list of the part of the book with the element in its place, named by the group
     m_picker = new ElementPlacePicker(group);
@@ -612,6 +661,19 @@ void NewFileDialog::fillKinds()
             }
         }
     }
+
+    // The files that are no kind of the book, after the parts of the book
+    if (!m_book.untitled.isEmpty()) {
+        //: The group of the tiles of files that are no kind of the book, after the parts of
+        //: the book. In Polish: Inne pliki
+        auto* heading = new QListWidgetItem(tr("Other Files"), m_kindList);
+        heading->setData(HEADING_ROLE, true);
+        heading->setFlags(Qt::NoItemFlags);
+        auto* tile = new QListWidgetItem(plainFileName(), m_kindList);
+        tile->setData(PLAIN_ROLE, true);
+        tile->setTextAlignment(Qt::AlignHCenter | Qt::AlignTop);
+        tile->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+    }
     sizeTiles();
 }
 
@@ -632,9 +694,11 @@ void NewFileDialog::sizeTiles()
         if (item->data(HEADING_ROLE).toBool()) {
             continue;
         }
-        const NewFileKind& entry = m_book.kinds.at(item->data(KIND_ROLE).toInt());
-        item->setIcon(artProvider.getIcon(NavigatorPanel::iconIdOf(entry.kind),
-                                          core::IconContext::Dialog));
+        const QString iconId =
+            item->data(PLAIN_ROLE).toBool()
+                ? PLAIN_FILE_ICON
+                : NavigatorPanel::iconIdOf(m_book.kinds.at(item->data(KIND_ROLE).toInt()).kind);
+        item->setIcon(artProvider.getIcon(iconId, core::IconContext::Dialog));
         const QRect text = metrics.boundingRect(
             QRect(0, 0, width - TILE_PADDING, std::numeric_limits<int>::max() / 2),
             Qt::TextWordWrap | Qt::AlignHCenter, item->text());
@@ -657,6 +721,13 @@ void NewFileDialog::sizeTiles()
 
 const NewFileKind* NewFileDialog::chosen() const
 {
+    // A plain file in the book is an element of the main text kind
+    if (plainChosen()) {
+        return m_insideButton->isChecked() && m_book.plainKind >= 0 &&
+                       m_book.plainKind < m_book.kinds.size()
+                   ? &m_book.kinds.at(m_book.plainKind)
+                   : nullptr;
+    }
     const QListWidgetItem* item = m_kindList ? m_kindList->currentItem() : nullptr;
     if (!item || !item->data(KIND_ROLE).isValid()) {
         return nullptr;
@@ -669,8 +740,44 @@ const NewFileKind* NewFileDialog::chosen() const
     return &m_book.kinds.at(index);
 }
 
+QString NewFileDialog::plainFileName()
+{
+    //: The tile of a plain file in the New File window, and its name above its description.
+    //: In Polish: Zwykły plik
+    return tr("Plain File");
+}
+
+bool NewFileDialog::plainChosen() const
+{
+    const QListWidgetItem* item = m_kindList ? m_kindList->currentItem() : nullptr;
+    return item && item->data(PLAIN_ROLE).toBool();
+}
+
+bool NewFileDialog::outsideBook() const
+{
+    return plainChosen() && !m_insideButton->isChecked();
+}
+
 void NewFileDialog::onKindChanged()
 {
+    const bool plain = plainChosen();
+    m_outsideButton->setVisible(plain);
+    m_insideButton->setVisible(plain);
+    if (plain) {
+        // The list shows the place in the book of the main text kind, greyed while the file
+        // goes outside the book; the writer's place stays when the file goes in and out
+        if (m_book.plainKind >= 0 && m_book.plainKind < m_book.kinds.size()) {
+            showPlaces(m_book.kinds.at(m_book.plainKind));
+        } else {
+            m_picker->setElement(core::KindRef{}, QString());
+        }
+        showPlainFile();
+        return;
+    }
+    m_picker->setEnabled(true);
+    m_typeCaption->show();
+    m_typeLabel->show();
+
     const NewFileKind* entry = chosen();
     updateKindIcon();
     m_nameLabel->setText(entry ? entry->kind.kind->name.text(programLanguage()) : QString());
@@ -688,35 +795,83 @@ void NewFileDialog::onKindChanged()
     if (!m_titleChanged) {
         m_titleEdit->setText(entry->title);
     }
+    showPlaces(*entry);
+    updateCreateButton();
+}
 
+void NewFileDialog::showPlaces(const NewFileKind& entry)
+{
     // The places of the kind in the part of the book of its tile
     QList<PickerSection> sections;
     for (const PickerSection& section : std::as_const(m_book.sections)) {
-        if (section.place == entry->section) {
+        if (section.place == entry.section) {
             sections.append(section);
         }
     }
     m_picker->setBook(sections, *m_registry);
-    m_picker->setElement(entry->kind, title());
-    m_picker->setPlace(entry->place);
+    m_picker->setElement(entry.kind, title());
+    m_picker->setPlace(entry.place);
+}
+
+void NewFileDialog::showPlainFile()
+{
+    // In the book the file is an element of the main text kind, which the description names
+    const NewFileKind* entry = chosen();
+    updateKindIcon();
+    m_nameLabel->setText(plainFileName());
+    m_insideButton->setEnabled(m_book.plainKind >= 0);
+    m_picker->setEnabled(entry != nullptr);
+    m_typeCaption->setVisible(entry != nullptr);
+    m_typeLabel->setVisible(entry != nullptr);
+    if (entry) {
+        //: Where a plain file in the book goes: as an element of the main text kind, e.g. as
+        //: a chapter; %1: where the elements of the kind can be. In Polish: w książce jako
+        //: {kind} (%1)
+        m_whereLabel->setText(core::fillWords(tr("in the book, as {kind:indefinite} (%1)"),
+                                              {{QStringLiteral("kind"), wordsOf(entry->kind)}})
+                                  .arg(entry->where));
+        m_countLabel->setText(entry->count);
+        m_fileLabel->setText(entry->file);
+        m_typeLabel->setText(entry->type);
+    } else {
+        //: Where a plain file outside the book goes. In Polish: poza książką, w nowej karcie
+        m_whereLabel->setText(tr("outside the book, in a tab of its own"));
+        //: How many plain files there can be. In Polish: dowolnie wiele
+        m_countLabel->setText(tr("any number"));
+        //: The file of a plain file outside the book: the writer chooses it when saving it
+        //: for the first time. In Polish: wybierzesz go przy pierwszym zapisie
+        m_fileLabel->setText(tr("chosen when it is saved for the first time"));
+        m_typeLabel->clear();
+    }
+
+    // The title follows the place until the writer changes it: the title of a new element in
+    // the book, "Untitled 2" outside it
+    if (!m_titleChanged) {
+        m_titleEdit->setText(entry ? entry->title : m_book.untitled);
+    }
     updateCreateButton();
 }
 
 void NewFileDialog::updateKindIcon()
 {
     const NewFileKind* entry = chosen();
-    if (!entry) {
+    if (!entry && !plainChosen()) {
         m_iconLabel->clear();
         return;
     }
-    const QIcon icon =
-        core::ArtProvider::getInstance().getThemedIcon(NavigatorPanel::iconIdOf(entry->kind));
+    const QIcon icon = core::ArtProvider::getInstance().getThemedIcon(
+        plainChosen() ? PLAIN_FILE_ICON : NavigatorPanel::iconIdOf(entry->kind));
     m_iconLabel->setPixmap(icon.pixmap(QSize(DESCRIPTION_ICON_SIZE, DESCRIPTION_ICON_SIZE),
                                        devicePixelRatioF()));
 }
 
 void NewFileDialog::updateCreateButton()
 {
+    // A plain file outside the book needs only its title
+    if (outsideBook()) {
+        m_createButton->setEnabled(!title().isEmpty());
+        return;
+    }
     m_createButton->setEnabled(chosen() && !title().isEmpty() && !m_picker->places().isEmpty());
 }
 

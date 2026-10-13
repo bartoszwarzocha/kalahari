@@ -3705,10 +3705,6 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <translation>Tę książkę zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją otworzyć.</translation>
     </message>
     <message>
-        <source>Failed to open book: %1</source>
-        <translation>Nie udało się otworzyć książki: %1</translation>
-    </message>
-    <message>
         <source>File Not Found</source>
         <translation>Nie znaleziono pliku</translation>
     </message>
@@ -4035,6 +4031,70 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>Save as &amp;Text</source>
         <translation>Zapisz jako &amp;tekst</translation>
+    </message>
+    <message>
+        <source>File: %1</source>
+        <translation>Plik: %1</translation>
+    </message>
+    <message>
+        <source>Book Already Open</source>
+        <translation>Książka jest już otwarta</translation>
+    </message>
+    <message>
+        <source>The book &quot;%1&quot; is already open in another window of Kalahari. Close it there and click Try Again.</source>
+        <translation>Książka „%1” jest już otwarta w innym oknie programu Kalahari. Zamknij ją tam i kliknij „Spróbuj ponownie”.</translation>
+    </message>
+    <message>
+        <source>&amp;Try Again</source>
+        <translation>&amp;Spróbuj ponownie</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Book Not Found</source>
+        <translation>Nie znaleziono książki</translation>
+    </message>
+    <message>
+        <source>There is no book file &quot;%1&quot; in the folder &quot;%2&quot;. The file may have been moved, deleted or renamed.</source>
+        <translation>W folderze „%2” nie ma pliku książki „%1”. Plik mógł zostać przeniesiony, usunięty albo mieć zmienioną nazwę.</translation>
+    </message>
+    <message>
+        <source>Not a Book</source>
+        <translation>To nie jest książka</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a Kalahari book. A book file has the extension .klh.</source>
+        <translation>„%1” nie jest książką programu Kalahari. Plik książki ma rozszerzenie .klh.</translation>
+    </message>
+    <message>
+        <source>Book of an Older Version</source>
+        <translation>Książka starszej wersji</translation>
+    </message>
+    <message>
+        <source>This book was saved by an older version of Kalahari, whose format this version cannot read yet.</source>
+        <translation>Tę książkę zapisała starsza wersja programu Kalahari, której formatu ta wersja jeszcze nie odczytuje.</translation>
+    </message>
+    <message>
+        <source>Book Cannot Be Opened</source>
+        <translation>Nie można otworzyć książki</translation>
+    </message>
+    <message>
+        <source>The database of the book cannot be opened: the file project.db in its folder may be damaged or used by another program.</source>
+        <translation>Nie można otworzyć bazy danych książki: plik project.db w jej folderze może być uszkodzony albo używany przez inny program.</translation>
+    </message>
+    <message>
+        <source>The open book cannot be closed, so the other one was not opened. The program&apos;s log has the details.</source>
+        <translation>Nie można zamknąć otwartej książki, więc nie otwarto drugiej. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>Book Cannot Be Read</source>
+        <translation>Nie można odczytać książki</translation>
+    </message>
+    <message>
+        <source>The book file &quot;%1&quot; is damaged or incomplete, so the program cannot read it. Show Details says what is wrong in it.</source>
+        <translation>Plik książki „%1” jest uszkodzony albo niepełny, więc program nie może go odczytać. Co jest w nim nie tak, pokazuje przycisk „Pokaż szczegóły”.</translation>
     </message>
 </context>
 <context>
@@ -9159,6 +9219,34 @@ The button that moves the element. In Polish: Przenieś</extracomment>
         <extracomment>In Polish: &amp;Tytuł:</extracomment>
         <translation>&amp;Tytuł:</translation>
     </message>
+    <message>
+        <source>&amp;Outside the book</source>
+        <translation>&amp;Poza książką</translation>
+    </message>
+    <message>
+        <source>&amp;In the book</source>
+        <translation>&amp;W książce</translation>
+    </message>
+    <message>
+        <source>Other Files</source>
+        <translation>Inne pliki</translation>
+    </message>
+    <message>
+        <source>Plain File</source>
+        <translation>Zwykły plik</translation>
+    </message>
+    <message>
+        <source>in the book, as {kind:indefinite} (%1)</source>
+        <translation>w książce jako {kind} (%1)</translation>
+    </message>
+    <message>
+        <source>outside the book, in a tab of its own</source>
+        <translation>poza książką, w nowej karcie</translation>
+    </message>
+    <message>
+        <source>chosen when it is saved for the first time</source>
+        <translation>wybierzesz go przy pierwszym zapisie</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::NewItemDialog</name>
@@ -9677,6 +9765,10 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     <message>
         <source>The command line could not be read.</source>
         <translation>Nie udało się odczytać wiersza poleceń.</translation>
+    </message>
+    <message>
+        <source>A book (.klh file) or another file to open; when the program runs already, its window opens it</source>
+        <translation>Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</translation>
     </message>
 </context>
 </TS>

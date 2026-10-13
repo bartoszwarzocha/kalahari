@@ -62,6 +62,19 @@ enum class WorkMode {
     StandaloneMode   ///< Single file without project - limited features
 };
 
+/// @brief Why a book cannot be opened
+enum class OpenFailure {
+    None,           ///< Nothing keeps it from opening
+    Missing,        ///< There is no such .klh file
+    NotBook,        ///< The file is not a .klh file
+    Newer,          ///< A newer version of the program saved it
+    Older,          ///< An older version of the program saved it, in a format it cannot read
+    Unreadable,     ///< The .klh file is damaged or incomplete
+    OpenElsewhere,  ///< Another program that is running has it open
+    Database,       ///< The database of the book cannot be opened
+    CloseFailed     ///< The open book cannot be closed for it
+};
+
 /// @brief Words and statuses of the text elements of a list, with those inside its groups
 struct TextStatistics {
     int elements = 0;                 ///< Text elements (chapters, prefaces, poems...)
@@ -207,12 +220,22 @@ public:
     /// @return One line per problem; empty when the file can be read
     static QStringList projectFileProblems(const QString& manifestPath);
 
+    /// @brief What keeps openProject() from opening the book @p manifestPath, checked before
+    /// the open book is closed for it: the problems of its file (projectFileProblems()), or
+    /// another program that is running and has the book open
+    /// @param problems Gets what is wrong, one line each
+    static OpenFailure openFailure(const QString& manifestPath, QStringList* problems = nullptr);
+
     /// @brief Open an existing project from its .klh file
     /// @param manifestPath Path to the .klh file
     /// @param problems Gets what is wrong when the project cannot be opened, one line each
-    /// @return true if project opened successfully, false otherwise; the open project stays
-    ///         open when the file cannot be read (projectFileProblems())
+    /// @return true if project opened successfully, false otherwise (lastOpenFailure() says
+    ///         why); the open project stays open when the file cannot be read or another
+    ///         program has the book open (openFailure())
     bool openProject(const QString& manifestPath, QStringList* problems = nullptr);
+
+    /// @brief Why the last openProject() did not open the book; None after it opened it
+    OpenFailure lastOpenFailure() const { return m_lastOpenFailure; }
 
     /// @brief Close the current project
     /// @param promptSave If true, saves the .klh file when it has unsaved changes
@@ -710,6 +733,7 @@ private:
     std::filesystem::path m_projectPath;          ///< Project root folder path
     std::filesystem::path m_manifestPath;         ///< Path to .klh manifest file
     bool m_isDirty;                               ///< The .klh file has unsaved changes
+    OpenFailure m_lastOpenFailure = OpenFailure::None;  ///< Of the last openProject()
 
     mutable BookTypeRegistry m_bookTypes;         ///< Packages of book types and kinds
     mutable bool m_bookTypesLoaded = false;       ///< m_bookTypes was loaded

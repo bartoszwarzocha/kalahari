@@ -13,6 +13,7 @@
 #include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/panels/editor_panel.h>
 
+#include "../core/other_program.h"
 #include "document_window.h"
 
 #include <QDir>
@@ -20,6 +21,7 @@
 #include <QFileInfo>
 #include <QTemporaryDir>
 #include <QTextDocument>
+#include <QTimer>
 
 using namespace kalahari;
 using gui::dialogs::MessageDialog;
@@ -179,7 +181,10 @@ TEST_CASE("Opening a book of a newer version of Kalahari says so, and the open b
         said.clear();
         CHECK(accepting([&] { window.documents.onOpenRecentFile(broken); }, &said) == 1);
         REQUIRE(said.size() == 1);
-        CHECK(said.first().startsWith(QStringLiteral("Open Error ")));
+        CHECK(said.first().startsWith(QStringLiteral("Book Cannot Be Read ")));
+        CHECK(said.first().contains(QStringLiteral(
+            "The book file \"Broken.klh\" is damaged or incomplete, so the program cannot read "
+            "it.")));
         CHECK_FALSE(said.first().contains(newerText));
     }
 
@@ -310,4 +315,74 @@ TEST_CASE("Save As: a chapter with annotations saved as a plain text file asks f
     CHECK(tab->getText() == QStringLiteral("They met on Tuesday."));
     CHECK_FALSE(core::StandaloneFile::lostAsText(tab->getContent()).annotations);
     CHECK_FALSE(tab->property("dirty").toBool());
+}
+
+TEST_CASE("Opening a book that another Kalahari program has open says so, with Try Again",
+          "[gui][save]") {
+    const RecentBooks recent;
+    auto& pm = core::ProjectManager::getInstance();
+    QTemporaryDir otherFolder;
+    REQUIRE(otherFolder.isValid());
+    pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    REQUIRE(pm.createProject(otherFolder.path(), QStringLiteral("Storm"),
+                             QStringLiteral("Author"), QStringLiteral("en"), false,
+                             QStringLiteral("kalahari.novel")));
+    const QString storm = pm.getManifestPath();
+    pm.closeProject(false);
+    test::OtherProgram other;
+    REQUIRE(other.pid() != 0);
+    REQUIRE(test::lockBook(QFileInfo(storm).absolutePath(), other.pid()));
+
+    const QString title = QStringLiteral("Book Already Open ");
+    const QString text = QStringLiteral("The book \"Storm\" is already open in another window "
+                                        "of Kalahari. Close it there and click Try Again.");
+
+    SECTION("Close: the open book stays open") {
+        OpenNovel novel(QStringLiteral("Open Book"));
+        const QString open = pm.getManifestPath();
+        Window window;
+        QStringList said;
+        CHECK(answering([&] { window.documents.onOpenRecentFile(storm); },
+                        MessageDialog::Answer::Cancel, said) == 1);
+        INFO(said.join(QLatin1Char('\n')).toStdString());
+        REQUIRE(said.size() == 1);
+        CHECK(said.first().startsWith(title));
+        CHECK(said.first().contains(text));
+        CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(open));
+    }
+
+    SECTION("Try Again, after the book is closed in the other program: it opens") {
+        if (pm.isProjectOpen()) {
+            pm.closeProject(false);
+        }
+        Window window;
+        QStringList said;
+        QTimer timer;
+        timer.setInterval(10);
+        QObject::connect(&timer, &QTimer::timeout, [&]() {
+            auto* message = qobject_cast<MessageDialog*>(test::shownDialog());
+            if (!message || message->property("handled").toBool()) {
+                return;
+            }
+            message->setProperty("handled", true);
+            said << test::textsOf(*message);
+            // Try Again once; a window after it would only be closed
+            other.stop();
+            QMetaObject::invokeMethod(said.size() == 1 ? message->acceptButton()
+                                                       : message->cancelButton(),
+                                      "click", Qt::QueuedConnection);
+        });
+        timer.start();
+        window.documents.onOpenRecentFile(storm);
+
+        // Tried again once the window is closed
+        QCoreApplication::processEvents();
+        timer.stop();
+        INFO(said.join(QLatin1Char('\n')).toStdString());
+        REQUIRE(said.size() == 1);
+        CHECK(said.first().startsWith(title));
+        CHECK(pm.isProjectOpen());
+        CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(storm));
+        pm.closeProject(false);
+    }
 }

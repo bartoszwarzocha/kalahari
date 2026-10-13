@@ -715,12 +715,48 @@ QStringList ProjectManager::projectFileProblems(const QString& manifestPath) {
     return problems;
 }
 
+OpenFailure ProjectManager::openFailure(const QString& manifestPath, QStringList* problems) {
+    const QFileInfo manifestInfo(manifestPath);
+    const QStringList found = projectFileProblems(manifestPath);
+    if (problems) {
+        problems->append(found);
+    }
+    if (!found.isEmpty()) {
+        if (!manifestInfo.isFile()) {
+            return OpenFailure::Missing;
+        }
+        if (manifestInfo.suffix().compare(QStringLiteral("klh"), Qt::CaseInsensitive) != 0) {
+            return OpenFailure::NotBook;
+        }
+        if (BookProject::isNewerFormatFile(manifestPath)) {
+            return OpenFailure::Newer;
+        }
+        return BookProject::isOlderFormatFile(manifestPath) ? OpenFailure::Older
+                                                             : OpenFailure::Unreadable;
+    }
+
+    // Another copy of the program that runs on this computer has the book open
+    if (ProjectLock::isHeldByOther(manifestInfo.absolutePath())) {
+        if (problems) {
+            problems->append(QStringLiteral("%1: the book is open in another program that is "
+                                            "running (%2)")
+                                 .arg(manifestInfo.fileName(),
+                                      QDir::toNativeSeparators(
+                                          ProjectLock::lockFilePath(manifestInfo.absolutePath()))));
+        }
+        return OpenFailure::OpenElsewhere;
+    }
+    return OpenFailure::None;
+}
+
 bool ProjectManager::openProject(const QString& manifestPath, QStringList* problems) {
     auto& logger = Logger::getInstance();
     const QFileInfo manifestInfo(manifestPath);
 
     QStringList found;
-    const auto fail = [&logger, &found, problems](const QString& problem) {
+    const auto fail = [this, &logger, &found, problems](OpenFailure failure,
+                                                        const QString& problem) {
+        m_lastOpenFailure = failure;
         if (!problem.isEmpty()) {
             found.append(problem);
         }
@@ -732,24 +768,25 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
         }
         return false;
     };
+    m_lastOpenFailure = OpenFailure::None;
 
-    // The file is read before the open project is closed, so the open project stays open
-    // when the file cannot be read
-    found = projectFileProblems(manifestPath);
-    if (!found.isEmpty()) {
-        return fail(QString());
+    // The file is read, and the lock of the book looked at, before the open project is
+    // closed, so the open project stays open when the book cannot be opened
+    if (const OpenFailure failure = openFailure(manifestPath, &found);
+        failure != OpenFailure::None) {
+        return fail(failure, QString());
     }
 
     // Close any existing project first
     if (isProjectOpen() && !closeProject(true)) {
-        return fail(QStringLiteral("the open project cannot be closed"));
+        return fail(OpenFailure::CloseFailed, QStringLiteral("the open project cannot be closed"));
     }
 
     // Read again: closing saved the open project, which can be this one
     logger.info("Opening project: {}", manifestPath.toStdString());
     std::optional<BookProject> project = BookProject::load(manifestPath, found);
     if (!project) {
-        return fail(QString());
+        return fail(OpenFailure::Unreadable, QString());
     }
 
     // OpenSpec #00041: Acquire project lock
@@ -757,17 +794,21 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
     m_projectLock = std::make_unique<ProjectLock>(projectDir);
     if (!m_projectLock->tryAcquire()) {
         m_projectLock.reset();
-        return fail(QStringLiteral("%1: the book is open in another window of Kalahari")
+        return fail(OpenFailure::OpenElsewhere,
+                    QStringLiteral("%1: the book is open in another program that is running")
                         .arg(manifestInfo.fileName()));
     }
 
     // OpenSpec #00041: Open project database
     m_database = std::make_unique<ProjectDatabase>();
     if (!m_database->open(projectDir)) {
+        const QString error = m_database->lastError();
         m_database.reset();
         m_projectLock->release();
         m_projectLock.reset();
-        return fail(QStringLiteral("project.db: the database of the book cannot be opened"));
+        return fail(OpenFailure::Database,
+                    QStringLiteral("project.db: the database of the book cannot be opened%1")
+                        .arg(error.isEmpty() ? QString() : QStringLiteral(" (%1)").arg(error)));
     }
     m_backupManager = std::make_unique<BackupManager>(projectDir);
 

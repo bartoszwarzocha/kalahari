@@ -1323,6 +1323,39 @@ void MainWindow::updateBookCommands() {
     utils::updateOpenBookCommands(registry);
 }
 
+void MainWindow::setStartupFile(const QString& path) {
+    m_startupFile = path;
+}
+
+void MainWindow::onLaterStart(const QString& path) {
+    auto& logger = core::Logger::getInstance();
+    logger.info("A later start of the program handed over: {}", path.toStdString());
+
+    // The window comes to the front as it was, maximized or not
+    if (isMinimized()) {
+        setWindowState((windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
+    }
+    show();
+    raise();
+    activateWindow();
+
+    // A window that asks something stays in front, and is answered first
+    if (QWidget* modal = QApplication::activeModalWidget()) {
+        modal->raise();
+        modal->activateWindow();
+        if (!path.isEmpty()) {
+            logger.info("Not opened while a window asks something: {}", path.toStdString());
+        }
+        return;
+    }
+    if (!path.isEmpty() && m_documentCoordinator) {
+        // As from the recent books: a question about the open book comes in its turn
+        QTimer::singleShot(0, this, [this, path]() {
+            if (m_documentCoordinator) m_documentCoordinator->onOpenRecentFile(path);
+        });
+    }
+}
+
 QMenu* MainWindow::createPopupMenu() {
     // Qt's menu names the panels and the toolbars after their titles, without access keys:
     // a copy gives them keys, and the panels and the toolbars keep their titles
@@ -1670,7 +1703,13 @@ void MainWindow::showEvent(QShowEvent* event) {
         // OpenSpec #00038 Phase 7: Use DocumentCoordinator for file operations
         auto& settingsManager = core::SettingsManager::getInstance();
         bool autoLoad = settingsManager.get<bool>("startup.autoLoadLastProject", false);
-        if (autoLoad) {
+        if (!m_startupFile.isEmpty()) {
+            // The file of the command line takes the place of the last book
+            logger.info("Opening the file of the command line: {}", m_startupFile.toStdString());
+            QTimer::singleShot(100, this, [this, file = m_startupFile]() {
+                if (m_documentCoordinator) m_documentCoordinator->onOpenRecentFile(file);
+            });
+        } else if (autoLoad) {
             // The book opened last, not one created or imported without opening since
             const QString lastFile = core::RecentBooksManager::getInstance().lastOpenedBook();
             if (!lastFile.isEmpty()) {

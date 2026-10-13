@@ -983,6 +983,20 @@ bool BookProject::isNewerFormatFile(const QString& path) {
     return file.open(QIODevice::ReadOnly) && isNewerFormat(file.readAll());
 }
 
+bool BookProject::isOlderFormat(const QJsonObject& json) {
+    const QJsonValue format = json.value(QLatin1String("format"));
+    return format.isUndefined() || (isWholeNumber(format) && format.toDouble() < FORMAT);
+}
+
+bool BookProject::isOlderFormatFile(const QString& path) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+    const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
+    return document.isObject() && isOlderFormat(document.object());
+}
+
 std::optional<BookProject> BookProject::fromJson(const QJsonObject& json,
                                                  QStringList& problems) {
     const qsizetype problemsBefore = problems.size();

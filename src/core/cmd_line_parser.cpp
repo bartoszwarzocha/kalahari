@@ -121,6 +121,16 @@ bool CmdLineParser::parse() {
     return true;
 }
 
+void CmdLineParser::addPositionalArgument(const QString& name, const QString& description,
+                                          const QString& syntax) {
+    m_parser.addPositionalArgument(name, description, syntax);
+}
+
+QStringList CmdLineParser::positionalArguments() const {
+    // Without arguments parse() does not ask the parser
+    return m_parsed && m_argc > 1 ? m_parser.positionalArguments() : QStringList();
+}
+
 QString CmdLineParser::helpText() const {
     return m_parser.helpText();
 }
