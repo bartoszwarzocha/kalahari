@@ -539,25 +539,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `settings.json`.
   - The dictionary is loaded in the background, once for all open chapters, and a
     language change does not stop the work.
-- **Grammar as you type, on the writer's LanguageTool server** - 2026-10-09
-  - The editor underlines grammar, style and punctuation issues with a wavy line. They are
-    found by LanguageTool, a free program that runs on the writer's computer, whose address
-    goes in Settings > Editor > Grammar; without one nothing is checked and the text of the
-    book is sent nowhere. The Test button there says whether the server checks the text.
-    The language is the one of the spelling.
+- **Grammar as you type, with LanguageTool on this computer** - 2026-10-13
+  - The editor underlines grammar, style and punctuation issues with a wavy line, in the
+    language of the spelling. They are found by LanguageTool, a free program. By default it
+    runs on this computer, so the text of the book does not leave it. Checking on a server
+    in the internet is the writer's choice in Settings > Editor > Grammar, made after a
+    question that says the text will be sent there: the free api.languagetool.org, a
+    Premium account with its e-mail and API key, or the address of another server, with a
+    Check button that says whether the server checks the text.
+  - LanguageTool needs Java. Prepare Grammar Checking... on that page (or Prepare Now in
+    the question Tools > Check Grammar as You Type asks while nothing is prepared) opens a
+    window of three steps: what will be downloaded (LanguageTool 6.6 and Java 21 by
+    Eclipse Temurin, about 300 MB, with the room free on the disk and the folder), the
+    download with the progress of each step, and a sample of the underlines. No
+    administrator rights are needed: the files go to the user's data folder
+    (`Kalahari/grammar`), are checked against their SHA-256 sums and unpacked there. The
+    download can go on in the background while the writer works, with its progress on the
+    status bar. A failure says why and what to do (no internet, a server that does not
+    answer, a damaged file, no room on the disk, a folder that cannot be written in), and
+    Try Again downloads only what is still missing.
+  - The program starts LanguageTool when the first document opens (on another port when
+    8081 is taken), starts it again up to three times when it stops, and closes it with the
+    program; the status bar says when the grammar is not checked and why. The advanced
+    settings take Java and LanguageTool installed another way, the port or a server started
+    outside the program, and show the server's state with Check and Details; Remove
+    Downloaded Components frees the room again.
   - Only the paragraphs on the screen and some around them are sent, a moment after the
     writer stops typing. The lines of an issue move with the text edited around it and stay
     until its paragraph is checked again; an issue that applies only to finished sentences
     waits until its sentence is finished. A line break inside a paragraph (Shift+Enter) is
     read as a space between words.
   - A right click on an issue shows what is wrong, whole, up to five replacements in bold
-    and Ignore This Rule (until the program closes), above the usual commands. Spelling
-    issues are left to the dictionary.
+    and Ignore This Rule, above the usual commands. An ignored rule stays ignored in every
+    book, also after a restart; Settings > Editor > Grammar lists the ignored rules and
+    restores them. Spelling issues are left to the dictionary.
   - From the keyboard: F7 goes to the grammar issues too, in the order of the text, and
-    opens the same menu; the menu key and Shift+F10 open it for the issue at the cursor.
-  - Tools > Check Grammar as You Type turns the checking on and off for all chapters and
-    remembers it; it is greyed out while no server is set. When the server does not answer,
-    the status bar says so once and the paragraphs are sent again after a while.
+    opens the same menu. When the paragraphs after the cursor are not checked yet, it checks
+    them, further on and round the text, until it finds an issue. The menu key and Shift+F10
+    open the menu for the issue at the cursor.
+  - Tools > Check Grammar as You Type turns the checking on and off for all documents and
+    remembers it.
 - **Annotations: their marks, the frame they are written in, the Annotations panel and the
   commands for them** - 2026-10-08
   - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a

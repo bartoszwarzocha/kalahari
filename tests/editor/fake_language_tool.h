@@ -2,8 +2,8 @@
 /// @brief A LanguageTool server stand-in on localhost for the grammar tests
 ///
 /// Answers POST /v2/check as LanguageTool does: an issue for every place of the text
-/// where one of its phrases is. It can hold its answers, answer with an error, or stop
-/// listening.
+/// where one of its phrases is; GET /v2/languages with its languages. It can hold its
+/// answers, answer with an error, or stop listening.
 
 #pragma once
 
@@ -73,6 +73,12 @@ public:
     /// @brief The address of the server
     QString url() const { return QStringLiteral("http://127.0.0.1:%1").arg(m_server.serverPort()); }
 
+    /// @brief The port the server listens on
+    int port() const { return m_server.serverPort(); }
+
+    /// @brief Answer GET /v2/languages with this body (empty: English and Polish)
+    void setLanguagesAnswer(const QByteArray& body) { m_languagesAnswer = body; }
+
     /// @brief Report an issue wherever its phrase is
     void addIssue(const FakeIssue& issue) { m_issues.push_back(issue); }
 
@@ -114,6 +120,13 @@ public:
     /// @brief The language of the last request
     QString lastLanguage() const { return m_lastLanguage; }
 
+    /// @brief The account of the last request (username, apiKey); empty: none
+    QString lastUsername() const { return m_lastUsername; }
+    QString lastApiKey() const { return m_lastApiKey; }
+
+    /// @brief How many times the languages were asked for
+    int languageRequests() const { return m_languageRequests; }
+
 private:
     /// @brief Answer a request once it came whole (and take it from what came)
     void receive(QTcpSocket* socket, QByteArray& request) {
@@ -133,11 +146,27 @@ private:
         if (request.size() < headerEnd + 4 + length) {
             return;
         }
+        const QByteArray line = request.left(request.indexOf("\r\n"));
         const QUrlQuery form(QString::fromUtf8(request.mid(headerEnd + 4, length)));
         request.remove(0, headerEnd + 4 + length);
+        if (line.startsWith("GET /v2/languages")) {
+            ++m_languageRequests;
+            const QByteArray languages =
+                m_languagesAnswer.isEmpty()
+                    ? QByteArrayLiteral(
+                          "[{\"name\":\"English (US)\",\"code\":\"en\",\"longCode\":\"en-US\"},"
+                          "{\"name\":\"Polish\",\"code\":\"pl\",\"longCode\":\"pl-PL\"}]")
+                    : m_languagesAnswer;
+            send(socket, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " +
+                             QByteArray::number(languages.size()) +
+                             "\r\nConnection: close\r\n\r\n" + languages);
+            return;
+        }
         const QString text = form.queryItemValue(QStringLiteral("text"), QUrl::FullyDecoded);
         m_texts.append(text);
         m_lastLanguage = form.queryItemValue(QStringLiteral("language"), QUrl::FullyDecoded);
+        m_lastUsername = form.queryItemValue(QStringLiteral("username"), QUrl::FullyDecoded);
+        m_lastApiKey = form.queryItemValue(QStringLiteral("apiKey"), QUrl::FullyDecoded);
 
         QByteArray answer;
         if (m_failureStatus != 0) {
@@ -204,6 +233,10 @@ private:
     std::vector<QPair<QPointer<QTcpSocket>, QByteArray>> m_held;
     QStringList m_texts;
     QString m_lastLanguage;
+    QString m_lastUsername;
+    QString m_lastApiKey;
+    QByteArray m_languagesAnswer;
+    int m_languageRequests{0};
 };
 
 }  // namespace kalahari::test

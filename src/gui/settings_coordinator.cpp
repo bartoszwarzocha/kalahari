@@ -45,6 +45,10 @@ void SettingsCoordinator::setSpellCheckService(editor::SpellCheckService* servic
     m_spellCheckService = service;
 }
 
+void SettingsCoordinator::setGrammarCoordinator(GrammarCoordinator* grammar) {
+    m_grammarCoordinator = grammar;
+}
+
 void SettingsCoordinator::openSettingsDialog() {
     core::Logger::getInstance().info("Action triggered: Settings");
     runSettingsDialog(false);
@@ -58,7 +62,8 @@ void SettingsCoordinator::openKeyboardShortcuts() {
 void SettingsCoordinator::runSettingsDialog(bool shortcuts) {
     auto& logger = core::Logger::getInstance();
 
-    SettingsDialog dialog(m_mainWindow, m_diagnosticModeGetter(), m_spellCheckService);
+    SettingsDialog dialog(m_mainWindow, m_diagnosticModeGetter(), m_spellCheckService,
+                          m_grammarCoordinator);
     if (shortcuts) {
         dialog.showShortcutsPage();
     }

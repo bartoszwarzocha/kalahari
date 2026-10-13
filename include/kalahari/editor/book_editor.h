@@ -882,16 +882,30 @@ public:
     /// @brief Whether a turn of the spelling check is due (it runs while the editor is shown)
     bool isSpellCheckPending() const;
 
+    /// @brief What goToNextIssue() did
+    enum class IssueSearch {
+        Found,     ///< The issue is selected
+        NotFound,  ///< The text has none, or nothing is checked
+        Searching, ///< The grammar of the paragraphs further on is being checked: the search
+                   ///< goes on, issueSearchFinished() tells how it ended
+        Cancelled  ///< (issueSearchFinished()) Broken off: the text was edited, the cursor
+                   ///< moved, the checking changed or another search started
+    };
+    Q_ENUM(IssueSearch)
+
     /// @brief Select the next misspelled word or grammar issue: the one the cursor is in or
     ///        the first after it (with a selection, the first that starts after the
     ///        selection's start), from the start of the text after its end
     ///
     /// The spelling of the paragraphs not checked yet is checked on the way and the word
-    /// being typed counts; the grammar issues are those found so far (the server is asked
-    /// about the paragraphs around the view). Where both start at one place, the misspelled
-    /// word comes first.
-    /// @return false when the text has neither, or neither is checked
-    bool goToNextIssue();
+    /// being typed counts. So is the grammar while it is checked: a paragraph whose grammar
+    /// is not known yet is sent to the server and the search waits for its answer
+    /// (IssueSearch::Searching). Where both start at one place, the misspelled word comes
+    /// first.
+    IssueSearch goToNextIssue();
+
+    /// @brief Whether a search of goToNextIssue() waits for the grammar of a paragraph
+    bool isSearchingIssue() const { return m_issueSearch.active; }
 
     // =========================================================================
     // Grammar
@@ -1029,6 +1043,10 @@ signals:
 
     /// @brief Emitted when selection changes
     void selectionChanged();
+
+    /// @brief A search of goToNextIssue() that waited for the grammar ended
+    /// @param result IssueSearch::Found (the issue is selected), NotFound or Cancelled
+    void issueSearchFinished(kalahari::editor::BookEditor::IssueSearch result);
 
     /// @brief Emitted when view mode changes
     /// @param mode The new view mode
@@ -1701,6 +1719,35 @@ private:
         QString text;       ///< Its text as sent
     };
     std::map<quint64, GrammarRequest> m_grammarRequests;  ///< The requests not answered yet
+
+    /// @brief A search of goToNextIssue() going round the text
+    struct IssueSearchState {
+        bool active{false};          ///< It waits for the grammar of a paragraph
+        CursorPosition from;         ///< Where it started: the cursor or the selection's start
+        bool afterSelection{false};  ///< It started with a selection
+        int visited{0};              ///< How many paragraphs it went through
+        int paragraph{0};            ///< The paragraph it is at
+        CursorPosition cursor;       ///< The cursor when it started: moved, the search ends
+        SelectionRange selection;    ///< The selection when it started
+    };
+    IssueSearchState m_issueSearch;
+
+    /// @brief Go on round the text from where the search is
+    IssueSearch continueIssueSearch();
+
+    /// @brief The grammar of the paragraph the search waits for came (or will not): go on
+    void resumeIssueSearch();
+
+    /// @brief End the search that waited, telling how
+    void endIssueSearch(IssueSearch result);
+
+    /// @brief Send a paragraph to the grammar check unless it is checked, being checked or
+    ///        empty
+    /// @return false when no more paragraphs can be sent now
+    bool sendGrammarCheck(int paragraph);
+
+    /// @brief Whether the grammar of a paragraph is known (checked, or nothing to check)
+    bool isGrammarKnown(const QTextBlock& block) const;
 
     /// @brief Send the paragraphs due after @p delayMs, unless they go sooner
     void scheduleGrammarCheck(int delayMs);

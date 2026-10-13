@@ -271,12 +271,14 @@ MainWindow::MainWindow(QWidget* parent)
             m_spellingCoordinator, &SpellingCoordinator::updateDictionary);
     m_settingsCoordinator->setSpellCheckService(m_spellingCoordinator->service());
 
-    // Grammar as you type, on the writer's LanguageTool server, in the spelling's language
+    // Grammar as you type, in the spelling's language: on LanguageTool the program prepares
+    // on this computer, or on a server in the internet the writer chose
     m_grammarCoordinator =
         new GrammarCoordinator(m_dockCoordinator->centralTabs(), statusBar(), this);
     m_grammarCoordinator->connectCommands();
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookLanguageChanged,
             m_grammarCoordinator, &GrammarCoordinator::updateChecking);
+    m_settingsCoordinator->setGrammarCoordinator(m_grammarCoordinator);
 
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
     // No m_editorPanel at startup - Dashboard is default first tab

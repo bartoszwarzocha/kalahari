@@ -14,9 +14,11 @@
 #include <QNetworkRequest>
 #include <QTimer>
 #include <QUrl>
+#include <QVariant>
 
 #include <algorithm>
 #include <array>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -24,9 +26,6 @@ namespace {
 
 /// @brief How many texts are checked at a time
 constexpr std::size_t MAX_SENT = 2;
-
-/// @brief How long the server is not asked after it did not answer (ms)
-constexpr int RETRY_MS = 30000;
 
 /// @brief How long an answer may take (ms): the first check in a language loads its rules
 constexpr int TRANSFER_TIMEOUT_MS = 30000;
@@ -39,6 +38,13 @@ constexpr qsizetype MAX_REASON_LENGTH = 160;
 
 /// @brief The answer of a server to a text too long for it
 constexpr int HTTP_CONTENT_TOO_LARGE = 413;
+
+/// @brief The answer of a server to too many texts (the limit of the free server)
+constexpr int HTTP_TOO_MANY_REQUESTS = 429;
+
+/// @brief How long a server that refused too many texts is not asked (ms): the limit of the
+///        free server is per minute
+constexpr int LIMIT_RETRY_MS = 60000;
 
 /// @brief The regional variants LanguageTool checks as such; for the others of their
 ///        languages it gets the language alone
@@ -84,7 +90,6 @@ GrammarCheckService::GrammarCheckService(QObject* parent)
     , m_retryTimer(new QTimer(this))
 {
     m_retryTimer->setSingleShot(true);
-    m_retryTimer->setInterval(RETRY_MS);
     connect(m_retryTimer, &QTimer::timeout, this, [this]() {
         m_failing = false;
         if (isActive()) {
@@ -203,9 +208,26 @@ QString GrammarCheckService::language() const
     return m_language;
 }
 
+void GrammarCheckService::setCredentials(const QString& username, const QString& apiKey)
+{
+    const QString user = username.trimmed();
+    const QString key = apiKey.trimmed();
+    if (user == m_username && key == m_apiKey) {
+        return;
+    }
+    m_username = user;
+    m_apiKey = key;
+    restart();
+}
+
 void GrammarCheckService::setRetryDelay(int ms)
 {
-    m_retryTimer->setInterval(ms);
+    m_retryDelayMs = ms;
+}
+
+GrammarCheckService::Failure GrammarCheckService::lastFailure() const
+{
+    return m_lastFailure;
 }
 
 // =============================================================================
@@ -248,13 +270,28 @@ int GrammarCheckService::pendingChecks() const
     return static_cast<int>(m_waiting.size() + m_sent.size());
 }
 
-void GrammarCheckService::ignoreRule(const QString& ruleId)
+void GrammarCheckService::ignoreRule(const QString& ruleId, const QString& description)
 {
     if (ruleId.isEmpty() || m_ignoredRules.contains(ruleId)) {
         return;
     }
-    m_ignoredRules.insert(ruleId);
-    emit ruleIgnored(ruleId);
+    m_ignoredRules.insert(ruleId, description);
+    emit ruleIgnored(ruleId, description);
+}
+
+void GrammarCheckService::setIgnoredRules(const QMap<QString, QString>& rules)
+{
+    const QMap<QString, QString> before = std::exchange(m_ignoredRules, rules);
+    for (auto rule = rules.constBegin(); rule != rules.constEnd(); ++rule) {
+        if (!before.contains(rule.key())) {
+            emit ruleIgnored(rule.key(), rule.value());
+        }
+    }
+}
+
+QMap<QString, QString> GrammarCheckService::ignoredRules() const
+{
+    return m_ignoredRules;
 }
 
 bool GrammarCheckService::isRuleIgnored(const QString& ruleId) const
@@ -280,8 +317,12 @@ void GrammarCheckService::sendWaiting()
         // which LanguageTool reads as white space; the length and the places stay the same
         QString sentText = text;
         sentText.replace(QChar(QChar::LineSeparator), QLatin1Char('\n'));
-        const QByteArray form = "text=" + QUrl::toPercentEncoding(sentText) +
-                                "&language=" + QUrl::toPercentEncoding(m_language);
+        QByteArray form = "text=" + QUrl::toPercentEncoding(sentText) +
+                          "&language=" + QUrl::toPercentEncoding(m_language);
+        if (!m_username.isEmpty() && !m_apiKey.isEmpty()) {
+            form += "&username=" + QUrl::toPercentEncoding(m_username) +
+                    "&apiKey=" + QUrl::toPercentEncoding(m_apiKey);
+        }
         QNetworkReply* reply = m_network->post(httpRequest, form);
         m_sent.emplace(reply, std::make_pair(request, std::move(text)));
     }
@@ -297,12 +338,20 @@ void GrammarCheckService::onReply(QNetworkReply* reply)
     const auto [request, text] = std::move(sent->second);
     m_sent.erase(sent);
 
+    const QVariant status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
     if (reply->error() == QNetworkReply::NoError) {
         m_errorTold = false;
+        m_lastFailure = Failure::None;
         emit textChecked(request, parse(reply->readAll(), text));
-    } else if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() ==
-               HTTP_CONTENT_TOO_LARGE) {
+    } else if (status.toInt() == HTTP_CONTENT_TOO_LARGE) {
+        m_lastFailure = Failure::None;
         emit textChecked(request, {});  // too long for the server: nothing found in it
+    } else if (status.toInt() == HTTP_TOO_MANY_REQUESTS) {
+        // The free server's limit: asked again once it is over
+        emit textNotChecked(request);
+        fail(Failure::Limit, QString::fromUtf8(reply->readAll()).trimmed().left(
+                                 MAX_REASON_LENGTH));
+        return;
     } else {
         // The server's own explanation (LanguageTool's first sentence), else Qt's
         QString message = QString::fromUtf8(reply->readAll()).trimmed();
@@ -315,17 +364,19 @@ void GrammarCheckService::onReply(QNetworkReply* reply)
             message = reply->errorString();
         }
         emit textNotChecked(request);
-        fail(message.left(MAX_REASON_LENGTH));
+        fail(status.isValid() ? Failure::Refused : Failure::Connection,
+             message.left(MAX_REASON_LENGTH));
         return;
     }
     sendWaiting();
 }
 
-void GrammarCheckService::fail(const QString& message)
+void GrammarCheckService::fail(Failure failure, const QString& message)
 {
     core::Logger::getInstance().warn("GrammarCheckService: The server did not answer: {}",
                                      message.toStdString());
     m_failing = true;
+    m_lastFailure = failure;
 
     // Nothing is sent until the server is asked again; the requests are answered then
     const auto waiting = std::exchange(m_waiting, {});
@@ -339,7 +390,8 @@ void GrammarCheckService::fail(const QString& message)
     for (const auto& [reply, request] : sent) {
         emit textNotChecked(request.first);
     }
-    m_retryTimer->start();
+    m_retryTimer->start(failure == Failure::Limit ? std::max(LIMIT_RETRY_MS, m_retryDelayMs)
+                                                  : m_retryDelayMs);
 
     if (!m_errorTold) {
         m_errorTold = true;
@@ -356,6 +408,7 @@ void GrammarCheckService::restart()
     }
     m_failing = false;
     m_errorTold = false;
+    m_lastFailure = Failure::None;
     m_retryTimer->stop();
     emit checkingChanged();
 }
@@ -374,6 +427,7 @@ QList<GrammarError> GrammarCheckService::parse(const QByteArray& json, const QSt
         error.startPos = match.value(QLatin1String("offset")).toInt(-1);
         error.length = match.value(QLatin1String("length")).toInt();
         error.ruleId = rule.value(QLatin1String("id")).toString();
+        error.ruleDescription = rule.value(QLatin1String("description")).toString();
         error.type = issueTypeOf(category.value(QLatin1String("id")).toString(),
                                  rule.value(QLatin1String("issueType")).toString());
 

@@ -48,6 +48,10 @@ constexpr std::size_t MAX_GRAMMAR_REQUESTS = 4;
 constexpr int GRAMMAR_PARAGRAPHS_BEFORE_VIEW = 5;
 constexpr int GRAMMAR_PARAGRAPHS_AFTER_VIEW = 20;
 
+/// @brief How many paragraphs a search of the next issue sends at a time (the one it waits
+///        for and those after it)
+constexpr int ISSUE_SEARCH_AHEAD = static_cast<int>(MAX_GRAMMAR_REQUESTS);
+
 /// @brief How wide the message of a grammar issue is on the context menu (characters)
 constexpr int GRAMMAR_MESSAGE_CHARS = 60;
 
@@ -290,11 +294,14 @@ bool BookEditor::isSpellCheckPending() const
     return m_spellTimer != nullptr && m_spellTimer->isActive();
 }
 
-bool BookEditor::goToNextIssue()
+BookEditor::IssueSearch BookEditor::goToNextIssue()
 {
+    if (m_issueSearch.active) {
+        endIssueSearch(IssueSearch::Cancelled);  // this one instead
+    }
     const bool spelling = m_spellCheckService != nullptr && m_spellCheckService->isActive();
     if (!m_textBuffer || (!spelling && m_grammarCheckService == nullptr)) {
-        return false;
+        return IssueSearch::NotFound;
     }
 
     // The writer has stopped typing: the word typed last counts too
@@ -305,25 +312,60 @@ bool BookEditor::goToNextIssue()
     // With a selection (the issue gone to before), those that start after its start, so an
     // issue in a longer one is not passed over; else from the cursor: the issue the cursor
     // is in, or right after, comes first
-    const bool afterSelection = hasSelection();
-    const CursorPosition from = afterSelection ? m_selection.normalized().start : m_cursorPosition;
+    m_issueSearch = IssueSearchState{};
+    m_issueSearch.afterSelection = hasSelection();
+    m_issueSearch.from =
+        m_issueSearch.afterSelection ? m_selection.normalized().start : m_cursorPosition;
+    m_issueSearch.paragraph = m_issueSearch.from.paragraph;
+    m_issueSearch.cursor = m_cursorPosition;
+    m_issueSearch.selection = m_selection;
+    const IssueSearch result = continueIssueSearch();
+    m_issueSearch.active = result == IssueSearch::Searching;
+    return result;
+}
+
+BookEditor::IssueSearch BookEditor::continueIssueSearch()
+{
+    const bool spelling = m_spellCheckService != nullptr && m_spellCheckService->isActive();
+    const bool afterSelection = m_issueSearch.afterSelection;
+    const CursorPosition from = m_issueSearch.from;
     const auto afterFrom = [afterSelection, &from](const TextHighlight& issue) {
         return afterSelection ? issue.start > from.offset
                               : issue.start + issue.length >= from.offset;
     };
 
     // Round the text from the paragraph of the cursor back to it, checking the spelling of
-    // the paragraphs not checked yet on the way
+    // the paragraphs not checked yet on the way, and waiting for their grammar
     bool wavesChanged = false;
     const int count = m_textBuffer->blockCount();
-    QTextBlock block = m_textBuffer->findBlockByNumber(from.paragraph);
-    for (int visited = 0; visited <= count; ++visited) {
+    QTextBlock block = m_textBuffer->findBlockByNumber(m_issueSearch.paragraph);
+    for (int& visited = m_issueSearch.visited; visited <= count; ++visited) {
         if (!block.isValid()) {
             block = m_textBuffer->begin();
         }
         const ParagraphData* known = ParagraphData::find(block);
         if (spelling && (known == nullptr || !known->spelling.current)) {
             wavesChanged = checkSpelling(block) || wavesChanged;
+        }
+
+        // A paragraph whose grammar is not known is sent with a few after it; the search
+        // waits for its answer while the server is asked
+        if (m_grammarCheckService != nullptr && m_grammarCheckService->isActive() &&
+            !isGrammarKnown(block)) {
+            const int number = block.blockNumber();
+            for (int ahead = number; ahead < std::min(count, number + ISSUE_SEARCH_AHEAD);
+                 ++ahead) {
+                if (!sendGrammarCheck(ahead)) {
+                    break;
+                }
+            }
+            if (!isGrammarKnown(block) && !m_grammarRequests.empty()) {
+                m_issueSearch.paragraph = number;
+                if (wavesChanged) {
+                    update();
+                }
+                return IssueSearch::Searching;
+            }
         }
 
         // The first one wanted: the paragraph of the cursor after it first, before it when
@@ -361,14 +403,40 @@ bool BookEditor::goToNextIssue()
             setSelection({start, end});
             ensureCursorVisible();
             update();
-            return true;
+            return IssueSearch::Found;
         }
         block = block.next();
     }
     if (wavesChanged) {
         update();
     }
-    return false;
+    return IssueSearch::NotFound;
+}
+
+void BookEditor::resumeIssueSearch()
+{
+    if (!m_issueSearch.active || !m_textBuffer) {
+        return;
+    }
+    // The writer went elsewhere meanwhile
+    const SelectionRange& before = m_issueSearch.selection;
+    if (m_cursorPosition != m_issueSearch.cursor || m_selection.start != before.start ||
+        m_selection.end != before.end) {
+        endIssueSearch(IssueSearch::Cancelled);
+        return;
+    }
+    const IssueSearch result = continueIssueSearch();
+    if (result != IssueSearch::Searching) {
+        endIssueSearch(result);
+    }
+}
+
+void BookEditor::endIssueSearch(IssueSearch result)
+{
+    if (m_issueSearch.active) {
+        m_issueSearch.active = false;
+        emit issueSearchFinished(result);
+    }
 }
 
 void BookEditor::onSpellingWordsChanged()
@@ -775,31 +843,7 @@ void BookEditor::runGrammarCheck()
         return;
     }
 
-    // Sends a paragraph that is due; false when no more can be sent now
-    const auto send = [this](int number) {
-        if (m_grammarRequests.size() >= MAX_GRAMMAR_REQUESTS) {
-            return false;
-        }
-        const QTextBlock block = m_textBuffer->findBlockByNumber(number);
-        const ParagraphData* paragraphData = ParagraphData::find(block);
-        const bool beingChecked = std::any_of(
-            m_grammarRequests.begin(), m_grammarRequests.end(),
-            [&block](const auto& request) { return request.second.place.block() == block; });
-        if ((paragraphData != nullptr && paragraphData->grammar.current) || beingChecked) {
-            return true;
-        }
-        const QString text = block.text();
-        if (text.trimmed().isEmpty()) {
-            keepGrammarIssues(block, {});  // nothing to check
-            return true;
-        }
-        const quint64 request = m_grammarCheckService->check(text);
-        if (request == 0) {
-            return false;
-        }
-        m_grammarRequests.emplace(request, GrammarRequest{QTextCursor(block), text});
-        return true;
-    };
+    const auto send = [this](int number) { return sendGrammarCheck(number); };
 
     // The paragraphs in view, then those after them and before them
     const auto [firstInView, lastInView] =
@@ -826,6 +870,42 @@ void BookEditor::runGrammarCheck()
     }
 }
 
+bool BookEditor::sendGrammarCheck(int paragraph)
+{
+    if (m_grammarRequests.size() >= MAX_GRAMMAR_REQUESTS) {
+        return false;
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(paragraph);
+    if (!block.isValid()) {
+        return true;
+    }
+    const ParagraphData* paragraphData = ParagraphData::find(block);
+    const bool beingChecked = std::any_of(
+        m_grammarRequests.begin(), m_grammarRequests.end(),
+        [&block](const auto& request) { return request.second.place.block() == block; });
+    if ((paragraphData != nullptr && paragraphData->grammar.current) || beingChecked) {
+        return true;
+    }
+    const QString text = block.text();
+    if (text.trimmed().isEmpty()) {
+        keepGrammarIssues(block, {});  // nothing to check
+        return true;
+    }
+    const quint64 request = m_grammarCheckService->check(text);
+    if (request == 0) {
+        return false;
+    }
+    m_grammarRequests.emplace(request, GrammarRequest{QTextCursor(block), text});
+    return true;
+}
+
+bool BookEditor::isGrammarKnown(const QTextBlock& block) const
+{
+    const ParagraphData* paragraphData = ParagraphData::find(block);
+    return (paragraphData != nullptr && paragraphData->grammar.current) ||
+           block.text().trimmed().isEmpty();
+}
+
 void BookEditor::onGrammarChecked(quint64 request, const QList<GrammarError>& errors)
 {
     const auto found = m_grammarRequests.find(request);
@@ -840,16 +920,20 @@ void BookEditor::onGrammarChecked(quint64 request, const QList<GrammarError>& er
     if (block.isValid() && block.text() == sent.text && keepGrammarIssues(block, errors)) {
         update();
     }
+    resumeIssueSearch();
     scheduleGrammarCheck(0);
 }
 
 void BookEditor::onGrammarNotChecked(quint64 request)
 {
-    m_grammarRequests.erase(request);
+    if (m_grammarRequests.erase(request) > 0) {
+        resumeIssueSearch();  // on with the issues found so far
+    }
 }
 
 void BookEditor::onGrammarCheckingChanged()
 {
+    endIssueSearch(IssueSearch::Cancelled);
     m_grammarRequests.clear();  // the checking dropped them
     clearGrammar();
     if (m_grammarCheckService != nullptr && m_grammarCheckService->isActive()) {
@@ -894,6 +978,7 @@ void BookEditor::onGrammarRuleIgnored(const QString& ruleId)
 
 void BookEditor::onGrammarCheckServiceDestroyed()
 {
+    endIssueSearch(IssueSearch::Cancelled);
     m_grammarCheckService = nullptr;
     m_grammarRequests.clear();
     clearGrammar();
@@ -908,6 +993,7 @@ void BookEditor::onGrammarViewChanged()
 
 void BookEditor::adjustGrammarToEdit(int from, int charsRemoved, int charsAdded)
 {
+    endIssueSearch(IssueSearch::Cancelled);  // the places it went through changed
     if (!m_textBuffer || m_grammarCheckService == nullptr) {
         return;
     }
@@ -1040,13 +1126,14 @@ void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error, int p
     }
     menu.addSeparator();
 
-    // The rule is not reported again, in any document (until the application closes)
+    // The rule is not reported again, in any book (the Settings dialog can bring it back)
     QAction* ignore = menu.addAction(tr("&Ignore This Rule"));
-    connect(ignore, &QAction::triggered, this, [this, ruleId = error.ruleId]() {
-        if (m_grammarCheckService != nullptr) {
-            m_grammarCheckService->ignoreRule(ruleId);
-        }
-    });
+    connect(ignore, &QAction::triggered, this,
+            [this, ruleId = error.ruleId, description = error.ruleDescription]() {
+                if (m_grammarCheckService != nullptr) {
+                    m_grammarCheckService->ignoreRule(ruleId, description);
+                }
+            });
     menu.addSeparator();
 }
 

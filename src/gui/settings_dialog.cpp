@@ -2,6 +2,7 @@
 /// @brief Implementation of SettingsDialog
 
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/settings/grammar_page.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/settings/shortcuts_page.h"
 #include "kalahari/core/art_provider.h"
@@ -28,12 +29,13 @@ namespace kalahari {
 namespace gui {
 
 SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode,
-                               editor::SpellCheckService* spelling)
+                               editor::SpellCheckService* spelling, GrammarCoordinator* grammar)
     : KalahariDialog(parent)
     , m_navTree(nullptr)
     , m_pageStack(nullptr)
     , m_diagnosticMode(diagnosticMode)
     , m_spelling(spelling)
+    , m_grammar(grammar)
     , m_lengthUnit(currentLengthUnit())
 {
     setHeading(tr("Settings"),
@@ -111,7 +113,7 @@ void SettingsDialog::createNavigationTree() {
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
     addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
     addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
-    addPage(editor, tr("Grammar"), []() { return new EditorGrammarPage(); });
+    addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_grammar); });
     addPlannedPage(editor, tr("Auto-correct"),
                    tr("Planned features:\n"
                       "- Automatic capitalization\n"

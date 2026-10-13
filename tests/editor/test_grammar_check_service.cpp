@@ -10,6 +10,7 @@
 
 #include <QChar>
 #include <QList>
+#include <QMap>
 #include <QObject>
 #include <QStringList>
 
@@ -207,6 +208,104 @@ TEST_CASE("Grammar service: spelling and the rules ignored are not reported",
     const QList<GrammarError>& errors = answers.checked[request];
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].ruleId == QStringLiteral("RULE_A"));
+}
+
+TEST_CASE("Grammar service: the rules ignored, with what they look for, from the settings",
+          "[editor][grammar]") {
+    FakeLanguageTool server;
+    server.addIssue({QStringLiteral("kat"), QStringLiteral("RULE_A")});
+    server.addIssue({QStringLiteral("dog"), QStringLiteral("RULE_B")});
+    auto service = serviceOn(server);
+    QStringList told;
+    QObject::connect(service.get(), &GrammarCheckService::ruleIgnored, service.get(),
+                     [&told](const QString& ruleId, const QString& description) {
+                         told.append(ruleId + QLatin1Char('=') + description);
+                     });
+
+    // Ignored in the editor, with what it looks for
+    service->ignoreRule(QStringLiteral("RULE_A"), QStringLiteral("Animals"));
+    CHECK(told == QStringList{"RULE_A=Animals"});
+    CHECK(service->ignoredRules() ==
+          QMap<QString, QString>{{QStringLiteral("RULE_A"), QStringLiteral("Animals")}});
+
+    // Those of the settings: a rule added is told, one taken away is reported again
+    service->setIgnoredRules({{QStringLiteral("RULE_B"), QStringLiteral("Dogs")}});
+    CHECK(told == QStringList({"RULE_A=Animals", "RULE_B=Dogs"}));
+    CHECK_FALSE(service->isRuleIgnored(QStringLiteral("RULE_A")));
+    CHECK(service->isRuleIgnored(QStringLiteral("RULE_B")));
+    service->setIgnoredRules({{QStringLiteral("RULE_B"), QStringLiteral("Dogs")}});
+    CHECK(told.size() == 2);
+
+    Answers answers(*service);
+    const quint64 request = service->check(QStringLiteral("The kat and the dog."));
+    REQUIRE(waitUntil([&answers, request]() { return answers.answered(request); }, 5000));
+    const QList<GrammarError>& errors = answers.checked[request];
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].ruleId == QStringLiteral("RULE_A"));
+}
+
+TEST_CASE("Grammar service: the account of a Premium server goes with the texts",
+          "[editor][grammar]") {
+    FakeLanguageTool server;
+    auto service = serviceOn(server);
+    Answers answers(*service);
+
+    // Only with both the e-mail address and the API key
+    service->setCredentials(QStringLiteral(" writer@example.com "), QString());
+    quint64 request = service->check(QStringLiteral("One."));
+    REQUIRE(waitUntil([&answers, request]() { return answers.answered(request); }, 5000));
+    CHECK(server.lastUsername().isEmpty());
+    CHECK(server.lastApiKey().isEmpty());
+
+    service->setCredentials(QStringLiteral(" writer@example.com "), QStringLiteral(" key+1/= "));
+    request = service->check(QStringLiteral("Two."));
+    REQUIRE(waitUntil([&answers, request]() { return answers.answered(request); }, 5000));
+    CHECK(server.lastUsername() == QStringLiteral("writer@example.com"));
+    CHECK(server.lastApiKey() == QStringLiteral("key+1/="));
+
+    // Taken away
+    service->setCredentials(QString(), QString());
+    request = service->check(QStringLiteral("Three."));
+    REQUIRE(waitUntil([&answers, request]() { return answers.answered(request); }, 5000));
+    CHECK(server.lastUsername().isEmpty());
+}
+
+TEST_CASE("Grammar service: why the server did not check the last text", "[editor][grammar]") {
+    FakeLanguageTool server;
+    auto service = serviceOn(server);
+    service->setRetryDelay(10);
+    Answers answers(*service);
+    CHECK(service->lastFailure() == GrammarCheckService::Failure::None);
+
+    SECTION("over the limit of a free server: told, and asked again later") {
+        server.setFailure(429, "Too many requests.");
+        const quint64 request = service->check(QStringLiteral("One."));
+        REQUIRE(waitUntil([&answers]() { return !answers.errors.isEmpty(); }, 5000));
+        CHECK(service->lastFailure() == GrammarCheckService::Failure::Limit);
+        CHECK(answers.errors == QStringList{"Too many requests."});
+        CHECK(answers.notChecked == QList<quint64>{request});
+        CHECK_FALSE(service->isActive());
+    }
+
+    SECTION("an error of the server") {
+        server.setFailure(500, "Internal error.");
+        service->check(QStringLiteral("One."));
+        REQUIRE(waitUntil([&answers]() { return !answers.errors.isEmpty(); }, 5000));
+        CHECK(service->lastFailure() == GrammarCheckService::Failure::Refused);
+    }
+
+    SECTION("no server there") {
+        server.close();
+        service->check(QStringLiteral("One."));
+        REQUIRE(waitUntil([&answers]() { return !answers.errors.isEmpty(); }, 5000));
+        CHECK(service->lastFailure() == GrammarCheckService::Failure::Connection);
+    }
+
+    SECTION("checked") {
+        const quint64 request = service->check(QStringLiteral("One."));
+        REQUIRE(waitUntil([&answers, request]() { return answers.answered(request); }, 5000));
+        CHECK(service->lastFailure() == GrammarCheckService::Failure::None);
+    }
 }
 
 TEST_CASE("Grammar service: an issue is taken as far as it fits the text",

@@ -171,18 +171,44 @@ bool SpellingCoordinator::goToNextIssue() {
         showMessage(tr("The spelling is not checked"), NEXT_MESSAGE_MS);
         return false;
     }
-    if (!bookEditor->goToNextIssue()) {
-        QString none = tr("No misspelled words");
-        if (grammar) {
-            none = spelling ? tr("No misspelled words or grammar issues") : tr("No grammar issues");
+    using IssueSearch = editor::BookEditor::IssueSearch;
+    const auto showResult = [this, bookEditor, spelling, grammar](IssueSearch result,
+                                                                    bool waited) {
+        if (waited && m_statusBar != nullptr) {
+            m_statusBar->clearMessage();  // the grammar was being checked
         }
-        showMessage(none, NEXT_MESSAGE_MS);
-        return false;
-    }
+        if (result == IssueSearch::Cancelled) {
+            return;
+        }
+        if (result != IssueSearch::Found) {
+            QString none = tr("No misspelled words");
+            if (grammar) {
+                none = spelling ? tr("No misspelled words or grammar issues")
+                                : tr("No grammar issues");
+            }
+            showMessage(none, NEXT_MESSAGE_MS);
+            return;
+        }
+        // What to put in its place, under the word, as the menu key shows it; not when
+        // another document came to the front while the grammar was checked
+        if (bookEditor != currentEditor()) {
+            return;
+        }
+        bookEditor->setFocus();
+        bookEditor->showContextMenuAtCursor();
+    };
 
-    // What to put in its place, under the word, as the menu key shows it
-    bookEditor->setFocus();
-    bookEditor->showContextMenuAtCursor();
+    const IssueSearch result = bookEditor->goToNextIssue();
+    if (result != IssueSearch::Searching) {
+        showResult(result, false);
+        return result == IssueSearch::Found;
+    }
+    // The grammar of the paragraphs further on is checked first
+    showMessage(tr("Checking the grammar further on..."), 0);
+    connect(
+        bookEditor, &editor::BookEditor::issueSearchFinished, this,
+        [showResult](IssueSearch finished) { showResult(finished, true); },
+        Qt::SingleShotConnection);
     return true;
 }
 

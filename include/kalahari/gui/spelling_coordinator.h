@@ -60,7 +60,10 @@ public:
     /// @brief Select the next misspelled word or grammar issue of the document in front and
     ///        open its context menu (the command Next Spelling or Grammar Issue); the status
     ///        bar says when there is none
-    /// @return false when nothing was selected
+    ///
+    /// When the grammar of the paragraphs further on is not known yet, the status bar says
+    /// it is being checked and the issue is gone to once it is found.
+    /// @return false when there is none (true also while the grammar is being checked)
     bool goToNextIssue();
 
     /// @brief The dictionary of the chapters of the book, and of every document when their

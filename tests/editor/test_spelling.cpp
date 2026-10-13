@@ -333,59 +333,59 @@ TEST_CASE("Spelling: Next Spelling or Grammar Issue selects the misspelled words
 
     SECTION("in turn, the paragraphs not checked yet checked on the way") {
         editor->setCursorPosition({0, 0});
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("speling"));
         CHECK(editor->cursorPosition() == CursorPosition{0, 11});
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("mistakke"));
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("anothr"));
 
         // After the last one, from the start of the text
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("speling"));
     }
 
     SECTION("the word the cursor is in comes first") {
         editor->setCursorPosition({2, 10});
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("mistakke"));
     }
 
     SECTION("before the cursor in its paragraph when back at it") {
         editor->setCursorPosition({2, 18});
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("anothr"));
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("speling"));
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("mistakke"));
     }
 
     SECTION("the word just typed counts") {
         editor->setCursorPosition({1, 14});
         type(*editor, QStringLiteral(" Erorr"));
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("Erorr"));
         CHECK(wavyWords(*editor, 1) == QStringList{"Erorr"});
     }
 
     SECTION("a word put right is passed over") {
         editor->setCursorPosition({0, 0});
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         editor->insertText(QStringLiteral("spelling"));
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("mistakke"));
     }
 
     SECTION("none in a text without misspelled words, or while the spelling is off") {
         editor->fromKml(kmlOf({QStringLiteral("All good here.")}));
-        CHECK_FALSE(editor->goToNextIssue());
+        CHECK(editor->goToNextIssue() == BookEditor::IssueSearch::NotFound);
         CHECK_FALSE(editor->hasSelection());
 
         editor->fromKml(kmlOf({QStringLiteral("One mistakke.")}));
         spelling->setEnabled(false);
-        CHECK_FALSE(editor->goToNextIssue());
+        CHECK(editor->goToNextIssue() == BookEditor::IssueSearch::NotFound);
         CHECK_FALSE(editor->hasSelection());
     }
 }

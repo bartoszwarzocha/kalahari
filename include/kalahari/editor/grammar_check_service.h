@@ -6,8 +6,8 @@
 #include <kalahari/editor/grammar_error.h>
 
 #include <QList>
+#include <QMap>
 #include <QObject>
-#include <QSet>
 #include <QString>
 
 #include <deque>
@@ -20,13 +20,12 @@ class QTimer;
 
 namespace kalahari::editor {
 
-/// @brief Checks texts on the writer's LanguageTool server
+/// @brief Checks texts on a LanguageTool server
 ///
 /// One service serves the editors of all documents: each sends the paragraphs it has to
-/// check and takes the answers to its own requests. There is no built-in server, so the
-/// text of the book leaves the program only for the address the writer gives (usually
-/// LanguageTool running on the same computer). A few texts are checked at a time, the
-/// others wait their turn.
+/// check and takes the answers to its own requests. The text of the book goes only to the
+/// server given: LanguageTool on this computer, or a server in the internet the writer
+/// chose. A few texts are checked at a time, the others wait their turn.
 ///
 /// When the server does not answer, the service stops sending, says so once
 /// (serverError()) and tries again after a while (available()). Spelling issues are left
@@ -35,6 +34,17 @@ class GrammarCheckService : public QObject {
     Q_OBJECT
 
 public:
+    /// @brief Why the server did not check the last text
+    enum class Failure {
+        None,        ///< It checked it
+        Connection,  ///< No connection to it, or no answer in time
+        Refused,     ///< It answered with an error (serverError() tells its explanation)
+        Limit        ///< It refused the text: too many texts (a free server's limit)
+    };
+
+    /// @brief How long the server is not asked after it did not answer (ms), at first
+    static constexpr int RETRY_MS = 30'000;
+
     /// @brief Constructor: no server, nothing is checked until one is given
     explicit GrammarCheckService(QObject* parent = nullptr);
 
@@ -85,8 +95,15 @@ public:
     /// @brief The language the texts are checked in
     QString language() const;
 
-    /// @brief How long the server is not asked after it did not answer (30 s at first)
+    /// @brief The account of a server with accounts (LanguageTool Premium): its e-mail
+    ///        address and API key; empty: none
+    void setCredentials(const QString& username, const QString& apiKey);
+
+    /// @brief How long the server is not asked after it did not answer (RETRY_MS at first)
     void setRetryDelay(int ms);
+
+    /// @brief Why the server did not check the last text (Failure::None: it checked it)
+    Failure lastFailure() const;
 
     // =========================================================================
     // Checking
@@ -103,8 +120,19 @@ public:
     /// @brief How many requests wait or are being checked
     int pendingChecks() const;
 
-    /// @brief Do not report the issues of a rule any more (until the program closes)
-    void ignoreRule(const QString& ruleId);
+    /// @brief Do not report the issues of a rule any more
+    /// @param ruleId The rule
+    /// @param description What it looks for, as the writer sees it in the list of the rules
+    ///        ignored
+    void ignoreRule(const QString& ruleId, const QString& description = QString());
+
+    /// @brief The rules whose issues are not reported (those kept in the settings): what
+    ///        they look for, by rule; a rule added gets ruleIgnored(), one taken away is
+    ///        reported again from the next check
+    void setIgnoredRules(const QMap<QString, QString>& rules);
+
+    /// @brief The rules whose issues are not reported: what they look for, by rule
+    QMap<QString, QString> ignoredRules() const;
 
     /// @brief Whether the issues of a rule are not reported
     bool isRuleIgnored(const QString& ruleId) const;
@@ -126,7 +154,9 @@ signals:
     void available();
 
     /// @brief The issues of a rule are not reported any more
-    void ruleIgnored(const QString& ruleId);
+    /// @param ruleId The rule
+    /// @param description What it looks for (may be empty)
+    void ruleIgnored(const QString& ruleId, const QString& description);
 
     /// @brief The server did not answer (told once until it answers again)
     /// @param message What went wrong
@@ -141,7 +171,7 @@ private:
     void sendWaiting();
 
     /// @brief The server did not answer: stop sending until it is asked again
-    void fail(const QString& message);
+    void fail(Failure failure, const QString& message);
 
     /// @brief Drop every request, the checking starts anew
     void restart();
@@ -153,6 +183,10 @@ private:
     QTimer* m_retryTimer;              ///< Asks the server again after a failure
     QString m_endpoint;                ///< Empty: no server, nothing is sent
     QString m_language{QStringLiteral("en")};
+    QString m_username;                ///< The account on the server (with m_apiKey)
+    QString m_apiKey;
+    Failure m_lastFailure{Failure::None};
+    int m_retryDelayMs{RETRY_MS};      ///< How long the server is not asked after a failure
     bool m_enabled{true};
     bool m_failing{false};     ///< The server did not answer: waiting to ask it again
     bool m_errorTold{false};   ///< serverError() was emitted since the last answer
@@ -164,7 +198,7 @@ private:
     /// @brief Requests being checked: number and text, by their reply
     std::map<QNetworkReply*, std::pair<quint64, QString>> m_sent;
 
-    QSet<QString> m_ignoredRules;  ///< Rules whose issues are not reported
+    QMap<QString, QString> m_ignoredRules;  ///< Rules whose issues are not reported
 };
 
 }  // namespace kalahari::editor

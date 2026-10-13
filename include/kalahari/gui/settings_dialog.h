@@ -28,6 +28,7 @@ class SpellCheckService;
 }
 namespace gui {
 
+class GrammarCoordinator;
 class SettingsPage;
 class ThemePage;
 class IconsPage;
@@ -49,8 +50,11 @@ public:
     /// @param diagnosticMode Whether the diagnostic menu is shown now (not a stored setting)
     /// @param spelling The dictionary of the editors, whose own words the Spelling page
     ///        edits (none: the page does not list them)
+    /// @param grammar The grammar of the editors, which the Grammar page prepares and whose
+    ///        server it checks (none: the page does not)
     explicit SettingsDialog(QWidget* parent, bool diagnosticMode = false,
-                            editor::SpellCheckService* spelling = nullptr);
+                            editor::SpellCheckService* spelling = nullptr,
+                            GrammarCoordinator* grammar = nullptr);
 
     ~SettingsDialog() override = default;
 
@@ -108,6 +112,7 @@ private:
     QStackedWidget* m_pageStack;
     bool m_diagnosticMode;
     editor::SpellCheckService* m_spelling;  ///< The dictionary of the editors (not owned)
+    GrammarCoordinator* m_grammar;          ///< The grammar of the editors (not owned)
     LengthUnit m_lengthUnit;  ///< Unit chosen on the General page, applied or not
 
     std::map<QTreeWidgetItem*, PageFactory> m_factories;

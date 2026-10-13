@@ -25,6 +25,7 @@ struct GrammarError {
     QString message;          ///< What is wrong
     QString shortMessage;     ///< What is wrong, in a few words (may be empty)
     QString ruleId;           ///< The rule that found it (e.g. COMMA_BEFORE_AND)
+    QString ruleDescription;  ///< What the rule looks for, in the language checked (may be empty)
     QString category;         ///< The name of the rule's category (e.g. Punctuation)
     GrammarIssueType type{GrammarIssueType::Grammar};
     QStringList suggestions;  ///< What to put in its place (at most 5)

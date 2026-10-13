@@ -430,20 +430,20 @@ TEST_CASE("Grammar: Next Spelling or Grammar Issue goes to the grammar issues to
 
     SECTION("in turn, round the text") {
         editor->setCursorPosition({0, 0});
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("kat"));
         CHECK(editor->cursorPosition() == CursorPosition{0, 7});
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("dogz"));
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->cursorPosition() == CursorPosition{2, 12});
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->cursorPosition() == CursorPosition{0, 7});
     }
 
     SECTION("its menu: what is wrong and what to do") {
         editor->setCursorPosition({0, 8});
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("dogz"));
         const MenuSeen menu = contextMenuAtCursor(*editor);
         CHECK(menu.texts.mid(0, 3) == QStringList({"Too many dogs.", "-", "Ignore This Rule"}));
@@ -454,17 +454,17 @@ TEST_CASE("Grammar: Next Spelling or Grammar Issue goes to the grammar issues to
         REQUIRE(spelling.loadDictionary(QStringLiteral("en_US")));
         editor->setSpellCheckService(&spelling);
         editor->setCursorPosition({0, 0});
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("kat"));  // a word of the dictionary
         CHECK(contextMenuAtCursor(*editor).texts.value(0) == QStringLiteral("Did you mean a cat?"));
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("dogz"));
         const MenuSeen menu = contextMenuAtCursor(*editor);
         CHECK(menu.texts.contains(QStringLiteral("Add to Dictionary")));
         CHECK_FALSE(menu.texts.contains(QStringLiteral("Ignore This Rule")));
 
         // Its grammar issue is passed over with it
-        REQUIRE(editor->goToNextIssue());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->cursorPosition() == CursorPosition{2, 12});
         editor->setSpellCheckService(nullptr);
     }
@@ -472,14 +472,96 @@ TEST_CASE("Grammar: Next Spelling or Grammar Issue goes to the grammar issues to
     SECTION("none in a text without issues") {
         editor->fromKml(kmlOf({QStringLiteral("All good here.")}));
         REQUIRE(checked(*editor));
-        CHECK_FALSE(editor->goToNextIssue());
+        CHECK(editor->goToNextIssue() == BookEditor::IssueSearch::NotFound);
         CHECK_FALSE(editor->hasSelection());
     }
 
     SECTION("none while the checking is off") {
         grammar->setEnabled(false);
-        CHECK_FALSE(editor->goToNextIssue());
+        CHECK(editor->goToNextIssue() == BookEditor::IssueSearch::NotFound);
         CHECK_FALSE(editor->hasSelection());
+    }
+}
+
+TEST_CASE("Grammar: Next Spelling or Grammar Issue checks the paragraphs further on until it "
+          "finds one, round the text",
+          "[editor][grammar]") {
+    FakeLanguageTool server;
+    server.addIssue({QStringLiteral("kat"), QStringLiteral("RULE_A")});
+    auto grammar = serviceOn(server);
+    QStringList paragraphs;
+    for (int i = 0; i < 300; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1 is all right.").arg(i);
+    }
+    const int last = static_cast<int>(paragraphs.size()) - 1;
+    paragraphs[last] = QStringLiteral("The last one has a kat in it.");
+    auto editor = shownEditor(paragraphs, grammar.get());
+    REQUIRE(checked(*editor));
+    REQUIRE(grammarWaves(*editor, last).isEmpty());  // far from the view: not checked yet
+    QList<BookEditor::IssueSearch> ends;
+    QObject::connect(editor.get(), &BookEditor::issueSearchFinished, editor.get(),
+                     [&ends](BookEditor::IssueSearch result) { ends.append(result); });
+    const auto ended = [&ends]() {
+        return waitUntil([&ends]() { return !ends.isEmpty(); }, 20000);
+    };
+    editor->setCursorPosition({0, 0});
+
+    SECTION("found far on") {
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Searching);
+        CHECK(editor->isSearchingIssue());
+        REQUIRE(ended());
+        CHECK(ends == QList<BookEditor::IssueSearch>{BookEditor::IssueSearch::Found});
+        CHECK_FALSE(editor->isSearchingIssue());
+        CHECK(editor->selectedText() == QStringLiteral("kat"));
+        CHECK(editor->cursorPosition() == CursorPosition{last, 22});
+    }
+
+    SECTION("found round the text, from after it") {
+        editor->setCursorPosition({last, 25});
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Searching);
+        REQUIRE(ended());
+        CHECK(ends == QList<BookEditor::IssueSearch>{BookEditor::IssueSearch::Found});
+        CHECK(editor->cursorPosition() == CursorPosition{last, 22});
+    }
+
+    SECTION("none in the whole text") {
+        server.setAnswer(R"({"matches":[]})");
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Searching);
+        REQUIRE(ended());
+        CHECK(ends == QList<BookEditor::IssueSearch>{BookEditor::IssueSearch::NotFound});
+        CHECK_FALSE(editor->hasSelection());
+        CHECK(editor->cursorPosition() == CursorPosition{0, 0});
+    }
+
+    SECTION("broken off by an edit") {
+        server.hold();
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Searching);
+        type(*editor, QStringLiteral("A"));
+        CHECK(ends == QList<BookEditor::IssueSearch>{BookEditor::IssueSearch::Cancelled});
+        CHECK_FALSE(editor->isSearchingIssue());
+        server.release();
+    }
+
+    SECTION("broken off when the cursor moved") {
+        server.hold();
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Searching);
+        editor->setCursorPosition({1, 0});
+        server.release();
+        REQUIRE(ended());
+        CHECK(ends == QList<BookEditor::IssueSearch>{BookEditor::IssueSearch::Cancelled});
+        CHECK_FALSE(editor->hasSelection());
+        CHECK(editor->cursorPosition() == CursorPosition{1, 0});
+    }
+
+    SECTION("another search instead") {
+        server.hold();
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Searching);
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Searching);
+        CHECK(ends == QList<BookEditor::IssueSearch>{BookEditor::IssueSearch::Cancelled});
+        server.release();
+        REQUIRE(waitUntil([&ends]() { return ends.size() == 2; }, 20000));
+        CHECK(ends.last() == BookEditor::IssueSearch::Found);
+        CHECK(editor->selectedText() == QStringLiteral("kat"));
     }
 }
 
@@ -496,16 +578,16 @@ TEST_CASE("Grammar: an issue in a longer one is gone to as well, with its own me
     REQUIRE(grammarWaves(*editor, 0) == QStringList({"kat and the dogz", "dogz"}));
 
     editor->setCursorPosition({0, 0});
-    REQUIRE(editor->goToNextIssue());
+    REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
     CHECK(editor->selectedText() == QStringLiteral("kat and the dogz"));
     CHECK(contextMenuAtCursor(*editor).texts.value(0) == QStringLiteral("A long one."));
 
     // The cursor is at the end of both: the menu is the selected one's
-    REQUIRE(editor->goToNextIssue());
+    REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
     CHECK(editor->selectedText() == QStringLiteral("dogz"));
     CHECK(contextMenuAtCursor(*editor).texts.value(0) == QStringLiteral("A short one."));
 
-    REQUIRE(editor->goToNextIssue());
+    REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
     CHECK(editor->selectedText() == QStringLiteral("kat and the dogz"));
 }
 
