@@ -931,13 +931,11 @@ QString NavigatorPanel::getIconIdForType(const QString& elementType) const {
         return "structure.part";
     } else if (elementType == "other_files") {
         return "structure.otherfiles";
-    } else if (elementType == "book_files") {
-        return "common.folder";
     } else if (elementType == "book_file") {
         return BOOK_FILE_ICON;
     } else if (elementType == "unassigned_files") {
         return "structure.unassigned";
-    } else if (elementType == "root") {
+    } else if (elementType == "root" || elementType == "book_files") {
         return "common.folder";
     } else if (elementType == "standalone_file" || elementType == "window_element") {
         // Standalone files use getIconIdForFile() and elements the icon of their kind;
@@ -1451,9 +1449,6 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         connect(propertiesAction, &QAction::triggered, this,
                 &NavigatorPanel::onContextMenuProperties);
 
-    } else if (elementType == "book_files") {
-        addExpandCollapseActions();
-
     } else if (elementType == "group_element") {
         // Group (part): the main texts of the book (chapters, stories...) are added inside it
         if (QAction* addChapterAction =
@@ -1632,8 +1627,9 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
         addExpandCollapseActions();
 
-    } else if (elementType == "other_files") {
-        // Other Files header - only expand/collapse
+    } else if (elementType == "other_files" || elementType == "book_files") {
+        // The headers of the files outside the book and of the other files of the book - only
+        // expand/collapse
         addExpandCollapseActions();
 
     } else {
