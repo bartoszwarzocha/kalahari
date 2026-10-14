@@ -4650,6 +4650,10 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Potrzebne są do niego dwa bezpłatne składniki: LanguageTool i Java. Program sam je pobierze i przygotuje – wystarczy kliknąć przycisk. Do pobrania jest około %1.</translation>
     </message>
     <message>
+        <source>Java and LanguageTool are downloaded already - nothing is left to download.</source>
+        <translation>Java i LanguageTool są już pobrane – nie trzeba niczego pobierać.</translation>
+    </message>
+    <message>
         <source>Java is downloaded already - LanguageTool is left to download (%1).</source>
         <translation>Java jest już pobrana – do pobrania zostaje LanguageTool (%1).</translation>
     </message>

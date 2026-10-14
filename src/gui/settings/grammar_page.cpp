@@ -629,7 +629,13 @@ void EditorGrammarPage::updateCard() {
         text = tr("It needs two free components: LanguageTool and Java. The program downloads "
                   "and prepares them itself - just click the button. About %1 to download.")
                    .arg(GrammarComponents::downloadSizeText());
-        if (GrammarComponents::javaDownloaded() && !GrammarComponents::languageToolDownloaded()) {
+        // A file of LanguageTool downloaded but not unpacked yet is not downloaded again
+        if (GrammarComponents::javaDownloaded() &&
+            (GrammarComponents::languageToolDownloaded() ||
+             !GrammarComponents::languageToolArchive().isEmpty())) {
+            note = tr("Java and LanguageTool are downloaded already - nothing is left to "
+                      "download.");
+        } else if (GrammarComponents::javaDownloaded()) {
             note = tr("Java is downloaded already - LanguageTool is left to download (%1).")
                        .arg(GrammarComponents::sizeText(
                            GrammarComponents::LANGUAGE_TOOL_DOWNLOAD_BYTES));

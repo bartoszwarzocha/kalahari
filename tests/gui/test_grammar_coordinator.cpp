@@ -846,6 +846,36 @@ TEST_CASE("Grammar settings: the card says what grammar as you type can do",
     CHECK_FALSE(page.isChanged());
 }
 
+TEST_CASE("Grammar settings: with both files downloaded nothing is left to download",
+          "[gui][grammar][settings]") {
+    KeptGrammarSettings kept;
+    TemporaryGrammarFolder folder;
+    setLocal();
+
+    // Both files downloaded before, neither unpacked yet
+    REQUIRE(QDir().mkpath(GrammarComponents::archiveFolder()));
+    for (const QString& name : {javaFileName(), languageToolFileName()}) {
+        QFile archive(QDir(GrammarComponents::archiveFolder()).filePath(name));
+        REQUIRE(archive.open(QIODevice::WriteOnly));
+        archive.close();
+    }
+
+    GrammarCoordinator coordinator(nullptr, nullptr);
+    EditorGrammarPage page(&coordinator);
+    page.load();
+    CHECK(page.card() == EditorGrammarPage::Card::NotPrepared);
+    CHECK(shows(page, QStringLiteral(
+                          "Java and LanguageTool are downloaded already - nothing is left to "
+                          "download.")));
+    bool languageToolLeft = false;
+    for (const QLabel* label : page.findChildren<QLabel*>()) {
+        languageToolLeft = languageToolLeft ||
+                           (label->isVisibleTo(&page) &&
+                            label->text().startsWith(QStringLiteral("Java is downloaded already")));
+    }
+    CHECK_FALSE(languageToolLeft);
+}
+
 TEST_CASE("Grammar settings: Prepare Grammar Checking... shows the preparation",
           "[gui][grammar][settings]") {
     KeptGrammarSettings kept;
