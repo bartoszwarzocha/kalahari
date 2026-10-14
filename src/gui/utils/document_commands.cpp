@@ -1,5 +1,6 @@
 /// @file document_commands.cpp
-/// @brief Implementation of the commands that work on the document in front
+/// @brief Implementation of the commands that work on the document in front, and those of
+/// the open book
 
 #include "kalahari/gui/utils/document_commands.h"
 
@@ -30,6 +31,26 @@ void bindToDocument(CommandRegistry& registry, const std::function<bool()>& hasD
 
 void updateDocumentCommands(CommandRegistry& registry) {
     for (const std::string& id : documentCommands()) {
+        registry.updateActionState(id);
+    }
+}
+
+const std::vector<std::string>& openBookCommands() {
+    static const std::vector<std::string> ids = {"file.close", "file.export.archive"};
+    return ids;
+}
+
+void bindToOpenBook(CommandRegistry& registry, const std::function<bool()>& hasBook) {
+    for (const std::string& id : openBookCommands()) {
+        if (Command* command = registry.getCommand(id)) {
+            command->isEnabled = hasBook;
+        }
+    }
+    updateOpenBookCommands(registry);
+}
+
+void updateOpenBookCommands(CommandRegistry& registry) {
+    for (const std::string& id : openBookCommands()) {
         registry.updateActionState(id);
     }
 }

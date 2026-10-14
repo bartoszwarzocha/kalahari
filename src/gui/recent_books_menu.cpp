@@ -44,7 +44,7 @@ void RecentBooksMenu::rebuild() {
     const QStringList files = core::RecentBooksManager::getInstance().getRecentFiles();
     if (files.isEmpty()) {
         // A line that only tells: disabled, without an access key
-        QAction* emptyAction = addAction(tr("No Recent Files"));
+        QAction* emptyAction = addAction(tr("No Recent Books"));
         emptyAction->setEnabled(false);
         return;
     }
@@ -65,7 +65,7 @@ void RecentBooksMenu::rebuild() {
     }
 
     addSeparator();
-    QAction* clearAction = addAction(tr("&Clear Recent Files"));
+    QAction* clearAction = addAction(tr("&Clear Recent Books"));
     connect(clearAction, &QAction::triggered, this, []() {
         core::RecentBooksManager::getInstance().clearRecentFiles();
     });

@@ -1,6 +1,7 @@
 /// @file test_theme_manager_apply.cpp
 /// @brief ThemeManager::reloadTheme applies a theme with the user's stored colors
-/// and extra overrides in one pass (one themeChanged, colors visible in the palette).
+/// and extra overrides in one pass (one themeChanged, colors visible in the palette);
+/// the editor colors of a theme, and the colors its palette gives disabled widgets.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -108,4 +109,24 @@ TEST_CASE("Theme editor colors are an open list from the theme file", "[core][th
     CHECK(themeManager.editorColor("noteMarker", QColor()) == QColor("#00ff00"));
     CHECK(themeManager.editorColor("missingMarker", QColor("#123456")) == QColor("#123456"));
     themeManager.reloadTheme(currentTheme);
+}
+
+TEST_CASE("A theme gives disabled widgets opaque backgrounds", "[core][theme]") {
+    Theme::Palette palette;
+    palette.window = QColor("#f0f0f0");
+    palette.base = QColor("#ffffff");
+    palette.text = QColor("#000000");
+    palette.highlight = QColor("#0078d4");
+    const QPalette qtPalette = palette.toQPalette();
+
+    // A list paints its background over nothing: a half transparent one came out dark
+    CHECK(qtPalette.color(QPalette::Disabled, QPalette::Base) == QColor(247, 247, 247));
+    CHECK(qtPalette.color(QPalette::Disabled, QPalette::Window) == QColor("#f0f0f0"));
+    CHECK(qtPalette.color(QPalette::Disabled, QPalette::Highlight).alpha() == 255);
+    CHECK(qtPalette.color(QPalette::Active, QPalette::Base) == QColor("#ffffff"));
+
+    // The texts are half transparent over their backgrounds
+    QColor disabledText("#000000");
+    disabledText.setAlpha(128);
+    CHECK(qtPalette.color(QPalette::Disabled, QPalette::Text) == disabledText);
 }

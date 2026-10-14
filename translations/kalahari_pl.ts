@@ -2,15 +2,18 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="pl_PL">
 <context>
+    <name>CloseButton</name>
+    <message>
+        <source>Close Tab</source>
+        <translation>Zamknij kartę</translation>
+    </message>
+</context>
+<context>
     <name>CommandRegistrar</name>
     <message>
         <source>not available yet</source>
         <comment>Kalahari Help</comment>
         <translation>jeszcze niedostępna</translation>
-    </message>
-    <message>
-        <source>&amp;New File</source>
-        <translation>Nowy &amp;plik</translation>
     </message>
     <message>
         <source>New &amp;Book...</source>
@@ -199,10 +202,6 @@
     <message>
         <source>New &amp;Timeline...</source>
         <translation>Nowa &amp;oś czasu...</translation>
-    </message>
-    <message>
-        <source>Chapter &amp;Break</source>
-        <translation>Po&amp;dział rozdziału</translation>
     </message>
     <message>
         <source>Sc&amp;ene Break</source>
@@ -596,6 +595,193 @@
         <source>Check S&amp;pelling as You Type</source>
         <translation>Sprawdzaj &amp;pisownię podczas pisania</translation>
     </message>
+    <message>
+        <source>&amp;New File...</source>
+        <translation>Nowy &amp;plik...</translation>
+    </message>
+</context>
+<context>
+    <name>DeleteDialogs</name>
+    <message>
+        <source>Recycle Bin</source>
+        <extracomment>The system&apos;s Trash in sentences: &quot;The file goes to the {bin}&quot;. A translation can write the name in its sentences itself, in the form they need (in Polish: do Kosza)</extracomment>
+        <translation>Kosz</translation>
+    </message>
+    <message>
+        <source>Trash</source>
+        <translation>Kosz</translation>
+    </message>
+</context>
+<context>
+    <name>DialogParts</name>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Skopiowano</translation>
+    </message>
+    <message>
+        <source>Copy what the window says to the clipboard</source>
+        <translation>Kopiuj treść okna do schowka</translation>
+    </message>
+</context>
+<context>
+    <name>KindNames</name>
+    <message>
+        <source>element</source>
+        <comment>singular</comment>
+        <extracomment>The word &quot;element&quot; in sentences about elements of different kinds: &quot;Together with it, 3 elements will be deleted from the book&quot;. In Polish: element</extracomment>
+        <translation>element</translation>
+    </message>
+    <message>
+        <source>elements</source>
+        <comment>plural</comment>
+        <extracomment>In Polish: elementy</extracomment>
+        <translation>elementy</translation>
+    </message>
+    <message>
+        <source>element</source>
+        <comment>genitive</comment>
+        <extracomment>In Polish: elementu</extracomment>
+        <translation>elementu</translation>
+    </message>
+    <message>
+        <source>element</source>
+        <comment>dative</comment>
+        <extracomment>In Polish: elementowi</extracomment>
+        <translation>elementowi</translation>
+    </message>
+    <message>
+        <source>element</source>
+        <comment>accusative</comment>
+        <extracomment>In Polish: element</extracomment>
+        <translation>element</translation>
+    </message>
+    <message>
+        <source>element</source>
+        <comment>instrumental</comment>
+        <extracomment>In Polish: elementem</extracomment>
+        <translation>elementem</translation>
+    </message>
+    <message>
+        <source>element</source>
+        <comment>locative</comment>
+        <extracomment>In Polish: elemencie</extracomment>
+        <translation>elemencie</translation>
+    </message>
+    <message>
+        <source>elements</source>
+        <comment>genitive plural</comment>
+        <extracomment>In Polish: elementów</extracomment>
+        <translation>elementów</translation>
+    </message>
+    <message>
+        <source>an element</source>
+        <comment>indefinite</comment>
+        <extracomment>With the indefinite article. In Polish: element</extracomment>
+        <translation>element</translation>
+    </message>
+    <message>
+        <source>neuter</source>
+        <comment>gender of the word element</comment>
+        <extracomment>The grammatical gender of the word &quot;element&quot; in the translation, for the words that agree with it: one of the English words masculine, feminine, neuter or plural, not translated. In Polish: masculine</extracomment>
+        <translation>masculine</translation>
+    </message>
+    <message>
+        <source>User Project</source>
+        <extracomment>The type of a book whose author chose its kinds. In Polish: Projekt użytkownika</extracomment>
+        <translation>Projekt użytkownika</translation>
+    </message>
+    <message>
+        <source>%1 (not installed)</source>
+        <extracomment>The type of a book whose package is not installed; %1: the id of the type. In Polish: %1 (typ niezainstalowany)</extracomment>
+        <translation>%1 (typ niezainstalowany)</translation>
+    </message>
+    <message>
+        <source>&amp;New {Kind}...</source>
+        <extracomment>Book &gt; New Chapter... named after the texts it adds, e.g. New Story... In Polish: &amp;{kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...</extracomment>
+        <translation>&amp;{kind:m=Nowy|f=Nowa|n=Nowe|p=Nowe} {kind}...</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <comment>singular</comment>
+        <extracomment>The word &quot;file&quot; in sentences about a file of the book outside its text, such as notes: &quot;Delete the file &quot;Notes&quot; from the book?&quot;. In Polish: plik</extracomment>
+        <translation>plik</translation>
+    </message>
+    <message>
+        <source>files</source>
+        <comment>plural</comment>
+        <extracomment>In Polish: pliki</extracomment>
+        <translation>pliki</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <comment>genitive</comment>
+        <extracomment>In Polish: pliku</extracomment>
+        <translation>pliku</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <comment>dative</comment>
+        <extracomment>In Polish: plikowi</extracomment>
+        <translation>plikowi</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <comment>accusative</comment>
+        <extracomment>In Polish: plik</extracomment>
+        <translation>plik</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <comment>instrumental</comment>
+        <extracomment>In Polish: plikiem</extracomment>
+        <translation>plikiem</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <comment>locative</comment>
+        <extracomment>In Polish: pliku</extracomment>
+        <translation>pliku</translation>
+    </message>
+    <message>
+        <source>files</source>
+        <comment>genitive plural</comment>
+        <extracomment>In Polish: plików</extracomment>
+        <translation>plików</translation>
+    </message>
+    <message>
+        <source>a file</source>
+        <comment>indefinite</comment>
+        <extracomment>With the indefinite article. In Polish: plik</extracomment>
+        <translation>plik</translation>
+    </message>
+    <message>
+        <source>neuter</source>
+        <comment>gender of the word file</comment>
+        <extracomment>The grammatical gender of the word &quot;file&quot; in the translation, for the words that agree with it: one of the English words masculine, feminine, neuter or plural, not translated. In Polish: masculine</extracomment>
+        <translation>masculine</translation>
+    </message>
+</context>
+<context>
+    <name>KindPalette</name>
+    <message>
+        <source>Create now</source>
+        <extracomment>A box on a tile of the palette: an element of the kind is made with the book. In Polish: Utwórz od razu</extracomment>
+        <translation>Utwórz od razu</translation>
+    </message>
+    <message>
+        <source>The program does not have an editor of this kind yet.</source>
+        <extracomment>The tooltip of &quot;Create now&quot; on a kind that opens in a window of its own, e.g. a character card. In Polish: Program nie ma jeszcze edytora tego rodzaju.</extracomment>
+        <translation>Program nie ma jeszcze edytora tego rodzaju.</translation>
+    </message>
+    <message>
+        <source>The Navigator does not show the Workshop yet.</source>
+        <extracomment>The tooltip of &quot;Create now&quot; on a kind of the Workshop, e.g. a work note. In Polish: Nawigator nie pokazuje jeszcze Warsztatu.</extracomment>
+        <translation>Nawigator nie pokazuje jeszcze Warsztatu.</translation>
+    </message>
 </context>
 <context>
     <name>LanguageNames</name>
@@ -921,6 +1107,37 @@
     </message>
 </context>
 <context>
+    <name>ProgramFolders</name>
+    <message>
+        <source>Archives</source>
+        <translation>Archiwa</translation>
+    </message>
+    <message>
+        <source>Backups</source>
+        <translation>Kopie zapasowe</translation>
+    </message>
+    <message>
+        <source>Give the full path of the folder.</source>
+        <translation>Podaj pełną ścieżkę folderu.</translation>
+    </message>
+    <message>
+        <source>This is a file, not a folder.</source>
+        <translation>To jest plik, a nie folder.</translation>
+    </message>
+    <message>
+        <source>The drive of this folder is not available.</source>
+        <translation>Dysk tego folderu jest niedostępny.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot create this folder.</source>
+        <translation>Kalahari nie może utworzyć tego folderu.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot save files in this folder.</source>
+        <translation>Kalahari nie może zapisywać plików w tym folderze.</translation>
+    </message>
+</context>
+<context>
     <name>QAbstractSpinBox</name>
     <message>
         <source>&amp;Select All</source>
@@ -933,6 +1150,376 @@
     <message>
         <source>Step &amp;down</source>
         <translation>Z&amp;mniejsz</translation>
+    </message>
+</context>
+<context>
+    <name>QAccessibleActionInterface</name>
+    <message>
+        <source>Press</source>
+        <translation>Naciśnij</translation>
+    </message>
+    <message>
+        <source>Triggers the action</source>
+        <translation>Wykonuje polecenie</translation>
+    </message>
+    <message>
+        <source>Increase</source>
+        <translation>Zwiększ</translation>
+    </message>
+    <message>
+        <source>Increase the value</source>
+        <translation>Zwiększa wartość</translation>
+    </message>
+    <message>
+        <source>Decrease</source>
+        <translation>Zmniejsz</translation>
+    </message>
+    <message>
+        <source>Decrease the value</source>
+        <translation>Zmniejsza wartość</translation>
+    </message>
+    <message>
+        <source>Shows the menu</source>
+        <translation>Pokazuje menu</translation>
+    </message>
+    <message>
+        <source>SetFocus</source>
+        <translation>Ustaw fokus</translation>
+    </message>
+    <message>
+        <source>Sets the focus</source>
+        <translation>Ustawia fokus</translation>
+    </message>
+    <message>
+        <source>Toggle</source>
+        <translation>Przełącz</translation>
+    </message>
+    <message>
+        <source>Toggles the state</source>
+        <translation>Przełącza stan</translation>
+    </message>
+    <message>
+        <source>Scroll Left</source>
+        <translation>Przewiń w lewo</translation>
+    </message>
+    <message>
+        <source>Scrolls to the left</source>
+        <translation>Przewija w lewo</translation>
+    </message>
+    <message>
+        <source>Scroll Right</source>
+        <translation>Przewiń w prawo</translation>
+    </message>
+    <message>
+        <source>Scrolls to the right</source>
+        <translation>Przewija w prawo</translation>
+    </message>
+    <message>
+        <source>Scrolls up</source>
+        <translation>Przewija w górę</translation>
+    </message>
+    <message>
+        <source>Scrolls down</source>
+        <translation>Przewija w dół</translation>
+    </message>
+    <message>
+        <source>Goes back a page</source>
+        <translation>Cofa o stronę</translation>
+    </message>
+    <message>
+        <source>Goes to the next page</source>
+        <translation>Przechodzi o stronę dalej</translation>
+    </message>
+</context>
+<context>
+    <name>QComboBox</name>
+    <message>
+        <source>Open the combo box selection popup</source>
+        <translation>Otwiera listę do wyboru</translation>
+    </message>
+</context>
+<context>
+    <name>QCommandLineParser</name>
+    <message>
+        <source>Unknown option &apos;%1&apos;.</source>
+        <translation>Nieznana opcja „%1”.</translation>
+    </message>
+    <message>
+        <source>Unknown options: %1.</source>
+        <translation>Nieznane opcje: %1.</translation>
+    </message>
+    <message>
+        <source>Missing value after &apos;%1&apos;.</source>
+        <translation>Brak wartości po „%1”.</translation>
+    </message>
+    <message>
+        <source>Unexpected value after &apos;%1&apos;.</source>
+        <translation>Nieoczekiwana wartość po „%1”.</translation>
+    </message>
+    <message>
+        <source>Usage: %1</source>
+        <translation>Użycie: %1</translation>
+    </message>
+    <message>
+        <source>[options]</source>
+        <translation>[opcje]</translation>
+    </message>
+    <message>
+        <source>Options:</source>
+        <translation>Opcje:</translation>
+    </message>
+</context>
+<context>
+    <name>QDockWidget</name>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Float</source>
+        <translation>Odepnij</translation>
+    </message>
+    <message>
+        <source>Undocks and re-attaches the dock widget</source>
+        <translation>Odpina panel i dołącza go z powrotem</translation>
+    </message>
+</context>
+<context>
+    <name>QFileDialog</name>
+    <message>
+        <source>Look in:</source>
+        <translation>Szukaj w:</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Wstecz</translation>
+    </message>
+    <message>
+        <source>Go back</source>
+        <translation>Wróć</translation>
+    </message>
+    <message>
+        <source>Forward</source>
+        <translation>Dalej</translation>
+    </message>
+    <message>
+        <source>Go forward</source>
+        <translation>Przejdź dalej</translation>
+    </message>
+    <message>
+        <source>Parent Directory</source>
+        <translation>Folder nadrzędny</translation>
+    </message>
+    <message>
+        <source>Go to the parent directory</source>
+        <translation>Przejdź do folderu nadrzędnego</translation>
+    </message>
+    <message>
+        <source>Create New Folder</source>
+        <translation>Utwórz nowy folder</translation>
+    </message>
+    <message>
+        <source>Create a New Folder</source>
+        <translation>Utwórz nowy folder</translation>
+    </message>
+    <message>
+        <source>List View</source>
+        <translation>Widok listy</translation>
+    </message>
+    <message>
+        <source>Change to list view mode</source>
+        <translation>Przełącz na widok listy</translation>
+    </message>
+    <message>
+        <source>Detail View</source>
+        <translation>Widok szczegółów</translation>
+    </message>
+    <message>
+        <source>Change to detail view mode</source>
+        <translation>Przełącz na widok szczegółów</translation>
+    </message>
+    <message>
+        <source>Sidebar</source>
+        <translation>Pasek boczny</translation>
+    </message>
+    <message>
+        <source>List of places and bookmarks</source>
+        <translation>Lista miejsc i zakładek</translation>
+    </message>
+    <message>
+        <source>Recent Places</source>
+        <translation>Ostatnie miejsca</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <translation>Pliki</translation>
+    </message>
+    <message>
+        <source>File &amp;name:</source>
+        <translation>&amp;Nazwa pliku:</translation>
+    </message>
+    <message>
+        <source>Directory:</source>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Files of type:</source>
+        <translation>Pliki typu:</translation>
+    </message>
+    <message>
+        <source>All Files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Directories</source>
+        <translation>Foldery</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Otwórz</translation>
+    </message>
+    <message>
+        <source>&amp;Open</source>
+        <translation>&amp;Otwórz</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>Save As</source>
+        <translation>Zapisz jako</translation>
+    </message>
+    <message>
+        <source>&amp;Choose</source>
+        <translation>&amp;Wybierz</translation>
+    </message>
+    <message>
+        <source>Find Directory</source>
+        <translation>Wybierz folder</translation>
+    </message>
+    <message>
+        <source>&amp;Rename</source>
+        <translation>&amp;Zmień nazwę</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Show &amp;hidden files</source>
+        <translation>Pokaż &amp;ukryte pliki</translation>
+    </message>
+    <message>
+        <source>&amp;New Folder</source>
+        <translation>&amp;Nowy folder</translation>
+    </message>
+    <message>
+        <source>New Folder</source>
+        <translation>Nowy folder</translation>
+    </message>
+    <message>
+        <source>Show </source>
+        <translation>Pokaż </translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>Plik</translation>
+    </message>
+    <message>
+        <source>Folder</source>
+        <translation>Folder</translation>
+    </message>
+    <message>
+        <source>Alias</source>
+        <translation>Alias</translation>
+    </message>
+    <message>
+        <source>Shortcut</source>
+        <translation>Skrót</translation>
+    </message>
+    <message>
+        <source>Drive</source>
+        <translation>Dysk</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Nieznany</translation>
+    </message>
+    <message>
+        <source>%1 already exists.
+Do you want to replace it?</source>
+        <translation>Plik %1 już istnieje.
+Czy go zastąpić?</translation>
+    </message>
+    <message>
+        <source>%1
+File not found.
+Please verify the correct file name was given.</source>
+        <translation>%1
+Nie znaleziono pliku.
+Sprawdź, czy nazwa pliku jest poprawna.</translation>
+    </message>
+    <message>
+        <source>%1
+Directory not found.
+Please verify the correct directory name was given.</source>
+        <translation>%1
+Nie znaleziono folderu.
+Sprawdź, czy nazwa folderu jest poprawna.</translation>
+    </message>
+    <message>
+        <source>Are you sure you want to delete &apos;%1&apos;?</source>
+        <translation>Czy na pewno usunąć „%1”?</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is write protected.
+Do you want to delete it anyway?</source>
+        <translation>„%1” jest chroniony przed zapisem.
+Czy mimo to go usunąć?</translation>
+    </message>
+    <message>
+        <source>Could not delete directory.</source>
+        <translation>Nie można usunąć folderu.</translation>
+    </message>
+</context>
+<context>
+    <name>QFileSystemModel</name>
+    <message>
+        <source>Name</source>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation>Rozmiar</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation>Typ</translation>
+    </message>
+    <message>
+        <source>Kind</source>
+        <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>Date Modified</source>
+        <translation>Data modyfikacji</translation>
+    </message>
+    <message>
+        <source>Computer</source>
+        <translation>Komputer</translation>
     </message>
 </context>
 <context>
@@ -1051,6 +1638,10 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>Annotations</source>
         <translation>Uwagi</translation>
+    </message>
+    <message>
+        <source>&amp;Reset</source>
+        <translation>&amp;Przywróć</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -1277,6 +1868,61 @@ Uruchomić ponownie teraz?</translation>
     </message>
 </context>
 <context>
+    <name>QScrollBar</name>
+    <message>
+        <source>Scroll here</source>
+        <translation>Przewiń tutaj</translation>
+    </message>
+    <message>
+        <source>Left edge</source>
+        <translation>Lewa krawędź</translation>
+    </message>
+    <message>
+        <source>Top</source>
+        <translation>Do góry</translation>
+    </message>
+    <message>
+        <source>Right edge</source>
+        <translation>Prawa krawędź</translation>
+    </message>
+    <message>
+        <source>Bottom</source>
+        <translation>Do dołu</translation>
+    </message>
+    <message>
+        <source>Page left</source>
+        <translation>Strona w lewo</translation>
+    </message>
+    <message>
+        <source>Page up</source>
+        <translation>Strona w górę</translation>
+    </message>
+    <message>
+        <source>Page right</source>
+        <translation>Strona w prawo</translation>
+    </message>
+    <message>
+        <source>Page down</source>
+        <translation>Strona w dół</translation>
+    </message>
+    <message>
+        <source>Scroll left</source>
+        <translation>Przewiń w lewo</translation>
+    </message>
+    <message>
+        <source>Scroll up</source>
+        <translation>Przewiń w górę</translation>
+    </message>
+    <message>
+        <source>Scroll right</source>
+        <translation>Przewiń w prawo</translation>
+    </message>
+    <message>
+        <source>Scroll down</source>
+        <translation>Przewiń w dół</translation>
+    </message>
+</context>
+<context>
     <name>QShortcut</name>
     <message>
         <source>Ctrl</source>
@@ -1376,6 +2022,17 @@ Uruchomić ponownie teraz?</translation>
     </message>
 </context>
 <context>
+    <name>QTabBar</name>
+    <message>
+        <source>Scroll Left</source>
+        <translation>Przewiń w lewo</translation>
+    </message>
+    <message>
+        <source>Scroll Right</source>
+        <translation>Przewiń w prawo</translation>
+    </message>
+</context>
+<context>
     <name>QWidgetTextControl</name>
     <message>
         <source>&amp;Undo</source>
@@ -1411,30 +2068,272 @@ Uruchomić ponownie teraz?</translation>
     </message>
 </context>
 <context>
+    <name>SectionWords</name>
+    <message>
+        <source>at the beginning of the book</source>
+        <extracomment>A book without sections, its first elements (a title page, a dedication): &quot;The item is added as the last one at the beginning of the book&quot;. In Polish: na początku książki</extracomment>
+        <translation>na początku książki</translation>
+    </message>
+    <message>
+        <source>at the very beginning of the book</source>
+        <extracomment>A book without sections, the first of its first elements. In Polish: na samym początku książki</extracomment>
+        <translation>na samym początku książki</translation>
+    </message>
+    <message>
+        <source>before the content of the book</source>
+        <extracomment>A book without sections, the last of its first elements: just before its chapters. In Polish: przed treścią książki</extracomment>
+        <translation>przed treścią książki</translation>
+    </message>
+    <message>
+        <source>in the content of the book</source>
+        <extracomment>A book without sections, its chapters: &quot;The chapter is added as the last one in the content of the book&quot;. In Polish: w treści książki</extracomment>
+        <translation>w treści książki</translation>
+    </message>
+    <message>
+        <source>at the start of the content of the book</source>
+        <extracomment>In Polish: na początku treści książki</extracomment>
+        <translation>na początku treści książki</translation>
+    </message>
+    <message>
+        <source>at the end of the content of the book</source>
+        <extracomment>In Polish: na końcu treści książki</extracomment>
+        <translation>na końcu treści książki</translation>
+    </message>
+    <message>
+        <source>at the end of the book</source>
+        <extracomment>A book without sections, its last elements (an afterword, notes). In Polish: na końcu książki</extracomment>
+        <translation>na końcu książki</translation>
+    </message>
+    <message>
+        <source>after the content of the book</source>
+        <extracomment>A book without sections, the first of its last elements: just after its chapters. In Polish: za treścią książki</extracomment>
+        <translation>za treścią książki</translation>
+    </message>
+    <message>
+        <source>at the very end of the book</source>
+        <extracomment>In Polish: na samym końcu książki</extracomment>
+        <translation>na samym końcu książki</translation>
+    </message>
+    <message>
+        <source>in the section &quot;%1&quot;</source>
+        <extracomment>The writer&apos;s own name of a part of the book: &quot;The chapter is added as the last one in the section &quot;Story&quot;&quot;. In Polish: w sekcji „%1”</extracomment>
+        <translation>w sekcji „%1”</translation>
+    </message>
+    <message>
+        <source>at the start of the section &quot;%1&quot;</source>
+        <extracomment>In Polish: na początku sekcji „%1”</extracomment>
+        <translation>na początku sekcji „%1”</translation>
+    </message>
+    <message>
+        <source>at the end of the section &quot;%1&quot;</source>
+        <extracomment>In Polish: na końcu sekcji „%1”</extracomment>
+        <translation>na końcu sekcji „%1”</translation>
+    </message>
+    <message>
+        <source>in the front matter</source>
+        <extracomment>Set &quot;Front Matter, Body, Back Matter&quot;. In Polish (Strony początkowe): na stronach początkowych</extracomment>
+        <translation>na stronach początkowych</translation>
+    </message>
+    <message>
+        <source>at the start of the front matter</source>
+        <extracomment>In Polish: na początku stron początkowych</extracomment>
+        <translation>na początku stron początkowych</translation>
+    </message>
+    <message>
+        <source>at the end of the front matter</source>
+        <extracomment>In Polish: na końcu stron początkowych</extracomment>
+        <translation>na końcu stron początkowych</translation>
+    </message>
+    <message>
+        <source>in the body</source>
+        <extracomment>Set &quot;Front Matter, Body, Back Matter&quot;. In Polish (Tekst główny): w tekście głównym</extracomment>
+        <translation>w tekście głównym</translation>
+    </message>
+    <message>
+        <source>at the start of the body</source>
+        <extracomment>In Polish: na początku tekstu głównego</extracomment>
+        <translation>na początku tekstu głównego</translation>
+    </message>
+    <message>
+        <source>at the end of the body</source>
+        <extracomment>In Polish: na końcu tekstu głównego</extracomment>
+        <translation>na końcu tekstu głównego</translation>
+    </message>
+    <message>
+        <source>in the back matter</source>
+        <extracomment>Set &quot;Front Matter, Body, Back Matter&quot;. In Polish (Strony końcowe): na stronach końcowych</extracomment>
+        <translation>na stronach końcowych</translation>
+    </message>
+    <message>
+        <source>at the start of the back matter</source>
+        <extracomment>In Polish: na początku stron końcowych</extracomment>
+        <translation>na początku stron końcowych</translation>
+    </message>
+    <message>
+        <source>at the end of the back matter</source>
+        <extracomment>In Polish: na końcu stron końcowych</extracomment>
+        <translation>na końcu stron końcowych</translation>
+    </message>
+    <message>
+        <source>in the opening fragment</source>
+        <extracomment>Set &quot;Opening Fragment, Main Fragment, Closing Fragment&quot;. In Polish: we fragmencie początkowym</extracomment>
+        <translation>we fragmencie początkowym</translation>
+    </message>
+    <message>
+        <source>at the start of the opening fragment</source>
+        <extracomment>In Polish: na początku fragmentu początkowego</extracomment>
+        <translation>na początku fragmentu początkowego</translation>
+    </message>
+    <message>
+        <source>at the end of the opening fragment</source>
+        <extracomment>In Polish: na końcu fragmentu początkowego</extracomment>
+        <translation>na końcu fragmentu początkowego</translation>
+    </message>
+    <message>
+        <source>in the main fragment</source>
+        <extracomment>Set &quot;Opening Fragment, Main Fragment, Closing Fragment&quot;. In Polish: we fragmencie głównym</extracomment>
+        <translation>we fragmencie głównym</translation>
+    </message>
+    <message>
+        <source>at the start of the main fragment</source>
+        <extracomment>In Polish: na początku fragmentu głównego</extracomment>
+        <translation>na początku fragmentu głównego</translation>
+    </message>
+    <message>
+        <source>at the end of the main fragment</source>
+        <extracomment>In Polish: na końcu fragmentu głównego</extracomment>
+        <translation>na końcu fragmentu głównego</translation>
+    </message>
+    <message>
+        <source>in the closing fragment</source>
+        <extracomment>Set &quot;Opening Fragment, Main Fragment, Closing Fragment&quot;. In Polish: we fragmencie końcowym</extracomment>
+        <translation>we fragmencie końcowym</translation>
+    </message>
+    <message>
+        <source>at the start of the closing fragment</source>
+        <extracomment>In Polish: na początku fragmentu końcowego</extracomment>
+        <translation>na początku fragmentu końcowego</translation>
+    </message>
+    <message>
+        <source>at the end of the closing fragment</source>
+        <extracomment>In Polish: na końcu fragmentu końcowego</extracomment>
+        <translation>na końcu fragmentu końcowego</translation>
+    </message>
+    <message>
+        <source>in the opening</source>
+        <extracomment>Set &quot;Opening, Development, Closing&quot;. In Polish: w otwarciu</extracomment>
+        <translation>w otwarciu</translation>
+    </message>
+    <message>
+        <source>at the start of the opening</source>
+        <extracomment>In Polish: na początku otwarcia</extracomment>
+        <translation>na początku otwarcia</translation>
+    </message>
+    <message>
+        <source>at the end of the opening</source>
+        <extracomment>In Polish: na końcu otwarcia</extracomment>
+        <translation>na końcu otwarcia</translation>
+    </message>
+    <message>
+        <source>in the development</source>
+        <extracomment>Set &quot;Opening, Development, Closing&quot;. In Polish: w rozwinięciu</extracomment>
+        <translation>w rozwinięciu</translation>
+    </message>
+    <message>
+        <source>at the start of the development</source>
+        <extracomment>In Polish: na początku rozwinięcia</extracomment>
+        <translation>na początku rozwinięcia</translation>
+    </message>
+    <message>
+        <source>at the end of the development</source>
+        <extracomment>In Polish: na końcu rozwinięcia</extracomment>
+        <translation>na końcu rozwinięcia</translation>
+    </message>
+    <message>
+        <source>in the closing</source>
+        <extracomment>Set &quot;Opening, Development, Closing&quot;. In Polish: w zamknięciu</extracomment>
+        <translation>w zamknięciu</translation>
+    </message>
+    <message>
+        <source>at the start of the closing</source>
+        <extracomment>In Polish: na początku zamknięcia</extracomment>
+        <translation>na początku zamknięcia</translation>
+    </message>
+    <message>
+        <source>at the end of the closing</source>
+        <extracomment>In Polish: na końcu zamknięcia</extracomment>
+        <translation>na końcu zamknięcia</translation>
+    </message>
+    <message>
+        <source>in the front section</source>
+        <extracomment>Set &quot;Front Section, Main Section, Back Section&quot;. In Polish: w sekcji początkowej</extracomment>
+        <translation>w sekcji początkowej</translation>
+    </message>
+    <message>
+        <source>at the start of the front section</source>
+        <extracomment>In Polish: na początku sekcji początkowej</extracomment>
+        <translation>na początku sekcji początkowej</translation>
+    </message>
+    <message>
+        <source>at the end of the front section</source>
+        <extracomment>In Polish: na końcu sekcji początkowej</extracomment>
+        <translation>na końcu sekcji początkowej</translation>
+    </message>
+    <message>
+        <source>in the main section</source>
+        <extracomment>Set &quot;Front Section, Main Section, Back Section&quot;. In Polish: w sekcji głównej</extracomment>
+        <translation>w sekcji głównej</translation>
+    </message>
+    <message>
+        <source>at the start of the main section</source>
+        <extracomment>In Polish: na początku sekcji głównej</extracomment>
+        <translation>na początku sekcji głównej</translation>
+    </message>
+    <message>
+        <source>at the end of the main section</source>
+        <extracomment>In Polish: na końcu sekcji głównej</extracomment>
+        <translation>na końcu sekcji głównej</translation>
+    </message>
+    <message>
+        <source>in the back section</source>
+        <extracomment>Set &quot;Front Section, Main Section, Back Section&quot;. In Polish: w sekcji końcowej</extracomment>
+        <translation>w sekcji końcowej</translation>
+    </message>
+    <message>
+        <source>at the start of the back section</source>
+        <extracomment>In Polish: na początku sekcji końcowej</extracomment>
+        <translation>na początku sekcji końcowej</translation>
+    </message>
+    <message>
+        <source>at the end of the back section</source>
+        <extracomment>In Polish: na końcu sekcji końcowej</extracomment>
+        <translation>na końcu sekcji końcowej</translation>
+    </message>
+    <message>
+        <source>Beginning of the Book</source>
+        <extracomment>The group of the kinds of the first elements of a book without sections, e.g. a title page. In Polish: Początek książki</extracomment>
+        <translation>Początek książki</translation>
+    </message>
+    <message>
+        <source>Content</source>
+        <extracomment>The group of the kinds of the content of a book without sections, e.g. a chapter. In Polish: Treść</extracomment>
+        <translation>Treść</translation>
+    </message>
+    <message>
+        <source>End of the Book</source>
+        <extracomment>The group of the kinds of the last elements of a book without sections, e.g. an afterword. In Polish: Koniec książki</extracomment>
+        <translation>Koniec książki</translation>
+    </message>
+</context>
+<context>
     <name>TemplateRegistry</name>
     <message>
         <source>Novel</source>
         <translation>Powieść</translation>
     </message>
     <message>
-        <source>A traditional novel structure with parts and chapters.
-
-Includes front matter (title page, dedication) and back matter (epilogue, acknowledgments). Perfect for fiction writing with a clear hierarchical organization.</source>
-        <translation>Tradycyjny układ powieści z częściami i rozdziałami.
-
-Zawiera część wstępną (strona tytułowa, dedykacja) i część końcową (epilog, podziękowania). Dobry do prozy o wyraźnym, wielopoziomowym układzie.</translation>
-    </message>
-    <message>
         <source>Part/Chapter structure</source>
         <translation>Układ części i rozdziałów</translation>
-    </message>
-    <message>
-        <source>Front matter (title, dedication)</source>
-        <translation>Część wstępna (tytuł, dedykacja)</translation>
-    </message>
-    <message>
-        <source>Back matter (epilogue, notes)</source>
-        <translation>Część końcowa (epilog, przypisy)</translation>
     </message>
     <message>
         <source>Word count tracking</source>
@@ -1447,18 +2346,6 @@ Zawiera część wstępną (strona tytułowa, dedykacja) i część końcową (e
     <message>
         <source>Short Story Collection</source>
         <translation>Zbiór opowiadań</translation>
-    </message>
-    <message>
-        <source>A collection of independent short stories.
-
-Flat structure without parts - each story stands alone. Great for anthologies, collections, or episodic content.</source>
-        <translation>Zbiór niezależnych opowiadań.
-
-Płaski układ bez części – każde opowiadanie jest osobną całością. Dobry do antologii, zbiorów i tekstów w odcinkach.</translation>
-    </message>
-    <message>
-        <source>Flat story structure</source>
-        <translation>Płaski układ opowiadań</translation>
     </message>
     <message>
         <source>Independent stories</source>
@@ -1481,18 +2368,6 @@ Płaski układ bez części – każde opowiadanie jest osobną całością. Dob
         <translation>Literatura faktu</translation>
     </message>
     <message>
-        <source>A non-fiction book with flat chapter structure.
-
-Designed for essays, guides, memoirs, and technical writing. Includes bibliography and index support.</source>
-        <translation>Książka popularnonaukowa lub faktograficzna z płaskim układem rozdziałów.
-
-Do esejów, poradników, wspomnień i tekstów technicznych. Obsługuje bibliografię i indeks.</translation>
-    </message>
-    <message>
-        <source>Flat chapter structure</source>
-        <translation>Płaski układ rozdziałów</translation>
-    </message>
-    <message>
         <source>Bibliography support</source>
         <translation>Bibliografia</translation>
     </message>
@@ -1511,18 +2386,6 @@ Do esejów, poradników, wspomnień i tekstów technicznych. Obsługuje bibliogr
     <message>
         <source>Screenplay</source>
         <translation>Scenariusz</translation>
-    </message>
-    <message>
-        <source>A screenplay or stage play structure.
-
-Organized by acts and scenes with proper screenplay formatting. Suitable for film, TV, or theater scripts.</source>
-        <translation>Układ scenariusza filmowego lub sztuki teatralnej.
-
-Akty i sceny z formatowaniem scenariuszowym. Do scenariuszy filmowych, telewizyjnych i teatralnych.</translation>
-    </message>
-    <message>
-        <source>Act/Scene structure</source>
-        <translation>Układ aktów i scen</translation>
     </message>
     <message>
         <source>Screenplay formatting</source>
@@ -1545,18 +2408,6 @@ Akty i sceny z formatowaniem scenariuszowym. Do scenariuszy filmowych, telewizyj
         <translation>Tomik wierszy</translation>
     </message>
     <message>
-        <source>A collection of poems organized by sections.
-
-Flexible structure for organizing poems into thematic sections. Supports various poetry formats and styles.</source>
-        <translation>Zbiór wierszy podzielony na sekcje.
-
-Elastyczny układ do grupowania wierszy w sekcje tematyczne. Obsługuje różne formy i style poezji.</translation>
-    </message>
-    <message>
-        <source>Section/Poem structure</source>
-        <translation>Układ sekcji i wierszy</translation>
-    </message>
-    <message>
         <source>Thematic grouping</source>
         <translation>Grupowanie tematyczne</translation>
     </message>
@@ -1571,34 +2422,6 @@ Elastyczny układ do grupowania wierszy w sekcje tematyczne. Obsługuje różne 
     <message>
         <source>Stanza support</source>
         <translation>Strofy</translation>
-    </message>
-    <message>
-        <source>Empty Project</source>
-        <translation>Pusty projekt</translation>
-    </message>
-    <message>
-        <source>A blank project with no predefined structure.
-
-Start from scratch and build your own structure. Recommended for advanced users who want full control.</source>
-        <translation>Pusty projekt bez gotowego układu.
-
-Zacznij od zera i zbuduj własny układ. Dla zaawansowanych użytkowników, którzy chcą mieć pełną kontrolę.</translation>
-    </message>
-    <message>
-        <source>No predefined structure</source>
-        <translation>Bez gotowego układu</translation>
-    </message>
-    <message>
-        <source>Full customization</source>
-        <translation>Pełna swoboda</translation>
-    </message>
-    <message>
-        <source>Add elements manually</source>
-        <translation>Elementy dodawane ręcznie</translation>
-    </message>
-    <message>
-        <source>For advanced users</source>
-        <translation>Dla zaawansowanych</translation>
     </message>
     <message>
         <source>Chapter</source>
@@ -1760,6 +2583,166 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <source>Hierarchy support</source>
         <translation>Hierarchia miejsc</translation>
     </message>
+    <message>
+        <source>User Project</source>
+        <translation>Projekt użytkownika</translation>
+    </message>
+    <message>
+        <source>No book type</source>
+        <translation>Bez typu książki</translation>
+    </message>
+    <message>
+        <source>Structure built in the Navigator</source>
+        <translation>Układ budowany w Nawigatorze</translation>
+    </message>
+    <message>
+        <source>Prologue and epilogue</source>
+        <translation>Prolog i epilog</translation>
+    </message>
+    <message>
+        <source>A traditional novel structure with parts and chapters.
+
+A title page and a dedication at the beginning, a prologue and an epilogue in the text, and an afterword and acknowledgments at the end.</source>
+        <translation>Tradycyjny układ powieści z częściami i rozdziałami.
+
+Na początku strona tytułowa i dedykacja, w tekście prolog i epilog, a na końcu posłowie i podziękowania.</translation>
+    </message>
+    <message>
+        <source>Title page and dedication at the beginning</source>
+        <translation>Strona tytułowa i dedykacja na początku</translation>
+    </message>
+    <message>
+        <source>Afterword and acknowledgments at the end</source>
+        <translation>Posłowie i podziękowania na końcu</translation>
+    </message>
+    <message>
+        <source>A collection of poems that can be grouped into cycles.
+
+Flexible structure for grouping poems into thematic cycles. Supports various poetry formats and styles.</source>
+        <translation>Zbiór wierszy, które można łączyć w cykle.
+
+Elastyczny układ do grupowania wierszy w cykle tematyczne. Obsługuje różne formy i style poezji.</translation>
+    </message>
+    <message>
+        <source>Cycle/Poem structure</source>
+        <translation>Układ cykli i wierszy</translation>
+    </message>
+    <message>
+        <source>A collection of short stories that can be grouped into divisions.
+
+Each story stands alone, and a division gathers stories with a common theme. Great for anthologies, collections, or episodic content.</source>
+        <translation>Zbiór opowiadań, które można łączyć w działy.
+
+Każde opowiadanie jest osobną całością, a dział zbiera opowiadania o wspólnym temacie. Dobry do antologii, zbiorów i tekstów w odcinkach.</translation>
+    </message>
+    <message>
+        <source>Division/Story structure</source>
+        <translation>Układ działów i opowiadań</translation>
+    </message>
+    <message>
+        <source>A non-fiction book with chapters, which can be grouped into parts.
+
+Designed for essays, guides, memoirs, and technical writing. Includes bibliography and index support.</source>
+        <translation>Książka popularnonaukowa lub faktograficzna z rozdziałami, które można łączyć w części.
+
+Do esejów, poradników, wspomnień i tekstów technicznych. Obsługuje bibliografię i indeks.</translation>
+    </message>
+    <message>
+        <source>A screenplay or stage play structure.
+
+Acts, which can be grouped into episodes, with proper screenplay formatting. Suitable for film, TV, or theater scripts.</source>
+        <translation>Układ scenariusza filmowego lub sztuki teatralnej.
+
+Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scenariuszy filmowych, telewizyjnych i teatralnych.</translation>
+    </message>
+    <message>
+        <source>Episode/Act structure</source>
+        <translation>Układ odcinków i aktów</translation>
+    </message>
+    <message>
+        <source>A book without a type: in the next step you choose the kinds of its elements from all book types, and the elements it is created with.</source>
+        <extracomment>In Polish: Książka bez typu: w następnym kroku wybierzesz rodzaje jej elementów spośród wszystkich typów książek oraz elementy, z którymi powstanie.</extracomment>
+        <translation>Książka bez typu: w następnym kroku wybierzesz rodzaje jej elementów spośród wszystkich typów książek oraz elementy, z którymi powstanie.</translation>
+    </message>
+    <message>
+        <source>Kinds of elements from all book types</source>
+        <extracomment>In Polish: Rodzaje elementów ze wszystkich typów książek</extracomment>
+        <translation>Rodzaje elementów ze wszystkich typów książek</translation>
+    </message>
+    <message>
+        <source>Elements created with the book</source>
+        <extracomment>In Polish: Elementy tworzone razem z książką</extracomment>
+        <translation>Elementy tworzone razem z książką</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::core::CmdLineParser</name>
+    <message>
+        <source>Displays help on commandline options.</source>
+        <translation>Wyświetla pomoc dotyczącą opcji wiersza poleceń.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::core::IconDownloader</name>
+    <message>
+        <source>Invalid URL: %1</source>
+        <translation>Nieprawidłowy adres URL: %1</translation>
+    </message>
+    <message>
+        <source>Not found (404): %1</source>
+        <translation>Nie znaleziono (404): %1</translation>
+    </message>
+    <message>
+        <source>Access denied (403): %1</source>
+        <translation>Odmowa dostępu (403): %1</translation>
+    </message>
+    <message>
+        <source>The server did not answer within %1 seconds</source>
+        <translation>Serwer nie odpowiedział w ciągu %1 s</translation>
+    </message>
+    <message>
+        <source>Cannot connect to the server</source>
+        <translation>Nie można połączyć się z serwerem</translation>
+    </message>
+    <message>
+        <source>The proxy server did not let the connection through</source>
+        <translation>Serwer pośredniczący (proxy) nie przepuścił połączenia</translation>
+    </message>
+    <message>
+        <source>A secure connection to the server failed</source>
+        <translation>Nie udało się nawiązać bezpiecznego połączenia z serwerem</translation>
+    </message>
+    <message>
+        <source>Download failed: %1</source>
+        <translation>Pobieranie nie powiodło się: %1</translation>
+    </message>
+    <message>
+        <source>The downloaded file is empty</source>
+        <translation>Pobrany plik jest pusty</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::core::SvgConverter</name>
+    <message>
+        <source>The SVG file is empty</source>
+        <translation>Plik SVG jest pusty</translation>
+    </message>
+    <message>
+        <source>Invalid XML in line %1, column %2: %3</source>
+        <translation>Błąd składni XML w wierszu %1, kolumnie %2: %3</translation>
+    </message>
+    <message>
+        <source>The file is not an SVG image (its root element is &lt;%1&gt;)</source>
+        <translation>Plik nie jest obrazem SVG (jego elementem głównym jest &lt;%1&gt;)</translation>
+    </message>
+    <message>
+        <source>The &lt;svg&gt; element has no viewBox attribute</source>
+        <translation>Element &lt;svg&gt; nie ma atrybutu viewBox</translation>
+    </message>
+    <message>
+        <source>Conversion produced invalid SVG: %1</source>
+        <translation>Konwersja dała nieprawidłowy plik SVG: %1</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditor</name>
@@ -1834,24 +2817,12 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <translation>Aa</translation>
     </message>
     <message>
-        <source>Match Case (%1)</source>
-        <translation>Uwzględniaj wielkość liter (%1)</translation>
-    </message>
-    <message>
         <source>W</source>
         <translation>W</translation>
     </message>
     <message>
-        <source>Match Whole Word (%1)</source>
-        <translation>Tylko całe wyrazy (%1)</translation>
-    </message>
-    <message>
         <source>.*</source>
         <translation>.*</translation>
-    </message>
-    <message>
-        <source>Use Regular Expression (%1)</source>
-        <translation>Wyrażenie regularne (%1)</translation>
     </message>
     <message>
         <source>Previous Match (Shift+Enter)</source>
@@ -1900,6 +2871,18 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
             <numerusform>%n wyniki</numerusform>
             <numerusform>%n wyników</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Match Case (%1)</source>
+        <translation>Uwzględniaj wielkość liter (%1)</translation>
+    </message>
+    <message>
+        <source>Match Whole Word (%1)</source>
+        <translation>Tylko całe wyrazy (%1)</translation>
+    </message>
+    <message>
+        <source>Use Regular Expression (%1)</source>
+        <translation>Wyrażenie regularne (%1)</translation>
     </message>
 </context>
 <context>
@@ -2220,10 +3203,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Wszystkie</translation>
     </message>
     <message>
-        <source>Chapter</source>
-        <translation>Rozdział</translation>
-    </message>
-    <message>
         <source>Book</source>
         <translation>Książka</translation>
     </message>
@@ -2268,20 +3247,8 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Notatki %1</translation>
     </message>
     <message>
-        <source>Open a chapter to see its annotations.</source>
-        <translation>Otwórz rozdział, aby zobaczyć jego uwagi.</translation>
-    </message>
-    <message>
         <source>The book has no annotations.</source>
         <translation>Książka nie ma uwag.</translation>
-    </message>
-    <message>
-        <source>This chapter has no annotations. Select a fragment or put the cursor in the text and add a comment, a to-do or a note from the context menu.</source>
-        <translation>Ten rozdział nie ma uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę z menu podręcznego.</translation>
-    </message>
-    <message>
-        <source>This chapter has no annotations. Select a fragment or put the cursor in the text and add a comment, a to-do or a note with %1 or from the context menu.</source>
-        <translation>Ten rozdział nie ma uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę skrótem %1 albo z menu podręcznego.</translation>
     </message>
     <message>
         <source>No annotation matches the filters.</source>
@@ -2306,6 +3273,45 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>Next</source>
         <translation>Następna</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>Plik</translation>
+    </message>
+    <message>
+        <source>Element</source>
+        <translation>Element</translation>
+    </message>
+    <message>
+        <source>Open {kind:indefinite} to see {kind:s=its|p=their} annotations.</source>
+        <extracomment>In Polish: Otwórz {kind:accusative}, aby zobaczyć {kind:m=jego|f=jej|n=jego|p=ich} uwagi.</extracomment>
+        <translation>Otwórz {kind:accusative}, aby zobaczyć {kind:m=jego|f=jej|n=jego|p=ich} uwagi.</translation>
+    </message>
+    <message>
+        <source>Open an element of the book to see its annotations.</source>
+        <translation>Otwórz element książki, aby zobaczyć jego uwagi.</translation>
+    </message>
+    <message>
+        <source>Open a book or a file to see the annotations.</source>
+        <translation>Otwórz książkę albo plik, aby zobaczyć uwagi.</translation>
+    </message>
+    <message>
+        <source>{kind:s=This|p=These} {kind} {kind:s=has|p=have} no annotations. Select a fragment or put the cursor in the text and add a comment, a to-do or a note with %1 or from the context menu.</source>
+        <extracomment>In Polish: {kind:m=Ten|f=Ta|n=To|p=Te} {kind} nie {kind:m=ma|f=ma|n=ma|p=mają} uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę skrótem %1 albo z menu podręcznego.</extracomment>
+        <translation>{kind:m=Ten|f=Ta|n=To|p=Te} {kind} nie {kind:m=ma|f=ma|n=ma|p=mają} uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę skrótem %1 albo z menu podręcznego.</translation>
+    </message>
+    <message>
+        <source>This file has no annotations. Select a fragment or put the cursor in the text and add a comment, a to-do or a note with %1 or from the context menu.</source>
+        <translation>Ten plik nie ma uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę skrótem %1 albo z menu podręcznego.</translation>
+    </message>
+    <message>
+        <source>{kind:s=This|p=These} {kind} {kind:s=has|p=have} no annotations. Select a fragment or put the cursor in the text and add a comment, a to-do or a note from the context menu.</source>
+        <extracomment>In Polish: {kind:m=Ten|f=Ta|n=To|p=Te} {kind} nie {kind:m=ma|f=ma|n=ma|p=mają} uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę z menu podręcznego.</extracomment>
+        <translation>{kind:m=Ten|f=Ta|n=To|p=Te} {kind} nie {kind:m=ma|f=ma|n=ma|p=mają} uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę z menu podręcznego.</translation>
+    </message>
+    <message>
+        <source>This file has no annotations. Select a fragment or put the cursor in the text and add a comment, a to-do or a note from the context menu.</source>
+        <translation>Ten plik nie ma uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do zrobienia lub notatkę z menu podręcznego.</translation>
     </message>
 </context>
 <context>
@@ -2348,8 +3354,8 @@ Przyciski na pasku panelu dziennika pozwalają:
 <context>
     <name>kalahari::gui::CommandRegistry</name>
     <message>
-        <source>%1 (not available yet)</source>
-        <translation>%1 (jeszcze niedostępne)</translation>
+        <source>%1 (in preparation)</source>
+        <translation>%1 (w przygotowaniu)</translation>
     </message>
 </context>
 <context>
@@ -2367,18 +3373,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Pokazuje na Pulpicie sekcję wiadomości i aktualizacji</translation>
     </message>
     <message>
-        <source>Show Recent Files</source>
-        <translation>Pokazuj ostatnie pliki</translation>
-    </message>
-    <message>
-        <source>Display recently opened projects on Dashboard</source>
-        <translation>Pokazuje na Pulpicie ostatnio otwierane projekty</translation>
-    </message>
-    <message>
-        <source>Number of items to show in News and Recent Files sections (3-9)</source>
-        <translation>Liczba pozycji w sekcjach wiadomości i ostatnich plików (3–9)</translation>
-    </message>
-    <message>
         <source>Maximum items per section:</source>
         <translation>Najwięcej pozycji w sekcji:</translation>
     </message>
@@ -2394,17 +3388,21 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>Icon size:</source>
         <translation>Rozmiar ikon:</translation>
     </message>
+    <message>
+        <source>Show Recent Books</source>
+        <translation>Pokazuj ostatnie książki</translation>
+    </message>
+    <message>
+        <source>Display recently opened books on Dashboard</source>
+        <translation>Pokazuje na Pulpicie ostatnio otwierane książki</translation>
+    </message>
+    <message>
+        <source>Number of items to show in News and Recent Books sections (3-9)</source>
+        <translation>Liczba pozycji w sekcjach wiadomości i ostatnich książek (3–9)</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::DashboardPanel</name>
-    <message>
-        <source>Open last project on startup</source>
-        <translation>Otwieraj ostatni projekt przy starcie</translation>
-    </message>
-    <message>
-        <source>Automatically open the most recently used project when Kalahari starts</source>
-        <translation>Po uruchomieniu Kalahari otwiera ostatnio używany projekt</translation>
-    </message>
     <message>
         <source>Logo</source>
         <translation>Logo</translation>
@@ -2426,10 +3424,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Wiadomości Kalahari</translation>
     </message>
     <message>
-        <source>Recent Files</source>
-        <translation>Ostatnie pliki</translation>
-    </message>
-    <message>
         <source>Unknown Author</source>
         <translation>Autor nieznany</translation>
     </message>
@@ -2442,12 +3436,24 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Nie znaleziono pliku</translation>
     </message>
     <message>
-        <source>No recent projects yet.</source>
-        <translation>Nie ma jeszcze ostatnich projektów.</translation>
-    </message>
-    <message>
         <source>No news yet.</source>
         <translation>Nie ma jeszcze wiadomości.</translation>
+    </message>
+    <message>
+        <source>Recent Books</source>
+        <translation>Ostatnie książki</translation>
+    </message>
+    <message>
+        <source>No recent books.</source>
+        <translation>Lista ostatnich książek jest pusta.</translation>
+    </message>
+    <message>
+        <source>Open last book on startup</source>
+        <translation>Otwieraj ostatnią książkę przy starcie</translation>
+    </message>
+    <message>
+        <source>Automatically open the most recently used book when Kalahari starts</source>
+        <translation>Po uruchomieniu Kalahari otwiera ostatnio używaną książkę</translation>
     </message>
 </context>
 <context>
@@ -2706,42 +3712,25 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     </message>
 </context>
 <context>
-    <name>kalahari::gui::DocumentCoordinator</name>
+    <name>kalahari::gui::DockCoordinator</name>
     <message>
-        <source>Untitled</source>
-        <translation>Bez tytułu</translation>
+        <source>The screen is small, so the panels on the right are hidden. View &gt; Panels shows them again.</source>
+        <translation>Ekran jest mały, więc panele po prawej stronie są ukryte. Pokażesz je w menu Widok &gt; Panele.</translation>
     </message>
+    <message>
+        <source>Show Panels</source>
+        <translation>Pokaż panele</translation>
+    </message>
+    <message>
+        <source>Show the panels on the right</source>
+        <translation>Pokaż panele po prawej stronie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::DocumentCoordinator</name>
     <message>
         <source>Unsaved Changes</source>
         <translation>Niezapisane zmiany</translation>
-    </message>
-    <message>
-        <source>Do you want to save changes to %1?</source>
-        <translation>Czy zapisać zmiany w %1?</translation>
-    </message>
-    <message>
-        <source>Do you want to save changes to the current document?</source>
-        <translation>Czy zapisać zmiany w bieżącym dokumencie?</translation>
-    </message>
-    <message>
-        <source>New document created</source>
-        <translation>Utworzono nowy dokument</translation>
-    </message>
-    <message>
-        <source>Project created: %1</source>
-        <translation>Utworzono projekt: %1</translation>
-    </message>
-    <message>
-        <source>Project Creation Failed</source>
-        <translation>Nie udało się utworzyć projektu</translation>
-    </message>
-    <message>
-        <source>Could not create project &apos;%1&apos;.
-
-Check that the location is writable and try again.</source>
-        <translation>Nie udało się utworzyć projektu „%1”.
-
-Sprawdź, czy w wybranym miejscu można zapisywać pliki, i spróbuj ponownie.</translation>
     </message>
     <message>
         <source>Open Book</source>
@@ -2752,28 +3741,16 @@ Sprawdź, czy w wybranym miejscu można zapisywać pliki, i spróbuj ponownie.</
         <translation>Książki Kalahari (*.klh)</translation>
     </message>
     <message>
-        <source>current project</source>
-        <translation>bieżącego projektu</translation>
-    </message>
-    <message>
-        <source>Do you want to save changes to &apos;%1&apos; before opening the selected project?</source>
-        <translation>Czy zapisać zmiany w „%1” przed otwarciem wybranego projektu?</translation>
-    </message>
-    <message>
-        <source>Close Current Project?</source>
-        <translation>Zamknąć bieżący projekt?</translation>
-    </message>
-    <message>
-        <source>Do you want to close &apos;%1&apos; and open the selected project?</source>
-        <translation>Czy zamknąć „%1” i otworzyć wybrany projekt?</translation>
-    </message>
-    <message>
         <source>Open Error</source>
         <translation>Błąd otwierania</translation>
     </message>
     <message>
-        <source>Failed to open book: %1</source>
-        <translation>Nie udało się otworzyć książki: %1</translation>
+        <source>Book of a Newer Version</source>
+        <translation>Książka z nowszej wersji</translation>
+    </message>
+    <message>
+        <source>This book was saved in a newer version of Kalahari. Update the program to open it.</source>
+        <translation>Tę książkę zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją otworzyć.</translation>
     </message>
     <message>
         <source>File Not Found</source>
@@ -2784,48 +3761,12 @@ Sprawdź, czy w wybranym miejscu można zapisywać pliki, i spróbuj ponownie.</
         <translation>Plik „%1” już nie istnieje.</translation>
     </message>
     <message>
-        <source>Failed to open project: %1
-
-The project may be corrupted, locked by another instance, or there may be a database error.</source>
-        <translation>Nie udało się otworzyć projektu: %1
-
-Projekt może być uszkodzony lub otwarty w innym oknie programu albo wystąpił błąd bazy danych.</translation>
-    </message>
-    <message>
-        <source>Failed to open document: %1</source>
-        <translation>Nie udało się otworzyć dokumentu: %1</translation>
-    </message>
-    <message>
-        <source>Document opened: %1</source>
-        <translation>Otwarto dokument: %1</translation>
-    </message>
-    <message>
         <source>No document to save</source>
         <translation>Brak dokumentu do zapisania</translation>
     </message>
     <message>
-        <source>Save Document As</source>
-        <translation>Zapisz dokument jako</translation>
-    </message>
-    <message>
-        <source>Kalahari Files (*.klh)</source>
-        <translation>Pliki Kalahari (*.klh)</translation>
-    </message>
-    <message>
         <source>Save Error</source>
         <translation>Błąd zapisu</translation>
-    </message>
-    <message>
-        <source>Failed to save document: %1</source>
-        <translation>Nie udało się zapisać dokumentu: %1</translation>
-    </message>
-    <message>
-        <source>Document saved as: %1</source>
-        <translation>Zapisano dokument jako: %1</translation>
-    </message>
-    <message>
-        <source>Document saved</source>
-        <translation>Zapisano dokument</translation>
     </message>
     <message>
         <source>No project open</source>
@@ -2836,20 +3777,8 @@ Projekt może być uszkodzony lub otwarty w innym oknie programu albo wystąpił
         <translation>Zapisano wszystkie zmiany</translation>
     </message>
     <message>
-        <source>Error saving some chapters</source>
-        <translation>Błąd zapisu niektórych rozdziałów</translation>
-    </message>
-    <message>
         <source>Save Warning</source>
         <translation>Ostrzeżenie o zapisie</translation>
-    </message>
-    <message>
-        <source>Some chapters could not be saved. Check the log for details.</source>
-        <translation>Nie udało się zapisać niektórych rozdziałów. Szczegóły są w dzienniku.</translation>
-    </message>
-    <message>
-        <source>Document closed</source>
-        <translation>Zamknięto dokument</translation>
     </message>
     <message>
         <source>Open File</source>
@@ -2868,128 +3797,8 @@ Projekt może być uszkodzony lub otwarty w innym oknie programu albo wystąpił
 %2</translation>
     </message>
     <message>
-        <source>This file is not part of the current project.</source>
-        <translation>Ten plik nie należy do bieżącego projektu.</translation>
-    </message>
-    <message>
-        <source>This file is not part of a project. Limited features available.</source>
-        <translation>Ten plik nie należy do projektu. Część funkcji jest niedostępna.</translation>
-    </message>
-    <message>
         <source>Opened: %1</source>
         <translation>Otwarto: %1</translation>
-    </message>
-    <message>
-        <source>No Project Open</source>
-        <translation>Brak otwartego projektu</translation>
-    </message>
-    <message>
-        <source>Please open or create a book project first.
-
-Use File &gt; New Book... or File &gt; Open Book... to start.</source>
-        <translation>Najpierw otwórz albo utwórz projekt książki.
-
-Użyj polecenia Plik → Nowa książka... lub Plik → Otwórz książkę....</translation>
-    </message>
-    <message>
-        <source>File added to project: %1</source>
-        <translation>Dodano plik do projektu: %1</translation>
-    </message>
-    <message>
-        <source>Error</source>
-        <translation>Błąd</translation>
-    </message>
-    <message>
-        <source>Failed to add file to project. Check logs for details.</source>
-        <translation>Nie udało się dodać pliku do projektu. Szczegóły są w dzienniku.</translation>
-    </message>
-    <message>
-        <source>Please open a project first before exporting.</source>
-        <translation>Przed eksportem otwórz projekt.</translation>
-    </message>
-    <message>
-        <source>Export Project Archive</source>
-        <translation>Eksportuj archiwum projektu</translation>
-    </message>
-    <message>
-        <source>Kalahari Archive (*.klh.zip)</source>
-        <translation>Archiwum Kalahari (*.klh.zip)</translation>
-    </message>
-    <message>
-        <source>The project contains %1 file(s) that are not marked as final:</source>
-        <translation>Pliki projektu nieoznaczone jako gotowe (%1):</translation>
-    </message>
-    <message>
-        <source>Do you want to export anyway?</source>
-        <translation>Czy mimo to wyeksportować?</translation>
-    </message>
-    <message>
-        <source>Incomplete Files</source>
-        <translation>Niegotowe pliki</translation>
-    </message>
-    <message>
-        <source>Exporting project archive...</source>
-        <translation>Trwa eksport archiwum projektu...</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Anuluj</translation>
-    </message>
-    <message>
-        <source>Export Complete</source>
-        <translation>Eksport zakończony</translation>
-    </message>
-    <message>
-        <source>Project exported successfully to:
-%1</source>
-        <translation>Wyeksportowano projekt do:
-%1</translation>
-    </message>
-    <message>
-        <source>Export Failed</source>
-        <translation>Eksport nie powiódł się</translation>
-    </message>
-    <message>
-        <source>Failed to export project archive.</source>
-        <translation>Nie udało się wyeksportować archiwum projektu.</translation>
-    </message>
-    <message>
-        <source>Import Project Archive</source>
-        <translation>Importuj archiwum projektu</translation>
-    </message>
-    <message>
-        <source>Select Destination Folder</source>
-        <translation>Wybierz folder docelowy</translation>
-    </message>
-    <message>
-        <source>Folder Exists</source>
-        <translation>Folder już istnieje</translation>
-    </message>
-    <message>
-        <source>A folder named &apos;%1&apos; already exists in the destination.
-Do you want to choose a different location?</source>
-        <translation>W wybranym miejscu jest już folder „%1”.
-Czy wybrać inne miejsce?</translation>
-    </message>
-    <message>
-        <source>Importing project archive...</source>
-        <translation>Trwa import archiwum projektu...</translation>
-    </message>
-    <message>
-        <source>Import Complete</source>
-        <translation>Import zakończony</translation>
-    </message>
-    <message>
-        <source>Project imported and opened successfully.</source>
-        <translation>Zaimportowano i otwarto projekt.</translation>
-    </message>
-    <message>
-        <source>Import Failed</source>
-        <translation>Import nie powiódł się</translation>
-    </message>
-    <message>
-        <source>Failed to import project archive.</source>
-        <translation>Nie udało się zaimportować archiwum projektu.</translation>
     </message>
     <message>
         <source>Book opened: %1</source>
@@ -3000,44 +3809,16 @@ Czy wybrać inne miejsce?</translation>
         <translation>Zamknięto książkę</translation>
     </message>
     <message>
-        <source>Chapters and Text Files (*.kchapter *.txt);;Chapters (*.kchapter);;Text Files (*.txt);;All Files (*)</source>
-        <translation>Rozdziały i pliki tekstowe (*.kchapter *.txt);;Rozdziały (*.kchapter);;Pliki tekstowe (*.txt);;Wszystkie pliki (*)</translation>
-    </message>
-    <message>
         <source>Unsupported File</source>
         <translation>Nieobsługiwany plik</translation>
-    </message>
-    <message>
-        <source>Kalahari cannot open &apos;%1&apos;.
-
-It opens chapters (*.kchapter) and text files (*.txt).</source>
-        <translation>Kalahari nie może otworzyć „%1”.
-
-Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
-    </message>
-    <message>
-        <source>It is not a Kalahari chapter, or it cannot be read.</source>
-        <translation>To nie jest rozdział Kalahari albo nie da się go odczytać.</translation>
     </message>
     <message>
         <source>Failed to save file: %1</source>
         <translation>Nie udało się zapisać pliku: %1</translation>
     </message>
     <message>
-        <source>Failed to save file: %1
-
-%2</source>
-        <translation>Nie udało się zapisać pliku: %1
-
-%2</translation>
-    </message>
-    <message>
         <source>Saved: %1</source>
         <translation>Zapisano: %1</translation>
-    </message>
-    <message>
-        <source>Chapters (*.kchapter)</source>
-        <translation>Rozdziały (*.kchapter)</translation>
     </message>
     <message>
         <source>Text Files (*.txt)</source>
@@ -3050,6 +3831,341 @@ Program otwiera rozdziały (*.kchapter) i pliki tekstowe (*.txt).</translation>
     <message>
         <source>&apos;%1&apos; is open in another tab.</source>
         <translation>„%1” jest otwarty w innej karcie.</translation>
+    </message>
+    <message>
+        <source>Do you want to save changes to &apos;%1&apos; before creating the new book?</source>
+        <translation>Czy zapisać zmiany w „%1” przed utworzeniem nowej książki?</translation>
+    </message>
+    <message>
+        <source>Could not create the book &apos;%1&apos;.</source>
+        <translation>Nie udało się utworzyć książki „%1”.</translation>
+    </message>
+    <message>
+        <source>Do you want to save changes to &apos;%1&apos; before importing the archive?</source>
+        <translation>Czy zapisać zmiany w „%1” przed importem archiwum?</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>Do&amp;n&apos;t Save</source>
+        <translation>&amp;Nie zapisuj</translation>
+    </message>
+    <message>
+        <source>&amp;Close Book</source>
+        <translation>&amp;Zamknij książkę</translation>
+    </message>
+    <message>
+        <source>New Book</source>
+        <translation>Nowa książka</translation>
+    </message>
+    <message>
+        <source>Book created: %1</source>
+        <translation>Utworzono książkę: %1</translation>
+    </message>
+    <message>
+        <source>Close Book?</source>
+        <translation>Zamknąć książkę?</translation>
+    </message>
+    <message>
+        <source>Do you want to save changes to &apos;%1&apos; before opening the selected book?</source>
+        <translation>Czy zapisać zmiany w „%1” przed otwarciem wybranej książki?</translation>
+    </message>
+    <message>
+        <source>Do you want to close &apos;%1&apos; and open the selected book?</source>
+        <translation>Czy zamknąć „%1” i otworzyć wybraną książkę?</translation>
+    </message>
+    <message>
+        <source>Some changes could not be saved</source>
+        <translation>Nie udało się zapisać niektórych zmian</translation>
+    </message>
+    <message>
+        <source>Some changes in the book could not be saved. Check the log for details.</source>
+        <translation>Nie udało się zapisać niektórych zmian w książce. Szczegóły są w dzienniku.</translation>
+    </message>
+    <message>
+        <source>Kalahari Documents and Text Files (*.kchapter *.txt);;Kalahari Documents (*.kchapter);;Text Files (*.txt);;All Files (*)</source>
+        <translation>Dokumenty Kalahari i pliki tekstowe (*.kchapter *.txt);;Dokumenty Kalahari (*.kchapter);;Pliki tekstowe (*.txt);;Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot open &apos;%1&apos;.
+
+It opens Kalahari documents (*.kchapter) and text files (*.txt).</source>
+        <translation>Kalahari nie może otworzyć „%1”.
+
+Program otwiera dokumenty Kalahari (*.kchapter) i pliki tekstowe (*.txt).</translation>
+    </message>
+    <message>
+        <source>It is not a Kalahari document, or it cannot be read.</source>
+        <translation>To nie jest dokument Kalahari albo nie da się go odczytać.</translation>
+    </message>
+    <message>
+        <source>Kalahari Documents (*.kchapter)</source>
+        <translation>Dokumenty Kalahari (*.kchapter)</translation>
+    </message>
+    <message>
+        <source>This file is not part of the open book.</source>
+        <translation>Ten plik nie należy do otwartej książki.</translation>
+    </message>
+    <message>
+        <source>This file is not part of a book. Some features are not available.</source>
+        <translation>Ten plik nie należy do książki. Część funkcji jest niedostępna.</translation>
+    </message>
+    <message>
+        <source>No Book Open</source>
+        <translation>Brak otwartej książki</translation>
+    </message>
+    <message>
+        <source>Open or create a book first.
+
+Use File &gt; New Book... or File &gt; Open Book... to start.</source>
+        <translation>Najpierw otwórz albo utwórz książkę.
+
+Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</translation>
+    </message>
+    <message>
+        <source>Add to Book</source>
+        <translation>Dodaj do książki</translation>
+    </message>
+    <message>
+        <source>No element of this book can have a text.</source>
+        <translation>Żaden element tej książki nie może zawierać tekstu.</translation>
+    </message>
+    <message>
+        <source>Add {Kind} Failed</source>
+        <extracomment>In Polish: Nie udało się dodać {kind:genitive}</extracomment>
+        <translation>Nie udało się dodać {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>The file could not be added to the book. The program&apos;s log has the details.</source>
+        <translation>Nie udało się dodać pliku do książki. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>{Kind} added to the book: %1</source>
+        <extracomment>In Polish: Dodano {kind:accusative} do książki: %1</extracomment>
+        <translation>Dodano {kind:accusative} do książki: %1</translation>
+    </message>
+    <message>
+        <source>Close &quot;%1&quot;?</source>
+        <extracomment>The heading of the question; %1: the title of the open book. In Polish: Zamknąć „%1”?</extracomment>
+        <translation>Zamknąć „%1”?</translation>
+    </message>
+    <message>
+        <source>The book &quot;%1&quot; from the archive can take the place of the open one or be imported without opening.</source>
+        <extracomment>%1: the title of the book in the archive. In Polish: Książka „%1” z archiwum może zastąpić otwartą albo zostać zaimportowana bez otwierania.</extracomment>
+        <translation>Książka „%1” z archiwum może zastąpić otwartą albo zostać zaimportowana bez otwierania.</translation>
+    </message>
+    <message>
+        <source>A book imported without opening is on the Dashboard and in File &gt; Recent Books. Cancel returns to the Import Project Archive window with your choices.</source>
+        <extracomment>In Polish: Książkę zaimportowaną bez otwierania znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Importuj archiwum projektu” z wpisanymi danymi.</extracomment>
+        <translation>Książkę zaimportowaną bez otwierania znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Importuj archiwum projektu” z wpisanymi danymi.</translation>
+    </message>
+    <message>
+        <source>Close and Open Imported</source>
+        <extracomment>In Polish: Zamknij i otwórz zaimportowaną</extracomment>
+        <translation>Zamknij i otwórz zaimportowaną</translation>
+    </message>
+    <message>
+        <source>Import Without Opening</source>
+        <extracomment>In Polish: Importuj bez otwierania</extracomment>
+        <translation>Importuj bez otwierania</translation>
+    </message>
+    <message>
+        <source>Nothing to save: all changes are saved</source>
+        <translation>Nie ma nic do zapisania: wszystkie zmiany są zapisane</translation>
+    </message>
+    <message>
+        <source>Book saved</source>
+        <translation>Zapisano książkę</translation>
+    </message>
+    <message>
+        <source>The new book &quot;%1&quot; can take the place of the open one or be created without opening.</source>
+        <extracomment>%1: the title of the new book. In Polish: Nowa książka „%1” może zastąpić otwartą albo powstać bez otwierania.</extracomment>
+        <translation>Nowa książka „%1” może zastąpić otwartą albo powstać bez otwierania.</translation>
+    </message>
+    <message>
+        <source>A book created without opening is on the Dashboard and in File &gt; Recent Books. Cancel returns to the New Book window with your data.</source>
+        <translation>Książkę utworzoną bez otwierania znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka” z wpisanymi danymi.</translation>
+    </message>
+    <message>
+        <source>Close and Open New</source>
+        <extracomment>In Polish: Zamknij i otwórz nową</extracomment>
+        <translation>Zamknij i otwórz nową</translation>
+    </message>
+    <message>
+        <source>Create Without Opening</source>
+        <extracomment>In Polish: Utwórz bez otwierania</extracomment>
+        <translation>Utwórz bez otwierania</translation>
+    </message>
+    <message>
+        <source>Book &quot;%1&quot; created without opening. It is on the Dashboard and in File &gt; Recent Books.</source>
+        <extracomment>%1: the title of the new book. In Polish: Utworzono książkę „%1” bez otwierania. Znajdziesz ją na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</extracomment>
+        <translation>Utworzono książkę „%1” bez otwierania. Znajdziesz ją na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</translation>
+    </message>
+    <message>
+        <source>A book created without opening is on the Dashboard and in File &gt; Recent Books. Cancel returns to the New Book – User Project window with the kinds you checked.</source>
+        <extracomment>In Polish: Książkę utworzoną bez otwierania znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka – projekt użytkownika” z zaznaczonymi rodzajami.</extracomment>
+        <translation>Książkę utworzoną bez otwierania znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki. „Anuluj” wraca do okna „Nowa książka – projekt użytkownika” z zaznaczonymi rodzajami.</translation>
+    </message>
+    <message>
+        <source>Untitled %1</source>
+        <extracomment>The tab of a new file outside a book, before it is saved; %1: its number. In Polish: Bez tytułu %1</extracomment>
+        <translation>Bez tytułu %1</translation>
+    </message>
+    <message>
+        <source>New file created</source>
+        <translation>Utworzono nowy plik</translation>
+    </message>
+    <message>
+        <source>{Kind} &quot;%1&quot; {kind:s=is|p=are} saved with the book: use Save.</source>
+        <extracomment>%1: the title of the element. In Polish: {Kind} „%1” {kind:s=zapisuje|p=zapisują} się razem z książką: użyj polecenia „Zapisz”.</extracomment>
+        <translation>{Kind} „%1” {kind:s=zapisuje|p=zapisują} się razem z książką: użyj polecenia „Zapisz”.</translation>
+    </message>
+    <message>
+        <source>No book is open</source>
+        <extracomment>In Polish: Żadna książka nie jest otwarta</extracomment>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>Do you want to save changes to &apos;%1&apos; before closing the book?</source>
+        <extracomment>%1: the title of the book. In Polish: Czy zapisać zmiany w „%1” przed zamknięciem książki?</extracomment>
+        <translation>Czy zapisać zmiany w „%1” przed zamknięciem książki?</translation>
+    </message>
+    <message>
+        <source>This file belongs to the open book: it is the {kind} &quot;%1&quot;.</source>
+        <extracomment>%1: the title of the element. In Polish: Ten plik należy do otwartej książki: to {kind} „%1”.</extracomment>
+        <translation>Ten plik należy do otwartej książki: to {kind} „%1”.</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is the file of the {kind} &quot;%2&quot; in the open book. Choose another name.</source>
+        <translation>„%1” to plik {kind:genitive} „%2” z otwartej książki. Wybierz inną nazwę.</translation>
+    </message>
+    <message>
+        <source>Files of this book that were open on their own are open as its elements now: %1</source>
+        <extracomment>%1: the titles of the elements. In Polish: Pliki tej książki otwarte wcześniej osobno są teraz otwarte jako jej elementy: %1</extracomment>
+        <translation>Pliki tej książki otwarte wcześniej osobno są teraz otwarte jako jej elementy: %1</translation>
+    </message>
+    <message>
+        <source>Please open a book first before exporting.</source>
+        <translation>Przed eksportem otwórz książkę.</translation>
+    </message>
+    <message>
+        <source>A plain text file (.txt) keeps only the text, so the formatting (such as bold) and the annotations will not be saved in &quot;%1&quot;.</source>
+        <extracomment>%1: the name of the file. In Polish: Plik tekstowy (.txt) przechowuje tylko tekst, więc formatowanie (np. pogrubienie) i uwagi nie zostaną zapisane w pliku „%1”.</extracomment>
+        <translation>Plik tekstowy (.txt) przechowuje tylko tekst, więc formatowanie (np. pogrubienie) i uwagi nie zostaną zapisane w pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>A plain text file (.txt) keeps only the text, so the formatting (such as bold) will not be saved in &quot;%1&quot;.</source>
+        <extracomment>%1: the name of the file. In Polish: Plik tekstowy (.txt) przechowuje tylko tekst, więc formatowanie (np. pogrubienie) nie zostanie zapisane w pliku „%1”.</extracomment>
+        <translation>Plik tekstowy (.txt) przechowuje tylko tekst, więc formatowanie (np. pogrubienie) nie zostanie zapisane w pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>A plain text file (.txt) keeps only the text, so the annotations will not be saved in &quot;%1&quot;.</source>
+        <extracomment>%1: the name of the file. In Polish: Plik tekstowy (.txt) przechowuje tylko tekst, więc uwagi nie zostaną zapisane w pliku „%1”.</extracomment>
+        <translation>Plik tekstowy (.txt) przechowuje tylko tekst, więc uwagi nie zostaną zapisane w pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>To keep everything, choose Cancel, then File &gt; Save As... and the type &quot;%1&quot;.</source>
+        <extracomment>%1: the type of the files of Save As that keeps them. In Polish: Aby zachować wszystko, wybierz „Anuluj”, a potem Plik &gt; Zapisz jako... i typ „%1”.</extracomment>
+        <translation>Aby zachować wszystko, wybierz „Anuluj”, a potem Plik &gt; Zapisz jako... i typ „%1”.</translation>
+    </message>
+    <message>
+        <source>Save as Plain Text?</source>
+        <extracomment>In Polish: Zapisać jako plik tekstowy?</extracomment>
+        <translation>Zapisać jako plik tekstowy?</translation>
+    </message>
+    <message>
+        <source>Save as &amp;Text</source>
+        <translation>Zapisz jako &amp;tekst</translation>
+    </message>
+    <message>
+        <source>File: %1</source>
+        <extracomment>The first line of the details of a book that cannot be opened. In Polish: Plik: %1</extracomment>
+        <translation>Plik: %1</translation>
+    </message>
+    <message>
+        <source>Book Already Open</source>
+        <extracomment>The window of a book that another copy of the program has open. In Polish: Książka jest już otwarta</extracomment>
+        <translation>Książka jest już otwarta</translation>
+    </message>
+    <message>
+        <source>The book &quot;%1&quot; is already open in another window of Kalahari. Close it there and click Try Again.</source>
+        <extracomment>%1: the title of the book. In Polish: Książka „%1” jest już otwarta w innym oknie programu Kalahari. Zamknij ją tam i kliknij „Spróbuj ponownie”.</extracomment>
+        <translation>Książka „%1” jest już otwarta w innym oknie programu Kalahari. Zamknij ją tam i kliknij „Spróbuj ponownie”.</translation>
+    </message>
+    <message>
+        <source>&amp;Try Again</source>
+        <extracomment>In Polish: &amp;Spróbuj ponownie</extracomment>
+        <translation>&amp;Spróbuj ponownie</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Book Not Found</source>
+        <extracomment>In Polish: Nie znaleziono książki</extracomment>
+        <translation>Nie znaleziono książki</translation>
+    </message>
+    <message>
+        <source>There is no book file &quot;%1&quot; in the folder &quot;%2&quot;. The file may have been moved, deleted or renamed.</source>
+        <extracomment>%1: the name of the book file, %2: its folder. In Polish: W folderze „%2” nie ma pliku książki „%1”. Plik mógł zostać przeniesiony, usunięty albo mieć zmienioną nazwę.</extracomment>
+        <translation>W folderze „%2” nie ma pliku książki „%1”. Plik mógł zostać przeniesiony, usunięty albo mieć zmienioną nazwę.</translation>
+    </message>
+    <message>
+        <source>Not a Book</source>
+        <extracomment>In Polish: To nie jest książka</extracomment>
+        <translation>To nie jest książka</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a Kalahari book. A book file has the extension .klh.</source>
+        <extracomment>%1: the name of the file. In Polish: „%1” nie jest książką programu Kalahari. Plik książki ma rozszerzenie .klh.</extracomment>
+        <translation>„%1” nie jest książką programu Kalahari. Plik książki ma rozszerzenie .klh.</translation>
+    </message>
+    <message>
+        <source>Book of an Older Version</source>
+        <extracomment>In Polish: Książka starszej wersji</extracomment>
+        <translation>Książka starszej wersji</translation>
+    </message>
+    <message>
+        <source>This book was saved by an older version of Kalahari, whose format this version cannot read yet.</source>
+        <extracomment>In Polish: Tę książkę zapisała starsza wersja programu Kalahari, której formatu ta wersja jeszcze nie odczytuje.</extracomment>
+        <translation>Tę książkę zapisała starsza wersja programu Kalahari, której formatu ta wersja jeszcze nie odczytuje.</translation>
+    </message>
+    <message>
+        <source>Book Cannot Be Opened</source>
+        <extracomment>In Polish: Nie można otworzyć książki</extracomment>
+        <translation>Nie można otworzyć książki</translation>
+    </message>
+    <message>
+        <source>The database of the book cannot be opened: the file project.db in its folder may be damaged or used by another program.</source>
+        <extracomment>In Polish: Nie można otworzyć bazy danych książki: plik project.db w jej folderze może być uszkodzony albo używany przez inny program.</extracomment>
+        <translation>Nie można otworzyć bazy danych książki: plik project.db w jej folderze może być uszkodzony albo używany przez inny program.</translation>
+    </message>
+    <message>
+        <source>The open book cannot be closed, so the other one was not opened. The program&apos;s log has the details.</source>
+        <extracomment>In Polish: Nie można zamknąć otwartej książki, więc nie otwarto drugiej. Szczegóły są w dzienniku programu.</extracomment>
+        <translation>Nie można zamknąć otwartej książki, więc nie otwarto drugiej. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>Book Cannot Be Read</source>
+        <extracomment>In Polish: Nie można odczytać książki</extracomment>
+        <translation>Nie można odczytać książki</translation>
+    </message>
+    <message>
+        <source>The book file &quot;%1&quot; is damaged or incomplete, so the program cannot read it. Show Details says what is wrong in it.</source>
+        <extracomment>%1: the name of the book file. In Polish: Plik książki „%1” jest uszkodzony albo niepełny, więc program nie może go odczytać. Co jest w nim nie tak, pokazuje przycisk „Pokaż szczegóły”.</extracomment>
+        <translation>Plik książki „%1” jest uszkodzony albo niepełny, więc program nie może go odczytać. Co jest w nim nie tak, pokazuje przycisk „Pokaż szczegóły”.</translation>
+    </message>
+    <message>
+        <source>New file – not saved yet</source>
+        <extracomment>The info bar of a new file that has no file yet. In Polish: Nowy plik – jeszcze niezapisany</extracomment>
+        <translation>Nowy plik – jeszcze niezapisany</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is the file &quot;%2&quot; of the open book. Choose another name.</source>
+        <translation>„%1” to plik „%2” z otwartej książki. Wybierz inną nazwę.</translation>
     </message>
 </context>
 <context>
@@ -3867,16 +4983,30 @@ Pomaga zobaczyć granice marginesów.</translation>
 <context>
     <name>kalahari::gui::EditorPanel</name>
     <message>
-        <source>Damaged Chapter</source>
-        <translation>Uszkodzony rozdział</translation>
+        <source>Damaged File</source>
+        <translation>Uszkodzony plik</translation>
     </message>
     <message>
-        <source>The chapter &quot;%1&quot; is damaged, so only its text before the damaged place is shown.
+        <source>The file &quot;%1&quot; is damaged, so only its text before the damaged place is shown.
 
-Saving the chapter keeps only this text. Close it without saving to leave the file as it is.</source>
-        <translation>Rozdział „%1” jest uszkodzony, dlatego widać tylko tekst sprzed uszkodzonego miejsca.
+Saving the file keeps only this text. Close it without saving to leave the file as it is.</source>
+        <translation>Plik „%1” jest uszkodzony, dlatego widać tylko tekst sprzed uszkodzonego miejsca.
 
-Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, zamknij rozdział bez zapisywania.</translation>
+Zapisanie pliku zachowa tylko ten tekst. Aby pozostawić plik bez zmian, zamknij go bez zapisywania.</translation>
+    </message>
+    <message>
+        <source>Damaged {Kind}</source>
+        <extracomment>In Polish: {kind:m=Uszkodzony|f=Uszkodzona|n=Uszkodzone|p=Uszkodzone} {kind}</extracomment>
+        <translation>{kind:m=Uszkodzony|f=Uszkodzona|n=Uszkodzone|p=Uszkodzone} {kind}</translation>
+    </message>
+    <message>
+        <source>The {kind} &quot;%1&quot; {kind:s=is|p=are} damaged, so only {kind:s=its|p=their} text before the damaged place is shown.
+
+Saving the {kind} keeps only this text. Close {kind:s=it|p=them} without saving to leave the file as it is.</source>
+        <extracomment>In Polish: {Kind} „%1” {kind:m=jest uszkodzony|f=jest uszkodzona|n=jest uszkodzone|p=są uszkodzone}, dlatego widać tylko tekst sprzed uszkodzonego miejsca. Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmian, zamknij {kind:accusative} bez zapisywania.</extracomment>
+        <translation>{Kind} „%1” {kind:m=jest uszkodzony|f=jest uszkodzona|n=jest uszkodzone|p=są uszkodzone}, dlatego widać tylko tekst sprzed uszkodzonego miejsca.
+
+Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmian, zamknij {kind:accusative} bez zapisywania.</translation>
     </message>
 </context>
 <context>
@@ -3932,18 +5062,175 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     </message>
 </context>
 <context>
+    <name>kalahari::gui::ElementPlacePicker</name>
+    <message>
+        <source>Place</source>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Elsewhere: show the place in the list</source>
+        <translation>W innym miejscu – wskaż je na liście</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; will no longer be the first element %2.</source>
+        <extracomment>%1: the title of an element; %2: a part of the book with its preposition, &quot;in the main section&quot;. In Polish: Element „%1” przestanie być pierwszy %2.</extracomment>
+        <translation>Element „%1” przestanie być pierwszy %2.</translation>
+    </message>
+    <message>
+        <source>%1 will no longer be the first elements %2.</source>
+        <extracomment>%1: titles in quotes, &quot;A&quot; and &quot;B&quot;; %2: a part of the book with its preposition. In Polish: Elementy %1 przestaną być pierwsze %2.</extracomment>
+        <translation>Elementy %1 przestaną być pierwsze %2.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; will no longer be the last element %2.</source>
+        <extracomment>In Polish: Element „%1” przestanie być ostatni %2.</extracomment>
+        <translation>Element „%1” przestanie być ostatni %2.</translation>
+    </message>
+    <message>
+        <source>%1 will no longer be the last elements %2.</source>
+        <extracomment>In Polish: Elementy %1 przestaną być ostatnie %2.</extracomment>
+        <translation>Elementy %1 przestaną być ostatnie %2.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; will not be the first element %2.</source>
+        <extracomment>A prologue placed after a chapter. In Polish: Element „%1” nie będzie pierwszy %2.</extracomment>
+        <translation>Element „%1” nie będzie pierwszy %2.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; will not be the last element %2.</source>
+        <extracomment>An epilogue placed before a chapter. In Polish: Element „%1” nie będzie ostatni %2.</extracomment>
+        <translation>Element „%1” nie będzie ostatni %2.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot;</source>
+        <extracomment>A title in quotes, in a sentence. In Polish: „%1”</extracomment>
+        <translation>„%1”</translation>
+    </message>
+    <message>
+        <source>%1 and %2</source>
+        <extracomment>Titles in a sentence, &quot;A&quot;, &quot;B&quot; and &quot;C&quot;: %1 is the titles but the last one, joined with commas; %2 is the last one. In Polish: %1 i %2</extracomment>
+        <translation>%1 i %2</translation>
+    </message>
+    <message>
+        <source>Move the {kind} up</source>
+        <extracomment>In Polish: Przesuń {kind:accusative} w górę</extracomment>
+        <translation>Przesuń {kind:accusative} w górę</translation>
+    </message>
+    <message>
+        <source>Move the {kind} down</source>
+        <extracomment>In Polish: Przesuń {kind:accusative} w dół</extracomment>
+        <translation>Przesuń {kind:accusative} w dół</translation>
+    </message>
+    <message>
+        <source>Click the element the {kind} {kind:s=is|p=are} to go before</source>
+        <extracomment>The tooltip of the list of the book. In Polish: Kliknij element, przed którym {kind:s=ma|p=mają} się znaleźć {kind}</extracomment>
+        <translation>Kliknij element, przed którym {kind:s=ma|p=mają} się znaleźć {kind}</translation>
+    </message>
+    <message>
+        <source>Click the element the {kind} {kind:s=is|p=are} to go before, or move {kind:s=it|p=them} with the buttons %1.</source>
+        <extracomment>%1: the arrows of the buttons, kept together on a line. In Polish: Kliknij element, przed którym {kind:s=ma|p=mają} się znaleźć {kind}, albo przesuń {kind:m=go|f=ją|n=je|p=je} przyciskami %1.</extracomment>
+        <translation>Kliknij element, przed którym {kind:s=ma|p=mają} się znaleźć {kind}, albo przesuń {kind:m=go|f=ją|n=je|p=je} przyciskami %1.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FolderField</name>
+    <message>
+        <source>Restore Default</source>
+        <translation>Domyślny</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>Put the default folder in the field: %1</source>
+        <translation>Wstaw do pola folder domyślny: %1</translation>
+    </message>
+    <message>
+        <source>Kalahari will create this folder when it is first needed.</source>
+        <translation>Kalahari utworzy ten folder, gdy będzie potrzebny.</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>Przeglądaj...</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FoldersPage</name>
+    <message>
+        <source>Books</source>
+        <translation>Książki</translation>
+    </message>
+    <message>
+        <source>Books folder:</source>
+        <translation>Folder książek:</translation>
+    </message>
+    <message>
+        <source>Choose the Folder of the Books</source>
+        <translation>Wybierz folder książek</translation>
+    </message>
+    <message>
+        <source>Archives</source>
+        <translation>Archiwa</translation>
+    </message>
+    <message>
+        <source>Archives folder:</source>
+        <translation>Folder archiwów:</translation>
+    </message>
+    <message>
+        <source>Choose the Folder of the Archives</source>
+        <translation>Wybierz folder archiwów</translation>
+    </message>
+    <message>
+        <source>Database Backups</source>
+        <translation>Kopie zapasowe bazy</translation>
+    </message>
+    <message>
+        <source>In the .backups folder of each book</source>
+        <translation>W podfolderze .backups każdej książki</translation>
+    </message>
+    <message>
+        <source>In one folder for all books:</source>
+        <translation>We wspólnym folderze wszystkich książek:</translation>
+    </message>
+    <message>
+        <source>Choose the Folder of the Backups</source>
+        <translation>Wybierz folder kopii zapasowych</translation>
+    </message>
+    <message>
+        <source>Folder of the backups of all books</source>
+        <translation>Folder kopii zapasowych wszystkich książek</translation>
+    </message>
+    <message>
+        <source>How many of the newest backups of each book Kalahari keeps; it deletes the older ones</source>
+        <translation>Ile najnowszych kopii każdej książki zachowuje Kalahari; starsze usuwa</translation>
+    </message>
+    <message>
+        <source>Copies to keep:</source>
+        <translation>Liczba kopii:</translation>
+    </message>
+    <message>
+        <source>When a book is closed, Kalahari copies its database (project.db) and keeps the given number of the newest copies. In the common folder each book has a folder of its own. The copies made before a change stay where they are.</source>
+        <translation>Przy zamykaniu książki Kalahari kopiuje jej bazę danych (project.db) i zachowuje podaną liczbę najnowszych kopii. We wspólnym folderze każda książka ma własny folder. Kopie zrobione przed zmianą zostają tam, gdzie są.</translation>
+    </message>
+    <message>
+        <source>The folder &apos;%1&apos; cannot be used. %2</source>
+        <translation>Nie można użyć folderu „%1”. %2</translation>
+    </message>
+    <message>
+        <source>The New Book window suggests this folder for a new book, and the Open Book window and the window choosing where an imported book goes open in it. Later each of them starts in the folder chosen in it last, until this setting changes.</source>
+        <translation>Okno „Nowa książka” proponuje ten folder jako miejsce nowej książki, a okna „Otwórz książkę” i wyboru miejsca importu otwierają się w nim. Później każde z nich zaczyna od folderu wybranego w nim ostatnio, aż do zmiany tego ustawienia.</translation>
+    </message>
+    <message>
+        <source>The windows exporting a book and choosing an archive to import open in this folder. Later each of them starts in the folder chosen in it last, until this setting changes.</source>
+        <translation>Okna eksportu książki i wyboru archiwum do importu otwierają się w tym folderze. Później każde z nich zaczyna od folderu wybranego w nim ostatnio, aż do zmiany tego ustawienia.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::GeneralPage</name>
     <message>
         <source>Startup</source>
         <translation>Uruchamianie</translation>
-    </message>
-    <message>
-        <source>Open last project on startup</source>
-        <translation>Otwieraj ostatni projekt przy starcie</translation>
-    </message>
-    <message>
-        <source>Automatically open the most recently used project when Kalahari starts</source>
-        <translation>Po uruchomieniu Kalahari otwiera ostatnio używany projekt</translation>
     </message>
     <message>
         <source>Units</source>
@@ -3976,6 +5263,141 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     <message>
         <source>Length unit:</source>
         <translation>Jednostka długości:</translation>
+    </message>
+    <message>
+        <source>Open last book on startup</source>
+        <translation>Otwieraj ostatnią książkę przy starcie</translation>
+    </message>
+    <message>
+        <source>Automatically open the most recently used book when Kalahari starts</source>
+        <translation>Po uruchomieniu Kalahari otwiera ostatnio używaną książkę</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::IconDownloaderDialog</name>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Icon URL</source>
+        <translation>Adres ikony</translation>
+    </message>
+    <message>
+        <source>Enter full URL to SVG icon. Example:</source>
+        <translation>Wpisz pełny adres URL ikony SVG. Przykład:</translation>
+    </message>
+    <message>
+        <source>Full URL to SVG file</source>
+        <translation>Pełny adres URL pliku SVG</translation>
+    </message>
+    <message>
+        <source>Output Settings</source>
+        <translation>Zapis</translation>
+    </message>
+    <message>
+        <source>Icon name:</source>
+        <translation>Nazwa ikony:</translation>
+    </message>
+    <message>
+        <source>e.g., save, folder_open</source>
+        <translation>np. save, folder_open</translation>
+    </message>
+    <message>
+        <source>Name for saved file (without .svg)</source>
+        <translation>Nazwa zapisanego pliku (bez .svg)</translation>
+    </message>
+    <message>
+        <source>Save to theme:</source>
+        <translation>Zapisz w stylu:</translation>
+    </message>
+    <message>
+        <source>Target theme directory</source>
+        <translation>Katalog docelowego stylu ikon</translation>
+    </message>
+    <message>
+        <source>Download Progress</source>
+        <translation>Postęp pobierania</translation>
+    </message>
+    <message>
+        <source>Ready to download</source>
+        <translation>Gotowe do pobrania</translation>
+    </message>
+    <message>
+        <source>Errors:</source>
+        <translation>Błędy:</translation>
+    </message>
+    <message>
+        <source>No errors</source>
+        <translation>Brak błędów</translation>
+    </message>
+    <message>
+        <source>Download</source>
+        <translation>Pobierz</translation>
+    </message>
+    <message>
+        <source>Downloading...</source>
+        <translation>Pobieranie…</translation>
+    </message>
+    <message>
+        <source>Conversion failed: %1</source>
+        <translation>Nie udało się przekształcić ikony: %1</translation>
+    </message>
+    <message>
+        <source>Failed to create directory: %1</source>
+        <translation>Nie udało się utworzyć katalogu: %1</translation>
+    </message>
+    <message>
+        <source>Failed to write file: %1</source>
+        <translation>Nie udało się zapisać pliku: %1</translation>
+    </message>
+    <message>
+        <source>Downloading... (%1/%2)</source>
+        <translation>Pobieranie… (%1/%2)</translation>
+    </message>
+    <message>
+        <source>Downloaded and saved successfully</source>
+        <translation>Pobrano i zapisano</translation>
+    </message>
+    <message>
+        <source>Download failed</source>
+        <translation>Nie udało się pobrać</translation>
+    </message>
+    <message>
+        <source>Icon Downloader</source>
+        <translation>Pobieranie ikon</translation>
+    </message>
+    <message>
+        <source>Cancel Download</source>
+        <translation>Przerwij pobieranie</translation>
+    </message>
+    <message>
+        <source>The download is in progress. Do you want to stop it?</source>
+        <translation>Trwa pobieranie. Czy je przerwać?</translation>
+    </message>
+    <message>
+        <source>&amp;Stop Download</source>
+        <translation>&amp;Przerwij pobieranie</translation>
+    </message>
+    <message>
+        <source>Invalid Input</source>
+        <translation>Nieprawidłowe dane</translation>
+    </message>
+    <message>
+        <source>Please enter a URL.</source>
+        <translation>Wpisz adres URL.</translation>
+    </message>
+    <message>
+        <source>The URL must start with http:// or https://.</source>
+        <translation>Adres URL musi zaczynać się od http:// lub https://.</translation>
+    </message>
+    <message>
+        <source>Please enter an icon name.</source>
+        <translation>Wpisz nazwę ikony.</translation>
     </message>
 </context>
 <context>
@@ -4134,6 +5556,13 @@ Zapisanie rozdziału zachowa tylko ten tekst. Aby pozostawić plik bez zmian, za
     <message>
         <source>Combo Boxes:</source>
         <translation>Listy rozwijane:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::InfoBar</name>
+    <message>
+        <source>Dismiss this message</source>
+        <translation>Ukryj ten komunikat</translation>
     </message>
 </context>
 <context>
@@ -4330,13 +5759,17 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>Untitled</source>
         <translation>Bez tytułu</translation>
     </message>
+    <message>
+        <source>&amp;Save</source>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>Do&amp;n&apos;t Save</source>
+        <translation>&amp;Nie zapisuj</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
-    <message>
-        <source>No project loaded</source>
-        <translation>Nie wczytano projektu</translation>
-    </message>
     <message>
         <source>Opened: %1</source>
         <translation>Otwarto: %1</translation>
@@ -4352,66 +5785,6 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Failed to save changes.</source>
         <translation>Nie udało się zapisać zmian.</translation>
-    </message>
-    <message>
-        <source>chapter</source>
-        <translation>rozdział</translation>
-    </message>
-    <message>
-        <source>part</source>
-        <translation>część</translation>
-    </message>
-    <message>
-        <source>title page</source>
-        <translation>strona tytułowa</translation>
-    </message>
-    <message>
-        <source>dedication</source>
-        <translation>dedykacja</translation>
-    </message>
-    <message>
-        <source>preface</source>
-        <translation>przedmowa</translation>
-    </message>
-    <message>
-        <source>epilogue</source>
-        <translation>epilog</translation>
-    </message>
-    <message>
-        <source>glossary</source>
-        <translation>słowniczek</translation>
-    </message>
-    <message>
-        <source>bibliography</source>
-        <translation>bibliografia</translation>
-    </message>
-    <message>
-        <source>about author</source>
-        <translation>nota o autorze</translation>
-    </message>
-    <message>
-        <source>Confirm Delete</source>
-        <translation>Potwierdź usunięcie</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to delete this %1?
-
-This action cannot be undone.</source>
-        <translation>Czy na pewno usunąć ten element (%1)?
-
-Tej operacji nie można cofnąć.</translation>
-    </message>
-    <message>
-        <source>Deleted successfully</source>
-        <translation>Usunięto</translation>
-    </message>
-    <message>
-        <source>Delete Error</source>
-        <translation>Błąd usuwania</translation>
-    </message>
-    <message>
-        <source>Element was deleted but failed to save manifest.</source>
-        <translation>Element usunięto, ale nie udało się zapisać pliku projektu.</translation>
     </message>
     <message>
         <source>Delete Failed</source>
@@ -4430,32 +5803,200 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Przeniesiono w dół</translation>
     </message>
     <message>
-        <source>Add Chapter Failed</source>
-        <translation>Nie udało się dodać rozdziału</translation>
+        <source>Show Sections Failed</source>
+        <translation>Nie udało się pokazać sekcji</translation>
     </message>
     <message>
-        <source>Part not found.</source>
-        <translation>Nie znaleziono części.</translation>
+        <source>Hide Sections Failed</source>
+        <translation>Nie udało się ukryć sekcji</translation>
     </message>
     <message>
-        <source>Chapter added: %1</source>
-        <translation>Dodano rozdział: %1</translation>
+        <source>Sections shown</source>
+        <translation>Sekcje są widoczne</translation>
     </message>
     <message>
-        <source>Part added: %1</source>
-        <translation>Dodano część: %1</translation>
+        <source>Sections hidden</source>
+        <translation>Sekcje są ukryte</translation>
     </message>
     <message>
-        <source>Add Part Failed</source>
-        <translation>Nie udało się dodać części</translation>
+        <source>Rename Sections Failed</source>
+        <translation>Nie udało się zmienić nazw sekcji</translation>
     </message>
     <message>
-        <source>Item added: %1</source>
-        <translation>Dodano element: %1</translation>
+        <source>Sections renamed</source>
+        <translation>Zmieniono nazwy sekcji</translation>
     </message>
     <message>
-        <source>Add Item Failed</source>
-        <translation>Nie udało się dodać elementu</translation>
+        <source>Add {Kind} Failed</source>
+        <extracomment>In Polish: Nie udało się dodać {kind:genitive}</extracomment>
+        <translation>Nie udało się dodać {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>Could not find the place for the new {kind}.</source>
+        <extracomment>In Polish: Nie znaleziono miejsca na {kind:m=nowy|f=nową|n=nowe|p=nowe} {kind:accusative}.</extracomment>
+        <translation>Nie znaleziono miejsca na {kind:m=nowy|f=nową|n=nowe|p=nowe} {kind:accusative}.</translation>
+    </message>
+    <message>
+        <source>{Kind} added: %1</source>
+        <extracomment>In Polish: Dodano {kind:accusative}: %1</extracomment>
+        <translation>Dodano {kind:accusative}: %1</translation>
+    </message>
+    <message>
+        <source>The changes in the {kind} &quot;%1&quot; could not be saved to its file.
+
+Delete {kind:s=it|p=them} from the book anyway? The file keeps the text saved before.</source>
+        <extracomment>In Polish: Zmian w {kind:locative} „%1” nie udało się zapisać w pliku. Mimo to usunąć {kind:m=go|f=ją|n=je|p=je} z książki? Plik zachowa tekst zapisany wcześniej.</extracomment>
+        <translation>Zmian w {kind:locative} „%1” nie udało się zapisać w pliku.
+
+Mimo to usunąć {kind:m=go|f=ją|n=je|p=je} z książki? Plik zachowa tekst zapisany wcześniej.</translation>
+    </message>
+    <message>
+        <source>The changes in these elements could not be saved to their files:
+%1
+
+Delete them from the book anyway? Their files keep the text saved before.</source>
+        <translation>Zmian w tych elementach nie udało się zapisać w ich plikach:
+%1
+
+Mimo to usunąć je z książki? Ich pliki zachowają tekst zapisany wcześniej.</translation>
+    </message>
+    <message>
+        <source>Delete from Book</source>
+        <translation>Usuń z książki</translation>
+    </message>
+    <message>
+        <source>Delete &amp;Anyway</source>
+        <translation>&amp;Usuń mimo to</translation>
+    </message>
+    <message>
+        <source>{Kind} deleted from the book: %1</source>
+        <extracomment>In Polish: Usunięto {kind:accusative} z książki: %1</extracomment>
+        <translation>Usunięto {kind:accusative} z książki: %1</translation>
+    </message>
+    <message>
+        <source>The {bin} did not take the file:
+%1
+
+Delete it for good? It cannot be restored then.</source>
+        <translation>Kosz nie przyjął pliku:
+%1
+
+Usunąć go na zawsze? Nie będzie można go przywrócić.</translation>
+    </message>
+    <message>
+        <source>The {bin} did not take these files:
+%1
+
+Delete them for good? They cannot be restored then.</source>
+        <translation>Kosz nie przyjął tych plików:
+%1
+
+Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
+    </message>
+    <message>
+        <source>Delete File</source>
+        <translation>Usuń plik</translation>
+    </message>
+    <message>
+        <source>Delete Files</source>
+        <translation>Usuń pliki</translation>
+    </message>
+    <message>
+        <source>Delete for &amp;Good</source>
+        <translation>&amp;Usuń na zawsze</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the File</source>
+        <translation>&amp;Zachowaj plik</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the Files</source>
+        <translation>&amp;Zachowaj pliki</translation>
+    </message>
+    <message>
+        <source>The file could not be deleted:
+%1</source>
+        <translation>Nie udało się usunąć pliku:
+%1</translation>
+    </message>
+    <message>
+        <source>These files could not be deleted:
+%1</source>
+        <translation>Nie udało się usunąć tych plików:
+%1</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>The file could not be read:
+%1</source>
+        <translation>Nie udało się odczytać pliku:
+%1</translation>
+    </message>
+    <message>
+        <source>Add to Book</source>
+        <translation>Dodaj do książki</translation>
+    </message>
+    <message>
+        <source>No element of this book can have a text.</source>
+        <translation>Żaden element tej książki nie może zawierać tekstu.</translation>
+    </message>
+    <message>
+        <source>The file could not be added to the book. The program&apos;s log has the details.</source>
+        <translation>Nie udało się dodać pliku do książki. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>{Kind} added to the book: %1</source>
+        <extracomment>In Polish: Dodano {kind:accusative} do książki: %1</extracomment>
+        <translation>Dodano {kind:accusative} do książki: %1</translation>
+    </message>
+    <message>
+        <source>File moved to the {bin}: %1</source>
+        <extracomment>In Polish: Przeniesiono plik do Kosza: %1</extracomment>
+        <translation>Przeniesiono plik do Kosza: %1</translation>
+    </message>
+    <message>
+        <source>File deleted: %1</source>
+        <translation>Usunięto plik: %1</translation>
+    </message>
+    <message>
+        <source>Files moved to the {bin}: %1</source>
+        <extracomment>In Polish: Przeniesiono pliki do Kosza: %1</extracomment>
+        <translation>Przeniesiono pliki do Kosza: %1</translation>
+    </message>
+    <message>
+        <source>Files deleted: %1</source>
+        <translation>Usunięto pliki: %1</translation>
+    </message>
+    <message>
+        <source>Move {Kind} Failed</source>
+        <extracomment>In Polish: Nie udało się przenieść {kind:genitive}</extracomment>
+        <translation>Nie udało się przenieść {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>The changes in the book could not be saved. The program&apos;s log has the details.</source>
+        <translation>Nie udało się zapisać zmian w książce. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>{Kind} moved: %1</source>
+        <extracomment>%1: the title of the element. In Polish: Przeniesiono {kind:accusative}: %1</extracomment>
+        <translation>Przeniesiono {kind:accusative}: %1</translation>
+    </message>
+    <message>
+        <source>No book loaded</source>
+        <translation>Nie wczytano książki</translation>
+    </message>
+    <message>
+        <source>Add File Failed</source>
+        <extracomment>In Polish: Nie udało się dodać pliku</extracomment>
+        <translation>Nie udało się dodać pliku</translation>
+    </message>
+    <message>
+        <source>File added to Other Files: %1</source>
+        <extracomment>An empty text file added to the files of the book outside its text. In Polish: Dodano plik do grupy „Inne pliki”: %1</extracomment>
+        <translation>Dodano plik do grupy „Inne pliki”: %1</translation>
     </message>
 </context>
 <context>
@@ -4501,32 +6042,8 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Zwiń wszystko</translation>
     </message>
     <message>
-        <source>Project Structure (no document loaded)</source>
-        <translation>Struktura projektu (brak dokumentu)</translation>
-    </message>
-    <message>
-        <source>Project Structure</source>
-        <translation>Struktura projektu</translation>
-    </message>
-    <message>
-        <source>Front Matter</source>
-        <translation>Część wstępna</translation>
-    </message>
-    <message>
-        <source>Body</source>
-        <translation>Część główna</translation>
-    </message>
-    <message>
-        <source>Back Matter</source>
-        <translation>Część końcowa</translation>
-    </message>
-    <message>
         <source>Files</source>
         <translation>Pliki</translation>
-    </message>
-    <message>
-        <source>Other Files</source>
-        <translation>Inne pliki</translation>
     </message>
     <message>
         <source>Draft</source>
@@ -4537,16 +6054,68 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Poprawki</translation>
     </message>
     <message>
+        <source>Status Change Failed</source>
+        <translation>Nie udało się zmienić stanu</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Add {Kind}...</source>
+        <translation>Dodaj {kind:accusative}...</translation>
+    </message>
+    <message>
+        <source>Unassigned Files (%1)</source>
+        <extracomment>The item of the Navigator with the chapter files that no element of the book has; %1: their number. In Polish: Pliki bez przydziału (%1)</extracomment>
+        <translation>Pliki bez przydziału (%1)</translation>
+    </message>
+    <message>
+        <source>Chapter files in the book&apos;s folder that no element of the book has</source>
+        <translation>Pliki tekstów w folderze książki, które nie należą do żadnego jej elementu</translation>
+    </message>
+    <message>
+        <source>%1 – %2</source>
+        <extracomment>A file of &quot;Unassigned Files&quot;: %1 the title of its text, %2 the name of the file</extracomment>
+        <translation>%1 – %2</translation>
+    </message>
+    <message>
+        <source>Show in Folder</source>
+        <translation>Pokaż w folderze</translation>
+    </message>
+    <message>
+        <source>The file manager of the system could not show:
+%1</source>
+        <translation>Menedżer plików nie mógł pokazać tego miejsca:
+%1</translation>
+    </message>
+    <message>
+        <source>Files Outside the Book</source>
+        <extracomment>The item of the Navigator with the files open beside the book, which are not in it. In Polish: Pliki spoza książki</extracomment>
+        <translation>Pliki spoza książki</translation>
+    </message>
+    <message>
+        <source>The program does not have the package of this element&apos;s kind.</source>
+        <extracomment>Why Move... cannot be used: the element&apos;s kind comes from a package of book types that this installation does not have. In Polish: Program nie ma pakietu, z którego pochodzi rodzaj tego elementu.</extracomment>
+        <translation>Program nie ma pakietu, z którego pochodzi rodzaj tego elementu.</translation>
+    </message>
+    <message>
+        <source>No book is open</source>
+        <extracomment>The header of the Navigator while no book is open. In Polish: Żadna książka nie jest otwarta</extracomment>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>Book Structure</source>
+        <extracomment>The header of the Navigator with the open book. In Polish: Struktura książki</extracomment>
+        <translation>Struktura książki</translation>
+    </message>
+    <message>
         <source>&amp;Open</source>
         <translation>&amp;Otwórz</translation>
     </message>
     <message>
         <source>Rena&amp;me...</source>
         <translation>Zmień &amp;nazwę...</translation>
-    </message>
-    <message>
-        <source>&amp;Delete</source>
-        <translation>&amp;Usuń</translation>
     </message>
     <message>
         <source>Move &amp;Up</source>
@@ -4577,10 +6146,6 @@ Tej operacji nie można cofnąć.</translation>
         <translation>&amp;Właściwości...</translation>
     </message>
     <message>
-        <source>&amp;Add Chapter</source>
-        <translation>&amp;Dodaj rozdział</translation>
-    </message>
-    <message>
         <source>&amp;Expand All</source>
         <translation>&amp;Rozwiń wszystko</translation>
     </message>
@@ -4589,44 +6154,88 @@ Tej operacji nie można cofnąć.</translation>
         <translation>&amp;Zwiń wszystko</translation>
     </message>
     <message>
-        <source>&amp;Add Part</source>
-        <translation>&amp;Dodaj część</translation>
-    </message>
-    <message>
-        <source>&amp;Add Item</source>
-        <translation>&amp;Dodaj element</translation>
-    </message>
-    <message>
-        <source>Project P&amp;roperties...</source>
-        <translation>&amp;Właściwości projektu...</translation>
-    </message>
-    <message>
-        <source>&amp;Add to Project</source>
-        <translation>&amp;Dodaj do projektu</translation>
-    </message>
-    <message>
         <source>&amp;Remove from List</source>
         <translation>&amp;Usuń z listy</translation>
+    </message>
+    <message>
+        <source>Mo&amp;ve...</source>
+        <translation>&amp;Przenieś...</translation>
+    </message>
+    <message>
+        <source>Move to S&amp;tart</source>
+        <translation>Przenieś na po&amp;czątek</translation>
+    </message>
+    <message>
+        <source>Move to E&amp;nd</source>
+        <translation>Przenieś na &amp;koniec</translation>
+    </message>
+    <message>
+        <source>&amp;Delete...</source>
+        <translation>&amp;Usuń...</translation>
+    </message>
+    <message>
+        <source>&amp;Add Item...</source>
+        <translation>&amp;Dodaj element...</translation>
+    </message>
+    <message>
+        <source>Add Item at the &amp;Beginning of the Book...</source>
+        <translation>Dodaj element na &amp;początku książki...</translation>
+    </message>
+    <message>
+        <source>Add Item at the &amp;End of the Book...</source>
+        <translation>Dodaj element na &amp;końcu książki...</translation>
+    </message>
+    <message>
+        <source>&amp;Show Sections</source>
+        <translation>Pokaż &amp;sekcje</translation>
+    </message>
+    <message>
+        <source>Book P&amp;roperties...</source>
+        <translation>&amp;Właściwości książki...</translation>
+    </message>
+    <message>
+        <source>&amp;Add to Book...</source>
+        <translation>&amp;Dodaj do książki...</translation>
+    </message>
+    <message>
+        <source>&amp;Preview</source>
+        <translation>&amp;Podgląd</translation>
+    </message>
+    <message>
+        <source>Show in &amp;Folder</source>
+        <translation>Pokaż w &amp;folderze</translation>
+    </message>
+    <message>
+        <source>&amp;Delete File...</source>
+        <translation>&amp;Usuń plik...</translation>
+    </message>
+    <message>
+        <source>&amp;Delete All...</source>
+        <translation>&amp;Usuń wszystkie...</translation>
+    </message>
+    <message>
+        <source>Other Files</source>
+        <extracomment>The item of the Navigator with the files of the book outside its text, such as notes, which the finished book does not have. In Polish: Inne pliki</extracomment>
+        <translation>Inne pliki</translation>
+    </message>
+    <message>
+        <source>Files kept with the book that are not part of its text: the finished book does not have them</source>
+        <extracomment>In Polish: Pliki trzymane razem z książką, które nie należą do jej treści: gotowa książka ich nie zawiera</extracomment>
+        <translation>Pliki trzymane razem z książką, które nie należą do jej treści: gotowa książka ich nie zawiera</translation>
+    </message>
+    <message>
+        <source>New file – not saved yet</source>
+        <extracomment>The tooltip of a new file in the Navigator, which has no file yet. In Polish: Nowy plik – jeszcze niezapisany</extracomment>
+        <translation>Nowy plik – jeszcze niezapisany</translation>
+    </message>
+    <message>
+        <source>&amp;Add to Book</source>
+        <extracomment>The command of a new file that has no file yet; no window follows. In Polish: &amp;Dodaj do książki</extracomment>
+        <translation>&amp;Dodaj do książki</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::PropertiesPanel</name>
-    <message>
-        <source>Open a project to see properties</source>
-        <translation>Otwórz projekt, aby zobaczyć właściwości</translation>
-    </message>
-    <message>
-        <source>Project Information</source>
-        <translation>Informacje o projekcie</translation>
-    </message>
-    <message>
-        <source>Project title</source>
-        <translation>Tytuł projektu</translation>
-    </message>
-    <message>
-        <source>Enter project title</source>
-        <translation>Wpisz tytuł projektu</translation>
-    </message>
     <message>
         <source>Title:</source>
         <translation>Tytuł:</translation>
@@ -4642,10 +6251,6 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Author:</source>
         <translation>Autor:</translation>
-    </message>
-    <message>
-        <source>Project language</source>
-        <translation>Język projektu</translation>
     </message>
     <message>
         <source>English</source>
@@ -4708,32 +6313,12 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Statystyki</translation>
     </message>
     <message>
-        <source>Total number of chapters in the project</source>
-        <translation>Liczba wszystkich rozdziałów projektu</translation>
-    </message>
-    <message>
-        <source>Total Chapters:</source>
-        <translation>Rozdziały razem:</translation>
-    </message>
-    <message>
-        <source>Total word count across all chapters</source>
-        <translation>Liczba słów we wszystkich rozdziałach</translation>
-    </message>
-    <message>
         <source>Total Words:</source>
         <translation>Słowa razem:</translation>
     </message>
     <message>
-        <source>Date when the project was created</source>
-        <translation>Data utworzenia projektu</translation>
-    </message>
-    <message>
         <source>Created:</source>
         <translation>Utworzono:</translation>
-    </message>
-    <message>
-        <source>Date when the project was last modified</source>
-        <translation>Data ostatniej zmiany projektu</translation>
     </message>
     <message>
         <source>Modified:</source>
@@ -4744,52 +6329,20 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Stan</translation>
     </message>
     <message>
-        <source>Number of chapters with Draft status</source>
-        <translation>Liczba rozdziałów w stanie „Szkic”</translation>
-    </message>
-    <message>
         <source>Draft:</source>
         <translation>Szkic:</translation>
-    </message>
-    <message>
-        <source>Number of chapters with Revision status</source>
-        <translation>Liczba rozdziałów w stanie „Poprawki”</translation>
     </message>
     <message>
         <source>Revision:</source>
         <translation>Poprawki:</translation>
     </message>
     <message>
-        <source>Number of chapters with Final status</source>
-        <translation>Liczba rozdziałów w stanie „Gotowy”</translation>
-    </message>
-    <message>
         <source>Final:</source>
         <translation>Gotowe:</translation>
     </message>
     <message>
-        <source>Chapter Information</source>
-        <translation>Informacje o rozdziale</translation>
-    </message>
-    <message>
-        <source>Chapter title</source>
-        <translation>Tytuł rozdziału</translation>
-    </message>
-    <message>
-        <source>Enter chapter title</source>
-        <translation>Wpisz tytuł rozdziału</translation>
-    </message>
-    <message>
-        <source>Word count for this chapter</source>
-        <translation>Liczba słów w rozdziale</translation>
-    </message>
-    <message>
         <source>Word Count:</source>
         <translation>Liczba słów:</translation>
-    </message>
-    <message>
-        <source>Chapter completion status</source>
-        <translation>Stan ukończenia rozdziału</translation>
     </message>
     <message>
         <source>Draft</source>
@@ -4812,20 +6365,8 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Notatki</translation>
     </message>
     <message>
-        <source>Notes and comments for this chapter</source>
-        <translation>Notatki i uwagi do rozdziału</translation>
-    </message>
-    <message>
         <source>Enter notes...</source>
         <translation>Wpisz notatki...</translation>
-    </message>
-    <message>
-        <source>Number of chapters in this section</source>
-        <translation>Liczba rozdziałów w tej sekcji</translation>
-    </message>
-    <message>
-        <source>Chapters:</source>
-        <translation>Rozdziały:</translation>
     </message>
     <message>
         <source>Total word count in this section</source>
@@ -4834,14 +6375,6 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Status Breakdown</source>
         <translation>Podział według stanu</translation>
-    </message>
-    <message>
-        <source>Number of chapters in this part</source>
-        <translation>Liczba rozdziałów w tej części</translation>
-    </message>
-    <message>
-        <source>Total word count in this part</source>
-        <translation>Liczba słów w tej części</translation>
     </message>
     <message>
         <source>Document Statistics</source>
@@ -4932,18 +6465,6 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Zastosuj:</translation>
     </message>
     <message>
-        <source>Front Matter</source>
-        <translation>Część wstępna</translation>
-    </message>
-    <message>
-        <source>Body</source>
-        <translation>Część główna</translation>
-    </message>
-    <message>
-        <source>Back Matter</source>
-        <translation>Część końcowa</translation>
-    </message>
-    <message>
         <source>-</source>
         <translation>-</translation>
     </message>
@@ -4955,16 +6476,154 @@ Tej operacji nie można cofnąć.</translation>
         <source>Selection Statistics</source>
         <translation>Statystyki zaznaczenia</translation>
     </message>
+    <message>
+        <source>Rename Failed</source>
+        <translation>Nie udało się zmienić nazwy</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Status Change Failed</source>
+        <translation>Nie udało się zmienić stanu</translation>
+    </message>
+    <message>
+        <source>Elements:</source>
+        <translation>Elementy:</translation>
+    </message>
+    <message>
+        <source>Number of elements in this section</source>
+        <translation>Liczba elementów w tej sekcji</translation>
+    </message>
+    <message>
+        <source>Sections:</source>
+        <translation>Sekcje:</translation>
+    </message>
+    <message>
+        <source>Section names:</source>
+        <translation>Nazwy sekcji:</translation>
+    </message>
+    <message>
+        <source>Number of elements with Draft status</source>
+        <translation>Liczba elementów w stanie „Szkic”</translation>
+    </message>
+    <message>
+        <source>Number of elements with Revision status</source>
+        <translation>Liczba elementów w stanie „Poprawki”</translation>
+    </message>
+    <message>
+        <source>Number of elements with Final status</source>
+        <translation>Liczba elementów w stanie „Gotowy”</translation>
+    </message>
+    <message>
+        <source>{Kind} Information</source>
+        <extracomment>In Polish: Informacje o {kind:locative}</extracomment>
+        <translation>Informacje o {kind:locative}</translation>
+    </message>
+    <message>
+        <source>{Kind} title</source>
+        <extracomment>In Polish: Tytuł {kind:genitive}</extracomment>
+        <translation>Tytuł {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>Enter {kind} title</source>
+        <extracomment>In Polish: Wpisz tytuł {kind:genitive}</extracomment>
+        <translation>Wpisz tytuł {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>Word count of {kind:s=this|p=these} {kind}</source>
+        <extracomment>In Polish: Liczba słów w {kind:locative}</extracomment>
+        <translation>Liczba słów w {kind:locative}</translation>
+    </message>
+    <message>
+        <source>{Kind} completion status</source>
+        <extracomment>In Polish: Stan ukończenia {kind:genitive}</extracomment>
+        <translation>Stan ukończenia {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>Notes and comments for {kind:s=this|p=these} {kind}</source>
+        <extracomment>In Polish: Notatki i uwagi do {kind:genitive}</extracomment>
+        <translation>Notatki i uwagi do {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>Total {Main:plural}:</source>
+        <extracomment>In Polish: {Main:plural} razem:</extracomment>
+        <translation>{Main:plural} razem:</translation>
+    </message>
+    <message>
+        <source>Number of {main:plural} in the book</source>
+        <extracomment>In Polish: Liczba {main:genitivePlural} w książce</extracomment>
+        <translation>Liczba {main:genitivePlural} w książce</translation>
+    </message>
+    <message>
+        <source>Number of words %1</source>
+        <extracomment>%1: the body with its preposition, &quot;in the main section&quot;. In Polish: Liczba słów %1</extracomment>
+        <translation>Liczba słów %1</translation>
+    </message>
+    <message>
+        <source>{Main:plural}:</source>
+        <extracomment>The number of the main texts of the book: &quot;Stories:&quot;. In Polish: {Main:plural}:</extracomment>
+        <translation>{Main:plural}:</translation>
+    </message>
+    <message>
+        <source>Number of {main:plural} in this section</source>
+        <extracomment>In Polish: Liczba {main:genitivePlural} w tej sekcji</extracomment>
+        <translation>Liczba {main:genitivePlural} w tej sekcji</translation>
+    </message>
+    <message>
+        <source>Number of {main:plural} in {group:s=this|p=these} {group}</source>
+        <extracomment>In Polish: Liczba {main:genitivePlural} w {group:m=tym|f=tej|n=tym|p=tych} {group:locative}</extracomment>
+        <translation>Liczba {main:genitivePlural} w {group:m=tym|f=tej|n=tym|p=tych} {group:locative}</translation>
+    </message>
+    <message>
+        <source>Number of elements in {group:s=this|p=these} {group}</source>
+        <extracomment>In Polish: Liczba elementów w {group:m=tym|f=tej|n=tym|p=tych} {group:locative}</extracomment>
+        <translation>Liczba elementów w {group:m=tym|f=tej|n=tym|p=tych} {group:locative}</translation>
+    </message>
+    <message>
+        <source>Total word count in {group:s=this|p=these} {group}</source>
+        <extracomment>In Polish: Liczba słów w {group:m=tym|f=tej|n=tym|p=tych} {group:locative}</extracomment>
+        <translation>Liczba słów w {group:m=tym|f=tej|n=tym|p=tych} {group:locative}</translation>
+    </message>
+    <message>
+        <source>Open a book to see its properties</source>
+        <translation>Otwórz książkę, aby zobaczyć jej właściwości</translation>
+    </message>
+    <message>
+        <source>Book Information</source>
+        <translation>Informacje o książce</translation>
+    </message>
+    <message>
+        <source>Title of the book</source>
+        <translation>Tytuł książki</translation>
+    </message>
+    <message>
+        <source>Enter the title of the book</source>
+        <translation>Wpisz tytuł książki</translation>
+    </message>
+    <message>
+        <source>Language of the book</source>
+        <translation>Język książki</translation>
+    </message>
+    <message>
+        <source>Date when the book was created</source>
+        <translation>Data utworzenia książki</translation>
+    </message>
+    <message>
+        <source>Date when the book was last changed</source>
+        <translation>Data ostatniej zmiany książki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::RecentBooksMenu</name>
     <message>
-        <source>No Recent Files</source>
-        <translation>Brak ostatnich plików</translation>
+        <source>No Recent Books</source>
+        <translation>Brak ostatnich książek</translation>
     </message>
     <message>
-        <source>&amp;Clear Recent Files</source>
-        <translation>&amp;Wyczyść listę ostatnich plików</translation>
+        <source>&amp;Clear Recent Books</source>
+        <translation>&amp;Wyczyść listę ostatnich książek</translation>
     </message>
 </context>
 <context>
@@ -4980,6 +6639,36 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Full implementation in Phase 1</source>
         <translation>Pełna wersja w fazie 1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SectionNamesEdit</name>
+    <message>
+        <source>Name of the first section</source>
+        <translation>Nazwa pierwszej sekcji</translation>
+    </message>
+    <message>
+        <source>Name of the second section</source>
+        <translation>Nazwa drugiej sekcji</translation>
+    </message>
+    <message>
+        <source>Name of the third section</source>
+        <translation>Nazwa trzeciej sekcji</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SectionsComboBox</name>
+    <message>
+        <source>Names of the three sections the Navigator divides the book into: the front, the main and the back one. Without sections the Navigator shows the elements of the book in one list.</source>
+        <translation>Nazwy trzech sekcji, na które Nawigator dzieli książkę: początkowej, głównej i końcowej. Bez sekcji Nawigator pokazuje elementy książki na jednej liście.</translation>
+    </message>
+    <message>
+        <source>Custom Names</source>
+        <translation>Własne nazwy</translation>
+    </message>
+    <message>
+        <source>No Sections</source>
+        <translation>Bez sekcji</translation>
     </message>
 </context>
 <context>
@@ -5106,18 +6795,6 @@ Tej operacji nie można cofnąć.</translation>
     </message>
     <message>
         <source>Planned features:
-- Automatic backup frequency
-- Backup location selection
-- Number of backup copies to keep
-- Restore from backup</source>
-        <translation>Planowane funkcje:
-- częstotliwość automatycznych kopii zapasowych
-- wybór miejsca kopii zapasowych
-- liczba przechowywanych kopii
-- przywracanie z kopii zapasowej</translation>
-    </message>
-    <message>
-        <source>Planned features:
 - Auto-save interval
 - Auto-save on focus loss
 - Session recovery options</source>
@@ -5167,6 +6844,22 @@ Tej operacji nie można cofnąć.</translation>
         <translation>Wybierz grupę po lewej; Zastosuj i OK zapisują tylko zmienione opcje.</translation>
     </message>
     <message>
+        <source>Folders</source>
+        <translation>Foldery</translation>
+    </message>
+    <message>
+        <source>Planned features:
+- Automatic backup frequency
+- Restore from backup
+
+The folder of the database backups and the number of copies kept are on the Folders page.</source>
+        <translation>Planowane funkcje:
+- częstotliwość automatycznych kopii zapasowych
+- przywracanie z kopii zapasowej
+
+Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie „Foldery”.</translation>
+    </message>
+    <message>
         <source>Keyboard Shortcuts</source>
         <translation>Skróty klawiszowe</translation>
     </message>
@@ -5180,42 +6873,6 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>Takes effect after restarting Kalahari.</source>
         <translation>Zmiana zadziała po ponownym uruchomieniu programu Kalahari.</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::SpellingCoordinator</name>
-    <message>
-        <source>No spelling dictionary for %1: the spelling is not checked</source>
-        <extracomment>%1 is the name of the language as in a list of languages (in Polish: francuski)</extracomment>
-        <translation>Język %1 nie ma słownika pisowni: pisownia nie jest sprawdzana</translation>
-    </message>
-    <message>
-        <source>Spelling as you type: on</source>
-        <translation>Sprawdzanie pisowni podczas pisania: włączone</translation>
-    </message>
-    <message>
-        <source>Spelling as you type: off</source>
-        <translation>Sprawdzanie pisowni podczas pisania: wyłączone</translation>
-    </message>
-    <message>
-        <source>The spelling is not checked</source>
-        <translation>Pisownia nie jest sprawdzana</translation>
-    </message>
-    <message>
-        <source>No misspelled words</source>
-        <translation>Brak błędów pisowni</translation>
-    </message>
-    <message>
-        <source>No misspelled words or grammar issues</source>
-        <translation>Brak błędów pisowni i gramatyki</translation>
-    </message>
-    <message>
-        <source>No grammar issues</source>
-        <translation>Brak błędów gramatyki</translation>
-    </message>
-    <message>
-        <source>Checking the grammar further on...</source>
-        <translation>Sprawdzanie gramatyki w dalszych akapitach...</translation>
     </message>
 </context>
 <context>
@@ -5283,10 +6940,6 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>New paragraph</source>
         <translation>Nowy akapit</translation>
-    </message>
-    <message>
-        <source>New line in the paragraph</source>
-        <translation>Nowy wiersz w akapicie</translation>
     </message>
     <message>
         <source>New paragraph after the cursor</source>
@@ -5841,10 +7494,6 @@ Tej operacji nie można cofnąć.</translation>
         <translation>zaczyna nowy akapit</translation>
     </message>
     <message>
-        <source>starts a new line in the paragraph</source>
-        <translation>zaczyna nowy wiersz w akapicie</translation>
-    </message>
-    <message>
         <source>starts a new paragraph after the cursor</source>
         <translation>zaczyna nowy akapit za kursorem</translation>
     </message>
@@ -5911,6 +7560,14 @@ Tej operacji nie można cofnąć.</translation>
     <message>
         <source>%1 is kept for the menus: Alt with a letter opens the menu with that letter underlined in its name.</source>
         <translation>%1 jest zarezerwowany dla menu: Alt z literą otwiera menu, w którego nazwie ta litera jest podkreślona.</translation>
+    </message>
+    <message>
+        <source>New line in the paragraph</source>
+        <translation>Nowy wiersz w akapicie</translation>
+    </message>
+    <message>
+        <source>starts a new line in the paragraph</source>
+        <translation>zaczyna nowy wiersz w akapicie</translation>
     </message>
 </context>
 <context>
@@ -6225,37 +7882,62 @@ Tej operacji nie można cofnąć.</translation>
     </message>
 </context>
 <context>
-    <name>kalahari::gui::StandaloneInfoBar</name>
+    <name>kalahari::gui::SpellingCoordinator</name>
     <message>
-        <source>This file is not part of a project. Limited features available.</source>
-        <translation>Ten plik nie należy do projektu. Część funkcji jest niedostępna.</translation>
+        <source>No spelling dictionary for %1: the spelling is not checked</source>
+        <extracomment>%1 is the name of the language as in a list of languages (in Polish: francuski)</extracomment>
+        <translation>Język %1 nie ma słownika pisowni: pisownia nie jest sprawdzana</translation>
     </message>
     <message>
-        <source>Add to Project</source>
-        <translation>Dodaj do projektu</translation>
+        <source>Spelling as you type: on</source>
+        <translation>Sprawdzanie pisowni podczas pisania: włączone</translation>
     </message>
     <message>
-        <source>Add this file to a project for full features</source>
-        <translation>Dodaj ten plik do projektu, aby mieć wszystkie funkcje</translation>
+        <source>Spelling as you type: off</source>
+        <translation>Sprawdzanie pisowni podczas pisania: wyłączone</translation>
     </message>
     <message>
-        <source>Dismiss this message</source>
-        <translation>Ukryj ten komunikat</translation>
+        <source>The spelling is not checked</source>
+        <translation>Pisownia nie jest sprawdzana</translation>
+    </message>
+    <message>
+        <source>No misspelled words</source>
+        <translation>Brak błędów pisowni</translation>
+    </message>
+    <message>
+        <source>No misspelled words or grammar issues</source>
+        <translation>Brak błędów pisowni i gramatyki</translation>
+    </message>
+    <message>
+        <source>No grammar issues</source>
+        <translation>Brak błędów gramatyki</translation>
+    </message>
+    <message>
+        <source>Checking the grammar further on...</source>
+        <translation>Sprawdzanie gramatyki w dalszych akapitach...</translation>
     </message>
 </context>
 <context>
-    <name>kalahari::gui::utils::ReadingTime</name>
+    <name>kalahari::gui::StandaloneInfoBar</name>
     <message>
-        <source>%1 min</source>
-        <translation>%1 min</translation>
+        <source>This file is not part of a book. Some features are not available.</source>
+        <translation>Ten plik nie należy do książki. Część funkcji jest niedostępna.</translation>
     </message>
     <message>
-        <source>%1 h</source>
-        <translation>%1 godz.</translation>
+        <source>Add to Book...</source>
+        <translation>Dodaj do książki...</translation>
     </message>
     <message>
-        <source>%1 h %2 min</source>
-        <translation>%1 godz. %2 min</translation>
+        <source>Add the file to the open book as a new element</source>
+        <translation>Dodaj plik do otwartej książki jako nowy element</translation>
+    </message>
+    <message>
+        <source>Add to Book</source>
+        <translation>Dodaj do książki</translation>
+    </message>
+    <message>
+        <source>No book is open</source>
+        <translation>Żadna książka nie jest otwarta</translation>
     </message>
 </context>
 <context>
@@ -7091,94 +8773,772 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
-    <name>kalahari::gui::dialogs::AddToProjectDialog</name>
+    <name>kalahari::gui::dialogs::AddToBookDialog</name>
     <message>
-        <source>Add File to Project</source>
-        <translation>Dodaj plik do projektu</translation>
+        <source>The file goes back to the book as an element, with the title, the status and the notes saved in it.</source>
+        <translation>Plik wróci do książki jako element, z zapisanym w nim tytułem, stanem i notatkami.</translation>
     </message>
     <message>
-        <source>File</source>
-        <translation>Plik</translation>
+        <source>The text of the file becomes a new element of the book; its lines become paragraphs.</source>
+        <translation>Tekst pliku stanie się nowym elementem książki, a jego wiersze – akapitami.</translation>
     </message>
     <message>
-        <source>Target Location</source>
-        <translation>Miejsce docelowe</translation>
+        <source>The file becomes an element of the book, with the title, the status and the notes saved in it.</source>
+        <translation>Plik stanie się elementem książki, z zapisanym w nim tytułem, stanem i notatkami.</translation>
     </message>
     <message>
-        <source>Select the project section where the file will be added</source>
-        <translation>Wybierz sekcję projektu, do której trafi plik</translation>
+        <source>Add the File to the Book</source>
+        <translation>Dodaj plik do książki</translation>
     </message>
     <message>
-        <source>Section:</source>
-        <translation>Sekcja:</translation>
+        <source>Add to Book</source>
+        <translation>Dodaj do książki</translation>
     </message>
     <message>
-        <source>Part:</source>
-        <translation>Część:</translation>
+        <source>File:</source>
+        <translation>Plik:</translation>
     </message>
     <message>
-        <source>Select the part where the file will be added (body section only)</source>
-        <translation>Wybierz część, do której trafi plik (tylko w części głównej)</translation>
+        <source>&amp;Copy to the book – the original stays where it is</source>
+        <extracomment>The book gets a chapter of its own; the file the writer chose stays</extracomment>
+        <translation>&amp;Skopiuj do książki – oryginał zostanie na miejscu</translation>
     </message>
     <message>
-        <source>Enter display title...</source>
-        <translation>Wpisz wyświetlany tytuł...</translation>
+        <source>&amp;Move to the book – the original is deleted</source>
+        <extracomment>The book gets a chapter of its own; the file the writer chose is deleted</extracomment>
+        <translation>&amp;Przenieś do książki – oryginał zostanie usunięty</translation>
     </message>
     <message>
-        <source>The title that will be shown in the Navigator panel</source>
-        <translation>Tytuł widoczny w panelu Nawigator</translation>
+        <source>&amp;Kind:</source>
+        <translation>&amp;Rodzaj:</translation>
+    </message>
+    <message>
+        <source>&amp;Title:</source>
+        <translation>&amp;Tytuł:</translation>
+    </message>
+    <message>
+        <source>%1 (from the file)</source>
+        <translation>%1 (z pliku)</translation>
+    </message>
+    <message>
+        <source>Status:</source>
+        <translation>Stan:</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Draft</source>
+        <translation>Szkic</translation>
+    </message>
+    <message>
+        <source>Revision</source>
+        <translation>Poprawki</translation>
+    </message>
+    <message>
+        <source>Final</source>
+        <translation>Gotowy</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ArchiveDialog</name>
+    <message>
+        <source>Progress</source>
+        <extracomment>The bar of the progress of an export or an import. In Polish: Postęp</extracomment>
+        <translation>Postęp</translation>
+    </message>
+    <message>
+        <source>Show in Folder</source>
+        <extracomment>A link under the result of an export or an import. In Polish: Pokaż w folderze</extracomment>
+        <translation>Pokaż w folderze</translation>
+    </message>
+    <message>
+        <source>Open the folder in the file manager of the system</source>
+        <translation>Otwórz folder w menedżerze plików</translation>
+    </message>
+    <message>
+        <source>The file manager of the system could not show:
+%1</source>
+        <translation>Menedżer plików nie mógł pokazać tego miejsca:
+%1</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <extracomment>Opens the system window that chooses a file or a folder. In Polish: Przeglądaj...</extracomment>
+        <translation>Przeglądaj...</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <extracomment>The button that closes the window after an export or an import. In Polish: Zamknij</extracomment>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Copy puts the technical description of the error on the clipboard.</source>
+        <extracomment>Under what went wrong when the program does not know its cause. In Polish: Opis techniczny błędu skopiujesz przyciskiem „Kopiuj”.</extracomment>
+        <translation>Opis techniczny błędu skopiujesz przyciskiem „Kopiuj”.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ColorDialog</name>
+    <message>
+        <source>Select Color</source>
+        <translation>Wybierz kolor</translation>
+    </message>
+    <message>
+        <source>Select</source>
+        <translation>Wybierz</translation>
+    </message>
+    <message>
+        <source>&amp;Palette</source>
+        <translation>&amp;Paleta</translation>
+    </message>
+    <message>
+        <source>Palette</source>
+        <translation>Paleta</translation>
+    </message>
+    <message>
+        <source>Rec&amp;ent colors</source>
+        <translation>&amp;Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Recent colors</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>The colors you select appear here.</source>
+        <translation>Tutaj pojawią się wybrane kolory.</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Pre&amp;vious</source>
+        <translation>Poprzedn&amp;i</translation>
+    </message>
+    <message>
+        <source>Bring back the previous color</source>
+        <translation>Przywróć poprzedni kolor</translation>
+    </message>
+    <message>
+        <source>New</source>
+        <translation>Nowy</translation>
+    </message>
+    <message>
+        <source>&amp;HEX</source>
+        <translation>&amp;HEX</translation>
+    </message>
+    <message>
+        <source>&amp;Red</source>
+        <translation>&amp;Czerwony</translation>
+    </message>
+    <message>
+        <source>&amp;Green</source>
+        <translation>&amp;Zielony</translation>
+    </message>
+    <message>
+        <source>&amp;Blue</source>
+        <translation>&amp;Niebieski</translation>
+    </message>
+    <message>
+        <source>New color %1</source>
+        <translation>Nowy kolor %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::DeleteFilesDialog</name>
+    <message>
+        <source>Delete the file &quot;%1&quot;?</source>
+        <extracomment>%1: the name of the file. In Polish: Usunąć plik „%1”?</extracomment>
+        <translation>Usunąć plik „%1”?</translation>
+    </message>
+    <message>
+        <source>Delete all unassigned files (%1)?</source>
+        <extracomment>%1: the number of files. In Polish: Usunąć wszystkie pliki bez przydziału (%1)?</extracomment>
+        <translation>Usunąć wszystkie pliki bez przydziału (%1)?</translation>
+    </message>
+    <message>
+        <source>Delete File</source>
+        <translation>Usuń plik</translation>
+    </message>
+    <message>
+        <source>Delete Files</source>
+        <translation>Usuń pliki</translation>
+    </message>
+    <message>
+        <source>Files to delete</source>
+        <translation>Pliki do usunięcia</translation>
+    </message>
+    <message>
+        <source>The file goes to the system&apos;s {bin}. You can restore it from the {bin}, but not from the program.</source>
+        <extracomment>In Polish: Plik trafi do systemowego Kosza. Przywrócisz go z Kosza, ale już nie z programu.</extracomment>
+        <translation>Plik trafi do systemowego Kosza. Przywrócisz go z Kosza, ale już nie z programu.</translation>
+    </message>
+    <message>
+        <source>The files go to the system&apos;s {bin}. You can restore them from the {bin}, but not from the program.</source>
+        <translation>Pliki trafią do systemowego Kosza. Przywrócisz je z Kosza, ale już nie z programu.</translation>
+    </message>
+    <message>
+        <source>The file will be gone for good: files in this folder cannot go to the {bin}.</source>
+        <extracomment>In Polish: Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</extracomment>
+        <translation>Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</translation>
+    </message>
+    <message>
+        <source>The files will be gone for good: files in this folder cannot go to the {bin}.</source>
+        <translation>Pliki znikną na zawsze: z tego folderu nie da się przenieść plików do Kosza.</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::DeleteFromBookDialog</name>
+    <message>
+        <source>Together with {kind:s=it|p=them}, the {child} &quot;%1&quot; will be deleted from the book.</source>
+        <extracomment>%1: the title of the element inside. In Polish: Razem z {kind:m=nim|f=nią|n=nim|p=nimi} z książki {child:s=zniknie|p=znikną} {child} „%1”.</extracomment>
+        <translation>Razem z {kind:m=nim|f=nią|n=nim|p=nimi} z książki {child:s=zniknie|p=znikną} {child} „%1”.</translation>
+    </message>
+    <message>
+        <source>The {kind} {kind:s=is|p=are} empty.</source>
+        <extracomment>In Polish: {Kind} {kind:s=jest|p=są} pust{kind:m=y|f=a|n=e|p=e}.</extracomment>
+        <translation>{Kind} {kind:s=jest|p=są} pust{kind:m=y|f=a|n=e|p=e}.</translation>
+    </message>
+    <message>
+        <source>Delete the {kind} &quot;%1&quot; from the book?</source>
+        <extracomment>%1: the title of the element. In Polish: Usunąć {kind:accusative} „%1” z książki?</extracomment>
+        <translation>Usunąć {kind:accusative} „%1” z książki?</translation>
+    </message>
+    <message>
+        <source>Delete from Book</source>
+        <translation>Usuń z książki</translation>
+    </message>
+    <message>
+        <source>Elements to delete</source>
+        <translation>Elementy do usunięcia</translation>
+    </message>
+    <message>
+        <source>&amp;Also delete the file of the {owner} – it goes to the {bin}</source>
+        <translation>Usuń &amp;też plik {owner:genitive} – trafi do Kosza</translation>
+    </message>
+    <message>
+        <source>&amp;Also delete the file of the {owner} – it will be gone for good</source>
+        <translation>Usuń &amp;też plik {owner:genitive} – zniknie na zawsze</translation>
+    </message>
+    <message>
+        <source>&amp;Also delete the files of the {owner:plural} (%1) – they go to the {bin}</source>
+        <translation>Usuń &amp;też pliki {owner:genitivePlural} (%1) – trafią do Kosza</translation>
+    </message>
+    <message>
+        <source>&amp;Also delete the files of the {owner:plural} (%1) – they will be gone for good</source>
+        <translation>Usuń &amp;też pliki {owner:genitivePlural} (%1) – znikną na zawsze</translation>
+    </message>
+    <message>
+        <source>Folder:</source>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Show in &amp;Folder</source>
+        <translation>Pokaż w &amp;folderze</translation>
+    </message>
+    <message>
+        <source>Open the folder in the file manager of the system</source>
+        <translation>Otwórz folder w menedżerze plików</translation>
+    </message>
+    <message>
+        <source>Show in Folder</source>
+        <translation>Pokaż w folderze</translation>
+    </message>
+    <message>
+        <source>The file manager of the system could not show the folder:
+%1</source>
+        <translation>Menedżer plików nie mógł pokazać folderu:
+%1</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>The file of the {owner} goes to the system&apos;s {bin}. You can restore it from the {bin}, but not from the program.</source>
+        <extracomment>In Polish: Plik {owner:genitive} trafi do systemowego Kosza. Przywrócisz go z Kosza, ale już nie z programu.</extracomment>
+        <translation>Plik {owner:genitive} trafi do systemowego Kosza. Przywrócisz go z Kosza, ale już nie z programu.</translation>
+    </message>
+    <message>
+        <source>The files of the {owner:plural} go to the system&apos;s {bin}. You can restore them from the {bin}, but not from the program.</source>
+        <translation>Pliki {owner:genitivePlural} trafią do systemowego Kosza. Przywrócisz je z Kosza, ale już nie z programu.</translation>
+    </message>
+    <message>
+        <source>The file of the {owner} will be gone for good: files in this folder cannot go to the {bin}.</source>
+        <extracomment>In Polish: Plik {owner:genitive} zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</extracomment>
+        <translation>Plik {owner:genitive} zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</translation>
+    </message>
+    <message>
+        <source>The files of the {owner:plural} will be gone for good: files in this folder cannot go to the {bin}.</source>
+        <translation>Pliki {owner:genitivePlural} znikną na zawsze: z tego folderu nie da się przenieść plików do Kosza.</translation>
+    </message>
+    <message>
+        <source>The file stays in the book&apos;s folder. You will find it in the Navigator, under &quot;Unassigned Files&quot;, where you can add it back to the book or delete it.</source>
+        <extracomment>In Polish: Plik zostanie w folderze książki. Znajdziesz go w Nawigatorze, w węźle „Pliki bez przydziału”, skąd możesz go dodać z powrotem do książki albo usunąć.</extracomment>
+        <translation>Plik zostanie w folderze książki. Znajdziesz go w Nawigatorze, w węźle „Pliki bez przydziału”, skąd możesz go dodać z powrotem do książki albo usunąć.</translation>
+    </message>
+    <message>
+        <source>The files stay in the book&apos;s folder. You will find them in the Navigator, under &quot;Unassigned Files&quot;, where you can add them back to the book or delete them.</source>
+        <translation>Pliki zostaną w folderze książki. Znajdziesz je w Nawigatorze, w węźle „Pliki bez przydziału”, skąd możesz je dodać z powrotem do książki albo usunąć.</translation>
+    </message>
+    <message>
+        <source>The file stays in its folder.</source>
+        <translation>Plik zostanie w swoim folderze.</translation>
+    </message>
+    <message>
+        <source>The files stay in their folders.</source>
+        <translation>Pliki zostaną w swoich folderach.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Together with {kind:s=it|p=them}, %n {child:plural} will be deleted from the book.</source>
+        <extracomment>In Polish, with the form of {child} for the number: Razem z {kind:m=nim|f=nią|n=nim|p=nimi} z książki znikną %n {child:plural} (2-4), zniknie %n {child:genitivePlural} (5 and more)</extracomment>
+        <translation>
+            <numerusform>Razem z {kind:m=nim|f=nią|n=nim|p=nimi} z książki zniknie %n {child}.</numerusform>
+            <numerusform>Razem z {kind:m=nim|f=nią|n=nim|p=nimi} z książki znikną %n {child:plural}.</numerusform>
+            <numerusform>Razem z {kind:m=nim|f=nią|n=nim|p=nimi} z książki zniknie %n {child:genitivePlural}.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>&amp;Also delete the file from the book&apos;s folder – it goes to the {bin}</source>
+        <translation>Usuń &amp;też plik z folderu książki – trafi do Kosza</translation>
+    </message>
+    <message>
+        <source>&amp;Also delete the file from the book&apos;s folder – it will be gone for good</source>
+        <translation>Usuń &amp;też plik z folderu książki – zniknie na zawsze</translation>
+    </message>
+    <message>
+        <source>The file goes to the system&apos;s {bin}. You can restore it from the {bin}, but not from the program.</source>
+        <extracomment>A file kept with the book, outside its text. In Polish: Plik trafi do systemowego Kosza. Przywrócisz go z Kosza, ale już nie z programu.</extracomment>
+        <translation>Plik trafi do systemowego Kosza. Przywrócisz go z Kosza, ale już nie z programu.</translation>
+    </message>
+    <message>
+        <source>The file will be gone for good: files in this folder cannot go to the {bin}.</source>
+        <extracomment>In Polish: Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</extracomment>
+        <translation>Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ExportArchiveDialog</name>
+    <message>
+        <source>Export Project Archive</source>
+        <extracomment>The title of the window. In Polish: Eksportuj archiwum projektu</extracomment>
+        <translation>Eksportuj archiwum projektu</translation>
+    </message>
+    <message>
+        <source>The archive holds the whole book &quot;%1&quot;: the project file, the files of the elements and the database.</source>
+        <extracomment>%1: the title of the book. In Polish: Archiwum zawiera całą książkę „%1”: plik projektu, pliki elementów i bazę.</extracomment>
+        <translation>Archiwum zawiera całą książkę „%1”: plik projektu, pliki elementów i bazę.</translation>
+    </message>
+    <message>
+        <source>Archive</source>
+        <extracomment>A group of the window: the folder and the name of the archive. In Polish: Archiwum</extracomment>
+        <translation>Archiwum</translation>
+    </message>
+    <message>
+        <source>Folder:</source>
+        <extracomment>In Polish: Folder:</extracomment>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>Name:</source>
+        <extracomment>In Polish: Nazwa:</extracomment>
+        <translation>Nazwa:</translation>
+    </message>
+    <message>
+        <source>Files Not Ready (%1)</source>
+        <extracomment>A group of the window; %1: how many files it lists. In Polish: Niegotowe pliki (%1)</extracomment>
+        <translation>Niegotowe pliki (%1)</translation>
+    </message>
+    <message>
+        <source>Files not ready</source>
+        <translation>Niegotowe pliki</translation>
+    </message>
+    <message>
+        <source>These files go to the archive as they are. You change their status in the Navigator.</source>
+        <extracomment>Under the list of the files that are not ready. In Polish: Te pliki trafią do archiwum w obecnym stanie. Stan zmienisz w Nawigatorze.</extracomment>
+        <translation>Te pliki trafią do archiwum w obecnym stanie. Stan zmienisz w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>Kalahari saves the unsaved changes before the export.</source>
+        <extracomment>In Polish: Niezapisane zmiany program zapisze przed eksportem.</extracomment>
+        <translation>Niezapisane zmiany program zapisze przed eksportem.</translation>
+    </message>
+    <message>
+        <source>The progress and the result will show here.</source>
+        <extracomment>In Polish: Postęp i wynik pokażą się tutaj.</extracomment>
+        <translation>Postęp i wynik pokażą się tutaj.</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <extracomment>The button that writes the archive. In Polish: Eksportuj</extracomment>
+        <translation>Eksportuj</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot create the folder %1.</source>
+        <extracomment>%1: the folder of the archive. In Polish: Kalahari nie może utworzyć folderu %1.</extracomment>
+        <translation>Kalahari nie może utworzyć folderu %1.</translation>
+    </message>
+    <message>
+        <source>Saved the archive %1.</source>
+        <extracomment>%1: the path of the archive. In Polish: Zapisano archiwum %1.</extracomment>
+        <translation>Zapisano archiwum %1.</translation>
+    </message>
+    <message>
+        <source>The archive could not be saved.</source>
+        <extracomment>In Polish: Nie udało się zapisać archiwum.</extracomment>
+        <translation>Nie udało się zapisać archiwum.</translation>
+    </message>
+    <message>
+        <source>Folder of the Archive</source>
+        <extracomment>The title of the system window that chooses the folder of the archive. In Polish: Folder archiwum</extracomment>
+        <translation>Folder archiwum</translation>
+    </message>
+    <message>
+        <source>Kalahari creates this folder during the export.</source>
+        <extracomment>Under a folder that does not exist yet. In Polish: Kalahari utworzy ten folder podczas eksportu.</extracomment>
+        <translation>Kalahari utworzy ten folder podczas eksportu.</translation>
+    </message>
+    <message>
+        <source>The folder has a folder named &quot;%1&quot;. Choose another name.</source>
+        <extracomment>%1: the name of the archive. In Polish: W tym folderze jest folder „%1”. Wybierz inną nazwę.</extracomment>
+        <translation>W tym folderze jest folder „%1”. Wybierz inną nazwę.</translation>
+    </message>
+    <message>
+        <source>The folder already has the archive &quot;%1&quot;. The export replaces it.</source>
+        <extracomment>%1: the name of the archive. In Polish: W tym folderze jest już archiwum „%1”. Eksport je zastąpi.</extracomment>
+        <translation>W tym folderze jest już archiwum „%1”. Eksport je zastąpi.</translation>
+    </message>
+    <message>
+        <source>The archive gets the name &quot;%1&quot;.</source>
+        <extracomment>%1: the name with &quot;.klh.zip&quot;. In Polish: Archiwum dostanie nazwę „%1”.</extracomment>
+        <translation>Archiwum dostanie nazwę „%1”.</translation>
+    </message>
+    <message>
+        <source>Type the name of the archive.</source>
+        <extracomment>Under an empty name of the archive. In Polish: Wpisz nazwę archiwum.</extracomment>
+        <translation>Wpisz nazwę archiwum.</translation>
+    </message>
+    <message>
+        <source>A name cannot have the characters %1.</source>
+        <extracomment>%1: the characters, with spaces between them. In Polish: Nazwa nie może zawierać znaków %1.</extracomment>
+        <translation>Nazwa nie może zawierać znaków %1.</translation>
+    </message>
+    <message>
+        <source>Include the database backups (%1)</source>
+        <extracomment>A check box of the window; %1: how many backups the book has. In Polish: Dołącz kopie zapasowe bazy (%1)</extracomment>
+        <translation>Dołącz kopie zapasowe bazy (%1)</translation>
+    </message>
+    <message>
+        <source>The archive takes the copies of the database made when the book was closed, so after an import on another computer the book has its backups.</source>
+        <extracomment>Under the check box of the backups. In Polish: Archiwum zabierze kopie bazy zrobione przy zamykaniu książki, więc po imporcie na innym komputerze książka będzie miała swoje kopie zapasowe.</extracomment>
+        <translation>Archiwum zabierze kopie bazy zrobione przy zamykaniu książki, więc po imporcie na innym komputerze książka będzie miała swoje kopie zapasowe.</translation>
+    </message>
+    <message>
+        <source>The book has no backups of its database yet: Kalahari makes them when the book is closed.</source>
+        <extracomment>Under the check box of the backups, which cannot be checked. In Polish: Książka nie ma jeszcze kopii bazy: program robi je przy zamykaniu książki.</extracomment>
+        <translation>Książka nie ma jeszcze kopii bazy: program robi je przy zamykaniu książki.</translation>
+    </message>
+    <message>
+        <source>Some changes in the book could not be saved. Check the log for details.</source>
+        <extracomment>In Polish: Nie udało się zapisać niektórych zmian w książce. Szczegóły są w dzienniku.</extracomment>
+        <translation>Nie udało się zapisać niektórych zmian w książce. Szczegóły są w dzienniku.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot read one of the files of the book.</source>
+        <extracomment>In Polish: Kalahari nie może odczytać jednego z plików książki.</extracomment>
+        <translation>Kalahari nie może odczytać jednego z plików książki.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot save files in the folder %1. Choose another folder.</source>
+        <extracomment>%1: the folder of the archive. In Polish: Kalahari nie może zapisywać plików w folderze %1. Wybierz inny folder.</extracomment>
+        <translation>Kalahari nie może zapisywać plików w folderze %1. Wybierz inny folder.</translation>
+    </message>
+    <message>
+        <source>There is no room left on the disk. Free some space or choose another folder.</source>
+        <extracomment>In Polish: Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz inny folder.</extracomment>
+        <translation>Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz inny folder.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::FilePreviewDialog</name>
+    <message>
+        <source>Status: %1</source>
+        <extracomment>%1: the status of the text in the file, e.g. Draft</extracomment>
+        <translation>Stan: %1</translation>
+    </message>
+    <message>
+        <source>Words: %1</source>
+        <extracomment>%1: the number of words of the text in the file</extracomment>
+        <translation>Słowa: %1</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>The file has no text.</source>
+        <translation>Plik nie zawiera tekstu.</translation>
+    </message>
+    <message>
+        <source>Text of the file</source>
+        <translation>Tekst pliku</translation>
+    </message>
+    <message>
+        <source>&amp;Add to Book...</source>
+        <translation>&amp;Dodaj do książki...</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>&amp;Delete File...</source>
+        <translation>&amp;Usuń plik...</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ImportArchiveDialog</name>
+    <message>
+        <source>Import Project Archive</source>
+        <extracomment>The title of the window. In Polish: Importuj archiwum projektu</extracomment>
+        <translation>Importuj archiwum projektu</translation>
+    </message>
+    <message>
+        <source>The book from the archive goes to a new folder and opens in the program.</source>
+        <extracomment>In Polish: Książka z archiwum trafi do nowego folderu i otworzy się w programie.</extracomment>
+        <translation>Książka z archiwum trafi do nowego folderu i otworzy się w programie.</translation>
+    </message>
+    <message>
+        <source>Archive</source>
+        <translation>Archiwum</translation>
+    </message>
+    <message>
+        <source>File:</source>
+        <extracomment>In Polish: Plik:</extracomment>
+        <translation>Plik:</translation>
+    </message>
+    <message>
+        <source>Choose the archive with Browse...</source>
+        <extracomment>In the empty field of the archive. In Polish: Wybierz archiwum przyciskiem Przeglądaj...</extracomment>
+        <translation>Wybierz archiwum przyciskiem „Przeglądaj...”</translation>
+    </message>
+    <message>
+        <source>Choose the archive in the system window</source>
+        <translation>Wybierz archiwum w oknie systemowym</translation>
     </message>
     <message>
         <source>Title:</source>
+        <extracomment>A row of the book of the archive. In Polish: Tytuł:</extracomment>
         <translation>Tytuł:</translation>
     </message>
     <message>
-        <source>Action</source>
-        <translation>Działanie</translation>
+        <source>Author:</source>
+        <extracomment>In Polish: Autor:</extracomment>
+        <translation>Autor:</translation>
     </message>
     <message>
-        <source>Copy file to project</source>
-        <translation>Skopiuj plik do projektu</translation>
+        <source>Type:</source>
+        <extracomment>In Polish: Typ:</extracomment>
+        <translation>Typ:</translation>
     </message>
     <message>
-        <source>Create a copy of the file in the project folder (original file remains unchanged)</source>
-        <translation>Tworzy kopię pliku w folderze projektu (oryginał pozostaje bez zmian)</translation>
+        <source>Contents:</source>
+        <extracomment>The elements of the book: &quot;8 elements: 5 chapters, a prologue...&quot;. In Polish: Zawartość:</extracomment>
+        <translation>Zawartość:</translation>
     </message>
     <message>
-        <source>Move file to project</source>
-        <translation>Przenieś plik do projektu</translation>
+        <source>Workshop:</source>
+        <extracomment>The elements of the Workshop of the book. In Polish: Warsztat:</extracomment>
+        <translation>Warsztat:</translation>
     </message>
     <message>
-        <source>Move the file into the project folder (original file will be deleted)</source>
-        <translation>Przenosi plik do folderu projektu (oryginał zostanie usunięty)</translation>
+        <source>Place</source>
+        <extracomment>A group of the window: where the imported book goes. In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
     </message>
     <message>
-        <source>Add to Project</source>
-        <translation>Dodaj do projektu</translation>
+        <source>Folder:</source>
+        <translation>Folder:</translation>
     </message>
     <message>
-        <source>Front Matter</source>
-        <translation>Część wstępna</translation>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
     </message>
     <message>
-        <source>Body</source>
-        <translation>Część główna</translation>
+        <source>The progress of the import will show here. When something goes wrong, the description of the error stays in this window, and Copy puts it on the clipboard.</source>
+        <extracomment>In Polish: Postęp importu pokaże się tutaj. Gdy coś się nie uda, opis błędu zostanie w tym oknie i skopiujesz go przyciskiem „Kopiuj”.</extracomment>
+        <translation>Postęp importu pokaże się tutaj. Gdy coś się nie uda, opis błędu zostanie w tym oknie i skopiujesz go przyciskiem „Kopiuj”.</translation>
     </message>
     <message>
-        <source>Back Matter</source>
-        <translation>Część końcowa</translation>
+        <source>Import</source>
+        <extracomment>The button that imports the archive. In Polish: Importuj</extracomment>
+        <translation>Importuj</translation>
     </message>
     <message>
-        <source>Mind Maps</source>
-        <translation>Mapy myśli</translation>
+        <source>no elements</source>
+        <extracomment>The contents of a book without elements. In Polish: brak elementów</extracomment>
+        <translation>brak elementów</translation>
     </message>
     <message>
-        <source>Timelines</source>
-        <translation>Osie czasu</translation>
+        <source>1 {kind}</source>
+        <extracomment>The one element of a book: &quot;1 chapter&quot;. In Polish: 1 {kind}</extracomment>
+        <translation>1 {kind}</translation>
     </message>
     <message>
-        <source>(No parts available)</source>
-        <translation>(Brak części)</translation>
+        <source>{kind:indefinite}</source>
+        <extracomment>One element among the elements of other kinds: &quot;a prologue&quot;. In Polish: {kind}</extracomment>
+        <translation>{kind}</translation>
+    </message>
+    <message>
+        <source>Imported &quot;%1&quot; to the folder %2. The book is open.</source>
+        <extracomment>%1: the title of the book; %2: its folder. In Polish: Zaimportowano „%1” do folderu %2. Książka jest już otwarta.</extracomment>
+        <translation>Zaimportowano „%1” do folderu %2. Książka jest już otwarta.</translation>
+    </message>
+    <message>
+        <source>Imported &quot;%1&quot; to the folder %2. The book is on the Dashboard and in File &gt; Recent Books.</source>
+        <extracomment>%1: the title of the book; %2: its folder. In Polish: Zaimportowano „%1” do folderu %2. Książkę znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</extracomment>
+        <translation>Zaimportowano „%1” do folderu %2. Książkę znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</translation>
+    </message>
+    <message>
+        <source>The archive could not be imported.</source>
+        <extracomment>In Polish: Nie udało się zaimportować archiwum.</extracomment>
+        <translation>Nie udało się zaimportować archiwum.</translation>
+    </message>
+    <message>
+        <source>Choose the Archive</source>
+        <extracomment>The title of the system window that chooses the archive. In Polish: Wybierz archiwum</extracomment>
+        <translation>Wybierz archiwum</translation>
+    </message>
+    <message>
+        <source>Kalahari Archive (*.klh.zip)</source>
+        <translation>Archiwum Kalahari (*.klh.zip)</translation>
+    </message>
+    <message>
+        <source>Place of the Book</source>
+        <extracomment>The title of the system window that chooses where the imported book goes. In Polish: Miejsce książki</extracomment>
+        <translation>Miejsce książki</translation>
+    </message>
+    <message>
+        <source>This book was saved in a newer version of Kalahari. Update the program to import it.</source>
+        <extracomment>Under an archive with a book of a newer version of the program. In Polish: Tę książkę zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją zaimportować.</extracomment>
+        <translation>Tę książkę zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją zaimportować.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot read the book of this archive.</source>
+        <extracomment>Under an archive whose book cannot be read. In Polish: Kalahari nie może odczytać książki z tego archiwum.</extracomment>
+        <translation>Kalahari nie może odczytać książki z tego archiwum.</translation>
+    </message>
+    <message>
+        <source>The folder &quot;%1&quot; is already here. Choose another place for the book.</source>
+        <extracomment>%1: the name of the folder of the book. In Polish: W tym miejscu jest już folder „%1”. Wybierz dla książki inne miejsce.</extracomment>
+        <translation>W tym miejscu jest już folder „%1”. Wybierz dla książki inne miejsce.</translation>
+    </message>
+    <message>
+        <source>The book goes to the folder &quot;%1&quot;.</source>
+        <extracomment>%1: the name of the folder of the book. In Polish: Książka powstanie w folderze „%1”.</extracomment>
+        <translation>Książka powstanie w folderze „%1”.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n {kind:plural}</source>
+        <extracomment>How many elements of a kind: &quot;5 chapters&quot;. In Polish: %n {kind} | %n {kind:plural} | %n {kind:genitivePlural}</extracomment>
+        <translation>
+            <numerusform>%n {kind}</numerusform>
+            <numerusform>%n {kind:plural}</numerusform>
+            <numerusform>%n {kind:genitivePlural}</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n elements: %1</source>
+        <extracomment>%1: the elements of each kind, &quot;5 chapters, a prologue and an epilogue&quot;. In Polish: %n element: %1 | %n elementy: %1 | %n elementów: %1</extracomment>
+        <translation>
+            <numerusform>%n element: %1</numerusform>
+            <numerusform>%n elementy: %1</numerusform>
+            <numerusform>%n elementów: %1</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Backups:</source>
+        <extracomment>The backups of the database in the archive. In Polish: Kopie zapasowe:</extracomment>
+        <translation>Kopie zapasowe:</translation>
+    </message>
+    <message>
+        <source>1 database backup</source>
+        <extracomment>The one backup of the database in the archive. In Polish: 1 kopia bazy</extracomment>
+        <translation>1 kopia bazy</translation>
+    </message>
+    <message>
+        <source>After the import the backups are where Kalahari keeps backups (Settings &gt; Files &gt; Folders).</source>
+        <extracomment>In Polish: Po imporcie kopie trafią tam, gdzie program trzyma kopie zapasowe (Ustawienia &gt; Pliki &gt; Foldery).</extracomment>
+        <translation>Po imporcie kopie trafią tam, gdzie program trzyma kopie zapasowe (Ustawienia &gt; Pliki &gt; Foldery).</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n database backups</source>
+        <extracomment>How many backups of the database the archive has. In Polish: %n kopia bazy | %n kopie bazy | %n kopii bazy</extracomment>
+        <translation>
+            <numerusform>%n kopia bazy</numerusform>
+            <numerusform>%n kopie bazy</numerusform>
+            <numerusform>%n kopii bazy</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This file no longer exists.</source>
+        <extracomment>Under an archive, or why it could not be imported. In Polish: Ten plik już nie istnieje.</extracomment>
+        <translation>Ten plik już nie istnieje.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot read this file. Check that you have access to it.</source>
+        <extracomment>In Polish: Kalahari nie może odczytać tego pliku. Sprawdź, czy masz do niego dostęp.</extracomment>
+        <translation>Kalahari nie może odczytać tego pliku. Sprawdź, czy masz do niego dostęp.</translation>
+    </message>
+    <message>
+        <source>This file is not a ZIP archive, or it is damaged.</source>
+        <extracomment>In Polish: Ten plik nie jest archiwum ZIP albo jest uszkodzony.</extracomment>
+        <translation>Ten plik nie jest archiwum ZIP albo jest uszkodzony.</translation>
+    </message>
+    <message>
+        <source>This archive is damaged.</source>
+        <extracomment>In Polish: To archiwum jest uszkodzone.</extracomment>
+        <translation>To archiwum jest uszkodzone.</translation>
+    </message>
+    <message>
+        <source>This archive is encrypted or packed in a way that Kalahari does not support.</source>
+        <extracomment>In Polish: To archiwum jest zaszyfrowane albo spakowane w sposób, którego Kalahari nie obsługuje.</extracomment>
+        <translation>To archiwum jest zaszyfrowane albo spakowane w sposób, którego Kalahari nie obsługuje.</translation>
+    </message>
+    <message>
+        <source>This archive has no Kalahari book.</source>
+        <extracomment>In Polish: W tym archiwum nie ma książki programu Kalahari.</extracomment>
+        <translation>W tym archiwum nie ma książki programu Kalahari.</translation>
+    </message>
+    <message>
+        <source>The book file in this archive is damaged.</source>
+        <extracomment>In Polish: Plik książki w tym archiwum jest uszkodzony.</extracomment>
+        <translation>Plik książki w tym archiwum jest uszkodzony.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot save files in the folder %1. Choose another place for the book.</source>
+        <extracomment>%1: the folder in which the folder of the book is made. In Polish: Kalahari nie może zapisywać plików w folderze %1. Wybierz dla książki inne miejsce.</extracomment>
+        <translation>Kalahari nie może zapisywać plików w folderze %1. Wybierz dla książki inne miejsce.</translation>
+    </message>
+    <message>
+        <source>There is no room left on the disk. Free some space or choose another place for the book.</source>
+        <extracomment>In Polish: Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz dla książki inne miejsce.</extracomment>
+        <translation>Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz dla książki inne miejsce.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot open the book of this archive.</source>
+        <extracomment>In Polish: Kalahari nie może otworzyć książki z tego archiwum.</extracomment>
+        <translation>Kalahari nie może otworzyć książki z tego archiwum.</translation>
     </message>
 </context>
 <context>
@@ -7490,51 +9850,67 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::MoveElementDialog</name>
+    <message>
+        <source>Move &quot;%1&quot;</source>
+        <extracomment>The heading of the dialog; %1: the title of the element. In Polish: Przenieś „%1”</extracomment>
+        <translation>Przenieś „%1”</translation>
+    </message>
+    <message>
+        <source>Choose the new place. The list shows the {kind} where {kind:s=it goes|p=they go}.</source>
+        <extracomment>In Polish: Wybierz nowe miejsce. Lista pokazuje {kind:accusative} tam, gdzie {kind:s=trafi|p=trafią}.</extracomment>
+        <translation>Wybierz nowe miejsce. Lista pokazuje {kind:accusative} tam, gdzie {kind:s=trafi|p=trafią}.</translation>
+    </message>
+    <message>
+        <source>Move</source>
+        <extracomment>The title of the window. In Polish: Przenieś
+----------
+The button that moves the element. In Polish: Przenieś</extracomment>
+        <translation>Przenieś</translation>
+    </message>
+    <message>
+        <source>Current place: %1.</source>
+        <extracomment>Under the list of the book; %1: where the element is, &quot;at the end of the main section&quot;. In Polish: Obecne miejsce: %1.</extracomment>
+        <translation>Obecne miejsce: %1.</translation>
+    </message>
+    <message>
+        <source>in the {group} &quot;%1&quot;</source>
+        <extracomment>Where an element is: in a group without other elements; %1: the title of the group. In Polish: w {group:locative} „%1”</extracomment>
+        <translation>w {group:locative} „%1”</translation>
+    </message>
+    <message>
+        <source>at the end of the {group} &quot;%1&quot;</source>
+        <extracomment>In Polish: na końcu {group:genitive} „%1”</extracomment>
+        <translation>na końcu {group:genitive} „%1”</translation>
+    </message>
+    <message>
+        <source>at the start of the {group} &quot;%1&quot;</source>
+        <extracomment>In Polish: na początku {group:genitive} „%1”</extracomment>
+        <translation>na początku {group:genitive} „%1”</translation>
+    </message>
+    <message>
+        <source>in the {group} &quot;%1&quot;, before &quot;%2&quot;</source>
+        <extracomment>%1: the title of the group; %2: the title of the element after the place. In Polish: w {group:locative} „%1”, przed elementem „%2”</extracomment>
+        <translation>w {group:locative} „%1”, przed elementem „%2”</translation>
+    </message>
+    <message>
+        <source>%1, before &quot;%2&quot;</source>
+        <extracomment>%1: a part of the book with its preposition, &quot;in the main section&quot;; %2: the title of the element after the place. In Polish: %1, przed elementem „%2”</extracomment>
+        <translation>%1, przed elementem „%2”</translation>
+    </message>
+    <message>
+        <source>First in the {group} &quot;%1&quot;</source>
+        <extracomment>In Polish: Jako pierwszy element {group:genitive} „%1”</extracomment>
+        <translation>Jako pierwszy element {group:genitive} „%1”</translation>
+    </message>
+    <message>
+        <source>Last in the {group} &quot;%1&quot;</source>
+        <extracomment>In Polish: Jako ostatni element {group:genitive} „%1”</extracomment>
+        <translation>Jako ostatni element {group:genitive} „%1”</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::NewElementDialog</name>
-    <message>
-        <source>Add Chapter</source>
-        <translation>Dodaj rozdział</translation>
-    </message>
-    <message>
-        <source>The chapter is added as the last one in the part &quot;%1&quot;.</source>
-        <translation>Rozdział zostanie dodany jako ostatni w części „%1”.</translation>
-    </message>
-    <message>
-        <source>New Chapter</source>
-        <translation>Nowy rozdział</translation>
-    </message>
-    <message>
-        <source>Add Part</source>
-        <translation>Dodaj część</translation>
-    </message>
-    <message>
-        <source>The part is added as the last one in the book.</source>
-        <translation>Część zostanie dodana jako ostatnia w książce.</translation>
-    </message>
-    <message>
-        <source>New Part</source>
-        <translation>Nowa część</translation>
-    </message>
-    <message>
-        <source>Add Front Matter Item</source>
-        <translation>Dodaj element części wstępnej</translation>
-    </message>
-    <message>
-        <source>The item is added as the last one in the front matter.</source>
-        <translation>Element zostanie dodany jako ostatni w części wstępnej.</translation>
-    </message>
-    <message>
-        <source>Add Back Matter Item</source>
-        <translation>Dodaj element części końcowej</translation>
-    </message>
-    <message>
-        <source>The item is added as the last one in the back matter.</source>
-        <translation>Element zostanie dodany jako ostatni w części końcowej.</translation>
-    </message>
-    <message>
-        <source>Type</source>
-        <translation>Rodzaj</translation>
-    </message>
     <message>
         <source>Title</source>
         <translation>Tytuł</translation>
@@ -7544,36 +9920,263 @@ Harmonogram projektu:
         <translation>Dodaj</translation>
     </message>
     <message>
-        <source>Title Page</source>
-        <translation>Strona tytułowa</translation>
+        <source>Kind</source>
+        <translation>Rodzaj</translation>
     </message>
     <message>
-        <source>Copyright Page</source>
-        <translation>Strona redakcyjna</translation>
+        <source>The list only shows how the book will look.</source>
+        <translation>Lista pokazuje tylko, jak będzie wyglądać książka.</translation>
     </message>
     <message>
-        <source>Dedication</source>
-        <translation>Dedykacja</translation>
+        <source>%1, after &quot;%2&quot;</source>
+        <extracomment>An option: %1 is where in a part of the book, &quot;At the end of the main section&quot;; %2 is the title of its last element. In Polish: %1, za elementem „%2”</extracomment>
+        <translation>%1, za elementem „%2”</translation>
     </message>
     <message>
-        <source>Preface</source>
-        <translation>Przedmowa</translation>
+        <source>%1, before &quot;%2&quot;</source>
+        <extracomment>An option: %1 is where in a part of the book, &quot;At the end of the main section&quot;; %2 is the title of the element the new one goes before. In Polish: %1, przed elementem „%2”</extracomment>
+        <translation>%1, przed elementem „%2”</translation>
     </message>
     <message>
-        <source>Epilogue</source>
-        <translation>Epilog</translation>
+        <source>First in the {group} &quot;%1&quot;</source>
+        <extracomment>In Polish: Jako pierwszy element {group:genitive} „%1”</extracomment>
+        <translation>Jako pierwszy element {group:genitive} „%1”</translation>
     </message>
     <message>
-        <source>Glossary</source>
-        <translation>Słowniczek</translation>
+        <source>Last in the {group} &quot;%1&quot;</source>
+        <extracomment>In Polish: Jako ostatni element {group:genitive} „%1”</extracomment>
+        <translation>Jako ostatni element {group:genitive} „%1”</translation>
     </message>
     <message>
-        <source>Bibliography</source>
-        <translation>Bibliografia</translation>
+        <source>Move &quot;%1&quot; to the end of the new {kind}</source>
+        <extracomment>In Polish: Przenieś element „%1” na koniec {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive}</extracomment>
+        <translation>Przenieś element „%1” na koniec {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive}</translation>
     </message>
     <message>
-        <source>About the Author</source>
-        <translation>Nota o autorze</translation>
+        <source>Move %1 to the end of the new {kind}</source>
+        <translation>Przenieś elementy %1 na koniec {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is now the last element %2. At the end of the new {kind} it stays the last one.</source>
+        <extracomment>In Polish: Element „%1” jest teraz ostatni %2. Na końcu {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} nadal będzie ostatni.</extracomment>
+        <translation>Element „%1” jest teraz ostatni %2. Na końcu {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} nadal będzie ostatni.</translation>
+    </message>
+    <message>
+        <source>%1 are now the last elements %2. At the end of the new {kind} they stay the last ones.</source>
+        <translation>Elementy %1 są teraz ostatnie %2. Na końcu {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} nadal będą ostatnie.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; stays where it is, and the {main:plural} added to the new {kind} go after it.</source>
+        <extracomment>{main:plural}: the main texts of the book, &quot;chapters&quot;, &quot;stories&quot;. In Polish: Element „%1” zostanie na swoim miejscu, a {main:plural} dodane do {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} znajdą się za nim.</extracomment>
+        <translation>Element „%1” zostanie na swoim miejscu, a {main:plural} dodane do {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} znajdą się za nim.</translation>
+    </message>
+    <message>
+        <source>%1 stay where they are, and the {main:plural} added to the new {kind} go after them.</source>
+        <translation>Elementy %1 zostaną na swoich miejscach, a {main:plural} dodane do {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} znajdą się za nimi.</translation>
+    </message>
+    <message>
+        <source>After adding the {kind}</source>
+        <extracomment>The list of the body as it will be. In Polish: Po dodaniu {kind:genitive}</extracomment>
+        <translation>Po dodaniu {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>Choose where the new {kind} {kind:s=goes|p=go} in the book.</source>
+        <extracomment>In Polish: Wybierz, gdzie w książce {kind:m=ma się znaleźć nowy|f=ma się znaleźć nowa|n=ma się znaleźć nowe|p=mają się znaleźć nowe} {kind}.</extracomment>
+        <translation>Wybierz, gdzie w książce {kind:m=ma się znaleźć nowy|f=ma się znaleźć nowa|n=ma się znaleźć nowe|p=mają się znaleźć nowe} {kind}.</translation>
+    </message>
+    <message>
+        <source>The {kind} {kind:s=is|p=are} added as the last {kind:s=one|p=ones} %1.</source>
+        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=ostatni|f=ostatnia|n=ostatnie|p=ostatnie} %1.</extracomment>
+        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=ostatni|f=ostatnia|n=ostatnie|p=ostatnie} %1.</translation>
+    </message>
+    <message>
+        <source>The {kind} {kind:s=is|p=are} added %1.</source>
+        <extracomment>%1: where in a part of the book, &quot;at the end of the main section&quot;. In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1.</extracomment>
+        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1.</translation>
+    </message>
+    <message>
+        <source>The {kind} {kind:s=is|p=are} added %1, before &quot;%2&quot;.</source>
+        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1, przed elementem „%2”.</extracomment>
+        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1, przed elementem „%2”.</translation>
+    </message>
+    <message>
+        <source>Add {Kind}</source>
+        <extracomment>In Polish: Dodaj {kind:accusative}</extracomment>
+        <translation>Dodaj {kind:accusative}</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is the last element %2, so the new {kind} {kind:s=goes|p=go} before it, at the end of the {group} &quot;%3&quot;. You can choose another place.</source>
+        <extracomment>%2: the body with its preposition, &quot;in the main section&quot;; %3: the part. In Polish: Element „%1” jest ostatni %2, więc {kind:m=nowy|f=nowa|n=nowe|p=nowe} {kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} przed nim, na końcu {group:genitive} „%3”. Możesz wybrać inne miejsce.</extracomment>
+        <translation>Element „%1” jest ostatni %2, więc {kind:m=nowy|f=nowa|n=nowe|p=nowe} {kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} przed nim, na końcu {group:genitive} „%3”. Możesz wybrać inne miejsce.</translation>
+    </message>
+    <message>
+        <source>%1 are the last elements %2, so the new {kind} {kind:s=goes|p=go} before them, at the end of the {group} &quot;%3&quot;. You can choose another place.</source>
+        <translation>Elementy %1 są ostatnie %2, więc {kind:m=nowy|f=nowa|n=nowe|p=nowe} {kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} przed nimi, na końcu {group:genitive} „%3”. Możesz wybrać inne miejsce.</translation>
+    </message>
+    <message>
+        <source>The {kind} {kind:s=is|p=are} added as the first {kind:s=one|p=ones} %1.</source>
+        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=pierwszy|f=pierwsza|n=pierwsze|p=pierwsze} %1.</extracomment>
+        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=pierwszy|f=pierwsza|n=pierwsze|p=pierwsze} %1.</translation>
+    </message>
+    <message>
+        <source>The {kind} {kind:s=is|p=are} added as the last {kind:s=one|p=ones} in the {group} &quot;%1&quot;.</source>
+        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=ostatni|f=ostatnia|n=ostatnie| p=ostatnie} w {group:locative} „%1”.</extracomment>
+        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=ostatni|f=ostatnia|n=ostatnie|p=ostatnie} w {group:locative} „%1”.</translation>
+    </message>
+    <message>
+        <source>The {kind} {kind:s=is|p=are} added at the end of the {group} &quot;%1&quot;, before &quot;%2&quot;.</source>
+        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} na końcu {group:genitive} „%1”, przed elementem „%2”.</extracomment>
+        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} na końcu {group:genitive} „%1”, przed elementem „%2”.</translation>
+    </message>
+    <message>
+        <source>The {kind} {kind:s=is|p=are} added %1, after &quot;%2&quot;.</source>
+        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1, za elementem „%2”.</extracomment>
+        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1, za elementem „%2”.</translation>
+    </message>
+    <message>
+        <source>Before &quot;%1&quot;, at the end of the {group} &quot;%2&quot;</source>
+        <extracomment>%1: the element the new one goes before; %2: the part it is in. In Polish: Przed elementem „%1”, na końcu {group:genitive} „%2”</extracomment>
+        <translation>Przed elementem „%1”, na końcu {group:genitive} „%2”</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::NewFileDialog</name>
+    <message>
+        <source>in {group:plural}</source>
+        <extracomment>Where the elements of a kind can be: in the groups of a kind, e.g. in parts. In Polish: w {group:locativePlural}</extracomment>
+        <translation>w {group:locativePlural}</translation>
+    </message>
+    <message>
+        <source>%1 and %2</source>
+        <extracomment>The places of a kind in a sentence: %1 is the places but the last one, joined with commas; %2 is the last one. In Polish: %1 i %2</extracomment>
+        <translation>%1 i %2</translation>
+    </message>
+    <message>
+        <source>any number</source>
+        <extracomment>How many elements of a kind the book can have. In Polish: dowolnie wiele
+----------
+How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
+        <translation>dowolnie wiele</translation>
+    </message>
+    <message>
+        <source>one {kind} in the book</source>
+        <extracomment>How many elements of a kind the book can have, e.g. one title page. In Polish: {kind:m=jeden|f=jedna|n=jedno|p=jedne} w książce</extracomment>
+        <translation>{kind:m=jeden|f=jedna|n=jedno|p=jedne} {kind} w książce</translation>
+    </message>
+    <message>
+        <source>at most %1 in the book</source>
+        <extracomment>How many elements of a kind the book can have; %1: the number. In Polish: najwyżej %1 w książce</extracomment>
+        <translation>najwyżej %1 w książce</translation>
+    </message>
+    <message>
+        <source>The program does not have an editor for the {kind} yet.</source>
+        <extracomment>The tooltip of a greyed kind that opens in a window of its own, e.g. a table of contents. In Polish: Program nie ma jeszcze edytora {kind:genitive}.</extracomment>
+        <translation>Program nie ma jeszcze edytora {kind:genitive}.</translation>
+    </message>
+    <message>
+        <source>The book already has {kind:indefinite}.</source>
+        <extracomment>The tooltip of a greyed kind of which a book can have one element, e.g. a title page. In Polish: Książka ma już {kind:accusative}.</extracomment>
+        <translation>Książka ma już {kind:accusative}.</translation>
+    </message>
+    <message>
+        <source>The book already has as many elements of this kind as it can have: %1.</source>
+        <extracomment>The tooltip of a greyed kind; %1: how many elements of the kind a book can have. In Polish: Książka ma już tyle elementów tego rodzaju, ile może mieć: %1.</extracomment>
+        <translation>Książka ma już tyle elementów tego rodzaju, ile może mieć: %1.</translation>
+    </message>
+    <message>
+        <source>%1 in the folder &quot;%2&quot;</source>
+        <extracomment>The file of a new element: %1 is its name, %2 the folder of the book it is in. In Polish: %1 w folderze „%2”</extracomment>
+        <translation>%1 w folderze „%2”</translation>
+    </message>
+    <message>
+        <source>New File</source>
+        <extracomment>The window of a new element of the open book. In Polish: Nowy plik</extracomment>
+        <translation>Nowy plik</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <extracomment>The button that makes the new element. In Polish: Utwórz</extracomment>
+        <translation>Utwórz</translation>
+    </message>
+    <message>
+        <source>Where:</source>
+        <extracomment>Where the elements of the chosen kind can be. In Polish: Gdzie:</extracomment>
+        <translation>Gdzie:</translation>
+    </message>
+    <message>
+        <source>How many:</source>
+        <extracomment>How many elements of the chosen kind the book can have. In Polish: Ile:</extracomment>
+        <translation>Ile:</translation>
+    </message>
+    <message>
+        <source>File:</source>
+        <extracomment>The file a new element of the chosen kind gets. In Polish: Plik:</extracomment>
+        <translation>Plik:</translation>
+    </message>
+    <message>
+        <source>Type:</source>
+        <extracomment>The type of book the chosen kind belongs to. In Polish: Typ:</extracomment>
+        <translation>Typ:</translation>
+    </message>
+    <message>
+        <source>Kinds</source>
+        <extracomment>The tiles of the kinds of elements of the book. In Polish: Rodzaje</extracomment>
+        <translation>Rodzaje</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <extracomment>The place of the new element in the book. In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>&amp;Title:</source>
+        <extracomment>In Polish: &amp;Tytuł:</extracomment>
+        <translation>&amp;Tytuł:</translation>
+    </message>
+    <message>
+        <source>&amp;Outside the book</source>
+        <extracomment>The place of an empty text file: not in the book, in a tab of its own. In Polish: &amp;Poza książką</extracomment>
+        <translation>&amp;Poza książką</translation>
+    </message>
+    <message>
+        <source>&amp;In the book</source>
+        <extracomment>The place of an empty text file: in the book, among its files outside its text (&quot;Other Files&quot; in the Navigator). In Polish: &amp;W książce</extracomment>
+        <translation>&amp;W książce</translation>
+    </message>
+    <message>
+        <source>Other Files</source>
+        <extracomment>The group of the tiles of files that are no kind of the book, after the parts of the book. In Polish: Inne pliki</extracomment>
+        <translation>Inne pliki</translation>
+    </message>
+    <message>
+        <source>outside the book, in a tab of its own</source>
+        <extracomment>Where an empty text file outside the book goes. In Polish: poza książką, w nowej karcie</extracomment>
+        <translation>poza książką, w nowej karcie</translation>
+    </message>
+    <message>
+        <source>chosen when it is saved for the first time</source>
+        <extracomment>The file of an empty text file outside the book: the writer chooses it when saving it for the first time. In Polish: wybierzesz go przy pierwszym zapisie</extracomment>
+        <translation>wybierzesz go przy pierwszym zapisie</translation>
+    </message>
+    <message>
+        <source>Empty Text File</source>
+        <extracomment>The tile of an empty text file in the New File window, and its name above its description. In Polish: Pusty plik tekstowy</extracomment>
+        <translation>Pusty plik tekstowy</translation>
+    </message>
+    <message>
+        <source>in the book, in &quot;Other Files&quot;, outside its text</source>
+        <extracomment>Where an empty text file in the book goes: to the files of the book outside its text, &quot;Other Files&quot; in the Navigator. In Polish: w książce, w grupie „Inne pliki”, poza jej treścią</extracomment>
+        <translation>w książce, w grupie „Inne pliki”, poza jej treścią</translation>
+    </message>
+    <message>
+        <source>The file goes to the book&apos;s folder and to &quot;Other Files&quot; in the Navigator. It is not part of the text of the book, so the finished book does not have it.</source>
+        <extracomment>Where an empty text file in the book goes, in place of the list of places. In Polish: Plik trafi do folderu książki i do grupy „Inne pliki” w Nawigatorze. Nie należy do treści książki, więc gotowa książka go nie zawiera.</extracomment>
+        <translation>Plik trafi do folderu książki i do grupy „Inne pliki” w Nawigatorze. Nie należy do treści książki, więc gotowa książka go nie zawiera.</translation>
+    </message>
+    <message>
+        <source>The file opens in a new tab, outside the book. You choose its place and format when you save it for the first time.</source>
+        <extracomment>Where an empty text file outside the book goes, in place of the list of places. In Polish: Plik otworzy się w nowej karcie, poza książką. Miejsce i format pliku wybierzesz przy pierwszym zapisie.</extracomment>
+        <translation>Plik otworzy się w nowej karcie, poza książką. Miejsce i format pliku wybierzesz przy pierwszym zapisie.</translation>
     </message>
 </context>
 <context>
@@ -7703,14 +10306,6 @@ Harmonogram projektu:
         <translation>Folder, w którym powstanie książka</translation>
     </message>
     <message>
-        <source>Browse...</source>
-        <translation>Przeglądaj...</translation>
-    </message>
-    <message>
-        <source>Browse for book folder</source>
-        <translation>Wybierz folder książki</translation>
-    </message>
-    <message>
         <source>Create subfolder with book name</source>
         <translation>Utwórz podfolder z nazwą książki</translation>
     </message>
@@ -7725,6 +10320,39 @@ Harmonogram projektu:
     <message>
         <source>Select Book Location</source>
         <translation>Wybierz miejsce książki</translation>
+    </message>
+    <message>
+        <source>The book will be created in the folder &apos;%1&apos;.</source>
+        <translation>Książka powstanie w folderze „%1”.</translation>
+    </message>
+    <message>
+        <source>The folder &apos;%1&apos; is already in this location and is not empty. Change the title or the location.</source>
+        <translation>Folder „%1” już istnieje w tym miejscu i nie jest pusty. Zmień tytuł albo miejsce.</translation>
+    </message>
+    <message>
+        <source>The folder &apos;%1&apos; is not empty. Choose another folder or create a subfolder with the book name.</source>
+        <translation>Folder „%1” nie jest pusty. Wybierz inny folder albo zaznacz tworzenie podfolderu z nazwą książki.</translation>
+    </message>
+    <message>
+        <source>Sections:</source>
+        <translation>Sekcje:</translation>
+    </message>
+    <message>
+        <source>Section names:</source>
+        <translation>Nazwy sekcji:</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>Przeglądaj...</translation>
+    </message>
+    <message>
+        <source>Next</source>
+        <extracomment>The button of the New Book window for a user project, whose kinds the writer chooses in the next window. In Polish: Dalej</extracomment>
+        <translation>Dalej</translation>
     </message>
 </context>
 <context>
@@ -7922,130 +10550,101 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     </message>
 </context>
 <context>
-    <name>kalahari::gui::IconDownloaderDialog</name>
+    <name>kalahari::gui::dialogs::UserProjectDialog</name>
     <message>
-        <source>Preview</source>
-        <translation>Podgląd</translation>
+        <source>Check All</source>
+        <extracomment>A link over the palette of a new user project. In Polish: Zaznacz wszystkie</extracomment>
+        <translation>Zaznacz wszystkie</translation>
     </message>
     <message>
-        <source>Close</source>
-        <translation>Zamknij</translation>
+        <source>Only &quot;Base&quot;</source>
+        <extracomment>A link over the palette: the kinds of the package &quot;Base&quot; and only them. In Polish: Tylko „Podstawa”</extracomment>
+        <translation>Tylko „Podstawa”</translation>
     </message>
     <message>
-        <source>Icon URL</source>
-        <translation>Adres ikony</translation>
+        <source>Uncheck All</source>
+        <extracomment>A link over the palette of a new user project. In Polish: Odznacz wszystkie</extracomment>
+        <translation>Odznacz wszystkie</translation>
     </message>
     <message>
-        <source>Enter full URL to SVG icon. Example:</source>
-        <translation>Wpisz pełny adres URL ikony SVG. Przykład:</translation>
+        <source>Palette of Kinds</source>
+        <extracomment>The list of the kinds of elements in the window of a new user project. In Polish: Paleta rodzajów</extracomment>
+        <translation>Paleta rodzajów</translation>
     </message>
     <message>
-        <source>Full URL to SVG file</source>
-        <translation>Pełny adres URL pliku SVG</translation>
+        <source>Tools of the Types</source>
+        <extracomment>The tools that book types will have, e.g. a plot board. In Polish: Narzędzia typów</extracomment>
+        <translation>Narzędzia typów</translation>
     </message>
     <message>
-        <source>Output Settings</source>
-        <translation>Zapis</translation>
+        <source>No type has tools yet. When they come (e.g. a plot board and a book dictionary), you will choose them here.</source>
+        <extracomment>In Polish: Żaden typ nie ma jeszcze narzędzi. Gdy powstaną (np. tablica fabuły i słownik książki), wybierzesz je tutaj.</extracomment>
+        <translation>Żaden typ nie ma jeszcze narzędzi. Gdy powstaną (np. tablica fabuły i słownik książki), wybierzesz je tutaj.</translation>
     </message>
     <message>
-        <source>Icon name:</source>
-        <translation>Nazwa ikony:</translation>
+        <source>&lt; Back</source>
+        <extracomment>The button that returns to the first step of a new book. In Polish: &lt; Wstecz</extracomment>
+        <translation>&lt; Wstecz</translation>
     </message>
     <message>
-        <source>e.g., save, folder_open</source>
-        <translation>np. save, folder_open</translation>
+        <source>Skip</source>
+        <extracomment>The button that creates the book without the changes made in the palette. In Polish: Pomiń</extracomment>
+        <translation>Pomiń</translation>
     </message>
     <message>
-        <source>Name for saved file (without .svg)</source>
-        <translation>Nazwa zapisanego pliku (bez .svg)</translation>
+        <source>Creates the book with the kinds of &quot;Base&quot;, without the changes made in this window.</source>
+        <extracomment>The tooltip of Skip. In Polish: Tworzy książkę z rodzajami „Podstawy”, bez zmian wprowadzonych w tym oknie.</extracomment>
+        <translation>Tworzy książkę z rodzajami „Podstawy”, bez zmian wprowadzonych w tym oknie.</translation>
     </message>
     <message>
-        <source>Save to theme:</source>
-        <translation>Zapisz w stylu:</translation>
+        <source>Create Book</source>
+        <extracomment>In Polish: Utwórz książkę</extracomment>
+        <translation>Utwórz książkę</translation>
     </message>
     <message>
-        <source>Target theme directory</source>
-        <translation>Katalog docelowego stylu ikon</translation>
+        <source>Workshop</source>
+        <extracomment>The group of the kinds of the Workshop in the palette. In Polish: Warsztat</extracomment>
+        <translation>Warsztat</translation>
     </message>
     <message>
-        <source>Download Progress</source>
-        <translation>Postęp pobierania</translation>
+        <source>Kinds of Elements of the Book &quot;%1&quot;</source>
+        <extracomment>The heading of the second step of a new user project; %1: the title of the book. In Polish: Rodzaje elementów książki „%1”</extracomment>
+        <translation>Rodzaje elementów książki „%1”</translation>
     </message>
     <message>
-        <source>Ready to download</source>
-        <translation>Gotowe do pobrania</translation>
+        <source>Check the kinds the book is to have. The elements with &quot;Create now&quot; checked are created with it.</source>
+        <extracomment>In Polish: Zaznacz rodzaje, które ma mieć książka. Elementy z zaznaczonym polem „Utwórz od razu” powstaną razem z nią.</extracomment>
+        <translation>Zaznacz rodzaje, które ma mieć książka. Elementy z zaznaczonym polem „Utwórz od razu” powstaną razem z nią.</translation>
     </message>
     <message>
-        <source>Errors:</source>
-        <translation>Błędy:</translation>
+        <source>New Book – User Project</source>
+        <extracomment>The window title of the second step of a new user project. In Polish: Nowa książka – projekt użytkownika</extracomment>
+        <translation>Nowa książka – projekt użytkownika</translation>
     </message>
     <message>
-        <source>No errors</source>
-        <translation>Brak błędów</translation>
+        <source>Checked kinds: %1</source>
+        <extracomment>Over the palette of a new user project. In Polish: Zaznaczone rodzaje: %1</extracomment>
+        <translation>Zaznaczone rodzaje: %1</translation>
     </message>
     <message>
-        <source>Download</source>
-        <translation>Pobierz</translation>
+        <source>Check at least one kind.</source>
+        <extracomment>The tooltip of Create Book when no kind is checked. In Polish: Zaznacz co najmniej jeden rodzaj.</extracomment>
+        <translation>Zaznacz co najmniej jeden rodzaj.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::utils::ReadingTime</name>
+    <message>
+        <source>%1 min</source>
+        <translation>%1 min</translation>
     </message>
     <message>
-        <source>Downloading...</source>
-        <translation>Pobieranie…</translation>
+        <source>%1 h</source>
+        <translation>%1 godz.</translation>
     </message>
     <message>
-        <source>Conversion failed: %1</source>
-        <translation>Nie udało się przekształcić ikony: %1</translation>
-    </message>
-    <message>
-        <source>Failed to create directory: %1</source>
-        <translation>Nie udało się utworzyć katalogu: %1</translation>
-    </message>
-    <message>
-        <source>Failed to write file: %1</source>
-        <translation>Nie udało się zapisać pliku: %1</translation>
-    </message>
-    <message>
-        <source>Downloading... (%1/%2)</source>
-        <translation>Pobieranie… (%1/%2)</translation>
-    </message>
-    <message>
-        <source>Downloaded and saved successfully</source>
-        <translation>Pobrano i zapisano</translation>
-    </message>
-    <message>
-        <source>Download failed</source>
-        <translation>Nie udało się pobrać</translation>
-    </message>
-    <message>
-        <source>Icon Downloader</source>
-        <translation>Pobieranie ikon</translation>
-    </message>
-    <message>
-        <source>Cancel Download</source>
-        <translation>Przerwij pobieranie</translation>
-    </message>
-    <message>
-        <source>The download is in progress. Do you want to stop it?</source>
-        <translation>Trwa pobieranie. Czy je przerwać?</translation>
-    </message>
-    <message>
-        <source>&amp;Stop Download</source>
-        <translation>&amp;Przerwij pobieranie</translation>
-    </message>
-    <message>
-        <source>Invalid Input</source>
-        <translation>Nieprawidłowe dane</translation>
-    </message>
-    <message>
-        <source>Please enter a URL.</source>
-        <translation>Wpisz adres URL.</translation>
-    </message>
-    <message>
-        <source>The URL must start with http:// or https://.</source>
-        <translation>Adres URL musi zaczynać się od http:// lub https://.</translation>
-    </message>
-    <message>
-        <source>Please enter an icon name.</source>
-        <translation>Wpisz nazwę ikony.</translation>
+        <source>%1 h %2 min</source>
+        <translation>%1 godz. %2 min</translation>
     </message>
 </context>
 <context>
@@ -8098,634 +10697,10 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <source>The command line could not be read.</source>
         <translation>Nie udało się odczytać wiersza poleceń.</translation>
     </message>
-</context>
-<context>
-    <name>kalahari::gui::dialogs::ColorDialog</name>
     <message>
-        <source>Select Color</source>
-        <translation>Wybierz kolor</translation>
-    </message>
-    <message>
-        <source>Select</source>
-        <translation>Wybierz</translation>
-    </message>
-    <message>
-        <source>&amp;Palette</source>
-        <translation>&amp;Paleta</translation>
-    </message>
-    <message>
-        <source>Palette</source>
-        <translation>Paleta</translation>
-    </message>
-    <message>
-        <source>Rec&amp;ent colors</source>
-        <translation>&amp;Ostatnio użyte</translation>
-    </message>
-    <message>
-        <source>Recent colors</source>
-        <translation>Ostatnio użyte</translation>
-    </message>
-    <message>
-        <source>The colors you select appear here.</source>
-        <translation>Tutaj pojawią się wybrane kolory.</translation>
-    </message>
-    <message>
-        <source>Preview</source>
-        <translation>Podgląd</translation>
-    </message>
-    <message>
-        <source>Pre&amp;vious</source>
-        <translation>Poprzedn&amp;i</translation>
-    </message>
-    <message>
-        <source>Bring back the previous color</source>
-        <translation>Przywróć poprzedni kolor</translation>
-    </message>
-    <message>
-        <source>New</source>
-        <translation>Nowy</translation>
-    </message>
-    <message>
-        <source>&amp;HEX</source>
-        <translation>&amp;HEX</translation>
-    </message>
-    <message>
-        <source>&amp;Red</source>
-        <translation>&amp;Czerwony</translation>
-    </message>
-    <message>
-        <source>&amp;Green</source>
-        <translation>&amp;Zielony</translation>
-    </message>
-    <message>
-        <source>&amp;Blue</source>
-        <translation>&amp;Niebieski</translation>
-    </message>
-    <message>
-        <source>New color %1</source>
-        <translation>Nowy kolor %1</translation>
-    </message>
-</context>
-<context>
-    <name>QCommandLineParser</name>
-    <message>
-        <source>Unknown option &apos;%1&apos;.</source>
-        <translation>Nieznana opcja „%1”.</translation>
-    </message>
-    <message>
-        <source>Unknown options: %1.</source>
-        <translation>Nieznane opcje: %1.</translation>
-    </message>
-    <message>
-        <source>Missing value after &apos;%1&apos;.</source>
-        <translation>Brak wartości po „%1”.</translation>
-    </message>
-    <message>
-        <source>Unexpected value after &apos;%1&apos;.</source>
-        <translation>Nieoczekiwana wartość po „%1”.</translation>
-    </message>
-    <message>
-        <source>Usage: %1</source>
-        <translation>Użycie: %1</translation>
-    </message>
-    <message>
-        <source>[options]</source>
-        <translation>[opcje]</translation>
-    </message>
-    <message>
-        <source>Options:</source>
-        <translation>Opcje:</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::core::CmdLineParser</name>
-    <message>
-        <source>Displays help on commandline options.</source>
-        <translation>Wyświetla pomoc dotyczącą opcji wiersza poleceń.</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::core::IconDownloader</name>
-    <message>
-        <source>Invalid URL: %1</source>
-        <translation>Nieprawidłowy adres URL: %1</translation>
-    </message>
-    <message>
-        <source>Not found (404): %1</source>
-        <translation>Nie znaleziono (404): %1</translation>
-    </message>
-    <message>
-        <source>Access denied (403): %1</source>
-        <translation>Odmowa dostępu (403): %1</translation>
-    </message>
-    <message>
-        <source>The server did not answer within %1 seconds</source>
-        <translation>Serwer nie odpowiedział w ciągu %1 s</translation>
-    </message>
-    <message>
-        <source>Cannot connect to the server</source>
-        <translation>Nie można połączyć się z serwerem</translation>
-    </message>
-    <message>
-        <source>The proxy server did not let the connection through</source>
-        <translation>Serwer pośredniczący (proxy) nie przepuścił połączenia</translation>
-    </message>
-    <message>
-        <source>A secure connection to the server failed</source>
-        <translation>Nie udało się nawiązać bezpiecznego połączenia z serwerem</translation>
-    </message>
-    <message>
-        <source>Download failed: %1</source>
-        <translation>Pobieranie nie powiodło się: %1</translation>
-    </message>
-    <message>
-        <source>The downloaded file is empty</source>
-        <translation>Pobrany plik jest pusty</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::core::SvgConverter</name>
-    <message>
-        <source>The SVG file is empty</source>
-        <translation>Plik SVG jest pusty</translation>
-    </message>
-    <message>
-        <source>Invalid XML in line %1, column %2: %3</source>
-        <translation>Błąd składni XML w wierszu %1, kolumnie %2: %3</translation>
-    </message>
-    <message>
-        <source>The file is not an SVG image (its root element is &lt;%1&gt;)</source>
-        <translation>Plik nie jest obrazem SVG (jego elementem głównym jest &lt;%1&gt;)</translation>
-    </message>
-    <message>
-        <source>The &lt;svg&gt; element has no viewBox attribute</source>
-        <translation>Element &lt;svg&gt; nie ma atrybutu viewBox</translation>
-    </message>
-    <message>
-        <source>Conversion produced invalid SVG: %1</source>
-        <translation>Konwersja dała nieprawidłowy plik SVG: %1</translation>
-    </message>
-</context>
-<context>
-    <name>CloseButton</name>
-    <message>
-        <source>Close Tab</source>
-        <translation>Zamknij kartę</translation>
-    </message>
-</context>
-<context>
-    <name>QAbstractSpinBox</name>
-    <message>
-        <source>&amp;Select All</source>
-        <translation>Zaznacz &amp;wszystko</translation>
-    </message>
-    <message>
-        <source>&amp;Step up</source>
-        <translation>Zwięk&amp;sz</translation>
-    </message>
-    <message>
-        <source>Step &amp;down</source>
-        <translation>Z&amp;mniejsz</translation>
-    </message>
-</context>
-<context>
-    <name>QAccessibleActionInterface</name>
-    <message>
-        <source>Press</source>
-        <translation>Naciśnij</translation>
-    </message>
-    <message>
-        <source>Triggers the action</source>
-        <translation>Wykonuje polecenie</translation>
-    </message>
-    <message>
-        <source>Increase</source>
-        <translation>Zwiększ</translation>
-    </message>
-    <message>
-        <source>Increase the value</source>
-        <translation>Zwiększa wartość</translation>
-    </message>
-    <message>
-        <source>Decrease</source>
-        <translation>Zmniejsz</translation>
-    </message>
-    <message>
-        <source>Decrease the value</source>
-        <translation>Zmniejsza wartość</translation>
-    </message>
-    <message>
-        <source>Shows the menu</source>
-        <translation>Pokazuje menu</translation>
-    </message>
-    <message>
-        <source>SetFocus</source>
-        <translation>Ustaw fokus</translation>
-    </message>
-    <message>
-        <source>Sets the focus</source>
-        <translation>Ustawia fokus</translation>
-    </message>
-    <message>
-        <source>Toggle</source>
-        <translation>Przełącz</translation>
-    </message>
-    <message>
-        <source>Toggles the state</source>
-        <translation>Przełącza stan</translation>
-    </message>
-    <message>
-        <source>Scroll Left</source>
-        <translation>Przewiń w lewo</translation>
-    </message>
-    <message>
-        <source>Scrolls to the left</source>
-        <translation>Przewija w lewo</translation>
-    </message>
-    <message>
-        <source>Scroll Right</source>
-        <translation>Przewiń w prawo</translation>
-    </message>
-    <message>
-        <source>Scrolls to the right</source>
-        <translation>Przewija w prawo</translation>
-    </message>
-    <message>
-        <source>Scrolls up</source>
-        <translation>Przewija w górę</translation>
-    </message>
-    <message>
-        <source>Scrolls down</source>
-        <translation>Przewija w dół</translation>
-    </message>
-    <message>
-        <source>Goes back a page</source>
-        <translation>Cofa o stronę</translation>
-    </message>
-    <message>
-        <source>Goes to the next page</source>
-        <translation>Przechodzi o stronę dalej</translation>
-    </message>
-</context>
-<context>
-    <name>QComboBox</name>
-    <message>
-        <source>Open the combo box selection popup</source>
-        <translation>Otwiera listę do wyboru</translation>
-    </message>
-</context>
-<context>
-    <name>QDockWidget</name>
-    <message>
-        <source>Close</source>
-        <translation>Zamknij</translation>
-    </message>
-    <message>
-        <source>Float</source>
-        <translation>Odepnij</translation>
-    </message>
-    <message>
-        <source>Undocks and re-attaches the dock widget</source>
-        <translation>Odpina panel i dołącza go z powrotem</translation>
-    </message>
-</context>
-<context>
-    <name>QFileDialog</name>
-    <message>
-        <source>Look in:</source>
-        <translation>Szukaj w:</translation>
-    </message>
-    <message>
-        <source>Back</source>
-        <translation>Wstecz</translation>
-    </message>
-    <message>
-        <source>Go back</source>
-        <translation>Wróć</translation>
-    </message>
-    <message>
-        <source>Forward</source>
-        <translation>Dalej</translation>
-    </message>
-    <message>
-        <source>Go forward</source>
-        <translation>Przejdź dalej</translation>
-    </message>
-    <message>
-        <source>Parent Directory</source>
-        <translation>Folder nadrzędny</translation>
-    </message>
-    <message>
-        <source>Go to the parent directory</source>
-        <translation>Przejdź do folderu nadrzędnego</translation>
-    </message>
-    <message>
-        <source>Create New Folder</source>
-        <translation>Utwórz nowy folder</translation>
-    </message>
-    <message>
-        <source>Create a New Folder</source>
-        <translation>Utwórz nowy folder</translation>
-    </message>
-    <message>
-        <source>List View</source>
-        <translation>Widok listy</translation>
-    </message>
-    <message>
-        <source>Change to list view mode</source>
-        <translation>Przełącz na widok listy</translation>
-    </message>
-    <message>
-        <source>Detail View</source>
-        <translation>Widok szczegółów</translation>
-    </message>
-    <message>
-        <source>Change to detail view mode</source>
-        <translation>Przełącz na widok szczegółów</translation>
-    </message>
-    <message>
-        <source>Sidebar</source>
-        <translation>Pasek boczny</translation>
-    </message>
-    <message>
-        <source>List of places and bookmarks</source>
-        <translation>Lista miejsc i zakładek</translation>
-    </message>
-    <message>
-        <source>Recent Places</source>
-        <translation>Ostatnie miejsca</translation>
-    </message>
-    <message>
-        <source>Files</source>
-        <translation>Pliki</translation>
-    </message>
-    <message>
-        <source>File &amp;name:</source>
-        <translation>&amp;Nazwa pliku:</translation>
-    </message>
-    <message>
-        <source>Directory:</source>
-        <translation>Folder:</translation>
-    </message>
-    <message>
-        <source>Files of type:</source>
-        <translation>Pliki typu:</translation>
-    </message>
-    <message>
-        <source>All Files (*)</source>
-        <translation>Wszystkie pliki (*)</translation>
-    </message>
-    <message>
-        <source>All files (*)</source>
-        <translation>Wszystkie pliki (*)</translation>
-    </message>
-    <message>
-        <source>Directories</source>
-        <translation>Foldery</translation>
-    </message>
-    <message>
-        <source>Open</source>
-        <translation>Otwórz</translation>
-    </message>
-    <message>
-        <source>&amp;Open</source>
-        <translation>&amp;Otwórz</translation>
-    </message>
-    <message>
-        <source>&amp;Save</source>
-        <translation>&amp;Zapisz</translation>
-    </message>
-    <message>
-        <source>Save As</source>
-        <translation>Zapisz jako</translation>
-    </message>
-    <message>
-        <source>&amp;Choose</source>
-        <translation>&amp;Wybierz</translation>
-    </message>
-    <message>
-        <source>Find Directory</source>
-        <translation>Wybierz folder</translation>
-    </message>
-    <message>
-        <source>&amp;Rename</source>
-        <translation>&amp;Zmień nazwę</translation>
-    </message>
-    <message>
-        <source>&amp;Delete</source>
-        <translation>&amp;Usuń</translation>
-    </message>
-    <message>
-        <source>Delete</source>
-        <translation>Usuń</translation>
-    </message>
-    <message>
-        <source>Remove</source>
-        <translation>Usuń</translation>
-    </message>
-    <message>
-        <source>Show &amp;hidden files</source>
-        <translation>Pokaż &amp;ukryte pliki</translation>
-    </message>
-    <message>
-        <source>&amp;New Folder</source>
-        <translation>&amp;Nowy folder</translation>
-    </message>
-    <message>
-        <source>New Folder</source>
-        <translation>Nowy folder</translation>
-    </message>
-    <message>
-        <source>Show </source>
-        <translation>Pokaż </translation>
-    </message>
-    <message>
-        <source>File</source>
-        <translation>Plik</translation>
-    </message>
-    <message>
-        <source>Folder</source>
-        <translation>Folder</translation>
-    </message>
-    <message>
-        <source>Alias</source>
-        <translation>Alias</translation>
-    </message>
-    <message>
-        <source>Shortcut</source>
-        <translation>Skrót</translation>
-    </message>
-    <message>
-        <source>Drive</source>
-        <translation>Dysk</translation>
-    </message>
-    <message>
-        <source>Unknown</source>
-        <translation>Nieznany</translation>
-    </message>
-    <message>
-        <source>%1 already exists.
-Do you want to replace it?</source>
-        <translation>Plik %1 już istnieje.
-Czy go zastąpić?</translation>
-    </message>
-    <message>
-        <source>%1
-File not found.
-Please verify the correct file name was given.</source>
-        <translation>%1
-Nie znaleziono pliku.
-Sprawdź, czy nazwa pliku jest poprawna.</translation>
-    </message>
-    <message>
-        <source>%1
-Directory not found.
-Please verify the correct directory name was given.</source>
-        <translation>%1
-Nie znaleziono folderu.
-Sprawdź, czy nazwa folderu jest poprawna.</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to delete &apos;%1&apos;?</source>
-        <translation>Czy na pewno usunąć „%1”?</translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; is write protected.
-Do you want to delete it anyway?</source>
-        <translation>„%1” jest chroniony przed zapisem.
-Czy mimo to go usunąć?</translation>
-    </message>
-    <message>
-        <source>Could not delete directory.</source>
-        <translation>Nie można usunąć folderu.</translation>
-    </message>
-</context>
-<context>
-    <name>QFileSystemModel</name>
-    <message>
-        <source>Name</source>
-        <translation>Nazwa</translation>
-    </message>
-    <message>
-        <source>Size</source>
-        <translation>Rozmiar</translation>
-    </message>
-    <message>
-        <source>Type</source>
-        <translation>Typ</translation>
-    </message>
-    <message>
-        <source>Kind</source>
-        <translation>Rodzaj</translation>
-    </message>
-    <message>
-        <source>Date Modified</source>
-        <translation>Data modyfikacji</translation>
-    </message>
-    <message>
-        <source>Computer</source>
-        <translation>Komputer</translation>
-    </message>
-</context>
-<context>
-    <name>QScrollBar</name>
-    <message>
-        <source>Scroll here</source>
-        <translation>Przewiń tutaj</translation>
-    </message>
-    <message>
-        <source>Left edge</source>
-        <translation>Lewa krawędź</translation>
-    </message>
-    <message>
-        <source>Top</source>
-        <translation>Do góry</translation>
-    </message>
-    <message>
-        <source>Right edge</source>
-        <translation>Prawa krawędź</translation>
-    </message>
-    <message>
-        <source>Bottom</source>
-        <translation>Do dołu</translation>
-    </message>
-    <message>
-        <source>Page left</source>
-        <translation>Strona w lewo</translation>
-    </message>
-    <message>
-        <source>Page up</source>
-        <translation>Strona w górę</translation>
-    </message>
-    <message>
-        <source>Page right</source>
-        <translation>Strona w prawo</translation>
-    </message>
-    <message>
-        <source>Page down</source>
-        <translation>Strona w dół</translation>
-    </message>
-    <message>
-        <source>Scroll left</source>
-        <translation>Przewiń w lewo</translation>
-    </message>
-    <message>
-        <source>Scroll up</source>
-        <translation>Przewiń w górę</translation>
-    </message>
-    <message>
-        <source>Scroll right</source>
-        <translation>Przewiń w prawo</translation>
-    </message>
-    <message>
-        <source>Scroll down</source>
-        <translation>Przewiń w dół</translation>
-    </message>
-</context>
-<context>
-    <name>QTabBar</name>
-    <message>
-        <source>Scroll Left</source>
-        <translation>Przewiń w lewo</translation>
-    </message>
-    <message>
-        <source>Scroll Right</source>
-        <translation>Przewiń w prawo</translation>
-    </message>
-</context>
-<context>
-    <name>QWidgetTextControl</name>
-    <message>
-        <source>&amp;Undo</source>
-        <translation>&amp;Cofnij</translation>
-    </message>
-    <message>
-        <source>&amp;Redo</source>
-        <translation>&amp;Ponów</translation>
-    </message>
-    <message>
-        <source>Cu&amp;t</source>
-        <translation>Wy&amp;tnij</translation>
-    </message>
-    <message>
-        <source>&amp;Copy</source>
-        <translation>&amp;Kopiuj</translation>
-    </message>
-    <message>
-        <source>Copy &amp;Link Location</source>
-        <translation>Kopiuj &amp;adres odnośnika</translation>
-    </message>
-    <message>
-        <source>&amp;Paste</source>
-        <translation>Wk&amp;lej</translation>
-    </message>
-    <message>
-        <source>Delete</source>
-        <translation>&amp;Usuń</translation>
-    </message>
-    <message>
-        <source>Select All</source>
-        <translation>Zaznacz &amp;wszystko</translation>
+        <source>A book (.klh file) or another file to open; when the program runs already, its window opens it</source>
+        <extracomment>The argument of the command line without a name. In Polish: Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</extracomment>
+        <translation>Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</translation>
     </message>
 </context>
 </TS>

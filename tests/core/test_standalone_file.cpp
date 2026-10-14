@@ -196,3 +196,34 @@ TEST_CASE("Unsupported and unreadable files do not open", "[core][standalone_fil
     writeBytes(dir.filePath("broken.kchapter"), "{ not json");
     CHECK_FALSE(StandaloneFile::open(dir.filePath("broken.kchapter"), kml, &error).has_value());
 }
+
+TEST_CASE("A plain text file loses all but the text of the paragraphs",
+          "[core][standalone_file]") {
+    SECTION("Paragraphs of text lose nothing") {
+        const StandaloneFile::TextLoss lost =
+            StandaloneFile::lostAsText("<kml><p>One &amp; two</p><p></p><p>Three</p></kml>");
+        CHECK_FALSE(lost.formatting);
+        CHECK_FALSE(lost.annotations);
+        CHECK_FALSE(StandaloneFile::lostAsText(QString()).formatting);
+    }
+
+    SECTION("Formatting of characters and paragraphs is lost") {
+        CHECK(StandaloneFile::lostAsText("<kml><p>A <b>bold</b> word</p></kml>").formatting);
+        CHECK(StandaloneFile::lostAsText("<kml><p><span size=\"18\">Big</span></p></kml>")
+                  .formatting);
+        CHECK(StandaloneFile::lostAsText("<kml><p align=\"center\">Title</p></kml>").formatting);
+        CHECK_FALSE(StandaloneFile::lostAsText("<kml><p><i>Word</i></p></kml>").annotations);
+    }
+
+    SECTION("Annotations are lost, apart from the formatting") {
+        const StandaloneFile::TextLoss lost = StandaloneFile::lostAsText(
+            "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Why?</annotation>"
+            "</annotations><p>A <anchor ref=\"c1\">word</anchor>.</p></kml>");
+        CHECK(lost.annotations);
+        CHECK_FALSE(lost.formatting);
+        CHECK(StandaloneFile::lostAsText(
+                  "<kml><annotations><annotation id=\"n1\" kind=\"note\">Mine</annotation>"
+                  "</annotations><p><u>Word</u><anchor ref=\"n1\"/></p></kml>")
+                  .formatting);
+    }
+}

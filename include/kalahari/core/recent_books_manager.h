@@ -56,6 +56,13 @@ public:
     /// @return true if no recent files, false otherwise
     bool isEmpty() const;
 
+    /// @brief The book to open at startup: the book opened last, while it is on the list
+    ///
+    /// A book created or imported without opening goes to the top of the list, yet the book
+    /// the writer opened last stays the one opened at startup.
+    /// @return Its .klh file; without one on the list the first of the list, empty for none
+    QString lastOpenedBook() const;
+
     /// @brief Maximum number of recent files to store
     static constexpr int MAX_RECENT_FILES = 10;
 

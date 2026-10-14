@@ -34,8 +34,10 @@ set(KALAHARI_CORE_SOURCES
     core/text_statistics.cpp    # Word/character counting shared by the whole application
     core/text_file.cpp          # Plain text files in their own encoding and line ends
     core/standalone_file.cpp    # Chapters and text files opened outside a book project
+    core/file_trash.cpp         # Files to the Trash of the system
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/book_type_registry.cpp # Book type packages loaded from folders
+    core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/book_project.cpp       # Book project as its .klh file saves it
     core/utils/svg_converter.cpp
     core/theme.cpp
@@ -140,7 +142,6 @@ set(KALAHARI_SOURCES
     gui/dialogs/icon_downloader_dialog.cpp
     gui/dialogs/item_templates.cpp  # TemplateRegistry - Project/file templates (OpenSpec #00033)
     gui/dialogs/new_item_dialog.cpp  # NewItemDialog - New project/file dialog (OpenSpec #00033)
-    gui/dialogs/add_to_project_dialog.cpp  # AddToProjectDialog - Add standalone file to project (OpenSpec #00033)
     gui/dialogs/toolbar_manager_dialog.cpp  # ToolbarManagerDialog - Visual Studio-style toolbar customization (OpenSpec #00031)
     gui/dialogs/kalahari_dialog.cpp  # KalahariDialog - base of the program's own dialogs
     gui/dialogs/message_dialog.cpp  # MessageDialog, TextInputDialog - own messages, questions, typed texts
@@ -148,6 +149,16 @@ set(KALAHARI_SOURCES
     gui/dialogs/progress_dialog.cpp  # ProgressDialog - own window for the progress of a long task
     gui/dialogs/color_dialog.cpp  # ColorDialog - own window for choosing a color
     gui/dialogs/new_element_dialog.cpp  # NewElementDialog - new chapter, part or item in the Navigator
+    gui/dialogs/add_to_book_dialog.cpp  # AddToBookDialog - a file as a new element of the book
+    gui/dialogs/new_file_dialog.cpp  # NewFileDialog - New File: a new element of the open book
+    gui/dialogs/move_element_dialog.cpp  # MoveElementDialog - a new place in the book for an element
+    gui/dialogs/delete_dialogs.cpp  # DeleteFromBookDialog, DeleteFilesDialog - what goes, and its files
+    gui/dialogs/dialog_parts.cpp  # Parts of the own dialogs: a list as high as its rows, a note, Copy
+    gui/dialogs/archive_dialogs.cpp  # ExportArchiveDialog, ImportArchiveDialog - one window each
+    gui/dialogs/file_preview_dialog.cpp  # FilePreviewDialog - the text of a file no element has
+    gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
+    gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
+    gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
     gui/kalahari_syntax_highlighter.cpp
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)
@@ -168,6 +179,7 @@ set(KALAHARI_SOURCES
     gui/grammar_setup.cpp  # GrammarSetup - Java and LanguageTool downloaded and prepared
     gui/main_window.cpp
     gui/menu_builder.cpp
+    gui/program_instance.cpp  # ProgramInstance - a later start hands its request to the program that runs
     gui/recent_books_menu.cpp
     gui/settings_dialog.cpp
     gui/settings/settings_page.cpp
@@ -177,6 +189,7 @@ set(KALAHARI_SOURCES
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
     gui/settings/annotations_page.cpp
+    gui/settings/folders_page.cpp
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     gui/shortcut_rules.cpp  # Which keys a command can have
     gui/shortcut_settings.cpp  # The user's keys in the settings and in the files
@@ -184,6 +197,7 @@ set(KALAHARI_SOURCES
     gui/widgets/color_config_widget.cpp
     gui/widgets/path_label.cpp  # A file path that wraps also inside a long name
     gui/widgets/length_spin_box.cpp
+    gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
     gui/widgets/flow_layout.cpp  # A row of buttons that wraps on a narrow panel
     gui/widgets/segmented_layout.cpp  # Joined buttons, one under another on a narrow panel
@@ -192,6 +206,11 @@ set(KALAHARI_SOURCES
     gui/widgets/tool_button_columns.cpp  # Panel buttons that wrap into columns
     gui/widgets/fitting_scroll_area.cpp  # Content that scrolls only on a small screen
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
+    gui/widgets/element_place_picker.cpp  # ElementPlacePicker - the place of an element in the book
+    gui/widgets/flow_layout.cpp  # FlowLayout - items in more rows in a narrow panel
+    gui/widgets/sections_field.cpp  # Fields of the sections of a book: their names or none
+    gui/widgets/kind_palette.cpp  # KindPalette - the kinds of elements of all book types
+    gui/widgets/folder_field.cpp  # FolderField - the path of a folder, Browse... and Restore Default
     gui/toolbar_manager.cpp
     gui/widgets/status_bar_statistics.cpp  # Counts of the document in front in the status bar
     gui/panels/annotation_card.cpp
@@ -214,6 +233,8 @@ set(KALAHARI_SOURCES
     gui/utils/panel_toggle.cpp  # Show/hide toggles of the dock panels
     gui/utils/reading_time.cpp  # The reading time of a text as the program shows it
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
+    gui/utils/program_folders.cpp  # The folders of the program and of the windows choosing files
+    gui/utils/file_location.cpp  # A file or a folder shown in the file manager of the system
     gui/utils/document_commands.cpp  # The commands that work on the document in front
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
     gui/utils/tab_focus.cpp  # The keys go to the page in front of the tabs
@@ -262,18 +283,25 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h # LogPanelSink with Q_OBJECT (OpenSpec #00024)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_style.h  # KalahariStyle with Q_OBJECT (OpenSpec #00026)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/program_instance.h  # ProgramInstance with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT (OpenSpec #00038 Phase 4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT (OpenSpec #00031)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT (OpenSpec #00033)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_project_dialog.h  # AddToProjectDialog with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/grammar_setup_dialog.h  # GrammarSetupDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/progress_dialog.h  # ProgressDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/color_dialog.h  # ColorDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_file_dialog.h  # NewFileDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h
@@ -295,10 +323,16 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/shortcuts_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h  # InfoBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/sections_field.h  # SectionsComboBox, SectionNamesEdit with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/kind_palette.h  # KindPalette with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/folder_field.h  # FolderField with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h  # StatusBarStatistics with Q_OBJECT

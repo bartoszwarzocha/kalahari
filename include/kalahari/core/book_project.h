@@ -19,7 +19,7 @@
 ///   "books": [
 ///     {
 ///       "id": "c2a1", "title": "Moja powieść", "author": "Anna Nowak", "language": "pl",
-///       "genre": "", "partsLayer": true, "folder": "book",
+///       "genre": "", "partsLayer": true, "sections": "matter", "folder": "book",
 ///       "front": [
 ///         { "id": "e1", "kind": "kalahari.base:title_page", "title": "Strona tytułowa",
 ///           "file": "book/title_page_001.kchapter", "status": "draft" }
@@ -31,7 +31,10 @@
 ///               "file": "book/chapter_001.kchapter", "status": "revision" }
 ///           ] }
 ///       ],
-///       "back": []
+///       "back": [],
+///       "files": [
+///         { "id": "e5", "title": "Notatki", "file": "book/file_001.kchapter" }
+///       ]
 ///     }
 ///   ],
 ///   "workshop": {
@@ -48,17 +51,27 @@
 /// - "kinds": kinds taken from other types; in a user project, all its kinds.
 /// - A book has its data (title, author, language, genre), the name of its node ("name";
 ///   none: "Book" in the user's language), whether the Navigator shows its front, main and back
-///   parts ("partsLayer"), the folder of its files and the elements of each part.
+///   parts ("partsLayer"), the names of these parts ("sections"), the folder of its files, the
+///   elements of each part and its files outside its text ("files").
+/// - "sections" is the id of a set of names in the language of the book ("sections": Front
+///   Section, Main Section, Back Section; "matter": Front Matter, Body, Back Matter;
+///   "fragments"; "arc"), or the writer's own names:
+///   { "front": "Przedmowa i wstęp", "main": "Opowieść", "back": "Dodatki" }. None: the
+///   first set. An id this version does not know is saved back and gives the first set.
 /// - The Workshop has the name of its node ("name"), whether it is grouped and its elements.
 /// - An element has an id unique in the project, its kind, a title, a file relative to the
 ///   project folder (if it has one), a status ("draft", "revision" or "final"; groups have
 ///   none) and the elements inside it (groups). The order and nesting of elements are saved
 ///   only here, not in folders.
+/// - A file of a book outside its text, such as notes or a text pasted from elsewhere, has an
+///   id unique in the project, a title and a chapter file, but no kind and no status; the
+///   finished book does not have it. A book without such files has no "files".
 /// - Fields this version of Kalahari does not know are kept and saved back.
 
 #pragma once
 
 #include <kalahari/core/book_type_registry.h>
+#include <QByteArray>
 #include <QDateTime>
 #include <QJsonObject>
 #include <QList>
@@ -78,13 +91,52 @@ struct ProjectElement {
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QJsonObject extra;               ///< Fields this version does not know, saved back
 
+    /// @brief Whether it has a kind: every element of a book and of the Workshop has one, a
+    /// file of a book outside its text (ProjectBook::files) has none
+    bool hasKind() const { return !kind.kindId.isEmpty(); }
+
     /// Not defaulted: a defaulted == would depend on the == of QList<ProjectElement>, which
     /// depends on it, so the compiler would delete it
     bool operator==(const ProjectElement& other) const;
 };
 
+/// @brief A place in a book project: in the list of a part of a book (or of the Workshop) or of
+/// a group in it, before one of its elements or at its end
+struct ElementPlace {
+    BookPlace place = BookPlace::Main;  ///< Part of the book, or the Workshop
+    QString groupId;                    ///< Group whose list it is; empty: the list of the part
+    qsizetype index = 0;                ///< Place in the list; its size: the end
+
+    bool operator==(const ElementPlace&) const = default;
+};
+
+/// @brief A set of names of the front, main and back part of a book, in several languages
+struct SectionNameSet {
+    QString id;               ///< Id in the .klh file, e.g. "matter"
+    LocalizedText front;      ///< Name of the front part: "Front Matter"
+    LocalizedText main;       ///< Name of the main part: "Body"
+    LocalizedText back;       ///< Name of the back part: "Back Matter"
+
+    /// @brief Name of @p place (Front, Main or Back) in @p language; empty for the Workshop
+    QString name(BookPlace place, const QString& language) const;
+};
+
+/// @brief Whether the Navigator shows the front, main and back section of a book, and their
+/// names
+struct BookSections {
+    bool shown = true;  ///< Whether the Navigator shows the sections (ProjectBook::partsLayer)
+    QString set;        ///< Their names: the id of a set (ProjectBook::sectionNameSets()) or
+                        ///< ProjectBook::CUSTOM_SECTIONS for names; empty: the first set
+    QStringList names;  ///< The writer's names of the front, main and back section
+                        ///< (CUSTOM_SECTIONS)
+
+    bool operator==(const BookSections&) const = default;
+};
+
 /// @brief Book of a project: its data, settings and elements
 struct ProjectBook {
+    static constexpr const char* CUSTOM_SECTIONS = "custom";  ///< Set of the writer's own names
+
     QString id;                           ///< Unique among the books of the project
     QString title;                        ///< Title of the book
     QString author;                       ///< Author of the book
@@ -92,13 +144,44 @@ struct ProjectBook {
     QString genre;                        ///< Genre; may be empty
     QString name;                         ///< Name of the book's node; empty: "Book"
     bool partsLayer = true;               ///< Whether the Navigator shows the three parts
+    QString sectionSet;                   ///< Names of the three parts: the id of a set
+                                          ///< (sectionNameSets()) or CUSTOM_SECTIONS for
+                                          ///< sectionNames; empty: the first set
+    QStringList sectionNames;             ///< The writer's names of the front, main and back
+                                          ///< part (CUSTOM_SECTIONS)
+    QJsonObject sectionNamesExtra;        ///< Fields of the writer's names this version does
+                                          ///< not know, saved back
     QString folder;                       ///< Folder of the book's files, e.g. "book"
     QList<ProjectElement> frontElements;  ///< Elements of the front part, in reading order
     QList<ProjectElement> mainElements;   ///< Elements of the main part, in reading order
     QList<ProjectElement> backElements;   ///< Elements of the back part, in reading order
+    /// Files of the book outside its text, in the order they were added: empty text files
+    /// that the writer keeps with the book. They have no kind and no status.
+    QList<ProjectElement> files;
     QJsonObject extra;                    ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectBook&) const = default;
+
+    /// @brief Name of @p place (Front, Main or Back) in the Navigator: the writer's own name, or
+    /// the name of the book's set in the language of the book; empty for the Workshop
+    QString sectionName(BookPlace place) const;
+
+    /// @brief The book's set of names, the first one when it has the writer's own names or a
+    /// set this version does not know
+    const SectionNameSet& sectionNameSet() const;
+
+    /// @brief Whether the Navigator shows the book's sections, and their names
+    BookSections sections() const;
+
+    /// @brief Show the sections in the Navigator or not, and name them
+    ///
+    /// The writer's names lose the spaces at their ends; a name that is empty, or missing, is
+    /// the name of the first set in the language of the book. Showing or hiding the sections
+    /// moves no element: each one stays in its section.
+    void setSections(const BookSections& sections);
+
+    /// @brief Sets of names of the three parts, in the order the program offers them
+    static const QList<SectionNameSet>& sectionNameSets();
 };
 
 /// @brief Workshop of a project: files that go with its books but not into them
@@ -122,8 +205,8 @@ struct ProjectType {
 
 /// @brief Book project as its .klh file saves it
 ///
-/// The kinds of the project come from the packages of a BookTypeRegistry. The program does not
-/// use this model yet: ProjectManager still opens and saves projects.
+/// The kinds of the project come from the packages of a BookTypeRegistry. ProjectManager opens,
+/// changes and saves the project open in the program.
 struct BookProject {
     static constexpr int FORMAT = 2;  ///< Version of the .klh format this program reads
     static constexpr const char* FILE_EXTENSION = ".klh";
@@ -154,14 +237,25 @@ struct BookProject {
     /// @brief Elements of book @p book in reading order, each group before the elements inside it
     QList<const ProjectElement*> readingOrder(qsizetype book = 0) const;
 
-    /// @brief Element @p elementId of a book or of the Workshop, or nullptr
+    /// @brief Element @p elementId of a book or of the Workshop, or a file of a book outside
+    /// its text, or nullptr
     ProjectElement* findElement(const QString& elementId);
     const ProjectElement* findElement(const QString& elementId) const;
 
-    /// @brief List that holds element @p elementId: a part of a book, a group or the Workshop
+    /// @brief Whether @p elementId is a file of a book outside its text (ProjectBook::files)
+    bool isBookFile(const QString& elementId) const;
+
+    /// @brief List that holds element @p elementId: a part of a book, a group, the Workshop or
+    /// the files of a book outside its text
     /// @param index Gets the index of the element in the list
     /// @return The list, or nullptr when the project has no element @p elementId
     QList<ProjectElement>* listOf(const QString& elementId, qsizetype* index = nullptr);
+    const QList<ProjectElement>* listOf(const QString& elementId,
+                                        qsizetype* index = nullptr) const;
+
+    /// @brief Place of element @p elementId in its book or in the Workshop, or nullopt when the
+    /// project has no such element; a file of a book outside its text has none
+    std::optional<ElementPlace> placeOf(const QString& elementId) const;
 
     /// @brief Take element @p elementId, with the elements inside it, out of the project
     std::optional<ProjectElement> takeElement(const QString& elementId);
@@ -170,10 +264,30 @@ struct BookProject {
     /// @return false when the project has no element @p elementId or its list no place @p index
     bool moveElement(const QString& elementId, qsizetype index);
 
-    /// @brief Whether an element of the project has the file @p file
+    /// @brief Places that element @p elementId can be moved to, in reading order
+    ///
+    /// In a book, the places of its kind: in the sections of the book that allow the kind, and
+    /// in the groups that can have it, but not inside the element itself; in the Workshop, the
+    /// places of the Workshop. A place is in the project without the element: its index is
+    /// the one the element gets in its new list, so the place the element has now is one of
+    /// them. An element whose kind @p registry does not have moves only within its list.
+    /// @return The places; empty when the project has no element @p elementId, and for a file
+    ///         of a book outside its text
+    QList<ElementPlace> movePlacesOf(const BookTypeRegistry& registry,
+                                     const QString& elementId) const;
+
+    /// @brief Move element @p elementId, with the elements inside it, to @p to, one of
+    /// movePlacesOf()
+    /// @return false when the element cannot go there; the project does not change then
+    bool moveElementTo(const BookTypeRegistry& registry, const QString& elementId,
+                       const ElementPlace& to);
+
+    /// @brief Whether an element of the project, or a file of a book outside its text, has the
+    /// file @p file
     bool hasFile(const QString& file) const;
 
-    /// @brief A new id that no element of the project has
+    /// @brief A new id that no element of the project, and no file of a book outside its text,
+    /// has
     QString newElementId() const;
 
     /// @brief Kinds the project offers in @p place: those of its type, then those it took
@@ -190,6 +304,32 @@ struct BookProject {
     /// @p registry does not have it
     static KindRef kindOf(const BookTypeRegistry& registry, const ProjectElement& element);
 
+    /// @brief Form of @p element: of its kind, or, when @p registry does not have its kind, a
+    /// text element for a chapter file, a group for no file and a window element for other files
+    static ElementForm formOf(const BookTypeRegistry& registry, const ProjectElement& element);
+
+    /// @brief Place in @p elements that a new element of @p kind takes when the writer does
+    /// not choose it: the start for a kind of the start (a prologue), the end for a kind of the
+    /// end (an epilogue), and before the elements of the end at the end of the list for the
+    /// other kinds (a chapter goes before the epilogue)
+    static qsizetype newIndexIn(const BookTypeRegistry& registry,
+                                const QList<ProjectElement>& elements, const KindRef& kind);
+
+    /// @brief The elements of @p elements and of the groups in them, without the groups, in
+    /// reading order: the content of a list as the reader meets it
+    static QList<const ProjectElement*> contentOf(const BookTypeRegistry& registry,
+                                                  const QList<ProjectElement>& elements);
+
+    /// @brief The elements that open @p elements: those of the kinds of the start (a prologue)
+    /// before the rest of its content, also inside groups
+    static QList<const ProjectElement*> openingElementsOf(const BookTypeRegistry& registry,
+                                                          const QList<ProjectElement>& elements);
+
+    /// @brief The elements that close @p elements: those of the kinds of the end (an epilogue)
+    /// after the rest of its content, also inside groups
+    static QList<const ProjectElement*> closingElementsOf(const BookTypeRegistry& registry,
+                                                          const QList<ProjectElement>& elements);
+
     /// @brief Packages of the type, the kinds and the elements that @p registry does not have
     QStringList missingPackages(const BookTypeRegistry& registry) const;
 
@@ -201,6 +341,26 @@ struct BookProject {
     /// @return The project, or nullopt when it has problems
     static std::optional<BookProject> fromJson(const QJsonObject& json, QStringList& problems);
 
+    /// @brief Whether @p json is a project file of a format newer than FORMAT: saved by a newer
+    /// version of Kalahari, which this version cannot read
+    static bool isNewerFormat(const QJsonObject& json);
+
+    /// @brief Whether @p data, the contents of a .klh file, is a project file of a newer format;
+    /// false when it is not an object of JSON
+    static bool isNewerFormat(const QByteArray& data);
+
+    /// @brief Whether the .klh file @p path is a project file of a newer format; false when it
+    /// cannot be read as an object of JSON
+    static bool isNewerFormatFile(const QString& path);
+
+    /// @brief Whether @p json is a project file of a format older than FORMAT, or without a
+    /// format: saved by an older version of Kalahari, which this version cannot read
+    static bool isOlderFormat(const QJsonObject& json);
+
+    /// @brief Whether the .klh file @p path is a project file of an older format; false when it
+    /// cannot be read as an object of JSON
+    static bool isOlderFormatFile(const QString& path);
+
     /// @brief Save the project to the .klh file @p path, replacing it in one step
     /// @return false, with the reason in the log, when the file cannot be written
     bool save(const QString& path) const;
@@ -209,6 +369,13 @@ struct BookProject {
     /// @param problems Gets one line per problem: "<field>: <what is wrong>"
     /// @return The project, or nullopt when the file cannot be read or has problems
     static std::optional<BookProject> load(const QString& path, QStringList& problems);
+
+    /// @brief Read the project of @p data, the contents of a .klh file (e.g. in an archive)
+    /// @param name Name of the file, for the problems of its JSON
+    /// @param problems Gets one line per problem: "<field>: <what is wrong>"
+    /// @return The project, or nullopt when the contents have problems
+    static std::optional<BookProject> read(const QByteArray& data, const QString& name,
+                                           QStringList& problems);
 };
 
 }  // namespace kalahari::core

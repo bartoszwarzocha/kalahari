@@ -252,7 +252,7 @@ TEST_CASE("Custom shortcuts: the texts that name the keys follow them",
     REQUIRE_FALSE(typewriter.isEmpty());
     // The Dashboard writes the keys in bold before the command
     CHECK(textsOf(dashboard).contains(QStringLiteral(">%1<").arg(native(newBook))));
-    // Its commands to start with: New Book, Open Book and Open File
+    // Its commands to start with: Open File, New Book and Open Book
     const KeyboardShortcut openFile = keysOf("file.open.file");
     CHECK(openFile == KeyboardShortcut(Qt::Key_O, Qt::ControlModifier | Qt::ShiftModifier));
     CHECK(textsOf(dashboard).contains(QStringLiteral(">%1<").arg(native(openFile))));

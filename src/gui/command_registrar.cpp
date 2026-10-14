@@ -168,27 +168,32 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // FILE MENU
     // =========================================================================
 
-    REG_CMD_TOOL_ICON("file.new", QT_TRANSLATE_NOOP("CommandRegistrar", "&New File"), "FILE/New File", 10, false, 0,
+    // The files first, then the books: New File, Open File, New Book, Open Book, in this order
+    // also on the File and Quick Actions toolbars and on the Dashboard
+
+    // A new file of the open book, of the kind and at the place the writer chooses; without a
+    // book, a new file outside one
+    REG_CMD_TOOL_ICON("file.new", QT_TRANSLATE_NOOP("CommandRegistrar", "&New File..."), "FILE/New File...", 10, false, 0,
                       KeyboardShortcut(Qt::Key_N, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onNewDocument);
 
+    // A file outside the book (Ctrl+Shift+O)
+    REG_CMD_TOOL_ICON("file.open.file", QT_TRANSLATE_NOOP("CommandRegistrar", "Open &File..."), "FILE/Open File...", 15, false, 0,
+                      KeyboardShortcut(Qt::Key_O, Qt::ControlModifier | Qt::ShiftModifier),
+                      IconSet(),
+                      callbacks.onOpenStandaloneFile);
+
     // OpenSpec #00033: New Book command (Ctrl+Shift+N)
-    REG_CMD_TOOL_ICON("file.new.project", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Book..."), "FILE/New Book...", 15, false, 0,
+    REG_CMD_TOOL_ICON("file.new.project", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Book..."), "FILE/New Book...", 20, false, 0,
                       KeyboardShortcut(Qt::Key_N, Qt::ControlModifier | Qt::ShiftModifier),
                       IconSet(),
                       callbacks.onNewProject);
 
-    REG_CMD_TOOL_ICON("file.open", QT_TRANSLATE_NOOP("CommandRegistrar", "&Open Book..."), "FILE/Open Book...", 20, false, 0,
+    REG_CMD_TOOL_ICON("file.open", QT_TRANSLATE_NOOP("CommandRegistrar", "&Open Book..."), "FILE/Open Book...", 25, false, 0,
                       KeyboardShortcut(Qt::Key_O, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onOpenDocument);
-
-    // OpenSpec #00033 Phase F: Open standalone file (Ctrl+Shift+O)
-    REG_CMD_TOOL_ICON("file.open.file", QT_TRANSLATE_NOOP("CommandRegistrar", "Open &File..."), "FILE/Open/Open File...", 35, false, 0,
-                      KeyboardShortcut(Qt::Key_O, Qt::ControlModifier | Qt::ShiftModifier),
-                      IconSet(),
-                      callbacks.onOpenStandaloneFile);
 
     // Recent Books - dynamic submenu (registered separately)
 
@@ -209,7 +214,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onSaveAsDocument);
 
-    REG_CMD("file.saveAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Save A&ll"), "FILE/Save All", 70, true, 1);
+    // The book and every open file outside it; no shortcut of its own
+    REG_CMD_TOOL_ICON("file.saveAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Save A&ll"),
+                      "FILE/Save All", 70, true, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onSaveAll);
 
     // Import submenu
     REG_CMD("file.import.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX Document..."), "FILE/Import/DOCX Document...", 80, false, 1);
@@ -321,10 +331,11 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // BOOK MENU
     // =========================================================================
 
+    // The open book names it after its main texts, "New Story..." (MainWindow)
     REG_CMD_TOOL_ICON("book.newChapter", QT_TRANSLATE_NOOP("CommandRegistrar", "&New Chapter..."), "BOOK/New Chapter...", 10, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
-                      nullptr);
+                      callbacks.onNewChapter);
 
     REG_CMD("book.newScene", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Scene..."), "BOOK/New Scene...", 20, true, 1);
 
@@ -343,13 +354,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("book.newMindMap", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Mind Map..."), "BOOK/New Mind Map...", 60, false, 1);
     REG_CMD("book.newTimeline", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Timeline..."), "BOOK/New Timeline...", 70, true, 1);
 
-    REG_CMD("book.chapterBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Chapter &Break"), "BOOK/Chapter Break", 80, false, 1);
     REG_CMD("book.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Sc&ene Break"), "BOOK/Scene Break", 90, true, 1);
 
     REG_CMD_TOOL_ICON("book.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Properties..."), "BOOK/Book Properties...", 100, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
-                      nullptr);
+                      callbacks.onBookProperties);
 
     // =========================================================================
     // INSERT MENU

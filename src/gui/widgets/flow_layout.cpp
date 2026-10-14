@@ -3,8 +3,10 @@
 
 #include "kalahari/gui/widgets/flow_layout.h"
 
+#include <QGuiApplication>
 #include <QLayoutItem>
 #include <QRect>
+#include <QStyle>
 #include <QWidget>
 
 #include <algorithm>
@@ -12,6 +14,19 @@
 
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+/// @brief The height of @p item at @p width: as its height for that width, or as it likes
+/// within its minimum and maximum
+int heightOf(const QLayoutItem* item, int width) {
+    if (item->hasHeightForWidth()) {
+        return item->heightForWidth(width);
+    }
+    return item->sizeHint().expandedTo(item->minimumSize()).boundedTo(item->maximumSize()).height();
+}
+
+} // namespace
 
 FlowLayout::FlowLayout(QWidget* parent, int spacing, int lineSpacing)
     : QLayout(parent), m_lineSpacing(lineSpacing) {
@@ -122,13 +137,17 @@ int FlowLayout::arrange(const QRect& rect, bool place) const {
         lines.back().push_back({item, width});
     }
 
+    const QWidget* widget = parentWidget();
+    const Qt::LayoutDirection direction =
+        widget != nullptr ? widget->layoutDirection() : QGuiApplication::layoutDirection();
     int y = area.top();
     bool first = true;
     for (std::vector<Placed>& line : lines) {
         if (line.empty()) {
             continue;
         }
-        // The room the line leaves goes to the items that expand sideways
+        // The room the line leaves goes to the items that expand sideways, as far as their
+        // maximum widths allow; the rest stays empty at the end of the line
         int lineUsed = 0;
         int expanding = 0;
         for (const Placed& placed : line) {
@@ -142,27 +161,31 @@ int FlowLayout::arrange(const QRect& rect, bool place) const {
         for (Placed& placed : line) {
             if (expanding > 0 && (placed.item->expandingDirections() & Qt::Horizontal)) {
                 const int share = room / expanding;
-                placed.width += share;
-                room -= share;
+                const int grown = std::max(
+                    placed.width,
+                    std::min(placed.width + share, placed.item->maximumSize().width()));
+                room -= grown - placed.width;
+                placed.width = grown;
                 --expanding;
             }
         }
 
         int height = 0;
         for (const Placed& placed : line) {
-            const int itemHeight = placed.item->hasHeightForWidth()
-                                       ? placed.item->heightForWidth(placed.width)
-                                       : placed.item->sizeHint().height();
-            height = std::max(height, itemHeight);
+            height = std::max(height, heightOf(placed.item, placed.width));
         }
         if (!first) {
             y += m_lineSpacing;
         }
         first = false;
         if (place) {
+            // Each item in the middle of the line's height; from the right in a right-to-left
+            // layout
             int x = area.left();
             for (const Placed& placed : line) {
-                placed.item->setGeometry(QRect(x, y, placed.width, height));
+                const int itemHeight = heightOf(placed.item, placed.width);
+                const QRect itemRect(x, y + (height - itemHeight) / 2, placed.width, itemHeight);
+                placed.item->setGeometry(QStyle::visualRect(direction, area, itemRect));
                 x += placed.width + spacing();
             }
         }

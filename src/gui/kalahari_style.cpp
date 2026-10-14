@@ -58,6 +58,18 @@ int KalahariStyle::pixelMetric(PixelMetric metric,
     }
 }
 
+int KalahariStyle::styleHint(StyleHint hint,
+                             const QStyleOption* option,
+                             const QWidget* widget,
+                             QStyleHintReturn* returnData) const {
+    // The mouse and the arrow keys rest also on grey menu items, as on Windows, so the status
+    // bar says that such a command is in preparation (Fusion skips them)
+    if (hint == SH_Menu_AllowActiveAndDisabled) {
+        return 1;
+    }
+    return QProxyStyle::styleHint(hint, option, widget, returnData);
+}
+
 QIcon KalahariStyle::standardIcon(StandardPixmap standardIcon,
                                    const QStyleOption* option,
                                    const QWidget* widget) const {

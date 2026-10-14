@@ -203,6 +203,64 @@ bool checkPackageFile(const QString& directory, const QJsonValue& value, const Q
     return true;
 }
 
+/// The forms of the name of a kind by language: {"pl": {"gender": "neuter", "singular":
+/// "opowiadanie", "genitive": "opowiadania"...}}
+QMap<QString, KindWords> readWords(const QJsonValue& value, const QString& field,
+                                   QStringList& problems) {
+    QMap<QString, KindWords> words;
+    if (value.isUndefined()) {
+        return words;
+    }
+    if (!value.isObject()) {
+        addProblem(problems, field,
+                   QStringLiteral("must be forms of the name by language, e.g. "
+                                  "{\"en\": {\"singular\": \"story\", ...}}"));
+        return words;
+    }
+    const QJsonObject object = value.toObject();
+    for (auto language = object.constBegin(); language != object.constEnd(); ++language) {
+        const QString languageField = field + QLatin1Char('.') + language.key();
+        if (!isLanguageCode(language.key())) {
+            addProblem(problems, field,
+                       QStringLiteral("'%1' is not a language code such as \"en\" or \"pt_BR\"")
+                           .arg(language.key()));
+            continue;
+        }
+        if (!language.value().isObject()) {
+            addProblem(problems, languageField,
+                       QStringLiteral("must be forms of the name, e.g. {\"singular\": \"story\", "
+                                      "\"plural\": \"stories\"}"));
+            continue;
+        }
+        KindWords forms;
+        const QJsonObject given = language.value().toObject();
+        for (auto it = given.constBegin(); it != given.constEnd(); ++it) {
+            const QString formField = languageField + QLatin1Char('.') + it.key();
+            const QString text = it.value().toString();
+            if (it.key() == QLatin1String("gender")) {
+                if (!it.value().isString() || !KindWords::genderFromName(text, forms.gender)) {
+                    addProblem(problems, formField,
+                               QStringLiteral("must be \"masculine\", \"feminine\", "
+                                              "\"neuter\" or \"plural\""));
+                }
+            } else if (!KindWords::formNames().contains(it.key())) {
+                addProblem(problems, languageField,
+                           QStringLiteral("unknown form '%1'; the forms are %2")
+                               .arg(it.key(), KindWords::formNames().join(QStringLiteral(", "))));
+            } else if (!it.value().isString() || text.trimmed().isEmpty()) {
+                addProblem(problems, formField, QStringLiteral("must be a text that is not empty"));
+            } else if (text.contains(QRegularExpression(QStringLiteral("[{}%]")))) {
+                // The forms go into sentences with markers and numbered arguments
+                addProblem(problems, formField, QStringLiteral("must not have {, } or %"));
+            } else {
+                forms.forms.insert(it.key(), text);
+            }
+        }
+        words.insert(language.key(), forms);
+    }
+    return words;
+}
+
 std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
                                     const QString& directory, QStringList& problems) {
     const QString field = QStringLiteral("kinds.") + id;
@@ -222,8 +280,9 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
     }
     const QJsonObject object = value.toObject();
     checkKeys(object, field,
-              {"form", "name", "plural", "icon", "places", "limit", "title", "numbering",
-               "template", "editor", "generated", "settings", "workshopGroup"},
+              {"form", "name", "plural", "words", "icon", "places", "limit", "title",
+               "numbering", "template", "position", "editor", "generated", "settings",
+               "workshopGroup"},
               problems);
 
     ElementKind kind;
@@ -245,6 +304,8 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
                          true, problems);
     kind.plural = readText(object.value(QStringLiteral("plural")),
                            field + QStringLiteral(".plural"), true, problems);
+    kind.words = readWords(object.value(QStringLiteral("words")), field + QStringLiteral(".words"),
+                           problems);
     kind.icon = readIcon(object.value(QStringLiteral("icon")), field + QStringLiteral(".icon"),
                          problems);
 
@@ -313,6 +374,22 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
         } else if (checkPackageFile(directory, templateFile, QStringLiteral(".kchapter"),
                                     field + QStringLiteral(".template"), problems)) {
             kind.templateFile = templateFile.toString();
+        }
+    }
+
+    const QJsonValue position = object.value(QStringLiteral("position"));
+    if (!position.isUndefined()) {
+        if (position.toString() == QLatin1String("start")) {
+            kind.position = KindPosition::Start;
+        } else if (position.toString() == QLatin1String("end")) {
+            kind.position = KindPosition::End;
+        } else {
+            addProblem(problems, field + QStringLiteral(".position"),
+                       QStringLiteral("must be \"start\" or \"end\""));
+        }
+        if (!kind.places.contains(QStringLiteral("main"))) {
+            addProblem(problems, field + QStringLiteral(".position"),
+                       QStringLiteral("only a kind of the main part has a position"));
         }
     }
 
@@ -673,6 +750,35 @@ QString ElementKind::defaultTitle(const QString& language, int number) const {
         text.replace(QStringLiteral("%n"), roman ? toRoman(number) : QString::number(number));
     }
     return text;
+}
+
+KindWords ElementKind::wordsIn(const QString& language) const {
+    KindWords result;
+    const qsizetype separator = language.indexOf(QRegularExpression(QStringLiteral("[_-]")));
+    if (const auto exact = words.constFind(language); exact != words.constEnd()) {
+        result = exact.value();
+    } else if (const auto general = words.constFind(language.left(separator));
+               separator > 0 && general != words.constEnd()) {
+        result = general.value();
+    }
+
+    // A name in the middle of a sentence starts with a small letter, unless it starts with
+    // capitals ("TV episode")
+    const auto inSentence = [](const QString& noun) {
+        if (noun.size() > 1 && noun.at(1).isUpper()) {
+            return noun;
+        }
+        return noun.left(1).toLower() + noun.mid(1);
+    };
+    const QString singular = QStringLiteral("singular");
+    const QString pluralForm = QStringLiteral("plural");
+    if (!result.forms.contains(singular)) {
+        result.forms.insert(singular, inSentence(name.text(language)));
+    }
+    if (!result.forms.contains(pluralForm)) {
+        result.forms.insert(pluralForm, inSentence(plural.text(language)));
+    }
+    return result;
 }
 
 // =============================================================================

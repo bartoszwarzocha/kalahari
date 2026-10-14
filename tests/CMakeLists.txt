@@ -19,8 +19,10 @@ set(TEST_SOURCES
     core/test_text_statistics.cpp
     core/test_text_file.cpp         # Plain text files in their own encoding and line ends
     core/test_standalone_file.cpp   # Chapters and text files opened outside a book project
+    core/test_file_trash.cpp        # Files to the Trash of the system
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     core/test_book_type_registry.cpp  # Book type packages and their registry
+    core/test_kind_words.cpp          # Names of kinds in sentences, and the markers of translations
     core/test_book_project.cpp        # Book project and its .klh file
     core/test_project_manager.cpp
     core/test_logger.cpp
@@ -76,10 +78,20 @@ set(TEST_SOURCES
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
+    gui/test_program_instance.cpp                # A later start hands its request to the program that runs
+    gui/test_recent_book_cards.cpp               # Dashboard: the data of the recent books
+    gui/test_save_all.cpp                        # Save All: the book and the files outside it
+    gui/test_new_book.cpp                        # New Book: the kinds of a user project, without opening
+    gui/test_new_file.cpp                        # New File: an element of the book, or a file outside one
+    gui/test_book_tabs.cpp                       # The tabs of a book: one file in one tab, Close Book, words
+    gui/test_kind_names.cpp                      # Names of kinds in menu commands
+    gui/test_navigator_panel.cpp                 # Navigator tree of a book project
+    gui/test_navigator_coordinator.cpp           # Navigator commands on the open project
     gui/test_menu_access_keys.cpp                # The access keys of the menus, in both languages
     gui/test_panel_toggle.cpp                    # Panel toggles follow open panels
     gui/test_setting_toggle.cpp                  # Toggles follow on/off settings
     gui/test_document_commands.cpp               # Document commands greyed out without one
+    gui/test_program_folders.cpp                 # Folders of the program and the Folders page
     gui/test_spelling_coordinator.cpp            # Spelling as you type: dictionary, command, settings page
     gui/test_grammar_coordinator.cpp             # Grammar as you type: where it is checked, command, settings page
     gui/test_grammar_components.cpp              # Java and LanguageTool: versions, downloads, folders
@@ -87,6 +99,7 @@ set(TEST_SOURCES
     gui/test_grammar_setup.cpp                   # Preparation of grammar checking and its window
     gui/test_language_names.cpp                  # Names of languages in the program's language
     gui/test_dialogs.cpp                         # The program's own dialogs
+    gui/test_archive_dialogs.cpp                 # Export and Import Project Archive windows
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
     gui/test_widget_wheel.cpp                    # The mouse wheel changes only the field with the focus
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing
@@ -102,6 +115,7 @@ set(TEST_SOURCES
     gui/test_editor_settings.cpp                 # Editors follow the editor settings
     gui/test_annotations_panel.cpp               # Annotations panel and its coordinator
     gui/test_dock_layout.cpp                     # The panels on the right: Annotations on top
+    gui/test_fitting_widgets.cpp                 # Widgets that fit a small screen
     gui/test_dashboard_panel.cpp                 # The Dashboard on a small screen
     gui/test_wrapping_labels.cpp                 # Labels that wrap on a narrow panel
     gui/test_panel_widths.cpp                    # Side panels fit a narrow dock, muted texts read
@@ -135,8 +149,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/standalone_file.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/file_trash.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_package.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_registry.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_project.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp
@@ -173,6 +189,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/editor_render_pipeline.cpp   # OpenSpec #00043 Phase 12.1: Unified render pipeline
     ${CMAKE_SOURCE_DIR}/src/gui/panels/navigator_panel.cpp  # Navigator expansion state tests
     ${CMAKE_SOURCE_DIR}/src/gui/recent_books_menu.cpp       # File > Recent Books submenu
+    ${CMAKE_SOURCE_DIR}/src/gui/program_instance.cpp        # A later start hands its request over
+    ${CMAKE_SOURCE_DIR}/src/gui/menu_builder.cpp            # The menus of the commands: the File menu, the titles and order for the shortcuts list
+    ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # Navigator commands on the open project
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Properties panel of the Navigator commands
     # GUI dependencies for FindReplaceBar and the GUI tests
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
     ${CMAKE_SOURCE_DIR}/src/gui/command_registry.cpp       # Sub-Project C WS4.1: CommandRegistry for resetSingletons()
@@ -186,11 +206,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/appearance_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/editor_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/folders_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_rules.cpp          # Which keys a command can have
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_settings.cpp       # The user's keys in the settings and files
     ${CMAKE_SOURCE_DIR}/src/gui/widget_keys.cpp             # Qt's widgets have the keys of Windows
-    ${CMAKE_SOURCE_DIR}/src/gui/menu_builder.cpp            # Menu titles and order for the shortcuts list
     ${CMAKE_SOURCE_DIR}/src/gui/diagnostic_menus.cpp        # The items of the Diagnostics and Dev Tools menus
     ${CMAKE_SOURCE_DIR}/src/gui/utils/access_keys.cpp       # The access keys of menu texts
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
@@ -200,6 +220,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/layout_utils.cpp      # clearLayout for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/utils/panel_toggle.cpp      # Show/hide toggles of the dock panels
     ${CMAKE_SOURCE_DIR}/src/gui/utils/setting_toggle.cpp    # Toggles that show an on/off setting
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/program_folders.cpp   # Folders of the program and of the file windows
     ${CMAKE_SOURCE_DIR}/src/gui/utils/document_commands.cpp  # The commands of the document in front
     ${CMAKE_SOURCE_DIR}/src/gui/utils/distraction_free_layout.cpp  # The window's layout for Distraction-Free writing
     ${CMAKE_SOURCE_DIR}/src/gui/utils/tab_focus.cpp         # The keys go to the page in front of the tabs
@@ -220,12 +241,14 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_keys.cpp            # A toolbar gives the keys back after a command
     ${CMAKE_SOURCE_DIR}/src/gui/dock_coordinator.cpp        # The panels of the main window and their layout
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # The Navigator's requests
+    ${CMAKE_SOURCE_DIR}/src/gui/document_coordinator.cpp    # Save All and the document commands
     ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Panels of DockCoordinator
     ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_layouts.cpp  # The Dashboard on a narrow panel
     ${CMAKE_SOURCE_DIR}/src/gui/panels/log_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/search_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/assistant_panel.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/info_bar.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/standalone_info_bar.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/path_label.cpp  # The paths of the recent books
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/wrapping_label.cpp  # Texts that wrap only where they must
@@ -245,8 +268,27 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/progress_dialog.cpp          # Own window for the progress of a long task
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/color_dialog.cpp             # Own window for choosing a color
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_element_dialog.cpp       # New element of the book in the Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/section_words.cpp                    # Parts of the book in sentences
+    ${CMAKE_SOURCE_DIR}/src/gui/kind_names.cpp                       # Kinds of elements in sentences
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/element_place_picker.cpp     # The place of an element in the book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/add_to_book_dialog.cpp       # A file as a new element of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_file_dialog.cpp          # A new element of the open book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/move_element_dialog.cpp      # A new place in the book for an element
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/delete_dialogs.cpp           # What goes from the book, and its files
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/dialog_parts.cpp             # Parts of the own dialogs
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/archive_dialogs.cpp          # Export and import of an archive
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/file_preview_dialog.cpp      # The text of a file no element has
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/file_location.cpp              # A file shown in the file manager
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp              # Items in more rows when narrow
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_item_dialog.cpp          # New Book dialog: the folder of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/sections_field.cpp           # Fields of the sections of a book
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/kind_palette.cpp             # Kinds of elements of all book types
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/user_project_dialog.cpp      # The kinds of a user project
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/folder_field.cpp             # Field of a folder of the program
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/item_templates.cpp           # Templates of the New Book dialog
     ${CMAKE_SOURCE_DIR}/src/gui/icon_registrar.cpp          # Icons of the application's commands
+    ${CMAKE_SOURCE_DIR}/src/gui/kalahari_style.cpp          # The program's style: grey menu items take the mouse
     ${CMAKE_SOURCE_DIR}/src/core/icon_registry.cpp         # IconRegistry for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/theme.cpp                 # Theme for ArtProvider
     ${CMAKE_SOURCE_DIR}/src/core/theme_manager.cpp         # ThemeManager for ArtProvider
@@ -283,6 +325,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h  # RecentBooksMenu with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/program_instance.h  # ProgramInstance with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # PropertiesPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
@@ -295,12 +340,14 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator, Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # Panels of DockCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
@@ -313,11 +360,25 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/progress_dialog.h  # ProgressDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/color_dialog.h  # ColorDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_file_dialog.h  # NewFileDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/sections_field.h  # SectionsComboBox, SectionNamesEdit with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/kind_palette.h  # KindPalette with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/folder_field.h  # FolderField with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     # GUI dependency headers for MOC
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/art_provider.h    # ArtProvider with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h # Sub-Project C WS4.1: CommandRegistry with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_style.h   # KalahariStyle with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/icon_registry.h   # IconRegistry with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h   # ThemeManager with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/project_manager.h # ProjectManager with Q_OBJECT

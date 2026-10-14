@@ -52,6 +52,11 @@ public:
     /// @brief Check if database is open
     bool isOpen() const;
 
+    /// @brief Write what the database's write-ahead log holds to the database file, so that a
+    /// copy of project.db alone has everything
+    /// @return false when the database is not open or the log cannot be written
+    bool checkpoint();
+
     /// @brief Get project path
     QString projectPath() const { return m_projectPath; }
 
