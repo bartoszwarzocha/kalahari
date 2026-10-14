@@ -124,6 +124,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Book projects in the new format** - 2026-10-10. The program opens and saves books in the
+  new project file (`.klh`, format 2) and no longer reads the old one: the example project
+  ExampleNovel is in the new format, and books of older versions do not open (no conversion
+  while Kalahari has a single user). When a book cannot be opened, the message says what is
+  wrong with its file. A new book gets the type chosen in the New Book window with the type's
+  start: a novel starts with a title page and Chapter 1, which opens in the editor. A User
+  Project (before: Empty Project) gets the kinds of the Base package. The New Book window
+  names the folder of the book and does not create it in a folder with files, so the open
+  book is not closed for a book that cannot be made; a book that cannot be opened (e.g. of
+  an older version) is reported before the open book is closed for it, and that one stays
+  open. The questions of these commands speak of books, not projects, and the description
+  of a type in the New Book window scrolls. The window proposes the language of the program
+  for the book (before: always English). The Navigator shows the
+  book as before, and its elements take their kinds and icons from the type: Add Chapter
+  offers the type's text kinds of the body (in a novel a prologue, a chapter or an epilogue)
+  with a numbered title, Add Part its groups and Add Item the kinds of the front or back
+  matter that the book can still take (a dedication only once). A prologue goes at the start
+  of the body or first in its first part, and an epilogue at the end of the body or last in
+  its last part; the writer chooses, or shows another place in a list. A chapter can be in
+  the body itself, outside parts. Adding, renaming, moving and deleting elements and changing
+  their status save the book at once, and dragging an element to another place of its
+  section or part moves it in the book (before, the move was lost). Move to Start and Move to
+  End join Move Up and Move Down and keep a prologue first and an epilogue last, and the
+  Navigator shows a new or moved element, also inside a collapsed part. Deleting an element
+  says that its file stays in the book's folder. Add to Book (before: Add to Project) asks
+  for the kind of the new element and can add a chapter to the body itself. A new file that
+  was never saved it adds at once, without the window and without the question about a copy:
+  the file becomes an element of the main text kind (in a novel a chapter) at its default
+  place, with the default title, and opens in its tab. Save and Save As still save a new
+  file in any folder.
+  The File menu has New File, Open File, New Book and Open Book, in this order, instead of
+  an Open submenu, and the File and Quick Actions toolbars start with the same buttons: New
+  File, Open File, New Book, Open Book, Save, Save As, Save All and Close Book. The
+  Dashboard names Open File, New Book and Open Book in this order too. A toolbar customized
+  before gets the buttons it did not have once, where the default toolbar has them, and its
+  file commands in the new order, in the places they had.
+  A project archive leaves out the lock, the database log
+  files and the backups of the open book, whose log is first written to its database, and
+  import skips the lock and the database's shared memory that earlier archives have, so an
+  archive of an open book imports again; a failed import removes what it wrote. The book,
+  Navigator and file commands show their messages and questions in the program's own window,
+  with what is wrong under Show Details; the export's list of files that are not final names
+  their statuses as the Navigator does (Draft, Revision). The option to open the last book
+  at startup (on the Dashboard and in Settings > General) and the Navigator's message without
+  a book speak of books too. Without an open book, Close Book, the export of the book's
+  archive and Add to Book of a file outside the book (in the Navigator and on the file's
+  info bar) are greyed out. A book created or imported without opening is the first of the
+  recent books, but the book opened at startup is still the one opened last.
+
 - **Side panels on a small screen** - 2026-10-11. The panels on the right can be made much
   narrower, so that the text keeps its room on a 1366 × 768 screen at 125% and 150%. In the
   Annotations panel the kind buttons and the To-do buttons go on in the next line, the
@@ -459,6 +508,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Dashboard's option to open the last book** - 2026-10-13. Changed in the Settings
+  window, the option stayed as it was on the Dashboard until the program started again; the
+  Dashboard now shows the change at once.
+
 - **An empty paragraph at the end of a text file** - 2026-10-13. A `.txt` file whose last line
   ends with a line end, as most text files do, opened with an empty paragraph after its text.
   The line end of the last line is no longer a paragraph, and the file keeps it when saved.
@@ -483,6 +536,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   editor's context menu) are now off for it, the Annotations panel says why and that the
   file added to the book takes annotations, and text pasted or dropped into it comes
   without them. Saved as a chapter file (`.kchapter`), it takes annotations again.
+
+- **Plain text files: a question before formatting is lost** - 2026-10-12. A plain text file
+  (`.txt`) keeps only the text, so saving one whose text has formatting (such as bold), or
+  saving a chapter with annotations as a plain text file with Save As, now asks first in the
+  program's own window. It says what will not be saved and how to keep it (Save As with the
+  Kalahari Documents type); Cancel writes nothing. Save All and the question on closing ask
+  the same.
+
+- **A text typed and deleted again has no changes** - 2026-10-12. The tab of a chapter or a
+  file and the Navigator show a "*", and closing asks whether to save, only while the text
+  differs from the saved one: a letter or a sentence typed and deleted again, an edit undone
+  or formatting given and taken back leave no "*" and nothing to save. After a save, the text
+  saved is the one a change is compared with.
 
 ### Added
 
@@ -713,10 +779,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   background of its own: the text scrolled under it showed between its fields and over the
   number of matches. It now covers the text under it, and a match the view scrolls to is
   shown below the bar, not under it (Find Previous put it at the top of the view, under the
-  bar). Tab goes from the search text to the replacement and its buttons, then to the
-  options, the arrows and Close, as in Word's Find and Replace (it went through the six
-  buttons of the search row first); Enter presses the button with the cursor, as Space does
-  (it did nothing).
+  bar). On macOS Page Up and Page Down, which move the view only, scroll by the part of the
+  view below the bar, and Control+L puts the cursor's line in the middle of that part (no
+  line goes by unseen under the bar). Tab goes from the search text to the replacement and
+  its buttons, then to the options, the arrows and Close, as in Word's Find and Replace (it
+  went through the six buttons of the search row first); Enter presses the button with the
+  cursor, as Space does (it did nothing).
 
 - **Find bar: undoing a replacement** - 2026-10-11. Undoing Replace All put the cursor at
   the start of the chapter, far from where the writer was. Undoing a replacement now brings

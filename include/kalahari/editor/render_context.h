@@ -221,6 +221,8 @@ struct RenderContext {
     QSizeF viewportSize;                       ///< Viewport dimensions
     double scrollBarWidth = 0.0;               ///< Width of the vertical scroll bar over the
                                                ///< view's right edge (the page keeps clear of it)
+    double topBarHeight = 0.0;                 ///< Height of the bar over the view's top edge
+                                               ///< (find/replace): the pages start below it
 
     // =========================================================================
     // COMPUTED VALUES (set by Pipeline::configure())

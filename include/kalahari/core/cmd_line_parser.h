@@ -148,6 +148,17 @@ public:
     /// @return Option value or empty string
     QString getOptionValue(const QString& name) const;
 
+    /// @brief Add an argument without a name, e.g. the book to open
+    ///
+    /// @param name Its name in the help ("book")
+    /// @param description Description shown in the help
+    /// @param syntax How the help writes it ("[book.klh]"); empty: its name
+    void addPositionalArgument(const QString& name, const QString& description,
+                               const QString& syntax = QString());
+
+    /// @brief The arguments without a name, in their order; empty before parse()
+    QStringList positionalArguments() const;
+
 private:
     /// @brief Initialize parser with default settings
     void init();

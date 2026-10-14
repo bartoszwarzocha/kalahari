@@ -7,7 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
-#include "kalahari/core/document.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
@@ -231,7 +231,7 @@ TEST_CASE("Spelling coordinator: the book's language when the settings name none
     CHECK(checksWith(coordinator, QStringLiteral("pl_PL")));
 
     // The book's language changed in the Properties panel
-    projects.getDocument()->setLanguage("en");
+    projects.book()->language = QStringLiteral("en");
     coordinator.updateDictionary();
     CHECK(checksWith(coordinator, QStringLiteral("en_US")));
 
@@ -350,7 +350,7 @@ TEST_CASE("Spelling coordinator: a document outside the book is checked in the d
 
         // The book's language without a dictionary: its chapters are not checked, the note
         // is, and Next Misspelling goes to the note's word
-        projects.getDocument()->setLanguage("ja");
+        projects.book()->language = QStringLiteral("ja");
         coordinator.updateDictionary();
         CHECK(waitUntil([book]() { return !book->isDictionaryLoaded(); }));
         CHECK(statusBar.currentMessage() ==
@@ -365,7 +365,7 @@ TEST_CASE("Spelling coordinator: a document outside the book is checked in the d
         CHECK(texts.contains(QStringLiteral("mistake")));
 
         // The book in the language of the program: one dictionary for every document
-        projects.getDocument()->setLanguage("en");
+        projects.book()->language = QStringLiteral("en");
         coordinator.updateDictionary();
         CHECK(checksWith(coordinator, QStringLiteral("en_US")));
         CHECK(noteEditor->spellCheckService() == book);

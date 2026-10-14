@@ -98,3 +98,47 @@ TEST_CASE("Document commands: greyed out without a document in front, with their
 
     registry.clear();
 }
+
+TEST_CASE("Book commands: Close Book and the export of the archive greyed out without a book",
+          "[gui][commands]") {
+    // Round 3 report 19.2: without a book they could only say that one must be opened first
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    registry.clear();
+    CommandCallbacks callbacks = runningCallbacks();
+    const auto none = []() {};
+    for (std::function<void()>* callback :
+         {&callbacks.onNewDocument, &callbacks.onOpenDocument, &callbacks.onNewProject,
+          &callbacks.onImportArchive, &callbacks.onCloseDocument, &callbacks.onExportArchive}) {
+        *callback = none;
+    }
+    registerAllCommands(callbacks);
+    CHECK(utils::openBookCommands() ==
+          std::vector<std::string>{"file.close", "file.export.archive"});
+
+    bool hasBook = false;
+    utils::bindToOpenBook(registry, [&hasBook]() { return hasBook; });
+    for (const std::string& id : utils::openBookCommands()) {
+        INFO(id);
+        REQUIRE(registry.getCommand(id)->canExecute());
+        CHECK_FALSE(registry.getAction(id)->isEnabled());
+    }
+    // The commands that work without a book
+    for (const char* id : {"file.new", "file.open", "file.new.project", "file.import.archive"}) {
+        INFO(id);
+        CHECK(registry.getAction(std::string(id))->isEnabled());
+    }
+
+    // A book opens, and closes again
+    hasBook = true;
+    utils::updateOpenBookCommands(registry);
+    for (const std::string& id : utils::openBookCommands()) {
+        INFO(id);
+        CHECK(registry.getAction(id)->isEnabled());
+    }
+    hasBook = false;
+    utils::updateOpenBookCommands(registry);
+    CHECK_FALSE(registry.getAction(std::string("file.close"))->isEnabled());
+    CHECK_FALSE(registry.getAction(std::string("file.export.archive"))->isEnabled());
+
+    registry.clear();
+}

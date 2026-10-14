@@ -9,7 +9,9 @@
 
 #pragma once
 
+#include "kalahari/core/book_project.h"
 #include "kalahari/gui/dialogs/item_templates.h"
+#include "kalahari/gui/widgets/sections_field.h"
 
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -20,6 +22,9 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QSplitter>
+
+#include <functional>
+#include <optional>
 
 namespace kalahari {
 namespace gui {
@@ -51,7 +56,27 @@ struct NewItemResult {
     QString language;        ///< Language code (project mode only, e.g., "en")
     QString location;        ///< Project folder path (project mode only)
     bool createSubfolder;    ///< Create subfolder with project name (project mode only)
+    /// Whether the Navigator shows the sections of the book, and their names (project mode
+    /// only)
+    std::optional<kalahari::core::BookSections> sections;
+    /// Whether the new book opens (project mode only): false when the writer chose to create it
+    /// without opening, and the open book stays open
+    bool open = true;
 };
+
+// ============================================================================
+// The question about the open book
+// ============================================================================
+
+/// @brief Whether a new book opens: the answer to the question about the open book
+enum class NewBookOpening {
+    Open,      ///< The new book opens in the place of the open one
+    DontOpen,  ///< The open book stays; the new one goes to the Dashboard and to Recent Books
+    Cancel     ///< Nothing is created; the window that asked stays as it was
+};
+
+/// @brief Asks in @p window about the open book before book @p title is created
+using NewBookQuestion = std::function<NewBookOpening(QWidget* window, const QString& title)>;
 
 // ============================================================================
 // NewItemDialog - Main dialog class
@@ -95,6 +120,15 @@ public:
     /// @return Populated NewItemResult structure
     /// @note Only valid after dialog is accepted
     NewItemResult result() const;
+
+    /// @brief Ask @p question about the open book before a book of a type is created; without
+    /// a question the new book opens. A user project asks in its next window
+    /// (UserProjectDialog).
+    void setOpeningQuestion(NewBookQuestion question);
+
+    /// @brief Whether template @p templateId makes a user project: a book without a type,
+    /// whose kinds the writer chooses in the next window
+    static bool isUserProject(const QString& templateId);
 
 private slots:
     /// @brief Handle template selection change
@@ -146,10 +180,42 @@ private:
     void updateDescription(const QString& templateId);
 
     /// @brief Validate input and update Create button state
+    ///
+    /// In project mode the folder of the new book must be new or empty; the folder line
+    /// names it, or says what to change when it is not.
     void validateInput();
 
     /// @brief Load default values from SettingsManager
     void loadDefaults();
+
+    /// @brief Fill the Sections field: the sets of names in the language of the book, own
+    /// names and no sections; keeps the chosen item
+    void populateSections();
+
+    /// @brief Whether a book of template @p templateId shows its sections when the writer does
+    /// not choose otherwise: the template has a type, and the type shows them
+    static bool showsSections(const QString& templateId);
+
+    /// @brief Show the choice of the selected template's group in the Sections field: the
+    /// writer's last choice for a template that shows sections, no sections for the others
+    void showSectionsChoice();
+
+    /// @brief The writer chose an item of the Sections field
+    void onSectionsChosen();
+
+    /// @brief Fill the fields of own names with the names of the set chosen before, in the
+    /// language of the book, until the writer types in them
+    void fillSectionNames();
+
+    /// @brief What the Sections field says
+    kalahari::core::BookSections chosenSections() const;
+
+    /// @brief Remember the writer's choice for the next book, for templates that show sections
+    void saveSectionsChoice() const;
+
+    /// @brief Name the create button after what it does: "Next" for a user project, which has
+    /// a next window, else "Create Book"
+    void updateCreateButton();
 
     // ========================================================================
     // State
@@ -160,6 +226,22 @@ private:
 
     /// @brief Result data (populated on accept)
     NewItemResult m_result;
+
+    /// @brief Item of the Sections field for templates that show sections: the writer's last
+    /// choice
+    QString m_sectionsShown;
+
+    /// @brief Item of the Sections field for templates that do not show sections
+    QString m_sectionsHidden;
+
+    /// @brief Set of names whose names fill the fields of own names
+    QString m_namesSet;
+
+    /// @brief The writer typed in the fields of own names, or they come from the last book
+    bool m_sectionNamesTyped = false;
+
+    /// @brief Asks about the open book before a book of a type is created
+    NewBookQuestion m_openingQuestion;
 
     // ========================================================================
     // Description Panel Widgets (LEFT)
@@ -212,8 +294,23 @@ private:
     /// @brief Label for language row
     QLabel* m_languageLabel;
 
+    /// @brief Sections: a set of names, own names or no sections (project mode only)
+    SectionsComboBox* m_sectionsCombo = nullptr;
+
+    /// @brief Label of the row of own names of the sections
+    QLabel* m_sectionNamesLabel = nullptr;
+
+    /// @brief Own names of the front, main and back section
+    SectionNamesEdit* m_sectionNames = nullptr;
+
     /// @brief Label for location row
     QLabel* m_locationLabel;
+
+    /// @brief Icon of the folder line: a warning when the book cannot be made in the folder
+    QLabel* m_folderIcon;
+
+    /// @brief Folder line: the folder the book will be in, or why it cannot be made there
+    QLabel* m_folderLabel;
 
     // ========================================================================
     // Dialog Buttons

@@ -16,6 +16,7 @@
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <memory>
 #include <string>
@@ -43,6 +44,20 @@ public:
     /// kalahari.log in the system temp directory, and failing that to the
     /// console only; startup never fails because of the log file.
     void init(const std::string& logFilePath);
+
+    /// @brief Initialize the logger without its file: the messages go to the console and wait
+    /// for openFile()
+    ///
+    /// So a start of the program that hands its request to the program that runs, and ends,
+    /// leaves the log file of that program as it is.
+    void initWithoutFile();
+
+    /// @brief Start the log file with the messages logged since initWithoutFile(); the later
+    /// messages go to it too
+    /// @param logFilePath Path to the log file; when it cannot be written, as in init()
+    ///
+    /// Does nothing when the file is open already.
+    void openFile(const std::string& logFilePath);
 
     /// @brief Path of the log file actually in use
     /// @return Path passed to init(), its temp-directory fallback, or empty when logging to the console only
@@ -171,6 +186,9 @@ private:
 
     /// @brief The underlying spdlog logger instance
     std::shared_ptr<spdlog::logger> m_logger;
+
+    /// @brief The messages that wait for the log file (none once it is open)
+    std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt> m_waitingSink;
 
     /// @brief Log file in use (empty when logging to the console only)
     std::string m_logFilePath;

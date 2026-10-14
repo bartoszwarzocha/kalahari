@@ -17,8 +17,10 @@ namespace gui {
 ///
 /// Each item is as wide as it likes, or as the line where that is less (not less than its
 /// minimum). An item that expands sideways (a combo box set so) takes the room its line
-/// leaves. On a small screen (1366x768 at 150%, the side panels open) a row of buttons then
-/// wraps instead of making the whole panel wider.
+/// leaves, as far as its maximum width allows; the rest stays empty at the end of the line.
+/// Items are centered in the height of their line, and in a right-to-left layout the lines
+/// run from the right. On a small screen (1366x768 at 150%, the side panels open) a row of
+/// buttons then wraps instead of making the whole panel wider.
 class FlowLayout : public QLayout {
 public:
     /// @brief Constructor

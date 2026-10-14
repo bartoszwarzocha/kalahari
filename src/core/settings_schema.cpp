@@ -24,6 +24,8 @@ std::map<std::string, json> buildDefaults() {
         {"window.maximized", false},
         {"window.geometry", ""},  // QMainWindow::saveGeometry() as base64
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
+        // The bar that says the panels on the right were hidden for a small screen was shown
+        {"window.smallScreenNoticeShown", false},
         {"recent_files", json::array()},
 
         // Interface
@@ -50,6 +52,9 @@ std::map<std::string, json> buildDefaults() {
         // Toolbars
         {"toolbars.locked", false},
         {"toolbars.configurations", "{}"},
+        // The commands added to the built-in toolbars that the saved toolbars have: a
+        // customized toolbar gets the later ones once (ToolbarManager)
+        {"toolbars.addedCommands", 0},
         {"toolbars.configVersion", 0},
 
         // Keyboard shortcuts the user changed: command id -> keys ("Ctrl+Shift+F", "" for
@@ -65,14 +70,39 @@ std::map<std::string, json> buildDefaults() {
         {"dashboard.showKalahariNews", true},
         {"dashboard.showRecentFiles", true},
         {"startup.autoLoadLastProject", false},
+        // The book opened last (its .klh file), opened at startup with the option above. A book
+        // created or imported without opening is the first of the recent books but not this
+        // one. Empty: the first of the recent books
+        {"startup.lastBook", ""},
 
         // Annotations: the name new ones are made with. Empty: by no one named
         {"annotations.author", ""},
 
         // New projects
         {"project.defaultAuthor", ""},
-        {"project.defaultLanguage", "en"},
+        // Language of new books ("pl"); empty: the language of the program
+        {"project.defaultLanguage", ""},
+        // Folder of the books (Settings > Files > Folders); empty: Kalahari in Documents
         {"project.defaultLocation", ""},
+        // Folder of the archives of books; empty: Archives in the default folder of the books
+        {"project.archiveLocation", ""},
+        // One folder of the database backups of all books; empty: the .backups folder of each
+        // book
+        {"project.backupFolder", ""},
+        // How many of the newest database backups of each book are kept
+        {"project.backupCount", 5},
+        // The folders the windows of these operations used last (empty: none yet)
+        {"project.lastFolders.newBook", ""},
+        {"project.lastFolders.openBook", ""},
+        {"project.lastFolders.openFile", ""},
+        {"project.lastFolders.exportArchive", ""},
+        {"project.lastFolders.importArchive", ""},
+        {"project.lastFolders.importDestination", ""},
+        // The writer's last choice of sections for a book type that shows them: a set of
+        // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
+        {"project.sectionSet", "sections"},
+        // The writer's own names of the front, main and back section, for "custom"
+        {"project.sectionNames", json::array()},
 
         // Plugins
         {"plugins.allowUnsigned", false},

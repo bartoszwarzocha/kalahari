@@ -32,6 +32,7 @@ struct CommandCallbacks {
     std::function<void()> onOpenStandaloneFile; ///< File > Open File...
     std::function<void()> onSaveDocument;       ///< File > Save
     std::function<void()> onSaveAsDocument;     ///< File > Save As...
+    std::function<void()> onSaveAll;            ///< File > Save All
     std::function<void()> onCloseDocument;      ///< File > Close Book
     std::function<void()> onImportArchive;      ///< File > Import > Project Archive...
     std::function<void()> onExportArchive;      ///< File > Export > Project Archive...
@@ -51,6 +52,13 @@ struct CommandCallbacks {
     std::function<void()> onFindPrevious;       ///< Edit > Find Previous
     std::function<void()> onFindReplace;        ///< Edit > Find & Replace...
     std::function<void()> onSettings;           ///< Edit > Preferences/Settings
+
+    // =========================================================================
+    // BOOK COMMANDS
+    // =========================================================================
+    std::function<void()> onNewChapter;         ///< Book > New Chapter... (named after the
+                                                ///< main texts of the book: New Story...)
+    std::function<void()> onBookProperties;     ///< Book > Book Properties...
 
     // =========================================================================
     // FORMAT COMMANDS (OpenSpec #00042 Phase 7.2)

@@ -56,7 +56,7 @@ TEST_CASE("Recent Books menu: the books, numbered, and the list cleared", "[gui]
         recent.addRecentFile(bookPath("Second"));
 
         const QList<QAction*> actions = menu.actions();
-        REQUIRE(actions.size() == 4);  // two books, a separator, Clear Recent Files
+        REQUIRE(actions.size() == 4);  // two books, a separator, Clear Recent Books
         CHECK(actions[0]->text() == QStringLiteral("&1. Second"));
         CHECK(actions[1]->text() == QStringLiteral("&2. First"));
         CHECK(actions[2]->isSeparator());

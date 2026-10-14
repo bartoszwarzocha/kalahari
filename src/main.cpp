@@ -15,6 +15,7 @@
 #include <QThread>
 #include <QTranslator>
 #include "kalahari/gui/main_window.h"
+#include "kalahari/gui/program_instance.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
@@ -26,17 +27,22 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/cmd_line_parser.h"
 #include "kalahari/core/project_manager.h"
-#include "kalahari/core/document.h"
-#include "kalahari/core/book.h"
-#include "kalahari/core/book_element.h"
-#include "kalahari/core/part.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/utils/icon_downloader.h"
 #include "kalahari/core/utils/svg_converter.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/book_editor_accessible.h"
 #include "kalahari/editor/editor_benchmark.h"
 #include "kalahari/gui/kalahari_style.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/widget_keys.h"
+
+namespace {
+
+/// The log file of the program, in its working folder
+constexpr const char* LOG_FILE = "kalahari.log";
+
+} // anonymous namespace
 
 // ============================================================================
 // DownloadHelper - Qt Signal/Slot helper for CLI icon downloads
@@ -84,9 +90,10 @@ int main(int argc, char *argv[]) {
     // Qt's fields, lists and buttons have the keys of Windows, also on Linux
     kalahari::gui::installWidgetKeys(app);
 
-    // Initialize core systems
+    // Initialize core systems. The log file starts once this start runs on its own: a start
+    // that hands its request to the program that runs leaves the file of that program as it is
     auto& logger = kalahari::core::Logger::getInstance();
-    logger.init("kalahari.log");
+    logger.initWithoutFile();
 
     auto& settings = kalahari::core::SettingsManager::getInstance();
     settings.load();
@@ -113,6 +120,7 @@ int main(int argc, char *argv[]) {
     if (language != "en") {
         if (translator.load("kalahari_" + language, ":/i18n")) {
             app.installTranslator(&translator);
+            kalahari::gui::setProgramLanguage(language);
             logger.info("UI language: {}", language.toStdString());
         } else {
             logger.warn("No translation for UI language '{}', using English", language.toStdString());
@@ -141,6 +149,12 @@ int main(int argc, char *argv[]) {
     cmdLine.addOption("", "theme",
         QCoreApplication::translate("main", "Target theme: twotone, rounded, outlined (default: twotone)"),
         "theme");
+    cmdLine.addPositionalArgument("file",
+        //: The argument of the command line without a name. In Polish: Książka (plik .klh) albo
+        //: inny plik do otwarcia; gdy program już działa, otwiera go jego okno
+        QCoreApplication::translate("main", "A book (.klh file) or another file to open; when the "
+                                            "program runs already, its window opens it"),
+        "[file]");
 
     if (!cmdLine.parse()) {
         // In the console the text goes to the output; the program's own window shows it
@@ -168,6 +182,9 @@ int main(int argc, char *argv[]) {
     // ========================================================================
     // CLI Mode: Icon Downloader
     // ========================================================================
+    if (cmdLine.hasSwitch("cli")) {
+        logger.openFile(LOG_FILE);
+    }
     if (cmdLine.hasSwitch("cli") && cmdLine.hasOption("get-icon")) {
         logger.info("CLI Mode: Icon download");
 
@@ -283,10 +300,29 @@ int main(int argc, char *argv[]) {
     // ========================================================================
     // GUI Mode
     // ========================================================================
+    const bool benchmarkMode = cmdLine.hasSwitch("benchmark");
+    const QStringList files = cmdLine.positionalArguments();
+    const QString startupFile =
+        files.isEmpty() ? QString() : QFileInfo(files.first()).absoluteFilePath();
+
+    // One program for the writer: a later start hands its file to the program that runs,
+    // which shows its window, and ends. So the book opened at the start is never open twice.
+    kalahari::gui::ProgramInstance instance;
+    if (!benchmarkMode) {
+        if (instance.handOver(startupFile)) {
+            logger.info("Kalahari runs already: its window took this start's request");
+            return 0;
+        }
+        instance.listen();
+    }
+    logger.openFile(LOG_FILE);
+
     kalahari::gui::MainWindow window;
+    window.setStartupFile(startupFile);
+    QObject::connect(&instance, &kalahari::gui::ProgramInstance::requested, &window,
+                     &kalahari::gui::MainWindow::onLaterStart);
 
     // Enable diagnostic mode if --diag flag present or benchmark mode
-    bool benchmarkMode = cmdLine.hasSwitch("benchmark");
     if (cmdLine.isDiagnosticMode() || benchmarkMode) {
         logger.info("Diagnostic mode enabled via --diag flag");
         window.enableDiagnosticMode();
@@ -350,51 +386,18 @@ int main(int argc, char *argv[]) {
 
             // Open chapter if specified
             if (!chapterTitle.isEmpty() && pm.isProjectOpen()) {
-                auto* doc = pm.getDocument();
-                if (doc) {
-                    kalahari::core::Book& book = doc->getBook();
+                if (const kalahari::core::BookProject* project = pm.project()) {
                     QString foundId;
                     QString foundTitle;
-                    std::string titleToFind = chapterTitle.toStdString();
 
-                    // Helper lambda for matching (exact or prefix)
-                    auto matchesTitle = [&titleToFind](const std::string& elemTitle) {
-                        return elemTitle == titleToFind ||
-                               (elemTitle.length() > titleToFind.length() &&
-                                elemTitle.substr(0, titleToFind.length()) == titleToFind);
-                    };
-
-                    // Search in frontmatter
-                    for (const auto& elem : book.getFrontMatter()) {
-                        if (matchesTitle(elem->getTitle())) {
-                            foundId = QString::fromStdString(elem->getId());
-                            foundTitle = QString::fromStdString(elem->getTitle());
+                    // The first text element of the book, in reading order, whose title is
+                    // the chapter's title or begins with it
+                    for (const kalahari::core::ProjectElement* element : project->readingOrder()) {
+                        if (pm.formOf(*element) == kalahari::core::ElementForm::Text &&
+                            element->title.startsWith(chapterTitle)) {
+                            foundId = element->id;
+                            foundTitle = element->title;
                             break;
-                        }
-                    }
-
-                    // Search in body parts and chapters
-                    if (foundId.isEmpty()) {
-                        for (const auto& part : book.getBody()) {
-                            for (const auto& chapter : part->getChapters()) {
-                                if (matchesTitle(chapter->getTitle())) {
-                                    foundId = QString::fromStdString(chapter->getId());
-                                    foundTitle = QString::fromStdString(chapter->getTitle());
-                                    break;
-                                }
-                            }
-                            if (!foundId.isEmpty()) break;
-                        }
-                    }
-
-                    // Search in backmatter
-                    if (foundId.isEmpty()) {
-                        for (const auto& elem : book.getBackMatter()) {
-                            if (matchesTitle(elem->getTitle())) {
-                                foundId = QString::fromStdString(elem->getId());
-                                foundTitle = QString::fromStdString(elem->getTitle());
-                                break;
-                            }
                         }
                     }
 

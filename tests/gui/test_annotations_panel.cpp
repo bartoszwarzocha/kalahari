@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
+#include "kalahari/core/kind_words.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme.h"
 #include "kalahari/editor/book_editor.h"
@@ -28,6 +29,7 @@
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLabel>
+#include <QLayout>
 #include <QLineEdit>
 #include <QMainWindow>
 #include <QMouseEvent>
@@ -423,10 +425,16 @@ TEST_CASE("Annotations panel: the hint of a chapter without annotations has the 
         return QString();
     };
 
+    // A chapter of the open book in front
+    const core::KindWords chapter{{{QStringLiteral("singular"), QStringLiteral("chapter")},
+                                   {QStringLiteral("plural"), QStringLiteral("chapters")}},
+                                  core::Gender::Masculine};
+
     SECTION("The command's keys") {
         registerAllCommands(CommandCallbacks{});
         AnnotationsPanel panel;
         panel.setDocumentAvailable(true);
+        panel.setKindNames(chapter, std::nullopt, true);
         panel.setEntries({});
         const Command* add = CommandRegistry::getInstance().getCommand("insert.annotation");
         REQUIRE(add != nullptr);
@@ -448,6 +456,7 @@ TEST_CASE("Annotations panel: the hint of a chapter without annotations has the 
         CommandRegistry::getInstance().clear();  // the singletons are reset once per test case
         AnnotationsPanel panel;
         panel.setDocumentAvailable(true);
+        panel.setKindNames(chapter, std::nullopt, true);
         panel.setEntries({});
         CHECK(hintOf(panel).endsWith(QStringLiteral("or a note from the context menu.")));
     }
@@ -1544,4 +1553,17 @@ TEST_CASE("Annotations: the frame shows who the annotation is by", "[gui][annota
         desk.coordinator->cancelWriting();
     }
     settings.set<std::string>("annotations.author", "");
+}
+
+TEST_CASE("Annotations: a narrow panel puts its buttons in more rows", "[gui][annotations]") {
+    // Regression: the rows of buttons made the panel as wide as all of them side by side, so
+    // on a small screen (1366x768 at 150%: 911 pixels) the window reached beyond the screen
+    AnnotationsPanel panel;
+    QLayout* layout = panel.layout();
+    REQUIRE(layout != nullptr);
+    REQUIRE(layout->hasHeightForWidth());
+
+    CHECK(panel.minimumSizeHint().width() <= 911 / 4);
+    CHECK(layout->totalHeightForWidth(panel.minimumSizeHint().width()) >
+          layout->totalHeightForWidth(600));
 }
