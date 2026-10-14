@@ -135,6 +135,21 @@ private:
     bool m_loaded = false;
 };
 
+/// The program's style (Fusion, on every system) while it lives, then the system's style again
+class ProgramStyle {
+public:
+    ProgramStyle()
+        : m_systemStyle(QApplication::style()->name()) {
+        QApplication::setStyle(QStringLiteral("Fusion"));
+    }
+    ~ProgramStyle() { QApplication::setStyle(m_systemStyle); }
+    ProgramStyle(const ProgramStyle&) = delete;
+    ProgramStyle& operator=(const ProgramStyle&) = delete;
+
+private:
+    QString m_systemStyle;
+};
+
 void clearThemeColors(const std::string& theme) {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     settings.clearCustomPaletteColorsForTheme(theme);
@@ -160,7 +175,10 @@ TEST_CASE("Settings dialog: pages are built when first opened", "[gui][settings]
 TEST_CASE("Settings dialog: no page squeezes its groups", "[gui][settings]") {
     // Regression: the dialog kept its size whatever a page needed, so the groups of
     // Editor > Pages and Margins were squeezed until their fields overlapped, and the
-    // description of Editor > General > Typewriter Scrolling was cut off
+    // description of Editor > General > Typewriter Scrolling was cut off. In the program's
+    // style (Fusion) on every system: in the macOS style a group whose fields go under their
+    // labels in a narrow window measures a height that depends on the widths measured before
+    ProgramStyle programStyle;
     SettingsDialog dialog(nullptr);
     dialog.resize(dialog.minimumSize());
     dialog.show();
@@ -200,12 +218,7 @@ TEST_CASE("Settings dialog: every page fits the narrowest window, in English and
     // a page may scroll down, never sideways. Regression: Editor > General, Pages and Margins
     // and Keyboard Shortcuts were wider than the window in Polish, Keyboard Shortcuts also in
     // English. In the program's style (Fusion) on every system
-    const QString systemStyle = QApplication::style()->name();
-    QApplication::setStyle(QStringLiteral("Fusion"));
-    struct StyleBack {
-        QString name;
-        ~StyleBack() { QApplication::setStyle(name); }
-    } styleBack{systemStyle};
+    ProgramStyle programStyle;
 
     for (const bool inPolish : {false, true}) {
         INFO((inPolish ? "in Polish" : "in English"));
