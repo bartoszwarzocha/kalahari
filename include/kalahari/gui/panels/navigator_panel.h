@@ -10,11 +10,16 @@
 
 #pragma once
 
+#include "kalahari/core/book_project.h"
+
 #include <QWidget>
+#include <QHash>
 #include <QMap>
 #include <QSet>
 #include <QString>
 #include <QStringList>
+
+#include <optional>
 
 class QAction;
 class QTreeWidget;
@@ -26,16 +31,41 @@ class QComboBox;
 
 namespace kalahari {
 namespace core {
-    class Document;  // Forward declaration
+    struct BookProject;
+    struct ProjectElement;
+    struct UnassignedFile;
+    class BookTypeRegistry;
 }
 
 namespace gui {
 
 /// @brief Navigator panel showing project structure tree
 ///
-/// Displays a QTreeWidget for project structure (chapters/scenes).
+/// Displays a QTreeWidget for the book of the project: its front, main and back sections with
+/// the book's names and their elements, and the elements inside groups (parts). A book without
+/// sections shows the elements of the three sections one after another under the book's item.
 /// Supports icons, element selection, and automatic theme refresh.
 /// OpenSpec #00034 Phase C: Added editor synchronization (highlight current chapter).
+///
+/// The chapter files in the book's folder that no element has (the files of elements deleted
+/// from the book without their files) are listed, grey, under "Unassigned Files", from where
+/// they go back to the book or are deleted.
+///
+/// An element is dragged to any place of the book its kind can have (dropPlaceOf()), also in
+/// another group or section; a collapsed group or section under it opens after a moment, so
+/// that it can go inside. The drop asks for the move (elementMovedTo()), and the tree shows
+/// the book as it is once it is loaded again.
+///
+/// The files of the book outside its text, such as notes, which the finished book does not
+/// have, are in a group of their own after the sections, "Other Files" (core::ProjectBook::files).
+/// Every file open outside the book is listed under "Files Outside the Book", also a new file
+/// that has no file yet (addNewFile()).
+///
+/// Item data: Qt::UserRole holds the element ID (the path of a standalone file or the key of a
+/// new one, the file of an unassigned file relative to the project folder), Qt::UserRole + 1 the
+/// item type: "document", "section_frontmatter", "section_body", "section_backmatter",
+/// "text_element", "group_element", "window_element", "book_files", "book_file",
+/// "unassigned_files", "unassigned_file", "other_files" or "standalone_file".
 class NavigatorPanel : public QWidget {
     Q_OBJECT
 
@@ -45,7 +75,7 @@ public:
     explicit NavigatorPanel(QWidget* parent = nullptr);
 
     /// @brief Highlight element in tree by ID (OpenSpec #00034 Phase C)
-    /// @param elementId Element ID to highlight (from BookElement::getId())
+    /// @param elementId Element ID to highlight
     /// @note Scrolls to the item and expands parent nodes
     /// @note Uses theme-aware highlight color (QPalette::Highlight with alpha)
     void highlightElement(const QString& elementId);
@@ -53,9 +83,55 @@ public:
     /// @brief Clear current highlight (OpenSpec #00034 Phase C)
     void clearHighlight();
 
-    /// @brief Load document structure into tree
-    /// @param document Document to display
-    void loadDocument(const core::Document& document);
+    /// @brief Load the first book of a project into the tree
+    /// @param project Project to display
+    /// @param registry Packages whose kinds give the elements their form and icon
+    /// @note The files that no element has come with setUnassignedFiles()
+    void loadProject(const core::BookProject& project, const core::BookTypeRegistry& registry);
+
+    /// @brief List the chapter files that no element has under "Unassigned Files", after the
+    /// sections of the book; without files the tree has no such item
+    ///
+    /// The item opens when it gets more files than it had, so that the writer sees the files of
+    /// the elements just deleted from the book; else it stays as the writer left it.
+    /// @param files The files (core::ProjectManager::unassignedFiles())
+    /// @param projectFolder Folder of the project: the files are relative to it
+    void setUnassignedFiles(const QList<core::UnassignedFile>& files,
+                            const QString& projectFolder);
+
+    /// @brief ArtProvider id of the icon of @p element: of its kind or, when @p registry does
+    /// not have its kind, of its form; that of a file for a file of the book outside its text
+    static QString iconIdOf(const core::BookTypeRegistry& registry,
+                            const core::ProjectElement& element);
+
+    /// @brief ArtProvider id of the icon of the elements of @p kind: its own, or that of its
+    /// form; that of a text without a kind
+    static QString iconIdOf(const core::KindRef& kind);
+
+    /// @brief Where an element is dropped, as the line or the frame of the tree shows it
+    enum class DropSpot {
+        Above,  ///< Above an item
+        Below,  ///< Below an item
+        On,     ///< On an item that takes elements: a section of the book or a group
+    };
+
+    /// @brief The place of the element of item @p dragged when it is dropped at @p spot of item
+    /// @p target, in @p project without the element (core::ProjectManager::moveElementTo())
+    ///
+    /// Above or below an element, the element goes to the line between the items, also in
+    /// another group or section; below a group that shows its elements, first in the group,
+    /// else after it. On a section or a group, it goes where an element of its kind is added
+    /// there: a chapter before the epilogue. In a book without sections, the line between the
+    /// last element of a section and the first one of the next is in both of them: the
+    /// element goes to the first one that can have it. The element goes only where its kind can
+    /// be (core::BookProject::movePlacesOf()).
+    /// @param registry Kinds of the elements
+    /// @return The place; none when the element cannot go there or stays where it is
+    static std::optional<core::ElementPlace> dropPlaceOf(const core::BookProject& project,
+                                                         const core::BookTypeRegistry& registry,
+                                                         const QTreeWidgetItem* dragged,
+                                                         const QTreeWidgetItem* target,
+                                                         DropSpot spot);
 
     /// @brief Clear tree (when no document is loaded)
     void clearDocument();
@@ -63,10 +139,18 @@ public:
     /// @brief Add a standalone file to the "Other Files" section
     /// @param path Absolute file path
     /// @note Creates "Other Files" section if not exists
+    /// @note The name has "*" before it while the file has unsaved changes (setFileModified())
     void addStandaloneFile(const QString& path);
 
+    /// @brief Add a new file that has no file yet to the "Other Files" section, named as its
+    /// tab ("Untitled 1"), so that the section lists every file open outside the book
+    /// @param key Key of the file, which no path has ("untitled:1"): the id of its item, which
+    /// standaloneFileSelected(), setFileModified() and removeStandaloneFile() take
+    /// @param name Name of the file: the title of its tab
+    void addNewFile(const QString& key, const QString& name);
+
     /// @brief Remove a standalone file from the "Other Files" section
-    /// @param path Absolute file path
+    /// @param path Absolute file path, or the key of a new file (addNewFile())
     /// @note Hides "Other Files" section if empty after removal
     void removeStandaloneFile(const QString& path);
 
@@ -85,7 +169,7 @@ public:
 
     /// @brief Restore expansion state for a project (OpenSpec #00034 Phase F)
     /// @param projectId Unique identifier for the project
-    /// @note Call after loadDocument() to restore tree expansion state
+    /// @note Call after loadProject() to restore tree expansion state
     void restoreExpansionState(const QString& projectId);
 
     /// @brief Get IDs of all expanded items
@@ -95,6 +179,11 @@ public:
     /// @brief Expand exactly the given items and collapse all others
     /// @param ids Item IDs as returned by expandedItemIds()
     void setExpandedItemIds(const QStringList& ids);
+
+    /// @brief Show an element: expand the items above it, make it the current item and
+    /// scroll to it
+    /// @param elementId Element ID; nothing happens when the tree has no such element
+    void revealElement(const QString& elementId);
 
     /// @brief Refresh a single item's display text by element ID
     /// @param elementId Element ID of the item to refresh
@@ -110,17 +199,23 @@ public:
 
     /// @brief Clear all modified indicators (OpenSpec #00042 Phase 7.5)
     /// @note Call after project save or close
+    /// @note The files outside the book keep theirs: they are not saved or closed with the book
     void clearAllModifiedIndicators();
+
+    /// @brief Show whether file @p path outside the book has unsaved changes: "*" before its
+    /// name. The mark stays when the tree is built again (a book opened or closed), and goes
+    /// when the file leaves the list.
+    void setFileModified(const QString& path, bool isModified);
 
     /// @brief Destructor
     ~NavigatorPanel() override = default;
 
 signals:
     /// @brief Emitted when user double-clicks a selectable element in tree
-    /// @param elementId Unique ID of the element (from BookElement::getId())
-    /// @param elementTitle Display title of the element
-    /// @note Only emitted for leaf elements (chapters, frontmatter items, backmatter items)
-    /// @note Section headers (Front Matter, Body, Back Matter) and Parts do not emit this signal
+    /// @param elementId Unique ID of the element
+    /// @param elementTitle Title of the element, without the status and modified marks
+    /// @note Only emitted for text elements (chapters, front and back matter items)
+    /// @note Sections, groups (parts) and window elements do not emit this signal
     void elementSelected(const QString& elementId, const QString& elementTitle);
 
     /// @brief Request to rename an element
@@ -130,35 +225,47 @@ signals:
 
     /// @brief Request to delete an element
     /// @param elementId Element ID
-    /// @param elementType Type of element (for confirmation message)
-    void requestDelete(const QString& elementId, const QString& elementType);
+    void requestDelete(const QString& elementId);
 
-    /// @brief Request to add a chapter to a part
-    /// @param partId Part ID to add chapter to
-    void requestAddChapter(const QString& partId);
+    /// @brief Request to add a chapter to a group (part) or to the body of the book
+    /// @param groupId Group ID to add chapter to; empty: the body of the book
+    void requestAddChapter(const QString& groupId);
 
     /// @brief Request to add a new part to the body
     void requestAddPart();
 
-    /// @brief Request to add an item to front/back matter
+    /// @brief Request to add an item to the front or back section
     /// @param sectionType "front_matter" or "back_matter"
     void requestAddItem(const QString& sectionType);
+
+    /// @brief Request to show the sections of the book, or to hide them
+    /// @param shown Whether the Navigator shows the sections
+    void requestShowSections(bool shown);
+
+    /// @brief Request to rename a section of the book
+    /// @param sectionType "section_frontmatter", "section_body" or "section_backmatter"
+    void requestRenameSection(const QString& sectionType);
 
     /// @brief Request to move an element up or down
     /// @param elementId Element ID
     /// @param direction -1 for up, +1 for down
     void requestMoveElement(const QString& elementId, int direction);
 
-    /// @brief Emitted when chapter is reordered via drag & drop (OpenSpec #00034 Phase D)
-    /// @param partId Part ID containing the chapter
-    /// @param fromIndex Original index of the chapter
-    /// @param toIndex New index of the chapter
-    void chapterReordered(const QString& partId, int fromIndex, int toIndex);
+    /// @brief Emitted when an element is moved to the start or the end of its list (Move to
+    /// Start, Move to End)
+    /// @param elementId Element ID
+    /// @param index Its new index in its list (a part of the book or a group)
+    void elementMoved(const QString& elementId, int index);
 
-    /// @brief Emitted when part is reordered via drag & drop (OpenSpec #00034 Phase D)
-    /// @param fromIndex Original index of the part
-    /// @param toIndex New index of the part
-    void partReordered(int fromIndex, int toIndex);
+    /// @brief Emitted when an element is dragged to another place of the book
+    /// @param elementId Element ID
+    /// @param place Its new place, in the book without it (dropPlaceOf())
+    /// @note The tree does not change; it shows the new order once it is loaded again
+    void elementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place);
+
+    /// @brief Request to choose a new place of an element in the book (Move...)
+    /// @param elementId Element ID
+    void requestMoveTo(const QString& elementId);
 
     /// @brief Request to show properties dialog
     /// @param elementId Element ID (empty for document properties)
@@ -169,7 +276,7 @@ signals:
     void requestSectionProperties(const QString& sectionType);
 
     /// @brief Request to show part properties (aggregate statistics)
-    /// @param partId Part ID
+    /// @param partId Group (part) ID
     void requestPartProperties(const QString& partId);
 
     /// @brief Request to bring the Properties panel to the front
@@ -188,6 +295,21 @@ signals:
     /// @brief Request to remove a standalone file from the list
     /// @param filePath Absolute file path
     void requestRemoveStandaloneFile(const QString& filePath);
+
+    /// @brief Request to show the text of a file of "Unassigned Files"
+    /// @param file The file, relative to the project folder
+    void requestPreviewUnassigned(const QString& file);
+
+    /// @brief Request to add a file of "Unassigned Files" to the book
+    /// @param file The file, relative to the project folder
+    void requestAddUnassigned(const QString& file);
+
+    /// @brief Request to delete a file of "Unassigned Files"
+    /// @param file The file, relative to the project folder
+    void requestDeleteUnassigned(const QString& file);
+
+    /// @brief Request to delete all the files of "Unassigned Files"
+    void requestDeleteAllUnassigned();
 
 private slots:
     /// @brief Refresh icons when theme/colors change
@@ -242,10 +364,27 @@ private:
     /// @param item Starting item (nullptr for root)
     void refreshItemIcons(QTreeWidgetItem* item);
 
-    /// @brief Get icon ID for element type
+    /// @brief Get icon ID for item type
     /// @param elementType Type string stored in Qt::UserRole + 1
     /// @return Icon ID for ArtProvider (e.g., "common.folder", "template.chapter")
     QString getIconIdForType(const QString& elementType) const;
+
+    /// @brief Add the items of @p elements, and of the elements inside them, under @p parent
+    void addElementItems(QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements,
+                         const core::BookTypeRegistry& registry);
+
+    /// @brief Add the group "Other Files" with the files of the book outside its text, @p files,
+    /// under @p parent; nothing when the book has none
+    void addBookFileItems(QTreeWidgetItem* parent, const QList<core::ProjectElement>& files);
+
+    /// @brief Title of an element as the tree shows it: "*" when it has unsaved changes, and
+    /// for a text element its status when it is not final ("Chapter 1 [Draft]")
+    static QString getDisplayTitle(const core::ProjectElement& element, bool isText,
+                                   bool isModified);
+
+    /// @brief Add a section of the book (front, body, back) under @p parent
+    QTreeWidgetItem* addSectionItem(QTreeWidgetItem* parent, const QString& title,
+                                    const QString& sectionType);
 
     /// @brief Get icon ID for file based on extension
     /// @param path File path
@@ -254,6 +393,14 @@ private:
 
     /// @brief Ensure "Other Files" section exists and is visible
     void ensureOtherFilesSection();
+
+    /// @brief Give the items of "Unassigned Files" their grey look in the colors of the
+    /// current theme
+    void updateUnassignedLook();
+
+    /// @brief Show @p path (absolute) in the file manager of the system, or say that it could
+    /// not be shown
+    void showInFileManager(const QString& path);
 
     /// @brief Process filter for a single item and its children
     /// @param item Item to process
@@ -296,7 +443,8 @@ private:
 
     /// @brief Find item by type-text identifier (OpenSpec #00034 Phase F)
     /// @param elementType Element type stored in Qt::UserRole + 1
-    /// @param text Item text
+    /// @param text Item text; not compared for the items the tree has one of: the document,
+    ///        its sections and "Other Files", whose names change
     /// @return Tree item or nullptr if not found
     QTreeWidgetItem* findItemByTypeAndText(const QString& elementType, const QString& text) const;
 
@@ -305,40 +453,26 @@ private:
                                                      const QString& elementType,
                                                      const QString& text) const;
 
-    /// @brief Handle drop event for drag & drop reordering (OpenSpec #00034 Phase D)
-    /// @param item The item being dropped
-    /// @param dropTarget The target item/position
-    /// @param dropIndicator Position indicator (above/below/on)
-    void handleDropEvent(QTreeWidgetItem* item, QTreeWidgetItem* dropTarget, int dropIndicator);
-
-    /// @brief Check if drag operation is valid (OpenSpec #00034 Phase D)
-    /// @param sourceItem Item being dragged
-    /// @param targetItem Target drop location
-    /// @return true if drop is allowed
-    bool isDragDropValid(QTreeWidgetItem* sourceItem, QTreeWidgetItem* targetItem) const;
-
-    /// @brief Get part ID for a chapter item (OpenSpec #00034 Phase D)
-    /// @param chapterItem Tree item of type "chapter"
-    /// @return Part ID or empty string if not found
-    QString getPartIdForChapter(QTreeWidgetItem* chapterItem) const;
-
-    /// @brief Get index of item within its parent (OpenSpec #00034 Phase D)
-    /// @param item Tree item
-    /// @return Index within parent, or -1 if no parent
-    int getItemIndex(QTreeWidgetItem* item) const;
-
     /// @brief Document type filter options
     enum class FilterType {
         All,          ///< Show all items
-        TextFiles,    ///< Show chapters, frontmatter, backmatter items
-        MindMaps,     ///< Show mind map files (.kmap)
-        Timelines,    ///< Show timeline files (.ktl)
+        TextFiles,    ///< Show text elements: chapters, front and back matter items
+        MindMaps,     ///< Show mind maps (elements and .kmap files)
+        Timelines,    ///< Show timelines (elements and .ktl files)
         OtherFiles    ///< Show items in "Other Files" section
     };
 
     QTreeWidget* m_treeWidget;
     QTreeWidgetItem* m_otherFilesItem;  ///< "Other Files" section (always at bottom)
     QMap<QString, QTreeWidgetItem*> m_standaloneFiles;  ///< path -> tree item
+    /// Key -> name of the new files that have no file yet (addNewFile())
+    QHash<QString, QString> m_newFileNames;
+
+    // Unassigned files
+    QTreeWidgetItem* m_unassignedItem = nullptr;  ///< "Unassigned Files"; nullptr: no files
+    int m_unassignedCount = 0;                    ///< Files it listed last
+    bool m_unassignedExpanded = true;             ///< Whether it was open before a reload
+    QString m_projectFolder;                      ///< The files are relative to it
 
     // Search/filter components
     QComboBox* m_typeFilter;             ///< Type filter combo box
@@ -361,6 +495,7 @@ private:
 
     // Modified state tracking (OpenSpec #00042 Phase 7.5)
     QSet<QString> m_modifiedElements;    ///< Set of element IDs with unsaved changes
+    QSet<QString> m_modifiedFiles;       ///< Paths of the files outside the book with changes
 };
 
 } // namespace gui

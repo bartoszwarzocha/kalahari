@@ -210,6 +210,10 @@ public:
     ///        page is centred, and scrolled sideways, in the width left of it
     void setConfigScrollBarWidth(double width);
 
+    /// @brief Set the height of the bar over the view's top edge (the find/replace bar; 0
+    ///        without one): the pages start below it, so that no line is hidden under it
+    void setConfigTopBarHeight(double height);
+
     /// @brief Set colors (no recalculation, just marks dirty)
     /// @param colors Render colors (text, background, selection, etc.)
     void setConfigColors(const RenderColors& colors);

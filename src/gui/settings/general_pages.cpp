@@ -25,9 +25,9 @@ GeneralPage::GeneralPage(QWidget* parent)
     : SettingsPage(parent)
 {
     QFormLayout* startup = addGroup(tr("Startup"));
-    QCheckBox* autoLoad = addCheckBox(startup, tr("Open last project on startup"),
+    QCheckBox* autoLoad = addCheckBox(startup, tr("Open last book on startup"),
                                       "startup.autoLoadLastProject");
-    autoLoad->setToolTip(tr("Automatically open the most recently used project when Kalahari starts"));
+    autoLoad->setToolTip(tr("Automatically open the most recently used book when Kalahari starts"));
 
     QFormLayout* units = addGroup(tr("Units"));
     auto* lengthUnit = new QComboBox();
@@ -81,12 +81,12 @@ DashboardPage::DashboardPage(QWidget* parent)
 
     addCheckBox(form, tr("Show Kalahari News"), "dashboard.showKalahariNews")
         ->setToolTip(tr("Display news and updates section on Dashboard"));
-    addCheckBox(form, tr("Show Recent Files"), "dashboard.showRecentFiles")
-        ->setToolTip(tr("Display recently opened projects on Dashboard"));
+    addCheckBox(form, tr("Show Recent Books"), "dashboard.showRecentFiles")
+        ->setToolTip(tr("Display recently opened books on Dashboard"));
 
     auto* maxItems = new QSpinBox();
     maxItems->setRange(3, 9);
-    maxItems->setToolTip(tr("Number of items to show in News and Recent Files sections (3-9)"));
+    maxItems->setToolTip(tr("Number of items to show in News and Recent Books sections (3-9)"));
     addField(form, tr("Maximum items per section:"), maxItems, "dashboard.maxItems");
 
     auto* iconSize = new QSpinBox();

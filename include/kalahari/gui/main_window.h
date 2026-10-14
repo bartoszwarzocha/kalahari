@@ -21,7 +21,6 @@
 #include <memory>
 #include <optional>
 #include <filesystem>
-#include "kalahari/core/document.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
 
@@ -119,7 +118,7 @@ public:
     EditorPanel* getCurrentEditor();
 
     /// @brief Open a chapter/element by ID (OpenSpec #00043 - Benchmark CLI)
-    /// @param elementId Element ID to open (from BookElement::getId())
+    /// @param elementId Element ID to open (ProjectElement::id)
     /// @param elementTitle Display title of the element
     /// @note Public wrapper for onNavigatorElementSelected for CLI/benchmark use
     void openChapter(const QString& elementId, const QString& elementTitle);
@@ -127,6 +126,16 @@ public:
     /// @brief The menu of the menu bar and of the panels' titles: Qt's panels and toolbars,
     ///        each with an access key
     QMenu* createPopupMenu() override;
+
+    /// @brief The book or the other file to open when the window is shown first, given on the
+    /// command line; it takes the place of the last book
+    void setStartupFile(const QString& path);
+
+public slots:
+    /// @brief A later start of the program handed over its request: the window comes to the
+    /// front, as it was, and opens @p path (a book or another file; empty: nothing). While a
+    /// window that asks something is open, it comes to the front and nothing is opened.
+    void onLaterStart(const QString& path);
 
 private:
     /// @brief Register all commands in CommandRegistry
@@ -163,6 +172,17 @@ private:
     /// @brief Reset dock layout to default
     /// @note Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void resetLayout();
+
+    /// @brief Book > Book Properties...: the Properties panel in front with the book's
+    /// properties, its first field ready for typing
+    void showBookProperties();
+
+    /// @brief Make the Book menu and the commands of the open book follow it
+    ///
+    /// New Chapter... is named after the texts it adds (New Story... in a collection of short
+    /// stories) and, like Book Properties..., Close Book and the export of the book's archive,
+    /// works only with a book open.
+    void updateBookCommands();
 
     // NOTE: createDiagnosticMenu, removeDiagnosticMenu, createDevToolsMenu, removeDevToolsMenu
     // moved to DiagnosticController (OpenSpec #00038)
@@ -290,7 +310,7 @@ private slots:
     void onAbout();
 
     /// @brief Slot for Navigator element selection (Task #00015, OpenSpec #00033)
-    /// @param elementId Unique ID of the selected element (BookElement::getId())
+    /// @param elementId Unique ID of the selected element (ProjectElement::id)
     /// @param elementTitle Display title of the element
     /// @note Delegates to NavigatorCoordinator (OpenSpec #00038 Phase 6)
     void onNavigatorElementSelected(const QString& elementId, const QString& elementTitle);
@@ -329,6 +349,9 @@ private:
     // First show flag (for geometry restore)
     bool m_firstShow;
 
+    /// The book or file given on the command line, opened at the first show
+    QString m_startupFile;
+
     // Diagnostic/Dev mode controller (OpenSpec #00038)
     DiagnosticController* m_diagnosticController;  ///< Manages diagnostic/dev mode and menus
 
@@ -348,9 +371,6 @@ private:
     /// @brief Undo, Redo, Cut, Copy, Paste and Select All on the element with the keys
     EditCoordinator* m_editCoordinator{nullptr};
 
-    // Document dirty state (kept in MainWindow, shared with DocumentCoordinator via callbacks)
-    bool m_isDirty;                                   ///< Unsaved changes flag
-
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen
 
@@ -368,26 +388,20 @@ private:
     // OpenSpec #00043: Debounce timer for action state updates
     QTimer* m_actionStateDebounceTimer{nullptr};      ///< Debounce rapid cursor changes
 
-    // NOTE: m_currentDocument, m_currentFilePath, m_standaloneFilePaths moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
+    // NOTE: m_standaloneFilePaths moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
     // NOTE: m_dirtyChapters and m_currentElementId moved to NavigatorCoordinator (OpenSpec #00038 Phase 6)
-
-    /// @brief Mark document as modified (add "*" to title)
-    void setDirty(bool dirty);
 
     /// @brief Single source-of-truth predicate for unsaved changes
     /// @return true if there are any unsaved changes anywhere
     ///
-    /// Consolidates all dirty concepts into one coherent check:
-    /// - project open: dirty CONTENT elements (ProjectManager::hasDirtyElements)
-    ///   OR dirty STRUCTURE/manifest (ProjectManager::isDirty)
-    /// - no project: the phase-0/standalone document flag (m_isDirty)
-    /// - always: any dirty standalone editor tab (per-tab "dirty" property)
-    ///
-    /// Every save/close prompt path consults this predicate so the flag that a
-    /// prompt reads is always the flag that edits set.
+    /// What DocumentCoordinator::unsavedDocumentNames() names, as the questions do:
+    /// - book open: the open elements whose texts differ from their saved texts, or the
+    ///   data of the book (ProjectManager::isDirty)
+    /// - always: the files outside the book whose texts differ from their saved texts
     [[nodiscard]] bool hasUnsavedChanges() const;
 
-    /// @brief Update window title with filename and dirty state
+    /// @brief The title of the window: the open book, "Rain - Kalahari"; without a book,
+    /// "Kalahari"
     void updateWindowTitle();
 
     /// @brief Toggle fullscreen mode (OpenSpec #00040)
@@ -413,7 +427,6 @@ private:
     void rememberChapterCursors();
 
     // NOTE: collectCurrentSettings moved to SettingsCoordinator (OpenSpec #00038 Phase 5)
-    // NOTE: getPhase0Content, setPhase0Content moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
 };
 
 } // namespace gui

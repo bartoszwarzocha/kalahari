@@ -58,6 +58,9 @@ public:
     [[nodiscard]] bool hasChanges() const;
 
     /// @brief Write the changed settings of all opened pages
+    ///
+    /// A changed value that cannot be written (SettingsPage::problem()) writes nothing: the
+    /// dialog shows its page and says why.
     /// @return Keys of the settings written
     QStringList applyChanges();
 
@@ -66,7 +69,8 @@ public:
     void showShortcutsPage();
 
 public slots:
-    /// @brief OK: write the changed settings, then close
+    /// @brief OK: write the changed settings, then close; a value that cannot be written
+    /// keeps the dialog open on its page
     void accept() override;
 
 signals:
@@ -101,6 +105,10 @@ private:
 
     /// @brief Show the length fields of the built pages in another unit
     void setLengthUnit(LengthUnit unit);
+
+    /// @brief Whether every changed value can be written; else show the page of the first
+    /// one that cannot, with the focus on its control, and say why
+    bool changesCanBeWritten();
 
     void onApply();
 

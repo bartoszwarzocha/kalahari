@@ -121,13 +121,7 @@ void BookEditor::openFindBar(bool replace)
     } else {
         m_findReplaceBar->showFind();
     }
-
-    // Position at top of editor
-    const int scrollBarWidth =
-        m_verticalScrollBar ? m_verticalScrollBar->sizeHint().width() : 0;
-    m_findReplaceBar->setGeometry(0, 0, width() - scrollBarWidth,
-                                  m_findReplaceBar->sizeHint().height());
-
+    placeFindReplaceBar();
     m_findReplaceBar->show();
 }
 
@@ -147,6 +141,32 @@ bool BookEditor::resumeSearch()
     // stay in the text, as F3 goes on in Word, the browsers and the code editors
     openFindBar(m_findReplaceBar->isReplaceMode());
     return m_searchEngine->isActive();
+}
+
+void BookEditor::placeFindReplaceBar()
+{
+    const int scrollBarWidth = m_verticalScrollBar ? m_verticalScrollBar->sizeHint().width() : 0;
+    const int barWidth = qMax(0, width() - scrollBarWidth);
+    const int barHeight = m_findReplaceBar->hasHeightForWidth()
+                              ? m_findReplaceBar->heightForWidth(barWidth)
+                              : m_findReplaceBar->sizeHint().height();
+    m_findReplaceBar->setGeometry(0, 0, barWidth, barHeight);
+    setTopBarHeight(barHeight);
+}
+
+int BookEditor::findReplaceBarHeight() const
+{
+    return m_findReplaceBar && !m_findReplaceBar->isHidden() ? m_findReplaceBar->height() : 0;
+}
+
+void BookEditor::setTopBarHeight(int height)
+{
+    if (!m_renderPipeline || !m_viewportManager) {
+        return;
+    }
+    m_renderPipeline->setConfigTopBarHeight(height);
+    updateScrollBarRange();
+    setScrollOffset(scrollOffset());  // within the new scroll range
 }
 
 void BookEditor::findNext()
@@ -176,6 +196,7 @@ void BookEditor::hideFindReplace()
     if (m_findReplaceBar) {
         m_findReplaceBar->hide();
     }
+    setTopBarHeight(0);
     if (m_searchEngine) {
         m_searchEngine->clear();
     }

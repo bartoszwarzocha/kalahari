@@ -36,6 +36,8 @@ struct TemplateInfo {
     QString iconId;          ///< Icon command ID for ArtProvider (e.g., "template.novel")
     QStringList features;    ///< Feature bullet points for preview
     QString fileExtension;   ///< Output file extension (for file templates, e.g., ".rtf")
+    QString typeId;          ///< Package of the book type a project template makes, e.g.
+                             ///< "kalahari.novel"; empty: a user project, without a type
     bool isBuiltin = true;   ///< True for built-in templates, false for plugin-added
 
     /// @brief Check if template info is valid

@@ -14,11 +14,14 @@
 #include "kalahari/gui/widgets/path_label.h"
 #include "kalahari/gui/widgets/wrapping_label.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/resource_paths.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/gui/kind_names.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -159,6 +162,11 @@ DashboardPanel::DashboardPanel(QWidget* parent)
     logger.debug("DashboardPanel initialized with native Qt widgets");
 }
 
+DashboardPanel::~DashboardPanel()
+{
+    core::SettingsManager::getInstance().unsubscribe(m_autoLoadSubscription);
+}
+
 void DashboardPanel::setupUI()
 {
     // Main layout for the panel
@@ -207,9 +215,9 @@ void DashboardPanel::setupUI()
     checkboxLayout->setContentsMargins(0, 24, 0, 32);  // Extra bottom margin
     checkboxLayout->setSpacing(style()->pixelMetric(QStyle::PM_CheckBoxLabelSpacing));
 
-    const QString autoLoadText = tr("Open last project on startup");
+    const QString autoLoadText = tr("Open last book on startup");
     const QString autoLoadTip =
-        tr("Automatically open the most recently used project when Kalahari starts");
+        tr("Automatically open the most recently used book when Kalahari starts");
     m_autoLoadCheckbox = new QCheckBox(checkboxContainer);
     // The layout gives the box its whole rectangle: the margins macOS puts around it for
     // layouts would take it beyond the row on a narrow panel, which squeezes it
@@ -245,6 +253,19 @@ void DashboardPanel::setupUI()
     connect(m_autoLoadCheckbox, &QCheckBox::toggled, this, [](bool checked) {
         auto& settings = core::SettingsManager::getInstance();
         settings.set("startup.autoLoadLastProject", checked);
+    });
+
+    // ... and the checkbox follows the setting, whoever changes it (the Settings window
+    // too). A listener runs on the thread that changed the setting. The slot called by name
+    // runs at once on the checkbox's own thread and is queued from any other one; the value
+    // it writes back is the one the setting already has, so nothing changes
+    QCheckBox* checkBox = m_autoLoadCheckbox;
+    m_autoLoadSubscription = settingsMgr.subscribe([checkBox](const std::string& key) {
+        if (key != "startup.autoLoadLastProject") {
+            return;
+        }
+        const bool on = core::SettingsManager::getInstance().get<bool>(key);
+        QMetaObject::invokeMethod(checkBox, "setChecked", Q_ARG(bool, on));
     });
 
     // Apply initial theme colors
@@ -346,9 +367,10 @@ void DashboardPanel::updateShortcutLabels()
     m_shortcutLabels.clear();
 
     // The commands to start with, named as in the menus and with the keys they have
-    // (written here a second time, they drifted apart: Ctrl+N was shown as New Chapter)
+    // (written here a second time, they drifted apart: Ctrl+N was shown as New Chapter), in
+    // the order of the File menu
     const CommandRegistry& registry = CommandRegistry::getInstance();
-    for (const char* id : {"file.new.project", "file.open", "file.open.file"}) {
+    for (const char* id : {"file.open.file", "file.new.project", "file.open"}) {
         const Command* command = registry.getCommand(id);
         if (command == nullptr || command->shortcut.isEmpty()) {
             continue;
@@ -501,7 +523,7 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     //m_filesIcon->setPixmap(filesIcon.pixmap(headerIconSize, headerIconSize));
     //filesIconLayout->addWidget(m_filesIcon);
 
-    m_filesTitle = new WrappingLabel(tr("Recent Files"), filesHeader);
+    m_filesTitle = new WrappingLabel(tr("Recent Books"), filesHeader);
     QFont filesTitleFont = m_filesTitle->font();
     filesTitleFont.setPointSize(13);
     filesTitleFont.setWeight(QFont::Medium);
@@ -531,40 +553,89 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     return m_columnsWidget;
 }
 
+namespace {
+
+/// @brief What the card of a recent book shows of the book
+struct RecentBook {
+    QString title;   ///< Title; empty: the name of the file
+    QString author;  ///< Author; empty: unknown
+    QString type;    ///< Name of the type; empty: a novel
+    QString iconId;  ///< Icon of the type
+};
+
+/// @brief Read the card's data of the .klh file @p json
+///
+/// A book of format 2 has its type in its package: the name in the program's language and the
+/// icon. A file of the earlier format has its data in "document", and its genre names it.
+RecentBook readRecentBook(const QJsonObject& json)
+{
+    RecentBook recent;
+    const core::ArtProvider& art = core::ArtProvider::getInstance();
+    if (json.contains(QLatin1String("document"))) {
+        const QJsonObject document = json.value(QLatin1String("document")).toObject();
+        recent.title = document.value(QLatin1String("title")).toString();
+        recent.author = document.value(QLatin1String("author")).toString();
+        const QString genre = document.value(QLatin1String("genre")).toString().toLower();
+        if (!genre.isEmpty()) {
+            // The genre with a capital letter, as the earlier format named the book's type
+            recent.type = genre.at(0).toUpper() + genre.mid(1);
+        }
+        recent.iconId = art.getGenreIconId(genre);
+        return recent;
+    }
+
+    QStringList problems;
+    const std::optional<core::BookProject> project = core::BookProject::fromJson(json, problems);
+    if (!project) {
+        recent.iconId = art.getGenreIconId(QString());
+        return recent;
+    }
+    const core::BookTypeRegistry& registry = core::ProjectManager::getInstance().bookTypes();
+    const core::ProjectBook& book = project->books.first();
+    recent.title = book.title.trimmed();
+    recent.author = book.author.trimmed();
+    recent.type = typeNameOf(registry, *project);
+    if (!project->type) {
+        // The icon of a user project in the New Book window
+        recent.iconId = QStringLiteral("template.empty");
+    } else if (const core::BookTypePackage* package = registry.package(project->type->id);
+               package && !package->icon.isEmpty()) {
+        recent.iconId = package->icon;
+    } else {
+        recent.iconId = art.getGenreIconId(book.genre);
+    }
+    return recent;
+}
+
+} // namespace
+
 QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* parent)
 {
     QFileInfo fileInfo(filePath);
     QString title = fileInfo.completeBaseName();
     QString author = tr("Unknown Author");
     QString bookType = tr("Novel");
-    QString genre = "fiction";  // Default genre for icon selection
+    QString iconActionId = core::ArtProvider::getInstance().getGenreIconId(QString());
     QString dateStr;
 
     // Try to read metadata from .klh file
     if (fileInfo.exists() && filePath.endsWith(".klh", Qt::CaseInsensitive)) {
         QFile file(filePath);
         if (file.open(QIODevice::ReadOnly)) {
-            QByteArray fileData = file.readAll();
+            const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
             file.close();
-
-            QJsonDocument doc = QJsonDocument::fromJson(fileData);
-            if (!doc.isNull() && doc.isObject()) {
-                QJsonObject obj = doc.object();
-                // Read from "document" object (correct .klh format)
-                if (obj.contains("document")) {
-                    QJsonObject docObj = obj["document"].toObject();
-                    if (docObj.contains("author") && !docObj["author"].toString().isEmpty()) {
-                        author = docObj["author"].toString();
-                    }
-                    if (docObj.contains("title") && !docObj["title"].toString().isEmpty()) {
-                        title = docObj["title"].toString();
-                    }
-                    if (docObj.contains("genre") && !docObj["genre"].toString().isEmpty()) {
-                        genre = docObj["genre"].toString().toLower();
-                        // Capitalize first letter for display
-                        bookType = genre.at(0).toUpper() + genre.mid(1);
-                    }
+            if (doc.isObject()) {
+                const RecentBook recent = readRecentBook(doc.object());
+                if (!recent.title.isEmpty()) {
+                    title = recent.title;
                 }
+                if (!recent.author.isEmpty()) {
+                    author = recent.author;
+                }
+                if (!recent.type.isEmpty()) {
+                    bookType = recent.type;
+                }
+                iconActionId = recent.iconId;
             }
         }
 
@@ -611,10 +682,8 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     iconLabel->setFixedSize(iconSize, iconSize);
     iconLabel->setScaledContents(false);  // NO SCALING - pixmap size = label size
 
-    // Select icon based on genre using centralized ArtProvider mapping
-    QString iconActionId = core::ArtProvider::getInstance().getGenreIconId(genre);
-    // Store genre for theme refresh
-    iconLabel->setProperty("genre", genre);
+    // The icon of the book's type, kept for the theme refresh
+    iconLabel->setProperty("iconId", iconActionId);
 
     // Recent Files book icons use dashboardPrimary/dashboardSecondary colors for distinct appearance
     QIcon bookIcon = core::ArtProvider::getInstance().getThemedIcon(
@@ -698,7 +767,7 @@ void DashboardPanel::updateRecentFilesList()
     const QStringList recentFiles = core::RecentBooksManager::getInstance().getRecentFiles();
 
     if (recentFiles.isEmpty()) {
-        QLabel* noFilesLabel = new QLabel(tr("No recent projects yet."), m_filesListWidget);
+        QLabel* noFilesLabel = new QLabel(tr("No recent books."), m_filesListWidget);
         noFilesLabel->setObjectName("noItemsLabel");
         noFilesLabel->setWordWrap(true);
         QFont font = noFilesLabel->font();
@@ -899,11 +968,10 @@ void DashboardPanel::applyThemeColors()
     }
 
     // Refresh book icons in file cards - uses dashboardPrimary/dashboardSecondary colors
-    // Icons are selected based on genre property stored on each label
+    // Each label keeps the icon of its book's type
     QList<QLabel*> bookIcons = m_filesListWidget->findChildren<QLabel*>("cardBookIcon");
     for (auto* iconLabel : bookIcons) {
-        QString genre = iconLabel->property("genre").toString();
-        QString iconActionId = core::ArtProvider::getInstance().getGenreIconId(genre);
+        const QString iconActionId = iconLabel->property("iconId").toString();
         QIcon bookIcon = core::ArtProvider::getInstance().getThemedIcon(
             iconActionId,
             theme.colors.dashboardPrimary,
@@ -933,17 +1001,7 @@ void DashboardPanel::onSettingsChanged()
     auto& logger = core::Logger::getInstance();
     logger.debug("DashboardPanel::onSettingsChanged - refreshing content with updated settings");
 
-    // Sync auto-load checkbox with settings (in case changed from Settings dialog)
-    if (m_autoLoadCheckbox) {
-        auto& settings = core::SettingsManager::getInstance();
-        bool autoLoad = settings.get<bool>("startup.autoLoadLastProject");
-        if (m_autoLoadCheckbox->isChecked() != autoLoad) {
-            m_autoLoadCheckbox->blockSignals(true);
-            m_autoLoadCheckbox->setChecked(autoLoad);
-            m_autoLoadCheckbox->blockSignals(false);
-            logger.debug("DashboardPanel: Auto-load checkbox synced to {}", autoLoad);
-        }
-    }
+    // The auto-load checkbox follows its setting by itself (setupUI())
 
     // Update column visibility based on settings (News/Recent Files show/hide)
     updateColumnVisibility();

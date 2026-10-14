@@ -344,7 +344,7 @@ TEST_CASE("Built-in book types: groups hold the kinds their type allows inside t
     loadBuiltIn(registry);
 
     CHECK(kindIds(registry.kindsInside(QStringLiteral("kalahari.novel"), QStringLiteral("part"))) ==
-          "chapter, motto");
+          "prologue, chapter, epilogue, motto");
     CHECK(kindIds(registry.kindsInside(QStringLiteral("kalahari.nonfiction"),
                                        QStringLiteral("part"))) == "chapter, motto");
     CHECK(kindIds(registry.kindsInside(QStringLiteral("kalahari.short_stories"),
@@ -377,11 +377,20 @@ TEST_CASE("Built-in book types: a kind comes from the type or from a package it 
     CHECK(prologue.kind->allows(BookPlace::Main));
     CHECK_FALSE(prologue.kind->allows(BookPlace::Back));
 
+    // A prologue opens the story and an epilogue closes it, in the book or in a part of it
+    CHECK(prologue.kind->position == KindPosition::Start);
+    CHECK(prologue.kind->allowsInside(QStringLiteral("part")));
+    CHECK(chapter.kind->position == KindPosition::Any);
+
     // Stories use the novel too, for its styles
     const KindRef epilogue =
         registry.findKind(QStringLiteral("kalahari.short_stories"), QStringLiteral("epilogue"));
     REQUIRE(epilogue);
     CHECK(epilogue.package->id == QStringLiteral("kalahari.novel"));
+    CHECK(epilogue.kind->position == KindPosition::End);
+    CHECK(epilogue.kind->allowsInside(QStringLiteral("part")));
+    CHECK(registry.findKind(QStringLiteral("kalahari.nonfiction"), QStringLiteral("conclusion"))
+              .kind->position == KindPosition::End);
 
     CHECK_FALSE(registry.findKind(QStringLiteral("kalahari.novel"), QStringLiteral("act")));
     CHECK_FALSE(registry.findKind(QStringLiteral("no.such.type"), QStringLiteral("chapter")));
@@ -487,6 +496,15 @@ TEST_CASE("Built-in book types: default titles", "[core][booktypes]") {
     CHECK(kind("kalahari.poetry", "poem")->defaultTitle(pl, 1) == QStringLiteral("Wiersz 1"));
     CHECK(kind("kalahari.short_stories", "story")->defaultTitle(pl, 1) ==
           QStringLiteral("Opowiadanie 1"));
+    // A group of stories: in English not "Section", which names the sections of a book
+    CHECK(kind("kalahari.short_stories", "section")->name.text(pl) == QStringLiteral("Dział"));
+    CHECK(kind("kalahari.short_stories", "section")->name.text(en) == QStringLiteral("Division"));
+    CHECK(kind("kalahari.short_stories", "section")->plural.text(en) ==
+          QStringLiteral("Divisions"));
+    CHECK(kind("kalahari.short_stories", "section")->defaultTitle(pl, 2) ==
+          QStringLiteral("Dział II"));
+    CHECK(kind("kalahari.short_stories", "section")->defaultTitle(en, 2) ==
+          QStringLiteral("Division II"));
     // Roman numerals end at 3999
     CHECK(kind("kalahari.base", "part")->defaultTitle(en, 4000) == QStringLiteral("Part 4000"));
     // Without a title, the name
@@ -818,6 +836,35 @@ TEST_CASE("Book type packages: a template file of the package", "[core][booktype
               .kind->templateFile == QStringLiteral("templates/prologue.kchapter"));
 }
 
+TEST_CASE("Book type packages: a kind at the start or at the end of the main part",
+          "[core][booktypes]") {
+    PackageFolder folder;
+    QJsonObject type = testType();
+    setAt(type, QStringLiteral("kinds.prologue.position"), QStringLiteral("start"));
+    setAt(type, QStringLiteral("kinds.epilogue"), jsonOf(R"({
+        "form": "text", "places": ["main", "part"], "position": "end",
+        "name": { "en": "Epilogue" }, "plural": { "en": "Epilogues" } })"));
+    setAt(type, QStringLiteral("main"),
+          QJsonArray{QStringLiteral("prologue"), QStringLiteral("part"),
+                     QStringLiteral("chapter"), QStringLiteral("epilogue")});
+    folder.writeTestPackages(type);
+    BookTypeRegistry registry;
+    registry.load({folder.path()});
+    INFO(problemsOf(registry));
+    REQUIRE(registry.problems().isEmpty());
+
+    const auto positionOf = [&registry](const char* kindId) {
+        const KindRef ref =
+            registry.findKind(QStringLiteral("test.type"), QString::fromLatin1(kindId));
+        REQUIRE(ref);
+        return ref.kind->position;
+    };
+    CHECK(positionOf("prologue") == KindPosition::Start);
+    CHECK(positionOf("epilogue") == KindPosition::End);
+    CHECK(positionOf("chapter") == KindPosition::Any);
+    CHECK(positionOf("part") == KindPosition::Any);
+}
+
 // =============================================================================
 // Packages with problems
 // =============================================================================
@@ -863,6 +910,27 @@ TEST_CASE("Book type packages: a type with a problem is not loaded", "[core][boo
          "kinds.prologue.form: must be \"text\", \"group\" or \"window\""},
         {"a kind without a plural", set("kinds.prologue.plural", removed),
          "kinds.prologue.plural: is missing"},
+        {"words that are not by language", set("kinds.prologue.words", "prolog"),
+         "kinds.prologue.words: must be forms of the name by language"},
+        {"words in no language",
+         set("kinds.prologue.words", jsonValue(R"({ "Polish": { "singular": "prolog" } })")),
+         "kinds.prologue.words: 'Polish' is not a language code"},
+        {"words of a language that are not forms",
+         set("kinds.prologue.words", jsonValue(R"({ "pl": "prolog" })")),
+         "kinds.prologue.words.pl: must be forms of the name"},
+        {"an unknown gender",
+         set("kinds.prologue.words", jsonValue(R"({ "pl": { "gender": "female" } })")),
+         "kinds.prologue.words.pl.gender: must be \"masculine\", \"feminine\", \"neuter\" or "
+         "\"plural\""},
+        {"an unknown form of the name",
+         set("kinds.prologue.words", jsonValue(R"({ "pl": { "vocative": "prologu" } })")),
+         "kinds.prologue.words.pl: unknown form 'vocative'"},
+        {"an empty form of the name",
+         set("kinds.prologue.words", jsonValue(R"({ "pl": { "genitive": " " } })")),
+         "kinds.prologue.words.pl.genitive: must be a text that is not empty"},
+        {"a form of the name with a brace",
+         set("kinds.prologue.words", jsonValue(R"({ "pl": { "genitive": "{prologu}" } })")),
+         "kinds.prologue.words.pl.genitive: must not have {, } or %"},
         {"a kind without places", set("kinds.prologue.places", list({})),
          "kinds.prologue.places: must list where the kind can be"},
         {"an unknown place", set("kinds.prologue.places", list({"main", "prelude"})),
@@ -900,6 +968,12 @@ TEST_CASE("Book type packages: a type with a problem is not loaded", "[core][boo
                                     "template": "map.kchapter",
                                     "name": { "en": "Map" }, "plural": { "en": "Maps" } })")),
          "kinds.map.template: only a text kind has a template"},
+        {"an unknown position", set("kinds.prologue.position", "middle"),
+         "kinds.prologue.position: must be \"start\" or \"end\""},
+        {"a position outside the main part",
+         set("kinds.motto", jsonValue(R"({ "form": "text", "places": ["front"], "position": "end",
+                                      "name": { "en": "Motto" }, "plural": { "en": "Mottos" } })")),
+         "kinds.motto.position: only a kind of the main part has a position"},
         {"a window of a text kind", set("kinds.prologue.editor", "text"),
          "kinds.prologue.editor: only a window kind has an editor"},
         {"a text kind made by a tool", set("kinds.prologue.generated", true),

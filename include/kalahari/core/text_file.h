@@ -14,6 +14,7 @@ struct TextFileFormat {
     QStringConverter::Encoding encoding = QStringConverter::Utf8;  ///< Encoding of the text
     bool byteOrderMark = false;  ///< The file starts with a byte order mark
     bool crlf = false;           ///< Lines end with CR LF (Windows) instead of LF
+    bool finalLineEnd = false;   ///< The last line ends with a line end too
 
     /// @brief Format of a new text file: UTF-8 without a byte order mark, the system's line ends
     static TextFileFormat newFile();
@@ -31,11 +32,14 @@ struct TextFileContent {
 ///
 /// A byte order mark gives the encoding. Without one the text is UTF-8 when it is valid
 /// UTF-8, otherwise the system's 8-bit encoding (Latin-1 where the system uses UTF-8).
-/// Line ends (CR LF, LF or CR) become '\n'.
+/// Line ends (CR LF, LF or CR) become '\n'. The line end of the last line is not part of the
+/// text: the format keeps it, so that the text has no empty line at its end that the file has not.
 /// @param error Set to the reason when the file cannot be read
 std::optional<TextFileContent> readTextFile(const QString& path, QString* error = nullptr);
 
 /// @brief Write @p text (lines separated by '\n') to a file in @p format, replacing it in one step
+///
+/// The last line gets a line end when the format has one.
 ///
 /// Text that the format's encoding cannot hold is written as UTF-8, and @p format is
 /// updated to say so.

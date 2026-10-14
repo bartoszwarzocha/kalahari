@@ -173,6 +173,42 @@ struct Seen {
 QList<ProjectElement> readElements(const QJsonArray& array, const QString& field, Seen& seen,
                                    QStringList& problems);
 
+/// The id of the element of @p field, unique in the project
+QString readId(Fields& fields, const QString& field, Seen& seen) {
+    const QString id = fields.string("id", true);
+    if (!id.isEmpty()) {
+        const QString first = seen.ids.value(id);
+        if (first.isEmpty()) {
+            seen.ids.insert(id, field);
+        } else {
+            fields.problem("id", QStringLiteral("'%1' is already the id of %2").arg(id, first));
+        }
+    }
+    return id;
+}
+
+/// The file of the element of @p field, inside the project folder and of no other element;
+/// empty when it has none
+QString readFile(Fields& fields, const QString& field, Seen& seen, bool required) {
+    const QJsonValue value = fields.take("file");
+    if (value.isUndefined() && !required) {
+        return {};
+    }
+    if (!value.isString() || !isPathInside(value.toString())) {
+        fields.problem("file", QStringLiteral("must be a path inside the project folder, "
+                                              "e.g. \"book/chapter_001.kchapter\""));
+        return {};
+    }
+    const QString file = value.toString();
+    const QString first = seen.files.value(file);
+    if (first.isEmpty()) {
+        seen.files.insert(file, field);
+    } else {
+        fields.problem("file", QStringLiteral("'%1' is already the file of %2").arg(file, first));
+    }
+    return file;
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -182,16 +218,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     }
     Fields fields(value.toObject(), field, problems);
 
-    element.id = fields.string("id", true);
-    if (!element.id.isEmpty()) {
-        const QString first = seen.ids.value(element.id);
-        if (first.isEmpty()) {
-            seen.ids.insert(element.id, field);
-        } else {
-            fields.problem("id", QStringLiteral("'%1' is already the id of %2")
-                                     .arg(element.id, first));
-        }
-    }
+    element.id = readId(fields, field, seen);
 
     const QJsonValue kind = fields.take("kind");
     if (const std::optional<KindReference> reference = readKindReference(kind)) {
@@ -201,29 +228,28 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     }
 
     element.title = fields.string("title");
-
-    const QJsonValue file = fields.take("file");
-    if (!file.isUndefined()) {
-        if (!file.isString() || !isPathInside(file.toString())) {
-            fields.problem("file", QStringLiteral("must be a path inside the project folder, "
-                                                  "e.g. \"book/chapter_001.kchapter\""));
-        } else {
-            element.file = file.toString();
-            const QString first = seen.files.value(element.file);
-            if (first.isEmpty()) {
-                seen.files.insert(element.file, field);
-            } else {
-                fields.problem("file", QStringLiteral("'%1' is already the file of %2")
-                                           .arg(element.file, first));
-            }
-        }
-    }
-
+    element.file = readFile(fields, field, seen, false);
     element.status = fields.string("status");
     element.elements = readElements(fields.array("elements"), fields.path("elements"), seen,
                                     problems);
     element.extra = fields.rest();
     return element;
+}
+
+/// A file of a book outside its text: an id, a title and a file, without a kind and a status
+ProjectElement readBookFile(const QJsonValue& value, const QString& field, Seen& seen,
+                            QStringList& problems) {
+    ProjectElement file;
+    if (!value.isObject()) {
+        addProblem(problems, field, QStringLiteral("must be an object"));
+        return file;
+    }
+    Fields fields(value.toObject(), field, problems);
+    file.id = readId(fields, field, seen);
+    file.title = fields.string("title");
+    file.file = readFile(fields, field, seen, true);
+    file.extra = fields.rest();
+    return file;
 }
 
 QList<ProjectElement> readElements(const QJsonArray& array, const QString& field, Seen& seen,
@@ -253,6 +279,24 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
     book.name = fields.string("name");
     book.partsLayer = fields.boolean("partsLayer", true);
 
+    // The id of a set of names, or the writer's own names of the three parts
+    const QJsonValue sections = fields.take("sections");
+    if (sections.isString() &&
+        sections.toString() != QLatin1String(ProjectBook::CUSTOM_SECTIONS)) {
+        book.sectionSet = sections.toString();
+    } else if (sections.isObject()) {
+        Fields names(sections.toObject(), fields.path("sections"), problems);
+        book.sectionSet = QString::fromLatin1(ProjectBook::CUSTOM_SECTIONS);
+        for (const BookPart& part : BOOK_PARTS) {
+            book.sectionNames << names.string(part.key, true);
+        }
+        book.sectionNamesExtra = names.rest();
+    } else if (!sections.isUndefined()) {
+        fields.problem("sections", QStringLiteral("must be the id of a set of names, e.g. "
+                                                  "\"matter\", or the names of the front, "
+                                                  "main and back part"));
+    }
+
     const QJsonValue folder = fields.take("folder");
     if (!folder.isString() || !isPathInside(folder.toString())) {
         fields.problem("folder", QStringLiteral("must be a folder inside the project folder, "
@@ -264,6 +308,12 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
     for (const BookPart& part : BOOK_PARTS) {
         book.*part.elements = readElements(fields.array(part.key), fields.path(part.key), seen,
                                            problems);
+    }
+    const QJsonArray files = fields.array("files");
+    for (qsizetype i = 0; i < files.size(); ++i) {
+        book.files << readBookFile(files.at(i),
+                                   QStringLiteral("%1[%2]").arg(fields.path("files")).arg(i),
+                                   seen, problems);
     }
     book.extra = fields.rest();
     return book;
@@ -360,9 +410,32 @@ QJsonObject bookToJson(const ProjectBook& book) {
     json.insert(QLatin1String("genre"), book.genre);
     setOrRemove(json, "name", book.name);
     json.insert(QLatin1String("partsLayer"), book.partsLayer);
+    if (book.sectionSet == QLatin1String(ProjectBook::CUSTOM_SECTIONS)) {
+        QJsonObject names = book.sectionNamesExtra;
+        for (qsizetype i = 0; i < std::ssize(BOOK_PARTS); ++i) {
+            names.insert(QLatin1String(BOOK_PARTS[i].key), book.sectionNames.value(i));
+        }
+        json.insert(QLatin1String("sections"), names);
+    } else {
+        setOrRemove(json, "sections", book.sectionSet);
+    }
     json.insert(QLatin1String("folder"), book.folder);
     for (const BookPart& part : BOOK_PARTS) {
         json.insert(QLatin1String(part.key), elementsToJson(book.*part.elements));
+    }
+    // The files outside the text, which have no kind and no status
+    QJsonArray files;
+    for (const ProjectElement& file : book.files) {
+        QJsonObject fileJson = file.extra;
+        fileJson.insert(QLatin1String("id"), file.id);
+        fileJson.insert(QLatin1String("title"), file.title);
+        fileJson.insert(QLatin1String("file"), file.file);
+        files.append(fileJson);
+    }
+    if (files.isEmpty()) {
+        json.remove(QLatin1String("files"));
+    } else {
+        json.insert(QLatin1String("files"), files);
     }
     return json;
 }
@@ -400,7 +473,8 @@ List* findInList(List& list, const QString& id, qsizetype& index) {
     return nullptr;
 }
 
-/// The list in @p project that holds element @p id; @p index gets its index
+/// The list in @p project that holds element @p id, or the files of a book outside its text
+/// that hold it; @p index gets its index
 template <typename Project>
 ElementList<Project>* findList(Project& project, const QString& id, qsizetype& index) {
     for (auto& book : project.books) {
@@ -408,6 +482,9 @@ ElementList<Project>* findList(Project& project, const QString& id, qsizetype& i
             if (ElementList<Project>* list = findInList(book.*part.elements, id, index)) {
                 return list;
             }
+        }
+        if (ElementList<Project>* files = findInList(book.files, id, index)) {
+            return files;
         }
     }
     return findInList(project.workshop.elements, id, index);
@@ -421,15 +498,52 @@ void forEachElement(const QList<ProjectElement>& elements,
     }
 }
 
-/// Every element of the books and the Workshop of @p project
+/// Every element of the books and the Workshop of @p project, and every file of its books
+/// outside their text
 void forEachElement(const BookProject& project,
                     const std::function<void(const ProjectElement&)>& visit) {
     for (const ProjectBook& book : project.books) {
         for (const BookPart& part : BOOK_PARTS) {
             forEachElement(book.*part.elements, visit);
         }
+        forEachElement(book.files, visit);
     }
     forEachElement(project.workshop.elements, visit);
+}
+
+/// The place of element @p id in @p list of group @p groupId, at any depth: @p place gets its
+/// group and index
+bool findPlaceIn(const QList<ProjectElement>& list, const QString& id, const QString& groupId,
+                 ElementPlace& place) {
+    for (qsizetype i = 0; i < list.size(); ++i) {
+        const ProjectElement& element = list.at(i);
+        if (element.id == id) {
+            place.groupId = groupId;
+            place.index = i;
+            return true;
+        }
+        if (findPlaceIn(element.elements, id, element.id, place)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// Append the elements of @p elements and of their groups, without the groups, in reading order
+void appendContent(const BookTypeRegistry& registry, const QList<ProjectElement>& elements,
+                   QList<const ProjectElement*>& content) {
+    for (const ProjectElement& element : elements) {
+        if (BookProject::formOf(registry, element) != ElementForm::Group) {
+            content.append(&element);
+        }
+        appendContent(registry, element.elements, content);
+    }
+}
+
+/// Where the elements of the kind of @p element stand; Any for a kind @p registry does not have
+KindPosition positionOf(const BookTypeRegistry& registry, const ProjectElement& element) {
+    const KindRef kind = BookProject::kindOf(registry, element);
+    return kind ? kind.kind->position : KindPosition::Any;
 }
 
 void appendInOrder(const QList<ProjectElement>& elements, QList<const ProjectElement*>& order) {
@@ -437,6 +551,40 @@ void appendInOrder(const QList<ProjectElement>& elements, QList<const ProjectEle
         order.append(&element);
         appendInOrder(element.elements, order);
     }
+}
+
+/// Index of the book of @p project that has element @p id; -1 for an element of the Workshop
+/// or for none
+qsizetype bookOf(const BookProject& project, const QString& id) {
+    for (qsizetype book = 0; book < project.books.size(); ++book) {
+        for (const BookPart& part : BOOK_PARTS) {
+            qsizetype index = -1;
+            if (findInList(project.books.at(book).*part.elements, id, index)) {
+                return book;
+            }
+        }
+    }
+    return -1;
+}
+
+/// The list of @p place in @p project: of a section of book @p book, of the Workshop or of a
+/// group; nullptr when the project has no such book or group
+QList<ProjectElement>* listAt(BookProject& project, const ElementPlace& place, qsizetype book) {
+    if (!place.groupId.isEmpty()) {
+        ProjectElement* group = project.findElement(place.groupId);
+        return group ? &group->elements : nullptr;
+    }
+    if (place.place != BookPlace::Workshop && (book < 0 || book >= project.books.size())) {
+        return nullptr;
+    }
+    return &project.elementsIn(place.place, book);
+}
+
+/// Whether an element of @p kind can be inside @p element: a group of a kind that can have it
+bool canHold(const BookTypeRegistry& registry, const ProjectElement& element,
+             const KindRef& kind) {
+    return BookProject::formOf(registry, element) == ElementForm::Group &&
+           kind.kind->allowsInside(element.kind.kindId);
 }
 
 // -----------------------------------------------------------------------------
@@ -449,6 +597,90 @@ bool containsKind(const QList<KindRef>& kinds, const KindRef& ref) {
 }
 
 }  // namespace
+
+// =============================================================================
+// Names of the parts of a book
+// =============================================================================
+
+QString SectionNameSet::name(BookPlace place, const QString& language) const {
+    switch (place) {
+    case BookPlace::Front:
+        return front.text(language);
+    case BookPlace::Main:
+        return main.text(language);
+    case BookPlace::Back:
+        return back.text(language);
+    case BookPlace::Workshop:
+        break;
+    }
+    return {};
+}
+
+const QList<SectionNameSet>& ProjectBook::sectionNameSets() {
+    // Names in the language of the book, like the titles of new elements; a language without
+    // names of its own gets the English ones
+    static const QList<SectionNameSet> sets = [] {
+        const auto text = [](const char* polish, const char* english) {
+            LocalizedText localized;
+            localized.values.insert(QStringLiteral("pl"), QString::fromUtf8(polish));
+            localized.values.insert(QStringLiteral("en"), QString::fromUtf8(english));
+            return localized;
+        };
+        return QList<SectionNameSet>{
+            {QStringLiteral("sections"), text("Sekcja początkowa", "Front Section"),
+             text("Sekcja główna", "Main Section"), text("Sekcja końcowa", "Back Section")},
+            {QStringLiteral("matter"), text("Strony początkowe", "Front Matter"),
+             text("Tekst główny", "Body"), text("Strony końcowe", "Back Matter")},
+            {QStringLiteral("fragments"), text("Fragment początkowy", "Opening Fragment"),
+             text("Fragment główny", "Main Fragment"),
+             text("Fragment końcowy", "Closing Fragment")},
+            {QStringLiteral("arc"), text("Otwarcie", "Opening"),
+             text("Rozwinięcie", "Development"), text("Zamknięcie", "Closing")},
+        };
+    }();
+    return sets;
+}
+
+const SectionNameSet& ProjectBook::sectionNameSet() const {
+    const QList<SectionNameSet>& sets = sectionNameSets();
+    const auto found = std::find_if(sets.cbegin(), sets.cend(),
+                                    [this](const SectionNameSet& set) {
+                                        return set.id == sectionSet;
+                                    });
+    return found != sets.cend() ? *found : sets.first();
+}
+
+QString ProjectBook::sectionName(BookPlace place) const {
+    if (sectionSet == QLatin1String(CUSTOM_SECTIONS) && place != BookPlace::Workshop) {
+        return sectionNames.value(std::distance(std::cbegin(BOOK_PARTS), &bookPart(place)));
+    }
+    return sectionNameSet().name(place, language);
+}
+
+BookSections ProjectBook::sections() const {
+    BookSections sections;
+    sections.shown = partsLayer;
+    sections.set = sectionSet;
+    if (sectionSet == QLatin1String(CUSTOM_SECTIONS)) {
+        sections.names = sectionNames;
+    }
+    return sections;
+}
+
+void ProjectBook::setSections(const BookSections& sections) {
+    partsLayer = sections.shown;
+    sectionSet = sections.set;
+    sectionNames.clear();
+    if (sectionSet != QLatin1String(CUSTOM_SECTIONS)) {
+        sectionNamesExtra = QJsonObject();  // the fields of names the book no longer has
+        return;
+    }
+    const SectionNameSet& first = sectionNameSets().first();
+    for (qsizetype i = 0; i < std::ssize(BOOK_PARTS); ++i) {
+        const QString given = sections.names.value(i).trimmed();
+        sectionNames << (given.isEmpty() ? first.name(BOOK_PARTS[i].place, language) : given);
+    }
+}
 
 bool ProjectElement::operator==(const ProjectElement& other) const {
     return id == other.id && kind == other.kind && title == other.title &&
@@ -496,6 +728,16 @@ const ProjectElement* BookProject::findElement(const QString& elementId) const {
     return list ? &list->at(index) : nullptr;
 }
 
+bool BookProject::isBookFile(const QString& elementId) const {
+    return !elementId.isEmpty() &&
+           std::any_of(books.cbegin(), books.cend(), [&elementId](const ProjectBook& book) {
+               return std::any_of(book.files.cbegin(), book.files.cend(),
+                                  [&elementId](const ProjectElement& file) {
+                                      return file.id == elementId;
+                                  });
+           });
+}
+
 QList<ProjectElement>* BookProject::listOf(const QString& elementId, qsizetype* index) {
     qsizetype found = -1;
     QList<ProjectElement>* list = findList(*this, elementId, found);
@@ -503,6 +745,33 @@ QList<ProjectElement>* BookProject::listOf(const QString& elementId, qsizetype* 
         *index = found;
     }
     return list;
+}
+
+const QList<ProjectElement>* BookProject::listOf(const QString& elementId,
+                                                 qsizetype* index) const {
+    qsizetype found = -1;
+    const QList<ProjectElement>* list = findList(*this, elementId, found);
+    if (list && index) {
+        *index = found;
+    }
+    return list;
+}
+
+std::optional<ElementPlace> BookProject::placeOf(const QString& elementId) const {
+    ElementPlace found;
+    for (const ProjectBook& book : books) {
+        for (const BookPart& part : BOOK_PARTS) {
+            found.place = part.place;
+            if (findPlaceIn(book.*part.elements, elementId, QString(), found)) {
+                return found;
+            }
+        }
+    }
+    found.place = BookPlace::Workshop;
+    if (findPlaceIn(workshop.elements, elementId, QString(), found)) {
+        return found;
+    }
+    return std::nullopt;
 }
 
 std::optional<ProjectElement> BookProject::takeElement(const QString& elementId) {
@@ -521,6 +790,76 @@ bool BookProject::moveElement(const QString& elementId, qsizetype index) {
         return false;
     }
     list->move(from, index);
+    return true;
+}
+
+QList<ElementPlace> BookProject::movePlacesOf(const BookTypeRegistry& registry,
+                                              const QString& elementId) const {
+    QList<ElementPlace> places;
+    const std::optional<ElementPlace> from = placeOf(elementId);
+    if (!from) {
+        return places;
+    }
+
+    // The project without the element: its places are where the element goes once it has left
+    // its own
+    BookProject without = *this;
+    const std::optional<ProjectElement> element = without.takeElement(elementId);
+    const KindRef kind = element ? kindOf(registry, *element) : KindRef{};
+    const qsizetype book = bookOf(*this, elementId);
+    if (!kind) {
+        // A kind the registry does not have: the places of its list
+        const QList<ProjectElement>* list = listAt(without, *from, book);
+        for (qsizetype i = 0; list && i <= list->size(); ++i) {
+            places.append({from->place, from->groupId, i});
+        }
+        return places;
+    }
+
+    // In reading order: the place before an element, then the places inside it
+    const std::function<void(BookPlace, const QList<ProjectElement>&, const QString&, bool)>
+        addPlaces = [&](BookPlace part, const QList<ProjectElement>& elements,
+                        const QString& groupId, bool here) {
+            for (qsizetype i = 0; i <= elements.size(); ++i) {
+                if (here) {
+                    places.append({part, groupId, i});
+                }
+                if (i < elements.size() && canHold(registry, elements.at(i), kind)) {
+                    addPlaces(part, elements.at(i).elements, elements.at(i).id, true);
+                }
+            }
+        };
+    if (from->place == BookPlace::Workshop) {
+        addPlaces(BookPlace::Workshop, without.workshop.elements, QString(),
+                  kind.kind->allows(BookPlace::Workshop));
+        return places;
+    }
+    for (const BookPart& part : BOOK_PARTS) {
+        addPlaces(part.place, without.elementsIn(part.place, book), QString(),
+                  kind.kind->allows(part.place));
+    }
+    return places;
+}
+
+bool BookProject::moveElementTo(const BookTypeRegistry& registry, const QString& elementId,
+                                const ElementPlace& to) {
+    if (!movePlacesOf(registry, elementId).contains(to)) {
+        return false;
+    }
+
+    // The project as it was comes back if the element finds no list there
+    const BookProject previous = *this;
+    const qsizetype book = bookOf(*this, elementId);
+    std::optional<ProjectElement> element = takeElement(elementId);
+    if (!element) {
+        return false;
+    }
+    QList<ProjectElement>* list = listAt(*this, to, book);
+    if (!list || to.index > list->size()) {
+        *this = previous;
+        return false;
+    }
+    list->insert(to.index, std::move(*element));
     return true;
 }
 
@@ -572,6 +911,65 @@ QList<KindRef> BookProject::kindsInside(const BookTypeRegistry& registry,
 
 KindRef BookProject::kindOf(const BookTypeRegistry& registry, const ProjectElement& element) {
     return registry.findKind(element.kind.packageId, element.kind.kindId);
+}
+
+ElementForm BookProject::formOf(const BookTypeRegistry& registry, const ProjectElement& element) {
+    if (const KindRef kind = kindOf(registry, element)) {
+        return kind.kind->form;
+    }
+    // A kind of a package that is not installed: its file tells
+    if (element.file.isEmpty()) {
+        return ElementForm::Group;
+    }
+    return element.file.endsWith(QStringLiteral(".kchapter"), Qt::CaseInsensitive)
+               ? ElementForm::Text
+               : ElementForm::Window;
+}
+
+qsizetype BookProject::newIndexIn(const BookTypeRegistry& registry,
+                                  const QList<ProjectElement>& elements, const KindRef& kind) {
+    const KindPosition position = kind ? kind.kind->position : KindPosition::Any;
+    if (position == KindPosition::Start) {
+        return 0;
+    }
+    qsizetype index = elements.size();
+    if (position == KindPosition::End) {
+        return index;
+    }
+    while (index > 0 && positionOf(registry, elements.at(index - 1)) == KindPosition::End) {
+        --index;
+    }
+    return index;
+}
+
+QList<const ProjectElement*> BookProject::contentOf(const BookTypeRegistry& registry,
+                                                    const QList<ProjectElement>& elements) {
+    QList<const ProjectElement*> content;
+    appendContent(registry, elements, content);
+    return content;
+}
+
+QList<const ProjectElement*> BookProject::openingElementsOf(const BookTypeRegistry& registry,
+                                                            const QList<ProjectElement>& elements) {
+    QList<const ProjectElement*> opening = contentOf(registry, elements);
+    const auto first = std::find_if(opening.cbegin(), opening.cend(),
+                                    [&registry](const ProjectElement* element) {
+                                        return positionOf(registry, *element) !=
+                                               KindPosition::Start;
+                                    });
+    opening.erase(first, opening.cend());
+    return opening;
+}
+
+QList<const ProjectElement*> BookProject::closingElementsOf(const BookTypeRegistry& registry,
+                                                            const QList<ProjectElement>& elements) {
+    QList<const ProjectElement*> closing = contentOf(registry, elements);
+    qsizetype start = closing.size();
+    while (start > 0 && positionOf(registry, *closing.at(start - 1)) == KindPosition::End) {
+        --start;
+    }
+    closing.remove(0, start);
+    return closing;
 }
 
 QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const {
@@ -630,6 +1028,35 @@ QJsonObject BookProject::toJson() const {
     json.insert(QLatin1String("books"), bookList);
     json.insert(QLatin1String("workshop"), workshopToJson(workshop));
     return json;
+}
+
+bool BookProject::isNewerFormat(const QJsonObject& json) {
+    const QJsonValue format = json.value(QLatin1String("format"));
+    return isWholeNumber(format) && format.toDouble() > FORMAT;
+}
+
+bool BookProject::isNewerFormat(const QByteArray& data) {
+    const QJsonDocument document = QJsonDocument::fromJson(data);
+    return document.isObject() && isNewerFormat(document.object());
+}
+
+bool BookProject::isNewerFormatFile(const QString& path) {
+    QFile file(path);
+    return file.open(QIODevice::ReadOnly) && isNewerFormat(file.readAll());
+}
+
+bool BookProject::isOlderFormat(const QJsonObject& json) {
+    const QJsonValue format = json.value(QLatin1String("format"));
+    return format.isUndefined() || (isWholeNumber(format) && format.toDouble() < FORMAT);
+}
+
+bool BookProject::isOlderFormatFile(const QString& path) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+    const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
+    return document.isObject() && isOlderFormat(document.object());
 }
 
 std::optional<BookProject> BookProject::fromJson(const QJsonObject& json,
@@ -736,17 +1163,22 @@ std::optional<BookProject> BookProject::load(const QString& path, QStringList& p
         addProblem(problems, field, QStringLiteral("cannot be read"));
         return std::nullopt;
     }
+    return read(file.readAll(), field, problems);
+}
+
+std::optional<BookProject> BookProject::read(const QByteArray& data, const QString& name,
+                                             QStringList& problems) {
     QJsonParseError error{};
-    const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
+    const QJsonDocument document = QJsonDocument::fromJson(data, &error);
     if (error.error != QJsonParseError::NoError) {
-        addProblem(problems, field,
+        addProblem(problems, name,
                    QStringLiteral("not valid JSON: %1 at character %2")
                        .arg(error.errorString())
                        .arg(error.offset));
         return std::nullopt;
     }
     if (!document.isObject()) {
-        addProblem(problems, field, QStringLiteral("must be a JSON object"));
+        addProblem(problems, name, QStringLiteral("must be a JSON object"));
         return std::nullopt;
     }
     return fromJson(document.object(), problems);

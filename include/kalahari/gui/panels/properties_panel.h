@@ -11,15 +11,19 @@
 
 #pragma once
 
+#include "kalahari/core/book_project.h"
+
 #include <QWidget>
 #include <QString>
 
+class QDateTime;
 class QStackedWidget;
 class QLabel;
 class QLineEdit;
 class QComboBox;
 class QTextEdit;
 class QFormLayout;
+class QGroupBox;
 class QTimer;
 
 namespace kalahari::editor {
@@ -31,12 +35,14 @@ namespace kalahari {
 namespace gui {
 
 class EditorPanel;
+class SectionNamesEdit;
+class SectionsComboBox;
 
 /// @brief Contextual properties panel with three views
 ///
 /// Shows different content based on current context:
 /// - NoProject: Placeholder message when no project is open
-/// - Project: Project metadata (title, author, language, genre, statistics)
+/// - Project: Project metadata (title, author, language, genre, sections, statistics)
 /// - Chapter: Chapter properties (title, word count, status, notes)
 /// - Editor: Text selection statistics (word/char count, paragraph style)
 ///
@@ -63,12 +69,19 @@ public:
     /// @brief Destructor
     ~PropertiesPanel() override = default;
 
+    /// @brief The page the panel shows
+    Page currentPage() const;
+
 public slots:
     /// @brief Show project properties view
     ///
     /// Switches to project properties page and populates fields from
     /// the current project in ProjectManager.
     void showProjectProperties();
+
+    /// @brief Show the book's properties with the keys in the first field, the title (Book >
+    /// Book Properties...)
+    void editProjectProperties();
 
     /// @brief Show chapter properties view
     /// @param elementId Element ID of the chapter to display
@@ -100,7 +113,8 @@ public slots:
     /// @param editorPanel EditorPanel to track (nullptr to disconnect)
     ///
     /// Connects to BookEditor's selectionChanged signal for real-time
-    /// updates of selection statistics.
+    /// updates of selection statistics. Without an editor (another tab in front, or none),
+    /// the page of the editor gives way to the page of the book, or to the page without one.
     void setActiveEditor(EditorPanel* editorPanel);
 
     /// @brief Set the style resolver for style operations
@@ -114,6 +128,10 @@ public slots:
     ///
     /// Re-reads data from ProjectManager and updates displayed values.
     void refresh();
+
+    /// @brief Show the words ProjectManager counts now on the current page, also of the
+    /// changes that are not saved; the fields the writer edits stay as they are
+    void updateWordCounts();
 
 private slots:
     /// @brief Handle project opened signal
@@ -134,6 +152,12 @@ private slots:
 
     /// @brief Handle project genre changed
     void onProjectGenreChanged();
+
+    /// @brief The writer chose another item of the Sections field
+    void onProjectSectionsChanged();
+
+    /// @brief The writer changed the own names of the sections
+    void onProjectSectionNamesChanged();
 
     /// @brief Handle chapter title changed
     void onChapterTitleChanged();
@@ -161,10 +185,18 @@ protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
 
 signals:
-    /// @brief Emitted when chapter status is changed via combo box
+    /// @brief Emitted when chapter title or status is changed in the panel
     /// @param elementId Element ID of the chapter
     /// @note Used to notify Navigator to refresh the item's display title (status suffix)
     void chapterStatusChanged(const QString& elementId);
+
+    /// @brief The writer chose how the Navigator divides the book: sections @p sections
+    /// @note The Navigator's coordinator saves them, and refreshes the Navigator and the panel
+    void requestSections(const kalahari::core::BookSections& sections);
+
+    /// @brief The title or the language of the book changed in the panel: the Navigator shows
+    /// the title, and the names of the sections in the language of the book
+    void bookChanged();
 
     /// @brief Emitted when the book's language is changed in the panel
     /// @param language Its code (pl, en...)
@@ -225,10 +257,19 @@ private:
     /// @brief Update project statistics
     void updateProjectStatistics();
 
+    /// @brief Fill the Sections field and the own names of the sections of book @p book
+    void populateBookSections(const core::ProjectBook& book);
+
+    /// @brief Show the row of own names when the Sections field says own names
+    void showSectionNamesRow();
+
     /// @brief Format date for display
-    /// @param timePoint Chrono time point
-    /// @return Formatted date string
-    QString formatDate(const std::chrono::system_clock::time_point& timePoint) const;
+    /// @param dateTime Date and time; invalid when unknown
+    /// @return Formatted date string, in local time
+    QString formatDate(const QDateTime& dateTime) const;
+
+    /// @brief Select @p status in the chapter's status combo; "draft" when it is not there
+    void selectChapterStatus(const QString& status);
 
     // Main widget
     QStackedWidget* m_stackedWidget;
@@ -241,6 +282,10 @@ private:
     QLineEdit* m_projectAuthorEdit;
     QComboBox* m_projectLanguageCombo;
     QLineEdit* m_projectGenreEdit;
+    QFormLayout* m_projectInfoLayout;          ///< Rows of the book's information
+    SectionsComboBox* m_projectSectionsCombo;  ///< The sections of the book, or none
+    SectionNamesEdit* m_projectSectionNames;   ///< Own names of the sections
+    QLabel* m_projectChaptersTitle;  ///< "Total Chapters:", "Total Stories:": the main texts
     QLabel* m_projectChaptersLabel;
     QLabel* m_projectWordsLabel;
     QLabel* m_projectCreatedLabel;
@@ -249,14 +294,20 @@ private:
     QLabel* m_projectRevisionCountLabel;
     QLabel* m_projectFinalCountLabel;
 
-    // Chapter Page widgets
+    // Chapter Page widgets: a text element of any kind, or a file of the book outside its
+    // text, which has only its title and its words
+    QGroupBox* m_chapterInfoGroup;  ///< "Chapter Information", "Story Information"
+    QFormLayout* m_chapterInfoLayout;  ///< Rows of the element's information
     QLineEdit* m_chapterTitleEdit;
     QLabel* m_chapterWordCountLabel;
     QComboBox* m_chapterStatusCombo;
+    QGroupBox* m_chapterNotesGroup;
     QTextEdit* m_chapterNotesEdit;
 
     // Section Page widgets
     QLabel* m_sectionTitleLabel;
+    QLabel* m_sectionChapterCountTitle;  ///< "Chapters:", "Stories:", or "Elements:" outside
+                                         ///< the main one
     QLabel* m_sectionChapterCountLabel;
     QLabel* m_sectionWordCountLabel;
     QLabel* m_sectionDraftCountLabel;
@@ -265,6 +316,7 @@ private:
 
     // Part Page widgets
     QLabel* m_partTitleLabel;
+    QLabel* m_partChapterCountTitle;  ///< "Chapters:", "Stories:": the main texts of the book
     QLabel* m_partChapterCountLabel;
     QLabel* m_partWordCountLabel;
     QLabel* m_partDraftCountLabel;

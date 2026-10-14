@@ -11,6 +11,10 @@
 #include <atomic>
 #include <memory>
 
+namespace kalahari::core {
+struct KindWords;
+}
+
 namespace kalahari::editor {
 class BookEditor;
 class StatisticsCollector;
@@ -54,11 +58,14 @@ public:
     /// @return False when the KML is damaged, so only the text before the damaged place is shown
     bool setContent(const QString& content);
 
-    /// @brief Tell the user that a chapter's KML is damaged: only its text before the damaged
-    /// place is shown, and saving the chapter keeps only that text
-    /// @param parent Parent of the message box
-    /// @param chapterName Name of the chapter, as the user knows it
-    static void warnDamagedChapter(QWidget* parent, const QString& chapterName);
+    /// @brief Tell the user that the KML of an element of the book or of a file is damaged: only
+    /// its text before the damaged place is shown, and saving it keeps only that text
+    /// @param parent Parent of the message
+    /// @param name Name of the element or of the file, as the user knows it
+    /// @param kind The kind of the element in the program's language ("The story ... is
+    ///        damaged"); nullptr: a file outside the book
+    static void warnDamagedChapter(QWidget* parent, const QString& name,
+                                   const core::KindWords* kind = nullptr);
 
     /// @brief Get editor content (HTML mode)
     /// @return Current editor content as HTML

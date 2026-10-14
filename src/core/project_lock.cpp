@@ -7,6 +7,7 @@
 #include "kalahari/core/logger.h"
 
 #include <QFile>
+#include <QFileInfo>
 #include <QTextStream>
 #include <QCoreApplication>
 #include <QDir>
@@ -17,6 +18,9 @@
 #else
 #include <signal.h>
 #include <unistd.h>
+#endif
+#ifdef Q_OS_MACOS
+#include <libproc.h>
 #endif
 
 namespace kalahari {
@@ -119,8 +123,25 @@ bool ProjectLock::isStale(const QString& lockFilePath)
     return !isProcessAlive(pid);
 }
 
+bool ProjectLock::isHeldByOther(const QString& projectPath)
+{
+    const QString path = lockFilePath(projectPath);
+    if (!QFile::exists(path)) {
+        return false;
+    }
+    const qint64 pid = readPidFromLock(path);
+    return pid != 0 && pid != QCoreApplication::applicationPid() && isProcessAlive(pid);
+}
+
 bool ProjectLock::isProcessAlive(qint64 pid)
 {
+    // The PID of a program that has ended (e.g. after a crash) can be another program's now:
+    // only a Kalahari program, or its tests, holds a lock. A running program whose name
+    // cannot be read counts as one.
+    const auto isKalahari = [](const QString& program) {
+        return QFileInfo(program).fileName().startsWith(QLatin1String("kalahari"),
+                                                        Qt::CaseInsensitive);
+    };
 #ifdef Q_OS_WIN
     HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, static_cast<DWORD>(pid));
     if (process == nullptr) {
@@ -129,11 +150,32 @@ bool ProjectLock::isProcessAlive(qint64 pid)
 
     DWORD exitCode;
     bool alive = GetExitCodeProcess(process, &exitCode) && (exitCode == STILL_ACTIVE);
+    if (alive) {
+        wchar_t program[MAX_PATH] = {};
+        DWORD size = MAX_PATH;
+        if (QueryFullProcessImageNameW(process, 0, program, &size)) {
+            alive = isKalahari(QString::fromWCharArray(program, static_cast<qsizetype>(size)));
+        }
+    }
     CloseHandle(process);
     return alive;
 #else
     // POSIX: send signal 0 to check if process exists
-    return kill(static_cast<pid_t>(pid), 0) == 0;
+    if (kill(static_cast<pid_t>(pid), 0) != 0) {
+        return false;
+    }
+#ifdef Q_OS_MACOS
+    char program[256] = {};
+    if (proc_name(static_cast<int>(pid), program, sizeof(program)) > 0) {
+        return isKalahari(QString::fromLocal8Bit(program));
+    }
+#else
+    QFile name(QStringLiteral("/proc/%1/comm").arg(pid));
+    if (name.open(QIODevice::ReadOnly)) {
+        return isKalahari(QString::fromLocal8Bit(name.readAll().trimmed()));
+    }
+#endif
+    return true;
 #endif
 }
 

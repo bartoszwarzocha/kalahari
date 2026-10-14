@@ -1,0 +1,6 @@
+{
+  "kalahari": { "type": "chapter", "version": "1.0" },
+  "content": {
+    "kml": "<kml><p align=\"center\"><b size=\"24\">{title}</b></p><p align=\"center\"></p><p align=\"center\">{author}</p></kml>"
+  }
+}

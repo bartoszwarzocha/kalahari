@@ -43,20 +43,33 @@ QPalette Theme::Palette::toQPalette() const {
     auto setColorForAllGroups = [&pal](QPalette::ColorRole role, const QColor& color) {
         pal.setColor(QPalette::Active, role, color);
         pal.setColor(QPalette::Inactive, role, color);
-        // Disabled state: reduce saturation/lightness
+        // Disabled state: half transparent over the background
         QColor disabledColor = color;
         disabledColor.setAlpha(128);
         pal.setColor(QPalette::Disabled, role, disabledColor);
     };
 
-    setColorForAllGroups(QPalette::Window, window);
+    // A disabled background is opaque, halfway between its color and the window. Half
+    // transparent, it would show what is under it, and a list paints its background over
+    // nothing: a disabled list came out dark grey.
+    auto setBackgroundForAllGroups = [&pal, this](QPalette::ColorRole role,
+                                                  const QColor& color) {
+        pal.setColor(QPalette::Active, role, color);
+        pal.setColor(QPalette::Inactive, role, color);
+        pal.setColor(QPalette::Disabled, role,
+                     QColor((color.red() + window.red()) / 2,
+                            (color.green() + window.green()) / 2,
+                            (color.blue() + window.blue()) / 2));
+    };
+
+    setBackgroundForAllGroups(QPalette::Window, window);
     setColorForAllGroups(QPalette::WindowText, windowText);
-    setColorForAllGroups(QPalette::Base, base);
-    setColorForAllGroups(QPalette::AlternateBase, alternateBase);
+    setBackgroundForAllGroups(QPalette::Base, base);
+    setBackgroundForAllGroups(QPalette::AlternateBase, alternateBase);
     setColorForAllGroups(QPalette::Text, text);
-    setColorForAllGroups(QPalette::Button, button);
+    setBackgroundForAllGroups(QPalette::Button, button);
     setColorForAllGroups(QPalette::ButtonText, buttonText);
-    setColorForAllGroups(QPalette::Highlight, highlight);
+    setBackgroundForAllGroups(QPalette::Highlight, highlight);
     setColorForAllGroups(QPalette::HighlightedText, highlightedText);
     setColorForAllGroups(QPalette::Light, light);
     setColorForAllGroups(QPalette::Midlight, midlight);
@@ -67,7 +80,7 @@ QPalette Theme::Palette::toQPalette() const {
     setColorForAllGroups(QPalette::LinkVisited, linkVisited);
 
     // Additional QPalette roles (OpenSpec #00028)
-    setColorForAllGroups(QPalette::ToolTipBase, toolTipBase);
+    setBackgroundForAllGroups(QPalette::ToolTipBase, toolTipBase);
     setColorForAllGroups(QPalette::ToolTipText, toolTipText);
     setColorForAllGroups(QPalette::PlaceholderText, placeholderText);
     setColorForAllGroups(QPalette::BrightText, brightText);

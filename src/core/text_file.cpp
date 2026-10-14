@@ -83,12 +83,19 @@ std::optional<TextFileContent> readTextFile(const QString& path, QString* error)
     content.format.crlf = content.text.contains(QStringLiteral("\r\n"));
     content.text.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
     content.text.replace(QLatin1Char('\r'), QLatin1Char('\n'));
+    content.format.finalLineEnd = content.text.endsWith(QLatin1Char('\n'));
+    if (content.format.finalLineEnd) {
+        content.text.chop(1);
+    }
     return content;
 }
 
 bool writeTextFile(const QString& path, const QString& text, TextFileFormat& format,
                    QString* error) {
     QString fileText = text;
+    if (format.finalLineEnd) {
+        fileText += QLatin1Char('\n');
+    }
     if (format.crlf) {
         fileText.replace(QLatin1Char('\n'), QStringLiteral("\r\n"));
     }
