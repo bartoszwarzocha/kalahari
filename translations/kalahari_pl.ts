@@ -4141,11 +4141,6 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <translation>Książka starszej wersji</translation>
     </message>
     <message>
-        <source>This book was saved by an older version of Kalahari, whose format this version cannot read yet.</source>
-        <extracomment>In Polish: Tę książkę zapisała starsza wersja programu Kalahari, której formatu ta wersja jeszcze nie odczytuje.</extracomment>
-        <translation>Tę książkę zapisała starsza wersja programu Kalahari, której formatu ta wersja jeszcze nie odczytuje.</translation>
-    </message>
-    <message>
         <source>Book Cannot Be Opened</source>
         <extracomment>In Polish: Nie można otworzyć książki</extracomment>
         <translation>Nie można otworzyć książki</translation>
@@ -4178,6 +4173,55 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>&apos;%1&apos; is the file &quot;%2&quot; of the open book. Choose another name.</source>
         <translation>„%1” to plik „%2” z otwartej książki. Wybierz inną nazwę.</translation>
+    </message>
+    <message>
+        <source>Convert the book to the new format?</source>
+        <extracomment>The question about a book of the first format. In Polish: Przenieść książkę do nowego formatu?</extracomment>
+        <translation>Przenieść książkę do nowego formatu?</translation>
+    </message>
+    <message>
+        <source>The program will convert the title, the author, the parts and the chapters with their texts, notes and statuses. It will delete nothing, and it will leave the old file of the book beside it as a copy.</source>
+        <extracomment>In Polish: Program przeniesie tytuł, autora, części i rozdziały z tekstami, notatkami i statusami. Niczego nie usunie, a stary plik książki zostawi obok jako kopię.</extracomment>
+        <translation>Program przeniesie tytuł, autora, części i rozdziały z tekstami, notatkami i statusami. Niczego nie usunie, a stary plik książki zostawi obok jako kopię.</translation>
+    </message>
+    <message>
+        <source>This book was saved by an older version of Kalahari.</source>
+        <extracomment>In Polish: Tę książkę zapisała starsza wersja programu Kalahari.</extracomment>
+        <translation>Tę książkę zapisała starsza wersja programu Kalahari.</translation>
+    </message>
+    <message>
+        <source>&amp;Convert</source>
+        <extracomment>In Polish: &amp;Przenieś</extracomment>
+        <translation>&amp;Przenieś</translation>
+    </message>
+    <message>
+        <source>Book Not Converted</source>
+        <extracomment>In Polish: Nie przeniesiono książki</extracomment>
+        <translation>Nie przeniesiono książki</translation>
+    </message>
+    <message>
+        <source>This book cannot be converted to the new format, so nothing in it was changed. Show Details gives the reason.</source>
+        <extracomment>In Polish: Nie można przenieść tej książki do nowego formatu, więc nic w niej nie zmieniono. Przyczynę pokazuje przycisk „Pokaż szczegóły”.</extracomment>
+        <translation>Nie można przenieść tej książki do nowego formatu, więc nic w niej nie zmieniono. Przyczynę pokazuje przycisk „Pokaż szczegóły”.</translation>
+    </message>
+    <message>
+        <source>These elements do not fit the new format of a novel, so they are in the group Other Files:
+%1</source>
+        <extracomment>%1: the titles of the elements, one per line. In Polish: Te elementy nie pasują do nowego formatu powieści, więc są w grupie „Inne pliki”: %1</extracomment>
+        <translation>Te elementy nie pasują do nowego formatu powieści, więc są w grupie „Inne pliki”:
+%1</translation>
+    </message>
+    <message>
+        <source>Book in the New Format</source>
+        <extracomment>In Polish: Książka w nowym formacie</extracomment>
+        <translation>Książka w nowym formacie</translation>
+    </message>
+    <message>
+        <source>The book is now in the new format. Its old file stays beside it as a copy:
+%1</source>
+        <extracomment>%1: the path of the copy, on a line of its own. In Polish: Książka jest teraz w nowym formacie. Jej stary plik pozostał obok jako kopia: %1</extracomment>
+        <translation>Książka jest teraz w nowym formacie. Jej stary plik pozostał obok jako kopia:
+%1</translation>
     </message>
 </context>
 <context>

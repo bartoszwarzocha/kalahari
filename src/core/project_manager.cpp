@@ -5,6 +5,7 @@
 #include <kalahari/core/backup_manager.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/old_book_conversion.h>
 #include <kalahari/core/resource_paths.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/standalone_file.h>
@@ -16,6 +17,7 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QSet>
@@ -838,6 +840,84 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
                 book() ? book()->title.toStdString() : std::string());
     emit projectOpened(toQString(m_projectPath));
 
+    return true;
+}
+
+bool ProjectManager::convertOlderBook(const QString& manifestPath, QString* copyPath,
+                                      QStringList* otherFiles, QStringList* problems) const {
+    auto& logger = Logger::getInstance();
+    const QFileInfo manifestInfo(manifestPath);
+    const QString name = manifestInfo.fileName();
+
+    QStringList found;
+    const auto fail = [&logger, &found, problems](const QString& problem) {
+        if (!problem.isEmpty()) {
+            found.append(problem);
+        }
+        for (const QString& line : found) {
+            logger.error("convertOlderBook: {}", line.toStdString());
+        }
+        if (problems) {
+            problems->append(found);
+        }
+        return false;
+    };
+
+    QFile file(manifestPath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return fail(QStringLiteral("%1: cannot be read").arg(name));
+    }
+    const QByteArray data = file.readAll();
+    file.close();
+    const QJsonDocument document = QJsonDocument::fromJson(data);
+    if (!document.isObject() || !BookProject::isOlderFormat(document.object())) {
+        return fail(QStringLiteral("%1: not a book of an older version of Kalahari").arg(name));
+    }
+    const QString projectDir = manifestInfo.absolutePath();
+    if (ProjectLock::isHeldByOther(projectDir)) {
+        const QString lock = QDir::toNativeSeparators(ProjectLock::lockFilePath(projectDir));
+        return fail(QStringLiteral("%1: the book is open in another program that is running (%2)")
+                        .arg(name, lock));
+    }
+
+    OldBookConversion conversion =
+        OldBookConversion::convert(document.object(), projectDir, bookTypes());
+    found.append(conversion.problems);
+    if (!conversion.project) {
+        return fail(QString());
+    }
+
+    // The old file stays beside the new one as it was read; the new one replaces it in one step
+    const QString copy = OldBookConversion::copyPathFor(manifestPath);
+    const QString cannotCopy = QStringLiteral("%1: the copy of the old file cannot be made (%2)")
+                                   .arg(name, QDir::toNativeSeparators(copy));
+    if (!QFile::copy(manifestPath, copy)) {
+        return fail(cannotCopy);
+    }
+    QFile copied(copy);
+    const bool same = copied.open(QIODevice::ReadOnly) && copied.readAll() == data;
+    copied.close();
+    if (!same) {
+        QFile::remove(copy);
+        return fail(cannotCopy);
+    }
+    if (!conversion.project->save(manifestPath)) {
+        QFile::remove(copy);
+        return fail(QStringLiteral("%1: cannot be saved").arg(name));
+    }
+
+    logger.info("Converted the book {} to format {}; the old file is in {}",
+                manifestPath.toStdString(), BookProject::FORMAT, copy.toStdString());
+    if (!conversion.otherFiles.isEmpty()) {
+        logger.info("Elements among the files of the book outside its text: {}",
+                    conversion.otherFiles.join(QStringLiteral(", ")).toStdString());
+    }
+    if (copyPath) {
+        *copyPath = copy;
+    }
+    if (otherFiles) {
+        *otherFiles = conversion.otherFiles;
+    }
     return true;
 }
 

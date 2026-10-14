@@ -461,6 +461,12 @@ void DocumentCoordinator::showOpenError(const QString& path, const QStringList& 
         return;
     }
 
+    // A book of an older version can be converted to the format of this version
+    if (failure == core::OpenFailure::Older) {
+        offerConversion(path);
+        return;
+    }
+
     // Under Show Details: the file, then what is wrong, in the words of the log
     //: The first line of the details of a book that cannot be opened. In Polish: Plik: %1
     const QString details = detailsOf(QStringList{tr("File: %1").arg(nativePath)} + problems);
@@ -517,14 +523,6 @@ void DocumentCoordinator::showOpenError(const QString& path, const QStringList& 
             text = tr("\"%1\" is not a Kalahari book. A book file has the extension .klh.")
                        .arg(file.fileName());
             break;
-        case core::OpenFailure::Older:
-            //: In Polish: Książka starszej wersji
-            title = tr("Book of an Older Version");
-            //: In Polish: Tę książkę zapisała starsza wersja programu Kalahari, której
-            //: formatu ta wersja jeszcze nie odczytuje.
-            text = tr("This book was saved by an older version of Kalahari, whose format this "
-                      "version cannot read yet.");
-            break;
         case core::OpenFailure::Database:
             //: In Polish: Nie można otworzyć książki
             title = tr("Book Cannot Be Opened");
@@ -552,6 +550,72 @@ void DocumentCoordinator::showOpenError(const QString& path, const QStringList& 
             break;
     }
     dialogs::MessageDialog::error(m_mainWindow, title, text, details);
+}
+
+void DocumentCoordinator::offerConversion(const QString& path) {
+    const QString nativePath = QDir::toNativeSeparators(QFileInfo(path).absoluteFilePath());
+    const QString fileLine = tr("File: %1").arg(nativePath);
+
+    //: The question about a book of the first format. In Polish: Przenieść książkę do nowego
+    //: formatu?
+    const QString heading = tr("Convert the book to the new format?");
+    dialogs::MessageDialog question(
+        dialogs::MessageDialog::Kind::Question, heading,
+        //: In Polish: Program przeniesie tytuł, autora, części i rozdziały z tekstami,
+        //: notatkami i statusami. Niczego nie usunie, a stary plik książki zostawi obok jako
+        //: kopię.
+        tr("The program will convert the title, the author, the parts and the chapters with "
+           "their texts, notes and statuses. It will delete nothing, and it will leave the old "
+           "file of the book beside it as a copy."),
+        m_mainWindow);
+    //: In Polish: Tę książkę zapisała starsza wersja programu Kalahari.
+    question.setHeading(heading, tr("This book was saved by an older version of Kalahari."));
+    //: In Polish: Książka starszej wersji
+    question.setWindowTitle(tr("Book of an Older Version"));
+    question.setDetails(fileLine);
+    //: In Polish: &Przenieś
+    question.setQuestionButtons(tr("&Convert"));
+    question.exec();
+    if (question.answer() != dialogs::MessageDialog::Answer::Accept) {
+        return;
+    }
+
+    QString copyPath;
+    QStringList otherFiles;
+    QStringList problems;
+    if (!core::ProjectManager::getInstance().convertOlderBook(path, &copyPath, &otherFiles,
+                                                              &problems)) {
+        dialogs::MessageDialog::error(
+            //: In Polish: Nie przeniesiono książki
+            m_mainWindow, tr("Book Not Converted"),
+            //: In Polish: Nie można przenieść tej książki do nowego formatu, więc nic w niej nie
+            //: zmieniono. Przyczynę pokazuje przycisk „Pokaż szczegóły”.
+            tr("This book cannot be converted to the new format, so nothing in it was changed. "
+               "Show Details gives the reason."),
+            detailsOf(QStringList{fileLine} + problems));
+        return;
+    }
+
+    //: %1: the path of the copy, on a line of its own. In Polish: Książka jest teraz w nowym
+    //: formacie. Jej stary plik pozostał obok jako kopia:
+    //: %1
+    QString text = tr("The book is now in the new format. Its old file stays beside it as a "
+                      "copy:\n%1")
+                       .arg(QDir::toNativeSeparators(copyPath));
+    if (!otherFiles.isEmpty()) {
+        //: %1: the titles of the elements, one per line. In Polish: Te elementy nie pasują do
+        //: nowego formatu powieści, więc są w grupie „Inne pliki”:
+        //: %1
+        text += QStringLiteral("\n\n") +
+                tr("These elements do not fit the new format of a novel, so they are in the "
+                   "group Other Files:\n%1")
+                    .arg(otherFiles.join(QLatin1Char('\n')));
+    }
+    //: In Polish: Książka w nowym formacie
+    dialogs::MessageDialog::information(m_mainWindow, tr("Book in the New Format"), text);
+
+    // The same way as from the recent books: the open book is asked about
+    QTimer::singleShot(0, this, [this, path]() { onOpenRecentFile(path); });
 }
 
 bool DocumentCoordinator::reportOpenFailure(const QString& path) {
