@@ -1268,7 +1268,8 @@ private:
     void applyPageLayout();
 
     /// @brief Give the pipeline the typewriter state, keeping the text in place on the
-    ///        screen, and put the cursor line at the focus height when it is on
+    ///        screen, and put the cursor line at the focus height when it is on and the
+    ///        cursor line is in the view
     void applyTypewriter();
 
     /// @brief Emit currentPageChanged / totalPagesChanged when the numbers change
@@ -1317,6 +1318,14 @@ private:
 
     /// @brief Scroll a page wider than the view sideways to show the cursor
     void scrollSidewaysToCursor();
+
+    /// @brief Whether the cursor line is in the view, a part of it at least
+    ///
+    /// The view goes to the cursor for what is done at the cursor (typing, the keys, a search,
+    /// going to a place). A change of the view or of a setting moves a cursor line that is in
+    /// the view at most (typewriter scrolling, a view mode): a cursor scrolled out of the view
+    /// stays out of it.
+    bool isCursorLineInView() const;
 
     /// @brief The scroll position that shows the end of the text: the last line with the
     ///        page's bottom margin below it

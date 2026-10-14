@@ -165,8 +165,7 @@ void BookEditor::setViewMode(ViewMode mode)
         // cursor line, while it is in the view, keeps its place on the screen instead.
         if (m_renderPipeline && m_viewportManager) {
             const QRectF caretBefore = m_renderPipeline->caretRect(m_cursorPosition);
-            const bool caretShown = !caretBefore.isNull() && caretBefore.bottom() > 0.0 &&
-                                    caretBefore.top() < static_cast<double>(height());
+            const bool caretShown = isCursorLineInView();
             m_renderPipeline->setConfigViewMode(mode);
             updateScrollBarRange();
             // Placing the line can bring paragraphs with estimated heights into view, and
@@ -215,6 +214,7 @@ void BookEditor::applyZoom(double factor, const QPointF& fixedPoint) {
     }
     factor = qBound(MIN_ZOOM_FACTOR, factor, MAX_ZOOM_FACTOR);
     const QPointF docPoint = m_renderPipeline->widgetToDocument(fixedPoint);
+    const bool cursorShown = isCursorLineInView();
 
     // Every view zooms the page as a whole: only the painter scale changes, the line breaks
     // stay
@@ -230,8 +230,11 @@ void BookEditor::applyZoom(double factor, const QPointF& fixedPoint) {
     setScrollOffset(docPoint.y() - (fixedPoint.y() - ctx.computed.originY) / scale);
     updateHorizontalScrollBar();
 
-    // Typewriter scrolling keeps the cursor line at the focus height instead
-    updateTypewriterScroll(false);
+    // Typewriter scrolling keeps the cursor line at the focus height instead, while it is in
+    // the view
+    if (cursorShown) {
+        updateTypewriterScroll(false);
+    }
     update();
     emit zoomChanged(factor);
 }
@@ -321,10 +324,13 @@ void BookEditor::setPaperScale(double scale)
     if (!m_renderPipeline) {
         return;
     }
+    const bool cursorShown = isCursorLineInView();
     m_renderPipeline->setConfigPaperScale(scale);
     updateScrollBarRange();
     updateHorizontalScrollBar();
-    updateTypewriterScroll(false);
+    if (cursorShown) {
+        updateTypewriterScroll(false);
+    }
     applyFirstShowShrink();  // the page's new width, until the first paint
     update();
 }
@@ -405,7 +411,8 @@ void BookEditor::zoomToWholePage()
     }
     m_shrinkOnFirstShow = false;
     // The page with the gaps around it fits the view; the page view shows the cursor's
-    // page, the continuous views take the same zoom around the middle of the view
+    // page (with the cursor scrolled out of the view, the page in the middle of the view),
+    // the continuous views take the same zoom around the middle of the view
     const RenderContext& ctx = m_renderPipeline->context();
     const double gaps = 2.0 * ctx.pageMode.pageSpacing;
     const double pageWidth = (ctx.computed.pageWidthPixels + gaps) * ctx.paperScale;
@@ -413,12 +420,24 @@ void BookEditor::zoomToWholePage()
     if (pageWidth <= 0.0 || pageHeight <= 0.0) {
         return;
     }
-    const int page = std::max(1, currentPage());
-    applyZoom(std::min((width() - ctx.scrollBarWidth) / pageWidth, height() / pageHeight),
-              QPointF(width() / 2.0, height() / 2.0));
-    if (!m_appearance.typewriter.enabled) {
+    const QPointF middle(width() / 2.0, height() / 2.0);
+    const bool cursorShown = isCursorLineInView();
+    const double middleY = m_renderPipeline->widgetToDocument(middle).y();
+    const int page = cursorShown ? std::max(1, currentPage())
+                                 : m_renderPipeline->pageAtDocumentY(middleY) + 1;
+    applyZoom(std::min((width() - ctx.scrollBarWidth) / pageWidth, height() / pageHeight), middle);
+    if (!m_appearance.typewriter.enabled || !cursorShown) {
         scrollToPageTop(page);
     }
+}
+
+bool BookEditor::isCursorLineInView() const
+{
+    if (!m_renderPipeline) {
+        return false;
+    }
+    const QRectF caret = m_renderPipeline->caretRect(m_cursorPosition);
+    return !caret.isNull() && caret.bottom() > 0.0 && caret.top() < static_cast<double>(height());
 }
 
 void BookEditor::updatePageInfo()
@@ -806,11 +825,14 @@ void BookEditor::applyTypewriter()
 
     // The room below the text changes with it (the pipeline gives the viewport the new
     // scroll padding), the text stays where it is. Then the cursor line goes to the focus
-    // height at once, as far as the text above it allows.
+    // height at once, as far as the text above it allows, when it is in the view.
+    const bool cursorShown = isCursorLineInView();
     m_renderPipeline->setConfigTypewriter(m_appearance.typewriter.enabled,
                                           m_appearance.typewriter.focusPosition);
     updateScrollBarRange();
-    updateTypewriterScroll(false);
+    if (cursorShown) {
+        updateTypewriterScroll(false);
+    }
     update();
 }
 

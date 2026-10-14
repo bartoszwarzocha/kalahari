@@ -25,6 +25,7 @@
 #include <QVariantAnimation>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <utility>
 
 namespace kalahari::editor {
@@ -40,6 +41,9 @@ constexpr qsizetype MARK_TOOLTIP_LENGTH = 600;
 
 // How long the editing pauses before a content as long as the saved one is compared with it
 constexpr int MODIFIED_CHECK_DELAY_MS = 150;
+
+// Two typewriter heights closer than this are the same (as for the render pipeline)
+constexpr double TYPEWRITER_HEIGHT_EPSILON = 0.0001;
 
 namespace {
 
@@ -282,6 +286,13 @@ const EditorAppearance& BookEditor::appearance() const
 
 void BookEditor::setAppearance(const EditorAppearance& appearance)
 {
+    // Typewriter scrolling places the cursor line when it is turned on or its height
+    // changes; the other settings (and the switches of the Tools menu, which change settings
+    // too) leave the view where it is
+    const bool typewriterChanged =
+        appearance.typewriter.enabled != m_appearance.typewriter.enabled ||
+        std::abs(appearance.typewriter.focusPosition - m_appearance.typewriter.focusPosition) >=
+            TYPEWRITER_HEIGHT_EPSILON;
     m_appearance = appearance;
 
     // The render pipeline owns the document font: it applies the font of the settings as
@@ -321,7 +332,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
     // The page's margins set the scroll range (the pipeline gives the viewport the scroll
     // padding)
     updateScrollBarRange();
-    applyTypewriter();
+    if (typewriterChanged) {
+        applyTypewriter();
+    }
     updatePageInfo();
     applyFirstShowShrink();  // the page's new size, until the first paint
     update();
