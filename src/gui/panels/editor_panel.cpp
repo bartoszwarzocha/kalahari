@@ -300,15 +300,20 @@ void EditorPanel::applySettings() {
 
     m_bookEditor->setAppearance(appearance);
 
-    // Autocorrect: what is changed in the text as it is typed
+    // Autocorrect: what is changed in the text as it is typed; nothing while it is off as a
+    // whole (Tools > Auto-correct as You Type), each replacement keeping its choice
+    const bool autoCorrecting = settings.get<bool>("editor.autoCorrect.enabled");
+    const auto replaces = [&settings, autoCorrecting](const char* key) {
+        return autoCorrecting && settings.get<bool>(key);
+    };
     editor::AutoCorrectOptions autoCorrect;
-    autoCorrect.quotes = settings.get<bool>("editor.autoCorrect.quotes");
-    autoCorrect.apostrophe = settings.get<bool>("editor.autoCorrect.apostrophe");
-    autoCorrect.dialogueDash = settings.get<bool>("editor.autoCorrect.dialogueDash");
+    autoCorrect.quotes = replaces("editor.autoCorrect.quotes");
+    autoCorrect.apostrophe = replaces("editor.autoCorrect.apostrophe");
+    autoCorrect.dialogueDash = replaces("editor.autoCorrect.dialogueDash");
     autoCorrect.dash = settings.get<std::string>("editor.autoCorrect.dialogueDashType") == "enDash"
                            ? editor::DialogueDash::En
                            : editor::DialogueDash::Em;
-    autoCorrect.ellipsis = settings.get<bool>("editor.autoCorrect.ellipsis");
+    autoCorrect.ellipsis = replaces("editor.autoCorrect.ellipsis");
     m_bookEditor->setAutoCorrect(autoCorrect);
 
     // What the counts take for a word (a setting of the whole program)

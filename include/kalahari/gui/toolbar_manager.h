@@ -91,7 +91,7 @@ public:
     /// - Views: Continuous, Page Layout, [SEP], Distraction-Free, Focus, Typewriter Scrolling,
     ///   Dark Paper, [SEP], Zoom Out, Zoom In, Zoom 100%, Page Width, Whole Page
     /// - Panels (id "view"): Dashboard, Navigator, Properties, Search, Assistant, Log
-    /// - Tools: Spellcheck, WordCount
+    /// - Tools: Spellcheck, Auto-correct, WordCount
     ///
     /// @param registry CommandRegistry to retrieve commands from
     /// @note Must be called after CommandRegistry::registerCommand()

@@ -1,20 +1,25 @@
 /// @file test_auto_correct_settings.cpp
 /// @brief Settings > Editor > Auto-correct and the editors: what is changed as the text is
 ///        typed, in the quotation marks of the text's language, and Ctrl+Z right after a
-///        change
+///        change; Tools > Auto-correct as You Type turns all the replacements on and off
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
+#include "kalahari/core/icon_registry.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/auto_correct.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/edit_coordinator.h"
+#include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/toolbar_manager.h"
 
+#include <QAction>
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
@@ -26,7 +31,9 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QStackedWidget>
+#include <QStatusBar>
 #include <QTemporaryDir>
+#include <QToolBar>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
@@ -207,6 +214,41 @@ TEST_CASE("Settings > Auto-correct: the dash is greyed out while the dialogue da
     CHECK_FALSE(dialog.hasChanges());
 }
 
+TEST_CASE("Settings > Auto-correct: off as a whole, the replacements are greyed out and keep "
+          "their choices",
+          "[gui][settings][autocorrect]") {
+    auto& settings = core::SettingsManager::getInstance();
+    SettingsDialog dialog(nullptr);
+    QWidget* page = openAutoCorrectPage(dialog);
+    QCheckBox* enabled = checkBoxOf(page, "Auto-correct as you type");
+    REQUIRE(enabled != nullptr);
+    CHECK(enabled->isChecked());
+    auto* dash = page->findChild<QComboBox*>();
+    REQUIRE(dash != nullptr);
+
+    enabled->setChecked(false);
+    for (const char* text : CHECK_BOXES) {
+        INFO(text);
+        const QCheckBox* box = checkBoxOf(page, text);
+        REQUIRE(box != nullptr);
+        CHECK_FALSE(box->isEnabled());
+        CHECK(box->isChecked());
+    }
+    CHECK_FALSE(dash->isEnabled());
+    dialog.applyButton()->click();
+    CHECK_FALSE(settings.get<bool>("editor.autoCorrect.enabled"));
+    CHECK(settings.get<bool>("editor.autoCorrect.quotes"));
+    CHECK(settings.get<bool>("editor.autoCorrect.ellipsis"));
+
+    // On again: as they were
+    enabled->setChecked(true);
+    for (const char* text : CHECK_BOXES) {
+        INFO(text);
+        CHECK(checkBoxOf(page, text)->isEnabled());
+    }
+    CHECK(dash->isEnabled());
+}
+
 TEST_CASE("Settings > Auto-correct: the note gives the keys Undo has", "[gui][settings][autocorrect]") {
     SECTION("The command's keys, also those the user gives it") {
         registerAllCommands(CommandCallbacks{});
@@ -320,4 +362,131 @@ TEST_CASE("Autocorrect: Ctrl+Z right after a change brings back what was typed",
     // Typing goes on after the hyphen brought back
     type(book, QStringLiteral("tak"));
     CHECK(book->plainText() == QStringLiteral("- tak"));
+}
+
+TEST_CASE("Autocorrect: Tools > Auto-correct as You Type turns all the replacements on and off, "
+          "its tooltip names them",
+          "[gui][autocorrect][command]") {
+    auto& settings = core::SettingsManager::getInstance();
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+    auto& registry = CommandRegistry::getInstance();
+    QStatusBar statusBar;
+    EditorPanel panel;
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    REQUIRE(bookEditor != nullptr);
+    {
+        AutoCorrectCoordinator coordinator(&statusBar);
+        coordinator.connectCommands();
+        QAction* action = registry.getAction(std::string("tools.autocorrect"));
+        REQUIRE(action != nullptr);
+        CHECK(action->text() == QStringLiteral("A&uto-correct as You Type"));
+        CHECK(action->isCheckable());
+        CHECK(action->isChecked());
+        CHECK(action->isEnabled());
+        CHECK(core::IconRegistry::getInstance().hasIcon(QStringLiteral("tools.autocorrect")));
+
+        // In the Tools menu after the spelling, and on the Tools toolbar after its button (with
+        // only the grammar's between them)
+        const Command* command = registry.getCommand("tools.autocorrect");
+        const Command* spelling = registry.getCommand("tools.spellcheck");
+        REQUIRE(command != nullptr);
+        REQUIRE(spelling != nullptr);
+        CHECK(command->menuPath == "TOOLS/Auto-correct as You Type");
+        CHECK(command->menuOrder > spelling->menuOrder);
+        {
+            QMainWindow window;
+            ToolbarManager manager(&window);
+            manager.createToolbars(registry);
+            const QToolBar* tools = manager.getToolbar("tools");
+            REQUIRE(tools != nullptr);
+            const QList<QAction*> buttons = tools->actions();
+            const qsizetype spellingButton =
+                buttons.indexOf(registry.getAction(std::string("tools.spellcheck")));
+            const qsizetype button = buttons.indexOf(action);
+            REQUIRE(spellingButton >= 0);
+            REQUIRE(button > spellingButton);
+            for (qsizetype between = spellingButton + 1; between < button; ++between) {
+                CHECK(buttons[between] == registry.getAction(std::string("tools.grammar")));
+            }
+        }
+
+        // The tooltip: the name, the replacements chosen and where they are chosen
+        const QString where = QStringLiteral(
+            "The replacements are chosen in Edit > Settings..., group Editor > Auto-correct.");
+        CHECK(action->toolTip() ==
+              QStringLiteral("Auto-correct as You Type\n"
+                             "Active replacements: typographic quotes, apostrophe ’, dialogue "
+                             "dash —, ellipsis …\n") +
+                  where);
+
+        // Off: the editors replace nothing, the replacements keep their choices
+        action->trigger();
+        CHECK_FALSE(settings.get<bool>("editor.autoCorrect.enabled"));
+        CHECK(settings.get<bool>("editor.autoCorrect.quotes"));
+        CHECK_FALSE(action->isChecked());
+        CHECK(statusBar.currentMessage() == QStringLiteral("Auto-correct as you type: off"));
+        editor::AutoCorrectOptions nothing;
+        nothing.quotes = false;
+        nothing.apostrophe = false;
+        nothing.dialogueDash = false;
+        nothing.ellipsis = false;
+        REQUIRE(test::waitUntil([bookEditor, &nothing]() {
+            return bookEditor->autoCorrect() == nothing;
+        }));
+        bookEditor->fromKml(test::kmlOf({QString()}));
+        type(bookEditor, QStringLiteral("- \"Don't\"..."));
+        CHECK(bookEditor->plainText() == QStringLiteral("- \"Don't\"..."));
+        CHECK(test::waitUntil([action]() {
+            return action->toolTip().contains(
+                QStringLiteral("\nOff. When turned on: typographic quotes, apostrophe ’, "
+                               "dialogue dash —, ellipsis …\n"));
+        }));
+
+        // A replacement chosen in the Settings dialog: the tooltip follows
+        settings.set<bool>("editor.autoCorrect.apostrophe", false);
+        settings.set<std::string>("editor.autoCorrect.dialogueDashType", "enDash");
+        CHECK(test::waitUntil([action]() {
+            return action->toolTip().contains(QStringLiteral(
+                "\nOff. When turned on: typographic quotes, dialogue dash –, ellipsis …\n"));
+        }));
+
+        // On again: the replacements chosen
+        action->trigger();
+        CHECK(settings.get<bool>("editor.autoCorrect.enabled"));
+        CHECK(action->isChecked());
+        CHECK(statusBar.currentMessage() == QStringLiteral("Auto-correct as you type: on"));
+        editor::AutoCorrectOptions chosen;
+        chosen.apostrophe = false;
+        chosen.dash = editor::DialogueDash::En;
+        REQUIRE(test::waitUntil([bookEditor, &chosen]() {
+            return bookEditor->autoCorrect() == chosen;
+        }));
+        CHECK(test::waitUntil([action]() {
+            return action->toolTip().contains(QStringLiteral(
+                "\nActive replacements: typographic quotes, dialogue dash –, ellipsis …\n"));
+        }));
+
+        // None chosen
+        for (const char* key : {"editor.autoCorrect.quotes", "editor.autoCorrect.dialogueDash",
+                                "editor.autoCorrect.ellipsis"}) {
+            settings.set<bool>(key, false);
+        }
+        CHECK(test::waitUntil([action]() {
+            return action->toolTip().contains(QStringLiteral("\nNo replacement is chosen\n"));
+        }));
+
+        // Turned off in the Settings dialog: the command shows it
+        settings.set<bool>("editor.autoCorrect.enabled", false);
+        CHECK(test::waitUntil([action]() { return !action->isChecked(); }));
+        CHECK(test::waitUntil([action]() {
+            return action->toolTip().contains(
+                QStringLiteral("\nOff. No replacement is chosen\n"));
+        }));
+    }
+
+    // The command must not reach the coordinator that is gone
+    const Command* command = registry.getCommand("tools.autocorrect");
+    REQUIRE(command != nullptr);
+    CHECK_FALSE(static_cast<bool>(command->execute));
 }

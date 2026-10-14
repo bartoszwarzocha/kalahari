@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   format of the typed ones, and the annotations stay where they were. Text composed with an
   input method is changed the same way. Settings > Editor > Auto-correct turns each change on
   and off (all are on at first) and chooses the dash; its note gives the keys Undo has.
+  Tools > Auto-correct as You Type, also a button on the Tools toolbar right after the
+  spelling's, turns all the changes on and off at once, as the switch at the top of that page
+  does; each change keeps its choice. The command's tooltip names the changes chosen (while
+  auto-correct is off, those it makes when on) and where they are chosen.
 
 - **Editor: a new line in the paragraph (Shift+Enter)** - 2026-10-11. Shift+Enter starts a
   new line in the paragraph, as a manual line break in Word: the lines keep the paragraph's

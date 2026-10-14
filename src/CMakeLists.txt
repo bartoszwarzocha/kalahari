@@ -170,6 +170,7 @@ set(KALAHARI_SOURCES
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
+    gui/auto_correct_coordinator.cpp  # AutoCorrectCoordinator - auto-correct turned on and off as a whole
     gui/toolbar_keys.cpp  # ToolbarKeys - a toolbar gives the keys back after a command
     gui/spelling_coordinator.cpp  # SpellingCoordinator - spelling as you type: the editors' dictionary
     gui/main_window.cpp
@@ -306,6 +307,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator with Q_OBJECT (OpenSpec #00038 Phase 7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
