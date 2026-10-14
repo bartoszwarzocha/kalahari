@@ -49,10 +49,11 @@ public:
     ///        where they are chosen
     static QString toolTip();
 
-private:
+private slots:
     /// @brief Give the command the tooltip of the settings as they are now
     void updateToolTip();
 
+private:
     QStatusBar* m_statusBar;
     int m_settingsListener = 0;  ///< The subscription to the settings
 };

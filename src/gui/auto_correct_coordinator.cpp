@@ -42,8 +42,7 @@ AutoCorrectCoordinator::AutoCorrectCoordinator(QStatusBar* statusBar, QObject* p
     m_settingsListener =
         core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
             if (key.rfind(KEY_PREFIX, 0) == 0) {
-                QMetaObject::invokeMethod(
-                    this, [this]() { updateToolTip(); }, Qt::QueuedConnection);
+                QMetaObject::invokeMethod(this, "updateToolTip", Qt::QueuedConnection);
             }
         });
 }
