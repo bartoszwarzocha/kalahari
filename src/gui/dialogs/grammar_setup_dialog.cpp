@@ -98,7 +98,7 @@ QTextEdit* underlineSample(const QString& marked, QWidget* parent) {
     sample->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     sample->viewport()->setAutoFillBackground(false);
     sample->setAccessibleName(QString(marked).remove(QLatin1Char('[')).remove(QLatin1Char(']'))
-                                  .remove(QLatin1Char('{')).remove(QLatin1Char('}')));
+                                  .remove(QLatin1Char('*')));
 
     const editor::RenderColors colors;
     QTextCursor cursor(sample->document());
@@ -109,16 +109,18 @@ QTextEdit* underlineSample(const QString& marked, QWidget* parent) {
     QTextCharFormat spelling = grammar;
     spelling.setUnderlineColor(colors.spellError);
 
+    // Braces are kept for the names of kinds in translated texts: a misspelled word is between
+    // two asterisks
     QString piece;
     QTextCharFormat format = plain;
+    bool misspelled = false;
     for (const QChar character : marked) {
-        if (character == QLatin1Char('[') || character == QLatin1Char('{') ||
-            character == QLatin1Char(']') || character == QLatin1Char('}')) {
+        if (character == QLatin1Char('[') || character == QLatin1Char(']') ||
+            character == QLatin1Char('*')) {
             cursor.insertText(piece, format);
             piece.clear();
-            format = character == QLatin1Char('[')   ? grammar
-                     : character == QLatin1Char('{') ? spelling
-                                                     : plain;
+            misspelled = character == QLatin1Char('*') && !misspelled;
+            format = character == QLatin1Char('[') ? grammar : misspelled ? spelling : plain;
             continue;
         }
         piece += character;
@@ -349,10 +351,10 @@ QWidget* GrammarSetupDialog::createDonePage() {
     layout->addWidget(textLabel(tr("The program checks grammar, style and punctuation in the "
                                    "language of the book, on this computer.")));
 
-    // What the underlines look like: [grammar] and {spelling}
+    // What the underlines look like: [grammar] and *spelling*
     layout->addWidget(underlineSample(
-        tr("Anna [smiled smiled] and put the {leter} into her bag.",
-           "A sample: [a grammar issue] and {a misspelled word}, marked so"),
+        tr("Anna [smiled smiled] and put the *leter* into her bag.",
+           "A sample: [a grammar issue] and *a misspelled word*, marked so"),
         page));
     auto* legend = new QHBoxLayout();
     const editor::RenderColors colors;

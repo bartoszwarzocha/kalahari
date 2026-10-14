@@ -9628,9 +9628,9 @@ Harmonogram projektu:
         <translation>Program sprawdza gramatykę, styl i interpunkcję w języku książki, na tym komputerze.</translation>
     </message>
     <message>
-        <source>Anna [smiled smiled] and put the {leter} into her bag.</source>
-        <comment>A sample: [a grammar issue] and {a misspelled word}, marked so</comment>
-        <translation>Anna uśmiechnęła [się się] i schowała {kopete} do torebki.</translation>
+        <source>Anna [smiled smiled] and put the *leter* into her bag.</source>
+        <comment>A sample: [a grammar issue] and *a misspelled word*, marked so</comment>
+        <translation>Anna uśmiechnęła [się się] i schowała *kopete* do torebki.</translation>
     </message>
     <message>
         <source>grammar, style and punctuation</source>
