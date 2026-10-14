@@ -217,6 +217,9 @@ bool BookEditor::removeSelection(bool keepAnnotations)
     m_cursorPosition.offset = cursor.positionInBlock();
     clearSelection();
 
+    // The view follows the cursor, as after typing: it stays where the selection started,
+    // which can be far above the view (all the text selected and deleted)
+    ensureCursorVisible();
     update();
     emit contentChanged();
     return true;

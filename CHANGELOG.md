@@ -508,6 +508,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The view after deleting a selection** - 2026-10-14. Deleting a selection (Delete,
+  Backspace or cutting it) left the view where it was, so after Ctrl+A and Delete in a long
+  chapter the cursor, at the top of the page, was out of sight. The view now follows the
+  cursor, as after typing; a selection in view leaves the view where it is.
+
 - **The Dashboard's option to open the last book** - 2026-10-13. Changed in the Settings
   window, the option stayed as it was on the Dashboard until the program started again; the
   Dashboard now shows the change at once.
