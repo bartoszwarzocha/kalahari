@@ -44,6 +44,44 @@ bool isTypingKey(const QKeyEvent* event) {
            event->text().at(0).isPrint();
 }
 
+/// @brief Watches a context menu for the keys of a command: they close the menu, and the
+///        command is to run once the menu is gone (pressed())
+class MenuCommandKeys : public QObject {
+public:
+    explicit MenuCommandKeys(const QAction* command) : m_command(command) {}
+
+    bool pressed() const { return m_pressed; }
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        const QEvent::Type type = event->type();
+        if ((type == QEvent::ShortcutOverride || type == QEvent::KeyPress) &&
+            isCommandKey(*static_cast<QKeyEvent*>(event))) {
+            if (type == QEvent::KeyPress) {
+                m_pressed = true;
+                if (auto* menu = qobject_cast<QWidget*>(watched)) {
+                    menu->close();
+                }
+            }
+            event->accept();  // the menu takes the keys before any shortcut
+            return true;
+        }
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    bool isCommandKey(const QKeyEvent& event) const {
+        if (m_command == nullptr || !m_command->isEnabled()) {
+            return false;
+        }
+        const QList<QKeySequence> shortcuts = m_command->shortcuts();
+        return shortcuts.contains(QKeySequence(event.keyCombination()));
+    }
+
+    const QAction* m_command;
+    bool m_pressed = false;
+};
+
 }  // namespace
 
 void BookEditor::keyPressEvent(QKeyEvent* event)
@@ -646,6 +684,11 @@ void BookEditor::setContextMenuEditActions(const ContextMenuEditActions& actions
     m_contextMenuEditActions = actions;
 }
 
+void BookEditor::setNextIssueAction(QAction* action)
+{
+    m_nextIssueAction = action;
+}
+
 void BookEditor::contextMenuEvent(QContextMenuEvent* event)
 {
     if (!m_textBuffer) {
@@ -753,7 +796,14 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         : tr("Switch to &Light Mode");
     menu.addAction(colorModeText, this, &BookEditor::toggleEditorColorMode);
 
+    // The keys going to the next issue (F7) close the menu and go on to it, without Esc
+    // first: from the event loop, so the next issue's menu does not open inside this one
+    MenuCommandKeys nextIssueKeys(m_nextIssueAction);
+    menu.installEventFilter(&nextIssueKeys);
     menu.exec(globalPos);
+    if (nextIssueKeys.pressed()) {
+        QTimer::singleShot(0, m_nextIssueAction, &QAction::trigger);
+    }
 }
 
 }  // namespace kalahari::editor

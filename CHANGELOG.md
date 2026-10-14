@@ -649,9 +649,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     them, further on and round the text, until it finds an issue; the server keeps what it
     checks a language with from one paragraph to the next (some 20 ms for a paragraph instead
     of 150), so F7 through 130 paragraphs not checked yet takes about 2 seconds instead of 8.
-    The menu key and Shift+F10 open the menu for the issue at the cursor.
-  - Tools > Check Grammar as You Type turns the checking on and off for all documents and
-    remembers it.
+    The menu key and Shift+F10 open the menu for the issue at the cursor. F7 pressed while
+    the menu of an issue (spelling or grammar) is open goes straight on to the next issue
+    and its menu, without Esc first.
+  - Tools > Check Grammar as You Type, also a button on the Tools toolbar right after the
+    spelling's, turns the checking on and off for all documents and remembers it.
 - **Annotations: their marks, the frame they are written in, the Annotations panel and the
   commands for them** - 2026-10-08
   - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a

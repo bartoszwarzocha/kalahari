@@ -62,6 +62,9 @@ EditorPanel::EditorPanel(QWidget* parent)
          registry.getAction(QStringLiteral("edit.paste")),
          registry.getAction(QStringLiteral("edit.selectAll"))});
 
+    // F7 in the menu of an issue goes on to the next one, as in the text
+    m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
+
     // The light or dark paper chosen in the editor's context menu is the setting of all
     // editors, kept between sessions
     connect(m_bookEditor, &editor::BookEditor::editorColorModeChanged, this,

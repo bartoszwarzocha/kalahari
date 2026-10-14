@@ -538,6 +538,16 @@ TEST_CASE("Spelling coordinator: Next Spelling or Grammar Issue selects the next
             CHECK(statusBar.currentMessage() == QStringLiteral("The spelling is not checked"));
         }
 
+        SECTION("F7 in the menu of a word goes on to the next word and opens its menu") {
+            bookEditor->fromKml(kmlOf({QStringLiteral("One mistakke and anothr.")}));
+            bookEditor->setCursorPosition({0, 0});
+            const kalahari::test::PopupMenuKey f7(Qt::Key_F7);
+            action->trigger();
+            REQUIRE(waitUntil([&f7]() { return f7.menusShown() == 2; }));
+            CHECK(f7.keyTaken());
+            CHECK(bookEditor->selectedText() == QStringLiteral("anothr"));
+        }
+
         SECTION("greyed out again without a document") {
             tabs.removeTab(0);
             delete panel;

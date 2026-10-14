@@ -9,6 +9,7 @@
 #include "../editor/editor_test_utils.h"
 #include "../editor/fake_language_tool.h"
 #include "grammar_test_utils.h"
+#include "kalahari/core/icon_registry.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/grammar_check_service.h"
@@ -20,10 +21,12 @@
 #include "kalahari/gui/grammar_components.h"
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/grammar_setup.h"
+#include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/language_tool_server.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings/grammar_page.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/toolbar_manager.h"
 
 #include <QAction>
 #include <QApplication>
@@ -37,6 +40,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMainWindow>
 #include <QMap>
 #include <QPushButton>
 #include <QRadioButton>
@@ -47,6 +51,7 @@
 #include <QTemporaryDir>
 #include <QTextBlock>
 #include <QTimer>
+#include <QToolBar>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
@@ -435,11 +440,25 @@ TEST_CASE("Grammar coordinator: Check Grammar as You Type turns the checking on 
         CHECK(action->isCheckable());
         CHECK(action->isEnabled());
 
-        // In the Tools menu only
+        // In the Tools menu, and on the Tools toolbar right after the spelling, with an icon
         const Command* command = registry.getCommand("tools.grammar");
         REQUIRE(command != nullptr);
         CHECK(command->showInMenu);
-        CHECK_FALSE(command->showInToolbar);
+        CHECK(command->showInToolbar);
+        {
+            registerAllIcons();
+            QMainWindow window;
+            ToolbarManager manager(&window);
+            manager.createToolbars(registry);
+            const QToolBar* tools = manager.getToolbar("tools");
+            REQUIRE(tools != nullptr);
+            const QList<QAction*> toolButtons = tools->actions();
+            const qsizetype spelling =
+                toolButtons.indexOf(registry.getAction(std::string("tools.spellcheck")));
+            REQUIRE(spelling >= 0);
+            CHECK(toolButtons.value(spelling + 1) == action);
+            CHECK(core::IconRegistry::getInstance().hasIcon(QStringLiteral("tools.grammar")));
+        }
 
         // On in the settings, but nothing prepared: not checked; the command offers to
         // prepare it

@@ -717,6 +717,14 @@ public:
     ///        do: for a misspelled word at the cursor it offers what to put in its place
     void showContextMenuAtCursor();
 
+    /// @brief The application's command going to the next spelling or grammar issue
+    ///
+    /// Its keys (F7) work in the text's context menu too: the menu closes and the command
+    /// runs, so the writer goes from one issue's menu to the next without closing each one
+    /// first. The application keeps the command while the editor lives; without it the menu
+    /// leaves the keys alone.
+    void setNextIssueAction(QAction* action);
+
     // =========================================================================
     // View Mode (Phase 5.1)
     // =========================================================================
@@ -1616,6 +1624,7 @@ private:
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
     QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
+    QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
 
     // IME composition state (Phase 4.5/4.6/4.7)

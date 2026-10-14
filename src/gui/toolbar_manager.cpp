@@ -169,13 +169,13 @@ void ToolbarManager::initializeConfigs() {
         {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.search", "view.assistant", "view.annotations", "view.log"}
     };
 
-    // Tools Toolbar
+    // Tools Toolbar: the checking as you type together, as in the Tools menu
     m_configs["tools"] = {
         "tools",
         QT_TRANSLATE_NOOP("QObject", "&Tools Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
-        {"tools.spellcheck", "tools.stats.wordCount"}
+        {"tools.spellcheck", "tools.grammar", "tools.stats.wordCount"}
     };
 
     // Views Toolbar: the view modes, the switches on top of them (and the paper) and the zoom,

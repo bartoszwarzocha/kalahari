@@ -472,8 +472,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_KEY("tools.nextMisspelling", QT_TRANSLATE_NOOP("CommandRegistrar", "&Next Spelling or Grammar Issue"), "TOOLS/Next Spelling or Grammar Issue", 45, false, 0,
                 KeyboardShortcut(Qt::Key_F7, Qt::NoModifier));
 
-    // Turns the grammar as you type on and off (GrammarCoordinator gives it its callbacks)
-    REG_CMD("tools.grammar", QT_TRANSLATE_NOOP("CommandRegistrar", "Check &Grammar as You Type"), "TOOLS/Check Grammar as You Type", 50, false, 0);
+    // Turns the grammar as you type on and off (GrammarCoordinator gives it its callbacks); on
+    // the Tools toolbar right after the spelling
+    REG_CMD_TOOL_ICON("tools.grammar", QT_TRANSLATE_NOOP("CommandRegistrar", "Check &Grammar as You Type"), "TOOLS/Check Grammar as You Type", 50, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      nullptr);
     REG_CMD("tools.readability", QT_TRANSLATE_NOOP("CommandRegistrar", "&Readability Score"), "TOOLS/Readability Score", 60, true, 2);
 
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Backup Now"), "TOOLS/Backup Now", 100, false, 2);
