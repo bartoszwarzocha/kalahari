@@ -3,7 +3,7 @@
 ///        commands
 
 #include "kalahari/gui/spelling_coordinator.h"
-#include "kalahari/core/document.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
@@ -180,10 +180,9 @@ QString SpellingCoordinator::wantedLanguage() {
         return language;
     }
 
-    auto& projects = core::ProjectManager::getInstance();
-    if (const core::Document* document =
-            projects.isProjectOpen() ? projects.getDocument() : nullptr) {
-        QString bookLanguage = QString::fromStdString(document->getLanguage()).trimmed();
+    const auto& projects = core::ProjectManager::getInstance();
+    if (const core::ProjectBook* book = projects.isProjectOpen() ? projects.book() : nullptr) {
+        QString bookLanguage = book->language.trimmed();
         if (!bookLanguage.isEmpty()) {
             return bookLanguage;
         }

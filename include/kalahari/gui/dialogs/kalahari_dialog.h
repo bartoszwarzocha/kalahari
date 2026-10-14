@@ -96,6 +96,11 @@ protected:
     ///        whole window on the screen (e.g. after details were shown)
     void fitToScreen(const QSize& wanted);
 
+    /// @brief fitToScreen() with the hints the layout has: for a dialog whose layout has just
+    ///        taken in the content (on its LayoutRequest). It asks the layout for nothing, so
+    ///        a window that cannot grow does not ask for its layout again and again.
+    void resizeOnScreen(const QSize& wanted);
+
     /// @brief The window's frame the system adds around the dialog: its own when the window
     ///        exists, else the style's guess
     QMargins frameMargins() const;

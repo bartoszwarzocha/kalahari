@@ -17,6 +17,7 @@
 #include <QComboBox>
 #include <QContextMenuEvent>
 #include <QFocusEvent>
+#include <QFontMetrics>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLabel>
@@ -59,6 +60,9 @@ constexpr double BORDER_SHARE = 0.55;
 
 /// @brief How far the text of a control that is off is from the text, toward the background
 constexpr double DISABLED_SHARE = 0.55;
+
+/// @brief Most characters of the name of the text in front on its button ("Opowiadanie" fits)
+constexpr int MAX_SCOPE_CHARS = 12;
 
 /// @brief The index of a kind among the kind buttons
 std::size_t kindIndex(editor::AnnotationKind kind) {
@@ -256,10 +260,12 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
     connect(m_stateGroup, &QButtonGroup::idClicked, this, &AnnotationsPanel::readFilters);
     filterLayout->addLayout(states);
 
-    // Scope and date; the date under the scope on a narrow panel
+    // Scope and date; the first button names the text in front (updateScopeText()). The date
+    // goes under the scope on a narrow panel
     m_scopeGroup = new QButtonGroup(this);
-    auto* scopeButtons = choiceButtons(filters, m_scopeGroup, {tr("Chapter"), tr("Book")});
+    auto* scopeButtons = choiceButtons(filters, m_scopeGroup, {tr("File"), tr("Book")});
     m_scopeGroup->button(static_cast<int>(AnnotationScope::Chapter))->setChecked(true);
+    m_textScopeButton = m_scopeGroup->button(static_cast<int>(AnnotationScope::Chapter));
     m_bookScopeButton = m_scopeGroup->button(static_cast<int>(AnnotationScope::Book));
     m_bookScopeButton->setEnabled(false);
     connect(m_scopeGroup, &QButtonGroup::idClicked, this, [this](int id) {
@@ -383,8 +389,41 @@ void AnnotationsPanel::setAnnotationsAllowed(bool allowed) {
 void AnnotationsPanel::setDocumentAvailable(bool available) {
     if (available != m_documentAvailable) {
         m_documentAvailable = available;
+        updateScopeText();
         updateEmptyText(!m_cards.isEmpty());
     }
+}
+
+void AnnotationsPanel::setKindNames(const std::optional<core::KindWords>& inFront,
+                                    const std::optional<core::KindWords>& bookTexts,
+                                    bool bookOpen) {
+    m_inFront = inFront;
+    m_bookTexts = bookTexts;
+    m_bookOpen = bookOpen;
+    updateScopeText();
+    updateEmptyText(!m_cards.isEmpty());
+}
+
+void AnnotationsPanel::updateScopeText() {
+    // The element in front, or the texts the writer opens in the book: "Story"; a file outside
+    // the book, or nothing without a book: "File"
+    const std::optional<core::KindWords>& kind = m_documentAvailable ? m_inFront : m_bookTexts;
+    QString name;
+    if (kind) {
+        name = core::fillWords(QStringLiteral("{Kind}"), {{QStringLiteral("kind"), *kind}});
+    } else if (m_bookOpen && !m_documentAvailable) {
+        name = tr("Element");
+    } else {
+        name = tr("File");
+    }
+
+    // A long name ("Copyright page") does not widen the narrow panel: it is cut, and the
+    // tooltip has all of it
+    const QFontMetrics metrics(m_textScopeButton->font());
+    const QString shown =
+        metrics.elidedText(name, Qt::ElideRight, metrics.averageCharWidth() * MAX_SCOPE_CHARS);
+    m_textScopeButton->setText(shown);
+    m_textScopeButton->setToolTip(shown == name ? QString() : name);
 }
 
 void AnnotationsPanel::setFilter(const AnnotationFilter& filter) {
@@ -743,7 +782,18 @@ void AnnotationsPanel::updateEmptyText(bool anyShown) {
         return;
     }
     if (m_scope == AnnotationScope::Chapter && !m_documentAvailable) {
-        m_emptyLabel->setText(tr("Open a chapter to see its annotations."));
+        // What the writer opens: a text of the book ("Open a story..."), or a book or a file
+        if (m_bookTexts) {
+            //: In Polish: Otwórz {kind:accusative}, aby zobaczyć {kind:m=jego|f=jej|n=jego|p=ich}
+            //: uwagi.
+            m_emptyLabel->setText(core::fillWords(
+                tr("Open {kind:indefinite} to see {kind:s=its|p=their} annotations."),
+                {{QStringLiteral("kind"), *m_bookTexts}}));
+        } else if (m_bookOpen) {
+            m_emptyLabel->setText(tr("Open an element of the book to see its annotations."));
+        } else {
+            m_emptyLabel->setText(tr("Open a book or a file to see the annotations."));
+        }
     } else if (m_entries.empty() && m_scope == AnnotationScope::Book) {
         m_emptyLabel->setText(tr("The book has no annotations."));
     } else if (m_entries.empty()) {
@@ -753,14 +803,35 @@ void AnnotationsPanel::updateEmptyText(bool anyShown) {
         const QString addKeys =
             add != nullptr ? add->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
                            : QString();
-        m_emptyLabel->setText(addKeys.isEmpty()
-                                  ? tr("This chapter has no annotations. Select a fragment "
-                                       "or put the cursor in the text and add a comment, a "
-                                       "to-do or a note from the context menu.")
-                                  : tr("This chapter has no annotations. Select a fragment "
-                                       "or put the cursor in the text and add a comment, a "
-                                       "to-do or a note with %1 or from the context menu.")
-                                        .arg(addKeys));
+        if (m_inFront) {
+            //: In Polish: {kind:m=Ten|f=Ta|n=To|p=Te} {kind} nie {kind:m=ma|f=ma|n=ma|p=mają}
+            //: uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do
+            //: zrobienia lub notatkę z menu podręcznego.
+            const QString noKeys = tr("{kind:s=This|p=These} {kind} {kind:s=has|p=have} no "
+                                      "annotations. Select a fragment or put the cursor in the "
+                                      "text and add a comment, a to-do or a note from the "
+                                      "context menu.");
+            //: In Polish: {kind:m=Ten|f=Ta|n=To|p=Te} {kind} nie {kind:m=ma|f=ma|n=ma|p=mają}
+            //: uwag. Zaznacz fragment albo ustaw kursor w tekście i dodaj komentarz, uwagę do
+            //: zrobienia lub notatkę skrótem %1 albo z menu podręcznego.
+            const QString withKeys = tr("{kind:s=This|p=These} {kind} {kind:s=has|p=have} no "
+                                        "annotations. Select a fragment or put the cursor in "
+                                        "the text and add a comment, a to-do or a note with %1 "
+                                        "or from the context menu.");
+            const QString text =
+                core::fillWords(addKeys.isEmpty() ? noKeys : withKeys,
+                                {{QStringLiteral("kind"), *m_inFront}});
+            m_emptyLabel->setText(addKeys.isEmpty() ? text : text.arg(addKeys));
+        } else {
+            m_emptyLabel->setText(
+                addKeys.isEmpty()
+                    ? tr("This file has no annotations. Select a fragment or put the cursor in "
+                         "the text and add a comment, a to-do or a note from the context menu.")
+                    : tr("This file has no annotations. Select a fragment or put the cursor in "
+                         "the text and add a comment, a to-do or a note with %1 or from the "
+                         "context menu.")
+                          .arg(addKeys));
+        }
     } else {
         m_emptyLabel->setText(tr("No annotation matches the filters."));
     }

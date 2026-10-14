@@ -1,0 +1,82 @@
+/// @file kind_names.h
+/// @brief The names of kinds of elements in the program's sentences, in the program's language
+///
+/// The sentences have markers that the forms of the names fill (core/kind_words.h):
+/// @code
+/// const QString heading = core::fillWords(tr("Add {Kind}"), {{"kind", wordsOf(kind)}});
+/// // "Add Story"; in Polish, "Dodaj {kind:accusative}": "Dodaj opowiadanie"
+/// @endcode
+
+#pragma once
+
+#include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/kind_words.h"
+
+#include <QString>
+
+namespace kalahari {
+namespace core {
+struct BookProject;
+struct ProjectElement;
+} // namespace core
+
+namespace gui {
+
+/// @brief Language of the program's texts: the language of the translation loaded at start
+/// ("pl"), or English ("en")
+///
+/// A change of the language in the settings takes effect after a restart, so the names follow
+/// the translation, not the setting.
+QString programLanguage();
+
+/// @brief Set the language of the program's texts; main() sets the language of the translation
+/// it loads
+void setProgramLanguage(const QString& language);
+
+/// @brief Name of the type of @p project in the program's language: the name of its package in
+/// @p registry; "User Project" for a book without a type; for a type whose package is not
+/// installed, its id with "(not installed)"
+QString typeNameOf(const core::BookTypeRegistry& registry, const core::BookProject& project);
+
+/// @brief Forms of the name of @p kind in the program's language; none without a kind
+core::KindWords wordsOf(const core::KindRef& kind);
+
+/// @brief @p words for the text of a menu command: each '&' of a form doubled, so that the menu
+/// shows it and does not take it for the mark of an access key; the command's own text keeps
+/// its mark ("&New {Kind}...")
+core::KindWords menuWords(core::KindWords words);
+
+/// @brief Text of Book > New Chapter... in the menu, named after @p kind, the kind of the texts
+/// the command adds: "&New Story...", with the command's access key and each '&' of the name
+/// doubled (menuWords()); without a kind, the command's own text, "&New Chapter..."
+QString newTextMenuText(const core::KindRef& kind);
+
+/// @brief Forms of the name of the kind of @p element, a kind of @p registry; when the registry
+/// does not have the kind (its package is not installed), the id of the kind stands for its
+/// name; a file of a book outside its text, which has no kind, is named "file" (fileWords())
+core::KindWords wordsOf(const core::BookTypeRegistry& registry,
+                        const core::ProjectElement& element);
+
+/// @brief Forms of the name of the kind of @p element of the open book (wordsOf() with the
+/// book types of core::ProjectManager)
+core::KindWords wordsOf(const core::ProjectElement& element);
+
+/// @brief Whether @p a and @p b are elements of the same kind of @p registry; when the registry
+/// does not have their kinds, whether the ids of their kinds are the same
+bool sameKind(const core::BookTypeRegistry& registry, const core::ProjectElement& a,
+              const core::ProjectElement& b);
+
+/// @brief Forms of the name of the main text kind of the open book: chapter, story, poem...
+/// (core::ProjectManager::mainTextKind()); none without a book
+core::KindWords mainWords();
+
+/// @brief Forms of the word "element" in the program's language, for a sentence about elements
+/// of different kinds: "3 elements", "the files of the elements"
+core::KindWords elementWords();
+
+/// @brief Forms of the word "file" in the program's language, for a sentence about a file of a
+/// book outside its text, which has no kind: "Delete the file "Notes" from the book?"
+core::KindWords fileWords();
+
+} // namespace gui
+} // namespace kalahari

@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 
+#include <QApplication>
 #include <QEvent>
 #include <QFontMetrics>
 #include <QFrame>
@@ -68,6 +69,30 @@ FittingScrollArea::FittingScrollArea(QWidget* content, QWidget* parent)
     setWidget(frame);
     frame->installEventFilter(this);
     content->installEventFilter(this);
+
+    // A widget kept in view stays there when the content or the area gets higher or lower:
+    // the range changes before the content has its new place, so the area scrolls after it.
+    // The area does not leave a widget of the content the writer works in.
+    connect(
+        verticalScrollBar(), &QScrollBar::rangeChanged, this,
+        [this]() {
+            const QWidget* focus = QApplication::focusWidget();
+            if (focus && m_content->isAncestorOf(focus)) {
+                stopKeeping();
+            }
+            scrollToKept();
+        },
+        Qt::QueuedConnection);
+    // The writer's own scrolling ends it
+    connect(verticalScrollBar(), &QScrollBar::actionTriggered, this,
+            &FittingScrollArea::stopKeeping);
+}
+
+FittingScrollArea::~FittingScrollArea()
+{
+    // The widgets of the content are deleted after this part of the area, which must not
+    // hear that they are gone
+    stopKeeping();
 }
 
 QSize FittingScrollArea::sizeHint() const
@@ -101,6 +126,42 @@ int FittingScrollArea::contentHeightForWidth(int width) const
         return sizeHint().height();
     }
     return m_content->heightForWidth(width - borders().width()) + borders().height();
+}
+
+void FittingScrollArea::keepInView(QWidget* widget, QWidget* first)
+{
+    stopKeeping();
+    if (!widget) {
+        return;
+    }
+    m_kept = widget;
+    m_keptFirst = first;
+    // A widget deleted meanwhile is kept no longer
+    m_keptGone = connect(widget, &QObject::destroyed, this, &FittingScrollArea::stopKeeping);
+    if (first) {
+        m_keptFirstGone =
+            connect(first, &QObject::destroyed, this, &FittingScrollArea::stopKeeping);
+    }
+    scrollToKept();
+}
+
+void FittingScrollArea::scrollToKept()
+{
+    if (!m_kept || !m_kept->isVisibleTo(this)) {
+        return;
+    }
+    ensureWidgetVisible(m_kept, 0, 0);
+    if (m_keptFirst && m_keptFirst->isVisibleTo(this)) {
+        ensureWidgetVisible(m_keptFirst, 0, 0);
+    }
+}
+
+void FittingScrollArea::stopKeeping()
+{
+    disconnect(m_keptGone);
+    disconnect(m_keptFirstGone);
+    m_kept = nullptr;
+    m_keptFirst = nullptr;
 }
 
 bool FittingScrollArea::eventFilter(QObject* watched, QEvent* event)

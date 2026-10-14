@@ -196,11 +196,16 @@ void KalahariDialog::showEvent(QShowEvent* event)
 
 void KalahariDialog::fitToScreen(const QSize& wanted)
 {
-    const QScreen* screen = this->screen();
     // Content that changed just now (e.g. details hidden) has not told the area yet, and
     // the dialog would keep the minimum size of the old content
     m_contentArea->updateGeometry();
     layout()->activate();
+    resizeOnScreen(wanted);
+}
+
+void KalahariDialog::resizeOnScreen(const QSize& wanted)
+{
+    const QScreen* screen = this->screen();
     if (!screen) {
         resize(wanted);
         return;

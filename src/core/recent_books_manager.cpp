@@ -24,10 +24,16 @@ RecentBooksManager::RecentBooksManager()
     loadRecentFiles();
 
     // Every book opened or just created goes to the top of the list (the Dashboard and
-    // the Recent Books menu follow recentFilesChanged)
+    // the Recent Books menu follow recentFilesChanged), and is the book opened at startup
     auto& projectManager = ProjectManager::getInstance();
     connect(&projectManager, &ProjectManager::projectOpened, this, [this, &projectManager]() {
-        addRecentFile(projectManager.getManifestPath());
+        const QString manifest = projectManager.getManifestPath();
+        if (manifest.isEmpty()) {
+            return;
+        }
+        addRecentFile(manifest);
+        SettingsManager::getInstance().set(
+            "startup.lastBook", QFileInfo(manifest).absoluteFilePath().toStdString());
     });
 }
 
@@ -86,6 +92,18 @@ QStringList RecentBooksManager::getRecentFiles() const {
 
 bool RecentBooksManager::isEmpty() const {
     return m_recentFiles.isEmpty();
+}
+
+QString RecentBooksManager::lastOpenedBook() const {
+    const QString last = QString::fromStdString(
+        SettingsManager::getInstance().get<std::string>("startup.lastBook"));
+    if (!last.isEmpty()) {
+        const QString path = QFileInfo(last).absoluteFilePath();
+        if (m_recentFiles.contains(path)) {
+            return path;
+        }
+    }
+    return m_recentFiles.value(0);
 }
 
 void RecentBooksManager::loadRecentFiles() {

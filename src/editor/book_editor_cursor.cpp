@@ -231,15 +231,13 @@ void BookEditor::scrollToCursorLine()
     };
 
     // The band of the view the line must be within: the view without a margin at its top
-    // and bottom edges and without the find bar over its top, as document y relative to the
-    // scroll position (the scroll position is drawn at the view's top inset, and the zoom
-    // scales by the view scale)
+    // and bottom edges, and below the find/replace bar over its top (a match found is not
+    // under the bar), as document y relative to the scroll position (the scroll position
+    // is drawn at the view's top inset, and the zoom scales by the view scale)
     const qreal scrollY = m_viewportManager->scrollPosition();
     const qreal scale = m_viewportManager->viewScale();
     const qreal inset = m_viewportManager->viewTopInset();
-    const bool barShown = m_findReplaceBar != nullptr && !m_findReplaceBar->isHidden();
-    const int covered = barShown ? m_findReplaceBar->height() : 0;
-    const qreal bandTop = (covered + CURSOR_SCROLL_MARGIN - inset) / scale;
+    const qreal bandTop = (CURSOR_SCROLL_MARGIN + findReplaceBarHeight() - inset) / scale;
     const qreal bandBottom =
         (static_cast<qreal>(height()) - CURSOR_SCROLL_MARGIN - inset) / scale;
 
@@ -601,15 +599,17 @@ void BookEditor::moveCursorByViewHeight(double direction)
         !m_renderPipeline) {
         return;
     }
-    const double viewHeight = m_viewportManager->visibleDocumentHeight();
+    // The view below the find/replace bar over its top
+    const double topBar = m_renderPipeline->context().topBarHeight;
+    const double viewHeight = viewHeightBelowBar();
     if (viewHeight <= 0.0) {
         return;
     }
     m_renderPipeline->ensureVisibleLaidOut();
 
     QTextDocument* doc = m_textBuffer.get();
-    const auto viewTop = [this] {
-        return m_renderPipeline->widgetToDocument(QPointF(0.0, 0.0)).y();
+    const auto viewTop = [this, topBar] {
+        return m_renderPipeline->widgetToDocument(QPointF(0.0, topBar)).y();
     };
     const auto caretTop = [this](const CursorPosition& position) {
         return m_renderPipeline->widgetToDocument(m_renderPipeline->caretRect(position).topLeft())
@@ -1436,12 +1436,22 @@ CursorPosition BookEditor::lineEndOf(const CursorPosition& position) const
     return {position.paragraph, end};
 }
 
+double BookEditor::viewHeightBelowBar() const
+{
+    if (!m_viewportManager) {
+        return 0.0;
+    }
+    const double topBar = m_renderPipeline ? m_renderPipeline->context().topBarHeight : 0.0;
+    return m_viewportManager->visibleDocumentHeight() - topBar / m_viewportManager->viewScale();
+}
+
 void BookEditor::scrollByViewHeight(double direction)
 {
     if (!m_viewportManager) {
         return;
     }
-    scrollTo(scrollOffset() + direction * m_viewportManager->visibleDocumentHeight(), false);
+    // No line goes by unseen under the find/replace bar
+    scrollTo(scrollOffset() + direction * std::max(0.0, viewHeightBelowBar()), false);
 }
 
 void BookEditor::centerCursorInView()
@@ -1453,11 +1463,12 @@ void BookEditor::centerCursorInView()
     if (caret.isNull()) {
         return;
     }
-    // In document units: where the cursor's line is and where the middle of the view is
+    // In document units: where the cursor's line is and where the middle of the view below
+    // the find/replace bar is
+    const double topBar = m_renderPipeline->context().topBarHeight;
     const double caretMiddle = m_renderPipeline->widgetToDocument(caret.center()).y();
-    const double viewMiddle =
-        m_renderPipeline->widgetToDocument(QPointF(0.0, 0.0)).y() +
-        m_viewportManager->visibleDocumentHeight() / 2.0;
+    const double viewMiddle = m_renderPipeline->widgetToDocument(QPointF(0.0, topBar)).y() +
+                              viewHeightBelowBar() / 2.0;
     scrollTo(scrollOffset() + caretMiddle - viewMiddle, false);
 }
 

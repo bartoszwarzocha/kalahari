@@ -8,6 +8,7 @@
 /// instead of creating new QAction instances. CommandRegistry now owns all command actions.
 
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/command.h"
@@ -25,14 +26,63 @@
 #include <QJsonObject>
 #include <QStatusBar>
 #include <QRegularExpression>
-#include <QMessageBox>
 #include <QFontComboBox>
 #include <QSpinBox>
 #include <QLabel>
 #include <QMenuBar>
 
+#include <algorithm>
+#include <array>
+
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+/// A command added to a built-in toolbar after a version that the writer could customize
+struct AddedCommand {
+    const char* toolbar;  ///< Id of the toolbar
+    const char* command;  ///< Id of the command
+    int version;          ///< Version of ADDED_COMMANDS that adds it
+};
+
+/// The commands added to the built-in toolbars. A toolbar that the writer customized before
+/// gets each of them once, where the default toolbar has it; a writer who removes one keeps it
+/// removed. Version history of the changes (with MOVED_COMMANDS):
+///   1: Open File and Save All on the File toolbar; Open File, Save As and Close Book on
+///      Quick Actions
+///   2: New File, Open File, New Book and Open Book in a new order, on both toolbars
+constexpr std::array<AddedCommand, 5> ADDED_COMMANDS{{
+    {"file", "file.open.file", 1},
+    {"file", "file.saveAll", 1},
+    {"quickActions", "file.open.file", 1},
+    {"quickActions", "file.saveAs", 1},
+    {"quickActions", "file.close", 1},
+}};
+
+/// Commands of a built-in toolbar in a new order
+struct MovedCommands {
+    const char* toolbar;                  ///< Id of the toolbar
+    std::array<const char*, 4> commands;  ///< The commands, in their new order
+    int version;                          ///< Version of the changes that orders them so
+};
+
+/// The commands moved on the built-in toolbars. A toolbar that the writer customized before
+/// gets those of them that it has in their new order, once, in the places they have on it; a
+/// writer who orders them again keeps that order.
+constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
+    // The files first, then the books, as in the File menu
+    {"file", {"file.new", "file.open.file", "file.new.project", "file.open"}, 2},
+    {"quickActions", {"file.new", "file.open.file", "file.new.project", "file.open"}, 2},
+}};
+
+/// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
+constexpr int CHANGED_COMMANDS_VERSION = 2;
+
+/// The setting with the version of the changes that the saved toolbars have
+constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
+
+}  // namespace
 
 // OpenSpec #00037: Toolbar config version for reset detection
 // Increment this when changing default toolbar visibility or layout
@@ -87,7 +137,8 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "&File Toolbar"),
         Qt::TopToolBarArea,
         false,  // hidden by default (accessible via Quick Actions)
-        {"file.new", "file.new.project", "file.open", "file.save", "file.saveAs", "file.close"}
+        {"file.new", "file.open.file", "file.new.project", "file.open", "file.save",
+         "file.saveAs", "file.saveAll", "file.close"}
     };
 
     // Edit Toolbar
@@ -175,14 +226,17 @@ void ToolbarManager::initializeConfigs() {
     };
 
     // Quick Actions Toolbar (OpenSpec #00037 - Phase C)
-    // Consolidated toolbar with most frequently used actions for rapid access
+    // Consolidated toolbar with most frequently used actions for rapid access: every command
+    // of the File toolbar, in its order, as text editors have them
     // Note: Undo/Redo are in Edit toolbar, not duplicated here
     m_configs["quickActions"] = {
         "quickActions",
         QT_TRANSLATE_NOOP("QObject", "&Quick Actions"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
-        {"file.new", "file.new.project", "file.open", "file.save", "file.saveAll", SEPARATOR_ID,
+        {"file.new", "file.open.file", "file.new.project", "file.open", "file.save",
+         "file.saveAs", "file.saveAll", "file.close",
+         SEPARATOR_ID,
          "edit.find", SEPARATOR_ID,
          "tools.backupNow", SEPARATOR_ID,
          "edit.settings", "tools.toolbarManager"}
@@ -957,6 +1011,15 @@ void ToolbarManager::loadConfigurations() {
         }
     }
 
+    // The commands that the built-in toolbars got, and their new order, since the writer
+    // customized them
+    const int saved = settings.get<int>(CHANGED_COMMANDS_SETTING, 0);
+    const bool added = addNewCommands(saved);
+    const bool moved = moveCommands(saved);
+    if (added || moved) {
+        saveConfigurations();
+    }
+
     // OpenSpec #00031 - Phase E: Load toolbar lock state
     m_toolbarsLocked = settings.get<bool>("toolbars.locked");
     logger.debug("ToolbarManager: Toolbars locked state: {}", m_toolbarsLocked);
@@ -1007,9 +1070,81 @@ void ToolbarManager::saveConfigurations() {
     QJsonDocument doc(root);
     std::string jsonStr = doc.toJson(QJsonDocument::Compact).toStdString();
     settings.set<std::string>("toolbars.configurations", jsonStr);
+    // The saved toolbars have the commands added and moved so far, or the writer changed them
+    settings.set<int>(CHANGED_COMMANDS_SETTING, CHANGED_COMMANDS_VERSION);
     settings.save();
 
     logger.debug("ToolbarManager: Saved toolbar configurations");
+}
+
+bool ToolbarManager::addNewCommands(int saved) {
+    bool added = false;
+    for (const AddedCommand& entry : ADDED_COMMANDS) {
+        const QString toolbarId = QString::fromLatin1(entry.toolbar);
+        const QString commandId = QString::fromLatin1(entry.command);
+        auto commands = m_toolbarCommands.find(toolbarId);
+        // A toolbar with the defaults has the command, and so has one customized since
+        if (entry.version <= saved || commands == m_toolbarCommands.end()
+            || commands->contains(commandId)) {
+            continue;
+        }
+
+        // After the command it follows in the default toolbar, or the nearest one before that
+        // the toolbar has; at the start when it has none of them
+        const QStringList defaults = m_defaultConfigs.value(toolbarId);
+        qsizetype at = 0;
+        for (qsizetype i = defaults.indexOf(commandId) - 1; i >= 0; --i) {
+            const QString& before = defaults.at(i);
+            const qsizetype index =
+                before == QLatin1String(SEPARATOR_ID) ? -1 : commands->indexOf(before);
+            if (index >= 0) {
+                at = index + 1;
+                break;
+            }
+        }
+        commands->insert(at, commandId);
+        added = true;
+        core::Logger::getInstance().info("ToolbarManager: Added '{}' to the toolbar '{}'",
+                                         entry.command, entry.toolbar);
+    }
+    return added;
+}
+
+bool ToolbarManager::moveCommands(int saved) {
+    bool moved = false;
+    for (const MovedCommands& entry : MOVED_COMMANDS) {
+        auto commands = m_toolbarCommands.find(QString::fromLatin1(entry.toolbar));
+        if (entry.version <= saved || commands == m_toolbarCommands.end()) {
+            continue;
+        }
+
+        // The places of those of the commands that the toolbar has, and those commands in
+        // their new order
+        QList<qsizetype> places;
+        QStringList ordered;
+        for (const char* command : entry.commands) {
+            const qsizetype place = commands->indexOf(QString::fromLatin1(command));
+            if (place >= 0) {
+                places.append(place);
+                ordered.append(QString::fromLatin1(command));
+            }
+        }
+        std::sort(places.begin(), places.end());
+        bool changed = false;
+        for (qsizetype i = 0; i < places.size(); ++i) {
+            if (commands->at(places.at(i)) != ordered.at(i)) {
+                (*commands)[places.at(i)] = ordered.at(i);
+                changed = true;
+            }
+        }
+        if (changed) {
+            moved = true;
+            core::Logger::getInstance().info(
+                "ToolbarManager: New order of '{}' on the toolbar '{}'",
+                ordered.join(QStringLiteral(", ")).toStdString(), entry.toolbar);
+        }
+    }
+    return moved;
 }
 
 // ============================================================================
@@ -1091,12 +1226,10 @@ void ToolbarManager::fillContextMenu(QMenu* menu) {
     QAction* resetAction = menu->addAction(resetText);
     QObject::connect(resetAction, &QAction::triggered, &m_connectionContext, [this]() {
         // Confirm before reset
-        QMessageBox::StandardButton result = QMessageBox::question(
-            m_mainWindow,
-            QObject::tr("Reset Toolbars"),
-            QObject::tr("Reset all toolbars to default configuration?"),
-            QMessageBox::Yes | QMessageBox::No);
-        if (result == QMessageBox::Yes) {
+        if (dialogs::MessageDialog::confirm(
+                m_mainWindow, QObject::tr("Reset Toolbars"),
+                QObject::tr("Reset all toolbars to default configuration?"),
+                QObject::tr("&Reset"))) {
             resetToDefaults();
         }
     });

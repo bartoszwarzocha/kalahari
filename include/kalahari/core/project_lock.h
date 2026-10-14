@@ -70,6 +70,10 @@ public:
     /// @return true if lock file exists but owning process is dead
     static bool isStale(const QString& lockFilePath);
 
+    /// @brief Whether another program that is running holds the lock of the project at
+    /// @p projectPath; the lock of a program that has ended does not count, nor this one's
+    static bool isHeldByOther(const QString& projectPath);
+
     /// @brief Get path to lock file for a project
     /// @param projectPath Path to project directory
     /// @return Full path to lock file
@@ -84,9 +88,10 @@ private:
     /// @return PID from file, or 0 if file doesn't exist or is invalid
     static qint64 readPidFromLock(const QString& path);
 
-    /// @brief Check if process with given PID is running
+    /// @brief Check if a Kalahari program with given PID is running
     /// @param pid Process ID to check
-    /// @return true if process exists
+    /// @return true if the process exists and is a Kalahari program (or its name cannot be
+    ///         read); false for another program that has the PID of one that has ended
     static bool isProcessAlive(qint64 pid);
 
     QString m_projectPath;   ///< Project directory path

@@ -285,6 +285,18 @@ private:
     /// @return Created QToolBar
     QToolBar* createToolbar(const ToolbarConfig& config, CommandRegistry& registry);
 
+    /// @brief Give the toolbars that the writer customized the commands added to the built-in
+    /// toolbars after version @p saved of the changes, once, where the default toolbars have
+    /// them
+    /// @return Whether a toolbar got a command
+    bool addNewCommands(int saved);
+
+    /// @brief Give the toolbars that the writer customized the new order of the commands moved
+    /// on the built-in toolbars after version @p saved of the changes, once, in the places the
+    /// commands have on them
+    /// @return Whether a toolbar changed
+    bool moveCommands(int saved);
+
     /// @brief Add toolbar item (action, separator, or widget) to toolbar
     ///
     /// Shared helper method used by both createToolbar() and rebuildToolbar()

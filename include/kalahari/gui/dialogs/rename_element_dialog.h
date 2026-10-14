@@ -1,5 +1,5 @@
 /// @file rename_element_dialog.h
-/// @brief Dialog for a new name of an element of the book in the Navigator
+/// @brief Dialog for a new name of an element or a section of the book in the Navigator
 
 #pragma once
 
@@ -13,7 +13,8 @@ namespace kalahari {
 namespace gui {
 namespace dialogs {
 
-/// @brief Dialog for a new name of an element of the book (a chapter, a part, an item)
+/// @brief Dialog for a new name of an element of the book (a chapter, a part, an item) or of
+/// a section of the book
 ///
 /// Shows the current name and starts with it in the field, selected, so typing replaces
 /// it. The dialog cannot be accepted with an empty name.

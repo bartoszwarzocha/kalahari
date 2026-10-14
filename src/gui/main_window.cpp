@@ -13,12 +13,13 @@
 #include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/dialogs/about_dialog.h"
-#include "kalahari/gui/dialogs/add_to_project_dialog.h"
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/project_database.h"
@@ -47,11 +48,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/theme.h"
-#include "kalahari/core/document.h"
-#include "kalahari/core/document_archive.h"
-#include "kalahari/core/book.h"
-#include "kalahari/core/book_element.h"
-#include "kalahari/core/part.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/gui/widgets/status_bar_statistics.h"
 #include <QActionGroup>
@@ -73,9 +70,9 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QToolButton>
+#include <QScreen>
 #include <QStyle>
 #include <QProgressDialog>
-#include <QInputDialog>
 #include <QTimer>
 #include <QAbstractItemView>
 #include <map>
@@ -95,13 +92,13 @@ MainWindow::MainWindow(QWidget* parent)
     , m_settingsCoordinator(nullptr)
     , m_navigatorCoordinator(nullptr)
     , m_documentCoordinator(nullptr)
-    , m_isDirty(false)
 {
     auto& logger = core::Logger::getInstance();
     logger.info("MainWindow constructor called");
 
-    // Set window properties
-    setWindowTitle("Kalahari Writer's IDE");
+    // Set window properties: no book is open yet, so the title is the name of the program
+    // alone, as after a book is closed (updateWindowTitle())
+    setWindowTitle(QStringLiteral("Kalahari"));
     utils::resizeWithinScreen(this, QSize(1280, 720));
 
     // Create UI components (Command Registry pattern)
@@ -164,10 +161,16 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestSectionProperties);
     connect(m_dockCoordinator, &DockCoordinator::navigatorRequestPartProperties,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestPartProperties);
-    connect(m_dockCoordinator, &DockCoordinator::chapterReordered,
-            m_navigatorCoordinator, &NavigatorCoordinator::onChapterReordered);
-    connect(m_dockCoordinator, &DockCoordinator::partReordered,
-            m_navigatorCoordinator, &NavigatorCoordinator::onPartReordered);
+    connect(m_dockCoordinator, &DockCoordinator::elementMoved,
+            m_navigatorCoordinator, &NavigatorCoordinator::onElementMoved);
+    // Move...: any place of the book its kind can have, in the Move dialog or dragged there
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestMoveTo,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestMoveTo);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::elementMovedTo,
+            m_navigatorCoordinator, &NavigatorCoordinator::onElementMovedTo);
+    // A chapter title changed in the Properties panel shows on its tab too
+    connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::refreshTabTitle);
     // Connect Navigator add item signals (OpenSpec #00042 Task 7.19 Issue #1)
     connect(m_dockCoordinator, &DockCoordinator::requestAddChapter,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddChapter);
@@ -175,6 +178,25 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddPart);
     connect(m_dockCoordinator, &DockCoordinator::requestAddItem,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddItem);
+    // The sections of the book: shown or not, and their names
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowSections,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestShowSections);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestRenameSection,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestRenameSection);
+    // The files no element of the book has: shown, added back to the book or deleted
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestPreviewUnassigned,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestPreviewUnassigned);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestAddUnassigned,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddUnassigned);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestDeleteUnassigned,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestDeleteUnassigned);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestDeleteAllUnassigned,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestDeleteAllUnassigned);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSections,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestSections);
+    // The Navigator shows the title of the book and the names of its sections in its language
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::refreshNavigator);
     // Connect NavigatorCoordinator dirty state signal to NavigatorPanel (OpenSpec #00042 Phase 7.5)
     connect(m_navigatorCoordinator, &NavigatorCoordinator::chapterDirtyStateChanged,
             m_dockCoordinator->navigatorPanel(), &NavigatorPanel::setElementModified);
@@ -194,8 +216,6 @@ MainWindow::MainWindow(QWidget* parent)
         m_navigatorCoordinator,
         m_dockCoordinator->standaloneInfoBar(),
         statusBar(),
-        [this]() { return m_isDirty; },
-        [this](bool dirty) { setDirty(dirty); },
         [this]() { updateWindowTitle(); },
         [this]() {
             // An annotation being written is kept before the documents are saved or closed
@@ -210,12 +230,14 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_documentCoordinator, &DocumentCoordinator::windowTitleChanged,
             this, &MainWindow::setWindowTitle);
     // A file outside the book opened from the Navigator gets the keys, as a chapter does
-    // (connected after the coordinator, which opens it)
+    // (connected after the coordinator, which opens it); a new file, not saved yet, is
+    // listed by its key
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::standaloneFileSelected, this,
             [this](const QString& path) {
                 const EditorPanel* editor = getCurrentEditor();
                 if (editor != nullptr
-                    && editor->property("standaloneFilePath").toString() == path) {
+                    && (editor->property("standaloneFilePath").toString() == path
+                        || editor->property("newFileKey").toString() == path)) {
                     focusCurrentText();
                 }
             });
@@ -237,10 +259,9 @@ MainWindow::MainWindow(QWidget* parent)
         m_dockCoordinator->annotationsDock(),
         m_dockCoordinator->centralTabs(),
         [this](const QString& elementId) {
-            if (const core::BookElement* element =
+            if (const core::ProjectElement* element =
                     core::ProjectManager::getInstance().findElement(elementId)) {
-                m_navigatorCoordinator->onElementSelected(
-                    elementId, QString::fromStdString(element->getTitle()));
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
             }
         },
         statusBar(),
@@ -296,6 +317,11 @@ MainWindow::MainWindow(QWidget* parent)
     connect(&pm, &core::ProjectManager::projectAboutToClose,
             this, &MainWindow::rememberChapterCursors);
     logger.debug("MainWindow: Connected ProjectManager signals to DocumentCoordinator");
+
+    // The Book menu and the commands of the open book follow it
+    connect(&pm, &core::ProjectManager::projectOpened, this, &MainWindow::updateBookCommands);
+    connect(&pm, &core::ProjectManager::projectClosed, this, &MainWindow::updateBookCommands);
+    updateBookCommands();
 
     // OpenSpec #00043: Create debounce timer for action state updates
     // This prevents expensive updates on every cursor movement
@@ -396,6 +422,10 @@ void MainWindow::registerCommands() {
         if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
         if (m_documentCoordinator) m_documentCoordinator->onSaveAsDocument();
     };
+    callbacks.onSaveAll = [this]() {
+        if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
+        if (m_documentCoordinator) m_documentCoordinator->onSaveAll();
+    };
     callbacks.onCloseDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onCloseDocument(); };
     callbacks.onImportArchive = [this]() { if (m_documentCoordinator) m_documentCoordinator->onImportArchive(); };
     callbacks.onExportArchive = [this]() { if (m_documentCoordinator) m_documentCoordinator->onExportArchive(); };
@@ -413,6 +443,13 @@ void MainWindow::registerCommands() {
     callbacks.onFindPrevious = [this]() { onFindPrevious(); };
     callbacks.onFindReplace = [this]() { onFindReplace(); };
     callbacks.onSettings = [this]() { onSettings(); };
+
+    // Book commands: a main text of the book (a chapter, a story...), placed in the window
+    // of adding it, and the book's properties
+    callbacks.onNewChapter = [this]() {
+        if (m_navigatorCoordinator) m_navigatorCoordinator->onRequestAddChapter(QString());
+    };
+    callbacks.onBookProperties = [this]() { showBookProperties(); };
 
     // Format commands (OpenSpec #00042 Phase 7.2)
     callbacks.onFormatBold = [this]() { onFormatBold(); };
@@ -510,10 +547,31 @@ void MainWindow::registerCommands() {
         };
     }
 
+    // The Book menu works with a book open; New Chapter... also needs a kind of text the
+    // body of the book can have (see updateBookCommands())
+    if (auto* newText = registry.getCommand("book.newChapter")) {
+        newText->isEnabled = []() {
+            const auto& projects = core::ProjectManager::getInstance();
+            return projects.isProjectOpen()
+                   && static_cast<bool>(projects.chapterKindFor(core::BookPlace::Main));
+        };
+    }
+    if (auto* properties = registry.getCommand("book.properties")) {
+        properties->isEnabled = []() {
+            return core::ProjectManager::getInstance().isProjectOpen();
+        };
+    }
+
     // Find, the formats, the alignments, the view mode and the zoom work on the document in
     // front: without one (the Dashboard, no tab) they are greyed out with their keys, as in
     // Word without a document. The tab in front updates them (updateEditorActionStates())
     utils::bindToDocument(registry, [this]() { return hasDocumentInFront(); });
+
+    // Close Book and the export of the book's archive work on the open book: without one
+    // they are greyed out, as the Book menu (updateBookCommands())
+    utils::bindToOpenBook(registry, []() {
+        return core::ProjectManager::getInstance().isProjectOpen();
+    });
 
     // The paper, the text frame border, Typewriter Scrolling and Focus are settings of every
     // editor: their toggles show them also before an editor opens, and follow the editor's
@@ -1057,24 +1115,22 @@ void MainWindow::createDocks() {
 
         // Prompt to save if THIS tab has unsaved changes (Bug#2 fix).
         if (editor && m_documentCoordinator && m_documentCoordinator->isEditorDirty(editor)) {
-            auto reply = QMessageBox::question(
-                this,
-                tr("Unsaved Changes"),
+            const auto reply = dialogs::MessageDialog::ask(
+                this, tr("Unsaved Changes"),
                 tr("This document has unsaved changes.\n\nDo you want to save before closing?"),
-                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-                QMessageBox::Save);
+                tr("&Save"), tr("Do&n't Save"));
 
-            if (reply == QMessageBox::Cancel) {
+            if (reply == dialogs::MessageDialog::Answer::Cancel) {
                 return;  // Do NOT close the tab.
             }
 
-            if (reply == QMessageBox::Save) {
+            if (reply == dialogs::MessageDialog::Answer::Accept) {
                 // Close the tab only once its content is saved: a failed or cancelled
                 // save keeps it open, with its changes
                 if (!m_documentCoordinator->saveEditor(editor)) {
                     return;
                 }
-            } else {  // QMessageBox::Discard
+            } else {  // Don't Save
                 m_documentCoordinator->discardEditorChanges(editor);
             }
         }
@@ -1248,6 +1304,75 @@ void MainWindow::resetLayout() {
     statusBar()->showMessage(tr("Layout reset to default"), 2000);
 }
 
+void MainWindow::showBookProperties() {
+    if (m_dockCoordinator == nullptr || !core::ProjectManager::getInstance().isProjectOpen()) {
+        return;
+    }
+    QDockWidget* dock = m_dockCoordinator->propertiesDock();
+    dock->show();
+    // In a tab group the panel would lie under the current tab; a floating one is a window
+    dock->raise();
+    if (dock->isFloating()) {
+        dock->activateWindow();
+    }
+    m_dockCoordinator->propertiesPanel()->editProjectProperties();
+}
+
+void MainWindow::updateBookCommands() {
+    auto& registry = CommandRegistry::getInstance();
+    if (Command* newText = registry.getCommand("book.newChapter")) {
+        // Named after the texts it adds: "New Story..." in a collection of short stories,
+        // "New Chapter..." without a book
+        const auto& projects = core::ProjectManager::getInstance();
+        const core::KindRef kind = projects.isProjectOpen()
+                                       ? projects.chapterKindFor(core::BookPlace::Main)
+                                       : core::KindRef{};
+        const QString menuText = newTextMenuText(kind);
+        newText->menuText = menuText.toStdString();
+        newText->label = withoutAccessKey(menuText).toStdString();
+        newText->tooltip = newText->label;
+        if (QAction* action = registry.getAction(std::string("book.newChapter"))) {
+            action->setText(menuText);
+        }
+    }
+    registry.updateActionState("book.newChapter");
+    registry.updateActionState("book.properties");
+    utils::updateOpenBookCommands(registry);
+}
+
+void MainWindow::setStartupFile(const QString& path) {
+    m_startupFile = path;
+}
+
+void MainWindow::onLaterStart(const QString& path) {
+    auto& logger = core::Logger::getInstance();
+    logger.info("A later start of the program handed over: {}", path.toStdString());
+
+    // The window comes to the front as it was, maximized or not
+    if (isMinimized()) {
+        setWindowState((windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
+    }
+    show();
+    raise();
+    activateWindow();
+
+    // A window that asks something stays in front, and is answered first
+    if (QWidget* modal = QApplication::activeModalWidget()) {
+        modal->raise();
+        modal->activateWindow();
+        if (!path.isEmpty()) {
+            logger.info("Not opened while a window asks something: {}", path.toStdString());
+        }
+        return;
+    }
+    if (!path.isEmpty() && m_documentCoordinator) {
+        // As from the recent books: a question about the open book comes in its turn
+        QTimer::singleShot(0, this, [this, path]() {
+            if (m_documentCoordinator) m_documentCoordinator->onOpenRecentFile(path);
+        });
+    }
+}
+
 QMenu* MainWindow::createPopupMenu() {
     // Qt's menu names the panels and the toolbars after their titles, without access keys:
     // a copy gives them keys, and the panels and the toolbars keep their titles
@@ -1256,43 +1381,9 @@ QMenu* MainWindow::createPopupMenu() {
 }
 
 bool MainWindow::hasUnsavedChanges() const {
-    // Any dirty standalone editor tab (per-tab "dirty" property). Checked
-    // regardless of project state because standalone tabs can coexist with a project.
-    if (m_dockCoordinator) {
-        if (QTabWidget* tabs = m_dockCoordinator->centralTabs()) {
-            for (int i = 0; i < tabs->count(); ++i) {
-                EditorPanel* editor = qobject_cast<EditorPanel*>(tabs->widget(i));
-                if (editor && editor->property("isStandaloneFile").toBool()
-                    && editor->property("dirty").toBool()) {
-                    return true;
-                }
-            }
-        }
-    }
-
-    auto& pm = core::ProjectManager::getInstance();
-    if (!pm.isProjectOpen()) {
-        // Phase-0 / standalone single-file document flag.
-        return m_isDirty;
-    }
-
-    // Project open. Unsaved CONTENT is tracked per OPEN editor tab (m_dirtyChapters),
-    // set only on genuine edits because the slot is connected AFTER load. We do NOT
-    // consult the model BookElement dirty flag here: building the project tree,
-    // selecting an element, or populating the properties panel can mark an element
-    // dirty with no user edit (setContent/setMetadata set it), and such a flag can
-    // never be cleared (saveChapterContent no-ops for unloaded content) — that was
-    // the spurious "save on project open" prompt. Structure/metadata dirtiness
-    // (add/rename/move/delete + properties) is the separate pm.isDirty() axis.
-    if (m_navigatorCoordinator) {
-        const auto& dirtyChapters = m_navigatorCoordinator->dirtyChapters();
-        for (auto it = dirtyChapters.constBegin(); it != dirtyChapters.constEnd(); ++it) {
-            if (it.value()) {
-                return true;
-            }
-        }
-    }
-    return pm.isDirty();
+    // The book (the texts of its open elements and its data) and the files outside it whose
+    // texts differ from their saved texts; the files are checked with or without a book
+    return m_documentCoordinator && !m_documentCoordinator->unsavedDocumentNames().isEmpty();
 }
 
 // Perspective save/restore
@@ -1314,26 +1405,22 @@ void MainWindow::closeEvent(QCloseEvent* event) {
             ? m_documentCoordinator->unsavedDocumentNames() : QStringList();
         const QString filename = names.isEmpty() ? tr("Untitled") : names.join(QStringLiteral(", "));
 
-        auto reply = QMessageBox::question(
-            this,
-            tr("Unsaved Changes"),
-            tr("Do you want to save changes to %1?").arg(filename),
-            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-            QMessageBox::Save
-        );
+        const auto reply = dialogs::MessageDialog::ask(
+            this, tr("Unsaved Changes"), tr("Do you want to save changes to %1?").arg(filename),
+            tr("&Save"), tr("Do&n't Save"));
 
-        if (reply == QMessageBox::Save) {
+        if (reply == dialogs::MessageDialog::Answer::Accept) {
             // Save the project and every editor tab; whatever could not be saved (failed
             // or cancelled) keeps the window open with its changes
             if (!m_documentCoordinator || !m_documentCoordinator->saveAllChanges()) {
                 event->ignore();
                 return;
             }
-        } else if (reply == QMessageBox::Cancel) {
+        } else if (reply == dialogs::MessageDialog::Answer::Cancel) {
             event->ignore();
             return;
         }
-        // Discard -> continue with close
+        // Don't Save -> continue with close
     }
 
     // Phase F: Save Navigator expansion state before closing
@@ -1383,27 +1470,15 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 }
 
 // Helper methods (Task #00008)
-void MainWindow::setDirty(bool dirty) {
-    m_isDirty = dirty;
-    updateWindowTitle();
-}
-
 void MainWindow::updateWindowTitle() {
-    // OpenSpec #00038 Phase 7: Get file path from DocumentCoordinator
-    QString title = "Kalahari - ";
-
-    if (m_documentCoordinator && !m_documentCoordinator->currentFilePath().empty()) {
-        QString filename = QString::fromStdString(m_documentCoordinator->currentFilePath().filename().string());
-        title += filename;
+    // The open book, as when it is opened: "Rain - Kalahari"; without a book, the name of
+    // the program alone, as when a book is closed
+    const auto& pm = core::ProjectManager::getInstance();
+    if (pm.isProjectOpen() && pm.book() && !pm.book()->title.isEmpty()) {
+        setWindowTitle(pm.book()->title + QStringLiteral(" - Kalahari"));
     } else {
-        title += "Untitled";
+        setWindowTitle(QStringLiteral("Kalahari"));
     }
-
-    if (m_isDirty) {
-        title = "Kalahari - *" + title.mid(11);  // Insert "*" after "Kalahari - "
-    }
-
-    setWindowTitle(title);
 }
 
 void MainWindow::toggleFullScreen() {
@@ -1435,8 +1510,6 @@ void MainWindow::toggleFullScreen() {
     // This synchronizes the QAction's checked state with actual window state
     CommandRegistry::getInstance().updateActionState("view.fullScreen");
 }
-
-// NOTE: getPhase0Content and setPhase0Content moved to DocumentCoordinator (OpenSpec #00038 Phase 7)
 
 EditorPanel* MainWindow::getCurrentEditor() {
     // Task #00015: Get active EditorPanel tab (or nullptr)
@@ -1617,6 +1690,10 @@ void MainWindow::showEvent(QShowEvent* event) {
         if (!windowState.isEmpty() && !toolbarResetNeeded) {
             // Normal case: restore saved window state (includes toolbar positions)
             restoreState(windowState);
+        } else if (const QScreen* screen = this->screen()) {
+            // No saved layout (the first start, or the toolbars were reset): a small screen
+            // gets a layout that leaves the text room
+            m_dockCoordinator->fitFirstLayout(screen->availableGeometry());
         }
 
         // Task #00019: Restore toolbar state (visibility)
@@ -1643,11 +1720,16 @@ void MainWindow::showEvent(QShowEvent* event) {
         // OpenSpec #00038 Phase 7: Use DocumentCoordinator for file operations
         auto& settingsManager = core::SettingsManager::getInstance();
         bool autoLoad = settingsManager.get<bool>("startup.autoLoadLastProject", false);
-        if (autoLoad) {
-            auto& recentManager = core::RecentBooksManager::getInstance();
-            QStringList recentFiles = recentManager.getRecentFiles();
-            if (!recentFiles.isEmpty()) {
-                QString lastFile = recentFiles.first();
+        if (!m_startupFile.isEmpty()) {
+            // The file of the command line takes the place of the last book
+            logger.info("Opening the file of the command line: {}", m_startupFile.toStdString());
+            QTimer::singleShot(100, this, [this, file = m_startupFile]() {
+                if (m_documentCoordinator) m_documentCoordinator->onOpenRecentFile(file);
+            });
+        } else if (autoLoad) {
+            // The book opened last, not one created or imported without opening since
+            const QString lastFile = core::RecentBooksManager::getInstance().lastOpenedBook();
+            if (!lastFile.isEmpty()) {
                 logger.info("Auto-loading last project: {}", lastFile.toStdString());
                 // Use QTimer::singleShot to defer opening after window is fully shown
                 QTimer::singleShot(100, this, [this, lastFile]() {

@@ -9,15 +9,22 @@
 #include <QObject>
 #include <QString>
 #include <QMap>
+#include <QList>
+#include <QSet>
 #include <functional>
 #include <optional>
 
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_registry.h"
+
 class QTabWidget;
 class QStatusBar;
+class QTimer;
 
 namespace kalahari {
 namespace core {
-    class Document;
+    struct ProjectElement;
+    struct UnassignedFile;
 }
 
 namespace editor {
@@ -25,6 +32,10 @@ namespace editor {
 }
 
 namespace gui {
+
+namespace dialogs {
+    enum class NewElementKind;
+}
 
 class NavigatorPanel;
 class PropertiesPanel;
@@ -88,14 +99,28 @@ public:
     /// @param elementId Element ID whose changes should be discarded
     ///
     /// Clears the chapter dirty state everywhere so nothing goes stale:
-    /// - the model BookElement dirty flag (single source of truth)
+    /// - the unsaved text ProjectManager keeps (single source of truth)
     /// - the m_dirtyChapters display cache
     /// - the navigator "*" indicator (via chapterDirtyStateChanged)
-    /// Does NOT persist any content. Used by the tab-close discard path.
+    /// Does NOT persist any content. Used by the tab-close discard path, and when the text
+    /// of the chapter's tab is the saved text again.
     void discardChapterChanges(const QString& elementId);
 
     /// @brief Clear current element ID (on project close)
     void clearCurrentElement() { m_currentElementId.clear(); }
+
+    /// @brief Give ProjectManager the words of the chapters changed in their tabs since they
+    /// were counted, for the counts of the book, and show them in the Properties panel
+    ///
+    /// A change in a chapter's editor does it a moment after the last change.
+    void countWords();
+
+    /// @brief Refresh navigator with the open project, keeping its expanded items
+    void refreshNavigator();
+
+    /// @brief Show the title of element @p elementId on its open tab, with the "*" of its
+    /// unsaved changes
+    void refreshTabTitle(const QString& elementId);
 
     // =========================================================================
     // Statistics Integration (OpenSpec #00042 Task 7.7)
@@ -112,6 +137,19 @@ public:
     /// @return Pointer to StatisticsCollector, or nullptr if not set
     editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector; }
 
+    /// @brief What New File made with a book open
+    struct NewFile {
+        /// What it is
+        enum class Made {
+            Nothing,      ///< The writer cancelled, or it could not be made
+            Element,      ///< An element of the book, open in the editor
+            BookFile,     ///< An empty text file of the book outside its text, open in the editor
+            OutsideFile,  ///< An empty text file outside the book, which the caller opens
+        };
+        Made made = Made::Nothing;
+        QString title;  ///< Its title
+    };
+
 public slots:
     /// @brief Handle element selection in navigator
     /// @param elementId Element ID of selected item
@@ -123,10 +161,33 @@ public slots:
     /// @param currentTitle Current title (for edit dialog)
     void onRequestRename(const QString& elementId, const QString& currentTitle);
 
-    /// @brief Handle delete request from navigator
+    /// @brief Delete an element from the book, with the elements inside it, after asking
+    ///
+    /// The window lists what goes and says where the files go: by default they stay in the
+    /// book's folder, with the changes of their open tabs, and the Navigator lists them under
+    /// "Unassigned Files"; the writer can delete them too, to the system's Trash, or for good
+    /// from a folder without one.
     /// @param elementId Element ID to delete
-    /// @param elementType Type of element (for confirmation message)
-    void onRequestDelete(const QString& elementId, const QString& elementType);
+    void onRequestDelete(const QString& elementId);
+
+    /// @brief Show the text of a file of "Unassigned Files", read-only; from there the writer
+    /// can add it to the book or delete it
+    /// @param file The file, relative to the project folder
+    void onRequestPreviewUnassigned(const QString& file);
+
+    /// @brief Add a file of "Unassigned Files" to the book, as a new element of the kind, with
+    /// the title and at the place the writer chooses; it takes the status and the notes of
+    /// the file
+    /// @param file The file, relative to the project folder
+    void onRequestAddUnassigned(const QString& file);
+
+    /// @brief Delete a file of "Unassigned Files" after asking: to the system's Trash, or for
+    /// good from a folder without one
+    /// @param file The file, relative to the project folder
+    void onRequestDeleteUnassigned(const QString& file);
+
+    /// @brief Delete all files of "Unassigned Files" after asking
+    void onRequestDeleteAllUnassigned();
 
     /// @brief Handle move request from navigator
     /// @param elementId Element ID to move
@@ -142,30 +203,58 @@ public slots:
     void onRequestSectionProperties(const QString& sectionType);
 
     /// @brief Handle part properties request from navigator
-    /// @param partId Part ID
+    /// @param partId Group (part) ID
     void onRequestPartProperties(const QString& partId);
 
-    /// @brief Handle chapter reorder from navigator drag & drop
-    /// @param partId Part containing the chapter
-    /// @param fromIndex Original index
-    /// @param toIndex New index
-    void onChapterReordered(const QString& partId, int fromIndex, int toIndex);
+    /// @brief Move an element to another place of its list: Move to Start, Move to End
+    /// @param elementId Element ID
+    /// @param index Its new index in its list
+    void onElementMoved(const QString& elementId, int index);
 
-    /// @brief Handle part reorder from navigator drag & drop
-    /// @param fromIndex Original index
-    /// @param toIndex New index
-    void onPartReordered(int fromIndex, int toIndex);
+    /// @brief Ask for a new place of an element in the book in the Move dialog, and move it
+    /// there with the elements inside it; saves the .klh file
+    /// @param elementId Element ID
+    void onRequestMoveTo(const QString& elementId);
+
+    /// @brief Move an element dragged in the Navigator to another place of the book, with the
+    /// elements inside it; saves the .klh file
+    /// @param elementId Element ID
+    /// @param place Its new place, in the book without it
+    void onElementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place);
 
     /// @brief Handle add chapter request from navigator context menu
-    /// @param partId Part ID to add chapter to
-    void onRequestAddChapter(const QString& partId);
+    /// @param groupId Group (part) to add the chapter to; empty: the body of the book
+    void onRequestAddChapter(const QString& groupId);
 
     /// @brief Handle add part request from navigator context menu
     void onRequestAddPart();
 
-    /// @brief Handle add item request from navigator context menu (front/back matter)
+    /// @brief Handle add item request from navigator context menu (front/back section)
     /// @param sectionType Section type ("front_matter" or "back_matter")
     void onRequestAddItem(const QString& sectionType);
+
+    /// @brief New File with a book open: a new element of the kind, with the title and at the
+    /// place the writer chooses in the New File window, or an empty text file of the book
+    /// outside its text (in "Other Files"), which opens in the editor; saves the .klh file. An
+    /// empty text file outside the book is the caller's to open in a tab of its own.
+    /// @param untitled Title of an empty text file the window proposes
+    NewFile onRequestNewFile(const QString& untitled);
+
+    /// @brief Show the sections of the book in the Navigator, or hide them; saves the .klh
+    /// file
+    /// @param shown Whether the Navigator shows the sections
+    void onRequestShowSections(bool shown);
+
+    /// @brief Show the sections of the book in the Navigator or not, and name them; saves the
+    /// .klh file, and refreshes the Navigator and the Properties panel
+    /// @param sections Whether the Navigator shows the sections, and their names
+    void onRequestSections(const kalahari::core::BookSections& sections);
+
+    /// @brief Ask for a new name of a section of the book and give it; saves the .klh file
+    ///
+    /// The section gets the writer's own name, and the other two keep the names they have.
+    /// @param sectionType "section_frontmatter", "section_body" or "section_backmatter"
+    void onRequestRenameSection(const QString& sectionType);
 
 signals:
     /// @brief Emitted when an element is selected/opened
@@ -188,8 +277,44 @@ private:
     /// @return Active EditorPanel or nullptr if not an editor tab
     EditorPanel* getCurrentEditor() const;
 
-    /// @brief Refresh navigator with current document
-    void refreshNavigator();
+    /// @brief Close the editor tabs of @p element and of the elements inside it
+    void closeTabsOf(const core::ProjectElement& element);
+
+    /// @brief The tab @p editor of element @p elementId and the Navigator show whether its
+    /// text differs from the saved text; back to the saved text, it has no changes to keep
+    void showChapterModified(const QString& elementId, EditorPanel* editor, bool modified);
+
+    /// @brief Write the unsaved text of @p element and of the elements inside it to their
+    /// chapter files, with the changes of their open tabs; a tab whose text is written no
+    /// longer shows changes. The files get the titles, the statuses and the notes of the
+    /// elements, for the files that stay when the elements leave the book.
+    /// @return The elements whose text could not be written: @p element or elements inside it
+    QList<const core::ProjectElement*> saveTextsOf(const core::ProjectElement& element);
+
+    /// @brief Delete @p files: to the system's Trash when @p trash, else for good
+    ///
+    /// When the Trash does not take a file, the writer chooses whether it goes for good; the
+    /// writer is told about the files that could not be deleted.
+    /// @param forGood Set to whether a file was deleted for good; nullptr: not wanted
+    /// @return The files that are still on the disk
+    QStringList deleteFiles(const QStringList& files, bool trash, bool* forGood = nullptr);
+
+    /// @brief Ask whether to delete @p files of "Unassigned Files", and delete them
+    void deleteUnassigned(const QList<core::UnassignedFile>& files);
+
+    /// @brief Move element @p elementId to @p place of the book without it, and show it there;
+    /// the writer is told when the book cannot be saved
+    void moveElementTo(const QString& elementId, const core::ElementPlace& place);
+
+    /// @brief Ask for a new element and add it at the end of @p place of the book, or of
+    /// group @p groupId
+    /// @param dialogKind What the element is, for the dialog
+    /// @param kinds Kinds it can have, in the order the dialog offers them
+    /// @param current The kind chosen at the start; the first one when it is not one of them
+    /// @param groupTitle Title of group @p groupId, for the dialog
+    void addElement(dialogs::NewElementKind dialogKind, const QList<core::KindRef>& kinds,
+                    const core::KindRef& current, core::BookPlace place,
+                    const QString& groupId, const QString& groupTitle);
 
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;
@@ -204,6 +329,12 @@ private:
 
     /// @brief Statistics collector for editor panels (OpenSpec #00042 Task 7.7)
     editor::StatisticsCollector* m_statisticsCollector{nullptr};
+
+    /// @brief Counts the words of the changed chapters a moment after the last change
+    QTimer* m_wordCountTimer{nullptr};
+
+    /// @brief Chapters changed since their words were counted
+    QSet<QString> m_uncountedChapters;
 };
 
 } // namespace gui
