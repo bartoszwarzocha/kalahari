@@ -28,7 +28,6 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/standalone_file.h"
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/buffer_commands.h"
 #include "kalahari/editor/style_resolver.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QMainWindow>
@@ -1358,12 +1357,8 @@ void DocumentCoordinator::showTextOfFile(EditorPanel* editor, const QString& pat
                                          path.toStdString(), error.toStdString());
         return;
     }
-    editor::BookEditor* bookEditor = editor->getBookEditor();
-    const int place = editor::calculateAbsolutePosition(bookEditor->textDocument(),
-                                                        bookEditor->cursorPosition());
-    bookEditor->replaceWithKml(kml);
-    bookEditor->setCursorPosition(
-        editor::absoluteToCursorPosition(bookEditor->textDocument(), place));
+    // The same text: the cursor and the view stay at it
+    editor->getBookEditor()->replaceMarkupWithKml(kml);
 }
 
 bool DocumentCoordinator::saveStandaloneFileAs(EditorPanel* editor) {

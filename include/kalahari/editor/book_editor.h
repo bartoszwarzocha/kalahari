@@ -120,6 +120,17 @@ public:
     /// the new text. KML that is not well-formed gives the text read before the error.
     void replaceWithKml(const QString& kml);
 
+    /// @brief Replace the document content with the same text in other KML markup, as one
+    ///        edit, the cursor and the view staying at their text
+    /// @param kml The KML of the same characters, one for one, as the current content, such
+    ///        as the text a plain text file keeps (a line break may become the end of a
+    ///        paragraph)
+    ///
+    /// As replaceWithKml(), but the cursor stays at its character and the text at the top of
+    /// the view stays there: the text and the cursor did not change, so the view does not go
+    /// to the cursor.
+    void replaceMarkupWithKml(const QString& kml);
+
     /// @brief Whether the content differs from the saved content: the one loaded by
     ///        fromKml(), or the one marked with setUnmodified()
     ///
@@ -1326,6 +1337,13 @@ private:
     /// the view at most (typewriter scrolling, a view mode): a cursor scrolled out of the view
     /// stays out of it.
     bool isCursorLineInView() const;
+
+    /// @brief Scroll so that the line of @p position has its top at @p top of the view
+    ///        (widget coordinates)
+    ///
+    /// Placing the line can bring paragraphs with estimated heights into view, and laying
+    /// them out moves it, so a few rounds.
+    void placeLineAt(const CursorPosition& position, double top);
 
     /// @brief The scroll position that shows the end of the text: the last line with the
     ///        page's bottom margin below it

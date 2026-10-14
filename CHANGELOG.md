@@ -519,7 +519,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the theme), a zoom or moving the window to a screen of another pixel density; Whole Page
   went to the cursor's page also with typewriter scrolling off. The view now stays where it
   is: typewriter scrolling places the cursor line only while it is in the view, and Whole
-  Page shows the page in the middle of the view when the cursor is out of it. Typing, the
+  Page shows the page in the middle of the view when the cursor is out of it. A file saved as
+  plain text keeps the view at its text, too, when its tab loses the formatting. Typing, the
   keys, a search and going to a place still bring the view to the cursor.
 
 - **The Dashboard's option to open the last book** - 2026-10-13. Changed in the Settings

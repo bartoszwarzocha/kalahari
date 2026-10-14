@@ -168,17 +168,8 @@ void BookEditor::setViewMode(ViewMode mode)
             const bool caretShown = isCursorLineInView();
             m_renderPipeline->setConfigViewMode(mode);
             updateScrollBarRange();
-            // Placing the line can bring paragraphs with estimated heights into view, and
-            // laying them out moves it, so a few rounds
-            for (int round = 0; caretShown && round < MAX_CURSOR_PLACING_ROUNDS; ++round) {
-                m_renderPipeline->ensureVisibleLaidOut();
-                const QRectF caret = m_renderPipeline->caretRect(m_cursorPosition);
-                const double shift =
-                    (caret.top() - caretBefore.top()) / m_viewportManager->viewScale();
-                if (caret.isNull() || std::abs(shift) < 0.5) {
-                    break;
-                }
-                setScrollOffset(scrollOffset() + shift);
+            if (caretShown) {
+                placeLineAt(m_cursorPosition, caretBefore.top());
             }
         }
         updateScrollBarRange();
@@ -438,6 +429,22 @@ bool BookEditor::isCursorLineInView() const
     }
     const QRectF caret = m_renderPipeline->caretRect(m_cursorPosition);
     return !caret.isNull() && caret.bottom() > 0.0 && caret.top() < static_cast<double>(height());
+}
+
+void BookEditor::placeLineAt(const CursorPosition& position, double top)
+{
+    if (!m_renderPipeline || !m_viewportManager) {
+        return;
+    }
+    for (int round = 0; round < MAX_CURSOR_PLACING_ROUNDS; ++round) {
+        m_renderPipeline->ensureVisibleLaidOut();
+        const QRectF line = m_renderPipeline->caretRect(position);
+        const double shift = (line.top() - top) / m_viewportManager->viewScale();
+        if (line.isNull() || std::abs(shift) < 0.5) {
+            break;
+        }
+        setScrollOffset(scrollOffset() + shift);
+    }
 }
 
 void BookEditor::updatePageInfo()
