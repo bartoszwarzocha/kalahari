@@ -169,24 +169,25 @@ void ToolbarManager::initializeConfigs() {
         {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.search", "view.assistant", "view.annotations", "view.log"}
     };
 
-    // Tools Toolbar: the checking as you type together, as in the Tools menu
+    // Tools Toolbar: the switches of the text as you type together, as in the Tools menu
     m_configs["tools"] = {
         "tools",
         QT_TRANSLATE_NOOP("QObject", "&Tools Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
-        {"tools.spellcheck", "tools.grammar", "tools.stats.wordCount"}
+        {"tools.spellcheck", "tools.grammar", "tools.autocorrect", "tools.stats.wordCount"}
     };
 
-    // Views Toolbar: the view modes, the switches on top of them (and the paper) and the zoom,
-    // as in the View menu
+    // Views Toolbar: the view modes, the switches on top of them (and the paper and the text
+    // frame border) and the zoom, as in the View menu
     m_configs["views"] = {
         "views",
         QT_TRANSLATE_NOOP("QObject", "&Views Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"view.mode.continuous", "view.mode.page", SEPARATOR_ID,
-         "view.mode.distraction-free", "view.focus", "view.typewriter", "view.darkPaper", SEPARATOR_ID,
+         "view.mode.distraction-free", "view.focus", "view.typewriter", "view.darkPaper",
+         "view.textFrameBorder", SEPARATOR_ID,
          "view.zoomOut", "view.zoomIn", "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}
     };
 

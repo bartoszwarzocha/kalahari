@@ -16,6 +16,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -23,11 +24,14 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSpinBox>
 #include <QStackedWidget>
+#include <QTranslator>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
+#include <optional>
 #include <vector>
 
 using namespace kalahari::gui;
@@ -104,6 +108,48 @@ ColorConfigWidget* colorWidget(SettingsDialog& dialog, const QString& toolTip) {
     return nullptr;
 }
 
+/// The layouts of a shown window settle
+void settle() {
+    for (int pass = 0; pass < 3; ++pass) {
+        QApplication::processEvents();
+    }
+}
+
+/// The program in Polish while it lives: the translation it ships
+class Polish {
+public:
+    Polish() {
+        m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
+        if (m_loaded) {
+            QCoreApplication::installTranslator(&m_translator);
+        }
+    }
+    ~Polish() { QCoreApplication::removeTranslator(&m_translator); }
+    Polish(const Polish&) = delete;
+    Polish& operator=(const Polish&) = delete;
+
+    [[nodiscard]] bool loaded() const { return m_loaded; }
+
+private:
+    QTranslator m_translator;
+    bool m_loaded = false;
+};
+
+/// The program's style (Fusion, on every system) while it lives, then the system's style again
+class ProgramStyle {
+public:
+    ProgramStyle()
+        : m_systemStyle(QApplication::style()->name()) {
+        QApplication::setStyle(QStringLiteral("Fusion"));
+    }
+    ~ProgramStyle() { QApplication::setStyle(m_systemStyle); }
+    ProgramStyle(const ProgramStyle&) = delete;
+    ProgramStyle& operator=(const ProgramStyle&) = delete;
+
+private:
+    QString m_systemStyle;
+};
+
 void clearThemeColors(const std::string& theme) {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     settings.clearCustomPaletteColorsForTheme(theme);
@@ -129,7 +175,10 @@ TEST_CASE("Settings dialog: pages are built when first opened", "[gui][settings]
 TEST_CASE("Settings dialog: no page squeezes its groups", "[gui][settings]") {
     // Regression: the dialog kept its size whatever a page needed, so the groups of
     // Editor > Pages and Margins were squeezed until their fields overlapped, and the
-    // description of Editor > General > Typewriter Scrolling was cut off
+    // description of Editor > General > Typewriter Scrolling was cut off. In the program's
+    // style (Fusion) on every system: in the macOS style a group whose fields go under their
+    // labels in a narrow window measures a height that depends on the widths measured before
+    ProgramStyle programStyle;
     SettingsDialog dialog(nullptr);
     dialog.resize(dialog.minimumSize());
     dialog.show();
@@ -160,6 +209,46 @@ TEST_CASE("Settings dialog: no page squeezes its groups", "[gui][settings]") {
         INFO("page " << index << ": " << page->height() << " px high, needs " << needed);
         CHECK(page->height() >= needed);
         CHECK(page->width() >= page->minimumSizeHint().width());
+    }
+}
+
+TEST_CASE("Settings dialog: every page fits the narrowest window, in English and in Polish",
+          "[gui][settings]") {
+    // The dialog narrowed as far as it goes, as on a small screen (1366x768 at 125% or 150%):
+    // a page may scroll down, never sideways. Regression: Editor > General, Pages and Margins
+    // and Keyboard Shortcuts were wider than the window in Polish, Keyboard Shortcuts also in
+    // English. In the program's style (Fusion) on every system
+    ProgramStyle programStyle;
+
+    for (const bool inPolish : {false, true}) {
+        INFO((inPolish ? "in Polish" : "in English"));
+        std::optional<Polish> polish;
+        if (inPolish) {
+            polish.emplace();
+            REQUIRE(polish->loaded());
+        }
+        SettingsDialog dialog(nullptr);
+        dialog.resize(dialog.minimumSize());
+        dialog.show();
+        auto* tree = dialog.findChild<QTreeWidget*>();
+        auto* stack = dialog.findChild<QStackedWidget*>();
+        REQUIRE(tree != nullptr);
+        REQUIRE(stack != nullptr);
+
+        int pages = 0;
+        for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+            INFO("page " << (*it)->text(0).toStdString());
+            tree->setCurrentItem(*it);
+            settle();
+            const auto* scrollArea = qobject_cast<QScrollArea*>(stack->currentWidget());
+            REQUIRE(scrollArea != nullptr);
+            REQUIRE(scrollArea->widget() != nullptr);
+            CHECK(scrollArea->widget()->minimumSizeHint().width() <=
+                  scrollArea->viewport()->width());
+            CHECK_FALSE(scrollArea->horizontalScrollBar()->isVisible());
+            ++pages;
+        }
+        CHECK(pages > 20);
     }
 }
 

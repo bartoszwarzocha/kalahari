@@ -10,18 +10,24 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/standalone_file.h>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/panels/editor_panel.h>
 
 #include "../core/other_program.h"
+#include "../editor/editor_test_utils.h"
 #include "document_window.h"
 
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QSize>
+#include <QStringList>
 #include <QTemporaryDir>
 #include <QTextDocument>
 #include <QTimer>
+
+#include <cmath>
 
 using namespace kalahari;
 using gui::dialogs::MessageDialog;
@@ -269,6 +275,39 @@ TEST_CASE("Save: a plain text file with formatting asks first, as it keeps the t
         CHECK(bookEditor->textDocument()->blockCount() == 2);
         CHECK(bookEditor->cursorPosition() == editor::CursorPosition{1, 2});
         CHECK_FALSE(tab->property("dirty").toBool());
+    }
+
+    SECTION("A long text: the view stays at its text, away from the cursor") {
+        // Regression: the tab went to the cursor when it lost the formatting, though the text
+        // and the cursor stayed
+        editor::BookEditor* bookEditor = tab->getBookEditor();
+        test::resizeWidget(*bookEditor, QSize(600, 400));
+        // The background pass done: the positions of the text are exact, not estimated, and
+        // scroll anchoring keeps the text at the top of the view while it corrects them
+        const auto layOutAll = [bookEditor]() {
+            qobject_cast<editor::KalahariTextDocumentLayout*>(
+                bookEditor->textDocument()->documentLayout())
+                ->layoutPendingBlocks();
+        };
+        QStringList lines;
+        for (int i = 0; i < 199; ++i) {
+            lines << QStringLiteral("Line %1 of the notes.").arg(i);
+        }
+        lines << QStringLiteral("<b>The last line.</b>");
+        bookEditor->replaceWithKml(test::kmlOf(lines));
+        layOutAll();
+        bookEditor->moveCursorToDocEnd();
+        bookEditor->setScrollOffset(1000.0);  // the wheel, up into the text
+        const double scroll = bookEditor->scrollOffset();
+        REQUIRE(scroll > 0.0);
+        const editor::CursorPosition cursor = bookEditor->cursorPosition();
+
+        CHECK(answering([&] { window.documents.onSaveDocument(); },
+                        MessageDialog::Answer::Accept, said) == 1);
+        CHECK_FALSE(core::StandaloneFile::lostAsText(tab->getContent()).formatting);
+        CHECK(bookEditor->cursorPosition() == cursor);
+        layOutAll();
+        CHECK(std::abs(bookEditor->scrollOffset() - scroll) < 0.5);
     }
 }
 

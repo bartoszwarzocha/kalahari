@@ -104,7 +104,7 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
         QString text = event->text();
         // Only handle printable characters
         if (!text.isEmpty() && text.at(0).isPrint()) {
-            insertText(text);
+            typeText(text);
             handled = true;
         }
     }
@@ -156,7 +156,7 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
         }
 
         // Insert committed text (this handles selection deletion too)
-        insertText(commitString);
+        typeText(commitString);
     }
 
     // Handle preedit text (composition in progress)

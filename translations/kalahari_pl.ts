@@ -480,6 +480,10 @@
         <translation>&amp;Ciemny papier</translation>
     </message>
     <message>
+        <source>Te&amp;xt Frame Border</source>
+        <translation>Ramka tekst&amp;u</translation>
+    </message>
+    <message>
         <source>&amp;Writer</source>
         <translation>&amp;Pisarz</translation>
     </message>
@@ -594,6 +598,10 @@
     <message>
         <source>Check S&amp;pelling as You Type</source>
         <translation>Sprawdzaj &amp;pisownię podczas pisania</translation>
+    </message>
+    <message>
+        <source>A&amp;uto-correct as You Type</source>
+        <translation>A&amp;utokorekta podczas pisania</translation>
     </message>
     <message>
         <source>&amp;New File...</source>
@@ -3345,6 +3353,59 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::AutoCorrectCoordinator</name>
+    <message>
+        <source>Auto-correct as you type: on</source>
+        <translation>Autokorekta podczas pisania: włączona</translation>
+    </message>
+    <message>
+        <source>Auto-correct as you type: off</source>
+        <translation>Autokorekta podczas pisania: wyłączona</translation>
+    </message>
+    <message>
+        <source>typographic quotes</source>
+        <translation>cudzysłowy drukarskie</translation>
+    </message>
+    <message>
+        <source>apostrophe ’</source>
+        <translation>apostrof ’</translation>
+    </message>
+    <message>
+        <source>dialogue dash –</source>
+        <translation>myślnik dialogowy –</translation>
+    </message>
+    <message>
+        <source>dialogue dash —</source>
+        <translation>myślnik dialogowy —</translation>
+    </message>
+    <message>
+        <source>ellipsis …</source>
+        <translation>wielokropek …</translation>
+    </message>
+    <message>
+        <source>No replacement is chosen</source>
+        <translation>Żadna zamiana nie jest wybrana</translation>
+    </message>
+    <message>
+        <source>Off. No replacement is chosen</source>
+        <translation>Wyłączona. Żadna zamiana nie jest wybrana</translation>
+    </message>
+    <message>
+        <source>Active replacements: %1</source>
+        <extracomment>%1 is the list of the replacements, as "typographic quotes, ellipsis …"</extracomment>
+        <translation>Aktywne zamiany: %1</translation>
+    </message>
+    <message>
+        <source>Off. When turned on: %1</source>
+        <extracomment>%1 is the list of the replacements, as "typographic quotes, ellipsis …"</extracomment>
+        <translation>Wyłączona. Po włączeniu: %1</translation>
+    </message>
+    <message>
+        <source>The replacements are chosen in Edit &gt; Settings..., group Editor &gt; Auto-correct.</source>
+        <translation>Wybór zamian: Edycja &gt; Ustawienia..., grupa Edytor &gt; Autokorekta.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::ColorConfigWidget</name>
     <message>
         <source>Click to select color</source>
@@ -4169,6 +4230,62 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     </message>
 </context>
 <context>
+    <name>kalahari::gui::EditorAutoCorrectPage</name>
+    <message>
+        <source>Replace as You Type</source>
+        <translation>Zamieniaj podczas pisania</translation>
+    </message>
+    <message>
+        <source>Auto-correct as you type</source>
+        <translation>Autokorekta podczas pisania</translation>
+    </message>
+    <message>
+        <source>Straight quotes with typographic ones</source>
+        <translation>Cudzysłowy proste na drukarskie</translation>
+    </message>
+    <message>
+        <source>Apostrophe &apos; with ’</source>
+        <translation>Apostrof &apos; na ’</translation>
+    </message>
+    <message>
+        <source>Hyphen opening a paragraph with a dash</source>
+        <translation>Dywiz na początku akapitu na myślnik</translation>
+    </message>
+    <message>
+        <source>Em Dash (—)</source>
+        <translation>Pauza (—)</translation>
+    </message>
+    <message>
+        <source>En Dash (–)</source>
+        <translation>Półpauza (–)</translation>
+    </message>
+    <message>
+        <source>Dialogue dash:</source>
+        <translation>Myślnik dialogowy:</translation>
+    </message>
+    <message>
+        <source>“...” with an ellipsis “…”</source>
+        <translation>„...” na wielokropek „…”</translation>
+    </message>
+    <message>
+        <source>The quotation marks follow the language of the book: „…” and ‚…’ in Polish, “…” and ‘…’ in English. Outside the book, as in a file opened from the disk, they follow the language of the program. A language chosen on the Spelling page goes before both. The hyphen becomes a dash when a space is typed after it.</source>
+        <translation>Cudzysłowy są dobierane do języka książki: po polsku „…” i ‚…’, po angielsku “…” i ‘…’. Poza książką, na przykład w pliku otwartym z dysku, decyduje język programu. Język wybrany na stronie Pisownia ma pierwszeństwo przed obydwoma. Dywiz zamienia się w myślnik, gdy wpiszesz po nim spację.</translation>
+    </message>
+    <message>
+        <source>Tools &gt; Auto-correct as You Type, also a button on the Tools toolbar, turns all the replacements on and off at once; the choices above stay.</source>
+        <translation>Narzędzia &gt; Autokorekta podczas pisania, także przycisk na pasku narzędzi „Narzędzia”, włącza i wyłącza wszystkie zamiany naraz; wybór powyżej zostaje.</translation>
+    </message>
+    <message>
+        <source>%1 right after a replacement undoes just the replacement.</source>
+        <extracomment>%1 is the keys of Edit &gt; Undo, as Ctrl+Z</extracomment>
+        <translation>%1 zaraz po zamianie cofa samą zamianę.</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Undo right after a replacement undoes just the replacement.</source>
+        <translation>Edycja &gt; Cofnij zaraz po zamianie cofa samą zamianę.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::EditorColorsPage</name>
     <message>
         <source>Configure editor colors for light and dark mode.
@@ -4387,8 +4504,8 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Liczenie słów</translation>
     </message>
     <message>
-        <source>Count standalone dialogue dashes as words</source>
-        <translation>Licz samodzielne myślniki dialogowe jako słowa</translation>
+        <source>Count standalone dashes as words</source>
+        <translation>Licz samodzielne myślniki jako słowa</translation>
     </message>
     <message>
         <source>A dash separated by spaces from the words around it, as at the start of a line of dialogue. Microsoft Word counts it as a word, LibreOffice does not.</source>
@@ -5728,6 +5845,14 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Ciemny papier: wyłączony</translation>
     </message>
     <message>
+        <source>Text frame border: on</source>
+        <translation>Ramka tekstu: włączona</translation>
+    </message>
+    <message>
+        <source>Text frame border: off</source>
+        <translation>Ramka tekstu: wyłączona</translation>
+    </message>
+    <message>
         <source>Unsaved Changes</source>
         <translation>Niezapisane zmiany</translation>
     </message>
@@ -6776,16 +6901,6 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
     <message>
         <source>Coming in future version</source>
         <translation>Dostępne w przyszłej wersji</translation>
-    </message>
-    <message>
-        <source>Planned features:
-- Automatic capitalization
-- Common typo corrections
-- Custom replacement rules</source>
-        <translation>Planowane funkcje:
-- automatyczne wielkie litery
-- poprawianie częstych literówek
-- własne reguły zamiany</translation>
     </message>
     <message>
         <source>Planned features:

@@ -131,6 +131,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("tools.spellcheck", "resources/icons/twotone/spellcheck.svg", "Spellcheck");
     iconRegistry.registerIcon("tools.nextMisspelling", "resources/icons/twotone/fact_check.svg", "Next Misspelling");
     iconRegistry.registerIcon("tools.grammar", "resources/icons/twotone/grading.svg", "Grammar Check");
+    iconRegistry.registerIcon("tools.autocorrect", "resources/icons/twotone/auto_fix_normal.svg", "Auto-correct");
     iconRegistry.registerIcon("tools.backupNow", "resources/icons/twotone/backup.svg", "Backup Now");
     iconRegistry.registerIcon("tools.autoSaveSettings", "resources/icons/twotone/sync.svg", "Auto-Save Settings");
     iconRegistry.registerIcon("tools.versionHistory", "resources/icons/twotone/history.svg", "Version History");
@@ -190,6 +191,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.focus", "resources/icons/twotone/center_focus_strong.svg", "Focus");
     iconRegistry.registerIcon("view.typewriter", "resources/icons/twotone/keyboard_alt.svg", "Typewriter Scrolling");
     iconRegistry.registerIcon("view.darkPaper", "resources/icons/twotone/contrast_square.svg", "Dark Paper");
+    iconRegistry.registerIcon("view.textFrameBorder", "resources/icons/twotone/text_frame.svg", "Text Frame Border");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
 
