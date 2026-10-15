@@ -12,6 +12,7 @@
 #include "editor_test_utils.h"
 #include "../benchmarks/test_document_generator.h"
 
+#include <QAction>
 #include <QContextMenuEvent>
 #include <QElapsedTimer>
 #include <QKeyEvent>
@@ -322,7 +323,8 @@ TEST_CASE("Spelling: the paragraphs in view are checked first", "[editor][spelli
 // From the keyboard
 // =============================================================================
 
-TEST_CASE("Spelling: Next Misspelling selects the misspelled words in turn, round the text",
+TEST_CASE("Spelling: Next Spelling or Grammar Issue selects the misspelled words in turn, "
+          "round the text",
           "[editor][spelling]") {
     auto spelling = englishService();
     auto editor = shownEditor({QStringLiteral("The speling is bad."),
@@ -332,59 +334,59 @@ TEST_CASE("Spelling: Next Misspelling selects the misspelled words in turn, roun
 
     SECTION("in turn, the paragraphs not checked yet checked on the way") {
         editor->setCursorPosition({0, 0});
-        REQUIRE(editor->goToNextMisspelling());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("speling"));
         CHECK(editor->cursorPosition() == CursorPosition{0, 11});
-        REQUIRE(editor->goToNextMisspelling());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("mistakke"));
-        REQUIRE(editor->goToNextMisspelling());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("anothr"));
 
         // After the last one, from the start of the text
-        REQUIRE(editor->goToNextMisspelling());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("speling"));
     }
 
     SECTION("the word the cursor is in comes first") {
         editor->setCursorPosition({2, 10});
-        REQUIRE(editor->goToNextMisspelling());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("mistakke"));
     }
 
     SECTION("before the cursor in its paragraph when back at it") {
         editor->setCursorPosition({2, 18});
-        REQUIRE(editor->goToNextMisspelling());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("anothr"));
-        REQUIRE(editor->goToNextMisspelling());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("speling"));
-        REQUIRE(editor->goToNextMisspelling());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("mistakke"));
     }
 
     SECTION("the word just typed counts") {
         editor->setCursorPosition({1, 14});
         type(*editor, QStringLiteral(" Erorr"));
-        REQUIRE(editor->goToNextMisspelling());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("Erorr"));
         CHECK(wavyWords(*editor, 1) == QStringList{"Erorr"});
     }
 
     SECTION("a word put right is passed over") {
         editor->setCursorPosition({0, 0});
-        REQUIRE(editor->goToNextMisspelling());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         editor->insertText(QStringLiteral("spelling"));
-        REQUIRE(editor->goToNextMisspelling());
+        REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("mistakke"));
     }
 
     SECTION("none in a text without misspelled words, or while the spelling is off") {
         editor->fromKml(kmlOf({QStringLiteral("All good here.")}));
-        CHECK_FALSE(editor->goToNextMisspelling());
+        CHECK(editor->goToNextIssue() == BookEditor::IssueSearch::NotFound);
         CHECK_FALSE(editor->hasSelection());
 
         editor->fromKml(kmlOf({QStringLiteral("One mistakke.")}));
         spelling->setEnabled(false);
-        CHECK_FALSE(editor->goToNextMisspelling());
+        CHECK(editor->goToNextIssue() == BookEditor::IssueSearch::NotFound);
         CHECK_FALSE(editor->hasSelection());
     }
 }
@@ -435,6 +437,65 @@ TEST_CASE("Spelling: the menu key and Shift+F10 offer what to put in place of th
     SECTION("F10 alone opens no menu") {
         const QStringList texts = runPopupMenu([&editor]() { pressKey(*editor, Qt::Key_F10); });
         CHECK(texts.isEmpty());
+    }
+}
+
+TEST_CASE("Spelling: the keys of Next Spelling or Grammar Issue go on to the next issue from "
+          "the menu",
+          "[editor][spelling]") {
+    auto spelling = englishService();
+    auto editor = shownEditor({QStringLiteral("The speling is bad."),
+                               QStringLiteral("Another mistakke.")},
+                              spelling.get());
+    REQUIRE(checked(*editor));
+
+    // The application's command with F7, going to the next issue
+    QAction next(QStringLiteral("Next Spelling or Grammar Issue"));
+    next.setShortcut(QKeySequence(Qt::Key_F7));
+    int runs = 0;
+    QObject::connect(&next, &QAction::triggered, [&runs, &editor]() {
+        ++runs;
+        editor->goToNextIssue();
+    });
+    editor->setNextIssueAction(&next);
+    editor->setCursorPosition({0, 0});
+    REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
+    REQUIRE(editor->selectedText() == QStringLiteral("speling"));
+
+    SECTION("F7 in the menu of a word: the menu closes and the next word is selected") {
+        const PopupMenuKey f7(Qt::Key_F7);
+        pressMenuKey(*editor);
+        REQUIRE(f7.menusShown() == 1);
+        CHECK(f7.keyTaken());
+        CHECK_FALSE(f7.stayedOpen());
+        REQUIRE(waitUntil([&runs]() { return runs > 0; }));
+        CHECK(runs == 1);
+        CHECK(editor->selectedText() == QStringLiteral("mistakke"));
+    }
+
+    SECTION("the keys the writer gave the command instead") {
+        next.setShortcut(QKeySequence(Qt::Key_F8));
+        {
+            const PopupMenuKey f7(Qt::Key_F7);
+            pressMenuKey(*editor);
+            CHECK(f7.stayedOpen());
+        }
+        CHECK_FALSE(waitUntil([&runs]() { return runs > 0; }, 100));
+        const PopupMenuKey f8(Qt::Key_F8);
+        pressMenuKey(*editor);
+        CHECK_FALSE(f8.stayedOpen());
+        REQUIRE(waitUntil([&runs]() { return runs > 0; }));
+        CHECK(editor->selectedText() == QStringLiteral("mistakke"));
+    }
+
+    SECTION("another key leaves the menu open") {
+        const PopupMenuKey f6(Qt::Key_F6);
+        pressMenuKey(*editor);
+        REQUIRE(f6.menusShown() == 1);
+        CHECK_FALSE(f6.keyTaken());
+        CHECK(f6.stayedOpen());
+        CHECK_FALSE(waitUntil([&runs]() { return runs > 0; }, 100));
+        CHECK(editor->selectedText() == QStringLiteral("speling"));
     }
 }
 

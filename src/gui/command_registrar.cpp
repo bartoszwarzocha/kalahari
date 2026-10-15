@@ -467,11 +467,25 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       nullptr);
 
-    // Selects the next misspelled word and offers what to put in its place (SpellingCoordinator)
-    REG_CMD_KEY("tools.nextMisspelling", QT_TRANSLATE_NOOP("CommandRegistrar", "&Next Misspelling"), "TOOLS/Next Misspelling", 45, false, 0,
+    // Selects the next misspelled word or grammar issue and offers what to put in its place
+    // (SpellingCoordinator)
+    REG_CMD_KEY("tools.nextMisspelling", QT_TRANSLATE_NOOP("CommandRegistrar", "&Next Spelling or Grammar Issue"), "TOOLS/Next Spelling or Grammar Issue", 45, false, 0,
                 KeyboardShortcut(Qt::Key_F7, Qt::NoModifier));
 
-    REG_CMD("tools.grammar", QT_TRANSLATE_NOOP("CommandRegistrar", "&Grammar Check"), "TOOLS/Grammar Check", 50, false, 2);
+    // Turns the grammar as you type on and off (GrammarCoordinator gives it its callbacks); on
+    // the Tools toolbar right after the spelling
+    REG_CMD_TOOL_ICON("tools.grammar", QT_TRANSLATE_NOOP("CommandRegistrar", "Check &Grammar as You Type"), "TOOLS/Check Grammar as You Type", 50, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      nullptr);
+
+    // Turns auto-correct on and off as a whole (AutoCorrectCoordinator gives it its callback);
+    // on the Tools toolbar after the checking of the text
+    REG_CMD_TOOL_ICON("tools.autocorrect", QT_TRANSLATE_NOOP("CommandRegistrar", "A&uto-correct as You Type"), "TOOLS/Auto-correct as You Type", 55, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      nullptr);
+
     REG_CMD("tools.readability", QT_TRANSLATE_NOOP("CommandRegistrar", "&Readability Score"), "TOOLS/Readability Score", 60, true, 2);
 
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Backup Now"), "TOOLS/Backup Now", 100, false, 2);
@@ -567,9 +581,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onFocusToggle);
 
-    // The light or dark paper of every editor, as in the editor's context menu
-    REG_CMD_CB("view.darkPaper", QT_TRANSLATE_NOOP("CommandRegistrar", "Dar&k Paper"), "VIEW/Dark Paper", 62, true, 0,
+    // The light or dark paper of every editor, as in the editor's context menu, and the
+    // border around the text of every editor, as in the Settings dialog
+    REG_CMD_CB("view.darkPaper", QT_TRANSLATE_NOOP("CommandRegistrar", "Dar&k Paper"), "VIEW/Dark Paper", 62, false, 0,
                callbacks.onDarkPaperToggle);
+    REG_CMD_CB("view.textFrameBorder", QT_TRANSLATE_NOOP("CommandRegistrar", "Te&xt Frame Border"), "VIEW/Text Frame Border", 63, true, 0,
+               callbacks.onTextFrameBorderToggle);
 
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writer"), "VIEW/Perspectives/Writer", 70, false, 1);

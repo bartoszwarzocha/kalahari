@@ -22,6 +22,7 @@ namespace gui {
 class DashboardPanel;
 class LogPanel;
 class DockCoordinator;
+class GrammarCoordinator;
 
 /// @brief Coordinates settings dialog and application
 ///
@@ -66,6 +67,9 @@ public:
     /// @brief The dictionary of the editors, whose own words the dialog edits
     void setSpellCheckService(editor::SpellCheckService* service);
 
+    /// @brief The grammar of the editors, which the dialog prepares and whose server it checks
+    void setGrammarCoordinator(GrammarCoordinator* grammar);
+
 public slots:
     /// @brief React to settings applied by the dialog, refreshing only what changed
     /// @param changedKeys Keys of the settings written
@@ -84,6 +88,7 @@ private:
     QStatusBar* m_statusBar;
     std::function<bool()> m_diagnosticModeGetter;
     editor::SpellCheckService* m_spellCheckService = nullptr;  ///< Not owned
+    GrammarCoordinator* m_grammarCoordinator = nullptr;        ///< Not owned
     bool m_languageChanged = false;  ///< UI language changed while the dialog was open
 
     /// @brief Offer to restart Kalahari so a new UI language takes effect

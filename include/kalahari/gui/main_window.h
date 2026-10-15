@@ -54,6 +54,7 @@ class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
 class EditCoordinator;
 class SpellingCoordinator;
+class GrammarCoordinator;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
 }
@@ -290,6 +291,9 @@ private slots:
     /// @brief Turn the dark paper of every editor on or off (remembered)
     void onDarkPaperToggle();
 
+    /// @brief Show or hide the border around the text of every editor (remembered)
+    void onTextFrameBorderToggle();
+
     /// @brief Turn Distraction-Free writing on or off (the view mode stays)
     void onDistractionFreeToggle();
 
@@ -367,6 +371,7 @@ private:
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
+    GrammarCoordinator* m_grammarCoordinator{nullptr};
 
     /// @brief Undo, Redo, Cut, Copy, Paste and Select All on the element with the keys
     EditCoordinator* m_editCoordinator{nullptr};

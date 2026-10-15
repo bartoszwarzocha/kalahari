@@ -340,16 +340,20 @@
         <translation>Wyczyść &amp;formatowanie</translation>
     </message>
     <message>
+        <source>&amp;Next Spelling or Grammar Issue</source>
+        <translation>&amp;Następny błąd pisowni lub gramatyki</translation>
+    </message>
+    <message>
+        <source>Check &amp;Grammar as You Type</source>
+        <translation>Sprawdzaj &amp;gramatykę podczas pisania</translation>
+    </message>
+    <message>
         <source>&amp;Full Statistics...</source>
         <translation>&amp;Pełne statystyki...</translation>
     </message>
     <message>
         <source>&amp;Word Count</source>
         <translation>&amp;Liczba słów</translation>
-    </message>
-    <message>
-        <source>&amp;Grammar Check</source>
-        <translation>Sprawdzanie &amp;gramatyki</translation>
     </message>
     <message>
         <source>&amp;Readability Score</source>
@@ -476,6 +480,10 @@
         <translation>&amp;Ciemny papier</translation>
     </message>
     <message>
+        <source>Te&amp;xt Frame Border</source>
+        <translation>Ramka tekst&amp;u</translation>
+    </message>
+    <message>
         <source>&amp;Writer</source>
         <translation>&amp;Pisarz</translation>
     </message>
@@ -592,8 +600,8 @@
         <translation>Sprawdzaj &amp;pisownię podczas pisania</translation>
     </message>
     <message>
-        <source>&amp;Next Misspelling</source>
-        <translation>&amp;Następny błąd pisowni</translation>
+        <source>A&amp;uto-correct as You Type</source>
+        <translation>A&amp;utokorekta podczas pisania</translation>
     </message>
     <message>
         <source>&amp;New File...</source>
@@ -1620,12 +1628,8 @@ Czy mimo to go usunąć?</translation>
         <translation>Przywrócić domyślną konfigurację wszystkich pasków narzędzi?</translation>
     </message>
     <message>
-        <source>Grammar Issue</source>
-        <translation>Problem gramatyczny</translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;%1&lt;/b&gt;&lt;br&gt;&lt;br&gt;%2&lt;br&gt;&lt;br&gt;&lt;i&gt;Rule: %3 (%4)&lt;/i&gt;</source>
-        <translation>&lt;b&gt;%1&lt;/b&gt;&lt;br&gt;&lt;br&gt;%2&lt;br&gt;&lt;br&gt;&lt;i&gt;Reguła: %3 (%4)&lt;/i&gt;</translation>
+        <source>Toolbar Manager</source>
+        <translation>Menedżer pasków narzędzi</translation>
     </message>
     <message>
         <source>Language Changed</source>
@@ -2759,19 +2763,11 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <translation>(Brak podpowiedzi)</translation>
     </message>
     <message>
-        <source>Error: &quot;%1&quot;</source>
-        <translation>Błąd: „%1”</translation>
-    </message>
-    <message>
         <source>Add t&amp;o Dictionary</source>
         <translation>Dodaj do &amp;słownika</translation>
     </message>
     <message>
-        <source>&amp;Explanation...</source>
-        <translation>&amp;Wyjaśnienie...</translation>
-    </message>
-    <message>
-        <source>&amp;Ignore this rule</source>
+        <source>&amp;Ignore This Rule</source>
         <translation>&amp;Pomijaj tę regułę</translation>
     </message>
     <message>
@@ -3354,6 +3350,59 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Panel asystenta
 🦁
 (Wersja tymczasowa – pełna wersja od fazy 2)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::AutoCorrectCoordinator</name>
+    <message>
+        <source>Auto-correct as you type: on</source>
+        <translation>Autokorekta podczas pisania: włączona</translation>
+    </message>
+    <message>
+        <source>Auto-correct as you type: off</source>
+        <translation>Autokorekta podczas pisania: wyłączona</translation>
+    </message>
+    <message>
+        <source>typographic quotes</source>
+        <translation>cudzysłowy drukarskie</translation>
+    </message>
+    <message>
+        <source>apostrophe ’</source>
+        <translation>apostrof ’</translation>
+    </message>
+    <message>
+        <source>dialogue dash –</source>
+        <translation>myślnik dialogowy –</translation>
+    </message>
+    <message>
+        <source>dialogue dash —</source>
+        <translation>myślnik dialogowy —</translation>
+    </message>
+    <message>
+        <source>ellipsis …</source>
+        <translation>wielokropek …</translation>
+    </message>
+    <message>
+        <source>No replacement is chosen</source>
+        <translation>Żadna zamiana nie jest wybrana</translation>
+    </message>
+    <message>
+        <source>Off. No replacement is chosen</source>
+        <translation>Wyłączona. Żadna zamiana nie jest wybrana</translation>
+    </message>
+    <message>
+        <source>Active replacements: %1</source>
+        <extracomment>%1 is the list of the replacements, as "typographic quotes, ellipsis …"</extracomment>
+        <translation>Aktywne zamiany: %1</translation>
+    </message>
+    <message>
+        <source>Off. When turned on: %1</source>
+        <extracomment>%1 is the list of the replacements, as "typographic quotes, ellipsis …"</extracomment>
+        <translation>Wyłączona. Po włączeniu: %1</translation>
+    </message>
+    <message>
+        <source>The replacements are chosen in Edit &gt; Settings..., group Editor &gt; Auto-correct.</source>
+        <translation>Wybór zamian: Edycja &gt; Ustawienia..., grupa Edytor &gt; Autokorekta.</translation>
     </message>
 </context>
 <context>
@@ -4225,6 +4274,62 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     </message>
 </context>
 <context>
+    <name>kalahari::gui::EditorAutoCorrectPage</name>
+    <message>
+        <source>Replace as You Type</source>
+        <translation>Zamieniaj podczas pisania</translation>
+    </message>
+    <message>
+        <source>Auto-correct as you type</source>
+        <translation>Autokorekta podczas pisania</translation>
+    </message>
+    <message>
+        <source>Straight quotes with typographic ones</source>
+        <translation>Cudzysłowy proste na drukarskie</translation>
+    </message>
+    <message>
+        <source>Apostrophe &apos; with ’</source>
+        <translation>Apostrof &apos; na ’</translation>
+    </message>
+    <message>
+        <source>Hyphen opening a paragraph with a dash</source>
+        <translation>Dywiz na początku akapitu na myślnik</translation>
+    </message>
+    <message>
+        <source>Em Dash (—)</source>
+        <translation>Pauza (—)</translation>
+    </message>
+    <message>
+        <source>En Dash (–)</source>
+        <translation>Półpauza (–)</translation>
+    </message>
+    <message>
+        <source>Dialogue dash:</source>
+        <translation>Myślnik dialogowy:</translation>
+    </message>
+    <message>
+        <source>“...” with an ellipsis “…”</source>
+        <translation>„...” na wielokropek „…”</translation>
+    </message>
+    <message>
+        <source>The quotation marks follow the language of the book: „…” and ‚…’ in Polish, “…” and ‘…’ in English. Outside the book, as in a file opened from the disk, they follow the language of the program. A language chosen on the Spelling page goes before both. The hyphen becomes a dash when a space is typed after it.</source>
+        <translation>Cudzysłowy są dobierane do języka książki: po polsku „…” i ‚…’, po angielsku “…” i ‘…’. Poza książką, na przykład w pliku otwartym z dysku, decyduje język programu. Język wybrany na stronie Pisownia ma pierwszeństwo przed obydwoma. Dywiz zamienia się w myślnik, gdy wpiszesz po nim spację.</translation>
+    </message>
+    <message>
+        <source>Tools &gt; Auto-correct as You Type, also a button on the Tools toolbar, turns all the replacements on and off at once; the choices above stay.</source>
+        <translation>Narzędzia &gt; Autokorekta podczas pisania, także przycisk na pasku narzędzi „Narzędzia”, włącza i wyłącza wszystkie zamiany naraz; wybór powyżej zostaje.</translation>
+    </message>
+    <message>
+        <source>%1 right after a replacement undoes just the replacement.</source>
+        <extracomment>%1 is the keys of Edit &gt; Undo, as Ctrl+Z</extracomment>
+        <translation>%1 zaraz po zamianie cofa samą zamianę.</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Undo right after a replacement undoes just the replacement.</source>
+        <translation>Edycja &gt; Cofnij zaraz po zamianie cofa samą zamianę.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::EditorColorsPage</name>
     <message>
         <source>Configure editor colors for light and dark mode.
@@ -4443,8 +4548,8 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Liczenie słów</translation>
     </message>
     <message>
-        <source>Count standalone dialogue dashes as words</source>
-        <translation>Licz samodzielne myślniki dialogowe jako słowa</translation>
+        <source>Count standalone dashes as words</source>
+        <translation>Licz samodzielne myślniki jako słowa</translation>
     </message>
     <message>
         <source>A dash separated by spaces from the words around it, as at the start of a line of dialogue. Microsoft Word counts it as a word, LibreOffice does not.</source>
@@ -4465,6 +4570,430 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>View &gt; Typewriter Scrolling (%1) keeps the line you write at one height of the view, in the Continuous and the Page Layout view.</source>
         <translation>Widok &gt; Przewijanie jak w maszynie do pisania (%1) utrzymuje pisany wiersz na jednej wysokości widoku – w widoku „Ciągły” i „Układ strony”.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorGrammarPage</name>
+    <message>
+        <source>Java</source>
+        <translation>Java</translation>
+    </message>
+    <message>
+        <source>Java %1</source>
+        <translation>Java %1</translation>
+    </message>
+    <message>
+        <source>Java %1 (%2)</source>
+        <translation>Java %1 (%2)</translation>
+    </message>
+    <message>
+        <source>LanguageTool</source>
+        <translation>LanguageTool</translation>
+    </message>
+    <message>
+        <source>LanguageTool %1</source>
+        <translation>LanguageTool %1</translation>
+    </message>
+    <message>
+        <source>The program can check grammar, style and punctuation - in the language of the book, like the spelling. LanguageTool does it, a free program that runs on this computer.</source>
+        <translation>Program może sprawdzać gramatykę, styl i interpunkcję – w języku książki, tak jak pisownię. Robi to LanguageTool, bezpłatny program działający na tym komputerze.</translation>
+    </message>
+    <message>
+        <source>Grammar as You Type</source>
+        <translation>Sprawdzanie gramatyki podczas pisania</translation>
+    </message>
+    <message>
+        <source>Check &amp;grammar as you type</source>
+        <translation>Sprawdzaj &amp;gramatykę podczas pisania</translation>
+    </message>
+    <message>
+        <source>Preparation of grammar checking</source>
+        <translation>Przygotowanie sprawdzania gramatyki</translation>
+    </message>
+    <message>
+        <source>&amp;Prepare Grammar Checking...</source>
+        <translation>&amp;Przygotuj sprawdzanie gramatyki...</translation>
+    </message>
+    <message>
+        <source>&amp;Show Progress</source>
+        <translation>P&amp;okaż postęp</translation>
+    </message>
+    <message>
+        <source>On this comp&amp;uter (recommended)</source>
+        <translation>Na tym &amp;komputerze (zalecane)</translation>
+    </message>
+    <message>
+        <source>On a server in the &amp;internet</source>
+        <translation>Na serwerze w &amp;internecie</translation>
+    </message>
+    <message>
+        <source>The text of the book does not leave the computer.</source>
+        <translation>Tekst książki nie opuszcza komputera.</translation>
+    </message>
+    <message>
+        <source>The text is sent through the internet.</source>
+        <translation>Tekst jest wysyłany przez internet.</translation>
+    </message>
+    <message>
+        <source>Where to check:</source>
+        <translation>Gdzie sprawdzać:</translation>
+    </message>
+    <message>
+        <source>Server in the Internet</source>
+        <translation>Serwer w internecie</translation>
+    </message>
+    <message>
+        <source>The text of the paragraphs checked is sent through the internet to this server. The free LanguageTool server limits the number and the length of the requests.</source>
+        <translation>Tekst sprawdzanych akapitów jest wysyłany przez internet do tego serwera. Bezpłatny serwer LanguageTool ogranicza liczbę i długość zapytań.</translation>
+    </message>
+    <message>
+        <source>api.languagetool.org (free)</source>
+        <translation>api.languagetool.org (bezpłatny)</translation>
+    </message>
+    <message>
+        <source>api.languagetoolplus.com (Premium account)</source>
+        <translation>api.languagetoolplus.com (konto Premium)</translation>
+    </message>
+    <message>
+        <source>C&amp;heck</source>
+        <translation>Spr&amp;awdź</translation>
+    </message>
+    <message>
+        <source>Ser&amp;ver:</source>
+        <translation>&amp;Serwer:</translation>
+    </message>
+    <message>
+        <source>You can also type the address of another LanguageTool server.</source>
+        <translation>Możesz też wpisać adres innego serwera LanguageTool.</translation>
+    </message>
+    <message>
+        <source>only with a Premium account (optional)</source>
+        <translation>tylko z kontem Premium (opcjonalnie)</translation>
+    </message>
+    <message>
+        <source>Account &amp;e-mail:</source>
+        <translation>Adres &amp;e-mail konta:</translation>
+    </message>
+    <message>
+        <source>API &amp;key:</source>
+        <translation>Kl&amp;ucz API:</translation>
+    </message>
+    <message>
+        <source>Ignored Rules</source>
+        <translation>Pomijane reguły</translation>
+    </message>
+    <message>
+        <source>Ignored rules</source>
+        <translation>Pomijane reguły</translation>
+    </message>
+    <message>
+        <source>No rule is ignored.</source>
+        <translation>Żadna reguła nie jest pomijana.</translation>
+    </message>
+    <message>
+        <source>&amp;Restore</source>
+        <translation>P&amp;rzywróć</translation>
+    </message>
+    <message>
+        <source>Restore &amp;All</source>
+        <translation>Przywróć &amp;wszystkie</translation>
+    </message>
+    <message>
+        <source>A rule ignored with &quot;Ignore This Rule&quot; in the context menu is not checked in any book. A restored rule is checked again after OK or Apply.</source>
+        <translation>Reguła pominięta poleceniem „Pomijaj tę regułę” z menu kontekstowego nie jest sprawdzana w żadnej książce. Przywrócona reguła jest znów sprawdzana po kliknięciu OK albo Zastosuj.</translation>
+    </message>
+    <message>
+        <source>Ad&amp;vanced Settings</source>
+        <translation>Ustawienia &amp;zaawansowane</translation>
+    </message>
+    <message>
+        <source>for those who installed LanguageTool themselves or run their own server</source>
+        <translation>dla tych, którzy sami zainstalowali LanguageTool albo uruchamiają własny serwer</translation>
+    </message>
+    <message>
+        <source>The button &quot;Prepare Grammar Checking...&quot; fills these fields itself. Change them only when LanguageTool is installed another way.</source>
+        <translation>Przycisk „Przygotuj sprawdzanie gramatyki...” sam wypełnia te pola. Zmieniaj je tylko wtedy, gdy LanguageTool jest zainstalowany w inny sposób.</translation>
+    </message>
+    <message>
+        <source>&amp;Browse...</source>
+        <translation>Przeglą&amp;daj...</translation>
+    </message>
+    <message>
+        <source>Browse for Java</source>
+        <translation>Wskaż Javę</translation>
+    </message>
+    <message>
+        <source>&amp;Java:</source>
+        <translation>&amp;Java:</translation>
+    </message>
+    <message>
+        <source>Java (java.exe javaw.exe)</source>
+        <translation>Java (java.exe javaw.exe)</translation>
+    </message>
+    <message>
+        <source>Java (java)</source>
+        <translation>Java (java)</translation>
+    </message>
+    <message>
+        <source>Choose Java</source>
+        <translation>Wybierz Javę</translation>
+    </message>
+    <message>
+        <source>LanguageTool folder</source>
+        <translation>Folder LanguageTool</translation>
+    </message>
+    <message>
+        <source>Br&amp;owse...</source>
+        <translation>Prz&amp;eglądaj...</translation>
+    </message>
+    <message>
+        <source>Browse for the folder of LanguageTool</source>
+        <translation>Wskaż folder LanguageTool</translation>
+    </message>
+    <message>
+        <source>LanguageTool &amp;folder:</source>
+        <translation>&amp;Folder LanguageTool:</translation>
+    </message>
+    <message>
+        <source>Choose the Folder of LanguageTool</source>
+        <translation>Wybierz folder LanguageTool</translation>
+    </message>
+    <message>
+        <source>Por&amp;t:</source>
+        <translation>Por&amp;t:</translation>
+    </message>
+    <message>
+        <source>Co&amp;nnect to a server started outside the program</source>
+        <translation>Łą&amp;cz z serwerem uruchomionym poza programem</translation>
+    </message>
+    <message>
+        <source>The program does not start or close such a server.</source>
+        <translation>Program nie uruchamia ani nie zamyka takiego serwera.</translation>
+    </message>
+    <message>
+        <source>Chec&amp;k</source>
+        <translation>Spr&amp;awdź</translation>
+    </message>
+    <message>
+        <source>&amp;Details</source>
+        <translation>&amp;Szczegóły</translation>
+    </message>
+    <message>
+        <source>Server state:</source>
+        <translation>Stan serwera:</translation>
+    </message>
+    <message>
+        <source>LanguageTool Server</source>
+        <translation>Serwer LanguageTool</translation>
+    </message>
+    <message>
+        <source>Re&amp;move Downloaded Components...</source>
+        <translation>&amp;Usuń pobrane składniki...</translation>
+    </message>
+    <message>
+        <source>Installing it yourself, e.g. on a computer without the internet: install Java %1 or newer, unpack the file LanguageTool-stable.zip and choose both above.</source>
+        <translation>Samodzielna instalacja, np. na komputerze bez internetu: zainstaluj Javę %1 lub nowszą, rozpakuj plik LanguageTool-stable.zip i wskaż oba składniki powyżej.</translation>
+    </message>
+    <message>
+        <source>Eclipse Temurin website</source>
+        <translation>Strona Eclipse Temurin</translation>
+    </message>
+    <message>
+        <source>LanguageTool download page</source>
+        <translation>Strona pobierania LanguageTool</translation>
+    </message>
+    <message>
+        <source>Grammar checking is not prepared yet</source>
+        <translation>Sprawdzanie gramatyki nie jest jeszcze przygotowane</translation>
+    </message>
+    <message>
+        <source>It needs two free components: LanguageTool and Java. The program downloads and prepares them itself - just click the button. About %1 to download.</source>
+        <translation>Potrzebne są do niego dwa bezpłatne składniki: LanguageTool i Java. Program sam je pobierze i przygotuje – wystarczy kliknąć przycisk. Do pobrania jest około %1.</translation>
+    </message>
+    <message>
+        <source>Java and LanguageTool are downloaded already - nothing is left to download.</source>
+        <translation>Java i LanguageTool są już pobrane – nie trzeba niczego pobierać.</translation>
+    </message>
+    <message>
+        <source>Java is downloaded already - LanguageTool is left to download (%1).</source>
+        <translation>Java jest już pobrana – do pobrania zostaje LanguageTool (%1).</translation>
+    </message>
+    <message>
+        <source>LanguageTool or Java was not found</source>
+        <translation>Nie znaleziono LanguageTool lub Javy</translation>
+    </message>
+    <message>
+        <source>The files of LanguageTool or Java chosen for grammar checking were removed or moved. Prepare grammar checking again, or choose them in the advanced settings.</source>
+        <translation>Pliki LanguageTool lub Javy wskazane do sprawdzania gramatyki zostały usunięte albo przeniesione. Przygotuj sprawdzanie gramatyki ponownie albo wskaż je w ustawieniach zaawansowanych.</translation>
+    </message>
+    <message>
+        <source>Grammar checking is being prepared</source>
+        <translation>Trwa przygotowywanie sprawdzania gramatyki</translation>
+    </message>
+    <message>
+        <source>Downloading Java - %1%</source>
+        <translation>Pobieranie Javy – %1%</translation>
+    </message>
+    <message>
+        <source>Downloading LanguageTool - %1%</source>
+        <translation>Pobieranie LanguageTool – %1%</translation>
+    </message>
+    <message>
+        <source>Unpacking and checking the files</source>
+        <translation>Rozpakowywanie i sprawdzanie plików</translation>
+    </message>
+    <message>
+        <source>First start and a trial check</source>
+        <translation>Pierwsze uruchomienie i próbne sprawdzenie</translation>
+    </message>
+    <message>
+        <source>Grammar checking is ready</source>
+        <translation>Sprawdzanie gramatyki jest gotowe</translation>
+    </message>
+    <message>
+        <source>It connects to the LanguageTool server started outside the program, on this computer - the text of the book does not leave the computer.</source>
+        <translation>Program łączy się z serwerem LanguageTool uruchomionym poza programem, na tym komputerze – tekst książki nie opuszcza komputera.</translation>
+    </message>
+    <message>
+        <source>It works on this computer - the text of the book does not leave the computer.</source>
+        <translation>Działa na tym komputerze – tekst książki nie opuszcza komputera.</translation>
+    </message>
+    <message>
+        <source>%1 - %2</source>
+        <comment>LanguageTool 6.6 - Java 21 (Eclipse Temurin)</comment>
+        <translation>%1 – %2</translation>
+    </message>
+    <message>
+        <source>The grammar is checked on a server in the internet</source>
+        <translation>Gramatyka jest sprawdzana na serwerze w internecie</translation>
+    </message>
+    <message>
+        <source>The paragraphs checked are sent to the server %1.</source>
+        <translation>Sprawdzane akapity są wysyłane do serwera %1.</translation>
+    </message>
+    <message>
+        <source>No Java chosen.</source>
+        <translation>Nie wskazano Javy.</translation>
+    </message>
+    <message>
+        <source>This is not Java of version %1 or newer.</source>
+        <translation>To nie jest Java w wersji %1 lub nowszej.</translation>
+    </message>
+    <message>
+        <source>Java %1 is too old: LanguageTool needs version %2 or newer.</source>
+        <translation>Java %1 jest za stara: LanguageTool potrzebuje wersji %2 lub nowszej.</translation>
+    </message>
+    <message>
+        <source>No folder chosen.</source>
+        <translation>Nie wskazano folderu.</translation>
+    </message>
+    <message>
+        <source>This folder has no LanguageTool (the file languagetool-server.jar). Choose the folder unpacked from the file LanguageTool-stable.zip.</source>
+        <translation>W tym folderze nie ma LanguageTool (pliku languagetool-server.jar). Wskaż folder rozpakowany z pliku LanguageTool-stable.zip.</translation>
+    </message>
+    <message>
+        <source>The server does not run.</source>
+        <translation>Serwer nie działa.</translation>
+    </message>
+    <message>
+        <source>Starting the server...</source>
+        <translation>Uruchamianie serwera...</translation>
+    </message>
+    <message>
+        <source>The server runs - the program started it.</source>
+        <translation>Serwer działa – uruchomił go program.</translation>
+    </message>
+    <message>
+        <source>The server runs - started outside the program.</source>
+        <translation>Serwer działa – uruchomiony poza programem.</translation>
+    </message>
+    <message>
+        <source>No server answers on the port %1.</source>
+        <translation>Na porcie %1 nie odpowiada żaden serwer.</translation>
+    </message>
+    <message>
+        <source>Another program, not LanguageTool, answers on the port %1. Choose another port.</source>
+        <translation>Na porcie %1 odpowiada inny program, nie LanguageTool. Wybierz inny port.</translation>
+    </message>
+    <message>
+        <source>The server stopped.</source>
+        <translation>Serwer się zatrzymał.</translation>
+    </message>
+    <message>
+        <source>The server did not start.</source>
+        <translation>Serwer się nie uruchomił.</translation>
+    </message>
+    <message>
+        <source>Apply the changes to check the server with them.</source>
+        <translation>Zastosuj zmiany, aby sprawdzić serwer z nowymi ustawieniami.</translation>
+    </message>
+    <message>
+        <source>Removes Java and LanguageTool downloaded by the program (about %1).</source>
+        <translation>Usuwa Javę i LanguageTool pobrane przez program (około %1).</translation>
+    </message>
+    <message>
+        <source>Send the text of the book to a server in the internet?</source>
+        <translation>Wysyłać tekst książki do serwera w internecie?</translation>
+    </message>
+    <message>
+        <source>The paragraphs checked will be sent through the internet to a LanguageTool server (by default api.languagetool.org). Choose this only if you agree to it.</source>
+        <translation>Sprawdzane akapity będą wysyłane przez internet do serwera LanguageTool (domyślnie api.languagetool.org). Wybierz tę możliwość tylko wtedy, gdy się na to zgadzasz.</translation>
+    </message>
+    <message>
+        <source>Checking on this computer sends the text nowhere.</source>
+        <translation>Sprawdzanie na tym komputerze nigdzie nie wysyła tekstu.</translation>
+    </message>
+    <message>
+        <source>Grammar</source>
+        <translation>Gramatyka</translation>
+    </message>
+    <message>
+        <source>&amp;Send Text</source>
+        <translation>&amp;Wysyłaj tekst</translation>
+    </message>
+    <message>
+        <source>This is not the address of a server.</source>
+        <translation>To nie jest adres serwera.</translation>
+    </message>
+    <message>
+        <source>The server checks the text.</source>
+        <translation>Serwer sprawdza tekst.</translation>
+    </message>
+    <message>
+        <source>The server did not check the text: it could not be connected to.</source>
+        <translation>Serwer nie sprawdził tekstu: nie udało się z nim połączyć.</translation>
+    </message>
+    <message>
+        <source>The server refused the request because the limit was exceeded. Try again in a moment.</source>
+        <translation>Serwer odrzucił zapytanie, bo przekroczono limit. Spróbuj ponownie za chwilę.</translation>
+    </message>
+    <message>
+        <source>The server did not check the text: %1</source>
+        <translation>Serwer nie sprawdził tekstu: %1</translation>
+    </message>
+    <message>
+        <source>Connecting...</source>
+        <translation>Łączenie...</translation>
+    </message>
+    <message>
+        <source>Remove the downloaded components?</source>
+        <translation>Usunąć pobrane składniki?</translation>
+    </message>
+    <message>
+        <source>Java and LanguageTool downloaded by the program will be removed from this computer (about %1). Grammar checking on this computer stops working until you prepare it again. Spelling goes on working.</source>
+        <translation>Java i LanguageTool pobrane przez program zostaną usunięte z tego komputera (około %1). Sprawdzanie gramatyki na tym komputerze przestanie działać, dopóki nie przygotujesz go ponownie. Sprawdzanie pisowni będzie działać dalej.</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Not Everything Was Removed</source>
+        <translation>Nie wszystko zostało usunięte</translation>
+    </message>
+    <message>
+        <source>Some files in the folder %1 are in use or protected. Close the programs that use them and try again.</source>
+        <translation>Niektóre pliki w folderze %1 są używane albo chronione. Zamknij programy, które ich używają, i spróbuj ponownie.</translation>
     </message>
 </context>
 <context>
@@ -5037,6 +5566,97 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
 </context>
 <context>
+    <name>kalahari::gui::GrammarCoordinator</name>
+    <message>
+        <source>Starting LanguageTool...</source>
+        <translation>Uruchamianie LanguageTool...</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked: LanguageTool stopped answering. The program starts it again.</source>
+        <translation>Gramatyka nie jest sprawdzana: LanguageTool przestał odpowiadać. Program uruchamia go ponownie.</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked: LanguageTool did not start. Details: Edit &gt; Settings..., Editor &gt; Grammar.</source>
+        <translation>Gramatyka nie jest sprawdzana: LanguageTool się nie uruchomił. Szczegóły: Edycja &gt; Ustawienia..., Edytor &gt; Gramatyka.</translation>
+    </message>
+    <message>
+        <source>The server refused the request because the limit was exceeded. The program will try again in a moment.</source>
+        <translation>Serwer odrzucił zapytanie, bo przekroczono limit. Program spróbuje ponownie za chwilę.</translation>
+    </message>
+    <message>
+        <source>The LanguageTool server at %1 did not check the text: %2</source>
+        <translation>Serwer LanguageTool pod adresem %1 nie sprawdził tekstu: %2</translation>
+    </message>
+    <message>
+        <source>LanguageTool on this computer did not check the text: %1</source>
+        <translation>LanguageTool na tym komputerze nie sprawdził tekstu: %1</translation>
+    </message>
+    <message>
+        <source>Grammar as you type: on</source>
+        <translation>Sprawdzanie gramatyki podczas pisania: włączone</translation>
+    </message>
+    <message>
+        <source>Grammar as you type: off</source>
+        <translation>Sprawdzanie gramatyki podczas pisania: wyłączone</translation>
+    </message>
+    <message>
+        <source>The components grammar checking needs were not found: the files of LanguageTool or Java were removed or moved. The program can download and prepare them again - about %1 to download.</source>
+        <translation>Nie znaleziono składników potrzebnych do sprawdzania gramatyki: pliki LanguageTool lub Javy zostały usunięte albo przeniesione. Program może je ponownie pobrać i przygotować – do pobrania jest około %1.</translation>
+    </message>
+    <message>
+        <source>Grammar checking is not prepared yet. It needs two free components: LanguageTool and Java. The program downloads and prepares them itself - about %1 to download.</source>
+        <translation>Sprawdzanie gramatyki nie jest jeszcze przygotowane. Potrzebne są do niego dwa bezpłatne składniki: LanguageTool i Java. Program sam je pobierze i przygotuje – do pobrania jest około %1.</translation>
+    </message>
+    <message>
+        <source>Prepare grammar checking?</source>
+        <translation>Przygotować sprawdzanie gramatyki?</translation>
+    </message>
+    <message>
+        <source>Checking on a server in the internet can be chosen in the settings: Edit &gt; Settings..., group Editor &gt; Grammar.</source>
+        <translation>Sprawdzanie na serwerze w internecie można wybrać w ustawieniach: Edycja &gt; Ustawienia..., grupa Edytor &gt; Gramatyka.</translation>
+    </message>
+    <message>
+        <source>Grammar</source>
+        <translation>Gramatyka</translation>
+    </message>
+    <message>
+        <source>&amp;Prepare Now</source>
+        <translation>&amp;Przygotuj teraz</translation>
+    </message>
+    <message>
+        <source>&amp;Not Now</source>
+        <translation>&amp;Nie teraz</translation>
+    </message>
+    <message>
+        <source>downloading Java</source>
+        <translation>pobieranie Javy</translation>
+    </message>
+    <message>
+        <source>downloading LanguageTool</source>
+        <translation>pobieranie LanguageTool</translation>
+    </message>
+    <message>
+        <source>preparing</source>
+        <translation>przygotowanie</translation>
+    </message>
+    <message>
+        <source>Grammar: %1 - %2%</source>
+        <translation>Gramatyka: %1 – %2%</translation>
+    </message>
+    <message>
+        <source>Grammar checking could not be prepared - click to see the details</source>
+        <translation>Nie udało się przygotować sprawdzania gramatyki – kliknij, aby zobaczyć szczegóły</translation>
+    </message>
+    <message>
+        <source>Grammar checking is ready</source>
+        <translation>Sprawdzanie gramatyki jest gotowe</translation>
+    </message>
+    <message>
+        <source>Show the preparation of grammar checking</source>
+        <translation>Pokaż przygotowanie sprawdzania gramatyki</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::IconsPage</name>
     <message>
         <source>Icon Style</source>
@@ -5267,6 +5887,14 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Dark paper: off</source>
         <translation>Ciemny papier: wyłączony</translation>
+    </message>
+    <message>
+        <source>Text frame border: on</source>
+        <translation>Ramka tekstu: włączona</translation>
+    </message>
+    <message>
+        <source>Text frame border: off</source>
+        <translation>Ramka tekstu: wyłączona</translation>
     </message>
     <message>
         <source>Unsaved Changes</source>
@@ -6263,6 +6891,10 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
         <translation>Pisownia</translation>
     </message>
     <message>
+        <source>Grammar</source>
+        <translation>Gramatyka</translation>
+    </message>
+    <message>
         <source>Auto-correct</source>
         <translation>Autokorekta</translation>
     </message>
@@ -6313,16 +6945,6 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
     <message>
         <source>Coming in future version</source>
         <translation>Dostępne w przyszłej wersji</translation>
-    </message>
-    <message>
-        <source>Planned features:
-- Automatic capitalization
-- Common typo corrections
-- Custom replacement rules</source>
-        <translation>Planowane funkcje:
-- automatyczne wielkie litery
-- poprawianie częstych literówek
-- własne reguły zamiany</translation>
     </message>
     <message>
         <source>Planned features:
@@ -7444,6 +8066,18 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>No misspelled words</source>
         <translation>Brak błędów pisowni</translation>
+    </message>
+    <message>
+        <source>No misspelled words or grammar issues</source>
+        <translation>Brak błędów pisowni i gramatyki</translation>
+    </message>
+    <message>
+        <source>No grammar issues</source>
+        <translation>Brak błędów gramatyki</translation>
+    </message>
+    <message>
+        <source>Checking the grammar further on...</source>
+        <translation>Sprawdzanie gramatyki w dalszych akapitach...</translation>
     </message>
 </context>
 <context>
@@ -9068,6 +9702,272 @@ Harmonogram projektu:
         <source>Kalahari cannot open the book of this archive.</source>
         <extracomment>In Polish: Kalahari nie może otworzyć książki z tego archiwum.</extracomment>
         <translation>Kalahari nie może otworzyć książki z tego archiwum.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::GrammarSetupDialog</name>
+    <message>
+        <source>&amp;Cancel</source>
+        <translation>&amp;Anuluj</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>Grammar checking needs two free components. The program downloads them from their official sites and prepares them itself.</source>
+        <translation>Do sprawdzania gramatyki potrzebne są dwa bezpłatne składniki. Program pobierze je z ich oficjalnych stron i sam przygotuje.</translation>
+    </message>
+    <message>
+        <source>LanguageTool %1</source>
+        <translation>LanguageTool %1</translation>
+    </message>
+    <message>
+        <source>checks grammar, style and punctuation</source>
+        <translation>sprawdza gramatykę, styl i interpunkcję</translation>
+    </message>
+    <message>
+        <source>Java %1 (Eclipse Temurin)</source>
+        <translation>Java %1 (Eclipse Temurin)</translation>
+    </message>
+    <message>
+        <source>needed to run LanguageTool</source>
+        <translation>potrzebna do działania LanguageTool</translation>
+    </message>
+    <message>
+        <source>Total to download</source>
+        <translation>Razem do pobrania</translation>
+    </message>
+    <message>
+        <source>Check &amp;Again</source>
+        <translation>Sp&amp;rawdź ponownie</translation>
+    </message>
+    <message>
+        <source>The internet is needed only for the download. The grammar is checked on this computer - the text of the book does not leave it.</source>
+        <translation>Internet jest potrzebny tylko do pobrania. Gramatyka jest sprawdzana na tym komputerze – tekst książki go nie opuszcza.</translation>
+    </message>
+    <message>
+        <source>Licenses: LanguageTool - LGPL 2.1, Java (Eclipse Temurin) - GPL 2 with the Classpath Exception.</source>
+        <translation>Licencje: LanguageTool – LGPL 2.1, Java (Eclipse Temurin) – GPL 2 z wyjątkiem Classpath.</translation>
+    </message>
+    <message>
+        <source>Downloading Java %1 (Eclipse Temurin)</source>
+        <translation>Pobieranie Javy %1 (Eclipse Temurin)</translation>
+    </message>
+    <message>
+        <source>Downloading LanguageTool %1</source>
+        <translation>Pobieranie LanguageTool %1</translation>
+    </message>
+    <message>
+        <source>Unpacking and checking the files</source>
+        <translation>Rozpakowywanie i sprawdzanie plików</translation>
+    </message>
+    <message>
+        <source>First start and a trial check</source>
+        <translation>Pierwsze uruchomienie i próbne sprawdzenie</translation>
+    </message>
+    <message>
+        <source>You can download in the background and go on writing - the status bar shows the progress.</source>
+        <translation>Możesz pobierać w tle i dalej pisać – postęp widać na pasku stanu.</translation>
+    </message>
+    <message>
+        <source>Cancel stops the download. The components downloaded already stay for the next try.</source>
+        <translation>„Anuluj” przerywa pobieranie. Pobrane już składniki zostają na następną próbę.</translation>
+    </message>
+    <message>
+        <source>&amp;Details</source>
+        <translation>&amp;Szczegóły</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>Szczegóły</translation>
+    </message>
+    <message>
+        <source>Grammar checking is ready and turned on.</source>
+        <translation>Sprawdzanie gramatyki jest gotowe i włączone.</translation>
+    </message>
+    <message>
+        <source>The program checks grammar, style and punctuation in the language of the book, on this computer.</source>
+        <translation>Program sprawdza gramatykę, styl i interpunkcję w języku książki, na tym komputerze.</translation>
+    </message>
+    <message>
+        <source>Anna [smiled smiled] and put the *leter* into her bag.</source>
+        <comment>A sample: [a grammar issue] and *a misspelled word*, marked so</comment>
+        <translation>Anna uśmiechnęła [się się] i schowała *kopete* do torebki.</translation>
+    </message>
+    <message>
+        <source>grammar, style and punctuation</source>
+        <translation>gramatyka, styl i interpunkcja</translation>
+    </message>
+    <message>
+        <source>spelling</source>
+        <translation>pisownia</translation>
+    </message>
+    <message>
+        <source>Right-click an underline (or press the menu key) to see the suggestion. F7 goes to the next issue.</source>
+        <translation>Podpowiedź zobaczysz po kliknięciu podkreślenia prawym przyciskiem myszy (albo po naciśnięciu klawisza menu). Klawisz F7 przechodzi do następnego błędu.</translation>
+    </message>
+    <message>
+        <source>Settings of the grammar: Edit &gt; Settings..., group Editor &gt; Grammar.</source>
+        <translation>Ustawienia gramatyki: Edycja &gt; Ustawienia..., grupa Edytor &gt; Gramatyka.</translation>
+    </message>
+    <message>
+        <source>What Will Be Downloaded</source>
+        <translation>Co zostanie pobrane</translation>
+    </message>
+    <message>
+        <source>&amp;Download and Prepare</source>
+        <translation>&amp;Pobierz i przygotuj</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Anuluj</translation>
+    </message>
+    <message>
+        <source>Downloading and Preparing</source>
+        <translation>Pobieranie i przygotowanie</translation>
+    </message>
+    <message>
+        <source>Download in &amp;Background</source>
+        <translation>Pobieraj w &amp;tle</translation>
+    </message>
+    <message>
+        <source>Ready</source>
+        <translation>Gotowe</translation>
+    </message>
+    <message>
+        <source>&amp;Finish</source>
+        <translation>&amp;Zakończ</translation>
+    </message>
+    <message>
+        <source>Download Stopped</source>
+        <translation>Pobieranie przerwane</translation>
+    </message>
+    <message>
+        <source>Preparation Stopped</source>
+        <translation>Przygotowanie przerwane</translation>
+    </message>
+    <message>
+        <source>&amp;Try Again</source>
+        <translation>Spróbuj &amp;ponownie</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Step %1 of %2</source>
+        <translation>Krok %1 z %2</translation>
+    </message>
+    <message>
+        <source>Preparing Grammar Checking</source>
+        <translation>Przygotowanie sprawdzania gramatyki</translation>
+    </message>
+    <message>
+        <source>downloaded already</source>
+        <comment>Java</comment>
+        <translation>już pobrana</translation>
+    </message>
+    <message>
+        <source>downloaded already</source>
+        <comment>LanguageTool</comment>
+        <translation>już pobrany</translation>
+    </message>
+    <message>
+        <source>nothing</source>
+        <translation>nic</translation>
+    </message>
+    <message>
+        <source>about %1</source>
+        <translation>około %1</translation>
+    </message>
+    <message>
+        <source>There is enough room on the disk %1: the components take about %2 (free: %3).</source>
+        <translation>Na dysku %1 jest dość miejsca: składniki zajmą około %2 (wolne: %3).</translation>
+    </message>
+    <message>
+        <source>There is not enough room on the disk %1: the components take about %2, and %3 is free. Free some room and click Check Again.</source>
+        <translation>Na dysku %1 jest za mało miejsca: składniki zajmą około %2, a wolne jest %3. Zwolnij trochę miejsca i kliknij „Sprawdź ponownie”.</translation>
+    </message>
+    <message>
+        <source>No administrator rights are needed. Folder:</source>
+        <translation>Uprawnienia administratora nie są potrzebne. Folder:</translation>
+    </message>
+    <message>
+        <source>The program cannot write in the folder %1. Check the permissions of the folder, or install the components yourself and choose them in the advanced settings.</source>
+        <translation>Program nie może zapisywać w folderze %1. Sprawdź uprawnienia folderu albo zainstaluj składniki samodzielnie i wskaż je w ustawieniach zaawansowanych.</translation>
+    </message>
+    <message>
+        <source>done</source>
+        <translation>gotowe</translation>
+    </message>
+    <message>
+        <source>stopped at %1 of %2 MB</source>
+        <translation>przerwane przy %1 z %2 MB</translation>
+    </message>
+    <message>
+        <source>failed</source>
+        <translation>nie udało się</translation>
+    </message>
+    <message>
+        <source>%1 of %2 MB</source>
+        <translation>%1 z %2 MB</translation>
+    </message>
+    <message>
+        <source>in progress...</source>
+        <translation>trwa...</translation>
+    </message>
+    <message>
+        <source>waiting</source>
+        <translation>czeka</translation>
+    </message>
+    <message>
+        <source>Check the connection to the internet and click Try Again.</source>
+        <translation>Sprawdź połączenie z internetem i kliknij „Spróbuj ponownie”.</translation>
+    </message>
+    <message>
+        <source>Java is downloaded already, so the program downloads only LanguageTool.</source>
+        <translation>Java jest już pobrana, więc program pobierze tylko LanguageTool.</translation>
+    </message>
+    <message>
+        <source>Java could not be downloaded: no connection to the internet.</source>
+        <translation>Nie udało się pobrać Javy: brak połączenia z internetem.</translation>
+    </message>
+    <message>
+        <source>LanguageTool could not be downloaded: no connection to the internet.</source>
+        <translation>Nie udało się pobrać LanguageTool: brak połączenia z internetem.</translation>
+    </message>
+    <message>
+        <source>Java could not be downloaded: the server %1 does not answer. Try again later.</source>
+        <translation>Nie udało się pobrać Javy: serwer %1 nie odpowiada. Spróbuj ponownie później.</translation>
+    </message>
+    <message>
+        <source>LanguageTool could not be downloaded: the server %1 does not answer. Try again later.</source>
+        <translation>Nie udało się pobrać LanguageTool: serwer %1 nie odpowiada. Spróbuj ponownie później.</translation>
+    </message>
+    <message>
+        <source>The downloaded file of Java is damaged. The program removed it - click Try Again.</source>
+        <translation>Pobrany plik Javy jest uszkodzony. Program go usunął – kliknij „Spróbuj ponownie”.</translation>
+    </message>
+    <message>
+        <source>The downloaded file of LanguageTool is damaged. The program removed it - click Try Again.</source>
+        <translation>Pobrany plik LanguageTool jest uszkodzony. Program go usunął – kliknij „Spróbuj ponownie”.</translation>
+    </message>
+    <message>
+        <source>There is not enough room on the disk %1. Free about %2 and click Try Again.</source>
+        <translation>Na dysku %1 zabrakło miejsca. Zwolnij około %2 i kliknij „Spróbuj ponownie”.</translation>
+    </message>
+    <message>
+        <source>The downloaded files could not be unpacked. Details show why.</source>
+        <translation>Nie udało się rozpakować pobranych plików. Przyczynę pokazują „Szczegóły”.</translation>
+    </message>
+    <message>
+        <source>LanguageTool did not start. Details show the message of Java.</source>
+        <translation>LanguageTool się nie uruchomił. Komunikat Javy pokazują „Szczegóły”.</translation>
+    </message>
+    <message>
+        <source>Downloaded %1 of %2 MB.</source>
+        <translation>Pobrano %1 z %2 MB.</translation>
     </message>
 </context>
 <context>

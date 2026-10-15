@@ -15,10 +15,11 @@
 #pragma once
 
 #include <kalahari/core/text_statistics.h>
+#include <kalahari/editor/auto_correct.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
-#include <kalahari/editor/grammar_check_service.h> // For GrammarError, GrammarIssueType (Phase 6.17)
+#include <kalahari/editor/grammar_error.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
 // KML → QTextDocument (with QTextCharFormat) → Render visible fragment
@@ -29,7 +30,9 @@
 #include <QWidget>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QElapsedTimer>
 #include <QList>
+#include <map>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -119,6 +122,17 @@ public:
     /// previous content back (restoring a snapshot). The cursor keeps its position, within
     /// the new text. KML that is not well-formed gives the text read before the error.
     void replaceWithKml(const QString& kml);
+
+    /// @brief Replace the document content with the same text in other KML markup, as one
+    ///        edit, the cursor and the view staying at their text
+    /// @param kml The KML of the same characters, one for one, as the current content, such
+    ///        as the text a plain text file keeps (a line break may become the end of a
+    ///        paragraph)
+    ///
+    /// As replaceWithKml(), but the cursor stays at its character and the text at the top of
+    /// the view stays there: the text and the cursor did not change, so the view does not go
+    /// to the cursor.
+    void replaceMarkupWithKml(const QString& kml);
 
     /// @brief Whether the content differs from the saved content: the one loaded by
     ///        fromKml(), or the one marked with setUnmodified()
@@ -436,6 +450,27 @@ public:
     /// one undo step, apart from the text typed before it.
     void insertLineBreak();
 
+    /// @brief Type text at the cursor, as the keyboard and the input methods do: the text goes
+    ///        in as insertText() puts it, and autocorrect changes what was typed
+    ///
+    /// Each quotation mark, apostrophe, space and period goes in as typed alone, so
+    /// autocorrect sees it with the text before it (an input method can commit several
+    /// characters at once). A change of autocorrect is an undo step of its own: undoing it
+    /// right after brings back the typed characters, with the cursor after them.
+    void typeText(const QString& text);
+
+    /// @brief What autocorrect changes in the text as it is typed (typeText()); everything,
+    ///        until it is set
+    void setAutoCorrect(const AutoCorrectOptions& options);
+
+    /// @brief What autocorrect changes in the text as it is typed
+    const AutoCorrectOptions& autoCorrect() const { return m_autoCorrect; }
+
+    /// @brief Where the editor asks for the language of its text when autocorrect puts in
+    ///        quotation marks: an ISO 639 code, with or without a country ("pl", "pl_PL").
+    ///        Without it, or for an empty code, the marks are English.
+    void setTextLanguage(std::function<QString()> language);
+
     /// @brief Delete character before cursor (Backspace)
     ///
     /// If there is a selection, deletes the selection.
@@ -715,6 +750,14 @@ public:
     ///        do: for a misspelled word at the cursor it offers what to put in its place
     void showContextMenuAtCursor();
 
+    /// @brief The application's command going to the next spelling or grammar issue
+    ///
+    /// Its keys (F7) work in the text's context menu too: the menu closes and the command
+    /// runs, so the writer goes from one issue's menu to the next without closing each one
+    /// first. The application keeps the command while the editor lives; without it the menu
+    /// leaves the keys alone.
+    void setNextIssueAction(QAction* action);
+
     // =========================================================================
     // View Mode (Phase 5.1)
     // =========================================================================
@@ -880,34 +923,55 @@ public:
     /// @brief Whether a turn of the spelling check is due (it runs while the editor is shown)
     bool isSpellCheckPending() const;
 
-    /// @brief Select the next misspelled word: the one the cursor is in or the first after
-    ///        it (after the selection, when there is one), from the start of the text after
-    ///        its end
+    /// @brief What goToNextIssue() did
+    enum class IssueSearch {
+        Found,     ///< The issue is selected
+        NotFound,  ///< The text has none, or nothing is checked
+        Searching, ///< The grammar of the paragraphs further on is being checked: the search
+                   ///< goes on, issueSearchFinished() tells how it ended
+        Cancelled  ///< (issueSearchFinished()) Broken off: the text was edited, the cursor
+                   ///< moved, the checking changed or another search started
+    };
+    Q_ENUM(IssueSearch)
+
+    /// @brief Select the next misspelled word or grammar issue: the one the cursor is in or
+    ///        the first after it (with a selection, the first that starts after the
+    ///        selection's start), from the start of the text after its end
     ///
-    /// The paragraphs not checked yet are checked on the way; the word being typed counts.
-    /// @return false when the text has no misspelled word or the spelling is not checked
-    bool goToNextMisspelling();
+    /// The spelling of the paragraphs not checked yet is checked on the way and the word
+    /// being typed counts. So is the grammar while it is checked: a paragraph whose grammar
+    /// is not known yet is sent to the server and the search waits for its answer
+    /// (IssueSearch::Searching). Where both start at one place, the misspelled word comes
+    /// first.
+    IssueSearch goToNextIssue();
+
+    /// @brief Whether a search of goToNextIssue() waits for the grammar of a paragraph
+    bool isSearchingIssue() const { return m_issueSearch.active; }
 
     // =========================================================================
-    // Grammar Check Integration (Phase 6.17)
+    // Grammar
     // =========================================================================
 
-    /// @brief Set the grammar check service to use
-    /// @param service Pointer to GrammarCheckService (not owned, must outlive editor)
+    /// @brief Check the text's grammar on the writer's LanguageTool server
     ///
-    /// Connects the service's paragraphChecked signal to update paragraph layouts
-    /// with grammar error underlines. Pass nullptr to disable grammar checking.
+    /// While it is shown, the editor sends the paragraphs in view and a few around them:
+    /// when its text is shown or scrolled, and a moment after the writer stops typing. An
+    /// issue gets a wave under it, but one that applies only to a finished sentence while
+    /// its sentence is unfinished. The waves an edit leaves untouched stay until the
+    /// paragraph is checked again.
+    /// @param service The checking (not owned); nullptr, or one not active: no waves
     void setGrammarCheckService(GrammarCheckService* service);
 
-    /// @brief Get the current grammar check service
-    /// @return Pointer to the service, or nullptr if not set
+    /// @brief The checking of the grammar, or nullptr
     GrammarCheckService* grammarCheckService() const;
 
-    /// @brief Request grammar check for entire document
+    /// @brief Check the grammar of the paragraphs again
     ///
-    /// Triggers asynchronous grammar checking of all paragraphs.
-    /// Results are received via paragraphChecked signal and rendered automatically.
+    /// The waves stay until their paragraphs are checked.
     void requestGrammarCheck();
+
+    /// @brief Whether the grammar check has paragraphs to send or answers to wait for
+    bool isGrammarCheckPending() const;
 
     // =========================================================================
     // Reading Aloud
@@ -1021,6 +1085,10 @@ signals:
     /// @brief Emitted when selection changes
     void selectionChanged();
 
+    /// @brief A search of goToNextIssue() that waited for the grammar ended
+    /// @param result IssueSearch::Found (the issue is selected), NotFound or Cancelled
+    void issueSearchFinished(kalahari::editor::BookEditor::IssueSearch result);
+
     /// @brief Emitted when view mode changes
     /// @param mode The new view mode
     void viewModeChanged(ViewMode mode);
@@ -1103,7 +1171,7 @@ protected:
     /// Triggers repaint to hide cursor when editor loses focus.
     void focusOutEvent(QFocusEvent* event) override;
 
-    /// @brief The spelling check, which waits while the editor is hidden, goes on
+    /// @brief The spelling and grammar checks, which wait while the editor is hidden, go on
     void showEvent(QShowEvent* event) override;
 
     /// @brief Mouse wheel event handler
@@ -1188,11 +1256,6 @@ private slots:
     /// @param value New scrollbar value
     void onScrollBarValueChanged(int value);
 
-    /// @brief Handle grammar check results for a paragraph (Phase 6.17)
-    /// @param paragraphIndex The paragraph index
-    /// @param errors List of grammar errors found
-    void onGrammarCheckParagraph(int paragraphIndex, const QList<GrammarError>& errors);
-
     /// @brief Handle scroll animation value change
     /// @param value Current animation value
     void onScrollAnimationValueChanged(const QVariant& value);
@@ -1268,7 +1331,8 @@ private:
     void applyPageLayout();
 
     /// @brief Give the pipeline the typewriter state, keeping the text in place on the
-    ///        screen, and put the cursor line at the focus height when it is on
+    ///        screen, and put the cursor line at the focus height when it is on and the
+    ///        cursor line is in the view
     void applyTypewriter();
 
     /// @brief Emit currentPageChanged / totalPagesChanged when the numbers change
@@ -1317,6 +1381,21 @@ private:
 
     /// @brief Scroll a page wider than the view sideways to show the cursor
     void scrollSidewaysToCursor();
+
+    /// @brief Whether the cursor line is in the view, a part of it at least
+    ///
+    /// The view goes to the cursor for what is done at the cursor (typing, the keys, a search,
+    /// going to a place). A change of the view or of a setting moves a cursor line that is in
+    /// the view at most (typewriter scrolling, a view mode): a cursor scrolled out of the view
+    /// stays out of it.
+    bool isCursorLineInView() const;
+
+    /// @brief Scroll so that the line of @p position has its top at @p top of the view
+    ///        (widget coordinates)
+    ///
+    /// Placing the line can bring paragraphs with estimated heights into view, and laying
+    /// them out moves it, so a few rounds.
+    void placeLineAt(const CursorPosition& position, double top);
 
     /// @brief The scroll position that shows the end of the text: the last line with the
     ///        page's bottom margin below it
@@ -1594,6 +1673,7 @@ private:
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
     QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
+    QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
 
     // IME composition state (Phase 4.5/4.6/4.7)
@@ -1609,6 +1689,14 @@ private:
     // another text drop it (see pendingFormat())
     QTextCharFormat m_pendingFormat;   ///< Only the properties given
     CursorPosition m_pendingFormatAt;  ///< The cursor's place when it was given
+
+    // Autocorrect: the changes of the text as it is typed (typeText())
+    AutoCorrectOptions m_autoCorrect;          ///< What is changed
+    std::function<QString()> m_textLanguage;  ///< The language of the text (setTextLanguage())
+
+    /// @brief Make the change autocorrect has for the character typed right before the
+    ///        cursor, as an undo step of its own (see typeText())
+    void autoCorrectTyped();
 
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
@@ -1692,20 +1780,92 @@ private:
     /// @param replacement Replacement text
     void replaceWord(int paraIndex, int startOffset, int endOffset, const QString& replacement);
 
-    // Grammar Check (Phase 6.17)
-    GrammarCheckService* m_grammarCheckService{nullptr};    ///< Grammar check service (not owned)
+    // Grammar
+    GrammarCheckService* m_grammarCheckService{nullptr};  ///< The checking (not owned)
+    QTimer* m_grammarTimer{nullptr};                      ///< Sends the paragraphs due
+    QElapsedTimer m_grammarEditClock;                     ///< Since the last edit
 
-    /// @brief Find grammar error at given position
+    /// @brief A paragraph sent to be checked
+    struct GrammarRequest {
+        QTextCursor place;  ///< At the paragraph, moved with the edits
+        QString text;       ///< Its text as sent
+    };
+    std::map<quint64, GrammarRequest> m_grammarRequests;  ///< The requests not answered yet
+
+    /// @brief A search of goToNextIssue() going round the text
+    struct IssueSearchState {
+        bool active{false};          ///< It waits for the grammar of a paragraph
+        CursorPosition from;         ///< Where it started: the cursor or the selection's start
+        bool afterSelection{false};  ///< It started with a selection
+        int visited{0};              ///< How many paragraphs it went through
+        int paragraph{0};            ///< The paragraph it is at
+        CursorPosition cursor;       ///< The cursor when it started: moved, the search ends
+        SelectionRange selection;    ///< The selection when it started
+    };
+    IssueSearchState m_issueSearch;
+
+    /// @brief Go on round the text from where the search is
+    IssueSearch continueIssueSearch();
+
+    /// @brief The grammar of the paragraph the search waits for came (or will not): go on
+    void resumeIssueSearch();
+
+    /// @brief End the search that waited, telling how
+    void endIssueSearch(IssueSearch result);
+
+    /// @brief Send a paragraph to the grammar check unless it is checked, being checked or
+    ///        empty
+    /// @return false when no more paragraphs can be sent now
+    bool sendGrammarCheck(int paragraph);
+
+    /// @brief Whether the grammar of a paragraph is known (checked, or nothing to check)
+    bool isGrammarKnown(const QTextBlock& block) const;
+
+    /// @brief Send the paragraphs due after @p delayMs, unless they go sooner
+    void scheduleGrammarCheck(int delayMs);
+
+    /// @brief Send the paragraphs due around the view, those in view first, while fewer
+    ///        than a few wait for their answers (not while the writer is typing)
+    void runGrammarCheck();
+
+    /// @brief Keep the issues of a paragraph checked, if it still has the text sent
+    void onGrammarChecked(quint64 request, const QList<GrammarError>& errors);
+
+    /// @brief A paragraph sent was not checked: it is sent again when the server is back
+    void onGrammarNotChecked(quint64 request);
+
+    /// @brief Another server or language, or the checking turned on or off: the waves go
+    ///        and the paragraphs are checked anew
+    void onGrammarCheckingChanged();
+
+    /// @brief The issues of a rule are not reported any more: their waves go
+    void onGrammarRuleIgnored(const QString& ruleId);
+
+    /// @brief The checking of the grammar was destroyed
+    void onGrammarCheckServiceDestroyed();
+
+    /// @brief The view moved: the paragraphs that came into it are sent
+    void onGrammarViewChanged();
+
+    /// @brief Keep the grammar waves an edit left untouched, moved with the text; the
+    ///        paragraphs it changed are due a moment after the writer stops typing
+    void adjustGrammarToEdit(int from, int charsRemoved, int charsAdded);
+
+    /// @brief Drop the requests not answered yet
+    void dropGrammarRequests();
+
+    /// @brief Drop every grammar result
+    void clearGrammar();
+
+    /// @brief The grammar issue at a place of a paragraph
     /// @param paraIndex Paragraph index
-    /// @param offset Character offset within paragraph
-    /// @return The grammar error info if found, or nullopt if no error at position
+    /// @param offset Character offset within paragraph (also right after the issue)
+    /// @return The issue, or nullopt when there is none
     std::optional<GrammarError> getGrammarErrorAt(int paraIndex, int offset) const;
 
-    /// @brief Create context menu for grammar check
-    /// @param error The grammar error
-    /// @param paraIndex Paragraph index
-    /// @return Context menu with suggestions and explanation
-    QMenu* createGrammarContextMenu(const GrammarError& error, int paraIndex);
+    /// @brief Put on the context menu what is offered for a grammar issue: what is
+    ///        wrong, what to put in its place, Ignore This Rule
+    void addGrammarActions(QMenu& menu, const GrammarError& error, int paraIndex);
 
     // =========================================================================
     // Document, viewport and rendering

@@ -44,6 +44,44 @@ bool isTypingKey(const QKeyEvent* event) {
            event->text().at(0).isPrint();
 }
 
+/// @brief Watches a context menu for the keys of a command: they close the menu, and the
+///        command is to run once the menu is gone (pressed())
+class MenuCommandKeys : public QObject {
+public:
+    explicit MenuCommandKeys(const QAction* command) : m_command(command) {}
+
+    bool pressed() const { return m_pressed; }
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        const QEvent::Type type = event->type();
+        if ((type == QEvent::ShortcutOverride || type == QEvent::KeyPress) &&
+            isCommandKey(*static_cast<QKeyEvent*>(event))) {
+            if (type == QEvent::KeyPress) {
+                m_pressed = true;
+                if (auto* menu = qobject_cast<QWidget*>(watched)) {
+                    menu->close();
+                }
+            }
+            event->accept();  // the menu takes the keys before any shortcut
+            return true;
+        }
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    bool isCommandKey(const QKeyEvent& event) const {
+        if (m_command == nullptr || !m_command->isEnabled()) {
+            return false;
+        }
+        const QList<QKeySequence> shortcuts = m_command->shortcuts();
+        return shortcuts.contains(QKeySequence(event.keyCombination()));
+    }
+
+    const QAction* m_command;
+    bool m_pressed = false;
+};
+
 }  // namespace
 
 void BookEditor::keyPressEvent(QKeyEvent* event)
@@ -66,7 +104,7 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
         QString text = event->text();
         // Only handle printable characters
         if (!text.isEmpty() && text.at(0).isPrint()) {
-            insertText(text);
+            typeText(text);
             handled = true;
         }
     }
@@ -118,7 +156,7 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
         }
 
         // Insert committed text (this handles selection deletion too)
-        insertText(commitString);
+        typeText(commitString);
     }
 
     // Handle preedit text (composition in progress)
@@ -646,6 +684,11 @@ void BookEditor::setContextMenuEditActions(const ContextMenuEditActions& actions
     m_contextMenuEditActions = actions;
 }
 
+void BookEditor::setNextIssueAction(QAction* action)
+{
+    m_nextIssueAction = action;
+}
+
 void BookEditor::contextMenuEvent(QContextMenuEvent* event)
 {
     if (!m_textBuffer) {
@@ -688,19 +731,11 @@ void BookEditor::showContextMenuAtCursor()
 void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& globalPos,
                                  bool fromMouse)
 {
-    // A misspelled word: the words to put in its place, on top of the usual menu
+    // A misspelled word or a grammar issue: what to put in its place, on top of the usual
+    // menu (the spelling first, where both are)
     const auto [word, startOffset, endOffset] = getMisspelledWordAt(pos.paragraph, pos.offset);
-
-    // Check if position is in a grammar error (Phase 6.17)
-    auto grammarError = word.isEmpty() ? getGrammarErrorAt(pos.paragraph, pos.offset)
-                                       : std::nullopt;
-    if (grammarError.has_value()) {
-        // Create grammar check context menu
-        QMenu* menu = createGrammarContextMenu(*grammarError, pos.paragraph);
-        menu->exec(globalPos);
-        delete menu;
-        return;
-    }
+    const std::optional<GrammarError> grammarError =
+        word.isEmpty() ? getGrammarErrorAt(pos.paragraph, pos.offset) : std::nullopt;
 
     // A right click outside the selection puts the cursor there, as a click does, so what
     // the menu does (pasting, adding an annotation) happens where the writer clicked
@@ -716,6 +751,8 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
     QMenu menu(this);
     if (!word.isEmpty()) {
         addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
+    } else if (grammarError.has_value()) {
+        addGrammarActions(menu, *grammarError, pos.paragraph);
     }
 
     // The editing items: the Edit menu's commands with their icons and keys, where the
@@ -759,7 +796,14 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         : tr("Switch to &Light Mode");
     menu.addAction(colorModeText, this, &BookEditor::toggleEditorColorMode);
 
+    // The keys going to the next issue (F7) close the menu and go on to it, without Esc
+    // first: from the event loop, so the next issue's menu does not open inside this one
+    MenuCommandKeys nextIssueKeys(m_nextIssueAction);
+    menu.installEventFilter(&nextIssueKeys);
     menu.exec(globalPos);
+    if (nextIssueKeys.pressed()) {
+        QTimer::singleShot(0, m_nextIssueAction, &QAction::trigger);
+    }
 }
 
 }  // namespace kalahari::editor

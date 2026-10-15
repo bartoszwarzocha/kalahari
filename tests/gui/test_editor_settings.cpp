@@ -3,16 +3,21 @@
 ///        dialog greys out the editor options the editor does not use yet
 
 #include <catch2/catch_test_macros.hpp>
+#include "../editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/utils/setting_toggle.h"
 
+#include <QAction>
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QDoubleSpinBox>
 #include <QPushButton>
+#include <QSize>
 #include <QSpinBox>
+#include <QStringList>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
@@ -99,6 +104,39 @@ TEST_CASE("Editor settings: an editor follows the changed settings once the even
     restore(before);
 }
 
+TEST_CASE("Editor settings: a switch of the Tools menu leaves the view where it is",
+          "[gui][editor][settings]") {
+    // Regression: with typewriter scrolling on, turning the spelling (also the grammar or
+    // auto-correct) on or off brought a cursor scrolled out of the view back into it
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.typewriter.enabled", "editor.spellCheck.enabled"});
+    settings.set<bool>("editor.typewriter.enabled", true);
+
+    gui::EditorPanel panel;
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    test::resizeWidget(*bookEditor, QSize(600, 400));
+    QStringList paragraphs;
+    for (int i = 0; i < 200; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1 of a chapter long enough to scroll.").arg(i);
+    }
+    bookEditor->fromKml(test::kmlOf(paragraphs));
+    bookEditor->moveCursorToDocEnd();
+    bookEditor->setScrollOffset(0.0);  // the wheel, up to the start of the text
+
+    for (int i = 0; i < 2; ++i) {
+        settings.set<bool>("editor.spellCheck.enabled",
+                           !settings.get<bool>("editor.spellCheck.enabled"));
+        QCoreApplication::processEvents();
+        CHECK(bookEditor->scrollOffset() == 0.0);
+    }
+
+    // What is done at the cursor brings it back
+    bookEditor->insertText(QStringLiteral("x"));
+    CHECK(bookEditor->scrollOffset() > 0.0);
+
+    restore(before);
+}
+
 TEST_CASE("Editor settings: the paper chosen in one editor reaches the others",
           "[gui][editor][settings]") {
     auto& settings = core::SettingsManager::getInstance();
@@ -121,6 +159,48 @@ TEST_CASE("Editor settings: the paper chosen in one editor reaches the others",
     QCoreApplication::processEvents();
     CHECK(first.getBookEditor()->editorColorMode() == editor::EditorColorMode::Dark);
     CHECK(second.getBookEditor()->editorColorMode() == editor::EditorColorMode::Dark);
+
+    restore(before);
+}
+
+TEST_CASE("Editor settings: View > Text Frame Border and the Settings dialog show and hide the "
+          "same border in every editor",
+          "[gui][editor][settings]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.textFrameBorder.show"});
+    settings.set<bool>("editor.textFrameBorder.show", false);
+
+    // The toggle of the View menu and the Views toolbar, as the main window makes it
+    QAction toggle(QStringLiteral("Text Frame Border"));
+    gui::utils::followSetting(&toggle, "editor.textFrameBorder.show");
+    gui::EditorPanel first;
+    gui::EditorPanel second;
+    CHECK_FALSE(toggle.isChecked());
+    CHECK_FALSE(first.getBookEditor()->appearance().textFrameBorder.show);
+
+    // The toggle changes only the setting: every editor draws the border
+    settings.set<bool>("editor.textFrameBorder.show", true);
+    QCoreApplication::processEvents();
+    CHECK(toggle.isChecked());
+    CHECK(first.getBookEditor()->appearance().textFrameBorder.show);
+    CHECK(second.getBookEditor()->appearance().textFrameBorder.show);
+
+    // The check box of the Settings dialog shows the same setting and changes the toggle too
+    gui::SettingsDialog dialog(nullptr);
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        tree->setCurrentItem(*it);  // Pages are built when first opened
+    }
+    QCheckBox* show = checkBoxOf(dialog, QStringLiteral("Show text frame border"));
+    REQUIRE(show != nullptr);
+    CHECK(show->isChecked());
+    show->setChecked(false);
+    dialog.applyButton()->click();
+    QCoreApplication::processEvents();
+    CHECK_FALSE(toggle.isChecked());
+    CHECK_FALSE(first.getBookEditor()->appearance().textFrameBorder.show);
+    CHECK_FALSE(second.getBookEditor()->appearance().textFrameBorder.show);
 
     restore(before);
 }
@@ -213,7 +293,7 @@ TEST_CASE("Settings dialog: the dialogue dashes counted as words, in the open ed
         }
     }
     QCheckBox* dashes =
-        checkBoxOf(dialog, QStringLiteral("Count standalone dialogue dashes as words"));
+        checkBoxOf(dialog, QStringLiteral("Count standalone dashes as words"));
     REQUIRE(dashes != nullptr);
     CHECK_FALSE(dashes->isChecked());
 

@@ -9,9 +9,11 @@
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/annotations_coordinator.h"
+#include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/spelling_coordinator.h"
+#include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/command_registrar.h"
@@ -282,6 +284,11 @@ MainWindow::MainWindow(QWidget* parent)
     // field; a floating toolbar, a window of its own, takes them at a click (the window owns
     // the object)
     new ToolbarKeys(this, this);
+
+    // Auto-correct as you type turned on and off as a whole (the window owns the object)
+    auto* autoCorrect = new AutoCorrectCoordinator(statusBar(), this);
+    autoCorrect->connectCommands();
+
     // Spelling as you type: the dictionary of the editors follows the settings and the
     // language of the book, also as it is changed in the Properties panel
     m_spellingCoordinator =
@@ -290,6 +297,15 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookLanguageChanged,
             m_spellingCoordinator, &SpellingCoordinator::updateDictionary);
     m_settingsCoordinator->setSpellCheckService(m_spellingCoordinator->service());
+
+    // Grammar as you type, in the spelling's language: on LanguageTool the program prepares
+    // on this computer, or on a server in the internet the writer chose
+    m_grammarCoordinator =
+        new GrammarCoordinator(m_dockCoordinator->centralTabs(), statusBar(), this);
+    m_grammarCoordinator->connectCommands();
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookLanguageChanged,
+            m_grammarCoordinator, &GrammarCoordinator::updateChecking);
+    m_settingsCoordinator->setGrammarCoordinator(m_grammarCoordinator);
 
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
     // No m_editorPanel at startup - Dashboard is default first tab
@@ -368,6 +384,9 @@ MainWindow::~MainWindow() {
     m_editCoordinator = nullptr;
     if (m_spellingCoordinator) {
         disconnect(m_spellingCoordinator, nullptr, this, nullptr);
+    }
+    if (m_grammarCoordinator) {
+        disconnect(m_grammarCoordinator, nullptr, this, nullptr);
     }
 
     // Block signals to prevent any delivery during child destruction
@@ -469,6 +488,7 @@ void MainWindow::registerCommands() {
     callbacks.onTypewriterToggle = [this]() { onTypewriterToggle(); };
     callbacks.onFocusToggle = [this]() { onFocusToggle(); };
     callbacks.onDarkPaperToggle = [this]() { onDarkPaperToggle(); };
+    callbacks.onTextFrameBorderToggle = [this]() { onTextFrameBorderToggle(); };
     callbacks.onDistractionFreeToggle = [this]() { onDistractionFreeToggle(); };
 
     // Zoom commands act on the editor in front
@@ -572,10 +592,12 @@ void MainWindow::registerCommands() {
         return core::ProjectManager::getInstance().isProjectOpen();
     });
 
-    // The paper, Typewriter Scrolling and Focus are settings of every editor: their toggles
-    // show them also before an editor opens, and follow the editor's context menu and the
-    // Settings dialog
+    // The paper, the text frame border, Typewriter Scrolling and Focus are settings of every
+    // editor: their toggles show them also before an editor opens, and follow the editor's
+    // context menu and the Settings dialog
     utils::followSetting(registry.getAction(std::string("view.darkPaper")), "editor.darkMode");
+    utils::followSetting(registry.getAction(std::string("view.textFrameBorder")),
+                         "editor.textFrameBorder.show");
     utils::followSetting(registry.getAction(std::string("view.typewriter")),
                          "editor.typewriter.enabled");
     utils::followSetting(registry.getAction(std::string("view.focus")), "editor.focus.enabled");
@@ -933,6 +955,18 @@ void MainWindow::onDarkPaperToggle() {
     settings.set<bool>("editor.darkMode", dark);
     core::Logger::getInstance().info("Action triggered: Dark Paper {}", dark ? "on" : "off");
     statusBar()->showMessage(dark ? tr("Dark paper: on") : tr("Dark paper: off"), 2000);
+}
+
+void MainWindow::onTextFrameBorderToggle() {
+    auto& settings = core::SettingsManager::getInstance();
+
+    // A setting of all editors, kept between sessions, as in the Settings dialog: every
+    // editor follows it
+    const bool show = !settings.get<bool>("editor.textFrameBorder.show");
+    settings.set<bool>("editor.textFrameBorder.show", show);
+    core::Logger::getInstance().info("Action triggered: Text Frame Border {}", show ? "on" : "off");
+    statusBar()->showMessage(show ? tr("Text frame border: on") : tr("Text frame border: off"),
+                             2000);
 }
 
 bool MainWindow::isDistractionFree() const {

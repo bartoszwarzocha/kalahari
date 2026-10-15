@@ -541,25 +541,23 @@ void checkTextMenus(bool shown, QStringList& problems) {
     // Spelling goes before grammar: the issue below is a misspelling too
     editor.setSpellCheckService(nullptr);
 
-    // The words for a grammar issue, from the writer's LanguageTool server; the lines that
-    // tell what is wrong have no keys
+    // The words for a grammar issue, from the writer's LanguageTool server, on top of the
+    // usual menu; the line that tells what is wrong has no key
     const NoProxy noProxy;
     FakeLanguageTool server;
     editor::GrammarCheckService grammar;
-    grammar.setDebounceMs(100);
-    grammar.setApiEndpoint(server.url());
+    grammar.setServer(server.url());
     editor.setGrammarCheckService(&grammar);  // checks the text, as in the program
-    REQUIRE(test::waitUntil([&grammar] { return !grammar.errorsForParagraph(0).isEmpty(); },
-                            10000));
-    QStringList told = {QStringLiteral("Typo"),
-                        QCoreApplication::translate(BOOK_EDITOR, "Error: \"%1\"")
-                            .arg(QStringLiteral("cta"))};
+    REQUIRE(test::waitUntil([&editor] { return !editor.isGrammarCheckPending(); }, 20000));
+    QStringList told = {QStringLiteral("The letters seem to be in the wrong order.")};
     if (!shown) {
         told << QStringLiteral("cat") << QStringLiteral("act");
     }
     items = contextMenu(&editor, &editor, placeOf(editor, 25));
     collectProblems(items, QStringLiteral("Grammar issue"), told, problems);
-    CHECK(itemCount(items) == 6);  // and Explanation, Ignore this rule
+    CHECK(labelsOf(items).contains(told.first()));
+    // and the two words, Ignore This Rule, then the usual menu
+    CHECK(itemCount(items) == 1 + 2 + 1 + 6);
 }
 
 /// The context menus of the Navigator, for every kind of its items: a novel with a part, an

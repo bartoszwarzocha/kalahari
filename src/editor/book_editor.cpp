@@ -5,6 +5,7 @@
 #include "book_editor_internal.h"
 #include <kalahari/core/logger.h>
 #include <kalahari/core/text_statistics.h>
+#include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/render_context.h>
 #include <kalahari/editor/kml_document_model.h>
@@ -25,6 +26,7 @@
 #include <QVariantAnimation>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <utility>
 
 namespace kalahari::editor {
@@ -40,6 +42,9 @@ constexpr qsizetype MARK_TOOLTIP_LENGTH = 600;
 
 // How long the editing pauses before a content as long as the saved one is compared with it
 constexpr int MODIFIED_CHECK_DELAY_MS = 150;
+
+// Two typewriter heights closer than this are the same (as for the render pipeline)
+constexpr double TYPEWRITER_HEIGHT_EPSILON = 0.0001;
 
 namespace {
 
@@ -238,6 +243,9 @@ BookEditor::BookEditor(QWidget* parent)
 
 BookEditor::~BookEditor()
 {
+    // The checking of the grammar outlives the editor: its requests are dropped
+    dropGrammarRequests();
+
     // Stop timers before destruction to prevent callbacks during cleanup
     if (m_cursorBlinkTimer != nullptr) {
         m_cursorBlinkTimer->stop();
@@ -282,6 +290,13 @@ const EditorAppearance& BookEditor::appearance() const
 
 void BookEditor::setAppearance(const EditorAppearance& appearance)
 {
+    // Typewriter scrolling places the cursor line when it is turned on or its height
+    // changes; the other settings (and the switches of the Tools menu, which change settings
+    // too) leave the view where it is
+    const bool typewriterChanged =
+        appearance.typewriter.enabled != m_appearance.typewriter.enabled ||
+        std::abs(appearance.typewriter.focusPosition - m_appearance.typewriter.focusPosition) >=
+            TYPEWRITER_HEIGHT_EPSILON;
     m_appearance = appearance;
 
     // The render pipeline owns the document font: it applies the font of the settings as
@@ -321,7 +336,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
     // The page's margins set the scroll range (the pipeline gives the viewport the scroll
     // padding)
     updateScrollBarRange();
-    applyTypewriter();
+    if (typewriterChanged) {
+        applyTypewriter();
+    }
     updatePageInfo();
     applyFirstShowShrink();  // the page's new size, until the first paint
     update();
@@ -788,8 +805,11 @@ bool BookEditor::fromKml(const QString& kml)
 
     logElapsed("START");
 
-    // The text gets a new document. The pointers to the old one are cleared BEFORE it is
-    // destroyed, so none is left dangling.
+    // The text gets a new document. The selection goes while the old one is there (the
+    // cursor is drawn from it), and the pointers to it are cleared BEFORE it is destroyed,
+    // so none is left dangling.
+    m_cursorPosition = {0, 0};
+    clearSelection();
     if (m_viewportManager) {
         m_viewportManager->setDocument(nullptr);
     }
@@ -797,6 +817,7 @@ bool BookEditor::fromKml(const QString& kml)
         m_searchEngine->setDocument(nullptr);
     }
     m_textCursor = QTextCursor();
+    dropGrammarRequests();  // their places are in the old document
     m_textBuffer.reset();
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
@@ -820,8 +841,6 @@ bool BookEditor::fromKml(const QString& kml)
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
 
-    m_cursorPosition = {0, 0};
-    clearSelection();
     if (m_renderPipeline) {
         m_renderPipeline->setCursorBlinkState(true);
     }
@@ -877,6 +896,31 @@ void BookEditor::replaceWithKml(const QString& kml)
     emit cursorPositionChanged(m_cursorPosition);
 }
 
+void BookEditor::replaceMarkupWithKml(const QString& kml)
+{
+    if (!m_textBuffer || !m_renderPipeline || !m_viewportManager) {
+        replaceWithKml(kml);
+        return;
+    }
+
+    // The characters stay one for one: the cursor and the text at the top of the view keep
+    // their places, counted from the start of the text
+    const int cursorPlace = calculateAbsolutePosition(m_cursorPosition);
+    const CursorPosition top = positionFromPoint(QPointF(width() / 2.0, 0.0));
+    const double topLine = m_renderPipeline->caretRect(top).top();
+    const int topPlace = calculateAbsolutePosition(top);
+    const double scrollX = m_renderPipeline->context().scrollX;
+
+    replaceWithKml(kml);
+    setCursorPosition(absoluteToCursorPosition(m_textBuffer.get(), cursorPlace));
+
+    // Both went to the cursor: the view goes back to its text
+    stopScrollAnimation();
+    placeLineAt(absoluteToCursorPosition(m_textBuffer.get(), topPlace), topLine);
+    setHorizontalScrollOffset(scrollX);
+    update();
+}
+
 // =============================================================================
 // Document
 // =============================================================================
@@ -918,6 +962,11 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     cursor.endEditBlock();
     m_textBuffer->setUndoRedoEnabled(true);
 
+    // The grammar of the paragraphs edited is checked when the writer stops typing (the
+    // content put in above is not an edit: it is checked at once)
+    connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
+            &BookEditor::adjustGrammarToEdit);
+
     // From now on an edit can make the content differ from the saved one, or bring it back
     connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this,
             &BookEditor::checkModified);
@@ -944,8 +993,10 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     // The new text has the zoom of the settings (syncPipelineState())
     applyFirstShowShrink();
 
-    // Its spelling is checked from the paragraphs in view
+    // Its spelling and grammar are checked from the paragraphs in view
     requestSpellCheck();
+    m_grammarEditClock.invalidate();
+    requestGrammarCheck();
 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now() - startTime);

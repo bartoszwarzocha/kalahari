@@ -4,6 +4,7 @@
 #pragma once
 
 #include <kalahari/core/text_statistics.h>
+#include <kalahari/editor/grammar_error.h>
 #include <kalahari/editor/text_highlight.h>
 #include <QString>
 #include <QTextBlock>
@@ -39,6 +40,9 @@ public:
 
     ParagraphCheck spelling;  ///< Misspelled words
     ParagraphCheck grammar;   ///< Grammar and style issues
+
+    /// @brief What each grammar issue is, in the order of grammar.issues
+    std::vector<GrammarError> grammarErrors;
 
     /// @brief Data of a block, or nullptr when it has none
     static ParagraphData* find(const QTextBlock& block) {

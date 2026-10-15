@@ -15,6 +15,7 @@
 #include <QTextBoundaryFinder>
 #include <QTextDocumentFragment>
 #include <algorithm>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -190,6 +191,82 @@ void BookEditor::insertText(const QString& text)
     emit paragraphModified(m_cursorPosition.paragraph);
 }
 
+void BookEditor::typeText(const QString& text)
+{
+    qsizetype typed = 0;
+    for (qsizetype i = 0; i < text.size(); ++i) {
+        if (startsAutoCorrection(text.at(i))) {
+            insertText(text.mid(typed, i + 1 - typed));
+            autoCorrectTyped();
+            typed = i + 1;
+        }
+    }
+    if (typed < text.size()) {
+        insertText(text.mid(typed));
+    }
+}
+
+void BookEditor::setAutoCorrect(const AutoCorrectOptions& options)
+{
+    m_autoCorrect = options;
+}
+
+void BookEditor::setTextLanguage(std::function<QString()> language)
+{
+    m_textLanguage = std::move(language);
+}
+
+void BookEditor::autoCorrectTyped()
+{
+    if (!m_textBuffer || hasSelection()) {
+        return;
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!block.isValid()) {
+        return;
+    }
+    const std::optional<AutoCorrection> change = autoCorrection(
+        block.text().left(m_cursorPosition.offset), m_autoCorrect, [this]() {
+            return QuoteMarks::forLanguage(m_textLanguage ? m_textLanguage() : QString());
+        });
+    if (!change) {
+        return;
+    }
+
+    const int from = block.position() + change->start;
+    const int to = block.position() + change->end;
+    const int length = static_cast<int>(change->text.size());
+    const CursorPosition typed = m_cursorPosition;
+    const CursorPosition changed{typed.paragraph,
+                                 typed.offset + length - (change->end - change->start)};
+
+    // The new characters take the format of the first one they replace, with the fragments
+    // of annotations it is in; an annotation on a replaced character stays on its place
+    QTextCursor first(m_textBuffer.get());
+    first.setPosition(from + 1);
+    QTextCharFormat format = first.charFormat();
+    AnnotationList fragments = annotationsOf(format);
+    fragments.removeIf([](const Annotation& annotation) { return annotation.point; });
+    setAnnotations(format, fragments);
+
+    // An undo step of its own, apart from the text typed before and after it: undone, it
+    // brings back the typed characters with the cursor after them (its first undo item,
+    // undone last); redone, the change with the cursor after it (its last item)
+    QTextCursor cursor(m_textBuffer.get());
+    cursor.setPosition(from);
+    cursor.beginEditBlock();
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{typed, {}}] { m_stepCursor = state; }));
+    cursor.insertText(change->text, format);
+    cursor.setPosition(to + length, QTextCursor::KeepAnchor);
+    removeKeepingAnnotations(cursor);
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{changed, {}}] { m_stepCursor = state; }));
+    cursor.endEditBlock();
+
+    finishEdit(createCursor(m_textBuffer.get(), changed));
+}
+
 bool BookEditor::deleteSelectedText()
 {
     return removeSelection(true);
@@ -217,6 +294,9 @@ bool BookEditor::removeSelection(bool keepAnnotations)
     m_cursorPosition.offset = cursor.positionInBlock();
     clearSelection();
 
+    // The view follows the cursor, as after typing: it stays where the selection started,
+    // which can be far above the view (all the text selected and deleted)
+    ensureCursorVisible();
     update();
     emit contentChanged();
     return true;

@@ -11,6 +11,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **View: Text Frame Border on the Views toolbar** - 2026-10-13. View > Text Frame Border
+  (also a button on the Views toolbar, next to Dark Paper) shows and hides the border around
+  the text of every editor, the option "Show text frame border" of Settings > Editor > Pages
+  and Margins, which so far was the only place to change it. The button, the menu item and the
+  check box show the same setting whatever changes it, and the program remembers it. The icon
+  is a page with lines of text in a frame (`text_frame.svg` in the four icon themes).
+
+- **Editor: autocorrect as you type** - 2026-10-13. As in Word, the editor puts typographic
+  characters in the place of what is typed: straight quotation marks become those of the
+  text's language (in Polish „…” and ‚…’, in English “…” and ‘…’, in another language those of
+  Qt's locale data), an apostrophe in a word becomes ’, a hyphen and a space starting a
+  paragraph become a dialogue dash (an em dash, or an en dash if chosen), and three periods
+  become an ellipsis (…). A mark opens a quotation at the start of a paragraph and after a
+  space, a bracket, a dash or the opening mark of the other kind, and closes it elsewhere. The
+  quotation marks of a chapter are those of the book's language, of a file opened from the
+  disk those of the program's language; a language chosen in Settings > Editor > Spelling goes
+  before both, as for the spelling. Each change is an undo step of its own: Ctrl+Z right after
+  it brings back what was typed, with the cursor after it, and the text typed next stays as
+  typed (a fourth period after three brought back is a period). The new characters keep the
+  format of the typed ones, and the annotations stay where they were. Text composed with an
+  input method is changed the same way. Settings > Editor > Auto-correct turns each change on
+  and off (all are on at first) and chooses the dash; its note gives the keys Undo has.
+  Tools > Auto-correct as You Type, also a button on the Tools toolbar right after the
+  spelling's, turns all the changes on and off at once, as the switch at the top of that page
+  does; each change keeps its choice. The command's tooltip names the changes chosen (while
+  auto-correct is off, those it makes when on) and where they are chosen.
+
 - **Editor: a new line in the paragraph (Shift+Enter)** - 2026-10-11. Shift+Enter starts a
   new line in the paragraph, as a manual line break in Word: the lines keep the paragraph's
   alignment, spacing and formatting, and the break with the text typed after it is one undo
@@ -508,6 +535,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The view after deleting a selection** - 2026-10-14. Deleting a selection (Delete,
+  Backspace or cutting it) left the view where it was, so after Ctrl+A and Delete in a long
+  chapter the cursor, at the top of the page, was out of sight. The view now follows the
+  cursor, as after typing; a selection in view leaves the view where it is.
+
+- **The view jumping back to the cursor** - 2026-10-14. With typewriter scrolling on, the
+  view went back to a cursor scrolled out of it after a change of any editor setting
+  (turning spelling, grammar or auto-correct on or off, a change in the Settings window or of
+  the theme), a zoom or moving the window to a screen of another pixel density; Whole Page
+  went to the cursor's page also with typewriter scrolling off. The view now stays where it
+  is: typewriter scrolling places the cursor line only while it is in the view, and Whole
+  Page shows the page in the middle of the view when the cursor is out of it. A file saved as
+  plain text keeps the view at its text, too, when its tab loses the formatting. Typing, the
+  keys, a search and going to a place still bring the view to the cursor.
+
 - **The Dashboard's option to open the last book** - 2026-10-13. Changed in the Settings
   window, the option stayed as it was on the Dashboard until the program started again; the
   Dashboard now shows the change at once.
@@ -599,9 +641,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     them (ktory: który, Lodz: Łódź), a word starting a sentence also gets the words written
     small (Teh: The), while a misspelled name still gets the name, and the writer's own
     words close to the misspelled one are offered too.
-  - From the keyboard: Tools > Next Misspelling (F7) selects the next misspelled word,
-    from the cursor round the chapter, and opens the same menu under it; the menu key and
-    Shift+F10 open it for the word at the cursor.
+  - From the keyboard: Tools > Next Spelling or Grammar Issue (F7) selects the next
+    misspelled word, from the cursor round the chapter, and opens the same menu under it;
+    the menu key and Shift+F10 open it for the word at the cursor.
   - Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off for all
     documents, and remembers it. Settings > Editor > Spelling has the same switch, the
     language and the list of the writer's own words, which can be added and removed there;
@@ -609,6 +651,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `settings.json`.
   - The dictionary is loaded in the background, once for all open chapters, and a
     language change does not stop the work.
+- **Grammar as you type, with LanguageTool on this computer** - 2026-10-13
+  - The editor underlines grammar, style and punctuation issues with a wavy line, in the
+    language of the spelling. They are found by LanguageTool, a free program. By default it
+    runs on this computer, so the text of the book does not leave it. Checking on a server
+    in the internet is the writer's choice in Settings > Editor > Grammar, made after a
+    question that says the text will be sent there: the free api.languagetool.org, a
+    Premium account with its e-mail and API key, or the address of another server, with a
+    Check button that says whether the server checks the text.
+  - LanguageTool needs Java. Prepare Grammar Checking... on that page (or Prepare Now in
+    the question Tools > Check Grammar as You Type asks while nothing is prepared) opens a
+    window of three steps: what will be downloaded (LanguageTool 6.6 and Java 21 by
+    Eclipse Temurin, about 300 MB, with the room free on the disk and the folder), the
+    download with the progress of each step, and a sample of the underlines. No
+    administrator rights are needed: the files go to the user's data folder
+    (`Kalahari/grammar`), are checked against their SHA-256 sums and unpacked there. The
+    download can go on in the background while the writer works, with its progress on the
+    status bar. A failure says why and what to do (no internet, a server that does not
+    answer, a damaged file, no room on the disk, a folder that cannot be written in), and
+    Try Again downloads only what is still missing.
+  - The program starts LanguageTool when the first document opens (on another port when
+    8081 is taken), starts it again up to three times when it stops, and closes it with the
+    program, also when the program ends abruptly (a crash): Java does not stay in memory.
+    The status bar says when the grammar is not checked and why. The advanced
+    settings take Java and LanguageTool installed another way, the port or a server started
+    outside the program, and show the server's state with Check and Details; Remove
+    Downloaded Components frees the room again.
+  - Only the paragraphs on the screen and some around them are sent, a moment after the
+    writer stops typing. The lines of an issue move with the text edited around it and stay
+    until its paragraph is checked again; an issue that applies only to finished sentences
+    waits until its sentence is finished. A line break inside a paragraph (Shift+Enter) is
+    read as a space between words.
+  - A right click on an issue shows what is wrong, whole, up to five replacements in bold
+    and Ignore This Rule, above the usual commands. An ignored rule stays ignored in every
+    book, also after a restart; Settings > Editor > Grammar lists the ignored rules and
+    restores them. Spelling issues are left to the dictionary.
+  - From the keyboard: F7 goes to the grammar issues too, in the order of the text, and
+    opens the same menu. When the paragraphs after the cursor are not checked yet, it checks
+    them, further on and round the text, until it finds an issue; the server keeps what it
+    checks a language with from one paragraph to the next (some 20 ms for a paragraph instead
+    of 150), so F7 through 130 paragraphs not checked yet takes about 2 seconds instead of 8.
+    The menu key and Shift+F10 open the menu for the issue at the cursor. F7 pressed while
+    the menu of an issue (spelling or grammar) is open goes straight on to the next issue
+    and its menu, without Esc first.
+  - Tools > Check Grammar as You Type, also a button on the Tools toolbar right after the
+    spelling's, turns the checking on and off for all documents and remembers it.
 - **Annotations: their marks, the frame they are written in, the Annotations panel and the
   commands for them** - 2026-10-08
   - Insert > Add Comment, Add To Do and Add Note (also in the text's context menu) open a

@@ -276,6 +276,44 @@ TEST_CASE("Text keys: Ctrl+Backspace and Ctrl+Delete delete a word", "[editor][t
     }
 }
 
+TEST_CASE("Text keys: deleting a selection brings the cursor into view", "[editor][textkeys]") {
+    // Regression: after Ctrl+A and Delete the view stayed where the end of the text had
+    // been, below the empty paragraph the cursor was in
+    QStringList paragraphs;
+    for (int i = 0; i < 40; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1 of the chapter, long enough to wrap onto a "
+                                     "second line in the narrow view of the test.")
+                          .arg(i + 1);
+    }
+
+    SECTION("All the text selected and deleted: the view goes to the top") {
+        for (const int key : {Qt::Key_Delete, Qt::Key_Backspace}) {
+            CAPTURE(key);
+            auto editor = editorWith(paragraphs);
+            editor->moveCursorToDocEnd();
+            REQUIRE(editor->scrollOffset() > 0.0);
+
+            editor->selectAll();  // Edit > Select All (Ctrl+A)
+            press(*editor, key, NONE);
+            CHECK(textOf(*editor).isEmpty());
+            CHECK(editor->cursorPosition() == CursorPosition{0, 0});
+            CHECK(editor->scrollOffset() == 0.0);
+        }
+    }
+
+    SECTION("A selection in view leaves the view where it is") {
+        auto editor = editorWith(paragraphs);
+        editor->moveCursorToDocEnd();
+        const qreal scroll = editor->scrollOffset();
+        for (int i = 0; i < 5; ++i) {
+            editor->performTextKey(Action::CharacterLeft, true);  // "test."
+        }
+        press(*editor, Qt::Key_Delete, NONE);
+        CHECK(textOf(*editor).endsWith(QStringLiteral("narrow view of the ")));
+        CHECK(editor->scrollOffset() == scroll);
+    }
+}
+
 TEST_CASE("Text keys: Ctrl+Up and Ctrl+Down move by paragraphs", "[editor][textkeys]") {
     auto editor = editorWith({QStringLiteral("Pierwszy."), QStringLiteral("Drugi."),
                               QStringLiteral("Trzeci.")});

@@ -1,5 +1,6 @@
 /// @file test_views_toolbar.cpp
-/// @brief The Views toolbar: the view modes, the switches, the paper and the zoom of the View menu
+/// @brief The Views toolbar: the view modes, the switches, the paper, the text frame border and
+///        the zoom of the View menu
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/icon_registry.h"
@@ -86,7 +87,9 @@ QByteArray layoutWithoutViewsToolbar() {
 
 }  // namespace
 
-TEST_CASE("Views toolbar: the view modes, switches, paper and zoom of the View menu", "[gui][toolbar]") {
+TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border and zoom of the View "
+          "menu",
+          "[gui][toolbar]") {
     registerAllCommands(CommandCallbacks{});
     registerAllIcons();
     CommandRegistry& registry = CommandRegistry::getInstance();
@@ -102,7 +105,7 @@ TEST_CASE("Views toolbar: the view modes, switches, paper and zoom of the View m
 
     // The very actions of the View menu, so a button is checked with its menu item
     const QList<QAction*> actions = toolbar->actions();
-    REQUIRE(actions.size() == 13);
+    REQUIRE(actions.size() == 14);
     CHECK(actions[0] == registry.getAction(std::string("view.mode.continuous")));
     CHECK(actions[1] == registry.getAction(std::string("view.mode.page")));
     CHECK(actions[2]->isSeparator());
@@ -110,19 +113,30 @@ TEST_CASE("Views toolbar: the view modes, switches, paper and zoom of the View m
     CHECK(actions[4] == registry.getAction(std::string("view.focus")));
     CHECK(actions[5] == registry.getAction(std::string("view.typewriter")));
     CHECK(actions[6] == registry.getAction(std::string("view.darkPaper")));
-    CHECK(actions[7]->isSeparator());
-    CHECK(actions[8] == registry.getAction(std::string("view.zoomOut")));
-    CHECK(actions[9] == registry.getAction(std::string("view.zoomIn")));
-    CHECK(actions[10] == registry.getAction(std::string("view.resetZoom")));
-    CHECK(actions[11] == registry.getAction(std::string("view.zoomPageWidth")));
-    CHECK(actions[12] == registry.getAction(std::string("view.zoomWholePage")));
+    CHECK(actions[7] == registry.getAction(std::string("view.textFrameBorder")));
+    CHECK(actions[8]->isSeparator());
+    CHECK(actions[9] == registry.getAction(std::string("view.zoomOut")));
+    CHECK(actions[10] == registry.getAction(std::string("view.zoomIn")));
+    CHECK(actions[11] == registry.getAction(std::string("view.resetZoom")));
+    CHECK(actions[12] == registry.getAction(std::string("view.zoomPageWidth")));
+    CHECK(actions[13] == registry.getAction(std::string("view.zoomWholePage")));
+
+    // In the View menu the text frame border follows the paper, before the separator
+    const Command* paper = registry.getCommand("view.darkPaper");
+    const Command* frame = registry.getCommand("view.textFrameBorder");
+    REQUIRE(paper != nullptr);
+    REQUIRE(frame != nullptr);
+    CHECK(frame->menuPath == "VIEW/Text Frame Border");
+    CHECK(frame->menuOrder == paper->menuOrder + 1);
+    CHECK_FALSE(paper->addSeparatorAfter);
+    CHECK(frame->addSeparatorAfter);
 
     // Every button has an icon of the icon theme
     auto& icons = kalahari::core::IconRegistry::getInstance();
     for (const char* id : {"view.mode.continuous", "view.mode.page", "view.mode.distraction-free",
-                           "view.focus", "view.typewriter", "view.darkPaper", "view.zoomOut",
-                           "view.zoomIn", "view.resetZoom", "view.zoomPageWidth",
-                           "view.zoomWholePage"}) {
+                           "view.focus", "view.typewriter", "view.darkPaper",
+                           "view.textFrameBorder", "view.zoomOut", "view.zoomIn",
+                           "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}) {
         INFO(id);
         CHECK(icons.hasIcon(QString::fromLatin1(id)));
     }
@@ -144,6 +158,30 @@ TEST_CASE("Views toolbar: the paper icon is a square halved corner to corner in 
             CHECK(image.pixelColor(8, 8) == SECONDARY);
         } else {
             CHECK(image.pixelColor(8, 8).alpha() == 0);
+        }
+    }
+}
+
+TEST_CASE("Views toolbar: the text frame border icon is a page with lines of text in a frame in "
+          "every icon theme",
+          "[gui][toolbar]") {
+    for (const char* theme : {"twotone", "filled", "outlined", "rounded"}) {
+        INFO(theme);
+        const QImage image = renderIcon(theme, "text_frame");
+        REQUIRE_FALSE(image.isNull());
+
+        // The left side of the page and of the frame, with room between them, and a line of
+        // the text
+        CHECK(image.pixelColor(5, 12) == PRIMARY);
+        CHECK(image.pixelColor(8, 12).alpha() == 0);
+        CHECK(image.pixelColor(9, 12) == PRIMARY);
+        CHECK(image.pixelColor(12, 10) == PRIMARY);
+
+        // Between the lines, inside the frame: empty (in two tones: the second color)
+        if (QLatin1String(theme) == QLatin1String("twotone")) {
+            CHECK(image.pixelColor(12, 11) == SECONDARY);
+        } else {
+            CHECK(image.pixelColor(12, 11).alpha() == 0);
         }
     }
 }

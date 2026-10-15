@@ -4,6 +4,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/kind_words.h"
@@ -61,6 +62,14 @@ EditorPanel::EditorPanel(QWidget* parent)
          registry.getAction(QStringLiteral("edit.copy")),
          registry.getAction(QStringLiteral("edit.paste")),
          registry.getAction(QStringLiteral("edit.selectAll"))});
+
+    // Autocorrect puts in the quotation marks of the text's language, asked when they are
+    // typed: the book's language may change, and a chapter is told from a file outside the
+    // book only after its tab is shown
+    m_bookEditor->setTextLanguage([this]() { return textLanguage(); });
+
+    // F7 in the menu of an issue goes on to the next one, as in the text
+    m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
 
     // The light or dark paper chosen in the editor's context menu is the setting of all
     // editors, kept between sessions
@@ -199,6 +208,13 @@ void EditorPanel::setUnmodified() {
     }
 }
 
+QString EditorPanel::textLanguage() const {
+    // A chapter of the book, which NavigatorCoordinator tags with its element, or a file
+    // outside the book
+    const bool chapter = !property("elementId").toString().isEmpty();
+    return chapter ? SpellingCoordinator::wantedLanguage() : SpellingCoordinator::defaultLanguage();
+}
+
 void EditorPanel::applySettings() {
     if (!m_bookEditor) {
         return;
@@ -286,6 +302,22 @@ void EditorPanel::applySettings() {
                    MAX_MARK_SCALE);
 
     m_bookEditor->setAppearance(appearance);
+
+    // Autocorrect: what is changed in the text as it is typed; nothing while it is off as a
+    // whole (Tools > Auto-correct as You Type), each replacement keeping its choice
+    const bool autoCorrecting = settings.get<bool>("editor.autoCorrect.enabled");
+    const auto replaces = [&settings, autoCorrecting](const char* key) {
+        return autoCorrecting && settings.get<bool>(key);
+    };
+    editor::AutoCorrectOptions autoCorrect;
+    autoCorrect.quotes = replaces("editor.autoCorrect.quotes");
+    autoCorrect.apostrophe = replaces("editor.autoCorrect.apostrophe");
+    autoCorrect.dialogueDash = replaces("editor.autoCorrect.dialogueDash");
+    autoCorrect.dash = settings.get<std::string>("editor.autoCorrect.dialogueDashType") == "enDash"
+                           ? editor::DialogueDash::En
+                           : editor::DialogueDash::Em;
+    autoCorrect.ellipsis = replaces("editor.autoCorrect.ellipsis");
+    m_bookEditor->setAutoCorrect(autoCorrect);
 
     // What the counts take for a word (a setting of the whole program)
     m_bookEditor->setWordCountRules(core::wordCountRules());
