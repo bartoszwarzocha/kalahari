@@ -476,6 +476,10 @@
         <translation>&amp;Ciemny papier</translation>
     </message>
     <message>
+        <source>Te&amp;xt Frame Border</source>
+        <translation>Ramka tekst&amp;u</translation>
+    </message>
+    <message>
         <source>&amp;Writer</source>
         <translation>&amp;Pisarz</translation>
     </message>
@@ -5336,6 +5340,14 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Dark paper: off</source>
         <translation>Ciemny papier: wyłączony</translation>
+    </message>
+    <message>
+        <source>Text frame border: on</source>
+        <translation>Ramka tekstu: włączona</translation>
+    </message>
+    <message>
+        <source>Text frame border: off</source>
+        <translation>Ramka tekstu: wyłączona</translation>
     </message>
     <message>
         <source>Unsaved Changes</source>

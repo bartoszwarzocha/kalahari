@@ -574,9 +574,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onFocusToggle);
 
-    // The light or dark paper of every editor, as in the editor's context menu
-    REG_CMD_CB("view.darkPaper", QT_TRANSLATE_NOOP("CommandRegistrar", "Dar&k Paper"), "VIEW/Dark Paper", 62, true, 0,
+    // The light or dark paper of every editor, as in the editor's context menu, and the
+    // border around the text of every editor, as in the Settings dialog
+    REG_CMD_CB("view.darkPaper", QT_TRANSLATE_NOOP("CommandRegistrar", "Dar&k Paper"), "VIEW/Dark Paper", 62, false, 0,
                callbacks.onDarkPaperToggle);
+    REG_CMD_CB("view.textFrameBorder", QT_TRANSLATE_NOOP("CommandRegistrar", "Te&xt Frame Border"), "VIEW/Text Frame Border", 63, true, 0,
+               callbacks.onTextFrameBorderToggle);
 
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writer"), "VIEW/Perspectives/Writer", 70, false, 1);

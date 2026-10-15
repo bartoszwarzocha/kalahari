@@ -290,6 +290,9 @@ private slots:
     /// @brief Turn the dark paper of every editor on or off (remembered)
     void onDarkPaperToggle();
 
+    /// @brief Show or hide the border around the text of every editor (remembered)
+    void onTextFrameBorderToggle();
+
     /// @brief Turn Distraction-Free writing on or off (the view mode stays)
     void onDistractionFreeToggle();
 

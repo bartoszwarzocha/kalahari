@@ -89,7 +89,8 @@ public:
     /// - Edit: Undo, Redo, [SEP], Cut, Copy, Paste, SelectAll
     /// - Book: NewChapter, NewCharacter, NewLocation, BookProperties
     /// - Views: Continuous, Page Layout, [SEP], Distraction-Free, Focus, Typewriter Scrolling,
-    ///   Dark Paper, [SEP], Zoom Out, Zoom In, Zoom 100%, Page Width, Whole Page
+    ///   Dark Paper, Text Frame Border, [SEP], Zoom Out, Zoom In, Zoom 100%, Page Width,
+    ///   Whole Page
     /// - Panels (id "view"): Dashboard, Navigator, Properties, Search, Assistant, Log
     /// - Tools: Spellcheck, Auto-correct, WordCount
     ///
