@@ -213,7 +213,7 @@ TEST_CASE("Settings dialog: the dialogue dashes counted as words, in the open ed
         }
     }
     QCheckBox* dashes =
-        checkBoxOf(dialog, QStringLiteral("Count standalone dialogue dashes as words"));
+        checkBoxOf(dialog, QStringLiteral("Count standalone dashes as words"));
     REQUIRE(dashes != nullptr);
     CHECK_FALSE(dashes->isChecked());
 

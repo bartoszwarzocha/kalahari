@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Editor: autocorrect as you type** - 2026-10-13. As in Word, the editor puts typographic
+  characters in the place of what is typed: straight quotation marks become those of the
+  text's language (in Polish „…” and ‚…’, in English “…” and ‘…’, in another language those of
+  Qt's locale data), an apostrophe in a word becomes ’, a hyphen and a space starting a
+  paragraph become a dialogue dash (an em dash, or an en dash if chosen), and three periods
+  become an ellipsis (…). A mark opens a quotation at the start of a paragraph and after a
+  space, a bracket, a dash or the opening mark of the other kind, and closes it elsewhere. The
+  quotation marks of a chapter are those of the book's language, of a file opened from the
+  disk those of the program's language; a language chosen in Settings > Editor > Spelling goes
+  before both, as for the spelling. Each change is an undo step of its own: Ctrl+Z right after
+  it brings back what was typed, with the cursor after it, and the text typed next stays as
+  typed (a fourth period after three brought back is a period). The new characters keep the
+  format of the typed ones, and the annotations stay where they were. Text composed with an
+  input method is changed the same way. Settings > Editor > Auto-correct turns each change on
+  and off (all are on at first) and chooses the dash; its note gives the keys Undo has.
+  Tools > Auto-correct as You Type, also a button on the Tools toolbar right after the
+  spelling's, turns all the changes on and off at once, as the switch at the top of that page
+  does; each change keeps its choice. The command's tooltip names the changes chosen (while
+  auto-correct is off, those it makes when on) and where they are chosen.
+
 - **Editor: a new line in the paragraph (Shift+Enter)** - 2026-10-11. Shift+Enter starts a
   new line in the paragraph, as a manual line break in Word: the lines keep the paragraph's
   alignment, spacing and formatting, and the break with the text typed after it is one undo

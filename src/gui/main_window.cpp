@@ -9,6 +9,7 @@
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/annotations_coordinator.h"
+#include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/spelling_coordinator.h"
@@ -282,6 +283,11 @@ MainWindow::MainWindow(QWidget* parent)
     // field; a floating toolbar, a window of its own, takes them at a click (the window owns
     // the object)
     new ToolbarKeys(this, this);
+
+    // Auto-correct as you type turned on and off as a whole (the window owns the object)
+    auto* autoCorrect = new AutoCorrectCoordinator(statusBar(), this);
+    autoCorrect->connectCommands();
+
     // Spelling as you type: the dictionary of the editors follows the settings and the
     // language of the book, also as it is changed in the Properties panel
     m_spellingCoordinator =

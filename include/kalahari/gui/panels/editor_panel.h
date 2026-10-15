@@ -80,6 +80,12 @@ public:
     /// @brief Mark the text now as the saved text (after saving it)
     void setUnmodified();
 
+    /// @brief The language of the text, as its spelling is checked: of a chapter of the book
+    ///        SpellingCoordinator::wantedLanguage() (the book's, unless the settings name
+    ///        another), of a file outside the book defaultLanguage() (the program's, unless
+    ///        the settings name another)
+    QString textLanguage() const;
+
     /// @brief Get the underlying BookEditor widget
     /// @return Pointer to BookEditor widget
     ///

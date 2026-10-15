@@ -471,6 +471,13 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_KEY("tools.nextMisspelling", QT_TRANSLATE_NOOP("CommandRegistrar", "&Next Misspelling"), "TOOLS/Next Misspelling", 45, false, 0,
                 KeyboardShortcut(Qt::Key_F7, Qt::NoModifier));
 
+    // Turns auto-correct on and off as a whole (AutoCorrectCoordinator gives it its callback);
+    // on the Tools toolbar after the checking of the text
+    REG_CMD_TOOL_ICON("tools.autocorrect", QT_TRANSLATE_NOOP("CommandRegistrar", "A&uto-correct as You Type"), "TOOLS/Auto-correct as You Type", 55, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      nullptr);
+
     REG_CMD("tools.grammar", QT_TRANSLATE_NOOP("CommandRegistrar", "&Grammar Check"), "TOOLS/Grammar Check", 50, false, 2);
     REG_CMD("tools.readability", QT_TRANSLATE_NOOP("CommandRegistrar", "&Readability Score"), "TOOLS/Readability Score", 60, true, 2);
 

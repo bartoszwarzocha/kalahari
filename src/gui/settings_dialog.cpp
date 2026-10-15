@@ -112,11 +112,7 @@ void SettingsDialog::createNavigationTree() {
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
     addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
     addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
-    addPlannedPage(editor, tr("Auto-correct"),
-                   tr("Planned features:\n"
-                      "- Automatic capitalization\n"
-                      "- Common typo corrections\n"
-                      "- Custom replacement rules"));
+    addPage(editor, tr("Auto-correct"), []() { return new EditorAutoCorrectPage(); });
     addPlannedPage(editor, tr("Completion"),
                    tr("Planned features:\n"
                       "- Word completion suggestions\n"
