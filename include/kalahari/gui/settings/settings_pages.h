@@ -187,6 +187,13 @@ public:
     explicit EditorPagesPage(QWidget* parent = nullptr);
 };
 
+/// @brief Editor > Auto-correct: what is changed in the text as it is typed
+class EditorAutoCorrectPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorAutoCorrectPage(QWidget* parent = nullptr);
+};
+
 /// @brief Annotations: who new comments, to-dos and notes are by, and their marks in the text
 class AnnotationsPage : public SettingsPage {
     Q_OBJECT

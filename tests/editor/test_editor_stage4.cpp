@@ -861,6 +861,67 @@ TEST_CASE("Stage4 typewriter: turning it on and off keeps the text in place",
     CHECK(caret(*editor).center().y() == Approx(focusY).margin(1.0));
 }
 
+TEST_CASE("Stage4 typewriter: settings and zoom leave a cursor scrolled out of the view",
+          "[editor][stage4][typewriter]") {
+    // Regression: with typewriter scrolling on, any change of the editor's settings (turning
+    // spelling, grammar or auto-correct on or off gives the editor its settings again) and
+    // a zoom brought the view back to a cursor the wheel had scrolled out of it
+    for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {
+        CAPTURE(static_cast<int>(mode));
+        auto editor = editorIn(mode, 200);
+        qobject_cast<KalahariTextDocumentLayout*>(editor->textDocument()->documentLayout())
+            ->layoutPendingBlocks();
+        typewriterOn(*editor);
+        editor->moveCursorToDocEnd();
+        paint(*editor);
+        editor->setScrollOffset(0.0);  // the wheel, up to the start of the text
+        paint(*editor);
+        REQUIRE(caret(*editor).top() > editor->height());
+
+        // The settings as they were, and another setting
+        editor->setAppearance(editor->appearance());
+        CHECK(editor->scrollOffset() == 0.0);
+        EditorAppearance appearance = editor->appearance();
+        appearance.textFrameBorder.show = !appearance.textFrameBorder.show;
+        editor->setAppearance(appearance);
+        CHECK(editor->scrollOffset() == 0.0);
+
+        // Another height of the line, the pages at another size on paper, a zoom
+        appearance.typewriter.focusPosition = 0.3;
+        editor->setAppearance(appearance);
+        CHECK(editor->scrollOffset() == 0.0);
+        editor->setPaperScale(1.25);
+        paint(*editor);
+        CHECK(caret(*editor).top() > editor->height());
+        editor->zoomIn();
+        paint(*editor);
+        CHECK(caret(*editor).top() > editor->height());
+        editor->zoomToWholePage();
+        paint(*editor);
+        CHECK(caret(*editor).top() > editor->height());
+
+        // The keys bring the cursor line back, at the new height
+        pressKey(*editor, Qt::Key_Up);
+        paint(*editor);
+        CHECK(caret(*editor).center().y() == Approx(editor->height() * 0.3).margin(1.0));
+    }
+}
+
+TEST_CASE("Stage4 typewriter: a cursor line in the view goes to a new height",
+          "[editor][stage4][typewriter]") {
+    auto editor = editorIn(ViewMode::Continuous, 200);
+    typewriterOn(*editor);
+    editor->setCursorPosition({100, 0});
+    paint(*editor);
+    CHECK(caret(*editor).center().y() == Approx(editor->height() * 0.5).margin(1.0));
+
+    EditorAppearance appearance = editor->appearance();
+    appearance.typewriter.focusPosition = 0.3;
+    editor->setAppearance(appearance);
+    paint(*editor);
+    CHECK(caret(*editor).center().y() == Approx(editor->height() * 0.3).margin(1.0));
+}
+
 TEST_CASE("Stage4 keys: Page Down moves the cursor and the view, the cursor in its row",
           "[editor][stage4]") {
     auto editor = editorIn(ViewMode::Continuous, 120);

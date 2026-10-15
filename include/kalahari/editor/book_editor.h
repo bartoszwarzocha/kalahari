@@ -15,6 +15,7 @@
 #pragma once
 
 #include <kalahari/core/text_statistics.h>
+#include <kalahari/editor/auto_correct.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
@@ -119,6 +120,17 @@ public:
     /// previous content back (restoring a snapshot). The cursor keeps its position, within
     /// the new text. KML that is not well-formed gives the text read before the error.
     void replaceWithKml(const QString& kml);
+
+    /// @brief Replace the document content with the same text in other KML markup, as one
+    ///        edit, the cursor and the view staying at their text
+    /// @param kml The KML of the same characters, one for one, as the current content, such
+    ///        as the text a plain text file keeps (a line break may become the end of a
+    ///        paragraph)
+    ///
+    /// As replaceWithKml(), but the cursor stays at its character and the text at the top of
+    /// the view stays there: the text and the cursor did not change, so the view does not go
+    /// to the cursor.
+    void replaceMarkupWithKml(const QString& kml);
 
     /// @brief Whether the content differs from the saved content: the one loaded by
     ///        fromKml(), or the one marked with setUnmodified()
@@ -435,6 +447,27 @@ public:
     /// cursor goes to the start of the new line. The break and the text typed after it are
     /// one undo step, apart from the text typed before it.
     void insertLineBreak();
+
+    /// @brief Type text at the cursor, as the keyboard and the input methods do: the text goes
+    ///        in as insertText() puts it, and autocorrect changes what was typed
+    ///
+    /// Each quotation mark, apostrophe, space and period goes in as typed alone, so
+    /// autocorrect sees it with the text before it (an input method can commit several
+    /// characters at once). A change of autocorrect is an undo step of its own: undoing it
+    /// right after brings back the typed characters, with the cursor after them.
+    void typeText(const QString& text);
+
+    /// @brief What autocorrect changes in the text as it is typed (typeText()); everything,
+    ///        until it is set
+    void setAutoCorrect(const AutoCorrectOptions& options);
+
+    /// @brief What autocorrect changes in the text as it is typed
+    const AutoCorrectOptions& autoCorrect() const { return m_autoCorrect; }
+
+    /// @brief Where the editor asks for the language of its text when autocorrect puts in
+    ///        quotation marks: an ISO 639 code, with or without a country ("pl", "pl_PL").
+    ///        Without it, or for an empty code, the marks are English.
+    void setTextLanguage(std::function<QString()> language);
 
     /// @brief Delete character before cursor (Backspace)
     ///
@@ -1268,7 +1301,8 @@ private:
     void applyPageLayout();
 
     /// @brief Give the pipeline the typewriter state, keeping the text in place on the
-    ///        screen, and put the cursor line at the focus height when it is on
+    ///        screen, and put the cursor line at the focus height when it is on and the
+    ///        cursor line is in the view
     void applyTypewriter();
 
     /// @brief Emit currentPageChanged / totalPagesChanged when the numbers change
@@ -1317,6 +1351,21 @@ private:
 
     /// @brief Scroll a page wider than the view sideways to show the cursor
     void scrollSidewaysToCursor();
+
+    /// @brief Whether the cursor line is in the view, a part of it at least
+    ///
+    /// The view goes to the cursor for what is done at the cursor (typing, the keys, a search,
+    /// going to a place). A change of the view or of a setting moves a cursor line that is in
+    /// the view at most (typewriter scrolling, a view mode): a cursor scrolled out of the view
+    /// stays out of it.
+    bool isCursorLineInView() const;
+
+    /// @brief Scroll so that the line of @p position has its top at @p top of the view
+    ///        (widget coordinates)
+    ///
+    /// Placing the line can bring paragraphs with estimated heights into view, and laying
+    /// them out moves it, so a few rounds.
+    void placeLineAt(const CursorPosition& position, double top);
 
     /// @brief The scroll position that shows the end of the text: the last line with the
     ///        page's bottom margin below it
@@ -1609,6 +1658,14 @@ private:
     // another text drop it (see pendingFormat())
     QTextCharFormat m_pendingFormat;   ///< Only the properties given
     CursorPosition m_pendingFormatAt;  ///< The cursor's place when it was given
+
+    // Autocorrect: the changes of the text as it is typed (typeText())
+    AutoCorrectOptions m_autoCorrect;          ///< What is changed
+    std::function<QString()> m_textLanguage;  ///< The language of the text (setTextLanguage())
+
+    /// @brief Make the change autocorrect has for the character typed right before the
+    ///        cursor, as an undo step of its own (see typeText())
+    void autoCorrectTyped();
 
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode

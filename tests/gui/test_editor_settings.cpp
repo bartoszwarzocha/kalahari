@@ -3,6 +3,7 @@
 ///        dialog greys out the editor options the editor does not use yet
 
 #include <catch2/catch_test_macros.hpp>
+#include "../editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/panels/editor_panel.h"
@@ -14,7 +15,9 @@
 #include <QCoreApplication>
 #include <QDoubleSpinBox>
 #include <QPushButton>
+#include <QSize>
 #include <QSpinBox>
+#include <QStringList>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
@@ -97,6 +100,39 @@ TEST_CASE("Editor settings: an editor follows the changed settings once the even
     settings.set<int>("dashboard.maxItems", settings.get<int>("dashboard.maxItems") + 1);
     QCoreApplication::processEvents();
     CHECK(applied == 1);
+
+    restore(before);
+}
+
+TEST_CASE("Editor settings: a switch of the Tools menu leaves the view where it is",
+          "[gui][editor][settings]") {
+    // Regression: with typewriter scrolling on, turning the spelling (also the grammar or
+    // auto-correct) on or off brought a cursor scrolled out of the view back into it
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.typewriter.enabled", "editor.spellCheck.enabled"});
+    settings.set<bool>("editor.typewriter.enabled", true);
+
+    gui::EditorPanel panel;
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    test::resizeWidget(*bookEditor, QSize(600, 400));
+    QStringList paragraphs;
+    for (int i = 0; i < 200; ++i) {
+        paragraphs << QStringLiteral("Paragraph %1 of a chapter long enough to scroll.").arg(i);
+    }
+    bookEditor->fromKml(test::kmlOf(paragraphs));
+    bookEditor->moveCursorToDocEnd();
+    bookEditor->setScrollOffset(0.0);  // the wheel, up to the start of the text
+
+    for (int i = 0; i < 2; ++i) {
+        settings.set<bool>("editor.spellCheck.enabled",
+                           !settings.get<bool>("editor.spellCheck.enabled"));
+        QCoreApplication::processEvents();
+        CHECK(bookEditor->scrollOffset() == 0.0);
+    }
+
+    // What is done at the cursor brings it back
+    bookEditor->insertText(QStringLiteral("x"));
+    CHECK(bookEditor->scrollOffset() > 0.0);
 
     restore(before);
 }
@@ -257,7 +293,7 @@ TEST_CASE("Settings dialog: the dialogue dashes counted as words, in the open ed
         }
     }
     QCheckBox* dashes =
-        checkBoxOf(dialog, QStringLiteral("Count standalone dialogue dashes as words"));
+        checkBoxOf(dialog, QStringLiteral("Count standalone dashes as words"));
     REQUIRE(dashes != nullptr);
     CHECK_FALSE(dashes->isChecked());
 

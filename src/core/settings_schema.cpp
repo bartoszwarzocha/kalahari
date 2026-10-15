@@ -182,6 +182,16 @@ std::map<std::string, json> buildDefaults() {
 
         // Word count in the whole program: a dash standing alone (a dialogue dash) is a word
         {"editor.wordCount.dashesAsWords", false},
+
+        // Editor: autocorrect, the changes of the text as it is typed (Settings > Editor >
+        // Auto-correct): on or off as a whole (also Tools > Auto-correct as You Type), and
+        // each replacement. The dialogue dash is "emDash" (—) or "enDash" (–).
+        {"editor.autoCorrect.enabled", true},
+        {"editor.autoCorrect.quotes", true},
+        {"editor.autoCorrect.apostrophe", true},
+        {"editor.autoCorrect.dialogueDash", true},
+        {"editor.autoCorrect.dialogueDashType", "emDash"},
+        {"editor.autoCorrect.ellipsis", true},
     };
 }
 

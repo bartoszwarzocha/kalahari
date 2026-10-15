@@ -18,6 +18,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   check box show the same setting whatever changes it, and the program remembers it. The icon
   is a page with lines of text in a frame (`text_frame.svg` in the four icon themes).
 
+- **Editor: autocorrect as you type** - 2026-10-13. As in Word, the editor puts typographic
+  characters in the place of what is typed: straight quotation marks become those of the
+  text's language (in Polish „…” and ‚…’, in English “…” and ‘…’, in another language those of
+  Qt's locale data), an apostrophe in a word becomes ’, a hyphen and a space starting a
+  paragraph become a dialogue dash (an em dash, or an en dash if chosen), and three periods
+  become an ellipsis (…). A mark opens a quotation at the start of a paragraph and after a
+  space, a bracket, a dash or the opening mark of the other kind, and closes it elsewhere. The
+  quotation marks of a chapter are those of the book's language, of a file opened from the
+  disk those of the program's language; a language chosen in Settings > Editor > Spelling goes
+  before both, as for the spelling. Each change is an undo step of its own: Ctrl+Z right after
+  it brings back what was typed, with the cursor after it, and the text typed next stays as
+  typed (a fourth period after three brought back is a period). The new characters keep the
+  format of the typed ones, and the annotations stay where they were. Text composed with an
+  input method is changed the same way. Settings > Editor > Auto-correct turns each change on
+  and off (all are on at first) and chooses the dash; its note gives the keys Undo has.
+  Tools > Auto-correct as You Type, also a button on the Tools toolbar right after the
+  spelling's, turns all the changes on and off at once, as the switch at the top of that page
+  does; each change keeps its choice. The command's tooltip names the changes chosen (while
+  auto-correct is off, those it makes when on) and where they are chosen.
+
 - **Editor: a new line in the paragraph (Shift+Enter)** - 2026-10-11. Shift+Enter starts a
   new line in the paragraph, as a manual line break in Word: the lines keep the paragraph's
   alignment, spacing and formatting, and the break with the text typed after it is one undo
@@ -514,6 +534,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Browse Marketplace, Cloud Sync, Collaboration - 2026-10-03
 
 ### Fixed
+
+- **The view after deleting a selection** - 2026-10-14. Deleting a selection (Delete,
+  Backspace or cutting it) left the view where it was, so after Ctrl+A and Delete in a long
+  chapter the cursor, at the top of the page, was out of sight. The view now follows the
+  cursor, as after typing; a selection in view leaves the view where it is.
+
+- **The view jumping back to the cursor** - 2026-10-14. With typewriter scrolling on, the
+  view went back to a cursor scrolled out of it after a change of any editor setting
+  (turning spelling, grammar or auto-correct on or off, a change in the Settings window or of
+  the theme), a zoom or moving the window to a screen of another pixel density; Whole Page
+  went to the cursor's page also with typewriter scrolling off. The view now stays where it
+  is: typewriter scrolling places the cursor line only while it is in the view, and Whole
+  Page shows the page in the middle of the view when the cursor is out of it. A file saved as
+  plain text keeps the view at its text, too, when its tab loses the formatting. Typing, the
+  keys, a search and going to a place still bring the view to the cursor.
 
 - **The Dashboard's option to open the last book** - 2026-10-13. Changed in the Settings
   window, the option stayed as it was on the Dashboard until the program started again; the

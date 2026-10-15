@@ -362,7 +362,8 @@ private:
     /// saved in, without the formatting and the annotations the file does not keep
     ///
     /// One edit, which brings them back when undone. The cursor stays at its place in the
-    /// text, also when a line break became the end of a paragraph.
+    /// text, also when a line break became the end of a paragraph, and the view at the text
+    /// it showed.
     void showTextOfFile(EditorPanel* editor, const QString& path);
 
     /// @brief Save a standalone file tab under a name the user chooses (chapter or text file);

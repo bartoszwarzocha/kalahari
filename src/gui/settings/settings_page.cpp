@@ -238,6 +238,8 @@ QFormLayout* SettingsPage::addGroup(const QString& title) {
     auto* form = new QFormLayout(group);
     // Fields fill the width on every platform, as in a grid with a stretching column
     form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    // In a narrow window a field goes under its label, so the page does not scroll sideways
+    form->setRowWrapPolicy(QFormLayout::WrapLongRows);
     m_layout->addWidget(group);
     return form;
 }
