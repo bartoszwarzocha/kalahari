@@ -175,7 +175,7 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "&Tools Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
-        {"tools.spellcheck", "tools.autocorrect", "tools.stats.wordCount"}
+        {"tools.spellcheck", "tools.grammar", "tools.autocorrect", "tools.stats.wordCount"}
     };
 
     // Views Toolbar: the view modes, the switches on top of them (and the paper and the text

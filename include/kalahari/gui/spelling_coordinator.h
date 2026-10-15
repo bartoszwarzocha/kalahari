@@ -32,9 +32,9 @@ namespace kalahari::gui {
 /// the settings.
 ///
 /// Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off: the
-/// setting editor.spellCheck.enabled, also in the Settings dialog. Tools > Next Misspelling
-/// (F7) selects the next misspelled word of the document in front and opens its context
-/// menu, so it is put right from the keyboard.
+/// setting editor.spellCheck.enabled, also in the Settings dialog. Tools > Next Spelling or
+/// Grammar Issue (F7) selects the next misspelled word or grammar issue of the document in
+/// front and opens its context menu, so it is put right from the keyboard.
 class SpellingCoordinator : public QObject {
     Q_OBJECT
 
@@ -53,14 +53,18 @@ public:
     SpellingCoordinator& operator=(const SpellingCoordinator&) = delete;
 
     /// @brief Give the commands Check Spelling as You Type (with its check mark) and Next
-    ///        Misspelling their callbacks
+    ///        Spelling or Grammar Issue their callbacks
     /// @note Call after the commands are registered
     void connectCommands();
 
-    /// @brief Select the next misspelled word of the document in front and open its context
-    ///        menu (the command Next Misspelling); the status bar says when there is none
-    /// @return false when no word was selected
-    bool goToNextMisspelling();
+    /// @brief Select the next misspelled word or grammar issue of the document in front and
+    ///        open its context menu (the command Next Spelling or Grammar Issue); the status
+    ///        bar says when there is none
+    ///
+    /// When the grammar of the paragraphs further on is not known yet, the status bar says
+    /// it is being checked and the issue is gone to once it is found.
+    /// @return false when there is none (true also while the grammar is being checked)
+    bool goToNextIssue();
 
     /// @brief The dictionary of the chapters of the book, and of every document when their
     ///        languages have the same dictionary; it keeps the writer's own words

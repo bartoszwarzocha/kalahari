@@ -1,336 +1,204 @@
 /// @file grammar_check_service.h
-/// @brief Grammar checking service using LanguageTool API (OpenSpec #00042 Phase 6.14-6.17)
-///
-/// GrammarCheckService provides:
-/// - Real-time grammar checking using LanguageTool REST API
-/// - Multi-language support (Polish, English, etc.)
-/// - Background checking with debounce and rate limiting
-/// - Error descriptions and suggestions
-/// - Distinguishes grammar errors from spelling/style issues
-///
-/// The service uses Qt Network for REST API calls and integrates with
-/// the document observer pattern for real-time checking.
+/// @brief Grammar as you type: texts checked by the LanguageTool server the writer runs
 
 #pragma once
 
+#include <kalahari/editor/grammar_error.h>
+
+#include <QList>
+#include <QMap>
 #include <QObject>
 #include <QString>
-#include <QStringList>
-#include <QSet>
-#include <QTimer>
-#include <QList>
-#include <QHash>
-#include <QMap>
-#include <QQueue>
-#include <QPair>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
 
-// Forward declarations
-namespace kalahari::editor {
-class BookEditor;
-}
+#include <deque>
+#include <map>
+#include <utility>
+
+class QNetworkAccessManager;
+class QNetworkReply;
+class QTimer;
 
 namespace kalahari::editor {
 
-/// @brief Type of grammar issue
+/// @brief Checks texts on a LanguageTool server
 ///
-/// Distinguishes different types of writing issues to allow
-/// appropriate visual styling (underline colors) in the editor.
-enum class GrammarIssueType {
-    Grammar,        ///< Grammar error (blue underline)
-    Style,          ///< Style suggestion (green underline)
-    Typography,     ///< Typography issue (gray underline)
-    Spelling,       ///< Spelling from LanguageTool (handled by SpellCheckService)
-    Other           ///< Other issues
-};
-
-/// @brief Information about a grammar error
+/// One service serves the editors of all documents: each sends the paragraphs it has to
+/// check and takes the answers to its own requests. The text of the book goes only to the
+/// server given: LanguageTool on this computer, or a server in the internet the writer
+/// chose. A few texts are checked at a time, the others wait their turn.
 ///
-/// Contains position, error text, message, suggestions and categorization
-/// for a single grammar issue found by LanguageTool.
-struct GrammarError {
-    int startPos{0};            ///< Start position in text
-    int length{0};              ///< Length of problematic text
-    QString text;               ///< The problematic text
-    QString message;            ///< Full error message
-    QString shortMessage;       ///< Short description
-    QString ruleId;             ///< Rule ID (e.g., "COMMA_BEFORE_AND")
-    QString category;           ///< Category (e.g., "Punctuation")
-    GrammarIssueType type{GrammarIssueType::Grammar};
-    QStringList suggestions;    ///< Suggested replacements (max 5)
-
-    GrammarError() = default;
-    GrammarError(int start, int len, const QString& txt)
-        : startPos(start), length(len), text(txt) {}
-
-    bool operator==(const GrammarError& other) const {
-        return startPos == other.startPos &&
-               length == other.length &&
-               text == other.text &&
-               ruleId == other.ruleId;
-    }
-};
-
-/// @brief Grammar checking service using LanguageTool API
-///
-/// Provides asynchronous grammar checking for KML documents using the
-/// LanguageTool REST API of a server the user runs, usually a local one. Integrates with the
-/// document observer pattern for real-time checking as the user types.
-///
-/// Usage:
-/// @code
-/// auto service = new GrammarCheckService(this);
-/// service->setLanguage("en-US");
-/// service->setDocument(document);
-///
-/// // Connect to grammar check results
-/// connect(service, &GrammarCheckService::paragraphChecked,
-///         this, &MyEditor::onGrammarErrors);
-/// @endcode
-///
-/// Server:
-/// Nothing is checked until a server is set (setApiEndpoint() or the setting
-/// "editor.grammarCheck.serverUrl"); there is no built-in public address.
-/// Requests are queued and rate limited.
+/// When the server does not answer, the service stops sending, says so once
+/// (serverError()) and tries again after a while (available()). Spelling issues are left
+/// to the dictionary (SpellCheckService).
 class GrammarCheckService : public QObject {
     Q_OBJECT
 
 public:
-    /// @brief Construct a grammar check service
-    /// @param parent Parent QObject for ownership
+    /// @brief Why the server did not check the last text
+    enum class Failure {
+        None,        ///< It checked it
+        Connection,  ///< No connection to it, or no answer in time
+        Refused,     ///< It answered with an error (serverError() tells its explanation)
+        Limit        ///< It refused the text: too many texts (a free server's limit)
+    };
+
+    /// @brief How long the server is not asked after it did not answer (ms), at first
+    static constexpr int RETRY_MS = 30'000;
+
+    /// @brief Constructor: no server, nothing is checked until one is given
     explicit GrammarCheckService(QObject* parent = nullptr);
 
-    /// @brief Destructor - cancels pending requests
+    /// @brief Destructor: the requests sent are dropped
     ~GrammarCheckService() override;
 
-    // Non-copyable
     GrammarCheckService(const GrammarCheckService&) = delete;
     GrammarCheckService& operator=(const GrammarCheckService&) = delete;
+
+    /// @brief The address the texts go to for a server the writer gives
+    ///
+    /// A server alone ("http://localhost:8081", also without http://) gets the check
+    /// endpoint of LanguageTool (/v2/check).
+    /// @return The address, or empty for an empty one
+    static QString endpointFor(const QString& server);
+
+    /// @brief The language LanguageTool checks a text in (pl for pl_PL or pl-PL)
+    ///
+    /// The regional variants LanguageTool knows (en-GB, de-CH, pt-BR...) are kept; for
+    /// the other languages it is given the language alone.
+    static QString languageFor(const QString& language);
 
     // =========================================================================
     // Setup
     // =========================================================================
 
-    /// @brief Set the BookEditor to check
-    /// @param editor BookEditor to monitor (nullptr to disconnect)
-    /// @note Previous editor is automatically disconnected
-    void setBookEditor(BookEditor* editor);
+    /// @brief Set the server the texts are checked on (see endpointFor()); empty: none
+    void setServer(const QString& server);
 
-    /// @brief Set language code (e.g., "en-US", "pl-PL")
-    /// @param language Language code for LanguageTool
-    void setLanguage(const QString& language);
+    /// @brief The address the texts go to, or empty
+    QString endpoint() const;
 
-    /// @brief Get currently set language
-    /// @return Language code
-    QString language() const;
-
-    /// @brief Set the LanguageTool server to send the text to
-    /// @param url The server ("http://localhost:8081") or its check endpoint
-    ///            ("http://localhost:8081/v2/check"); empty for none
-    /// @note There is no built-in server: the text of the book never leaves the computer
-    ///       unless the user sets one. The constructor reads "editor.grammarCheck.serverUrl".
-    void setApiEndpoint(const QString& url);
-
-    /// @brief Get current API endpoint
-    /// @return API endpoint URL
-    QString apiEndpoint() const;
-
-    /// @brief Enable or disable grammar checking
-    /// @param enabled true to enable, false to disable
-    void setEnabled(bool enabled);
-
-    /// @brief Check if grammar checking is enabled
-    /// @return true if enabled
-    bool isEnabled() const;
-
-    /// @brief Whether a LanguageTool server is set (an http or https address)
+    /// @brief Whether a server is set: an http or https address
     bool isConfigured() const;
 
-    /// @brief Whether text is checked: enabled and a server is set
+    /// @brief Turn the checking on or off
+    void setEnabled(bool enabled);
+
+    /// @brief Whether the checking is on (whether or not a server is set)
+    bool isEnabled() const;
+
+    /// @brief Whether texts are sent now: on, with a server, not waiting after a failure
     bool isActive() const;
+
+    /// @brief Set the language the texts are in (see languageFor())
+    void setLanguage(const QString& language);
+
+    /// @brief The language the texts are checked in
+    QString language() const;
+
+    /// @brief The account of a server with accounts (LanguageTool Premium): its e-mail
+    ///        address and API key; empty: none
+    void setCredentials(const QString& username, const QString& apiKey);
+
+    /// @brief How long the server is not asked after it did not answer (RETRY_MS at first)
+    void setRetryDelay(int ms);
+
+    /// @brief Why the server did not check the last text (Failure::None: it checked it)
+    Failure lastFailure() const;
 
     // =========================================================================
     // Checking
     // =========================================================================
 
-    /// @brief Check text asynchronously
-    /// @param text The text to check
-    /// @param paragraphIndex Paragraph index for result association (-1 for standalone)
-    /// @note Results are emitted via paragraphChecked signal
-    void checkTextAsync(const QString& text, int paragraphIndex = -1);
+    /// @brief Ask for a text to be checked
+    /// @return The request, answered with textChecked() or textNotChecked(); 0 when nothing
+    ///         is sent (the checking is not active)
+    quint64 check(const QString& text);
 
-    /// @brief Check entire document asynchronously
-    /// @note Emits paragraphChecked for each paragraph and documentCheckComplete when done
-    void checkDocumentAsync();
+    /// @brief Drop a request: it is not answered
+    void cancel(quint64 request);
 
-    /// @brief Cancel all pending checks
-    void cancelPendingChecks();
+    /// @brief How many requests wait or are being checked
+    int pendingChecks() const;
 
-    /// @brief Get errors for a paragraph (from cache)
-    /// @param index Paragraph index
-    /// @return List of grammar errors, or empty list if not cached
-    QList<GrammarError> errorsForParagraph(int index) const;
+    /// @brief Do not report the issues of a rule any more
+    /// @param ruleId The rule
+    /// @param description What it looks for, as the writer sees it in the list of the rules
+    ///        ignored
+    void ignoreRule(const QString& ruleId, const QString& description = QString());
 
-    /// @brief Check if any requests are currently pending
-    /// @return true if requests are in progress or queued
-    bool hasPendingRequests() const;
+    /// @brief The rules whose issues are not reported (those kept in the settings): what
+    ///        they look for, by rule; a rule added gets ruleIgnored(), one taken away has the
+    ///        texts checked again (checkingChanged())
+    void setIgnoredRules(const QMap<QString, QString>& rules);
 
-    // =========================================================================
-    // Configuration
-    // =========================================================================
+    /// @brief The rules whose issues are not reported: what they look for, by rule
+    QMap<QString, QString> ignoredRules() const;
 
-    /// @brief Set which rule categories to enable
-    /// @param categories List of category IDs to enable
-    /// @note If not set, all categories are enabled
-    void setEnabledCategories(const QStringList& categories);
-
-    /// @brief Get enabled categories
-    /// @return List of enabled category IDs
-    QStringList enabledCategories() const;
-
-    /// @brief Set which rule categories to disable
-    /// @param categories List of category IDs to disable
-    void setDisabledCategories(const QStringList& categories);
-
-    /// @brief Get disabled categories
-    /// @return List of disabled category IDs
-    QStringList disabledCategories() const;
-
-    /// @brief Ignore a specific rule (session only)
-    /// @param ruleId Rule ID to ignore (e.g., "COMMA_BEFORE_AND")
-    void ignoreRule(const QString& ruleId);
-
-    /// @brief Check if a rule is ignored
-    /// @param ruleId Rule ID to check
-    /// @return true if rule is ignored
+    /// @brief Whether the issues of a rule are not reported
     bool isRuleIgnored(const QString& ruleId) const;
 
-    /// @brief Get all ignored rules
-    /// @return Set of ignored rule IDs
-    QSet<QString> ignoredRules() const;
-
-    /// @brief Clear all ignored rules
-    void clearIgnoredRules();
-
-    // =========================================================================
-    // Rate Limiting Configuration
-    // =========================================================================
-
-    /// @brief Set minimum time between API requests (rate limiting)
-    /// @param ms Milliseconds between requests (default 500ms)
-    void setRateLimitMs(int ms);
-
-    /// @brief Get current rate limit setting
-    /// @return Milliseconds between requests
-    int rateLimitMs() const;
-
-    /// @brief Set debounce time for input changes
-    /// @param ms Milliseconds to wait after last change (default 1000ms)
-    void setDebounceMs(int ms);
-
-    /// @brief Get current debounce setting
-    /// @return Milliseconds to wait
-    int debounceMs() const;
-
 signals:
-    /// @brief Emitted when checking is complete for a paragraph
-    /// @param paragraphIndex The paragraph index (-1 for standalone checks)
-    /// @param errors List of grammar errors found
-    void paragraphChecked(int paragraphIndex, const QList<GrammarError>& errors);
+    /// @brief A text was checked
+    /// @param request The request (check())
+    /// @param errors Its issues, without spelling and ignored rules
+    void textChecked(quint64 request, const QList<GrammarError>& errors);
 
-    /// @brief Emitted when full document check is complete
-    void documentCheckComplete();
+    /// @brief A text was not checked: the server did not answer (it is asked again later)
+    void textNotChecked(quint64 request);
 
-    /// @brief Emitted on API error
-    /// @param error Error message
-    void apiError(const QString& error);
+    /// @brief The issues found so far do not apply: another server or language, or the
+    ///        checking was turned on or off. The requests sent are dropped.
+    void checkingChanged();
 
-    /// @brief Emitted when checking starts
-    void checkingStarted();
+    /// @brief The server is asked again after it did not answer
+    void available();
 
-    /// @brief Emitted when all checks are done
-    void checkingFinished();
+    /// @brief The issues of a rule are not reported any more
+    /// @param ruleId The rule
+    /// @param description What it looks for (may be empty)
+    void ruleIgnored(const QString& ruleId, const QString& description);
+
+    /// @brief The server did not answer (told once until it answers again)
+    /// @param message What went wrong
+    void serverError(const QString& message);
 
 private slots:
-    /// @brief Handle network reply
-    void onNetworkReply(QNetworkReply* reply);
-
-    /// @brief Handle debounce timer timeout
-    void onDebounceTimeout();
-
-    /// @brief Process next request in queue
-    void processQueue();
-
-    /// @brief Handle paragraph modified signal from BookEditor
-    /// @param paragraphIndex Index of the modified paragraph
-    void onParagraphModified(int paragraphIndex);
-
-    /// @brief Handle paragraph inserted signal from BookEditor
-    /// @param paragraphIndex Index of the newly inserted paragraph
-    void onParagraphInserted(int paragraphIndex);
-
-    /// @brief Handle paragraph removed signal from BookEditor
-    /// @param paragraphIndex Index of the removed paragraph
-    void onParagraphRemoved(int paragraphIndex);
+    /// @brief An answer of the server (or a request dropped)
+    void onReply(QNetworkReply* reply);
 
 private:
+    /// @brief Send the requests that wait, while fewer than the limit are being checked
+    void sendWaiting();
 
-    // =========================================================================
-    // API Request Methods
-    // =========================================================================
+    /// @brief The server did not answer: stop sending until it is asked again
+    void fail(Failure failure, const QString& message);
 
-    /// @brief Send API request to LanguageTool
-    /// @param text Text to check
-    /// @param paragraphIndex Associated paragraph index
-    void sendApiRequest(const QString& text, int paragraphIndex);
+    /// @brief Drop every request, the checking starts anew
+    void restart();
 
-    /// @brief Parse LanguageTool JSON response
-    /// @param json Raw JSON response
-    /// @return List of grammar errors
-    QList<GrammarError> parseResponse(const QByteArray& json);
+    /// @brief The issues in an answer of the server, for the text checked
+    QList<GrammarError> parse(const QByteArray& json, const QString& text) const;
 
-    /// @brief Convert LanguageTool category to GrammarIssueType
-    /// @param category Category ID from LanguageTool
-    /// @return Corresponding issue type
-    GrammarIssueType categoryToType(const QString& category) const;
-
-    // =========================================================================
-    // Members
-    // =========================================================================
-
-    BookEditor* m_editor{nullptr};
-    QNetworkAccessManager* m_networkManager{nullptr};
-
-    QString m_language{"en-US"};
-    QString m_apiEndpoint;  ///< Empty: no server, nothing is checked or sent
+    QNetworkAccessManager* m_network;  ///< Sends the texts
+    QTimer* m_retryTimer;              ///< Asks the server again after a failure
+    QString m_endpoint;                ///< Empty: no server, nothing is sent
+    QString m_language{QStringLiteral("en")};
+    QString m_username;                ///< The account on the server (with m_apiKey)
+    QString m_apiKey;
+    Failure m_lastFailure{Failure::None};
+    int m_retryDelayMs{RETRY_MS};      ///< How long the server is not asked after a failure
     bool m_enabled{true};
+    bool m_failing{false};     ///< The server did not answer: waiting to ask it again
+    bool m_errorTold{false};   ///< serverError() was emitted since the last answer
+    quint64 m_lastRequest{0};  ///< The number of the last request
 
-    // Debounce timer for background checking
-    QTimer* m_debounceTimer{nullptr};
-    int m_debounceMs{1000};  // Default 1 second (longer for API calls)
+    /// @brief Requests waiting to be sent: number and text
+    std::deque<std::pair<quint64, QString>> m_waiting;
 
-    // Rate limit timer for API requests
-    QTimer* m_rateLimitTimer{nullptr};
-    int m_rateLimitMs{500};  // Default 500ms between requests
-    bool m_requestInProgress{false};
+    /// @brief Requests being checked: number and text, by their reply
+    std::map<QNetworkReply*, std::pair<quint64, QString>> m_sent;
 
-    // Request queue (text, paragraphIndex)
-    QQueue<QPair<QString, int>> m_requestQueue;
-
-    // Pending network requests (reply -> paragraphIndex)
-    QMap<QNetworkReply*, int> m_pendingRequests;
-
-    // Cache of results (paragraphIndex -> errors)
-    QHash<int, QList<GrammarError>> m_paragraphErrors;
-
-    // Pending paragraphs to check
-    QSet<int> m_pendingParagraphs;
-
-    // Configuration
-    QSet<QString> m_enabledCategories;    // Empty = all enabled
-    QSet<QString> m_disabledCategories;
-    QSet<QString> m_ignoredRules;
+    QMap<QString, QString> m_ignoredRules;  ///< Rules whose issues are not reported
 };
 
 }  // namespace kalahari::editor

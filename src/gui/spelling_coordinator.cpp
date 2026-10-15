@@ -8,6 +8,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/grammar_check_service.h"
 #include "kalahari/editor/spell_check_service.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/panels/editor_panel.h"
@@ -88,9 +89,9 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
     }
 
     // The editor of a document checks with its dictionary from the time its tab is shown;
-    // Next Misspelling is for the document in front. A chapter is told from a document
-    // outside the book only after its tab is shown (NavigatorCoordinator tags it then), so
-    // the editors get their dictionaries when the event loop runs next.
+    // Next Spelling or Grammar Issue is for the document in front. A chapter is told from a
+    // document outside the book only after its tab is shown (NavigatorCoordinator tags it
+    // then), so the editors get their dictionaries when the event loop runs next.
     m_editorsTimer->setSingleShot(true);
     m_editorsTimer->setInterval(0);
     connect(m_editorsTimer, &QTimer::timeout, this, &SpellingCoordinator::updateEditors);
@@ -144,13 +145,13 @@ void SpellingCoordinator::connectCommands() {
     utils::followSetting(registry.getAction(std::string(COMMAND_ID)), ENABLED_KEY);
 
     if (Command* next = registry.getCommand(NEXT_COMMAND_ID)) {
-        next->execute = [this]() { goToNextMisspelling(); };
+        next->execute = [this]() { goToNextIssue(); };
         next->isEnabled = [this]() { return currentEditor() != nullptr; };
         registry.updateActionState(NEXT_COMMAND_ID);
     }
 }
 
-bool SpellingCoordinator::goToNextMisspelling() {
+bool SpellingCoordinator::goToNextIssue() {
     editor::BookEditor* bookEditor = currentEditor();
     if (bookEditor == nullptr) {
         return false;
@@ -158,19 +159,56 @@ bool SpellingCoordinator::goToNextMisspelling() {
     if (m_editorsTimer->isActive()) {
         updateEditors();  // the document shown just now gets its dictionary first
     }
-    const editor::SpellCheckService* service = bookEditor->spellCheckService();
-    if (service == nullptr || !service->isActive()) {
+
+    // The grammar counts when its checking is on, also while its server does not answer:
+    // the issues found stay
+    const editor::SpellCheckService* spellService = bookEditor->spellCheckService();
+    const editor::GrammarCheckService* grammarService = bookEditor->grammarCheckService();
+    const bool spelling = spellService != nullptr && spellService->isActive();
+    const bool grammar = grammarService != nullptr && grammarService->isEnabled() &&
+                         grammarService->isConfigured();
+    if (!spelling && !grammar) {
         showMessage(tr("The spelling is not checked"), NEXT_MESSAGE_MS);
         return false;
     }
-    if (!bookEditor->goToNextMisspelling()) {
-        showMessage(tr("No misspelled words"), NEXT_MESSAGE_MS);
-        return false;
-    }
+    using IssueSearch = editor::BookEditor::IssueSearch;
+    const auto showResult = [this, bookEditor, spelling, grammar](IssueSearch result,
+                                                                    bool waited) {
+        if (waited && m_statusBar != nullptr) {
+            m_statusBar->clearMessage();  // the grammar was being checked
+        }
+        if (result == IssueSearch::Cancelled) {
+            return;
+        }
+        if (result != IssueSearch::Found) {
+            QString none = tr("No misspelled words");
+            if (grammar) {
+                none = spelling ? tr("No misspelled words or grammar issues")
+                                : tr("No grammar issues");
+            }
+            showMessage(none, NEXT_MESSAGE_MS);
+            return;
+        }
+        // What to put in its place, under the word, as the menu key shows it; not when
+        // another document came to the front while the grammar was checked
+        if (bookEditor == nullptr || bookEditor != currentEditor()) {
+            return;
+        }
+        bookEditor->setFocus();
+        bookEditor->showContextMenuAtCursor();
+    };
 
-    // What to put in its place, under the word, as the menu key shows it
-    bookEditor->setFocus();
-    bookEditor->showContextMenuAtCursor();
+    const IssueSearch result = bookEditor->goToNextIssue();
+    if (result != IssueSearch::Searching) {
+        showResult(result, false);
+        return result == IssueSearch::Found;
+    }
+    // The grammar of the paragraphs further on is checked first
+    showMessage(tr("Checking the grammar further on..."), 0);
+    connect(
+        bookEditor, &editor::BookEditor::issueSearchFinished, this,
+        [showResult](IssueSearch finished) { showResult(finished, true); },
+        Qt::SingleShotConnection);
     return true;
 }
 

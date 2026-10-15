@@ -12,6 +12,7 @@
 #include <QCoreApplication>
 #include <QEvent>
 #include <QEventLoop>
+#include <QKeyEvent>
 #include <QMenu>
 #include <QResizeEvent>
 #include <QStringList>
@@ -112,6 +113,53 @@ protected:
 private:
     QStringList& m_texts;
     QString m_choice;
+};
+
+/// Presses @p key in the first popup menu that shows, as the writer would, and closes the
+/// later ones, while it lives (the menus get no window on the screen, as with
+/// PopupMenuReader). A first menu the key leaves open is closed after it.
+class PopupMenuKey : public QObject {
+public:
+    explicit PopupMenuKey(int key) : m_key(key) {
+        QCoreApplication::instance()->installEventFilter(this);
+    }
+    ~PopupMenuKey() override { QCoreApplication::instance()->removeEventFilter(this); }
+    PopupMenuKey(const PopupMenuKey&) = delete;
+    PopupMenuKey& operator=(const PopupMenuKey&) = delete;
+
+    int menusShown() const { return m_menusShown; }
+    /// The first menu took the key ahead of the program's shortcuts
+    bool keyTaken() const { return m_keyTaken; }
+    /// The first menu was still open after the key
+    bool stayedOpen() const { return m_stayedOpen; }
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        auto* menu = qobject_cast<QMenu*>(watched);
+        if (menu != nullptr && event->type() == QEvent::Show) {
+            menu->setAttribute(Qt::WA_DontShowOnScreen);
+            const bool first = m_menusShown++ == 0;
+            QTimer::singleShot(0, menu, [this, menu, first]() {
+                if (first) {
+                    QKeyEvent shortcut(QEvent::ShortcutOverride, m_key, Qt::NoModifier);
+                    shortcut.ignore();
+                    QCoreApplication::sendEvent(menu, &shortcut);
+                    m_keyTaken = shortcut.isAccepted();
+                    QKeyEvent press(QEvent::KeyPress, m_key, Qt::NoModifier);
+                    QCoreApplication::sendEvent(menu, &press);
+                    m_stayedOpen = menu->isVisible();
+                }
+                menu->close();
+            });
+        }
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    int m_key;
+    int m_menusShown = 0;
+    bool m_keyTaken = false;
+    bool m_stayedOpen = false;
 };
 
 /// Run @p open, which shows a popup menu and waits for it (QMenu::exec()), as the writer

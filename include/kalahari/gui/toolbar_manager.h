@@ -92,7 +92,7 @@ public:
     ///   Dark Paper, Text Frame Border, [SEP], Zoom Out, Zoom In, Zoom 100%, Page Width,
     ///   Whole Page
     /// - Panels (id "view"): Dashboard, Navigator, Properties, Search, Assistant, Log
-    /// - Tools: Spellcheck, Auto-correct, WordCount
+    /// - Tools: Spellcheck, Grammar, Auto-correct, WordCount
     ///
     /// @param registry CommandRegistry to retrieve commands from
     /// @note Must be called after CommandRegistry::registerCommand()

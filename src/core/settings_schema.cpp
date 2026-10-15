@@ -127,8 +127,21 @@ std::map<std::string, json> buildDefaults() {
         {"editor.spellCheck.enabled", true},
         {"editor.spellCheck.language", ""},
 
-        // Editor: grammar. The address of the user's LanguageTool server; empty: off
-        {"editor.grammarCheck.serverUrl", ""},
+        // Editor: grammar as you type. Mode "local": LanguageTool on this computer (Java and
+        // the folder of LanguageTool, which the program downloads and fills in; the port of
+        // its server; or a server started outside the program); "remote": a server in the
+        // internet (its address, and the account of LanguageTool Premium). The rules ignored:
+        // rule id -> what it looks for
+        {"editor.grammarCheck.enabled", false},
+        {"editor.grammarCheck.mode", "local"},
+        {"editor.grammarCheck.serverUrl", "https://api.languagetool.org"},
+        {"editor.grammarCheck.username", ""},
+        {"editor.grammarCheck.apiKey", ""},
+        {"editor.grammarCheck.javaPath", ""},
+        {"editor.grammarCheck.languageToolFolder", ""},
+        {"editor.grammarCheck.port", 8081},
+        {"editor.grammarCheck.externalServer", false},
+        {"editor.grammarCheck.ignoredRules", json::object()},
 
         // Editor: colors
         {"editor.darkMode", true},
