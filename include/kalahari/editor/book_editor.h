@@ -121,6 +121,17 @@ public:
     /// the new text. KML that is not well-formed gives the text read before the error.
     void replaceWithKml(const QString& kml);
 
+    /// @brief Replace the document content with the same text in other KML markup, as one
+    ///        edit, the cursor and the view staying at their text
+    /// @param kml The KML of the same characters, one for one, as the current content, such
+    ///        as the text a plain text file keeps (a line break may become the end of a
+    ///        paragraph)
+    ///
+    /// As replaceWithKml(), but the cursor stays at its character and the text at the top of
+    /// the view stays there: the text and the cursor did not change, so the view does not go
+    /// to the cursor.
+    void replaceMarkupWithKml(const QString& kml);
+
     /// @brief Whether the content differs from the saved content: the one loaded by
     ///        fromKml(), or the one marked with setUnmodified()
     ///
@@ -1290,7 +1301,8 @@ private:
     void applyPageLayout();
 
     /// @brief Give the pipeline the typewriter state, keeping the text in place on the
-    ///        screen, and put the cursor line at the focus height when it is on
+    ///        screen, and put the cursor line at the focus height when it is on and the
+    ///        cursor line is in the view
     void applyTypewriter();
 
     /// @brief Emit currentPageChanged / totalPagesChanged when the numbers change
@@ -1339,6 +1351,21 @@ private:
 
     /// @brief Scroll a page wider than the view sideways to show the cursor
     void scrollSidewaysToCursor();
+
+    /// @brief Whether the cursor line is in the view, a part of it at least
+    ///
+    /// The view goes to the cursor for what is done at the cursor (typing, the keys, a search,
+    /// going to a place). A change of the view or of a setting moves a cursor line that is in
+    /// the view at most (typewriter scrolling, a view mode): a cursor scrolled out of the view
+    /// stays out of it.
+    bool isCursorLineInView() const;
+
+    /// @brief Scroll so that the line of @p position has its top at @p top of the view
+    ///        (widget coordinates)
+    ///
+    /// Placing the line can bring paragraphs with estimated heights into view, and laying
+    /// them out moves it, so a few rounds.
+    void placeLineAt(const CursorPosition& position, double top);
 
     /// @brief The scroll position that shows the end of the text: the last line with the
     ///        page's bottom margin below it
