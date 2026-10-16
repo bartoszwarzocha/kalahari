@@ -636,6 +636,14 @@
     </message>
 </context>
 <context>
+    <name>DocumentCommands</name>
+    <message>
+        <source>No book is open</source>
+        <extracomment>The tooltip of Close Book and of the export of the book&apos;s archive while they are greyed out. In Polish: Żadna książka nie jest otwarta</extracomment>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+</context>
+<context>
     <name>KindNames</name>
     <message>
         <source>element</source>
@@ -8280,38 +8288,6 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Color for information panel headers</source>
         <translation>Kolor nagłówków paneli informacyjnych</translation>
-    </message>
-    <message>
-        <source>Dashboard Secondary</source>
-        <translation>Pulpit – dodatkowy</translation>
-    </message>
-    <message>
-        <source>Secondary dashboard accent color</source>
-        <translation>Dodatkowy kolor akcentów Pulpitu</translation>
-    </message>
-    <message>
-        <source>Dashboard Primary</source>
-        <translation>Pulpit – główny</translation>
-    </message>
-    <message>
-        <source>Primary dashboard accent color</source>
-        <translation>Główny kolor akcentów Pulpitu</translation>
-    </message>
-    <message>
-        <source>Info Primary</source>
-        <translation>Informacje – główny</translation>
-    </message>
-    <message>
-        <source>Primary color for info panels</source>
-        <translation>Główny kolor paneli informacyjnych</translation>
-    </message>
-    <message>
-        <source>Info Secondary</source>
-        <translation>Informacje – dodatkowy</translation>
-    </message>
-    <message>
-        <source>Secondary color for info panels</source>
-        <translation>Dodatkowy kolor paneli informacyjnych</translation>
     </message>
     <message>
         <source>Palette Colors</source>

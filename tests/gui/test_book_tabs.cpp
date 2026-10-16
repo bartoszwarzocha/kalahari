@@ -1,18 +1,23 @@
 /// @file test_book_tabs.cpp
 /// @brief The tabs of the open book: one file is edited in one tab, Save As and Close Book
-/// with a book open, the Properties panel without an editor in front, the words of the book
-/// while the changes of its chapters are not saved, and the changes: only a text that differs
-/// from the saved one has them
+/// with a book open, Save and Save As greyed out while they have nothing to save, the
+/// Properties panel without an editor in front, the words of the book while the changes of its
+/// chapters are not saved, and the changes: only a text that differs from the saved one has
+/// them
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/gui/command_registrar.h>
+#include <kalahari/gui/command_registry.h>
 #include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/panels/editor_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
+#include <kalahari/gui/utils/document_commands.h>
 
 #include "document_window.h"
 
+#include <QAction>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
@@ -90,6 +95,23 @@ void followBook(Window& window) {
     QObject::connect(&pm, &core::ProjectManager::projectClosed, &window.documents,
                      &gui::DocumentCoordinator::onProjectClosed);
 }
+
+/// The program's commands, deleted when the test ends: their callbacks know the window of the
+/// test, which goes after them
+class Commands {
+public:
+    Commands() { gui::CommandRegistry::getInstance().clear(); }
+    ~Commands() { gui::CommandRegistry::getInstance().clear(); }
+    Commands(const Commands&) = delete;
+    Commands& operator=(const Commands&) = delete;
+
+    /// The action of the command @p id
+    static QAction& action(const char* id) {
+        QAction* action = gui::CommandRegistry::getInstance().getAction(std::string(id));
+        REQUIRE(action != nullptr);
+        return *action;
+    }
+};
 
 } // namespace
 
@@ -225,6 +247,83 @@ TEST_CASE("Book tabs: Save As on a chapter of the book says that Save saves it w
           QStringLiteral("Chapter \"The Storm\" is saved with the book: use Save."));
     CHECK(novel.chapterFile() == saved);
     CHECK(window.navigator.isChapterDirty(novel.chapterId));
+}
+
+TEST_CASE("Book tabs: Save and Save As are greyed out while they have nothing to save, and "
+          "say why",
+          "[gui][booktabs][commands]") {
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString notes = QDir(files.path()).filePath(QStringLiteral("notes.txt"));
+    writeText(notes, "Notes");
+
+    Window window;
+    followBook(window);
+    const Commands commands;  // deleted before the window
+    gui::CommandCallbacks callbacks;
+    callbacks.onSaveDocument = [&window]() { window.documents.onSaveDocument(); };
+    callbacks.onSaveAsDocument = [&window]() { window.documents.onSaveAsDocument(); };
+    gui::registerAllCommands(callbacks);
+    gui::CommandRegistry& registry = gui::CommandRegistry::getInstance();
+    gui::utils::bindSaveCommands(
+        registry, [&window]() { return window.documents.whyNotSave(); },
+        [&window]() { return window.documents.whyNotSaveAs(); });
+    // As in the main window: the tab in front and the open book update them
+    QObject::connect(window.tabs, &QTabWidget::currentChanged, &window.window,
+                     [&registry]() { gui::utils::updateSaveCommands(registry); });
+    auto& pm = core::ProjectManager::getInstance();
+    QObject::connect(&pm, &core::ProjectManager::projectOpened, &window.window,
+                     [&registry]() { gui::utils::updateSaveCommands(registry); });
+    QObject::connect(&pm, &core::ProjectManager::projectClosed, &window.window,
+                     [&registry]() { gui::utils::updateSaveCommands(registry); });
+    QAction& save = Commands::action("file.save");
+    QAction& saveAs = Commands::action("file.saveAs");
+    const QString nothing = QStringLiteral("No document to save");
+
+    // No book and no tab: nothing to save, and the tooltip and the status bar say so
+    for (const QAction* action : {&save, &saveAs}) {
+        INFO(action->text().toStdString());
+        CHECK_FALSE(action->isEnabled());
+        CHECK(action->toolTip() == nothing);
+        CHECK(action->statusTip() == nothing);
+    }
+
+    // A file outside a book in front: both save it, from the moment its tab comes
+    window.documents.openStandaloneFile(notes);
+    for (const QAction* action : {&save, &saveAs}) {
+        INFO(action->text().toStdString());
+        CHECK(action->isEnabled());
+        CHECK(action->statusTip().isEmpty());
+    }
+
+    // A book opens; its chapter in front is saved with the book: Save As is greyed out and
+    // says so
+    OpenNovel novel(QStringLiteral("Rain"));
+    window.navigator.onElementSelected(novel.chapterId, QStringLiteral("The Storm"));
+    const QString withTheBook =
+        QStringLiteral("Chapter \"The Storm\" is saved with the book: use Save.");
+    CHECK(save.isEnabled());
+    CHECK_FALSE(saveAs.isEnabled());
+    CHECK(saveAs.toolTip() == withTheBook);
+    CHECK(saveAs.statusTip() == withTheBook);
+
+    // The file in front again
+    window.tabs->setCurrentIndex(0);
+    CHECK(save.isEnabled());
+    CHECK(saveAs.isEnabled());
+
+    // Close Book closes it with its chapter; the file stays, and both save it
+    test::accepting([&window]() { window.documents.onCloseDocument(); });
+    REQUIRE_FALSE(pm.isProjectOpen());
+    REQUIRE(window.tabs->count() == 1);
+    CHECK(save.isEnabled());
+    CHECK(saveAs.isEnabled());
+
+    // Its tab closes: nothing to save again
+    window.tabs->removeTab(0);
+    CHECK_FALSE(save.isEnabled());
+    CHECK(save.statusTip() == nothing);
+    CHECK_FALSE(saveAs.isEnabled());
 }
 
 TEST_CASE("Book tabs: Close Book asks only about the changes of the book, and the files "

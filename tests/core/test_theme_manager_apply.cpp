@@ -60,15 +60,40 @@ TEST_CASE("ThemeManager applies a theme with overrides in one pass",
         CHECK(qApp->styleSheet().isEmpty());
     }
 
-    SECTION("stored info panel and Dashboard colors are applied") {
+    SECTION("stored info panel colors are applied") {
         auto& settings = kalahari::core::SettingsManager::getInstance();
-        const std::string key = "themes." + originalTheme.toStdString() + ".colors.dashboardPrimary";
+        const std::string key = "themes." + originalTheme.toStdString() + ".colors.infoHeader";
         settings.set(key, TEST_WINDOW.name().toStdString());
 
         REQUIRE(themeManager.reloadTheme(originalTheme));
         settings.removeKey(key);
 
-        CHECK(themeManager.getCurrentTheme().colors.dashboardPrimary == TEST_WINDOW);
+        CHECK(themeManager.getCurrentTheme().colors.infoHeader == TEST_WINDOW);
+    }
+
+    SECTION("the Dashboard and info icon colors stored before the Dashboard icons took the icon "
+            "colors change nothing") {
+        REQUIRE(themeManager.reloadTheme(originalTheme));
+        const Theme before = themeManager.getCurrentTheme();
+        auto& settings = kalahari::core::SettingsManager::getInstance();
+        const std::string prefix = "themes." + originalTheme.toStdString() + ".colors.";
+        settings.set(prefix + "dashboardPrimary", TEST_WINDOW.name().toStdString());
+        settings.set(prefix + "dashboardSecondary", TEST_PRIMARY.name().toStdString());
+        settings.set(prefix + "infoPrimary", TEST_WINDOW.name().toStdString());
+        settings.set(prefix + "infoSecondary", TEST_PRIMARY.name().toStdString());
+
+        REQUIRE(themeManager.reloadTheme(originalTheme));
+        for (const char* key :
+             {"dashboardPrimary", "dashboardSecondary", "infoPrimary", "infoSecondary"}) {
+            settings.removeKey(prefix + key);
+        }
+
+        const Theme::Colors& colors = themeManager.getCurrentTheme().colors;
+        CHECK(colors.primary == before.colors.primary);
+        CHECK(colors.secondary == before.colors.secondary);
+        CHECK(colors.infoHeader == before.colors.infoHeader);
+        CHECK(colors.infoBarBackground == before.colors.infoBarBackground);
+        CHECK(themeManager.getCurrentTheme().palette.window == before.palette.window);
     }
 
     SECTION("re-applying without overrides restores the theme colors") {
@@ -109,6 +134,30 @@ TEST_CASE("Theme editor colors are an open list from the theme file", "[core][th
     CHECK(themeManager.editorColor("noteMarker", QColor()) == QColor("#00ff00"));
     CHECK(themeManager.editorColor("missingMarker", QColor("#123456")) == QColor("#123456"));
     themeManager.reloadTheme(currentTheme);
+}
+
+TEST_CASE("A theme file with the Dashboard and info icon colors of before loads as without them",
+          "[core][theme]") {
+    // The Dashboard icons took the icon colors; a theme file written before still has them
+    const nlohmann::json json = {
+        {"name", "Test"},
+        {"colors",
+         {{"primary", "#111111"}, {"secondary", "#222222"}, {"dashboardPrimary", "#ff00aa"},
+          {"dashboardSecondary", "#00ffcc"}, {"infoPrimary", "#ff00aa"},
+          {"infoSecondary", "#00ffcc"}}},
+    };
+
+    const Theme theme = Theme::fromJson(json);
+    CHECK(theme.colors.primary == QColor("#111111"));
+    CHECK(theme.colors.secondary == QColor("#222222"));
+
+    // And it is written again without them
+    const nlohmann::json written = theme.toJson();
+    for (const char* key :
+         {"dashboardPrimary", "dashboardSecondary", "infoPrimary", "infoSecondary"}) {
+        INFO(key);
+        CHECK_FALSE(written["colors"].contains(key));
+    }
 }
 
 TEST_CASE("A theme gives disabled widgets opaque backgrounds", "[core][theme]") {

@@ -259,12 +259,12 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     const QString iconId = element ? NavigatorPanel::iconIdOf(pm.bookTypes(), *element)
                                    : QStringLiteral("template.chapter");
     QIcon chapterIcon = core::ArtProvider::getInstance().getIcon(iconId);
+    // Store element ID for save operations, before the tab comes: the tab in front decides
+    // what Save and Save As do
+    newEditor->setProperty("elementId", elementId);
     int tabIndex = m_centralTabs->addTab(newEditor, chapterIcon, elementTitle);
     newEditor->setProperty("tabIconId", iconId);
     m_centralTabs->setCurrentIndex(tabIndex);
-
-    // Store element ID for save operations
-    newEditor->setProperty("elementId", elementId);
     m_currentElementId = elementId;
 
     // The text loaded is the saved text (BookEditor::fromKml()); the signals below are

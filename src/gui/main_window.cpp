@@ -76,6 +76,7 @@
 #include <QStyle>
 #include <QProgressDialog>
 #include <QTimer>
+#include <QPointer>
 #include <QAbstractItemView>
 #include <map>
 #include <memory>
@@ -231,6 +232,18 @@ MainWindow::MainWindow(QWidget* parent)
     // Connect DocumentCoordinator signals
     connect(m_documentCoordinator, &DocumentCoordinator::windowTitleChanged,
             this, &MainWindow::setWindowTitle);
+    // Save and Save As are greyed out while they have nothing to save, and say why; the tab
+    // in front and the open book update them (updateEditorActionStates(),
+    // updateBookCommands()). Their keys, and those of the commands of the open book, say it
+    // in the status bar then.
+    {
+        CommandRegistry& registry = CommandRegistry::getInstance();
+        const QPointer<DocumentCoordinator> documents(m_documentCoordinator);
+        utils::bindSaveCommands(
+            registry, [documents]() { return documents ? documents->whyNotSave() : QString(); },
+            [documents]() { return documents ? documents->whyNotSaveAs() : QString(); });
+        utils::explainGreyedKeys(registry, this, statusBar());
+    }
     // A file outside the book opened from the Navigator gets the keys, as a chapter does
     // (connected after the coordinator, which opens it); a new file, not saved yet, is
     // listed by its key
@@ -1051,6 +1064,8 @@ void MainWindow::updateEditorActionStates() {
     setChecked("format.justify", alignment == Qt::AlignJustify);
 
     utils::updateDocumentCommands(registry);
+    // Save and Save As follow the tab in front: a chapter, a file outside the book, none
+    utils::updateSaveCommands(registry);
 
     // Sync the font family/size toolbar controls to the char format under the caret,
     // so they reflect the formatting at the cursor (updates on every cursor move /
@@ -1319,6 +1334,10 @@ void MainWindow::createDocks() {
 }
 
 void MainWindow::resetLayout() {
+    // The toolbars as well: a floating one, or one by another edge, docks at the top again
+    if (m_toolbarManager) {
+        m_toolbarManager->applyDefaultLayout();
+    }
     m_dockCoordinator->resetLayout(isDiagnosticMode(), isDevMode());
     statusBar()->showMessage(tr("Layout reset to default"), 2000);
 }
@@ -1357,6 +1376,8 @@ void MainWindow::updateBookCommands() {
     registry.updateActionState("book.newChapter");
     registry.updateActionState("book.properties");
     utils::updateOpenBookCommands(registry);
+    // Save saves the open book also with no tab of it in front
+    utils::updateSaveCommands(registry);
 }
 
 void MainWindow::setStartupFile(const QString& path) {

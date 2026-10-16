@@ -299,26 +299,13 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
     }
 
     // OpenSpec #00039: Create user toolbars from loaded configurations
-    auto& artProvider = core::ArtProvider::getInstance();
     for (auto it = m_userToolbarNames.constBegin(); it != m_userToolbarNames.constEnd(); ++it) {
         const QString& toolbarId = it.key();
         const QString& displayName = it.value();
 
         QToolBar* toolbar = new QToolBar(displayName, m_mainWindow);
         toolbar->setObjectName(toolbarId);
-        toolbar->setMovable(!m_toolbarsLocked);
-        toolbar->setFloatable(true);
-
-        int toolbarIconSize = artProvider.getIconSize(core::IconContext::Toolbar);
-        toolbar->setIconSize(QSize(toolbarIconSize, toolbarIconSize));
-        toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-
-        // Context menu
-        toolbar->setContextMenuPolicy(Qt::CustomContextMenu);
-        QObject::connect(toolbar, &QWidget::customContextMenuRequested, &m_connectionContext,
-            [this, toolbar](const QPoint& pos) {
-                showContextMenu(toolbar->mapToGlobal(pos));
-            });
+        setUpToolbar(toolbar);
 
         m_mainWindow->addToolBar(Qt::TopToolBarArea, toolbar);
         m_toolbars[toolbarId.toStdString()] = toolbar;
@@ -334,7 +321,6 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
 }
 
 QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegistry& registry) {
-    auto& artProvider = core::ArtProvider::getInstance();
     auto& logger = core::Logger::getInstance();
 
     // Create toolbar
@@ -354,12 +340,22 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
         addToolbarItem(toolbar, cmdId, registry);
     }
 
-    // Configure toolbar appearance and behavior
+    setUpToolbar(toolbar);
+
+    // Add to main window
+    m_mainWindow->addToolBar(config.defaultArea, toolbar);
+    toolbar->setVisible(config.defaultVisible);
+
+    return toolbar;
+}
+
+void ToolbarManager::setUpToolbar(QToolBar* toolbar) {
     // OpenSpec #00031 - Phase E: Apply lock state when creating toolbar
     toolbar->setMovable(!m_toolbarsLocked);
     toolbar->setFloatable(true);
     // OpenSpec #00026: Icon size now managed by ArtProvider/IconSizeConfig
-    int toolbarIconSize = artProvider.getIconSize(core::IconContext::Toolbar);
+    const int toolbarIconSize =
+        core::ArtProvider::getInstance().getIconSize(core::IconContext::Toolbar);
     toolbar->setIconSize(QSize(toolbarIconSize, toolbarIconSize));
     toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);  // Icons only, no text
 
@@ -369,12 +365,6 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
         [this, toolbar](const QPoint& pos) {
             showContextMenu(toolbar->mapToGlobal(pos));
         });
-
-    // Add to main window
-    m_mainWindow->addToolBar(config.defaultArea, toolbar);
-    toolbar->setVisible(config.defaultVisible);
-
-    return toolbar;
 }
 
 QToolBar* ToolbarManager::getToolbar(const std::string& id) {
@@ -489,6 +479,7 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
     // OpenSpec #00030: Create Toolbars submenu instead of adding directly to VIEW menu
     // Structure: Standard Toolbars → separator → User-defined (future) → separator → Toolbar Manager...
     QMenu* toolbarsMenu = viewMenu->addMenu(MenuBuilder::menuText("Toolbars"));
+    MenuBuilder::showSubmenuIcon(toolbarsMenu, MenuBuilder::submenuIconId("Toolbars"));
     // The menu and its items are forgotten when it goes; an earlier menu going later does not
     // touch this one's
     QObject::disconnect(m_toolbarsMenuGone);
@@ -704,13 +695,8 @@ QString ToolbarManager::createUserToolbar(const QString& name, const QStringList
     // Create the actual QToolBar
     QToolBar* toolbar = new QToolBar(name, m_mainWindow);
     toolbar->setObjectName(toolbarId);
-    toolbar->setMovable(true);
-    toolbar->setFloatable(true);
-
-    auto& artProvider = core::ArtProvider::getInstance();
-    int toolbarIconSize = artProvider.getIconSize(core::IconContext::Toolbar);
-    toolbar->setIconSize(QSize(toolbarIconSize, toolbarIconSize));
-    toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    // Locked with the others, and with their context menu, as after the next start
+    setUpToolbar(toolbar);
 
     m_mainWindow->addToolBar(Qt::TopToolBarArea, toolbar);
     m_toolbars[toolbarId.toStdString()] = toolbar;
@@ -906,8 +892,11 @@ void ToolbarManager::applyDefaultLayout() {
     // Row 1: Quick Actions, Edit, Format, Insert (visible by default)
     // Row 2: Book, Styles, Views, Tools, Help (visible by default)
     // Hidden by default: File, Panels
+    // The user toolbars come last in row 2, shown, as when they are made
 
-    // First, remove all toolbars from main window (but don't delete them)
+    // First, remove all toolbars from main window (but don't delete them): a toolbar out of
+    // its place (floating, or by another edge of the window) and the breaks between the rows
+    // go with them, as a row goes with its last toolbar
     // NOTE: removeToolBar() also HIDES the toolbar, so we must restore visibility after adding
     for (auto& [id, toolbar] : m_toolbars) {
         if (toolbar) {
@@ -915,45 +904,37 @@ void ToolbarManager::applyDefaultLayout() {
         }
     }
 
-    // Remove any existing toolbar breaks
-    // Note: Qt doesn't have a direct way to remove breaks, but removing and re-adding
-    // toolbars effectively clears the layout
+    // Adding a toolbar docks a floating one again (QMainWindowLayout::addToolBar)
+    const auto addRow = [this](const std::vector<std::string>& ids) {
+        for (const std::string& id : ids) {
+            auto it = m_toolbars.find(id);
+            if (it != m_toolbars.end() && it->second) {
+                m_mainWindow->addToolBar(Qt::TopToolBarArea, it->second);
+            }
+        }
+    };
 
     // Row 1 toolbars: Quick Actions, Edit, Format, Insert
-    std::vector<std::string> row1 = {"quickActions", "edit", "format", "insert"};
-    for (const std::string& id : row1) {
-        auto it = m_toolbars.find(id);
-        if (it != m_toolbars.end() && it->second) {
-            m_mainWindow->addToolBar(Qt::TopToolBarArea, it->second);
-        }
-    }
+    addRow({"quickActions", "edit", "format", "insert"});
 
     // Add toolbar break between Row 1 and Row 2
     m_mainWindow->addToolBarBreak(Qt::TopToolBarArea);
 
-    // Row 2 toolbars: Book, Styles, Views, Tools, Help
-    std::vector<std::string> row2 = {"book", "styles", "views", "tools", "help"};
-    for (const std::string& id : row2) {
-        auto it = m_toolbars.find(id);
-        if (it != m_toolbars.end() && it->second) {
-            m_mainWindow->addToolBar(Qt::TopToolBarArea, it->second);
-        }
-    }
+    // Row 2 toolbars: Book, Styles, Views, Tools, Help, then the hidden File and Panels
+    addRow({"book", "styles", "views", "tools", "help", "file", "view"});
 
-    // Hidden toolbars: File, Panels
-    std::vector<std::string> hidden = {"file", "view"};
-    for (const std::string& id : hidden) {
-        auto it = m_toolbars.find(id);
-        if (it != m_toolbars.end() && it->second) {
-            m_mainWindow->addToolBar(Qt::TopToolBarArea, it->second);
-        }
+    // The user toolbars, in the order they are made at the start
+    std::vector<std::string> userToolbars;
+    for (auto it = m_userToolbarNames.constBegin(); it != m_userToolbarNames.constEnd(); ++it) {
+        userToolbars.push_back(it.key().toStdString());
     }
+    addRow(userToolbars);
 
     // CRITICAL: Restore visibility after addToolBar() because removeToolBar() hides toolbars
     // Use defaultVisible from m_configs to determine which toolbars should be visible
     for (auto& [id, toolbar] : m_toolbars) {
         if (toolbar) {
-            bool defaultVisible = false;
+            bool defaultVisible = isUserToolbar(QString::fromStdString(id));
             auto configIt = m_configs.find(id);
             if (configIt != m_configs.end()) {
                 defaultVisible = configIt->second.defaultVisible;

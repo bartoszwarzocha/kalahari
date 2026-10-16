@@ -2,7 +2,6 @@
 /// @brief File > Recent Books submenu implementation
 
 #include "kalahari/gui/recent_books_menu.h"
-#include "kalahari/core/art_provider.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/menu_builder.h"
@@ -17,7 +16,8 @@ namespace gui {
 RecentBooksMenu::RecentBooksMenu(QWidget* parent)
     : QMenu(MenuBuilder::menuText("Recent Books"), parent)
 {
-    setIcon(core::ArtProvider::getInstance().getIcon("file.open"));
+    // In the icon colors after they change, as the other submenus
+    MenuBuilder::showSubmenuIcon(this, MenuBuilder::submenuIconId("Recent Books"));
     setToolTipsVisible(true);
 
     connect(&core::RecentBooksManager::getInstance(),

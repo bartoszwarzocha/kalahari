@@ -170,7 +170,7 @@ private:
     /// Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void createDocks();
 
-    /// @brief Reset dock layout to default
+    /// @brief Reset the layout to default: the toolbars (ToolbarManager) and the panels
     /// @note Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void resetLayout();
 

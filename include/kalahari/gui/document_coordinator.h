@@ -140,6 +140,16 @@ public:
     ///         other editor tab with unsaved changes; empty when nothing is known
     [[nodiscard]] QStringList unsavedDocumentNames() const;
 
+    /// @brief Why Save has nothing to save now: neither a book is open nor a file outside it
+    /// is in front
+    /// @return The reason, for its tooltip and the status bar; empty while Save saves
+    [[nodiscard]] QString whyNotSave() const;
+
+    /// @brief Why Save As has nothing to save under another name now: no file outside the
+    /// book is in front, or a chapter of the book is, which is saved with the book
+    /// @return The reason, for its tooltip and the status bar; empty while Save As saves
+    [[nodiscard]] QString whyNotSaveAs() const;
+
 public slots:
     // =========================================================================
     // Document operations

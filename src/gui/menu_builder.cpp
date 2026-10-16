@@ -5,12 +5,14 @@
 /// QAction instances. Menu and toolbar now share the same action objects.
 
 #include "kalahari/gui/menu_builder.h"
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include <QAction>
 #include <QApplication>
 #include <QMenuBar>
 #include <algorithm>
+#include <map>
 #include <sstream>
 #include <vector>
 
@@ -59,6 +61,39 @@ const std::vector<std::string>& MenuBuilder::topLevelMenus() {
         "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TOOLS", "ASSISTANT", "VIEW", "HELP"
     };
     return menus;
+}
+
+QString MenuBuilder::submenuIconId(const std::string& technicalName) {
+    // Registered by registerAllIcons()
+    static const std::map<std::string, QString> icons = {
+        {"Import", QStringLiteral("menu.import")},
+        {"Export", QStringLiteral("menu.export")},
+        {"Recent Books", QStringLiteral("menu.recentBooks")},
+        {"Text Style", QStringLiteral("menu.textStyle")},
+        {"Statistics", QStringLiteral("menu.statistics")},
+        {"Plugins", QStringLiteral("menu.plugins")},
+        {"Assistant Actions", QStringLiteral("menu.assistantActions")},
+        {"View Mode", QStringLiteral("menu.viewMode")},
+        {"Zoom", QStringLiteral("menu.zoom")},
+        {"Panels", QStringLiteral("menu.panels")},
+        {"Perspectives", QStringLiteral("menu.perspectives")},
+        {"Toolbars", QStringLiteral("menu.toolbars")},
+    };
+    const auto it = icons.find(technicalName);
+    return it != icons.end() ? it->second : QString();
+}
+
+void MenuBuilder::showSubmenuIcon(QMenu* menu, const QString& iconId) {
+    if (menu == nullptr || iconId.isEmpty()) {
+        return;
+    }
+    // As the commands' actions get theirs (CommandRegistry), drawn smaller in a menu
+    const auto show = [menu, iconId]() {
+        menu->setIcon(core::ArtProvider::getInstance().getIcon(iconId, core::IconContext::Toolbar));
+    };
+    show();
+    QObject::connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, menu,
+                     show);
 }
 
 void MenuBuilder::buildMenuBar(CommandRegistry& registry, QMainWindow* parent) {
@@ -149,7 +184,7 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
             // Navigate/create submenu hierarchy (translated, with access keys)
             QMenu* currentMenu = topMenu;
             for (size_t j = 1; j < levels.size() - 1; ++j) {  // Skip first (top-level) and last (action)
-                currentMenu = getOrCreateSubmenu(currentMenu, menuText(levels[j]));
+                currentMenu = getOrCreateSubmenu(currentMenu, levels[j]);
             }
 
             // Create action and add to menu
@@ -163,12 +198,13 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
     }
 }
 
-QMenu* MenuBuilder::getOrCreateSubmenu(QMenu* parent, const QString& title) {
+QMenu* MenuBuilder::getOrCreateSubmenu(QMenu* parent, const std::string& technicalName) {
     if (!parent) {
         return nullptr;
     }
 
     // Check if submenu already exists
+    const QString title = menuText(technicalName);
     for (QAction* action : parent->actions()) {
         if (action->menu() && action->text() == title) {
             return action->menu();
@@ -178,6 +214,7 @@ QMenu* MenuBuilder::getOrCreateSubmenu(QMenu* parent, const QString& title) {
     // Create new submenu
     QMenu* submenu = parent->addMenu(title);
     submenu->setToolTipsVisible(true);
+    showSubmenuIcon(submenu, submenuIconId(technicalName));
     return submenu;
 }
 

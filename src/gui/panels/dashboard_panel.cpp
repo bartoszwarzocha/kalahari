@@ -451,14 +451,9 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     //m_newsIcon = new QLabel(newsIconFrame);
     //m_newsIcon->setFixedSize(headerIconSize, headerIconSize);
     //m_newsIcon->setScaledContents(true);  // NO SCALING - pixmap size = label size
-    // News icon uses infoPrimary/infoSecondary colors for distinct appearance
-    const auto& currentTheme = core::ThemeManager::getInstance().getCurrentTheme();
-    //QIcon newsIcon = core::ArtProvider::getInstance().getThemedIcon(
-    //    "book.newChapter",
-    //    currentTheme.colors.infoPrimary,
-    //    currentTheme.colors.infoSecondary);
-    //m_newsIcon->setPixmap(newsIcon.pixmap(headerIconSize, headerIconSize));
+    //m_newsIcon->setPixmap(bookIcon("book.newChapter").pixmap(headerIconSize, headerIconSize));
     //newsIconLayout->addWidget(m_newsIcon);
+    const auto& currentTheme = core::ThemeManager::getInstance().getCurrentTheme();
 
     m_newsTitle = new WrappingLabel(tr("Kalahari News"), newsHeader);
     QFont newsTitleFont = m_newsTitle->font();
@@ -515,12 +510,7 @@ QWidget* DashboardPanel::createMainContentSection(QWidget* parent)
     //m_filesIcon = new QLabel(filesIconFrame);
     //m_filesIcon->setFixedSize(headerIconSize, headerIconSize);
     //m_filesIcon->setScaledContents(true);  // NO SCALING - pixmap size = label size
-    // Recent Files icon uses dashboardPrimary/dashboardSecondary colors for distinct appearance
-    //QIcon filesIcon = core::ArtProvider::getInstance().getThemedIcon(
-    //    "file.open",
-    //    currentTheme.colors.dashboardPrimary,
-    //    currentTheme.colors.dashboardSecondary);
-    //m_filesIcon->setPixmap(filesIcon.pixmap(headerIconSize, headerIconSize));
+    //m_filesIcon->setPixmap(bookIcon("file.open").pixmap(headerIconSize, headerIconSize));
     //filesIconLayout->addWidget(m_filesIcon);
 
     m_filesTitle = new WrappingLabel(tr("Recent Books"), filesHeader);
@@ -685,12 +675,7 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     // The icon of the book's type, kept for the theme refresh
     iconLabel->setProperty("iconId", iconActionId);
 
-    // Recent Files book icons use dashboardPrimary/dashboardSecondary colors for distinct appearance
-    QIcon bookIcon = core::ArtProvider::getInstance().getThemedIcon(
-        iconActionId,
-        theme.colors.dashboardPrimary,
-        theme.colors.dashboardSecondary);
-    iconLabel->setPixmap(bookIcon.pixmap(iconSize, iconSize));
+    iconLabel->setPixmap(bookIcon(iconActionId).pixmap(iconSize, iconSize));
     iconLayout->addWidget(iconLabel);
 
     cardLayout->addWidget(iconFrame);
@@ -949,35 +934,29 @@ void DashboardPanel::applyThemeColors()
     // Refresh icons with current theme colors using getThemedIcon API
     int iconSize = getIconSize();
 
-    // News icon uses infoPrimary/infoSecondary for distinct appearance
+    // The column icons, in the icon colors as the book icons
     if (m_newsIcon) {
-        QIcon newsIcon = core::ArtProvider::getInstance().getThemedIcon(
-            "book.newChapter",
-            theme.colors.infoPrimary,
-            theme.colors.infoSecondary);
-        m_newsIcon->setPixmap(newsIcon.pixmap(iconSize, iconSize));
+        m_newsIcon->setPixmap(bookIcon("book.newChapter").pixmap(iconSize, iconSize));
     }
 
-    // Files icon uses dashboardPrimary/dashboardSecondary colors for distinct appearance
     if (m_filesIcon) {
-        QIcon filesIcon = core::ArtProvider::getInstance().getThemedIcon(
-            "file.open",
-            theme.colors.dashboardPrimary,
-            theme.colors.dashboardSecondary);
-        m_filesIcon->setPixmap(filesIcon.pixmap(iconSize, iconSize));
+        m_filesIcon->setPixmap(bookIcon("file.open").pixmap(iconSize, iconSize));
     }
 
-    // Refresh book icons in file cards - uses dashboardPrimary/dashboardSecondary colors
-    // Each label keeps the icon of its book's type
+    // Refresh book icons in file cards; each label keeps the icon of its book's type
     QList<QLabel*> bookIcons = m_filesListWidget->findChildren<QLabel*>("cardBookIcon");
     for (auto* iconLabel : bookIcons) {
         const QString iconActionId = iconLabel->property("iconId").toString();
-        QIcon bookIcon = core::ArtProvider::getInstance().getThemedIcon(
-            iconActionId,
-            theme.colors.dashboardPrimary,
-            theme.colors.dashboardSecondary);
-        iconLabel->setPixmap(bookIcon.pixmap(iconSize, iconSize));
+        iconLabel->setPixmap(bookIcon(iconActionId).pixmap(iconSize, iconSize));
     }
+}
+
+QIcon DashboardPanel::bookIcon(const QString& actionId)
+{
+    // The icon colors of the toolbars, so the Dashboard has no colors of its own
+    auto& artProvider = core::ArtProvider::getInstance();
+    return artProvider.getThemedIcon(actionId, artProvider.getPrimaryColor(),
+                                     artProvider.getSecondaryColor());
 }
 
 void DashboardPanel::refreshContent()

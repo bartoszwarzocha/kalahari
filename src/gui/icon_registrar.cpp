@@ -196,6 +196,22 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
 
     // -------------------------------------------------------------------------
+    // SUBMENU ICONS (MenuBuilder::submenuIconId)
+    // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("menu.import", "resources/icons/twotone/input.svg", "Import");
+    iconRegistry.registerIcon("menu.export", "resources/icons/twotone/share.svg", "Export");
+    iconRegistry.registerIcon("menu.recentBooks", "resources/icons/twotone/history.svg", "Recent Books");
+    iconRegistry.registerIcon("menu.textStyle", "resources/icons/twotone/format_shapes.svg", "Text Style");
+    iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
+    iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
+    iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
+    iconRegistry.registerIcon("menu.viewMode", "resources/icons/twotone/visibility.svg", "View Mode");
+    iconRegistry.registerIcon("menu.zoom", "resources/icons/twotone/zoom_in.svg", "Zoom");
+    iconRegistry.registerIcon("menu.panels", "resources/icons/twotone/view_sidebar.svg", "Panels");
+    iconRegistry.registerIcon("menu.perspectives", "resources/icons/twotone/view_quilt.svg", "Perspectives");
+    iconRegistry.registerIcon("menu.toolbars", "resources/icons/twotone/build.svg", "Toolbars");
+
+    // -------------------------------------------------------------------------
     // LOG PANEL TOOLBAR ICONS (OpenSpec #00024)
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("log.options", "resources/icons/twotone/settings.svg", "Log Options");
