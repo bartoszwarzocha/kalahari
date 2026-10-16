@@ -150,6 +150,11 @@ public:
     /// @return The reason, for its tooltip and the status bar; empty while Save As saves
     [[nodiscard]] QString whyNotSaveAs() const;
 
+    /// @brief Why Save All has nothing to save now: neither a book is open nor a file outside
+    /// it, in any tab
+    /// @return The reason, for its tooltip and the status bar; empty while Save All saves
+    [[nodiscard]] QString whyNotSaveAll() const;
+
 public slots:
     // =========================================================================
     // Document operations
@@ -184,8 +189,8 @@ public slots:
 
     /// @brief Save all: the book and every open file outside it that has unsaved changes
     ///
-    /// A file that cannot be saved is reported and does not stop the others; with nothing to
-    /// save, the status bar says so.
+    /// A file that cannot be saved is reported and does not stop the others; without a
+    /// document, or with nothing changed, the status bar says so.
     void onSaveAll();
 
     /// @brief Close the book: its chapters close with it, and the files open outside it stay

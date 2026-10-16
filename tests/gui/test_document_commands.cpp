@@ -1,6 +1,7 @@
 /// @file test_document_commands.cpp
 /// @brief The commands that work on the document in front are greyed out without one, those of
-/// the open book without a book; a greyed out command says why, also after its keys
+/// the open book without a book, Save All without a document; a greyed out command says why,
+/// also after its keys
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/command_registrar.h"
@@ -230,6 +231,57 @@ TEST_CASE("Book commands: the keys of a greyed out command say why in the status
     press(text, QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_K));
     CHECK(statusBar.currentMessage() == QStringLiteral("No book is open"));
     CHECK(closed == 1);
+
+    registry.clear();
+}
+
+TEST_CASE("Save commands: a key given to Save All says why it is greyed out",
+          "[gui][commands]") {
+    // Save All has no key of its own: one the writer gives it says why, as the keys of Save do
+    if (!canActivateWindows()) {
+        SKIP(NEEDS_OFFSCREEN);
+    }
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    registry.clear();
+    CommandCallbacks callbacks = runningCallbacks();
+    int saved = 0;
+    callbacks.onSaveAll = [&saved]() { ++saved; };
+    registerAllCommands(callbacks);
+    QString whyNot = QStringLiteral("No document to save");
+    const auto none = []() { return QString(); };
+    utils::bindSaveCommands(registry, none, none, [&whyNot]() { return whyNot; });
+
+    QMainWindow window;
+    QStatusBar statusBar;  // not the window's own, as in test_dock_layout.cpp (QTBUG-137524)
+    auto* text = new QLineEdit(&window);
+    window.setCentralWidget(text);
+    QAction* saveAll = registry.getAction(std::string("file.saveAll"));
+    REQUIRE(saveAll != nullptr);
+    CHECK(saveAll->shortcut().isEmpty());
+    CHECK_FALSE(saveAll->isEnabled());
+    CHECK(saveAll->statusTip() == whyNot);
+    window.addAction(saveAll);
+    utils::explainGreyedKeys(registry, &window, &statusBar);
+    const QKeySequence keys(Qt::CTRL | Qt::ALT | Qt::Key_L);
+    saveAll->setShortcut(keys);
+    window.show();
+    window.activateWindow();
+    REQUIRE(kalahari::test::waitUntil([&window] { return QApplication::activeWindow() == &window; }));
+    text->setFocus(Qt::OtherFocusReason);
+
+    // Nothing to save: the status bar says why, and the command does not run
+    press(text, keys);
+    CHECK(statusBar.currentMessage() == QStringLiteral("No document to save"));
+    CHECK(saved == 0);
+
+    // A document to save: the command takes its key again
+    statusBar.clearMessage();
+    whyNot.clear();
+    utils::updateSaveCommands(registry);
+    CHECK(saveAll->isEnabled());
+    press(text, keys);
+    CHECK(saved == 1);
+    CHECK(statusBar.currentMessage().isEmpty());
 
     registry.clear();
 }

@@ -1,6 +1,6 @@
 /// @file document_commands.cpp
 /// @brief Implementation of the commands that work on the document in front, those of the
-/// open book, and Save with Save As
+/// open book, and Save with Save As and Save All
 
 #include "kalahari/gui/utils/document_commands.h"
 
@@ -117,7 +117,8 @@ void updateOpenBookCommands(CommandRegistry& registry) {
 }
 
 void bindSaveCommands(CommandRegistry& registry, const std::function<QString()>& whyNotSave,
-                      const std::function<QString()>& whyNotSaveAs) {
+                      const std::function<QString()>& whyNotSaveAs,
+                      const std::function<QString()>& whyNotSaveAll) {
     const auto bind = [&registry](const char* id, const std::function<QString()>& whyNot) {
         if (Command* command = registry.getCommand(id)) {
             command->isEnabled = [whyNot]() { return whyNot().isEmpty(); };
@@ -126,17 +127,19 @@ void bindSaveCommands(CommandRegistry& registry, const std::function<QString()>&
     };
     bind("file.save", whyNotSave);
     bind("file.saveAs", whyNotSaveAs);
+    bind("file.saveAll", whyNotSaveAll);
     updateSaveCommands(registry);
 }
 
 void updateSaveCommands(CommandRegistry& registry) {
     registry.updateActionState("file.save");
     registry.updateActionState("file.saveAs");
+    registry.updateActionState("file.saveAll");
 }
 
 void explainGreyedKeys(CommandRegistry& registry, QWidget* window, QStatusBar* statusBar) {
     std::vector<std::string> ids = openBookCommands();
-    ids.insert(ids.end(), {"file.save", "file.saveAs"});
+    ids.insert(ids.end(), {"file.save", "file.saveAs", "file.saveAll"});
     for (const std::string& id : ids) {
         if (QAction* action = registry.getAction(id)) {
             new GreyedKeys(action, window, statusBar);

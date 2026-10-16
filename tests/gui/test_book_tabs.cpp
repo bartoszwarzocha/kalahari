@@ -1,6 +1,6 @@
 /// @file test_book_tabs.cpp
 /// @brief The tabs of the open book: one file is edited in one tab, Save As and Close Book
-/// with a book open, Save and Save As greyed out while they have nothing to save, the
+/// with a book open, Save, Save As and Save All greyed out while they have nothing to save, the
 /// Properties panel without an editor in front, the words of the book while the changes of its
 /// chapters are not saved, and the changes: only a text that differs from the saved one has
 /// them
@@ -28,6 +28,7 @@
 #include <QTimer>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
+#include <QWidget>
 
 #include <functional>
 
@@ -249,8 +250,8 @@ TEST_CASE("Book tabs: Save As on a chapter of the book says that Save saves it w
     CHECK(window.navigator.isChapterDirty(novel.chapterId));
 }
 
-TEST_CASE("Book tabs: Save and Save As are greyed out while they have nothing to save, and "
-          "say why",
+TEST_CASE("Book tabs: Save, Save As and Save All are greyed out while they have nothing to "
+          "save, and say why",
           "[gui][booktabs][commands]") {
     QTemporaryDir files;
     REQUIRE(files.isValid());
@@ -263,11 +264,13 @@ TEST_CASE("Book tabs: Save and Save As are greyed out while they have nothing to
     gui::CommandCallbacks callbacks;
     callbacks.onSaveDocument = [&window]() { window.documents.onSaveDocument(); };
     callbacks.onSaveAsDocument = [&window]() { window.documents.onSaveAsDocument(); };
+    callbacks.onSaveAll = [&window]() { window.documents.onSaveAll(); };
     gui::registerAllCommands(callbacks);
     gui::CommandRegistry& registry = gui::CommandRegistry::getInstance();
     gui::utils::bindSaveCommands(
         registry, [&window]() { return window.documents.whyNotSave(); },
-        [&window]() { return window.documents.whyNotSaveAs(); });
+        [&window]() { return window.documents.whyNotSaveAs(); },
+        [&window]() { return window.documents.whyNotSaveAll(); });
     // As in the main window: the tab in front and the open book update them
     QObject::connect(window.tabs, &QTabWidget::currentChanged, &window.window,
                      [&registry]() { gui::utils::updateSaveCommands(registry); });
@@ -278,19 +281,20 @@ TEST_CASE("Book tabs: Save and Save As are greyed out while they have nothing to
                      [&registry]() { gui::utils::updateSaveCommands(registry); });
     QAction& save = Commands::action("file.save");
     QAction& saveAs = Commands::action("file.saveAs");
+    QAction& saveAll = Commands::action("file.saveAll");
     const QString nothing = QStringLiteral("No document to save");
 
     // No book and no tab: nothing to save, and the tooltip and the status bar say so
-    for (const QAction* action : {&save, &saveAs}) {
+    for (const QAction* action : {&save, &saveAs, &saveAll}) {
         INFO(action->text().toStdString());
         CHECK_FALSE(action->isEnabled());
         CHECK(action->toolTip() == nothing);
         CHECK(action->statusTip() == nothing);
     }
 
-    // A file outside a book in front: both save it, from the moment its tab comes
+    // A file outside a book in front: all three save it, from the moment its tab comes
     window.documents.openStandaloneFile(notes);
-    for (const QAction* action : {&save, &saveAs}) {
+    for (const QAction* action : {&save, &saveAs, &saveAll}) {
         INFO(action->text().toStdString());
         CHECK(action->isEnabled());
         CHECK(action->statusTip().isEmpty());
@@ -306,24 +310,45 @@ TEST_CASE("Book tabs: Save and Save As are greyed out while they have nothing to
     CHECK_FALSE(saveAs.isEnabled());
     CHECK(saveAs.toolTip() == withTheBook);
     CHECK(saveAs.statusTip() == withTheBook);
+    CHECK(saveAll.isEnabled());
 
     // The file in front again
     window.tabs->setCurrentIndex(0);
     CHECK(save.isEnabled());
     CHECK(saveAs.isEnabled());
+    CHECK(saveAll.isEnabled());
 
-    // Close Book closes it with its chapter; the file stays, and both save it
+    // Close Book closes it with its chapter; the file stays, and all three save it
     test::accepting([&window]() { window.documents.onCloseDocument(); });
     REQUIRE_FALSE(pm.isProjectOpen());
     REQUIRE(window.tabs->count() == 1);
     CHECK(save.isEnabled());
     CHECK(saveAs.isEnabled());
+    CHECK(saveAll.isEnabled());
 
-    // Its tab closes: nothing to save again
-    window.tabs->removeTab(0);
+    // A page that is no document in front, as the Dashboard: Save and Save As have nothing to
+    // save, Save All still saves the file in the tab behind it
+    auto* dashboard = new QWidget();
+    window.tabs->setCurrentIndex(window.tabs->addTab(dashboard, QStringLiteral("Dashboard")));
     CHECK_FALSE(save.isEnabled());
-    CHECK(save.statusTip() == nothing);
     CHECK_FALSE(saveAs.isEnabled());
+    CHECK(saveAll.isEnabled());
+    CHECK(saveAll.statusTip().isEmpty());
+
+    // The file's tab closes, as from its cross, which updates them in the main window:
+    // nothing to save again
+    window.tabs->removeTab(0);
+    gui::utils::updateSaveCommands(registry);
+    for (const QAction* action : {&save, &saveAs, &saveAll}) {
+        INFO(action->text().toStdString());
+        CHECK_FALSE(action->isEnabled());
+        CHECK(action->statusTip() == nothing);
+    }
+
+    // Run anyway, as from a key given to it, Save All only says why
+    window.statusBar.clearMessage();
+    window.documents.onSaveAll();
+    CHECK(window.statusBar.currentMessage() == nothing);
 }
 
 TEST_CASE("Book tabs: Close Book asks only about the changes of the book, and the files "

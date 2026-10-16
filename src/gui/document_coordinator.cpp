@@ -846,6 +846,20 @@ QString DocumentCoordinator::whyNotSaveAs() const {
         .arg(element ? element->title : QString());
 }
 
+QString DocumentCoordinator::whyNotSaveAll() const {
+    // The book, and the files outside it also in the tabs behind the one in front
+    if (core::ProjectManager::getInstance().isProjectOpen()) {
+        return QString();
+    }
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        const auto* editor = qobject_cast<const EditorPanel*>(m_centralTabs->widget(i));
+        if (editor && editorKind(editor) == EditorKind::StandaloneFile) {
+            return QString();
+        }
+    }
+    return tr("No document to save");
+}
+
 // =============================================================================
 // Per-editor save state
 // =============================================================================
@@ -955,6 +969,12 @@ QStringList DocumentCoordinator::unsavedDocumentNames() const {
 void DocumentCoordinator::onSaveAll() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Save All");
+
+    // Its command is greyed out then, with this reason (whyNotSaveAll())
+    if (const QString reason = whyNotSaveAll(); !reason.isEmpty()) {
+        m_statusBar->showMessage(reason, EXPLANATION_MS);
+        return;
+    }
 
     // The editor of tab @p index when it is a file outside the book with unsaved changes
     const auto unsavedFile = [this](int index) -> EditorPanel* {

@@ -1,6 +1,6 @@
 /// @file document_commands.h
 /// @brief The commands that work on the document in front, those of the open book, and Save
-/// with Save As
+/// with Save As and Save All
 
 #ifndef KALAHARI_GUI_UTILS_DOCUMENT_COMMANDS_H
 #define KALAHARI_GUI_UTILS_DOCUMENT_COMMANDS_H
@@ -56,25 +56,28 @@ void bindToOpenBook(CommandRegistry& registry, const std::function<bool()>& hasB
 /// @param registry The commands
 void updateOpenBookCommands(CommandRegistry& registry);
 
-/// @brief Grey out Save and Save As while they have nothing to save, their tooltips and the
-/// status bar saying why
+/// @brief Grey out Save, Save As and Save All while they have nothing to save, their tooltips
+/// and the status bar saying why
 ///
 /// Save saves the book, or the file outside it in front; Save As only a file outside the
-/// book, as a chapter of the book is saved with the book. A greyed out command takes no
-/// keys either. The caller shows their states again when the tab in front, or what it
-/// shows, or the open book changes (updateSaveCommands()).
+/// book, as a chapter of the book is saved with the book; Save All the book and every file
+/// outside it in the tabs. A greyed out command takes no keys either. The caller shows their
+/// states again when the tabs, or what the tab in front shows, or the open book change
+/// (updateSaveCommands()).
 /// @param registry The commands
 /// @param whyNotSave Why Save has nothing to save now; empty while it has
 /// @param whyNotSaveAs Why Save As has nothing to save now; empty while it has
+/// @param whyNotSaveAll Why Save All has nothing to save now; empty while it has
 void bindSaveCommands(CommandRegistry& registry, const std::function<QString()>& whyNotSave,
-                      const std::function<QString()>& whyNotSaveAs);
+                      const std::function<QString()>& whyNotSaveAs,
+                      const std::function<QString()>& whyNotSaveAll);
 
-/// @brief Show the enabled states of Save and Save As again, with their reasons
+/// @brief Show the enabled states of Save, Save As and Save All again, with their reasons
 /// @param registry The commands
 void updateSaveCommands(CommandRegistry& registry);
 
-/// @brief The keys of Close Book, of the export of the book's archive, of Save and of Save As
-/// say why the command is greyed out
+/// @brief The keys of Close Book, of the export of the book's archive, of Save, of Save As and
+/// of Save All say why the command is greyed out
 ///
 /// A greyed out command takes no keys, so they would do nothing: while it is greyed out, a
 /// shortcut of @p window takes them and shows the reason in @p statusBar, as its menu item

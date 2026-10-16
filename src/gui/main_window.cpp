@@ -231,10 +231,10 @@ MainWindow::MainWindow(QWidget* parent)
     // Connect DocumentCoordinator signals
     connect(m_documentCoordinator, &DocumentCoordinator::windowTitleChanged,
             this, &MainWindow::setWindowTitle);
-    // Save and Save As are greyed out while they have nothing to save, and say why; the tab
-    // in front and the open book update them (updateEditorActionStates(),
-    // updateBookCommands()). Their keys, and those of the commands of the open book, say it
-    // in the status bar then.
+    // Save, Save As and Save All are greyed out while they have nothing to save, and say why;
+    // the tabs and the open book update them (updateEditorActionStates(),
+    // updateBookCommands(), a closed tab). Their keys, and those of the commands of the open
+    // book, say it in the status bar then.
     {
         CommandRegistry& registry = CommandRegistry::getInstance();
         utils::bindSaveCommands(
@@ -245,6 +245,10 @@ MainWindow::MainWindow(QWidget* parent)
             },
             [this]() {
                 return m_documentCoordinator != nullptr ? m_documentCoordinator->whyNotSaveAs()
+                                                        : QString();
+            },
+            [this]() {
+                return m_documentCoordinator != nullptr ? m_documentCoordinator->whyNotSaveAll()
                                                         : QString();
             });
         utils::explainGreyedKeys(registry, this, statusBar());
@@ -1069,7 +1073,7 @@ void MainWindow::updateEditorActionStates() {
     setChecked("format.justify", alignment == Qt::AlignJustify);
 
     utils::updateDocumentCommands(registry);
-    // Save and Save As follow the tab in front: a chapter, a file outside the book, none
+    // Save, Save As and Save All follow the tabs: a chapter, a file outside the book, none
     utils::updateSaveCommands(registry);
 
     // Sync the font family/size toolbar controls to the char format under the caret,
@@ -1181,6 +1185,9 @@ void MainWindow::createDocks() {
         // (the keys go on to the page in front, not to the font box of the toolbar)
         utils::removeTabKeepingFocus(*centralTabs, index);
         widget->deleteLater();
+        // Save All saves the files of all tabs: the last file outside a book leaves it
+        // nothing, also from a tab behind the one in front
+        utils::updateSaveCommands(CommandRegistry::getInstance());
 
         logger.debug("Tab closed at index {}", index);
     });
