@@ -10,11 +10,6 @@ set(TEST_SOURCES
     core/test_extension_points.cpp
     core/test_event_bus.cpp
     core/test_plugin_loading.cpp
-    core/test_book_element.cpp
-    core/test_part.cpp
-    core/test_book.cpp
-    core/test_document.cpp
-    core/test_document_archive.cpp
     core/test_chapter_document.cpp
     core/test_text_statistics.cpp
     core/test_text_file.cpp         # Plain text files in their own encoding and line ends
@@ -144,11 +139,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/plugin_signature.cpp
     ${CMAKE_SOURCE_DIR}/src/core/trusted_keys.cpp
     ${CMAKE_SOURCE_DIR}/src/core/python_interpreter.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/book_element.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/part.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/book.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/document.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_file.cpp

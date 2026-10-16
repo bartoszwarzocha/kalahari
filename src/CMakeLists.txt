@@ -25,11 +25,6 @@ set(KALAHARI_CORE_SOURCES
     core/trusted_keys.cpp       # OpenSpec #00038: Trusted publisher key management
     core/extension_points.cpp
     core/event_bus.cpp
-    core/book_element.cpp
-    core/part.cpp
-    core/book.cpp
-    core/document.cpp
-    core/document_archive.cpp
     core/chapter_document.cpp
     core/text_statistics.cpp    # Word/character counting shared by the whole application
     core/text_file.cpp          # Plain text files in their own encoding and line ends

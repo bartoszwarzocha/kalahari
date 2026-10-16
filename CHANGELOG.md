@@ -533,6 +533,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **Books: the first book model** - 2026-10-16. The classes of the first book model, which
+  nothing used since the program works on the book project of the .klh format 2 (`Book`,
+  `Part`, `BookElement`, `Document`, `DocumentArchive`, the element types of
+  `book_constants.h` and the unused `ProjectFormat`), are gone with their tests (about 2 300
+  lines of code and 2 200 lines of tests). Nothing changes on the screen: New File, Close Book
+  and the recent books already worked without them.
 - **The old comment and TODO elements** - 2026-10-08. The `<comment>` and `<todo>` elements
   of the KML, the TODO and note marker functions and the comments panel, which nothing
   created, gave way to annotations. A chapter with those elements opens with their text,
