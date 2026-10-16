@@ -117,3 +117,28 @@ TEST_CASE("Menus: every submenu has an icon, in the icon colors after they chang
         CHECK(drawnIn(submenu->icon(), primary));
     }
 }
+
+TEST_CASE("Save All: its icon is two diskettes, as Save's, in every icon style", "[gui][icons]") {
+    // Its layers did not look like Save and Save As: the diskette of Save comes in front of a
+    // second one behind it, up to the right
+    registerAllIcons();
+    auto& icons = kalahari::core::IconRegistry::getInstance();
+    const QColor primary(QStringLiteral("#C2185B"));
+    const QColor secondary(QStringLiteral("#1565C0"));
+    for (const char* style : {"twotone", "outlined", "rounded", "filled"}) {
+        INFO(style);
+        const QIcon icon = icons.getIconWithColors(QStringLiteral("file.saveAll"),
+                                                   QString::fromLatin1(style), 24, primary,
+                                                   secondary);
+        REQUIRE_FALSE(icon.isNull());
+        const QImage image =
+            icon.pixmap(QSize(24, 24)).toImage().convertToFormat(QImage::Format_ARGB32);
+        REQUIRE(image.size() == QSize(24, 24));
+        // The left edge of the diskette in front, smaller than Save's, and the right edge of
+        // the one behind it
+        CHECK(image.pixelColor(1, 15) == primary);
+        CHECK(image.pixelColor(20, 10) == primary);
+        // Between them, under the corner of the one behind, nothing
+        CHECK(image.pixelColor(16, 22).alpha() == 0);
+    }
+}

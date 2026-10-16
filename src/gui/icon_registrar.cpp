@@ -26,7 +26,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("file.close", "resources/icons/twotone/close.svg", "Close Book");
     iconRegistry.registerIcon("file.save", "resources/icons/twotone/save.svg", "Save");
     iconRegistry.registerIcon("file.saveAs", "resources/icons/twotone/save_as.svg", "Save As");
-    iconRegistry.registerIcon("file.saveAll", "resources/icons/twotone/layers.svg", "Save All");
+    iconRegistry.registerIcon("file.saveAll", "resources/icons/twotone/save_all.svg", "Save All");
     iconRegistry.registerIcon("file.exit", "resources/icons/twotone/logout.svg", "Exit");
     iconRegistry.registerIcon("file.open.file", "resources/icons/twotone/description.svg", "Open File");
     iconRegistry.registerIcon("file.import.docx", "resources/icons/twotone/upload_file.svg", "Import DOCX");
