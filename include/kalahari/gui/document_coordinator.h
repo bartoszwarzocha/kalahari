@@ -316,9 +316,14 @@ private:
 
     /// @brief Tell the writer why the book of @p path cannot be opened, in plain words, with
     /// the path and @p problems under Show Details. A book that another program has open
-    /// can be tried again.
+    /// can be tried again, and a book of an older version converted (offerConversion()).
     void showOpenError(const QString& path, const QStringList& problems,
                        core::OpenFailure failure);
+
+    /// @brief Ask the writer whether to convert the book of @p path, saved by an older version
+    /// of Kalahari, to the format of this version, and open it when it is converted
+    /// (core::ProjectManager::convertOlderBook())
+    void offerConversion(const QString& path);
 
     /// @brief Tell the writer why the book of @p path cannot be opened, when something keeps
     /// it from opening (core::ProjectManager::openFailure()), before the open book is closed

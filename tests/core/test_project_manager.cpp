@@ -971,6 +971,108 @@ TEST_CASE("ProjectManager says why it does not open a book", "[project_manager]"
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager converts a book of an older version and keeps its old file",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    const QDir folder(dir.path());
+    auto& pm = projects();
+    const auto bytesOf = [](const QString& path) {
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        return file.readAll();
+    };
+
+    // A book of the first format, with the text, the status and the notes of a chapter in
+    // its file
+    const QString manifest = folder.filePath("Old Novel.klh");
+    const QByteArray old = R"({
+        "document": {"id": "old-1", "title": "Old Novel", "author": "Anna", "language": "pl"},
+        "structure": {
+            "frontmatter": [{"id": "fm", "title": "Dedykacja",
+                             "file": "content/dedication.kchapter", "type": "dedication"}],
+            "body": [{"id": "p1", "title": "Część pierwsza", "chapters": [
+                {"id": "c1", "title": "Rozdział 1", "file": "content/chapter_001.kchapter"}]}],
+            "backmatter": [{"id": "bib", "title": "Bibliografia",
+                            "file": "content/bibliography.kchapter", "type": "bibliography"}]
+        }
+    })";
+    writeFile(manifest, old);
+    REQUIRE(folder.mkpath("content"));
+    ChapterDocument chapter;
+    chapter.setKml(kmlWith("Pierwsze zdanie."));
+    chapter.setStatus("revision");
+    chapter.setNotes("Notatka do rozdziału");
+    REQUIRE(chapter.save(folder.filePath("content/chapter_001.kchapter")));
+    const QByteArray chapterFile = bytesOf(folder.filePath("content/chapter_001.kchapter"));
+    REQUIRE(ProjectManager::openFailure(manifest) == OpenFailure::Older);
+
+    SECTION("it is converted, and its old file stays beside it as it was") {
+        QString copy;
+        QStringList others;
+        QStringList problems;
+        REQUIRE(pm.convertOlderBook(manifest, &copy, &others, &problems));
+        CHECK(problems.isEmpty());
+        CHECK(QFileInfo(copy) == QFileInfo(folder.filePath("Old Novel.format1.klh.bak")));
+        CHECK(bytesOf(copy) == old);
+        CHECK(others == QStringList{"Bibliografia"});
+        CHECK(bytesOf(folder.filePath("content/chapter_001.kchapter")) == chapterFile);
+
+        // It opens with its parts, chapters, texts, statuses and notes
+        CHECK(ProjectManager::openFailure(manifest) == OpenFailure::None);
+        REQUIRE(pm.openProject(manifest));
+        const ProjectBook* book = pm.book();
+        REQUIRE(book);
+        CHECK(book->title == "Old Novel");
+        CHECK(book->author == "Anna");
+        CHECK(titles(book->frontElements) == "Dedykacja");
+        CHECK(titles(book->mainElements) == "Część pierwsza");
+        const ProjectElement& first = book->mainElements.first().elements.first();
+        CHECK(first.title == "Rozdział 1");
+        CHECK(first.status == "revision");
+        CHECK(pm.notes("c1") == "Notatka do rozdziału");
+        CHECK(pm.loadChapterContent("c1").contains("Pierwsze zdanie."));
+        CHECK(titles(book->files) == "Bibliografia");
+        REQUIRE(pm.closeProject(false));
+
+        // Converted once
+        problems.clear();
+        CHECK_FALSE(pm.convertOlderBook(manifest, nullptr, nullptr, &problems));
+        CHECK(problems ==
+              QStringList{"Old Novel.klh: not a book of an older version of Kalahari"});
+        CHECK(QFileInfo::exists(folder.filePath("Old Novel.format1.klh.bak")));
+        CHECK_FALSE(QFileInfo::exists(folder.filePath("Old Novel.format1-2.klh.bak")));
+    }
+
+    SECTION("a book that cannot be converted stays as it was, without a copy") {
+        const QByteArray outside = R"({"document": {"title": "Out"}, "structure": {"body": [
+            {"chapters": [{"title": "Out", "file": "../outside.kchapter"}]}]}})";
+        writeFile(manifest, outside);
+        QString copy;
+        QStringList others{"before"};
+        QStringList problems;
+        CHECK_FALSE(pm.convertOlderBook(manifest, &copy, &others, &problems));
+        CHECK(problems == QStringList{"structure.body[0].chapters[0].file: the file "
+                                      "../outside.kchapter is outside the folder of the book"});
+        CHECK(copy.isEmpty());
+        CHECK(others == QStringList{"before"});
+        CHECK(bytesOf(manifest) == outside);
+        CHECK(folder.entryList(QDir::Files) == QStringList{"Old Novel.klh"});
+    }
+
+    SECTION("a book that another Kalahari program has open stays as it was") {
+        kalahari::test::OtherProgram other;
+        REQUIRE(other.pid() != 0);
+        REQUIRE(kalahari::test::lockBook(folder.path(), other.pid()));
+        QStringList problems;
+        CHECK_FALSE(pm.convertOlderBook(manifest, nullptr, nullptr, &problems));
+        REQUIRE(problems.size() == 1);
+        CHECK(problems.first().startsWith(
+            "Old Novel.klh: the book is open in another program that is running ("));
+        CHECK(bytesOf(manifest) == old);
+        CHECK_FALSE(QFileInfo::exists(folder.filePath("Old Novel.format1.klh.bak")));
+    }
+}
+
 TEST_CASE("ProjectManager does not open a book that another Kalahari program has open",
           "[project_manager]") {
     QTemporaryDir dir;

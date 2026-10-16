@@ -1,8 +1,8 @@
 /// @file test_save_all.cpp
 /// @brief "Save All" saves the book and every open file outside it; closing the book asks only
-/// about the changes of the book; a book of a newer version of Kalahari has its own window; a
-/// plain text file asks before it loses the formatting or the annotations of its text, and its
-/// tab loses them too
+/// about the changes of the book; a book of a newer version of Kalahari has its own window, and
+/// one of an older version is converted when the writer agrees; a plain text file asks before it
+/// loses the formatting or the annotations of its text, and its tab loses them too
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
@@ -18,6 +18,7 @@
 #include "../editor/editor_test_utils.h"
 #include "document_window.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -207,6 +208,90 @@ TEST_CASE("Opening a book of a newer version of Kalahari says so, and the open b
         CHECK(said.first().startsWith(newerTitle));
         CHECK(said.first().contains(newerText));
         CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(open));
+    }
+}
+
+TEST_CASE("Opening a book of an older version converts it when the writer agrees",
+          "[gui][save]") {
+    const RecentBooks recent;
+    auto& pm = core::ProjectManager::getInstance();
+    pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QDir folder(files.path());
+    const QString old = folder.filePath(QStringLiteral("Old Novel.klh"));
+    const QString copy = folder.filePath(QStringLiteral("Old Novel.format1.klh.bak"));
+    const QByteArray oldFile = R"({"document": {"title": "Old Novel", "language": "en"},
+        "structure": {
+            "body": [{"id": "p1", "title": "Part One", "chapters": [
+                {"id": "c1", "title": "Chapter One", "file": "content/chapter_001.kchapter"}]}],
+            "backmatter": [{"id": "s1", "title": "Sources", "file": "content/sources.kchapter",
+                            "type": "bibliography"}]}})";
+    writeText(old, oldFile);
+
+    const QString questionTitle = QStringLiteral("Book of an Older Version ");
+    const QString question = QStringLiteral("Convert the book to the new format?");
+
+    SECTION("Cancel: the book stays as it was") {
+        if (pm.isProjectOpen()) {
+            pm.closeProject(false);
+        }
+        Window window;
+        QStringList said;
+        CHECK(answering([&] { window.documents.onOpenRecentFile(old); },
+                        MessageDialog::Answer::Cancel, said) == 1);
+        INFO(said.join(QLatin1Char('\n')).toStdString());
+        REQUIRE(said.size() == 1);
+        CHECK(said.first().startsWith(questionTitle));
+        CHECK(said.first().contains(question));
+        CHECK(readText(old) == oldFile);
+        CHECK_FALSE(QFileInfo::exists(copy));
+        CHECK_FALSE(pm.isProjectOpen());
+    }
+
+    SECTION("Convert, without an open book: the book opens, its old file beside it") {
+        if (pm.isProjectOpen()) {
+            pm.closeProject(false);
+        }
+        Window window;
+        QStringList said;
+        CHECK(answering([&] { window.documents.onOpenRecentFile(old); },
+                        MessageDialog::Answer::Accept, said) == 2);
+        INFO(said.join(QLatin1Char('\n')).toStdString());
+        REQUIRE(said.size() == 2);
+        CHECK(said.at(0).startsWith(questionTitle));
+        CHECK(said.at(0).contains(question));
+        CHECK(said.at(1).startsWith(QStringLiteral("Book in the New Format ")));
+        CHECK(said.at(1).contains(QDir::toNativeSeparators(copy)));
+        CHECK(said.at(1).contains(QStringLiteral("Other Files:\nSources")));
+        CHECK(readText(copy) == oldFile);
+
+        // It opens once the windows are closed
+        QCoreApplication::processEvents();
+        REQUIRE(pm.isProjectOpen());
+        CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(old));
+        CHECK(pm.book()->title == QStringLiteral("Old Novel"));
+        pm.closeProject(false);
+    }
+
+    SECTION("Convert, with an open book: the open book is asked about, as for any book") {
+        OpenNovel novel(QStringLiteral("Open Book"));
+        const QString open = pm.getManifestPath();
+        Window window;
+        QStringList said;
+        CHECK(answering([&] { window.documents.onOpenRecentFile(old); },
+                        MessageDialog::Answer::Accept, said) == 2);
+        INFO(said.join(QLatin1Char('\n')).toStdString());
+        CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(open));
+        CHECK(QFileInfo::exists(copy));
+
+        said.clear();
+        CHECK(answering([&] { QCoreApplication::processEvents(); },
+                        MessageDialog::Answer::Accept, said) == 1);
+        REQUIRE(said.size() == 1);
+        CHECK(said.first().startsWith(QStringLiteral("Close Book? ")));
+        REQUIRE(pm.isProjectOpen());
+        CHECK(QFileInfo(pm.getManifestPath()) == QFileInfo(old));
     }
 }
 

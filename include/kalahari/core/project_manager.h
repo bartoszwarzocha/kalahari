@@ -237,6 +237,21 @@ public:
     /// @brief Why the last openProject() did not open the book; None after it opened it
     OpenFailure lastOpenFailure() const { return m_lastOpenFailure; }
 
+    /// @brief Convert the book @p manifestPath, saved by an older version of Kalahari in the
+    /// first format (OpenFailure::Older), to the format of this version (OldBookConversion)
+    ///
+    /// Only the .klh file changes, and the old one stays beside it as a copy
+    /// (OldBookConversion::copyPathFor()). Nothing changes when the book cannot be converted
+    /// or another program that is running has it open. The book is not opened.
+    /// @param copyPath Gets the copy of the old .klh file
+    /// @param otherFiles Gets the titles of the elements that went among the files of the
+    ///        book outside its text
+    /// @param problems Gets why the book cannot be converted, one line each
+    /// @return true when the book is converted
+    bool convertOlderBook(const QString& manifestPath, QString* copyPath = nullptr,
+                          QStringList* otherFiles = nullptr,
+                          QStringList* problems = nullptr) const;
+
     /// @brief Close the current project
     /// @param promptSave If true, saves the .klh file when it has unsaved changes
     /// @return true if project closed (or no project open), false if user cancelled
