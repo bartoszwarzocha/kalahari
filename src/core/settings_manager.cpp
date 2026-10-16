@@ -424,6 +424,14 @@ std::filesystem::path SettingsManager::getSettingsFilePath() const {
     return m_filePath;
 }
 
+std::filesystem::path SettingsManager::setSettingsFilePathForTests(
+    const std::filesystem::path& path) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::filesystem::path previous = m_filePath;
+    m_filePath = path;
+    return previous;
+}
+
 // =============================================================================
 // Private helpers
 // =============================================================================

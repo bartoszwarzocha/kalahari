@@ -36,6 +36,7 @@ set(KALAHARI_CORE_SOURCES
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
     core/package_copies.cpp     # Copies of the packages a book uses, in its folder
+    core/unicode_paths.cpp      # Paths with any characters, as UTF-8 text, and their ZIP archives
     core/utils/svg_converter.cpp
     core/theme.cpp
     # NOTE: icon_downloader.cpp, theme_manager.cpp, icon_registry.cpp moved to kalahari executable
