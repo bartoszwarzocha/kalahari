@@ -34,6 +34,12 @@ std::map<std::string, json> buildDefaults() {
         {"ui.lengthUnit", "mm"},
         // Colors chosen last in the color window, newest first ("#rrggbb")
         {"ui.recentColors", json::array()},
+        // Colors the writer keeps in the color window, in the order added ("#rrggbb")
+        {"ui.myColors", json::array()},
+        // Palette the color window shows: basic, kalahari, okavango, pastel, ink, savannaDusk
+        {"ui.colorPalette", "basic"},
+        // The color window shows the HEX and RGB values
+        {"ui.colorValuesShown", false},
         {"appearance.theme", "Light"},
         {"appearance.uiFontSize", 12},
         {"appearance.iconTheme", "twotone"},

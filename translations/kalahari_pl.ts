@@ -9,6 +9,342 @@
     </message>
 </context>
 <context>
+    <name>ColorPalettes</name>
+    <message>
+        <source>White</source>
+        <translation>Biel</translation>
+    </message>
+    <message>
+        <source>Light grey</source>
+        <translation>Jasna szarość</translation>
+    </message>
+    <message>
+        <source>Grey</source>
+        <translation>Szarość</translation>
+    </message>
+    <message>
+        <source>Dark grey</source>
+        <translation>Ciemna szarość</translation>
+    </message>
+    <message>
+        <source>Very dark grey</source>
+        <translation>Bardzo ciemna szarość</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>Czerń</translation>
+    </message>
+    <message>
+        <source>%1, very light</source>
+        <extracomment>The name of a color of a palette in its shade; %1: the name of its family. In Polish: %1 – bardzo jasny odcień (and so on for the other shades)</extracomment>
+        <translation>%1 – bardzo jasny odcień</translation>
+    </message>
+    <message>
+        <source>%1, light</source>
+        <translation>%1 – jasny odcień</translation>
+    </message>
+    <message>
+        <source>%1, medium light</source>
+        <translation>%1 – średnio jasny odcień</translation>
+    </message>
+    <message>
+        <source>%1, medium dark</source>
+        <translation>%1 – średnio ciemny odcień</translation>
+    </message>
+    <message>
+        <source>%1, dark</source>
+        <translation>%1 – ciemny odcień</translation>
+    </message>
+    <message>
+        <source>%1, very dark</source>
+        <translation>%1 – bardzo ciemny odcień</translation>
+    </message>
+    <message>
+        <source>Basic</source>
+        <translation>Podstawowa</translation>
+    </message>
+    <message>
+        <source>Plain, clear colors and greys</source>
+        <translation>Zwykłe, wyraźne barwy i szarości</translation>
+    </message>
+    <message>
+        <source>Red</source>
+        <translation>Czerwień</translation>
+    </message>
+    <message>
+        <source>Orange</source>
+        <translation>Pomarańcz</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Żółć</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>Zieleń</translation>
+    </message>
+    <message>
+        <source>Turquoise</source>
+        <translation>Turkus</translation>
+    </message>
+    <message>
+        <source>Sky blue</source>
+        <translation>Błękit</translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <translation>Niebieski</translation>
+    </message>
+    <message>
+        <source>Violet</source>
+        <translation>Fiolet</translation>
+    </message>
+    <message>
+        <source>Pink</source>
+        <translation>Róż</translation>
+    </message>
+    <message>
+        <source>Kalahari</source>
+        <translation>Kalahari</translation>
+    </message>
+    <message>
+        <source>Stone, sand, ochre and terracotta of the desert, its grasses and sky</source>
+        <translation>Kamień, piasek, ochra i terakota pustyni, jej trawy i niebo</translation>
+    </message>
+    <message>
+        <source>Stone</source>
+        <translation>Kamień</translation>
+    </message>
+    <message>
+        <source>Sand</source>
+        <translation>Piasek</translation>
+    </message>
+    <message>
+        <source>Dry grass</source>
+        <translation>Sucha trawa</translation>
+    </message>
+    <message>
+        <source>Ochre</source>
+        <translation>Ochra</translation>
+    </message>
+    <message>
+        <source>Dune</source>
+        <translation>Wydma</translation>
+    </message>
+    <message>
+        <source>Terracotta</source>
+        <translation>Terakota</translation>
+    </message>
+    <message>
+        <source>Pink dusk</source>
+        <translation>Różowy zmierzch</translation>
+    </message>
+    <message>
+        <source>Acacia</source>
+        <translation>Akacja</translation>
+    </message>
+    <message>
+        <source>Desert sky</source>
+        <translation>Niebo pustyni</translation>
+    </message>
+    <message>
+        <source>Desert night</source>
+        <translation>Noc nad pustynią</translation>
+    </message>
+    <message>
+        <source>Okavango</source>
+        <translation>Okawango</translation>
+    </message>
+    <message>
+        <source>Greens, azures and blues of the Okavango Delta</source>
+        <translation>Zielenie, lazury i błękity delty Okawango</translation>
+    </message>
+    <message>
+        <source>Marsh</source>
+        <translation>Mokradło</translation>
+    </message>
+    <message>
+        <source>Papyrus</source>
+        <translation>Papirus</translation>
+    </message>
+    <message>
+        <source>Reed</source>
+        <translation>Trzcina</translation>
+    </message>
+    <message>
+        <source>Leaves</source>
+        <translation>Liście</translation>
+    </message>
+    <message>
+        <source>Emerald</source>
+        <translation>Szmaragd</translation>
+    </message>
+    <message>
+        <source>Lagoon</source>
+        <translation>Laguna</translation>
+    </message>
+    <message>
+        <source>Azure</source>
+        <translation>Lazur</translation>
+    </message>
+    <message>
+        <source>Clear sky</source>
+        <translation>Błękit nieba</translation>
+    </message>
+    <message>
+        <source>Deep water</source>
+        <translation>Głęboka woda</translation>
+    </message>
+    <message>
+        <source>Water lily</source>
+        <translation>Lilia wodna</translation>
+    </message>
+    <message>
+        <source>Pastel</source>
+        <translation>Pastelowa</translation>
+    </message>
+    <message>
+        <source>Soft, whitened colors</source>
+        <translation>Łagodne, rozbielone barwy</translation>
+    </message>
+    <message>
+        <source>Pearl</source>
+        <translation>Perła</translation>
+    </message>
+    <message>
+        <source>Powder pink</source>
+        <translation>Pudrowy róż</translation>
+    </message>
+    <message>
+        <source>Peach</source>
+        <translation>Brzoskwinia</translation>
+    </message>
+    <message>
+        <source>Apricot</source>
+        <translation>Morela</translation>
+    </message>
+    <message>
+        <source>Vanilla</source>
+        <translation>Wanilia</translation>
+    </message>
+    <message>
+        <source>Pistachio</source>
+        <translation>Pistacja</translation>
+    </message>
+    <message>
+        <source>Mint</source>
+        <translation>Mięta</translation>
+    </message>
+    <message>
+        <source>Pale blue</source>
+        <translation>Błękit</translation>
+    </message>
+    <message>
+        <source>Forget-me-not</source>
+        <translation>Niezapominajka</translation>
+    </message>
+    <message>
+        <source>Lavender</source>
+        <translation>Lawenda</translation>
+    </message>
+    <message>
+        <source>Ink and Paper</source>
+        <translation>Atrament i papier</translation>
+    </message>
+    <message>
+        <source>Colors of paper, ink and pencil</source>
+        <translation>Barwy papieru, atramentu i ołówka</translation>
+    </message>
+    <message>
+        <source>Paper</source>
+        <translation>Papier</translation>
+    </message>
+    <message>
+        <source>Parchment</source>
+        <translation>Pergamin</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>Sepia</translation>
+    </message>
+    <message>
+        <source>Iron gall ink</source>
+        <translation>Atrament żelazowy</translation>
+    </message>
+    <message>
+        <source>Graphite</source>
+        <translation>Grafit</translation>
+    </message>
+    <message>
+        <source>Navy ink</source>
+        <translation>Atrament granatowy</translation>
+    </message>
+    <message>
+        <source>Blue ink</source>
+        <translation>Atrament niebieski</translation>
+    </message>
+    <message>
+        <source>Violet ink</source>
+        <translation>Atrament fioletowy</translation>
+    </message>
+    <message>
+        <source>Red pencil</source>
+        <translation>Czerwony ołówek</translation>
+    </message>
+    <message>
+        <source>Green ink</source>
+        <translation>Zielony atrament</translation>
+    </message>
+    <message>
+        <source>Savanna Dusk</source>
+        <translation>Zmierzch na sawannie</translation>
+    </message>
+    <message>
+        <source>Gold, pinks and violets of the setting sun</source>
+        <translation>Złoto, róże i fiolety zachodzącego słońca</translation>
+    </message>
+    <message>
+        <source>Ash</source>
+        <translation>Popiół</translation>
+    </message>
+    <message>
+        <source>Golden hour</source>
+        <translation>Złota godzina</translation>
+    </message>
+    <message>
+        <source>Tangerine</source>
+        <translation>Mandarynka</translation>
+    </message>
+    <message>
+        <source>Coral</source>
+        <translation>Koral</translation>
+    </message>
+    <message>
+        <source>Raspberry</source>
+        <translation>Malina</translation>
+    </message>
+    <message>
+        <source>Evening pink</source>
+        <translation>Róż wieczoru</translation>
+    </message>
+    <message>
+        <source>Plum</source>
+        <translation>Śliwka</translation>
+    </message>
+    <message>
+        <source>Dusk violet</source>
+        <translation>Fiolet</translation>
+    </message>
+    <message>
+        <source>Indigo</source>
+        <translation>Indygo</translation>
+    </message>
+    <message>
+        <source>Night sky</source>
+        <translation>Nocne niebo</translation>
+    </message>
+</context>
+<context>
     <name>CommandRegistrar</name>
     <message>
         <source>not available yet</source>
@@ -9029,10 +9365,6 @@ Harmonogram projektu:
         <translation>Wybierz</translation>
     </message>
     <message>
-        <source>&amp;Palette</source>
-        <translation>&amp;Paleta</translation>
-    </message>
-    <message>
         <source>Palette</source>
         <translation>Paleta</translation>
     </message>
@@ -9083,6 +9415,94 @@ Harmonogram projektu:
     <message>
         <source>New color %1</source>
         <translation>Nowy kolor %1</translation>
+    </message>
+    <message>
+        <source>&amp;Palette:</source>
+        <translation>&amp;Paleta:</translation>
+    </message>
+    <message>
+        <source>&amp;My colors</source>
+        <translation>&amp;Moje kolory</translation>
+    </message>
+    <message>
+        <source>&amp;Add this color</source>
+        <translation>&amp;Dodaj ten kolor</translation>
+    </message>
+    <message>
+        <source>Rem&amp;ove</source>
+        <translation>U&amp;suń</translation>
+    </message>
+    <message>
+        <source>My colors</source>
+        <translation>Moje kolory</translation>
+    </message>
+    <message>
+        <source>Add the colors you often use here.</source>
+        <translation>Dodaj tu kolory, których często używasz.</translation>
+    </message>
+    <message>
+        <source>&amp;Shades, from light to dark</source>
+        <translation>Odci&amp;enie – od jasnego do ciemnego</translation>
+    </message>
+    <message>
+        <source>Shades</source>
+        <translation>Odcienie</translation>
+    </message>
+    <message>
+        <source>H&amp;ue</source>
+        <translation>&amp;Barwa</translation>
+    </message>
+    <message>
+        <source>The color itself: red, yellow, green, blue...</source>
+        <translation>Sama barwa: czerwień, żółć, zieleń, błękit...</translation>
+    </message>
+    <message>
+        <source>&amp;Intensity</source>
+        <translation>In&amp;tensywność</translation>
+    </message>
+    <message>
+        <source>From grey to the full color</source>
+        <translation>Od szarości do pełnej barwy</translation>
+    </message>
+    <message>
+        <source>&amp;Lightness</source>
+        <translation>&amp;Jasność</translation>
+    </message>
+    <message>
+        <source>From black to white</source>
+        <translation>Od czerni do bieli</translation>
+    </message>
+    <message>
+        <source>&amp;Numeric values (HEX and RGB)</source>
+        <translation>&amp;Wartości liczbowe (HEX i RGB)</translation>
+    </message>
+    <message>
+        <source>This color is already among My colors.</source>
+        <translation>Ten kolor jest już w Moich kolorach.</translation>
+    </message>
+    <message>
+        <source>My colors are full: remove one to add another.</source>
+        <translation>W Moich kolorach nie ma już miejsca – usuń któryś, aby dodać nowy.</translation>
+    </message>
+    <message>
+        <source>Own color</source>
+        <translation>Własny kolor</translation>
+    </message>
+    <message>
+        <source>Closest in the palettes: %1</source>
+        <translation>Najbliższy w paletach: %1</translation>
+    </message>
+    <message>
+        <source>Lighter</source>
+        <translation>Jaśniejszy odcień</translation>
+    </message>
+    <message>
+        <source>Darker</source>
+        <translation>Ciemniejszy odcień</translation>
+    </message>
+    <message>
+        <source>This lightness</source>
+        <translation>Obecna jasność</translation>
     </message>
 </context>
 <context>

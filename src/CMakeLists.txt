@@ -149,6 +149,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/grammar_setup_dialog.cpp  # GrammarSetupDialog - the window of the grammar preparation
     gui/dialogs/progress_dialog.cpp  # ProgressDialog - own window for the progress of a long task
     gui/dialogs/color_dialog.cpp  # ColorDialog - own window for choosing a color
+    gui/dialogs/color_palettes.cpp  # The palettes of the color window
     gui/dialogs/new_element_dialog.cpp  # NewElementDialog - new chapter, part or item in the Navigator
     gui/dialogs/add_to_book_dialog.cpp  # AddToBookDialog - a file as a new element of the book
     gui/dialogs/new_file_dialog.cpp  # NewFileDialog - New File: a new element of the open book
