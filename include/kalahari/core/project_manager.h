@@ -311,14 +311,25 @@ public:
     // Book Types
     // =========================================================================
 
-    /// @brief Packages of book types and kinds the program has
+    /// @brief Packages of the open book, or the installed packages when no book is open
+    ///
+    /// A book opens with the copies of its packages in its folder (PackageCopies), so it works
+    /// the same where its type is not installed or is older. The kinds of the open book come
+    /// from here; those of the packages loaded for a book opened before (KindRef) are no longer
+    /// valid.
+    const BookTypeRegistry& bookTypes() const;
+
+    /// @brief Packages of book types and kinds installed with the program
     ///
     /// The built-in packages of the resources folder, loaded the first time they are needed.
-    const BookTypeRegistry& bookTypes() const;
+    /// The New Book window, the palette and new books take their types and kinds from here,
+    /// never from the copies of an open book.
+    const BookTypeRegistry& installedBookTypes() const;
 
     /// @brief Load the packages in @p folders instead of the built-in ones
     ///
-    /// Kinds of the packages loaded before (KindRef) are no longer valid.
+    /// Kinds of the packages loaded before (KindRef) are no longer valid. The open book keeps
+    /// its packages until it is opened again.
     void loadBookTypes(const QStringList& folders);
 
     /// @brief Kind of @p element; none when its package is not installed
@@ -766,8 +777,9 @@ private:
     bool m_isDirty;                               ///< The .klh file has unsaved changes
     OpenFailure m_lastOpenFailure = OpenFailure::None;  ///< Of the last openProject()
 
-    mutable BookTypeRegistry m_bookTypes;         ///< Packages of book types and kinds
+    mutable BookTypeRegistry m_bookTypes;         ///< Installed packages of book types and kinds
     mutable bool m_bookTypesLoaded = false;       ///< m_bookTypes was loaded
+    BookTypeRegistry m_projectTypes;              ///< Packages of the open book: its copies
 
     // OpenSpec #00041: SQLite Project Database
     std::unique_ptr<ProjectLock> m_projectLock;      ///< Project lock (prevents multiple instances)

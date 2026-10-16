@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Books: the same book on every computer** - 2026-10-16. A book keeps in its folder
+  `types/` a copy of each book type package it uses: its type, the Base package, the packages
+  of the kinds it took from other types and of its elements (only their data: the manifest,
+  the styles and the templates). The book opens and works with these copies, so it is the same
+  where its type is not installed or is installed in an older version: the Navigator, Add
+  Chapter, the title page added again and the names of its kinds stay as they were. A newer
+  installed package replaces the copy when the book opens (the log says "The project's copy
+  of ... is version ... now", and the .klh file names the new version); the styles the book
+  uses are in its database and do not change, and an older installed package leaves a newer
+  copy as it is. A new book gets its copies at once; a book made before gets them the first
+  time it opens. The copies serve their book only: the New Book window, the palette of a user
+  project, the import of an archive and the other books take the installed packages, so a
+  copy installs nothing. The archive of a book takes its copies along. A card of a recent
+  book on the Dashboard names its type after the book's copy where the type is not installed.
+
 - **Menus: icons of the submenus** - 2026-10-16. Import, Export, Recent Books, Text Style,
   Statistics, Plugins, Assistant Actions, View Mode, Zoom, Panels, Perspectives and Toolbars
   have icons in the menus, as their commands (Recent Books now a clock in the place of the

@@ -6,6 +6,7 @@
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/old_book_conversion.h>
+#include <kalahari/core/package_copies.h>
 #include <kalahari/core/resource_paths.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/standalone_file.h>
@@ -471,8 +472,11 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
     if (!wrong.isEmpty()) {
         return fail(wrong);
     }
+    // A new book takes its type and kinds from the installed packages, never from the copies
+    // of the open book
+    const BookTypeRegistry& installed = installedBookTypes();
     const BookTypePackage* type =
-        request.typeId.isEmpty() ? nullptr : bookTypes().package(request.typeId);
+        request.typeId.isEmpty() ? nullptr : installed.package(request.typeId);
 
     const QString projectDir =
         newProjectFolder(request.parentDir, request.title, request.createSubfolder);
@@ -495,7 +499,7 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
         }
     } else {
         // ... or, without the palette, the kinds of the base package
-        for (const KindRef& kind : bookTypes().allKinds()) {
+        for (const KindRef& kind : installed.allKinds()) {
             if (kind.package->id == QLatin1String(BASE_PACKAGE)) {
                 project.kinds.append(KindReference{kind.package->id, kind.kind->id});
             }
@@ -559,7 +563,7 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
 
     if (type) {
         // The elements a book of the type starts with, in the order of the type
-        for (const StartElement& start : bookTypes().startElements(type->id)) {
+        for (const StartElement& start : installed.startElements(type->id)) {
             if (!start.kind || start.kind.kind->form != ElementForm::Text) {
                 notYet(start.kind);
                 continue;
@@ -586,7 +590,7 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
             }
             QList<ProjectElement>& list = project.elementsIn(start.place);
             const ProjectElement group = newElement(start.kind);
-            list.insert(BookProject::newIndexIn(bookTypes(), list, start.kind), group);
+            list.insert(BookProject::newIndexIn(installed, list, start.kind), group);
             groups.append(MadeGroup{start.place, group.id, start.kind.kind->id});
         }
         for (const StartElement& start : request.palette->elements) {
@@ -611,13 +615,20 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
                 }
             }
             const QString problem = addText(start.kind, start.place, *list,
-                                            BookProject::newIndexIn(bookTypes(), *list,
+                                            BookProject::newIndexIn(installed, *list,
                                                                     start.kind));
             if (!problem.isEmpty()) {
                 removeNewProject(projectDir, folderExisted);
                 return fail({problem});
             }
         }
+    }
+
+    // The book keeps copies of the packages it uses, so it opens the same on every computer
+    const PackageCopiesUpdate copies = PackageCopies::update(projectDir, project, installed);
+    if (!copies.problems.isEmpty()) {
+        removeNewProject(projectDir, folderExisted);
+        return fail(copies.problems);
     }
 
     if (!project.save(manifestPath)) {
@@ -635,7 +646,7 @@ QStringList ProjectManager::newProjectProblems(const NewProject& project) const 
     }
 
     if (!project.typeId.isEmpty()) {
-        const BookTypePackage* type = bookTypes().package(project.typeId);
+        const BookTypePackage* type = installedBookTypes().package(project.typeId);
         if (!type) {
             problems.append(
                 QStringLiteral("the book type %1 is not installed").arg(project.typeId));
@@ -819,15 +830,38 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
     }
     m_backupManager = std::make_unique<BackupManager>(projectDir);
 
+    // The book works with the copies of its packages, made or refreshed from the installed
+    // ones; a copy that cannot be written leaves the installed package to serve the book
+    const PackageCopiesUpdate copies =
+        PackageCopies::update(projectDir, *project, installedBookTypes());
+    for (const QString& problem : copies.problems) {
+        logger.warn("openProject: {}", problem.toStdString());
+    }
+    m_projectTypes.loadPackages(copies.folders);
+
     m_project = std::make_unique<BookProject>(std::move(*project));
     m_manifestPath = std::filesystem::path(manifestInfo.absoluteFilePath().toStdWString());
     m_projectPath = m_manifestPath.parent_path();
 
-    // The elements of packages that are not installed stay in the book
-    const QStringList missing = m_project->missingPackages(bookTypes());
+    // The elements of packages that are neither installed nor copied stay in the book
+    const QStringList missing = m_project->missingPackages(m_projectTypes);
     if (!missing.isEmpty()) {
         logger.warn("The book uses packages that are not installed: {}",
                     missing.join(QStringLiteral(", ")).toStdString());
+    }
+
+    // The .klh file names the version of the type the book works with
+    if (m_project->type) {
+        const BookTypePackage* type = m_projectTypes.package(m_project->type->id);
+        if (type && type->version != m_project->type->version) {
+            const QString previous = m_project->type->version;
+            m_project->type->version = type->version;
+            if (!m_project->save(manifestPath)) {
+                m_project->type->version = previous;
+                logger.warn("openProject: The version of the type cannot be saved in {}",
+                            manifestInfo.fileName().toStdString());
+            }
+        }
     }
 
     loadElementStates();
@@ -881,7 +915,7 @@ bool ProjectManager::convertOlderBook(const QString& manifestPath, QString* copy
     }
 
     OldBookConversion conversion =
-        OldBookConversion::convert(document.object(), projectDir, bookTypes());
+        OldBookConversion::convert(document.object(), projectDir, installedBookTypes());
     found.append(conversion.problems);
     if (!conversion.project) {
         return fail(QString());
@@ -1061,6 +1095,10 @@ void ProjectManager::setDirty(bool dirty) {
 // =============================================================================
 
 const BookTypeRegistry& ProjectManager::bookTypes() const {
+    return m_project ? m_projectTypes : installedBookTypes();
+}
+
+const BookTypeRegistry& ProjectManager::installedBookTypes() const {
     if (!m_bookTypesLoaded) {
         m_bookTypesLoaded = true;
         const QString folder = ResourcePaths::getInstance().getBookTypesDir();

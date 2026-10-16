@@ -35,6 +35,7 @@ set(KALAHARI_CORE_SOURCES
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
+    core/package_copies.cpp     # Copies of the packages a book uses, in its folder
     core/utils/svg_converter.cpp
     core/theme.cpp
     # NOTE: icon_downloader.cpp, theme_manager.cpp, icon_registry.cpp moved to kalahari executable

@@ -61,6 +61,12 @@ public:
     /// kinds stay valid until the next load().
     void load(const QStringList& directories);
 
+    /// @brief Load the packages in the package folders @p folders, in their order, replacing
+    /// the packages loaded before; checked as load() checks them
+    ///
+    /// The packages of an open book: the copies in its folder (see package_copies.h).
+    void loadPackages(const QStringList& folders);
+
     /// @brief Problems found by the last load()
     const QList<BookTypeProblem>& problems() const { return m_problems; }
 

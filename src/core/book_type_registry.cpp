@@ -98,44 +98,51 @@ QString KindRef::reference() const {
 // =============================================================================
 
 void BookTypeRegistry::load(const QStringList& directories) {
+    QStringList folders;
+    for (const QString& directory : directories) {
+        const QDir root(directory);
+        if (!root.exists()) {
+            Logger::getInstance().debug("Book types: no folder {}", directory.toStdString());
+            continue;
+        }
+        const QFileInfoList entries =
+            root.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+        for (const QFileInfo& folder : entries) {
+            const QString manifest = QDir(folder.filePath())
+                                         .filePath(QString::fromLatin1(
+                                             BookTypePackage::MANIFEST_FILE));
+            if (QFileInfo(manifest).isFile()) {
+                folders.append(folder.absoluteFilePath());  // else not a package
+            }
+        }
+    }
+    loadPackages(folders);
+}
+
+void BookTypeRegistry::loadPackages(const QStringList& folders) {
     m_packages.clear();
     m_packagesById.clear();
     m_problems.clear();
     auto& logger = Logger::getInstance();
 
-    for (const QString& directory : directories) {
-        const QDir root(directory);
-        if (!root.exists()) {
-            logger.debug("Book types: no folder {}", directory.toStdString());
+    for (const QString& folder : folders) {
+        const QString path = QFileInfo(folder).absoluteFilePath();
+        QStringList problems;
+        std::optional<BookTypePackage> package = BookTypePackage::read(path, problems);
+        if (!package) {
+            for (const QString& message : problems) {
+                m_problems.append({path, message});
+            }
             continue;
         }
-        const QFileInfoList folders =
-            root.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
-        for (const QFileInfo& folder : folders) {
-            const QString manifest = QDir(folder.filePath())
-                                         .filePath(QString::fromLatin1(
-                                             BookTypePackage::MANIFEST_FILE));
-            if (!QFileInfo(manifest).isFile()) {
-                continue;  // not a package
-            }
-            QStringList problems;
-            std::optional<BookTypePackage> package =
-                BookTypePackage::read(folder.absoluteFilePath(), problems);
-            if (!package) {
-                for (const QString& message : problems) {
-                    m_problems.append({folder.absoluteFilePath(), message});
-                }
-                continue;
-            }
-            if (const BookTypePackage* first = m_packagesById.value(package->id)) {
-                m_problems.append({package->directory,
-                                   QStringLiteral("id: package '%1' is already loaded from %2")
-                                       .arg(package->id, first->directory)});
-                continue;
-            }
-            m_packages.push_back(std::make_unique<BookTypePackage>(std::move(*package)));
-            m_packagesById.insert(m_packages.back()->id, m_packages.back().get());
+        if (const BookTypePackage* first = m_packagesById.value(package->id)) {
+            m_problems.append({package->directory,
+                               QStringLiteral("id: package '%1' is already loaded from %2")
+                                   .arg(package->id, first->directory)});
+            continue;
         }
+        m_packages.push_back(std::make_unique<BookTypePackage>(std::move(*package)));
+        m_packagesById.insert(m_packages.back()->id, m_packages.back().get());
     }
 
     // A package is checked after the packages it uses, and only when they are valid

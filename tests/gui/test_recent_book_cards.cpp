@@ -180,3 +180,37 @@ TEST_CASE("Dashboard: without recent books the list says so", "[gui][dashboard]"
     CHECK(hasLabel(panel, QStringLiteral("Recent Books")));
     CHECK(hasLabel(panel, QStringLiteral("No recent books.")));
 }
+
+TEST_CASE("Dashboard: a book whose type is not installed is named after its copy of the type",
+          "[gui][dashboard]") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QDir root(dir.path());
+    REQUIRE(root.mkpath(QStringLiteral("Saga/types/acme.saga")));
+    const QString saga = root.filePath(QStringLiteral("Saga/Saga.klh"));
+    REQUIRE(project(QStringLiteral("acme.saga"), QStringLiteral("Winter"),
+                    QStringLiteral("Jan Kowalski"))
+                .save(saga));
+
+    // The book's copy of its type, a package of another computer: a novel by another name
+    const QDir novel(QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes/kalahari.novel"));
+    QFile manifest(novel.filePath(QStringLiteral("booktype.json")));
+    REQUIRE(manifest.open(QIODevice::ReadOnly));
+    QJsonObject json = QJsonDocument::fromJson(manifest.readAll()).object();
+    json.insert(QStringLiteral("id"), QStringLiteral("acme.saga"));
+    json.insert(QStringLiteral("name"),
+                QJsonObject{{QStringLiteral("en"), QStringLiteral("Family Saga")},
+                            {QStringLiteral("pl"), QStringLiteral("Saga rodzinna")}});
+    json.insert(QStringLiteral("icon"), QStringLiteral("template.poetry"));
+    const QDir copy(root.filePath(QStringLiteral("Saga/types/acme.saga")));
+    writeJson(copy.filePath(QStringLiteral("booktype.json")), QJsonDocument(json).toJson());
+    REQUIRE(QFile::copy(novel.filePath(QStringLiteral("styles.json")),
+                        copy.filePath(QStringLiteral("styles.json"))));
+
+    const RecentBooks recent({saga});
+    const gui::DashboardPanel panel;
+    const Card card = cardOf(panel, saga);
+    CHECK(card.title == QStringLiteral("Winter"));
+    CHECK(card.description == QStringLiteral("Jan Kowalski | Family Saga"));
+    CHECK(card.iconId == QStringLiteral("template.poetry"));
+}

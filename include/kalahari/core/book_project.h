@@ -330,6 +330,10 @@ struct BookProject {
     static QList<const ProjectElement*> closingElementsOf(const BookTypeRegistry& registry,
                                                           const QList<ProjectElement>& elements);
 
+    /// @brief Ids of the packages the project names: of its type, of the kinds it took and of
+    /// the kinds of its elements, each once, in this order
+    QStringList packageIds() const;
+
     /// @brief Packages of the type, the kinds and the elements that @p registry does not have
     QStringList missingPackages(const BookTypeRegistry& registry) const;
 

@@ -972,12 +972,11 @@ QList<const ProjectElement*> BookProject::closingElementsOf(const BookTypeRegist
     return closing;
 }
 
-QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const {
-    QStringList missing;
-    const auto note = [&registry, &missing](const QString& packageId) {
-        if (!packageId.isEmpty() && !registry.package(packageId) &&
-            !missing.contains(packageId)) {
-            missing.append(packageId);
+QStringList BookProject::packageIds() const {
+    QStringList ids;
+    const auto note = [&ids](const QString& packageId) {
+        if (!packageId.isEmpty() && !ids.contains(packageId)) {
+            ids.append(packageId);
         }
     };
     const auto noteElement = [&note](const ProjectElement& element) {
@@ -991,6 +990,16 @@ QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const
         note(reference.packageId);
     }
     forEachElement(*this, noteElement);
+    return ids;
+}
+
+QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const {
+    QStringList missing;
+    for (const QString& packageId : packageIds()) {
+        if (!registry.package(packageId)) {
+            missing.append(packageId);
+        }
+    }
     missing.sort();
     return missing;
 }

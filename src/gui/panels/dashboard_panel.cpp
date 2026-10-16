@@ -16,6 +16,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/package_copies.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/resource_paths.h"
@@ -553,11 +554,12 @@ struct RecentBook {
     QString iconId;  ///< Icon of the type
 };
 
-/// @brief Read the card's data of the .klh file @p json
+/// @brief Read the card's data of the .klh file @p json, in the folder @p projectDir
 ///
 /// A book of format 2 has its type in its package: the name in the program's language and the
-/// icon. A file of the earlier format has its data in "document", and its genre names it.
-RecentBook readRecentBook(const QJsonObject& json)
+/// icon, from the installed package or, where it is not installed, from the book's copy of it.
+/// A file of the earlier format has its data in "document", and its genre names it.
+RecentBook readRecentBook(const QJsonObject& json, const QString& projectDir)
 {
     RecentBook recent;
     const core::ArtProvider& art = core::ArtProvider::getInstance();
@@ -580,7 +582,9 @@ RecentBook readRecentBook(const QJsonObject& json)
         recent.iconId = art.getGenreIconId(QString());
         return recent;
     }
-    const core::BookTypeRegistry& registry = core::ProjectManager::getInstance().bookTypes();
+    // Another book than the open one: the installed packages, not the open book's copies
+    const core::BookTypeRegistry& registry =
+        core::ProjectManager::getInstance().installedBookTypes();
     const core::ProjectBook& book = project->books.first();
     recent.title = book.title.trimmed();
     recent.author = book.author.trimmed();
@@ -588,12 +592,19 @@ RecentBook readRecentBook(const QJsonObject& json)
     if (!project->type) {
         // The icon of a user project in the New Book window
         recent.iconId = QStringLiteral("template.empty");
-    } else if (const core::BookTypePackage* package = registry.package(project->type->id);
-               package && !package->icon.isEmpty()) {
-        recent.iconId = package->icon;
-    } else {
-        recent.iconId = art.getGenreIconId(book.genre);
+        return recent;
     }
+    std::optional<core::BookTypePackage> copy;
+    const core::BookTypePackage* package = registry.package(project->type->id);
+    if (!package) {
+        copy = core::PackageCopies::read(projectDir, project->type->id);
+        if (copy) {
+            package = &*copy;
+            recent.type = copy->name.text(programLanguage());
+        }
+    }
+    recent.iconId = package && !package->icon.isEmpty() ? package->icon
+                                                        : art.getGenreIconId(book.genre);
     return recent;
 }
 
@@ -615,7 +626,7 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
             const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
             file.close();
             if (doc.isObject()) {
-                const RecentBook recent = readRecentBook(doc.object());
+                const RecentBook recent = readRecentBook(doc.object(), fileInfo.absolutePath());
                 if (!recent.title.isEmpty()) {
                     title = recent.title;
                 }

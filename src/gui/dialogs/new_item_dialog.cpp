@@ -609,7 +609,7 @@ bool NewItemDialog::showsSections(const QString& templateId) {
         return false;  // a user project
     }
     const kalahari::core::BookTypePackage* type =
-        kalahari::core::ProjectManager::getInstance().bookTypes().package(typeId);
+        kalahari::core::ProjectManager::getInstance().installedBookTypes().package(typeId);
     return type != nullptr && type->partsLayer;
 }
 

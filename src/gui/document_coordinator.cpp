@@ -296,7 +296,8 @@ void DocumentCoordinator::onNewProject() {
         }
         if (!kindsDialog) {
             kindsDialog =
-                std::make_unique<dialogs::UserProjectDialog>(pm.bookTypes(), m_mainWindow);
+                std::make_unique<dialogs::UserProjectDialog>(pm.installedBookTypes(),
+                                                             m_mainWindow);
             kindsDialog->setOpeningQuestion(question);
         }
         kindsDialog->setBook(result.title, result.language, result.sections);
@@ -1735,9 +1736,12 @@ void DocumentCoordinator::onImportArchive() {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
 
-    // One window: the archive and its book, the folder, the progress and the result
+    // One window: the archive and its book, the folder, the progress and the result. The book
+    // of the archive is not the open one, so the window names its kinds after the installed
+    // packages.
     dialogs::ImportArchiveDialog dialog(
-        pm.bookTypes(), ProgramFolders::startFolder(ProgramFolders::Operation::ImportDestination),
+        pm.installedBookTypes(),
+        ProgramFolders::startFolder(ProgramFolders::Operation::ImportDestination),
         [&pm, &logger](const QString& archive, const QString& folder, bool open,
                        const dialogs::ArchiveDialog::Progress& progress,
                        core::ArchiveProblem* problem) {
