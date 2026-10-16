@@ -193,14 +193,15 @@ void DocumentCoordinator::onNewDocument() {
 void DocumentCoordinator::openNewFile(const QString& title) {
     auto& logger = core::Logger::getInstance();
     auto* newEditor = new EditorPanel(m_mainWindow);
-    const QString iconId = QStringLiteral("template.chapter");
-    const int tabIndex = m_centralTabs->addTab(
-        newEditor, core::ArtProvider::getInstance().getIcon(iconId), title);
-    newEditor->setProperty("tabIconId", iconId);
+    // What the tab shows before it comes: the tab in front decides what Save and Save As do
     newEditor->setProperty("standaloneFile", QVariant::fromValue(core::StandaloneFile()));
     newEditor->setProperty("standaloneFilePath", QString());
     newEditor->setProperty("isStandaloneFile", true);
     newEditor->setProperty("dirty", false);
+    const QString iconId = QStringLiteral("template.chapter");
+    const int tabIndex = m_centralTabs->addTab(
+        newEditor, core::ArtProvider::getInstance().getIcon(iconId), title);
+    newEditor->setProperty("tabIconId", iconId);
     newEditor->setContent(QString());
 
     // The Navigator lists it at once with the files outside the book, by the name of its tab,
@@ -793,25 +794,43 @@ void DocumentCoordinator::onSaveDocument() {
         return;
     }
 
+    // Its command is greyed out then, with this reason (whyNotSave())
     logger.debug("No editor tab active - cannot save");
-    m_statusBar->showMessage(tr("No document to save"), 2000);
+    m_statusBar->showMessage(whyNotSave(), 2000);
 }
 
 void DocumentCoordinator::onSaveAsDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Save As Document");
 
-    // Get current editor (returns nullptr if Dashboard is active)
-    EditorPanel* editor = getCurrentEditor();
-    if (!editor || editorKind(editor) == EditorKind::Opening) {
-        logger.debug("No editor tab active - cannot save");
-        m_statusBar->showMessage(tr("No document to save"), 2000);
+    // Its command is greyed out without a file outside the book in front, with the reason
+    // (whyNotSaveAs()); a chapter of the book has its file in the book: Save writes it
+    const QString reason = whyNotSaveAs();
+    if (!reason.isEmpty()) {
+        m_statusBar->showMessage(reason, EXPLANATION_MS);
+        logger.debug("Save As: {}", reason.toStdString());
         return;
     }
+    saveStandaloneFileAs(getCurrentEditor());
+}
 
+QString DocumentCoordinator::whyNotSave() const {
+    const EditorPanel* editor = getCurrentEditor();
+    if ((editor && editorKind(editor) == EditorKind::StandaloneFile)
+        || core::ProjectManager::getInstance().isProjectOpen()) {
+        return QString();
+    }
+    return tr("No document to save");
+}
+
+QString DocumentCoordinator::whyNotSaveAs() const {
+    // Get current editor (returns nullptr if Dashboard is active)
+    const EditorPanel* editor = getCurrentEditor();
+    if (!editor || editorKind(editor) == EditorKind::Opening) {
+        return tr("No document to save");
+    }
     if (editorKind(editor) == EditorKind::StandaloneFile) {
-        saveStandaloneFileAs(editor);
-        return;
+        return QString();
     }
 
     // A chapter of the book has its file in the book: Save writes it with the book
@@ -822,12 +841,23 @@ void DocumentCoordinator::onSaveAsDocument() {
         {QStringLiteral("kind"), element ? wordsOf(*element) : mainWords()}};
     //: %1: the title of the element. In Polish: {Kind} „%1” {kind:s=zapisuje|p=zapisują} się
     //: razem z książką: użyj polecenia „Zapisz”.
-    m_statusBar->showMessage(
-        core::fillWords(tr("{Kind} \"%1\" {kind:s=is|p=are} saved with the book: use Save."),
-                        nouns)
-            .arg(element ? element->title : QString()),
-        EXPLANATION_MS);
-    logger.info("Save As: {} is saved with the book", elementId.toStdString());
+    return core::fillWords(tr("{Kind} \"%1\" {kind:s=is|p=are} saved with the book: use Save."),
+                           nouns)
+        .arg(element ? element->title : QString());
+}
+
+QString DocumentCoordinator::whyNotSaveAll() const {
+    // The book, and the files outside it also in the tabs behind the one in front
+    if (core::ProjectManager::getInstance().isProjectOpen()) {
+        return QString();
+    }
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        const auto* editor = qobject_cast<const EditorPanel*>(m_centralTabs->widget(i));
+        if (editor && editorKind(editor) == EditorKind::StandaloneFile) {
+            return QString();
+        }
+    }
+    return tr("No document to save");
 }
 
 // =============================================================================
@@ -939,6 +969,12 @@ QStringList DocumentCoordinator::unsavedDocumentNames() const {
 void DocumentCoordinator::onSaveAll() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Save All");
+
+    // Its command is greyed out then, with this reason (whyNotSaveAll())
+    if (const QString reason = whyNotSaveAll(); !reason.isEmpty()) {
+        m_statusBar->showMessage(reason, EXPLANATION_MS);
+        return;
+    }
 
     // The editor of tab @p index when it is a file outside the book with unsaved changes
     const auto unsavedFile = [this](int index) -> EditorPanel* {
@@ -1199,19 +1235,21 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     // Create new editor tab with icon based on file type
     EditorPanel* newEditor = new EditorPanel(m_mainWindow);
     QString tabTitle = fileInfo.fileName();
-    const QString iconId = standaloneIconId(path);
-    QIcon tabIcon = core::ArtProvider::getInstance().getIcon(iconId);
-    int tabIndex = m_centralTabs->addTab(newEditor, tabIcon, tabTitle);
-    newEditor->setProperty("tabIconId", iconId);
-    m_centralTabs->setCurrentIndex(tabIndex);
 
-    // Store file for this tab
+    // Store file for this tab, before the tab comes: the tab in front decides what Save and
+    // Save As do
     newEditor->setProperty("standaloneFile", QVariant::fromValue(*file));
     newEditor->setProperty("standaloneFilePath", path);
     newEditor->setProperty("isStandaloneFile", true);
     // Whether the tab shows changes, seeded clean; trackStandaloneChanges() keeps it as the
     // editor says (the questions ask the editor itself)
     newEditor->setProperty("dirty", false);
+
+    const QString iconId = standaloneIconId(path);
+    QIcon tabIcon = core::ArtProvider::getInstance().getIcon(iconId);
+    int tabIndex = m_centralTabs->addTab(newEditor, tabIcon, tabTitle);
+    newEditor->setProperty("tabIconId", iconId);
+    m_centralTabs->setCurrentIndex(tabIndex);
 
     // Set content
     const bool complete = newEditor->setContent(content);

@@ -209,12 +209,15 @@ public:
 
     /// @brief Apply default 2-row toolbar layout
     ///
-    /// Rearranges all built-in toolbars into 2 rows:
-    /// - Row 1: File, Edit, Book
-    /// - Row 2: Quick Actions, Format, Insert, Styles, View, Tools, Help
+    /// Docks every toolbar at the top of the window again, a floating one too, in 2 rows:
+    /// - Row 1: Quick Actions, Edit, Format, Insert
+    /// - Row 2: Book, Styles, Views, Tools, Help, the hidden File and Panels, then the user
+    ///   toolbars
+    /// and shows the toolbars shown by default and the user toolbars, hiding the others.
     ///
     /// OpenSpec #00037: Call this after resetToDefaults() or when detecting
-    /// that saved layout doesn't match expected multi-row layout.
+    /// that saved layout doesn't match expected multi-row layout; View > Reset Layout calls it
+    /// with the panels' reset.
     void applyDefaultLayout();
 
     /// @brief Load toolbar configurations from SettingsManager
@@ -284,6 +287,10 @@ private:
     /// @param registry CommandRegistry to retrieve commands
     /// @return Created QToolBar
     QToolBar* createToolbar(const ToolbarConfig& config, CommandRegistry& registry);
+
+    /// @brief What every toolbar has, built-in or the user's: movable unless the toolbars are
+    /// locked, floatable, the toolbar icon size, icons only, and the toolbars' context menu
+    void setUpToolbar(QToolBar* toolbar);
 
     /// @brief Give the toolbars that the writer customized the commands added to the built-in
     /// toolbars after version @p saved of the changes, once, where the default toolbars have

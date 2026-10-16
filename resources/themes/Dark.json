@@ -10,10 +10,6 @@
     "background": "#1E1E1E",
     "text": "#FFFFFF",
     "infoHeader": "#4A7A9E",
-    "infoPrimary": "#34A6F4",
-    "infoSecondary": "#10598A",
-    "dashboardPrimary": "#36BBA7",
-    "dashboardSecondary": "#075F5A",
     "infoBarBackground": "#3E321E",
     "infoBarBorder": "#785E1E"
   },

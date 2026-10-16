@@ -26,7 +26,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("file.close", "resources/icons/twotone/close.svg", "Close Book");
     iconRegistry.registerIcon("file.save", "resources/icons/twotone/save.svg", "Save");
     iconRegistry.registerIcon("file.saveAs", "resources/icons/twotone/save_as.svg", "Save As");
-    iconRegistry.registerIcon("file.saveAll", "resources/icons/twotone/layers.svg", "Save All");
+    iconRegistry.registerIcon("file.saveAll", "resources/icons/twotone/save_all.svg", "Save All");
     iconRegistry.registerIcon("file.exit", "resources/icons/twotone/logout.svg", "Exit");
     iconRegistry.registerIcon("file.open.file", "resources/icons/twotone/description.svg", "Open File");
     iconRegistry.registerIcon("file.import.docx", "resources/icons/twotone/upload_file.svg", "Import DOCX");
@@ -194,6 +194,22 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.textFrameBorder", "resources/icons/twotone/text_frame.svg", "Text Frame Border");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
+
+    // -------------------------------------------------------------------------
+    // SUBMENU ICONS (MenuBuilder::submenuIconId)
+    // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("menu.import", "resources/icons/twotone/input.svg", "Import");
+    iconRegistry.registerIcon("menu.export", "resources/icons/twotone/share.svg", "Export");
+    iconRegistry.registerIcon("menu.recentBooks", "resources/icons/twotone/history.svg", "Recent Books");
+    iconRegistry.registerIcon("menu.textStyle", "resources/icons/twotone/format_shapes.svg", "Text Style");
+    iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
+    iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
+    iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
+    iconRegistry.registerIcon("menu.viewMode", "resources/icons/twotone/visibility.svg", "View Mode");
+    iconRegistry.registerIcon("menu.zoom", "resources/icons/twotone/zoom_in.svg", "Zoom");
+    iconRegistry.registerIcon("menu.panels", "resources/icons/twotone/view_sidebar.svg", "Panels");
+    iconRegistry.registerIcon("menu.perspectives", "resources/icons/twotone/view_quilt.svg", "Perspectives");
+    iconRegistry.registerIcon("menu.toolbars", "resources/icons/twotone/build.svg", "Toolbars");
 
     // -------------------------------------------------------------------------
     // LOG PANEL TOOLBAR ICONS (OpenSpec #00024)

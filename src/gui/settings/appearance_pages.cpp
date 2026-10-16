@@ -79,16 +79,6 @@ ThemePage::ThemePage(QWidget* parent)
              "themes.", ".ui.brightText", [](const Theme& t) { return t.palette.brightText; });
     addColor(ui, tr("Info Header"), tr("Color for information panel headers"),
              "themes.", ".colors.infoHeader", [](const Theme& t) { return t.colors.infoHeader; });
-    addColor(ui, tr("Dashboard Secondary"), tr("Secondary dashboard accent color"),
-             "themes.", ".colors.dashboardSecondary",
-             [](const Theme& t) { return t.colors.dashboardSecondary; });
-    addColor(ui, tr("Dashboard Primary"), tr("Primary dashboard accent color"),
-             "themes.", ".colors.dashboardPrimary",
-             [](const Theme& t) { return t.colors.dashboardPrimary; });
-    addColor(ui, tr("Info Primary"), tr("Primary color for info panels"),
-             "themes.", ".colors.infoPrimary", [](const Theme& t) { return t.colors.infoPrimary; });
-    addColor(ui, tr("Info Secondary"), tr("Secondary color for info panels"),
-             "themes.", ".colors.infoSecondary", [](const Theme& t) { return t.colors.infoSecondary; });
 
     QVBoxLayout* palette = group(tr("Palette Colors"));
     const auto paletteColor = [&](const QString& label, const QString& toolTip, const char* key,

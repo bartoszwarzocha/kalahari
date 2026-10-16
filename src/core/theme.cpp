@@ -109,13 +109,9 @@ Theme Theme::fromJson(const nlohmann::json& json) {
         theme.colors.accent = parseColor(colors.value("accent", "#0078D4"));
         theme.colors.background = parseColor(colors.value("background", "#FFFFFF"));
         theme.colors.text = parseColor(colors.value("text", "#000000"));
-        theme.colors.infoPrimary = parseColor(colors.value("infoPrimary", "#34A6F4"));
         theme.colors.infoHeader = parseColor(colors.value("infoHeader", "#4A7A9E"));
         theme.colors.infoBarBorder = parseColor(colors.value("infoBarBorder", "#785E1E"));
         theme.colors.infoBarBackground = parseColor(colors.value("infoBarBackground", "#3E321E"));
-        theme.colors.dashboardSecondary = parseColor(colors.value("dashboardSecondary", "#075F5A"));
-        theme.colors.dashboardPrimary = parseColor(colors.value("dashboardPrimary", "#36BBA7"));
-        theme.colors.infoSecondary = parseColor(colors.value("infoSecondary", "#10598A"));
     } else {
         throw std::runtime_error("Theme JSON missing 'colors' object");
     }
@@ -252,13 +248,9 @@ nlohmann::json Theme::toJson() const {
         {"accent", colorToHex(colors.accent)},
         {"background", colorToHex(colors.background)},
         {"text", colorToHex(colors.text)},
-        {"infoPrimary", colorToHex(colors.infoPrimary)},
         {"infoHeader", colorToHex(colors.infoHeader)},
         {"infoBarBorder", colorToHex(colors.infoBarBorder)},
-        {"infoBarBackground", colorToHex(colors.infoBarBackground)},
-        {"dashboardSecondary", colorToHex(colors.dashboardSecondary)},
-        {"dashboardPrimary", colorToHex(colors.dashboardPrimary)},
-        {"infoSecondary", colorToHex(colors.infoSecondary)}
+        {"infoBarBackground", colorToHex(colors.infoBarBackground)}
     };
 
     // Qt Palette colors

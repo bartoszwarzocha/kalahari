@@ -32,10 +32,6 @@ struct Theme {
         QColor background;  ///< Background color (windows, panels)
         QColor text;        ///< Text color (labels, content)
         QColor infoHeader; ///< Color for information panel headers
-        QColor infoPrimary; ///< Primary info color for panels
-        QColor infoSecondary; ///< Secondary info color for panels
-        QColor dashboardPrimary; ///< Primary dashboard accent color
-        QColor dashboardSecondary; ///< Secondary dashboard accent color
         QColor infoBarBackground; ///< Info bar (standalone file banner) background color
         QColor infoBarBorder; ///< Info bar (standalone file banner) border color
     } colors;

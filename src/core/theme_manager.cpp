@@ -40,13 +40,9 @@ ThemeManager::ThemeManager() {
     m_currentTheme.colors.accent = QColor("#0078D4");
     m_currentTheme.colors.background = QColor("#FFFFFF");
     m_currentTheme.colors.text = QColor("#000000");
-    m_currentTheme.colors.infoPrimary = QColor("#1C69A8");
     m_currentTheme.colors.infoHeader = QColor("#2B4763");
     m_currentTheme.colors.infoBarBorder = QColor("#FFD54F");
     m_currentTheme.colors.infoBarBackground = QColor("#FFF8E1");
-    m_currentTheme.colors.dashboardSecondary = QColor("#36BBA7");
-    m_currentTheme.colors.dashboardPrimary = QColor("#18786F");
-    m_currentTheme.colors.infoSecondary = QColor("#34A6F4");
     m_currentTheme.log.info = QColor("#000000");
     m_currentTheme.log.debug = QColor("#666666");
     m_currentTheme.log.background = QColor("#F5F5F5");
@@ -203,12 +199,10 @@ void ThemeManager::applyStoredColors() {
     apply("secondary", theme.colors.secondary,
           settings.getIconColorSecondaryForTheme(themeName, current(theme.colors.secondary)));
 
-    // Info panel and Dashboard colors, stored as themes.<name>.colors.<key>
+    // Info panel colors, stored as themes.<name>.colors.<key>; the Dashboard and info icon
+    // colors stored before the Dashboard icons took the icon colors are not read
     const std::pair<const char*, QColor Theme::Colors::*> panelColors[] = {
-        {"infoHeader", &Theme::Colors::infoHeader}, {"infoPrimary", &Theme::Colors::infoPrimary},
-        {"infoSecondary", &Theme::Colors::infoSecondary},
-        {"dashboardPrimary", &Theme::Colors::dashboardPrimary},
-        {"dashboardSecondary", &Theme::Colors::dashboardSecondary},
+        {"infoHeader", &Theme::Colors::infoHeader},
     };
     for (const auto& [key, field] : panelColors) {
         QColor& target = theme.colors.*field;
@@ -312,20 +306,12 @@ void ThemeManager::applyColorOverrides(const std::map<std::string, QColor>& over
             m_currentTheme.colors.background = color;
         } else if (key == "text") {
             m_currentTheme.colors.text = color;
-        } else if (key == "infoPrimary") {
-            m_currentTheme.colors.infoPrimary = color;
         } else if (key == "infoHeader") {
             m_currentTheme.colors.infoHeader = color;
         } else if (key == "infoBarBorder") {
             m_currentTheme.colors.infoBarBorder = color;
         } else if (key == "infoBarBackground") {
             m_currentTheme.colors.infoBarBackground = color;
-        } else if (key == "dashboardSecondary") {
-            m_currentTheme.colors.dashboardSecondary = color;
-        } else if (key == "dashboardPrimary") {
-            m_currentTheme.colors.dashboardPrimary = color;
-        } else if (key == "infoSecondary") {
-            m_currentTheme.colors.infoSecondary = color;
         } else if (key == "log.info") {
             m_currentTheme.log.info = color;
         } else if (key == "log.debug") {
@@ -373,22 +359,6 @@ void ThemeManager::setColorOverride(const QString& key, const QColor& color) {
     // Custom color: infoBarBackground
     else if (key == "infoBarBackground" || key == "colors.infoBarBackground") {
         m_currentTheme.colors.infoBarBackground = color;
-    }
-    // Custom color: dashboardSecondary
-    else if (key == "dashboardSecondary" || key == "colors.dashboardSecondary") {
-        m_currentTheme.colors.dashboardSecondary = color;
-    }
-    // Custom color: dashboardPrimary
-    else if (key == "dashboardPrimary" || key == "colors.dashboardPrimary") {
-        m_currentTheme.colors.dashboardPrimary = color;
-    }
-    // Custom color: infoSecondary
-    else if (key == "infoSecondary" || key == "colors.infoSecondary") {
-        m_currentTheme.colors.infoSecondary = color;
-    }
-    // Custom color: infoPrimary
-    else if (key == "infoPrimary" || key == "colors.infoPrimary") {
-        m_currentTheme.colors.infoPrimary = color;
     }
     // Custom color: infoHeader
     else if (key == "infoHeader" || key == "colors.infoHeader") {

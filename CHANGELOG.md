@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Menus: icons of the submenus** - 2026-10-16. Import, Export, Recent Books, Text Style,
+  Statistics, Plugins, Assistant Actions, View Mode, Zoom, Panels, Perspectives and Toolbars
+  have icons in the menus, as their commands (Recent Books now a clock in the place of the
+  open folder of File > Open). They follow the icon theme and the icon colors as the commands'
+  icons; before, the icon of Recent Books kept the colors that the icons had at the start.
+
 - **View: Text Frame Border on the Views toolbar** - 2026-10-13. View > Text Frame Border
   (also a button on the Views toolbar, next to Dark Paper) shows and hides the border around
   the text of every editor, the option "Show text frame border" of Settings > Editor > Pages
@@ -150,6 +156,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   book is opened again.
 
 ### Changed
+
+- **Dashboard: icons in the icon colors** - 2026-10-16. The icons of the books on the
+  Dashboard take the icon colors of Settings > Appearance > Icons, as the toolbars and the
+  menus. Settings > Appearance > Theme no longer has "Dashboard Primary" and "Dashboard
+  Secondary", whose second color looked like one left over from another theme, nor "Info
+  Primary" and "Info Secondary", which colored only the icon of a news column the Dashboard
+  does not have. Such colors stored in the settings and in theme files are not read.
 
 - **Book projects in the new format** - 2026-10-10. The program opens and saves books in the
   new project file (`.klh`, format 2) and no longer reads the old one: the example project
@@ -534,6 +547,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Browse Marketplace, Cloud Sync, Collaboration - 2026-10-03
 
 ### Fixed
+
+- **Commands with nothing to work on** - 2026-10-16. Save without a document to save, and
+  Save As without a document or on a chapter (saved with the book), are greyed out as Close
+  Book and Export Project Archive without a book; the tooltip of each and the status bar say
+  why ("No book is open", "No document to save", "Chapter "…" is saved with the book: use
+  Save."). Their keys say it in the status bar too: Ctrl+F4 without a book no longer says that
+  a document was closed.
+
+- **Reset Layout and the toolbars** - 2026-10-16. View > Reset Layout puts the toolbars back
+  at the top of the window in their two rows, also a floating one or one moved to another
+  edge, and shows those shown by default, not only the panels. A toolbar made in the Toolbar
+  Manager is locked with the others and has their context menu at once, not only after the
+  next start.
 
 - **The view after deleting a selection** - 2026-10-14. Deleting a selection (Delete,
   Backspace or cutting it) left the view where it was, so after Ctrl+A and Delete in a long

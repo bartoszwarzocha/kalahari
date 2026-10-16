@@ -151,6 +151,13 @@ sudo dnf install qt6-qtbase-devel hunspell-devel   # Fedora
 - Visual Studio 2019+ (Build Tools sufficient)
 - Windows 10+ or Windows Server 2016+
 
+**Screen:**
+- Recommended: 1920×1080 with display scaling up to 150%, or 1366×768 at 100% – the text
+  and the side panels fit side by side
+- Smaller (for example 1366×768 at 125% or 150%): Kalahari still works – on the first start
+  it narrows the Navigator and hides the panels on the right, a bar above the text says how
+  to show them again, and dialogs scroll their content
+
 ### Diagnostic Mode
 
 Test Python embedding and plugin system:

@@ -4,30 +4,40 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/theme_manager.h"
 #include "kalahari/gui/command_registrar.h"
+#include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/panels/dashboard_layouts.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/widgets/color_config_widget.h"
 
 #include <QAbstractButton>
 #include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDir>
 #include <QFrame>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMouseEvent>
+#include <QPushButton>
 #include <QProxyStyle>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QStringList>
 #include <QStyleOption>
 #include <QTranslator>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 
 #include <algorithm>
+#include <cstdio>
 #include <cstdlib>
+#include <set>
 
 #include <vector>
 
@@ -654,4 +664,170 @@ TEST_CASE("Dashboard: the auto-load checkbox follows the Settings window", "[gui
     // The Dashboard changes it as before
     onDashboard->click();
     CHECK(settings.get<bool>("startup.autoLoadLastProject"));
+}
+
+namespace {
+
+/// Open the page @p title under @p category of the Settings window
+void openSettingsPage(SettingsDialog& dialog, const QString& category, const QString& title) {
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        QTreeWidgetItem* parent = (*it)->parent();
+        if ((*it)->text(0) == title && parent != nullptr && parent->text(0) == category) {
+            tree->setCurrentItem(*it);
+            return;
+        }
+    }
+    FAIL("No page " << title.toStdString());
+}
+
+/// The list of the Settings window with the item @p data, set to it
+void choose(SettingsDialog& dialog, const QString& data) {
+    for (QComboBox* combo : dialog.findChildren<QComboBox*>()) {
+        const int index = combo->findData(data);
+        if (index >= 0) {
+            combo->setCurrentIndex(index);
+            return;
+        }
+    }
+    FAIL("No list with " << data.toStdString());
+}
+
+/// The colors a pixmap is drawn in, without its transparent pixels
+std::set<QRgb> colorsOf(const QPixmap& pixmap) {
+    std::set<QRgb> colors;
+    const QImage image = pixmap.toImage().convertToFormat(QImage::Format_ARGB32);
+    for (int y = 0; y < image.height(); ++y) {
+        for (int x = 0; x < image.width(); ++x) {
+            const QRgb pixel = image.pixel(x, y);
+            if (qAlpha(pixel) == 255) {
+                colors.insert(pixel);
+            }
+        }
+    }
+    return colors;
+}
+
+/// The colors and the icon style of the test run, as they were, when the test ends
+class ThemeColorsGuard {
+public:
+    ThemeColorsGuard()
+        : m_theme(QString::fromStdString(core::ThemeManager::getInstance().getCurrentTheme().name))
+        , m_saved(core::SettingsManager::getInstance().get<nlohmann::json>("themes"))
+        , m_savedIcons(core::SettingsManager::getInstance().get<nlohmann::json>("icons.themes"))
+        , m_iconStyle(core::ArtProvider::getInstance().getIconTheme()) {}
+    ~ThemeColorsGuard() {
+        try {
+            auto& settings = core::SettingsManager::getInstance();
+            for (const auto& [key, saved] : {std::pair{"themes", &m_saved},
+                                             std::pair{"icons.themes", &m_savedIcons}}) {
+                if (saved->is_null()) {
+                    settings.removeKey(key);
+                } else {
+                    settings.set<nlohmann::json>(key, *saved);
+                }
+            }
+            core::ArtProvider::getInstance().setIconTheme(m_iconStyle);
+            core::ThemeManager::getInstance().reloadTheme(m_theme);
+        } catch (...) {
+            // A destructor may not throw: the later tests set the colors they need
+            std::fputs("ThemeColorsGuard: the colors of the test run could not be given back\n",
+                       stderr);
+        }
+    }
+    ThemeColorsGuard(const ThemeColorsGuard&) = delete;
+    ThemeColorsGuard& operator=(const ThemeColorsGuard&) = delete;
+
+private:
+    QString m_theme;
+    nlohmann::json m_saved;
+    nlohmann::json m_savedIcons;
+    QString m_iconStyle;
+};
+
+}  // namespace
+
+TEST_CASE("Dashboard: its icons keep no color of another theme after the colors are reset",
+          "[gui][dashboard][theme]") {
+    // Report of 16.10: the Light theme, two-tone icons, a greenish second color, the theme's
+    // colors reset, then the Dark theme: the toolbars are right, the Dashboard showed green
+    const ThemeColorsGuard guard;
+    auto& settings = core::SettingsManager::getInstance();
+    auto& themes = core::ThemeManager::getInstance();
+    for (const char* theme : {"Light", "Dark"}) {
+        settings.removeKey(std::string("themes.") + theme);
+        settings.removeKey(std::string("icons.themes.") + theme);
+    }
+    REQUIRE(themes.reloadTheme(QStringLiteral("Dark")));
+    registerAllIcons();
+    const RecentBookGuard book;
+    DashboardPanel dashboard;
+    auto* bookIcon = dashboard.findChild<QLabel*>(QStringLiteral("cardBookIcon"));
+    REQUIRE(bookIcon != nullptr);
+
+    SettingsDialog dialog(nullptr);
+    openSettingsPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
+    openSettingsPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Icons"));
+    choose(dialog, QStringLiteral("Light"));
+    dialog.applyChanges();
+    choose(dialog, QStringLiteral("twotone"));
+    dialog.applyChanges();
+    REQUIRE(themes.getCurrentTheme().name == "Light");
+
+    ColorConfigWidget* secondary = nullptr;
+    for (ColorConfigWidget* widget : dialog.findChildren<ColorConfigWidget*>()) {
+        if (widget->toolTip() == QStringLiteral("Secondary icon color used for icon accents")) {
+            secondary = widget;
+        }
+    }
+    REQUIRE(secondary != nullptr);
+    const QColor green(QStringLiteral("#3CB371"));
+    secondary->setColor(green);
+    dialog.applyChanges();
+    REQUIRE(core::ArtProvider::getInstance().getSecondaryColor() == green);
+    // The Dashboard draws its icons in the icon colors, as the toolbars
+    CHECK(colorsOf(bookIcon->pixmap()).count(green.rgb()) == 1);
+
+    QPushButton* reset = nullptr;
+    for (QPushButton* button : dialog.findChildren<QPushButton*>()) {
+        if (button->text() == QStringLiteral("Reset to Theme Defaults")) {
+            reset = button;
+        }
+    }
+    REQUIRE(reset != nullptr);
+    reset->click();
+    dialog.applyChanges();
+    choose(dialog, QStringLiteral("Dark"));
+    dialog.applyChanges();
+
+    // The Dark theme's own icon colors, in the toolbars and on the Dashboard
+    const core::Theme dark = themes.loadTheme(QStringLiteral("Dark"));
+    REQUIRE(themes.getCurrentTheme().name == "Dark");
+    CHECK(core::ArtProvider::getInstance().getPrimaryColor() == dark.colors.primary);
+    CHECK(core::ArtProvider::getInstance().getSecondaryColor() == dark.colors.secondary);
+    const std::set<QRgb> drawn = colorsOf(bookIcon->pixmap());
+    INFO("Icons " << dark.colors.primary.name().toStdString() << " / "
+                  << dark.colors.secondary.name().toStdString());
+    CHECK(drawn.count(dark.colors.primary.rgb()) == 1);
+    CHECK(drawn.count(dark.colors.secondary.rgb()) == 1);
+    CHECK(drawn.count(green.rgb()) == 0);
+}
+
+TEST_CASE("Dashboard: the theme page has no colors of its own for the Dashboard icons",
+          "[gui][dashboard][theme]") {
+    // Its icons take the icon colors; the fields of the Dashboard colors, and of the icon of a
+    // news column that the Dashboard does not have, changed nothing that one could see
+    SettingsDialog dialog(nullptr);
+    openSettingsPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
+    QStringList fields;
+    for (const ColorConfigWidget* widget : dialog.findChildren<ColorConfigWidget*>()) {
+        fields << widget->toolTip();
+    }
+    CHECK(fields.contains(QStringLiteral("Color for information panel headers")));
+    for (const char* gone : {"Primary dashboard accent color", "Secondary dashboard accent color",
+                             "Primary color for info panels", "Secondary color for info panels"}) {
+        INFO(gone);
+        CHECK_FALSE(fields.contains(QString::fromLatin1(gone)));
+    }
 }

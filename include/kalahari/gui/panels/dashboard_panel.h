@@ -9,6 +9,7 @@
 
 #include <QWidget>
 #include <QCheckBox>
+#include <QIcon>
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QScrollArea>
@@ -145,6 +146,10 @@ private:
     /// @param actionId Action ID registered in ArtProvider (e.g., "file.open")
     /// @return QPixmap at DASHBOARD_ICON_SIZE, or null if not found
     QPixmap loadThemedIcon(const QString& actionId) const;
+
+    /// @brief The icon @p actionId of a book card in the icon colors of the toolbars
+    /// (ArtProvider), drawn sharp at any size
+    static QIcon bookIcon(const QString& actionId);
 
     // Main layout components
     QScrollArea* m_scrollArea;         ///< Scroll area for content

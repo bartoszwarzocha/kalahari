@@ -202,6 +202,10 @@ struct Command {
     // ========================================================================
     std::function<void()> execute;      ///< Command execution callback
     std::function<bool()> isEnabled;    ///< Enable/disable state callback
+    std::function<QString()> disabledReason; ///< Why the command is greyed out while it runs
+                                             ///< but isEnabled says no ("No book is open"):
+                                             ///< its tooltip and the status bar say it; empty
+                                             ///< or none: its usual tooltip
     std::function<bool()> isChecked;    ///< Check state for toggle commands
 
     // ========================================================================

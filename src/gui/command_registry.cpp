@@ -323,10 +323,16 @@ QAction* CommandRegistry::createActionForCommand(const QString& commandId, const
 void CommandRegistry::applyActionAvailability(QAction* action, const Command& cmd) const {
     // Fallback: use label as tooltip
     QString tooltip = QString::fromStdString(cmd.tooltip.empty() ? cmd.label : cmd.tooltip);
+    const bool enabled = cmd.canExecute() && cmd.checkEnabled();
+    // Why a command that runs is greyed out now ("No book is open")
+    const QString reason =
+        cmd.canExecute() && !enabled && cmd.disabledReason ? cmd.disabledReason() : QString();
 
     if (!cmd.canExecute()) {
         // As the list of the keyboard shortcuts says it
         tooltip = tr("%1 (in preparation)").arg(tooltip);
+    } else if (!reason.isEmpty()) {
+        tooltip = reason;
     } else if (tooltip == QString::fromStdString(cmd.label)) {
         // Menus show explicit tooltips, so do not repeat the label there;
         // toolbars still fall back to the action text
@@ -334,10 +340,11 @@ void CommandRegistry::applyActionAvailability(QAction* action, const Command& cm
     }
 
     action->setToolTip(tooltip);
-    // The status bar also says that a grey command is in preparation, so it does not look
-    // broken (KalahariStyle lets the mouse rest on grey menu items)
-    action->setStatusTip(cmd.canExecute() ? QString() : tooltip);
-    action->setEnabled(cmd.canExecute() && cmd.checkEnabled());
+    // The status bar also says that a grey command is in preparation, or why it is grey now,
+    // so it does not look broken (KalahariStyle lets the mouse and the arrow keys rest on grey
+    // menu items)
+    action->setStatusTip(!cmd.canExecute() || !reason.isEmpty() ? tooltip : QString());
+    action->setEnabled(enabled);
 }
 
 QList<QAction*> CommandRegistry::getAllActions() const {

@@ -126,6 +126,16 @@ public:
     /// @brief The menus of the menu bar in their order ("FILE", "EDIT"...)
     [[nodiscard]] static const std::vector<std::string>& topLevelMenus();
 
+    /// @brief The icon of a submenu in IconRegistry ("Import" → "menu.import"); empty for a
+    ///        name with none
+    /// @param technicalName A part of Command::menuPath, or a submenu made elsewhere
+    ///        ("Toolbars", "Recent Books")
+    [[nodiscard]] static QString submenuIconId(const std::string& technicalName);
+
+    /// @brief Show the icon @p iconId beside @p menu in its parent menu, in the icon theme,
+    ///        colors and size of the commands' icons, and again whenever they change
+    static void showSubmenuIcon(QMenu* menu, const QString& iconId);
+
     // OpenSpec #00026: refreshIcons() method REMOVED
     // Icon refresh is now automatic via ArtProvider::createAction()
     // which connects each action to ArtProvider::resourcesChanged() signal.
@@ -145,13 +155,14 @@ private:
 
     /// @brief Get or create submenu at path
     ///
-    /// Returns existing submenu or creates new one if needed.
-    /// Example: getOrCreateMenu(fileMenu, "Import") → Import submenu
+    /// Returns existing submenu or creates new one if needed, with its translated title and
+    /// its icon.
+    /// Example: getOrCreateSubmenu(fileMenu, "Import") → Import submenu
     ///
     /// @param parent Parent menu
-    /// @param title Submenu title
+    /// @param technicalName Submenu name, a part of Command::menuPath
     /// @return Existing or new submenu
-    QMenu* getOrCreateSubmenu(QMenu* parent, const QString& title);
+    QMenu* getOrCreateSubmenu(QMenu* parent, const std::string& technicalName);
 
     /// @brief Create menu action from Command
     ///

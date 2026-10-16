@@ -231,6 +231,28 @@ MainWindow::MainWindow(QWidget* parent)
     // Connect DocumentCoordinator signals
     connect(m_documentCoordinator, &DocumentCoordinator::windowTitleChanged,
             this, &MainWindow::setWindowTitle);
+    // Save, Save As and Save All are greyed out while they have nothing to save, and say why;
+    // the tabs and the open book update them (updateEditorActionStates(),
+    // updateBookCommands(), a closed tab). Their keys, and those of the commands of the open
+    // book, say it in the status bar then.
+    {
+        CommandRegistry& registry = CommandRegistry::getInstance();
+        utils::bindSaveCommands(
+            registry,
+            [this]() {
+                return m_documentCoordinator != nullptr ? m_documentCoordinator->whyNotSave()
+                                                        : QString();
+            },
+            [this]() {
+                return m_documentCoordinator != nullptr ? m_documentCoordinator->whyNotSaveAs()
+                                                        : QString();
+            },
+            [this]() {
+                return m_documentCoordinator != nullptr ? m_documentCoordinator->whyNotSaveAll()
+                                                        : QString();
+            });
+        utils::explainGreyedKeys(registry, this, statusBar());
+    }
     // A file outside the book opened from the Navigator gets the keys, as a chapter does
     // (connected after the coordinator, which opens it); a new file, not saved yet, is
     // listed by its key
@@ -1051,6 +1073,8 @@ void MainWindow::updateEditorActionStates() {
     setChecked("format.justify", alignment == Qt::AlignJustify);
 
     utils::updateDocumentCommands(registry);
+    // Save, Save As and Save All follow the tabs: a chapter, a file outside the book, none
+    utils::updateSaveCommands(registry);
 
     // Sync the font family/size toolbar controls to the char format under the caret,
     // so they reflect the formatting at the cursor (updates on every cursor move /
@@ -1161,6 +1185,9 @@ void MainWindow::createDocks() {
         // (the keys go on to the page in front, not to the font box of the toolbar)
         utils::removeTabKeepingFocus(*centralTabs, index);
         widget->deleteLater();
+        // Save All saves the files of all tabs: the last file outside a book leaves it
+        // nothing, also from a tab behind the one in front
+        utils::updateSaveCommands(CommandRegistry::getInstance());
 
         logger.debug("Tab closed at index {}", index);
     });
@@ -1319,6 +1346,10 @@ void MainWindow::createDocks() {
 }
 
 void MainWindow::resetLayout() {
+    // The toolbars as well: a floating one, or one by another edge, docks at the top again
+    if (m_toolbarManager) {
+        m_toolbarManager->applyDefaultLayout();
+    }
     m_dockCoordinator->resetLayout(isDiagnosticMode(), isDevMode());
     statusBar()->showMessage(tr("Layout reset to default"), 2000);
 }
@@ -1357,6 +1388,8 @@ void MainWindow::updateBookCommands() {
     registry.updateActionState("book.newChapter");
     registry.updateActionState("book.properties");
     utils::updateOpenBookCommands(registry);
+    // Save saves the open book also with no tab of it in front
+    utils::updateSaveCommands(registry);
 }
 
 void MainWindow::setStartupFile(const QString& path) {

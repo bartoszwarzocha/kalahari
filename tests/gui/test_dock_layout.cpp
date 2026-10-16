@@ -1,7 +1,8 @@
 /// @file test_dock_layout.cpp
 /// @brief The panels of the main window: the Annotations panel is on top of the panels on the
-/// right by default, choosing an element in the Navigator does not cover it, and on a small
-/// screen the panels on the right make room for the text
+/// right by default, choosing an element in the Navigator does not cover it, on a small
+/// screen the panels on the right make room for the text, and Reset Layout docks the toolbars
+/// again
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/project_manager.h"
@@ -21,6 +22,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QDockWidget>
+#include <QLabel>
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMetaObject>
@@ -32,9 +34,13 @@
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTemporaryDir>
+#include <QToolBar>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
+
+#include <string>
+#include <vector>
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -369,4 +375,77 @@ TEST_CASE("Panels: the panels on the right can be made narrow", "[gui][panels]")
     // The panel is narrow; the dock adds its frame, wider in some styles (macOS)
     CHECK(annotations->widget()->minimumSizeHint().width() <= 200);
     CHECK(annotations->width() <= annotations->minimumSizeHint().width());
+}
+
+TEST_CASE("Reset Layout: the toolbars dock at the top again, in their rows, shown as by default",
+          "[gui][panels][toolbar]") {
+    // Reset Layout put the panels back, and a floating toolbar stayed where it was
+    Panels panels;
+    panels.window.setCentralWidget(new QLabel(QStringLiteral("text")));
+    ToolbarManager toolbars(&panels.window);
+    toolbars.createToolbars(CommandRegistry::getInstance());
+    const QString mine =
+        toolbars.createUserToolbar(QStringLiteral("Mine"), {QStringLiteral("file.save")});
+    QApplication::processEvents();
+
+    const std::vector<std::string> row1 = {"quickActions", "edit", "format", "insert"};
+    const std::vector<std::string> row2 = {"book", "styles", "views", "tools", "help", "file",
+                                           "view", mine.toStdString()};
+    const auto toolbar = [&toolbars](const std::string& id) {
+        QToolBar* found = toolbars.getToolbar(id);
+        REQUIRE(found != nullptr);
+        return found;
+    };
+
+    // Moved by the writer: Format and their own toolbar floating (the window flags Qt gives a
+    // toolbar dragged off the window), their own closed, Edit by the left edge, Help closed
+    // and File opened
+    for (QToolBar* floating : {toolbar("format"), toolbar(mine.toStdString())}) {
+        floating->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
+        floating->move(400, 300);
+        floating->show();
+    }
+    toolbar(mine.toStdString())->hide();
+    panels.window.addToolBar(Qt::LeftToolBarArea, toolbar("edit"));
+    toolbar("help")->hide();
+    toolbar("file")->show();
+    QApplication::processEvents();
+    REQUIRE(toolbar("format")->isFloating());
+    REQUIRE(panels.window.toolBarArea(toolbar("edit")) == Qt::LeftToolBarArea);
+    REQUIRE(toolbar("edit")->orientation() == Qt::Vertical);
+
+    // View > Reset Layout
+    toolbars.applyDefaultLayout();
+    panels.docks->resetLayout(false, false);
+    QApplication::processEvents();
+
+    // All at the top of the window, in the window, lying, in two rows in their order
+    for (const std::vector<std::string>* row : {&row1, &row2}) {
+        int left = -1;
+        for (const std::string& id : *row) {
+            INFO(id);
+            QToolBar* bar = toolbar(id);
+            CHECK_FALSE(bar->isFloating());
+            CHECK(panels.window.toolBarArea(bar) == Qt::TopToolBarArea);
+            CHECK(bar->orientation() == Qt::Horizontal);
+            // The second row begins with Book
+            CHECK(panels.window.toolBarBreak(bar) == (id == "book"));
+            if (!bar->isHidden()) {
+                CHECK(bar->y() == toolbar(row->front())->y());
+                CHECK(bar->x() > left);
+                left = bar->x();
+            }
+        }
+    }
+    CHECK(toolbar("book")->y() > toolbar("quickActions")->y());
+
+    // Shown as by default: all but File and Panels, and the writer's own toolbar
+    for (const std::vector<std::string>* row : {&row1, &row2}) {
+        for (const std::string& id : *row) {
+            INFO(id);
+            CHECK(toolbar(id)->isHidden() == (id == "file" || id == "view"));
+        }
+    }
+
+    CHECK(toolbars.deleteUserToolbar(mine));
 }
