@@ -82,7 +82,8 @@ PluginArchive::~PluginArchive() {
 PluginArchive::PluginArchive(PluginArchive&& other) noexcept
     : m_archive_path(std::move(other.m_archive_path)),
       m_extracted_dir(std::move(other.m_extracted_dir)),
-      m_is_valid(other.m_is_valid) {
+      m_is_valid(other.m_is_valid),
+      m_error(std::move(other.m_error)) {
     other.m_is_valid = false;
     other.m_extracted_dir.clear();
 }
@@ -102,6 +103,7 @@ PluginArchive& PluginArchive::operator=(PluginArchive&& other) noexcept {
         m_archive_path = std::move(other.m_archive_path);
         m_extracted_dir = std::move(other.m_extracted_dir);
         m_is_valid = other.m_is_valid;
+        m_error = std::move(other.m_error);
 
         // Invalidate other
         other.m_is_valid = false;
@@ -112,6 +114,10 @@ PluginArchive& PluginArchive::operator=(PluginArchive&& other) noexcept {
 
 bool PluginArchive::isValid() const {
     return m_is_valid;
+}
+
+const std::string& PluginArchive::errorMessage() const {
+    return m_error;
 }
 
 const std::filesystem::path& PluginArchive::getExtractedPath() const {

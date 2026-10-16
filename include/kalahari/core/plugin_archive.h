@@ -54,6 +54,10 @@ public:
     /// @return true if archive was extracted successfully
     bool isValid() const;
 
+    /// @brief Why the archive was not unpacked, for the writer: translated, in UTF-8; empty
+    /// when it was unpacked
+    const std::string& errorMessage() const;
+
     /// @brief Get path to extracted directory
     /// @return Path to temporary directory containing extracted files
     ///
@@ -84,6 +88,7 @@ private:
     std::filesystem::path m_archive_path;    ///< Original .kplugin file path
     std::filesystem::path m_extracted_dir;   ///< Temporary directory with extracted files
     bool m_is_valid;                         ///< Extraction success flag
+    std::string m_error;                     ///< Why extraction failed, for the writer
 };
 
 } // namespace core

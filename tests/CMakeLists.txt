@@ -28,6 +28,7 @@ set(TEST_SOURCES
     core/test_art_provider_theme.cpp  # BUG-1: theme-change ordering in the icon stack
     core/test_theme_manager_apply.cpp  # Theme switch with color overrides in one pass
     core/test_plugin_manager.cpp
+    core/test_plugin_archive.cpp      # Plugin archives unpacked only into their own folder
     core/test_python_interpreter.cpp
     core/test_python_interop.cpp
     # OpenSpec #00042: Custom Text Editor
