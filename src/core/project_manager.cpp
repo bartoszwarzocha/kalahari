@@ -970,7 +970,7 @@ bool ProjectManager::closeProject(bool promptSave) {
         saveManifest();
     }
 
-    Logger::getInstance().info("Closing project: {}", m_manifestPath.string());
+    Logger::getInstance().info("Closing project: {}", toQString(m_manifestPath).toStdString());
     emit projectAboutToClose();
 
     // OpenSpec #00041: Backup and close database
@@ -1021,7 +1021,7 @@ bool ProjectManager::saveManifest() {
         return false;
     }
 
-    Logger::getInstance().debug("Saving manifest to: {}", m_manifestPath.string());
+    Logger::getInstance().debug("Saving manifest to: {}", toQString(m_manifestPath).toStdString());
 
     const QDateTime previous = m_project->modified;
     m_project->modified = now();
