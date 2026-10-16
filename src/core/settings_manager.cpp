@@ -3,6 +3,7 @@
 
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/unicode_paths.h>
 #include <algorithm>
 #include <fstream>
 #include <cstdlib>  // std::getenv
@@ -51,7 +52,7 @@ SettingsManager::SettingsManager() {
             save();
         }
     });
-    Logger::getInstance().info("SettingsManager initialized (file: {})", m_filePath.string());
+    Logger::getInstance().info("SettingsManager initialized (file: {})", pathText(m_filePath));
 }
 
 SettingsManager::~SettingsManager() {
@@ -68,7 +69,7 @@ bool SettingsManager::load() {
     std::lock_guard<std::mutex> lock(m_mutex);
 
     if (!std::filesystem::exists(m_filePath)) {
-        Logger::getInstance().info("Settings file not found, using defaults: {}", m_filePath.string());
+        Logger::getInstance().info("Settings file not found, using defaults: {}", pathText(m_filePath));
         createDefaults();  // Reset to defaults when file doesn't exist
         return true;  // Not an error, just first run
     }
@@ -79,18 +80,18 @@ bool SettingsManager::load() {
             // cannot be replaced by a later save
             std::ifstream file(m_filePath);
             if (!file.is_open()) {
-                Logger::getInstance().error("Failed to open settings file: {}", m_filePath.string());
+                Logger::getInstance().error("Failed to open settings file: {}", pathText(m_filePath));
                 return false;
             }
             m_settings = nlohmann::json::parse(file);
         }
-        Logger::getInstance().info("Settings loaded successfully from: {}", m_filePath.string());
+        Logger::getInstance().info("Settings loaded successfully from: {}", pathText(m_filePath));
 
         return true;
 
     } catch (const nlohmann::json::exception& e) {
         Logger::getInstance().warn("Settings file corrupted ({}), using defaults: {}",
-                     e.what(), m_filePath.string());
+                     e.what(), pathText(m_filePath));
 
         // Backup corrupted file
         try {
@@ -98,7 +99,7 @@ bool SettingsManager::load() {
             backupPath += ".bak";
             std::filesystem::copy_file(m_filePath, backupPath,
                                       std::filesystem::copy_options::overwrite_existing);
-            Logger::getInstance().info("Corrupted settings backed up to: {}", backupPath.string());
+            Logger::getInstance().info("Corrupted settings backed up to: {}", pathText(backupPath));
         } catch (...) {
             Logger::getInstance().warn("SettingsManager: Failed to backup corrupted settings file");
         }
@@ -116,7 +117,7 @@ bool SettingsManager::save() {
         std::filesystem::path dir = m_filePath.parent_path();
         if (!std::filesystem::exists(dir)) {
             std::filesystem::create_directories(dir);
-            Logger::getInstance().info("Created settings directory: {}", dir.string());
+            Logger::getInstance().info("Created settings directory: {}", pathText(dir));
         }
 
         // QSaveFile writes a temporary file and renames it over settings.json,
@@ -136,7 +137,7 @@ bool SettingsManager::save() {
                                         file.errorString().toStdString());
             return false;
         }
-        Logger::getInstance().info("Settings saved successfully to: {}", m_filePath.string());
+        Logger::getInstance().info("Settings saved successfully to: {}", pathText(m_filePath));
         return true;
 
     } catch (const std::exception& e) {
@@ -152,7 +153,7 @@ void SettingsManager::resetToDefaults() {
     if (std::filesystem::exists(m_filePath)) {
         try {
             std::filesystem::remove(m_filePath);
-            Logger::getInstance().info("Deleted settings file: {}", m_filePath.string());
+            Logger::getInstance().info("Deleted settings file: {}", pathText(m_filePath));
         } catch (const std::exception& e) {
             Logger::getInstance().warn("Failed to delete settings file: {}", e.what());
         }
@@ -461,18 +462,19 @@ std::filesystem::path SettingsManager::getSettingsDirectoryPath() const {
     // Windows: %APPDATA%\Kalahari
     // Example: C:\Users\Username\AppData\Roaming\Kalahari
 
-    // Use _dupenv_s (thread-safe, MSVC-recommended)
-    char* appdata = nullptr;
+    // Use _wdupenv_s (thread-safe, MSVC-recommended); the narrow _dupenv_s would give the
+    // folder in the code page of the system, without the characters it has no place for
+    wchar_t* appdata = nullptr;
     size_t len = 0;
-    if (_dupenv_s(&appdata, &len, "APPDATA") == 0 && appdata != nullptr) {
+    if (_wdupenv_s(&appdata, &len, L"APPDATA") == 0 && appdata != nullptr) {
         std::filesystem::path result = std::filesystem::path(appdata) / "Kalahari";
-        free(appdata);  // _dupenv_s allocates memory, must free
+        free(appdata);  // _wdupenv_s allocates memory, must free
         return result;
     }
 
     // Fallback: use SHGetFolderPath
-    char path[MAX_PATH];
-    if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, path))) {
+    wchar_t path[MAX_PATH];
+    if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, path))) {
         return std::filesystem::path(path) / "Kalahari";
     }
 

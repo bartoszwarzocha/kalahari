@@ -4,6 +4,7 @@
 #include <kalahari/core/plugin_archive.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/settings_manager.h>
+#include <kalahari/core/unicode_paths.h>
 #include <zip.h>
 #include <fstream>
 #include <chrono>
@@ -35,7 +36,7 @@ PluginArchive::PluginArchive(const std::filesystem::path& plugin_path)
         std::filesystem::create_directories(temp_base);
     } catch (const std::filesystem::filesystem_error& e) {
         Logger::getInstance().error("PluginArchive: Failed to create temp directory {}: {}",
-                                   temp_base.string(), e.what());
+                                   pathText(temp_base), e.what());
         return;
     }
 
@@ -49,17 +50,19 @@ PluginArchive::PluginArchive(const std::filesystem::path& plugin_path)
     const auto randomPart = (static_cast<std::uint64_t>(randomDevice()) << 32) | randomDevice();
 
     std::ostringstream oss;
-    oss << timestamp << "_" << std::hex << randomPart << std::dec << "_" << plugin_path.stem().string();
+    oss << timestamp << "_" << std::hex << randomPart << std::dec << "_";
+    std::filesystem::path name = oss.str();
+    name += plugin_path.stem();
 
-    m_extracted_dir = temp_base / oss.str();
+    m_extracted_dir = temp_base / name;
 
     // Extract archive
     m_is_valid = extractArchive(m_archive_path, m_extracted_dir);
 
     if (m_is_valid) {
         Logger::getInstance().debug("PluginArchive: Extracted {} to {}",
-                                   plugin_path.filename().string(),
-                                   m_extracted_dir.string());
+                                   pathText(plugin_path.filename()),
+                                   pathText(m_extracted_dir));
     }
 }
 
@@ -68,10 +71,10 @@ PluginArchive::~PluginArchive() {
         try {
             std::filesystem::remove_all(m_extracted_dir);
             Logger::getInstance().debug("PluginArchive: Cleaned up temp directory: {}",
-                                       m_extracted_dir.string());
+                                       pathText(m_extracted_dir));
         } catch (const std::filesystem::filesystem_error& e) {
             Logger::getInstance().warn("PluginArchive: Failed to cleanup temp directory {}: {}",
-                                      m_extracted_dir.string(), e.what());
+                                      pathText(m_extracted_dir), e.what());
         }
     }
 }
@@ -181,13 +184,13 @@ bool PluginArchive::extractArchive(const std::filesystem::path& archive_path,
     int zip_error = 0;
 
     // Open ZIP archive
-    zip_t* archive = zip_open(archive_path.string().c_str(), ZIP_RDONLY, &zip_error);
+    zip_t* archive = openZipFile(archive_path, ZIP_RDONLY, &zip_error);
 
     if (!archive) {
         zip_error_t error;
         zip_error_init_with_code(&error, zip_error);
         Logger::getInstance().error("PluginArchive: Failed to open archive {}: {}",
-                                   archive_path.filename().string(),
+                                   pathText(archive_path.filename()),
                                    zip_error_strerror(&error));
         zip_error_fini(&error);
         return false;
@@ -198,7 +201,7 @@ bool PluginArchive::extractArchive(const std::filesystem::path& archive_path,
 
     if (num_entries < 0) {
         Logger::getInstance().error("PluginArchive: Failed to get entry count from {}",
-                                   archive_path.filename().string());
+                                   pathText(archive_path.filename()));
         zip_close(archive);
         return false;
     }
@@ -208,7 +211,7 @@ bool PluginArchive::extractArchive(const std::filesystem::path& archive_path,
         std::filesystem::create_directories(target_dir);
     } catch (const std::filesystem::filesystem_error& e) {
         Logger::getInstance().error("PluginArchive: Failed to create extraction directory {}: {}",
-                                   target_dir.string(), e.what());
+                                   pathText(target_dir), e.what());
         zip_close(archive);
         return false;
     }
@@ -222,7 +225,8 @@ bool PluginArchive::extractArchive(const std::filesystem::path& archive_path,
             continue;
         }
 
-        std::filesystem::path entry_path = target_dir / entry_name;
+        // libzip gives the names of the entries in UTF-8
+        std::filesystem::path entry_path = target_dir / pathOfText(entry_name);
 
         // Check if entry is a directory (ends with /)
         std::string entry_name_str(entry_name);
@@ -232,7 +236,7 @@ bool PluginArchive::extractArchive(const std::filesystem::path& archive_path,
                 std::filesystem::create_directories(entry_path);
             } catch (const std::filesystem::filesystem_error& e) {
                 Logger::getInstance().warn("PluginArchive: Failed to create directory {}: {}",
-                                          entry_path.string(), e.what());
+                                          pathText(entry_path), e.what());
             }
             continue;
         }
@@ -242,7 +246,7 @@ bool PluginArchive::extractArchive(const std::filesystem::path& archive_path,
             std::filesystem::create_directories(entry_path.parent_path());
         } catch (const std::filesystem::filesystem_error& e) {
             Logger::getInstance().warn("PluginArchive: Failed to create parent directory for {}: {}",
-                                      entry_path.string(), e.what());
+                                      pathText(entry_path), e.what());
             continue;
         }
 
@@ -260,7 +264,7 @@ bool PluginArchive::extractArchive(const std::filesystem::path& archive_path,
 
         if (!output_file) {
             Logger::getInstance().warn("PluginArchive: Failed to create output file: {}",
-                                      entry_path.string());
+                                      pathText(entry_path));
             zip_fclose(zip_file);
             continue;
         }
@@ -286,8 +290,8 @@ bool PluginArchive::extractArchive(const std::filesystem::path& archive_path,
 
     Logger::getInstance().info("PluginArchive: Extracted {} entries from {} to {}",
                               num_entries,
-                              archive_path.filename().string(),
-                              target_dir.string());
+                              pathText(archive_path.filename()),
+                              pathText(target_dir));
 
     return true;
 }

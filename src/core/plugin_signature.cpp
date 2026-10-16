@@ -4,6 +4,7 @@
 #include <kalahari/core/plugin_signature.h>
 #include <kalahari/core/trusted_keys.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/unicode_paths.h>
 #include <nlohmann/json.hpp>
 #include <zip.h>
 #include <openssl/evp.h>
@@ -47,7 +48,7 @@ PluginSignature::VerifyResult PluginSignature::verify(
 
     // Check if plugin file exists
     if (!std::filesystem::exists(kpluginPath)) {
-        errorMessage = "Plugin file does not exist: " + kpluginPath.string();
+        errorMessage = "Plugin file does not exist: " + pathText(kpluginPath);
         Logger::getInstance().error("PluginSignature: {}", errorMessage);
         return VerifyResult::FormatError;
     }
@@ -57,7 +58,7 @@ PluginSignature::VerifyResult PluginSignature::verify(
     sigPath += ".sig";
 
     if (!std::filesystem::exists(sigPath)) {
-        errorMessage = "Signature file not found: " + sigPath.string();
+        errorMessage = "Signature file not found: " + pathText(sigPath);
         Logger::getInstance().debug("PluginSignature: {}", errorMessage);
         return VerifyResult::NotFound;
     }
@@ -132,7 +133,7 @@ PluginSignature::VerifyResult PluginSignature::verify(
     // Success
     signedBy = publisherId;
     Logger::getInstance().info("PluginSignature: Verified {} signed by {}",
-                               kpluginPath.filename().string(), publisherId);
+                               pathText(kpluginPath.filename()), publisherId);
     return VerifyResult::Valid;
 }
 
@@ -140,13 +141,13 @@ std::string PluginSignature::computeArchiveHash(
     const std::filesystem::path& kpluginPath
 ) {
     int zipError = 0;
-    zip_t* archive = zip_open(kpluginPath.string().c_str(), ZIP_RDONLY, &zipError);
+    zip_t* archive = openZipFile(kpluginPath, ZIP_RDONLY, &zipError);
 
     if (!archive) {
         zip_error_t error;
         zip_error_init_with_code(&error, zipError);
         Logger::getInstance().error("PluginSignature: Failed to open archive {}: {}",
-                                    kpluginPath.filename().string(),
+                                    pathText(kpluginPath.filename()),
                                     zip_error_strerror(&error));
         zip_error_fini(&error);
         return "";
@@ -329,7 +330,7 @@ bool PluginSignature::parseSignatureFile(
         std::ifstream file(sigPath);
         if (!file) {
             Logger::getInstance().error("PluginSignature: Cannot open signature file: {}",
-                                        sigPath.string());
+                                        pathText(sigPath));
             return false;
         }
 

@@ -3,6 +3,7 @@
 
 #include <kalahari/core/python_interpreter.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/unicode_paths.h>
 #include <pybind11/embed.h>
 #include <stdexcept>
 #include <chrono>    // For finalization timing diagnostics
@@ -82,11 +83,11 @@ void PythonInterpreter::initialize() {
 
         // Detect Python home based on executable location
         std::filesystem::path pythonHome = detectPythonHome();
-        Logger::getInstance().info("Detected Python home: {}", pythonHome.string());
+        Logger::getInstance().info("Detected Python home: {}", pathText(pythonHome));
 
         // Detect stdlib path (platform-specific: Lib on Windows, lib/python3.X on Unix)
         std::filesystem::path pythonLib = detectPythonStdlib(pythonHome);
-        Logger::getInstance().info("Python stdlib path: {}", pythonLib.string());
+        Logger::getInstance().info("Python stdlib path: {}", pathText(pythonLib));
 
 #ifdef _WIN32
         // Windows uses wchar_t
@@ -98,25 +99,25 @@ void PythonInterpreter::initialize() {
 
         // 1. Base stdlib (Lib)
         PyWideStringList_Append(&config.module_search_paths, pythonLib.wstring().c_str());
-        Logger::getInstance().debug("Added to search path: {}", pythonLib.string());
+        Logger::getInstance().debug("Added to search path: {}", pathText(pythonLib));
 
         // 2. site-packages (Lib/site-packages)
         std::filesystem::path sitePackages = pythonLib / "site-packages";
         if (std::filesystem::exists(sitePackages)) {
             PyWideStringList_Append(&config.module_search_paths, sitePackages.wstring().c_str());
-            Logger::getInstance().debug("Added to search path: {}", sitePackages.string());
+            Logger::getInstance().debug("Added to search path: {}", pathText(sitePackages));
         }
 
         // 3. DLLs directory (Python home/DLLs)
         std::filesystem::path dlls = pythonHome / "DLLs";
         if (std::filesystem::exists(dlls)) {
             PyWideStringList_Append(&config.module_search_paths, dlls.wstring().c_str());
-            Logger::getInstance().debug("Added to search path: {}", dlls.string());
+            Logger::getInstance().debug("Added to search path: {}", pathText(dlls));
         }
 #else
         // Linux/macOS use UTF-8 → must convert to wchar_t* using Py_DecodeLocale
-        wchar_t* homeWide = Py_DecodeLocale(pythonHome.string().c_str(), nullptr);
-        wchar_t* libWide = Py_DecodeLocale(pythonLib.string().c_str(), nullptr);
+        wchar_t* homeWide = Py_DecodeLocale(pythonHome.c_str(), nullptr);
+        wchar_t* libWide = Py_DecodeLocale(pythonLib.c_str(), nullptr);
 
         if (!homeWide || !libWide) {
             PyMem_RawFree(homeWide);
@@ -132,24 +133,24 @@ void PythonInterpreter::initialize() {
 
         // 1. Python ZIP archive (pythonXX.zip) - contains compiled stdlib modules
         // This path MUST be in sys.path even if file doesn't exist (Python standard)
-        std::string pythonVersion = pythonLib.filename().string(); // e.g., "python3.13"
+        std::string pythonVersion = pathText(pythonLib.filename()); // e.g., "python3.13"
         std::string zipName = pythonVersion;
         // Remove dots: python3.13 → python313
         zipName.erase(std::remove(zipName.begin(), zipName.end(), '.'), zipName.end());
         std::filesystem::path pythonZip = pythonLib.parent_path() / (zipName + ".zip");
 
-        wchar_t* zipWide = Py_DecodeLocale(pythonZip.string().c_str(), nullptr);
+        wchar_t* zipWide = Py_DecodeLocale(pythonZip.c_str(), nullptr);
         if (zipWide) {
             PyWideStringList_Append(&config.module_search_paths, zipWide);
             Logger::getInstance().debug("Added to search path: {} {}",
-                pythonZip.string(),
+                pathText(pythonZip),
                 std::filesystem::exists(pythonZip) ? "(exists)" : "(virtual path)");
             PyMem_RawFree(zipWide);
         }
 
         // 2. Base stdlib (lib/python3.X)
         PyWideStringList_Append(&config.module_search_paths, libWide);
-        Logger::getInstance().debug("Added to search path: {}", pythonLib.string());
+        Logger::getInstance().debug("Added to search path: {}", pathText(pythonLib));
 
         // 3. site-packages or dist-packages (Debian uses dist-packages)
         // Try both site-packages and dist-packages (Debian/Ubuntu convention)
@@ -161,10 +162,10 @@ void PythonInterpreter::initialize() {
 
         for (const auto& pkgPath : packagePaths) {
             if (std::filesystem::exists(pkgPath)) {
-                wchar_t* pkgPathWide = Py_DecodeLocale(pkgPath.string().c_str(), nullptr);
+                wchar_t* pkgPathWide = Py_DecodeLocale(pkgPath.c_str(), nullptr);
                 if (pkgPathWide) {
                     PyWideStringList_Append(&config.module_search_paths, pkgPathWide);
-                    Logger::getInstance().debug("Added to search path: {}", pkgPath.string());
+                    Logger::getInstance().debug("Added to search path: {}", pathText(pkgPath));
                     PyMem_RawFree(pkgPathWide);
                 }
             }
@@ -173,10 +174,10 @@ void PythonInterpreter::initialize() {
         // 4. lib-dynload (lib/python3.X/lib-dynload)
         std::filesystem::path libDynload = pythonLib / "lib-dynload";
         if (std::filesystem::exists(libDynload)) {
-            wchar_t* libDynloadWide = Py_DecodeLocale(libDynload.string().c_str(), nullptr);
+            wchar_t* libDynloadWide = Py_DecodeLocale(libDynload.c_str(), nullptr);
             if (libDynloadWide) {
                 PyWideStringList_Append(&config.module_search_paths, libDynloadWide);
-                Logger::getInstance().debug("Added to search path: {}", libDynload.string());
+                Logger::getInstance().debug("Added to search path: {}", pathText(libDynload));
                 PyMem_RawFree(libDynloadWide);
             }
         }
@@ -380,7 +381,7 @@ std::filesystem::path PythonInterpreter::detectPythonHome() const {
     GetModuleFileNameW(NULL, exePath, MAX_PATH);
     std::filesystem::path exeDir = std::filesystem::path(exePath).parent_path();
 
-    Logger::getInstance().debug("Executable directory: {}", exeDir.string());
+    Logger::getInstance().debug("Executable directory: {}", pathText(exeDir));
 
     // Strategy 1: Production - Python bundled next to .exe
     // C:/Program Files/Kalahari/kalahari.exe
@@ -409,8 +410,8 @@ std::filesystem::path PythonInterpreter::detectPythonHome() const {
     }
 
     throw std::runtime_error("Python installation not found! Searched:\n" +
-                             bundledLib.string() + "\n" +
-                             vcpkgPython.string());
+                             pathText(bundledLib) + "\n" +
+                             pathText(vcpkgPython));
 
 #elif defined(__APPLE__)
     // macOS: accept only an installation whose stdlib matches the linked libpython
@@ -426,7 +427,7 @@ std::filesystem::path PythonInterpreter::detectPythonHome() const {
     uint32_t size = sizeof(exePath);
     if (_NSGetExecutablePath(exePath, &size) == 0) {
         std::filesystem::path exeDir = std::filesystem::path(exePath).parent_path();
-        Logger::getInstance().debug("Executable directory: {}", exeDir.string());
+        Logger::getInstance().debug("Executable directory: {}", pathText(exeDir));
 
         // Development: vcpkg Python (build/bin/kalahari -> build/vcpkg_installed/<triplet>).
         // vcpkg installs the stdlib under the triplet prefix (lib/pythonX.Y);
@@ -447,9 +448,9 @@ std::filesystem::path PythonInterpreter::detectPythonHome() const {
     candidates.push_back("/usr/local");
 
     for (const auto& home : candidates) {
-        Logger::getInstance().debug("macOS Python home attempt: {}", home.string());
+        Logger::getInstance().debug("macOS Python home attempt: {}", pathText(home));
         if (hasStdlib(home)) {
-            Logger::getInstance().info("Found Python home: {}", home.string());
+            Logger::getInstance().info("Found Python home: {}", pathText(home));
             return home;
         }
     }
@@ -484,7 +485,7 @@ std::filesystem::path PythonInterpreter::detectPythonHome() const {
         const std::string stdlibName = std::string("python") + LINKED_PYTHON_VERSION;
         while (!ec && !dir.empty()) {
             if (std::filesystem::exists(dir / "lib" / stdlibName)) {
-                Logger::getInstance().info("Found Python home of linked libpython: {}", dir.string());
+                Logger::getInstance().info("Found Python home of linked libpython: {}", pathText(dir));
                 return dir;
             }
             if (dir == dir.parent_path()) {
@@ -513,14 +514,14 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
     //          build-windows\vcpkg_installed\x64-windows\tools\python3\Lib
     std::filesystem::path stdlibPath = pythonHome / "Lib";
 
-    Logger::getInstance().debug("Windows stdlib detection: {}", stdlibPath.string());
+    Logger::getInstance().debug("Windows stdlib detection: {}", pathText(stdlibPath));
 
     if (std::filesystem::exists(stdlibPath)) {
-        Logger::getInstance().info("Found Windows stdlib: {}", stdlibPath.string());
+        Logger::getInstance().info("Found Windows stdlib: {}", pathText(stdlibPath));
         return stdlibPath;
     }
 
-    throw std::runtime_error("Windows Python stdlib not found at: " + stdlibPath.string());
+    throw std::runtime_error("Windows Python stdlib not found at: " + pathText(stdlibPath));
 
 #elif defined(__APPLE__)
     // macOS: Multiple possible locations depending on Python distribution
@@ -533,10 +534,10 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
     // Attempt 1: Standard Unix layout (lib/pythonX.Y)
     for (const auto& version : versions) {
         std::filesystem::path stdlibPath = pythonHome / "lib" / ("python" + version);
-        Logger::getInstance().debug("macOS stdlib attempt (standard): {}", stdlibPath.string());
+        Logger::getInstance().debug("macOS stdlib attempt (standard): {}", pathText(stdlibPath));
 
         if (std::filesystem::exists(stdlibPath)) {
-            Logger::getInstance().info("Found macOS stdlib: {}", stdlibPath.string());
+            Logger::getInstance().info("Found macOS stdlib: {}", pathText(stdlibPath));
             return stdlibPath;
         }
     }
@@ -544,27 +545,27 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
     // Attempt 2: Framework layout (Homebrew)
     for (const auto& version : versions) {
         std::filesystem::path frameworkPath = pythonHome / "Frameworks" / "Python.framework" / "Versions" / version / "lib" / ("python" + version);
-        Logger::getInstance().debug("macOS stdlib attempt (framework): {}", frameworkPath.string());
+        Logger::getInstance().debug("macOS stdlib attempt (framework): {}", pathText(frameworkPath));
 
         if (std::filesystem::exists(frameworkPath)) {
-            Logger::getInstance().info("Found macOS stdlib (framework): {}", frameworkPath.string());
+            Logger::getInstance().info("Found macOS stdlib (framework): {}", pathText(frameworkPath));
             return frameworkPath;
         }
     }
 
-    throw std::runtime_error("macOS Python stdlib not found under: " + pythonHome.string());
+    throw std::runtime_error("macOS Python stdlib not found under: " + pathText(pythonHome));
 
 #else
     // Linux: lib/pythonX.Y (lowercase, versioned), matching the linked libpython
     std::filesystem::path stdlibPath = pythonHome / "lib" / (std::string("python") + LINKED_PYTHON_VERSION);
-    Logger::getInstance().debug("Linux stdlib attempt: {}", stdlibPath.string());
+    Logger::getInstance().debug("Linux stdlib attempt: {}", pathText(stdlibPath));
 
     if (std::filesystem::exists(stdlibPath)) {
-        Logger::getInstance().info("Found Linux stdlib: {}", stdlibPath.string());
+        Logger::getInstance().info("Found Linux stdlib: {}", pathText(stdlibPath));
         return stdlibPath;
     }
 
-    throw std::runtime_error("Linux Python stdlib not found: " + stdlibPath.string());
+    throw std::runtime_error("Linux Python stdlib not found: " + pathText(stdlibPath));
 #endif
 }
 

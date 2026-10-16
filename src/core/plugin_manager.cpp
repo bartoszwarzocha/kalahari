@@ -6,6 +6,7 @@
 #include <kalahari/core/trusted_keys.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/unicode_paths.h>
 #include <kalahari/core/python_interpreter.h>
 #include <zip.h>
 #include <cstdio>
@@ -101,7 +102,7 @@ std::filesystem::path PluginManager::getPluginsDirectory() const {
     // Try each path in order
     for (const auto& path : search_paths) {
         if (std::filesystem::exists(path) && std::filesystem::is_directory(path)) {
-            Logger::getInstance().debug("PluginManager: Found plugins directory: {}", path.string());
+            Logger::getInstance().debug("PluginManager: Found plugins directory: {}", pathText(path));
             return path;
         }
     }
@@ -144,7 +145,7 @@ size_t PluginManager::discoverPlugins() {
 
             if (!manifest_opt.has_value()) {
                 Logger::getInstance().warn("PluginManager: Failed to read manifest from: {}",
-                                          entry.path().filename().string());
+                                          pathText(entry.path().filename()));
                 continue;
             }
 
@@ -153,7 +154,7 @@ size_t PluginManager::discoverPlugins() {
             // Validate manifest
             if (!manifest.validate()) {
                 Logger::getInstance().warn("PluginManager: Invalid manifest in: {}",
-                                          entry.path().filename().string());
+                                          pathText(entry.path().filename()));
                 continue;
             }
 
@@ -210,7 +211,7 @@ size_t PluginManager::discoverPlugins() {
 
         } catch (const std::exception& e) {
             Logger::getInstance().error("PluginManager: Error discovering plugin {}: {}",
-                                       entry.path().filename().string(), e.what());
+                                       pathText(entry.path().filename()), e.what());
         }
     }
 
@@ -223,13 +224,13 @@ std::optional<PluginManifest> PluginManager::readManifestFromArchive(const std::
     int zip_error = 0;
 
     // Open ZIP archive
-    zip_t* archive = zip_open(kpluginPath.string().c_str(), ZIP_RDONLY, &zip_error);
+    zip_t* archive = openZipFile(kpluginPath, ZIP_RDONLY, &zip_error);
 
     if (!archive) {
         zip_error_t error;
         zip_error_init_with_code(&error, zip_error);
         Logger::getInstance().error("PluginManager: Failed to open archive {}: {}",
-                                   kpluginPath.filename().string(),
+                                   pathText(kpluginPath.filename()),
                                    zip_error_strerror(&error));
         zip_error_fini(&error);
         return std::nullopt;
@@ -240,7 +241,7 @@ std::optional<PluginManifest> PluginManager::readManifestFromArchive(const std::
 
     if (manifest_index < 0) {
         Logger::getInstance().error("PluginManager: manifest.json not found in {}",
-                                   kpluginPath.filename().string());
+                                   pathText(kpluginPath.filename()));
         zip_close(archive);
         return std::nullopt;
     }
@@ -250,7 +251,7 @@ std::optional<PluginManifest> PluginManager::readManifestFromArchive(const std::
 
     if (!manifest_file) {
         Logger::getInstance().error("PluginManager: Failed to open manifest.json in {}",
-                                   kpluginPath.filename().string());
+                                   pathText(kpluginPath.filename()));
         zip_close(archive);
         return std::nullopt;
     }
@@ -269,7 +270,7 @@ std::optional<PluginManifest> PluginManager::readManifestFromArchive(const std::
 
     if (bytes_read < 0) {
         Logger::getInstance().error("PluginManager: Error reading manifest.json from {}",
-                                   kpluginPath.filename().string());
+                                   pathText(kpluginPath.filename()));
         return std::nullopt;
     }
 
@@ -281,7 +282,7 @@ std::optional<PluginManifest> PluginManager::readManifestFromArchive(const std::
 
     } catch (const json::exception& e) {
         Logger::getInstance().error("PluginManager: JSON parse error in {}: {}",
-                                   kpluginPath.filename().string(), e.what());
+                                   pathText(kpluginPath.filename()), e.what());
         return std::nullopt;
     }
 }
@@ -330,7 +331,7 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
 
     try {
         // Step 1: Extract .kplugin archive (no GIL needed)
-        Logger::getInstance().debug("PluginManager: Extracting plugin archive: {}", plugin_path.string());
+        Logger::getInstance().debug("PluginManager: Extracting plugin archive: {}", pathText(plugin_path));
         instance.archive = std::make_unique<PluginArchive>(plugin_path);
 
         if (!instance.archive->isValid()) {
@@ -345,7 +346,7 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
         }
 
         auto extracted_path = instance.archive->getExtractedPath();
-        Logger::getInstance().info("PluginManager: Plugin extracted to: {}", extracted_path.string());
+        Logger::getInstance().info("PluginManager: Plugin extracted to: {}", pathText(extracted_path));
 
         // Step 2: Parse entry_point (no GIL needed)
         auto [module_name, class_name] = parseEntryPoint(entry_point);
@@ -358,8 +359,8 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
             // Add extracted directory to Python sys.path
             py::module_ sys = py::module_::import("sys");
             py::list path = sys.attr("path");
-            path.append(extracted_path.string());
-            Logger::getInstance().debug("PluginManager: Added to sys.path: {}", extracted_path.string());
+            path.append(pathText(extracted_path));
+            Logger::getInstance().debug("PluginManager: Added to sys.path: {}", pathText(extracted_path));
 
             // Import Python module
             Logger::getInstance().debug("PluginManager: Importing module: {}", module_name);
@@ -495,7 +496,7 @@ void PluginManager::unloadPlugin(const std::string& pluginId) {
                 py::list path = sys.attr("path");
 
                 // Find and remove the path
-                std::string path_str = extracted_path.string();
+                std::string path_str = pathText(extracted_path);
                 for (size_t i = 0; i < py::len(path); ++i) {
                     std::string item = py::str(path[i]);
                     if (item == path_str) {
