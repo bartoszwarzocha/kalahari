@@ -836,11 +836,13 @@ void BookEditor::runGrammarCheck()
         return;  // shown: showEvent(); the server back: GrammarCheckService::available()
     }
 
-    // Not while the writer is typing
-    if (m_grammarEditClock.isValid() && !m_grammarEditClock.hasExpired(GRAMMAR_EDIT_DELAY_MS)) {
-        scheduleGrammarCheck(
-            static_cast<int>(GRAMMAR_EDIT_DELAY_MS - m_grammarEditClock.elapsed()));
-        return;
+    // Not while the writer is typing; the clock is read once, so the rest is never below zero
+    if (m_grammarEditClock.isValid()) {
+        const qint64 rest = GRAMMAR_EDIT_DELAY_MS - m_grammarEditClock.elapsed();
+        if (rest > 0) {
+            scheduleGrammarCheck(static_cast<int>(rest));
+            return;
+        }
     }
 
     const auto send = [this](int number) { return sendGrammarCheck(number); };

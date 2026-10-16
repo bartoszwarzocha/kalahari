@@ -19,6 +19,7 @@
 #include <QTemporaryDir>
 
 #include <cstdio>
+#include <limits>
 #include <string>
 
 using namespace kalahari::gui;
@@ -56,6 +57,17 @@ int freePort() {
     QTcpServer server;
     REQUIRE(server.listen(QHostAddress::LocalHost));
     return server.serverPort();
+}
+
+/// The first port nothing listens on here, from the one given, as the server looks for it
+int firstFreePort(int from) {
+    for (int port = from; port <= std::numeric_limits<quint16>::max(); ++port) {
+        QTcpServer server;
+        if (server.listen(QHostAddress::LocalHost, static_cast<quint16>(port))) {
+            return port;
+        }
+    }
+    return 0;
 }
 
 /// Wait until a server is in a state
@@ -245,9 +257,28 @@ TEST_CASE("LanguageTool server: a port taken by another program, another one is 
         const bool running = reaches(server, LanguageToolServer::State::Running);
         INFO(account(server));
         REQUIRE(running);
-        REQUIRE(ports.size() == 1);
-        CHECK(ports.first() != other.serverPort());
-        CHECK(server.port() == ports.first());
+        // A test running alongside may take the free port before Java binds it: the server
+        // then takes the next one
+        REQUIRE_FALSE(ports.isEmpty());
+        CHECK_FALSE(ports.contains(other.serverPort()));
+        CHECK(server.port() == ports.last());
+    }
+
+    SECTION("taken before the start, and the next free one before Java binds it") {
+        QTcpServer other;
+        REQUIRE(other.listen(QHostAddress::LocalHost));
+        const int next = firstFreePort(other.serverPort());
+        REQUIRE(next > 0);
+        ScopedEnvironment taken("KALAHARI_FAKE_JAVA_TAKEN_PORT", QByteArray::number(next));
+        server.setPort(other.serverPort());
+        server.start();
+        const bool running = reaches(server, LanguageToolServer::State::Running);
+        INFO(account(server));
+        REQUIRE(running);
+        REQUIRE_FALSE(ports.isEmpty());
+        CHECK_FALSE(ports.contains(other.serverPort()));
+        CHECK(server.port() != next);
+        CHECK(server.port() == ports.last());
     }
 
     SECTION("taken while Java starts it") {
