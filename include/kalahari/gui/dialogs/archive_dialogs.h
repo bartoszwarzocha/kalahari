@@ -6,14 +6,17 @@
 
 #include "kalahari/core/archive_problem.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_registry.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
 #include <QList>
 #include <QPair>
 #include <QString>
 #include <QStringList>
+#include <QTemporaryDir>
 
 #include <functional>
+#include <memory>
 #include <optional>
 
 class QCheckBox;
@@ -351,7 +354,9 @@ public:
                            const Progress& progress, core::ArchiveProblem* problem)>;
 
     /// @brief Create the window without an archive
-    /// @param registry The book types, for the names of the type and the kinds
+    /// @param registry The installed book types. The window names the type and the kinds of
+    /// the book of an archive after its copies of the packages, and after these where they
+    /// are newer or the archive has no copy, as the book will work after the import.
     /// @param folder Folder in which the folder of the book is made, at the start
     /// @param importer Unpacks the archive and opens the book
     /// @param parent Parent widget
@@ -419,7 +424,13 @@ private:
     /// empty for a cause the window does not name
     QString reasonOf(const core::ArchiveProblem& problem) const;
 
+    /// @brief The packages the book of the archive will work with: its copies, unpacked to a
+    /// temporary folder, and the installed packages; the installed ones without a folder
+    const core::BookTypeRegistry& bookTypes() const;
+
     const core::BookTypeRegistry* m_registry;
+    std::unique_ptr<QTemporaryDir> m_copies;  ///< The copies of the packages of the archive
+    core::BookTypeRegistry m_bookTypes;       ///< The packages of the book of the archive
     Importer m_importer;
     OpeningQuestion m_openingQuestion;
     QString m_archive;

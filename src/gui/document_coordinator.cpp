@@ -312,15 +312,29 @@ void DocumentCoordinator::onNewProject() {
         }
     }
 
+    // Why the book cannot be created: a type that is not installed is named, the rest is in
+    // the details
+    const auto showFailure = [this, &pm, &result, &request](const QStringList& problems) {
+        QString text = tr("Could not create the book '%1'.").arg(result.title);
+        if (!request.typeId.isEmpty() && !pm.installedBookTypes().package(request.typeId)) {
+            //: %1: the title of the new book; %2: its type, e.g. Novel. In Polish: Nie można
+            //: utworzyć książki „%1”: typ książki „%2” nie jest zainstalowany.
+            text = tr("The book \"%1\" cannot be created: the book type \"%2\" is not "
+                      "installed.")
+                       .arg(result.title, dialogs::TemplateRegistry::getInstance()
+                                              .getTemplate(result.templateId)
+                                              .name);
+        }
+        dialogs::MessageDialog::error(m_mainWindow, tr("New Book"), text, detailsOf(problems));
+    };
+
     QStringList problems;
     if (!open) {
         // The open book stays open; the new one is on the Dashboard and in Recent Books
         const QString manifest = pm.createProjectWithoutOpening(request, &problems);
         if (manifest.isEmpty()) {
             logger.error("Failed to create project: {}", result.title.toStdString());
-            dialogs::MessageDialog::error(m_mainWindow, tr("New Book"),
-                                          tr("Could not create the book '%1'.").arg(result.title),
-                                          detailsOf(problems));
+            showFailure(problems);
             return;
         }
         // The next new book starts in the folder this one was created in
@@ -343,9 +357,7 @@ void DocumentCoordinator::onNewProject() {
     // onProjectOpened() shows it
     if (!pm.createProject(request, &problems)) {
         logger.error("Failed to create project: {}", result.title.toStdString());
-        dialogs::MessageDialog::error(m_mainWindow, tr("New Book"),
-                                      tr("Could not create the book '%1'.").arg(result.title),
-                                      detailsOf(problems));
+        showFailure(problems);
         return;
     }
 
@@ -1737,8 +1749,8 @@ void DocumentCoordinator::onImportArchive() {
     auto& pm = core::ProjectManager::getInstance();
 
     // One window: the archive and its book, the folder, the progress and the result. The book
-    // of the archive is not the open one, so the window names its kinds after the installed
-    // packages.
+    // of the archive is not the open one: the window names its type and kinds after its copies
+    // of the packages in the archive, and after the installed packages.
     dialogs::ImportArchiveDialog dialog(
         pm.installedBookTypes(),
         ProgramFolders::startFolder(ProgramFolders::Operation::ImportDestination),

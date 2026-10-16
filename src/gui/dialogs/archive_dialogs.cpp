@@ -6,6 +6,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/kind_words.h"
+#include "kalahari/core/package_copies.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
@@ -865,6 +866,19 @@ void ImportArchiveDialog::setArchive(const QString& path)
     if (!path.isEmpty()) {
         m_project = core::ProjectManager::readArchive(path, &m_archiveProblem, &m_backups);
     }
+
+    // The book is named after its copies of the packages, as it will work after the import
+    m_copies.reset();
+    if (m_project) {
+        m_copies = std::make_unique<QTemporaryDir>();
+        if (m_copies->isValid()) {
+            core::ProjectManager::unpackArchiveCopies(path, m_copies->path());
+            m_bookTypes.loadPackages(
+                core::PackageCopies::folders(m_copies->path(), *m_project, *m_registry));
+        } else {
+            m_copies.reset();
+        }
+    }
     dropFailure();
     showBook();
     updateFields();
@@ -881,6 +895,11 @@ void ImportArchiveDialog::setFolder(const QString& folder)
 QString ImportArchiveDialog::bookFolder() const
 {
     return QDir(m_folder).filePath(core::ProjectManager::archiveProjectName(m_archive));
+}
+
+const core::BookTypeRegistry& ImportArchiveDialog::bookTypes() const
+{
+    return m_copies ? m_bookTypes : *m_registry;
 }
 
 QString ImportArchiveDialog::bookText() const
@@ -1097,7 +1116,7 @@ void ImportArchiveDialog::showBook()
     const QString author = book ? book->author.trimmed() : QString();
     m_authorValue->setText(author);
     setRowVisible(m_authorValue, !author.isEmpty());
-    m_typeValue->setText(typeNameOf(*m_registry, *m_project));
+    m_typeValue->setText(typeNameOf(bookTypes(), *m_project));
 
     // The elements of the book: the main part first, as it holds the most of them
     QList<const core::ProjectElement*> elements;
@@ -1106,7 +1125,7 @@ void ImportArchiveDialog::showBook()
         appendAll(book->frontElements, elements);
         appendAll(book->backElements, elements);
     }
-    m_contentsValue->setText(contentsOf(*m_registry, elements));
+    m_contentsValue->setText(contentsOf(bookTypes(), elements));
 
     // The Workshop, when it has elements, by the name of its node
     QList<const core::ProjectElement*> workshop;
@@ -1114,7 +1133,7 @@ void ImportArchiveDialog::showBook()
     m_workshopLabel->setText(m_project->workshop.name.isEmpty()
                                  ? tr("Workshop:")
                                  : m_project->workshop.name + QLatin1Char(':'));
-    m_workshopValue->setText(contentsOf(*m_registry, workshop));
+    m_workshopValue->setText(contentsOf(bookTypes(), workshop));
     setRowVisible(m_workshopValue, !workshop.isEmpty());
 
     // The backups of the database, which go where Kalahari keeps the backups of books

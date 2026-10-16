@@ -649,6 +649,15 @@ public:
                                                   ArchiveProblem* problem = nullptr,
                                                   int* backups = nullptr);
 
+    /// @brief Unpack the copies of the packages of the book of a .klh.zip archive (its folder
+    /// types/) to folder @p targetDir, as the folder of the book has them
+    ///
+    /// The book of the archive is shown before it is imported with these copies, as it will
+    /// work after the import (PackageCopies::folders()). An archive of an earlier version has
+    /// no copies. Entries that would land outside @p targetDir are skipped.
+    /// @return false when the archive cannot be read or a copy cannot be written
+    static bool unpackArchiveCopies(const QString& archivePath, const QString& targetDir);
+
     /// @brief Unpack a .klh.zip archive to a new folder, without opening the project in it
     ///
     /// The project goes to targetDir/<archiveProjectName()>, which must not exist yet. Entries

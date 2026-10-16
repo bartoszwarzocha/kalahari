@@ -425,3 +425,89 @@ TEST_CASE("Package copies: the archive of a book takes them to another computer"
     CHECK(references(pm.kindsFor(BookPlace::Main)) == mainKinds);
     REQUIRE(pm.closeProject(false));
 }
+
+TEST_CASE("Package copies: the folders of the packages of a book are found without writing",
+          "[core][package_copies]") {
+    const Installed installed;
+    QTemporaryDir dir;
+    auto& pm = ProjectManager::getInstance();
+    REQUIRE(pm.createProject(dir.path(), "Travels", "Anna", "en", true, "kalahari.novel"));
+    const QString projectDir = pm.getProjectPath();
+    const BookProject project = *pm.project();
+    REQUIRE(pm.closeProject(false));
+    const auto folders = [&] {
+        return PackageCopies::folders(projectDir, project, pm.installedBookTypes());
+    };
+
+    // The copies, the type first
+    CHECK(folders() == QStringList{PackageCopies::folderOf(projectDir, "kalahari.novel"),
+                                   PackageCopies::folderOf(projectDir, "kalahari.base")});
+
+    // A newer installed package takes the place of its copy, which stays as it was
+    setVersion(installed.package("kalahari.novel"), "1.1");
+    installed.load();
+    const QStringList newer = folders();
+    REQUIRE(newer.size() == 2);
+    CHECK(QFileInfo(newer.first()) == QFileInfo(installed.package("kalahari.novel")));
+    CHECK(newer.last() == PackageCopies::folderOf(projectDir, "kalahari.base"));
+    CHECK(PackageCopies::read(projectDir, "kalahari.novel")->version == "1.0");
+
+    // Without copies, the installed packages; nothing is written
+    REQUIRE(QDir(PackageCopies::folderOf(projectDir)).removeRecursively());
+    const QStringList installedFolders = folders();
+    REQUIRE(installedFolders.size() == 2);
+    CHECK(QFileInfo(installedFolders.last()) == QFileInfo(installed.package("kalahari.base")));
+    CHECK_FALSE(QFileInfo::exists(PackageCopies::folderOf(projectDir)));
+}
+
+TEST_CASE("Package copies: the copies of the book of an archive are unpacked before the import",
+          "[core][package_copies][archive]") {
+    const Installed installed;
+    QTemporaryDir dir;
+    auto& pm = ProjectManager::getInstance();
+    REQUIRE(pm.createProject(dir.path(), "Travels", "Anna", "en", true, "kalahari.novel"));
+    const QString projectDir = pm.getProjectPath();
+    const QString archive = QDir(dir.path()).filePath("Travels.klh.zip");
+    REQUIRE(pm.exportArchive(archive));
+    REQUIRE(pm.closeProject(false));
+
+    // Only the copies, as the folder of the book has them
+    QTemporaryDir unpacked;
+    REQUIRE(unpacked.isValid());
+    REQUIRE(ProjectManager::unpackArchiveCopies(archive, unpacked.path()));
+    CHECK(filesOf(unpacked.path()) == filesOf(projectDir).filter(QStringLiteral("types/")));
+    CHECK(contentsOf(QDir(unpacked.path()).filePath("types/kalahari.novel/booktype.json")) ==
+          contentsOf(QDir(projectDir).filePath("types/kalahari.novel/booktype.json")));
+
+    // The book of the archive works with them where its type is not installed
+    installed.remove({"kalahari.novel", "kalahari.short_stories"});
+    const std::optional<BookProject> project = ProjectManager::readArchive(archive);
+    REQUIRE(project.has_value());
+    BookTypeRegistry registry;
+    registry.loadPackages(
+        PackageCopies::folders(unpacked.path(), *project, pm.installedBookTypes()));
+    CHECK(registry.problems().isEmpty());
+    REQUIRE(registry.package("kalahari.novel") != nullptr);
+    CHECK(registry.findKind("kalahari.novel", "prologue"));
+
+    // An archive without copies, of an earlier version, unpacks nothing
+    QTemporaryDir empty;
+    REQUIRE(empty.isValid());
+    const QString earlier = QDir(dir.path()).filePath("Earlier.klh.zip");
+    int error = 0;
+    zip_t* zip = zip_open(QFile::encodeName(earlier).constData(), ZIP_CREATE | ZIP_TRUNCATE,
+                          &error);
+    REQUIRE(zip != nullptr);
+    const QByteArray klh = contentsOf(QDir(projectDir).filePath("Travels.klh"));
+    zip_source_t* source =
+        zip_source_buffer(zip, klh.constData(), static_cast<zip_uint64_t>(klh.size()), 0);
+    REQUIRE(source != nullptr);
+    REQUIRE(zip_file_add(zip, "Travels.klh", source, ZIP_FL_ENC_UTF_8) >= 0);
+    REQUIRE(zip_close(zip) == 0);
+    CHECK(ProjectManager::unpackArchiveCopies(earlier, empty.path()));
+    CHECK(filesOf(empty.path()).isEmpty());
+
+    // A file that is not an archive
+    CHECK_FALSE(ProjectManager::unpackArchiveCopies(QDir(projectDir).filePath("Travels.klh"),
+                                                    empty.path()));
+}

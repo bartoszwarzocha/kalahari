@@ -16,6 +16,7 @@
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QDir>
+#include <QDirIterator>
 #include <QEvent>
 #include <QFile>
 #include <QFileInfo>
@@ -1012,6 +1013,72 @@ TEST_CASE("Import Project Archive: the book of the archive before the import",
                              "Research: 4 elements: 3 characters and a location"));
         CHECK(dialog.folderNote() == QStringLiteral("The book goes to the folder \"Saga\"."));
     }
+}
+
+TEST_CASE("Import Project Archive: a book of a type that is not installed is named after its "
+          "copies in the archive",
+          "[gui][dialogs][archive]") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QString archive = novelArchive(dir);
+
+    // The book of the archive has a prologue, a kind of the novel
+    std::optional<core::BookProject> project = core::ProjectManager::readArchive(archive);
+    REQUIRE(project.has_value());
+    project->books.first().mainElements.prepend(
+        element(QStringLiteral("kalahari.novel"), QStringLiteral("prologue"), 1));
+    QList<std::pair<QByteArray, QByteArray>> entries{
+        {"Travels.klh", QJsonDocument(project->toJson()).toJson()}};
+    const QDir source(QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes"));
+    for (const char* file : {"kalahari.base/booktype.json", "kalahari.base/styles.json",
+                             "kalahari.base/templates/title_page.kchapter",
+                             "kalahari.novel/booktype.json", "kalahari.novel/styles.json"}) {
+        QFile copy(source.filePath(QString::fromLatin1(file)));
+        REQUIRE(copy.open(QIODevice::ReadOnly));
+        entries.append({QByteArray("types/") + file, copy.readAll()});
+    }
+    const QString withCopies = QDir(dir.path()).filePath(QStringLiteral("Saga.klh.zip"));
+    writeArchive(withCopies, entries);
+    const QString withoutCopies = QDir(dir.path()).filePath(QStringLiteral("Earlier.klh.zip"));
+    writeArchive(withoutCopies, {entries.first()});
+
+    // The program has no novel (nor the collection of stories, which uses it)
+    QTemporaryDir installedDir;
+    REQUIRE(installedDir.isValid());
+    for (const QString& package : source.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        if (package == QLatin1String("kalahari.novel") ||
+            package == QLatin1String("kalahari.short_stories")) {
+            continue;
+        }
+        QDirIterator it(source.filePath(package), QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const QString file = source.relativeFilePath(it.next());
+            const QString target = QDir(installedDir.path()).filePath(file);
+            REQUIRE(QDir().mkpath(QFileInfo(target).absolutePath()));
+            REQUIRE(QFile::copy(source.filePath(file), target));
+        }
+    }
+    core::BookTypeRegistry installed;
+    installed.load({installedDir.path()});
+    REQUIRE(installed.problems().isEmpty());
+    REQUIRE(installed.package(QStringLiteral("kalahari.novel")) == nullptr);
+
+    ImportArchiveDialog dialog(installed, QDir(dir.path()).filePath(QStringLiteral("Books")),
+                               [](const QString&, const QString&, bool,
+                                  const ArchiveDialog::Progress&,
+                                  core::ArchiveProblem*) { return true; });
+
+    // With its copies: the type and the kinds as the book will have them after the import
+    dialog.setArchive(withCopies);
+    INFO(dialog.bookText().toStdString());
+    CHECK(dialog.bookText() ==
+          QStringLiteral("Title: Travels\nAuthor: Anna\nType: Novel\n"
+                         "Contents: 3 elements: a prologue, a chapter, and a title page"));
+    CHECK(dialog.acceptButton()->isEnabled());
+
+    // An archive of an earlier version, without copies: the type is not installed
+    dialog.setArchive(withoutCopies);
+    CHECK(dialog.bookText().contains(QStringLiteral("Type: kalahari.novel (not installed)\n")));
 }
 
 TEST_CASE("Import Project Archive: each row of the book is as high as its sentence",

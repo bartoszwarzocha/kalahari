@@ -172,6 +172,10 @@ constexpr QLatin1String DATABASE_LOG("project.db-wal");
 /// Largest .klh file that readArchive() reads from an archive; a book's has a few kilobytes
 constexpr qsizetype MAX_ARCHIVED_MANIFEST = 16 * 1024 * 1024;
 
+/// Largest file of a copy of a package that unpackArchiveCopies() unpacks; a manifest, styles
+/// and templates have a few kilobytes
+constexpr qsizetype MAX_ARCHIVED_COPY_FILE = 16 * 1024 * 1024;
+
 /// Whether file @p path of a project, relative to its folder, serves only the project open
 /// in this place: its lock, the log files of its database and the database's backups
 bool isLocalFile(const QString& path) {
@@ -851,13 +855,14 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
     }
 
     // The .klh file names the version of the type the book works with
-    if (m_project->type) {
-        const BookTypePackage* type = m_projectTypes.package(m_project->type->id);
-        if (type && type->version != m_project->type->version) {
-            const QString previous = m_project->type->version;
-            m_project->type->version = type->version;
+    std::optional<ProjectType>& named = m_project->type;
+    if (named) {
+        const BookTypePackage* type = m_projectTypes.package(named->id);
+        if (type && type->version != named->version) {
+            const QString previous = named->version;
+            named->version = type->version;
             if (!m_project->save(manifestPath)) {
-                m_project->type->version = previous;
+                named->version = previous;
                 logger.warn("openProject: The version of the type cannot be saved in {}",
                             manifestInfo.fileName().toStdString());
             }
@@ -2456,6 +2461,57 @@ std::optional<BookProject> ProjectManager::readArchive(const QString& archivePat
         *backups = backupCount;
     }
     return project;
+}
+
+bool ProjectManager::unpackArchiveCopies(const QString& archivePath, const QString& targetDir) {
+    ZipFailure failure;
+    zip_t* archive = openZip(archivePath, ZIP_RDONLY, &failure);
+    if (!archive) {
+        Logger::getInstance().warn("unpackArchiveCopies: {}: {}", archivePath.toStdString(),
+                                   failure.text.toStdString());
+        return false;
+    }
+
+    // The files of the folder types/ at the top of the project, as unpackArchive() writes them
+    const QString prefix = QString::fromLatin1(BookProject::TYPES_FOLDER) + QLatin1Char('/');
+    const QDir dir(targetDir);
+    bool written = true;
+    const zip_int64_t count = zip_get_num_entries(archive, 0);
+    for (zip_int64_t i = 0; i < count && written; ++i) {
+        const char* rawName = zip_get_name(archive, static_cast<zip_uint64_t>(i), 0);
+        const QString name = rawName ? QString::fromUtf8(rawName) : QString();
+        const QString path = entryPath(name);
+        if (!path.startsWith(prefix) || name.endsWith(QLatin1Char('/')) ||
+            name.endsWith(QLatin1Char('\\'))) {
+            continue;
+        }
+        const QString filePath = dir.filePath(path);
+        zip_file_t* entry = zip_fopen_index(archive, static_cast<zip_uint64_t>(i), 0);
+        QSaveFile file(filePath);
+        written = entry && QDir().mkpath(QFileInfo(filePath).absolutePath()) &&
+                  file.open(QIODevice::WriteOnly);
+        if (written) {
+            char buffer[8192];
+            zip_int64_t read = 0;
+            qsizetype size = 0;
+            while ((read = zip_fread(entry, buffer, sizeof(buffer))) > 0) {
+                size += static_cast<qsizetype>(read);
+                if (size > MAX_ARCHIVED_COPY_FILE || file.write(buffer, read) != read) {
+                    break;
+                }
+            }
+            written = read == 0 && file.commit();
+        }
+        if (entry) {
+            zip_fclose(entry);
+        }
+        if (!written) {
+            Logger::getInstance().warn("unpackArchiveCopies: {}: cannot be unpacked to {}",
+                                       path.toStdString(), filePath.toStdString());
+        }
+    }
+    zip_close(archive);
+    return written;
 }
 
 QString ProjectManager::unpackArchive(const QString& archivePath,

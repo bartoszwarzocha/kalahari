@@ -4616,6 +4616,11 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <translation>Książka jest teraz w nowym formacie. Jej stary plik pozostał obok jako kopia:
 %1</translation>
     </message>
+    <message>
+        <source>The book &quot;%1&quot; cannot be created: the book type &quot;%2&quot; is not installed.</source>
+        <extracomment>%1: the title of the new book; %2: its type, e.g. Novel. In Polish: Nie można utworzyć książki „%1”: typ książki „%2” nie jest zainstalowany.</extracomment>
+        <translation>Nie można utworzyć książki „%1”: typ książki „%2” nie jest zainstalowany.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorAutoCorrectPage</name>

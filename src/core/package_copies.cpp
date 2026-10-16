@@ -140,6 +140,16 @@ bool PackageCopies::write(const BookTypePackage& package, const QString& destina
 
 PackageCopiesUpdate PackageCopies::update(const QString& projectDir, const BookProject& project,
                                           const BookTypeRegistry& installed) {
+    return walk(projectDir, project, installed, true);
+}
+
+QStringList PackageCopies::folders(const QString& projectDir, const BookProject& project,
+                                   const BookTypeRegistry& installed) {
+    return walk(projectDir, project, installed, false).folders;
+}
+
+PackageCopiesUpdate PackageCopies::walk(const QString& projectDir, const BookProject& project,
+                                        const BookTypeRegistry& installed, bool writeCopies) {
     auto& logger = Logger::getInstance();
     PackageCopiesUpdate result;
 
@@ -162,20 +172,24 @@ PackageCopiesUpdate PackageCopies::update(const QString& projectDir, const BookP
                                        .arg(id, QDir::toNativeSeparators(folder)));
         }
 
-        // An installed package newer than the copy, or one the book has no copy of, is copied
+        // An installed package newer than the copy, or one the book has no copy of, is copied;
+        // without writing, the installed package takes the place of the copy
         if (package && (!copy || isNewer(package->version, copy->version))) {
             const bool hadCopy = copy.has_value() || unreadable;
-            QString problem;
             copy.reset();
-            if (write(*package, folder, &problem)) {
-                copy = read(projectDir, id);
-                if (!copy) {
-                    problem = QStringLiteral("the copy in %1 cannot be read")
-                                  .arg(QDir::toNativeSeparators(folder));
+            if (writeCopies) {
+                QString problem;
+                if (PackageCopies::write(*package, folder, &problem)) {
+                    copy = read(projectDir, id);
+                    if (!copy) {
+                        problem = QStringLiteral("the copy in %1 cannot be read")
+                                      .arg(QDir::toNativeSeparators(folder));
+                    }
                 }
-            }
-            if (copy) {
-                if (hadCopy) {
+                if (!copy) {
+                    // The installed package serves the book this time
+                    result.problems.append(QStringLiteral("%1: %2").arg(id, problem));
+                } else if (hadCopy) {
                     result.refreshed.append(id);
                     logger.info("The project's copy of {} is version {} now", id.toStdString(),
                                 copy->version.toStdString());
@@ -184,9 +198,6 @@ PackageCopiesUpdate PackageCopies::update(const QString& projectDir, const BookP
                     logger.debug("The package {} {} is copied into the book", id.toStdString(),
                                  copy->version.toStdString());
                 }
-            } else {
-                // The installed package serves the book this time
-                result.problems.append(QStringLiteral("%1: %2").arg(id, problem));
             }
         }
 

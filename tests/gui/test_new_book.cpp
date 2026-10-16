@@ -18,6 +18,8 @@
 #include <QCoreApplication>
 #include <QDialogButtonBox>
 #include <QDir>
+#include <QDirIterator>
+#include <QFile>
 #include <QFileInfo>
 #include <QLabel>
 #include <QLineEdit>
@@ -768,6 +770,76 @@ TEST_CASE("New Book: with a book open, the new book is created without opening i
         CHECK(novel.pm.book()->title == QStringLiteral("Second"));
         REQUIRE(novel.pm.closeProject(false));  // before its folder goes
     }
+}
+
+TEST_CASE("New Book: a book of a type that is not installed is not created, and the message "
+          "names the type",
+          "[gui][newbook]") {
+    const test::RecentBooks recent;
+    auto& pm = core::ProjectManager::getInstance();
+    if (pm.isProjectOpen()) {
+        REQUIRE(pm.closeProject(false));
+    }
+
+    // The program has no novel (nor the collection of stories, which uses it)
+    QTemporaryDir installed;
+    REQUIRE(installed.isValid());
+    const QDir source(QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes"));
+    for (const QString& package : source.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        if (package == QLatin1String("kalahari.novel") ||
+            package == QLatin1String("kalahari.short_stories")) {
+            continue;
+        }
+        QDirIterator it(source.filePath(package), QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const QString file = source.relativeFilePath(it.next());
+            const QString target = QDir(installed.path()).filePath(file);
+            REQUIRE(QDir().mkpath(QFileInfo(target).absolutePath()));
+            REQUIRE(QFile::copy(source.filePath(file), target));
+        }
+    }
+    pm.loadBookTypes({installed.path()});
+    REQUIRE(pm.installedBookTypes().package(QStringLiteral("kalahari.novel")) == nullptr);
+
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    test::Window window;
+    QStringList unexpected;
+    QString message;
+    const QList<Step> steps{
+        {is<NewItemDialog>,
+         [&folder](QDialog& dialog) {
+             fillNewBook(dialog, "template.novel", QStringLiteral("Second"), folder.path());
+             later(createButton(dialog));
+         }},
+        {is<MessageDialog>, [&message](QDialog& dialog) {
+             auto& error = static_cast<MessageDialog&>(dialog);
+             message = error.clipboardText();
+             later(error.acceptButton());
+         }}};
+    CHECK(doing([&window] { window.documents.onNewProject(); }, steps, unexpected) ==
+          steps.size());
+    INFO(unexpected.join(QLatin1Char('\n')).toStdString());
+    CHECK(unexpected.isEmpty());
+    pm.loadBookTypes({source.path()});
+
+    // The message names the type; the details keep the line of the program
+    CHECK(message == QStringLiteral("New Book\n\nThe book \"Second\" cannot be created: the "
+                                    "book type \"Novel\" is not installed.\n\nthe book type "
+                                    "kalahari.novel is not installed"));
+    CHECK_FALSE(pm.isProjectOpen());
+    CHECK_FALSE(QFileInfo::exists(QDir(folder.path()).filePath(QStringLiteral("Second"))));
+
+    // In Polish
+    QTranslator polish;
+    REQUIRE(polish.load(QStringLiteral(":/i18n/kalahari_pl.qm")));
+    QCoreApplication::installTranslator(&polish);
+    CHECK(QCoreApplication::translate("kalahari::gui::DocumentCoordinator",
+                                      "The book \"%1\" cannot be created: the book type \"%2\" "
+                                      "is not installed.") ==
+          QStringLiteral("Nie można utworzyć książki „%1”: typ książki „%2” nie jest "
+                         "zainstalowany."));
+    QCoreApplication::removeTranslator(&polish);
 }
 
 TEST_CASE("New Book: a user project gets the kinds and the elements chosen in the window of its "

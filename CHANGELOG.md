@@ -23,8 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   copy as it is. A new book gets its copies at once; a book made before gets them the first
   time it opens. The copies serve their book only: the New Book window, the palette of a user
   project, the import of an archive and the other books take the installed packages, so a
-  copy installs nothing. The archive of a book takes its copies along. A card of a recent
-  book on the Dashboard names its type after the book's copy where the type is not installed.
+  copy installs nothing. The archive of a book takes its copies along, and the Import Project
+  Archive window names the type and the kinds of its book after them, as the book will work
+  after the import. A card of a recent book on the Dashboard names its type after the book's
+  copy where the type is not installed. A new book of a type that is not installed is not
+  created, and the message says so: "The book ... cannot be created: the book type ... is not
+  installed."
 
 - **Menus: icons of the submenus** - 2026-10-16. Import, Export, Recent Books, Text Style,
   Statistics, Plugins, Assistant Actions, View Mode, Zoom, Panels, Perspectives and Toolbars

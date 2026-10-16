@@ -65,6 +65,16 @@ struct PackageCopies {
     static PackageCopiesUpdate update(const QString& projectDir, const BookProject& project,
                                       const BookTypeRegistry& installed);
 
+    /// @brief Folders that the packages of @p project would be read from after update(),
+    /// without writing anything: its copies, or the installed package where it is newer than
+    /// the copy or the book has no copy
+    ///
+    /// The book of an archive, shown before it is imported (its copies unpacked to a temporary
+    /// folder), is named as it will work after the import.
+    /// @param projectDir Folder of the book, or the folder its copies are unpacked to
+    static QStringList folders(const QString& projectDir, const BookProject& project,
+                               const BookTypeRegistry& installed);
+
     /// @brief Write the data of @p package to folder @p destination, replacing what is there
     ///
     /// The new copy is written beside the folder and takes its place when it is complete, so
@@ -75,6 +85,12 @@ struct PackageCopies {
 
     /// @brief Whether version @p version, e.g. "1.10", is newer than @p than, e.g. "1.9"
     static bool isNewer(const QString& version, const QString& than);
+
+private:
+    /// The packages @p project uses, each with the packages it needs, from its copies or from
+    /// @p installed; with @p writeCopies, update() makes and refreshes the copies on the way
+    static PackageCopiesUpdate walk(const QString& projectDir, const BookProject& project,
+                                    const BookTypeRegistry& installed, bool writeCopies);
 };
 
 }  // namespace kalahari::core
