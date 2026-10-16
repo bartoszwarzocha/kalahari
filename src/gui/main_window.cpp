@@ -76,7 +76,6 @@
 #include <QStyle>
 #include <QProgressDialog>
 #include <QTimer>
-#include <QPointer>
 #include <QAbstractItemView>
 #include <map>
 #include <memory>
@@ -238,10 +237,16 @@ MainWindow::MainWindow(QWidget* parent)
     // in the status bar then.
     {
         CommandRegistry& registry = CommandRegistry::getInstance();
-        const QPointer<DocumentCoordinator> documents(m_documentCoordinator);
         utils::bindSaveCommands(
-            registry, [documents]() { return documents ? documents->whyNotSave() : QString(); },
-            [documents]() { return documents ? documents->whyNotSaveAs() : QString(); });
+            registry,
+            [this]() {
+                return m_documentCoordinator != nullptr ? m_documentCoordinator->whyNotSave()
+                                                        : QString();
+            },
+            [this]() {
+                return m_documentCoordinator != nullptr ? m_documentCoordinator->whyNotSaveAs()
+                                                        : QString();
+            });
         utils::explainGreyedKeys(registry, this, statusBar());
     }
     // A file outside the book opened from the Navigator gets the keys, as a chapter does

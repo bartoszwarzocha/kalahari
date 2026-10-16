@@ -8,7 +8,6 @@
 
 #include <QAction>
 #include <QCoreApplication>
-#include <QPointer>
 #include <QShortcut>
 #include <QStatusBar>
 #include <QWidget>
@@ -22,30 +21,48 @@ namespace {
 /// How long the status bar keeps the reason why a command is greyed out, after its keys
 constexpr int REASON_MS = 5000;
 
-/// While @p action is greyed out with a reason, a shortcut of @p window takes its keys and
-/// shows the reason in @p statusBar; it follows the keys the writer gives the command
-void explainKeysOf(QAction* action, QWidget* window, QStatusBar* statusBar) {
-    auto* standIn = new QShortcut(window);
-    standIn->setContext(action->shortcutContext());
-    standIn->setAutoRepeat(false);
-    const QPointer<QAction> command(action);
-    const auto follow = [standIn, command]() {
-        if (!command) {
+/// While its command is greyed out with a reason, it takes the command's keys and shows the
+/// reason in the status bar; it follows the keys the writer gives the command
+///
+/// It keeps the command by a plain pointer, cleared when the command goes: clang-tidy's
+/// analyzer reports a QPointer, kept or copied into a connection, as a use of freed memory.
+class GreyedKeys : public QShortcut {
+public:
+    GreyedKeys(QAction* command, QWidget* window, QStatusBar* statusBar)
+        : QShortcut(window), m_command(command) {
+        setContext(command->shortcutContext());
+        setAutoRepeat(false);
+        connect(command, &QAction::changed, this, &GreyedKeys::follow);
+        connect(command, &QObject::destroyed, this, &GreyedKeys::forget);
+        // The status bar ends the connection when it goes
+        connect(this, &QShortcut::activated, statusBar, [this, statusBar]() {
+            if (m_command != nullptr) {
+                statusBar->showMessage(m_command->statusTip(), REASON_MS);
+            }
+        });
+        follow();
+    }
+
+private:
+    /// Take the keys of the command, while it is greyed out with a reason
+    void follow() {
+        if (m_command == nullptr) {
             return;
         }
-        standIn->setKeys(command->shortcuts());
+        setKeys(m_command->shortcuts());
         // Enabled, the command takes its keys itself: the two never share them
-        standIn->setEnabled(!command->isEnabled() && !command->statusTip().isEmpty());
-    };
-    QObject::connect(action, &QAction::changed, standIn, follow);
-    QObject::connect(action, &QObject::destroyed, standIn, &QObject::deleteLater);
-    QObject::connect(standIn, &QShortcut::activated, statusBar, [command, statusBar]() {
-        if (command) {
-            statusBar->showMessage(command->statusTip(), REASON_MS);
-        }
-    });
-    follow();
-}
+        setEnabled(!m_command->isEnabled() && !m_command->statusTip().isEmpty());
+    }
+
+    /// Without its command it has nothing to say: it goes as well
+    void forget() {
+        m_command = nullptr;
+        setEnabled(false);
+        deleteLater();
+    }
+
+    QAction* m_command;  ///< Null once the command is gone (forget())
+};
 
 } // namespace
 
@@ -122,7 +139,7 @@ void explainGreyedKeys(CommandRegistry& registry, QWidget* window, QStatusBar* s
     ids.insert(ids.end(), {"file.save", "file.saveAs"});
     for (const std::string& id : ids) {
         if (QAction* action = registry.getAction(id)) {
-            explainKeysOf(action, window, statusBar);
+            new GreyedKeys(action, window, statusBar);
         }
     }
 }
