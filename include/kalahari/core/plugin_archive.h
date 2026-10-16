@@ -27,6 +27,11 @@ namespace core {
 ///
 /// Extracts .kplugin files to a temporary directory and ensures automatic
 /// cleanup on destruction. Thread-safe for individual instances (not shared).
+///
+/// The files of the archive are written only in its own folder: an archive with a file named
+/// to go elsewhere ("../x", "/x", "\\x", "C:x") or without a name is not unpacked at all. An
+/// archive that is not unpacked leaves nothing behind, and errorMessage() says why; nothing
+/// throws.
 class PluginArchive {
 public:
     /// @brief Extract .kplugin file to temporary directory
@@ -80,8 +85,8 @@ private:
 
     /// @brief Extract ZIP archive to target directory
     /// @param archive_path Path to .kplugin file
-    /// @param target_dir Directory to extract to
-    /// @return true if extraction succeeded
+    /// @param target_dir Directory to extract to, made with the directories above it
+    /// @return true if extraction succeeded; otherwise m_error says why
     bool extractArchive(const std::filesystem::path& archive_path,
                        const std::filesystem::path& target_dir);
 

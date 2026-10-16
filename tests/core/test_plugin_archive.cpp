@@ -114,6 +114,8 @@ TEST_CASE("Plugin archive: a file named to go outside the plugin's folder stops 
     REQUIRE(dir.isValid());
     const std::string escaped = "escaped-" + unique() + ".txt";
     const fs::path outside = pathOf(dir) / escaped;
+    // A drive other than the plugin's: on Windows "C:x" is in the plugin's folder on drive C
+    const std::string otherDrive = fs::temp_directory_path().root_name() == "C:" ? "D:" : "C:";
     const fs::path archivePath = pathOf(dir) / "plugin.kplugin";
 
     struct Case {
@@ -126,7 +128,7 @@ TEST_CASE("Plugin archive: a file named to go outside the plugin's folder stops 
         {"..\\", "..\\" + escaped},                     // "\" is a separator on Windows
         {"absolute", utf8(outside.generic_u8string())},  // "/tmp/..." or "C:/Users/..."
         {"\\", "\\" + escaped},                         // the root of the current drive
-        {"C:", "C:" + escaped},                           // the current folder of drive C
+        {"C:", otherDrive + escaped},                     // the current folder of that drive
     };
 
     for (const Case& c : cases) {

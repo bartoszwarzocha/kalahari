@@ -3074,6 +3074,37 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     </message>
 </context>
 <context>
+    <name>kalahari::core::PluginArchive</name>
+    <message>
+        <source>The plugin &quot;%1&quot; cannot be opened: its file is not a ZIP archive, it is damaged or it cannot be read.</source>
+        <translation>Nie można otworzyć wtyczki „%1”: jej plik nie jest archiwum ZIP, jest uszkodzony albo nie da się go odczytać.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; was not unpacked: one of its files has no name.</source>
+        <translation>Nie rozpakowano wtyczki „%1”: jeden z jej plików nie ma nazwy.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; was not unpacked: its file &quot;%2&quot; would be written outside the plugin&apos;s folder.</source>
+        <translation>Nie rozpakowano wtyczki „%1”: jej plik „%2” zostałby zapisany poza folderem wtyczki.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; cannot be unpacked: the folder &quot;%2&quot; cannot be created.</source>
+        <translation>Nie można rozpakować wtyczki „%1”: nie da się utworzyć folderu „%2”.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; cannot be unpacked: its file &quot;%2&quot; cannot be read from the archive, which may be damaged.</source>
+        <translation>Nie można rozpakować wtyczki „%1”: nie da się odczytać z archiwum jej pliku „%2”; archiwum może być uszkodzone.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; cannot be unpacked: the file &quot;%2&quot; cannot be written.</source>
+        <translation>Nie można rozpakować wtyczki „%1”: nie da się zapisać pliku „%2”.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; cannot be unpacked: %2</source>
+        <translation>Nie można rozpakować wtyczki „%1”: %2</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::core::SvgConverter</name>
     <message>
         <source>The SVG file is empty</source>

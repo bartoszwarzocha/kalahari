@@ -335,9 +335,10 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
         instance.archive = std::make_unique<PluginArchive>(plugin_path);
 
         if (!instance.archive->isValid()) {
+            // The archive's own reason, for the writer (it is in the log already)
             instance.state = PluginState::Error;
-            instance.error_message = "Failed to extract plugin archive";
-            Logger::getInstance().error("PluginManager: {}", instance.error_message);
+            instance.error_message = instance.archive->errorMessage();
+            Logger::getInstance().error("PluginManager: Plugin '{}' not loaded", pluginId);
 
             // Store error state with mutex
             std::lock_guard<std::mutex> lock(m_mutex);
