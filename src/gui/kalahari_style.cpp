@@ -1,5 +1,6 @@
 /// @file kalahari_style.cpp
-/// @brief Implementation of KalahariStyle for dynamic icon sizing
+/// @brief Implementation of KalahariStyle for dynamic icon sizing, grey menu items under the
+/// keys, tooltips and check boxes
 ///
 /// OpenSpec #00026: KalahariStyle reads icon sizes from ArtProvider (central visual resource manager)
 /// and forces style refresh when sizes change via resourcesChanged() signal.
@@ -15,6 +16,21 @@
 
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+/// How much of the highlight color a grey menu item under the keys gets, over the menu
+constexpr float GREY_ITEM_HIGHLIGHT = 0.3F;
+
+/// @brief @p color mixed into @p base by @p amount (0: @p base, 1: @p color)
+QColor mixed(const QColor& base, const QColor& color, float amount)
+{
+    const auto mix = [amount](float from, float to) { return from + (to - from) * amount; };
+    return QColor::fromRgbF(mix(base.redF(), color.redF()), mix(base.greenF(), color.greenF()),
+                            mix(base.blueF(), color.blueF()));
+}
+
+} // namespace
 
 KalahariStyle::KalahariStyle()
     : QProxyStyle("Fusion")
@@ -87,6 +103,30 @@ QIcon KalahariStyle::standardIcon(StandardPixmap standardIcon,
         default:
             return QProxyStyle::standardIcon(standardIcon, option, widget);
     }
+}
+
+void KalahariStyle::drawControl(ControlElement element,
+                                const QStyleOption* option,
+                                QPainter* painter,
+                                const QWidget* widget) const {
+    const auto* item = qstyleoption_cast<const QStyleOptionMenuItem*>(option);
+    const bool greyUnderKeys = element == CE_MenuItem && item != nullptr &&
+                               item->menuItemType != QStyleOptionMenuItem::Separator &&
+                               item->state.testFlag(State_Selected) &&
+                               !item->state.testFlag(State_Enabled);
+    if (greyUnderKeys) {
+        // Under the highlight the item as Fusion draws it, with its grey text: Fusion skips
+        // only the highlight of a grey item. The menu's color is Fusion's (PE_PanelMenu).
+        const QColor highlight = item->palette.color(QPalette::Active, QPalette::Highlight);
+        const QColor menu = item->palette.color(QPalette::Active, QPalette::Base).lighter(108);
+        painter->save();
+        painter->fillRect(item->rect, mixed(menu, highlight, GREY_ITEM_HIGHLIGHT));
+        painter->setPen(highlight);
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRect(QRectF(item->rect).adjusted(0.5, 0.5, -0.5, -0.5));
+        painter->restore();
+    }
+    QProxyStyle::drawControl(element, option, painter, widget);
 }
 
 void KalahariStyle::drawPrimitive(PrimitiveElement element,

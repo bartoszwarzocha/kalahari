@@ -93,6 +93,7 @@ set(TEST_SOURCES
     gui/test_panel_toggle.cpp                    # Panel toggles follow open panels
     gui/test_setting_toggle.cpp                  # Toggles follow on/off settings
     gui/test_document_commands.cpp               # Document commands greyed out without one
+    gui/test_kalahari_style.cpp                  # Grey menu items under the keys highlighted
     gui/test_program_folders.cpp                 # Folders of the program and the Folders page
     gui/test_spelling_coordinator.cpp            # Spelling as you type: dictionary, command, settings page
     gui/test_grammar_coordinator.cpp             # Grammar as you type: where it is checked, command, settings page

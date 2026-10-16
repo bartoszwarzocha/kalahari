@@ -52,6 +52,16 @@ public:
                        const QStyleOption* option = nullptr,
                        const QWidget* widget = nullptr) const override;
 
+    /// @brief Highlight also a grey menu item under the arrow keys or the mouse
+    ///
+    /// Fusion highlights only enabled items, so a grey one the arrow keys rest on showed no
+    /// highlight: only the status bar changed. It gets a softer highlight with a frame, and
+    /// keeps its grey text, as on Windows.
+    void drawControl(ControlElement element,
+                     const QStyleOption* option,
+                     QPainter* painter,
+                     const QWidget* widget = nullptr) const override;
+
     /// @brief Draw check boxes with a clear frame and a check mark in both themes
     ///
     /// Fusion's frame is barely visible on dark palettes; this draws the frame from
