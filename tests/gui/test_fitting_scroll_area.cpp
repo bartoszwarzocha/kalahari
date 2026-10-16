@@ -113,6 +113,48 @@ TEST_CASE("Fitting scroll area: wrapped text takes more lines in a narrower area
     CHECK(area.contentHeightForWidth(150) > area.contentHeightForWidth(800));
 }
 
+TEST_CASE("Fitting scroll area: the scroll bar goes once the content fits, also a text that "
+          "would take more lines beside it",
+          "[gui][widgets]") {
+    auto* content = new QWidget();
+    auto* lines = new QVBoxLayout(content);
+    auto* label = new QLabel(LONG_MESSAGE);
+    label->setWordWrap(true);
+    lines->addWidget(label);
+    QWidget host;
+    auto& area = *new FittingScrollArea(content, &host);
+    host.resize(800, 800);
+    host.show();
+    QApplication::processEvents();
+
+    // A width where the text takes one line more beside the scroll bar
+    const int bar = area.verticalScrollBar()->sizeHint().width();
+    int width = 120;
+    while (width < 800 &&
+           area.contentHeightForWidth(width - bar) == area.contentHeightForWidth(width)) {
+        ++width;
+    }
+    REQUIRE(width < 800);
+    const int fitting = area.contentHeightForWidth(width);
+
+    // Lower than the content: the bar comes
+    area.resize(width, fitting / 2);
+    QApplication::processEvents();
+    REQUIRE(area.verticalScrollBar()->isVisible());
+
+    // As high as the content needs at the whole width, as a window grown for new content:
+    // the bar goes
+    area.resize(width, fitting);
+    QApplication::processEvents();
+    CHECK_FALSE(area.verticalScrollBar()->isVisible());
+    CHECK(area.verticalScrollBar()->maximum() == 0);
+
+    // Lower by a pixel, the content scrolls
+    area.resize(width, fitting - 1);
+    QApplication::processEvents();
+    CHECK(area.verticalScrollBar()->isVisible());
+}
+
 TEST_CASE("Fitting scroll area: a list gets lower before the content scrolls",
           "[gui][widgets]") {
     // A panel with a wrapped text over a list: in a lower area the list gives up its room,

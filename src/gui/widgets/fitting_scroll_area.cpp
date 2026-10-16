@@ -8,6 +8,7 @@
 #include <QFontMetrics>
 #include <QFrame>
 #include <QLayout>
+#include <QResizeEvent>
 #include <QScreen>
 #include <QScrollBar>
 #include <QVBoxLayout>
@@ -169,7 +170,35 @@ bool FittingScrollArea::eventFilter(QObject* watched, QEvent* event)
     if ((watched == widget() || watched == m_content) && event->type() == QEvent::LayoutRequest) {
         updateGeometry();
     }
-    return QScrollArea::eventFilter(watched, event);
+    const bool handled = QScrollArea::eventFilter(watched, event);
+    if (watched == widget() &&
+        (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Resize)) {
+        dropNeedlessScrollBar();
+    }
+    return handled;
+}
+
+void FittingScrollArea::resizeEvent(QResizeEvent* event)
+{
+    QScrollArea::resizeEvent(event);
+    dropNeedlessScrollBar();
+}
+
+void FittingScrollArea::dropNeedlessScrollBar()
+{
+    if (m_droppingBar || widget() == nullptr || !verticalScrollBar()->isVisible() ||
+        verticalScrollBarPolicy() != Qt::ScrollBarAsNeeded) {
+        return;
+    }
+    const QSize room = maximumViewportSize();
+    if (widget()->heightForWidth(room.width()) > room.height()) {
+        return;  // it scrolls also without the bar beside it
+    }
+    // Without the bar the area measures the content at its whole width, and it fits
+    m_droppingBar = true;
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_droppingBar = false;
 }
 
 QSize FittingScrollArea::borders() const

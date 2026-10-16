@@ -9,6 +9,7 @@
 
 class QEvent;
 class QObject;
+class QResizeEvent;
 class QWidget;
 
 namespace kalahari {
@@ -65,7 +66,17 @@ protected:
     /// @brief A change of the content (a list shown, a longer text) changes the hints
     bool eventFilter(QObject* watched, QEvent* event) override;
 
+    /// @brief A higher area takes away the scroll bar the content no longer needs
+    void resizeEvent(QResizeEvent* event) override;
+
 private:
+    /// @brief Take away the vertical scroll bar when the content fits the area without it
+    ///
+    /// QScrollArea measures the content at the width beside a scroll bar it shows, where
+    /// wrapped texts take more lines: a bar that came while the window was still lower than
+    /// its new content (numbers or details shown) would stay in the window grown for it.
+    void dropNeedlessScrollBar();
+
     /// @brief The frame around the content, both sides together
     QSize borders() const;
 
@@ -77,6 +88,7 @@ private:
 
     QWidget* m_content;  ///< The content, inside the area's widget
     int m_minimumLines;  ///< Height of the area in a lowered window, in lines
+    bool m_droppingBar = false;               ///< Taking away the scroll bar just now
     QWidget* m_kept = nullptr;                ///< The widget kept in view; nullptr: none
     QWidget* m_keptFirst = nullptr;           ///< Its part in view first, in a lower area
     QMetaObject::Connection m_keptGone;       ///< Keeps no widget once the widget is deleted
