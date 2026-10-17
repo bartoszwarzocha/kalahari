@@ -429,8 +429,13 @@ void NewItemDialog::populateTemplates() {
         templates = registry.getFileTemplates();
     }
 
-    // Add templates to list
+    // Add templates to list: a book type the program does not have is not offered at all
+    const kalahari::core::BookTypeRegistry& installed =
+        kalahari::core::ProjectManager::getInstance().installedBookTypes();
     for (const auto& tmpl : templates) {
+        if (!tmpl.typeId.isEmpty() && installed.package(tmpl.typeId) == nullptr) {
+            continue;
+        }
         QListWidgetItem* item = new QListWidgetItem(m_templateList);
         item->setText(tmpl.name);
         item->setData(Qt::UserRole, tmpl.id);

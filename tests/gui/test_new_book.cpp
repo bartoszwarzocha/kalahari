@@ -772,14 +772,26 @@ TEST_CASE("New Book: with a book open, the new book is created without opening i
     }
 }
 
-TEST_CASE("New Book: a book of a type that is not installed is not created, and the message "
-          "names the type",
+TEST_CASE("New Book: a book type that the program does not have is not on the list",
           "[gui][newbook]") {
-    const test::RecentBooks recent;
     auto& pm = core::ProjectManager::getInstance();
     if (pm.isProjectOpen()) {
         REQUIRE(pm.closeProject(false));
     }
+    const auto templatesOf = [](const NewItemDialog& dialog) {
+        QStringList ids;
+        const auto* list = dialog.findChild<QListWidget*>();
+        REQUIRE(list != nullptr);
+        for (int i = 0; i < list->count(); ++i) {
+            ids << list->item(i)->data(Qt::UserRole).toString();
+        }
+        return ids;
+    };
+
+    // Every type of the program, and the user project
+    const QStringList all = templatesOf(NewItemDialog(gui::dialogs::NewItemMode::Project));
+    CHECK(all == QStringList{"template.novel", "template.shortStories", "template.nonfiction",
+                             "template.screenplay", "template.poetry", "template.empty"});
 
     // The program has no novel (nor the collection of stories, which uses it)
     QTemporaryDir installed;
@@ -801,45 +813,20 @@ TEST_CASE("New Book: a book of a type that is not installed is not created, and 
     pm.loadBookTypes({installed.path()});
     REQUIRE(pm.installedBookTypes().package(QStringLiteral("kalahari.novel")) == nullptr);
 
-    QTemporaryDir folder;
-    REQUIRE(folder.isValid());
-    test::Window window;
-    QStringList unexpected;
-    QString message;
-    const QList<Step> steps{
-        {is<NewItemDialog>,
-         [&folder](QDialog& dialog) {
-             fillNewBook(dialog, "template.novel", QStringLiteral("Second"), folder.path());
-             later(createButton(dialog));
-         }},
-        {is<MessageDialog>, [&message](QDialog& dialog) {
-             auto& error = static_cast<MessageDialog&>(dialog);
-             message = error.clipboardText();
-             later(error.acceptButton());
-         }}};
-    CHECK(doing([&window] { window.documents.onNewProject(); }, steps, unexpected) ==
-          steps.size());
-    INFO(unexpected.join(QLatin1Char('\n')).toStdString());
-    CHECK(unexpected.isEmpty());
+    // Neither is on the list, not even greyed out; the first type is chosen
+    {
+        const NewItemDialog dialog(gui::dialogs::NewItemMode::Project);
+        CHECK(templatesOf(dialog) == QStringList{"template.nonfiction", "template.screenplay",
+                                                 "template.poetry", "template.empty"});
+        const auto* list = dialog.findChild<QListWidget*>();
+        REQUIRE(list->currentItem() != nullptr);
+        CHECK(list->currentItem()->data(Qt::UserRole).toString() == "template.nonfiction");
+        for (int i = 0; i < list->count(); ++i) {
+            CHECK(list->item(i)->flags().testFlag(Qt::ItemIsEnabled));
+        }
+    }
     pm.loadBookTypes({source.path()});
-
-    // The message names the type; the details keep the line of the program
-    CHECK(message == QStringLiteral("New Book\n\nThe book \"Second\" cannot be created: the "
-                                    "book type \"Novel\" is not installed.\n\nthe book type "
-                                    "kalahari.novel is not installed"));
-    CHECK_FALSE(pm.isProjectOpen());
-    CHECK_FALSE(QFileInfo::exists(QDir(folder.path()).filePath(QStringLiteral("Second"))));
-
-    // In Polish
-    QTranslator polish;
-    REQUIRE(polish.load(QStringLiteral(":/i18n/kalahari_pl.qm")));
-    QCoreApplication::installTranslator(&polish);
-    CHECK(QCoreApplication::translate("kalahari::gui::DocumentCoordinator",
-                                      "The book \"%1\" cannot be created: the book type \"%2\" "
-                                      "is not installed.") ==
-          QStringLiteral("Nie można utworzyć książki „%1”: typ książki „%2” nie jest "
-                         "zainstalowany."));
-    QCoreApplication::removeTranslator(&polish);
+    CHECK(templatesOf(NewItemDialog(gui::dialogs::NewItemMode::Project)) == all);
 }
 
 TEST_CASE("New Book: a user project gets the kinds and the elements chosen in the window of its "

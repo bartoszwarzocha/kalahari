@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **New Book: only the book types the program has** - 2026-10-17. The New Book window lists
+  the types whose packages the program has, and the user project; a type without its package
+  is not on the list at all, not even greyed out (a Novel without its package was there,
+  while the kinds of a user project, Prologue and Epilogue among them, came from the
+  packages the program has). Add-ons will bring new types later.
+
 - **Books: the same book on every computer** - 2026-10-16. A book keeps in its folder
   `types/` a copy of each book type package it uses: its type, the Base package, the packages
   of the kinds it took from other types and of its elements (only their data: the manifest,
