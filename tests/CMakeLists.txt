@@ -20,7 +20,7 @@ set(TEST_SOURCES
     core/test_kind_words.cpp          # Names of kinds in sentences, and the markers of translations
     core/test_book_project.cpp        # Book project and its .klh file
     core/test_old_book_conversion.cpp # Books of the first .klh format, converted to this version
-    core/test_package_copies.cpp      # Copies of the packages a book uses, in its folder
+    core/test_package_cards.cpp       # Cards of the packages a book uses; a book read-only without them
     core/test_unicode_paths.cpp       # Paths with characters outside the code page of the system
     core/test_project_manager.cpp
     core/test_logger.cpp
@@ -152,7 +152,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_project.cpp
     ${CMAKE_SOURCE_DIR}/src/core/old_book_conversion.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/package_copies.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/package_card.cpp
     ${CMAKE_SOURCE_DIR}/src/core/unicode_paths.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp

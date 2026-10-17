@@ -1047,9 +1047,9 @@
         <translation>Projekt użytkownika</translation>
     </message>
     <message>
-        <source>%1 (not installed)</source>
-        <extracomment>The type of a book whose package is not installed; %1: the id of the type. In Polish: %1 (typ niezainstalowany)</extracomment>
-        <translation>%1 (typ niezainstalowany)</translation>
+        <source>%1 (not in the program)</source>
+        <extracomment>The type of a book that the program does not have; %1: its name. In Polish: %1 (nie ma w programie)</extracomment>
+        <translation>%1 (nie ma w programie)</translation>
     </message>
     <message>
         <source>&amp;New {Kind}...</source>

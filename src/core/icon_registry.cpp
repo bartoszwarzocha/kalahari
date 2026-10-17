@@ -9,6 +9,7 @@
 // Note: ThemeManager.h not included here - connection made externally by MainWindow
 // to avoid circular dependencies between kalahari_core.dll and kalahari.exe
 #include <QFile>
+#include <QFileInfo>
 #include <QSvgRenderer>
 #include <QPainter>
 #include <QTextStream>
@@ -174,16 +175,7 @@ QIcon IconRegistry::getIcon(const QString& actionId, const QString& theme, int s
 
     // Replace theme in path (e.g., "twotone" -> "filled")
     // Paths are like: resources/icons/twotone/save.svg
-    if (!theme.isEmpty()) {
-        // Try to replace known theme names in the path
-        QStringList themes = {"twotone", "filled", "outlined", "rounded"};
-        for (const QString& t : themes) {
-            if (svgPath.contains("/" + t + "/")) {
-                svgPath.replace("/" + t + "/", "/" + theme + "/");
-                break;
-            }
-        }
-    }
+    svgPath = inIconTheme(svgPath, theme);
 
     QString svgContent = loadSVGFromFile(svgPath);
 
@@ -225,15 +217,7 @@ QIcon IconRegistry::getIconWithColors(const QString& actionId, const QString& th
     QString svgPath = desc.getEffectiveSVGPath();
 
     // Replace theme in path
-    if (!theme.isEmpty()) {
-        QStringList themes = {"twotone", "filled", "outlined", "rounded"};
-        for (const QString& t : themes) {
-            if (svgPath.contains("/" + t + "/")) {
-                svgPath.replace("/" + t + "/", "/" + theme + "/");
-                break;
-            }
-        }
-    }
+    svgPath = inIconTheme(svgPath, theme);
 
     QString svgContent = loadSVGFromFile(svgPath);
 
@@ -258,6 +242,53 @@ QIcon IconRegistry::getIconWithColors(const QString& actionId, const QString& th
 }
 
 
+
+QIcon IconRegistry::getIconFromFile(const QString& svgPath) {
+    const QColor primary = m_theme.primaryColor;
+    const QColor secondary = m_theme.secondaryColor;
+    const QString cacheKey = constructCacheKey(QStringLiteral("file:") + svgPath, QString(),
+                                               primary, secondary);
+    if (const auto cached = m_iconCache.find(cacheKey); cached != m_iconCache.end()) {
+        return cached->second;
+    }
+    const QString svgContent = loadSVGFromFile(svgPath);
+    if (svgContent.isEmpty()) {
+        return QIcon();
+    }
+    QIcon icon = createIconFromSVG(replaceColorPlaceholders(svgContent, primary, secondary));
+    if (!icon.isNull()) {
+        m_iconCache[cacheKey] = icon;
+    }
+    return icon;
+}
+
+const QStringList& IconRegistry::iconThemes() {
+    static const QStringList themes{QStringLiteral("twotone"), QStringLiteral("filled"),
+                                    QStringLiteral("outlined"), QStringLiteral("rounded")};
+    return themes;
+}
+
+QString IconRegistry::svgFileOf(const QString& actionId, const QString& theme) const {
+    const IconDescriptor* desc = getIconDescriptor(actionId);
+    if (desc == nullptr || desc->defaultSVGPath.isEmpty()) {
+        return QString();
+    }
+    const QString path = resolveSVGPath(inIconTheme(desc->defaultSVGPath, theme));
+    return QFileInfo(path).isFile() ? path : QString();
+}
+
+QString IconRegistry::inIconTheme(QString svgPath, const QString& theme) {
+    if (theme.isEmpty()) {
+        return svgPath;
+    }
+    for (const QString& t : iconThemes()) {
+        if (svgPath.contains("/" + t + "/")) {
+            svgPath.replace("/" + t + "/", "/" + theme + "/");
+            break;
+        }
+    }
+    return svgPath;
+}
 
 const IconDescriptor* IconRegistry::getIconDescriptor(const QString& actionId) const {
     auto it = m_icons.find(actionId);
@@ -461,28 +492,32 @@ void IconRegistry::resetTheme() {
 // Internal Helpers - SVG Loading and Rendering
 // ============================================================================
 
-QString IconRegistry::loadSVGFromFile(const QString& filePath) const {
-    QString resolvedPath;
-
+QString IconRegistry::resolveSVGPath(const QString& filePath) {
     if (QDir::isAbsolutePath(filePath)) {
-        resolvedPath = filePath;
-    } else {
-        // Use ResourcePaths for relative paths like "resources/icons/twotone/save.svg"
-        if (filePath.startsWith("resources/icons/")) {
-            QString relativePart = filePath.mid(16);  // Remove "resources/icons/"
-            int slashPos = relativePart.indexOf('/');
-            if (slashPos > 0) {
-                QString iconTheme = relativePart.left(slashPos);
-                QString iconName = relativePart.mid(slashPos + 1);
-                resolvedPath = ResourcePaths::getInstance().getIconPath(iconTheme, iconName);
-            }
-        }
+        return filePath;
+    }
 
-        // Fallback to old behavior if ResourcePaths didn't resolve
-        if (resolvedPath.isEmpty()) {
-            resolvedPath = QCoreApplication::applicationDirPath() + "/" + filePath;
+    // Use ResourcePaths for relative paths like "resources/icons/twotone/save.svg"
+    QString resolvedPath;
+    if (filePath.startsWith("resources/icons/")) {
+        QString relativePart = filePath.mid(16);  // Remove "resources/icons/"
+        int slashPos = relativePart.indexOf('/');
+        if (slashPos > 0) {
+            QString iconTheme = relativePart.left(slashPos);
+            QString iconName = relativePart.mid(slashPos + 1);
+            resolvedPath = ResourcePaths::getInstance().getIconPath(iconTheme, iconName);
         }
     }
+
+    // Fallback to old behavior if ResourcePaths didn't resolve
+    if (resolvedPath.isEmpty()) {
+        resolvedPath = QCoreApplication::applicationDirPath() + "/" + filePath;
+    }
+    return resolvedPath;
+}
+
+QString IconRegistry::loadSVGFromFile(const QString& filePath) const {
+    const QString resolvedPath = resolveSVGPath(filePath);
 
     QFile file(resolvedPath);
 

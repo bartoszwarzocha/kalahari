@@ -334,7 +334,8 @@ struct BookProject {
     /// the kinds of its elements, each once, in this order
     QStringList packageIds() const;
 
-    /// @brief Packages of the type, the kinds and the elements that @p registry does not have
+    /// @brief Packages of the type, the kinds and the elements that @p registry does not have,
+    /// or has without a kind the project names (another version of the package), sorted
     QStringList missingPackages(const BookTypeRegistry& registry) const;
 
     /// @brief The project as the JSON object of its .klh file

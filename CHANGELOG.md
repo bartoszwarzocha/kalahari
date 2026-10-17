@@ -17,24 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   while the kinds of a user project, Prologue and Epilogue among them, came from the
   packages the program has). Add-ons will bring new types later.
 
-- **Books: the same book on every computer** - 2026-10-16. A book keeps in its folder
-  `types/` a copy of each book type package it uses: its type, the Base package, the packages
-  of the kinds it took from other types and of its elements (only their data: the manifest,
-  the styles and the templates). The book opens and works with these copies, so it is the same
-  where its type is not installed or is installed in an older version: the Navigator, Add
-  Chapter, the title page added again and the names of its kinds stay as they were. A newer
-  installed package replaces the copy when the book opens (the log says "The project's copy
-  of ... is version ... now", and the .klh file names the new version); the styles the book
-  uses are in its database and do not change, and an older installed package leaves a newer
-  copy as it is. A new book gets its copies at once; a book made before gets them the first
-  time it opens. The copies serve their book only: the New Book window, the palette of a user
-  project, the import of an archive and the other books take the installed packages, so a
-  copy installs nothing. The archive of a book takes its copies along, and the Import Project
-  Archive window names the type and the kinds of its book after them, as the book will work
-  after the import. A card of a recent book on the Dashboard names its type after the book's
-  copy where the type is not installed. A new book of a type that is not installed is not
-  created, and the message says so: "The book ... cannot be created: the book type ... is not
-  installed."
+- **Books: the type of a book on every computer; without it the book is read-only** -
+  2026-10-17. A book keeps in its folder `types/` a card of each book type package it uses
+  (its type, the Base package, the packages these use, and the packages of the kinds it took
+  and of its elements): the name, the version and the icon of the package, and the names and
+  the icons of its kinds, with the SVG files of these icons in each icon theme of the program;
+  not the rules, the styles or the templates of the package. So the program shows the type of
+  a book that it does not have, also with an icon the program does not have. A book whose
+  type, or another package it uses, the program does not have, or has in a version without a
+  kind the book uses, opens read-only: it can be read and exported, but nothing changes it
+  and nothing is written into its folder (the log says "The book is open read-only..."). Its
+  type is named after its card, "Novel (not in the program)", and its kinds after the cards.
+  A newer installed package refreshes its card when the book opens (the log says "The book's
+  card of ... is of version ... now", and the .klh file names the new version); an older one
+  leaves the card and the .klh file as they are. A new book gets its cards at once; a book
+  made before gets them the first time it opens, and a whole copy of a package kept by a
+  test version of the program gives way to the card. The archive of a book takes its cards
+  along, and the Import Project Archive window names the type and the kinds of its book after
+  them, the type greyed out. A card of a recent book on the Dashboard stays as long as the
+  book's file is there; while the program does not have its type, the type and its icon are
+  greyed out. A new book of a type that is not installed is not created, and the message says
+  so: "The book ... cannot be created: the book type ... is not installed."
 
 - **Menus: icons of the submenus** - 2026-10-16. Import, Export, Recent Books, Text Style,
   Statistics, Plugins, Assistant Actions, View Mode, Zoom, Panels, Perspectives and Toolbars

@@ -995,11 +995,27 @@ QStringList BookProject::packageIds() const {
 
 QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const {
     QStringList missing;
-    for (const QString& packageId : packageIds()) {
-        if (!registry.package(packageId)) {
+    const auto note = [&missing](const QString& packageId) {
+        if (!missing.contains(packageId)) {
             missing.append(packageId);
         }
+    };
+    for (const QString& packageId : packageIds()) {
+        if (!registry.package(packageId)) {
+            note(packageId);
+        }
     }
+    // A package of another version, without a kind the project names
+    const auto noteKind = [&registry, &note](const KindReference& reference) {
+        if (!reference.kindId.isEmpty() && registry.package(reference.packageId) &&
+            !registry.findKind(reference.packageId, reference.kindId)) {
+            note(reference.packageId);
+        }
+    };
+    for (const KindReference& reference : kinds) {
+        noteKind(reference);
+    }
+    forEachElement(*this, [&noteKind](const ProjectElement& element) { noteKind(element.kind); });
     missing.sort();
     return missing;
 }

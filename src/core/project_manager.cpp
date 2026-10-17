@@ -6,7 +6,7 @@
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/old_book_conversion.h>
-#include <kalahari/core/package_copies.h>
+#include <kalahari/core/package_card.h>
 #include <kalahari/core/resource_paths.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/standalone_file.h>
@@ -172,9 +172,9 @@ constexpr QLatin1String DATABASE_LOG("project.db-wal");
 /// Largest .klh file that readArchive() reads from an archive; a book's has a few kilobytes
 constexpr qsizetype MAX_ARCHIVED_MANIFEST = 16 * 1024 * 1024;
 
-/// Largest file of a copy of a package that unpackArchiveCopies() unpacks; a manifest, styles
-/// and templates have a few kilobytes
-constexpr qsizetype MAX_ARCHIVED_COPY_FILE = 16 * 1024 * 1024;
+/// Largest file of a card of a package that unpackArchiveCards() unpacks; a card and the SVG
+/// files of its icons have a few kilobytes
+constexpr qsizetype MAX_ARCHIVED_CARD_FILE = 16 * 1024 * 1024;
 
 /// Whether file @p path of a project, relative to its folder, serves only the project open
 /// in this place: its lock, the log files of its database and the database's backups
@@ -628,11 +628,12 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
         }
     }
 
-    // The book keeps copies of the packages it uses, so it opens the same on every computer
-    const PackageCopiesUpdate copies = PackageCopies::update(projectDir, project, installed);
-    if (!copies.problems.isEmpty()) {
+    // The book keeps the cards of the packages it uses, so that it shows its type where the
+    // program does not have it
+    const PackageCardsUpdate cards = PackageCards::update(projectDir, project, installed);
+    if (!cards.problems.isEmpty()) {
         removeNewProject(projectDir, folderExisted);
-        return fail(copies.problems);
+        return fail(cards.problems);
     }
 
     if (!project.save(manifestPath)) {
@@ -834,40 +835,41 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
     }
     m_backupManager = std::make_unique<BackupManager>(projectDir);
 
-    // The book works with the copies of its packages, made or refreshed from the installed
-    // ones; a copy that cannot be written leaves the installed package to serve the book
-    const PackageCopiesUpdate copies =
-        PackageCopies::update(projectDir, *project, installedBookTypes());
-    for (const QString& problem : copies.problems) {
-        logger.warn("openProject: {}", problem.toStdString());
-    }
-    m_projectTypes.loadPackages(copies.folders);
-
     m_project = std::make_unique<BookProject>(std::move(*project));
     m_manifestPath = std::filesystem::path(manifestInfo.absoluteFilePath().toStdWString());
     m_projectPath = m_manifestPath.parent_path();
 
-    // The elements of packages that are neither installed nor copied stay in the book
-    const QStringList missing = m_project->missingPackages(m_projectTypes);
-    if (!missing.isEmpty()) {
-        logger.warn("The book uses packages that are not installed: {}",
-                    missing.join(QStringLiteral(", ")).toStdString());
-    }
+    // The book works with the packages the program has; without one of them it can only be
+    // read, and nothing is written into its folder
+    const BookTypeRegistry& installed = installedBookTypes();
+    m_missingPackages = m_project->missingPackages(installed);
+    if (!m_missingPackages.isEmpty()) {
+        logger.warn("The book is open read-only: the program does not have its packages {}, "
+                    "or has them without kinds it uses",
+                    m_missingPackages.join(QStringLiteral(", ")).toStdString());
+    } else {
+        // The cards of its packages, for a computer without them; a card that cannot be
+        // written leaves the book as it was
+        const PackageCardsUpdate cards = PackageCards::update(projectDir, *m_project, installed);
+        for (const QString& problem : cards.problems) {
+            logger.warn("openProject: {}", problem.toStdString());
+        }
 
-    // The .klh file names the version of the type the book works with
-    std::optional<ProjectType>& named = m_project->type;
-    if (named) {
-        const BookTypePackage* type = m_projectTypes.package(named->id);
-        if (type && type->version != named->version) {
-            const QString previous = named->version;
-            named->version = type->version;
-            if (!m_project->save(manifestPath)) {
-                named->version = previous;
-                logger.warn("openProject: The version of the type cannot be saved in {}",
-                            manifestInfo.fileName().toStdString());
+        // The .klh file names the newest version of the type the book was opened with
+        if (std::optional<ProjectType>& named = m_project->type) {
+            const BookTypePackage* type = installed.package(named->id);
+            if (type && PackageCards::isNewer(type->version, named->version)) {
+                const QString previous = named->version;
+                named->version = type->version;
+                if (!m_project->save(manifestPath)) {
+                    named->version = previous;
+                    logger.warn("openProject: The version of the type cannot be saved in {}",
+                                manifestInfo.fileName().toStdString());
+                }
             }
         }
     }
+    m_packageCards = PackageCards::readAll(projectDir, *m_project);
 
     loadElementStates();
 
@@ -1004,6 +1006,8 @@ bool ProjectManager::closeProject(bool promptSave) {
 
     // Clear state
     m_project.reset();
+    m_missingPackages.clear();
+    m_packageCards.clear();
     m_elementStates.clear();
     m_projectPath.clear();
     m_manifestPath.clear();
@@ -1018,6 +1022,9 @@ bool ProjectManager::closeProject(bool promptSave) {
 bool ProjectManager::saveManifest() {
     if (!m_project || m_manifestPath.empty()) {
         Logger::getInstance().error("saveManifest: No project open");
+        return false;
+    }
+    if (refusesChange("saveManifest")) {
         return false;
     }
 
@@ -1037,6 +1044,27 @@ bool ProjectManager::saveManifest() {
 
 bool ProjectManager::isProjectOpen() const {
     return m_workMode == WorkMode::ProjectMode && m_project != nullptr;
+}
+
+bool ProjectManager::isReadOnly() const {
+    return m_project != nullptr && !m_missingPackages.isEmpty();
+}
+
+const QStringList& ProjectManager::missingPackages() const {
+    return m_missingPackages;
+}
+
+const PackageCard* ProjectManager::packageCard(const QString& packageId) const {
+    const auto it = m_packageCards.constFind(packageId);
+    return it != m_packageCards.constEnd() ? &it.value() : nullptr;
+}
+
+bool ProjectManager::refusesChange(const char* what) const {
+    if (!isReadOnly()) {
+        return false;
+    }
+    Logger::getInstance().warn("{}: The book is open read-only; it does not change", what);
+    return true;
 }
 
 // =============================================================================
@@ -1100,7 +1128,7 @@ void ProjectManager::setDirty(bool dirty) {
 // =============================================================================
 
 const BookTypeRegistry& ProjectManager::bookTypes() const {
-    return m_project ? m_projectTypes : installedBookTypes();
+    return installedBookTypes();
 }
 
 const BookTypeRegistry& ProjectManager::installedBookTypes() const {
@@ -1255,6 +1283,9 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
         logger.error("addElement: No project is open");
         return QString();
     }
+    if (refusesChange("addElement")) {
+        return QString();
+    }
 
     // The project as it was comes back when the change cannot be saved. It shares its lists
     // with the project until they change, so it is taken before any pointer into them.
@@ -1370,6 +1401,9 @@ QString ProjectManager::addBookFile(const QString& title) {
         logger.error("addBookFile: No project is open");
         return QString();
     }
+    if (refusesChange("addBookFile")) {
+        return QString();
+    }
 
     ProjectElement file;
     file.id = m_project->newElementId();
@@ -1436,6 +1470,9 @@ QString ProjectManager::addFile(const QString& sourcePath, bool copy, const Kind
                                 const QString& title, BookPlace place, const QString& groupId,
                                 qsizetype index) {
     auto& logger = Logger::getInstance();
+    if (refusesChange("addFile")) {
+        return QString();
+    }
 
     // The place the writer chose, or the place of its kind
     const ElementPlace at =
@@ -1513,6 +1550,9 @@ QString ProjectManager::addFile(const QString& sourcePath, bool copy, const Kind
 }
 
 bool ProjectManager::renameElement(const QString& elementId, const QString& title) {
+    if (refusesChange("renameElement")) {
+        return false;
+    }
     ProjectElement* element = findElement(elementId);
     if (!element) {
         Logger::getInstance().warn("renameElement: Element not found: {}",
@@ -1539,6 +1579,9 @@ bool ProjectManager::setSections(const BookSections& sections) {
         Logger::getInstance().warn("setSections: No project is open");
         return false;
     }
+    if (refusesChange("setSections")) {
+        return false;
+    }
     const BookSections previous = current->sections();
     const QJsonObject previousExtra = current->sectionNamesExtra;
     current->setSections(sections);
@@ -1551,7 +1594,7 @@ bool ProjectManager::setSections(const BookSections& sections) {
 }
 
 std::optional<ProjectElement> ProjectManager::removeElement(const QString& elementId) {
-    if (!m_project) {
+    if (!m_project || refusesChange("removeElement")) {
         return std::nullopt;
     }
     qsizetype index = -1;
@@ -1669,6 +1712,9 @@ QString ProjectManager::addUnassignedFile(const QString& file, const KindRef& ki
         logger.error("addUnassignedFile: No project is open");
         return QString();
     }
+    if (refusesChange("addUnassignedFile")) {
+        return QString();
+    }
 
     // One of unassignedFiles()
     const QString relative = QDir::cleanPath(file);
@@ -1735,7 +1781,7 @@ QString ProjectManager::addUnassignedFile(const QString& file, const KindRef& ki
 }
 
 bool ProjectManager::moveElement(const QString& elementId, qsizetype index) {
-    if (!m_project) {
+    if (!m_project || refusesChange("moveElement")) {
         return false;
     }
     qsizetype from = -1;
@@ -1766,6 +1812,9 @@ bool ProjectManager::canMoveTo(const QString& elementId, const ElementPlace& to)
 
 bool ProjectManager::moveElementTo(const QString& elementId, const ElementPlace& to) {
     auto& logger = Logger::getInstance();
+    if (refusesChange("moveElementTo")) {
+        return false;
+    }
     const std::optional<ElementPlace> from =
         m_project ? m_project->placeOf(elementId) : std::nullopt;
     if (!from) {
@@ -1852,6 +1901,9 @@ qsizetype ProjectManager::endIndexOf(const QString& elementId) const {
 }
 
 bool ProjectManager::setStatus(const QString& elementId, const QString& status) {
+    if (refusesChange("setStatus")) {
+        return false;
+    }
     ProjectElement* element = findElement(elementId);
     if (!element || !stateOf(elementId) || !textStatuses().contains(status) ||
         isBookFile(elementId)) {
@@ -1878,6 +1930,9 @@ QString ProjectManager::notes(const QString& elementId) const {
 }
 
 bool ProjectManager::setNotes(const QString& elementId, const QString& notes) {
+    if (refusesChange("setNotes")) {
+        return false;
+    }
     const ProjectElement* element = findElement(elementId);
     if (!element || !stateOf(elementId)) {
         Logger::getInstance().warn("setNotes: Not a text element: {}", elementId.toStdString());
@@ -1959,6 +2014,9 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
 }
 
 void ProjectManager::setChapterContent(const QString& elementId, const QString& kml) {
+    if (refusesChange("setChapterContent")) {
+        return;
+    }
     if (ElementState* state = stateOf(elementId)) {
         state->content = kml;
         state->loaded = true;
@@ -2131,6 +2189,9 @@ ProjectManager::ElementState* ProjectManager::stateOf(const QString& elementId) 
 bool ProjectManager::writeChapterFile(const ProjectElement& element,
                                       const std::optional<QString>& kml) {
     auto& logger = Logger::getInstance();
+    if (refusesChange("writeChapterFile")) {
+        return false;
+    }
     const QString path = filePathOf(element);
     if (path.isEmpty()) {
         logger.error("writeChapterFile: '{}' has no file", element.title.toStdString());
@@ -2463,11 +2524,11 @@ std::optional<BookProject> ProjectManager::readArchive(const QString& archivePat
     return project;
 }
 
-bool ProjectManager::unpackArchiveCopies(const QString& archivePath, const QString& targetDir) {
+bool ProjectManager::unpackArchiveCards(const QString& archivePath, const QString& targetDir) {
     ZipFailure failure;
     zip_t* archive = openZip(archivePath, ZIP_RDONLY, &failure);
     if (!archive) {
-        Logger::getInstance().warn("unpackArchiveCopies: {}: {}", archivePath.toStdString(),
+        Logger::getInstance().warn("unpackArchiveCards: {}: {}", archivePath.toStdString(),
                                    failure.text.toStdString());
         return false;
     }
@@ -2496,7 +2557,7 @@ bool ProjectManager::unpackArchiveCopies(const QString& archivePath, const QStri
             qsizetype size = 0;
             while ((read = zip_fread(entry, buffer, sizeof(buffer))) > 0) {
                 size += static_cast<qsizetype>(read);
-                if (size > MAX_ARCHIVED_COPY_FILE || file.write(buffer, read) != read) {
+                if (size > MAX_ARCHIVED_CARD_FILE || file.write(buffer, read) != read) {
                     break;
                 }
             }
@@ -2506,7 +2567,7 @@ bool ProjectManager::unpackArchiveCopies(const QString& archivePath, const QStri
             zip_fclose(entry);
         }
         if (!written) {
-            Logger::getInstance().warn("unpackArchiveCopies: {}: cannot be unpacked to {}",
+            Logger::getInstance().warn("unpackArchiveCards: {}: cannot be unpacked to {}",
                                        path.toStdString(), filePath.toStdString());
         }
     }

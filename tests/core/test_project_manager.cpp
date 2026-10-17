@@ -1134,7 +1134,8 @@ TEST_CASE("ProjectManager does not open a book that another Kalahari program has
     REQUIRE(pm.closeProject(false));
 }
 
-TEST_CASE("ProjectManager opens elements whose package is not installed", "[project_manager]") {
+TEST_CASE("ProjectManager opens elements whose package is not installed, read-only",
+          "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();
 
@@ -1175,6 +1176,8 @@ TEST_CASE("ProjectManager opens elements whose package is not installed", "[proj
     QStringList problems;
     REQUIRE(pm.openProject(manifest, &problems));
     CHECK(problems.isEmpty());
+    CHECK(pm.isReadOnly());
+    CHECK(pm.missingPackages() == QStringList{"acme.thriller"});
 
     const ProjectElement* arc = pm.findElement(part);
     const ProjectElement* sceneElement = pm.findElement(chapter);
@@ -1187,13 +1190,13 @@ TEST_CASE("ProjectManager opens elements whose package is not installed", "[proj
     CHECK(pm.formOf(*sceneElement) == ElementForm::Text);
     CHECK(pm.formOf(*board) == ElementForm::Window);
 
-    // Its text opens, is counted and keeps its status
+    // Its text opens, is counted and keeps its status, which does not change: the book is
+    // read-only without the package
     CHECK(pm.loadChapterContent(chapter) == kmlWith("Dark night"));
     CHECK(pm.wordCount(chapter) == 2);
     CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 2}});  // and the title page
-    REQUIRE(pm.setStatus(chapter, "final"));
-    CHECK(chapterFileOf(chapter).status() == "final");
-    CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 1}, {"final", 1}});
+    CHECK_FALSE(pm.setStatus(chapter, "final"));
+    CHECK(chapterFileOf(chapter).status() == "draft");
 
     // No new elements of its kinds: the project does not offer them
     CHECK(pm.textKindsFor(BookPlace::Main, part).isEmpty());
@@ -2265,7 +2268,7 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
     REQUIRE(project.mkpath(".backups"));
     writeFile(project.filePath(".backups/project_backup.db"), "old");
 
-    // The archive has the files of the book with the copies of its packages, without its lock,
+    // The archive has the files of the book with the cards of its packages, without its lock,
     // the log files of its database and the backups; the book stays open
     const QString archive = project.filePath("Travels.klh.zip");
     ArchiveProblem problem;
@@ -2278,15 +2281,15 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
     CHECK(std::is_sorted(progress.cbegin(), progress.cend()));
     CHECK(progress.last() == 100);
     CHECK(pm.isProjectOpen());
-    const QStringList entries{"Travels.klh",
-                              "book/chapter_001.kchapter",
-                              "book/title_page_001.kchapter",
-                              "project.db",
-                              "types/kalahari.base/booktype.json",
-                              "types/kalahari.base/styles.json",
-                              "types/kalahari.base/templates/title_page.kchapter",
-                              "types/kalahari.novel/booktype.json",
-                              "types/kalahari.novel/styles.json"};
+    QStringList entries{"Travels.klh", "book/chapter_001.kchapter",
+                        "book/title_page_001.kchapter", "project.db"};
+    QDirIterator cards(project.filePath("types"), QDir::Files, QDirIterator::Subdirectories);
+    while (cards.hasNext()) {
+        entries << project.relativeFilePath(cards.next());
+    }
+    entries.sort();
+    CHECK(entries.contains("types/kalahari.base/card.json"));
+    CHECK(entries.contains("types/kalahari.novel/card.json"));
     CHECK(entriesOf(archive) == entries);
 
     // An archive written to the book's folder is not in the next one

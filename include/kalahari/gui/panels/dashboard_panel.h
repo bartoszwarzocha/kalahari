@@ -151,6 +151,11 @@ private:
     /// (ArtProvider), drawn sharp at any size
     static QIcon bookIcon(const QString& actionId);
 
+    /// @brief The icon of a book card's type at @p size, after the properties of @p label (the
+    /// card's "cardBookIcon"): its icon id; where the program does not have the type, its icon
+    /// from the program or from the book's card of the type, greyed out
+    static QPixmap bookIconPixmap(const QLabel* label, int size);
+
     // Main layout components
     QScrollArea* m_scrollArea;         ///< Scroll area for content
     QWidget* m_contentWidget;          ///< Main content container

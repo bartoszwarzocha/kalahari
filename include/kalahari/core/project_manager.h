@@ -42,6 +42,7 @@
 #include "kalahari/core/archive_problem.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/package_card.h"
 // OpenSpec #00041: SQLite Project Database
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/project_lock.h"
@@ -258,12 +259,29 @@ public:
     bool closeProject(bool promptSave = true);
 
     /// @brief Save the project to its .klh file
-    /// @return true if the file was written
+    /// @return true if the file was written; false also when the book is open read-only
     bool saveManifest();
 
     /// @brief Check if a project is currently open
     /// @return true if a project is open (ProjectMode), false otherwise
     bool isProjectOpen() const;
+
+    /// @brief Whether the open book is open read-only: the program does not have a package it
+    /// uses (missingPackages())
+    ///
+    /// The book can be read and exported (exportArchive()), but not changed: the methods that
+    /// change it do nothing and report so, and nothing is written into its folder, neither
+    /// its .klh file nor its chapters nor the cards of its packages.
+    bool isReadOnly() const;
+
+    /// @brief Packages of the open book that the program does not have, or has without a kind
+    /// the book names (BookProject::missingPackages()), sorted; empty when it has them all or
+    /// no book is open
+    const QStringList& missingPackages() const;
+
+    /// @brief The card of package @p packageId that the open book keeps (package_card.h), or
+    /// nullptr when it has none or no book is open
+    const PackageCard* packageCard(const QString& packageId) const;
 
     // =========================================================================
     // Paths
@@ -311,25 +329,24 @@ public:
     // Book Types
     // =========================================================================
 
-    /// @brief Packages of the open book, or the installed packages when no book is open
+    /// @brief Packages of book types and kinds the program has, which the open book works with:
+    /// installedBookTypes()
     ///
-    /// A book opens with the copies of its packages in its folder (PackageCopies), so it works
-    /// the same where its type is not installed or is older. The kinds of the open book come
-    /// from here; those of the packages loaded for a book opened before (KindRef) are no longer
-    /// valid.
+    /// Where the program does not have a package of the book, the book opens read-only
+    /// (isReadOnly()) and shows its type and kinds after its cards (packageCard()).
     const BookTypeRegistry& bookTypes() const;
 
     /// @brief Packages of book types and kinds installed with the program
     ///
     /// The built-in packages of the resources folder, loaded the first time they are needed.
-    /// The New Book window, the palette and new books take their types and kinds from here,
-    /// never from the copies of an open book.
+    /// The New Book window, the palette, new books and the open book take their types and
+    /// kinds from here.
     const BookTypeRegistry& installedBookTypes() const;
 
     /// @brief Load the packages in @p folders instead of the built-in ones
     ///
-    /// Kinds of the packages loaded before (KindRef) are no longer valid. The open book keeps
-    /// its packages until it is opened again.
+    /// Kinds of the packages loaded before (KindRef) are no longer valid. Whether the open book
+    /// is read-only is decided when it opens.
     void loadBookTypes(const QStringList& folders);
 
     /// @brief Kind of @p element; none when its package is not installed
@@ -649,14 +666,14 @@ public:
                                                   ArchiveProblem* problem = nullptr,
                                                   int* backups = nullptr);
 
-    /// @brief Unpack the copies of the packages of the book of a .klh.zip archive (its folder
+    /// @brief Unpack the cards of the packages of the book of a .klh.zip archive (its folder
     /// types/) to folder @p targetDir, as the folder of the book has them
     ///
-    /// The book of the archive is shown before it is imported with these copies, as it will
-    /// work after the import (PackageCopies::folders()). An archive of an earlier version has
-    /// no copies. Entries that would land outside @p targetDir are skipped.
-    /// @return false when the archive cannot be read or a copy cannot be written
-    static bool unpackArchiveCopies(const QString& archivePath, const QString& targetDir);
+    /// The book of the archive is shown before it is imported with these cards where the
+    /// program does not have its packages (PackageCards::read()). An archive of an earlier
+    /// version has none. Entries that would land outside @p targetDir are skipped.
+    /// @return false when the archive cannot be read or a file cannot be written
+    static bool unpackArchiveCards(const QString& archivePath, const QString& targetDir);
 
     /// @brief Unpack a .klh.zip archive to a new folder, without opening the project in it
     ///
@@ -769,6 +786,10 @@ private:
     /// back to how it was, empty when it existed (@p folderExisted), else it is removed
     static void removeNewProject(const QString& projectDir, bool folderExisted);
 
+    /// @brief Whether the open book is read-only, so that @p what does not change it; the log
+    /// says so
+    bool refusesChange(const char* what) const;
+
     /// @brief List that a new element of @p kind goes to: @p place of the book, or group
     /// @p groupId; nullptr, with the reason in the log, when the kind cannot be there
     QList<ProjectElement>* listForNew(const KindRef& kind, BookPlace place,
@@ -788,7 +809,8 @@ private:
 
     mutable BookTypeRegistry m_bookTypes;         ///< Installed packages of book types and kinds
     mutable bool m_bookTypesLoaded = false;       ///< m_bookTypes was loaded
-    BookTypeRegistry m_projectTypes;              ///< Packages of the open book: its copies
+    QStringList m_missingPackages;                ///< Of the open book: it is read-only
+    QHash<QString, PackageCard> m_packageCards;   ///< Cards of the open book, by package id
 
     // OpenSpec #00041: SQLite Project Database
     std::unique_ptr<ProjectLock> m_projectLock;      ///< Project lock (prevents multiple instances)

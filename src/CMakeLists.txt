@@ -35,7 +35,6 @@ set(KALAHARI_CORE_SOURCES
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
-    core/package_copies.cpp     # Copies of the packages a book uses, in its folder
     core/unicode_paths.cpp      # Paths with any characters, as UTF-8 text, and their ZIP archives
     core/utils/svg_converter.cpp
     core/theme.cpp
@@ -132,6 +131,7 @@ set(KALAHARI_SOURCES
     core/resource_paths.cpp # ResourcePaths - Platform-aware resource locator (OpenSpec #00029)
     core/recent_books_manager.cpp # RecentBooksManager - Recent files management (OpenSpec #00030)
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
+    core/package_card.cpp   # Cards of the packages a book uses: names and icons (IconRegistry)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
     gui/command.cpp

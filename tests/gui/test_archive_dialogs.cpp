@@ -1008,15 +1008,15 @@ TEST_CASE("Import Project Archive: the book of the archive before the import",
 
         dialog.setArchive(other);
         CHECK(dialog.bookText() ==
-              QStringLiteral("Title: Travels\nType: acme.saga (not installed)\n"
+              QStringLiteral("Title: Travels\nType: acme.saga (not in the program)\n"
                              "Contents: 2 elements: a chapter and a title page\n"
                              "Research: 4 elements: 3 characters and a location"));
         CHECK(dialog.folderNote() == QStringLiteral("The book goes to the folder \"Saga\"."));
     }
 }
 
-TEST_CASE("Import Project Archive: a book of a type that is not installed is named after its "
-          "copies in the archive",
+TEST_CASE("Import Project Archive: a book of a type that the program does not have is named "
+          "after its cards in the archive, the type greyed out",
           "[gui][dialogs][archive]") {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
@@ -1030,17 +1030,18 @@ TEST_CASE("Import Project Archive: a book of a type that is not installed is nam
     QList<std::pair<QByteArray, QByteArray>> entries{
         {"Travels.klh", QJsonDocument(project->toJson()).toJson()}};
     const QDir source(QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes"));
-    for (const char* file : {"kalahari.base/booktype.json", "kalahari.base/styles.json",
-                             "kalahari.base/templates/title_page.kchapter",
-                             "kalahari.novel/booktype.json", "kalahari.novel/styles.json"}) {
-        QFile copy(source.filePath(QString::fromLatin1(file)));
-        REQUIRE(copy.open(QIODevice::ReadOnly));
-        entries.append({QByteArray("types/") + file, copy.readAll()});
+    core::BookTypeRegistry builtIn;
+    builtIn.load({source.path()});
+    for (const char* id : {"kalahari.base", "kalahari.novel"}) {
+        const core::BookTypePackage* package = builtIn.package(QString::fromLatin1(id));
+        REQUIRE(package != nullptr);
+        entries.append({QByteArray("types/") + id + "/card.json",
+                        QJsonDocument(core::PackageCard::of(*package).toJson()).toJson()});
     }
-    const QString withCopies = QDir(dir.path()).filePath(QStringLiteral("Saga.klh.zip"));
-    writeArchive(withCopies, entries);
-    const QString withoutCopies = QDir(dir.path()).filePath(QStringLiteral("Earlier.klh.zip"));
-    writeArchive(withoutCopies, {entries.first()});
+    const QString withCards = QDir(dir.path()).filePath(QStringLiteral("Saga.klh.zip"));
+    writeArchive(withCards, entries);
+    const QString withoutCards = QDir(dir.path()).filePath(QStringLiteral("Earlier.klh.zip"));
+    writeArchive(withoutCards, {entries.first()});
 
     // The program has no novel (nor the collection of stories, which uses it)
     QTemporaryDir installedDir;
@@ -1068,17 +1069,44 @@ TEST_CASE("Import Project Archive: a book of a type that is not installed is nam
                                   const ArchiveDialog::Progress&,
                                   core::ArchiveProblem*) { return true; });
 
-    // With its copies: the type and the kinds as the book will have them after the import
-    dialog.setArchive(withCopies);
+    // The type greyed out: the label of the type is not enabled
+    const auto typeLabel = [&dialog](const QString& text) -> const QLabel* {
+        const QList<QLabel*> labels = dialog.findChildren<QLabel*>();
+        const auto found = std::find_if(labels.cbegin(), labels.cend(),
+                                        [&text](const QLabel* label) {
+                                            return label->text() == text;
+                                        });
+        REQUIRE(found != labels.cend());
+        return *found;
+    };
+
+    // With its cards: the type and the kinds as the book will show them after the import
+    dialog.setArchive(withCards);
     INFO(dialog.bookText().toStdString());
     CHECK(dialog.bookText() ==
-          QStringLiteral("Title: Travels\nAuthor: Anna\nType: Novel\n"
+          QStringLiteral("Title: Travels\nAuthor: Anna\nType: Novel (not in the program)\n"
                          "Contents: 3 elements: a prologue, a chapter, and a title page"));
+    CHECK_FALSE(typeLabel(QStringLiteral("Novel (not in the program)"))->isEnabled());
     CHECK(dialog.acceptButton()->isEnabled());
 
-    // An archive of an earlier version, without copies: the type is not installed
-    dialog.setArchive(withoutCopies);
-    CHECK(dialog.bookText().contains(QStringLiteral("Type: kalahari.novel (not installed)\n")));
+    // An archive of an earlier version, without cards: the type and the kind by their ids
+    dialog.setArchive(withoutCards);
+    CHECK(dialog.bookText().contains(
+        QStringLiteral("Type: kalahari.novel (not in the program)\n")));
+    CHECK(dialog.bookText().contains(QStringLiteral("prologue")));
+    CHECK_FALSE(typeLabel(QStringLiteral("kalahari.novel (not in the program)"))->isEnabled());
+
+    // A type the program has is not greyed out
+    ImportArchiveDialog withNovel(builtIn, QDir(dir.path()).filePath(QStringLiteral("Books")),
+                                  [](const QString&, const QString&, bool,
+                                     const ArchiveDialog::Progress&,
+                                     core::ArchiveProblem*) { return true; });
+    withNovel.setArchive(withCards);
+    CHECK(withNovel.bookText().contains(QStringLiteral("Type: Novel\n")));
+    const QList<QLabel*> labels = withNovel.findChildren<QLabel*>();
+    CHECK(std::all_of(labels.cbegin(), labels.cend(), [](const QLabel* label) {
+        return label->text() != QStringLiteral("Novel") || label->isEnabled();
+    }));
 }
 
 TEST_CASE("Import Project Archive: each row of the book is as high as its sentence",

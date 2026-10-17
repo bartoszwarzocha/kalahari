@@ -4,6 +4,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/package_card.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 
@@ -140,6 +141,16 @@ QAction* ArtProvider::createAction(const QString& cmdId,
 QIcon ArtProvider::getIcon(const QString& cmdId, IconContext context) {
     int size = getIconSize(context);
     return IconRegistry::getInstance().getIcon(cmdId, m_iconTheme, size);
+}
+
+QIcon ArtProvider::getPackageIcon(const QString& iconId, const PackageCard* card,
+                                   IconContext context) {
+    IconRegistry& registry = IconRegistry::getInstance();
+    if (registry.hasIcon(iconId)) {
+        return getIcon(iconId, context);
+    }
+    const QString file = card != nullptr ? card->iconFile(iconId, m_iconTheme) : QString();
+    return file.isEmpty() ? QIcon() : registry.getIconFromFile(file);
 }
 
 QPixmap ArtProvider::getPixmap(const QString& cmdId, int size) {
