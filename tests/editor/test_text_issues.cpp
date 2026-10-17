@@ -18,13 +18,11 @@
 
 #include <QFile>
 #include <QImage>
-#include <QTextBlock>
 
 #include <nlohmann/json.hpp>
 
 #include <cstdlib>
 #include <memory>
-#include <utility>
 #include <vector>
 
 using namespace kalahari::editor;
