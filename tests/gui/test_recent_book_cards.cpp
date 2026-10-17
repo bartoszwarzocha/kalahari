@@ -3,7 +3,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/icon_registry.h>
+#include <kalahari/core/package_card.h>
 #include <kalahari/core/recent_books_manager.h>
+#include <kalahari/core/theme_manager.h>
 #include <kalahari/gui/panels/dashboard_panel.h>
 
 #include <QDir>
@@ -12,6 +15,7 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QTemporaryDir>
+#include <QTextDocumentFragment>
 
 #include <algorithm>
 #include <cstdio>
@@ -81,8 +85,11 @@ void writeJson(const QString& path, const QByteArray& json) {
 /// What the card of a book shows: its title, the line under it and the icon
 struct Card {
     QString title;
-    QString description;
+    QString description;   ///< The text of the line, without its markup
     QString iconId;
+    bool typeGreyed;       ///< The type in the line and the icon are greyed out
+    QString descriptionMarkup;  ///< The line as the label has it
+    bool hasIcon;          ///< The icon label shows an icon
 };
 
 /// The card of the book @p path on @p panel
@@ -98,7 +105,13 @@ Card cardOf(const gui::DashboardPanel& panel, const QString& path) {
     REQUIRE(title != nullptr);
     REQUIRE(description != nullptr);
     REQUIRE(icon != nullptr);
-    return {title->text(), description->text(), icon->property("iconId").toString()};
+    const QString text = description->textFormat() == Qt::RichText
+                             ? QTextDocumentFragment::fromHtml(description->text()).toPlainText()
+                             : description->text();
+    const bool greyed = description->property("typeMissing").toBool();
+    REQUIRE(icon->property("typeMissing").toBool() == greyed);
+    return {title->text(), text, icon->property("iconId").toString(), greyed,
+            description->text(), !icon->pixmap().isNull()};
 }
 
 /// Whether @p panel has a label with @p text
@@ -160,8 +173,9 @@ TEST_CASE("Dashboard: the card of a recent book shows its title, author and type
     // Without a title the card has the name of the file
     card = cardOf(panel, saga);
     CHECK(card.title == QStringLiteral("Saga"));
-    CHECK(card.description == QStringLiteral("Jan Kowalski | acme.saga (not installed)"));
+    CHECK(card.description == QStringLiteral("Jan Kowalski | acme.saga (not in the program)"));
     CHECK(card.iconId == QStringLiteral("template.novel"));
+    CHECK(card.typeGreyed);
 
     card = cardOf(panel, earlier);
     CHECK(card.title == QStringLiteral("Old Times"));
@@ -179,4 +193,64 @@ TEST_CASE("Dashboard: without recent books the list says so", "[gui][dashboard]"
     const gui::DashboardPanel panel;
     CHECK(hasLabel(panel, QStringLiteral("Recent Books")));
     CHECK(hasLabel(panel, QStringLiteral("No recent books.")));
+}
+
+TEST_CASE("Dashboard: a book whose type the program does not have is named after its card, "
+          "greyed out",
+          "[gui][dashboard]") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QDir root(dir.path());
+    const QString saga = root.filePath(QStringLiteral("Saga/Saga.klh"));
+    REQUIRE(root.mkpath(QStringLiteral("Saga")));
+    REQUIRE(project(QStringLiteral("acme.saga"), QStringLiteral("Winter"),
+                    QStringLiteral("Jan Kowalski"))
+                .save(saga));
+
+    // The book's card of its type, a package of another computer, with an icon the program
+    // does not have
+    core::PackageCard type;
+    type.id = QStringLiteral("acme.saga");
+    type.version = QStringLiteral("2.0");
+    type.name.values = {{QStringLiteral("en"), QStringLiteral("Family Saga")},
+                        {QStringLiteral("pl"), QStringLiteral("Saga rodzinna")}};
+    type.icon = QStringLiteral("acme.saga.tree");
+    const QDir card(core::PackageCards::folderOf(root.filePath(QStringLiteral("Saga")),
+                                                 QStringLiteral("acme.saga")));
+    REQUIRE(root.mkpath(card.path()));
+    writeJson(card.filePath(QStringLiteral("card.json")), QJsonDocument(type.toJson()).toJson());
+    for (const QString& theme : core::IconRegistry::iconThemes()) {
+        REQUIRE(card.mkpath(QStringLiteral("icons/") + theme));
+        REQUIRE(QFile::copy(
+            QStringLiteral(KALAHARI_SOURCE_DIR "/resources/icons/%1/account_tree.svg").arg(theme),
+            card.filePath(QStringLiteral("icons/%1/acme.saga.tree.svg").arg(theme))));
+    }
+    REQUIRE_FALSE(core::IconRegistry::getInstance().hasIcon(QStringLiteral("acme.saga.tree")));
+
+    const RecentBooks recent({saga});
+    const gui::DashboardPanel panel;
+    const Card shown = cardOf(panel, saga);
+    CHECK(shown.title == QStringLiteral("Winter"));
+    CHECK(shown.description == QStringLiteral("Jan Kowalski | Family Saga (not in the program)"));
+    CHECK(shown.iconId == QStringLiteral("acme.saga.tree"));
+    CHECK(shown.hasIcon);
+
+    // The type and its icon are greyed out; the author is not
+    CHECK(shown.typeGreyed);
+    const QString grey =
+        core::ThemeManager::getInstance().getCurrentTheme().palette.placeholderText.name();
+    CHECK(shown.descriptionMarkup.startsWith(QStringLiteral("Jan Kowalski | <span")));
+    CHECK(shown.descriptionMarkup.contains(grey));
+
+    // A book of a type the program has is not greyed out
+    QFile::remove(saga);
+    REQUIRE(project(QStringLiteral("kalahari.novel"), QStringLiteral("Winter"),
+                    QStringLiteral("Jan Kowalski"))
+                .save(saga));
+    const RecentBooks again({saga});
+    const gui::DashboardPanel novelPanel;
+    const Card novel = cardOf(novelPanel, saga);
+    CHECK(novel.description == QStringLiteral("Jan Kowalski | Novel"));
+    CHECK_FALSE(novel.typeGreyed);
+    CHECK(novel.descriptionMarkup == novel.description);
 }

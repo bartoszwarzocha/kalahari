@@ -1428,14 +1428,16 @@ void ToolbarManager::syncFontWidgetsToEditor(EditorPanel* editor) {
         editor::BookEditor* bookEditor = editor->getBookEditor();
         const QString family = bookEditor->currentFontFamily();
         const int size = bookEditor->currentFontSize();
+        // A chapter of a book open read-only shows its font, but takes no other
+        const bool changes = !bookEditor->isReadOnly();
 
         if (m_fontComboBox) {
             m_fontComboBox->setCurrentFont(QFont(family, size));
-            m_fontComboBox->setEnabled(true);
+            m_fontComboBox->setEnabled(changes);
         }
         if (m_fontSizeSpinner) {
             m_fontSizeSpinner->setValue(size);
-            m_fontSizeSpinner->setEnabled(true);
+            m_fontSizeSpinner->setEnabled(changes);
         }
 
         logger.debug("ToolbarManager: Font widgets synced to caret '{}' {}pt",

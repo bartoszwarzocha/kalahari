@@ -80,6 +80,9 @@ void BookEditor::setAlignJustify()
 
 void BookEditor::setParagraphAlignment(Qt::Alignment alignment)
 {
+    if (refusesChange()) {
+        return;
+    }
     if (!m_textBuffer) {
         return;
     }
@@ -147,6 +150,9 @@ Qt::Alignment BookEditor::currentAlignment() const
 
 void BookEditor::toggleFormat(InlineFormat formatType)
 {
+    if (refusesChange()) {
+        return;
+    }
     const auto formatName = [formatType] {
         switch (formatType) {
             case InlineFormat::Bold:
@@ -381,6 +387,9 @@ int BookEditor::fontSizeOf(const QTextCharFormat& format) const
 
 void BookEditor::setSelectionFontFamily(const QString& family)
 {
+    if (refusesChange()) {
+        return;
+    }
     if (!m_textBuffer) {
         return;
     }
@@ -405,6 +414,9 @@ void BookEditor::setSelectionFontFamily(const QString& family)
 
 void BookEditor::setSelectionFontSize(int pointSize)
 {
+    if (refusesChange()) {
+        return;
+    }
     if (!m_textBuffer) {
         return;
     }

@@ -10,11 +10,6 @@ set(TEST_SOURCES
     core/test_extension_points.cpp
     core/test_event_bus.cpp
     core/test_plugin_loading.cpp
-    core/test_book_element.cpp
-    core/test_part.cpp
-    core/test_book.cpp
-    core/test_document.cpp
-    core/test_document_archive.cpp
     core/test_chapter_document.cpp
     core/test_text_statistics.cpp
     core/test_text_file.cpp         # Plain text files in their own encoding and line ends
@@ -25,12 +20,15 @@ set(TEST_SOURCES
     core/test_kind_words.cpp          # Names of kinds in sentences, and the markers of translations
     core/test_book_project.cpp        # Book project and its .klh file
     core/test_old_book_conversion.cpp # Books of the first .klh format, converted to this version
+    core/test_package_cards.cpp       # Cards of the packages a book uses; a book read-only without them
+    core/test_unicode_paths.cpp       # Paths with characters outside the code page of the system
     core/test_project_manager.cpp
     core/test_logger.cpp
     core/test_trusted_keys.cpp      # Sub-Project C WS4.3: TrustedKeys unit tests
     core/test_art_provider_theme.cpp  # BUG-1: theme-change ordering in the icon stack
     core/test_theme_manager_apply.cpp  # Theme switch with color overrides in one pass
     core/test_plugin_manager.cpp
+    core/test_plugin_archive.cpp      # Plugin archives unpacked only into their own folder
     core/test_python_interpreter.cpp
     core/test_python_interop.cpp
     # OpenSpec #00042: Custom Text Editor
@@ -65,6 +63,7 @@ set(TEST_SOURCES
     editor/test_format_without_selection.cpp     # Formats given without a selection
     editor/test_line_breaks.cpp                  # Line breaks in a paragraph (Shift+Enter)
     editor/test_auto_correct.cpp                 # Autocorrect: the changes of the text as it is typed
+    editor/test_read_only_text.cpp               # A read-only text: read, copied, searched, not changed
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     gui/test_command_registry.cpp
@@ -86,6 +85,7 @@ set(TEST_SOURCES
     gui/test_new_book.cpp                        # New Book: the kinds of a user project, without opening
     gui/test_new_file.cpp                        # New File: an element of the book, or a file outside one
     gui/test_book_tabs.cpp                       # The tabs of a book: one file in one tab, Close Book, words
+    gui/test_read_only_book.cpp                  # A book open read-only: its bar, chapters, Navigator, properties
     gui/test_kind_names.cpp                      # Names of kinds in menu commands
     gui/test_navigator_panel.cpp                 # Navigator tree of a book project
     gui/test_navigator_coordinator.cpp           # Navigator commands on the open project
@@ -144,11 +144,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/plugin_signature.cpp
     ${CMAKE_SOURCE_DIR}/src/core/trusted_keys.cpp
     ${CMAKE_SOURCE_DIR}/src/core/python_interpreter.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/book_element.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/part.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/book.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/document.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/document_archive.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_file.cpp
@@ -159,6 +154,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_project.cpp
     ${CMAKE_SOURCE_DIR}/src/core/old_book_conversion.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/package_card.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/unicode_paths.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/recent_books_manager.cpp
@@ -279,6 +276,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_element_dialog.cpp       # New element of the book in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/section_words.cpp                    # Parts of the book in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/kind_names.cpp                       # Kinds of elements in sentences
+    ${CMAKE_SOURCE_DIR}/src/gui/read_only_book.cpp                   # A book open read-only
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/element_place_picker.cpp     # The place of an element in the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/add_to_book_dialog.cpp       # A file as a new element of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_file_dialog.cpp          # A new element of the open book

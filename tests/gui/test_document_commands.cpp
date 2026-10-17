@@ -127,6 +127,102 @@ TEST_CASE("Document commands: greyed out without a document in front, with their
     registry.clear();
 }
 
+TEST_CASE("Document commands: over a read-only chapter those that change it are greyed out",
+          "[gui][commands][readonly]") {
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    registry.clear();
+    registerAllCommands(runningCallbacks());
+    CHECK(utils::changingDocumentCommands() ==
+          std::vector<std::string>{"edit.findReplace", "format.bold", "format.italic",
+                                   "format.underline", "format.strikethrough",
+                                   "format.alignLeft", "format.alignCenter",
+                                   "format.alignRight", "format.justify"});
+    const auto changes = [](const std::string& id) {
+        const std::vector<std::string>& ids = utils::changingDocumentCommands();
+        return std::find(ids.begin(), ids.end(), id) != ids.end();
+    };
+
+    // A chapter of a book open read-only in front: they are greyed out, saying why; Find,
+    // the view mode and the zoom work
+    bool hasDocument = true;
+    bool readOnly = true;
+    utils::bindToDocument(
+        registry, [&hasDocument]() { return hasDocument; }, [&readOnly]() { return readOnly; });
+    for (const std::string& id : utils::documentCommands()) {
+        INFO(id);
+        QAction* action = registry.getAction(id);
+        CHECK(action->isEnabled() == !changes(id));
+        if (changes(id)) {
+            CHECK(action->toolTip() == QStringLiteral("The book is open read-only"));
+            CHECK(action->statusTip() == QStringLiteral("The book is open read-only"));
+        }
+    }
+
+    // A chapter that can be changed: all of them work, with their usual tooltips
+    readOnly = false;
+    utils::updateDocumentCommands(registry);
+    for (const std::string& id : utils::documentCommands()) {
+        INFO(id);
+        CHECK(registry.getAction(id)->isEnabled());
+        CHECK(registry.getAction(id)->statusTip().isEmpty());
+    }
+
+    // Without a document: all greyed out, as before, and none says the book is read-only
+    readOnly = true;
+    hasDocument = false;
+    utils::updateDocumentCommands(registry);
+    for (const std::string& id : utils::documentCommands()) {
+        INFO(id);
+        CHECK_FALSE(registry.getAction(id)->isEnabled());
+        CHECK(registry.getAction(id)->statusTip().isEmpty());
+    }
+
+    registry.clear();
+}
+
+TEST_CASE("Document commands: the keys of a command greyed out over a read-only chapter say why",
+          "[gui][commands][readonly]") {
+    if (!canActivateWindows()) {
+        SKIP(NEEDS_OFFSCREEN);
+    }
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    registry.clear();
+    CommandCallbacks callbacks = runningCallbacks();
+    int bold = 0;
+    callbacks.onFormatBold = [&bold]() { ++bold; };
+    registerAllCommands(callbacks);
+    bool readOnly = true;
+    utils::bindToDocument(registry, []() { return true; }, [&readOnly]() { return readOnly; });
+
+    QMainWindow window;
+    QStatusBar statusBar;  // not the window's own, as in test_dock_layout.cpp (QTBUG-137524)
+    auto* text = new QLineEdit(&window);
+    window.setCentralWidget(text);
+    QAction* boldAction = registry.getAction(std::string("format.bold"));
+    REQUIRE(boldAction != nullptr);
+    REQUIRE(boldAction->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_B));
+    window.addAction(boldAction);
+    utils::explainGreyedKeys(registry, &window, &statusBar);
+    window.show();
+    window.activateWindow();
+    REQUIRE(kalahari::test::waitUntil([&window] { return QApplication::activeWindow() == &window; }));
+    text->setFocus(Qt::OtherFocusReason);
+
+    press(text, QKeySequence(Qt::CTRL | Qt::Key_B));
+    CHECK(statusBar.currentMessage() == QStringLiteral("The book is open read-only"));
+    CHECK(bold == 0);
+
+    // The chapter can be changed again: Bold takes its keys
+    statusBar.clearMessage();
+    readOnly = false;
+    utils::updateDocumentCommands(registry);
+    press(text, QKeySequence(Qt::CTRL | Qt::Key_B));
+    CHECK(bold == 1);
+    CHECK(statusBar.currentMessage().isEmpty());
+
+    registry.clear();
+}
+
 TEST_CASE("Book commands: Close Book and the export of the archive greyed out without a book",
           "[gui][commands]") {
     // Round 3 report 19.2: without a book they could only say that one must be opened first

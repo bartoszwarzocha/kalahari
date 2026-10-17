@@ -14,6 +14,7 @@
 
 #include <QWidget>
 #include <QHash>
+#include <QIcon>
 #include <QMap>
 #include <QSet>
 #include <QString>
@@ -32,9 +33,11 @@ class QComboBox;
 namespace kalahari {
 namespace core {
     struct BookProject;
+    struct PackageCard;
     struct ProjectElement;
     struct UnassignedFile;
     class BookTypeRegistry;
+    enum class IconContext;
 }
 
 namespace gui {
@@ -100,9 +103,28 @@ public:
                             const QString& projectFolder);
 
     /// @brief ArtProvider id of the icon of @p element: of its kind or, when @p registry does
-    /// not have its kind, of its form; that of a file for a file of the book outside its text
+    /// not have its kind, of the kind on @p card, the book's card of its package, else of its
+    /// form; that of a file for a file of the book outside its text
     static QString iconIdOf(const core::BookTypeRegistry& registry,
-                            const core::ProjectElement& element);
+                            const core::ProjectElement& element,
+                            const core::PackageCard* card = nullptr);
+
+    /// @brief The icon of @p element of the open book: of its kind, as the program has it or,
+    /// for a kind the program does not have, as the book's card of its package shows it
+    /// (core::ProjectManager::packageCard()); else of its form
+    static QIcon iconOf(const core::BookTypeRegistry& registry,
+                        const core::ProjectElement& element, core::IconContext context);
+
+    /// @brief Show the book as one open read-only (core::ProjectManager::isReadOnly()), or as
+    /// one that can be changed
+    ///
+    /// Read-only, the icons of the book are grey, nothing is dragged or dropped, and the
+    /// commands of the context menu that would change the book are greyed out, their tooltips
+    /// and the status bar saying why. The files open outside the book stay as they are.
+    void setReadOnly(bool readOnly);
+
+    /// @brief Whether it shows the book as one open read-only (setReadOnly())
+    bool isReadOnly() const { return m_readOnly; }
 
     /// @brief ArtProvider id of the icon of the elements of @p kind: its own, or that of its
     /// form; that of a text without a kind
@@ -369,6 +391,11 @@ private:
     /// @return Icon ID for ArtProvider (e.g., "common.folder", "template.chapter")
     QString getIconIdForType(const QString& elementType) const;
 
+    /// @brief The icon @p iconId of @p item: from the book's card of the package of its kind
+    /// when the program does not have the kind; grey for the files that are not in the book,
+    /// and for the items of a book open read-only (setReadOnly())
+    QIcon itemIcon(const QTreeWidgetItem* item, const QString& iconId) const;
+
     /// @brief Add the items of @p elements, and of the elements inside them, under @p parent
     void addElementItems(QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements,
                          const core::BookTypeRegistry& registry);
@@ -492,6 +519,8 @@ private:
 
     // Icon size tracking for dynamic updates
     int m_currentIconSize;               ///< Current icon size (to detect changes)
+
+    bool m_readOnly = false;             ///< The book is open read-only (setReadOnly())
 
     // Modified state tracking (OpenSpec #00042 Phase 7.5)
     QSet<QString> m_modifiedElements;    ///< Set of element IDs with unsaved changes

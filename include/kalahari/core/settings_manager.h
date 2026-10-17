@@ -311,6 +311,11 @@ public:
     /// @return Absolute path to settings.json
     std::filesystem::path getSettingsFilePath() const;
 
+    /// @brief Load and save the settings in file @p path from now on, in place of the file of
+    /// the program, until a test sets the previous one again
+    /// @return The previous file
+    std::filesystem::path setSettingsFilePathForTests(const std::filesystem::path& path);
+
     /// @brief Check if a setting key exists
     /// @param key JSON pointer path (e.g., "appearance.theme")
     /// @return true if key exists, false otherwise

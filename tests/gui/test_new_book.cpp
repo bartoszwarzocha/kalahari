@@ -18,6 +18,8 @@
 #include <QCoreApplication>
 #include <QDialogButtonBox>
 #include <QDir>
+#include <QDirIterator>
+#include <QFile>
 #include <QFileInfo>
 #include <QLabel>
 #include <QLineEdit>
@@ -768,6 +770,63 @@ TEST_CASE("New Book: with a book open, the new book is created without opening i
         CHECK(novel.pm.book()->title == QStringLiteral("Second"));
         REQUIRE(novel.pm.closeProject(false));  // before its folder goes
     }
+}
+
+TEST_CASE("New Book: a book type that the program does not have is not on the list",
+          "[gui][newbook]") {
+    auto& pm = core::ProjectManager::getInstance();
+    if (pm.isProjectOpen()) {
+        REQUIRE(pm.closeProject(false));
+    }
+    const auto templatesOf = [](const NewItemDialog& dialog) {
+        QStringList ids;
+        const auto* list = dialog.findChild<QListWidget*>();
+        REQUIRE(list != nullptr);
+        for (int i = 0; i < list->count(); ++i) {
+            ids << list->item(i)->data(Qt::UserRole).toString();
+        }
+        return ids;
+    };
+
+    // Every type of the program, and the user project
+    const QStringList all = templatesOf(NewItemDialog(gui::dialogs::NewItemMode::Project));
+    CHECK(all == QStringList{"template.novel", "template.shortStories", "template.nonfiction",
+                             "template.screenplay", "template.poetry", "template.empty"});
+
+    // The program has no novel (nor the collection of stories, which uses it)
+    QTemporaryDir installed;
+    REQUIRE(installed.isValid());
+    const QDir source(QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes"));
+    for (const QString& package : source.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        if (package == QLatin1String("kalahari.novel") ||
+            package == QLatin1String("kalahari.short_stories")) {
+            continue;
+        }
+        QDirIterator it(source.filePath(package), QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const QString file = source.relativeFilePath(it.next());
+            const QString target = QDir(installed.path()).filePath(file);
+            REQUIRE(QDir().mkpath(QFileInfo(target).absolutePath()));
+            REQUIRE(QFile::copy(source.filePath(file), target));
+        }
+    }
+    pm.loadBookTypes({installed.path()});
+    REQUIRE(pm.installedBookTypes().package(QStringLiteral("kalahari.novel")) == nullptr);
+
+    // Neither is on the list, not even greyed out; the first type is chosen
+    {
+        const NewItemDialog dialog(gui::dialogs::NewItemMode::Project);
+        CHECK(templatesOf(dialog) == QStringList{"template.nonfiction", "template.screenplay",
+                                                 "template.poetry", "template.empty"});
+        const auto* list = dialog.findChild<QListWidget*>();
+        REQUIRE(list->currentItem() != nullptr);
+        CHECK(list->currentItem()->data(Qt::UserRole).toString() == "template.nonfiction");
+        for (int i = 0; i < list->count(); ++i) {
+            CHECK(list->item(i)->flags().testFlag(Qt::ItemIsEnabled));
+        }
+    }
+    pm.loadBookTypes({source.path()});
+    CHECK(templatesOf(NewItemDialog(gui::dialogs::NewItemMode::Project)) == all);
 }
 
 TEST_CASE("New Book: a user project gets the kinds and the elements chosen in the window of its "

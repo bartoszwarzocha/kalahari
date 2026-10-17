@@ -16,6 +16,7 @@
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -82,6 +83,13 @@
 
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+/// How long the status bar keeps why the open book is read-only, or why a change was refused
+constexpr int READ_ONLY_MESSAGE_MS = 5000;
+
+} // namespace
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -588,25 +596,40 @@ void MainWindow::registerCommands() {
         };
     }
 
-    // The Book menu works with a book open; New Chapter... also needs a kind of text the
-    // body of the book can have (see updateBookCommands())
+    // The Book menu works with a book open, and changes it: over a book open read-only it is
+    // greyed out, its tooltips and the status bar saying why. New Chapter... also needs a kind
+    // of text the body of the book can have (see updateBookCommands())
+    const auto whyReadOnly = []() {
+        const auto& projects = core::ProjectManager::getInstance();
+        return projects.isProjectOpen() && projects.isReadOnly() ? readOnlyReason() : QString();
+    };
     if (auto* newText = registry.getCommand("book.newChapter")) {
         newText->isEnabled = []() {
             const auto& projects = core::ProjectManager::getInstance();
-            return projects.isProjectOpen()
+            return projects.isProjectOpen() && !projects.isReadOnly()
                    && static_cast<bool>(projects.chapterKindFor(core::BookPlace::Main));
         };
+        newText->disabledReason = whyReadOnly;
     }
     if (auto* properties = registry.getCommand("book.properties")) {
         properties->isEnabled = []() {
-            return core::ProjectManager::getInstance().isProjectOpen();
+            const auto& projects = core::ProjectManager::getInstance();
+            return projects.isProjectOpen() && !projects.isReadOnly();
         };
+        properties->disabledReason = whyReadOnly;
     }
 
     // Find, the formats, the alignments, the view mode and the zoom work on the document in
     // front: without one (the Dashboard, no tab) they are greyed out with their keys, as in
-    // Word without a document. The tab in front updates them (updateEditorActionStates())
-    utils::bindToDocument(registry, [this]() { return hasDocumentInFront(); });
+    // Word without a document; over a chapter of a book open read-only, those that change it.
+    // The tab in front updates them (updateEditorActionStates())
+    utils::bindToDocument(
+        registry, [this]() { return hasDocumentInFront(); },
+        [this]() {
+            const EditorPanel* editor = m_dockCoordinator != nullptr ? getCurrentEditor() : nullptr;
+            return editor != nullptr && editor->getBookEditor() != nullptr
+                   && editor->getBookEditor()->isReadOnly();
+        });
 
     // Close Book and the export of the book's archive work on the open book: without one
     // they are greyed out, as the Book menu (updateBookCommands())
@@ -710,6 +733,22 @@ void MainWindow::createStatusBar() {
     logger.debug("Creating status bar");
 
     statusBar()->showMessage(tr("Ready"), 3000);  // Show for 3 seconds
+
+    // A book open read-only: a lock left of the page, and why in its tooltip and, after a
+    // click, in the status bar (updateReadOnlyStatus())
+    m_readOnlyStatus = new QToolButton(this);
+    m_readOnlyStatus->setObjectName(QStringLiteral("readOnlyStatus"));
+    m_readOnlyStatus->setAutoRaise(true);
+    m_readOnlyStatus->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    //: In the status bar while the open book is read-only. In Polish: Tylko do odczytu
+    m_readOnlyStatus->setDefaultAction(core::ArtProvider::getInstance().createAction(
+        QStringLiteral("common.lock"), tr("Read-only"), m_readOnlyStatus,
+        core::IconContext::StatusBar));
+    connect(m_readOnlyStatus->defaultAction(), &QAction::triggered, this, [this]() {
+        statusBar()->showMessage(readOnlyBookMessage(), READ_ONLY_MESSAGE_MS);
+    });
+    m_readOnlyStatus->hide();
+    statusBar()->addPermanentWidget(m_readOnlyStatus);
 
     // Page of the cursor (Page Layout view) and zoom of the editor in front
     m_pageLabel = new QLabel(this);
@@ -1248,6 +1287,7 @@ void MainWindow::createDocks() {
                 disconnect(bookEditor, &editor::BookEditor::totalPagesChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::zoomChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::contentChanged, this, nullptr);
+                disconnect(bookEditor, &editor::BookEditor::changeRefused, this, nullptr);
 
                 // Connect to update action states when selection/cursor/viewMode changes
                 connect(bookEditor, &editor::BookEditor::selectionChanged,
@@ -1270,6 +1310,12 @@ void MainWindow::createDocks() {
                         this, [this](editor::ViewMode) {
                     updateEditorActionStates();
                     updatePageStatus();
+                });
+
+                // A key or a command that would change a chapter of a book open read-only:
+                // the status bar says why nothing happened
+                connect(bookEditor, &editor::BookEditor::changeRefused, this, [this]() {
+                    statusBar()->showMessage(readOnlyReason(), READ_ONLY_MESSAGE_MS);
                 });
 
                 // Page of the cursor and zoom in the status bar
@@ -1368,6 +1414,15 @@ void MainWindow::showBookProperties() {
     m_dockCoordinator->propertiesPanel()->editProjectProperties();
 }
 
+void MainWindow::updateReadOnlyStatus() {
+    if (m_readOnlyStatus == nullptr) {
+        return;
+    }
+    const QString message = readOnlyBookMessage();
+    m_readOnlyStatus->defaultAction()->setToolTip(message);
+    m_readOnlyStatus->setVisible(!message.isEmpty());
+}
+
 void MainWindow::updateBookCommands() {
     auto& registry = CommandRegistry::getInstance();
     if (Command* newText = registry.getCommand("book.newChapter")) {
@@ -1388,6 +1443,8 @@ void MainWindow::updateBookCommands() {
     registry.updateActionState("book.newChapter");
     registry.updateActionState("book.properties");
     utils::updateOpenBookCommands(registry);
+    // A book open read-only says so in the status bar, and in the title of the window
+    updateReadOnlyStatus();
     // Save saves the open book also with no tab of it in front
     utils::updateSaveCommands(registry);
 }
@@ -1527,7 +1584,13 @@ void MainWindow::updateWindowTitle() {
     // the program alone, as when a book is closed
     const auto& pm = core::ProjectManager::getInstance();
     if (pm.isProjectOpen() && pm.book() && !pm.book()->title.isEmpty()) {
-        setWindowTitle(pm.book()->title + QStringLiteral(" - Kalahari"));
+        QString title = pm.book()->title;
+        if (pm.isReadOnly()) {
+            //: After the title of a book open read-only, in the title bar of the window: "Rain
+            //: [read-only] - Kalahari". In Polish: [tylko do odczytu]
+            title += QLatin1Char(' ') + tr("[read-only]");
+        }
+        setWindowTitle(title + QStringLiteral(" - Kalahari"));
     } else {
         setWindowTitle(QStringLiteral("Kalahari"));
     }

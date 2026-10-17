@@ -261,6 +261,10 @@ struct BookTypePackage {
     /// @brief Kinds offered in @p place
     const QStringList& kindsIn(BookPlace place) const;
 
+    /// @brief Ids of the packages this package needs: those it uses, then those whose kinds
+    /// it names in its lists, "primary" and "start", each once
+    QStringList requiredPackages() const;
+
     /// @brief Read the package in folder @p directory
     /// @param problems Gets one line per problem: "<field>: <what is wrong>"
     /// @return The package, or nullopt when it has problems

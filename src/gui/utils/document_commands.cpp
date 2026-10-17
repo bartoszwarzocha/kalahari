@@ -5,12 +5,15 @@
 #include "kalahari/gui/utils/document_commands.h"
 
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/read_only_book.h"
 
 #include <QAction>
 #include <QCoreApplication>
 #include <QShortcut>
 #include <QStatusBar>
 #include <QWidget>
+
+#include <algorithm>
 
 namespace kalahari {
 namespace gui {
@@ -76,11 +79,33 @@ const std::vector<std::string>& documentCommands() {
     return ids;
 }
 
-void bindToDocument(CommandRegistry& registry, const std::function<bool()>& hasDocument) {
+const std::vector<std::string>& changingDocumentCommands() {
+    static const std::vector<std::string> ids = {
+        "edit.findReplace", "format.bold",        "format.italic",     "format.underline",
+        "format.strikethrough", "format.alignLeft", "format.alignCenter", "format.alignRight",
+        "format.justify"};
+    return ids;
+}
+
+void bindToDocument(CommandRegistry& registry, const std::function<bool()>& hasDocument,
+                    const std::function<bool()>& isReadOnly) {
+    const std::vector<std::string>& changing = changingDocumentCommands();
     for (const std::string& id : documentCommands()) {
-        if (Command* command = registry.getCommand(id)) {
-            command->isEnabled = hasDocument;
+        Command* command = registry.getCommand(id);
+        if (command == nullptr) {
+            continue;
         }
+        if (!isReadOnly || std::find(changing.begin(), changing.end(), id) == changing.end()) {
+            command->isEnabled = hasDocument;
+            continue;
+        }
+        command->isEnabled = [hasDocument, isReadOnly]() {
+            return hasDocument() && !isReadOnly();
+        };
+        // Without a document, the usual tooltip: as the other commands of the document
+        command->disabledReason = [hasDocument, isReadOnly]() {
+            return hasDocument() && isReadOnly() ? readOnlyReason() : QString();
+        };
     }
     updateDocumentCommands(registry);
 }
@@ -139,7 +164,10 @@ void updateSaveCommands(CommandRegistry& registry) {
 
 void explainGreyedKeys(CommandRegistry& registry, QWidget* window, QStatusBar* statusBar) {
     std::vector<std::string> ids = openBookCommands();
-    ids.insert(ids.end(), {"file.save", "file.saveAs", "file.saveAll"});
+    ids.insert(ids.end(), {"file.save", "file.saveAs", "file.saveAll", "book.newChapter",
+                           "book.properties", "insert.annotation", "insert.comment",
+                           "insert.todo", "insert.note"});
+    ids.insert(ids.end(), changingDocumentCommands().begin(), changingDocumentCommands().end());
     for (const std::string& id : ids) {
         if (QAction* action = registry.getAction(id)) {
             new GreyedKeys(action, window, statusBar);

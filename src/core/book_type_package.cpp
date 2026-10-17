@@ -805,6 +805,34 @@ const QStringList& BookTypePackage::kindsIn(BookPlace place) const {
     return mainKinds;
 }
 
+QStringList BookTypePackage::requiredPackages() const {
+    QStringList ids;
+    const auto add = [this, &ids](const QString& packageId) {
+        if (!packageId.isEmpty() && packageId != id && !ids.contains(packageId)) {
+            ids.append(packageId);
+        }
+    };
+    const auto addNamed = [&add](const QString& kindName) {
+        if (const std::optional<KindReference> reference = KindReference::parse(kindName)) {
+            add(reference->packageId);
+        }
+    };
+    for (const QString& usedId : uses) {
+        add(usedId);
+    }
+    for (const BookPlace place :
+         {BookPlace::Front, BookPlace::Main, BookPlace::Back, BookPlace::Workshop}) {
+        for (const QString& kindName : kindsIn(place)) {
+            addNamed(kindName);
+        }
+    }
+    addNamed(primaryKind);
+    for (const QString& kindName : startKinds) {
+        addNamed(kindName);
+    }
+    return ids;
+}
+
 std::optional<BookTypePackage> BookTypePackage::read(const QString& directory,
                                                      QStringList& problems) {
     const qsizetype problemsBefore = problems.size();

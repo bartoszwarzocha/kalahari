@@ -16,6 +16,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/package_card.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/resource_paths.h"
@@ -547,17 +548,21 @@ namespace {
 
 /// @brief What the card of a recent book shows of the book
 struct RecentBook {
-    QString title;   ///< Title; empty: the name of the file
-    QString author;  ///< Author; empty: unknown
-    QString type;    ///< Name of the type; empty: a novel
-    QString iconId;  ///< Icon of the type
+    QString title;        ///< Title; empty: the name of the file
+    QString author;       ///< Author; empty: unknown
+    QString type;         ///< Name of the type; empty: a novel
+    QString iconId;       ///< Icon of the type
+    bool typeMissing = false;  ///< The program does not have the type: it is greyed out
+    QString cardFolder;   ///< Folder of the book's card of its type, which has the SVG file of
+                          ///< its icon where the program has none (core::PackageCard)
 };
 
-/// @brief Read the card's data of the .klh file @p json
+/// @brief Read the card's data of the .klh file @p json, in the folder @p projectDir
 ///
 /// A book of format 2 has its type in its package: the name in the program's language and the
-/// icon. A file of the earlier format has its data in "document", and its genre names it.
-RecentBook readRecentBook(const QJsonObject& json)
+/// icon, from the installed package or, where the program does not have it, from the book's
+/// card of it. A file of the earlier format has its data in "document", and its genre names it.
+RecentBook readRecentBook(const QJsonObject& json, const QString& projectDir)
 {
     RecentBook recent;
     const core::ArtProvider& art = core::ArtProvider::getInstance();
@@ -580,21 +585,47 @@ RecentBook readRecentBook(const QJsonObject& json)
         recent.iconId = art.getGenreIconId(QString());
         return recent;
     }
-    const core::BookTypeRegistry& registry = core::ProjectManager::getInstance().bookTypes();
+    // Another book than the open one: the installed packages
+    const core::BookTypeRegistry& registry =
+        core::ProjectManager::getInstance().installedBookTypes();
     const core::ProjectBook& book = project->books.first();
     recent.title = book.title.trimmed();
     recent.author = book.author.trimmed();
-    recent.type = typeNameOf(registry, *project);
     if (!project->type) {
         // The icon of a user project in the New Book window
+        recent.type = typeNameOf(registry, *project);
         recent.iconId = QStringLiteral("template.empty");
-    } else if (const core::BookTypePackage* package = registry.package(project->type->id);
-               package && !package->icon.isEmpty()) {
-        recent.iconId = package->icon;
-    } else {
-        recent.iconId = art.getGenreIconId(book.genre);
+        return recent;
     }
+    if (const core::BookTypePackage* package = registry.package(project->type->id)) {
+        recent.type = typeNameOf(registry, *project);
+        recent.iconId = !package->icon.isEmpty() ? package->icon : art.getGenreIconId(book.genre);
+        return recent;
+    }
+    // The program does not have the type: its name and its icon from the book's card of it
+    const std::optional<core::PackageCard> card =
+        core::PackageCards::read(projectDir, project->type->id);
+    recent.type = typeNameOf(registry, *project, card ? &*card : nullptr);
+    recent.typeMissing = true;
+    recent.iconId = card && !card->icon.isEmpty() ? card->icon : art.getGenreIconId(book.genre);
+    recent.cardFolder = card ? card->directory : QString();
     return recent;
+}
+
+/// @brief Show the description of a book card, "author | type", after the properties of
+/// @p label; a type the program does not have is greyed out with @p grey
+void showCardDescription(QLabel* label, const QColor& grey)
+{
+    const QString author = label->property("author").toString();
+    const QString type = label->property("bookType").toString();
+    if (!label->property("typeMissing").toBool()) {
+        label->setTextFormat(Qt::PlainText);
+        label->setText(QStringLiteral("%1 | %2").arg(author, type));
+        return;
+    }
+    label->setTextFormat(Qt::RichText);
+    label->setText(QStringLiteral("%1 | <span style=\"color: %2;\">%3</span>")
+                       .arg(author.toHtmlEscaped(), grey.name(), type.toHtmlEscaped()));
 }
 
 } // namespace
@@ -606,6 +637,8 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     QString author = tr("Unknown Author");
     QString bookType = tr("Novel");
     QString iconActionId = core::ArtProvider::getInstance().getGenreIconId(QString());
+    bool typeMissing = false;
+    QString cardFolder;
     QString dateStr;
 
     // Try to read metadata from .klh file
@@ -615,7 +648,7 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
             const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
             file.close();
             if (doc.isObject()) {
-                const RecentBook recent = readRecentBook(doc.object());
+                const RecentBook recent = readRecentBook(doc.object(), fileInfo.absolutePath());
                 if (!recent.title.isEmpty()) {
                     title = recent.title;
                 }
@@ -626,6 +659,8 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
                     bookType = recent.type;
                 }
                 iconActionId = recent.iconId;
+                typeMissing = recent.typeMissing;
+                cardFolder = recent.cardFolder;
             }
         }
 
@@ -674,8 +709,10 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
 
     // The icon of the book's type, kept for the theme refresh
     iconLabel->setProperty("iconId", iconActionId);
+    iconLabel->setProperty("typeMissing", typeMissing);
+    iconLabel->setProperty("cardFolder", cardFolder);
 
-    iconLabel->setPixmap(bookIcon(iconActionId).pixmap(iconSize, iconSize));
+    iconLabel->setPixmap(bookIconPixmap(iconLabel, iconSize));
     iconLayout->addWidget(iconLabel);
 
     cardLayout->addWidget(iconFrame);
@@ -699,10 +736,13 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     titleFont.setWeight(QFont::DemiBold);
     titleLabel->setFont(titleFont);
 
-    // Description (author | type)
-    QLabel* descLabel = new QLabel(QString("%1 | %2").arg(author, bookType), contentWidget);
+    // Description (author | type); applyThemeColors() shows it, a type the program does not
+    // have greyed out
+    QLabel* descLabel = new QLabel(contentWidget);
     descLabel->setObjectName("cardDescription");
-    descLabel->setTextFormat(Qt::PlainText);
+    descLabel->setProperty("author", author);
+    descLabel->setProperty("bookType", bookType);
+    descLabel->setProperty("typeMissing", typeMissing);
     descLabel->setWordWrap(true);
     QFont descFont = descLabel->font();
     descFont.setPointSize(11);
@@ -907,6 +947,7 @@ void DashboardPanel::applyThemeColors()
     QList<QLabel*> descs = m_filesListWidget->findChildren<QLabel*>("cardDescription");
     for (auto* label : descs) {
         label->setStyleSheet(cardDescStyle);
+        showCardDescription(label, theme.palette.placeholderText);
     }
 
     QList<QLabel*> paths = m_filesListWidget->findChildren<QLabel*>("cardPath");
@@ -946,9 +987,22 @@ void DashboardPanel::applyThemeColors()
     // Refresh book icons in file cards; each label keeps the icon of its book's type
     QList<QLabel*> bookIcons = m_filesListWidget->findChildren<QLabel*>("cardBookIcon");
     for (auto* iconLabel : bookIcons) {
-        const QString iconActionId = iconLabel->property("iconId").toString();
-        iconLabel->setPixmap(bookIcon(iconActionId).pixmap(iconSize, iconSize));
+        iconLabel->setPixmap(bookIconPixmap(iconLabel, iconSize));
     }
+}
+
+QPixmap DashboardPanel::bookIconPixmap(const QLabel* label, int size)
+{
+    const QString iconId = label->property("iconId").toString();
+    if (!label->property("typeMissing").toBool()) {
+        return bookIcon(iconId).pixmap(size, size);
+    }
+    // A type the program does not have: its icon, from the program or from the book's card
+    // of the type, greyed out
+    core::PackageCard card;
+    card.directory = label->property("cardFolder").toString();
+    const QIcon icon = core::ArtProvider::getInstance().getPackageIcon(iconId, &card);
+    return icon.pixmap(QSize(size, size), QIcon::Disabled);
 }
 
 QIcon DashboardPanel::bookIcon(const QString& actionId)

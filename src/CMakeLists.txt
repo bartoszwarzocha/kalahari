@@ -25,11 +25,6 @@ set(KALAHARI_CORE_SOURCES
     core/trusted_keys.cpp       # OpenSpec #00038: Trusted publisher key management
     core/extension_points.cpp
     core/event_bus.cpp
-    core/book_element.cpp
-    core/part.cpp
-    core/book.cpp
-    core/document.cpp
-    core/document_archive.cpp
     core/chapter_document.cpp
     core/text_statistics.cpp    # Word/character counting shared by the whole application
     core/text_file.cpp          # Plain text files in their own encoding and line ends
@@ -40,6 +35,7 @@ set(KALAHARI_CORE_SOURCES
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
+    core/unicode_paths.cpp      # Paths with any characters, as UTF-8 text, and their ZIP archives
     core/utils/svg_converter.cpp
     core/theme.cpp
     # NOTE: icon_downloader.cpp, theme_manager.cpp, icon_registry.cpp moved to kalahari executable
@@ -135,6 +131,7 @@ set(KALAHARI_SOURCES
     core/resource_paths.cpp # ResourcePaths - Platform-aware resource locator (OpenSpec #00029)
     core/recent_books_manager.cpp # RecentBooksManager - Recent files management (OpenSpec #00030)
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
+    core/package_card.cpp   # Cards of the packages a book uses: names and icons (IconRegistry)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
     gui/command.cpp
@@ -161,6 +158,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
+    gui/read_only_book.cpp # What the program says of a book open read-only
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
     gui/kalahari_syntax_highlighter.cpp
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)

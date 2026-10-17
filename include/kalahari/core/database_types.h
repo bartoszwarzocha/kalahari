@@ -17,19 +17,6 @@ namespace kalahari {
 namespace core {
 
 // =============================================================================
-// Project Format Detection
-// =============================================================================
-
-/// @brief Project storage format
-///
-/// Used by ProjectFormatDetector to determine how to open a project.
-enum class ProjectFormat {
-    Unknown,   ///< Not recognized as a valid project
-    Legacy,    ///< Old format (book.json, styles.json, etc.)
-    SQLite     ///< New format (project.db)
-};
-
-// =============================================================================
 // Chapter Data
 // =============================================================================
 

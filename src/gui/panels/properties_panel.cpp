@@ -9,11 +9,14 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/section_words.h"
 #include "kalahari/gui/widgets/sections_field.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/style_resolver.h"
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/package_card.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/database_types.h"
@@ -28,6 +31,7 @@
 #include <QVBoxLayout>
 #include <QFormLayout>
 #include <QGroupBox>
+#include <QHBoxLayout>
 #include <QScrollArea>
 #include <QEvent>
 #include <QDateTime>
@@ -169,20 +173,38 @@ QWidget* PropertiesPanel::createProjectPage() {
     infoLayout->setSpacing(6);
     infoLayout->setContentsMargins(11, 11, 11, 11);
 
+    // Type: its icon and its name, as the Dashboard shows them (showBookType())
+    auto* typeRow = new QWidget(infoGroup);
+    auto* typeLayout = new QHBoxLayout(typeRow);
+    typeLayout->setContentsMargins(0, 0, 0, 0);
+    typeLayout->setSpacing(6);
+    m_projectTypeIcon = new QLabel(typeRow);
+    m_projectTypeIcon->setObjectName(QStringLiteral("projectTypeIcon"));
+    m_projectTypeLabel = new QLabel(typeRow);
+    m_projectTypeLabel->setObjectName(QStringLiteral("projectTypeLabel"));
+    m_projectTypeLabel->setWordWrap(true);
+    typeLayout->addWidget(m_projectTypeIcon);
+    typeLayout->addWidget(m_projectTypeLabel, 1);
+    //: The row of the type of the book in the Properties panel. In Polish: Typ:
+    infoLayout->addRow(tr("Type:"), typeRow);
+
     // Title
     m_projectTitleEdit = new QLineEdit(infoGroup);
+    m_projectTitleEdit->setObjectName(QStringLiteral("projectTitleEdit"));
     m_projectTitleEdit->setToolTip(tr("Title of the book"));
     m_projectTitleEdit->setPlaceholderText(tr("Enter the title of the book"));
     infoLayout->addRow(tr("Title:"), m_projectTitleEdit);
 
     // Author
     m_projectAuthorEdit = new QLineEdit(infoGroup);
+    m_projectAuthorEdit->setObjectName(QStringLiteral("projectAuthorEdit"));
     m_projectAuthorEdit->setToolTip(tr("Author name"));
     m_projectAuthorEdit->setPlaceholderText(tr("Enter author name"));
     infoLayout->addRow(tr("Author:"), m_projectAuthorEdit);
 
     // Language
     m_projectLanguageCombo = new QComboBox(infoGroup);
+    m_projectLanguageCombo->setObjectName(QStringLiteral("projectLanguageCombo"));
     m_projectLanguageCombo->setToolTip(tr("Language of the book"));
     m_projectLanguageCombo->addItem(tr("English"), "en");
     m_projectLanguageCombo->addItem(tr("Polish"), "pl");
@@ -198,6 +220,7 @@ QWidget* PropertiesPanel::createProjectPage() {
 
     // Genre
     m_projectGenreEdit = new QLineEdit(infoGroup);
+    m_projectGenreEdit->setObjectName(QStringLiteral("projectGenreEdit"));
     m_projectGenreEdit->setToolTip(tr("Book genre (e.g., Fiction, Mystery, Romance)"));
     m_projectGenreEdit->setPlaceholderText(tr("Enter genre"));
     infoLayout->addRow(tr("Genre:"), m_projectGenreEdit);
@@ -306,6 +329,7 @@ QWidget* PropertiesPanel::createChapterPage() {
 
     // Title
     m_chapterTitleEdit = new QLineEdit(infoGroup);
+    m_chapterTitleEdit->setObjectName(QStringLiteral("chapterTitleEdit"));
     infoLayout->addRow(tr("Title:"), m_chapterTitleEdit);
 
     // Word count (read-only)
@@ -315,6 +339,7 @@ QWidget* PropertiesPanel::createChapterPage() {
 
     // Status
     m_chapterStatusCombo = new QComboBox(infoGroup);
+    m_chapterStatusCombo->setObjectName(QStringLiteral("chapterStatusCombo"));
     m_chapterStatusCombo->addItem(tr("Draft"), "draft");
     m_chapterStatusCombo->addItem(tr("Revision"), "revision");
     m_chapterStatusCombo->addItem(tr("Final"), "final");
@@ -330,6 +355,7 @@ QWidget* PropertiesPanel::createChapterPage() {
     notesLayout->setContentsMargins(11, 11, 11, 11);
 
     m_chapterNotesEdit = new QTextEdit(notesGroup);
+    m_chapterNotesEdit->setObjectName(QStringLiteral("chapterNotesEdit"));
     m_chapterNotesEdit->setPlaceholderText(tr("Enter notes..."));
     m_chapterNotesEdit->setMinimumHeight(100);
     m_chapterNotesEdit->setMaximumHeight(200);
@@ -559,6 +585,7 @@ QWidget* PropertiesPanel::createEditorPage() {
 
     // Style combo for changing
     m_editorStyleCombo = new QComboBox(styleGroup);
+    m_editorStyleCombo->setObjectName(QStringLiteral("editorStyleCombo"));
     m_editorStyleCombo->setToolTip(tr("Change paragraph style"));
     // Add common paragraph styles
     m_editorStyleCombo->addItem(tr("Normal"), "p");
@@ -728,6 +755,8 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
         logger.warn("PropertiesPanel::setActiveEditor() - EditorPanel has no BookEditor");
         return;
     }
+    // A chapter of a book open read-only takes no style
+    m_editorStyleCombo->setEnabled(!bookEditor->isReadOnly());
 
     // Connect to BookEditor signals
     connect(bookEditor, &editor::BookEditor::selectionChanged,
@@ -865,7 +894,7 @@ void PropertiesPanel::onProjectTitleChanged() {
     auto& pm = core::ProjectManager::getInstance();
 
     core::ProjectBook* book = pm.book();
-    if (!book) return;
+    if (!book || pm.isReadOnly()) return;  // a book open read-only keeps its fields
 
     QString newTitle = m_projectTitleEdit->text().trimmed();
     if (newTitle.isEmpty()) {
@@ -888,7 +917,7 @@ void PropertiesPanel::onProjectAuthorChanged() {
     auto& pm = core::ProjectManager::getInstance();
 
     core::ProjectBook* book = pm.book();
-    if (!book) return;
+    if (!book || pm.isReadOnly()) return;
 
     QString newAuthor = m_projectAuthorEdit->text().trimmed();
     if (newAuthor == book->author) return;
@@ -905,7 +934,7 @@ void PropertiesPanel::onProjectLanguageChanged(int index) {
     auto& pm = core::ProjectManager::getInstance();
 
     core::ProjectBook* book = pm.book();
-    if (!book) return;
+    if (!book || pm.isReadOnly()) return;
 
     QString langCode = m_projectLanguageCombo->itemData(index).toString();
     if (langCode == book->language) return;
@@ -929,7 +958,7 @@ void PropertiesPanel::onProjectGenreChanged() {
     auto& pm = core::ProjectManager::getInstance();
 
     core::ProjectBook* book = pm.book();
-    if (!book) return;
+    if (!book || pm.isReadOnly()) return;
 
     QString newGenre = m_projectGenreEdit->text().trimmed();
     if (newGenre == book->genre) return;
@@ -1039,7 +1068,9 @@ void PropertiesPanel::onChapterNotesChanged() {
 
     if (!pm.findElement(m_currentChapterId)) return;
 
-    // Save to .kchapter file (called on focus lost via eventFilter)
+    // Save to .kchapter file (called on focus lost via eventFilter); a book open read-only
+    // keeps its notes
+    if (pm.isReadOnly()) return;
     pm.setNotes(m_currentChapterId, m_chapterNotesEdit->toPlainText());
 }
 
@@ -1067,6 +1098,7 @@ void PropertiesPanel::populateProjectFields() {
     m_isUpdating = true;
 
     // Populate fields
+    showBookType(*project, *book);
     m_projectTitleEdit->setText(book->title);
     m_projectAuthorEdit->setText(book->author);
 
@@ -1081,6 +1113,15 @@ void PropertiesPanel::populateProjectFields() {
     m_projectGenreEdit->setText(book->genre);
     populateBookSections(*book);
 
+    // A book open read-only is read only, here too
+    const bool readOnly = pm.isReadOnly();
+    for (QLineEdit* field : {m_projectTitleEdit, m_projectAuthorEdit, m_projectGenreEdit}) {
+        field->setReadOnly(readOnly);
+    }
+    m_projectLanguageCombo->setEnabled(!readOnly);
+    m_projectSectionsCombo->setEnabled(!readOnly);
+    m_projectSectionNames->setEnabled(!readOnly);
+
     // Update statistics
     updateProjectStatistics();
 
@@ -1091,6 +1132,48 @@ void PropertiesPanel::populateProjectFields() {
     m_isUpdating = false;
 
     logger.debug("PropertiesPanel: Project fields populated");
+}
+
+void PropertiesPanel::showBookType(const core::BookProject& project,
+                                   const core::ProjectBook& book) {
+    const auto& pm = core::ProjectManager::getInstance();
+    auto& art = core::ArtProvider::getInstance();
+    const core::BookTypeRegistry& types = pm.installedBookTypes();
+    const core::BookTypePackage* package =
+        project.type ? types.package(project.type->id) : nullptr;
+    const bool missing = project.type && package == nullptr;
+    const core::PackageCard* card = missing ? pm.packageCard(project.type->id) : nullptr;
+
+    // The icons of the New Book window and of the Dashboard: a user project's, the type's, or
+    // the one of the type on the book's card of it
+    QString iconId;
+    if (!project.type) {
+        iconId = QStringLiteral("template.empty");
+    } else if (package != nullptr && !package->icon.isEmpty()) {
+        iconId = package->icon;
+    } else if (card != nullptr && !card->icon.isEmpty()) {
+        iconId = card->icon;
+    } else {
+        iconId = art.getGenreIconId(book.genre);
+    }
+    const int size = art.getIconSize(core::IconContext::Menu);
+    const QIcon icon = art.getPackageIcon(iconId, card, core::IconContext::Menu);
+    m_projectTypeIcon->setPixmap(
+        icon.pixmap(QSize(size, size), missing ? QIcon::Disabled : QIcon::Normal));
+    m_projectTypeIcon->setFixedSize(size, size);
+
+    m_projectTypeLabel->setText(typeNameOf(types, project, card));
+    // Greyed out, as the Dashboard shows a type the program does not have
+    m_projectTypeLabel->setEnabled(!missing);
+    m_projectTypeIcon->setEnabled(!missing);
+    const QString why = readOnlyBookMessage();
+    //: The tooltip of the type of the book in the Properties panel. In Polish: Typ książki:
+    //: z niego pochodzą rodzaje jej elementów
+    const QString toolTip =
+        missing && !why.isEmpty() ? why : tr("The type of the book: the kinds of its elements "
+                                             "come from it");
+    m_projectTypeLabel->setToolTip(toolTip);
+    m_projectTypeIcon->setToolTip(toolTip);
 }
 
 void PropertiesPanel::populateBookSections(const core::ProjectBook& book) {
@@ -1161,6 +1244,12 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_chapterWordCountLabel->setText(QString::number(pm.wordCount(elementId)));
     selectChapterStatus(core::ProjectManager::statusOf(*element));
     m_chapterNotesEdit->setPlainText(pm.notes(elementId));
+
+    // An element of a book open read-only is read only, here too
+    const bool readOnly = pm.isReadOnly();
+    m_chapterTitleEdit->setReadOnly(readOnly);
+    m_chapterStatusCombo->setEnabled(!readOnly);
+    m_chapterNotesEdit->setReadOnly(readOnly);
 
     m_isUpdating = false;
 

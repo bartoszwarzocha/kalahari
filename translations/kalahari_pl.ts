@@ -1047,9 +1047,9 @@
         <translation>Projekt użytkownika</translation>
     </message>
     <message>
-        <source>%1 (not installed)</source>
-        <extracomment>The type of a book whose package is not installed; %1: the id of the type. In Polish: %1 (typ niezainstalowany)</extracomment>
-        <translation>%1 (typ niezainstalowany)</translation>
+        <source>%1 (not in the program)</source>
+        <extracomment>The type of a book that the program does not have; %1: its name. In Polish: %1 (nie ma w programie)</extracomment>
+        <translation>%1 (nie ma w programie)</translation>
     </message>
     <message>
         <source>&amp;New {Kind}...</source>
@@ -2420,6 +2420,24 @@ Uruchomić ponownie teraz?</translation>
     </message>
 </context>
 <context>
+    <name>ReadOnlyBook</name>
+    <message>
+        <source>The book is open read-only</source>
+        <extracomment>Why a command, a field or a panel that would change the open book is greyed out. In Polish: Książka jest otwarta tylko do odczytu</extracomment>
+        <translation>Książka jest otwarta tylko do odczytu</translation>
+    </message>
+    <message>
+        <source>The book is open read-only: the program does not have its type &quot;%1&quot;. You can read it and export it.</source>
+        <extracomment>The message at the bottom of the window over a book open read-only; %1: the name of its type. In Polish: Książka otwarta tylko do odczytu: typu „%1” nie ma w programie. Możesz ją czytać i eksportować.</extracomment>
+        <translation>Książka otwarta tylko do odczytu: typu „%1” nie ma w programie. Możesz ją czytać i eksportować.</translation>
+    </message>
+    <message>
+        <source>The book is open read-only: the program does not have all the book uses (%1). You can read it and export it.</source>
+        <extracomment>The message at the bottom of the window over a book open read-only whose type the program has; %1: the names of the book types the program does not have, or does not have whole (an older version). In Polish: Książka otwarta tylko do odczytu: program nie ma wszystkiego, czego używa książka (%1). Możesz ją czytać i eksportować.</extracomment>
+        <translation>Książka otwarta tylko do odczytu: program nie ma wszystkiego, czego używa książka (%1). Możesz ją czytać i eksportować.</translation>
+    </message>
+</context>
+<context>
     <name>SectionWords</name>
     <message>
         <source>at the beginning of the book</source>
@@ -3071,6 +3089,37 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     <message>
         <source>The downloaded file is empty</source>
         <translation>Pobrany plik jest pusty</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::core::PluginArchive</name>
+    <message>
+        <source>The plugin &quot;%1&quot; cannot be opened: its file is not a ZIP archive, it is damaged or it cannot be read.</source>
+        <translation>Nie można otworzyć wtyczki „%1”: jej plik nie jest archiwum ZIP, jest uszkodzony albo nie da się go odczytać.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; was not unpacked: one of its files has no name.</source>
+        <translation>Nie rozpakowano wtyczki „%1”: jeden z jej plików nie ma nazwy.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; was not unpacked: its file &quot;%2&quot; would be written outside the plugin&apos;s folder.</source>
+        <translation>Nie rozpakowano wtyczki „%1”: jej plik „%2” zostałby zapisany poza folderem wtyczki.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; cannot be unpacked: the folder &quot;%2&quot; cannot be created.</source>
+        <translation>Nie można rozpakować wtyczki „%1”: nie da się utworzyć folderu „%2”.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; cannot be unpacked: its file &quot;%2&quot; cannot be read from the archive, which may be damaged.</source>
+        <translation>Nie można rozpakować wtyczki „%1”: nie da się odczytać z archiwum jej pliku „%2”; archiwum może być uszkodzone.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; cannot be unpacked: the file &quot;%2&quot; cannot be written.</source>
+        <translation>Nie można rozpakować wtyczki „%1”: nie da się zapisać pliku „%2”.</translation>
+    </message>
+    <message>
+        <source>The plugin &quot;%1&quot; cannot be unpacked: %2</source>
+        <translation>Nie można rozpakować wtyczki „%1”: %2</translation>
     </message>
 </context>
 <context>
@@ -4615,6 +4664,11 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <extracomment>%1: the path of the copy, on a line of its own. In Polish: Książka jest teraz w nowym formacie. Jej stary plik pozostał obok jako kopia: %1</extracomment>
         <translation>Książka jest teraz w nowym formacie. Jej stary plik pozostał obok jako kopia:
 %1</translation>
+    </message>
+    <message>
+        <source>The book &quot;%1&quot; cannot be created: the book type &quot;%2&quot; is not installed.</source>
+        <extracomment>%1: the title of the new book; %2: its type, e.g. Novel. In Polish: Nie można utworzyć książki „%1”: typ książki „%2” nie jest zainstalowany.</extracomment>
+        <translation>Nie można utworzyć książki „%1”: typ książki „%2” nie jest zainstalowany.</translation>
     </message>
 </context>
 <context>
@@ -6284,6 +6338,16 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>Do&amp;n&apos;t Save</source>
         <translation>&amp;Nie zapisuj</translation>
     </message>
+    <message>
+        <source>Read-only</source>
+        <extracomment>In the status bar while the open book is read-only. In Polish: Tylko do odczytu</extracomment>
+        <translation>Tylko do odczytu</translation>
+    </message>
+    <message>
+        <source>[read-only]</source>
+        <extracomment>After the title of a book open read-only, in the title bar of the window: &quot;Rain [read-only] - Kalahari&quot;. In Polish: [tylko do odczytu]</extracomment>
+        <translation>[tylko do odczytu]</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
@@ -7130,6 +7194,16 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
     <message>
         <source>Date when the book was last changed</source>
         <translation>Data ostatniej zmiany książki</translation>
+    </message>
+    <message>
+        <source>Type:</source>
+        <extracomment>The row of the type of the book in the Properties panel. In Polish: Typ:</extracomment>
+        <translation>Typ:</translation>
+    </message>
+    <message>
+        <source>The type of the book: the kinds of its elements come from it</source>
+        <extracomment>The tooltip of the type of the book in the Properties panel. In Polish: Typ książki: z niego pochodzą rodzaje jej elementów</extracomment>
+        <translation>Typ książki: z niego pochodzą rodzaje jej elementów</translation>
     </message>
 </context>
 <context>
@@ -8445,6 +8519,16 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>No book is open</source>
         <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>Export Project Archive...</source>
+        <extracomment>The button of the message at the bottom of the window over a book open read-only, as File &gt; Export &gt; Project Archive... In Polish: Eksportuj archiwum projektu...</extracomment>
+        <translation>Eksportuj archiwum projektu...</translation>
+    </message>
+    <message>
+        <source>Save the book in a project archive, which a program that has its type can open</source>
+        <extracomment>In Polish: Zapisz książkę w archiwum projektu, które można otworzyć w programie mającym jej typ</extracomment>
+        <translation>Zapisz książkę w archiwum projektu, które można otworzyć w programie mającym jej typ</translation>
     </message>
 </context>
 <context>

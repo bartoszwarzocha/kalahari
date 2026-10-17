@@ -705,13 +705,27 @@ public:
     /// @brief Whether annotations can be anchored to the text
     ///
     /// A plain text file keeps none: no annotation is added to it, and text pasted or
-    /// dropped into it comes without them.
+    /// dropped into it comes without them. A read-only text (isReadOnly()) keeps its
+    /// annotations, but takes no new ones and does not change them.
     bool annotationsAllowed() const;
 
     /// @brief Let the text take annotations or not (see annotationsAllowed())
     ///
     /// It holds for content loaded later too. The annotations the text already has stay.
     void setAnnotationsAllowed(bool allowed);
+
+    /// @brief Whether the text can only be read: a chapter of a book open read-only
+    ///
+    /// It is read, selected, copied and searched, but nothing changes it: typing, deleting,
+    /// pasting, dropping, undoing, the formats, the alignments, the annotations and the
+    /// replacements (Find and Replace, the words of the spelling and of the grammar) do
+    /// nothing or are greyed out, Find and Replace opens as Find, and dragged text is copied,
+    /// not moved. A change the writer asks for says that it was refused (changeRefused()).
+    /// Content loaded with fromKml() shows as it is.
+    bool isReadOnly() const { return m_readOnly; }
+
+    /// @brief Let the text be changed or not (see isReadOnly())
+    void setReadOnly(bool readOnly);
 
     /// @brief Go to the next TODO not done yet, after the cursor
     /// @return Its id; empty when there is none after the cursor
@@ -1051,6 +1065,10 @@ public:
     QSize sizeHint() const override;
 
 signals:
+    /// @brief The writer tried to change a read-only text (isReadOnly()): typed or deleted in
+    /// it, pasted, cut, undid, redid, formatted or aligned it; nothing changed
+    void changeRefused();
+
     /// @brief Emitted when the document content changes
     ///
     /// This signal is emitted whenever text is inserted, deleted, or modified.
@@ -1266,6 +1284,10 @@ private slots:
 private:
     /// @brief Setup internal components
     void setupComponents();
+
+    /// @brief Whether a change the writer asked for is refused, as the text is read-only
+    /// (isReadOnly()); then it says so (changeRefused())
+    bool refusesChange();
 
     /// @brief Put the editor's cursor where an edit of the document ended, show it, and
     /// report the change
@@ -1675,6 +1697,7 @@ private:
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
     QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
+    bool m_readOnly = false;            ///< The text can only be read (isReadOnly())
 
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string

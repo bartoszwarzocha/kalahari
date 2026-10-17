@@ -6,6 +6,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/kind_words.h"
+#include "kalahari/core/package_card.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
@@ -865,6 +866,18 @@ void ImportArchiveDialog::setArchive(const QString& path)
     if (!path.isEmpty()) {
         m_project = core::ProjectManager::readArchive(path, &m_archiveProblem, &m_backups);
     }
+
+    // The type and the kinds that the program does not have are named after the archive's
+    // cards of their packages, as the book will show them after the import
+    m_cards.clear();
+    m_cardsFolder.reset();
+    if (m_project && !m_project->missingPackages(*m_registry).isEmpty()) {
+        m_cardsFolder = std::make_unique<QTemporaryDir>();
+        if (m_cardsFolder->isValid() &&
+            core::ProjectManager::unpackArchiveCards(path, m_cardsFolder->path())) {
+            m_cards = core::PackageCards::readAll(m_cardsFolder->path(), *m_project);
+        }
+    }
     dropFailure();
     showBook();
     updateFields();
@@ -895,7 +908,8 @@ QString ImportArchiveDialog::bookText() const
 }
 
 QString ImportArchiveDialog::contentsOf(const core::BookTypeRegistry& registry,
-                                        const QList<const core::ProjectElement*>& elements)
+                                        const QList<const core::ProjectElement*>& elements,
+                                        const QHash<QString, core::PackageCard>& cards)
 {
     if (elements.isEmpty()) {
         //: The contents of a book without elements. In Polish: brak elementów
@@ -923,9 +937,11 @@ QString ImportArchiveDialog::contentsOf(const core::BookTypeRegistry& registry,
         return a.count > b.count;
     });
 
-    const auto counted = [&registry](const KindCount& kind, bool alone) {
+    const auto counted = [&registry, &cards](const KindCount& kind, bool alone) {
+        const auto card = cards.constFind(kind.first->kind.packageId);
         const QHash<QString, core::KindWords> nouns{
-            {QStringLiteral("kind"), wordsOf(registry, *kind.first)}};
+            {QStringLiteral("kind"),
+             wordsOf(registry, *kind.first, card != cards.cend() ? &*card : nullptr)}};
         if (kind.count > 1) {
             //: How many elements of a kind: "5 chapters". In Polish: %n {kind} |
             //: %n {kind:plural} | %n {kind:genitivePlural}
@@ -1097,7 +1113,13 @@ void ImportArchiveDialog::showBook()
     const QString author = book ? book->author.trimmed() : QString();
     m_authorValue->setText(author);
     setRowVisible(m_authorValue, !author.isEmpty());
-    m_typeValue->setText(typeNameOf(*m_registry, *m_project));
+    // A type the program does not have is greyed out: the book opens read-only
+    const bool typeMissing = m_project->type && !m_registry->package(m_project->type->id);
+    const auto typeCard =
+        m_project->type ? m_cards.constFind(m_project->type->id) : m_cards.cend();
+    m_typeValue->setText(typeNameOf(*m_registry, *m_project,
+                                    typeCard != m_cards.cend() ? &*typeCard : nullptr));
+    m_typeValue->setEnabled(!typeMissing);
 
     // The elements of the book: the main part first, as it holds the most of them
     QList<const core::ProjectElement*> elements;
@@ -1106,7 +1128,7 @@ void ImportArchiveDialog::showBook()
         appendAll(book->frontElements, elements);
         appendAll(book->backElements, elements);
     }
-    m_contentsValue->setText(contentsOf(*m_registry, elements));
+    m_contentsValue->setText(contentsOf(*m_registry, elements, m_cards));
 
     // The Workshop, when it has elements, by the name of its node
     QList<const core::ProjectElement*> workshop;
@@ -1114,7 +1136,7 @@ void ImportArchiveDialog::showBook()
     m_workshopLabel->setText(m_project->workshop.name.isEmpty()
                                  ? tr("Workshop:")
                                  : m_project->workshop.name + QLatin1Char(':'));
-    m_workshopValue->setText(contentsOf(*m_registry, workshop));
+    m_workshopValue->setText(contentsOf(*m_registry, workshop, m_cards));
     setRowVisible(m_workshopValue, !workshop.isEmpty());
 
     // The backups of the database, which go where Kalahari keeps the backups of books

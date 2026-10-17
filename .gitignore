@@ -186,6 +186,9 @@ examples/Test001_*/
 examples/Test002_*/
 examples/Test003_*/
 examples/Test004_*/
+
+# Copies of the book type packages that the example book makes when it is opened
+examples/ExampleNovel/types/
 /docs/api/html
 /STRATEGY_WORKSPACE.md
 /STRATEGY_WORKSPACE_ARCHIVE.md

@@ -10,12 +10,14 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/utils/file_location.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/package_card.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include <QTreeWidget>
@@ -47,6 +49,9 @@ constexpr int ICON_ROLE = Qt::UserRole + 2;
 constexpr int KIND_ROLE = Qt::UserRole + 3;
 /// Title of an element, without the status and modified marks
 constexpr int TITLE_ROLE = Qt::UserRole + 4;
+/// Package of an element's kind that the program does not have: the book's card of it has the
+/// icon of the kind (ICON_ROLE)
+constexpr int CARD_ROLE = Qt::UserRole + 5;
 /// Milliseconds before a collapsed group or section that a dragged element rests on opens
 constexpr int AUTO_EXPAND_DELAY = 700;
 /// Icon of a file of the book outside its text, as New File shows an empty text file
@@ -115,14 +120,17 @@ bool showsChildren(const QTreeWidgetItem* item) {
     return false;
 }
 
-/// Icon @p iconId as a disabled item shows it: grey, for the files that are not in the book
-QIcon greyIcon(const QString& iconId, int size) {
-    const QIcon icon =
-        kalahari::core::ArtProvider::getInstance().getIcon(iconId,
-                                                           kalahari::core::IconContext::TreeView);
+/// @p icon as a disabled item shows it: grey, for the files that are not in the book and for
+/// a book open read-only
+QIcon greyIcon(const QIcon& icon, int size) {
     QIcon grey;
     grey.addPixmap(icon.pixmap(QSize(size, size), QIcon::Disabled));
     return grey;
+}
+
+/// Whether an item of @p type is of the open book: not one of the files open outside it
+bool isBookType(const QString& type) {
+    return type != QLatin1String("other_files") && type != QLatin1String("standalone_file");
 }
 
 /// Tree of the Navigator. An element is dragged to any place of the book its kind can have
@@ -508,6 +516,10 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
     if (book) {
         addBookFileItems(rootItem, book->files);
     }
+    // A book open read-only is grey (itemIcon())
+    if (m_readOnly) {
+        refreshItemIcons(rootItem);
+    }
 
     // Re-add standalone files (they were saved before clearing)
     for (const QString& path : standaloneFilePaths) {
@@ -594,7 +606,9 @@ void NavigatorPanel::updateUnassignedLook() {
     const std::function<void(QTreeWidgetItem*)> apply = [&](QTreeWidgetItem* item) {
         item->setForeground(0, grey);
         item->setFont(0, italic);
-        item->setIcon(0, greyIcon(getIconIdForType(item->data(0, Qt::UserRole + 1).toString()),
+        item->setIcon(0, greyIcon(core::ArtProvider::getInstance().getIcon(
+                                      getIconIdForType(item->data(0, Qt::UserRole + 1).toString()),
+                                      core::IconContext::TreeView),
                                   m_currentIconSize));
         for (int i = 0; i < item->childCount(); ++i) {
             apply(item->child(i));
@@ -731,7 +745,8 @@ QString formIconId(core::ElementForm form) {
 }  // namespace
 
 QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
-                                 const core::ProjectElement& element) {
+                                 const core::ProjectElement& element,
+                                 const core::PackageCard* card) {
     // A file of the book outside its text has no kind
     if (!element.hasKind()) {
         return BOOK_FILE_ICON;
@@ -740,7 +755,23 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
     if (kind && !kind.kind->icon.isEmpty()) {
         return kind.kind->icon;
     }
+    // A kind the program does not have: its icon on the book's card of its package
+    const core::ElementKind* onCard =
+        !kind && card != nullptr ? card->kind(element.kind.kindId) : nullptr;
+    if (onCard != nullptr && !onCard->icon.isEmpty()) {
+        return onCard->icon;
+    }
     return formIconId(core::BookProject::formOf(registry, element));
+}
+
+QIcon NavigatorPanel::iconOf(const core::BookTypeRegistry& registry,
+                             const core::ProjectElement& element, core::IconContext context) {
+    const core::ProjectManager& pm = core::ProjectManager::getInstance();
+    const core::PackageCard* card = element.hasKind() && !core::BookProject::kindOf(registry, element)
+                                        ? pm.packageCard(element.kind.packageId)
+                                        : nullptr;
+    return core::ArtProvider::getInstance().getPackageIcon(iconIdOf(registry, element, card), card,
+                                                           context);
 }
 
 QString NavigatorPanel::iconIdOf(const core::KindRef& kind) {
@@ -753,11 +784,14 @@ QString NavigatorPanel::iconIdOf(const core::KindRef& kind) {
 void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
                                      const QList<core::ProjectElement>& elements,
                                      const core::BookTypeRegistry& registry) {
-    auto& artProvider = core::ArtProvider::getInstance();
+    const core::ProjectManager& pm = core::ProjectManager::getInstance();
 
     for (const core::ProjectElement& element : elements) {
         const core::ElementForm form = core::BookProject::formOf(registry, element);
-        const QString iconId = iconIdOf(registry, element);
+        // A kind the program does not have shows its icon on the book's card of its package
+        const bool cardKind = element.hasKind() && !core::BookProject::kindOf(registry, element);
+        const QString iconId = iconIdOf(
+            registry, element, cardKind ? pm.packageCard(element.kind.packageId) : nullptr);
 
         QString itemType;
         Qt::ItemFlags flags = Qt::ItemIsDragEnabled;
@@ -782,7 +816,10 @@ void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
         item->setData(0, ICON_ROLE, iconId);
         item->setData(0, KIND_ROLE, element.kind.toString());
         item->setData(0, TITLE_ROLE, element.title);
-        item->setIcon(0, artProvider.getIcon(iconId, core::IconContext::TreeView));
+        if (cardKind) {
+            item->setData(0, CARD_ROLE, element.kind.packageId);
+        }
+        item->setIcon(0, itemIcon(item, iconId));
         item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
 
         if (form == core::ElementForm::Group) {
@@ -887,8 +924,6 @@ void NavigatorPanel::refreshItemIcons(QTreeWidgetItem* item) {
         return;
     }
 
-    auto& artProvider = core::ArtProvider::getInstance();
-
     // Get element type from stored data
     QString elementType = item->data(0, Qt::UserRole + 1).toString();
 
@@ -904,15 +939,38 @@ void NavigatorPanel::refreshItemIcons(QTreeWidgetItem* item) {
         }
     }
 
-    if (isUnassignedType(elementType)) {
-        item->setIcon(0, greyIcon(iconId, m_currentIconSize));
-    } else if (!iconId.isEmpty()) {
-        item->setIcon(0, artProvider.getIcon(iconId, core::IconContext::TreeView));
+    if (!iconId.isEmpty()) {
+        item->setIcon(0, itemIcon(item, iconId));
     }
 
     // Recursively refresh children
     for (int i = 0; i < item->childCount(); ++i) {
         refreshItemIcons(item->child(i));
+    }
+}
+
+QIcon NavigatorPanel::itemIcon(const QTreeWidgetItem* item, const QString& iconId) const {
+    // The icon of a kind the program does not have is on the book's card of its package
+    const QString package = item->data(0, CARD_ROLE).toString();
+    const core::PackageCard* card =
+        package.isEmpty() ? nullptr : core::ProjectManager::getInstance().packageCard(package);
+    QIcon icon =
+        core::ArtProvider::getInstance().getPackageIcon(iconId, card, core::IconContext::TreeView);
+    // Grey: the files that are not in the book, and the whole book while it is read-only
+    const QString type = typeOf(item);
+    if (isUnassignedType(type) || (m_readOnly && isBookType(type))) {
+        return greyIcon(icon, m_currentIconSize);
+    }
+    return icon;
+}
+
+void NavigatorPanel::setReadOnly(bool readOnly) {
+    m_readOnly = readOnly;
+    // Nothing is dragged in a book open read-only, and nothing is dropped on it
+    m_treeWidget->setDragDropMode(readOnly ? QAbstractItemView::NoDragDrop
+                                           : QAbstractItemView::InternalMove);
+    for (int i = 0; i < m_treeWidget->topLevelItemCount(); ++i) {
+        refreshItemIcons(m_treeWidget->topLevelItem(i));
     }
 }
 
@@ -1265,6 +1323,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     // (test_menu_access_keys); an action that cannot be used may say why in its tooltip
     QMenu menu(this);
     menu.setToolTipsVisible(true);
+    // The commands that change the book: greyed out in a book open read-only, saying why
+    QList<QAction*> changing;
 
     auto& pm = core::ProjectManager::getInstance();
     const bool projectOpen = pm.isProjectOpen();
@@ -1336,6 +1396,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         connect(moveToEndAction, &QAction::triggered, this,
                 [this, elementId, endIndex]() { emit elementMoved(elementId, endIndex); });
         moveToEndAction->setEnabled(index >= 0 && index < endIndex);
+        changing << moveToAction << moveToStartAction << moveUpAction << moveDownAction
+                 << moveToEndAction;
     };
 
     // "Add Story...", "Dodaj opowiadanie...": a new element of @p kind; none when the place takes
@@ -1350,10 +1412,12 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                          ? QStringLiteral("structure.part")
                          : QStringLiteral("template.chapter");
         }
-        return menu.addAction(
+        QAction* action = menu.addAction(
             artProvider.getIcon(iconId, core::IconContext::Menu),
             core::fillWords(tr("Add {Kind}..."),
                             {{QStringLiteral("kind"), menuWords(wordsOf(kind))}}));
+        changing << action;
+        return action;
     };
 
     const auto addRenameDeleteActions = [&]() {
@@ -1366,6 +1430,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             artProvider.getIcon("edit.delete", core::IconContext::Menu),
             tr("&Delete..."));
         connect(deleteAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuDelete);
+        changing << renameAction << deleteAction;
     };
 
     const auto addExpandCollapseActions = [&]() {
@@ -1396,6 +1461,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
         // Add "Set Status" submenu for text elements
         QMenu* statusMenu = menu.addMenu(tr("Set &Status"));
+        changing << statusMenu->menuAction();
 
         QActionGroup* statusGroup = new QActionGroup(statusMenu);
         statusGroup->setExclusive(true);
@@ -1494,6 +1560,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 tr("&Add Item..."));
             connect(addItemAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddItem);
             addItemAction->setEnabled(projectOpen && !pm.textKindsFor(place).isEmpty());
+            changing << addItemAction;
         }
 
         // The writer can name each section
@@ -1503,6 +1570,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         connect(renameAction, &QAction::triggered, this,
                 [this, elementType]() { emit requestRenameSection(elementType); });
         renameAction->setEnabled(projectOpen);
+        changing << renameAction;
 
         menu.addSeparator();
         addExpandCollapseActions();
@@ -1536,6 +1604,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             connect(addLastAction, &QAction::triggered, this,
                     [this]() { emit requestAddItem(QStringLiteral("back_matter")); });
             addLastAction->setEnabled(!pm.textKindsFor(core::BookPlace::Back).isEmpty());
+            changing << addFirstAction << addLastAction;
 
             menu.addSeparator();
         }
@@ -1546,6 +1615,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             showSectionsAction->setChecked(sectionsShown);
             connect(showSectionsAction, &QAction::toggled, this,
                     [this](bool shown) { emit requestShowSections(shown); });
+            changing << showSectionsAction;
             menu.addSeparator();
         }
 
@@ -1553,6 +1623,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             artProvider.getIcon("common.properties", core::IconContext::Menu),
             tr("Book P&roperties..."));
         connect(propertiesAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuProperties);
+        // As Book > Book Properties..., which edits them
+        changing << propertiesAction;
 
     } else if (elementType == "standalone_file") {
         // Standalone file
@@ -1577,6 +1649,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         if (!projectOpen) {
             addToProjectAction->setToolTip(tr("No book is open"));
         }
+        changing << addToProjectAction;
 
         // The list has every file open outside the book: a new file leaves it with its tab
         if (!newFile) {
@@ -1608,6 +1681,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             artProvider.getIcon("edit.delete", core::IconContext::Menu), tr("&Delete File..."));
         connect(deleteAction, &QAction::triggered, this,
                 [this, elementId]() { emit requestDeleteUnassigned(elementId); });
+        changing << addAction << deleteAction;
 
     } else if (elementType == "unassigned_files") {
         // The files that no element has: their folder, or all of them deleted
@@ -1624,6 +1698,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             artProvider.getIcon("edit.delete", core::IconContext::Menu), tr("&Delete All..."));
         connect(deleteAllAction, &QAction::triggered, this,
                 [this]() { emit requestDeleteAllUnassigned(); });
+        changing << deleteAllAction;
         menu.addSeparator();
         addExpandCollapseActions();
 
@@ -1637,6 +1712,15 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         logger.debug("NavigatorPanel: No context menu for type: {}", elementType.toStdString());
         m_contextMenuItem = nullptr;
         return;
+    }
+
+    if (m_readOnly) {
+        const QString why = readOnlyReason();
+        for (QAction* action : std::as_const(changing)) {
+            action->setEnabled(false);
+            action->setToolTip(why);
+            action->setStatusTip(why);
+        }
     }
 
     // The items named after the kinds of the book ("Add Story...") get keys that no other item

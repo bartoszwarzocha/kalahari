@@ -972,12 +972,11 @@ QList<const ProjectElement*> BookProject::closingElementsOf(const BookTypeRegist
     return closing;
 }
 
-QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const {
-    QStringList missing;
-    const auto note = [&registry, &missing](const QString& packageId) {
-        if (!packageId.isEmpty() && !registry.package(packageId) &&
-            !missing.contains(packageId)) {
-            missing.append(packageId);
+QStringList BookProject::packageIds() const {
+    QStringList ids;
+    const auto note = [&ids](const QString& packageId) {
+        if (!packageId.isEmpty() && !ids.contains(packageId)) {
+            ids.append(packageId);
         }
     };
     const auto noteElement = [&note](const ProjectElement& element) {
@@ -991,6 +990,32 @@ QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const
         note(reference.packageId);
     }
     forEachElement(*this, noteElement);
+    return ids;
+}
+
+QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const {
+    QStringList missing;
+    const auto note = [&missing](const QString& packageId) {
+        if (!missing.contains(packageId)) {
+            missing.append(packageId);
+        }
+    };
+    for (const QString& packageId : packageIds()) {
+        if (!registry.package(packageId)) {
+            note(packageId);
+        }
+    }
+    // A package of another version, without a kind the project names
+    const auto noteKind = [&registry, &note](const KindReference& reference) {
+        if (!reference.kindId.isEmpty() && registry.package(reference.packageId) &&
+            !registry.findKind(reference.packageId, reference.kindId)) {
+            note(reference.packageId);
+        }
+    };
+    for (const KindReference& reference : kinds) {
+        noteKind(reference);
+    }
+    forEachElement(*this, [&noteKind](const ProjectElement& element) { noteKind(element.kind); });
     missing.sort();
     return missing;
 }
