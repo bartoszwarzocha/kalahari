@@ -3584,6 +3584,38 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>Mark Size:</source>
         <translation>Wielkość znaczników:</translation>
     </message>
+    <message>
+        <source>Colors</source>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>The colors of the annotations&apos; marks in the text, of the frame an annotation is written in on the paper and of the cards in the Annotations panel. A light panel has the colors of the light paper, a dark one those of the dark paper (View &gt; Dark Paper).</source>
+        <translation>Kolory znaczników uwag w tekście, ramki do pisania uwagi na papierze i kart w panelu „Uwagi”. Jasny panel ma kolory jasnego papieru, a ciemny – ciemnego (Widok &gt; Ciemny papier).</translation>
+    </message>
+    <message>
+        <source>Comment on light paper</source>
+        <translation>Komentarz na jasnym papierze</translation>
+    </message>
+    <message>
+        <source>Comment on dark paper</source>
+        <translation>Komentarz na ciemnym papierze</translation>
+    </message>
+    <message>
+        <source>To-do on light paper</source>
+        <translation>Do zrobienia na jasnym papierze</translation>
+    </message>
+    <message>
+        <source>To-do on dark paper</source>
+        <translation>Do zrobienia na ciemnym papierze</translation>
+    </message>
+    <message>
+        <source>Note on light paper</source>
+        <translation>Notatka na jasnym papierze</translation>
+    </message>
+    <message>
+        <source>Note on dark paper</source>
+        <translation>Notatka na ciemnym papierze</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AnnotationsPanel</name>
@@ -5393,6 +5425,14 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <source>Some files in the folder %1 are in use or protected. Close the programs that use them and try again.</source>
         <translation>Niektóre pliki w folderze %1 są używane albo chronione. Zamknij programy, które ich używają, i spróbuj ponownie.</translation>
     </message>
+    <message>
+        <source>Colors</source>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>The wavy line under a grammar issue has one color on the light paper and another on the dark one (View &gt; Dark Paper). The cards in the Spelling and Grammar panel have frames of the same color - in a light panel as on the light paper, in a dark one as on the dark paper - unless you give them their own.</source>
+        <translation>Falista linia pod błędem gramatyki ma jeden kolor na jasnym papierze, a inny na ciemnym (Widok &gt; Ciemny papier). Karty w panelu „Pisownia i gramatyka” mają ramki w tym samym kolorze – w jasnym panelu jak na jasnym papierze, w ciemnym jak na ciemnym – chyba że nadasz im własny.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorPagesPage</name>
@@ -5622,6 +5662,58 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Words that are right whatever the dictionary says; &quot;Add to Dictionary&quot; in the context menu of a misspelled word puts it here. A word in lower case is right also with capital letters.</source>
         <translation>Słowa poprawne bez względu na słownik; trafia tu każde słowo dodane poleceniem „Dodaj do słownika” z menu podręcznego. Słowo dodane małymi literami jest poprawne także pisane wielkimi literami.</translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>The wavy line under a misspelled word has one color on the light paper and another on the dark one (View &gt; Dark Paper). The cards in the Spelling and Grammar panel have frames of the same color - in a light panel as on the light paper, in a dark one as on the dark paper - unless you give them their own.</source>
+        <translation>Falista linia pod błędem pisowni ma jeden kolor na jasnym papierze, a inny na ciemnym (Widok &gt; Ciemny papier). Karty w panelu „Pisownia i gramatyka” mają ramki w tym samym kolorze – w jasnym panelu jak na jasnym papierze, w ciemnym jak na ciemnym – chyba że nadasz im własny.</translation>
+    </message>
+    <message>
+        <source>Spelling and Grammar Panel</source>
+        <translation>Panel „Pisownia i gramatyka”</translation>
+    </message>
+    <message>
+        <source>Only on the selected card</source>
+        <translation>Tylko na wybranej karcie</translation>
+    </message>
+    <message>
+        <source>On every card</source>
+        <translation>Na każdej karcie</translation>
+    </message>
+    <message>
+        <source>Fix buttons:</source>
+        <translation>Przyciski poprawek:</translation>
+    </message>
+    <message>
+        <source>Shows it in the panel</source>
+        <translation>Pokazuje go w panelu</translation>
+    </message>
+    <message>
+        <source>Opens its menu at the word</source>
+        <translation>Otwiera jego menu przy słowie</translation>
+    </message>
+    <message>
+        <source>Next spelling or grammar issue:</source>
+        <translation>Następny błąd pisowni lub gramatyki:</translation>
+    </message>
+    <message>
+        <source>Checked in the whole text</source>
+        <translation>Sprawdzana w całym tekście</translation>
+    </message>
+    <message>
+        <source>Checked only around the part in view</source>
+        <translation>Tylko w okolicy widocznego fragmentu</translation>
+    </message>
+    <message>
+        <source>Grammar while the panel is shown:</source>
+        <translation>Gramatyka, gdy panel jest widoczny:</translation>
+    </message>
+    <message>
+        <source>With &quot;Checked in the whole text&quot;, while the panel is shown the whole text is checked in the background, so the counts and the list cover all of it once the check is done. The free server api.languagetool.org limits the requests per minute: there a long text takes longer. On this computer there is no such limit.</source>
+        <translation>Przy ustawieniu „Sprawdzana w całym tekście” cały tekst jest sprawdzany w tle, gdy panel jest widoczny, więc liczniki i lista obejmą go w całości, gdy tylko sprawdzanie się skończy. Bezpłatny serwer api.languagetool.org ogranicza liczbę zapytań na minutę, więc tam długi tekst sprawdza się dłużej. Na tym komputerze takiego ograniczenia nie ma.</translation>
     </message>
 </context>
 <context>
@@ -7455,6 +7547,30 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Takes effect after restarting Kalahari.</source>
         <translation>Zmiana zadziała po ponownym uruchomieniu programu Kalahari.</translation>
     </message>
+    <message>
+        <source>Underline on light paper</source>
+        <translation>Podkreślenie na jasnym papierze</translation>
+    </message>
+    <message>
+        <source>Underline on dark paper</source>
+        <translation>Podkreślenie na ciemnym papierze</translation>
+    </message>
+    <message>
+        <source>Own color of the cards&apos; frames in the panel</source>
+        <translation>Własny kolor ramek kart w panelu</translation>
+    </message>
+    <message>
+        <source>Frame in a light panel</source>
+        <translation>Ramka w jasnym panelu</translation>
+    </message>
+    <message>
+        <source>Frame in a dark panel</source>
+        <translation>Ramka w ciemnym panelu</translation>
+    </message>
+    <message>
+        <source>Restore Default Colors</source>
+        <translation>Przywróć domyślne kolory</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::ShortcutRules</name>
@@ -8496,6 +8612,37 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Checking the grammar further on...</source>
         <translation>Sprawdzanie gramatyki w dalszych akapitach...</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpellingIssueCard</name>
+    <message>
+        <source>(No suggestions)</source>
+        <translation>(Brak podpowiedzi)</translation>
+    </message>
+    <message>
+        <source>Spelling</source>
+        <translation>Pisownia</translation>
+    </message>
+    <message>
+        <source>Grammar</source>
+        <translation>Gramatyka</translation>
+    </message>
+    <message>
+        <source>paragraph %1</source>
+        <translation>akapit %1</translation>
+    </message>
+    <message>
+        <source>Ignore Word</source>
+        <translation>Pomijaj to słowo</translation>
+    </message>
+    <message>
+        <source>Ignore Rule</source>
+        <translation>Pomijaj tę regułę</translation>
+    </message>
+    <message>
+        <source>Add to Dictionary</source>
+        <translation>Dodaj do słownika</translation>
     </message>
 </context>
 <context>

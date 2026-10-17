@@ -2,12 +2,14 @@
 /// @brief Implementation of SettingsPage
 
 #include "kalahari/gui/settings/settings_page.h"
+#include "kalahari/gui/issue_colors.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/settings_schema.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/editor/text_issue.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -16,10 +18,12 @@
 #include <QFontComboBox>
 #include <QFormLayout>
 #include <QGroupBox>
+#include <QHBoxLayout>
 #include <QImage>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPainter>
+#include <QPushButton>
 #include <QSpinBox>
 #include <QStyle>
 #include <QStyleOption>
@@ -63,6 +67,16 @@ json spinValue(double shown, double scale, const json& like) {
         return static_cast<int>(std::lround(value));
     }
     return value;
+}
+
+/// The color of a binding's value ("#rrggbb"; invalid for anything else)
+QColor colorOf(const json& value) {
+    return QColor(QString::fromStdString(value.is_string() ? value.get<std::string>() : std::string()));
+}
+
+/// A color as a binding's value
+json colorValue(const QColor& color) {
+    return json(color.name().toStdString());
 }
 
 /// The style of the notes (see SettingsPage::noteColor())
@@ -310,6 +324,136 @@ void SettingsPage::markNotUsedYet(QWidget* field, QLabel* label) {
 
 QString SettingsPage::restartText() {
     return tr("Takes effect after restarting Kalahari.");
+}
+
+ColorConfigWidget* SettingsPage::addThemeColor(QFormLayout* form, const QString& label,
+                                               const std::string& themeKey) {
+    auto* widget = new ColorConfigWidget(label);
+    form->addRow(widget);
+
+    std::string key = core::ThemeManager::editorColorSetting(themeKey);
+    const auto themeColor = [themeKey]() {
+        return core::ThemeManager::getInstance().defaultEditorColor(themeKey, QColor());
+    };
+    Binding binding;
+    binding.key = [key]() { return key; };
+    binding.stored = [key, themeColor]() {
+        const QColor stored(QString::fromStdString(
+            core::SettingsManager::getInstance().get<std::string>(key, std::string())));
+        return colorValue(stored.isValid() ? stored : themeColor());
+    };
+    binding.shown = [widget]() { return colorValue(widget->color()); };
+    binding.show = [widget](const json& value) { widget->setColor(colorOf(value)); };
+    binding.store = [key, themeColor](const json& value) {
+        // The theme's own color is not kept: the theme decides it again
+        auto& settings = core::SettingsManager::getInstance();
+        const QColor color = colorOf(value);
+        if (color == themeColor()) {
+            settings.removeKey(key);
+        } else {
+            settings.set<std::string>(key, color.name().toStdString());
+        }
+    };
+    bindCustom(std::move(binding));
+    m_restoreColors.emplace_back([widget, themeColor]() { widget->setColor(themeColor()); });
+    return widget;
+}
+
+void SettingsPage::addIssueColors(QFormLayout* form, editor::TextIssueKind kind) {
+    ColorConfigWidget* light =
+        addThemeColor(form, tr("Underline on light paper"), editor::issueColorKey(kind, false));
+    ColorConfigWidget* dark =
+        addThemeColor(form, tr("Underline on dark paper"), editor::issueColorKey(kind, true));
+    auto* own = new QCheckBox(tr("Own color of the cards' frames in the panel"));
+    form->addRow(own);
+    auto* frameLight = new ColorConfigWidget(tr("Frame in a light panel"));
+    auto* frameDark = new ColorConfigWidget(tr("Frame in a dark panel"));
+    form->addRow(frameLight);
+    form->addRow(frameDark);
+
+    // Without their own color the frames show the underline's, as the panel draws them
+    const auto sync = [own, light, dark, frameLight, frameDark]() {
+        frameLight->setEnabled(own->isChecked());
+        frameDark->setEnabled(own->isChecked());
+        if (!own->isChecked()) {
+            frameLight->setColor(light->color());
+            frameDark->setColor(dark->color());
+        }
+    };
+    connect(own, &QCheckBox::toggled, this, sync);
+    connect(light, &ColorConfigWidget::colorChanged, this, sync);
+    connect(dark, &ColorConfigWidget::colorChanged, this, sync);
+    // Turned on by the user, the frames start from the underline's colors
+    connect(own, &QCheckBox::clicked, this, [light, dark, frameLight, frameDark](bool checked) {
+        if (checked) {
+            frameLight->setColor(light->color());
+            frameDark->setColor(dark->color());
+        }
+    });
+
+    // A frame's own color; empty: the underline's. The underlines are filled before the frames
+    const auto bindFrame = [this, own](ColorConfigWidget* frame, ColorConfigWidget* underline,
+                                       const std::string& key, const std::string& otherKey) {
+        Binding binding;
+        binding.key = [key]() { return key; };
+        binding.stored = [key, otherKey, underline]() {
+            auto& settings = core::SettingsManager::getInstance();
+            const QColor stored(QString::fromStdString(settings.get<std::string>(key)));
+            if (stored.isValid()) {
+                return colorValue(stored);
+            }
+            // The other frame has its own color: this one shows the underline's as its own
+            if (QColor(QString::fromStdString(settings.get<std::string>(otherKey))).isValid()) {
+                return colorValue(underline->color());
+            }
+            return json(std::string());
+        };
+        binding.shown = [own, frame]() {
+            return own->isChecked() ? colorValue(frame->color()) : json(std::string());
+        };
+        binding.show = [own, frame, underline](const json& value) {
+            const QColor color = colorOf(value);
+            own->setChecked(color.isValid());
+            frame->setColor(color.isValid() ? color : underline->color());
+        };
+        binding.store = [key](const json& value) {
+            auto& settings = core::SettingsManager::getInstance();
+            const QColor color = colorOf(value);
+            if (color.isValid()) {
+                settings.set<std::string>(key, color.name().toStdString());
+            } else {
+                settings.removeKey(key);
+            }
+        };
+        bindCustom(std::move(binding));
+    };
+    const std::string lightKey = issueFrameColorSetting(kind, false);
+    const std::string darkKey = issueFrameColorSetting(kind, true);
+    bindFrame(frameLight, light, lightKey, darkKey);
+    bindFrame(frameDark, dark, darkKey, lightKey);
+    whenLoaded(sync);
+    m_restoreColors.emplace_back([own, sync]() {
+        own->setChecked(false);
+        sync();
+    });
+}
+
+QPushButton* SettingsPage::addRestoreColorsButton(QFormLayout* form) {
+    auto* button = new QPushButton(tr("Restore Default Colors"));
+    auto* row = new QHBoxLayout();
+    row->addWidget(button);
+    row->addStretch();
+    form->addRow(row);
+
+    const std::size_t first = m_restoreButtonColors;
+    const std::size_t last = m_restoreColors.size();
+    m_restoreButtonColors = last;
+    connect(button, &QPushButton::clicked, this, [this, first, last]() {
+        for (std::size_t i = first; i < last; ++i) {
+            m_restoreColors.at(i)();
+        }
+    });
+    return button;
 }
 
 } // namespace gui

@@ -2,11 +2,13 @@
 /// @brief Settings page: Editor > Spelling
 ///
 /// The coordinator of the spelling (SpellingCoordinator) follows the settings by itself;
-/// the writer's own words go to its dictionary when the page is applied.
+/// the writer's own words go to its dictionary when the page is applied. The colors of the
+/// waves reach the editors through the theme (ThemeManager follows their settings).
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/spell_check_service.h"
+#include "kalahari/editor/text_issue.h"
 #include "kalahari/gui/utils/language_names.h"
 
 #include <QCheckBox>
@@ -137,6 +139,40 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
     };
     connect(enabled, &QCheckBox::toggled, this, syncLanguage);
     whenLoaded(syncLanguage);
+
+    // The waves under the misspelled words and the frames of their cards in the panel
+    QFormLayout* colors = addGroup(tr("Colors"));
+    addNote(colors, tr("The wavy line under a misspelled word has one color on the light paper "
+                       "and another on the dark one (View > Dark Paper). The cards in the "
+                       "Spelling and Grammar panel have frames of the same color - in a light "
+                       "panel as on the light paper, in a dark one as on the dark paper - unless "
+                       "you give them their own."));
+    addIssueColors(colors, editor::TextIssueKind::Spelling);
+    addRestoreColorsButton(colors);
+
+    // The panel of the misspelled words and the grammar issues
+    QFormLayout* panel = addGroup(tr("Spelling and Grammar Panel"));
+    auto* fixButtons = new QComboBox();
+    fixButtons->setObjectName(QStringLiteral("spellingPanelFixButtons"));
+    fixButtons->addItem(tr("Only on the selected card"), QStringLiteral("selected"));
+    fixButtons->addItem(tr("On every card"), QStringLiteral("every"));
+    addField(panel, tr("Fix buttons:"), fixButtons, "spellingPanel.fixButtons");
+    auto* nextIssue = new QComboBox();
+    nextIssue->setObjectName(QStringLiteral("spellingPanelNextIssue"));
+    nextIssue->addItem(tr("Shows it in the panel"), QStringLiteral("panel"));
+    nextIssue->addItem(tr("Opens its menu at the word"), QStringLiteral("menu"));
+    addField(panel, tr("Next spelling or grammar issue:"), nextIssue, "spellingPanel.nextIssue");
+    auto* grammarScope = new QComboBox();
+    grammarScope->setObjectName(QStringLiteral("spellingPanelGrammarScope"));
+    grammarScope->addItem(tr("Checked in the whole text"), QStringLiteral("whole"));
+    grammarScope->addItem(tr("Checked only around the part in view"), QStringLiteral("nearby"));
+    addField(panel, tr("Grammar while the panel is shown:"), grammarScope,
+             "spellingPanel.grammarScope");
+    addNote(panel, tr("With \"Checked in the whole text\", while the panel is shown the whole "
+                      "text is checked in the background, so the counts and the list cover all "
+                      "of it once the check is done. The free server api.languagetool.org limits "
+                      "the requests per minute: there a long text takes longer. On this computer "
+                      "there is no such limit."));
 
     if (spelling == nullptr) {
         return;

@@ -7,9 +7,11 @@
 #include <QObject>
 #include <QString>
 #include <QColor>
+#include <atomic>
 #include <memory>
 #include <map>
 #include <optional>
+#include <string>
 
 namespace kalahari {
 namespace core {
@@ -48,6 +50,20 @@ public:
     /// @param key Name from the theme file's "editor" section (e.g. "commentMarker")
     /// @param fallback Returned if the theme does not define the color
     QColor editorColor(const std::string& key, const QColor& fallback) const;
+
+    /// @brief An editor color as the current theme's file gives it, without the user's value
+    /// @param key Name from the theme file's "editor" section
+    /// @param fallback Returned if the theme does not define the color
+    QColor defaultEditorColor(const std::string& key, const QColor& fallback) const;
+
+    /// @brief The setting of the user's own value of an editor color
+    ///
+    /// The editor colors are made for the light and the dark paper, which does not follow the
+    /// theme (View > Dark Paper): the user's value is one setting for all themes. A changed
+    /// setting reaches the current theme by itself (themeChanged() follows).
+    /// @param key Name from the theme file's "editor" section (e.g. "spellingLightPaper")
+    /// @return "editor.colors." followed by @p key
+    static std::string editorColorSetting(const std::string& key);
 
     /// @brief Get list of available themes in resources/themes/
     /// @return List of theme names (without .json extension)
@@ -97,9 +113,14 @@ signals:
     /// @brief Emitted after the palette is applied (for additional widget refresh)
     void themeStyleChanged();
 
+private slots:
+    /// @brief Apply the user's editor colors again; emit themeChanged when one changed
+    ///        (called by name, queued after the settings changed)
+    void reloadEditorColors();
+
 private:
     ThemeManager(); // Private constructor (singleton)
-    ~ThemeManager() override = default;
+    ~ThemeManager() override;
 
     Theme m_currentTheme;         ///< Currently active theme
     Theme m_baseTheme;            ///< Base theme (before overrides)
@@ -107,6 +128,9 @@ private:
 
     /// @brief Apply the user's stored per-theme colors to m_currentTheme
     void applyStoredColors();
+
+    int m_settingsListener = -1;                     ///< Subscription to the editor colors
+    std::atomic<bool> m_editorColorsPending{false};  ///< A reload of the editor colors is queued
 
     /// @brief Apply m_currentTheme's palette to the application and its tooltips
     void applyPalette();

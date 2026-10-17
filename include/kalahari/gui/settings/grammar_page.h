@@ -111,6 +111,9 @@ private:
     /// @brief The group of the checking: the switch, the card and where to check
     void createChecking();
 
+    /// @brief The group of the colors: the waves under the issues, the frames of their cards
+    void createColors();
+
     /// @brief The group of the server in the internet
     void createRemote();
 

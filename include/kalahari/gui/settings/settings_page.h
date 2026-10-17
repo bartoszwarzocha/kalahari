@@ -23,10 +23,17 @@ class QCheckBox;
 class QFormLayout;
 class QLabel;
 class QLayout;
+class QPushButton;
 class QVBoxLayout;
 
 namespace kalahari {
+namespace editor {
+enum class TextIssueKind;
+}  // namespace editor
+
 namespace gui {
+
+class ColorConfigWidget;
 
 /// @brief One page of the Settings dialog
 class SettingsPage : public QWidget {
@@ -127,6 +134,26 @@ protected:
     /// @brief Grey out an option the program does not use yet
     void markNotUsedYet(QWidget* field, QLabel* label = nullptr);
 
+    /// @brief Add an editor color of the theme for the light or the dark paper (the underlines,
+    ///        the annotations), bound to its setting
+    ///
+    /// The color is one setting for all themes (ThemeManager::editorColorSetting()). A color
+    /// equal to the theme's own is not kept, so the theme's color applies again.
+    /// @param form The form of the group
+    /// @param label What the color is for
+    /// @param themeKey Name from the theme file's "editor" section
+    ColorConfigWidget* addThemeColor(QFormLayout* form, const QString& label,
+                                     const std::string& themeKey);
+
+    /// @brief Add the colors of a kind of issue: its underline on the light and on the dark
+    ///        paper, and the frames of its cards in the Spelling and Grammar panel, in the
+    ///        underline's colors unless they are given their own
+    void addIssueColors(QFormLayout* form, editor::TextIssueKind kind);
+
+    /// @brief Add a button that shows the default colors of the colors added since the last
+    ///        such button (Apply and OK store them, as any change)
+    QPushButton* addRestoreColorsButton(QFormLayout* form);
+
     /// @brief Run a function after every load() (e.g. to grey out dependent controls)
     ///
     /// Signals like toggled() do not fire when a control already shows the loaded
@@ -144,6 +171,8 @@ private:
     std::deque<Binding> m_bindings;  ///< A deque keeps references to bindings valid
     std::vector<std::function<void()>> m_afterLoad;
     std::vector<QLabel*> m_notes;    ///< The notes, widgets of the page as long as it lives
+    std::vector<std::function<void()>> m_restoreColors;  ///< Show the default of each color
+    std::size_t m_restoreButtonColors = 0;  ///< Colors a restore button was added for already
 };
 
 } // namespace gui

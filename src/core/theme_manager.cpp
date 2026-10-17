@@ -16,6 +16,13 @@
 
 using namespace kalahari::core;
 
+namespace {
+
+/// @brief The settings of the user's editor colors start with this (editorColorSetting())
+constexpr const char* EDITOR_COLOR_PREFIX = "editor.colors.";
+
+}  // namespace
+
 // ============================================================================
 // Singleton Instance
 // ============================================================================
@@ -72,6 +79,24 @@ ThemeManager::ThemeManager() {
     applyPalette();
 
     Logger::getInstance().info("ThemeManager: Initial palette applied (Fusion style)");
+
+    // A changed editor color reaches the editors and the panels, wherever it was changed:
+    // once for all the colors written together (Apply in the Settings dialog writes several)
+    m_settingsListener = settings.subscribe([this](const std::string& key) {
+        if (key.rfind(EDITOR_COLOR_PREFIX, 0) != 0 ||
+            m_editorColorsPending.exchange(true)) {
+            return;
+        }
+        if (QCoreApplication::instance() == nullptr) {
+            reloadEditorColors();  // No event loop to run it later
+            return;
+        }
+        QMetaObject::invokeMethod(this, "reloadEditorColors", Qt::QueuedConnection);
+    });
+}
+
+ThemeManager::~ThemeManager() {
+    SettingsManager::getInstance().unsubscribe(m_settingsListener);
 }
 
 // ============================================================================
@@ -138,6 +163,15 @@ const Theme& ThemeManager::getCurrentTheme() const {
 QColor ThemeManager::editorColor(const std::string& key, const QColor& fallback) const {
     auto it = m_currentTheme.editor.find(key);
     return it != m_currentTheme.editor.end() ? it->second : fallback;
+}
+
+QColor ThemeManager::defaultEditorColor(const std::string& key, const QColor& fallback) const {
+    auto it = m_baseTheme.editor.find(key);
+    return it != m_baseTheme.editor.end() ? it->second : fallback;
+}
+
+std::string ThemeManager::editorColorSetting(const std::string& key) {
+    return EDITOR_COLOR_PREFIX + key;
 }
 
 QStringList ThemeManager::getAvailableThemes() const {
@@ -249,15 +283,41 @@ void ThemeManager::applyStoredColors() {
               settings.getLogColorForTheme(themeName, key, current(target)));
     }
 
-    // Editor colors: whatever the theme file lists
-    const std::string editorPrefix = "themes." + themeName + ".editor.";
+    // Editor colors: whatever the theme file lists, for the light and the dark paper; the paper
+    // does not follow the theme, so the user's value is one setting for all themes
     for (auto& [key, target] : theme.editor) {
-        apply("editor." + key, target, settings.get<std::string>(editorPrefix + key, current(target)));
+        apply("editor." + key, target, settings.get<std::string>(editorColorSetting(key), current(target)));
     }
 
     if (!m_overrides.empty()) {
         Logger::getInstance().info("ThemeManager: Applied {} stored colors for theme '{}'",
                                    m_overrides.size(), themeName);
+    }
+}
+
+void ThemeManager::reloadEditorColors() {
+    m_editorColorsPending = false;
+    auto& settings = SettingsManager::getInstance();
+    bool changed = false;
+    for (const auto& [key, themeColor] : m_baseTheme.editor) {
+        const QColor stored(QString::fromStdString(
+            settings.get<std::string>(editorColorSetting(key), std::string())));
+        const std::string overrideKey = "editor." + key;
+        if (stored.isValid() && stored != themeColor) {
+            m_overrides[overrideKey] = stored;
+        } else {
+            m_overrides.erase(overrideKey);
+        }
+        QColor& current = m_currentTheme.editor[key];
+        const QColor color = stored.isValid() ? stored : themeColor;
+        if (current != color) {
+            current = color;
+            changed = true;
+        }
+    }
+    if (changed) {
+        Logger::getInstance().debug("ThemeManager: Editor colors changed");
+        emit themeChanged(m_currentTheme);
     }
 }
 

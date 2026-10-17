@@ -52,13 +52,13 @@ IssueContext sentenceContext(const QString& paragraph, int start, int length);
 /// @brief The colors of the cards of a kind of issue
 struct IssueCardColors {
     AnnotationCardColors card;  ///< As a card of an annotation, in a lighter tint
-    QColor border;              ///< The frame, in the kind's color
+    QColor border;              ///< The frame, in the kind's color itself
 
     bool operator==(const IssueCardColors& other) const = default;
 };
 
 /// @brief The colors of the cards of a kind of issue: every text readable on the card
-/// @param kindColor The kind's color (issueColor())
+/// @param kindColor The color of the kind's cards (issueFrameColor()): their frame and bar
 /// @param surface What the cards lie on: the panel's base
 /// @param text The color of the text on it
 IssueCardColors issueCardColors(const QColor& kindColor, const QColor& surface,

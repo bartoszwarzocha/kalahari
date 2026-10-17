@@ -42,7 +42,6 @@ constexpr int WORDS_AFTER = 4;           ///< Words after it
 constexpr int MAX_SUGGESTIONS = 5;       ///< Suggestions on a card: the keys 1 to 5
 constexpr double LIGHT_TINT = 0.07;      ///< How much of the kind's color a card has on a light surface
 constexpr double DARK_TINT = 0.14;       ///< And on a dark one
-constexpr double BORDER_SHARE = 0.75;    ///< How far the frame is from the card, toward the kind's color
 constexpr double SECONDARY_SHARE = 0.38; ///< How far the less important text is from the text, toward the card
 constexpr qreal DISABLED_OPACITY = 0.45; ///< A greyed-out suggestion
 constexpr int PLACE_PASSES = 6;          ///< Times the cards are placed again as their heights are measured
@@ -372,7 +371,8 @@ IssueCardColors issueCardColors(const QColor& kindColor, const QColor& surface,
     card.text = readableColor(text, card.background, MIN_TEXT_CONTRAST);
     card.secondary = readableColor(mixedColor(card.text, card.background, SECONDARY_SHARE),
                                    card.background, MIN_TEXT_CONTRAST);
-    colors.border = mixedColor(card.background, kindColor, BORDER_SHARE);
+    // The frame in the color itself: the one the writer sees in the settings
+    colors.border = kindColor;
     return colors;
 }
 

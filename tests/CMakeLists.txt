@@ -78,6 +78,7 @@ set(TEST_SOURCES
     gui/test_edit_coordinator.cpp                # Clipboard and undo on the element with the keys
     gui/test_toolbar_keys.cpp                    # A toolbar gives the keys back after a command
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
+    gui/test_color_settings.cpp                  # The colors of the issues and the annotations in Settings
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
     gui/test_program_instance.cpp                # A later start hands its request to the program that runs
