@@ -164,14 +164,16 @@ T* child(const QWidget* parent, const char* name) {
 }
 
 /// The item of @p tree whose @p role is @p value
-QTreeWidgetItem* itemOf(const QTreeWidget& tree, int role, const QString& value) {
-    for (QTreeWidgetItemIterator it(const_cast<QTreeWidget*>(&tree)); *it != nullptr; ++it) {
+QTreeWidgetItem* itemOf(QTreeWidget& tree, int role, const QString& value) {
+    QTreeWidgetItem* found = nullptr;
+    for (QTreeWidgetItemIterator it(&tree); *it != nullptr && found == nullptr; ++it) {
         if ((*it)->data(0, role).toString() == value) {
-            return *it;
+            found = *it;
         }
     }
-    FAIL("No item " << value.toStdString());
-    return nullptr;
+    INFO("The item " << value.toStdString());
+    REQUIRE(found != nullptr);
+    return found;
 }
 
 /// The texts of the items of a menu, without their access keys, that are enabled (@p enabled)
