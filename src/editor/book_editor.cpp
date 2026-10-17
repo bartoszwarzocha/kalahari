@@ -862,6 +862,9 @@ bool BookEditor::fromKml(const QString& kml)
 
 void BookEditor::replaceWithKml(const QString& kml)
 {
+    if (m_readOnly) {
+        return;
+    }
     KmlDocumentModel content;
     if (!content.loadKml(kml)) {
         core::Logger::getInstance().error(
@@ -898,6 +901,9 @@ void BookEditor::replaceWithKml(const QString& kml)
 
 void BookEditor::replaceMarkupWithKml(const QString& kml)
 {
+    if (m_readOnly) {
+        return;
+    }
     if (!m_textBuffer || !m_renderPipeline || !m_viewportManager) {
         replaceWithKml(kml);
         return;

@@ -22,6 +22,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/package_card.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/statistics_collector.h"
@@ -255,15 +256,26 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     logElapsed("Before new EditorPanel");
     EditorPanel* newEditor = new EditorPanel(m_centralTabs);
     logElapsed("After new EditorPanel");
+    // A chapter of a book open read-only is read, copied and searched only; before the tab
+    // comes, as the commands follow the tab in front
+    newEditor->getBookEditor()->setReadOnly(pm.isReadOnly());
     const core::ProjectElement* element = pm.findElement(elementId);
-    const QString iconId = element ? NavigatorPanel::iconIdOf(pm.bookTypes(), *element)
+    // A kind the program does not have: its icon on the book's card of its package
+    const core::PackageCard* card =
+        element != nullptr && element->hasKind() && !pm.kindOf(*element)
+            ? pm.packageCard(element->kind.packageId)
+            : nullptr;
+    const QString iconId = element ? NavigatorPanel::iconIdOf(pm.bookTypes(), *element, card)
                                    : QStringLiteral("template.chapter");
-    QIcon chapterIcon = core::ArtProvider::getInstance().getIcon(iconId);
+    QIcon chapterIcon = core::ArtProvider::getInstance().getPackageIcon(iconId, card);
     // Store element ID for save operations, before the tab comes: the tab in front decides
     // what Save and Save As do
     newEditor->setProperty("elementId", elementId);
     int tabIndex = m_centralTabs->addTab(newEditor, chapterIcon, elementTitle);
     newEditor->setProperty("tabIconId", iconId);
+    if (card != nullptr) {
+        newEditor->setProperty("tabIconPackage", card->id);  // refreshTabIcons()
+    }
     m_centralTabs->setCurrentIndex(tabIndex);
     m_currentElementId = elementId;
 

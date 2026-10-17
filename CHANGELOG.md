@@ -39,6 +39,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   greyed out. A new book of a type that is not installed is not created, and the message says
   so: "The book ... cannot be created: the book type ... is not installed."
 
+- **A book open read-only: the window says why, reads it and changes nothing** - 2026-10-17.
+  The title of the window ends with "[read-only]", the status bar shows a lock "Read-only" (a
+  click says why), and the bar at the bottom of the window, the one of the files outside the
+  book, says what the program does not have: "The book is open read-only: the program does
+  not have its type "Novel". You can read it and export it.", with the button Export Project
+  Archive...; closed with its X, it stays away until a book opens again. Its chapters are
+  read, selected, copied and searched (Find and Replace opens as Find), and nothing changes
+  them: typing, Cut, Paste, a drop, the formats, the alignments, the font, the suggestions of
+  the spelling and the annotations; a refused change and the keys of a greyed out command say
+  "The book is open read-only" in the status bar. Greyed out with this tooltip: New Chapter
+  and Book Properties of the Book menu, the commands that add annotations, Find and Replace,
+  the formats and the alignments, the font of the toolbar, and in the Navigator's menus all
+  that changes the book (Rename, Delete, Move, Set Status, Add, Show Sections, Book
+  Properties); Open and Properties stay. The Navigator's icons are grey and nothing is dragged
+  in it. The Properties panel has the row Type, greyed out for a type the program does not
+  have, and its fields are only read. The Annotations panel shows the annotations: their
+  check boxes and menus are greyed out, Space and Delete do nothing, and editing one shows its
+  place and its card. New File makes a file outside the book, which the book does not take
+  (Add to Book greyed out). The tabs and the Navigator show the icons of the kinds the
+  program does not have from the book's cards. The project database (the places of the
+  cursor, the statistics of writing) is still written: it is the program's, not the book's.
+
 - **Menus: icons of the submenus** - 2026-10-16. Import, Export, Recent Books, Text Style,
   Statistics, Plugins, Assistant Actions, View Mode, Zoom, Panels, Perspectives and Toolbars
   have icons in the menus, as their commands (Recent Books now a clock in the place of the

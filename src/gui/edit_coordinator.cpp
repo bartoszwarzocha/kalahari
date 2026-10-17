@@ -160,6 +160,9 @@ bool bookCan(const editor::BookEditor& book, Edit edit) {
     case Edit::Redo:
         return book.canRedo();
     case Edit::Cut:
+        // A read-only text (a chapter of a book open read-only) is copied, not cut; Undo,
+        // Redo and Paste ask it themselves
+        return book.hasSelection() && !book.isReadOnly();
     case Edit::Copy:
         return book.hasSelection();
     case Edit::Paste:

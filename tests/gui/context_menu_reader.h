@@ -25,6 +25,7 @@ struct MenuItem {
     QString text;
     bool separator = false;
     bool enabled = true;
+    QString toolTip;        ///< What it says under the mouse (its text when it says nothing more)
     QList<MenuItem> items;  ///< The items of its submenu
     /// Its action, only to compare: one the menu made for itself is gone with the menu
     const QAction* action = nullptr;
@@ -38,6 +39,7 @@ inline QList<MenuItem> menuItems(const QList<QAction*>& actions) {
         item.text = action->text();
         item.separator = action->isSeparator();
         item.enabled = action->isEnabled();
+        item.toolTip = action->toolTip();
         item.action = action;
         if (const QMenu* submenu = action->menu()) {
             item.items = menuItems(submenu->actions());

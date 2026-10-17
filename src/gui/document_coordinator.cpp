@@ -18,6 +18,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/read_only_book.h"
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/book_project.h"
@@ -132,10 +133,15 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
     connect(m_centralTabs, &QTabWidget::currentChanged,
             this, &DocumentCoordinator::updateStandaloneInfoBar);
     connect(m_standaloneInfoBar, &StandaloneInfoBar::dismissed, this, [this]() {
-        if (EditorPanel* editor = getCurrentEditor()) {
+        if (m_standaloneInfoBar->showsReadOnlyBook()) {
+            m_readOnlyBarDismissed = true;  // closed until a book opens again
+        } else if (EditorPanel* editor = getCurrentEditor()) {
             editor->setProperty("infoBarDismissed", true);  // closed for this tab
         }
     });
+    // A book open read-only can be exported, to a program that has its type
+    connect(m_standaloneInfoBar, &StandaloneInfoBar::exportArchiveClicked, this,
+            &DocumentCoordinator::onExportArchive);
     connect(m_navigatorPanel, &NavigatorPanel::standaloneFileSelected,
             this, &DocumentCoordinator::openStandaloneFile);
     connect(m_navigatorPanel, &NavigatorPanel::requestAddToProject,
@@ -169,8 +175,9 @@ void DocumentCoordinator::onNewDocument() {
 
     // With a book open, the new file is an element of the book, of the kind and at the place
     // the writer chooses in the New File window, or an empty text file, with the book or
-    // outside it
-    if (core::ProjectManager::getInstance().isProjectOpen()) {
+    // outside it. A book open read-only takes none: the file is outside it, as without a book
+    const auto& projects = core::ProjectManager::getInstance();
+    if (projects.isProjectOpen() && !projects.isReadOnly()) {
         if (m_navigatorCoordinator) {
             using Made = NavigatorCoordinator::NewFile::Made;
             const NavigatorCoordinator::NewFile file =
@@ -1333,15 +1340,28 @@ void DocumentCoordinator::setInfoBarAllowed(bool allowed) {
 
 void DocumentCoordinator::updateStandaloneInfoBar() {
     EditorPanel* editor = getCurrentEditor();
-    if (!m_infoBarAllowed || !editor || editorKind(editor) != EditorKind::StandaloneFile
-        || editor->property("infoBarDismissed").toBool()) {
+    const bool fileInFront = editor != nullptr && editorKind(editor) == EditorKind::StandaloneFile;
+    const auto& pm = core::ProjectManager::getInstance();
+
+    // A book open read-only says why under every tab but a file outside it, which says what
+    // the file is: also under the Dashboard and without a tab
+    if (m_infoBarAllowed && !fileInFront && !m_readOnlyBarDismissed) {
+        const QString readOnly = readOnlyBookMessage();
+        if (!readOnly.isEmpty()) {
+            m_standaloneInfoBar->showReadOnlyBook(readOnly);
+            m_standaloneInfoBar->show();
+            return;
+        }
+    }
+
+    if (!m_infoBarAllowed || !fileInFront || editor->property("infoBarDismissed").toBool()) {
         m_standaloneInfoBar->hide();
         return;
     }
 
     const QString path = editor->property("standaloneFilePath").toString();
     m_standaloneInfoBar->setFilePath(path);
-    const bool bookOpen = core::ProjectManager::getInstance().isProjectOpen();
+    const bool bookOpen = pm.isProjectOpen();
     if (path.isEmpty()) {
         // A new file: Save asks where it goes and in which format
         //: The info bar of a new file that has no file yet. In Polish: Nowy plik – jeszcze
@@ -1353,8 +1373,9 @@ void DocumentCoordinator::updateStandaloneInfoBar() {
         m_standaloneInfoBar->setMessage(
             tr("This file is not part of a book. Some features are not available."));
     }
-    // Without a book, Add to Book could only say that one must be opened first
-    m_standaloneInfoBar->setBookOpen(bookOpen);
+    // Without a book, Add to Book could only say that one must be opened first; a book open
+    // read-only takes no file
+    m_standaloneInfoBar->setBookOpen(bookOpen, pm.isReadOnly());
     m_standaloneInfoBar->show();
 }
 
@@ -1550,8 +1571,13 @@ void DocumentCoordinator::onAddToProject() {
     // Save As keep a file of its own, in the folder the writer chooses.
     const QString path = m_standaloneInfoBar->filePath();
     EditorPanel* editor = getCurrentEditor();
+    const auto& pm = core::ProjectManager::getInstance();
+    if (pm.isProjectOpen() && pm.isReadOnly()) {
+        m_statusBar->showMessage(readOnlyReason(), EXPLANATION_MS);
+        return;
+    }
     if (path.isEmpty() && editor && editorKind(editor) == EditorKind::StandaloneFile
-        && core::ProjectManager::getInstance().isProjectOpen()) {
+        && pm.isProjectOpen()) {
         addNewFileToProject(editor);
         return;
     }
@@ -1617,6 +1643,12 @@ void DocumentCoordinator::addToProject(const QString& filePath) {
             tr("Open or create a book first.\n\n"
                "Use File > New Book... or File > Open Book... to start."));
         logger.info("Add to Book: No book open");
+        return;
+    }
+    // A book open read-only takes no file
+    if (pm.isReadOnly()) {
+        m_statusBar->showMessage(readOnlyReason(), EXPLANATION_MS);
+        logger.info("Add to Book: the book is open read-only");
         return;
     }
 
@@ -1870,6 +1902,9 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
 
     // Update Navigator panel with the book's structure, and the files no element has; the
     // expansion state of the last session decides whether their item is open
+    // A book open read-only is grey and takes no changes there
+    m_readOnlyBarDismissed = false;
+    m_navigatorPanel->setReadOnly(pm.isReadOnly());
     m_navigatorPanel->loadProject(*project, pm.bookTypes());
     m_navigatorPanel->setUnassignedFiles(pm.unassignedFiles(), pm.getProjectPath());
 
@@ -1883,8 +1918,8 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
     m_navigatorPanel->restoreExpansionState(projectId);
     logger.debug("Restored expansion state for project: {}", projectId.toStdString());
 
-    // Update window title with book title
-    emit windowTitleChanged((pm.book() ? pm.book()->title : QString()) + " - Kalahari");
+    // The title of the window names the book, and says whether it is read-only
+    m_updateWindowTitle();
 
     // Log and status bar
     logger.info("Project opened: {}", projectPath.toStdString());
@@ -1916,11 +1951,16 @@ void DocumentCoordinator::adoptBookFiles() {
         if (!element || pm.formOf(*element) != core::ElementForm::Text) {
             continue;
         }
+        // A chapter of a book open read-only would not take the changes: the file keeps them
+        // in its tab
+        const bool changed = isEditorDirty(file);
+        if (changed && pm.isReadOnly()) {
+            continue;
+        }
 
         // The tab of the element opens, with the changes of the file's tab, and takes its place
         const QString elementId = element->id;
         const QString title = element->title;
-        const bool changed = isEditorDirty(file);
         const QString text = file->getContent();
         m_navigatorCoordinator->onElementSelected(elementId, title);
         auto* chapter = qobject_cast<EditorPanel*>(m_centralTabs->currentWidget());
@@ -2005,6 +2045,8 @@ void DocumentCoordinator::onProjectClosed() {
     // Clear Navigator panel
     m_navigatorPanel->clearAllModifiedIndicators();  // Clear modified indicators first (OpenSpec #00042 Phase 7.5)
     m_navigatorPanel->clearDocument();
+    m_navigatorPanel->setReadOnly(false);
+    m_readOnlyBarDismissed = false;
     relistStandaloneFiles();  // they stay open without the book
 
     // Reset window title

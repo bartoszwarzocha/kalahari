@@ -121,7 +121,7 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
 
 void BookEditor::inputMethodEvent(QInputMethodEvent* event)
 {
-    if (!m_textBuffer) {
+    if (!m_textBuffer || m_readOnly) {
         event->ignore();
         return;
     }
@@ -211,7 +211,7 @@ QVariant BookEditor::inputMethodQuery(Qt::InputMethodQuery query) const
 {
     switch (query) {
         case Qt::ImEnabled:
-            return true;
+            return !m_readOnly;
 
         case Qt::ImCursorRectangle: {
             // Cursor rectangle for IME positioning, from the pipeline that paints the cursor
@@ -475,7 +475,7 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
 
 void BookEditor::dragEnterEvent(QDragEnterEvent* event)
 {
-    if (!m_textBuffer || !canInsertFromMimeData(event->mimeData())) {
+    if (!m_textBuffer || m_readOnly || !canInsertFromMimeData(event->mimeData())) {
         event->ignore();
         return;
     }
@@ -484,7 +484,7 @@ void BookEditor::dragEnterEvent(QDragEnterEvent* event)
 
 void BookEditor::dragMoveEvent(QDragMoveEvent* event)
 {
-    if (!m_textBuffer || !canInsertFromMimeData(event->mimeData())) {
+    if (!m_textBuffer || m_readOnly || !canInsertFromMimeData(event->mimeData())) {
         event->ignore();
         return;
     }
@@ -569,15 +569,18 @@ void BookEditor::startTextDrag()
     auto* drag = new QDrag(this);  // Qt deletes it once the drag is over
     drag->setMimeData(mimeData.release());
     m_draggingText = true;
-    const Qt::DropAction action = drag->exec(Qt::CopyAction | Qt::MoveAction, Qt::MoveAction);
+    // A read-only text is only copied
+    const Qt::DropAction action =
+        m_readOnly ? drag->exec(Qt::CopyAction, Qt::CopyAction)
+                   : drag->exec(Qt::CopyAction | Qt::MoveAction, Qt::MoveAction);
     m_draggingText = false;
     stopAutoScroll();
 
     // Moved to another widget or program: the text leaves the editor (dropMimeData()
     // moves it within the editor). The editor's own find bar only takes a copy.
     const auto* target = qobject_cast<QWidget*>(drag->target());
-    const bool movedAway =
-        action == Qt::MoveAction && target != this && (target == nullptr || !isAncestorOf(target));
+    const bool movedAway = !m_readOnly && action == Qt::MoveAction && target != this &&
+                           (target == nullptr || !isAncestorOf(target));
     if (movedAway && dragged.hasSelection()) {
         clearSelection();
         dragged.removeSelectedText();
@@ -756,25 +759,26 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
     }
 
     // The editing items: the Edit menu's commands with their icons and keys, where the
-    // application gives them; else the editor's own
+    // application gives them; else the editor's own, those that change the text greyed out in
+    // a read-only text
     const auto addEditItem = [this, &menu](QAction* command, const QString& text,
-                                           void (BookEditor::*edit)()) {
+                                           void (BookEditor::*edit)(), bool changes) {
         if (command != nullptr) {
             menu.addAction(command);
         } else {
-            menu.addAction(text, this, edit);
+            menu.addAction(text, this, edit)->setEnabled(!changes || !m_readOnly);
         }
     };
     const ContextMenuEditActions& commands = m_contextMenuEditActions;
     if (hasSelection()) {
-        addEditItem(commands.cut, tr("Cu&t"), &BookEditor::cut);
-        addEditItem(commands.copy, tr("&Copy"), &BookEditor::copy);
+        addEditItem(commands.cut, tr("Cu&t"), &BookEditor::cut, true);
+        addEditItem(commands.copy, tr("&Copy"), &BookEditor::copy, false);
     }
-    addEditItem(commands.paste, tr("&Paste"), &BookEditor::paste);
+    addEditItem(commands.paste, tr("&Paste"), &BookEditor::paste, true);
 
     // Also without a selection, as in the program's text fields
     menu.addSeparator();
-    addEditItem(commands.selectAll, tr("Select &All"), &BookEditor::selectAll);
+    addEditItem(commands.selectAll, tr("Select &All"), &BookEditor::selectAll, false);
 
     // The application's commands for the text (adding annotations)
     bool separated = false;

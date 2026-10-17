@@ -658,15 +658,19 @@ bool AnnotationsPanel::listKeyPressed(const QKeyEvent* event) {
         }
         break;
     case Qt::Key_Space:
-        // A to-do done, a comment resolved, or either brought back; a note has no state
-        if (selected != nullptr && selected->entry().annotation.kind != editor::AnnotationKind::Note) {
+        // A to-do done, a comment resolved, or either brought back; a note has no state; an
+        // annotation of a book open read-only stays as it is
+        if (selected != nullptr && !m_readOnly &&
+            selected->entry().annotation.kind != editor::AnnotationKind::Note) {
             actOnSelected([this](const AnnotationEntry& entry) {
                 emit doneToggled(entry, !entry.annotation.done);
             });
         }
         break;
     case Qt::Key_Delete:
-        actOnSelected([this](const AnnotationEntry& entry) { emit deleteRequested(entry); });
+        if (!m_readOnly) {
+            actOnSelected([this](const AnnotationEntry& entry) { emit deleteRequested(entry); });
+        }
         break;
     case Qt::Key_F10:  // with Shift: the menu
         if (selected != nullptr) {
@@ -841,9 +845,17 @@ void AnnotationsPanel::colorCard(AnnotationCard* card) const {
     card->setColors(m_cardColors.at(kindIndex(card->entry().annotation.kind)));
 }
 
+void AnnotationsPanel::setReadOnly(bool readOnly) {
+    m_readOnly = readOnly;
+    for (AnnotationCard* card : std::as_const(m_cards)) {
+        card->setReadOnly(readOnly);
+    }
+}
+
 AnnotationCard* AnnotationsPanel::createCard() {
     auto* created = new AnnotationCard(m_listWidget);
     created->setListFocused(m_listWidget->hasFocus());
+    created->setReadOnly(m_readOnly);
 
     // Copies of the entry: what a receiver does may change the card
     connect(created, &AnnotationCard::clicked, this, [this, created]() {

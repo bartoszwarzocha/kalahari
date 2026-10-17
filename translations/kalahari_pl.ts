@@ -2420,6 +2420,24 @@ Uruchomić ponownie teraz?</translation>
     </message>
 </context>
 <context>
+    <name>ReadOnlyBook</name>
+    <message>
+        <source>The book is open read-only</source>
+        <extracomment>Why a command, a field or a panel that would change the open book is greyed out. In Polish: Książka jest otwarta tylko do odczytu</extracomment>
+        <translation>Książka jest otwarta tylko do odczytu</translation>
+    </message>
+    <message>
+        <source>The book is open read-only: the program does not have its type &quot;%1&quot;. You can read it and export it.</source>
+        <extracomment>The message at the bottom of the window over a book open read-only; %1: the name of its type. In Polish: Książka otwarta tylko do odczytu: typu „%1” nie ma w programie. Możesz ją czytać i eksportować.</extracomment>
+        <translation>Książka otwarta tylko do odczytu: typu „%1” nie ma w programie. Możesz ją czytać i eksportować.</translation>
+    </message>
+    <message>
+        <source>The book is open read-only: the program does not have all the book uses (%1). You can read it and export it.</source>
+        <extracomment>The message at the bottom of the window over a book open read-only whose type the program has; %1: the names of the book types the program does not have, or does not have whole (an older version). In Polish: Książka otwarta tylko do odczytu: program nie ma wszystkiego, czego używa książka (%1). Możesz ją czytać i eksportować.</extracomment>
+        <translation>Książka otwarta tylko do odczytu: program nie ma wszystkiego, czego używa książka (%1). Możesz ją czytać i eksportować.</translation>
+    </message>
+</context>
+<context>
     <name>SectionWords</name>
     <message>
         <source>at the beginning of the book</source>
@@ -6320,6 +6338,16 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>Do&amp;n&apos;t Save</source>
         <translation>&amp;Nie zapisuj</translation>
     </message>
+    <message>
+        <source>Read-only</source>
+        <extracomment>In the status bar while the open book is read-only. In Polish: Tylko do odczytu</extracomment>
+        <translation>Tylko do odczytu</translation>
+    </message>
+    <message>
+        <source>[read-only]</source>
+        <extracomment>After the title of a book open read-only, in the title bar of the window: &quot;Rain [read-only] - Kalahari&quot;. In Polish: [tylko do odczytu]</extracomment>
+        <translation>[tylko do odczytu]</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
@@ -7166,6 +7194,16 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
     <message>
         <source>Date when the book was last changed</source>
         <translation>Data ostatniej zmiany książki</translation>
+    </message>
+    <message>
+        <source>Type:</source>
+        <extracomment>The row of the type of the book in the Properties panel. In Polish: Typ:</extracomment>
+        <translation>Typ:</translation>
+    </message>
+    <message>
+        <source>The type of the book: the kinds of its elements come from it</source>
+        <extracomment>The tooltip of the type of the book in the Properties panel. In Polish: Typ książki: z niego pochodzą rodzaje jej elementów</extracomment>
+        <translation>Typ książki: z niego pochodzą rodzaje jej elementów</translation>
     </message>
 </context>
 <context>
@@ -8481,6 +8519,16 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>No book is open</source>
         <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>Export Project Archive...</source>
+        <extracomment>The button of the message at the bottom of the window over a book open read-only, as File &gt; Export &gt; Project Archive... In Polish: Eksportuj archiwum projektu...</extracomment>
+        <translation>Eksportuj archiwum projektu...</translation>
+    </message>
+    <message>
+        <source>Save the book in a project archive, which a program that has its type can open</source>
+        <extracomment>In Polish: Zapisz książkę w archiwum projektu, które można otworzyć w programie mającym jej typ</extracomment>
+        <translation>Zapisz książkę w archiwum projektu, które można otworzyć w programie mającym jej typ</translation>
     </message>
 </context>
 <context>

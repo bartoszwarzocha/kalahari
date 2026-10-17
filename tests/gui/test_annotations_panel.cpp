@@ -21,6 +21,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QCheckBox>
 #include <QDateTime>
 #include <QDockWidget>
 #include <QFile>
@@ -32,6 +33,7 @@
 #include <QLayout>
 #include <QLineEdit>
 #include <QMainWindow>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QResizeEvent>
@@ -1321,6 +1323,92 @@ TEST_CASE("Annotations: a plain text file takes none; the panel says why", "[gui
     CHECK_FALSE(emptyText().contains(QStringLiteral(".txt")));
     CHECK(desk.coordinator->addAnnotation(AnnotationKind::Comment));
     CHECK(desk.coordinator->isWriting());
+}
+
+TEST_CASE("Annotations: those of a book open read-only are read, and their places shown",
+          "[gui][annotations][readonly]") {
+    registerAllCommands(CommandCallbacks{});
+    Desk desk(kmlWith(record(QStringLiteral("c1"), QStringLiteral("comment"), QStringLiteral("Why?")) +
+                          record(QStringLiteral("t1"), QStringLiteral("todo"), QStringLiteral("Fix")),
+                      {QStringLiteral("<anchor ref=\"c1\">One</anchor> two"),
+                       QStringLiteral("<anchor ref=\"t1\">Three</anchor> four")}));
+    desk.coordinator->connectCommands();
+    // A chapter of a book open read-only, as it comes to the front
+    desk.tabs.addTab(new QWidget(), QStringLiteral("Dashboard"));
+    desk.tabs.setCurrentIndex(1);
+    desk.editor().setReadOnly(true);
+    desk.tabs.setCurrentIndex(0);
+    desk.coordinator->refresh();
+    REQUIRE(desk.panel.isReadOnly());
+    const QString kml = desk.editor().toKml();
+    const QString why = QStringLiteral("The book is open read-only");
+    auto& registry = CommandRegistry::getInstance();
+
+    // None is added: the commands are greyed out, saying why
+    for (const char* id : {"insert.annotation", "insert.comment", "insert.todo", "insert.note"}) {
+        INFO(id);
+        QAction* action = registry.getAction(QString::fromLatin1(id));
+        REQUIRE(action != nullptr);
+        CHECK_FALSE(action->isEnabled());
+        CHECK(action->toolTip() == why);
+    }
+    CHECK_FALSE(desk.coordinator->addAnnotation(AnnotationKind::Comment));
+    CHECK_FALSE(desk.coordinator->isWriting());
+
+    // A card changes nothing: its check box and the items of its menu are greyed out
+    AnnotationCard* todo = desk.panel.card(annotationKey(QString(), QStringLiteral("t1")));
+    REQUIRE(todo != nullptr);
+    CHECK(todo->isReadOnly());
+    auto* doneBox = todo->findChild<QCheckBox*>();
+    REQUIRE(doneBox != nullptr);
+    CHECK_FALSE(doneBox->isEnabled());
+    CHECK(doneBox->toolTip() == why);
+    QMenu menu;
+    todo->fillMenu(&menu);
+    for (const QAction* action : menu.actions()) {
+        INFO(action->text().toStdString());
+        CHECK((action->isSeparator() || (!action->isEnabled() && action->toolTip() == why)));
+    }
+
+    // Space and Delete in the list do nothing
+    int toggled = 0;
+    int deleted = 0;
+    const QMetaObject::Connection countToggled = QObject::connect(
+        &desk.panel, &AnnotationsPanel::doneToggled, [&toggled]() { ++toggled; });
+    const QMetaObject::Connection countDeleted = QObject::connect(
+        &desk.panel, &AnnotationsPanel::deleteRequested, [&deleted]() { ++deleted; });
+    desk.panel.revealAnnotation(annotationKey(QString(), QStringLiteral("t1")));
+    REQUIRE(desk.panel.selectedKey() == annotationKey(QString(), QStringLiteral("t1")));
+    press(listOf(desk.panel), Qt::Key_Space);
+    press(listOf(desk.panel), Qt::Key_Delete);
+    CHECK(toggled == 0);
+    CHECK(deleted == 0);
+    QObject::disconnect(countToggled);
+    QObject::disconnect(countDeleted);
+
+    // Asked for anyway, the text keeps them as they are
+    emit desk.panel.doneToggled(desk.entry(QStringLiteral("t1")), true);
+    emit desk.panel.deleteRequested(desk.entry(QStringLiteral("c1")));
+    CHECK(desk.editor().toKml() == kml);
+
+    // Edited: no frame; the text shows its place, and the panel its card
+    desk.editor().setCursorPosition({1, 6});
+    CHECK_FALSE(desk.coordinator->editAnnotation(QString(), QStringLiteral("c1"), true));
+    CHECK_FALSE(desk.coordinator->isWriting());
+    CHECK(desk.coordinator->frame() == nullptr);
+    CHECK(desk.editor().cursorPosition().paragraph == 0);
+    CHECK(desk.panel.selectedKey() == annotationKey(QString(), QStringLiteral("c1")));
+
+    // A chapter that can be changed: so can its annotations
+    desk.tabs.setCurrentIndex(1);
+    desk.editor().setReadOnly(false);
+    desk.tabs.setCurrentIndex(0);
+    desk.coordinator->refresh();
+    CHECK_FALSE(desk.panel.isReadOnly());
+    todo = desk.panel.card(annotationKey(QString(), QStringLiteral("t1")));
+    REQUIRE(todo != nullptr);
+    CHECK(todo->findChild<QCheckBox*>()->isEnabled());
+    CHECK(registry.getAction(QStringLiteral("insert.comment"))->isEnabled());
 }
 
 TEST_CASE("Annotations: F9 goes to the panel and back to the text", "[gui][annotations]") {

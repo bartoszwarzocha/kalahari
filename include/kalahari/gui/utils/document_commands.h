@@ -26,14 +26,22 @@ namespace utils {
 /// the alignments, the view mode and the zoom
 const std::vector<std::string>& documentCommands();
 
-/// @brief Grey out the commands of the document while no document is in front
+/// @brief The commands of the document that change it: Find and Replace, the character
+/// formats and the alignments
+const std::vector<std::string>& changingDocumentCommands();
+
+/// @brief Grey out the commands of the document while no document is in front, and those that
+/// change it while the document in front is read-only
 ///
 /// Over the Dashboard or without a tab they would do nothing: they are greyed out, also
-/// their keys, as in Word without a document. The caller shows their states again when
-/// the tab in front changes (updateDocumentCommands()).
+/// their keys, as in Word without a document. Over a chapter of a book open read-only, those
+/// that change it are greyed out, their tooltips and the status bar saying why. The caller
+/// shows their states again when the tab in front changes (updateDocumentCommands()).
 /// @param registry The commands
 /// @param hasDocument Whether a document is in front
-void bindToDocument(CommandRegistry& registry, const std::function<bool()>& hasDocument);
+/// @param isReadOnly Whether the document in front is read-only; none: never
+void bindToDocument(CommandRegistry& registry, const std::function<bool()>& hasDocument,
+                    const std::function<bool()>& isReadOnly = {});
 
 /// @brief Show the enabled and checked states of the commands of the document again
 /// @param registry The commands
@@ -76,13 +84,15 @@ void bindSaveCommands(CommandRegistry& registry, const std::function<QString()>&
 /// @param registry The commands
 void updateSaveCommands(CommandRegistry& registry);
 
-/// @brief The keys of Close Book, of the export of the book's archive, of Save, of Save As and
-/// of Save All say why the command is greyed out
+/// @brief The keys of Close Book, of the export of the book's archive, of Save, of Save As, of
+/// Save All, of the commands that change the document, of those of the Book menu and of those
+/// that add annotations say why the command is greyed out
 ///
-/// A greyed out command takes no keys, so they would do nothing: while it is greyed out, a
-/// shortcut of @p window takes them and shows the reason in @p statusBar, as its menu item
-/// does under the mouse. It follows the keys the writer gives the command.
-/// @param registry The commands, bound (bindToOpenBook(), bindSaveCommands())
+/// A greyed out command takes no keys, so they would do nothing: while it is greyed out with a
+/// reason, a shortcut of @p window takes them and shows the reason in @p statusBar, as its
+/// menu item does under the mouse. It follows the keys the writer gives the command.
+/// @param registry The commands, bound (bindToOpenBook(), bindSaveCommands(),
+/// bindToDocument())
 /// @param window The window whose keys these are
 /// @param statusBar The status bar that shows the reason
 void explainGreyedKeys(CommandRegistry& registry, QWidget* window, QStatusBar* statusBar);
