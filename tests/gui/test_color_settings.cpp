@@ -69,52 +69,60 @@ private:
 QWidget* openPage(SettingsDialog& dialog, const QString& category, const QString& title) {
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
-    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+    QTreeWidgetItem* found = nullptr;
+    for (QTreeWidgetItemIterator it(tree); *it != nullptr && found == nullptr; ++it) {
         QTreeWidgetItem* parent = (*it)->parent();
         if ((*it)->text(0) == title && (parent ? parent->text(0) : QString()) == category) {
-            tree->setCurrentItem(*it);
-            auto* stack = dialog.findChild<QStackedWidget*>();
-            REQUIRE(stack != nullptr);
-            return stack->currentWidget();
+            found = *it;
         }
     }
-    FAIL("No page " << title.toStdString());
-    return nullptr;
+    INFO("The page " << title.toStdString());
+    REQUIRE(found != nullptr);
+    tree->setCurrentItem(found);
+    auto* stack = dialog.findChild<QStackedWidget*>();
+    REQUIRE(stack != nullptr);
+    return stack->currentWidget();
 }
 
 /// The colors of a page's group with a title
 QList<ColorConfigWidget*> colorsOfGroup(QWidget* page, const QString& title) {
-    for (QGroupBox* group : page->findChildren<QGroupBox*>()) {
-        if (group->title() == title) {
-            return group->findChildren<ColorConfigWidget*>();
+    const QGroupBox* found = nullptr;
+    for (const QGroupBox* group : page->findChildren<QGroupBox*>()) {
+        if (found == nullptr && group->title() == title) {
+            found = group;
         }
     }
-    FAIL("No group " << title.toStdString());
-    return {};
+    INFO("The group " << title.toStdString());
+    REQUIRE(found != nullptr);
+    return found->findChildren<ColorConfigWidget*>();
 }
 
 /// The color of a page with a label
 ColorConfigWidget* colorNamed(QWidget* page, const QString& label) {
+    ColorConfigWidget* found = nullptr;
     for (ColorConfigWidget* widget : page->findChildren<ColorConfigWidget*>()) {
         for (const QLabel* text : widget->findChildren<QLabel*>()) {
-            if (text->text() == label) {
-                return widget;
+            if (found == nullptr && text->text() == label) {
+                found = widget;
             }
         }
     }
-    FAIL("No color " << label.toStdString());
-    return nullptr;
+    INFO("The color " << label.toStdString());
+    REQUIRE(found != nullptr);
+    return found;
 }
 
 template <typename Widget>
 Widget* namedChild(QWidget* page, const QString& text) {
+    Widget* found = nullptr;
     for (Widget* widget : page->findChildren<Widget*>()) {
-        if (widget->text() == text) {
-            return widget;
+        if (found == nullptr && widget->text() == text) {
+            found = widget;
         }
     }
-    FAIL("No control " << text.toStdString());
-    return nullptr;
+    INFO("The control " << text.toStdString());
+    REQUIRE(found != nullptr);
+    return found;
 }
 
 /// The writer picks a color in the color window: the widget tells it
