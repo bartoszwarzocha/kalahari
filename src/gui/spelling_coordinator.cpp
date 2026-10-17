@@ -23,6 +23,7 @@
 #include <QVariant>
 
 #include <string>
+#include <utility>
 
 namespace kalahari::gui {
 
@@ -39,6 +40,10 @@ constexpr const char* COMMAND_ID = "tools.spellcheck";
 
 /// @brief The command that selects the next misspelled word
 constexpr const char* NEXT_COMMAND_ID = "tools.nextMisspelling";
+
+/// @brief The setting of where the command shows the next issue: "panel" (the handler of the
+///        next issue) or "menu" (its context menu at the word)
+constexpr const char* NEXT_ISSUE_KEY = "spellingPanel.nextIssue";
 
 /// @brief How long the message of the command stays in the status bar (ms), as the
 ///        messages of the other switches
@@ -86,6 +91,10 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
     for (editor::SpellCheckService* service : {m_service, m_otherService}) {
         connect(service, &editor::SpellCheckService::dictionaryError, this,
                 [this](const QString& error) { showMessage(error, DICTIONARY_MESSAGE_MS); });
+        connect(service, &editor::SpellCheckService::dictionaryLoaded, this,
+                &SpellingCoordinator::problemChanged);
+        connect(service, &editor::SpellCheckService::dictionaryError, this,
+                &SpellingCoordinator::problemChanged);
     }
 
     // The editor of a document checks with its dictionary from the time its tab is shown;
@@ -167,17 +176,29 @@ bool SpellingCoordinator::goToNextIssue() {
     const bool spelling = spellService != nullptr && spellService->isActive();
     const bool grammar = grammarService != nullptr && grammarService->isEnabled() &&
                          grammarService->isConfigured();
+    // The handler of the next issue (the Spelling and Grammar panel) shows it, as the
+    // setting says, instead of its context menu
+    const auto toHandler = [this]() {
+        return m_nextIssueHandler &&
+               core::SettingsManager::getInstance().get<std::string>(NEXT_ISSUE_KEY, "panel") ==
+                   "panel";
+    };
     if (!spelling && !grammar) {
         showMessage(tr("The spelling is not checked"), NEXT_MESSAGE_MS);
+        if (toHandler()) {
+            m_nextIssueHandler(bookEditor, false);
+        }
         return false;
     }
     using IssueSearch = editor::BookEditor::IssueSearch;
-    const auto showResult = [this, bookEditor, spelling, grammar](IssueSearch result,
-                                                                    bool waited) {
+    const auto showResult = [this, bookEditor, spelling, grammar, toHandler](IssueSearch result,
+                                                                               bool waited) {
         if (waited && m_statusBar != nullptr) {
             m_statusBar->clearMessage();  // the grammar was being checked
         }
-        if (result == IssueSearch::Cancelled) {
+        // Not when another document came to the front while the grammar was checked
+        if (result == IssueSearch::Cancelled || bookEditor == nullptr ||
+            bookEditor != currentEditor()) {
             return;
         }
         if (result != IssueSearch::Found) {
@@ -187,13 +208,16 @@ bool SpellingCoordinator::goToNextIssue() {
                                 : tr("No grammar issues");
             }
             showMessage(none, NEXT_MESSAGE_MS);
+            if (toHandler()) {
+                m_nextIssueHandler(bookEditor, false);
+            }
             return;
         }
-        // What to put in its place, under the word, as the menu key shows it; not when
-        // another document came to the front while the grammar was checked
-        if (bookEditor == nullptr || bookEditor != currentEditor()) {
+        if (toHandler()) {
+            m_nextIssueHandler(bookEditor, true);
             return;
         }
+        // What to put in its place, under the word, as the menu key shows it
         bookEditor->setFocus();
         bookEditor->showContextMenuAtCursor();
     };
@@ -210,6 +234,30 @@ bool SpellingCoordinator::goToNextIssue() {
         [showResult](IssueSearch finished) { showResult(finished, true); },
         Qt::SingleShotConnection);
     return true;
+}
+
+void SpellingCoordinator::setNextIssueHandler(NextIssueHandler handler) {
+    m_nextIssueHandler = std::move(handler);
+}
+
+QString SpellingCoordinator::problem(const editor::BookEditor* editor) const {
+    const editor::SpellCheckService* service =
+        editor != nullptr ? editor->spellCheckService() : nullptr;
+    if (service == nullptr || !service->isEnabled()) {
+        return {};
+    }
+    QString missing;
+    if (service == m_service) {
+        missing = m_missingLanguage;
+    } else if (service == m_otherService) {
+        missing = m_otherMissingLanguage;
+    }
+    if (missing.isEmpty()) {
+        return {};
+    }
+    //: %1 is the name of the language as in a list of languages (in Polish: francuski)
+    return tr("No spelling dictionary for %1: the spelling is not checked.")
+        .arg(utils::languageName(missing));
 }
 
 QString SpellingCoordinator::wantedLanguage() {
@@ -262,6 +310,7 @@ void SpellingCoordinator::updateDictionary() {
         m_otherMissingLanguage.clear();
     }
     updateEditors();
+    emit problemChanged();
 }
 
 void SpellingCoordinator::updateEditors() {
@@ -289,6 +338,7 @@ void SpellingCoordinator::updateEditors() {
         useDictionary(*m_otherService, m_otherLanguage, m_otherDictionary,
                       m_otherMissingLanguage);
     }
+    emit problemChanged();  // the documents may have other dictionaries now
 }
 
 void SpellingCoordinator::useDictionary(editor::SpellCheckService& service,

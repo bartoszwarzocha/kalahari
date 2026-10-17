@@ -61,6 +61,12 @@ QString restartingMessage() {
                                   "program starts it again.");
 }
 
+/// @brief The status bar when the server did not start
+QString failedMessage() {
+    return GrammarCoordinator::tr("Grammar is not checked: LanguageTool did not start. Details: "
+                                  "Edit > Settings..., Editor > Grammar.");
+}
+
 /// @brief A text setting
 QString textSetting(const char* key) {
     return QString::fromStdString(
@@ -97,6 +103,16 @@ GrammarCoordinator::GrammarCoordinator(QTabWidget* centralTabs, QStatusBar* stat
     connect(m_service, &editor::GrammarCheckService::serverError, this,
             &GrammarCoordinator::onServerError);
 
+    // A server that did not answer is asked again after a while, and answers again
+    connect(m_service, &editor::GrammarCheckService::available, this,
+            &GrammarCoordinator::problemChanged);
+    connect(m_service, &editor::GrammarCheckService::textChecked, this, [this]() {
+        if (!m_serverError.isEmpty()) {
+            m_serverError.clear();
+            emit problemChanged();
+        }
+    });
+
     // A rule ignored in an editor is ignored in every book, also after a restart
     connect(m_service, &editor::GrammarCheckService::ruleIgnored, this,
             [](const QString& ruleId, const QString& description) {
@@ -116,6 +132,7 @@ GrammarCoordinator::GrammarCoordinator(QTabWidget* centralTabs, QStatusBar* stat
     connect(m_server, &LanguageToolServer::restarting, this, [this]() {
         m_restarting = true;
         showMessage(restartingMessage(), 0);
+        emit problemChanged();
     });
 
     connect(m_setup, &GrammarSetup::progress, this, &GrammarCoordinator::updateSetupButton);
@@ -205,6 +222,43 @@ bool GrammarCoordinator::isChecking() const {
            (ready == Readiness::Ready || ready == Readiness::Remote);
 }
 
+QString GrammarCoordinator::problem() const {
+    if (!core::SettingsManager::getInstance().get<bool>(ENABLED_KEY, false)) {
+        return {};
+    }
+    if (m_setup->isRunning()) {
+        return tr("Grammar is not checked yet: the program prepares LanguageTool.");
+    }
+    switch (readiness()) {
+    case Readiness::NotPrepared:
+        return tr("Grammar is not checked: it is not prepared yet. Tools > Check Grammar as You "
+                  "Type prepares it.");
+    case Readiness::Missing:
+        return tr("Grammar is not checked: the components it needs were not found. Tools > Check "
+                  "Grammar as You Type prepares them again.");
+    case Readiness::Ready:
+        if (m_restarting) {
+            return restartingMessage();
+        }
+        if (m_server->state() == LanguageToolServer::State::Starting) {
+            return startingMessage();
+        }
+        if (m_server->state() == LanguageToolServer::State::Failed) {
+            return failedMessage();
+        }
+        break;
+    case Readiness::Remote:
+        break;
+    }
+
+    // The server did not answer: it is asked again after a while
+    if (!m_serverError.isEmpty() && m_service->isEnabled() && m_service->isConfigured() &&
+        !m_service->isActive()) {
+        return m_serverError;
+    }
+    return {};
+}
+
 QMap<QString, QString> GrammarCoordinator::ignoredRules() {
     QMap<QString, QString> rules;
     const nlohmann::json stored = core::SettingsManager::getInstance().get<nlohmann::json>(
@@ -270,6 +324,7 @@ void GrammarCoordinator::updateChecking() {
 
     startServerWhenNeeded();
     CommandRegistry::getInstance().updateActionState(COMMAND_ID);
+    emit problemChanged();
 }
 
 void GrammarCoordinator::attachEditors() {
@@ -335,9 +390,7 @@ void GrammarCoordinator::onServerState() {
         clearMessage(startingMessage());
         clearMessage(restartingMessage());
         if (local && !preparing) {
-            showMessage(tr("Grammar is not checked: LanguageTool did not start. Details: Edit "
-                           "> Settings..., Editor > Grammar."),
-                        SERVER_MESSAGE_MS);
+            showMessage(failedMessage(), SERVER_MESSAGE_MS);
         }
         break;
     case LanguageToolServer::State::Stopped:
@@ -346,26 +399,30 @@ void GrammarCoordinator::onServerState() {
         clearMessage(restartingMessage());
         break;
     }
+    emit problemChanged();
 }
 
 void GrammarCoordinator::onServerError(const QString& message) {
+    // Kept until the server answers again (problem())
+    const auto show = [this](const QString& text) {
+        m_serverError = text;
+        showMessage(text, SERVER_MESSAGE_MS);
+        emit problemChanged();
+    };
     if (readiness() == Readiness::Remote) {
         if (m_service->lastFailure() == editor::GrammarCheckService::Failure::Limit) {
-            showMessage(tr("The server refused the request because the limit was exceeded. "
-                           "The program will try again in a moment."),
-                        SERVER_MESSAGE_MS);
+            show(tr("The server refused the request because the limit was exceeded. The program "
+                    "will try again in a moment."));
             return;
         }
         const QUrl server = QUrl(m_service->endpoint()).adjusted(QUrl::RemovePath);
-        showMessage(tr("The LanguageTool server at %1 did not check the text: %2")
-                        .arg(server.toString(), message),
-                    SERVER_MESSAGE_MS);
+        show(tr("The LanguageTool server at %1 did not check the text: %2")
+                 .arg(server.toString(), message));
         return;
     }
     // While the server starts or starts again, the status bar already says so
     if (m_server->state() == LanguageToolServer::State::Running) {
-        showMessage(tr("LanguageTool on this computer did not check the text: %1").arg(message),
-                    SERVER_MESSAGE_MS);
+        show(tr("LanguageTool on this computer did not check the text: %1").arg(message));
     }
 }
 
@@ -437,6 +494,7 @@ void GrammarCoordinator::showSetup(QWidget* parent) {
 }
 
 void GrammarCoordinator::updateSetupButton() {
+    emit problemChanged();  // the preparation started, goes on or ended
     if (m_statusBar == nullptr) {
         return;
     }

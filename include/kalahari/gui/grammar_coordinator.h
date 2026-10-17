@@ -118,6 +118,12 @@ public:
     ///        internet
     bool isChecking() const;
 
+    /// @brief Why the grammar is not checked although it is on, as the status bar says it
+    ///        (the Spelling and Grammar panel shows it too): LanguageTool not prepared or not
+    ///        found, being prepared, starting or started again, failed to start, or a server
+    ///        that does not answer; empty while it is checked, and while it is off
+    QString problem() const;
+
     /// @brief Show the window of the preparation: what is downloaded, or how the
     ///        preparation goes, or how it failed
     /// @param parent The window it is shown over (null: the main window)
@@ -141,6 +147,10 @@ public:
 public slots:
     /// @brief Check where, and in the language, the settings and the book give now
     void updateChecking();
+
+signals:
+    /// @brief What problem() says may have changed
+    void problemChanged();
 
 private:
     /// @brief Give the checking to the editors of the documents; start the server on this
@@ -191,6 +201,8 @@ private:
     int m_settingsListener{0};
     bool m_restarting{false};     ///< The server stopped by itself and is started again
     bool m_failureUnseen{false};  ///< The preparation failed while its window was closed
+    QString m_serverError;        ///< What the status bar said when the server did not
+                                  ///< answer, until it answers again
 };
 
 }  // namespace kalahari::gui

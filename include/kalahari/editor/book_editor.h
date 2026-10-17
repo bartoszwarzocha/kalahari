@@ -765,6 +765,15 @@ public:
     ///        do: for a misspelled word at the cursor it offers what to put in its place
     void showContextMenuAtCursor();
 
+    /// @brief Show the context menu of an issue where it is asked for (the card of the issue
+    ///        in the Spelling and Grammar panel): the menu a right click on its wave shows
+    ///
+    /// The cursor and the keys stay where they are.
+    /// @param issue A misspelled word or a grammar issue of textIssues()
+    /// @param globalPos Where the menu opens, on the screen
+    /// @return false when the text there is not the issue's any more (no menu)
+    bool showIssueMenu(const TextIssue& issue, const QPoint& globalPos);
+
     /// @brief The application's command going to the next spelling or grammar issue
     ///
     /// Its keys (F7) work in the text's context menu too: the menu closes and the command
@@ -1832,7 +1841,10 @@ private:
     /// @param pos The place: what is offered is for the misspelled word there
     /// @param globalPos Where the menu opens, on the screen
     /// @param fromMouse A right click: outside the selection it puts the cursor at @p pos
-    void showContextMenu(const CursorPosition& pos, const QPoint& globalPos, bool fromMouse);
+    /// @param kind Only a misspelled word or only a grammar issue there (none: either, the
+    ///        word first)
+    void showContextMenu(const CursorPosition& pos, const QPoint& globalPos, bool fromMouse,
+                         std::optional<TextIssueKind> kind = std::nullopt);
 
     /// @brief Find misspelled word at given position
     /// @param paraIndex Paragraph index
