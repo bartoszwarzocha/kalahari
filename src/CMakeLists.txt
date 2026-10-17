@@ -228,6 +228,7 @@ set(KALAHARI_SOURCES
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
     gui/panels/search_panel.cpp
+    gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards, made only in view
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/access_keys.cpp  # The access keys of menu texts
     gui/utils/language_names.cpp  # Names of languages in the language of the user interface
@@ -351,6 +352,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/tags_panel.h     # TagsPanel with Q_OBJECT (OpenSpec #00042 Task 7.10)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h  # CommandRegistry with Q_OBJECT (OpenSpec #00040)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h  # BookEditor with Q_OBJECT (OpenSpec #00042 Phase 3.1)

@@ -241,6 +241,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_colors.cpp # Annotations: readable colors of cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_frame.cpp  # Annotations: the frame text is written in
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotations_panel.cpp # Annotations panel
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
     ${CMAKE_SOURCE_DIR}/src/gui/auto_correct_coordinator.cpp  # Auto-correct turned on and off as a whole
@@ -344,6 +345,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h  # AnnotationCard with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h  # AnnotationFrame with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h  # AnnotationsPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
