@@ -13,6 +13,8 @@
 #include "kalahari/gui/panels/search_panel.h"
 #include "kalahari/gui/panels/assistant_panel.h"
 #include "kalahari/gui/panels/annotations_panel.h"
+#include "kalahari/gui/panels/spelling_panel.h"
+#include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 #include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
@@ -95,13 +97,17 @@ void DockCoordinator::createDocks() {
     createSearchDock();
     createAssistantDock();
     createAnnotationsDock();
+    createSpellingDock();
 
     // Tab right-side docks
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_searchDock);
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
+    m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
 
-    // The Annotations tab is on top by default
+    // The Spelling and Grammar panel is closed until opened (View > Panels, Next Spelling or
+    // Grammar Issue); then its tab is next to the Annotations tab, which is on top by default
+    m_spellingDock->hide();
     m_annotationsDock->raise();
 
     // A panel on the right shown again: the bar that says they were hidden has done its job
@@ -326,9 +332,64 @@ void DockCoordinator::createAnnotationsDock() {
     m_annotationsDock->setWidget(scrollingPanel(m_annotationsPanel, m_annotationsDock));
     m_annotationsDock->setObjectName("AnnotationsDock");
     setupDockTitleBar(m_annotationsDock, "view.annotations", QObject::tr("Annotations"));
+    addSettingsButton(m_annotationsDock, QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE),
+                      tr("Annotation Settings"));
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_annotationsDock);
 
     logger.debug("DockCoordinator: Annotations dock created");
+}
+
+void DockCoordinator::createSpellingDock() {
+    auto& logger = core::Logger::getInstance();
+
+    m_spellingPanel = new SpellingPanel(m_mainWindow);
+    m_spellingDock = new QDockWidget(tr("Spelling and Grammar"), m_mainWindow);
+    m_spellingDock->setWidget(scrollingPanel(m_spellingPanel, m_spellingDock));
+    m_spellingDock->setObjectName("SpellingDock");
+    setupDockTitleBar(m_spellingDock, "view.spelling", tr("Spelling and Grammar"));
+    // Its options and the colors of the issues are on the Spelling page; the pin is the
+    // coordinator's (SpellingPanelCoordinator)
+    addSettingsButton(m_spellingDock, QString::fromLatin1(SettingsDialog::SPELLING_PAGE),
+                      tr("Spelling and Grammar Settings"));
+    m_spellingPinButton = addTitleBarButton(m_spellingDock, "dock.pin", QString());
+    m_spellingPinButton->setCheckable(true);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_spellingDock);
+
+    logger.debug("DockCoordinator: Spelling dock created");
+}
+
+QToolButton* DockCoordinator::addTitleBarButton(QDockWidget* dock, const QString& iconId,
+                                                const QString& toolTip) {
+    QWidget* titleBar = dock->titleBarWidget();
+    auto* layout = qobject_cast<QHBoxLayout*>(titleBar->layout());
+
+    auto* button = new QToolButton(titleBar);
+    button->setAutoRaise(true);
+    button->setIcon(core::ArtProvider::getInstance().getIcon(iconId));
+    button->setToolTip(toolTip);
+    button->setFixedSize(16, 16);
+    button->setProperty("iconId", iconId);  // Store for theme refresh
+
+    // Before the Float and Close buttons, which end the title bar
+    int index = layout->count();
+    for (int i = 0; i < layout->count(); ++i) {
+        const QWidget* widget = layout->itemAt(i)->widget();
+        const QString id = widget != nullptr ? widget->property("iconId").toString() : QString();
+        if (id == QLatin1String("dock.float") || id == QLatin1String("dock.close")) {
+            index = i;
+            break;
+        }
+    }
+    layout->insertWidget(index, button);
+    m_dockToolButtons.append(button);
+    return button;
+}
+
+void DockCoordinator::addSettingsButton(QDockWidget* dock, const QString& page,
+                                        const QString& toolTip) {
+    QToolButton* button = addTitleBarButton(dock, "dock.settings", toolTip);
+    connect(button, &QToolButton::clicked, this,
+            [this, page]() { emit settingsPageRequested(page); });
 }
 
 void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId, const QString& title) {
@@ -453,6 +514,7 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.search", m_searchDock);
     connectPanelCommand("view.assistant", m_assistantDock);
     connectPanelCommand("view.annotations", m_annotationsDock);
+    connectPanelCommand("view.spelling", m_spellingDock);
 
     // The panel toggles of the View > Panels submenu (built by MenuBuilder from the
     // commands) follow the docks' visibility
@@ -462,6 +524,7 @@ void DockCoordinator::setupViewMenuActions() {
     m_viewSearchAction = createPanelAction("view.search", m_searchDock);
     m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock);
     m_viewAnnotationsAction = createPanelAction("view.annotations", m_annotationsDock);
+    m_viewSpellingAction = createPanelAction("view.spelling", m_spellingDock);
 }
 
 void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget* dock) {
@@ -512,6 +575,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->removeDockWidget(m_searchDock);
     m_mainWindow->removeDockWidget(m_assistantDock);
     m_mainWindow->removeDockWidget(m_annotationsDock);
+    m_mainWindow->removeDockWidget(m_spellingDock);
 
     // Re-add in default layout
     m_mainWindow->addDockWidget(Qt::LeftDockWidgetArea, m_navigatorDock);
@@ -520,19 +584,23 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_searchDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_assistantDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_annotationsDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_spellingDock);
 
     // Tab right-side docks
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_searchDock);
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
+    m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
 
-    // Show docks (LogDock only in diagnostic/dev mode)
+    // Show docks (LogDock only in diagnostic/dev mode; the Spelling and Grammar panel only
+    // when opened)
     m_navigatorDock->show();
     m_propertiesDock->show();
     m_logDock->setVisible(diagnosticMode || devMode);
     m_searchDock->show();
     m_assistantDock->show();
     m_annotationsDock->show();
+    m_spellingDock->hide();
 
     // The Annotations tab is on top, as at the first start
     m_annotationsDock->raise();

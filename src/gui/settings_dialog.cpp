@@ -113,7 +113,8 @@ void SettingsDialog::createNavigationTree() {
     addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
     addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
-    addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
+    m_pageItems[SPELLING_PAGE] =
+        addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
     addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_grammar); });
     addPage(editor, tr("Auto-correct"), []() { return new EditorAutoCorrectPage(); });
     addPlannedPage(editor, tr("Completion"),
@@ -122,8 +123,9 @@ void SettingsDialog::createNavigationTree() {
                       "- Character name completion\n"
                       "- Location name completion"));
 
-    addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
-    m_shortcutsItem =
+    m_pageItems[ANNOTATIONS_PAGE] =
+        addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
+    m_pageItems[SHORTCUTS_PAGE] =
         addPage(nullptr, tr("Keyboard Shortcuts"), []() { return new ShortcutsPage(); });
 
     QTreeWidgetItem* files = category(tr("Files"));
@@ -266,12 +268,23 @@ void SettingsDialog::showPage(QTreeWidgetItem* item) {
 }
 
 void SettingsDialog::showShortcutsPage() {
-    m_navTree->setCurrentItem(m_shortcutsItem);
-    // The cursor in the search of the page, so the keys go there at once (the window gives
-    // it to the search when it shows)
-    if (auto* page = m_pageStack->findChild<ShortcutsPage*>()) {
-        page->setFocus(Qt::OtherFocusReason);
+    openPage(SHORTCUTS_PAGE);
+}
+
+bool SettingsDialog::openPage(const QString& page) {
+    const auto item = m_pageItems.find(page);
+    if (item == m_pageItems.end()) {
+        return false;
     }
+    m_navTree->setCurrentItem(item->second);
+    // The cursor in the search of the shortcuts, so the keys go there at once (the window
+    // gives it to the search when it shows)
+    if (page == QLatin1String(SHORTCUTS_PAGE)) {
+        if (auto* shortcuts = m_pageStack->findChild<ShortcutsPage*>()) {
+            shortcuts->setFocus(Qt::OtherFocusReason);
+        }
+    }
+    return true;
 }
 
 void SettingsDialog::setLengthUnit(LengthUnit unit) {

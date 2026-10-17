@@ -11,6 +11,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The Spelling and Grammar panel** - 2026-10-17. View > Panels > Spelling and Grammar opens
+  a panel, a tab next to Annotations, with the misspelled words and the grammar issues of the
+  chapter or the file in front as cards, in the order of the text: the kind, the paragraph
+  and a few words around the issue, with a frame and a bar in the kind's color. The selected
+  card shows the whole sentence (for a grammar issue also what is wrong), up to five
+  suggestions, and Ignore Word and Add to Dictionary, or Ignore Rule. The buttons at the top,
+  "Spelling 3" and "Grammar 1", count the issues of each kind and show or hide its cards ("–"
+  for a kind not checked); the row under them says how far the text is checked ("Checking the
+  grammar: paragraph 12 of 40...", "The whole chapter is checked.") or why it is not (no
+  dictionary for the language, LanguageTool not prepared yet or not answering). A card
+  selected selects its issue in the text, and a click on an issue in the text selects its
+  card. A suggestion takes the issue's place as one step of Undo, the other buttons do what
+  they do in the menu of the wave, and then the next issue is selected; a right click on a
+  card, the menu key or Shift+F10 opens that menu. Up and Down, Home and End, Page Up and Page
+  Down select the cards, Enter chooses the first suggestion, 1 to 5 the suggestion with that
+  number, Esc goes back to the text; the row at the bottom reminds the keys. While the panel
+  shows, the grammar of the whole text is checked in the background, so the counts cover all
+  of it (the free server api.languagetool.org limits the requests per minute: there a long
+  text takes longer). With no text in front the panel says what to open; with the checking
+  off it has the button Turn On Checking. Tools > Next Spelling or Grammar Issue (F7) shows
+  the issue it finds in the panel and gives the panel the keys. A panel that was closed, or
+  under another tab, then shows only while the issues are looked through: Esc, or the first
+  character typed in the text, hides it again and brings back the tab it covered. The push
+  pin on its title bar keeps it open, and so does opening it from View > Panels; in
+  Distraction-Free writing it always hides again. Settings > Editor > Spelling has the group
+  Spelling and Grammar Panel: the fix buttons on the selected card only or on every card, F7
+  showing the issue in the panel or opening its menu at the word as before, and the grammar
+  checked in the whole text or only around the part in view while the panel shows.
+
+- **Panels: a gear on the title bar of Annotations and of Spelling and Grammar** -
+  2026-10-17. The gear opens Settings at the panel's page: Annotations, or Editor > Spelling,
+  which has the group of the panel. Its tooltip says which: "Annotation Settings", "Spelling
+  and Grammar Settings".
+
 - **Settings: the colors of the misspelled words, the grammar issues and the annotations** -
   2026-10-17. Settings > Editor > Spelling and Editor > Grammar have the group Colors: the wavy
   line under a misspelled word or a grammar issue on the light and on the dark paper (View >

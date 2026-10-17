@@ -51,21 +51,27 @@ void SettingsCoordinator::setGrammarCoordinator(GrammarCoordinator* grammar) {
 
 void SettingsCoordinator::openSettingsDialog() {
     core::Logger::getInstance().info("Action triggered: Settings");
-    runSettingsDialog(false);
+    runSettingsDialog(QString());
 }
 
 void SettingsCoordinator::openKeyboardShortcuts() {
     core::Logger::getInstance().info("Action triggered: Keyboard Shortcuts");
-    runSettingsDialog(true);
+    runSettingsDialog(QString::fromLatin1(SettingsDialog::SHORTCUTS_PAGE));
 }
 
-void SettingsCoordinator::runSettingsDialog(bool shortcuts) {
+void SettingsCoordinator::openSettingsPage(const QString& page) {
+    core::Logger::getInstance().info("Action triggered: Settings at the page {}",
+                                     page.toStdString());
+    runSettingsDialog(page);
+}
+
+void SettingsCoordinator::runSettingsDialog(const QString& page) {
     auto& logger = core::Logger::getInstance();
 
     SettingsDialog dialog(m_mainWindow, m_diagnosticModeGetter(), m_spellCheckService,
                           m_grammarCoordinator);
-    if (shortcuts) {
-        dialog.showShortcutsPage();
+    if (!page.isEmpty()) {
+        dialog.openPage(page);
     }
     connect(&dialog, &SettingsDialog::settingsApplied,
             this, &SettingsCoordinator::onApplySettings);

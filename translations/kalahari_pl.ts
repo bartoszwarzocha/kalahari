@@ -943,6 +943,10 @@
         <source>&amp;New File...</source>
         <translation>Nowy &amp;plik...</translation>
     </message>
+    <message>
+        <source>Spelling and &amp;Grammar</source>
+        <translation>&amp;Pisownia i gramatyka</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -4211,6 +4215,18 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <source>Show the panels on the right</source>
         <translation>Pokaż panele po prawej stronie</translation>
     </message>
+    <message>
+        <source>Annotation Settings</source>
+        <translation>Ustawienia uwag</translation>
+    </message>
+    <message>
+        <source>Spelling and Grammar</source>
+        <translation>Pisownia i gramatyka</translation>
+    </message>
+    <message>
+        <source>Spelling and Grammar Settings</source>
+        <translation>Ustawienia pisowni i gramatyki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::DocumentCoordinator</name>
@@ -6144,6 +6160,18 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Show the preparation of grammar checking</source>
         <translation>Pokaż przygotowanie sprawdzania gramatyki</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked yet: the program prepares LanguageTool.</source>
+        <translation>Gramatyka nie jest jeszcze sprawdzana: program przygotowuje LanguageTool.</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked: it is not prepared yet. Tools &gt; Check Grammar as You Type prepares it.</source>
+        <translation>Gramatyka nie jest sprawdzana: jej sprawdzanie nie jest jeszcze przygotowane. Przygotowuje je polecenie Narzędzia &gt; Sprawdzaj gramatykę podczas pisania.</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked: the components it needs were not found. Tools &gt; Check Grammar as You Type prepares them again.</source>
+        <translation>Gramatyka nie jest sprawdzana: nie znaleziono potrzebnych składników. Polecenie Narzędzia &gt; Sprawdzaj gramatykę podczas pisania przygotuje je ponownie.</translation>
     </message>
 </context>
 <context>
@@ -8574,6 +8602,11 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>Język %1 nie ma słownika pisowni: pisownia nie jest sprawdzana</translation>
     </message>
     <message>
+        <source>No spelling dictionary for %1: the spelling is not checked.</source>
+        <extracomment>%1 is the name of the language as in a list of languages (in Polish: francuski)</extracomment>
+        <translation>Język %1 nie ma słownika pisowni: pisownia nie jest sprawdzana.</translation>
+    </message>
+    <message>
         <source>Spelling as you type: on</source>
         <translation>Sprawdzanie pisowni podczas pisania: włączone</translation>
     </message>
@@ -8631,6 +8664,152 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Add to Dictionary</source>
         <translation>Dodaj do słownika</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpellingPanel</name>
+    <message>
+        <source>Show or hide the misspelled words</source>
+        <translation>Pokaż lub ukryj błędy pisowni</translation>
+    </message>
+    <message>
+        <source>Show or hide the grammar issues</source>
+        <translation>Pokaż lub ukryj błędy gramatyki</translation>
+    </message>
+    <message>
+        <source>Spelling and grammar issues</source>
+        <translation>Błędy pisowni i gramatyki</translation>
+    </message>
+    <message>
+        <source>Turn On Checking</source>
+        <translation>Włącz sprawdzanie</translation>
+    </message>
+    <message>
+        <source>Turn on Tools &gt; Check Spelling as You Type and Check Grammar as You Type</source>
+        <translation>Włącza Narzędzia &gt; Sprawdzaj pisownię podczas pisania i Sprawdzaj gramatykę podczas pisania</translation>
+    </message>
+    <message>
+        <source>Previous</source>
+        <translation>Poprzedni</translation>
+    </message>
+    <message>
+        <source>Select the previous issue (Up)</source>
+        <translation>Zaznacz poprzedni błąd (strzałka w górę)</translation>
+    </message>
+    <message>
+        <source>Next</source>
+        <translation>Następny</translation>
+    </message>
+    <message>
+        <source>Select the next issue (Down)</source>
+        <translation>Zaznacz następny błąd (strzałka w dół)</translation>
+    </message>
+    <message>
+        <source>Spelling %1</source>
+        <translation>Pisownia %1</translation>
+    </message>
+    <message>
+        <source>Grammar %1</source>
+        <translation>Gramatyka %1</translation>
+    </message>
+    <message>
+        <source>Open {kind:indefinite} or a file to see its spelling and grammar issues.</source>
+        <translation>Otwórz {kind:accusative} albo plik, aby zobaczyć błędy pisowni i gramatyki.</translation>
+    </message>
+    <message>
+        <source>Open an element of the book or a file to see its spelling and grammar issues.</source>
+        <translation>Otwórz element książki albo plik, aby zobaczyć błędy pisowni i gramatyki.</translation>
+    </message>
+    <message>
+        <source>Open a book or a file to see the spelling and grammar issues.</source>
+        <translation>Otwórz książkę albo plik, aby zobaczyć błędy pisowni i gramatyki.</translation>
+    </message>
+    <message>
+        <source>Spelling and grammar are not checked.</source>
+        <translation>Pisownia i gramatyka nie są sprawdzane.</translation>
+    </message>
+    <message>
+        <source>No issue matches the filters.</source>
+        <translation>Żaden błąd nie pasuje do filtrów.</translation>
+    </message>
+    <message>
+        <source>No issues found yet.</source>
+        <translation>Nie znaleziono jeszcze błędów.</translation>
+    </message>
+    <message>
+        <source>No spelling or grammar issues.</source>
+        <translation>Brak błędów pisowni i gramatyki.</translation>
+    </message>
+    <message>
+        <source>No spelling or grammar issues in {kind:s=this|p=these} {kind}.</source>
+        <translation>Brak błędów pisowni i gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
+    </message>
+    <message>
+        <source>No misspelled words in {kind:s=this|p=these} {kind}.</source>
+        <translation>Brak błędów pisowni w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
+    </message>
+    <message>
+        <source>No grammar issues in {kind:s=this|p=these} {kind}.</source>
+        <translation>Brak błędów gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
+    </message>
+    <message>
+        <source>Enter, 1–5 – fix · Esc – back to the text</source>
+        <translation>Enter, 1–5 – poprawka · Esc – powrót do tekstu</translation>
+    </message>
+    <message>
+        <source>Esc – back to the text</source>
+        <translation>Esc – powrót do tekstu</translation>
+    </message>
+    <message>
+        <source>%1 – next issue (the keys go to the panel)</source>
+        <translation>%1 – następny błąd (klawisze przechodzą do panelu)</translation>
+    </message>
+    <message>
+        <source>%1 – next issue, with its menu at the word</source>
+        <translation>%1 – następny błąd z menu przy słowie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpellingPanelCoordinator</name>
+    <message>
+        <source>The dictionary is being loaded...</source>
+        <translation>Trwa wczytywanie słownika...</translation>
+    </message>
+    <message>
+        <source>Checking the spelling: paragraph %1 of %2...</source>
+        <translation>Sprawdzanie pisowni: akapit %1 z %2...</translation>
+    </message>
+    <message>
+        <source>Checking the grammar: paragraph %1 of %2...</source>
+        <translation>Sprawdzanie gramatyki: akapit %1 z %2...</translation>
+    </message>
+    <message>
+        <source>The spelling of the whole {kind} is checked, the grammar only around the part in view.</source>
+        <translation>Sprawdzono pisownię w {kind:m=całym|f=całej|n=całym|p=całych} {kind:locative}, a gramatykę tylko wokół widocznego fragmentu.</translation>
+    </message>
+    <message>
+        <source>The grammar is checked only around the part in view.</source>
+        <translation>Gramatyka jest sprawdzana tylko wokół widocznego fragmentu.</translation>
+    </message>
+    <message>
+        <source>The whole {kind} is checked.</source>
+        <translation>Sprawdzono {kind:m=cały|f=całą|n=całe|p=całe} {kind:accusative}.</translation>
+    </message>
+    <message>
+        <source>The spelling is not checked.</source>
+        <translation>Pisownia nie jest sprawdzana.</translation>
+    </message>
+    <message>
+        <source>The grammar is not checked.</source>
+        <translation>Gramatyka nie jest sprawdzana.</translation>
+    </message>
+    <message>
+        <source>The panel is kept open – click to let it hide after looking through the issues</source>
+        <translation>Panel jest zatrzymany na stałe – kliknij, aby chował się po przejrzeniu błędów</translation>
+    </message>
+    <message>
+        <source>Keep the Panel Open</source>
+        <translation>Zatrzymaj panel na stałe</translation>
     </message>
 </context>
 <context>

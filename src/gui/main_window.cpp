@@ -14,6 +14,7 @@
 #include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/grammar_coordinator.h"
+#include "kalahari/gui/spelling_panel_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -337,6 +338,14 @@ MainWindow::MainWindow(QWidget* parent)
             m_grammarCoordinator, &GrammarCoordinator::updateChecking);
     m_settingsCoordinator->setGrammarCoordinator(m_grammarCoordinator);
 
+    // The Spelling and Grammar panel: the issues of the text in front, where Next Spelling or
+    // Grammar Issue shows the one it finds; the pin of its title bar keeps it open
+    m_spellingPanelCoordinator = new SpellingPanelCoordinator(
+        m_dockCoordinator->spellingPanel(), m_dockCoordinator->spellingDock(),
+        m_dockCoordinator->centralTabs(), m_spellingCoordinator, m_grammarCoordinator, this);
+    m_spellingPanelCoordinator->setPinButton(m_dockCoordinator->spellingPinButton());
+    m_spellingPanelCoordinator->setDistractionFreeLayout(m_distractionFreeLayout);
+
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
     // No m_editorPanel at startup - Dashboard is default first tab
 
@@ -412,6 +421,9 @@ MainWindow::~MainWindow() {
     // The edit commands stop following the keys before the widgets go
     delete m_editCoordinator;
     m_editCoordinator = nullptr;
+    // The Spelling and Grammar panel stops following the text and the checking before they go
+    delete m_spellingPanelCoordinator;
+    m_spellingPanelCoordinator = nullptr;
     if (m_spellingCoordinator) {
         disconnect(m_spellingCoordinator, nullptr, this, nullptr);
     }
@@ -1045,6 +1057,11 @@ void MainWindow::onDistractionFreeToggle() {
     if (centralTabs) {
         alsoHidden.append(centralTabs->tabBar());
     }
+    // The panels Distraction-Free brings back afterwards are the writer's: not the Spelling and
+    // Grammar panel shown only while the issues are looked through
+    if (enabled && m_spellingPanelCoordinator) {
+        m_spellingPanelCoordinator->endTemporaryShow();
+    }
     m_distractionFreeLayout->setActive(enabled, alsoHidden);
 }
 
@@ -1172,6 +1189,11 @@ void MainWindow::createDocks() {
             });
     connect(m_dockCoordinator, &DockCoordinator::openSettingsRequested,
             this, &MainWindow::onSettings);
+    // The gear on the title bar of a panel opens the settings at the panel's page
+    connect(m_dockCoordinator, &DockCoordinator::settingsPageRequested, this,
+            [this](const QString& page) {
+                if (m_settingsCoordinator) m_settingsCoordinator->openSettingsPage(page);
+            });
 
     // NOTE: Navigator context menu signals and drag/drop reorder signals are connected
     // in the constructor after NavigatorCoordinator is created (OpenSpec #00038 Phase 6)
@@ -1553,9 +1575,13 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         }
     }
 
-    // The window's bars, panels and size from before Distraction-Free are the ones to keep
+    // The window's bars, panels and size from before Distraction-Free are the ones to keep,
+    // without the Spelling and Grammar panel shown only while the issues are looked through
     if (isDistractionFree()) {
         m_distractionFreeLayout->setActive(false);
+    }
+    if (m_spellingPanelCoordinator) {
+        m_spellingPanelCoordinator->endTemporaryShow();
     }
 
     // Save perspective (existing code)

@@ -175,6 +175,7 @@ set(KALAHARI_SOURCES
     gui/toolbar_keys.cpp  # ToolbarKeys - a toolbar gives the keys back after a command
     gui/spelling_coordinator.cpp  # SpellingCoordinator - spelling as you type: the editors' dictionary
     gui/grammar_coordinator.cpp  # GrammarCoordinator - grammar as you type: the editors' LanguageTool server
+    gui/spelling_panel_coordinator.cpp  # SpellingPanelCoordinator - the Spelling and Grammar panel and the text in front
     gui/grammar_components.cpp  # GrammarComponents - Java and LanguageTool on this computer
     gui/language_tool_server.cpp  # LanguageToolServer - the LanguageTool server the program starts
     gui/grammar_setup.cpp  # GrammarSetup - Java and LanguageTool downloaded and prepared
@@ -229,6 +230,7 @@ set(KALAHARI_SOURCES
     gui/panels/properties_panel.cpp
     gui/panels/search_panel.cpp
     gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards, made only in view
+    gui/panels/spelling_panel.cpp  # Spelling and Grammar panel: the counts, the state, the keys
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/access_keys.cpp  # The access keys of menu texts
     gui/utils/language_names.cpp  # Names of languages in the language of the user interface
@@ -319,6 +321,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_panel_coordinator.h  # SpellingPanelCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/language_tool_server.h  # LanguageToolServer with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_setup.h  # GrammarSetup with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
@@ -353,6 +356,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_panel.h  # SpellingPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/tags_panel.h     # TagsPanel with Q_OBJECT (OpenSpec #00042 Task 7.10)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h  # CommandRegistry with Q_OBJECT (OpenSpec #00040)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h  # BookEditor with Q_OBJECT (OpenSpec #00042 Phase 3.1)

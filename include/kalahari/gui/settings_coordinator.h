@@ -60,6 +60,10 @@ public:
     /// @brief Open the settings dialog at Keyboard Shortcuts (Help > Keyboard Shortcuts)
     void openKeyboardShortcuts();
 
+    /// @brief Open the settings dialog at a page (SettingsDialog::openPage()): the gear on the
+    ///        title bar of a panel
+    void openSettingsPage(const QString& page);
+
     /// @brief Set callback for checking diagnostic mode
     /// @param callback Function returning current diagnostic mode state
     void setDiagnosticModeGetter(std::function<bool()> callback);
@@ -95,8 +99,8 @@ private:
     void offerRestartForLanguage();
 
     /// @brief Show the settings dialog until it is closed
-    /// @param shortcuts Open it at Keyboard Shortcuts
-    void runSettingsDialog(bool shortcuts);
+    /// @param page The page it opens at (SettingsDialog::openPage()); empty: the first one
+    void runSettingsDialog(const QString& page);
 };
 
 } // namespace gui
