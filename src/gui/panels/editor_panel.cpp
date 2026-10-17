@@ -297,6 +297,18 @@ void EditorPanel::applySettings() {
     };
     appearance.colors.annotationsLight = markColors(false);
     appearance.colors.annotationsDark = markColors(true);
+
+    // The waves under the misspelled words and the grammar issues: the theme's colors too
+    const auto waveColors = [&themes](bool darkPaper) {
+        editor::EditorColors::IssueColors colors;
+        colors.spelling = themes.editorColor(
+            editor::issueColorKey(editor::TextIssueKind::Spelling, darkPaper), QColor());
+        colors.grammar = themes.editorColor(
+            editor::issueColorKey(editor::TextIssueKind::Grammar, darkPaper), QColor());
+        return colors;
+    };
+    appearance.colors.issuesLight = waveColors(false);
+    appearance.colors.issuesDark = waveColors(true);
     appearance.annotationMarkScale =
         std::clamp(settings.get<int>("editor.annotationMarkSize") / 100.0, MIN_MARK_SCALE,
                    MAX_MARK_SCALE);

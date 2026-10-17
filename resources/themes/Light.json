@@ -50,6 +50,10 @@
     "annotationTodoLightPaper": "#7B61FF",
     "annotationTodoDarkPaper": "#A08CFF",
     "annotationNoteLightPaper": "#1E88E5",
-    "annotationNoteDarkPaper": "#4DA3F0"
+    "annotationNoteDarkPaper": "#4DA3F0",
+    "spellingLightPaper": "#FF0000",
+    "spellingDarkPaper": "#FF0000",
+    "grammarLightPaper": "#0064FF",
+    "grammarDarkPaper": "#0064FF"
   }
 }

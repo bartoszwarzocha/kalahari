@@ -96,6 +96,20 @@ struct EditorColors {
     const AnnotationColors& annotations(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? annotationsLight : annotationsDark;
     }
+
+    /// @brief The waves under the misspelled words and the grammar issues on one paper (the
+    /// theme's colors; not valid: those of RenderColors)
+    struct IssueColors {
+        QColor spelling;  ///< Misspelled words
+        QColor grammar;   ///< Grammar, style and punctuation
+    };
+    IssueColors issuesLight;  ///< On the light paper
+    IssueColors issuesDark;   ///< On the dark paper
+
+    /// @brief The waves' colors on the paper of a mode
+    const IssueColors& issues(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? issuesLight : issuesDark;
+    }
 };
 
 // =============================================================================

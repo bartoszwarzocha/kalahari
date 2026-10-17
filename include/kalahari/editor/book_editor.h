@@ -20,6 +20,7 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/grammar_error.h>
+#include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
 // KML → QTextDocument (with QTextCharFormat) → Render visible fragment
@@ -987,6 +988,50 @@ public:
     /// @brief Whether the grammar check has paragraphs to send or answers to wait for
     bool isGrammarCheckPending() const;
 
+    /// @brief Check the grammar of the whole text, not only of the paragraphs in view and
+    ///        around them
+    ///
+    /// For a list of all the text's issues (the Spelling and Grammar panel): the paragraphs
+    /// in view and around them go first, then those after them and those from the start of
+    /// the text, a few at a time. Off, those further away are not sent again; the issues
+    /// found in them stay.
+    void setWholeTextGrammar(bool whole);
+
+    /// @brief Whether the grammar of the whole text is checked (setWholeTextGrammar())
+    bool isWholeTextGrammar() const { return m_wholeTextGrammar; }
+
+    // =========================================================================
+    // Issues: the misspelled words and the grammar issues together
+    // =========================================================================
+
+    /// @brief The misspelled words and grammar issues the waves show, in the order of the
+    ///        text
+    ///
+    /// Where a misspelled word and a grammar issue start at one place, the word comes first,
+    /// as goToNextIssue() goes. issuesChanged() tells when the list changes.
+    std::vector<TextIssue> textIssues() const;
+
+    /// @brief How much of the text is checked: its paragraphs with text, and how many of
+    ///        them have their spelling checked and their grammar known
+    struct CheckProgress {
+        int paragraphs = 0;       ///< Paragraphs with text (blank ones have nothing to check)
+        int spellingChecked = 0;  ///< Of them, checked since their text or the words changed
+        int grammarChecked = 0;   ///< Of them, those whose grammar is known
+    };
+
+    /// @brief How much of the text is checked (see CheckProgress)
+    CheckProgress checkProgress() const;
+
+    /// @brief Select an issue in the text, with the cursor at its end, and scroll to it
+    /// @return false when the text there is not the issue's any more
+    bool selectIssue(const TextIssue& issue);
+
+    /// @brief Put a text in the place of an issue, as one undo step, as the words of the
+    ///        context menu do (its annotations stay)
+    /// @return false when the text there is not the issue's any more, or when the text is
+    ///         read-only (it says so: changeRefused())
+    bool replaceIssue(const TextIssue& issue, const QString& replacement);
+
     // =========================================================================
     // Reading Aloud
     // =========================================================================
@@ -1106,6 +1151,10 @@ signals:
     /// @brief A search of goToNextIssue() that waited for the grammar ended
     /// @param result IssueSearch::Found (the issue is selected), NotFound or Cancelled
     void issueSearchFinished(kalahari::editor::BookEditor::IssueSearch result);
+
+    /// @brief The misspelled words or grammar issues changed (textIssues()), or more of the
+    ///        text was checked (checkProgress()); once for the changes made together
+    void issuesChanged();
 
     /// @brief Emitted when view mode changes
     /// @param mode The new view mode
@@ -1814,6 +1863,19 @@ private:
         QString text;       ///< Its text as sent
     };
     std::map<quint64, GrammarRequest> m_grammarRequests;  ///< The requests not answered yet
+    bool m_wholeTextGrammar{false};  ///< The whole text is checked (setWholeTextGrammar())
+
+    // Issues
+    QTimer* m_issuesTimer{nullptr};  ///< Tells issuesChanged() once for changes made together
+
+    /// @brief The issues or what is checked changed: issuesChanged() is emitted soon, once
+    void noteIssuesChanged();
+
+    /// @brief Whether the text at an issue's place is still the issue's
+    bool isIssueAt(const TextIssue& issue) const;
+
+    /// @brief Select a range, with the cursor at its end, and scroll to it
+    void selectRange(const CursorPosition& start, const CursorPosition& end);
 
     /// @brief A search of goToNextIssue() going round the text
     struct IssueSearchState {
@@ -1847,8 +1909,9 @@ private:
     /// @brief Send the paragraphs due after @p delayMs, unless they go sooner
     void scheduleGrammarCheck(int delayMs);
 
-    /// @brief Send the paragraphs due around the view, those in view first, while fewer
-    ///        than a few wait for their answers (not while the writer is typing)
+    /// @brief Send the paragraphs due around the view, those in view first (and then the
+    ///        rest of the text: setWholeTextGrammar()), while fewer than a few wait for their
+    ///        answers (not while the writer is typing)
     void runGrammarCheck();
 
     /// @brief Keep the issues of a paragraph checked, if it still has the text sent

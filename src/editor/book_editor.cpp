@@ -61,6 +61,13 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     colors.annotationComment = annotations.comment;
     colors.annotationTodo = annotations.todo;
     colors.annotationNote = annotations.note;
+    const EditorColors::IssueColors& issues = appearance.colors.issues(mode);
+    if (issues.spelling.isValid()) {
+        colors.spellError = issues.spelling;
+    }
+    if (issues.grammar.isValid()) {
+        colors.grammarWarning = issues.grammar;
+    }
     return colors;
 }
 
@@ -189,6 +196,9 @@ BookEditor::BookEditor(QWidget* parent)
 
     // The page of the cursor, for the status bar
     connect(this, &BookEditor::cursorPositionChanged, this, [this]() { updatePageInfo(); });
+
+    // A new text has issues of its own (none until it is checked)
+    connect(this, &BookEditor::documentChanged, this, &BookEditor::noteIssuesChanged);
 
     // Blocks laid out on demand, or wrapped again at a new width, change height while the
     // content stays the same. The viewport keeps the text at its top in place by moving
