@@ -6,21 +6,28 @@
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/render_context.h"
 #include "kalahari/editor/text_issue.h"
+#include "kalahari/gui/panels/annotation_colors.h"
 
 #include <QColor>
 
 namespace kalahari::gui {
 
-/// @brief The theme's color of a kind of issue on the light or the dark paper: the color
-///        of its waves in the editor (the editor's own colors when the theme has none), and of
-///        the frames of its cards in the Spelling and Grammar panel, which is as light or as
-///        dark as the paper
-inline QColor issueColor(editor::TextIssueKind kind, bool darkPaper) {
+/// @brief The theme's color of a kind of issue: of its waves in the editor and of the frames
+///        of its cards in the Spelling and Grammar panel (the editor's own colors when the
+///        theme has none)
+inline QColor issueColor(editor::TextIssueKind kind) {
     const editor::RenderColors editorColors;
     return core::ThemeManager::getInstance().editorColor(
-        editor::issueColorKey(kind, darkPaper),
+        editor::issueColorKey(kind),
         kind == editor::TextIssueKind::Spelling ? editorColors.spellError
                                                 : editorColors.grammarWarning);
+}
+
+/// @brief The color of a kind of issue as it is shown on a background: as "Optimize colors in
+///        themes" shows it (shownColor())
+inline QColor issueColorOn(editor::TextIssueKind kind, const QColor& background) {
+    return shownColor(issueColor(kind), background,
+                      core::ThemeManager::getInstance().optimizesEditorColors());
 }
 
 }  // namespace kalahari::gui

@@ -539,12 +539,14 @@ void AnnotationsPanel::applyTheme(const core::Theme& theme) {
     m_highlight = themeColor(theme.palette.highlight, current, QPalette::Highlight);
     m_highlightedText = themeColor(theme.palette.highlightedText, current, QPalette::HighlightedText);
 
-    // A dark window gets the colors made for dark paper
-    const bool dark = window.lightness() < 128;
+    // The kinds' colors as "Optimize colors in themes" shows them on the panel
+    const bool optimize = core::ThemeManager::getInstance().optimizesEditorColors();
     for (std::size_t i = 0; i < KINDS.size(); ++i) {
-        const auto color = theme.editor.find(editor::annotationColorKey(KINDS.at(i), dark));
-        const QColor kind = color != theme.editor.end() && color->second.isValid() ? color->second
-                                                                                   : m_highlight;
+        const auto color = theme.editor.find(editor::annotationColorKey(KINDS.at(i)));
+        const QColor kind =
+            color != theme.editor.end() && color->second.isValid()
+                ? shownColor(color->second, m_base, optimize)
+                : m_highlight;
         m_cardColors.at(i) = annotationCardColors(kind, m_base, m_text);
         m_kindButtons.at(i)->setIcon(kindDot(kind, devicePixelRatioF()));
     }

@@ -77,6 +77,10 @@ public:
     ///        lighter as far as @p background needs to read it too
     [[nodiscard]] static QColor noteColorOn(const QColor& background);
 
+    /// @brief A check box with this property set to true shows a setting that other pages show
+    ///        too: the Settings dialog keeps all of them alike, applied or not (by object name)
+    static constexpr const char* SHARED_CHECK_BOX = "sharedCheckBox";
+
 protected:
     /// @brief How one control is bound to a setting
     struct Binding {
@@ -134,20 +138,25 @@ protected:
     /// @brief Grey out an option the program does not use yet
     void markNotUsedYet(QWidget* field, QLabel* label = nullptr);
 
-    /// @brief Add an editor color of the theme for the light or the dark paper (the underlines,
-    ///        the annotations), bound to its setting
+    /// @brief Add an editor color of the theme (the underlines, the annotations), bound to its
+    ///        setting
     ///
-    /// The color is one setting for all themes (ThemeManager::editorColorSetting()). A color
-    /// equal to the theme's own is not kept, so the theme's color applies again.
+    /// The color is kept for the theme in use when the page is filled
+    /// (ThemeManager::editorColorSetting()); once another theme is in use, the page shows its
+    /// colors. A color equal to the theme's own is not kept, so the theme's color applies again.
     /// @param form The form of the group
     /// @param label What the color is for
     /// @param themeKey Name from the theme file's "editor" section
     ColorConfigWidget* addThemeColor(QFormLayout* form, const QString& label,
                                      const std::string& themeKey);
 
-    /// @brief Add the colors of a kind of issue: its underline on the light and on the dark
-    ///        paper, which the frames of its cards in the Spelling and Grammar panel have too
-    void addIssueColors(QFormLayout* form, editor::TextIssueKind kind);
+    /// @brief Add the color of a kind of issue: of its underline, which the frames of its cards
+    ///        in the Spelling and Grammar panel have too
+    void addIssueColor(QFormLayout* form, editor::TextIssueKind kind);
+
+    /// @brief Add the check box "Optimize colors in themes": one setting, on every page with the
+    ///        theme's editor colors (SHARED_CHECK_BOX)
+    QCheckBox* addOptimizeColorsCheckBox(QFormLayout* form);
 
     /// @brief Add a button that shows the default colors of the colors added since the last
     ///        such button (Apply and OK store them, as any change)

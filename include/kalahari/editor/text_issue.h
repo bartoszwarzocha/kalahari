@@ -37,13 +37,11 @@ struct TextIssue {
 
 /// @brief The theme's editor color of a kind (the "editor" section of a theme file)
 ///
-/// As for the annotations (annotationColorKey()), each kind has a color for the light and
-/// one for the dark paper: "spellingLightPaper", "grammarDarkPaper"...
+/// As for the annotations (annotationColorKey()), one color for each kind: "spelling" or
+/// "grammar", of its waves and of the frames of its cards in the panel.
 /// @param kind The kind
-/// @param darkPaper true: the color on dark paper (and on a dark panel)
-inline std::string issueColorKey(TextIssueKind kind, bool darkPaper) {
-    return std::string(kind == TextIssueKind::Spelling ? "spelling" : "grammar") +
-           (darkPaper ? "DarkPaper" : "LightPaper");
+inline std::string issueColorKey(TextIssueKind kind) {
+    return kind == TextIssueKind::Spelling ? "spelling" : "grammar";
 }
 
 }  // namespace kalahari::editor

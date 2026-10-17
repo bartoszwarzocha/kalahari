@@ -37,25 +37,17 @@ AnnotationsPage::AnnotationsPage(QWidget* parent)
                             "(100% suits the text's font)"));
     addField(marks, tr("Mark Size:"), markSize, "editor.annotationMarkSize");
 
-    // Each kind's color on the light and on the dark paper
+    // One color for each kind, kept for each theme
     QFormLayout* colors = addGroup(tr("Colors"));
     addNote(colors, tr("The colors of the annotations' marks in the text, of the frame an "
                        "annotation is written in on the paper and of the cards in the Annotations "
-                       "panel. A light panel has the colors of the light paper, a dark one those "
-                       "of the dark paper (View > Dark Paper)."));
+                       "panel. Each theme has its own colors: these are the colors of the current "
+                       "theme."));
     using editor::AnnotationKind;
-    addThemeColor(colors, tr("Comment on light paper"),
-                  editor::annotationColorKey(AnnotationKind::Comment, false));
-    addThemeColor(colors, tr("Comment on dark paper"),
-                  editor::annotationColorKey(AnnotationKind::Comment, true));
-    addThemeColor(colors, tr("To-do on light paper"),
-                  editor::annotationColorKey(AnnotationKind::Todo, false));
-    addThemeColor(colors, tr("To-do on dark paper"),
-                  editor::annotationColorKey(AnnotationKind::Todo, true));
-    addThemeColor(colors, tr("Note on light paper"),
-                  editor::annotationColorKey(AnnotationKind::Note, false));
-    addThemeColor(colors, tr("Note on dark paper"),
-                  editor::annotationColorKey(AnnotationKind::Note, true));
+    addThemeColor(colors, tr("Comment"), editor::annotationColorKey(AnnotationKind::Comment));
+    addThemeColor(colors, tr("To-do"), editor::annotationColorKey(AnnotationKind::Todo));
+    addThemeColor(colors, tr("Note"), editor::annotationColorKey(AnnotationKind::Note));
+    addOptimizeColorsCheckBox(colors);
     addRestoreColorsButton(colors);
 
     pageLayout()->addStretch();

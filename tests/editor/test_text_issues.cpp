@@ -551,20 +551,20 @@ TEST_CASE("Issues: the waves have the colors of the editor's appearance, on each
     }
 }
 
-TEST_CASE("Issues: the themes have colors for the waves, seen on both papers",
+TEST_CASE("Issues: the themes have a color for each kind of wave, seen on both papers",
           "[editor][issues]") {
+    // Also with the colors exactly as set ("Optimize colors in themes" off)
     const EditorColors papers;
     for (const QString& name : {QStringLiteral("Light"), QStringLiteral("Dark")}) {
         QFile file(QStringLiteral(KALAHARI_SOURCE_DIR "/resources/themes/%1.json").arg(name));
         REQUIRE(file.open(QIODevice::ReadOnly));
         const kalahari::core::Theme theme = kalahari::core::Theme::fromJson(
             nlohmann::json::parse(file.readAll().toStdString()));
-        for (const bool darkPaper : {false, true}) {
-            const QColor paper = darkPaper ? papers.continuous.backgroundDark
-                                           : papers.continuous.backgroundLight;
+        for (const QColor& paper :
+             {papers.continuous.backgroundLight, papers.continuous.backgroundDark}) {
             for (const TextIssueKind kind : {TextIssueKind::Spelling, TextIssueKind::Grammar}) {
-                const std::string key = issueColorKey(kind, darkPaper);
-                INFO(name.toStdString() << " " << key);
+                const std::string key = issueColorKey(kind);
+                INFO(name.toStdString() << " " << key << " on " << paper.name().toStdString());
                 const auto color = theme.editor.find(key);
                 REQUIRE(color != theme.editor.end());
                 REQUIRE(color->second.isValid());

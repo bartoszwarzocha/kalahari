@@ -82,8 +82,8 @@ struct EditorColors {
             : focus.inactiveDark;
     }
 
-    /// @brief The marks of the annotations' kinds on one paper (the theme's colors; not
-    /// valid: the text's color)
+    /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on
+    /// that paper; not valid: the text's color)
     struct AnnotationColors {
         QColor comment;  ///< Comments
         QColor todo;     ///< To-dos
@@ -98,7 +98,7 @@ struct EditorColors {
     }
 
     /// @brief The waves under the misspelled words and the grammar issues on one paper (the
-    /// theme's colors; not valid: those of RenderColors)
+    /// theme's colors, as shown on that paper; not valid: those of RenderColors)
     struct IssueColors {
         QColor spelling;  ///< Misspelled words
         QColor grammar;   ///< Grammar, style and punctuation

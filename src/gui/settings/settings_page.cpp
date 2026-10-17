@@ -26,6 +26,7 @@
 #include <QSpinBox>
 #include <QStyle>
 #include <QStyleOption>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include <cmath>
@@ -330,38 +331,68 @@ ColorConfigWidget* SettingsPage::addThemeColor(QFormLayout* form, const QString&
     auto* widget = new ColorConfigWidget(label);
     form->addRow(widget);
 
-    std::string key = core::ThemeManager::editorColorSetting(themeKey);
-    const auto themeColor = [themeKey]() {
-        return core::ThemeManager::getInstance().defaultEditorColor(themeKey, QColor());
+    // The theme in use when the page is filled and its own color: a changed color is kept for
+    // that theme, also when Apply changes the theme first
+    struct ShownTheme {
+        std::string name;
+        QColor color;
     };
+    auto shown = std::make_shared<ShownTheme>();
     Binding binding;
-    binding.key = [key]() { return key; };
-    binding.stored = [key, themeColor]() {
-        const QColor stored(QString::fromStdString(
-            core::SettingsManager::getInstance().get<std::string>(key, std::string())));
-        return colorValue(stored.isValid() ? stored : themeColor());
+    binding.key = [shown, themeKey]() {
+        return core::ThemeManager::editorColorSetting(shown->name, themeKey);
+    };
+    binding.stored = [shown, themeKey]() {
+        const auto& themes = core::ThemeManager::getInstance();
+        shown->name = themes.getCurrentTheme().name;
+        shown->color = themes.defaultEditorColor(themeKey, QColor());
+        const QColor stored(QString::fromStdString(core::SettingsManager::getInstance().get<std::string>(
+            core::ThemeManager::editorColorSetting(shown->name, themeKey), std::string())));
+        return colorValue(stored.isValid() ? stored : shown->color);
     };
     binding.shown = [widget]() { return colorValue(widget->color()); };
     binding.show = [widget](const json& value) { widget->setColor(colorOf(value)); };
-    binding.store = [key, themeColor](const json& value) {
+    binding.store = [shown, themeKey](const json& value) {
         // The theme's own color is not kept: the theme decides it again
         auto& settings = core::SettingsManager::getInstance();
+        const std::string key = core::ThemeManager::editorColorSetting(shown->name, themeKey);
         const QColor color = colorOf(value);
-        if (color == themeColor()) {
+        if (color == shown->color) {
             settings.removeKey(key);
         } else {
             settings.set<std::string>(key, color.name().toStdString());
         }
     };
-    bindCustom(std::move(binding));
-    m_restoreColors.emplace_back([widget, themeColor]() { widget->setColor(themeColor()); });
+    Binding& bound = bindCustom(std::move(binding));
+    m_restoreColors.emplace_back([widget, shown]() { widget->setColor(shown->color); });
+
+    // Another theme in use: its colors, once Apply has stored the changed ones
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
+            [this, &bound, shown]() {
+                QTimer::singleShot(0, this, [this, &bound, shown]() {
+                    if (core::ThemeManager::getInstance().getCurrentTheme().name != shown->name) {
+                        reload(bound);
+                    }
+                });
+            });
     return widget;
 }
 
-void SettingsPage::addIssueColors(QFormLayout* form, editor::TextIssueKind kind) {
-    // The frames of the kind's cards in the panel have the same colors (issueColor())
-    addThemeColor(form, tr("Underline on light paper"), editor::issueColorKey(kind, false));
-    addThemeColor(form, tr("Underline on dark paper"), editor::issueColorKey(kind, true));
+void SettingsPage::addIssueColor(QFormLayout* form, editor::TextIssueKind kind) {
+    // The frames of the kind's cards in the panel have the same color (issueColor())
+    addThemeColor(form, tr("Underline"), editor::issueColorKey(kind));
+}
+
+QCheckBox* SettingsPage::addOptimizeColorsCheckBox(QFormLayout* form) {
+    QCheckBox* box = addCheckBox(form, tr("Optimize colors in themes"),
+                                 core::ThemeManager::OPTIMIZE_COLORS_SETTING);
+    box->setObjectName(QStringLiteral("optimizeThemeColors"));
+    box->setProperty(SHARED_CHECK_BOX, true);
+    box->setToolTip(tr("On: a color too light for a light background is shown darker, and one "
+                       "too dark for a dark background lighter (on the paper and in the panels). "
+                       "Off: the colors exactly as set. One setting for the spelling, the grammar "
+                       "and the annotations."));
+    return box;
 }
 
 QPushButton* SettingsPage::addRestoreColorsButton(QFormLayout* form) {

@@ -288,11 +288,11 @@ void EditorGrammarPage::createChecking() {
 
 void EditorGrammarPage::createColors() {
     QFormLayout* form = addGroup(tr("Colors"));
-    addNote(form, tr("The wavy line under a grammar issue has one color on the light paper and "
-                     "another on the dark one (View > Dark Paper). The cards in the Spelling and "
-                     "Grammar panel have frames of the same color: in a light panel as on the "
-                     "light paper, in a dark one as on the dark paper."));
-    addIssueColors(form, editor::TextIssueKind::Grammar);
+    addNote(form, tr("The color of the wavy line under a grammar issue and of the frames of its "
+                     "cards in the Spelling and Grammar panel. Each theme has its own colors: "
+                     "these are the colors of the current theme."));
+    addIssueColor(form, editor::TextIssueKind::Grammar);
+    addOptimizeColorsCheckBox(form);
     addRestoreColorsButton(form);
 }
 

@@ -4,6 +4,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
@@ -283,32 +284,33 @@ void EditorPanel::applySettings() {
     appearance.textFrameBorder.color = color("editor.textFrameBorder.color");
     appearance.textFrameBorder.width = settings.get<int>("editor.textFrameBorder.width");
 
-    // The annotations' marks: the theme's colors for each paper, at the size of the setting
+    // The annotations' marks (at the size of the setting) and the waves under the misspelled
+    // words and the grammar issues: the theme's colors, on each paper as "Optimize colors in
+    // themes" shows them
     const auto& themes = core::ThemeManager::getInstance();
-    const auto markColors = [&themes](bool darkPaper) {
-        const auto kindColor = [&themes, darkPaper](editor::AnnotationKind kind) {
-            return themes.editorColor(editor::annotationColorKey(kind, darkPaper), QColor());
-        };
+    const bool optimize = themes.optimizesEditorColors();
+    const auto onPaper = [&themes, optimize](const std::string& key, const QColor& paper) {
+        return shownColor(themes.editorColor(key, QColor()), paper, optimize);
+    };
+    const auto markColors = [&onPaper](const QColor& paper) {
         editor::EditorColors::AnnotationColors colors;
-        colors.comment = kindColor(editor::AnnotationKind::Comment);
-        colors.todo = kindColor(editor::AnnotationKind::Todo);
-        colors.note = kindColor(editor::AnnotationKind::Note);
+        colors.comment = onPaper(editor::annotationColorKey(editor::AnnotationKind::Comment), paper);
+        colors.todo = onPaper(editor::annotationColorKey(editor::AnnotationKind::Todo), paper);
+        colors.note = onPaper(editor::annotationColorKey(editor::AnnotationKind::Note), paper);
         return colors;
     };
-    appearance.colors.annotationsLight = markColors(false);
-    appearance.colors.annotationsDark = markColors(true);
-
-    // The waves under the misspelled words and the grammar issues: the theme's colors too
-    const auto waveColors = [&themes](bool darkPaper) {
+    const auto waveColors = [&onPaper](const QColor& paper) {
         editor::EditorColors::IssueColors colors;
-        colors.spelling = themes.editorColor(
-            editor::issueColorKey(editor::TextIssueKind::Spelling, darkPaper), QColor());
-        colors.grammar = themes.editorColor(
-            editor::issueColorKey(editor::TextIssueKind::Grammar, darkPaper), QColor());
+        colors.spelling = onPaper(editor::issueColorKey(editor::TextIssueKind::Spelling), paper);
+        colors.grammar = onPaper(editor::issueColorKey(editor::TextIssueKind::Grammar), paper);
         return colors;
     };
-    appearance.colors.issuesLight = waveColors(false);
-    appearance.colors.issuesDark = waveColors(true);
+    const QColor lightPaper = appearance.colors.continuous.backgroundLight;
+    const QColor darkPaper = appearance.colors.continuous.backgroundDark;
+    appearance.colors.annotationsLight = markColors(lightPaper);
+    appearance.colors.annotationsDark = markColors(darkPaper);
+    appearance.colors.issuesLight = waveColors(lightPaper);
+    appearance.colors.issuesDark = waveColors(darkPaper);
     appearance.annotationMarkScale =
         std::clamp(settings.get<int>("editor.annotationMarkSize") / 100.0, MIN_MARK_SCALE,
                    MAX_MARK_SCALE);

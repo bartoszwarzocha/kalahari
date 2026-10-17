@@ -56,6 +56,7 @@ public:
     /// @brief Constructor
     /// @param parent Parent widget
     explicit SpellingPanel(QWidget* parent = nullptr);
+    ~SpellingPanel() override;
 
     /// @brief Show the issues, what to open, or how to turn the checking on
     void setContent(Content content);
@@ -148,8 +149,8 @@ public:
     /// @brief Whether the keys are in the panel
     bool hasFocusInside() const;
 
-    /// @brief Take colors from a theme: the kinds' colors (issueColor()), the cards and the
-    ///        controls
+    /// @brief Take colors from a theme: the kinds' colors as shown on the panel (issueColorOn()),
+    ///        the cards and the controls
     void applyTheme(const core::Theme& theme);
 
     /// @brief The list of the cards

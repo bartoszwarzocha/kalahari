@@ -236,20 +236,16 @@ std::optional<AnnotationKind> annotationKindFromName(QStringView name) {
     return std::nullopt;
 }
 
-std::string annotationColorKey(AnnotationKind kind, bool darkPaper) {
-    std::string key;
+std::string annotationColorKey(AnnotationKind kind) {
     switch (kind) {
     case AnnotationKind::Comment:
-        key = "annotationComment";
-        break;
+        return "annotationComment";
     case AnnotationKind::Todo:
-        key = "annotationTodo";
-        break;
+        return "annotationTodo";
     case AnnotationKind::Note:
-        key = "annotationNote";
-        break;
+        return "annotationNote";
     }
-    return key + (darkPaper ? "DarkPaper" : "LightPaper");
+    return "annotationComment";
 }
 
 QString newAnnotationId() {

@@ -12,6 +12,7 @@
 #include "kalahari/core/theme_manager.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QElapsedTimer>
 #include <QFont>
 #include <QLabel>
@@ -244,6 +245,7 @@ void SettingsDialog::showPage(QTreeWidgetItem* item) {
         }
         if (auto* page = qobject_cast<SettingsPage*>(content)) {
             page->load();
+            shareCheckBoxes(page);
             m_pages.push_back(page);
             if (auto* themePage = qobject_cast<ThemePage*>(page)) {
                 m_themePage = themePage;
@@ -309,6 +311,24 @@ void SettingsDialog::connectPages() {
     } else {
         m_iconsPage->setPreviewColors(core::ArtProvider::getInstance().getPrimaryColor(),
                                       core::ArtProvider::getInstance().getSecondaryColor());
+    }
+}
+
+void SettingsDialog::shareCheckBoxes(QWidget* page) {
+    // The pages built before are in the stack already, this one not yet
+    for (QCheckBox* box : page->findChildren<QCheckBox*>()) {
+        if (!box->property(SettingsPage::SHARED_CHECK_BOX).toBool()) {
+            continue;
+        }
+        for (QCheckBox* other : m_pageStack->findChildren<QCheckBox*>(box->objectName())) {
+            if (!other->property(SettingsPage::SHARED_CHECK_BOX).toBool()) {
+                continue;
+            }
+            // A choice made on another page and not applied yet holds here too
+            box->setChecked(other->isChecked());
+            connect(box, &QCheckBox::toggled, other, &QCheckBox::setChecked);
+            connect(other, &QCheckBox::toggled, box, &QCheckBox::setChecked);
+        }
     }
 }
 

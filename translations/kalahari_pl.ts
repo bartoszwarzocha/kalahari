@@ -3593,32 +3593,20 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Kolory</translation>
     </message>
     <message>
-        <source>The colors of the annotations&apos; marks in the text, of the frame an annotation is written in on the paper and of the cards in the Annotations panel. A light panel has the colors of the light paper, a dark one those of the dark paper (View &gt; Dark Paper).</source>
-        <translation>Kolory znaczników uwag w tekście, ramki do pisania uwagi na papierze i kart w panelu „Uwagi”. Jasny panel ma kolory jasnego papieru, a ciemny – ciemnego (Widok &gt; Ciemny papier).</translation>
+        <source>The colors of the annotations&apos; marks in the text, of the frame an annotation is written in on the paper and of the cards in the Annotations panel. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolory znaczników uwag w tekście, ramki do pisania uwagi na papierze i kart w panelu „Uwagi”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
     </message>
     <message>
-        <source>Comment on light paper</source>
-        <translation>Komentarz na jasnym papierze</translation>
+        <source>Comment</source>
+        <translation>Komentarz</translation>
     </message>
     <message>
-        <source>Comment on dark paper</source>
-        <translation>Komentarz na ciemnym papierze</translation>
+        <source>To-do</source>
+        <translation>Do zrobienia</translation>
     </message>
     <message>
-        <source>To-do on light paper</source>
-        <translation>Do zrobienia na jasnym papierze</translation>
-    </message>
-    <message>
-        <source>To-do on dark paper</source>
-        <translation>Do zrobienia na ciemnym papierze</translation>
-    </message>
-    <message>
-        <source>Note on light paper</source>
-        <translation>Notatka na jasnym papierze</translation>
-    </message>
-    <message>
-        <source>Note on dark paper</source>
-        <translation>Notatka na ciemnym papierze</translation>
+        <source>Note</source>
+        <translation>Notatka</translation>
     </message>
 </context>
 <context>
@@ -5446,8 +5434,8 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Kolory</translation>
     </message>
     <message>
-        <source>The wavy line under a grammar issue has one color on the light paper and another on the dark one (View &gt; Dark Paper). The cards in the Spelling and Grammar panel have frames of the same color: in a light panel as on the light paper, in a dark one as on the dark paper.</source>
-        <translation>Falista linia pod błędem gramatyki ma jeden kolor na jasnym papierze, a inny na ciemnym (Widok &gt; Ciemny papier). Karty w panelu „Pisownia i gramatyka” mają ramki w tym samym kolorze: w jasnym panelu jak na jasnym papierze, w ciemnym jak na ciemnym.</translation>
+        <source>The color of the wavy line under a grammar issue and of the frames of its cards in the Spelling and Grammar panel. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolor falistej linii pod błędem gramatyki i ramek jego kart w panelu „Pisownia i gramatyka”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
     </message>
 </context>
 <context>
@@ -5684,10 +5672,6 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Kolory</translation>
     </message>
     <message>
-        <source>The wavy line under a misspelled word has one color on the light paper and another on the dark one (View &gt; Dark Paper). The cards in the Spelling and Grammar panel have frames of the same color: in a light panel as on the light paper, in a dark one as on the dark paper.</source>
-        <translation>Falista linia pod błędem pisowni ma jeden kolor na jasnym papierze, a inny na ciemnym (Widok &gt; Ciemny papier). Karty w panelu „Pisownia i gramatyka” mają ramki w tym samym kolorze: w jasnym panelu jak na jasnym papierze, w ciemnym jak na ciemnym.</translation>
-    </message>
-    <message>
         <source>Spelling and Grammar Panel</source>
         <translation>Panel „Pisownia i gramatyka”</translation>
     </message>
@@ -5730,6 +5714,10 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>With &quot;Checked in the whole text&quot;, while the panel is shown the whole text is checked in the background, so the counts and the list cover all of it once the check is done. The free server api.languagetool.org limits the requests per minute: there a long text takes longer. On this computer there is no such limit.</source>
         <translation>Przy ustawieniu „Sprawdzana w całym tekście” cały tekst jest sprawdzany w tle, gdy panel jest widoczny, więc liczniki i lista obejmą go w całości, gdy tylko sprawdzanie się skończy. Bezpłatny serwer api.languagetool.org ogranicza liczbę zapytań na minutę, więc tam długi tekst sprawdza się dłużej. Na tym komputerze takiego ograniczenia nie ma.</translation>
+    </message>
+    <message>
+        <source>The color of the wavy line under a misspelled word and of the frames of its cards in the Spelling and Grammar panel. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolor falistej linii pod błędem pisowni i ramek jego kart w panelu „Pisownia i gramatyka”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
     </message>
 </context>
 <context>
@@ -7576,16 +7564,20 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>Zmiana zadziała po ponownym uruchomieniu programu Kalahari.</translation>
     </message>
     <message>
-        <source>Underline on light paper</source>
-        <translation>Podkreślenie na jasnym papierze</translation>
-    </message>
-    <message>
-        <source>Underline on dark paper</source>
-        <translation>Podkreślenie na ciemnym papierze</translation>
-    </message>
-    <message>
         <source>Restore Default Colors</source>
         <translation>Przywróć domyślne kolory</translation>
+    </message>
+    <message>
+        <source>Underline</source>
+        <translation>Podkreślenie</translation>
+    </message>
+    <message>
+        <source>Optimize colors in themes</source>
+        <translation>Optymalizuj kolory w motywach</translation>
+    </message>
+    <message>
+        <source>On: a color too light for a light background is shown darker, and one too dark for a dark background lighter (on the paper and in the panels). Off: the colors exactly as set. One setting for the spelling, the grammar and the annotations.</source>
+        <translation>Włączone: kolor zbyt jasny na jasnym tle jest pokazywany ciemniej, a zbyt ciemny na ciemnym tle – jaśniej (na papierze i w panelach). Wyłączone: kolory dokładnie takie, jak ustawione. Jedno ustawienie dla pisowni, gramatyki i uwag.</translation>
     </message>
 </context>
 <context>

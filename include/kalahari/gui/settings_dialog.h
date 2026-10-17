@@ -118,6 +118,10 @@ private:
     /// @note Called once when the Theme or the Icons page is built
     void connectPages();
 
+    /// @brief Keep the shared check boxes of a newly built page (SettingsPage::SHARED_CHECK_BOX)
+    ///        alike with those of the pages built before it: the same choice on every page
+    void shareCheckBoxes(QWidget* page);
+
     /// @brief Show the length fields of the built pages in another unit
     void setLengthUnit(LengthUnit unit);
 

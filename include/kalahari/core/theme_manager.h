@@ -56,14 +56,24 @@ public:
     /// @param fallback Returned if the theme does not define the color
     QColor defaultEditorColor(const std::string& key, const QColor& fallback) const;
 
-    /// @brief The setting of the user's own value of an editor color
+    /// @brief The setting of the user's own value of an editor color of a theme
     ///
-    /// The editor colors are made for the light and the dark paper, which does not follow the
-    /// theme (View > Dark Paper): the user's value is one setting for all themes. A changed
-    /// setting reaches the current theme by itself (themeChanged() follows).
-    /// @param key Name from the theme file's "editor" section (e.g. "spellingLightPaper")
-    /// @return "editor.colors." followed by @p key
-    static std::string editorColorSetting(const std::string& key);
+    /// Each theme keeps its own values. A changed setting of the current theme reaches it by
+    /// itself (themeChanged() follows).
+    /// @param themeName The theme's name (Theme::name)
+    /// @param key Name from the theme file's "editor" section (e.g. "spelling")
+    /// @return "themes.<themeName>.editor.<key>"
+    static std::string editorColorSetting(const std::string& themeName, const std::string& key);
+
+    /// @brief The setting of "Optimize colors in themes" (a bool, on by default)
+    static constexpr const char* OPTIMIZE_COLORS_SETTING = "editor.colors.optimize";
+
+    /// @brief Whether the editor colors are adapted to what they are shown on: darker on a
+    ///        light background and lighter on a dark one where they are hard to see there
+    ///
+    /// The setting OPTIMIZE_COLORS_SETTING; a change of it emits themeChanged(), as a changed
+    /// color does.
+    bool optimizesEditorColors() const;
 
     /// @brief Get list of available themes in resources/themes/
     /// @return List of theme names (without .json extension)
@@ -131,6 +141,7 @@ private:
 
     int m_settingsListener = -1;                     ///< Subscription to the editor colors
     std::atomic<bool> m_editorColorsPending{false};  ///< A reload of the editor colors is queued
+    bool m_optimizesEditorColors = true;             ///< optimizesEditorColors() at the last reload
 
     /// @brief Apply m_currentTheme's palette to the application and its tooltips
     void applyPalette();

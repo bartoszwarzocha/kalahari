@@ -18,8 +18,17 @@ using namespace kalahari::core;
 
 namespace {
 
-/// @brief The settings of the user's editor colors start with this (editorColorSetting())
-constexpr const char* EDITOR_COLOR_PREFIX = "editor.colors.";
+/// @brief The settings of the user's editor colors of a theme: THEMES_PREFIX, the theme's
+///        name, EDITOR_PART and the color's name (editorColorSetting())
+constexpr const char* THEMES_PREFIX = "themes.";
+constexpr const char* EDITOR_PART = ".editor.";
+
+/// @brief Whether a setting changes how the editor colors are shown: a user's editor color of a
+///        theme or "Optimize colors in themes"
+bool isEditorColorSetting(const std::string& key) {
+    return key == ThemeManager::OPTIMIZE_COLORS_SETTING ||
+           (key.rfind(THEMES_PREFIX, 0) == 0 && key.find(EDITOR_PART) != std::string::npos);
+}
 
 }  // namespace
 
@@ -73,6 +82,7 @@ ThemeManager::ThemeManager() {
     // Load user's custom per-theme colors, so icons and widgets have them at startup
     m_baseTheme = m_currentTheme;
     applyStoredColors();
+    m_optimizesEditorColors = optimizesEditorColors();
 
     // Apply palette to QApplication at startup for full theme support
     // Requires Fusion style (set in main.cpp before ThemeManager init)
@@ -80,11 +90,11 @@ ThemeManager::ThemeManager() {
 
     Logger::getInstance().info("ThemeManager: Initial palette applied (Fusion style)");
 
-    // A changed editor color reaches the editors and the panels, wherever it was changed:
-    // once for all the colors written together (Apply in the Settings dialog writes several)
+    // A changed editor color (or "Optimize colors in themes") reaches the editors and the
+    // panels, wherever it was changed: once for all the colors written together (Apply in the
+    // Settings dialog writes several)
     m_settingsListener = settings.subscribe([this](const std::string& key) {
-        if (key.rfind(EDITOR_COLOR_PREFIX, 0) != 0 ||
-            m_editorColorsPending.exchange(true)) {
+        if (!isEditorColorSetting(key) || m_editorColorsPending.exchange(true)) {
             return;
         }
         if (QCoreApplication::instance() == nullptr) {
@@ -170,8 +180,13 @@ QColor ThemeManager::defaultEditorColor(const std::string& key, const QColor& fa
     return it != m_baseTheme.editor.end() ? it->second : fallback;
 }
 
-std::string ThemeManager::editorColorSetting(const std::string& key) {
-    return EDITOR_COLOR_PREFIX + key;
+std::string ThemeManager::editorColorSetting(const std::string& themeName,
+                                             const std::string& key) {
+    return THEMES_PREFIX + themeName + EDITOR_PART + key;
+}
+
+bool ThemeManager::optimizesEditorColors() const {
+    return SettingsManager::getInstance().get<bool>(OPTIMIZE_COLORS_SETTING, true);
 }
 
 QStringList ThemeManager::getAvailableThemes() const {
@@ -283,10 +298,10 @@ void ThemeManager::applyStoredColors() {
               settings.getLogColorForTheme(themeName, key, current(target)));
     }
 
-    // Editor colors: whatever the theme file lists, for the light and the dark paper; the paper
-    // does not follow the theme, so the user's value is one setting for all themes
+    // Editor colors: whatever the theme file lists
     for (auto& [key, target] : theme.editor) {
-        apply("editor." + key, target, settings.get<std::string>(editorColorSetting(key), current(target)));
+        apply("editor." + key, target,
+              settings.get<std::string>(editorColorSetting(themeName, key), current(target)));
     }
 
     if (!m_overrides.empty()) {
@@ -300,8 +315,8 @@ void ThemeManager::reloadEditorColors() {
     auto& settings = SettingsManager::getInstance();
     bool changed = false;
     for (const auto& [key, themeColor] : m_baseTheme.editor) {
-        const QColor stored(QString::fromStdString(
-            settings.get<std::string>(editorColorSetting(key), std::string())));
+        const QColor stored(QString::fromStdString(settings.get<std::string>(
+            editorColorSetting(m_currentTheme.name, key), std::string())));
         const std::string overrideKey = "editor." + key;
         if (stored.isValid() && stored != themeColor) {
             m_overrides[overrideKey] = stored;
@@ -314,6 +329,12 @@ void ThemeManager::reloadEditorColors() {
             current = color;
             changed = true;
         }
+    }
+    // The colors are shown otherwise with "Optimize colors in themes" changed
+    const bool optimizes = optimizesEditorColors();
+    if (optimizes != m_optimizesEditorColors) {
+        m_optimizesEditorColors = optimizes;
+        changed = true;
     }
     if (changed) {
         Logger::getInstance().debug("ThemeManager: Editor colors changed");

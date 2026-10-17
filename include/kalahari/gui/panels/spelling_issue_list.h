@@ -11,7 +11,6 @@
 #include <QFrame>
 #include <QHash>
 #include <QList>
-#include <QPointer>
 #include <QString>
 #include <QStringList>
 
@@ -58,7 +57,8 @@ struct IssueCardColors {
 };
 
 /// @brief The colors of the cards of a kind of issue: every text readable on the card
-/// @param kindColor The kind's color (issueColor()): the frame and the bar of its cards
+/// @param kindColor The kind's color as shown on @p surface (issueColorOn()): the frame and the
+///        bar of its cards
 /// @param surface What the cards lie on: the panel's base
 /// @param text The color of the text on it
 IssueCardColors issueCardColors(const QColor& kindColor, const QColor& surface,
@@ -353,7 +353,9 @@ private:
     QHash<QString, int> m_expandedHeights;         ///< Of the unfolded cards measured, by key
     QHash<QString, SpellingIssueCard*> m_shown;    ///< The cards in use, by their issues' keys
     QList<SpellingIssueCard*> m_spare;             ///< Cards put away, for other issues
-    QPointer<SpellingIssueCard> m_lastSelectedCard;  ///< For selectedCardChanged()
+    // Plain: only compared, and the cards live as long as the list (put away, never deleted);
+    // clang-tidy's analyzer reports a QPointer assigned as a use of freed memory
+    SpellingIssueCard* m_lastSelectedCard{nullptr};  ///< For selectedCardChanged()
 };
 
 }  // namespace kalahari::gui

@@ -172,6 +172,29 @@ TEST_CASE("Settings dialog: pages are built when first opened", "[gui][settings]
     CHECK(stack->count() == 2);
 }
 
+TEST_CASE("Settings dialog: the gears of the panels open it at their pages", "[gui][settings]") {
+    SettingsDialog dialog(nullptr);
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+
+    // The gear of the Spelling and Grammar panel: Editor > Spelling
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::SPELLING_PAGE)));
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Spelling"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
+
+    // The gear of the Annotations panel: Annotations
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE)));
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Annotations"));
+    CHECK(tree->currentItem()->parent() == nullptr);
+
+    // A page the dialog does not have leaves the page shown
+    CHECK_FALSE(dialog.openPage(QStringLiteral("nowhere")));
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Annotations"));
+}
+
 TEST_CASE("Settings dialog: no page squeezes its groups", "[gui][settings]") {
     // Regression: the dialog kept its size whatever a page needed, so the groups of
     // Editor > Pages and Margins were squeezed until their fields overlapped, and the

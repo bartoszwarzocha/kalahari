@@ -161,10 +161,13 @@ std::map<std::string, json> buildDefaults() {
         {"spellingPanel.pinned", false},
 
         // Editor: colors. The user's values of the theme's editor colors (the underlines of
-        // the misspelled words and grammar issues, the annotations) are editor.colors.<name in
-        // the theme's "editor" section>, without a default here: the theme file gives it
-        // (ThemeManager::editorColorSetting())
+        // the misspelled words and grammar issues, the annotations) are kept for each theme,
+        // themes.<theme>.editor.<name in the theme's "editor" section>, without a default here:
+        // the theme file gives it (ThemeManager::editorColorSetting()). "Optimize colors in
+        // themes" shows them darker on a light background and lighter on a dark one where they
+        // are hard to see there
         {"editor.darkMode", true},
+        {"editor.colors.optimize", true},
         {"editor.colors.backgroundLight", "#ffffff"},
         {"editor.colors.textLight", "#1e1e1e"},
         {"editor.colors.inactiveLight", "#aaaaaa"},

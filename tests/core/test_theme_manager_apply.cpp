@@ -1,7 +1,7 @@
 /// @file test_theme_manager_apply.cpp
 /// @brief ThemeManager::reloadTheme applies a theme with the user's stored colors
 /// and extra overrides in one pass (one themeChanged, colors visible in the palette);
-/// the editor colors of a theme (the writer's own ones are one for all themes), and the colors
+/// the editor colors of a theme (the writer's own ones are kept for each theme), and the colors
 /// its palette gives disabled widgets.
 
 #include <catch2/catch_test_macros.hpp>
@@ -138,19 +138,21 @@ TEST_CASE("Theme editor colors are an open list from the theme file", "[core][th
     themeManager.reloadTheme(currentTheme);
 }
 
-TEST_CASE("The writer's editor colors are one for all themes and reach the theme by themselves",
+TEST_CASE("The writer's editor colors are kept for each theme and reach the theme by themselves",
           "[core][theme]") {
-    // The paper is light or dark whatever the theme (View > Dark Paper): a color chosen for it
-    // stays when the theme changes, and a changed setting reaches the editors and the panels
+    // A color chosen in one theme does not change another theme, and a changed setting reaches
+    // the editors and the panels
     auto& themeManager = ThemeManager::getInstance();
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const QString originalTheme = QString::fromStdString(themeManager.getCurrentTheme().name);
     const QString otherTheme = (originalTheme == "Dark") ? "Light" : "Dark";
-    const std::string spelling = "spellingLightPaper";
-    const std::string grammar = "grammarLightPaper";
-    const std::string spellingSetting = ThemeManager::editorColorSetting(spelling);
-    const std::string grammarSetting = ThemeManager::editorColorSetting(grammar);
-    CHECK(spellingSetting == "editor.colors.spellingLightPaper");
+    const std::string spelling = "spelling";
+    const std::string grammar = "grammar";
+    const std::string spellingSetting =
+        ThemeManager::editorColorSetting(originalTheme.toStdString(), spelling);
+    const std::string grammarSetting =
+        ThemeManager::editorColorSetting(originalTheme.toStdString(), grammar);
+    CHECK(ThemeManager::editorColorSetting("Light", spelling) == "themes.Light.editor.spelling");
     const QColor themeColor = themeManager.defaultEditorColor(spelling, QColor());
     REQUIRE(themeColor.isValid());
     CHECK(themeManager.defaultEditorColor("missingMarker", QColor("#123456")) == QColor("#123456"));
@@ -170,28 +172,68 @@ TEST_CASE("The writer's editor colors are one for all themes and reach the theme
     CHECK(themeManager.editorColor(grammar, QColor()) == QColor("#fedcba"));
     CHECK(themeManager.defaultEditorColor(spelling, QColor()) == themeColor);
 
-    // Another theme keeps them
+    // Another theme has its own colors; a color of a theme not in use changes nothing
     REQUIRE(themeManager.reloadTheme(otherTheme));
-    CHECK(themeManager.editorColor(spelling, QColor()) == QColor("#abcdef"));
+    CHECK(themeManager.editorColor(spelling, QColor()) ==
+          themeManager.defaultEditorColor(spelling, QColor()));
+    CHECK(themeManager.editorColor(grammar, QColor()) ==
+          themeManager.defaultEditorColor(grammar, QColor()));
+    int before = themeChangedCount;
+    settings.set<std::string>(spellingSetting, "#123123");
+    QCoreApplication::processEvents();
+    CHECK(themeChangedCount == before);
+
+    // Back in the first theme, its colors are there again
+    REQUIRE(themeManager.reloadTheme(originalTheme));
+    CHECK(themeManager.editorColor(spelling, QColor()) == QColor("#123123"));
     CHECK(themeManager.editorColor(grammar, QColor()) == QColor("#fedcba"));
 
     // Without the settings, the theme's own colors come back
     settings.removeKey(spellingSetting);
     settings.removeKey(grammarSetting);
     QCoreApplication::processEvents();
-    CHECK(themeManager.editorColor(spelling, QColor()) ==
-          themeManager.defaultEditorColor(spelling, QColor()));
+    CHECK(themeManager.editorColor(spelling, QColor()) == themeColor);
     CHECK(themeManager.editorColor(grammar, QColor()) ==
           themeManager.defaultEditorColor(grammar, QColor()));
 
     // A setting that changes no color of the theme changes nothing
-    const int before = themeChangedCount;
+    before = themeChangedCount;
     settings.set<std::string>("editor.colors.backgroundLight", "#fafafa");
     QCoreApplication::processEvents();
     CHECK(themeChangedCount == before);
     settings.removeKey("editor.colors.backgroundLight");
+    QCoreApplication::processEvents();
+}
 
-    REQUIRE(themeManager.reloadTheme(originalTheme));
+TEST_CASE("Optimize colors in themes is on by default and its change reaches the editors",
+          "[core][theme]") {
+    auto& themeManager = ThemeManager::getInstance();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string optimize = ThemeManager::OPTIMIZE_COLORS_SETTING;
+    settings.removeKey(optimize);
+    QCoreApplication::processEvents();
+    CHECK(themeManager.optimizesEditorColors());
+
+    int themeChangedCount = 0;
+    QObject guard;
+    QObject::connect(&themeManager, &ThemeManager::themeChanged, &guard,
+                     [&themeChangedCount]() { ++themeChangedCount; });
+
+    // The editors and the panels show the colors anew
+    settings.set<bool>(optimize, false);
+    CHECK_FALSE(themeManager.optimizesEditorColors());
+    QCoreApplication::processEvents();
+    CHECK(themeChangedCount == 1);
+
+    // Written again unchanged: nothing to show anew
+    settings.set<bool>(optimize, false);
+    QCoreApplication::processEvents();
+    CHECK(themeChangedCount == 1);
+
+    settings.removeKey(optimize);
+    QCoreApplication::processEvents();
+    CHECK(themeManager.optimizesEditorColors());
+    CHECK(themeChangedCount == 2);
 }
 
 TEST_CASE("A theme file with the Dashboard and info icon colors of before loads as without them",

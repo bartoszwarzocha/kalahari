@@ -100,15 +100,15 @@ QTextEdit* underlineSample(const QString& marked, QWidget* parent) {
     sample->setAccessibleName(QString(marked).remove(QLatin1Char('[')).remove(QLatin1Char(']'))
                                   .remove(QLatin1Char('*')));
 
-    // The colors of the editor's waves on paper like the window
-    const bool darkPaper = parent->palette().color(QPalette::Window).lightness() < 128;
+    // The colors of the editor's waves, shown on the window
+    const QColor window = parent->palette().color(QPalette::Window);
     QTextCursor cursor(sample->document());
     QTextCharFormat plain;
     QTextCharFormat grammar;
     grammar.setUnderlineStyle(QTextCharFormat::WaveUnderline);
-    grammar.setUnderlineColor(issueColor(editor::TextIssueKind::Grammar, darkPaper));
+    grammar.setUnderlineColor(issueColorOn(editor::TextIssueKind::Grammar, window));
     QTextCharFormat spelling = grammar;
-    spelling.setUnderlineColor(issueColor(editor::TextIssueKind::Spelling, darkPaper));
+    spelling.setUnderlineColor(issueColorOn(editor::TextIssueKind::Spelling, window));
 
     // Braces are kept for the names of kinds in translated texts: a misspelled word is between
     // two asterisks
@@ -358,7 +358,7 @@ QWidget* GrammarSetupDialog::createDonePage() {
            "A sample: [a grammar issue] and *a misspelled word*, marked so"),
         page));
     auto* legend = new QHBoxLayout();
-    const bool darkPaper = palette().color(QPalette::Window).lightness() < 128;
+    const QColor window = palette().color(QPalette::Window);
     const qreal ratio = devicePixelRatioF();
     const auto addLegend = [legend, ratio](const QColor& color, const QString& text) {
         auto* wave = new QLabel();
@@ -367,9 +367,9 @@ QWidget* GrammarSetupDialog::createDonePage() {
         legend->addWidget(new QLabel(text));
         legend->addSpacing(2 * STEP_SPACING);
     };
-    addLegend(issueColor(editor::TextIssueKind::Grammar, darkPaper),
+    addLegend(issueColorOn(editor::TextIssueKind::Grammar, window),
               tr("grammar, style and punctuation"));
-    addLegend(issueColor(editor::TextIssueKind::Spelling, darkPaper), tr("spelling"));
+    addLegend(issueColorOn(editor::TextIssueKind::Spelling, window), tr("spelling"));
     legend->addStretch(1);
     layout->addLayout(legend);
 

@@ -19,6 +19,7 @@
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/grammar_coordinator.h"
+#include "kalahari/gui/issue_colors.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/panels/editor_panel.h"
@@ -26,6 +27,7 @@
 #include "kalahari/gui/panels/spelling_panel.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
+#include "kalahari/gui/utils/panel_toggle.h"
 
 #include <QAbstractButton>
 #include <QAction>
@@ -341,6 +343,13 @@ struct Desk {
         document->setContent(kmlOf(paragraphs));
         tabs->setCurrentIndex(tabs->addTab(document, QStringLiteral("Document")));
         return document->getBookEditor();
+    }
+
+    /// Open the panel as View > Panels does: its tab comes on top
+    void openPanel() {
+        REQUIRE_FALSE(utils::isPanelOpen(dock));
+        utils::togglePanel(dock);
+        QApplication::processEvents();
     }
 
     /// Run the event loop until the panel lists these issues
@@ -747,15 +756,15 @@ TEST_CASE("Spelling panel: its keys select the issues and fix the selected one, 
     CHECK_FALSE(next->isEnabled());  // the last one
 }
 
-TEST_CASE("Spelling panel: the frames of the cards follow the colors of the waves in Settings",
+TEST_CASE("Spelling panel: the frames of the cards follow the color of the waves in Settings",
           "[gui][spelling-panel][colors]") {
     auto& themes = core::ThemeManager::getInstance();
-    const std::string lightKey = editor::issueColorKey(TextIssueKind::Spelling, false);
-    const std::string darkKey = editor::issueColorKey(TextIssueKind::Spelling, true);
-    const auto clear = [&lightKey, &darkKey]() {
-        for (const std::string& key : {lightKey, darkKey}) {
-            settings().removeKey(core::ThemeManager::editorColorSetting(key));
-        }
+    const std::string setting = core::ThemeManager::editorColorSetting(
+        themes.getCurrentTheme().name, editor::issueColorKey(TextIssueKind::Spelling));
+    const std::string optimize = core::ThemeManager::OPTIMIZE_COLORS_SETTING;
+    const auto clear = [&setting, &optimize]() {
+        settings().removeKey(setting);
+        settings().removeKey(optimize);
         QApplication::processEvents();  // the theme follows the settings
     };
     clear();
@@ -780,23 +789,30 @@ TEST_CASE("Spelling panel: the frames of the cards follow the colors of the wave
         const qreal ratio = image.devicePixelRatio();
         return QColor::fromRgb(image.pixel(qRound(2 * ratio), image.height() / 2));
     };
+    // What the cards lie on
+    const QColor base = themes.getCurrentTheme().palette.base.isValid()
+                            ? themes.getCurrentTheme().palette.base
+                            : panel.palette().color(QPalette::Base);
 
-    // A color chosen for the waves on both papers: the cards of the kind are framed in it
-    const QColor chosen(QStringLiteral("#00a0ff"));
-    settings().set<std::string>(core::ThemeManager::editorColorSetting(lightKey),
-                                chosen.name().toStdString());
-    settings().set<std::string>(core::ThemeManager::editorColorSetting(darkKey),
-                                chosen.name().toStdString());
+    // A color seen well on the panel: the cards of the kind are framed in it
+    const QColor chosen(QStringLiteral("#d000d0"));
+    REQUIRE(contrastRatio(chosen, base) >= MIN_MARK_CONTRAST);
+    settings().set<std::string>(setting, chosen.name().toStdString());
     CHECK(waitUntil([&edgeColor, &chosen]() { return edgeColor() == chosen; }));
+
+    // A color hardly seen on the panel: made visible, or as set with the colors not optimized
+    const QColor faint = mixedColor(base, chosen, 0.15);
+    const QColor visible = shownColor(faint, base, true);
+    REQUIRE(visible != faint);
+    settings().set<std::string>(setting, faint.name().toStdString());
+    CHECK(waitUntil([&edgeColor, &visible]() { return edgeColor() == visible; }));
+    settings().set<bool>(optimize, false);
+    CHECK(waitUntil([&edgeColor, &faint]() { return edgeColor() == faint; }));
 
     // Back to the theme's color
     clear();
-    const bool darkPanel = panel.palette().color(QPalette::Window).lightness() < 128;
-    const QColor themeColor = themes.editorColor(darkPanel ? darkKey : lightKey, QColor());
-    CHECK(waitUntil([&edgeColor, &chosen]() { return edgeColor() != chosen; }));
-    if (themeColor.isValid()) {
-        CHECK(edgeColor() == themeColor);
-    }
+    const QColor themeColor = issueColorOn(TextIssueKind::Spelling, base);
+    CHECK(waitUntil([&edgeColor, &themeColor]() { return edgeColor() == themeColor; }));
 }
 
 // =============================================================================
@@ -813,8 +829,7 @@ TEST_CASE("Spelling panel: the misspelled words of the text in front, selected i
     Desk desk;
 
     // No text in front
-    desk.dock->show();  // opened from View > Panels
-    QApplication::processEvents();
+    desk.openPanel();
     CHECK(desk.panel->content() == SpellingPanel::Content::NoText);
     CHECK(says(*desk.panel,
                QStringLiteral("Open a book or a file to see the spelling and grammar issues.")));
@@ -876,7 +891,7 @@ TEST_CASE("Spelling panel: a fix chosen in the panel goes to the text, and the n
     REQUIRE(core::ProjectManager::getInstance().closeProject(false));
     Commands commands;
     Desk desk;
-    desk.dock->show();
+    desk.openPanel();
     editor::BookEditor* editor =
         desk.open({QStringLiteral("One mistakke here."), QStringLiteral("Two errorz there.")});
     REQUIRE(desk.lists({QStringLiteral("spelling 1 mistakke"), QStringLiteral("spelling 2 errorz")}));
@@ -927,7 +942,7 @@ TEST_CASE("Spelling panel: with the checking off it turns it on", "[gui][spellin
     REQUIRE(core::ProjectManager::getInstance().closeProject(false));
     Commands commands;
     Desk desk;
-    desk.dock->show();
+    desk.openPanel();
     desk.open({QStringLiteral("One mistakke here.")});
     CHECK(waitUntil([&desk]() {
         return desk.panel->content() == SpellingPanel::Content::NotChecked;
@@ -964,7 +979,7 @@ TEST_CASE("Spelling panel: the grammar issues with the misspelled words, the who
     CHECK_FALSE(editor->isWholeTextGrammar());  // the panel is closed
 
     // Shown: the grammar of the whole text, its issues in the order of the text
-    desk.dock->show();
+    desk.openPanel();
     CHECK(waitUntil([editor]() { return editor->isWholeTextGrammar(); }));
     REQUIRE(waitUntil(
         [&desk]() {
@@ -991,7 +1006,7 @@ TEST_CASE("Spelling panel: the grammar issues with the misspelled words, the who
     // Hidden: only around the part in view again
     desk.dock->hide();
     CHECK(waitUntil([editor]() { return !editor->isWholeTextGrammar(); }));
-    desk.dock->show();
+    desk.openPanel();
     CHECK(waitUntil([editor]() { return editor->isWholeTextGrammar(); }));
 
     // A replacement of the grammar issue goes to the text
@@ -1090,8 +1105,11 @@ TEST_CASE("Spelling panel: Next Spelling or Grammar Issue shows the panel only w
         REQUIRE(desk.coordinator->isTemporaryShow());
         editor->setFocus();
         REQUIRE(waitUntil([editor]() { return editor->hasFocus(); }));
+        // A click at the start of the second paragraph: the issue found is not selected any more
+        editor->clearSelection();
         editor->setCursorPosition({1, 0});
         press(editor, Qt::Key_X, Qt::NoModifier, QStringLiteral("x"));
+        CHECK(paragraphText(*editor, 0) == QStringLiteral("One mistakke here."));
         CHECK(paragraphText(*editor, 1) == QStringLiteral("xTwo errorz there."));
         CHECK(desk.dock->isHidden());
     }
@@ -1106,8 +1124,7 @@ TEST_CASE("Spelling panel: Next Spelling or Grammar Issue shows the panel only w
     }
 
     SECTION("the issue found is shown also when its kind was hidden in the panel") {
-        desk.dock->show();
-        QApplication::processEvents();
+        desk.openPanel();
         desk.panel->kindButton(TextIssueKind::Spelling)->click();
         REQUIRE_FALSE(desk.panel->isKindShown(TextIssueKind::Spelling));
         Desk::nextIssue();

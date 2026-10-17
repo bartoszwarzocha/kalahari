@@ -241,6 +241,12 @@ SpellingPanel::SpellingPanel(QWidget* parent)
     rebuild();
 }
 
+SpellingPanel::~SpellingPanel() {
+    // The focus leaves the cards while QWidget's destructor deletes them, after this class is
+    // gone: nothing of the program reaches a panel being destroyed
+    disconnect(qApp, &QApplication::focusChanged, this, &SpellingPanel::updateKeysInside);
+}
+
 void SpellingPanel::setContent(Content content) {
     if (content != m_content) {
         m_content = content;
@@ -390,12 +396,11 @@ void SpellingPanel::applyTheme(const core::Theme& theme) {
     const QColor highlightedText =
         themeColor(theme.palette.highlightedText, current, QPalette::HighlightedText);
 
-    // A dark panel gets the colors made for dark paper: the cards' frames are in the colors of
-    // the waves
-    const bool dark = window.lightness() < 128;
+    // The cards' frames in the colors of the waves, as "Optimize colors in themes" shows them
+    // on the panel
     std::array<IssueCardColors, 2> colors;
     for (std::size_t i = 0; i < KINDS.size(); ++i) {
-        const QColor kind = issueColor(KINDS.at(i), dark);
+        const QColor kind = issueColorOn(KINDS.at(i), base);
         colors.at(i) = issueCardColors(kind, base, text);
         m_kindButtons.at(i)->setIcon(kindDot(kind, devicePixelRatioF()));
     }
