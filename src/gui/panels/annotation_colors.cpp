@@ -67,6 +67,13 @@ QColor readableColor(const QColor& color, const QColor& background, double ratio
     return mixedColor(color, target, high);
 }
 
+QColor shownColor(const QColor& color, const QColor& background, bool optimize) {
+    if (!optimize || !color.isValid()) {
+        return color;
+    }
+    return readableColor(color, background, MIN_MARK_CONTRAST);
+}
+
 AnnotationCardColors annotationCardColors(const QColor& kindColor, const QColor& surface,
                                           const QColor& text) {
     AnnotationCardColors colors;

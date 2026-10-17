@@ -166,6 +166,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.assistant", "resources/icons/twotone/pets.svg", "Assistant");
     iconRegistry.registerIcon("view.log", "resources/icons/twotone/description.svg", "Log");
     iconRegistry.registerIcon("view.annotations", "resources/icons/twotone/comment.svg", "Annotations");
+    iconRegistry.registerIcon("view.spelling", "resources/icons/twotone/spellcheck.svg",
+                              "Spelling and Grammar");
     iconRegistry.registerIcon("view.perspectives.writer", "resources/icons/twotone/edit.svg", "Writer Perspective");
     iconRegistry.registerIcon("view.perspectives.editor", "resources/icons/twotone/rate_review.svg", "Editor Perspective");
     iconRegistry.registerIcon("view.perspectives.researcher", "resources/icons/twotone/science.svg", "Researcher Perspective");
@@ -283,6 +285,10 @@ void registerAllIcons() {
     // Dock title bar button icons (OpenSpec #00032)
     iconRegistry.registerIcon("dock.float", "resources/icons/twotone/fullscreen_exit.svg", "Float");
     iconRegistry.registerIcon("dock.close", "resources/icons/twotone/close.svg", "Close");
+    // A panel kept open (the Spelling and Grammar panel); the settings of a panel
+    iconRegistry.registerIcon("dock.pin", "resources/icons/twotone/push_pin.svg", "Keep Open");
+    iconRegistry.registerIcon("dock.settings", "resources/icons/twotone/settings.svg",
+                              "Panel Settings");
 
     // -------------------------------------------------------------------------
     // NEW ITEM DIALOG ICONS (OpenSpec #00033)

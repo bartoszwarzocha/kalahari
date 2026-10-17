@@ -10,6 +10,10 @@ namespace kalahari::gui {
 /// @brief The contrast every text of a card has with the card at least (WCAG, normal text)
 constexpr double MIN_TEXT_CONTRAST = 4.5;
 
+/// @brief The contrast an optimized color of a kind has with what it is shown on at least: of
+///        the parts of a picture one must see (WCAG, graphical objects)
+constexpr double MIN_MARK_CONTRAST = 3.0;
+
 /// @brief The colors of a card of one kind of annotation: in the Annotations panel, or the
 /// frame its text is written in
 ///
@@ -36,6 +40,14 @@ QColor mixedColor(const QColor& under, const QColor& over, double amount);
 /// @p color itself when it has it; else it is moved toward black on a light background and
 /// toward white on a dark one.
 QColor readableColor(const QColor& color, const QColor& background, double ratio);
+
+/// @brief A theme's color of a kind (a mark, a wave, a frame) as it is shown on a background
+///
+/// With "Optimize colors in themes" on (@p optimize), a color too light for a light background
+/// is darkened and one too dark for a dark background lightened, as little as gives it
+/// MIN_MARK_CONTRAST there (readableColor()); otherwise, and for an invalid color, the color
+/// itself.
+QColor shownColor(const QColor& color, const QColor& background, bool optimize);
 
 /// @brief The colors of the cards of a kind
 /// @param kindColor The kind's color (from the theme)

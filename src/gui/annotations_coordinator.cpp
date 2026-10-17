@@ -893,9 +893,9 @@ void AnnotationsCoordinator::colorFrame() {
         break;
     }
     if (!kind.isValid()) {
-        kind = core::ThemeManager::getInstance().editorColor(
-            editor::annotationColorKey(m_writing->kind, mode == editor::EditorColorMode::Dark),
-            text);
+        const auto& themes = core::ThemeManager::getInstance();
+        kind = shownColor(themes.editorColor(editor::annotationColorKey(m_writing->kind), text),
+                          paper, themes.optimizesEditorColors());
     }
     m_frame->setColors(annotationCardColors(kind, paper, text));
 }

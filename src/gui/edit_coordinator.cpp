@@ -7,6 +7,7 @@
 #include "kalahari/editor/find_replace_bar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/panels/annotations_panel.h"
+#include "kalahari/gui/panels/spelling_panel.h"
 
 #include <QAbstractItemView>
 #include <QAbstractSpinBox>
@@ -317,14 +318,16 @@ EditCoordinator::Target EditCoordinator::targetOf(QWidget* element) const {
         return target;
     }
 
-    // What is done in the find bar and in the Annotations panel are steps of the text's undo
-    // history: the text in the find bar's book, the one in front for the panel
+    // What is done in the find bar and in the Annotations and the Spelling and Grammar panels
+    // are steps of the text's undo history: the text in the find bar's book, the one in front
+    // for the panels
     for (QWidget* part = element; part != nullptr; part = part->parentWidget()) {
         if (qobject_cast<editor::FindReplaceBar*>(part) != nullptr) {
             target.history = qobject_cast<editor::BookEditor*>(part->parentWidget());
             break;
         }
-        if (qobject_cast<AnnotationsPanel*>(part) != nullptr) {
+        if (qobject_cast<AnnotationsPanel*>(part) != nullptr ||
+            qobject_cast<SpellingPanel*>(part) != nullptr) {
             target.history = m_editorInFront ? m_editorInFront() : nullptr;
             break;
         }

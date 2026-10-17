@@ -149,8 +149,25 @@ std::map<std::string, json> buildDefaults() {
         {"editor.grammarCheck.externalServer", false},
         {"editor.grammarCheck.ignoredRules", json::object()},
 
-        // Editor: colors
+        // The Spelling and Grammar panel: the fix buttons on the selected card only
+        // ("selected") or on every card ("every"); Next Spelling or Grammar Issue (F7) selects
+        // the issue in the panel ("panel") or opens its menu at the word ("menu"); while the
+        // panel is shown, the grammar of the whole text is checked ("whole") or only around the
+        // part in view ("nearby"); the panel stays open (pinned) or hides once the issues are
+        // looked through. The frames of the cards have the colors of the underlines
+        {"spellingPanel.fixButtons", "selected"},
+        {"spellingPanel.nextIssue", "panel"},
+        {"spellingPanel.grammarScope", "whole"},
+        {"spellingPanel.pinned", false},
+
+        // Editor: colors. The user's values of the theme's editor colors (the underlines of
+        // the misspelled words and grammar issues, the annotations) are kept for each theme,
+        // themes.<theme>.editor.<name in the theme's "editor" section>, without a default here:
+        // the theme file gives it (ThemeManager::editorColorSetting()). "Optimize colors in
+        // themes" shows them darker on a light background and lighter on a dark one where they
+        // are hard to see there
         {"editor.darkMode", true},
+        {"editor.colors.optimize", true},
         {"editor.colors.backgroundLight", "#ffffff"},
         {"editor.colors.textLight", "#1e1e1e"},
         {"editor.colors.inactiveLight", "#aaaaaa"},

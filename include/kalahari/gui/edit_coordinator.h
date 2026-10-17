@@ -25,9 +25,9 @@ namespace kalahari::gui {
 /// that only shows) copies and selects all; Cut, Paste, Undo and Redo do nothing there. A
 /// list copies the text of its current item, and selects all its items where it can select
 /// more than one. Where what the writer does is a step of the text's undo history, Undo and
-/// Redo work on the text: in the Annotations panel (done, removed) and in the find bar
-/// (Replace, Replace All), outside their fields. Elsewhere (a button, the Dashboard) the
-/// commands do nothing.
+/// Redo work on the text: in the Annotations panel (done, removed), in the Spelling and Grammar
+/// panel (a suggestion put in place) and in the find bar (Replace, Replace All), outside their
+/// fields. Elsewhere (a button, the Dashboard) the commands do nothing.
 ///
 /// The commands are enabled where they can do something: they follow the keys from element
 /// to element, the element's selection and text, and the clipboard.
@@ -42,7 +42,8 @@ public:
     using EditorInFront = std::function<editor::BookEditor*()>;
 
     /// @brief Constructor
-    /// @param editorInFront The text the Annotations panel changes: the one in front
+    /// @param editorInFront The text the Annotations and the Spelling and Grammar panels
+    ///        change: the one in front
     /// @param parent Parent object
     explicit EditCoordinator(EditorInFront editorInFront, QObject* parent = nullptr);
 

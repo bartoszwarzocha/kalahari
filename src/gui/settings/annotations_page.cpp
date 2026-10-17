@@ -1,10 +1,12 @@
 /// @file annotations_page.cpp
 /// @brief Settings page: Annotations
 ///
-/// The comments, to-dos and notes: who new ones are by and how large their marks in the
-/// text are (the editors follow the size by themselves: EditorPanel subscribes to it).
+/// The comments, to-dos and notes: who new ones are by, how large their marks in the text are
+/// (the editors follow the size by themselves: EditorPanel subscribes to it) and their colors
+/// (they reach the editors and the panel through the theme: ThemeManager follows them).
 
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/editor/annotation.h"
 
 #include <QFormLayout>
 #include <QLineEdit>
@@ -34,6 +36,19 @@ AnnotationsPage::AnnotationsPage(QWidget* parent)
     markSize->setToolTip(tr("Size of the marks of comments, to-dos and notes in the text "
                             "(100% suits the text's font)"));
     addField(marks, tr("Mark Size:"), markSize, "editor.annotationMarkSize");
+
+    // One color for each kind, kept for each theme
+    QFormLayout* colors = addGroup(tr("Colors"));
+    addNote(colors, tr("The colors of the annotations' marks in the text, of the frame an "
+                       "annotation is written in on the paper and of the cards in the Annotations "
+                       "panel. Each theme has its own colors: these are the colors of the current "
+                       "theme."));
+    using editor::AnnotationKind;
+    addThemeColor(colors, tr("Comment"), editor::annotationColorKey(AnnotationKind::Comment));
+    addThemeColor(colors, tr("To-do"), editor::annotationColorKey(AnnotationKind::Todo));
+    addThemeColor(colors, tr("Note"), editor::annotationColorKey(AnnotationKind::Note));
+    addOptimizeColorsCheckBox(colors);
+    addRestoreColorsButton(colors);
 
     pageLayout()->addStretch();
 }

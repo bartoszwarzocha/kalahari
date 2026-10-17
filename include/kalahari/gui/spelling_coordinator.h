@@ -7,6 +7,8 @@
 #include <QObject>
 #include <QString>
 
+#include <functional>
+
 class QStatusBar;
 class QTabWidget;
 class QTimer;
@@ -34,11 +36,19 @@ namespace kalahari::gui {
 /// Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off: the
 /// setting editor.spellCheck.enabled, also in the Settings dialog. Tools > Next Spelling or
 /// Grammar Issue (F7) selects the next misspelled word or grammar issue of the document in
-/// front and opens its context menu, so it is put right from the keyboard.
+/// front and opens its context menu, so it is put right from the keyboard; with a handler of
+/// the next issue (setNextIssueHandler()) and the setting spellingPanel.nextIssue "panel",
+/// the handler shows it instead (the Spelling and Grammar panel).
 class SpellingCoordinator : public QObject {
     Q_OBJECT
 
 public:
+    /// @brief Shows the next issue instead of its context menu
+    /// @param editor The document in front, whose issue it is
+    /// @param found Whether an issue was found (selected in @p editor); false also when the
+    ///        spelling and the grammar are not checked
+    using NextIssueHandler = std::function<void(editor::BookEditor* editor, bool found)>;
+
     /// @brief Constructor: the dictionary starts loading in the background
     /// @param centralTabs The tabs of the documents, whose editors check with the dictionary
     /// @param statusBar Where short messages about the spelling are shown (may be null)
@@ -66,6 +76,14 @@ public:
     /// @return false when there is none (true also while the grammar is being checked)
     bool goToNextIssue();
 
+    /// @brief Show the next issue with a handler instead of its context menu, while the
+    ///        setting spellingPanel.nextIssue is "panel" (none: always the menu)
+    void setNextIssueHandler(NextIssueHandler handler);
+
+    /// @brief Why the spelling of an editor's document is not checked although it is on, as
+    ///        the status bar says it: its language has no dictionary; empty otherwise
+    QString problem(const editor::BookEditor* editor) const;
+
     /// @brief The dictionary of the chapters of the book, and of every document when their
     ///        languages have the same dictionary; it keeps the writer's own words
     editor::SpellCheckService* service() const { return m_service; }
@@ -85,6 +103,10 @@ public slots:
     /// @brief Check with the dictionaries of the languages wanted now, or turn the checking
     ///        off as the setting says (after the settings or the book's language change)
     void updateDictionary();
+
+signals:
+    /// @brief What problem() says may have changed: a dictionary was loaded, or not found
+    void problemChanged();
 
 private:
     /// @brief Give the editors of the documents their dictionaries, and load the one of the
@@ -125,6 +147,8 @@ private:
     /// same for the documents outside the book
     QString m_missingLanguage;
     QString m_otherMissingLanguage;
+
+    NextIssueHandler m_nextIssueHandler;  ///< Shows the next issue instead of its menu
 };
 
 }  // namespace kalahari::gui

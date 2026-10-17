@@ -46,6 +46,7 @@ set(TEST_SOURCES
     editor/test_grammar_check_service.cpp   # Grammar: texts checked on a LanguageTool server
     editor/test_grammar.cpp                 # Grammar as you type in the editor
     editor/test_spelling.cpp                # Spelling as you type in the editor
+    editor/test_text_issues.cpp             # The misspelled words and grammar issues as one list
     editor/test_book_editor_integration.cpp # Task 7.18: Integration tests
     editor/test_buffer_commands.cpp        # Cursor position helpers
     editor/test_search_engine.cpp          # OpenSpec #00044 Task 9.4: SearchEngine tests
@@ -77,6 +78,7 @@ set(TEST_SOURCES
     gui/test_edit_coordinator.cpp                # Clipboard and undo on the element with the keys
     gui/test_toolbar_keys.cpp                    # A toolbar gives the keys back after a command
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
+    gui/test_color_settings.cpp                  # The colors of the issues and the annotations in Settings
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
     gui/test_program_instance.cpp                # A later start hands its request to the program that runs
@@ -96,6 +98,7 @@ set(TEST_SOURCES
     gui/test_kalahari_style.cpp                  # Grey menu items under the keys highlighted
     gui/test_program_folders.cpp                 # Folders of the program and the Folders page
     gui/test_spelling_coordinator.cpp            # Spelling as you type: dictionary, command, settings page
+    gui/test_spelling_panel.cpp                  # Spelling and Grammar panel: cards, counts, keys, the text in front, F7
     gui/test_grammar_coordinator.cpp             # Grammar as you type: where it is checked, command, settings page
     gui/test_grammar_components.cpp              # Java and LanguageTool: versions, downloads, folders
     gui/test_language_tool_server.cpp            # LanguageTool server: started with Java or outside, restarts
@@ -232,6 +235,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/editor_panel.cpp     # Editor panel: settings to and from its editor
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_coordinator.cpp    # Spelling as you type: the editors' dictionary
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_coordinator.cpp     # Grammar as you type: the editors' LanguageTool server
+    ${CMAKE_SOURCE_DIR}/src/gui/spelling_panel_coordinator.cpp  # The Spelling and Grammar panel and the text in front
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_components.cpp      # Grammar: Java and LanguageTool on this computer
     ${CMAKE_SOURCE_DIR}/src/gui/language_tool_server.cpp    # Grammar: the LanguageTool server the program starts
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_setup.cpp           # Grammar: Java and LanguageTool downloaded and prepared
@@ -240,6 +244,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_colors.cpp # Annotations: readable colors of cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_frame.cpp  # Annotations: the frame text is written in
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotations_panel.cpp # Annotations panel
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_panel.cpp  # Spelling and Grammar panel
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
     ${CMAKE_SOURCE_DIR}/src/gui/auto_correct_coordinator.cpp  # Auto-correct turned on and off as a whole
@@ -338,11 +344,14 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_panel_coordinator.h  # SpellingPanelCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/language_tool_server.h  # LanguageToolServer with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_setup.h  # GrammarSetup with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h  # AnnotationCard with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h  # AnnotationFrame with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h  # AnnotationsPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_panel.h  # SpellingPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
