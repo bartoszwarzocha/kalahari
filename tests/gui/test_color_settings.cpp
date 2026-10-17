@@ -1,7 +1,7 @@
 /// @file test_color_settings.cpp
 /// @brief The colors the writer can change in the Settings dialog: the waves under the
-///        misspelled words and the grammar issues, the frames of their cards in the Spelling and
-///        Grammar panel and the colors of the annotations
+///        misspelled words and the grammar issues (and the frames of their cards in the Spelling
+///        and Grammar panel) and the colors of the annotations
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -13,9 +13,9 @@
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 
-#include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QGroupBox>
 #include <QLabel>
 #include <QObject>
 #include <QPushButton>
@@ -33,7 +33,7 @@ using kalahari::editor::TextIssueKind;
 
 namespace {
 
-/// No color of the writer's while it lives: the theme's colors, the frames in the underlines'
+/// No color of the writer's while it lives: the theme's colors
 class ThemeColorsOnly {
 public:
     ThemeColorsOnly() { clear(); }
@@ -46,11 +46,6 @@ private:
         auto& settings = SettingsManager::getInstance();
         for (const auto& [key, color] : ThemeManager::getInstance().getCurrentTheme().editor) {
             settings.removeKey(ThemeManager::editorColorSetting(key));
-        }
-        for (const TextIssueKind kind : {TextIssueKind::Spelling, TextIssueKind::Grammar}) {
-            for (const bool dark : {false, true}) {
-                settings.removeKey(issueFrameColorSetting(kind, dark));
-            }
         }
         QCoreApplication::processEvents();  // The theme follows the settings
     }
@@ -71,6 +66,17 @@ QWidget* openPage(SettingsDialog& dialog, const QString& category, const QString
     }
     FAIL("No page " << title.toStdString());
     return nullptr;
+}
+
+/// The colors of a page's group with a title
+QList<ColorConfigWidget*> colorsOfGroup(QWidget* page, const QString& title) {
+    for (QGroupBox* group : page->findChildren<QGroupBox*>()) {
+        if (group->title() == title) {
+            return group->findChildren<ColorConfigWidget*>();
+        }
+    }
+    FAIL("No group " << title.toStdString());
+    return {};
 }
 
 /// The color of a page with a label
@@ -121,8 +127,7 @@ TEST_CASE("Settings: the colors of the misspelled words, on the Spelling page",
     const std::string lightKey = kalahari::editor::issueColorKey(TextIssueKind::Spelling, false);
     const std::string darkKey = kalahari::editor::issueColorKey(TextIssueKind::Spelling, true);
     const std::string lightSetting = ThemeManager::editorColorSetting(lightKey);
-    const std::string frameLightSetting = issueFrameColorSetting(TextIssueKind::Spelling, false);
-    const std::string frameDarkSetting = issueFrameColorSetting(TextIssueKind::Spelling, true);
+    const std::string darkSetting = ThemeManager::editorColorSetting(darkKey);
     REQUIRE(themeColor(lightKey).isValid());
     REQUIRE(themeColor(darkKey).isValid());
 
@@ -130,19 +135,13 @@ TEST_CASE("Settings: the colors of the misspelled words, on the Spelling page",
     QWidget* page = openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Spelling"));
     ColorConfigWidget* light = colorNamed(page, QStringLiteral("Underline on light paper"));
     ColorConfigWidget* dark = colorNamed(page, QStringLiteral("Underline on dark paper"));
-    ColorConfigWidget* frameLight = colorNamed(page, QStringLiteral("Frame in a light panel"));
-    ColorConfigWidget* frameDark = colorNamed(page, QStringLiteral("Frame in a dark panel"));
-    auto* own = namedChild<QCheckBox>(page, QStringLiteral("Own color of the cards' frames in the panel"));
     auto* restore = namedChild<QPushButton>(page, QStringLiteral("Restore Default Colors"));
 
-    // The theme's colors; the frames in the underlines' colors, not to be changed by themselves
+    // The theme's colors, one for each paper: the frames of the cards in the panel have them
+    // too, without colors of their own
     CHECK(light->color() == themeColor(lightKey));
     CHECK(dark->color() == themeColor(darkKey));
-    CHECK_FALSE(own->isChecked());
-    CHECK_FALSE(frameLight->isEnabled());
-    CHECK_FALSE(frameDark->isEnabled());
-    CHECK(frameLight->color() == light->color());
-    CHECK(frameDark->color() == dark->color());
+    CHECK(colorsOfGroup(page, QStringLiteral("Colors")).size() == 2);
     CHECK_FALSE(dialog.hasChanges());
 
     int themeChanges = 0;
@@ -150,20 +149,19 @@ TEST_CASE("Settings: the colors of the misspelled words, on the Spelling page",
     QObject::connect(&themes, &ThemeManager::themeChanged, &guard,
                      [&themeChanges]() { ++themeChanges; });
 
-    SECTION("a new underline color reaches the editors, the frames follow it") {
+    SECTION("a new underline color reaches the editors and the panel") {
         const QColor chosen(QStringLiteral("#123456"));
         pick(light, chosen);
-        CHECK(frameLight->color() == chosen);
         CHECK(dialog.hasChanges());
         CHECK(dialog.applyChanges() == QStringList{QString::fromStdString(lightSetting)});
         CHECK(stored(lightSetting) == "#123456");
-        CHECK_FALSE(settings.hasKey(frameLightSetting));
 
         QCoreApplication::processEvents();
         CHECK(themeChanges == 1);
         CHECK(themes.editorColor(lightKey, QColor()) == chosen);
         CHECK(issueColor(TextIssueKind::Spelling, false) == chosen);
-        CHECK(issueFrameColor(TextIssueKind::Spelling, false) == chosen);
+        // The dark paper keeps its color
+        CHECK(issueColor(TextIssueKind::Spelling, true) == themeColor(darkKey));
 
         // The theme's own color again: nothing is kept, the theme decides it
         pick(light, themeColor(lightKey));
@@ -173,67 +171,21 @@ TEST_CASE("Settings: the colors of the misspelled words, on the Spelling page",
         CHECK(themes.editorColor(lightKey, QColor()) == themeColor(lightKey));
     }
 
-    SECTION("the frames can have their own colors") {
-        own->click();
-        CHECK(frameLight->isEnabled());
-        CHECK(frameDark->isEnabled());
-        // They start from the underlines' colors
-        CHECK(frameLight->color() == light->color());
-        CHECK(frameDark->color() == dark->color());
-
-        const QColor green(QStringLiteral("#43a047"));
-        pick(frameDark, green);
-        const QStringList written = dialog.applyChanges();
-        CHECK(written.size() == 2);
-        CHECK(written.contains(QString::fromStdString(frameLightSetting)));
-        CHECK(written.contains(QString::fromStdString(frameDarkSetting)));
-        CHECK(stored(frameDarkSetting) == "#43a047");
-        CHECK(QColor(QString::fromStdString(stored(frameLightSetting))) == themeColor(lightKey));
-        CHECK(issueFrameColor(TextIssueKind::Spelling, true) == green);
-        // The underline keeps its color
-        CHECK(issueColor(TextIssueKind::Spelling, true) == themeColor(darkKey));
-
-        // A new underline color leaves the own frames as they are
-        pick(dark, QColor(QStringLiteral("#ff00ff")));
-        CHECK(frameDark->color() == green);
-
-        // Opened again: the own colors are shown as such
-        SettingsDialog again(nullptr);
-        QWidget* pageAgain = openPage(again, QStringLiteral("Editor"), QStringLiteral("Spelling"));
-        CHECK(namedChild<QCheckBox>(pageAgain, QStringLiteral("Own color of the cards' frames in the panel"))
-                  ->isChecked());
-        CHECK(colorNamed(pageAgain, QStringLiteral("Frame in a dark panel"))->color() == green);
-        CHECK_FALSE(again.hasChanges());
-
-        // Without their own colors again, the frames take the underlines' ones
-        own->click();
-        CHECK(frameDark->color() == dark->color());
-        dialog.applyChanges();
-        CHECK_FALSE(settings.hasKey(frameLightSetting));
-        CHECK_FALSE(settings.hasKey(frameDarkSetting));
-        QCoreApplication::processEvents();  // The theme follows the underline's new color
-        CHECK(issueFrameColor(TextIssueKind::Spelling, true) == QColor(QStringLiteral("#ff00ff")));
-    }
-
     SECTION("the default colors come back with a button") {
         pick(light, QColor(QStringLiteral("#123456")));
-        own->click();
-        pick(frameLight, QColor(QStringLiteral("#654321")));
+        pick(dark, QColor(QStringLiteral("#654321")));
         dialog.applyChanges();
         REQUIRE(settings.hasKey(lightSetting));
-        REQUIRE(settings.hasKey(frameLightSetting));
+        REQUIRE(settings.hasKey(darkSetting));
 
         restore->click();
         CHECK(light->color() == themeColor(lightKey));
-        CHECK_FALSE(own->isChecked());
-        CHECK_FALSE(frameLight->isEnabled());
-        CHECK(frameLight->color() == themeColor(lightKey));
+        CHECK(dark->color() == themeColor(darkKey));
         // Shown only: Apply and OK keep them, as any change
         CHECK(settings.hasKey(lightSetting));
         dialog.applyChanges();
         CHECK_FALSE(settings.hasKey(lightSetting));
-        CHECK_FALSE(settings.hasKey(frameLightSetting));
-        CHECK_FALSE(settings.hasKey(frameDarkSetting));
+        CHECK_FALSE(settings.hasKey(darkSetting));
     }
 }
 
@@ -251,6 +203,7 @@ TEST_CASE("Settings: the colors of the grammar issues, on the Grammar page",
     CHECK(light->color() ==
           themeColor(kalahari::editor::issueColorKey(TextIssueKind::Grammar, false)));
     CHECK(dark->color() == themeColor(darkKey));
+    CHECK(colorsOfGroup(page, QStringLiteral("Colors")).size() == 2);
     CHECK_FALSE(dialog.hasChanges());
 
     pick(dark, QColor(QStringLiteral("#00a0ff")));
@@ -262,17 +215,10 @@ TEST_CASE("Settings: the colors of the grammar issues, on the Grammar page",
     CHECK(issueColor(TextIssueKind::Spelling, true) ==
           themeColor(kalahari::editor::issueColorKey(TextIssueKind::Spelling, true)));
 
-    // The frames of the grammar's cards, by themselves
-    namedChild<QCheckBox>(page, QStringLiteral("Own color of the cards' frames in the panel"))->click();
-    pick(colorNamed(page, QStringLiteral("Frame in a light panel")), QColor(QStringLiteral("#aa5500")));
-    dialog.applyChanges();
-    CHECK(issueFrameColor(TextIssueKind::Grammar, false) == QColor(QStringLiteral("#aa5500")));
-    CHECK_FALSE(settings.hasKey(issueFrameColorSetting(TextIssueKind::Spelling, false)));
-
     namedChild<QPushButton>(page, QStringLiteral("Restore Default Colors"))->click();
+    CHECK(dark->color() == themeColor(darkKey));
     dialog.applyChanges();
     CHECK_FALSE(settings.hasKey(darkSetting));
-    CHECK_FALSE(settings.hasKey(issueFrameColorSetting(TextIssueKind::Grammar, false)));
 }
 
 TEST_CASE("Settings: the colors of the annotations, on the Annotations page",

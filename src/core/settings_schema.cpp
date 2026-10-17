@@ -154,16 +154,11 @@ std::map<std::string, json> buildDefaults() {
         // the issue in the panel ("panel") or opens its menu at the word ("menu"); while the
         // panel is shown, the grammar of the whole text is checked ("whole") or only around the
         // part in view ("nearby"); the panel stays open (pinned) or hides once the issues are
-        // looked through. The cards' own frame colors in a light and in a dark panel
-        // ("#rrggbb"); empty: the color of the underline
+        // looked through. The frames of the cards have the colors of the underlines
         {"spellingPanel.fixButtons", "selected"},
         {"spellingPanel.nextIssue", "panel"},
         {"spellingPanel.grammarScope", "whole"},
         {"spellingPanel.pinned", false},
-        {"spellingPanel.frameColors.spellingLight", ""},
-        {"spellingPanel.frameColors.spellingDark", ""},
-        {"spellingPanel.frameColors.grammarLight", ""},
-        {"spellingPanel.frameColors.grammarDark", ""},
 
         // Editor: colors. The user's values of the theme's editor colors (the underlines of
         // the misspelled words and grammar issues, the annotations) are editor.colors.<name in

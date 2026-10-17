@@ -5430,8 +5430,8 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Kolory</translation>
     </message>
     <message>
-        <source>The wavy line under a grammar issue has one color on the light paper and another on the dark one (View &gt; Dark Paper). The cards in the Spelling and Grammar panel have frames of the same color - in a light panel as on the light paper, in a dark one as on the dark paper - unless you give them their own.</source>
-        <translation>Falista linia pod błędem gramatyki ma jeden kolor na jasnym papierze, a inny na ciemnym (Widok &gt; Ciemny papier). Karty w panelu „Pisownia i gramatyka” mają ramki w tym samym kolorze – w jasnym panelu jak na jasnym papierze, w ciemnym jak na ciemnym – chyba że nadasz im własny.</translation>
+        <source>The wavy line under a grammar issue has one color on the light paper and another on the dark one (View &gt; Dark Paper). The cards in the Spelling and Grammar panel have frames of the same color: in a light panel as on the light paper, in a dark one as on the dark paper.</source>
+        <translation>Falista linia pod błędem gramatyki ma jeden kolor na jasnym papierze, a inny na ciemnym (Widok &gt; Ciemny papier). Karty w panelu „Pisownia i gramatyka” mają ramki w tym samym kolorze: w jasnym panelu jak na jasnym papierze, w ciemnym jak na ciemnym.</translation>
     </message>
 </context>
 <context>
@@ -5668,8 +5668,8 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Kolory</translation>
     </message>
     <message>
-        <source>The wavy line under a misspelled word has one color on the light paper and another on the dark one (View &gt; Dark Paper). The cards in the Spelling and Grammar panel have frames of the same color - in a light panel as on the light paper, in a dark one as on the dark paper - unless you give them their own.</source>
-        <translation>Falista linia pod błędem pisowni ma jeden kolor na jasnym papierze, a inny na ciemnym (Widok &gt; Ciemny papier). Karty w panelu „Pisownia i gramatyka” mają ramki w tym samym kolorze – w jasnym panelu jak na jasnym papierze, w ciemnym jak na ciemnym – chyba że nadasz im własny.</translation>
+        <source>The wavy line under a misspelled word has one color on the light paper and another on the dark one (View &gt; Dark Paper). The cards in the Spelling and Grammar panel have frames of the same color: in a light panel as on the light paper, in a dark one as on the dark paper.</source>
+        <translation>Falista linia pod błędem pisowni ma jeden kolor na jasnym papierze, a inny na ciemnym (Widok &gt; Ciemny papier). Karty w panelu „Pisownia i gramatyka” mają ramki w tym samym kolorze: w jasnym panelu jak na jasnym papierze, w ciemnym jak na ciemnym.</translation>
     </message>
     <message>
         <source>Spelling and Grammar Panel</source>
@@ -7554,18 +7554,6 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Underline on dark paper</source>
         <translation>Podkreślenie na ciemnym papierze</translation>
-    </message>
-    <message>
-        <source>Own color of the cards&apos; frames in the panel</source>
-        <translation>Własny kolor ramek kart w panelu</translation>
-    </message>
-    <message>
-        <source>Frame in a light panel</source>
-        <translation>Ramka w jasnym panelu</translation>
-    </message>
-    <message>
-        <source>Frame in a dark panel</source>
-        <translation>Ramka w ciemnym panelu</translation>
     </message>
     <message>
         <source>Restore Default Colors</source>

@@ -58,7 +58,7 @@ struct IssueCardColors {
 };
 
 /// @brief The colors of the cards of a kind of issue: every text readable on the card
-/// @param kindColor The color of the kind's cards (issueFrameColor()): their frame and bar
+/// @param kindColor The kind's color (issueColor()): the frame and the bar of its cards
 /// @param surface What the cards lie on: the panel's base
 /// @param text The color of the text on it
 IssueCardColors issueCardColors(const QColor& kindColor, const QColor& surface,

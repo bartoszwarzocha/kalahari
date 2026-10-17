@@ -146,8 +146,7 @@ protected:
                                      const std::string& themeKey);
 
     /// @brief Add the colors of a kind of issue: its underline on the light and on the dark
-    ///        paper, and the frames of its cards in the Spelling and Grammar panel, in the
-    ///        underline's colors unless they are given their own
+    ///        paper, which the frames of its cards in the Spelling and Grammar panel have too
     void addIssueColors(QFormLayout* form, editor::TextIssueKind kind);
 
     /// @brief Add a button that shows the default colors of the colors added since the last

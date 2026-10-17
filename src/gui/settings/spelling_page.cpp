@@ -144,9 +144,8 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
     QFormLayout* colors = addGroup(tr("Colors"));
     addNote(colors, tr("The wavy line under a misspelled word has one color on the light paper "
                        "and another on the dark one (View > Dark Paper). The cards in the "
-                       "Spelling and Grammar panel have frames of the same color - in a light "
-                       "panel as on the light paper, in a dark one as on the dark paper - unless "
-                       "you give them their own."));
+                       "Spelling and Grammar panel have frames of the same color: in a light "
+                       "panel as on the light paper, in a dark one as on the dark paper."));
     addIssueColors(colors, editor::TextIssueKind::Spelling);
     addRestoreColorsButton(colors);
 

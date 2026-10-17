@@ -12,16 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Settings: the colors of the misspelled words, the grammar issues and the annotations** -
-  2026-10-17. Settings > Editor > Spelling and Editor > Grammar have the group Colors: the
-  wavy line under a misspelled word or a grammar issue on the light and on the dark paper
-  (View > Dark Paper), and the frames of their cards in the Spelling and Grammar panel, in the
-  underline's colors unless "Own color of the cards' frames in the panel" gives them their own,
-  in a light and in a dark panel. Settings > Annotations has the colors of the comments, the
-  to-dos and the notes on each paper: of their marks in the text, of the frame they are
-  written in and of their cards in the Annotations panel. Each group has the button Restore
-  Default Colors. Until changed, the colors are the theme's; a changed one stays whatever the
-  theme, as the paper does not follow the theme, and reaches the open editors and panels with
-  Apply or OK.
+  2026-10-17. Settings > Editor > Spelling and Editor > Grammar have the group Colors: the wavy
+  line under a misspelled word or a grammar issue on the light and on the dark paper (View >
+  Dark Paper), which is also the color of the frames of their cards in the Spelling and Grammar
+  panel (a light panel has the colors of the light paper, a dark one those of the dark paper).
+  Settings > Annotations has the colors of the comments, the to-dos and the notes on each paper:
+  of their marks in the text, of the frame they are written in and of their cards in the
+  Annotations panel. Each group has the button Restore Default Colors. Until changed, the colors
+  are the theme's; a changed one stays whatever the theme, as the paper does not follow the
+  theme, and reaches the open editors and panels with Apply or OK.
 
 - **New Book: only the book types the program has** - 2026-10-17. The New Book window lists
   the types whose packages the program has, and the user project; a type without its package
