@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Dashboard: an X on the card of a recent book** - 2026-10-19. A small X in the top right
+  corner of each card takes the book off the recent books ("Remove from the recent books (the
+  file stays on the disk)"); its file stays where it is. "Open last book on startup" opens
+  the book opened last while it is on the list, else the first of the list.
+
+- **Navigator: Move Up and Move Down leave a part and a section** - 2026-10-19. The first
+  chapter of a part goes up before the part, the last one down after it, and an element at
+  the start or the end of a section goes to the nearest section before or after it where its
+  kind can be (the table of contents from the back matter to the front matter). When an
+  element has no other place in the book, as the only chapter of a novel without parts,
+  Move..., Move to Start, Move Up, Move Down and Move to End are greyed out and their tooltip
+  says why: "The book has no other place for the chapter."
+
 - **The Spelling and Grammar panel** - 2026-10-17. View > Panels > Spelling and Grammar opens
   a panel, a tab next to Annotations, with the misspelled words and the grammar issues of the
   chapter or the file in front as cards, in the order of the text: the kind, the paragraph and
@@ -86,7 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   along, and the Import Project Archive window names the type and the kinds of its book after
   them, the type greyed out. A card of a recent book on the Dashboard stays as long as the
   book's file is there; while the program does not have its type, the type and its icon are
-  greyed out. A new book of a type that is not installed is not created, and the message says
+  greyed out, and the type says the book opens read-only: "Novel (read-only)". A new book of a type that is not installed is not created, and the message says
   so: "The book ... cannot be created: the book type ... is not installed."
 
 - **A book open read-only: the window says why, reads it and changes nothing** - 2026-10-17.
@@ -106,8 +119,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in it. The Properties panel has the row Type, greyed out for a type the program does not
   have, and its fields are only read. The Annotations panel shows the annotations: their
   check boxes and menus are greyed out, Space and Delete do nothing, and editing one shows its
-  place and its card. New File makes a file outside the book, which the book does not take
-  (Add to Book greyed out). The tabs and the Navigator show the icons of the kinds the
+  place and its card. New File makes a file outside the book, which the book does not take:
+  the bar at the bottom of the new file has Save As... in place of Add to Book, as it has
+  while no book is open. The tabs and the Navigator show the icons of the kinds the
   program does not have from the book's cards. The project database (the places of the
   cursor, the statistics of writing) is still written: it is the program's, not the book's.
 

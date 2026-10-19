@@ -972,6 +972,24 @@ TEST_CASE("New File: without a book, an untitled file saved where the writer cho
     test::write(*story, QStringLiteral("Once upon a time there was a storm"));
     CHECK(savingAs([&window]() { window.documents.onSaveDocument(); }, path, nullptr) == 0);
     CHECK(window.tabs->tabText(0) == QStringLiteral("Story.kchapter"));
+
+    // The bar of a new file saves it as well, as no book can take it (test report of
+    // 17 October, part 8)
+    window.tabs->setCurrentIndex(1);
+    auto* button = window.infoBar->findChild<QPushButton*>();
+    REQUIRE(button != nullptr);
+    CHECK(button->isEnabled());
+    CHECK(button->text() == QStringLiteral("Save As..."));
+    CHECK(button->toolTip() == QStringLiteral("Save the new file on the disk"));
+    const QString notes = QDir(folder.path()).filePath(QStringLiteral("Notes.kchapter"));
+    CHECK(savingAs([button]() { button->click(); }, notes, nullptr) == 1);
+    CHECK(QFileInfo::exists(notes));
+    CHECK(window.tabs->tabText(1) == QStringLiteral("Notes.kchapter"));
+
+    // Saved, it is a file on the disk that only an open book can take
+    CHECK(button->text() == QStringLiteral("Add to Book..."));
+    CHECK_FALSE(button->isEnabled());
+    CHECK(button->toolTip() == QStringLiteral("No book is open"));
 }
 
 TEST_CASE("New File: Add to Book puts a new file into the open book at once, asking nothing",
@@ -1000,12 +1018,13 @@ TEST_CASE("New File: Add to Book puts a new file into the open book at once, ask
     gui::EditorPanel* file = window.editor(0);
     QObject::connect(file, &QObject::destroyed, [&fileClosed]() { fileClosed = true; });
     test::write(*file, QStringLiteral("Ideas for a new book"));
-    // Without a book the file can go into none: the button of its info bar is greyed out
-    // (round 3 report 19.2)
+    // Without a book the file can go into none: the button of its info bar saves it on the
+    // disk (round 3 report 19.2; test report of 17 October, part 8)
     CHECK_FALSE(window.infoBar->isHidden());
     auto* button = window.infoBar->findChild<QPushButton*>();
     REQUIRE(button != nullptr);
-    CHECK_FALSE(button->isEnabled());
+    CHECK(button->isEnabled());
+    CHECK(button->text() == QStringLiteral("Save As..."));
     REQUIRE(test::accepting([&]() { window.documents.onOpenRecentFile(manifest); }) == 0);
     REQUIRE(pm.isProjectOpen());
     window.tabs->setCurrentWidget(file);

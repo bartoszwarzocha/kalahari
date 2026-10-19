@@ -64,7 +64,9 @@ public:
     QString filePath() const { return m_filePath; }
 
     /// @brief Whether a book is open: without one the file can go into none, so the button is
-    /// greyed out and its tooltip says why; nor into a book open read-only (@p readOnly)
+    /// greyed out and its tooltip says why; nor into a book open read-only (@p readOnly). A new
+    /// file (setFilePath() with an empty path) is then saved on the disk: the button says
+    /// "Save As..." (saveAsClicked())
     void setBookOpen(bool open, bool readOnly = false);
 
     /// @brief Say why the open book is read-only, @p message, with a button that exports its
@@ -83,9 +85,21 @@ signals:
     /// clicked (showReadOnlyBook())
     void exportArchiveClicked();
 
+    /// @brief Emitted when the button of a new file that no book can take, "Save As...", is
+    /// clicked (setBookOpen())
+    void saveAsClicked();
+
 private:
+    /// Whether the button saves a new file that no book can take ("Save As...")
+    bool savesAs() const;
+
+    /// The text, the state and the tooltip of the button for the file and the book
+    void updateAction();
+
     QString m_filePath;         ///< Path to the standalone file
     bool m_readOnlyBook = false;  ///< It says that the open book is read-only
+    bool m_bookOpen = true;       ///< A book is open (setBookOpen())
+    bool m_bookReadOnly = false;  ///< The open book is read-only (setBookOpen())
 };
 
 } // namespace gui

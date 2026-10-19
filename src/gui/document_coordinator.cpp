@@ -142,6 +142,9 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
     // A book open read-only can be exported, to a program that has its type
     connect(m_standaloneInfoBar, &StandaloneInfoBar::exportArchiveClicked, this,
             &DocumentCoordinator::onExportArchive);
+    // A new file that no book can take is saved on the disk
+    connect(m_standaloneInfoBar, &StandaloneInfoBar::saveAsClicked, this,
+            &DocumentCoordinator::onSaveAsDocument);
     connect(m_navigatorPanel, &NavigatorPanel::standaloneFileSelected,
             this, &DocumentCoordinator::openStandaloneFile);
     connect(m_navigatorPanel, &NavigatorPanel::requestAddToProject,

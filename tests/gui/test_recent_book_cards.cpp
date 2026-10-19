@@ -6,16 +6,22 @@
 #include <kalahari/core/icon_registry.h>
 #include <kalahari/core/package_card.h>
 #include <kalahari/core/recent_books_manager.h>
+#include <kalahari/core/settings_manager.h>
 #include <kalahari/core/theme_manager.h>
+#include <kalahari/gui/kind_names.h>
 #include <kalahari/gui/panels/dashboard_panel.h>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
 #include <QTemporaryDir>
 #include <QTextDocumentFragment>
+#include <QToolButton>
+#include <QTranslator>
 
 #include <algorithm>
 #include <cstdio>
@@ -173,7 +179,7 @@ TEST_CASE("Dashboard: the card of a recent book shows its title, author and type
     // Without a title the card has the name of the file
     card = cardOf(panel, saga);
     CHECK(card.title == QStringLiteral("Saga"));
-    CHECK(card.description == QStringLiteral("Jan Kowalski | acme.saga (not in the program)"));
+    CHECK(card.description == QStringLiteral("Jan Kowalski | acme.saga (read-only)"));
     CHECK(card.iconId == QStringLiteral("template.novel"));
     CHECK(card.typeGreyed);
 
@@ -196,7 +202,7 @@ TEST_CASE("Dashboard: without recent books the list says so", "[gui][dashboard]"
 }
 
 TEST_CASE("Dashboard: a book whose type the program does not have is named after its card, "
-          "greyed out",
+          "greyed out, read-only",
           "[gui][dashboard]") {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
@@ -231,7 +237,7 @@ TEST_CASE("Dashboard: a book whose type the program does not have is named after
     const gui::DashboardPanel panel;
     const Card shown = cardOf(panel, saga);
     CHECK(shown.title == QStringLiteral("Winter"));
-    CHECK(shown.description == QStringLiteral("Jan Kowalski | Family Saga (not in the program)"));
+    CHECK(shown.description == QStringLiteral("Jan Kowalski | Family Saga (read-only)"));
     CHECK(shown.iconId == QStringLiteral("acme.saga.tree"));
     CHECK(shown.hasIcon);
 
@@ -241,6 +247,21 @@ TEST_CASE("Dashboard: a book whose type the program does not have is named after
         core::ThemeManager::getInstance().getCurrentTheme().palette.placeholderText.name();
     CHECK(shown.descriptionMarkup.startsWith(QStringLiteral("Jan Kowalski | <span")));
     CHECK(shown.descriptionMarkup.contains(grey));
+
+    // In Polish, the name of the type is the Polish one on its card (test report of
+    // 17 October, part 2: "tylko do odczytu", not "nie ma w programie")
+    {
+        QTranslator polish;
+        REQUIRE(polish.load(QStringLiteral(":/i18n/kalahari_pl.qm")));
+        QCoreApplication::installTranslator(&polish);
+        gui::setProgramLanguage(QStringLiteral("pl"));
+        const gui::DashboardPanel polishPanel;
+        const Card polishCard = cardOf(polishPanel, saga);
+        gui::setProgramLanguage(QStringLiteral("en"));
+        QCoreApplication::removeTranslator(&polish);
+        CHECK(polishCard.description ==
+              QStringLiteral("Jan Kowalski | Saga rodzinna (tylko do odczytu)"));
+    }
 
     // A book of a type the program has is not greyed out
     QFile::remove(saga);
@@ -253,4 +274,68 @@ TEST_CASE("Dashboard: a book whose type the program does not have is named after
     CHECK(novel.description == QStringLiteral("Jan Kowalski | Novel"));
     CHECK_FALSE(novel.typeGreyed);
     CHECK(novel.descriptionMarkup == novel.description);
+}
+
+TEST_CASE("Dashboard: the X of a recent book's card takes the book off the list, its file stays",
+          "[gui][dashboard]") {
+    // Test report of 17 October, part 18
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QDir root(dir.path());
+    const QString rain = root.filePath(QStringLiteral("Rain/Rain.klh"));
+    const QString snow = root.filePath(QStringLiteral("Snow/Snow.klh"));
+    REQUIRE(root.mkpath(QStringLiteral("Rain")));
+    REQUIRE(root.mkpath(QStringLiteral("Snow")));
+    REQUIRE(project(QStringLiteral("kalahari.novel"), QStringLiteral("Rain"),
+                    QStringLiteral("Anna Nowak"))
+                .save(rain));
+    REQUIRE(project(QStringLiteral("kalahari.novel"), QStringLiteral("Snow"),
+                    QStringLiteral("Anna Nowak"))
+                .save(snow));
+
+    // "Rain" is the book opened last, so the one opened at startup
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string lastBook = settings.get<std::string>("startup.lastBook");
+    settings.set<std::string>("startup.lastBook", rain.toStdString());
+    const RecentBooks recent({rain, snow});
+    auto& books = core::RecentBooksManager::getInstance();
+    REQUIRE(books.lastOpenedBook() == rain);
+
+    gui::DashboardPanel panel;
+    int opened = 0;
+    QObject::connect(&panel, &gui::DashboardPanel::openRecentBookRequested,
+                     [&opened](const QString&) { ++opened; });
+    const auto cardsShown = [&panel]() {
+        QStringList paths;
+        for (const QWidget* card :
+             panel.findChildren<QWidget*>(QStringLiteral("recentFileCard"))) {
+            paths << card->property("filePath").toString();
+        }
+        return paths;
+    };
+    REQUIRE(cardsShown() == QStringList({rain, snow}));
+
+    // Each card has its X, with a tooltip that says the file stays
+    QToolButton* remove = nullptr;
+    for (QWidget* card : panel.findChildren<QWidget*>(QStringLiteral("recentFileCard"))) {
+        auto* button = card->findChild<QToolButton*>(QStringLiteral("recentBookRemove"));
+        REQUIRE(button != nullptr);
+        CHECK(button->toolTip() ==
+              QStringLiteral("Remove from the recent books (the file stays on the disk)"));
+        if (card->property("filePath").toString() == rain) {
+            remove = button;
+        }
+    }
+    REQUIRE(remove != nullptr);
+
+    // The book leaves the list and its card, its file stays, and nothing opens; the book opened
+    // at startup is now the first of the list
+    remove->click();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    CHECK(books.getRecentFiles() == QStringList{snow});
+    CHECK(cardsShown() == QStringList{snow});
+    CHECK(QFileInfo::exists(rain));
+    CHECK(opened == 0);
+    CHECK(books.lastOpenedBook() == snow);
+    settings.set<std::string>("startup.lastBook", lastBook);
 }
