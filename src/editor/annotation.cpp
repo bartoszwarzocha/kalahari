@@ -613,8 +613,15 @@ AnnotationList removeForReplacement(QTextCursor& cursor) {
     return fragments;
 }
 
-void insertKeepingAnnotations(QTextCursor& cursor, const QString& text,
+void insertKeepingAnnotations(QTextCursor& cursor, const QString& source,
                               const QTextCharFormat& typed) {
+    // The object replacement character is the editor's mark of an object: in plain text it
+    // would be an object without a kind
+    QString text = source;
+    text.remove(QChar::ObjectReplacementCharacter);
+    if (text.isEmpty() && !cursor.hasSelection()) {
+        return;
+    }
     if (isAtObject(cursor)) {
         // The text gets a paragraph of its own next to the object: one undo step
         cursor.beginEditBlock();

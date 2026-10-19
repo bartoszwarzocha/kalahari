@@ -13,6 +13,7 @@
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_keys.h>
 #include "editor_test_utils.h"
 
 #include <QCoreApplication>
@@ -419,6 +420,43 @@ TEST_CASE("Objects: selections that end at them", "[editor][objects]") {
         select(*editor, {0, 1}, {1, 0});
         editor->cut();
         REQUIRE(editor->toKml() == kml(QStringLiteral("<p>a</p><hr/><h2>cd</h2>")));
+    }
+}
+
+TEST_CASE("Objects: they have no text", "[editor][objects]") {
+    SECTION("Copied: the KML keeps the object, the plain text has an empty line for it") {
+        auto editor = editorWith(kml(QStringLiteral("<p>ab</p><hr/><p>cd</p>")));
+        select(*editor, {0, 0}, {2, 2});
+        const std::unique_ptr<QMimeData> data = editor->createMimeDataFromSelection();
+        REQUIRE(data != nullptr);
+        REQUIRE(data->text() == QStringLiteral("ab\n\ncd"));
+        REQUIRE(QString::fromUtf8(data->data(QString::fromLatin1(MIME_KML))) ==
+                kml(QStringLiteral("<p>ab</p><hr/><p>cd</p>")));
+    }
+
+    SECTION("The mark of an object in plain text is left out") {
+        auto editor = editorWith(kml(QStringLiteral("<p>ab</p><hr/>")), {0, 1});
+        editor->insertText(QStringLiteral("x\uFFFCy"));
+        REQUIRE(editor->toKml() == kml(QStringLiteral("<p>axyb</p><hr/>")));
+        REQUIRE(editor->paragraphPlainText(0) == QStringLiteral("axyb"));
+
+        QMimeData data;
+        data.setText(QString(QChar(QChar::ObjectReplacementCharacter)));
+        editor->setCursorPosition({1, 1});
+        editor->insertFromMimeData(&data);
+        REQUIRE(editor->toKml() == kml(QStringLiteral("<p>axyb</p><hr/>")));
+        REQUIRE(editor->paragraphCount() == 2);
+    }
+
+    SECTION("Killed with Control+K and typed back with Control+Y (macOS)") {
+        auto editor = editorWith(kml(QStringLiteral("<p>ab</p><hr/><p>cd</p>")), {1, 0});
+        editor->performTextKey(TextKeyAction::KillToParagraphEnd);
+        const QString killed = editor->toKml();
+        editor->setCursorPosition({0, 1});
+        editor->performTextKey(TextKeyAction::Yank);
+        INFO(killed.toStdString() + " / " + editor->toKml().toStdString());
+        REQUIRE_FALSE(editor->plainText().contains(QChar(QChar::ObjectReplacementCharacter)));
+        REQUIRE(editor->toKml() == killed);
     }
 }
 

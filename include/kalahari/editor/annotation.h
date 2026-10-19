@@ -202,7 +202,9 @@ AnnotationList removeForReplacement(QTextCursor& cursor);
 /// next); replacing a selection, it also joins the fragments the whole selection belongs
 /// to, and the other annotations of the selection stay on its place. A line break ("\n")
 /// starts a new paragraph. Without a selection, consecutive calls make one undo step, as
-/// typing does. Next to an object the text goes into a new paragraph (leaveObject()).
+/// typing does. Next to an object the text goes into a new paragraph (leaveObject()). The
+/// mark of an object (U+FFFC) is left out of the text: there it would be an object without
+/// a kind.
 void insertKeepingAnnotations(QTextCursor& cursor, const QString& text,
                               const QTextCharFormat& typed = QTextCharFormat());
 

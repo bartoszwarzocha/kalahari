@@ -890,10 +890,12 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
     const QString kml =
         KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd());
 
-    // Lines: the paragraphs and the line breaks in them end one
+    // Lines: the paragraphs and the line breaks in them end one. An object (a horizontal
+    // line, a break) has no text: its paragraph is an empty line
     QString text = range.selectedText();
     text.replace(QChar::ParagraphSeparator, QLatin1Char('\n'));
     text.replace(QChar::LineSeparator, QLatin1Char('\n'));
+    text.remove(QChar::ObjectReplacementCharacter);
 
     auto mimeData = std::make_unique<QMimeData>();
     mimeData->setText(text);
