@@ -420,7 +420,8 @@ void ElementPlacePicker::addPlacesIn(core::BookPlace part,
                                      const QString& groupId, bool here)
 {
     for (qsizetype i = 0; i <= elements.size(); ++i) {
-        if (here) {
+        // Nothing before the title page
+        if (here && core::BookProject::canBeAt(*m_registry, elements, m_kind, i)) {
             m_places.append({part, groupId, i});
         }
         if (i < elements.size() && canBeInside(elements.at(i))) {
