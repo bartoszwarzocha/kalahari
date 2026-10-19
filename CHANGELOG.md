@@ -24,12 +24,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only chapter of a book goes up to the front section and down to the back one, also by
   Move... and by dragging (the test of 19 October found its move commands greyed out); a new
   chapter is still added to the main section or a part only, as the New Book palette and the
-  windows that add an element offer it. In a book
+  windows that add an element offer it. The title page opens the book, as in printed books:
+  nothing is moved or added before it, by Move Up, Move to Start, Move..., dragging or a
+  window that adds an element (the next test found a chapter could go there), and the title
+  page itself stays first. In a book
   without sections, where the three sections are one list, Move Up and Move Down move an
   element one step in that list, into the section before or after its own. When an element
-  has no other place in the book, as the only part of a novel, Move..., Move to Start, Move
-  Up, Move Down and Move to End are greyed out and their tooltip says why: "The book has no
-  other place for the part."
+  has no other place in the book, as the only part of a novel or the title page, Move...,
+  Move to Start, Move Up, Move Down and Move to End are greyed out and their tooltip says
+  why: "The book has no other place for the part."
 
 - **New Book: only the book types the program has** - 2026-10-17. The New Book window lists
   the types whose packages the program has, and the user project; a type without its package

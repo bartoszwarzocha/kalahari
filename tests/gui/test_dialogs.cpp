@@ -1617,6 +1617,17 @@ TEST_CASE("Move: what changes is said against the book as it is", "[gui][dialogs
     CHECK(dialog.picker()->places().contains(ElementPlace{BookPlace::Front, QString(), 0}));
     CHECK(dialog.picker()->places().contains(ElementPlace{BookPlace::Back, QString(), 0}));
 
+    // ... but not before the title page, which opens the book (test report of 19 October,
+    // part 1)
+    MoveElementDialog::Book withTitle = book;
+    withTitle.sections = bookSections(
+        {baseElement(QStringLiteral("title_page"), QStringLiteral("t"), QStringLiteral("Title"))},
+        body, {});
+    MoveElementDialog titled(withTitle, builtInTypes());
+    CHECK_FALSE(
+        titled.picker()->places().contains(ElementPlace{BookPlace::Front, QString(), 0}));
+    CHECK(titled.picker()->places().contains(ElementPlace{BookPlace::Front, QString(), 1}));
+
     // A chapter has no options; after the epilogue, the epilogue no longer ends the section
     CHECK_FALSE(option(dialog, QStringLiteral("Elsewhere: show the place in the list"))
                     ->isVisibleTo(&dialog));
@@ -1686,12 +1697,14 @@ TEST_CASE("Move: in a book without sections the list is one, and every press mov
     CHECK(shownPlace(dialog, QStringLiteral("Contents")) == ">");
     press(list, Qt::Key_Up);
     CHECK(dialog.place() == ElementPlace{BookPlace::Back, QString(), 0});
-    press(list, Qt::Key_Up);
-    CHECK(dialog.place() == ElementPlace{BookPlace::Front, QString(), 0});
-    CHECK(shownPlace(dialog, QStringLiteral("Contents")) == "> Title");
+    CHECK(shownPlace(dialog, QStringLiteral("Contents")) == "> Afterword");
+
+    // Nothing goes before the title page, which opens the book (test report of 19 October,
+    // part 1): the line under it is the highest place
+    CHECK_FALSE(dialog.picker()->places().contains(ElementPlace{BookPlace::Front, QString(), 0}));
     CHECK_FALSE(moveButton(dialog, QStringLiteral("Move the table of contents up"))->isEnabled());
-    press(list, Qt::Key_Down);
-    CHECK(dialog.place() == ElementPlace{BookPlace::Front, QString(), 1});
+    press(list, Qt::Key_Up);
+    CHECK(dialog.place() == ElementPlace{BookPlace::Back, QString(), 0});
 }
 
 TEST_CASE("New Book: on a small screen the buttons stay in view and the details scroll",
