@@ -3,16 +3,13 @@
 
 #include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/utils/layout_utils.h"
+#include "kalahari/gui/widgets/fitting_scroll_area.h"
 #include "kalahari/version.h"
 #include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QTabWidget>
 #include <QLabel>
 #include <QTextEdit>
 #include <QPushButton>
-#include <QScrollArea>
-#include <QPainter>
-#include <QFont>
 
 using namespace kalahari::gui::dialogs;
 
@@ -21,45 +18,29 @@ using namespace kalahari::gui::dialogs;
 // ============================================================================
 
 AboutDialog::AboutDialog(QWidget* parent)
-    : QDialog(parent)
+    : KalahariDialog(parent)
 {
-    setWindowTitle(tr("About Kalahari Writer's IDE"));
-    setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint);
-    // Lower where the screen is, e.g. 1366x768 at 150%: the tabs scroll
-    setMinimumWidth(600);
-    kalahari::gui::utils::resizeWithinScreen(this, QSize(600, 600));
-
-    // Main layout
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
-
-    // Banner at top (above tabs)
-    QPixmap bannerPixmap = createPlaceholderBanner(580, 100);
-    QLabel* bannerLabel = new QLabel(this);
-    bannerLabel->setPixmap(bannerPixmap);
-    bannerLabel->setAlignment(Qt::AlignCenter);
-    mainLayout->addWidget(bannerLabel, 0, Qt::AlignCenter);
-    mainLayout->addSpacing(10);
+    setHeading(tr("About Kalahari Writer's IDE"),
+               //: The heading of the About window. %1: the version of the program, %2: the
+               //: version of Qt it runs with. In Polish: Wersja %1, Qt %2
+               tr("Version %1, Qt %2")
+                   .arg(QString::fromLatin1(kalahari::VERSION_STRING),
+                        QString::fromLatin1(qVersion())));
+    setHeadingIcon(QStringLiteral("help.about"));
 
     // Tab widget
-    QTabWidget* tabWidget = new QTabWidget(this);
-    auto* aboutArea = new QScrollArea(tabWidget);
-    aboutArea->setWidgetResizable(true);
-    aboutArea->setFrameShape(QFrame::NoFrame);
-    aboutArea->setWidget(createAboutTab());
-    tabWidget->addTab(aboutArea, tr("About"));
-    tabWidget->addTab(createComponentsTab(), tr("Third-Party Components"));
-    tabWidget->addTab(createLicenseTab(), tr("License"));
-    mainLayout->addWidget(tabWidget, 1);
+    m_tabs = new QTabWidget(this);
+    m_tabs->addTab(createAboutTab(), tr("About"));
+    m_tabs->addTab(createComponentsTab(), tr("Third-Party Components"));
+    m_tabs->addTab(createLicenseTab(), tr("License"));
+    contentLayout()->addWidget(m_tabs, 1);
 
-    // Close button
-    QHBoxLayout* buttonLayout = new QHBoxLayout();
-    buttonLayout->addStretch();
-    QPushButton* closeButton = new QPushButton(tr("Close"), this);
-    connect(closeButton, &QPushButton::clicked, this, &QDialog::accept);
-    buttonLayout->addWidget(closeButton);
-    mainLayout->addLayout(buttonLayout);
+    // It only informs: Close, which Enter and Esc press
+    setAcceptText(tr("Close"));
+    cancelButton()->hide();
 
-    setLayout(mainLayout);
+    // Lower where the screen is, e.g. 1366x768 at 150%: the tabs scroll
+    kalahari::gui::utils::resizeWithinScreen(this, QSize(600, 600));
 }
 
 // ============================================================================
@@ -67,19 +48,9 @@ AboutDialog::AboutDialog(QWidget* parent)
 // ============================================================================
 
 QWidget* AboutDialog::createAboutTab() {
+    // The name, the version and the version of Qt are in the heading
     QWidget* widget = new QWidget();
     QVBoxLayout* layout = new QVBoxLayout(widget);
-
-    // Application name and version
-    QLabel* appName = new QLabel(
-        tr("Kalahari Writer's IDE %1").arg(QString::fromLatin1(kalahari::VERSION_STRING)), widget);
-    QFont nameFont = appName->font();
-    nameFont.setPointSize(14);
-    nameFont.setBold(true);
-    appName->setFont(nameFont);
-    appName->setAlignment(Qt::AlignCenter);
-    layout->addWidget(appName);
-    layout->addSpacing(10);
 
     // Platform info
     QLabel* platform = new QLabel(
@@ -92,18 +63,12 @@ QWidget* AboutDialog::createAboutTab() {
     // Description
     QLabel* desc = new QLabel(
         tr("Kalahari is a modern writing environment designed for book authors.\n"
-           "Built with C++20 and Qt6 6.5.0+.\n\n"
+           "Built with C++20 and Qt 6.\n\n"
            "A comprehensive writing toolkit with project management,\n"
            "statistics tracking, and powerful export capabilities."), widget);
     desc->setWordWrap(true);
     desc->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    layout->addWidget(desc, 1);
-
-    // Qt version
-    QLabel* qtVersion = new QLabel(
-        tr("Built with Qt %1").arg(qVersion()), widget);
-    qtVersion->setAlignment(Qt::AlignCenter);
-    layout->addWidget(qtVersion);
+    layout->addWidget(desc);
     layout->addSpacing(10);
 
     // Credits section
@@ -119,23 +84,20 @@ QWidget* AboutDialog::createAboutTab() {
            "  - Open source community for exceptional libraries\n\n"
            "Project Timeline:\n"
            "  Start: 2025-11\n"
-           "  Target Release: Q2-Q3 2026 (Kalahari 1.0)"), widget);
-    QFont creditsFont = credits->font();
-    creditsFont.setPointSize(8);
-    credits->setFont(creditsFont);
+           "  Target Release: February 2027 (Kalahari 1.0)"), widget);
     credits->setWordWrap(true);
     layout->addWidget(credits);
+    layout->addStretch(1);
 
     // Copyright
     QLabel* copyright = new QLabel(tr("Copyright (c) 2025 Kalahari Project"), widget);
-    QFont copyrightFont = copyright->font();
-    copyrightFont.setPointSize(8);
-    copyright->setFont(copyrightFont);
     copyright->setAlignment(Qt::AlignCenter);
     layout->addWidget(copyright);
 
-    widget->setLayout(layout);
-    return widget;
+    // The texts scroll in a low window, e.g. on 1366x768 at 150%
+    auto* area = new kalahari::gui::FittingScrollArea(widget);
+    area->viewport()->setAutoFillBackground(false);
+    return area;
 }
 
 QWidget* AboutDialog::createComponentsTab() {
@@ -151,7 +113,7 @@ QWidget* AboutDialog::createComponentsTab() {
     QString components;
     components += tr("Kalahari uses the following third-party components:\n\n");
 
-    components += tr("Qt6 6.5.0+ (www.qt.io)\n");
+    components += tr("Qt 6 (www.qt.io)\n");
     components += tr("  Cross-platform GUI framework\n");
     components += tr("  License: LGPL v3 / Commercial\n\n");
 
@@ -236,33 +198,4 @@ QWidget* AboutDialog::createLicenseTab() {
 
     widget->setLayout(layout);
     return widget;
-}
-
-// ============================================================================
-// Helper Methods
-// ============================================================================
-
-QPixmap AboutDialog::createPlaceholderBanner(int width, int height) {
-    QPixmap pixmap(width, height);
-    pixmap.fill(Qt::black);
-
-    QPainter painter(&pixmap);
-    painter.setPen(Qt::white);
-
-    QFont font = painter.font();
-    font.setPointSize(24);
-    font.setBold(true);
-    painter.setFont(font);
-
-    // Calculate centered position
-    QString text = "KALAHARI";
-    QFontMetrics metrics(font);
-    QRect textRect = metrics.boundingRect(text);
-
-    int x = (width - textRect.width()) / 2;
-    int y = (height + textRect.height()) / 2;
-
-    painter.drawText(x, y, text);
-
-    return pixmap;
 }

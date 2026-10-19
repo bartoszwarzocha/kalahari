@@ -67,7 +67,6 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QFileInfo>
-#include <QMessageBox>
 #include <QDir>
 #include <QTextEdit>
 #include <QLabel>
@@ -76,7 +75,6 @@
 #include <QToolButton>
 #include <QScreen>
 #include <QStyle>
-#include <QProgressDialog>
 #include <QTimer>
 #include <QAbstractItemView>
 #include <map>

@@ -10,10 +10,8 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/section_words.h"
 #include "kalahari/gui/utils/layout_utils.h"
-#include "kalahari/gui/widgets/fitting_scroll_area.h"
 
 #include <QAbstractItemView>
-#include <QDialogButtonBox>
 #include <QEvent>
 #include <QFileInfo>
 #include <QFocusEvent>
@@ -381,50 +379,47 @@ NewFileDialog::Book NewFileDialog::openBook(const QString& untitled)
 
 NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& registry,
                              QWidget* parent)
-    : QDialog(parent)
+    : KalahariDialog(parent)
     , m_book(book)
     , m_registry(&registry)
 {
     //: The window of a new element of the open book. In Polish: Nowy plik
-    setWindowTitle(tr("New File"));
+    setHeading(tr("New File"),
+               //: The heading of the New File window. In Polish: Wybierz rodzaj pliku, jego
+               //: tytuł i miejsce, w którym ma się znaleźć.
+               tr("Choose the kind of the file, its title and where it goes."));
+    setHeadingIcon(QStringLiteral("file.new"));
+    // A low heading leaves the room to the tiles
+    setCompactHeading(true);
 
     // As wide as the description and three tiles in a row; the height of the content can be
     // lower: on a small screen (1366x768 at 150%) the content scrolls above the buttons
     setMinimumWidth(MINIMUM_WIDTH);
 
-    auto* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(11);
-    mainLayout->setContentsMargins(11, 11, 11, 11);
-
     // The description of the chosen kind at the left, along the whole height, and at the
     // right the choices in their order: the kind, the title, the place. So the title is close
     // under the tiles and stays in view also when the content scrolls on a small screen.
     auto* content = new QWidget(this);
-    auto* contentLayout = new QHBoxLayout(content);
-    contentLayout->setSpacing(11);
-    contentLayout->setContentsMargins(0, 0, 0, 0);
-    contentLayout->addWidget(createDescriptionPanel(content));
+    auto* columns = new QHBoxLayout(content);
+    columns->setSpacing(11);
+    columns->setContentsMargins(0, 0, 0, 0);
+    columns->addWidget(createDescriptionPanel(content));
     auto* choices = new QVBoxLayout();
     choices->setSpacing(11);
     // The tiles and the place share the room the window has above their minimum, 3 to 2
     choices->addWidget(createKindsGroup(content), 3);
     choices->addLayout(createTitleRow(content));
     choices->addWidget(createPlaceGroup(content), 2);
-    contentLayout->addLayout(choices, 1);
-    mainLayout->addWidget(new FittingScrollArea(content, this), 1);
+    columns->addLayout(choices, 1);
+    contentLayout()->addWidget(content, 1);
 
-    auto* buttons = new QDialogButtonBox(this);
     //: The button that makes the new element. In Polish: Utwórz
-    m_createButton = buttons->addButton(tr("Create"), QDialogButtonBox::AcceptRole);
-    buttons->addButton(QDialogButtonBox::Cancel);
-    connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    mainLayout->addWidget(buttons);
+    setAcceptText(tr("Create"));
 
     fillKinds();
     connect(m_kindList, &QListWidget::currentItemChanged, this, &NewFileDialog::onKindChanged);
     connect(m_kindList, &QListWidget::itemDoubleClicked, this, [this]() {
-        if (m_createButton->isEnabled()) {
+        if (acceptButton()->isEnabled()) {
             accept();
         }
     });
@@ -493,7 +488,7 @@ core::ElementPlace NewFileDialog::place() const
 
 void NewFileDialog::changeEvent(QEvent* event)
 {
-    QDialog::changeEvent(event);
+    KalahariDialog::changeEvent(event);
     if (event->type() == QEvent::FontChange && m_kindList) {
         sizeTiles();
     }
@@ -508,7 +503,7 @@ bool NewFileDialog::eventFilter(QObject* watched, QEvent* event)
         static_cast<QFocusEvent*>(event)->reason() == Qt::MouseFocusReason) {
         QTimer::singleShot(0, m_titleEdit, &QLineEdit::selectAll);
     }
-    return QDialog::eventFilter(watched, event);
+    return KalahariDialog::eventFilter(watched, event);
 }
 
 QWidget* NewFileDialog::createDescriptionPanel(QWidget* parent)
@@ -883,10 +878,10 @@ void NewFileDialog::updateCreateButton()
 {
     // An empty text file needs only its title
     if (emptyFileChosen()) {
-        m_createButton->setEnabled(!title().isEmpty());
+        acceptButton()->setEnabled(!title().isEmpty());
         return;
     }
-    m_createButton->setEnabled(chosen() && !title().isEmpty() && !m_picker->places().isEmpty());
+    acceptButton()->setEnabled(chosen() && !title().isEmpty() && !m_picker->places().isEmpty());
 }
 
 } // namespace dialogs

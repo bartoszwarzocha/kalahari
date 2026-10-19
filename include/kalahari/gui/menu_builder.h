@@ -29,7 +29,7 @@ namespace gui {
 /// - **Automatic ordering:** menuOrder (10, 20, 30...) allows insertion
 /// - **Separators:** addSeparatorAfter for visual grouping
 /// - **Dynamic submenu:** Recent Books, Perspectives, Panels
-/// - **Phase markers:** QMessageBox "Coming in Phase X" for unimplemented features
+/// - **Planned commands:** greyed out; the tooltip and the status bar say they are in preparation
 ///
 /// Example usage:
 /// @code
@@ -165,8 +165,6 @@ private:
     QMenu* getOrCreateSubmenu(QMenu* parent, const std::string& technicalName);
 
     /// @brief Create menu action from Command
-    ///
-    /// Handles phase markers: if phase > 0, shows QMessageBox "Coming in Phase X".
     ///
     /// @param menu Target menu
     /// @param command Command descriptor

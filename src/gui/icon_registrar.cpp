@@ -282,6 +282,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("common.fileCopy", "resources/icons/twotone/file_copy.svg", "Copy File");
     iconRegistry.registerIcon("common.preview", "resources/icons/twotone/visibility.svg",
                               "Preview");
+    iconRegistry.registerIcon("common.download", "resources/icons/twotone/download.svg",
+                              "Download");
     // Dock title bar button icons (OpenSpec #00032)
     iconRegistry.registerIcon("dock.float", "resources/icons/twotone/fullscreen_exit.svg", "Float");
     iconRegistry.registerIcon("dock.close", "resources/icons/twotone/close.svg", "Close");

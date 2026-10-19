@@ -27,7 +27,7 @@ using namespace kalahari::gui::dialogs;
 // ============================================================================
 
 ToolbarManagerDialog::ToolbarManagerDialog(ToolbarManager* manager, QWidget* parent)
-    : QDialog(parent)
+    : KalahariDialog(parent)
     , m_toolbarList(nullptr)
     , m_categoryCombo(nullptr)
     , m_searchFilter(nullptr)
@@ -42,11 +42,17 @@ ToolbarManagerDialog::ToolbarManagerDialog(ToolbarManager* manager, QWidget* par
     , m_deleteToolbarBtn(nullptr)
     , m_renameToolbarBtn(nullptr)
     , m_resetBtn(nullptr)
-    , m_buttonBox(nullptr)
     , m_modified(false)
     , m_toolbarManager(manager)
 {
-    setWindowTitle(tr("Customize Toolbars"));
+    setHeading(tr("Customize Toolbars"),
+               //: The heading of the Customize Toolbars window. In Polish: Wybierz pasek
+               //: narzędzi po lewej, a potem dodawaj, usuwaj i układaj jego polecenia.
+               tr("Choose a toolbar on the left, then add, remove and order its commands."));
+    setHeadingIcon(QStringLiteral("tools.toolbarManager"));
+    // A low heading leaves the room to the lists
+    setCompactHeading(true);
+    setApplyButtonVisible(true);
     // Smaller where the screen is, e.g. 1366x768 at 150%: the lists get shorter
     setMinimumSize(640, 420);
     kalahari::gui::utils::resizeWithinScreen(this, QSize(1000, 650));
@@ -75,8 +81,6 @@ ToolbarManagerDialog::ToolbarManagerDialog(ToolbarManager* manager, QWidget* par
 // ============================================================================
 
 void ToolbarManagerDialog::setupUI() {
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
-
     // Create 3-column splitter
     QSplitter* splitter = new QSplitter(Qt::Horizontal, this);
     splitter->setChildrenCollapsible(false);
@@ -92,22 +96,10 @@ void ToolbarManagerDialog::setupUI() {
     splitter->setStretchFactor(1, 1);
     splitter->setStretchFactor(2, 0);
 
-    mainLayout->addWidget(splitter, 1);
+    contentLayout()->addWidget(splitter, 1);
 
-    // Dialog buttons
-    QHBoxLayout* buttonLayout = new QHBoxLayout();
-
-    m_resetBtn = new QPushButton(tr("Reset to Defaults"), this);
-    buttonLayout->addWidget(m_resetBtn);
-
-    buttonLayout->addStretch();
-
-    m_buttonBox = new QDialogButtonBox(
-        QDialogButtonBox::Apply | QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
-        this);
-    buttonLayout->addWidget(m_buttonBox);
-
-    mainLayout->addLayout(buttonLayout);
+    // Reset to Defaults apart from OK, Cancel and Apply, which close the dialog or save
+    m_resetBtn = addSideButton(tr("Reset to Defaults"));
 }
 
 QWidget* ToolbarManagerDialog::createToolbarListPanel() {
@@ -296,10 +288,7 @@ void ToolbarManagerDialog::createConnections() {
 
     // Dialog buttons
     connect(m_resetBtn, &QPushButton::clicked, this, &ToolbarManagerDialog::onReset);
-    connect(m_buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked,
-            this, &ToolbarManagerDialog::onApply);
-    connect(m_buttonBox, &QDialogButtonBox::accepted, this, &ToolbarManagerDialog::onAccept);
-    connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    connect(this, &KalahariDialog::applyClicked, this, &ToolbarManagerDialog::onApply);
 
     // OpenSpec #00032: Auto-refresh button icons when theme changes
     connect(&kalahari::core::ArtProvider::getInstance(),
@@ -873,11 +862,11 @@ void ToolbarManagerDialog::onReset() {
     setModified(false);
 }
 
-void ToolbarManagerDialog::onAccept() {
+void ToolbarManagerDialog::accept() {
     if (m_modified) {
         saveToolbarConfigs();
     }
-    accept();
+    KalahariDialog::accept();
 }
 
 void ToolbarManagerDialog::onCurrentToolbarSelectionChanged() {
@@ -908,7 +897,7 @@ void ToolbarManagerDialog::updateButtonStates() {
     m_separatorBtn->setEnabled(hasToolbar);
 
     // Apply button
-    m_buttonBox->button(QDialogButtonBox::Apply)->setEnabled(m_modified);
+    applyButton()->setEnabled(m_modified);
 }
 
 // ============================================================================
@@ -937,7 +926,7 @@ bool ToolbarManagerDialog::isUserToolbar(const QString& toolbarId) const {
 void ToolbarManagerDialog::setModified(bool modified) {
     m_modified = modified;
 
-    // Update window title to show modified state
+    // Update window title to show modified state; the heading keeps the name
     QString title = tr("Customize Toolbars");
     if (m_modified) {
         title += " *";

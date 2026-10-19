@@ -51,7 +51,7 @@ signals:
     void colorChanged(const QColor& color);
 
 private slots:
-    /// @brief Handle color button click - opens QColorDialog
+    /// @brief Handle color button click - opens the program's own ColorDialog
     void onColorButtonClicked();
 
 private:

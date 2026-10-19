@@ -3,31 +3,32 @@
 
 #pragma once
 
-#include <QDialog>
-#include <QPixmap>
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
+
+class QTabWidget;
 
 namespace kalahari {
 namespace gui {
 namespace dialogs {
 
-/// @brief Custom About dialog displaying application information, third-party components, and license
+/// @brief About: the version of the program, its authors, the third-party components and the
+/// license
 ///
-/// AboutDialog provides a professional About dialog with:
-/// - Custom banner at top (580×100px placeholder)
-/// - 3 tabs: About, Third-Party Components, License
-/// - Modal behavior (blocks main window)
-/// - Fixed size 600×720px
-///
-/// Migrated from wxWidgets AboutDialog with feature parity.
+/// The heading of the program's own dialogs names the program, its version and the version of
+/// Qt it runs with; under it three tabs: About, Third-Party Components and License. Close (or
+/// Esc) closes the dialog.
 ///
 /// @see MainWindow::onAbout()
-class AboutDialog : public QDialog {
+class AboutDialog : public KalahariDialog {
     Q_OBJECT
 
 public:
     /// @brief Constructs About dialog
     /// @param parent Parent widget (typically MainWindow)
     explicit AboutDialog(QWidget* parent = nullptr);
+
+    /// @brief The tabs: About, Third-Party Components, License
+    QTabWidget* tabs() const { return m_tabs; }
 
 private:
     /// @brief Creates "About" tab content
@@ -42,11 +43,7 @@ private:
     /// @return Widget containing full MIT license text
     QWidget* createLicenseTab();
 
-    /// @brief Creates placeholder banner image
-    /// @param width Banner width in pixels (580px)
-    /// @param height Banner height in pixels (100px)
-    /// @return Pixmap with black background and white "KALAHARI" text
-    QPixmap createPlaceholderBanner(int width, int height);
+    QTabWidget* m_tabs = nullptr;
 };
 
 } // namespace dialogs

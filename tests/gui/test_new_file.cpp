@@ -24,7 +24,6 @@
 #include <QAction>
 #include <QComboBox>
 #include <QCoreApplication>
-#include <QDialogButtonBox>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -145,8 +144,7 @@ std::string titlesOf(const QList<core::ProjectElement>& elements) {
 
 /// @brief The Cancel button of the New File window
 QAbstractButton* cancelButton(const NewFileDialog& dialog) {
-    const auto* buttons = dialog.findChild<QDialogButtonBox*>();
-    return buttons ? buttons->button(QDialogButtonBox::Cancel) : nullptr;
+    return dialog.cancelButton();
 }
 
 /// @brief Run @p command; in the New File window it shows, do @p act and press the button it

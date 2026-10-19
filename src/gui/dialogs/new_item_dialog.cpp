@@ -10,7 +10,6 @@
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/utils/program_folders.h"
-#include "kalahari/gui/widgets/fitting_scroll_area.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -60,7 +59,7 @@ const kalahari::core::SectionNameSet& sectionNameSet(const QString& id) {
 // ============================================================================
 
 NewItemDialog::NewItemDialog(NewItemMode mode, QWidget* parent)
-    : QDialog(parent)
+    : KalahariDialog(parent)
     , m_mode(mode)
     , m_iconLabel(nullptr)
     , m_titleLabel(nullptr)
@@ -78,15 +77,21 @@ NewItemDialog::NewItemDialog(NewItemMode mode, QWidget* parent)
     , m_locationLabel(nullptr)
     , m_folderIcon(nullptr)
     , m_folderLabel(nullptr)
-    , m_buttonBox(nullptr)
-    , m_createBtn(nullptr)
 {
-    // Set window title based on mode
+    // The heading: the title of the window and what it makes
     if (m_mode == NewItemMode::Project) {
-        setWindowTitle(tr("New Book"));
+        setHeading(tr("New Book"),
+                   //: The heading of the New Book window. In Polish: Wybierz szablon, a potem
+                   //: tytuł, autora, język i folder książki.
+                   tr("Choose a template, then the title, author, language and folder of the "
+                      "book."));
+        setHeadingIcon(QStringLiteral("file.new.project"));
     } else {
-        setWindowTitle(tr("New File"));
+        setHeading(tr("New File"));
+        setHeadingIcon(QStringLiteral("file.new"));
     }
+    // A low heading leaves the room to the templates
+    setCompactHeading(true);
 
     // As wide as the description and two templates in a row; the height of the content can
     // be lower: on a small screen (1366x768 at 150%) the content scrolls under the buttons
@@ -138,16 +143,12 @@ bool NewItemDialog::isUserProject(const QString& templateId) {
 // ============================================================================
 
 void NewItemDialog::setupUI() {
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(11);
-    mainLayout->setContentsMargins(11, 11, 11, 11);
-
     // The templates and the details, which scroll in a window lower than they are; the
     // buttons stay under them
     auto* content = new QWidget(this);
-    auto* contentLayout = new QVBoxLayout(content);
-    contentLayout->setSpacing(11);
-    contentLayout->setContentsMargins(0, 0, 0, 0);
+    auto* layout = new QVBoxLayout(content);
+    layout->setSpacing(11);
+    layout->setContentsMargins(0, 0, 0, 0);
 
     // Create splitter for left/right panels
     QSplitter* splitter = new QSplitter(Qt::Horizontal, content);
@@ -160,19 +161,15 @@ void NewItemDialog::setupUI() {
     // Set initial sizes: 250px for description, rest for templates
     splitter->setSizes({250, 500});
 
-    contentLayout->addWidget(splitter, 1);
+    layout->addWidget(splitter, 1);
 
     // Add details group (BOTTOM)
-    contentLayout->addWidget(createDetailsGroup(), 0);
-    mainLayout->addWidget(new kalahari::gui::FittingScrollArea(content, this), 1);
+    layout->addWidget(createDetailsGroup(), 0);
+    contentLayout()->addWidget(content, 1);
 
     // Dialog buttons
-    m_buttonBox = new QDialogButtonBox(this);
-    QString createBtnText = (m_mode == NewItemMode::Project) ? tr("Create Book") : tr("Create");
-    m_createBtn = m_buttonBox->addButton(createBtnText, QDialogButtonBox::AcceptRole);
-    m_buttonBox->addButton(QDialogButtonBox::Cancel);
-    m_createBtn->setEnabled(false);
-    mainLayout->addWidget(m_buttonBox);
+    setAcceptText((m_mode == NewItemMode::Project) ? tr("Create Book") : tr("Create"));
+    acceptButton()->setEnabled(false);
 }
 
 QWidget* NewItemDialog::createDescriptionPanel() {
@@ -403,12 +400,6 @@ void NewItemDialog::createConnections() {
                 this, [this]() { m_sectionNamesTyped = true; });
     }
 
-    // Dialog buttons
-    connect(m_buttonBox, &QDialogButtonBox::accepted,
-            this, &NewItemDialog::onAccept);
-    connect(m_buttonBox, &QDialogButtonBox::rejected,
-            this, &QDialog::reject);
-
     // Theme changes
     connect(&kalahari::core::ArtProvider::getInstance(),
             &kalahari::core::ArtProvider::resourcesChanged,
@@ -545,7 +536,7 @@ void NewItemDialog::validateInput() {
         valid = false;
     }
 
-    m_createBtn->setEnabled(valid);
+    acceptButton()->setEnabled(valid);
 }
 
 void NewItemDialog::loadDefaults() {
@@ -721,9 +712,9 @@ void NewItemDialog::updateCreateButton() {
     if (current && isUserProject(current->data(Qt::UserRole).toString())) {
         //: The button of the New Book window for a user project, whose kinds the writer
         //: chooses in the next window. In Polish: Dalej
-        m_createBtn->setText(tr("Next"));
+        setAcceptText(tr("Next"));
     } else {
-        m_createBtn->setText(tr("Create Book"));
+        setAcceptText(tr("Create Book"));
     }
 }
 
@@ -755,7 +746,7 @@ void NewItemDialog::onTitleChanged(const QString& text) {
     validateInput();
 }
 
-void NewItemDialog::onAccept() {
+void NewItemDialog::accept() {
     // Populate result structure
     m_result.mode = m_mode;
     m_result.title = m_nameEdit->text().trimmed();
@@ -792,7 +783,7 @@ void NewItemDialog::onAccept() {
         saveSectionsChoice();
     }
 
-    accept();
+    KalahariDialog::accept();
 }
 
 void NewItemDialog::onThemeChanged() {
