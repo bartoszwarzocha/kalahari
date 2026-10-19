@@ -28,7 +28,6 @@ class QTimer;
 
 namespace kalahari::editor {
 class BookEditor;
-class StyleResolver;
 }
 
 namespace kalahari {
@@ -117,13 +116,6 @@ public slots:
     /// the page of the editor gives way to the page of the book, or to the page without one.
     void setActiveEditor(EditorPanel* editorPanel);
 
-    /// @brief Set the style resolver for style operations
-    /// @param resolver StyleResolver to use for style resolution (nullptr to disconnect)
-    ///
-    /// When set, the properties panel can resolve style IDs to display names
-    /// and update styles via the database. Connected to project's StyleResolver.
-    void setStyleResolver(editor::StyleResolver* resolver);
-
     /// @brief Refresh current view with latest data
     ///
     /// Re-reads data from ProjectManager and updates displayed values.
@@ -174,7 +166,8 @@ private slots:
     /// @brief Handle cursor position changed in BookEditor
     void onEditorCursorChanged();
 
-    /// @brief Handle paragraph style changed from combo box
+    /// @brief The writer chose a style in the Paragraph Style group: the paragraphs of the
+    ///        cursor or the selection take it, as with Format > Text Style
     void onEditorStyleChanged(int index);
 
 protected:
@@ -337,8 +330,8 @@ private:
     QLabel* m_editorCharNoSpaceLabel;     ///< Character count (without spaces)
     QLabel* m_editorParagraphCountLabel;  ///< Paragraph count
     QLabel* m_editorReadingTimeLabel;     ///< Estimated reading time
-    QComboBox* m_editorStyleCombo;        ///< Paragraph style selector
-    QLabel* m_editorStyleLabel;           ///< Current style display
+    QComboBox* m_editorStyleCombo;        ///< The styles of the text in front
+    QLabel* m_editorStyleLabel;           ///< The style of the paragraph at the cursor
 
     // State tracking
     QString m_currentChapterId;    ///< Currently displayed chapter ID
@@ -354,17 +347,9 @@ private:
 
     int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting
 
-    // Style resolver (OpenSpec #00042 Task 7.6)
-    editor::StyleResolver* m_styleResolver{nullptr};  ///< Style resolver for the project
-
-    /// @brief Populate style combo with styles from StyleResolver
-    void populateStyleComboFromResolver();
-
-    /// @brief Add default built-in styles to combo (fallback when no database)
-    void addDefaultStylesToCombo();
-
-    /// @brief Handle style combo selection to update style from resolver
-    void applyStyleFromCombo();
+    /// @brief Show the styles of a text in the Paragraph Style group, the style of the
+    ///        paragraph at its cursor chosen (none on a line or a break)
+    void updateParagraphStyle(const editor::BookEditor& bookEditor);
 };
 
 } // namespace gui

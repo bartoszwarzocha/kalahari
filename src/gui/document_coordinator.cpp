@@ -1872,11 +1872,6 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
         m_styleResolver->setDatabase(database);
         m_styleResolver->reloadFromDatabase();
 
-        // Connect PropertiesPanel to StyleResolver for style operations
-        if (m_propertiesPanel) {
-            m_propertiesPanel->setStyleResolver(m_styleResolver.get());
-        }
-
         logger.info("StyleResolver connected to project database, loaded styles");
 
         // =========================================================================
@@ -2027,11 +2022,6 @@ void DocumentCoordinator::onProjectClosed() {
     // NOTE: May already be done by prepareForProjectClose() - idempotent
     // =========================================================================
     if (m_styleResolver) {
-        // Disconnect PropertiesPanel from StyleResolver first
-        if (m_propertiesPanel) {
-            m_propertiesPanel->setStyleResolver(nullptr);
-        }
-
         m_styleResolver->setDatabase(nullptr);
         m_styleResolver->invalidateCache();
     }
@@ -2114,11 +2104,6 @@ void DocumentCoordinator::prepareForProjectClose() {
     // Disconnect StyleResolver from database
     // =========================================================================
     if (m_styleResolver) {
-        // Disconnect PropertiesPanel from StyleResolver first
-        if (m_propertiesPanel) {
-            m_propertiesPanel->setStyleResolver(nullptr);
-        }
-
         m_styleResolver->setDatabase(nullptr);
         m_styleResolver->invalidateCache();
         logger.debug("prepareForProjectClose: StyleResolver disconnected from project database");

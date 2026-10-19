@@ -1,14 +1,18 @@
 /// @file test_properties_panel.cpp
-/// @brief The Properties panel: the counts of the editor in front
+/// @brief The Properties panel: the counts of the editor in front and the style of its
+///        paragraph
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/text_statistics.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/utils/reading_time.h"
 
+#include <QComboBox>
 #include <QLabel>
 #include <QLocale>
 #include <QStringList>
@@ -34,6 +38,14 @@ bool showsLabel(const gui::PropertiesPanel& panel, const char* name) {
 /// Run the event loop past the panel's wait after an edit or a new selection
 void waitForPanel() {
     test::runEventLoop(300);
+}
+
+/// A style of a package, named in English
+core::PackageParagraphStyle packageStyle(const QString& id, const QString& name) {
+    core::PackageParagraphStyle style;
+    style.id = id;
+    style.name.values.insert(QStringLiteral("en"), name);
+    return style;
 }
 
 }  // anonymous namespace
@@ -102,4 +114,58 @@ TEST_CASE("Properties panel: the counts of the editor in front, as the status ba
         CHECK(showsLabel(panel, "editorWordCount"));
         CHECK(labelText(panel, "editorWordCount") == QStringLiteral("4"));
     }
+}
+
+TEST_CASE("Properties panel: the style of the paragraph at the cursor, and a style chosen there",
+          "[gui][styles]") {
+    gui::EditorPanel editorPanel;
+    editor::BookEditor* bookEditor = editorPanel.getBookEditor();
+    bookEditor->setParagraphStyles(editor::ParagraphStyleSet::fromPackage(
+        {packageStyle(QStringLiteral("normal"), QStringLiteral("Normal")),
+         packageStyle(QStringLiteral("heading_1"), QStringLiteral("Heading 1")),
+         packageStyle(QStringLiteral("quote"), QStringLiteral("Quote"))},
+        QStringLiteral("en")));
+    const QString kml = QStringLiteral("<kml><h1>Title</h1><p>Text</p><hr/></kml>");
+    bookEditor->fromKml(kml);
+    bookEditor->setCursorPosition({0, 1});
+
+    gui::PropertiesPanel panel;
+    panel.setActiveEditor(&editorPanel);
+    auto* styles = panel.findChild<QComboBox*>(QStringLiteral("editorStyleCombo"));
+    REQUIRE(styles != nullptr);
+
+    // The styles of the text, the heading's chosen
+    QStringList names;
+    for (int index = 0; index < styles->count(); ++index) {
+        names << styles->itemText(index);
+    }
+    CHECK(names == QStringList{QStringLiteral("Normal"), QStringLiteral("Heading 1"),
+                               QStringLiteral("Quote")});
+    CHECK(labelText(panel, "editorStyleLabel") == QStringLiteral("Heading 1"));
+    CHECK(styles->currentData().toString() == QStringLiteral("heading_1"));
+
+    // The cursor in another paragraph: its style; on a line: none
+    bookEditor->setCursorPosition({1, 0});
+    waitForPanel();
+    CHECK(labelText(panel, "editorStyleLabel") == QStringLiteral("Normal"));
+    bookEditor->setCursorPosition({2, 0});
+    waitForPanel();
+    CHECK(labelText(panel, "editorStyleLabel") == QStringLiteral("-"));
+    CHECK(styles->currentIndex() == -1);
+
+    // A style chosen: the paragraph takes it, as one step of the undo history
+    bookEditor->setCursorPosition({1, 0});
+    waitForPanel();
+    styles->setCurrentIndex(styles->findData(QStringLiteral("quote")));
+    CHECK(bookEditor->toKml() ==
+          QStringLiteral("<kml><h1>Title</h1><p style=\"quote\">Text</p><hr/></kml>"));
+    CHECK(labelText(panel, "editorStyleLabel") == QStringLiteral("Quote"));
+    bookEditor->undo();
+    CHECK(bookEditor->toKml() == kml);
+
+    // A chapter of a book open read-only: greyed out, saying why
+    bookEditor->setReadOnly(true);
+    panel.setActiveEditor(&editorPanel);
+    CHECK_FALSE(styles->isEnabled());
+    CHECK(styles->toolTip() != QStringLiteral("Change paragraph style"));
 }

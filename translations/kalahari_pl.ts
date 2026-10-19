@@ -604,10 +604,6 @@
         <translation>Nagłówek &amp;3</translation>
     </message>
     <message>
-        <source>&amp;Body Text</source>
-        <translation>&amp;Tekst podstawowy</translation>
-    </message>
-    <message>
         <source>&amp;Quote</source>
         <translation>&amp;Cytat</translation>
     </message>
@@ -946,6 +942,26 @@
     <message>
         <source>Spelling and &amp;Grammar</source>
         <translation>&amp;Pisownia i gramatyka</translation>
+    </message>
+    <message>
+        <source>&amp;Horizontal Line</source>
+        <translation>&amp;Linia pozioma</translation>
+    </message>
+    <message>
+        <source>S&amp;cene Break</source>
+        <translation>Podział sc&amp;eny</translation>
+    </message>
+    <message>
+        <source>&amp;Page Break</source>
+        <translation>Podział st&amp;rony</translation>
+    </message>
+    <message>
+        <source>&amp;Normal</source>
+        <translation>&amp;Normalny</translation>
+    </message>
+    <message>
+        <source>&amp;Dialogue</source>
+        <translation>&amp;Dialog</translation>
     </message>
 </context>
 <context>
@@ -3291,6 +3307,13 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     </message>
 </context>
 <context>
+    <name>kalahari::editor::KalahariTextDocumentLayout</name>
+    <message>
+        <source>Page Break</source>
+        <translation>Podział strony</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::editor::QuickInsertPopup</name>
     <message>
         <source>No matches</source>
@@ -4809,6 +4832,10 @@ Tryb kolorów edytora nie zależy od motywu programu.</translation>
         <source>Dark Mode Colors</source>
         <translation>Kolory trybu ciemnego</translation>
     </message>
+    <message>
+        <source>Formatting marks</source>
+        <translation>Znaki formatowania</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
@@ -5014,6 +5041,34 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>View &gt; Typewriter Scrolling (%1) keeps the line you write at one height of the view, in the Continuous and the Page Layout view.</source>
         <translation>Widok &gt; Przewijanie jak w maszynie do pisania (%1) utrzymuje pisany wiersz na jednej wysokości widoku – w widoku „Ciągły” i „Układ strony”.</translation>
+    </message>
+    <message>
+        <source>* * * (three asterisks)</source>
+        <translation>* * * (trzy gwiazdki)</translation>
+    </message>
+    <message>
+        <source>%1 (asterism)</source>
+        <translation>%1 (asteryzm)</translation>
+    </message>
+    <message>
+        <source>%1 (fleuron)</source>
+        <translation>%1 (ozdobnik)</translation>
+    </message>
+    <message>
+        <source>Short line</source>
+        <translation>Krótka linia</translation>
+    </message>
+    <message>
+        <source>Blank line</source>
+        <translation>Pusty wiersz</translation>
+    </message>
+    <message>
+        <source>Scene Break Look:</source>
+        <translation>Wygląd podziału sceny:</translation>
+    </message>
+    <message>
+        <source>Choose from: * * *, %1, %2, a short line, a blank line. Changes only the look: the file keeps the scene break.</source>
+        <translation>Do wyboru: * * *, %1, %2, krótka linia, pusty wiersz. Zmienia tylko wygląd – w pliku zostaje podział sceny.</translation>
     </message>
 </context>
 <context>
@@ -6471,6 +6526,14 @@ Czy zapisać go przed zamknięciem?</translation>
         <extracomment>After the title of a book open read-only, in the title bar of the window: &quot;Rain [read-only] - Kalahari&quot;. In Polish: [tylko do odczytu]</extracomment>
         <translation>[tylko do odczytu]</translation>
     </message>
+    <message>
+        <source>Formatting marks: shown</source>
+        <translation>Znaki formatowania: widoczne</translation>
+    </message>
+    <message>
+        <source>Formatting marks: hidden</source>
+        <translation>Znaki formatowania: ukryte</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
@@ -7144,30 +7207,6 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
     <message>
         <source>Change paragraph style</source>
         <translation>Zmień styl akapitu</translation>
-    </message>
-    <message>
-        <source>Normal</source>
-        <translation>Zwykły</translation>
-    </message>
-    <message>
-        <source>Heading 1</source>
-        <translation>Nagłówek 1</translation>
-    </message>
-    <message>
-        <source>Heading 2</source>
-        <translation>Nagłówek 2</translation>
-    </message>
-    <message>
-        <source>Heading 3</source>
-        <translation>Nagłówek 3</translation>
-    </message>
-    <message>
-        <source>Block Quote</source>
-        <translation>Cytat blokowy</translation>
-    </message>
-    <message>
-        <source>Preformatted</source>
-        <translation>Tekst preformatowany</translation>
     </message>
     <message>
         <source>Apply:</source>

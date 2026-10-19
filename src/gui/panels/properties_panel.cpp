@@ -13,7 +13,7 @@
 #include "kalahari/gui/section_words.h"
 #include "kalahari/gui/widgets/sections_field.h"
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/style_resolver.h"
+#include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/package_card.h"
@@ -610,17 +610,11 @@ QWidget* PropertiesPanel::createEditorPage() {
     m_editorStyleLabel->setToolTip(tr("Current paragraph style at cursor position"));
     styleLayout->addRow(tr("Current:"), m_editorStyleLabel);
 
-    // Style combo for changing
+    // The styles of the text in front (updateParagraphStyle())
+    m_editorStyleLabel->setObjectName(QStringLiteral("editorStyleLabel"));
     m_editorStyleCombo = new QComboBox(styleGroup);
     m_editorStyleCombo->setObjectName(QStringLiteral("editorStyleCombo"));
     m_editorStyleCombo->setToolTip(tr("Change paragraph style"));
-    // Add common paragraph styles
-    m_editorStyleCombo->addItem(tr("Normal"), "p");
-    m_editorStyleCombo->addItem(tr("Heading 1"), "h1");
-    m_editorStyleCombo->addItem(tr("Heading 2"), "h2");
-    m_editorStyleCombo->addItem(tr("Heading 3"), "h3");
-    m_editorStyleCombo->addItem(tr("Block Quote"), "blockquote");
-    m_editorStyleCombo->addItem(tr("Preformatted"), "pre");
     styleLayout->addRow(tr("Apply:"), m_editorStyleCombo);
 
     // Connect style combo
@@ -1511,30 +1505,55 @@ void PropertiesPanel::onEditorCursorChanged() {
 }
 
 void PropertiesPanel::onEditorStyleChanged(int index) {
-    if (m_isUpdating) return;
-    if (!m_activeEditorPanel) return;
-
-    auto& logger = core::Logger::getInstance();
-
-    editor::BookEditor* bookEditor = m_activeEditorPanel->getBookEditor();
-    if (!bookEditor) return;
-
-    QString styleId = m_editorStyleCombo->itemData(index).toString();
-    logger.debug("PropertiesPanel::onEditorStyleChanged() - Style: {}", styleId.toStdString());
-
-    // Phase 11: Paragraph styles via QTextBlockFormat
-    // TODO: Implement paragraph style changes via QTextBlockFormat properties
-    auto cursorPos = bookEditor->cursorPosition();
-    if (cursorPos.paragraph < 0 ||
-        cursorPos.paragraph >= static_cast<int>(bookEditor->paragraphCount())) {
+    if (m_isUpdating || index < 0 || !m_activeEditorPanel) {
         return;
     }
+    editor::BookEditor* bookEditor = m_activeEditorPanel->getBookEditor();
+    if (!bookEditor) {
+        return;
+    }
+    // As Format > Text Style: the paragraphs of the cursor or the selection (a chapter of a
+    // book open read-only refuses it, and says why)
+    bookEditor->applyParagraphStyle(m_editorStyleCombo->itemData(index).toString());
+    updateParagraphStyle(*bookEditor);
+}
 
-    // TODO: Set paragraph style via BookEditor API
-    bookEditor->update();
+void PropertiesPanel::updateParagraphStyle(const editor::BookEditor& bookEditor) {
+    const bool updating = m_isUpdating;
+    m_isUpdating = true;
 
-    logger.info("PropertiesPanel: Phase 11 TODO - Paragraph {} style change to: {}",
-                cursorPos.paragraph, styleId.toStdString());
+    // The styles of the text, as Format > Text Style lists them; built again when they change
+    QStringList ids;
+    QStringList names;
+    for (const editor::ParagraphStyle& style : bookEditor.paragraphStyles().styles()) {
+        ids.append(style.id);
+        names.append(style.name.isEmpty() ? style.id : style.name);
+    }
+    bool same = m_editorStyleCombo->count() == ids.size();
+    for (int index = 0; same && index < ids.size(); ++index) {
+        same = m_editorStyleCombo->itemData(index).toString() == ids.at(index) &&
+               m_editorStyleCombo->itemText(index) == names.at(index);
+    }
+    if (!same) {
+        m_editorStyleCombo->clear();
+        for (int index = 0; index < ids.size(); ++index) {
+            m_editorStyleCombo->addItem(names.at(index), ids.at(index));
+        }
+    }
+
+    // The paragraph's style; none on a line or a break
+    const QString current = bookEditor.currentParagraphStyle();
+    const int shown = current.isEmpty() ? -1 : m_editorStyleCombo->findData(current);
+    m_editorStyleCombo->setCurrentIndex(shown);
+    m_editorStyleLabel->setText(shown >= 0 ? m_editorStyleCombo->itemText(shown)
+                                           : QStringLiteral("-"));
+
+    // A chapter of a book open read-only takes no style
+    m_editorStyleCombo->setEnabled(!bookEditor.isReadOnly());
+    m_editorStyleCombo->setToolTip(bookEditor.isReadOnly() ? readOnlyReason()
+                                                           : tr("Change paragraph style"));
+
+    m_isUpdating = updating;
 }
 
 void PropertiesPanel::updateEditorStatistics() {
@@ -1576,121 +1595,12 @@ void PropertiesPanel::updateEditorStatistics() {
     m_editorParagraphCountLabel->setText(locale.toString(counts.paragraphs));
     m_editorReadingTimeLabel->setText(utils::readingTimeText(counts.words));
 
-    // Phase 11: Get current paragraph style via QTextBlockFormat
-    // TODO: Implement paragraph style detection via QTextBlockFormat properties
-    auto cursorPos = bookEditor->cursorPosition();
-    QString styleId = "p";  // Default
-    QString styleName = tr("Normal");
-
-    // For now, show default style until QTextBlockFormat-based style API is implemented
-    Q_UNUSED(cursorPos);
-
-    m_editorStyleLabel->setText(styleName);
-
-    // Update combo box to match current style
-    int styleIndex = m_editorStyleCombo->findData(styleId);
-    if (styleIndex >= 0 && m_editorStyleCombo->currentIndex() != styleIndex) {
-        m_editorStyleCombo->setCurrentIndex(styleIndex);
-    }
+    updateParagraphStyle(*bookEditor);
 
     m_isUpdating = false;
 
-    logger.debug("PropertiesPanel: Editor stats - {} words, {} chars, {} paragraphs, style={}",
-                 counts.words, counts.characters, counts.paragraphs, styleId.toStdString());
-}
-
-// =============================================================================
-// Style Resolver Integration (OpenSpec #00042 Task 7.6)
-// =============================================================================
-
-void PropertiesPanel::setStyleResolver(editor::StyleResolver* resolver) {
-    auto& logger = core::Logger::getInstance();
-
-    // Disconnect from previous resolver
-    if (m_styleResolver) {
-        disconnect(m_styleResolver, &editor::StyleResolver::stylesChanged,
-                   this, &PropertiesPanel::populateStyleComboFromResolver);
-    }
-
-    m_styleResolver = resolver;
-
-    if (m_styleResolver) {
-        // Connect to stylesChanged to refresh combo when styles change
-        connect(m_styleResolver, &editor::StyleResolver::stylesChanged,
-                this, &PropertiesPanel::populateStyleComboFromResolver);
-
-        // Populate combo with styles from resolver
-        populateStyleComboFromResolver();
-
-        logger.debug("PropertiesPanel: Connected to StyleResolver");
-    } else {
-        // No resolver - use default built-in styles
-        logger.debug("PropertiesPanel: StyleResolver disconnected, using default styles");
-    }
-}
-
-void PropertiesPanel::populateStyleComboFromResolver() {
-    if (!m_editorStyleCombo) return;
-
-    auto& logger = core::Logger::getInstance();
-    m_isUpdating = true;
-
-    // Remember current selection
-    QString currentData = m_editorStyleCombo->currentData().toString();
-
-    // Clear and repopulate
-    m_editorStyleCombo->clear();
-
-    if (m_styleResolver && m_styleResolver->database()) {
-        // Get styles from database via ProjectManager
-        auto& pm = core::ProjectManager::getInstance();
-        core::ProjectDatabase* db = pm.getDatabase();
-
-        if (db && db->isOpen()) {
-            // Add paragraph styles from database
-            QList<core::ParagraphStyle> styles = db->getParagraphStyles();
-
-            if (!styles.isEmpty()) {
-                for (const auto& style : styles) {
-                    m_editorStyleCombo->addItem(style.name, style.id);
-                }
-                logger.debug("PropertiesPanel: Loaded {} paragraph styles from database",
-                             styles.size());
-            } else {
-                // No styles in database - add defaults
-                addDefaultStylesToCombo();
-            }
-        } else {
-            addDefaultStylesToCombo();
-        }
-    } else {
-        // No style resolver - use built-in defaults
-        addDefaultStylesToCombo();
-    }
-
-    // Restore selection if possible
-    int idx = m_editorStyleCombo->findData(currentData);
-    if (idx >= 0) {
-        m_editorStyleCombo->setCurrentIndex(idx);
-    }
-
-    m_isUpdating = false;
-}
-
-void PropertiesPanel::addDefaultStylesToCombo() {
-    // Add common paragraph styles (fallback when no database)
-    m_editorStyleCombo->addItem(tr("Normal"), "p");
-    m_editorStyleCombo->addItem(tr("Heading 1"), "h1");
-    m_editorStyleCombo->addItem(tr("Heading 2"), "h2");
-    m_editorStyleCombo->addItem(tr("Heading 3"), "h3");
-    m_editorStyleCombo->addItem(tr("Block Quote"), "blockquote");
-    m_editorStyleCombo->addItem(tr("Preformatted"), "pre");
-}
-
-void PropertiesPanel::applyStyleFromCombo() {
-    // This is called when user selects a style from the combo
-    // The actual application is already handled in onEditorStyleChanged()
-    // This method can be used for additional style-related operations
+    logger.debug("PropertiesPanel: Editor stats - {} words, {} chars, {} paragraphs",
+                 counts.words, counts.characters, counts.paragraphs);
 }
 
 } // namespace gui
