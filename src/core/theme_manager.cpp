@@ -336,9 +336,11 @@ void ThemeManager::reloadEditorColors() {
         m_optimizesEditorColors = optimizes;
         changed = true;
     }
+    // Only what shows the editor colors follows: the whole window does not have to be themed
+    // again for them (the icons drawn anew, ...)
     if (changed) {
         Logger::getInstance().debug("ThemeManager: Editor colors changed");
-        emit themeChanged(m_currentTheme);
+        emit editorColorsChanged();
     }
 }
 

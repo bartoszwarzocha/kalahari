@@ -339,12 +339,10 @@ MainWindow::MainWindow(QWidget* parent)
     m_settingsCoordinator->setGrammarCoordinator(m_grammarCoordinator);
 
     // The Spelling and Grammar panel: the issues of the text in front, where Next Spelling or
-    // Grammar Issue shows the one it finds; the pin of its title bar keeps it open
+    // Grammar Issue shows the one it finds
     m_spellingPanelCoordinator = new SpellingPanelCoordinator(
         m_dockCoordinator->spellingPanel(), m_dockCoordinator->spellingDock(),
         m_dockCoordinator->centralTabs(), m_spellingCoordinator, m_grammarCoordinator, this);
-    m_spellingPanelCoordinator->setPinButton(m_dockCoordinator->spellingPinButton());
-    m_spellingPanelCoordinator->setDistractionFreeLayout(m_distractionFreeLayout);
 
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
     // No m_editorPanel at startup - Dashboard is default first tab
@@ -1057,11 +1055,6 @@ void MainWindow::onDistractionFreeToggle() {
     if (centralTabs) {
         alsoHidden.append(centralTabs->tabBar());
     }
-    // The panels Distraction-Free brings back afterwards are the writer's: not the Spelling and
-    // Grammar panel shown only while the issues are looked through
-    if (enabled && m_spellingPanelCoordinator) {
-        m_spellingPanelCoordinator->endTemporaryShow();
-    }
     m_distractionFreeLayout->setActive(enabled, alsoHidden);
 }
 
@@ -1575,13 +1568,9 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         }
     }
 
-    // The window's bars, panels and size from before Distraction-Free are the ones to keep,
-    // without the Spelling and Grammar panel shown only while the issues are looked through
+    // The window's bars, panels and size from before Distraction-Free are the ones to keep
     if (isDistractionFree()) {
         m_distractionFreeLayout->setActive(false);
-    }
-    if (m_spellingPanelCoordinator) {
-        m_spellingPanelCoordinator->endTemporaryShow();
     }
 
     // Save perspective (existing code)

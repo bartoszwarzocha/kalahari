@@ -8795,14 +8795,6 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>The grammar is not checked.</source>
         <translation>Gramatyka nie jest sprawdzana.</translation>
     </message>
-    <message>
-        <source>The panel is kept open – click to let it hide after looking through the issues</source>
-        <translation>Panel jest zatrzymany na stałe – kliknij, aby chował się po przejrzeniu błędów</translation>
-    </message>
-    <message>
-        <source>Keep the Panel Open</source>
-        <translation>Zatrzymaj panel na stałe</translation>
-    </message>
 </context>
 <context>
     <name>kalahari::gui::StandaloneInfoBar</name>

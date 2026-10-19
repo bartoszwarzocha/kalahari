@@ -157,17 +157,23 @@ TEST_CASE("The writer's editor colors are kept for each theme and reach the them
     REQUIRE(themeColor.isValid());
     CHECK(themeManager.defaultEditorColor("missingMarker", QColor("#123456")) == QColor("#123456"));
 
+    // The editors and the panels show them anew; the rest of the window (its icons drawn
+    // anew, ...) is not themed again for them
+    int colorsChangedCount = 0;
     int themeChangedCount = 0;
     QObject guard;
+    QObject::connect(&themeManager, &ThemeManager::editorColorsChanged, &guard,
+                     [&colorsChangedCount]() { ++colorsChangedCount; });
     QObject::connect(&themeManager, &ThemeManager::themeChanged, &guard,
                      [&themeChangedCount]() { ++themeChangedCount; });
 
     // Colors written together (Apply in the Settings dialog) reach the theme together, later
     settings.set<std::string>(spellingSetting, "#abcdef");
     settings.set<std::string>(grammarSetting, "#fedcba");
-    CHECK(themeChangedCount == 0);
+    CHECK(colorsChangedCount == 0);
     QCoreApplication::processEvents();
-    CHECK(themeChangedCount == 1);
+    CHECK(colorsChangedCount == 1);
+    CHECK(themeChangedCount == 0);
     CHECK(themeManager.editorColor(spelling, QColor()) == QColor("#abcdef"));
     CHECK(themeManager.editorColor(grammar, QColor()) == QColor("#fedcba"));
     CHECK(themeManager.defaultEditorColor(spelling, QColor()) == themeColor);
@@ -178,10 +184,10 @@ TEST_CASE("The writer's editor colors are kept for each theme and reach the them
           themeManager.defaultEditorColor(spelling, QColor()));
     CHECK(themeManager.editorColor(grammar, QColor()) ==
           themeManager.defaultEditorColor(grammar, QColor()));
-    int before = themeChangedCount;
+    int before = colorsChangedCount;
     settings.set<std::string>(spellingSetting, "#123123");
     QCoreApplication::processEvents();
-    CHECK(themeChangedCount == before);
+    CHECK(colorsChangedCount == before);
 
     // Back in the first theme, its colors are there again
     REQUIRE(themeManager.reloadTheme(originalTheme));
@@ -197,10 +203,10 @@ TEST_CASE("The writer's editor colors are kept for each theme and reach the them
           themeManager.defaultEditorColor(grammar, QColor()));
 
     // A setting that changes no color of the theme changes nothing
-    before = themeChangedCount;
+    before = colorsChangedCount;
     settings.set<std::string>("editor.colors.backgroundLight", "#fafafa");
     QCoreApplication::processEvents();
-    CHECK(themeChangedCount == before);
+    CHECK(colorsChangedCount == before);
     settings.removeKey("editor.colors.backgroundLight");
     QCoreApplication::processEvents();
 }
@@ -214,26 +220,31 @@ TEST_CASE("Optimize colors in themes is on by default and its change reaches the
     QCoreApplication::processEvents();
     CHECK(themeManager.optimizesEditorColors());
 
+    int colorsChangedCount = 0;
     int themeChangedCount = 0;
     QObject guard;
+    QObject::connect(&themeManager, &ThemeManager::editorColorsChanged, &guard,
+                     [&colorsChangedCount]() { ++colorsChangedCount; });
     QObject::connect(&themeManager, &ThemeManager::themeChanged, &guard,
                      [&themeChangedCount]() { ++themeChangedCount; });
 
-    // The editors and the panels show the colors anew
+    // The editors and the panels show the colors anew, not the rest of the window
     settings.set<bool>(optimize, false);
     CHECK_FALSE(themeManager.optimizesEditorColors());
     QCoreApplication::processEvents();
-    CHECK(themeChangedCount == 1);
+    CHECK(colorsChangedCount == 1);
+    CHECK(themeChangedCount == 0);
 
     // Written again unchanged: nothing to show anew
     settings.set<bool>(optimize, false);
     QCoreApplication::processEvents();
-    CHECK(themeChangedCount == 1);
+    CHECK(colorsChangedCount == 1);
 
     settings.removeKey(optimize);
     QCoreApplication::processEvents();
     CHECK(themeManager.optimizesEditorColors());
-    CHECK(themeChangedCount == 2);
+    CHECK(colorsChangedCount == 2);
+    CHECK(themeChangedCount == 0);
 }
 
 TEST_CASE("A theme file with the Dashboard and info icon colors of before loads as without them",

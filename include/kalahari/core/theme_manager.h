@@ -59,7 +59,7 @@ public:
     /// @brief The setting of the user's own value of an editor color of a theme
     ///
     /// Each theme keeps its own values. A changed setting of the current theme reaches it by
-    /// itself (themeChanged() follows).
+    /// itself (editorColorsChanged() follows).
     /// @param themeName The theme's name (Theme::name)
     /// @param key Name from the theme file's "editor" section (e.g. "spelling")
     /// @return "themes.<themeName>.editor.<key>"
@@ -71,8 +71,8 @@ public:
     /// @brief Whether the editor colors are adapted to what they are shown on: darker on a
     ///        light background and lighter on a dark one where they are hard to see there
     ///
-    /// The setting OPTIMIZE_COLORS_SETTING; a change of it emits themeChanged(), as a changed
-    /// color does.
+    /// The setting OPTIMIZE_COLORS_SETTING; a change of it emits editorColorsChanged(), as a
+    /// changed color does.
     bool optimizesEditorColors() const;
 
     /// @brief Get list of available themes in resources/themes/
@@ -123,8 +123,13 @@ signals:
     /// @brief Emitted after the palette is applied (for additional widget refresh)
     void themeStyleChanged();
 
+    /// @brief Emitted when an editor color of the theme in use or "Optimize colors in themes"
+    ///        changed, and not the theme: the editors and the panels that show these colors
+    ///        show them anew, the icons and the rest of the window stay as they are
+    void editorColorsChanged();
+
 private slots:
-    /// @brief Apply the user's editor colors again; emit themeChanged when one changed
+    /// @brief Apply the user's editor colors again; emit editorColorsChanged when one changed
     ///        (called by name, queued after the settings changed)
     void reloadEditorColors();
 

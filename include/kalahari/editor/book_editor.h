@@ -728,6 +728,11 @@ public:
     /// @brief Let the text be changed or not (see isReadOnly())
     void setReadOnly(bool readOnly);
 
+    /// @brief Why the text can only be read ("The book is open read-only"): the tooltip and
+    ///        the status tip of the items its context menu greys out (the words of the spelling
+    ///        and of the grammar, the editor's own Cut and Paste)
+    void setReadOnlyReason(const QString& reason);
+
     /// @brief Go to the next TODO not done yet, after the cursor
     /// @return Its id; empty when there is none after the cursor
     QString goToNextTodo();
@@ -1347,6 +1352,10 @@ private:
     /// (isReadOnly()); then it says so (changeRefused())
     bool refusesChange();
 
+    /// @brief An item of the context menu that changes the text: greyed out while the text is
+    /// only read, with the reason as its tooltip and its status tip (setReadOnlyReason())
+    void disableWhileReadOnly(QAction* action) const;
+
     /// @brief Put the editor's cursor where an edit of the document ended, show it, and
     /// report the change
     void finishEdit(const QTextCursor& cursor);
@@ -1756,6 +1765,7 @@ private:
     QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
     bool m_readOnly = false;            ///< The text can only be read (isReadOnly())
+    QString m_readOnlyReason;           ///< Why (setReadOnlyReason())
 
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string
@@ -1867,7 +1877,7 @@ private:
     // Grammar
     GrammarCheckService* m_grammarCheckService{nullptr};  ///< The checking (not owned)
     QTimer* m_grammarTimer{nullptr};                      ///< Sends the paragraphs due
-    QElapsedTimer m_grammarEditClock;                     ///< Since the last edit
+    QElapsedTimer m_grammarEditClock;  ///< Since the last typing (not running after another edit)
 
     /// @brief A paragraph sent to be checked
     struct GrammarRequest {

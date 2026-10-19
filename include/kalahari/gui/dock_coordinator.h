@@ -193,10 +193,6 @@ public:
     /// @brief Get the dock of the Spelling and Grammar panel
     [[nodiscard]] QDockWidget* spellingDock() const { return m_spellingDock; }
 
-    /// @brief The pin on the title bar of the Spelling and Grammar panel, which keeps it open
-    ///        (a check button; SpellingPanelCoordinator::setPinButton())
-    [[nodiscard]] QToolButton* spellingPinButton() const { return m_spellingPinButton; }
-
     // =========================================================================
     // Central widget accessors
     // =========================================================================
@@ -384,7 +380,6 @@ private:
     AssistantPanel* m_assistantPanel{nullptr};
     AnnotationsPanel* m_annotationsPanel{nullptr};
     SpellingPanel* m_spellingPanel{nullptr};
-    QToolButton* m_spellingPinButton{nullptr};
 
     // Central widget
     QTabWidget* m_centralTabs{nullptr};

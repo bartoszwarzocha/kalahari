@@ -233,6 +233,8 @@ SpellingPanel::SpellingPanel(QWidget* parent)
 
     auto& themes = core::ThemeManager::getInstance();
     connect(&themes, &core::ThemeManager::themeChanged, this, &SpellingPanel::applyTheme);
+    connect(&themes, &core::ThemeManager::editorColorsChanged, this,
+            [this]() { applyTheme(core::ThemeManager::getInstance().getCurrentTheme()); });
     applyTheme(themes.getCurrentTheme());
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &SpellingPanel::updateIcons);
@@ -393,8 +395,6 @@ void SpellingPanel::applyTheme(const core::Theme& theme) {
     const QColor base = themeColor(theme.palette.base, current, QPalette::Base);
     const QColor text = themeColor(theme.palette.text, current, QPalette::Text);
     const QColor highlight = themeColor(theme.palette.highlight, current, QPalette::Highlight);
-    const QColor highlightedText =
-        themeColor(theme.palette.highlightedText, current, QPalette::HighlightedText);
 
     // The cards' frames in the colors of the waves, as "Optimize colors in themes" shows them
     // on the panel
@@ -404,7 +404,7 @@ void SpellingPanel::applyTheme(const core::Theme& theme) {
         colors.at(i) = issueCardColors(kind, base, text);
         m_kindButtons.at(i)->setIcon(kindDot(kind, devicePixelRatioF()));
     }
-    m_list->setColors(colors[0], colors[1], highlight, highlightedText);
+    m_list->setColors(colors[0], colors[1], highlight);
 
     // The controls lie on the window
     const QColor windowText = themeColor(theme.palette.windowText, current, QPalette::WindowText);
@@ -711,9 +711,10 @@ void SpellingPanel::step(int steps) {
 }
 
 void SpellingPanel::chooseSuggestion(int index) {
+    // Also in a read-only text, which keeps its words and says why (BookEditor::replaceIssue())
     const std::optional<SpellingPanelIssue> issue = selectedIssue();
-    if (!issue || index < 0 || m_readOnly) {
-        return;  // a read-only text keeps its words
+    if (!issue || index < 0) {
+        return;
     }
     const QStringList suggestions = m_list->suggestionsFor(*issue);
     if (index < std::min<int>(static_cast<int>(suggestions.size()), MAX_SUGGESTION_KEYS)) {

@@ -5,6 +5,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/panels/annotation_colors.h"
+#include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
@@ -72,6 +73,9 @@ EditorPanel::EditorPanel(QWidget* parent)
     // F7 in the menu of an issue goes on to the next one, as in the text
     m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
 
+    // A chapter of a book open read-only: its context menu says why the fixes are greyed out
+    m_bookEditor->setReadOnlyReason(readOnlyReason());
+
     // The light or dark paper chosen in the editor's context menu is the setting of all
     // editors, kept between sessions
     connect(m_bookEditor, &editor::BookEditor::editorColorModeChanged, this,
@@ -105,8 +109,10 @@ EditorPanel::EditorPanel(QWidget* parent)
             }
         });
 
-    // The theme gives the annotations' marks their colors
-    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
+    // The theme gives the annotations' marks and the waves their colors
+    auto& themes = core::ThemeManager::getInstance();
+    connect(&themes, &core::ThemeManager::themeChanged, this, [this]() { scheduleSettings(); });
+    connect(&themes, &core::ThemeManager::editorColorsChanged, this,
             [this]() { scheduleSettings(); });
 
     // Apply settings (font, appearance)

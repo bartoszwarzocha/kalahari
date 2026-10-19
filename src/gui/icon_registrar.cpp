@@ -285,8 +285,7 @@ void registerAllIcons() {
     // Dock title bar button icons (OpenSpec #00032)
     iconRegistry.registerIcon("dock.float", "resources/icons/twotone/fullscreen_exit.svg", "Float");
     iconRegistry.registerIcon("dock.close", "resources/icons/twotone/close.svg", "Close");
-    // A panel kept open (the Spelling and Grammar panel); the settings of a panel
-    iconRegistry.registerIcon("dock.pin", "resources/icons/twotone/push_pin.svg", "Keep Open");
+    // The settings of a panel
     iconRegistry.registerIcon("dock.settings", "resources/icons/twotone/settings.svg",
                               "Panel Settings");
 

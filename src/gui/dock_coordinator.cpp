@@ -347,12 +347,9 @@ void DockCoordinator::createSpellingDock() {
     m_spellingDock->setWidget(scrollingPanel(m_spellingPanel, m_spellingDock));
     m_spellingDock->setObjectName("SpellingDock");
     setupDockTitleBar(m_spellingDock, "view.spelling", tr("Spelling and Grammar"));
-    // Its options and the colors of the issues are on the Spelling page; the pin is the
-    // coordinator's (SpellingPanelCoordinator)
+    // Its options and the colors of the issues are on the Spelling page
     addSettingsButton(m_spellingDock, QString::fromLatin1(SettingsDialog::SPELLING_PAGE),
                       tr("Spelling and Grammar Settings"));
-    m_spellingPinButton = addTitleBarButton(m_spellingDock, "dock.pin", QString());
-    m_spellingPinButton->setCheckable(true);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_spellingDock);
 
     logger.debug("DockCoordinator: Spelling dock created");

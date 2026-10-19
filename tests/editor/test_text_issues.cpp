@@ -215,12 +215,16 @@ TEST_CASE("Issues: the editor tells when they change, once for the changes made 
     told = 0;
 
     SECTION("edits: once, and again when their paragraph is checked") {
+        // The grammar of a paragraph changed otherwise than by typing is checked at once: its
+        // answer is kept until the edits are told
+        server.hold();
         editor->setCursorPosition({1, 0});
         editor->insertText(QStringLiteral("So "));
         editor->insertText(QStringLiteral("yes, "));
         CHECK(told == 0);  // told after the changes made together
         REQUIRE(waitUntil([&told]() { return told > 0; }));
         CHECK(told == 1);
+        server.release();
         REQUIRE(checked(*editor));
         CHECK(told > 1);
         CHECK(issueList(*editor) == QStringList{"spelling 0:4 speling", "grammar 0:15 a apple",

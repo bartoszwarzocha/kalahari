@@ -176,8 +176,11 @@ TEST_CASE("Settings: the color of the misspelled words, on the Spelling page",
     CHECK(optimizeBox(page)->isChecked());
     CHECK_FALSE(dialog.hasChanges());
 
+    int colorChanges = 0;
     int themeChanges = 0;
     QObject guard;
+    QObject::connect(&themes, &ThemeManager::editorColorsChanged, &guard,
+                     [&colorChanges]() { ++colorChanges; });
     QObject::connect(&themes, &ThemeManager::themeChanged, &guard,
                      [&themeChanges]() { ++themeChanges; });
 
@@ -188,8 +191,10 @@ TEST_CASE("Settings: the color of the misspelled words, on the Spelling page",
         CHECK(dialog.applyChanges() == QStringList{QString::fromStdString(setting)});
         CHECK(stored(setting) == "#123456");
 
+        // Without theming the whole window again (its icons drawn anew, ...): no wait
         QCoreApplication::processEvents();
-        CHECK(themeChanges == 1);
+        CHECK(colorChanges == 1);
+        CHECK(themeChanges == 0);
         CHECK(themes.editorColor(key, QColor()) == chosen);
         CHECK(issueColor(TextIssueKind::Spelling) == chosen);
         // The grammar keeps its color
@@ -359,9 +364,13 @@ TEST_CASE("Settings: Optimize colors in themes, one setting on three pages",
     CHECK_FALSE(spelling->isChecked());
     CHECK_FALSE(annotations->isChecked());
 
-    // Applied: the editors and the panels show the colors exactly as set
+    // Applied: the editors and the panels show the colors exactly as set, without theming the
+    // whole window again
+    int colorChanges = 0;
     int themeChanges = 0;
     QObject guard;
+    QObject::connect(&themes, &ThemeManager::editorColorsChanged, &guard,
+                     [&colorChanges]() { ++colorChanges; });
     QObject::connect(&themes, &ThemeManager::themeChanged, &guard,
                      [&themeChanges]() { ++themeChanges; });
     const QStringList written = dialog.applyChanges();
@@ -370,7 +379,8 @@ TEST_CASE("Settings: Optimize colors in themes, one setting on three pages",
     CHECK_FALSE(settings.get<bool>(optimize, true));
     CHECK_FALSE(themes.optimizesEditorColors());
     QCoreApplication::processEvents();
-    CHECK(themeChanges == 1);
+    CHECK(colorChanges == 1);
+    CHECK(themeChanges == 0);
     CHECK_FALSE(dialog.hasChanges());
 
     // A color too faint for the paper: shown as it is, or optimized

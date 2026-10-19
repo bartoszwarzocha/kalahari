@@ -2,8 +2,8 @@
 /// @brief The Spelling and Grammar panel: the cards and the words they show, the colors of the
 ///        kinds, the counts and filters, what the panel says without cards, its keys; and with
 ///        the text in front: the issues listed and selected both ways, put right from the
-///        panel, the grammar of the whole text, and Next Spelling or Grammar Issue showing the
-///        panel only while the issues are looked through
+///        panel, the grammar of the whole text, and Next Spelling or Grammar Issue opening the
+///        panel, which stays open
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
@@ -48,6 +48,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <array>
 #include <cstdio>
 #include <map>
 #include <memory>
@@ -115,8 +116,8 @@ private:
         "editor.grammarCheck.enabled",    "editor.grammarCheck.mode",
         "editor.grammarCheck.serverUrl",  "editor.grammarCheck.username",
         "editor.grammarCheck.apiKey",     "editor.grammarCheck.ignoredRules",
-        "spellingPanel.pinned",           "spellingPanel.fixButtons",
-        "spellingPanel.nextIssue",        "spellingPanel.grammarScope"};
+        "spellingPanel.fixButtons",       "spellingPanel.nextIssue",
+        "spellingPanel.grammarScope"};
     std::map<std::string, nlohmann::json> m_values;
 };
 
@@ -126,7 +127,6 @@ void setDefaults() {
     settings().set<bool>("editor.spellCheck.enabled", true);
     settings().set<std::string>("editor.spellCheck.language", "en_US");
     settings().set<bool>(GrammarCoordinator::ENABLED_KEY, false);
-    settings().set<bool>("spellingPanel.pinned", false);
     settings().set<std::string>("spellingPanel.fixButtons", "selected");
     settings().set<std::string>("spellingPanel.nextIssue", "panel");
     settings().set<std::string>("spellingPanel.grammarScope", "whole");
@@ -295,7 +295,6 @@ struct Desk {
     QDockWidget* annotations = nullptr;
     QDockWidget* dock = nullptr;
     SpellingPanel* panel = nullptr;
-    QToolButton* pin = nullptr;
     std::unique_ptr<SpellingCoordinator> spelling;
     std::unique_ptr<GrammarCoordinator> grammar;
     std::unique_ptr<SpellingPanelCoordinator> coordinator;
@@ -311,7 +310,6 @@ struct Desk {
         window.tabifyDockWidget(annotations, dock);
         dock->hide();
         annotations->raise();
-        pin = new QToolButton(&window);  // the pin of the panel's title bar
 
         spelling = std::make_unique<SpellingCoordinator>(tabs, &statusBar);
         spelling->connectCommands();
@@ -320,7 +318,6 @@ struct Desk {
         }
         coordinator = std::make_unique<SpellingPanelCoordinator>(panel, dock, tabs, spelling.get(),
                                                                  grammar.get());
-        coordinator->setPinButton(pin);
         window.resize(1000, 700);
         window.show();
         QApplication::processEvents();
@@ -417,19 +414,63 @@ TEST_CASE("Spelling panel: a folded card shows a few words around the issue, an 
 
 TEST_CASE("Spelling panel: the cards of a kind are framed in its color, every text readable",
           "[gui][spelling-panel]") {
-    const QColor kind(QStringLiteral("#d32f2f"));
-    for (const auto& [surface, text] :
-         {std::pair{QColor(QStringLiteral("#ffffff")), QColor(QStringLiteral("#1f1f1f"))},
-          std::pair{QColor(QStringLiteral("#1e1e1e")), QColor(QStringLiteral("#e8e8e8"))}}) {
-        CAPTURE(surface.name());
-        const IssueCardColors colors = issueCardColors(kind, surface, text);
-        CHECK(colors.border == kind);
-        CHECK(colors.card.kind == kind);
-        CHECK(colors.card.background != surface);  // tinted with the kind
-        CHECK(contrastRatio(colors.card.text, colors.card.background) >= MIN_TEXT_CONTRAST);
-        CHECK(contrastRatio(colors.card.kindName, colors.card.background) >= MIN_TEXT_CONTRAST);
-        CHECK(contrastRatio(colors.card.secondary, colors.card.background) >= MIN_TEXT_CONTRAST);
+    // A red and a blue, a red white is not read well on, and a yellow
+    const std::array<QColor, 4> kinds = {
+        QColor(QStringLiteral("#d32f2f")), QColor(QStringLiteral("#0064ff")),
+        QColor(QStringLiteral("#ff0000")), QColor(QStringLiteral("#ffd600"))};
+    for (const QColor& kind : kinds) {
+        for (const auto& [surface, text] :
+             {std::pair{QColor(QStringLiteral("#ffffff")), QColor(QStringLiteral("#1f1f1f"))},
+              std::pair{QColor(QStringLiteral("#1e1e1e")), QColor(QStringLiteral("#e8e8e8"))}}) {
+            CAPTURE(kind.name(), surface.name());
+            const IssueCardColors colors = issueCardColors(kind, surface, text);
+            CHECK(colors.border == kind);
+            CHECK(colors.card.kind == kind);
+            CHECK(colors.card.background != surface);  // tinted with the kind
+            CHECK(contrastRatio(colors.card.text, colors.card.background) >= MIN_TEXT_CONTRAST);
+            CHECK(contrastRatio(colors.card.kindName, colors.card.background) >=
+                  MIN_TEXT_CONTRAST);
+            CHECK(contrastRatio(colors.card.secondary, colors.card.background) >=
+                  MIN_TEXT_CONTRAST);
+            // The word of the first suggestion, on the kind's color
+            CHECK(contrastRatio(colors.onBorder, colors.border) >= MIN_TEXT_CONTRAST);
+        }
     }
+}
+
+TEST_CASE("Spelling panel: the first suggestion is filled with the color of its kind",
+          "[gui][spelling-panel][colors]") {
+    const std::vector<SpellingPanelIssue> issues = sampleIssues();
+    SpellingIssueCard card;
+    card.resize(320, 200);
+    card.show();
+    const QColor kind(QStringLiteral("#d000d0"));
+    const QColor highlight(QStringLiteral("#0078d4"));
+    card.setColors(issueCardColors(kind, QColor(Qt::white), QColor(Qt::black)), highlight);
+    card.setIssue(issues.at(1));
+    card.setSuggestions({QStringLiteral("an apple"), QStringLiteral("the apple")});
+    card.setExpanded(true);
+    card.setSelected(true);
+    QApplication::processEvents();
+
+    // The color inside the right edge of a button, past its word, with the mouse elsewhere
+    const auto fillOf = [](QAbstractButton* button) {
+        button->setAttribute(Qt::WA_UnderMouse, false);
+        const QImage image = button->grab().toImage();
+        const qreal ratio = image.devicePixelRatio();
+        return QColor::fromRgb(
+            image.pixel(image.width() - qRound(3 * ratio), image.height() / 2));
+    };
+    const QList<QAbstractButton*> buttons = card.suggestionButtons();
+    REQUIRE(buttons.size() == 2);
+    CHECK(fillOf(buttons.at(0)) == kind);  // not the highlight's color
+    CHECK(fillOf(buttons.at(1)) != kind);
+
+    // Another color of the kind: the first suggestion follows it
+    const QColor other(QStringLiteral("#00796b"));
+    card.setColors(issueCardColors(other, QColor(Qt::white), QColor(Qt::black)), highlight);
+    QApplication::processEvents();
+    CHECK(fillOf(card.suggestionButtons().at(0)) == other);
 }
 
 TEST_CASE("Spelling panel: a card unfolded shows the suggestions and the actions of its kind",
@@ -743,10 +784,11 @@ TEST_CASE("Spelling panel: its keys select the issues and fix the selected one, 
     press(list, Qt::Key_Escape);
     CHECK(backToText == 1);
 
-    // A text only read keeps its words
+    // A text only read: the keys still ask for the fix, which the text refuses, saying why
+    // (the coordinator's test); the buttons are greyed out
     panel.setReadOnly(true);
     press(list, Qt::Key_Return);
-    CHECK(chosen.size() == 3);
+    CHECK(chosen.size() == 4);
 
     // Previous and Next do what Up and Down do
     auto* next = buttonNamed<QToolButton>(panel, QStringLiteral("Next"));
@@ -928,11 +970,14 @@ TEST_CASE("Spelling panel: a fix chosen in the panel goes to the text, and the n
     CHECK(desk.panel->selectedIssue()->issue.text == QStringLiteral("errorz"));
     CHECK(paragraphText(*editor, 0) == QStringLiteral("One mistakke here."));
 
-    // A text only read: the suggestions are greyed out, and Enter changes nothing
+    // A text only read: the suggestions are greyed out, and Enter changes nothing but says why
     editor->setReadOnly(true);
     desk.coordinator->refresh();
+    int refused = 0;
+    QObject::connect(editor, &editor::BookEditor::changeRefused, [&refused]() { ++refused; });
     press(list, Qt::Key_Return);
     CHECK(paragraphText(*editor, 1) == QStringLiteral("Two errorz there."));
+    CHECK(refused == 1);
 }
 
 TEST_CASE("Spelling panel: with the checking off it turns it on", "[gui][spelling-panel][coordinator]") {
@@ -1037,8 +1082,7 @@ TEST_CASE("Spelling panel: the grammar issues with the misspelled words, the who
     }
 }
 
-TEST_CASE("Spelling panel: Next Spelling or Grammar Issue shows the panel only while the issues "
-          "are looked through",
+TEST_CASE("Spelling panel: Next Spelling or Grammar Issue opens the panel, which stays open",
           "[gui][spelling-panel][coordinator]") {
     if (!canActivateWindows()) {
         SKIP(NEEDS_OFFSCREEN);
@@ -1057,14 +1101,13 @@ TEST_CASE("Spelling panel: Next Spelling or Grammar Issue shows the panel only w
     editor->setCursorPosition({0, 0});
     REQUIRE(waitUntil([editor]() { return editor->hasFocus(); }));
 
-    SECTION("a closed panel shows for the issue, takes the keys, and Esc hides it again") {
+    SECTION("a closed panel opens for the issue and takes the keys; Esc gives them back") {
         desk.properties->raise();  // on top of the tabs the panel comes into
         QApplication::processEvents();
         REQUIRE(raisedTab(desk.window, desk.annotations) == QStringLiteral("Properties"));
 
         Desk::nextIssue();
         CHECK(desk.dock->isVisible());
-        CHECK(desk.coordinator->isTemporaryShow());
         CHECK(raisedTab(desk.window, desk.dock) == QStringLiteral("Spelling and Grammar"));
         REQUIRE(desk.panel->selectedIssue().has_value());
         CHECK(desk.panel->selectedIssue()->issue.text == QStringLiteral("mistakke"));
@@ -1077,16 +1120,22 @@ TEST_CASE("Spelling panel: Next Spelling or Grammar Issue shows the panel only w
         press(QApplication::focusWidget(), Qt::Key_Down);
         CHECK(editor->selectedText() == QStringLiteral("errorz"));
 
-        // Esc: back to the text; the panel goes, and the tab it covered is on top again
+        // Esc: back to the text, with the issue to be put right by hand; the panel stays open,
+        // its tab on top
         press(QApplication::focusWidget(), Qt::Key_Escape);
         CHECK(editor->hasFocus());
-        CHECK(desk.dock->isHidden());
-        CHECK_FALSE(desk.coordinator->isTemporaryShow());
-        CHECK(raisedTab(desk.window, desk.annotations) == QStringLiteral("Properties"));
-        CHECK(editor->selectedText() == QStringLiteral("errorz"));  // to be put right by hand
+        CHECK(editor->selectedText() == QStringLiteral("errorz"));
+        CHECK(desk.dock->isVisible());
+        CHECK(raisedTab(desk.window, desk.dock) == QStringLiteral("Spelling and Grammar"));
+
+        // Once more: the next issue, round the text, in the panel still open
+        Desk::nextIssue();
+        CHECK(editor->selectedText() == QStringLiteral("mistakke"));
+        CHECK(desk.dock->isVisible());
+        CHECK(desk.panel->hasFocusInside());
     }
 
-    SECTION("a panel under another tab comes on top, and goes under it again") {
+    SECTION("a panel under another tab comes on top and stays there") {
         desk.dock->show();
         desk.annotations->raise();
         QApplication::processEvents();
@@ -1094,33 +1143,46 @@ TEST_CASE("Spelling panel: Next Spelling or Grammar Issue shows the panel only w
 
         Desk::nextIssue();
         CHECK(raisedTab(desk.window, desk.dock) == QStringLiteral("Spelling and Grammar"));
-        CHECK(desk.coordinator->isTemporaryShow());
         press(QApplication::focusWidget(), Qt::Key_Escape);
-        CHECK_FALSE(desk.dock->isHidden());  // still open, in its tab
-        CHECK(raisedTab(desk.window, desk.dock) == QStringLiteral("Annotations"));
+        CHECK(editor->hasFocus());
+        CHECK(raisedTab(desk.window, desk.dock) == QStringLiteral("Spelling and Grammar"));
     }
 
-    SECTION("the first character typed in the text hides it") {
+    SECTION("typing in the text leaves it open") {
         Desk::nextIssue();
-        REQUIRE(desk.coordinator->isTemporaryShow());
+        REQUIRE(desk.dock->isVisible());
         editor->setFocus();
         REQUIRE(waitUntil([editor]() { return editor->hasFocus(); }));
-        // A click at the start of the second paragraph: the issue found is not selected any more
         editor->clearSelection();
         editor->setCursorPosition({1, 0});
         press(editor, Qt::Key_X, Qt::NoModifier, QStringLiteral("x"));
-        CHECK(paragraphText(*editor, 0) == QStringLiteral("One mistakke here."));
         CHECK(paragraphText(*editor, 1) == QStringLiteral("xTwo errorz there."));
-        CHECK(desk.dock->isHidden());
+        QApplication::processEvents();
+        CHECK(desk.dock->isVisible());
     }
 
-    SECTION("a fix chosen in the panel does not hide it") {
+    SECTION("a fix chosen in the panel leaves it open") {
         Desk::nextIssue();
-        REQUIRE(desk.coordinator->isTemporaryShow());
         press(QApplication::focusWidget(), Qt::Key_Return);
         CHECK(paragraphText(*editor, 0) != QStringLiteral("One mistakke here."));
         CHECK(desk.dock->isVisible());
-        CHECK(desk.coordinator->isTemporaryShow());
+    }
+
+    SECTION("closed by the writer, it stays closed until the next issue is looked for") {
+        Desk::nextIssue();
+        REQUIRE(desk.dock->isVisible());
+        desk.dock->close();
+        editor->setFocus();
+        REQUIRE(waitUntil([editor]() { return editor->hasFocus(); }));
+        editor->clearSelection();
+        editor->setCursorPosition({1, 0});
+        press(editor, Qt::Key_X, Qt::NoModifier, QStringLiteral("x"));
+        kalahari::test::runEventLoop(200);  // the issues listed again meanwhile
+        CHECK(desk.dock->isHidden());
+
+        Desk::nextIssue();
+        CHECK(desk.dock->isVisible());
+        CHECK(desk.panel->hasFocusInside());
     }
 
     SECTION("the issue found is shown also when its kind was hidden in the panel") {
@@ -1131,26 +1193,6 @@ TEST_CASE("Spelling panel: Next Spelling or Grammar Issue shows the panel only w
         CHECK(desk.panel->isKindShown(TextIssueKind::Spelling));
         REQUIRE(desk.panel->selectedIssue().has_value());
         CHECK(desk.panel->selectedIssue()->issue.text == QStringLiteral("mistakke"));
-    }
-
-    SECTION("the pin keeps it open") {
-        desk.pin->click();
-        CHECK(settings().get<bool>("spellingPanel.pinned", false));
-        CHECK(desk.pin->isChecked());
-        CHECK(desk.pin->toolTip() ==
-              QStringLiteral("The panel is kept open – click to let it hide after looking "
-                             "through the issues"));
-        Desk::nextIssue();
-        CHECK(desk.dock->isVisible());
-        CHECK_FALSE(desk.coordinator->isTemporaryShow());
-        press(QApplication::focusWidget(), Qt::Key_Escape);
-        CHECK(editor->hasFocus());
-        CHECK(desk.dock->isVisible());
-
-        // Unpinned: shown for the issues only, from the next time
-        desk.pin->click();
-        CHECK_FALSE(settings().get<bool>("spellingPanel.pinned", true));
-        CHECK(desk.pin->toolTip() == QStringLiteral("Keep the Panel Open"));
     }
 
     SECTION("set to open the menu at the word, it leaves the panel closed") {

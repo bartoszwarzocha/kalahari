@@ -711,7 +711,7 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIn
         QFont bold = action->font();
         bold.setBold(true);
         action->setFont(bold);
-        action->setEnabled(!m_readOnly);  // a read-only text keeps its words
+        disableWhileReadOnly(action);  // a read-only text keeps its words
         connect(action, &QAction::triggered, this,
                 [this, paraIndex, startOffset, endOffset, suggestion]() {
                     replaceWord(paraIndex, startOffset, endOffset, suggestion);
@@ -1073,9 +1073,15 @@ void BookEditor::adjustGrammarToEdit(int from, int charsRemoved, int charsAdded)
 
     noteIssuesChanged();  // the waves moved with the text, or went
 
-    // The paragraphs go when the writer stops typing
-    m_grammarEditClock.restart();
-    scheduleGrammarCheck(GRAMMAR_EDIT_DELAY_MS);
+    // The paragraphs go when the writer stops typing; at once after an edit not made by typing
+    // (a fix chosen, undo, a paste): its issues are known again without a wait
+    if (m_spellTypingEdit) {
+        m_grammarEditClock.restart();
+        scheduleGrammarCheck(GRAMMAR_EDIT_DELAY_MS);
+    } else {
+        m_grammarEditClock.invalidate();
+        scheduleGrammarCheck(0);
+    }
 }
 
 void BookEditor::dropGrammarRequests()
@@ -1157,7 +1163,7 @@ void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error, int p
         QFont bold = action->font();
         bold.setBold(true);
         action->setFont(bold);
-        action->setEnabled(!m_readOnly);  // a read-only text keeps its words
+        disableWhileReadOnly(action);  // a read-only text keeps its words
         connect(action, &QAction::triggered, this, [this, paraIndex, error, suggestion]() {
             replaceWord(paraIndex, error.startPos, error.startPos + error.length, suggestion);
         });

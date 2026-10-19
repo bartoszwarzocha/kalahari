@@ -342,6 +342,8 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
 
     auto& themes = core::ThemeManager::getInstance();
     connect(&themes, &core::ThemeManager::themeChanged, this, &AnnotationsPanel::applyTheme);
+    connect(&themes, &core::ThemeManager::editorColorsChanged, this,
+            [this]() { applyTheme(core::ThemeManager::getInstance().getCurrentTheme()); });
     applyTheme(themes.getCurrentTheme());
 
     // The text of an empty list names the keys of Insert > Add Annotation

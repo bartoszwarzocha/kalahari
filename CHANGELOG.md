@@ -13,32 +13,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The Spelling and Grammar panel** - 2026-10-17. View > Panels > Spelling and Grammar opens
   a panel, a tab next to Annotations, with the misspelled words and the grammar issues of the
-  chapter or the file in front as cards, in the order of the text: the kind, the paragraph
-  and a few words around the issue, with a frame and a bar in the kind's color. The selected
-  card shows the whole sentence (for a grammar issue also what is wrong), up to five
-  suggestions, and Ignore Word and Add to Dictionary, or Ignore Rule. The buttons at the top,
-  "Spelling 3" and "Grammar 1", count the issues of each kind and show or hide its cards ("–"
-  for a kind not checked); the row under them says how far the text is checked ("Checking the
-  grammar: paragraph 12 of 40...", "The whole chapter is checked.") or why it is not (no
-  dictionary for the language, LanguageTool not prepared yet or not answering). A card
-  selected selects its issue in the text, and a click on an issue in the text selects its
-  card. A suggestion takes the issue's place as one step of Undo, the other buttons do what
-  they do in the menu of the wave, and then the next issue is selected; a right click on a
-  card, the menu key or Shift+F10 opens that menu. Up and Down, Home and End, Page Up and Page
-  Down select the cards, Enter chooses the first suggestion, 1 to 5 the suggestion with that
-  number, Esc goes back to the text; the row at the bottom reminds the keys. While the panel
-  shows, the grammar of the whole text is checked in the background, so the counts cover all
-  of it (the free server api.languagetool.org limits the requests per minute: there a long
-  text takes longer). With no text in front the panel says what to open; with the checking
-  off it has the button Turn On Checking. Tools > Next Spelling or Grammar Issue (F7) shows
-  the issue it finds in the panel and gives the panel the keys. A panel that was closed, or
-  under another tab, then shows only while the issues are looked through: Esc, or the first
-  character typed in the text, hides it again and brings back the tab it covered. The push
-  pin on its title bar keeps it open, and so does opening it from View > Panels; in
-  Distraction-Free writing it always hides again. Settings > Editor > Spelling has the group
-  Spelling and Grammar Panel: the fix buttons on the selected card only or on every card, F7
-  showing the issue in the panel or opening its menu at the word as before, and the grammar
-  checked in the whole text or only around the part in view while the panel shows.
+  chapter or the file in front as cards, in the order of the text: the kind, the paragraph and
+  a few words around the issue, with a frame and a bar in the kind's color. The selected card
+  shows the whole sentence (for a grammar issue also what is wrong), up to five suggestions,
+  the first one filled with the kind's color, and Ignore Word and Add to Dictionary, or Ignore
+  Rule. The buttons at the top, "Spelling 3" and "Grammar 1", count the issues of each kind
+  and show or hide its cards ("–" for a kind not checked); the row under them says how far the
+  text is checked ("Checking the grammar: paragraph 12 of 40...", "The whole chapter is
+  checked.") or why it is not (no dictionary for the language, LanguageTool not prepared yet
+  or not answering). A card selected selects its issue in the text, and a click on an issue in
+  the text selects its card. A suggestion takes the issue's place as one step of Undo, the
+  other buttons do what they do in the menu of the wave, and then the next issue is selected;
+  a right click on a card, the menu key or Shift+F10 opens that menu. In a book open read-only
+  the suggestions are greyed out, on the cards and in the menu of the wave, and their tooltip
+  says why; Ignore Word, Add to Dictionary and Ignore Rule still work, as they change no text.
+  Up and Down, Home and End, Page Up and Page Down select the cards, Enter chooses the first
+  suggestion, 1 to 5 the suggestion with that number, Esc goes back to the text; the row at
+  the bottom reminds the keys. While the panel shows, the grammar of the whole text is checked
+  in the background, so the counts cover all of it (the free server api.languagetool.org
+  limits the requests per minute: there a long text takes longer). With no text in front the
+  panel says what to open; with the checking off it has the button Turn On Checking. Tools >
+  Next Spelling or Grammar Issue (F7) shows the issue it finds in the panel and gives the
+  panel the keys: a closed panel opens, and one under another tab comes on top. The panel
+  stays open until it is closed; Esc gives the keys back to the text. Settings > Editor >
+  Spelling has the group Spelling and Grammar Panel: the fix buttons on the selected card only
+  or on every card, F7 showing the issue in the panel or opening its menu at the word as
+  before, and the grammar checked in the whole text or only around the part in view while the
+  panel shows.
 
 - **Panels: a gear on the title bar of Annotations and of Spelling and Grammar** -
   2026-10-17. The gear opens Settings at the panel's page: Annotations, or Editor > Spelling,
@@ -57,7 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for the three pages): a color too light for a light background is then shown darker, and one
   too dark for a dark background lighter (on the paper, and in the panels for the cards), as
   little as makes it seen; off, the colors are shown exactly as set. A change reaches the open
-  editors and panels with Apply or OK.
+  editors and panels with Apply or OK, at once: only what shows these colors is drawn again,
+  not the whole window with its icons.
 
 - **New Book: only the book types the program has** - 2026-10-17. The New Book window lists
   the types whose packages the program has, and the user project; a type without its package
@@ -254,6 +256,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   book is opened again.
 
 ### Changed
+
+- **Grammar: checked again at once after a fix, Undo or a paste** - 2026-10-19. A paragraph
+  changed otherwise than by typing (a fix chosen in the Spelling and Grammar panel or on the
+  menu of the wave, Undo, Redo, a paste) goes to LanguageTool at once: its issues are known
+  again without the second's wait meant for the end of typing.
 
 - **Dashboard: icons in the icon colors** - 2026-10-16. The icons of the books on the
   Dashboard take the icon colors of Settings > Appearance > Icons, as the toolbars and the

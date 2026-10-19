@@ -51,7 +51,8 @@ IssueContext sentenceContext(const QString& paragraph, int start, int length);
 /// @brief The colors of the cards of a kind of issue
 struct IssueCardColors {
     AnnotationCardColors card;  ///< As a card of an annotation, in a lighter tint
-    QColor border;              ///< The frame, in the kind's color itself
+    QColor border;              ///< The frame and the first suggestion: the kind's color itself
+    QColor onBorder;            ///< The text on the kind's color (the first suggestion's)
 
     bool operator==(const IssueCardColors& other) const = default;
 };
@@ -107,10 +108,10 @@ public:
     /// @brief Show whether the keys are in the list, where they act on the selected card
     void setListFocused(bool focused);
 
-    /// @brief Colors: of its kind, and of the highlight (the first suggestion, the frame of
-    ///        the selected card while the keys are in the list)
-    void setColors(const IssueCardColors& colors, const QColor& highlight,
-                   const QColor& highlightedText);
+    /// @brief Colors: of its kind (the frame, the first suggestion), and of the highlight (the
+    ///        frame of the selected card while the keys are in the list, of a button with the
+    ///        keys)
+    void setColors(const IssueCardColors& colors, const QColor& highlight);
 
     /// @brief A text that is only read: the suggestions are greyed out and say why; ignoring
     ///        and the dictionary still work, as they do not change the text
@@ -175,7 +176,6 @@ private:
     bool m_readOnly = false;
     IssueCardColors m_colors;
     QColor m_highlight;
-    QColor m_highlightedText;
 
     QLabel* m_kindLabel{nullptr};
     QLabel* m_placeLabel{nullptr};
@@ -246,7 +246,7 @@ public:
 
     /// @brief The colors of the cards of each kind and of the highlight
     void setColors(const IssueCardColors& spelling, const IssueCardColors& grammar,
-                   const QColor& highlight, const QColor& highlightedText);
+                   const QColor& highlight);
 
     /// @brief Where the suggestions for misspelled words come from (none: no suggestions)
     void setSuggestionProvider(SuggestionProvider provider);
@@ -347,7 +347,6 @@ private:
     IssueCardColors m_spellingColors;
     IssueCardColors m_grammarColors;
     QColor m_highlight;
-    QColor m_highlightedText;
     SuggestionProvider m_suggestionProvider;
     QHash<QString, QStringList> m_suggestions;     ///< Of the misspelled words, by key
     QHash<QString, int> m_expandedHeights;         ///< Of the unfolded cards measured, by key

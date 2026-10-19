@@ -95,7 +95,7 @@ bool closesQuotation(QChar c) {
 }
 
 /// @brief A suggestion of a card: its number (the key that chooses it) and the word, the
-///        first one in the highlight's colors
+///        first one filled with the color of the issue's kind
 class SuggestionButton : public QAbstractButton {
 public:
     explicit SuggestionButton(QWidget* parent) : QAbstractButton(parent) {
@@ -113,7 +113,7 @@ public:
         }
     }
 
-    /// @brief The first suggestion: in the highlight's colors
+    /// @brief The first suggestion: filled with the color of the issue's kind
     void setPrimary(bool primary) {
         if (primary != m_primary) {
             m_primary = primary;
@@ -121,9 +121,12 @@ public:
         }
     }
 
-    void setColors(const QColor& highlight, const QColor& highlightedText) {
-        m_highlight = highlight;
-        m_highlightedText = highlightedText;
+    /// @brief The colors: the first suggestion's fill and its text, and the frame of a button
+    ///        with the keys
+    void setColors(const QColor& primary, const QColor& primaryText, const QColor& focus) {
+        m_primaryColor = primary;
+        m_primaryText = primaryText;
+        m_focusColor = focus;
         update();
     }
 
@@ -153,14 +156,13 @@ protected:
             painter.setOpacity(DISABLED_OPACITY);
         }
         const QPalette& colors = palette();
-        const QColor highlight =
-            m_highlight.isValid() ? m_highlight : colors.color(QPalette::Highlight);
-        const QColor highlightedText = m_highlightedText.isValid()
-                                           ? m_highlightedText
-                                           : colors.color(QPalette::HighlightedText);
-        QColor fill = m_primary ? highlight : colors.color(QPalette::Button);
-        const QColor border = m_primary ? highlight : colors.color(QPalette::Mid);
-        const QColor textColor = m_primary ? highlightedText : colors.color(QPalette::ButtonText);
+        const QColor primary =
+            m_primaryColor.isValid() ? m_primaryColor : colors.color(QPalette::Highlight);
+        const QColor primaryText =
+            m_primaryText.isValid() ? m_primaryText : colors.color(QPalette::HighlightedText);
+        QColor fill = m_primary ? primary : colors.color(QPalette::Button);
+        const QColor border = m_primary ? primary : colors.color(QPalette::Mid);
+        const QColor textColor = m_primary ? primaryText : colors.color(QPalette::ButtonText);
         if (isDown()) {
             fill = fill.darker(115);
         } else if (underMouse() && isEnabled()) {
@@ -174,11 +176,11 @@ protected:
         if (m_number > 0) {
             const QSize cap = keycapSize();
             const QRect keycap(x, (height() - cap.height()) / 2, cap.width(), cap.height());
-            painter.setPen(QPen(m_primary ? highlightedText : colors.color(QPalette::Mid), 1));
+            painter.setPen(QPen(m_primary ? primaryText : colors.color(QPalette::Mid), 1));
             painter.setBrush(m_primary ? QBrush(Qt::NoBrush) : colors.brush(QPalette::Base));
             painter.drawRoundedRect(QRectF(keycap).adjusted(0.5, 0.5, -0.5, -0.5), 3, 3);
             painter.setFont(keycapFont());
-            painter.setPen(m_primary ? highlightedText : colors.color(QPalette::ButtonText));
+            painter.setPen(m_primary ? primaryText : colors.color(QPalette::ButtonText));
             painter.drawText(keycap, Qt::AlignCenter, QString::number(m_number));
             x += cap.width() + paddingX() / 2;
         }
@@ -192,8 +194,10 @@ protected:
 
         // The keys are on it (Tab): a frame inside its edge
         if (hasFocus()) {
+            const QColor focus =
+                m_focusColor.isValid() ? m_focusColor : colors.color(QPalette::Highlight);
             painter.setOpacity(1.0);
-            painter.setPen(QPen(m_primary ? highlightedText : highlight, 2));
+            painter.setPen(QPen(m_primary ? primaryText : focus, 2));
             painter.setBrush(Qt::NoBrush);
             painter.drawRoundedRect(QRectF(rect()).adjusted(2, 2, -2, -2), 3, 3);
         }
@@ -234,8 +238,9 @@ private:
 
     int m_number = 0;
     bool m_primary = false;
-    QColor m_highlight;
-    QColor m_highlightedText;
+    QColor m_primaryColor;
+    QColor m_primaryText;
+    QColor m_focusColor;
 };
 
 /// @brief An action of a card ("Ignore Word"): the keys that move the selection go on to
@@ -371,8 +376,14 @@ IssueCardColors issueCardColors(const QColor& kindColor, const QColor& surface,
     card.text = readableColor(text, card.background, MIN_TEXT_CONTRAST);
     card.secondary = readableColor(mixedColor(card.text, card.background, SECONDARY_SHARE),
                                    card.background, MIN_TEXT_CONTRAST);
-    // The frame in the color itself: the one the writer sees in the settings
+    // The frame and the first suggestion in the color itself: the one the writer sees in the
+    // settings. The suggestion's word on it in the color of the card's text or of the card,
+    // whichever is seen better there, darker or lighter if it has to be to be read
     colors.border = kindColor;
+    const bool textSeenBetter =
+        contrastRatio(card.text, kindColor) >= contrastRatio(card.background, kindColor);
+    const QColor onKind = textSeenBetter ? card.text : card.background;
+    colors.onBorder = readableColor(onKind, kindColor, MIN_TEXT_CONTRAST);
     return colors;
 }
 
@@ -494,16 +505,15 @@ void SpellingIssueCard::setListFocused(bool focused) {
     }
 }
 
-void SpellingIssueCard::setColors(const IssueCardColors& colors, const QColor& highlight,
-                                  const QColor& highlightedText) {
-    if (colors == m_colors && highlight == m_highlight && highlightedText == m_highlightedText) {
+void SpellingIssueCard::setColors(const IssueCardColors& colors, const QColor& highlight) {
+    if (colors == m_colors && highlight == m_highlight) {
         return;
     }
     m_colors = colors;
     m_highlight = highlight;
-    m_highlightedText = highlightedText;
     applyColors();
-    updateTexts();  // the issue's word is in the kind's color
+    updateTexts();    // the issue's word is in the kind's color
+    updateButtons();  // so is the first suggestion
     update();
 }
 
@@ -631,7 +641,7 @@ void SpellingIssueCard::updateButtons() {
         button->setText(m_suggestions.at(i));
         button->setNumber(m_selected ? static_cast<int>(i) + 1 : 0);
         button->setPrimary(i == 0);
-        button->setColors(m_highlight, m_highlightedText);
+        button->setColors(m_colors.border, m_colors.onBorder, m_highlight);
         button->setEnabled(!m_readOnly);
         button->setToolTip(m_readOnly ? readOnlyReason() : QString());
         button->setFocusPolicy(policy);
@@ -838,16 +848,15 @@ void SpellingIssueList::setKeysInside(bool inside) {
 }
 
 void SpellingIssueList::setColors(const IssueCardColors& spelling, const IssueCardColors& grammar,
-                                  const QColor& highlight, const QColor& highlightedText) {
+                                  const QColor& highlight) {
     m_spellingColors = spelling;
     m_grammarColors = grammar;
     m_highlight = highlight;
-    m_highlightedText = highlightedText;
     for (SpellingIssueCard* shown : std::as_const(m_shown)) {
         shown->setColors(shown->issue().issue.kind == editor::TextIssueKind::Spelling
                              ? m_spellingColors
                              : m_grammarColors,
-                         m_highlight, m_highlightedText);
+                         m_highlight);
     }
 }
 
@@ -1162,7 +1171,7 @@ void SpellingIssueList::fillCard(SpellingIssueCard* card, int index) {
     const bool expanded = isExpanded(index);
     card->setColors(issue.issue.kind == editor::TextIssueKind::Spelling ? m_spellingColors
                                                                         : m_grammarColors,
-                    m_highlight, m_highlightedText);
+                    m_highlight);
     card->setReadOnly(m_readOnly);
     card->setIssue(issue);
     if (expanded) {

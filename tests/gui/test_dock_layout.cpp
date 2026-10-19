@@ -263,12 +263,10 @@ TEST_CASE("Panels: the gear on the title bar of a panel asks for the panel's set
     QObject::connect(panels.docks, &DockCoordinator::settingsPageRequested,
                      [&asked](const QString& page) { asked = page; });
 
-    SECTION("The Spelling and Grammar panel: the gear and the pin, then Float and Close") {
+    SECTION("The Spelling and Grammar panel: the gear, then Float and Close") {
         QDockWidget* spelling = panels.docks->spellingDock();
         CHECK(titleBarButtons(spelling) ==
-              std::vector<std::string>{"dock.settings", "dock.pin", "dock.float", "dock.close"});
-        CHECK(titleBarButton(spelling, QStringLiteral("dock.pin")) ==
-              panels.docks->spellingPinButton());
+              std::vector<std::string>{"dock.settings", "dock.float", "dock.close"});
         QToolButton* gear = titleBarButton(spelling, QStringLiteral("dock.settings"));
         REQUIRE(gear != nullptr);
         CHECK(gear->toolTip() == QStringLiteral("Spelling and Grammar Settings"));

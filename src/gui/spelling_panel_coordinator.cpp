@@ -14,21 +14,16 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/spelling_panel.h"
 #include "kalahari/gui/spelling_coordinator.h"
-#include "kalahari/gui/utils/distraction_free_layout.h"
-#include "kalahari/gui/utils/panel_toggle.h"
 
-#include <QApplication>
 #include <QDockWidget>
 #include <QHash>
 #include <QKeySequence>
-#include <QMainWindow>
 #include <QMetaObject>
 #include <QScopedValueRollback>
 #include <QTabWidget>
 #include <QTextBlock>
 #include <QTextDocument>
 #include <QTimer>
-#include <QToolButton>
 
 #include <algorithm>
 #include <string>
@@ -46,7 +41,6 @@ constexpr int REFRESH_DELAY_MS = 150;
 constexpr int DONE_SLACK = 2;
 
 /// @brief The settings of the panel
-constexpr const char* PINNED_KEY = "spellingPanel.pinned";
 constexpr const char* FIX_BUTTONS_KEY = "spellingPanel.fixButtons";
 constexpr const char* NEXT_ISSUE_KEY = "spellingPanel.nextIssue";
 constexpr const char* GRAMMAR_SCOPE_KEY = "spellingPanel.grammarScope";
@@ -69,30 +63,6 @@ bool isWatchedSetting(const std::string& key) {
 /// @brief The index of a kind in the arrays of the kinds
 std::size_t kindIndex(editor::TextIssueKind kind) {
     return kind == editor::TextIssueKind::Spelling ? 0 : 1;
-}
-
-/// @brief Whether the keys are in a widget or in one of its children
-bool hasFocusIn(const QWidget* widget) {
-    const QWidget* focus = QApplication::focusWidget();
-    return widget != nullptr && focus != nullptr &&
-           (focus == widget || widget->isAncestorOf(focus));
-}
-
-/// @brief The docks of a window whose tabs are on top, or which lie in no group: those that
-///        can be seen
-QList<QDockWidget*> docksInSight(const QMainWindow* window) {
-    QList<QDockWidget*> inSight;
-    if (window == nullptr) {
-        return inSight;
-    }
-    const QList<QDockWidget*> docks =
-        window->findChildren<QDockWidget*>(QString(), Qt::FindDirectChildrenOnly);
-    for (QDockWidget* dock : docks) {
-        if (!dock->isHidden() && !dock->visibleRegion().isEmpty()) {
-            inSight.append(dock);
-        }
-    }
-    return inSight;
 }
 
 }  // namespace
@@ -189,42 +159,6 @@ SpellingPanelCoordinator::~SpellingPanelCoordinator() {
     }
 }
 
-void SpellingPanelCoordinator::setPinButton(QToolButton* button) {
-    m_pinButton = button;
-    if (button == nullptr) {
-        return;
-    }
-    connect(button, &QObject::destroyed, this, [this]() { m_pinButton = nullptr; });
-    button->setCheckable(true);
-    connect(button, &QToolButton::toggled, this, [this](bool pinned) {
-        if (pinned) {
-            m_temporary = {};  // kept open from now on, as it is
-        }
-        if (pinned != isPinned()) {
-            core::SettingsManager::getInstance().set<bool>(PINNED_KEY, pinned);
-        }
-        updatePinButton();
-    });
-    updatePinButton();
-}
-
-void SpellingPanelCoordinator::setDistractionFreeLayout(utils::DistractionFreeLayout* layout) {
-    m_distractionFree = layout != nullptr && layout->isActive();
-    if (layout == nullptr) {
-        return;
-    }
-    // Turned on, it hides the panel; turned off, it brings back the panels from before: the
-    // panel shown for the issues meanwhile is not to be hidden again
-    connect(layout, &utils::DistractionFreeLayout::activeChanged, this, [this](bool active) {
-        m_distractionFree = active;
-        m_temporary = {};
-    });
-}
-
-bool SpellingPanelCoordinator::isPinned() {
-    return core::SettingsManager::getInstance().get<bool>(PINNED_KEY, false);
-}
-
 // =============================================================================
 // The text in front
 // =============================================================================
@@ -250,8 +184,6 @@ void SpellingPanelCoordinator::onCurrentTabChanged() {
                     &SpellingPanelCoordinator::scheduleRefresh);
             connect(editor, &editor::BookEditor::cursorPositionChanged, this,
                     &SpellingPanelCoordinator::onCursorMoved);
-            connect(editor, &editor::BookEditor::contentChanged, this,
-                    &SpellingPanelCoordinator::onContentChanged);
         }
         updateWholeTextGrammar();
     }
@@ -275,14 +207,6 @@ void SpellingPanelCoordinator::onCursorMoved(const editor::CursorPosition& posit
             }
             return;
         }
-    }
-}
-
-void SpellingPanelCoordinator::onContentChanged() {
-    // The first character typed in the text hides the panel shown for the issues; not the
-    // changes made from the panel, nor those undone there
-    if (m_temporary.active && !m_panelChange && hasFocusIn(m_editor)) {
-        endTemporaryShow();
     }
 }
 
@@ -535,11 +459,7 @@ void SpellingPanelCoordinator::onSuggestionChosen(const SpellingPanelIssue& issu
     if (editor == nullptr) {
         return;
     }
-    bool replaced = false;
-    {
-        const QScopedValueRollback<bool> fromPanel(m_panelChange, true);
-        replaced = editor->replaceIssue(issue.issue, suggestion);
-    }
+    const bool replaced = editor->replaceIssue(issue.issue, suggestion);
     refresh();
     if (replaced) {
         selectFrom(cursorPlace(*editor));  // the issue after it, as the cursor is after it
@@ -584,13 +504,9 @@ void SpellingPanelCoordinator::onMenuRequested(const SpellingPanelIssue& issue,
         return;
     }
     selectInEditor(issue);  // the text shows the issue the menu is for
-    {
-        // What the menu does is done from the panel: it does not hide it
-        const QScopedValueRollback<bool> fromPanel(m_panelChange, true);
-        if (!editor->showIssueMenu(issue.issue, globalPos)) {
-            refresh();
-            return;
-        }
+    if (!editor->showIssueMenu(issue.issue, globalPos)) {
+        refresh();
+        return;
     }
     if (m_editor != editor) {
         return;  // another text came to the front meanwhile
@@ -613,11 +529,11 @@ void SpellingPanelCoordinator::onMenuRequested(const SpellingPanelIssue& issue,
 }
 
 void SpellingPanelCoordinator::onEditorFocusRequested() {
-    // Back to the text, with the issue selected there: it can be put right by hand
+    // Back to the text, with the issue selected there: it can be put right by hand; the panel
+    // stays open
     if (editor::BookEditor* editor = m_editor) {
         editor->setFocus(Qt::OtherFocusReason);
     }
-    endTemporaryShow();
 }
 
 void SpellingPanelCoordinator::turnOnChecking() {
@@ -666,65 +582,13 @@ void SpellingPanelCoordinator::showNextIssue(editor::BookEditor* editor, bool fo
 }
 
 void SpellingPanelCoordinator::showPanel() {
-    auto* window = qobject_cast<QMainWindow*>(m_dock->parentWidget());
-    const bool open = utils::isPanelOpen(m_dock);
-    const bool covered = open && !m_shown;
-
-    // Shown only while the issues are looked through: not when the writer keeps it open (in
-    // Distraction-Free writing always), and not when it can already be seen
-    const bool temporary =
-        !m_temporary.active && (!isPinned() || m_distractionFree) && (!open || covered);
-    const QList<QDockWidget*> inSightBefore = temporary ? docksInSight(window)
-                                                        : QList<QDockWidget*>();
+    // Open until the writer closes it
     m_dock->show();
     m_dock->raise();  // a panel shown again in a tab group would lie under the current tab
-    if (!temporary) {
-        return;
-    }
-    m_temporary.active = true;
-    m_temporary.wasHidden = !open;
-    m_temporary.covered = nullptr;
-    if (window != nullptr) {
-        const QList<QDockWidget*> group = window->tabifiedDockWidgets(m_dock);
-        for (QDockWidget* dock : group) {
-            if (inSightBefore.contains(dock)) {
-                m_temporary.covered = dock;
-                connect(dock, &QObject::destroyed, this, &SpellingPanelCoordinator::forgetDock,
-                        Qt::UniqueConnection);
-                break;
-            }
-        }
-    }
-}
-
-void SpellingPanelCoordinator::endTemporaryShow() {
-    if (!m_temporary.active) {
-        return;
-    }
-    const TemporaryShow ended = m_temporary;
-    m_temporary = {};
-    if (ended.wasHidden) {
-        const QScopedValueRollback<bool> hiding(m_hidingTemporary, true);
-        m_dock->hide();
-    }
-    // The tab it covered comes back on top (hidden, the panel leaves the tab before its own)
-    if (ended.covered != nullptr && utils::isPanelOpen(ended.covered)) {
-        ended.covered->raise();
-    }
-}
-
-void SpellingPanelCoordinator::forgetDock(QObject* dock) {
-    if (m_temporary.covered == dock) {
-        m_temporary.covered = nullptr;
-    }
 }
 
 void SpellingPanelCoordinator::onDockVisibilityChanged(bool visible) {
     m_shown = visible;
-    // Closed by the writer while shown for the issues: nothing to hide afterwards
-    if (!visible && m_dock->isHidden() && !m_hidingTemporary) {
-        m_temporary = {};
-    }
     updateWholeTextGrammar();
     if (visible && m_stale) {
         refresh();
@@ -739,21 +603,6 @@ void SpellingPanelCoordinator::updateWholeTextGrammar() {
             editor->setWholeTextGrammar(whole);
         }
     }
-}
-
-void SpellingPanelCoordinator::updatePinButton() {
-    QToolButton* button = m_pinButton;
-    if (button == nullptr) {
-        return;
-    }
-    const bool pinned = isPinned();
-    if (button->isChecked() != pinned) {
-        const QSignalBlocker blocker(button);
-        button->setChecked(pinned);
-    }
-    button->setToolTip(pinned ? tr("The panel is kept open – click to let it hide after "
-                                   "looking through the issues")
-                              : tr("Keep the Panel Open"));
 }
 
 void SpellingPanelCoordinator::updateNextIssueKeys() {
@@ -771,15 +620,11 @@ void SpellingPanelCoordinator::applySettings() {
     m_panel->setButtonsOnEveryCard(settings.get<std::string>(FIX_BUTTONS_KEY, "selected") ==
                                    std::string("every"));
     updateNextIssueKeys();
-    updatePinButton();
     updateWholeTextGrammar();
 }
 
 void SpellingPanelCoordinator::onSettingsChanged() {
     m_settingsPending = false;
-    if (isPinned()) {
-        m_temporary = {};  // kept open from now on
-    }
     applySettings();
     scheduleRefresh();
 }

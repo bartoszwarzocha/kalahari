@@ -767,8 +767,10 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
     }
 
     // Default context menu. Each item with its access key, unique in the menu with the
-    // commands below and the items of spelling (test_menu_access_keys)
+    // commands below and the items of spelling (test_menu_access_keys). A greyed-out item says
+    // why in its tooltip (a read-only text), as in the program's menus
     QMenu menu(this);
+    menu.setToolTipsVisible(true);
     if (!word.isEmpty()) {
         addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
     } else if (grammarError.has_value()) {
@@ -782,8 +784,10 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
                                            void (BookEditor::*edit)(), bool changes) {
         if (command != nullptr) {
             menu.addAction(command);
+        } else if (changes) {
+            disableWhileReadOnly(menu.addAction(text, this, edit));
         } else {
-            menu.addAction(text, this, edit)->setEnabled(!changes || !m_readOnly);
+            menu.addAction(text, this, edit);
         }
     };
     const ContextMenuEditActions& commands = m_contextMenuEditActions;
