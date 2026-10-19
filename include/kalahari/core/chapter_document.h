@@ -35,6 +35,8 @@
 
 #pragma once
 
+#include <kalahari/core/text_statistics.h>
+
 #include <QString>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -102,8 +104,14 @@ public:
     // =========================================================================
 
     /// @brief Get word count
-    /// @return Number of words in plain text, as counted by core::countText()
+    /// @return Number of words in plain text, as counted by core::countText() under the rules
+    ///         of the settings when the text was set: a file read keeps the number it was
+    ///         saved with, whatever the rules are now (wordTally() follows them)
     int wordCount() const;
+
+    /// @brief The words of the text under any rules of counting (core::tallyWords()),
+    ///        counted now, as the editor counts the text of the KML
+    WordTally wordTally() const;
 
     /// @brief Get character count
     /// @return Number of characters (excluding whitespace)

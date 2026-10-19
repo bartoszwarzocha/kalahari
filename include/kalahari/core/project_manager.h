@@ -47,6 +47,7 @@
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/project_lock.h"
 #include "kalahari/core/backup_manager.h"
+#include "kalahari/core/text_statistics.h"
 
 namespace kalahari {
 namespace core {
@@ -574,14 +575,15 @@ public:
     /// @brief Set the notes of a text element and write them to its chapter file
     bool setNotes(const QString& elementId, const QString& notes);
 
-    /// @brief Words of a text element: of its text in the editor while its changes are not
-    /// saved (setEditorWordCount()), else as its chapter file counts them
+    /// @brief Words of a text element under the rules of the settings (wordCountRules()):
+    /// of its text in the editor while its changes are not saved (setEditorWords()), else of
+    /// the text of its chapter file; new rules count at once, without reading the file again
     int wordCount(const QString& elementId) const;
 
     /// @brief Words of the text of a text element in its editor, with changes that are not
     /// saved: the counts of the book show them until the text is saved or its changes are
     /// discarded
-    void setEditorWordCount(const QString& elementId, int words);
+    void setEditorWords(const QString& elementId, const WordTally& words);
 
     /// @brief Words and statuses of the text elements of @p elements and of their groups
     TextStatistics statisticsOf(const QList<ProjectElement>& elements) const;
@@ -745,9 +747,9 @@ private:
         QString content;       ///< Text (KML) read from the file or set by the editor
         bool loaded = false;   ///< content holds the text
         bool dirty = false;    ///< content is not saved
-        int wordCount = 0;     ///< Words, as the chapter file counts them
+        WordTally words;       ///< Words of the text of the chapter file
         /// Words of the text in its editor, with changes that are not saved
-        std::optional<int> editorWordCount;
+        std::optional<WordTally> editorWords;
         QString notes;         ///< Notes of the chapter file
     };
 
@@ -766,6 +768,9 @@ private:
 
     /// @brief State of text element @p elementId; nullptr when it is not one
     ElementState* stateOf(const QString& elementId);
+
+    /// @brief Words of text element @p elementId under @p rules, as wordCount() gives them
+    int wordsUnder(const QString& elementId, const WordCountRules& rules) const;
 
     /// @brief Write the title, status and notes of @p element to its chapter file, and
     /// @p kml when given; the file keeps its other data

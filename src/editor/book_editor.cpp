@@ -86,6 +86,7 @@ void addCounts(core::TextCounts& total, const core::TextCounts& part) {
     total.characters += part.characters;
     total.nonSpaceCharacters += part.nonSpaceCharacters;
     total.paragraphs += part.paragraphs;
+    total.dashes += part.dashes;
 }
 
 /// @brief The counts of a paragraph, counted when its cached counts are stale
