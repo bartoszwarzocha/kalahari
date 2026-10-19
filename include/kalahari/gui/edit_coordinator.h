@@ -1,5 +1,6 @@
 /// @file edit_coordinator.h
-/// @brief Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys
+/// @brief Undo, Redo, Cut, Copy, Paste, Delete and Select All work on the element with the
+///        keys; the commands of the book's text work only there
 
 #pragma once
 
@@ -7,6 +8,8 @@
 #include <QObject>
 
 #include <functional>
+#include <string>
+#include <utility>
 #include <vector>
 
 class QWidget;
@@ -17,8 +20,8 @@ class BookEditor;
 
 namespace kalahari::gui {
 
-/// @brief Gives Undo, Redo, Cut, Copy, Paste and Select All the element they work on: the one
-///        with the keys
+/// @brief Gives Undo, Redo, Cut, Copy, Paste, Delete and Select All the element they work on:
+///        the one with the keys
 ///
 /// Their keys, the Edit menu and the toolbar work on the element with the keys and on no
 /// other: the book's text, a field of a panel, a list. A read-only field (the Log, a field
@@ -31,12 +34,16 @@ namespace kalahari::gui {
 ///
 /// The commands are enabled where they can do something: they follow the keys from element
 /// to element, the element's selection and text, and the clipboard.
+///
+/// The commands of the book's text (addTextCommands(): Select Word, Insert > Page Break...)
+/// work only with the keys in the text: in a field (the find bar, the Navigator's filter)
+/// they are greyed out, and their keys stay with the field.
 class EditCoordinator : public QObject {
     Q_OBJECT
 
 public:
     /// @brief The commands, in the order of the Edit menu
-    enum class Edit { Undo, Redo, Cut, Copy, Paste, SelectAll };
+    enum class Edit { Undo, Redo, Cut, Copy, Paste, Delete, SelectAll };
 
     /// @brief The book's text in front (nullptr: none)
     using EditorInFront = std::function<editor::BookEditor*()>;
@@ -75,6 +82,18 @@ public:
     /// @brief Enable the commands again, as the element with the keys allows
     void updateStates();
 
+    /// @brief Whether a text command can work in the text with the keys
+    using TextCan = std::function<bool(const editor::BookEditor&)>;
+
+    /// @brief The book's text with the keys, or nullptr (the keys in a field, a list, a panel,
+    ///        nowhere)
+    [[nodiscard]] editor::BookEditor* textWithKeys() const;
+
+    /// @brief Commands that work only in the book's text with the keys: enabled there as
+    ///        @p can allows, greyed out elsewhere; they follow the keys with the Edit commands
+    /// @param ids The commands' ids in the registry
+    void addTextCommands(const std::vector<std::string>& ids, const TextCan& can);
+
 private:
     struct Target;
 
@@ -97,6 +116,7 @@ private:
     QWidget* m_followed = nullptr;       ///< The element whose changes are followed
     QObject* m_followedText = nullptr;   ///< The book's text whose changes are followed
     std::vector<QMetaObject::Connection> m_connections;  ///< To the followed element and text
+    std::vector<std::pair<std::string, TextCan>> m_textCommands;  ///< addTextCommands()
 };
 
 }  // namespace kalahari::gui

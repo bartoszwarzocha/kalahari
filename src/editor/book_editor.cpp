@@ -13,8 +13,10 @@
 #include <kalahari/editor/paragraph_data.h>
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/text_keys.h>
 #include <QFocusEvent>
 #include <QHelpEvent>
+#include <QKeyEvent>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QResizeEvent>
@@ -394,6 +396,15 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
 
 bool BookEditor::event(QEvent* event)
 {
+    // The keys of the text are the text's, before the shortcuts of the window: Edit > Delete
+    // shows Delete, as word processors do, and the key deletes here as in any text
+    if (event->type() == QEvent::ShortcutOverride) {
+        const auto* key = static_cast<QKeyEvent*>(event);
+        if (textKeyFor(key->key(), key->modifiers(), isMacOS()).action != TextKeyAction::None) {
+            event->accept();
+            return true;
+        }
+    }
     // The tooltip of an annotation's mark: who made the annotation, in bold, and its text,
     // as it is written
     if (event->type() == QEvent::ToolTip && m_renderPipeline) {
@@ -727,6 +738,8 @@ QString BookEditor::plainText() const
             break;
         }
     }
+    // An object (a horizontal line, a break) has no text: its paragraph is an empty line
+    text.remove(QChar::ObjectReplacementCharacter);
     return text;
 }
 
@@ -955,7 +968,9 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     setKeepsAnnotations(*m_textBuffer, m_annotationsAllowed);  // see setAnnotationsAllowed()
 
     // Use custom layout that positions lines at y=0 without Qt's leading gaps
-    m_textBuffer->setDocumentLayout(new KalahariTextDocumentLayout(m_textBuffer.get()));
+    auto* layout = new KalahariTextDocumentLayout(m_textBuffer.get());
+    m_textBuffer->setDocumentLayout(layout);
+    layout->setParagraphStyles(m_paragraphStyles);  // the book's styles (setParagraphStyles())
 
     // The render pipeline applies the font and the wrap width while the document is
     // still empty, so the content below is laid out exactly once.

@@ -10,6 +10,7 @@
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <kalahari/editor/paragraph_styles.h>
 #include <QAction>
 #include <QClipboard>
 #include <QGuiApplication>
@@ -99,6 +100,9 @@ void insertDocument(QTextCursor& cursor, const QTextDocument& source) {
         first.setPosition(insertionStart);
         first.setBlockFormat(firstBlock.blockFormat());
     }
+
+    // An object that went into a paragraph gets a block of its own
+    separateObjects(cursor, insertionStart, cursor.position());
     cursor.endEditBlock();
 }
 
@@ -333,7 +337,7 @@ bool BookEditor::removeSelection(bool keepAnnotations)
     if (keepAnnotations) {
         removeKeepingAnnotations(cursor);
     } else {
-        cursor.removeSelectedText();
+        removeSelectionKeepingObjects(cursor);
     }
 
     m_cursorPosition.paragraph = cursor.blockNumber();
@@ -366,7 +370,30 @@ void BookEditor::insertNewline()
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
         clearSelection();
     }
-    insertParagraphKeepingAnnotations(cursor);
+    cursor.beginEditBlock();
+    removeKeepingAnnotations(cursor);
+    if (isAtObject(cursor)) {
+        // Before an object an empty paragraph goes before it, and the cursor stays at the
+        // object; after one a new paragraph follows it
+        const bool beforeObject = cursor.atBlockStart();
+        leaveObject(cursor);
+        if (beforeObject) {
+            cursor.movePosition(QTextCursor::NextBlock);
+        }
+    } else {
+        // At the end of a paragraph the new one is in the style that follows its style (a
+        // heading is followed by the text); a paragraph split in two keeps its style
+        const bool atParagraphEnd = cursor.atBlockEnd();
+        const QString style = paragraphStyleOf(cursor.blockFormat());
+        insertParagraphKeepingAnnotations(cursor);
+        if (const QString next = m_paragraphStyles.nextStyleOf(style);
+            atParagraphEnd && next != style) {
+            QTextBlockFormat format = paragraphBlockFormat();
+            setParagraphStyle(format, next);
+            cursor.setBlockFormat(format);
+        }
+    }
+    cursor.endEditBlock();
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
@@ -387,6 +414,12 @@ void BookEditor::insertLineBreak()
         return;
     }
     ensureDocument();
+
+    // Next to an object there is no paragraph to break: a new one starts, as with Enter
+    if (!hasSelection() && isAtObject(createCursor(m_textBuffer.get(), m_cursorPosition))) {
+        insertNewline();
+        return;
+    }
 
     // A character of the paragraph, typed as text: it takes the format of the place and
     // the one given for the text typed next, which the text after it keeps. Its own edit
@@ -418,6 +451,9 @@ void BookEditor::deleteBackward()
 
     // If at start of document, nothing to delete
     if (m_cursorPosition.paragraph == 0 && m_cursorPosition.offset == 0) {
+        return;
+    }
+    if (deleteAtObject(true)) {
         return;
     }
 
@@ -455,6 +491,10 @@ void BookEditor::deleteForward()
         return;
     }
 
+    if (deleteAtObject(false)) {
+        return;
+    }
+
     const int paraLen = paragraphText(m_textBuffer.get(), m_cursorPosition.paragraph).length();
     const bool atBlockEnd = (m_cursorPosition.offset >= paraLen);
     const bool hasNextBlock = (m_cursorPosition.paragraph + 1 < m_textBuffer->blockCount());
@@ -477,6 +517,55 @@ void BookEditor::deleteForward()
             emit paragraphModified(m_cursorPosition.paragraph);
         }
     }
+}
+
+bool BookEditor::deleteAtObject(bool backward)
+{
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!block.isValid()) {
+        return false;
+    }
+    const bool inObject = blockObject(block) != TextObject::None;
+    const bool emptyParagraph = !inObject && block.length() == 1;
+    // The paragraph break is next to the cursor in the key's direction
+    const bool atBreak = backward ? m_cursorPosition.offset == 0
+                                  : m_cursorPosition.offset >= block.length() - 1;
+    const QTextBlock neighbour = backward ? block.previous() : block.next();
+    const bool besideObject = atBreak && blockObject(neighbour) != TextObject::None;
+
+    QTextBlock removed;
+    if (emptyParagraph && besideObject) {
+        removed = block;  // the empty paragraph, not the object
+    } else if (inObject && !atBreak) {
+        removed = block;  // the object
+    } else if (besideObject) {
+        removed = neighbour;  // the object next to the cursor
+    } else if (inObject && atBreak && neighbour.isValid()) {
+        if (neighbour.length() > 1) {
+            // An object and text do not join: the cursor goes over the break to the text
+            setCursorPosition({neighbour.blockNumber(), backward ? neighbour.length() - 1 : 0});
+            return true;
+        }
+        removed = neighbour;  // an empty paragraph
+    } else {
+        return false;
+    }
+
+    // One undo step; the cursor stays at the text on its side of the removed block
+    const int position = block.position() + m_cursorPosition.offset;
+    const int removedNumber = removed.blockNumber();
+    const bool removedAfter = removed.position() > block.position();
+    const bool removedOwnParagraph = removed == block && emptyParagraph;
+    QTextCursor cursor(m_textBuffer.get());
+    removeBlock(cursor, removed);
+    if (removedAfter) {
+        cursor.setPosition(position);
+    } else if (removedOwnParagraph && backward) {
+        cursor.setPosition(position - 1);  // after the object before it
+    }
+    finishEdit(cursor);
+    emit paragraphRemoved(removedNumber);
+    return true;
 }
 
 void BookEditor::deleteTo(const CursorPosition& position)
@@ -869,7 +958,7 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     cursor.beginEditBlock();
     if (moveSelection) {
         oldPlace = createCursor(m_textBuffer.get(), moved.start, moved.end);
-        oldPlace.removeSelectedText();
+        removeSelectionKeepingObjects(oldPlace);
     }
     const int insertionStart = cursor.position();
     insertMimeData(cursor, *source);

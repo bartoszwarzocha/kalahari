@@ -23,11 +23,11 @@ namespace utils {
 
 /// @brief The commands that work on the document of the tab in front, a chapter or a text
 /// file: Find with Find Next, Find Previous and Find and Replace, the character formats,
-/// the alignments, the view mode and the zoom
+/// the alignments, the paragraph styles, the view mode and the zoom
 const std::vector<std::string>& documentCommands();
 
 /// @brief The commands of the document that change it: Find and Replace, the character
-/// formats and the alignments
+/// formats, the alignments and the paragraph styles
 const std::vector<std::string>& changingDocumentCommands();
 
 /// @brief Grey out the commands of the document while no document is in front, and those that

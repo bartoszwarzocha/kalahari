@@ -20,6 +20,7 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/grammar_error.h>
+#include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
@@ -162,7 +163,8 @@ public:
     /// @brief Get the full plain text of the document
     /// @return Concatenation of all paragraph texts with newlines; no-break spaces and the
     ///         line breaks in the paragraphs (QChar::LineSeparator) stay, as in
-    ///         ChapterDocument::kmlToPlainText()
+    ///         ChapterDocument::kmlToPlainText(); an object (a horizontal line, a break) is an
+    ///         empty line
     QString plainText() const;
 
     /// @brief Get total character count in the document
@@ -419,6 +421,13 @@ public:
     /// @brief Select all text in the document (Ctrl+A)
     void selectAll();
 
+    /// @brief Select the word at the cursor (Edit > Select Word), as a double click does
+    void selectWord();
+
+    /// @brief Select the paragraph at the cursor (Edit > Select Paragraph), as a triple click
+    ///        does
+    void selectParagraph();
+
     // =========================================================================
     // Text Input (Phase 4.1 - 4.4)
     // =========================================================================
@@ -638,8 +647,33 @@ public:
     void setAlignJustify();
 
     /// @brief Get the alignment the current paragraph is shown with
-    /// @return Its own alignment, or DEFAULT_PARAGRAPH_ALIGNMENT without one
+    /// @return Its own alignment, else the one of its style, else DEFAULT_PARAGRAPH_ALIGNMENT
     Qt::Alignment currentAlignment() const;
+
+    // =========================================================================
+    // Paragraph styles and the objects of the text (a horizontal line, the scene and page
+    // breaks)
+    // =========================================================================
+
+    /// @brief Set the styles of the book (of its type package): every paragraph is shown in
+    ///        its style, and Enter at the end of one starts the style that follows it
+    void setParagraphStyles(const ParagraphStyleSet& styles);
+
+    /// @brief The styles of the book
+    const ParagraphStyleSet& paragraphStyles() const { return m_paragraphStyles; }
+
+    /// @brief The style of the paragraph at the cursor: the id its format has (also of a
+    ///        style the book does not have); empty at an object
+    QString currentParagraphStyle() const;
+
+    /// @brief Put the paragraph at the cursor, or the selected ones, in a style, as one undo
+    ///        step; the objects among them stay as they are
+    void applyParagraphStyle(const QString& styleId);
+
+    /// @brief Insert an object at the cursor, replacing the selection, as one undo step
+    ///
+    /// It gets a paragraph of its own; the cursor goes after it (see insertObject()).
+    void insertTextObject(TextObject object);
 
     // =========================================================================
     // Annotations: comments, TODOs and notes
@@ -1560,6 +1594,19 @@ private:
     /// @brief Update paragraph layouts with current selection state
     void updateSelectionInLayouts();
 
+    /// @brief Whether the spelling and grammar of a block are checked: a paragraph of text in a
+    ///        style with checking (not Code, not an object)
+    bool isCheckedParagraph(const QTextBlock& block) const;
+
+    /// @brief Check the spelling and grammar of paragraphs again, as their style changed
+    void checkParagraphsAgain(const std::vector<QTextBlock>& blocks);
+
+    /// @brief Delete next to an object with Backspace or Delete, the object being one
+    ///        character: it goes whole, and an empty paragraph next to it goes; the cursor
+    ///        goes over the paragraph break between an object and text
+    /// @return false when the cursor is not next to an object: the key deletes as in text
+    bool deleteAtObject(bool backward);
+
     /// @brief Select word at cursor position (Phase 3.11)
     void selectWordAtCursor();
 
@@ -1792,6 +1839,7 @@ private:
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
+    ParagraphStyleSet m_paragraphStyles;                    ///< The styles of the book
     core::WordCountRules m_wordCountRules;                  ///< What the counts take for a word
 
     // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h

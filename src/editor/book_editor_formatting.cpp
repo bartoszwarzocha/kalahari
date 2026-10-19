@@ -5,8 +5,10 @@
 #include "book_editor_internal.h"
 #include <kalahari/core/logger.h>
 #include <kalahari/editor/buffer_commands.h>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <QTextBoundaryFinder>
 #include <algorithm>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -142,10 +144,140 @@ Qt::Alignment BookEditor::currentAlignment() const
     }
 
     QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
-    if (block.isValid()) {
-        return effectiveAlignment(ownAlignment(block.blockFormat()));
+    if (!block.isValid()) {
+        return DEFAULT_PARAGRAPH_ALIGNMENT;
     }
-    return DEFAULT_PARAGRAPH_ALIGNMENT;
+    // A heading is centred by its style
+    if (const auto* layout =
+            qobject_cast<const KalahariTextDocumentLayout*>(m_textBuffer->documentLayout())) {
+        return layout->shownAlignment(block);
+    }
+    return effectiveAlignment(ownAlignment(block.blockFormat()));
+}
+
+// =============================================================================
+// Paragraph styles and the objects of the text
+// =============================================================================
+
+void BookEditor::setParagraphStyles(const ParagraphStyleSet& styles)
+{
+    if (styles == m_paragraphStyles) {
+        return;
+    }
+    m_paragraphStyles = styles;
+    if (!m_textBuffer) {
+        return;
+    }
+    std::vector<QTextBlock> blocks;  // a style may now be checked or not
+    for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+        blocks.push_back(block);
+    }
+    checkParagraphsAgain(blocks);
+    if (auto* layout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout())) {
+        layout->setParagraphStyles(styles);
+    }
+    if (m_renderPipeline) {
+        m_renderPipeline->markAllDirty();
+    }
+    update();
+}
+
+QString BookEditor::currentParagraphStyle() const
+{
+    if (!m_textBuffer) {
+        return QString::fromLatin1(NORMAL_STYLE_ID);
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!block.isValid()) {
+        return QString::fromLatin1(NORMAL_STYLE_ID);
+    }
+    if (blockObject(block) != TextObject::None) {
+        return QString();
+    }
+    return paragraphStyleOf(block.blockFormat());
+}
+
+void BookEditor::applyParagraphStyle(const QString& styleId)
+{
+    if (refusesChange()) {
+        return;
+    }
+    if (!m_textBuffer) {
+        return;
+    }
+
+    int startPara = m_cursorPosition.paragraph;
+    int endPara = m_cursorPosition.paragraph;
+    if (hasSelection()) {
+        const SelectionRange range = m_selection.normalized();
+        startPara = range.start.paragraph;
+        endPara = range.end.paragraph;
+    }
+
+    // The paragraphs of text not in the style yet; nothing to change, no undo step
+    const QString id = styleId.isEmpty() ? QString::fromLatin1(NORMAL_STYLE_ID) : styleId;
+    std::vector<QTextBlock> changed;
+    for (QTextBlock block = m_textBuffer->findBlockByNumber(startPara);
+         block.isValid() && block.blockNumber() <= endPara; block = block.next()) {
+        if (blockObject(block) == TextObject::None && paragraphStyleOf(block.blockFormat()) != id) {
+            changed.push_back(block);
+        }
+    }
+    if (changed.empty()) {
+        return;
+    }
+
+    // One undo step that brings back the cursor and selection it was made with, as the
+    // alignment does (setParagraphAlignment())
+    QTextCursor cursor(m_textBuffer.get());
+    cursor.beginEditBlock();
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+    for (const QTextBlock& block : changed) {
+        QTextBlockFormat format = block.blockFormat();
+        setParagraphStyle(format, id);
+        cursor.setPosition(block.position());
+        cursor.setBlockFormat(format);
+    }
+    cursor.endEditBlock();
+    checkParagraphsAgain(changed);  // Code is not checked, the other styles are
+
+    if (m_renderPipeline) {
+        m_renderPipeline->markAllDirty();
+    }
+    ensureCursorVisible();
+    emit contentChanged();
+    emit paragraphModified(m_cursorPosition.paragraph);
+    update();
+}
+
+void BookEditor::insertTextObject(TextObject object)
+{
+    if (refusesChange()) {
+        return;
+    }
+    if (object == TextObject::None) {
+        return;
+    }
+    ensureDocument();
+
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    if (hasSelection()) {
+        const SelectionRange selection = m_selection.normalized();
+        cursor = createCursor(m_textBuffer.get(), selection.start, selection.end);
+        clearSelection();
+    }
+
+    // The replaced selection and the object: one undo step. At the end of a paragraph the
+    // one after the object is in the style Enter would start there.
+    cursor.beginEditBlock();
+    removeKeepingAnnotations(cursor);
+    QTextBlockFormat nextFormat = paragraphBlockFormat();
+    setParagraphStyle(nextFormat,
+                      m_paragraphStyles.nextStyleOf(paragraphStyleOf(cursor.blockFormat())));
+    insertObject(cursor, object, nextFormat);
+    cursor.endEditBlock();
+    finishEdit(cursor);
 }
 
 void BookEditor::toggleFormat(InlineFormat formatType)

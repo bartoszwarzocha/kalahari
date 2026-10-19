@@ -4,10 +4,12 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/text_statistics.h"
@@ -16,6 +18,7 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
+#include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QEvent>
 #include <QGuiApplication>
@@ -143,6 +146,7 @@ void EditorPanel::setText(const QString& text) {
 
     // Use BookEditor::fromKml() for Phase 11 architecture
     // This method populates QTextDocument, ViewportManager, EditorRenderPipeline
+    m_bookEditor->setParagraphStyles(paragraphStyles());
     m_bookEditor->fromKml(kml);
     logger.debug("EditorPanel::setText - BookEditor::fromKml() complete");
 }
@@ -165,6 +169,7 @@ bool EditorPanel::setContent(const QString& content) {
 
     // Use BookEditor::fromKml() for Phase 11 architecture
     // This method populates QTextDocument, ViewportManager, EditorRenderPipeline
+    m_bookEditor->setParagraphStyles(paragraphStyles());
     const bool complete = m_bookEditor->fromKml(content);
     logger.debug("EditorPanel::setContent - BookEditor::fromKml() complete");
     return complete;
@@ -213,6 +218,23 @@ void EditorPanel::setUnmodified() {
     if (m_bookEditor) {
         m_bookEditor->setUnmodified();
     }
+}
+
+editor::ParagraphStyleSet EditorPanel::paragraphStyles() const {
+    const auto& projects = core::ProjectManager::getInstance();
+    const core::BookProject* book = projects.project();
+    // A chapter of the book, which NavigatorCoordinator tags with its element
+    const bool chapter = book != nullptr && !property("elementId").toString().isEmpty();
+    const QString base = QString::fromLatin1(core::ProjectManager::BASE_PACKAGE);
+    QList<core::PackageParagraphStyle> styles;
+    if (chapter && book->type.has_value()) {
+        styles = projects.bookTypes().paragraphStyles(book->type->id);
+    }
+    // A type the program does not have gives none: the styles every book has
+    if (styles.isEmpty()) {
+        styles = projects.bookTypes().paragraphStyles(base);
+    }
+    return editor::ParagraphStyleSet::fromPackage(styles, programLanguage());
 }
 
 QString EditorPanel::textLanguage() const {

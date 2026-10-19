@@ -935,6 +935,24 @@ void BookEditor::selectAll()
     update();
 }
 
+void BookEditor::selectWord()
+{
+    selectWordAtCursor();
+    syncPipelineCursor();
+    ensureCursorVisible();
+    emit cursorPositionChanged(m_cursorPosition);
+    update();
+}
+
+void BookEditor::selectParagraph()
+{
+    selectParagraphAtCursor();
+    syncPipelineCursor();
+    ensureCursorVisible();
+    emit cursorPositionChanged(m_cursorPosition);
+    update();
+}
+
 void BookEditor::onCursorBlinkTimeout()
 {
     m_cursorVisible = !m_cursorVisible;

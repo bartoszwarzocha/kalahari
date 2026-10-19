@@ -68,6 +68,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"edit.cut", QStringLiteral("Ctrl+X")},
         {"edit.copy", QStringLiteral("Ctrl+C")},
         {"edit.paste", QStringLiteral("Ctrl+V")},
+        {"edit.delete", QStringLiteral("Del")},
         {"edit.selectAll", QStringLiteral("Ctrl+A")},
         {"edit.find", QStringLiteral("Ctrl+F")},
         {"edit.findNext", QStringLiteral("F3")},
@@ -86,6 +87,19 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"edit.previousTodo", QStringLiteral("Alt+Up")},
 #endif
         {"insert.annotation", QStringLiteral("Ctrl+Shift+M")},
+        {"insert.pageBreak", QStringLiteral("Ctrl+Return")},  // and Ctrl with the keypad's Enter
+#ifdef Q_OS_MACOS
+        // Option+Cmd: Option with a digit types a character
+        {"format.style.heading1", QStringLiteral("Ctrl+Alt+1")},
+        {"format.style.heading2", QStringLiteral("Ctrl+Alt+2")},
+        {"format.style.heading3", QStringLiteral("Ctrl+Alt+3")},
+        {"format.style.body", QStringLiteral("Ctrl+Alt+0")},
+#else
+        {"format.style.heading1", QStringLiteral("Alt+1")},
+        {"format.style.heading2", QStringLiteral("Alt+2")},
+        {"format.style.heading3", QStringLiteral("Alt+3")},
+        {"format.style.body", QStringLiteral("Alt+0")},
+#endif
         {"format.bold", QStringLiteral("Ctrl+B")},
         {"format.italic", QStringLiteral("Ctrl+I")},
         {"format.underline", QStringLiteral("Ctrl+U")},
@@ -109,6 +123,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"view.zoomIn", QStringLiteral("Ctrl++")},
         {"view.zoomOut", QStringLiteral("Ctrl+-")},
         {"view.resetZoom", QStringLiteral("Ctrl+0")},
+        {"view.showFormattingMarks", QStringLiteral("Ctrl+*")},  // Ctrl+Shift+8, as in Word
 #ifdef Q_OS_MACOS
         {"view.fullScreen", QStringLiteral("Ctrl+Meta+F")},  // Control+Cmd+F: F11 shows the desktop
 #else
@@ -143,12 +158,14 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
 
 TEST_CASE("Command shortcuts: no command takes a key of the text", "[gui][command][shortcuts]") {
     // Regression: on macOS Option+Down, Next To Do, is the text's move to the end of the
-    // paragraph; the window's action would take it from the editor
+    // paragraph; the window's action would take it from the editor. Edit > Delete shows
+    // Delete, as word processors do: the text keeps the key (BookEditor::event()), and the
+    // command works where nothing else has it
     registerAllCommands(CommandCallbacks{});
 
     for (const Command& command : CommandRegistry::getInstance().getAllCommands()) {
         const QKeySequence keys = command.shortcut.toQKeySequence();
-        if (keys.isEmpty()) {
+        if (keys.isEmpty() || command.id == "edit.delete") {
             continue;
         }
         const QKeyCombination combination = keys[0];

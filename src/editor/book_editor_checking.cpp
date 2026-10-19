@@ -549,9 +549,40 @@ void BookEditor::runSpellCheck()
     endTurn(false);
 }
 
+bool BookEditor::isCheckedParagraph(const QTextBlock& block) const
+{
+    return blockObject(block) == TextObject::None &&
+           m_paragraphStyles.isChecked(paragraphStyleOf(block.blockFormat()));
+}
+
+void BookEditor::checkParagraphsAgain(const std::vector<QTextBlock>& blocks)
+{
+    bool hadWaves = false;
+    for (const QTextBlock& block : blocks) {
+        if (ParagraphData* paragraphData = ParagraphData::find(block)) {
+            hadWaves = hadWaves || !paragraphData->spelling.issues.empty() ||
+                       !paragraphData->grammar.issues.empty();
+            paragraphData->spelling = ParagraphCheck{};
+            paragraphData->grammar = ParagraphCheck{};
+            paragraphData->grammarErrors.clear();
+        }
+    }
+    noteIssuesChanged();
+    if (m_spellCheckService != nullptr) {
+        scheduleSpellCheck(0);
+    }
+    if (m_grammarCheckService != nullptr) {
+        scheduleGrammarCheck(0);
+    }
+    if (hadWaves) {
+        update();
+    }
+}
+
 bool BookEditor::checkSpelling(const QTextBlock& block)
 {
-    const QString text = block.text();
+    // A paragraph in a style without checking (Code) has no misspellings
+    const QString text = isCheckedParagraph(block) ? block.text() : QString();
     const QList<SpellErrorInfo> errors = m_spellCheckService->checkParagraph(text);
 
     // The word being typed gets its wave when the cursor leaves it
@@ -916,7 +947,7 @@ bool BookEditor::sendGrammarCheck(int paragraph)
         return true;
     }
     const QString text = block.text();
-    if (text.trimmed().isEmpty()) {
+    if (text.trimmed().isEmpty() || !isCheckedParagraph(block)) {
         keepGrammarIssues(block, {});  // nothing to check
         noteIssuesChanged();
         return true;
@@ -933,7 +964,7 @@ bool BookEditor::isGrammarKnown(const QTextBlock& block) const
 {
     const ParagraphData* paragraphData = ParagraphData::find(block);
     return (paragraphData != nullptr && paragraphData->grammar.current) ||
-           block.text().trimmed().isEmpty();
+           block.text().trimmed().isEmpty() || !isCheckedParagraph(block);
 }
 
 void BookEditor::onGrammarChecked(quint64 request, const QList<GrammarError>& errors)
@@ -1245,7 +1276,8 @@ BookEditor::CheckProgress BookEditor::checkProgress() const
         return progress;
     }
     for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
-        if (block.length() <= 1 || block.text().trimmed().isEmpty()) {
+        if (block.length() <= 1 || block.text().trimmed().isEmpty() ||
+            !isCheckedParagraph(block)) {
             continue;  // nothing to check
         }
         ++progress.paragraphs;

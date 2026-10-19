@@ -95,6 +95,9 @@ void registerAllIcons() {
     iconRegistry.registerIcon("insert.specialChar", "resources/icons/twotone/emoji_symbols.svg", "Insert Special Character");
     iconRegistry.registerIcon("insert.dateTime", "resources/icons/twotone/schedule.svg", "Insert Date/Time");
     iconRegistry.registerIcon("insert.field", "resources/icons/twotone/data_object.svg", "Insert Field");
+    iconRegistry.registerIcon("insert.horizontalLine", "resources/icons/twotone/horizontal_rule.svg", "Insert Horizontal Line");
+    iconRegistry.registerIcon("insert.sceneBreak", "resources/icons/twotone/more_horiz.svg", "Insert Scene Break");
+    iconRegistry.registerIcon("insert.pageBreak", "resources/icons/twotone/horizontal_split.svg", "Insert Page Break");
 
     // -------------------------------------------------------------------------
     // FORMAT MENU ICONS
@@ -103,8 +106,9 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.style.heading1", "resources/icons/twotone/looks_one.svg", "Heading 1");
     iconRegistry.registerIcon("format.style.heading2", "resources/icons/twotone/looks_two.svg", "Heading 2");
     iconRegistry.registerIcon("format.style.heading3", "resources/icons/twotone/looks_3.svg", "Heading 3");
-    iconRegistry.registerIcon("format.style.body", "resources/icons/twotone/subject.svg", "Body Text");
+    iconRegistry.registerIcon("format.style.body", "resources/icons/twotone/subject.svg", "Normal");
     iconRegistry.registerIcon("format.style.quote", "resources/icons/twotone/format_quote.svg", "Block Quote");
+    iconRegistry.registerIcon("format.style.dialogue", "resources/icons/twotone/forum.svg", "Dialogue");
     iconRegistry.registerIcon("format.style.code", "resources/icons/twotone/code.svg", "Code Block");
     iconRegistry.registerIcon("format.style.manage", "resources/icons/twotone/style.svg", "Manage Styles");
     iconRegistry.registerIcon("format.bold", "resources/icons/twotone/format_bold.svg", "Bold");

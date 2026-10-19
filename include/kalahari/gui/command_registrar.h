@@ -10,6 +10,8 @@
 #ifndef KALAHARI_GUI_COMMAND_REGISTRAR_H
 #define KALAHARI_GUI_COMMAND_REGISTRAR_H
 
+#include <QString>
+
 #include <functional>
 
 namespace kalahari {
@@ -46,7 +48,10 @@ struct CommandCallbacks {
     std::function<void()> onCut;                ///< Edit > Cut
     std::function<void()> onCopy;               ///< Edit > Copy
     std::function<void()> onPaste;              ///< Edit > Paste
+    std::function<void()> onDelete;             ///< Edit > Delete
     std::function<void()> onSelectAll;          ///< Edit > Select All
+    std::function<void()> onSelectWord;         ///< Edit > Select Word
+    std::function<void()> onSelectParagraph;    ///< Edit > Select Paragraph
     std::function<void()> onFind;               ///< Edit > Find...
     std::function<void()> onFindNext;           ///< Edit > Find Next
     std::function<void()> onFindPrevious;       ///< Edit > Find Previous
@@ -59,6 +64,13 @@ struct CommandCallbacks {
     std::function<void()> onNewChapter;         ///< Book > New Chapter... (named after the
                                                 ///< main texts of the book: New Story...)
     std::function<void()> onBookProperties;     ///< Book > Book Properties...
+
+    // =========================================================================
+    // INSERT COMMANDS
+    // =========================================================================
+    std::function<void()> onInsertHorizontalLine;  ///< Insert > Horizontal Line
+    std::function<void()> onInsertSceneBreak;   ///< Insert > Scene Break, Book > Scene Break
+    std::function<void()> onInsertPageBreak;    ///< Insert > Page Break
 
     // =========================================================================
     // FORMAT COMMANDS (OpenSpec #00042 Phase 7.2)
@@ -74,6 +86,10 @@ struct CommandCallbacks {
     std::function<void()> onAlignRight;         ///< Format > Align Right
     std::function<void()> onAlignJustify;       ///< Format > Justify
 
+    /// Format > Text Style: puts the paragraphs of the cursor or the selection in the style
+    /// of this id (editor/paragraph_styles.h)
+    std::function<void(const QString&)> onParagraphStyle;
+
     // =========================================================================
     // VIEW COMMANDS
     // =========================================================================
@@ -88,6 +104,7 @@ struct CommandCallbacks {
     std::function<void()> onDarkPaperToggle;    ///< View > Dark Paper
     std::function<void()> onTextFrameBorderToggle;  ///< View > Text Frame Border
     std::function<void()> onDistractionFreeToggle;  ///< View > Distraction-Free
+    std::function<void()> onFormattingMarksToggle;  ///< View > Show Formatting Marks
 
     // Zoom (the editor in front)
     std::function<void()> onZoomIn;             ///< View > Zoom > Zoom In

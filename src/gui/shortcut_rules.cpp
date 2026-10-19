@@ -236,8 +236,11 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
                         keysText(byWord);
     row(std::move(selecting));
 
-    row(keysFor(tr("Delete the character before / after the cursor"),
-                {A::DeleteBackward, A::DeleteForward}));
+    // Edit > Delete has Delete: in the text the key deletes the selection itself
+    FixedKeys deleting = keysFor(tr("Delete the character before / after the cursor"),
+                                 {A::DeleteBackward, A::DeleteForward});
+    deleting.allowedFor = "edit.delete";
+    row(std::move(deleting));
     row(keysFor(tr("Delete the word before / after the cursor"),
                 {A::DeleteWordBackward, A::DeleteWordForward, A::DeleteToWordStart,
                  A::DeleteToWordEnd}));
@@ -316,8 +319,10 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
     // The frame an annotation is written in (AnnotationFrame)
     FixedKeyGroup frame;
     frame.title = tr("Fixed: the annotation frame");
+    // Insert > Page Break has Ctrl+Enter in the text, as in Word and LibreOffice: the frame
+    // keeps it for its own text
     frame.rows.push_back({tr("Keep the text"), enterKeys(CTRL), NONE, {},
-                          tr("In the annotation frame %1 keeps the text."), {}});
+                          tr("In the annotation frame %1 keeps the text."), "insert.pageBreak"});
     frame.rows.push_back(
         {tr("Discard"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, escapeReason, {}});
     groups.push_back(std::move(frame));

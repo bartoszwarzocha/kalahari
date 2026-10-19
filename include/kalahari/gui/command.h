@@ -109,6 +109,10 @@ struct KeyboardShortcut {
     /// @return QKeySequence for use in QAction::setShortcut()
     QKeySequence toQKeySequence() const;
 
+    /// @brief The keys of the shortcut for QAction::setShortcuts(): toQKeySequence(), and with
+    ///        Enter the Enter of the keypad too (both are written "Enter")
+    QList<QKeySequence> toQKeySequences() const;
+
     /// @brief Parse shortcut from QKeySequence
     /// @param seq QKeySequence to convert
     /// @return Parsed shortcut

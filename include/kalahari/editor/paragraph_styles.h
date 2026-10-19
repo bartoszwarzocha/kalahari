@@ -20,6 +20,8 @@
 class QTextBlock;
 class QTextBlockFormat;
 class QTextCharFormat;
+class QTextCursor;
+class QTextDocument;
 
 namespace kalahari::core {
 struct PackageParagraphStyle;
@@ -110,6 +112,73 @@ QString kmlElementOf(TextObject object);
 
 /// @brief Object of a KML element; None for any other element
 TextObject textObjectOfElement(const QString& element);
+
+// =============================================================================
+// Editing around objects
+// =============================================================================
+
+/// @brief Block format of a new paragraph: Normal, without an alignment of its own (zero
+///        margins, as the editor gives every block)
+QTextBlockFormat paragraphBlockFormat();
+
+/// @brief Block format of an object's block: no style or alignment of its own
+QTextBlockFormat objectBlockFormat();
+
+/// @brief Whether the character at a position of the document is an object
+bool isObjectAt(const QTextDocument& document, int position);
+
+/// @brief Whether a cursor without a selection is in an object's block (before or after the
+///        object)
+bool isAtObject(const QTextCursor& cursor);
+
+/// @brief Give every object in the blocks from @p from to @p to a block of its own
+///
+/// An edit can join an object with text: a selection from a paragraph into an object
+/// deleted, an object pasted into a paragraph. The text before it and after it become
+/// paragraphs of their own, in the format of the block they came from (@p tailFormat for
+/// text after an object that starts its block, when given). Call it within the edit block
+/// of the change: one undo step with it.
+/// @param cursor The editor's cursor: at the place of a new paragraph break it stays at the
+///        end of the text before the break, or after an object goes to the start of the text
+///        after it
+void separateObjects(QTextCursor& cursor, int from, int to,
+                     const QTextBlockFormat* tailFormat = nullptr,
+                     const QTextCharFormat* tailCharFormat = nullptr);
+
+/// @brief Remove the cursor's selection; objects it leaves joined with text get blocks of
+///        their own again (separateObjects())
+///
+/// The text after the selection keeps the format of its paragraph when the selection
+/// starts at an object: an object never gives its block to text.
+void removeSelectionKeepingObjects(QTextCursor& cursor);
+
+/// @brief Move a cursor at an object into a new empty paragraph, for text to go in
+///
+/// Before the object (at the start of its block) the paragraph goes before it, after the
+/// object after it; anywhere else nothing changes. Text, a line break or a paste never go
+/// into an object's block. Call it within the edit block of the change.
+/// @return Whether the cursor went into a new paragraph
+bool leaveObject(QTextCursor& cursor);
+
+/// @brief Insert an object at a cursor without a selection, as one edit block
+///
+/// The object gets a block of its own: the text before the cursor stays in its paragraph,
+/// the text after it goes to a paragraph after the object, in the paragraph's format. At
+/// the end of a paragraph a new one follows the object, in @p nextFormat; an empty
+/// paragraph stays after the object. Before an object the new one goes before it, after an
+/// object after it. The cursor ends after the new object: at the start of the paragraph
+/// after it, or after it when it was put next to another object.
+/// @param nextFormat Block format of the paragraph after an object put at the end of one
+///        (the style Enter would start there)
+void insertObject(QTextCursor& cursor, TextObject object, const QTextBlockFormat& nextFormat);
+
+/// @brief Remove a whole block with its paragraph break, as one edit block: an object, or
+///        an empty paragraph next to one
+///
+/// The block after it takes its place with its own formats; the last block goes with the
+/// break before it, the only one becomes an empty paragraph. The annotations on its start
+/// stay on the place. The cursor ends where the block was.
+void removeBlock(QTextCursor& cursor, const QTextBlock& block);
 
 // =============================================================================
 // The styles of a book

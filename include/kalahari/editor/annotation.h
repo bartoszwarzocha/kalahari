@@ -183,14 +183,16 @@ void anchorToPlace(QTextDocument& document, int position, const AnnotationList& 
 /// @brief Remove the cursor's selection; its annotations stay on its place
 ///
 /// An annotation whose anchor goes with the text stays on the place of the text (see
-/// annotationsLeavingWith()). Without a selection nothing changes.
+/// annotationsLeavingWith()). An object the removal leaves joined with text keeps a block
+/// of its own (removeSelectionKeepingObjects()). Without a selection nothing changes.
 void removeKeepingAnnotations(QTextCursor& cursor);
 
 /// @brief Remove the cursor's selection to put new text in its place
 ///
 /// The annotations of the selection stay on its place, except the fragments the whole
 /// selection belongs to: the new text joins them, as it joins the fragments the place is
-/// inside of. One undo step with the insertion when both are in one edit block.
+/// inside of. One undo step with the insertion when both are in one edit block. Next to
+/// an object the cursor then goes into a new paragraph (leaveObject()).
 /// @return The fragments the new text joins
 AnnotationList removeForReplacement(QTextCursor& cursor);
 
@@ -200,7 +202,7 @@ AnnotationList removeForReplacement(QTextCursor& cursor);
 /// next); replacing a selection, it also joins the fragments the whole selection belongs
 /// to, and the other annotations of the selection stay on its place. A line break ("\n")
 /// starts a new paragraph. Without a selection, consecutive calls make one undo step, as
-/// typing does.
+/// typing does. Next to an object the text goes into a new paragraph (leaveObject()).
 void insertKeepingAnnotations(QTextCursor& cursor, const QString& text,
                               const QTextCharFormat& typed = QTextCharFormat());
 

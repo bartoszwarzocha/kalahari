@@ -172,6 +172,7 @@ set(KALAHARI_SOURCES
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
+    gui/paragraph_style_menu.cpp  # ParagraphStyleMenu - Format > Text Style shows the text's styles
     gui/auto_correct_coordinator.cpp  # AutoCorrectCoordinator - auto-correct turned on and off as a whole
     gui/toolbar_keys.cpp  # ToolbarKeys - a toolbar gives the keys back after a command
     gui/spelling_coordinator.cpp  # SpellingCoordinator - spelling as you type: the editors' dictionary

@@ -108,8 +108,9 @@ TEST_CASE("Line breaks: Enter still starts a new paragraph", "[editor][linebreak
     editor->setCursorPosition({0, 3});
     press(*editor, Qt::Key_Return);
     CHECK(editor->paragraphCount() == 2);
+    // Ctrl+Enter is Insert > Page Break, a command of the window: the text does nothing
     press(*editor, Qt::Key_Return, Qt::ControlModifier);
-    CHECK(editor->paragraphCount() == 3);
+    CHECK(editor->paragraphCount() == 2);
 }
 
 TEST_CASE("Line breaks: a break at the end of a paragraph starts an empty line",

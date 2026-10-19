@@ -3,11 +3,16 @@
 
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/core/book_type_package.h>
+#include <kalahari/editor/annotation.h>
 #include <QHash>
 #include <QSet>
 #include <QTextBlock>
 #include <QTextBlockFormat>
 #include <QTextCharFormat>
+#include <QTextCursor>
+#include <QTextDocument>
+#include <optional>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -143,6 +148,254 @@ TextObject textObjectOfElement(const QString& element) {
         return TextObject::PageBreak;
     }
     return TextObject::None;
+}
+
+// =============================================================================
+// Editing around objects
+// =============================================================================
+
+namespace {
+
+/// @brief A character format for the start of a paragraph of text: without annotations and
+///        without an object type
+QTextCharFormat textCharFormat(QTextCharFormat format) {
+    setAnnotations(format, {});
+    format.clearProperty(QTextFormat::ObjectType);
+    return format;
+}
+
+/// @brief The annotations on a place that stay when a block goes: those on its start and on
+///        its characters
+AnnotationList annotationsOfBlock(const QTextDocument& document, const QTextBlock& block) {
+    AnnotationList staying;
+    for (const Annotation& annotation : annotationsOf(block.charFormat())) {
+        if (annotation.point) {
+            staying = withAnnotation(staying, annotation);
+        }
+    }
+    const int end = block.position() + block.length() - 1;
+    for (const Annotation& annotation : annotationsLeavingWith(document, block.position(), end)) {
+        staying = withAnnotation(staying, annotation);
+    }
+    return staying;
+}
+
+}  // namespace
+
+QTextBlockFormat paragraphBlockFormat() {
+    QTextBlockFormat format;
+    format.setTopMargin(0);
+    format.setBottomMargin(0);
+    return format;
+}
+
+QTextBlockFormat objectBlockFormat() {
+    return paragraphBlockFormat();
+}
+
+bool isObjectAt(const QTextDocument& document, int position) {
+    if (position < 0 || position >= document.characterCount() - 1 ||
+        document.characterAt(position) != QChar::ObjectReplacementCharacter) {
+        return false;
+    }
+    QTextCursor cursor(const_cast<QTextDocument*>(&document));
+    cursor.setPosition(position + 1);
+    return textObjectOf(cursor.charFormat()) != TextObject::None;  // of the character before
+}
+
+bool isAtObject(const QTextCursor& cursor) {
+    return !cursor.hasSelection() && blockObject(cursor.block()) != TextObject::None;
+}
+
+void separateObjects(QTextCursor& cursor, int from, int to, const QTextBlockFormat* tailFormat,
+                     const QTextCharFormat* tailCharFormat) {
+    QTextDocument& document = *cursor.document();
+    const bool keepPosition = cursor.keepPositionOnInsert();
+    QTextCursor edit(&document);
+    int end = to;
+
+    // The format of the text after an object, carried from the block it was split off from
+    std::optional<std::pair<QTextBlockFormat, QTextCharFormat>> carried;
+    for (QTextBlock block = document.findBlock(std::max(0, from));
+         block.isValid() && block.position() <= end;) {
+        const QString text = block.text();
+        int split = -1;  // where in the block a paragraph break goes
+        if (text.size() > 1) {
+            for (int i = 0; i < text.size(); ++i) {
+                if (isObjectAt(document, block.position() + i)) {
+                    split = i > 0 ? i : 1;  // before the object, or after it at the block's start
+                    break;
+                }
+            }
+        }
+        if (split < 0) {
+            carried.reset();
+            block = block.next();
+            continue;
+        }
+
+        const int position = block.position() + split;
+        const bool afterObject = split == 1 && isObjectAt(document, block.position());
+        QTextBlockFormat format;
+        QTextCharFormat charFormat;
+        if (!afterObject || isObjectAt(document, position)) {
+            // The object (or the next one) and what follows it get a block of their own;
+            // the text after the objects later the format of the block they came from
+            if (!carried && !afterObject) {
+                carried.emplace(block.blockFormat(), textCharFormat(block.charFormat()));
+            }
+            format = objectBlockFormat();
+        } else if (carried) {
+            format = carried->first;
+            charFormat = carried->second;
+        } else if (tailFormat != nullptr) {
+            format = *tailFormat;
+            charFormat = textCharFormat(tailCharFormat != nullptr ? *tailCharFormat
+                                                                  : QTextCharFormat());
+        } else {
+            format = block.blockFormat();
+            charFormat = textCharFormat(block.charFormat());
+        }
+
+        // The editor's cursor at the break: after an object it goes on to the text after it
+        cursor.setKeepPositionOnInsert(cursor.position() == position && !afterObject);
+        edit.setPosition(position);
+        edit.insertBlock(format, charFormat);
+        cursor.setKeepPositionOnInsert(keepPosition);
+        ++end;
+        if (afterObject && !isObjectAt(document, edit.position())) {
+            carried.reset();
+        }
+        block = edit.block();  // the new block, which may hold more objects
+    }
+}
+
+void removeSelectionKeepingObjects(QTextCursor& cursor) {
+    if (!cursor.hasSelection()) {
+        return;
+    }
+    QTextDocument& document = *cursor.document();
+    const QTextBlock first = document.findBlock(cursor.selectionStart());
+    const bool fromObject = blockObject(first) != TextObject::None &&
+                            cursor.selectionStart() == first.position();
+    const QTextBlock last = document.findBlock(cursor.selectionEnd());
+    const QTextBlockFormat tailFormat = last.blockFormat();
+    const QTextCharFormat tailCharFormat = last.charFormat();
+
+    cursor.beginEditBlock();
+    cursor.removeSelectedText();
+    if (fromObject && blockObject(cursor.block()) == TextObject::None &&
+        !isObjectAt(document, cursor.position())) {
+        // The text after the selection in its own paragraph's format
+        cursor.setBlockFormat(tailFormat);
+        cursor.setBlockCharFormat(textCharFormat(tailCharFormat));
+    }
+    separateObjects(cursor, cursor.position(), cursor.position(), &tailFormat, &tailCharFormat);
+    cursor.endEditBlock();
+}
+
+bool leaveObject(QTextCursor& cursor) {
+    if (!isAtObject(cursor)) {
+        return false;
+    }
+    cursor.beginEditBlock();
+    if (cursor.atBlockStart()) {
+        // The object goes on to a new block; the one it leaves becomes the paragraph
+        const QTextBlock block = cursor.block();
+        cursor.insertBlock(block.blockFormat(), block.charFormat());
+        cursor.movePosition(QTextCursor::PreviousBlock);
+        cursor.setBlockFormat(paragraphBlockFormat());
+        cursor.setBlockCharFormat(QTextCharFormat());
+    } else {
+        cursor.insertBlock(paragraphBlockFormat(), QTextCharFormat());
+    }
+    cursor.endEditBlock();
+    return true;
+}
+
+void insertObject(QTextCursor& cursor, TextObject object, const QTextBlockFormat& nextFormat) {
+    if (object == TextObject::None || cursor.hasSelection()) {
+        return;
+    }
+    const QString character(QChar::ObjectReplacementCharacter);
+    const QTextCharFormat format = objectCharFormat(object);
+    const QTextBlock block = cursor.block();
+    const QTextBlockFormat blockFormat = block.blockFormat();
+    const QTextCharFormat blockCharFormat = block.charFormat();
+
+    cursor.beginEditBlock();
+    if (blockObject(block) != TextObject::None) {
+        if (cursor.atBlockStart()) {
+            // The new object takes the block; the old one goes on to a block after it
+            cursor.insertText(character, format);
+            cursor.insertBlock(blockFormat, blockCharFormat);
+        } else {
+            cursor.insertBlock(objectBlockFormat(), QTextCharFormat());
+            cursor.insertText(character, format);
+        }
+        cursor.endEditBlock();
+        return;
+    }
+
+    const int offset = cursor.positionInBlock();
+    const int length = block.length() - 1;
+    QTextBlockFormat tailFormat = blockFormat;
+    QTextCharFormat tailCharFormat = blockCharFormat;
+    if (offset > 0) {
+        // The text before the cursor stays; the object starts a block
+        if (offset == length) {
+            tailFormat = nextFormat;
+            tailCharFormat = QTextCharFormat();
+        } else {
+            tailCharFormat = textCharFormat(cursor.charFormat());
+        }
+        cursor.insertBlock(objectBlockFormat(), QTextCharFormat());
+    }
+    // At the start of a block: the object, then the rest of the block in a block of its own
+    cursor.insertText(character, format);
+    cursor.insertBlock(tailFormat, tailCharFormat);
+    if (offset == 0) {
+        // The paragraph's formats went on with its text
+        QTextCursor objectCursor(cursor.block().previous());
+        objectCursor.setBlockFormat(objectBlockFormat());
+        objectCursor.setBlockCharFormat(QTextCharFormat());
+    }
+    cursor.endEditBlock();
+}
+
+void removeBlock(QTextCursor& cursor, const QTextBlock& block) {
+    if (!block.isValid()) {
+        return;
+    }
+    QTextDocument& document = *cursor.document();
+    const QTextBlock next = block.next();
+    const QTextBlock previous = block.previous();
+    const int end = block.position() + block.length() - 1;
+    const AnnotationList staying = annotationsOfBlock(document, block);
+
+    cursor.beginEditBlock();
+    if (next.isValid()) {
+        // Removed with the break after it, the block would give its formats to the next one
+        const QTextBlockFormat format = next.blockFormat();
+        const QTextCharFormat charFormat = next.charFormat();
+        cursor.setPosition(block.position());
+        cursor.setPosition(next.position(), QTextCursor::KeepAnchor);
+        cursor.removeSelectedText();
+        cursor.setBlockFormat(format);
+        cursor.setBlockCharFormat(charFormat);
+    } else if (previous.isValid()) {
+        cursor.setPosition(previous.position() + previous.length() - 1);
+        cursor.setPosition(end, QTextCursor::KeepAnchor);
+        cursor.removeSelectedText();
+    } else {
+        cursor.setPosition(block.position());
+        cursor.setPosition(end, QTextCursor::KeepAnchor);
+        cursor.removeSelectedText();
+        cursor.setBlockFormat(paragraphBlockFormat());
+        cursor.setBlockCharFormat(QTextCharFormat());
+    }
+    anchorToPlace(document, cursor.position(), staying);
+    cursor.endEditBlock();
 }
 
 // =============================================================================

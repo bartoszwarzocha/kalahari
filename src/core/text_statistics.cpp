@@ -71,6 +71,9 @@ TextCounts countText(QStringView text, const WordCountRules& rules) {
             ++i;
         }
 
+        if (ch == QChar::ObjectReplacementCharacter) {
+            continue;  // an object of the text (a horizontal line, a break): no character of it
+        }
         if (QChar::isSpace(ch)) {
             if (inRun) {
                 countRun(counts, runIsWord, runIsDashes, rules);

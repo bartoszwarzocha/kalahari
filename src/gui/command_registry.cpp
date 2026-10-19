@@ -291,7 +291,7 @@ QAction* CommandRegistry::createActionForCommand(const QString& commandId, const
 
     // Configure shortcut
     if (!cmd.shortcut.isEmpty()) {
-        action->setShortcut(cmd.shortcut.toQKeySequence());
+        action->setShortcuts(cmd.shortcut.toQKeySequences());
     }
 
     // Configure checkable state
@@ -492,7 +492,7 @@ CommandRegistry::applyShortcuts(const std::string& skipId, bool* othersChanged) 
         }
         const auto action = m_actions.find(QString::fromStdString(id));
         if (action != m_actions.end()) {
-            changes.emplace_back(action.value(), keys.toQKeySequence());
+            changes.emplace_back(action.value(), keys.toQKeySequences());
         }
     }
     return changes;
@@ -502,7 +502,7 @@ void CommandRegistry::finishShortcutChanges(const std::vector<ShortcutChange>& c
                                             bool notify) {
     // Outside the lock: an action's changed() may reach code that asks the registry
     for (const auto& [action, keys] : changes) {
-        action->setShortcut(keys);
+        action->setShortcuts(keys);
     }
     if (notify) {
         emit shortcutsChanged();

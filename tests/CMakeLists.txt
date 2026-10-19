@@ -63,6 +63,7 @@ set(TEST_SOURCES
     editor/test_text_keys.cpp                    # The keys of the text on each system
     editor/test_format_without_selection.cpp     # Formats given without a selection
     editor/test_line_breaks.cpp                  # Line breaks in a paragraph (Shift+Enter)
+    editor/test_paragraph_styles.cpp             # Paragraph styles and the objects of the text
     editor/test_auto_correct.cpp                 # Autocorrect: the changes of the text as it is typed
     editor/test_read_only_text.cpp               # A read-only text: read, copied, searched, not changed
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
@@ -76,6 +77,7 @@ set(TEST_SOURCES
     gui/test_shortcuts_page.cpp                  # Settings > Keyboard Shortcuts
     gui/test_widget_keys.cpp                     # Qt's widgets have the keys of Windows
     gui/test_edit_coordinator.cpp                # Clipboard and undo on the element with the keys
+    gui/test_paragraph_style_menu.cpp            # Format > Text Style: the styles of the text in front
     gui/test_toolbar_keys.cpp                    # A toolbar gives the keys back after a command
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
     gui/test_color_settings.cpp                  # The colors of the issues and the annotations in Settings
@@ -250,6 +252,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_panel.cpp  # Spelling and Grammar panel
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
+    ${CMAKE_SOURCE_DIR}/src/gui/paragraph_style_menu.cpp    # Format > Text Style: the text's styles
     ${CMAKE_SOURCE_DIR}/src/gui/auto_correct_coordinator.cpp  # Auto-correct turned on and off as a whole
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_keys.cpp            # A toolbar gives the keys back after a command
     ${CMAKE_SOURCE_DIR}/src/gui/dock_coordinator.cpp        # The panels of the main window and their layout

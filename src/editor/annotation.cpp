@@ -3,6 +3,7 @@
 
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_format_registry.h>
+#include <kalahari/editor/paragraph_styles.h>
 
 #include <QTextBlock>
 #include <QTextBoundaryFinder>
@@ -459,6 +460,7 @@ bool removeAnnotation(QTextDocument& document, const QString& id) {
 
 QTextCharFormat insertionFormat(const QTextCursor& cursor) {
     QTextCharFormat format = cursor.charFormat();
+    format.clearProperty(QTextFormat::ObjectType);  // text is never an object
 
     // Inside a fragment: between two of its characters, in one paragraph
     AnnotationList inside;
@@ -584,7 +586,7 @@ void removeKeepingAnnotations(QTextCursor& cursor) {
     const AnnotationList staying =
         annotationsLeavingWith(document, cursor.selectionStart(), cursor.selectionEnd());
     cursor.beginEditBlock();
-    cursor.removeSelectedText();
+    removeSelectionKeepingObjects(cursor);
     anchorToPlace(document, cursor.position(), staying);
     cursor.endEditBlock();
 }
@@ -600,10 +602,11 @@ AnnotationList removeForReplacement(QTextCursor& cursor) {
         staying.removeIf([&fragments](const Annotation& a) { return hasFragment(fragments, a.id); });
 
         cursor.beginEditBlock();
-        cursor.removeSelectedText();
+        removeSelectionKeepingObjects(cursor);
         anchorToPlace(document, cursor.position(), staying);
         cursor.endEditBlock();
     }
+    leaveObject(cursor);  // the new text gets a paragraph of its own next to an object
     for (const Annotation& annotation : annotationsOf(insertionFormat(cursor))) {
         fragments = withAnnotation(fragments, annotation);
     }
@@ -612,6 +615,16 @@ AnnotationList removeForReplacement(QTextCursor& cursor) {
 
 void insertKeepingAnnotations(QTextCursor& cursor, const QString& text,
                               const QTextCharFormat& typed) {
+    if (isAtObject(cursor)) {
+        // The text gets a paragraph of its own next to the object: one undo step
+        cursor.beginEditBlock();
+        leaveObject(cursor);
+        QTextCharFormat format = insertionFormat(cursor);
+        format.merge(typed);
+        insertLines(cursor, text, format);
+        cursor.endEditBlock();
+        return;
+    }
     if (!cursor.hasSelection()) {
         QTextCharFormat format = insertionFormat(cursor);
         format.merge(typed);

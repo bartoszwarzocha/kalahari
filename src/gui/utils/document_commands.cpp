@@ -74,6 +74,8 @@ const std::vector<std::string>& documentCommands() {
         "edit.find",          "edit.findNext",      "edit.findPrevious",    "edit.findReplace",
         "format.bold",        "format.italic",      "format.underline",     "format.strikethrough",
         "format.alignLeft",   "format.alignCenter", "format.alignRight",    "format.justify",
+        "format.style.heading1", "format.style.heading2", "format.style.heading3",
+        "format.style.body",  "format.style.quote", "format.style.dialogue", "format.style.code",
         "view.mode.continuous", "view.mode.page",   "view.zoomIn",          "view.zoomOut",
         "view.resetZoom",     "view.zoomPageWidth", "view.zoomWholePage"};
     return ids;
@@ -83,7 +85,9 @@ const std::vector<std::string>& changingDocumentCommands() {
     static const std::vector<std::string> ids = {
         "edit.findReplace", "format.bold",        "format.italic",     "format.underline",
         "format.strikethrough", "format.alignLeft", "format.alignCenter", "format.alignRight",
-        "format.justify"};
+        "format.justify",   "format.style.heading1", "format.style.heading2",
+        "format.style.heading3", "format.style.body", "format.style.quote",
+        "format.style.dialogue", "format.style.code"};
     return ids;
 }
 
