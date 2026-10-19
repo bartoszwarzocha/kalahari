@@ -112,7 +112,10 @@ public:
     void setPlace(const core::ElementPlace& place);
 
     /// @brief The element is in the book, at @p place of the book without it (the sections of
-    /// setBook()), and is moved: the warnings say what changes from the book as it is
+    /// setBook()), and is moved: the warnings say what changes from the book as it is, and
+    /// the places are all those of its kind, also where no new element of it is offered
+    ///
+    /// The element is at the first place until setPlace().
     void setMovedFrom(const core::ElementPlace& place);
 
     /// @brief Whether the element can be at @p place
@@ -147,6 +150,9 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    /// @brief The places of the element in the sections of setBook(); it is at the first one
+    void fillPlaces();
+
     /// @brief The places of the kind in @p elements of group @p groupId in @p part of the
     /// book, in reading order: those in the list itself when @p here, and those in its groups
     void addPlacesIn(core::BookPlace part, const QList<core::ProjectElement>& elements,

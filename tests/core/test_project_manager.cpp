@@ -736,8 +736,9 @@ TEST_CASE("ProjectManager does not create a user project from a wrong palette",
         expected = {"kalahari.base:part is not a kind of the project"};
     }
     SECTION("An element in a place its kind does not allow") {
-        palette.elements = {{kind("kalahari.base", "chapter"), BookPlace::Front}};
-        expected = {"kalahari.base:chapter cannot be in front"};
+        palette.kinds = {kind("kalahari.base", "part")};
+        palette.elements = {{kind("kalahari.base", "part"), BookPlace::Front}};
+        expected = {"kalahari.base:part cannot be in front"};
     }
     request.palette = palette;
 
@@ -1629,9 +1630,14 @@ TEST_CASE("ProjectManager moves an element to another part of the book or group,
     REQUIRE(pm.moveElementTo(chapter, inBody(part, 0)));
     CHECK(titles(pm.findElement(part)->elements) == "Chapter 1, Epilogue");
 
+    // A chapter can also be in the front and the back section (test report of 19 October,
+    // part 3: the only chapter of a book could not be moved)
+    CHECK(pm.canMoveTo(chapter, {BookPlace::Front, QString(), 0}));
+    CHECK(pm.canMoveTo(chapter, {BookPlace::Back, QString(), 0}));
+
     // Where its kind cannot be, or a place that is not in the book: the book stays as it was
     const BookProject unchanged = *pm.project();
-    CHECK_FALSE(pm.moveElementTo(chapter, {BookPlace::Back, QString(), 0}));
+    CHECK_FALSE(pm.moveElementTo(part, {BookPlace::Back, QString(), 0}));
     CHECK_FALSE(pm.moveElementTo(part, inBody(part, 0)));
     CHECK_FALSE(pm.moveElementTo(chapter, inBody(part, 5)));
     CHECK_FALSE(pm.moveElementTo("no-element", inBody(QString(), 0)));

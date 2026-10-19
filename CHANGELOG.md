@@ -19,10 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Navigator: Move Up and Move Down leave a part and a section** - 2026-10-19. The first
   chapter of a part goes up before the part, the last one down after it, and an element at
   the start or the end of a section goes to the nearest section before or after it where its
-  kind can be (the table of contents from the back matter to the front matter). When an
-  element has no other place in the book, as the only chapter of a novel without parts,
-  Move..., Move to Start, Move Up, Move Down and Move to End are greyed out and their tooltip
-  says why: "The book has no other place for the chapter."
+  kind can be (the table of contents from the back matter to the front matter). A chapter
+  can be moved to the front and the back section too, as in other programs for books, so the
+  only chapter of a book goes up to the front section and down to the back one, also by
+  Move... and by dragging (the test of 19 October found its move commands greyed out); a new
+  chapter is still added to the main section or a part only, as the New Book palette and the
+  windows that add an element offer it. In a book
+  without sections, where the three sections are one list, Move Up and Move Down move an
+  element one step in that list, into the section before or after its own. When an element
+  has no other place in the book, as the only part of a novel, Move..., Move to Start, Move
+  Up, Move Down and Move to End are greyed out and their tooltip says why: "The book has no
+  other place for the part."
 
 - **The Spelling and Grammar panel** - 2026-10-17. View > Panels > Spelling and Grammar opens
   a panel, a tab next to Annotations, with the misspelled words and the grammar issues of the
@@ -124,8 +131,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   place and its card. New File makes a file outside the book, which the book does not take:
   the bar at the bottom of the new file has Save As... in place of Add to Book, as it has
   while no book is open. The tabs and the Navigator show the icons of the kinds the
-  program does not have from the book's cards. The project database (the places of the
-  cursor, the statistics of writing) is still written: it is the program's, not the book's.
+  program does not have from the book's cards. Nothing is written into the book's folder:
+  the book is not locked, its database (the places of the cursor, the statistics of writing)
+  is read from a copy in a temporary folder that goes when the book closes, and closing it
+  makes no backup (2026-10-19: such a book got a project.db, a .kalahari.lock and a
+  .backups folder).
 
 - **Menus: icons of the submenus** - 2026-10-16. Import, Export, Recent Books, Text Style,
   Statistics, Plugins, Assistant Actions, View Mode, Zoom, Panels, Perspectives and Toolbars
