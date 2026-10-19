@@ -40,6 +40,7 @@
 #include <QApplication>
 #include <QStyle>
 #include <QTimer>
+#include <QToolButton>
 #include <algorithm>
 
 namespace kalahari {
@@ -48,6 +49,9 @@ namespace gui {
 namespace {
 
 constexpr double LOGO_SHARE_OF_HEIGHT = 0.4;  ///< The logo's share of the panel's height at most
+constexpr int CORNER_INSET = 2;      ///< Between a card's corner button and its border
+constexpr int REMOVE_ICON_SIZE = 12;  ///< The icon of the X that takes a book off the list
+constexpr int REMOVE_TEXT_GAP = 4;    ///< Between the X and the texts of the card
 
 } // namespace
 
@@ -75,7 +79,18 @@ public:
         applyNormalStyle();
     }
 
+    /// @brief Put @p button, a child of the card, in its top right corner, over its contents
+    void setCornerButton(QWidget* button) {
+        m_cornerButton = button;
+        placeCornerButton();
+    }
+
 protected:
+    void resizeEvent(QResizeEvent* event) override {
+        QFrame::resizeEvent(event);
+        placeCornerButton();
+    }
+
     void mousePressEvent(QMouseEvent* event) override {
         if (event->button() == Qt::LeftButton && onClick) {
             onClick();
@@ -102,6 +117,13 @@ protected:
     }
 
 private:
+    void placeCornerButton() {
+        if (m_cornerButton != nullptr) {
+            m_cornerButton->move(width() - m_cornerButton->width() - CORNER_INSET, CORNER_INSET);
+            m_cornerButton->raise();
+        }
+    }
+
     void applyNormalStyle() {
         QString borderStyle = m_borderColor.isValid()
             ? QString("border: 1px solid %1;").arg(m_borderColor.name())
@@ -112,6 +134,7 @@ private:
 
     QColor m_hoverColor;
     QColor m_borderColor;
+    QWidget* m_cornerButton = nullptr;  ///< A child of the card, in its top right corner
 };
 
 DashboardPanel::DashboardPanel(QWidget* parent)
@@ -602,10 +625,16 @@ RecentBook readRecentBook(const QJsonObject& json, const QString& projectDir)
         recent.iconId = !package->icon.isEmpty() ? package->icon : art.getGenreIconId(book.genre);
         return recent;
     }
-    // The program does not have the type: its name and its icon from the book's card of it
+    // The program does not have the type: its name and its icon from the book's card of it, and
+    // the book opens read-only
     const std::optional<core::PackageCard> card =
         core::PackageCards::read(projectDir, project->type->id);
-    recent.type = typeNameOf(registry, *project, card ? &*card : nullptr);
+    const QString typeName = card && !card->name.isEmpty()
+                                 ? card->name.text(programLanguage())
+                                 : project->type->id;
+    //: The type of a book that opens read-only, as the program does not have it; %1: its name.
+    //: In Polish: %1 (tylko do odczytu)
+    recent.type = DashboardPanel::tr("%1 (read-only)").arg(typeName);
     recent.typeMissing = true;
     recent.iconId = card && !card->icon.isEmpty() ? card->icon : art.getGenreIconId(book.genre);
     recent.cardFolder = card ? card->directory : QString();
@@ -769,6 +798,30 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     contentLayout->addWidget(dateLabel);
 
     cardLayout->addWidget(contentWidget);
+
+    // A small X takes the book off the list; its file stays on the disk
+    auto* removeButton = new QToolButton(card);
+    removeButton->setObjectName("recentBookRemove");
+    removeButton->setAutoRaise(true);
+    removeButton->setIconSize(QSize(REMOVE_ICON_SIZE, REMOVE_ICON_SIZE));
+    removeButton->setIcon(
+        core::ArtProvider::getInstance().getIcon("dock.close", core::IconContext::Button));
+    removeButton->resize(removeButton->sizeHint());
+    // The texts keep clear of it
+    contentLayout->setContentsMargins(
+        0, 0,
+        std::max(0, removeButton->width() + CORNER_INSET + REMOVE_TEXT_GAP -
+                        DashboardCardLayout::MARGIN),
+        0);
+    //: The tooltip of the X on the card of a recent book. In Polish: Usuń z listy ostatnich
+    //: książek (plik zostanie na dysku)
+    removeButton->setToolTip(tr("Remove from the recent books (the file stays on the disk)"));
+    connect(removeButton, &QToolButton::clicked, this, [filePath]() {
+        core::Logger::getInstance().info("DashboardPanel: Recent book removed from the list: {}",
+                                         filePath.toStdString());
+        core::RecentBooksManager::getInstance().removeRecentFile(filePath);
+    });
+    card->setCornerButton(removeButton);
 
     // Set click handler
     card->onClick = [this, filePath]() {
@@ -988,6 +1041,10 @@ void DashboardPanel::applyThemeColors()
     QList<QLabel*> bookIcons = m_filesListWidget->findChildren<QLabel*>("cardBookIcon");
     for (auto* iconLabel : bookIcons) {
         iconLabel->setPixmap(bookIconPixmap(iconLabel, iconSize));
+    }
+    for (auto* removeButton : m_filesListWidget->findChildren<QToolButton*>("recentBookRemove")) {
+        removeButton->setIcon(
+            core::ArtProvider::getInstance().getIcon("dock.close", core::IconContext::Button));
     }
 }
 

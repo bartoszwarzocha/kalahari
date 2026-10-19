@@ -18,6 +18,8 @@ StandaloneInfoBar::StandaloneInfoBar(QWidget* parent)
     connect(this, &InfoBar::actionClicked, this, [this]() {
         if (m_readOnlyBook) {
             emit exportArchiveClicked();
+        } else if (savesAs()) {
+            emit saveAsClicked();
         } else {
             emit addToProjectClicked();
         }
@@ -27,15 +29,39 @@ StandaloneInfoBar::StandaloneInfoBar(QWidget* parent)
 void StandaloneInfoBar::setFilePath(const QString& path) {
     m_filePath = path;
     m_readOnlyBook = false;
-    // A new file goes into the book at once; a file on the disk in the Add to Book window
-    setActionText(path.isEmpty() ? tr("Add to Book") : tr("Add to Book..."));
+    updateAction();
 }
 
 void StandaloneInfoBar::setBookOpen(bool open, bool readOnly) {
-    setActionEnabled(open && !readOnly);
-    if (!open) {
+    m_bookOpen = open;
+    m_bookReadOnly = readOnly;
+    if (!m_readOnlyBook) {
+        updateAction();
+    }
+}
+
+bool StandaloneInfoBar::savesAs() const {
+    return !m_readOnlyBook && m_filePath.isEmpty() && (!m_bookOpen || m_bookReadOnly);
+}
+
+void StandaloneInfoBar::updateAction() {
+    // A new file that no book can take is saved as a file of its own
+    if (savesAs()) {
+        //: The button of the bar at the bottom of a new file while no book can take it, as
+        //: File > Save As... In Polish: Zapisz jako...
+        setActionText(tr("Save As..."));
+        setActionEnabled(true);
+        //: In Polish: Zapisz nowy plik na dysku
+        setActionToolTip(tr("Save the new file on the disk"));
+        return;
+    }
+
+    // A new file goes into the book at once; a file on the disk in the Add to Book window
+    setActionText(m_filePath.isEmpty() ? tr("Add to Book") : tr("Add to Book..."));
+    setActionEnabled(m_bookOpen && !m_bookReadOnly);
+    if (!m_bookOpen) {
         setActionToolTip(tr("No book is open"));
-    } else if (readOnly) {
+    } else if (m_bookReadOnly) {
         setActionToolTip(readOnlyReason());
     } else {
         setActionToolTip(tr("Add the file to the open book as a new element"));

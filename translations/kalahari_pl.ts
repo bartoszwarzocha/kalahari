@@ -3862,6 +3862,16 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Logo</translation>
     </message>
     <message>
+        <source>%1 (read-only)</source>
+        <extracomment>The type of a book that opens read-only, as the program does not have it; %1: its name. In Polish: %1 (tylko do odczytu)</extracomment>
+        <translation>%1 (tylko do odczytu)</translation>
+    </message>
+    <message>
+        <source>Remove from the recent books (the file stays on the disk)</source>
+        <extracomment>The tooltip of the X on the card of a recent book. In Polish: Usuń z listy ostatnich książek (plik zostanie na dysku)</extracomment>
+        <translation>Usuń z listy ostatnich książek (plik zostanie na dysku)</translation>
+    </message>
+    <message>
         <source>Welcome to Kalahari</source>
         <translation>Witaj w Kalahari</translation>
     </message>
@@ -6681,6 +6691,11 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
         <translation>Program nie ma pakietu, z którego pochodzi rodzaj tego elementu.</translation>
     </message>
     <message>
+        <source>The book has no other place for the {kind}.</source>
+        <extracomment>Why the Move commands cannot be used: the element&apos;s kind can be nowhere else in the book. In Polish: W tej książce nie ma innego miejsca na {kind:accusative}.</extracomment>
+        <translation>W tej książce nie ma innego miejsca na {kind:accusative}.</translation>
+    </message>
+    <message>
         <source>No book is open</source>
         <extracomment>The header of the Navigator while no book is open. In Polish: Żadna książka nie jest otwarta</extracomment>
         <translation>Żadna książka nie jest otwarta</translation>
@@ -8529,6 +8544,16 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Save the book in a project archive, which a program that has its type can open</source>
         <extracomment>In Polish: Zapisz książkę w archiwum projektu, które można otworzyć w programie mającym jej typ</extracomment>
         <translation>Zapisz książkę w archiwum projektu, które można otworzyć w programie mającym jej typ</translation>
+    </message>
+    <message>
+        <source>Save As...</source>
+        <extracomment>The button of the bar at the bottom of a new file while no book can take it, as File &gt; Save As... In Polish: Zapisz jako...</extracomment>
+        <translation>Zapisz jako...</translation>
+    </message>
+    <message>
+        <source>Save the new file on the disk</source>
+        <extracomment>In Polish: Zapisz nowy plik na dysku</extracomment>
+        <translation>Zapisz nowy plik na dysku</translation>
     </message>
 </context>
 <context>

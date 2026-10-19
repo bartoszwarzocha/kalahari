@@ -133,6 +133,44 @@ bool isBookType(const QString& type) {
     return type != QLatin1String("other_files") && type != QLatin1String("standalone_file");
 }
 
+/// Where Move Up (@p up) or Move Down takes element @p elementId from the start or the end of
+/// its list: before or after its group, or to the end of the nearest section before it or the
+/// start of the nearest one after it, where its kind can be (@p places, of movePlacesOf());
+/// none when its kind cannot be there
+std::optional<kalahari::core::ElementPlace> placeBeyondList(
+    const kalahari::core::BookProject& project,
+    const QList<kalahari::core::ElementPlace>& places, const QString& elementId, bool up) {
+    const std::optional<kalahari::core::ElementPlace> from = project.placeOf(elementId);
+    if (!from) {
+        return std::nullopt;
+    }
+    if (!from->groupId.isEmpty()) {
+        const std::optional<kalahari::core::ElementPlace> group =
+            project.placeOf(from->groupId);
+        if (!group) {
+            return std::nullopt;
+        }
+        const kalahari::core::ElementPlace beyond{group->place, group->groupId,
+                                                  group->index + (up ? 0 : 1)};
+        return places.contains(beyond) ? std::optional(beyond) : std::nullopt;
+    }
+    const qsizetype part = bookParts().indexOf(from->place);
+    for (qsizetype i = part + (up ? -1 : 1); part >= 0 && i >= 0 && i < bookParts().size();
+         i += up ? -1 : 1) {
+        std::optional<kalahari::core::ElementPlace> found;
+        for (const kalahari::core::ElementPlace& place : places) {
+            if (place.place == bookParts().at(i) && place.groupId.isEmpty() &&
+                (up ? !found || place.index > found->index : place.index == 0)) {
+                found = place;
+            }
+        }
+        if (found) {
+            return found;
+        }
+    }
+    return std::nullopt;
+}
+
 /// Tree of the Navigator. An element is dragged to any place of the book its kind can have
 /// (NavigatorPanel::dropPlaceOf()); the drop does not change the tree, it asks for the move,
 /// and the tree shows the book as it is once it is loaded again. In a book without sections
@@ -1378,17 +1416,39 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 [this, elementId, startIndex]() { emit elementMoved(elementId, startIndex); });
         moveToStartAction->setEnabled(startIndex >= 0 && index > startIndex);
 
+        // From the start or the end of its list, Move Up and Move Down take the element out
+        // of it: before or after its part, or to the section before or after
+        const std::optional<core::ElementPlace> above =
+            project && index == 0 ? placeBeyondList(*project, places, elementId, true)
+                                  : std::nullopt;
+        const std::optional<core::ElementPlace> below =
+            project && index >= 0 && index == siblingCount - 1
+                ? placeBeyondList(*project, places, elementId, false)
+                : std::nullopt;
+
         QAction* moveUpAction = menu.addAction(
             artProvider.getIcon("navigation.up", core::IconContext::Menu),
             tr("Move &Up"));
-        connect(moveUpAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuMoveUp);
-        moveUpAction->setEnabled(index > 0);
+        connect(moveUpAction, &QAction::triggered, this, [this, elementId, above]() {
+            if (above) {
+                emit elementMovedTo(elementId, *above);
+            } else {
+                onContextMenuMoveUp();
+            }
+        });
+        moveUpAction->setEnabled(index > 0 || above);
 
         QAction* moveDownAction = menu.addAction(
             artProvider.getIcon("navigation.down", core::IconContext::Menu),
             tr("Move Do&wn"));
-        connect(moveDownAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuMoveDown);
-        moveDownAction->setEnabled(index >= 0 && index < siblingCount - 1);
+        connect(moveDownAction, &QAction::triggered, this, [this, elementId, below]() {
+            if (below) {
+                emit elementMovedTo(elementId, *below);
+            } else {
+                onContextMenuMoveDown();
+            }
+        });
+        moveDownAction->setEnabled((index >= 0 && index < siblingCount - 1) || below);
 
         QAction* moveToEndAction = menu.addAction(
             artProvider.getIcon("navigation.bottom", core::IconContext::Menu),
@@ -1396,6 +1456,20 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         connect(moveToEndAction, &QAction::triggered, this,
                 [this, elementId, endIndex]() { emit elementMoved(elementId, endIndex); });
         moveToEndAction->setEnabled(index >= 0 && index < endIndex);
+
+        // A sole chapter in a book without parts: no command can move it, and each says why
+        if (knownKind && !elsewhere) {
+            //: Why the Move commands cannot be used: the element's kind can be nowhere else in
+            //: the book. In Polish: W tej książce nie ma innego miejsca na {kind:accusative}.
+            const QString why =
+                core::fillWords(tr("The book has no other place for the {kind}."),
+                                {{QStringLiteral("kind"), wordsOf(*element)}});
+            for (QAction* action : {moveToAction, moveToStartAction, moveUpAction, moveDownAction,
+                                    moveToEndAction}) {
+                action->setToolTip(why);
+                action->setStatusTip(why);
+            }
+        }
         changing << moveToAction << moveToStartAction << moveUpAction << moveDownAction
                  << moveToEndAction;
     };

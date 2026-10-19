@@ -273,14 +273,15 @@ TEST_CASE("Read-only book: the window reads it and exports it, and changes nothi
     CHECK_FALSE(child<QComboBox>(window.properties, "chapterStatusCombo")->isEnabled());
     CHECK(child<QTextEdit>(window.properties, "chapterNotesEdit")->isReadOnly());
 
-    // New File: a file outside the book, asked nothing, which cannot go into the book
+    // New File: a file outside the book, asked nothing, which cannot go into the book: its bar
+    // saves it on the disk (test report of 17 October, part 8)
     const qsizetype elements = pm.book()->mainElements.size();
     CHECK(test::accepting([&window]() { window.documents.onNewDocument(); }) == 0);
     REQUIRE(window.tabs->count() == 2);
     CHECK(window.editor(1)->property("isStandaloneFile").toBool());
     CHECK_FALSE(window.infoBar->showsReadOnlyBook());
-    CHECK_FALSE(barButton(window)->isEnabled());
-    CHECK(barButton(window)->toolTip() == READ_ONLY);
+    CHECK(barButton(window)->isEnabled());
+    CHECK(barButton(window)->text() == QStringLiteral("Save As..."));
     window.documents.onAddToProject();
     CHECK(window.statusBar.currentMessage() == READ_ONLY);
     CHECK(pm.book()->mainElements.size() == elements);
