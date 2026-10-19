@@ -334,8 +334,7 @@ private:
     /// @brief Give a block's lines the fonts of its style, as formats of its layout
     void applyStyleFormats(const QTextBlock& block) const;
 
-    /// @brief The page flow cache entries of a block: whether it is kept with the next one
-    ///        or is a page break, the space above it with its first line, the space below it
+    /// @brief The page flow cache entry of a block (FlowEntry), with @p lead
     void storeFlowEntries(int number, const QTextBlock& block, qreal lead);
 
     /// @brief Forget the metrics of the styles and objects (font, typography or styles
@@ -376,9 +375,22 @@ private:
     /// @return Height of the block in the flow, including its spacing above and below
     qreal paginateBlock(QTextLayout* layout, qreal top, const BlockMetrics& metrics) const;
 
+    /// @brief Page flow, per block and kept in step with the document: what the flow needs
+    ///        of the block's style, so a long text is placed without asking blockMetrics()
+    struct FlowEntry {
+        char flags = 0;                  ///< FLOW_KEEP_WITH_NEXT, FLOW_PAGE_BREAK
+        qreal lead = 0;                  ///< The space above with the first line box (estimated while pending)
+        qreal spaceBefore = 0;           ///< The style's space above
+        qreal spaceAfter = 0;            ///< The style's space below
+        qreal estimatedLineHeight = 1;   ///< A line box of the style, for the estimates
+    };
+
+    /// @brief The page flow entry of a block in a style, with @p lead
+    static FlowEntry flowEntry(const BlockMetrics& metrics, qreal lead);
+
     /// @brief Height a block waiting for layout probably takes in the page flow
     /// @param height Its estimated height without page breaks
-    qreal flowEstimate(qreal height, qreal top, const BlockMetrics& metrics) const;
+    qreal flowEstimate(qreal height, qreal top, const FlowEntry& entry) const;
 
     /// @brief Top of the text area after the one holding @p y
     qreal nextPageTop(qreal y) const;
@@ -449,12 +461,8 @@ private:
     mutable std::vector<qreal> m_blockFlowOffsets;
     mutable std::vector<qreal> m_blockFlowHeights;
 
-    // Page flow, per block and kept in step with the document: FLOW_KEEP_WITH_NEXT and
-    // FLOW_PAGE_BREAK, the space above the block with its first line box (estimated while
-    // it waits for layout), and the space below it
-    std::vector<char> m_blockFlowFlags;
-    std::vector<qreal> m_blockLeads;
-    std::vector<qreal> m_blockSpacesAfter;
+    // Page flow, per block and kept in step with the document (FlowEntry)
+    std::vector<FlowEntry> m_blockFlowEntries;
 
     // Page flow: bottom of the last line box (document coordinates)
     mutable qreal m_contentBottom = 0;

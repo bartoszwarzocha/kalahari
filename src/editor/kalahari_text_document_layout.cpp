@@ -461,19 +461,24 @@ void KalahariTextDocumentLayout::applyStyleFormats(const QTextBlock& block) cons
     }
 }
 
-void KalahariTextDocumentLayout::storeFlowEntries(int number, const QTextBlock& block, qreal lead) {
-    const auto index = static_cast<size_t>(number);
-    const BlockMetrics& metrics = blockMetrics(block);
-    char flags = 0;
+KalahariTextDocumentLayout::FlowEntry KalahariTextDocumentLayout::flowEntry(
+    const BlockMetrics& metrics, qreal lead) {
+    FlowEntry entry;
     if (metrics.keepWithNext) {
-        flags |= FLOW_KEEP_WITH_NEXT;
+        entry.flags |= FLOW_KEEP_WITH_NEXT;
     }
     if (metrics.pageBreak) {
-        flags |= FLOW_PAGE_BREAK;
+        entry.flags |= FLOW_PAGE_BREAK;
     }
-    m_blockFlowFlags[index] = flags;
-    m_blockLeads[index] = lead;
-    m_blockSpacesAfter[index] = metrics.spaceAfter;
+    entry.lead = lead;
+    entry.spaceBefore = metrics.spaceBefore;
+    entry.spaceAfter = metrics.spaceAfter;
+    entry.estimatedLineHeight = std::max<qreal>(1.0, metrics.estimatedLineHeight);
+    return entry;
+}
+
+void KalahariTextDocumentLayout::storeFlowEntries(int number, const QTextBlock& block, qreal lead) {
+    m_blockFlowEntries[static_cast<size_t>(number)] = flowEntry(blockMetrics(block), lead);
 }
 
 // =============================================================================
@@ -611,9 +616,7 @@ void KalahariTextDocumentLayout::invalidateAll() {
         m_blockExtents.resize(count, 1);
         m_blockHeights.resize(count);
     }
-    m_blockFlowFlags.assign(count, 0);
-    m_blockLeads.assign(count, 0.0);
-    m_blockSpacesAfter.assign(count, 0.0);
+    m_blockFlowEntries.assign(count, FlowEntry());
 
     QTextBlock block = doc->begin();
     for (size_t i = 0; i < count && block.isValid(); ++i, block = block.next()) {
@@ -780,11 +783,10 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
     const bool layOutNow = rangeSize <= IMMEDIATE_LAYOUT_LIMIT;
     std::vector<qreal> heights;
     std::vector<qreal> extents;
-    std::vector<char> flags;
-    std::vector<qreal> leads;
-    std::vector<qreal> spacesAfter;
+    std::vector<FlowEntry> flowEntries;
     heights.reserve(static_cast<size_t>(rangeSize));
     extents.reserve(static_cast<size_t>(rangeSize));
+    flowEntries.reserve(static_cast<size_t>(rangeSize));
     QTextBlock block = doc->findBlockByNumber(first);
     for (int number = first; number <= last && block.isValid(); ++number) {
         const BlockMetrics& metrics = blockMetrics(block);
@@ -793,10 +795,7 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         heights.push_back(layOutNow ? layoutBlock(block, &extent, true, &lead)
                                     : estimatedHeight(extent, metrics));
         extents.push_back(extent);
-        flags.push_back(static_cast<char>((metrics.keepWithNext ? FLOW_KEEP_WITH_NEXT : 0) |
-                                          (metrics.pageBreak ? FLOW_PAGE_BREAK : 0)));
-        leads.push_back(lead);
-        spacesAfter.push_back(metrics.spaceAfter);
+        flowEntries.push_back(flowEntry(metrics, lead));
         block = block.next();
     }
     const std::vector<char> pending(heights.size(), layOutNow ? 0 : 1);
@@ -820,9 +819,7 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         std::copy(pending.begin(), pending.end(), m_blockPending.begin() + begin);
         std::copy(unplaced.begin(), unplaced.end(), m_blockFlowOffsets.begin() + begin);
         std::copy(noFlowHeights.begin(), noFlowHeights.end(), m_blockFlowHeights.begin() + begin);
-        std::copy(flags.begin(), flags.end(), m_blockFlowFlags.begin() + begin);
-        std::copy(leads.begin(), leads.end(), m_blockLeads.begin() + begin);
-        std::copy(spacesAfter.begin(), spacesAfter.end(), m_blockSpacesAfter.begin() + begin);
+        std::copy(flowEntries.begin(), flowEntries.end(), m_blockFlowEntries.begin() + begin);
     } else {
         const auto replace = [begin, oldEnd](auto& cache, const auto& entries) {
             cache.erase(cache.begin() + begin, cache.begin() + oldEnd);
@@ -833,9 +830,7 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         replace(m_blockPending, pending);
         replace(m_blockFlowOffsets, unplaced);
         replace(m_blockFlowHeights, noFlowHeights);
-        replace(m_blockFlowFlags, flags);
-        replace(m_blockLeads, leads);
-        replace(m_blockSpacesAfter, spacesAfter);
+        replace(m_blockFlowEntries, flowEntries);
     }
     // With page flow, the range's new lines are placed on the pages with the positions;
     // whether that moves the blocks below is known only then
@@ -1056,17 +1051,16 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
     qreal lastSpacing = 0;
     QTextBlock block = document()->begin();
     for (size_t i = 0; i < count; ++i, block = block.next()) {
-        if ((m_blockFlowFlags[i] & FLOW_KEEP_WITH_NEXT) != 0) {
+        const FlowEntry& entry = m_blockFlowEntries[i];
+        if ((entry.flags & FLOW_KEEP_WITH_NEXT) != 0) {
             y = keptBlockTop(i, y);
         }
         m_blockYPositions[i] = y;
         const qreal offset = std::fmod(y, m_pageFlow.pitch);
         qreal height = 0;
         if (m_blockPending[i] != 0) {
-            height = (m_blockFlowFlags[i] & FLOW_PAGE_BREAK) != 0
-                         ? nextPageTop(y) - y
-                         : flowEstimate(m_blockHeights[i], y,
-                                        inStep && block.isValid() ? blockMetrics(block) : BlockMetrics());
+            height = (entry.flags & FLOW_PAGE_BREAK) != 0 ? nextPageTop(y) - y
+                                                          : flowEstimate(m_blockHeights[i], y, entry);
         } else if (std::abs(m_blockFlowOffsets[i] - offset) < FLOW_EPSILON) {
             height = m_blockFlowHeights[i];
         } else if (!inStep || !block.isValid() || !block.layout()) {
@@ -1079,8 +1073,7 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
         }
         y += height;
         // A page break ending the text leaves the next page in the document, empty
-        lastSpacing = (m_blockFlowFlags[i] & FLOW_PAGE_BREAK) != 0 ? -2.0 * FLOW_EPSILON
-                                                                   : m_blockSpacesAfter[i];
+        lastSpacing = (entry.flags & FLOW_PAGE_BREAK) != 0 ? -2.0 * FLOW_EPSILON : entry.spaceAfter;
     }
     m_cachedDocumentHeight = y;
     m_contentBottom = y - lastSpacing;
@@ -1130,16 +1123,16 @@ qreal KalahariTextDocumentLayout::paginateBlock(QTextLayout* layout, qreal top,
 }
 
 qreal KalahariTextDocumentLayout::flowEstimate(qreal height, qreal top,
-                                               const BlockMetrics& metrics) const {
+                                               const FlowEntry& entry) const {
     // The estimate is a whole number of estimated lines; they are placed as lines are
-    const qreal lineHeight = std::max<qreal>(1.0, metrics.estimatedLineHeight);
+    const qreal lineHeight = entry.estimatedLineHeight;
     const int lines = std::max(
-        1, static_cast<int>(std::lround((height - metrics.spaceBefore - metrics.spaceAfter) / lineHeight)));
-    qreal y = top + metrics.spaceBefore;
+        1, static_cast<int>(std::lround((height - entry.spaceBefore - entry.spaceAfter) / lineHeight)));
+    qreal y = top + entry.spaceBefore;
     for (int i = 0; i < lines; ++i) {
         y = flowLineTop(y, lineHeight) + lineHeight;
     }
-    return y - top + metrics.spaceAfter;
+    return y - top + entry.spaceAfter;
 }
 
 qreal KalahariTextDocumentLayout::nextPageTop(qreal y) const {
@@ -1152,13 +1145,13 @@ qreal KalahariTextDocumentLayout::keptBlockTop(size_t index, qreal top) const {
     const size_t count = m_blockHeights.size();
     qreal needed = 0;  // from the top down to the end of that paragraph's first line
     size_t next = index;
-    for (; next < count && (m_blockFlowFlags[next] & FLOW_KEEP_WITH_NEXT) != 0; ++next) {
+    for (; next < count && (m_blockFlowEntries[next].flags & FLOW_KEEP_WITH_NEXT) != 0; ++next) {
         needed += m_blockHeights[next];
     }
-    if (next >= count || (m_blockFlowFlags[next] & FLOW_PAGE_BREAK) != 0) {
+    if (next >= count || (m_blockFlowEntries[next].flags & FLOW_PAGE_BREAK) != 0) {
         return top;  // nothing to keep them with: they stay where the text puts them
     }
-    needed += m_blockLeads[next];
+    needed += m_blockFlowEntries[next].lead;
 
     // They move only from below the top of a text area, and only when they fit in the next
     // one (a longer run would not fit there either)
