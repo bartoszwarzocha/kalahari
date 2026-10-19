@@ -389,6 +389,56 @@ TEST_CASE("Objects: deleting them as one character", "[editor][objects]") {
     }
 }
 
+TEST_CASE("Objects: the arrows pass them as one character", "[editor][objects]") {
+    auto editor = editorWith(kml(QStringLiteral("<p>ab</p><hr/><p>cd</p>")), {0, 2});
+    press(*editor, Qt::Key_Right);
+    REQUIRE(editor->cursorPosition() == CursorPosition{1, 0});
+    press(*editor, Qt::Key_Right);
+    REQUIRE(editor->cursorPosition() == CursorPosition{1, 1});
+    press(*editor, Qt::Key_Right);
+    REQUIRE(editor->cursorPosition() == CursorPosition{2, 0});
+    press(*editor, Qt::Key_Left);
+    press(*editor, Qt::Key_Left);
+    REQUIRE(editor->cursorPosition() == CursorPosition{1, 0});
+
+    // Shift with an arrow selects it; Delete takes it whole
+    press(*editor, Qt::Key_Right, Qt::ShiftModifier);
+    REQUIRE(editor->hasSelection());
+    REQUIRE(editor->selection().normalized().start == CursorPosition{1, 0});
+    REQUIRE(editor->selection().normalized().end == CursorPosition{1, 1});
+    press(*editor, Qt::Key_Delete);
+    REQUIRE(editor->toKml() == kml(QStringLiteral("<p>ab</p><p>cd</p>")));
+    editor->undo();
+    REQUIRE(editor->toKml() == kml(QStringLiteral("<p>ab</p><hr/><p>cd</p>")));
+}
+
+TEST_CASE("Objects: a selection of whole objects", "[editor][objects]") {
+    const QString text = kml(QStringLiteral("<p>ab</p><hr/><page-break/><h2>cd</h2>"));
+
+    SECTION("Deleted: their paragraphs go too, the cursor goes to the text after them") {
+        auto editor = editorWith(text);
+        select(*editor, {1, 0}, {2, 1});
+        press(*editor, Qt::Key_Backspace);
+        REQUIRE(editor->toKml() == kml(QStringLiteral("<p>ab</p><h2>cd</h2>")));
+        REQUIRE(editor->cursorPosition() == CursorPosition{1, 0});
+    }
+
+    SECTION("Deleted at the end of the text: the cursor goes to the text before them") {
+        auto editor = editorWith(kml(QStringLiteral("<p>ab</p><scene-break/>")));
+        select(*editor, {1, 0}, {1, 1});
+        press(*editor, Qt::Key_Delete);
+        REQUIRE(editor->toKml() == kml(QStringLiteral("<p>ab</p>")));
+        REQUIRE(editor->cursorPosition() == CursorPosition{0, 2});
+    }
+
+    SECTION("Text typed over them takes their place") {
+        auto editor = editorWith(text);
+        select(*editor, {1, 0}, {2, 1});
+        type(*editor, QStringLiteral("x"));
+        REQUIRE(editor->toKml() == kml(QStringLiteral("<p>ab</p><p>x</p><h2>cd</h2>")));
+    }
+}
+
 TEST_CASE("Objects: selections that end at them", "[editor][objects]") {
     const QString text = kml(QStringLiteral("<p>ab</p><hr/><h2>cd</h2>"));
 

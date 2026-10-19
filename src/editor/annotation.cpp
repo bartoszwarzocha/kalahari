@@ -602,7 +602,7 @@ AnnotationList removeForReplacement(QTextCursor& cursor) {
         staying.removeIf([&fragments](const Annotation& a) { return hasFragment(fragments, a.id); });
 
         cursor.beginEditBlock();
-        removeSelectionKeepingObjects(cursor);
+        removeSelectionKeepingObjects(cursor, true);  // the text goes in place of objects
         anchorToPlace(document, cursor.position(), staying);
         cursor.endEditBlock();
     }

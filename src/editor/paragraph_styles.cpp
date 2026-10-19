@@ -271,7 +271,7 @@ void separateObjects(QTextCursor& cursor, int from, int to, const QTextBlockForm
     }
 }
 
-void removeSelectionKeepingObjects(QTextCursor& cursor) {
+void removeSelectionKeepingObjects(QTextCursor& cursor, bool keepParagraph) {
     if (!cursor.hasSelection()) {
         return;
     }
@@ -282,10 +282,15 @@ void removeSelectionKeepingObjects(QTextCursor& cursor) {
     const QTextBlock last = document.findBlock(cursor.selectionEnd());
     const QTextBlockFormat tailFormat = last.blockFormat();
     const QTextCharFormat tailCharFormat = last.charFormat();
+    const bool wholeObjects = fromObject && blockObject(last) != TextObject::None &&
+                              cursor.selectionEnd() == last.position() + last.length() - 1;
 
     cursor.beginEditBlock();
     cursor.removeSelectedText();
-    if (fromObject && blockObject(cursor.block()) == TextObject::None &&
+    if (wholeObjects && !keepParagraph) {
+        // Their blocks, left empty, go with them
+        removeBlock(cursor, cursor.block());
+    } else if (fromObject && blockObject(cursor.block()) == TextObject::None &&
         !isObjectAt(document, cursor.position())) {
         // The text after the selection in its own paragraph's format
         cursor.setBlockFormat(tailFormat);

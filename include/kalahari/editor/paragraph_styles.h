@@ -153,8 +153,11 @@ void separateObjects(QTextCursor& cursor, int from, int to,
 ///        their own again (separateObjects())
 ///
 /// The text after the selection keeps the format of its paragraph when the selection
-/// starts at an object: an object never gives its block to text.
-void removeSelectionKeepingObjects(QTextCursor& cursor);
+/// starts at an object: an object never gives its block to text. A selection of whole
+/// objects (from the start of one to the end of another) takes their blocks too, as Delete
+/// takes an object (removeBlock()); with @p keepParagraph, for text typed in their place, an
+/// empty paragraph stays there.
+void removeSelectionKeepingObjects(QTextCursor& cursor, bool keepParagraph = false);
 
 /// @brief Move a cursor at an object into a new empty paragraph, for text to go in
 ///
