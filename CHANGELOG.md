@@ -30,7 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a few words around the issue, with a frame and a bar in the kind's color. The selected card
   shows the whole sentence (for a grammar issue also what is wrong), up to five suggestions,
   the first one filled with the kind's color, and Ignore Word and Add to Dictionary, or Ignore
-  Rule. The buttons at the top, "Spelling 3" and "Grammar 1", count the issues of each kind
+  Rule. The words of the suggestions are never shortened: the buttons that do not fit in a line
+  go on to the next one, and a word wider than the card goes on in the next line of its
+  button. The buttons at the top, "Spelling 3" and "Grammar 1", count the issues of each kind
   and show or hide its cards ("–" for a kind not checked); the row under them says how far the
   text is checked ("Checking the grammar: paragraph 12 of 40...", "The whole chapter is
   checked.") or why it is not (no dictionary for the language, LanguageTool not prepared yet
@@ -38,8 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the text selects its card. A suggestion takes the issue's place as one step of Undo, the
   other buttons do what they do in the menu of the wave, and then the next issue is selected;
   a right click on a card, the menu key or Shift+F10 opens that menu. In a book open read-only
-  the suggestions are greyed out, on the cards and in the menu of the wave, and their tooltip
-  says why; Ignore Word, Add to Dictionary and Ignore Rule still work, as they change no text.
+  the suggestions, Ignore Word, Add to Dictionary and Ignore Rule are greyed out, on the cards
+  and in the menu of the wave, and their tooltip says why.
   Up and Down, Home and End, Page Up and Page Down select the cards, Enter chooses the first
   suggestion, 1 to 5 the suggestion with that number, Esc goes back to the text; the row at
   the bottom reminds the keys. While the panel shows, the grammar of the whole text is checked

@@ -25,6 +25,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/spelling_issue_list.h"
 #include "kalahari/gui/panels/spelling_panel.h"
+#include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
 #include "kalahari/gui/utils/panel_toggle.h"
@@ -33,6 +34,8 @@
 #include <QAction>
 #include <QApplication>
 #include <QDockWidget>
+#include <QFont>
+#include <QFontMetricsF>
 #include <QGuiApplication>
 #include <QImage>
 #include <QKeyEvent>
@@ -49,6 +52,7 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
+#include <cmath>
 #include <cstdio>
 #include <map>
 #include <memory>
@@ -501,13 +505,21 @@ TEST_CASE("Spelling panel: a card unfolded shows the suggestions and the actions
     card.setSelected(true);
     CHECK(card.suggestionButtons().first()->focusPolicy() == Qt::StrongFocus);
 
-    // A text only read: the suggestions are greyed out, ignoring still works
+    // A text only read: the suggestions, Ignore Word and Add to Dictionary greyed out, saying
+    // why
     card.setReadOnly(true);
-    CHECK_FALSE(card.suggestionButtons().first()->isEnabled());
-    CHECK_FALSE(card.suggestionButtons().first()->toolTip().isEmpty());
-    CHECK(card.actionButtons().first()->isEnabled());
+    REQUIRE(card.buttons().size() == 4);
+    for (QAbstractButton* button : card.buttons()) {
+        CAPTURE(button->text().toStdString());
+        CHECK_FALSE(button->isEnabled());
+        CHECK(button->toolTip() == readOnlyReason());
+    }
     card.setReadOnly(false);
-    CHECK(card.suggestionButtons().first()->isEnabled());
+    for (QAbstractButton* button : card.buttons()) {
+        CAPTURE(button->text().toStdString());
+        CHECK(button->isEnabled());
+        CHECK(button->toolTip().isEmpty());
+    }
 
     // A grammar issue: what is wrong, its replacements and Ignore Rule
     card.setIssue(issues.at(1));
@@ -534,6 +546,104 @@ TEST_CASE("Spelling panel: a card unfolded shows the suggestions and the actions
     CHECK(chosen == 0);
     card.actionButtons().first()->click();
     CHECK(ignoredRules == 1);
+}
+
+TEST_CASE("Spelling panel: the words of the suggestions are never shortened",
+          "[gui][spelling-panel]") {
+    const std::vector<SpellingPanelIssue> issues = sampleIssues();
+    SpellingIssueCard card;
+    card.setIssue(issues.at(0));
+    card.setSelected(true);  // the suggestions numbered
+    card.setExpanded(true);
+    card.show();
+    const auto layOut = [&card](int width) {
+        card.resize(width, card.heightForWidth(width));
+        QApplication::processEvents();
+    };
+
+    SECTION("each button as wide as its word, which is the same with room to spare") {
+        // The button as it is and a wider one, compared left of the right edge of the first
+        const auto whole = [](QAbstractButton* button) {
+            button->setAttribute(Qt::WA_UnderMouse, false);
+            const QSize laidOut = button->size();
+            const QImage shown = button->grab().toImage();
+            button->resize(laidOut.width() + 80, laidOut.height());
+            const QImage roomy = button->grab().toImage();
+            button->resize(laidOut);
+            const int right = shown.width() - qRound(8 * shown.devicePixelRatio());
+            for (int y = 0; y < shown.height(); ++y) {
+                for (int x = 0; x < right; ++x) {
+                    if (shown.pixel(x, y) != roomy.pixel(x, y)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+        // Words alike, as the suggestions for one word are
+        const std::array<QStringList, 4> suggestions{
+            QStringList{QStringLiteral("Baśka"), QStringLiteral("Bańka"), QStringLiteral("Bajka"),
+                        QStringLiteral("Ska"), QStringLiteral("Baska")},
+            QStringList{QStringLiteral("Biska"), QStringLiteral("Bryska"), QStringLiteral("Buska"),
+                        QStringLiteral("Bóska"), QStringLiteral("Bzika")},
+            QStringList{QStringLiteral("mistake"), QStringLiteral("mistakes"),
+                        QStringLiteral("misstate"), QStringLiteral("mistook"),
+                        QStringLiteral("mistaken")},
+            QStringList{QStringLiteral("gramatyka"), QStringLiteral("gramatyki"),
+                        QStringLiteral("gramatykę"), QStringLiteral("gramatyką"),
+                        QStringLiteral("gramatyko")}};
+        for (const QStringList& words : suggestions) {
+            card.setSuggestions(words);
+            layOut(360);
+            for (QAbstractButton* button : card.suggestionButtons()) {
+                CAPTURE(button->text().toStdString());
+                CHECK(button->width() >= button->sizeHint().width());
+                CHECK(whole(button));
+            }
+        }
+    }
+
+    SECTION("a word wider than the card goes on in the next line of its button") {
+        card.setSuggestions(
+            {QStringLiteral("Ska"), QStringLiteral("Konstantynopolitańczykowianeczka")});
+        const int width = 140;
+        layOut(width);
+        layOut(width);  // as polished when shown
+        const QList<QAbstractButton*> buttons = card.suggestionButtons();
+        REQUIRE(buttons.size() == 2);
+        QAbstractButton* wide = buttons.at(1);
+        CHECK(wide->mapTo(&card, QPoint(wide->width(), 0)).x() <= width);
+        CHECK(wide->height() > buttons.at(0)->height());
+        CHECK(wide->mapTo(&card, QPoint(0, wide->height())).y() <= card.height());
+    }
+}
+
+TEST_CASE("Spelling panel: a suggestion in lines leaves nothing out", "[gui][spelling-panel]") {
+    QFont font = QApplication::font();
+    font.setBold(true);
+    const QFontMetricsF metrics(font);
+    const auto widthOf = [&metrics](const QString& text) {
+        return static_cast<int>(std::ceil(metrics.horizontalAdvance(text))) + 1;
+    };
+
+    // Room for the whole word: one line
+    const QString word = QStringLiteral("Konstantynopolitańczykowianeczka");
+    CHECK(suggestionLines(word, font, widthOf(word)) == QStringList{word});
+
+    // A word wider than the line: in more lines, each within it, together the whole word
+    const int narrow = widthOf(word) / 3;
+    const QStringList lines = suggestionLines(word, font, narrow);
+    CHECK(lines.size() >= 3);
+    CHECK(lines.join(QString()) == word);
+    for (const QString& line : lines) {
+        CAPTURE(line.toStdString());
+        CHECK(metrics.horizontalAdvance(line) <= narrow);
+    }
+
+    // Words: broken between them, not inside one
+    const QString words = QStringLiteral("w ogóle nie");
+    CHECK(suggestionLines(words, font, widthOf(QStringLiteral("w ogóle "))) ==
+          QStringList{QStringLiteral("w ogóle "), QStringLiteral("nie")});
 }
 
 TEST_CASE("Spelling panel: only the cards in view are made, and the selected one unfolded",
@@ -978,6 +1088,20 @@ TEST_CASE("Spelling panel: a fix chosen in the panel goes to the text, and the n
     press(list, Qt::Key_Return);
     CHECK(paragraphText(*editor, 1) == QStringLiteral("Two errorz there."));
     CHECK(refused == 1);
+
+    // Nor is the word ignored or added to the dictionary: greyed out, and refused if asked
+    card = desk.panel->list()->selectedCard();
+    REQUIRE(card != nullptr);
+    REQUIRE(card->actionButtons().size() == 2);
+    for (QAbstractButton* button : card->actionButtons()) {
+        CHECK_FALSE(button->isEnabled());
+    }
+    const QString key = desk.panel->selectedKey();
+    emit desk.panel->list()->ignoreWordClicked(key);
+    emit desk.panel->list()->addToDictionaryClicked(key);
+    CHECK_FALSE(desk.spelling->service()->isIgnored(QStringLiteral("errorz")));
+    CHECK_FALSE(desk.spelling->service()->isInUserDictionary(QStringLiteral("errorz")));
+    CHECK(desk.lists({QStringLiteral("spelling 2 errorz")}));
 }
 
 TEST_CASE("Spelling panel: with the checking off it turns it on", "[gui][spelling-panel][coordinator]") {
