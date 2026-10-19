@@ -11,6 +11,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Paragraph styles, a horizontal line and the breaks, the formatting marks** - 2026-10-19.
+  Format > Text Style puts the paragraphs of the cursor or the selection in a style of the
+  book's type, as one step of Undo: Heading 1, 2 and 3 (Alt+1, Alt+2, Alt+3; on macOS
+  Option+Cmd with the digit), Normal (Alt+0), Quote, Dialogue and Code, then the other styles
+  of the book; Manage Styles... is greyed out. The style of the paragraph at the cursor is
+  checked in the menu and on the Styles toolbar and named in the Paragraph Style field of the
+  Properties panel, which changes it too (greyed out in a book open read-only, saying why).
+  The styles look as the pack of the book's type says, in their proportions to Normal, which
+  keeps the font, the line height and the spacing of the Settings. Enter at the end of a
+  heading starts a paragraph in the style that follows it (Normal), Enter in its middle splits
+  it into two headings, and in the page view a heading never stays alone at the bottom of a
+  page. The spelling of Code is not checked. Insert > Horizontal Line, Insert > Scene Break
+  (also in the Book menu) and Insert > Page Break (Ctrl+Enter) put an object in a paragraph
+  of its own: the cursor passes it with one key press, Backspace and Delete take it whole, and
+  it adds nothing to the word count or to the plain text of a copy. A scene break looks as
+  Settings > Editor > General > Scene Break Look says, with a preview: three asterisks, an
+  asterism, a fleuron, a short line or a blank line; the file keeps the break whatever its
+  look. A page break starts a new page in the page view; the continuous views show it as a
+  dashed line with the words "Page Break". View > Show Formatting Marks (Ctrl+*) shows ¶ at
+  the end of the paragraphs, · in the spaces, ° in the no-break spaces, → for the tabs, ↵ for
+  the line breaks and ¬ for the optional hyphens, in a color of their own (Settings > Editor >
+  Colors > Formatting marks); the lines do not move, the choice is kept between sessions, and
+  the page view then shows the page breaks too. Edit > Select Word, Select Paragraph and
+  Delete (Del) work. KML has the headings `<h1>`-`<h3>`, the paragraph attribute `style` and
+  the elements `<hr/>`, `<scene-break/>` and `<page-break/>` (docs/kml_format.md); a style the
+  book's type does not have is kept.
+
 - **Dashboard: an X on the card of a recent book** - 2026-10-19. A small X in the top right
   corner of each card takes the book off the recent books ("Remove from the recent books (the
   file stays on the disk)"); its file stays where it is. "Open last book on startup" opens

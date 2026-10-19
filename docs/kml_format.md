@@ -1,21 +1,23 @@
 # KML – Kalahari Markup Language
 
-KML is the XML format of chapter text: paragraphs, inline formatting and annotations. This
-document describes the format as the application reads and writes it. The product
-specification of the format, including the elements planned for later versions, is
-section 4 of `project_docs/19_text_editor_functional_spec_pl.md`; the elements it lists that
-the editor does not support yet are under [Not supported yet](#not-supported-yet).
+KML is the XML format of chapter text: paragraphs and headings with their styles, horizontal
+lines and breaks, inline formatting and annotations. This document describes the format as the
+application reads and writes it. The product specification of the format, including the
+elements planned for later versions, is section 4 of
+`project_docs/19_text_editor_functional_spec_pl.md`; the elements it lists that the editor does
+not support yet are under [Not supported yet](#not-supported-yet).
 
 The code that defines the format:
 
 | What | Where |
 |------|-------|
 | Tags, synonyms, metadata elements and their attributes | `KmlFormatRegistry` (`include/kalahari/editor/kml_format_registry.h`) |
+| Paragraph styles, headings and the objects of the text | `include/kalahari/editor/paragraph_styles.h` |
 | Reading | `KmlDocumentModel::loadKml()`, called by `BookEditor::fromKml()` |
 | Writing | `KmlSerializer::toKml()`, called by `BookEditor::toKml()` |
 | Annotations in the editor's document | `include/kalahari/editor/annotation.h` |
 | The clipboard's KML, HTML and plain text | `ClipboardHandler` (`include/kalahari/editor/clipboard_handler.h`) |
-| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp` |
+| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp`, `test_paragraph_styles.cpp` |
 
 ## Where KML is stored
 
@@ -32,9 +34,11 @@ The code that defines the format:
     <annotation id="a1" kind="comment" author="Bartosz" created="2026-10-08T12:00:00Z" done="true">Check the date.</annotation>
     <annotation id="a2" kind="todo">Describe the weather.</annotation>
   </annotations>
-  <p align="center"><b>Chapter One</b></p>
+  <h1>Chapter One</h1>
   <p>Plain text, <i>italic</i>, <b><i>bold italic</i></b> and <span color="#aa0000">red</span>.</p>
   <p>She met <charref id="r1" target="anna">Anna</charref> in <locref id="r2" target="krakow">Kraków</locref> <anchor ref="a1">on a Tuesday</anchor>.<anchor ref="a2"/></p>
+  <scene-break/>
+  <p style="quote">Nothing is lost.</p>
 </kml>
 ```
 
@@ -47,7 +51,9 @@ reading.
   starts with none of them – for example a bare sequence of paragraphs – is read as if it were
   wrapped in `<kml>`. Attributes of the root element are ignored. The editor writes `<kml>`
   without attributes.
-- **Paragraphs** are the children of the root element: `<p>`, or `<paragraph>` on reading.
+- **Paragraphs** are the children of the root element: `<p>`, or `<paragraph>` on reading,
+  the headings `<h1>`, `<h2>` and `<h3>` (see [Paragraph](#paragraph)), and the objects
+  `<hr/>`, `<scene-break/>` and `<page-break/>` (see [Horizontal line and breaks](#horizontal-line-and-breaks)).
 - **Annotations** – the writer's comments, TODOs and notes – are in an `<annotations>` element,
   a child of the root element before the paragraphs (see [Annotations](#annotations)).
 - Any other element at this level is skipped together with everything inside it, and text
@@ -58,10 +64,53 @@ reading.
 | Attribute | Values | Meaning |
 |-----------|--------|---------|
 | `align` | `left`, `center`, `right`, `justify` (any letter case on reading) | The paragraph's own alignment |
+| `style` | The id of a paragraph style, for example `quote` | The paragraph's style (Format > Text Style) |
 
-A paragraph without `align` has no alignment of its own and is shown with the editor's
-default: justified, with the last line aligned to the left. The editor writes `align` only
-for paragraphs that have their own alignment. Other attributes are ignored and not written.
+A paragraph without `align` has no alignment of its own and is shown with the alignment of its
+style; a style without one has the editor's default: justified, with the last line aligned to
+the left. The editor writes `align` only for paragraphs that have their own alignment. Other
+attributes are ignored and not written.
+
+### Headings and paragraph styles
+
+The styles are those of the book's type: its style pack (`resources/booktypes/*/styles.json`)
+gives their names, fonts, sizes, spacing and alignment. The types that come with Kalahari use
+the base pack, with the styles `normal`, `heading_1`, `heading_2`, `heading_3`, `quote`,
+`dialogue`, `code`, `caption` and `footnote`; each adds its own styles or changes these.
+
+| Written as | Style |
+|------------|-------|
+| `<p>` | Normal (`normal`) |
+| `<h1>`, `<h2>`, `<h3>` | Heading 1, 2 and 3 (`heading_1`, `heading_2`, `heading_3`) |
+| `<p style="quote">` | The style with that id |
+
+- A heading has the attributes and the content of a paragraph; its `style` attribute is
+  ignored.
+- `<p style="normal">` is a paragraph in Normal, and `<p style="heading_1">` a heading: the
+  editor writes them as `<p>` and `<h1>`.
+- A style the book's type does not have is kept: the paragraph is shown in Normal and written
+  back with its `style`, so the text loses nothing when it moves to a book of another type.
+
+## Horizontal line and breaks
+
+| Element | Meaning |
+|---------|---------|
+| `<hr/>` | A horizontal line (Insert > Horizontal Line) |
+| `<scene-break/>` | A scene break (Insert > Scene Break, also in the Book menu) |
+| `<page-break/>` | A page break (Insert > Page Break, Ctrl+Enter) |
+
+- Each is a block of its own between paragraphs, not inside one. Its attributes and its
+  content are ignored, and the editor writes the empty element.
+- In the editor each is one character in a paragraph of its own: the cursor passes it with
+  one key press, and Backspace or Delete removes it whole.
+- A scene break looks as the setting `editor.sceneBreak.style` says (three asterisks, an
+  asterism, a fleuron, a short line or a blank line); the file keeps the element whatever the
+  look.
+- A page break starts a new page in the page view. The continuous views show it as a dashed
+  line with the words "Page Break"; the page view shows that line too when the formatting
+  marks are shown.
+- An object has no text: it adds nothing to the word and character counts, and in the plain
+  text of the clipboard its paragraph is an empty line.
 
 ## Text
 
@@ -78,8 +127,8 @@ for paragraphs that have their own alignment. Other attributes are ignored and n
   a new paragraph, and the indentation of the next line becomes the start of its text.
 - `<t>` and `<text>` hold plain text, which belongs to the paragraph; the editor writes the
   text without them.
-- Elements inside a paragraph other than those described in this document are skipped
-  together with everything inside them.
+- Elements inside a paragraph other than those described in this document – also a heading
+  or an object put inside a paragraph – are skipped together with everything inside them.
 
 ## Line breaks in other formats
 
@@ -212,16 +261,17 @@ rest of the chapter is not loaded – and logs an error.
 
 Elements of the product specification that the editor does not read yet:
 
-- headings `<h1>`, `<h2>`, `<h3>` and the scene break `<scene-break>`,
 - lists `<ul>`, `<ol>`, `<li>`,
 - images `<img>`,
 - tables `<table>`, `<tr>`, `<td>`, `<th>`,
 - the annotations `<endnote>` and the references `<itemref>`, `<cite>`,
-- the paragraph attribute `style` (paragraph styles) and the root attributes `version` and
-  `lang`.
+- the root attributes `version` and `lang`, the paragraph attribute `speaker` and the scene
+  break attribute `type` (the look of the scene breaks is a setting of the editor).
 
 The specification's `<comment>`, `<todo>` and `<note>` elements are annotations of the
-`<annotations>` section, of the kinds `comment`, `todo` and `note`.
+`<annotations>` section, of the kinds `comment`, `todo` and `note`. The style ids of its
+example (`heading1`, `dialog`) are not those of the style packs (`heading_1`, `dialogue`): a
+paragraph with such a style is shown in Normal and keeps it.
 
 The editor skips these elements, together with everything inside them, when it loads a
 chapter, and ignores the attributes. The next save writes the chapter without them, so a file
