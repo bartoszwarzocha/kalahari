@@ -7,6 +7,7 @@
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>  // For KmlPropertyId enum and registry functions
+#include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/core/logger.h>
 #include <QTextDocument>
 #include <QTextBlock>
@@ -25,6 +26,7 @@ namespace {
 
 /// @brief Text as XML can hold it: escaped, without the characters XML has no place for
 /// (control characters other than tab and line breaks, unpaired surrogates, U+FFFE, U+FFFF)
+/// and without the object replacement character (an object is an element of its own)
 QString xmlText(const QString& text)
 {
     QString kept;
@@ -36,7 +38,8 @@ QString xmlText(const QString& text)
             kept += ch;
             kept += text.at(++i);
         } else if ((code >= 0x20 || code == u'\t' || code == u'\n' || code == u'\r') &&
-                   !ch.isSurrogate() && code != 0xFFFE && code != 0xFFFF) {
+                   !ch.isSurrogate() && code != 0xFFFE && code != 0xFFFF &&
+                   code != QChar::ObjectReplacementCharacter) {
             kept += ch;
         }
     }
@@ -139,11 +142,29 @@ QString KmlSerializer::toKml(const QTextDocument* document, int from, int to) co
     AnnotationList annotations;
     const QTextBlock last = document->findBlock(to);
     for (QTextBlock block = document->findBlock(from); block.isValid(); block = block.next()) {
-        paragraphs += indent + QStringLiteral("<p");
-        paragraphs += serializeBlockAttributes(block);
-        paragraphs += QStringLiteral(">");
-        paragraphs += serializeBlockContent(block, from, to, &annotations);
-        paragraphs += QStringLiteral("</p>") + newline;
+        const TextObject object = blockObject(block);
+        if (object != TextObject::None && block.position() >= from && block.position() < to) {
+            // A horizontal line or a break: an element of its own
+            paragraphs += indent + QLatin1Char('<') + kmlElementOf(object) +
+                          QStringLiteral("/>") + newline;
+        } else if (object != TextObject::None) {
+            // Only the paragraph break after it: an empty paragraph
+            paragraphs += indent + QStringLiteral("<p></p>") + newline;
+        } else {
+            // A heading is an element of its level, any other style an attribute
+            const QString style = paragraphStyleOf(block.blockFormat());
+            const int level = headingLevelOf(style);
+            const QString element = level > 0 ? QStringLiteral("h%1").arg(level) : QStringLiteral("p");
+            paragraphs += indent + QLatin1Char('<') + element;
+            if (level == 0 && style != QLatin1String(NORMAL_STYLE_ID)) {
+                paragraphs += QStringLiteral(" style=\"") + KmlFormatRegistry::escapeXml(style) +
+                              QLatin1Char('"');
+            }
+            paragraphs += serializeBlockAttributes(block);
+            paragraphs += QStringLiteral(">");
+            paragraphs += serializeBlockContent(block, from, to, &annotations);
+            paragraphs += QStringLiteral("</") + element + QLatin1Char('>') + newline;
+        }
 
         if (block == last) {
             break;
@@ -342,7 +363,7 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
     // Escape XML special characters in text content, a line break in the paragraph is the
     // element <br/>; the annotations on places inside the run go after their characters
     const auto textKml = [](const QString& part) {
-        QString kml = KmlFormatRegistry::escapeXml(part);
+        QString kml = KmlFormatRegistry::escapeXml(QString(part).remove(QChar::ObjectReplacementCharacter));
         kml.replace(QChar(QChar::LineSeparator), QStringLiteral("<br/>"));
         return kml;
     };

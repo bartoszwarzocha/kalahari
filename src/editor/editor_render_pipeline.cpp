@@ -1091,7 +1091,7 @@ void EditorRenderPipeline::fillTextRange(QPainter* painter, size_t paraIndex, in
                                          bool lineBoxes) {
     const double scale = m_context.computed.viewScale;
     for (const LinePiece& piece : linePieces(paraIndex, startOffset, endOffset)) {
-        const QRectF band = lineBoxes ? lineBox(piece.line)
+        const QRectF band = lineBoxes ? lineBox(paraIndex, piece.line)
                                       : QRectF(piece.line.x(), piece.line.y(), piece.line.width(),
                                                piece.line.height());
         const double x1 = m_context.computed.originX + piece.x1 * scale;
@@ -1462,9 +1462,9 @@ void EditorRenderPipeline::updateVisibleRange() {
     }
 }
 
-QRectF EditorRenderPipeline::lineBox(const QTextLine& line) const {
-    return KalahariTextDocumentLayout::lineBox(line,
-                                               m_textSource ? m_textSource->lineSpacing() : 1.0);
+QRectF EditorRenderPipeline::lineBox(size_t paraIndex, const QTextLine& line) const {
+    return m_textSource ? m_textSource->lineBox(paraIndex, line)
+                        : QRectF(line.x(), line.y(), line.width(), line.height());
 }
 
 double EditorRenderPipeline::paragraphWidgetY(size_t index) const {
@@ -1537,8 +1537,10 @@ CursorPosition EditorRenderPipeline::positionFromPoint(const QPointF& point) con
 
     // Line whose box covers the point (the nearest one above or below the lines)
     const double localY = docPoint.y() - m_textSource->paragraphY(paraIndex);
-    const QTextLine line = layout->lineAt(
-        KalahariTextDocumentLayout::lineIndexAt(*layout, localY, m_textSource->lineSpacing()));
+    const QTextLine line = layout->lineAt(KalahariTextDocumentLayout::lineIndexAt(
+        *layout, localY, [this, paraIndex](const QTextLine& candidate) {
+            return lineBox(paraIndex, candidate);
+        }));
     const int offset = line.xToCursor(docPoint.x(), QTextLine::CursorBetweenCharacters);
 
     return CursorPosition{static_cast<int>(paraIndex), offset};

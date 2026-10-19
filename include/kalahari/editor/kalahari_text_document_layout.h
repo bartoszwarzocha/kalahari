@@ -4,9 +4,13 @@
 #pragma once
 
 #include <kalahari/editor/editor_types.h>
+#include <kalahari/editor/paragraph_styles.h>
 #include <QAbstractTextDocumentLayout>
 #include <QTextBlock>
+#include <QTextCharFormat>
 #include <QFont>
+#include <functional>
+#include <map>
 #include <utility>
 #include <vector>
 
@@ -25,6 +29,13 @@ namespace kalahari::editor {
 /// Key features:
 /// - Line spacing, paragraph spacing and first-line indent from LayoutTypography; the
 ///   extra line spacing is split evenly above and below each line
+/// - Paragraph styles (ParagraphStyleSet): Normal is shown as the typography and the
+///   document font say, every other style in the proportions of its package (see
+///   BlockMetrics); the fonts of a style go over the text as QTextLayout formats, so the
+///   document's own formats stay as they are
+/// - Objects of the text (a horizontal line, the scene and page breaks) are sized and
+///   drawn here; after a page break the page flow goes on at the next page, and a heading
+///   is moved to the page of the paragraph after it
 /// - Wrap width and default font are owned by the QTextDocument (textWidth(),
 ///   defaultFont())
 /// - Layout on demand: after a width, font or typography change, a load or a large edit,
@@ -109,6 +120,64 @@ public:
     /// @brief First-line indent at the current document font
     qreal firstLineIndent() const;
 
+    // ==========================================================================
+    // Paragraph styles and objects
+    // ==========================================================================
+
+    /// @brief How the view shows a paragraph of a style
+    ///
+    /// Normal follows the typography (line and paragraph spacing, first-line indent) and the
+    /// document font. Another style keeps the proportions of its package: its font is as
+    /// many times larger than the document font as its package makes it larger than Normal,
+    /// a length it sets itself is scaled by the same factor, and a length it takes from
+    /// Normal follows the typography. Its line spacing is the typography's in the proportion
+    /// of the two styles' line heights.
+    struct BlockMetrics {
+        qreal lineSpacing = 1.0;      ///< Multiplier of each line's natural height
+        qreal spaceBefore = 0.0;      ///< Above the first line (whole pixels)
+        qreal spaceAfter = 0.0;       ///< Below the last line (whole pixels)
+        qreal firstLineIndent = 0.0;  ///< Of the first line (left-aligned and justified)
+        qreal leftMargin = 0.0;       ///< Of every line (whole pixels)
+        qreal rightMargin = 0.0;      ///< Of every line (whole pixels)
+        Qt::Alignment alignment = DEFAULT_PARAGRAPH_ALIGNMENT;  ///< Without one of its own
+        bool keepWithNext = false;    ///< Kept on the page of the paragraph after it
+        bool pageBreak = false;       ///< A page break: the text after it starts on a new page
+        QTextCharFormat charFormat;   ///< The style's font over the document font (empty
+                                      ///< for Normal); a fragment's own format wins
+        qreal emptyAscent = 0.0;      ///< Ascent and height of the line of an empty
+        qreal emptyLineHeight = 0.0;  ///< paragraph in the style's font
+        qreal estimatedLineHeight = 1.0;  ///< Line box height the estimates use
+    };
+
+    /// @brief Set the styles of the book; every paragraph is shown in its style again
+    ///
+    /// Call it outside an edit block of the document (the paragraphs are announced as
+    /// changed, without a change of the text).
+    void setParagraphStyles(const ParagraphStyleSet& styles);
+    const ParagraphStyleSet& paragraphStyles() const { return m_styles; }
+
+    /// @brief How a block is shown: its style, or the metrics of its object
+    const BlockMetrics& blockMetrics(const QTextBlock& block) const;
+
+    /// @brief Line spacing multiplier of a block (of its style)
+    qreal lineSpacingOf(const QTextBlock& block) const;
+
+    /// @brief Line spacing of a block as the layout of its document gives it; 1.0 for a
+    ///        document with another layout
+    static qreal blockLineSpacing(const QTextBlock& block);
+
+    /// @brief The alignment a block is shown with: its own, else the one of its style
+    Qt::Alignment shownAlignment(const QTextBlock& block) const;
+
+    /// @brief How the scene breaks look (a view setting: the text keeps the breaks)
+    void setSceneBreakLook(SceneBreakLook look);
+    SceneBreakLook sceneBreakLook() const { return m_sceneBreakLook; }
+
+    /// @brief Whether the formatting marks are shown: a page break is then drawn in the page
+    ///        view too (the view draws the other marks)
+    void setFormattingMarksShown(bool shown);
+    bool formattingMarksShown() const { return m_formattingMarksShown; }
+
     /// @brief Lay out every block now, also the ones already laid out
     void layoutAllBlocks();
 
@@ -162,11 +231,27 @@ public:
     /// to exactly one line. Block coordinates.
     static QRectF lineBox(const QTextLine& line, qreal lineSpacing);
 
+    /// @brief Box of a laid out line of a block, as this layout stacks it: with the line
+    ///        spacing of the block's style, and for an empty paragraph as high as a line of
+    ///        its style's font
+    QRectF lineBoxOf(const QTextBlock& block, const QTextLine& line) const;
+
+    /// @brief lineBoxOf() for a block of any document; the line alone (no extra spacing)
+    ///        for a document with another layout
+    static QRectF blockLineBox(const QTextBlock& block, const QTextLine& line);
+
     /// @brief Index of the line whose box covers @p localY (block coordinates)
     ///
     /// Points above the first box or below the last one give the first or last line.
     /// @return -1 when the layout has no lines
     static int lineIndexAt(const QTextLayout& layout, qreal localY, qreal lineSpacing);
+
+    /// @brief lineIndexAt() with the boxes of a block's lines (blockLineBox())
+    static int lineIndexAt(const QTextBlock& block, const QTextLayout& layout, qreal localY);
+
+    /// @brief lineIndexAt() with the boxes a function gives
+    static int lineIndexAt(const QTextLayout& layout, qreal localY,
+                           const std::function<QRectF(const QTextLine&)>& boxOf);
 
 signals:
     /// @brief Emitted after blocks have been laid out
@@ -182,6 +267,14 @@ signals:
 protected:
     /// @brief Called by Qt when document content changes
     void documentChanged(int from, int charsRemoved, int charsAdded) override;
+
+    /// @brief Size of an object of the text: as wide as the text, one line high
+    void resizeInlineObject(QTextInlineObject item, int posInDocument,
+                            const QTextFormat& format) override;
+
+    /// @brief Draw an object of the text in the color of the text
+    void drawInlineObject(QPainter* painter, const QRectF& rect, QTextInlineObject object,
+                          int posInDocument, const QTextFormat& format) override;
 
 private:
     /// @brief The first and the last block a change of the text touched (new coordinates)
@@ -209,18 +302,49 @@ private:
 
     /// @brief Lay out the block and store its height and text extent
     /// @return true when its height changed
-    bool layOutBlock(int number, const QTextBlock& block, qreal spacing, qreal indent);
+    bool layOutBlock(int number, const QTextBlock& block);
 
     /// @brief Break a single block into lines
-    /// @param spacing Paragraph spacing, @param indent first-line indent (current font)
     /// @param extent Receives the text length in average characters (for estimates)
     /// @param keepGlyphs Keep the shaped glyphs with the lines (blocks being edited)
-    /// @return Height of the block, including its paragraph spacing
-    qreal layoutBlock(const QTextBlock& block, qreal spacing, qreal indent, qreal* extent,
-                      bool keepGlyphs) const;
+    /// @param lead Receives the space above the block and the height of its first line box
+    /// @return Height of the block, including its spacing above and below
+    qreal layoutBlock(const QTextBlock& block, qreal* extent, bool keepGlyphs,
+                      qreal* lead = nullptr) const;
 
     /// @brief Height a block of the given text extent probably gets at the current settings
-    qreal estimatedHeight(qreal extent, qreal spacing) const;
+    qreal estimatedHeight(qreal extent, const BlockMetrics& metrics) const;
+
+    /// @brief Height of a line's box: the line, or for the line of an empty paragraph
+    ///        (@p empty) the line of its style's font, with its share of the line spacing
+    static qreal lineBoxHeight(const QTextLine& line, const BlockMetrics& metrics, bool empty);
+
+    /// @brief Top of a line in its box (from the top of the box)
+    static qreal lineTopInBox(const QTextLine& line, const BlockMetrics& metrics, bool empty);
+
+    /// @brief Metrics of a style at the current font and typography (uncached)
+    BlockMetrics styleMetrics(const ParagraphStyle& style) const;
+
+    /// @brief Metrics of an object's block at the current font and typography (uncached)
+    BlockMetrics objectMetrics(TextObject object) const;
+
+    /// @brief Height of an object's line box
+    qreal objectHeight(TextObject object) const;
+
+    /// @brief Give a block's lines the fonts of its style, as formats of its layout
+    void applyStyleFormats(const QTextBlock& block) const;
+
+    /// @brief The page flow cache entries of a block: whether it is kept with the next one
+    ///        or is a page break, the space above it with its first line, the space below it
+    void storeFlowEntries(int number, const QTextBlock& block, qreal lead);
+
+    /// @brief Forget the metrics of the styles and objects (font, typography or styles
+    ///        changed)
+    void clearMetrics();
+
+    /// @brief Show every paragraph in its style anew (new styles or a new document font);
+    ///        every block waits for layout
+    void restyle();
 
     /// @brief Character width and line height the estimates use (current font)
     void updateEstimateMetrics();
@@ -249,12 +373,20 @@ private:
 
     /// @brief Place a laid out block's lines in the page flow
     /// @param top Top of the block (document coordinates)
-    /// @return Height of the block in the flow, including its paragraph spacing
-    qreal paginateBlock(QTextLayout* layout, qreal top, qreal spacing) const;
+    /// @return Height of the block in the flow, including its spacing above and below
+    qreal paginateBlock(QTextLayout* layout, qreal top, const BlockMetrics& metrics) const;
 
     /// @brief Height a block waiting for layout probably takes in the page flow
     /// @param height Its estimated height without page breaks
-    qreal flowEstimate(qreal height, qreal top, qreal spacing) const;
+    qreal flowEstimate(qreal height, qreal top, const BlockMetrics& metrics) const;
+
+    /// @brief Top of the text area after the one holding @p y
+    qreal nextPageTop(qreal y) const;
+
+    /// @brief Where the page flow puts a block kept with the next one: @p top, or the top of
+    ///        the next text area when the block, the blocks kept with it and the first line
+    ///        of the paragraph after them do not fit in the rest of its own
+    qreal keptBlockTop(size_t index, qreal top) const;
 
     /// @brief Height the page flow gives the document: down to the end of the text area
     ///        of the page holding the last line
@@ -268,6 +400,20 @@ private:
 
     // View typography used for every block
     LayoutTypography m_typography;
+
+    // The styles of the book, and the metrics of each style and object at the current font
+    // and typography (filled in as blocks ask for them)
+    // (maps: blockMetrics() hands out references, which a map keeps valid while it grows)
+    ParagraphStyleSet m_styles;
+    mutable std::map<QString, BlockMetrics> m_styleMetrics;
+    mutable std::map<TextObject, BlockMetrics> m_objectMetrics;
+
+    // True while restyle() announces the whole document as changed
+    bool m_restyling = false;
+
+    // How scene breaks look, and whether the formatting marks are shown
+    SceneBreakLook m_sceneBreakLook = SceneBreakLook::Asterisks;
+    bool m_formattingMarksShown = false;
 
     // Page flow (page mode); its text areas in whole pixels
     PageFlow m_pageFlow;
@@ -302,6 +448,13 @@ private:
     // the height it takes in the flow. Kept in step with the document.
     mutable std::vector<qreal> m_blockFlowOffsets;
     mutable std::vector<qreal> m_blockFlowHeights;
+
+    // Page flow, per block and kept in step with the document: FLOW_KEEP_WITH_NEXT and
+    // FLOW_PAGE_BREAK, the space above the block with its first line box (estimated while
+    // it waits for layout), and the space below it
+    std::vector<char> m_blockFlowFlags;
+    std::vector<qreal> m_blockLeads;
+    std::vector<qreal> m_blockSpacesAfter;
 
     // Page flow: bottom of the last line box (document coordinates)
     mutable qreal m_contentBottom = 0;

@@ -224,8 +224,7 @@ void BookEditor::scrollToCursorLine()
     // Cursor line position in document coordinates: the whole line box, with the line
     // spacing around the glyphs (scrolling up to the first line shows the document top)
     auto* kalahariLayout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
-    const QRectF lineBox = KalahariTextDocumentLayout::lineBox(
-        cursorLine, kalahariLayout ? kalahariLayout->typography().lineSpacing : 1.0);
+    const QRectF lineBox = KalahariTextDocumentLayout::blockLineBox(block, cursorLine);
     const auto lineTop = [&] {
         return m_textBuffer->documentLayout()->blockBoundingRect(block).y() + lineBox.top();
     };

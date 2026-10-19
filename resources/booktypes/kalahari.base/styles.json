@@ -11,7 +11,8 @@
       "name": { "pl": "Nagłówek 1", "en": "Heading 1" },
       "base_style": "normal", "next_style": "normal",
       "properties": { "fontSize": 20, "bold": true, "alignment": "left", "firstLineIndent": 0,
-                      "lineHeight": 1.2, "spaceBefore": 24, "spaceAfter": 12 }
+                      "lineHeight": 1.2, "spaceBefore": 24, "spaceAfter": 12,
+                      "keepWithNext": true }
     },
     {
       "id": "heading_2",
@@ -36,6 +37,28 @@
       "id": "dialogue",
       "name": { "pl": "Dialog", "en": "Dialogue" },
       "base_style": "normal"
+    },
+    {
+      "id": "code",
+      "name": { "pl": "Kod", "en": "Code" },
+      "base_style": "normal",
+      "properties": { "fontFamily": "Courier New", "fontSize": 10, "lineHeight": 1.2,
+                      "alignment": "left", "firstLineIndent": 0, "spaceBefore": 6,
+                      "spaceAfter": 6, "spellCheck": false }
+    },
+    {
+      "id": "caption",
+      "name": { "pl": "Podpis ilustracji", "en": "Caption" },
+      "base_style": "normal", "next_style": "normal",
+      "properties": { "fontSize": 10, "italic": true, "lineHeight": 1.2, "alignment": "center",
+                      "firstLineIndent": 0, "spaceBefore": 6, "spaceAfter": 12 }
+    },
+    {
+      "id": "footnote",
+      "name": { "pl": "Przypis", "en": "Footnote" },
+      "base_style": "normal",
+      "properties": { "fontSize": 10, "lineHeight": 1.2, "alignment": "left",
+                      "firstLineIndent": 0 }
     }
   ],
   "character_styles": [

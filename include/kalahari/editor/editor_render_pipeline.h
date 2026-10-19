@@ -552,8 +552,9 @@ private:
     mutable double m_cachedTotalHeight = 0.0;
     mutable bool m_heightDirty = true;
 
-    /// @brief Box of a laid out line: the line plus its share of the line spacing
-    QRectF lineBox(const QTextLine& line) const;
+    /// @brief Box of a laid out line of a paragraph: the line plus its share of the line
+    ///        spacing of the paragraph's style
+    QRectF lineBox(size_t paraIndex, const QTextLine& line) const;
 
     // =========================================================================
     // Internal Calculation Methods (Phase 14: called by configure())

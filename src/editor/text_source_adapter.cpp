@@ -230,9 +230,8 @@ void QTextDocumentSource::setTypography(const LayoutTypography& typography) {
     }
 }
 
-double QTextDocumentSource::lineSpacing() const {
-    const auto* layout = kalahariLayout();
-    return layout ? layout->typography().lineSpacing : 1.0;
+QRectF QTextDocumentSource::lineBox(size_t index, const QTextLine& line) const {
+    return KalahariTextDocumentLayout::blockLineBox(blockAt(index), line);
 }
 
 double QTextDocumentSource::paragraphSpacing() const {

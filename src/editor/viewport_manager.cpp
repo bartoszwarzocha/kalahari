@@ -233,12 +233,12 @@ void ViewportManager::captureAnchor() {
     // A laid out block also gives the line at the top, which stays the anchor when the
     // block is wrapped again
     if (layout->isLaidOut(block)) {
-        const QTextLayout* lines = m_document->findBlockByNumber(block).layout();
-        const qreal lineSpacing = layout->typography().lineSpacing;
-        const int index = KalahariTextDocumentLayout::lineIndexAt(*lines, m_anchor.offset, lineSpacing);
+        const QTextBlock lineBlock = m_document->findBlockByNumber(block);
+        const QTextLayout* lines = lineBlock.layout();
+        const int index = KalahariTextDocumentLayout::lineIndexAt(lineBlock, *lines, m_anchor.offset);
         if (index >= 0) {
             const QTextLine line = lines->lineAt(index);
-            const QRectF box = KalahariTextDocumentLayout::lineBox(line, lineSpacing);
+            const QRectF box = layout->lineBoxOf(lineBlock, line);
             m_anchor.lineStart = line.textStart();
             m_anchor.lineShare = box.height() > 0.0 ? (m_anchor.offset - box.top()) / box.height() : 0.0;
         }
@@ -254,11 +254,11 @@ double ViewportManager::anchoredPosition() const {
     // The block has its lines: the line holding the text that was at the top, also when
     // the block was wrapped again at a new width or font size
     if (m_anchor.lineStart >= 0 && layout->isLaidOut(block)) {
-        const QTextLayout* lines = m_document->findBlockByNumber(block).layout();
+        const QTextBlock lineBlock = m_document->findBlockByNumber(block);
+        const QTextLayout* lines = lineBlock.layout();
         const QTextLine line = lines->lineForTextPosition(m_anchor.lineStart);
         if (line.isValid()) {
-            const QRectF box =
-                KalahariTextDocumentLayout::lineBox(line, layout->typography().lineSpacing);
+            const QRectF box = layout->lineBoxOf(lineBlock, line);
             return top + box.top() + m_anchor.lineShare * box.height();
         }
     }

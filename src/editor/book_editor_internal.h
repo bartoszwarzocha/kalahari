@@ -38,10 +38,11 @@ private:
 
 /// @brief Fill a document from a parsed KML model, starting at the cursor's (empty) block
 ///
-/// Each paragraph gets zero margins and its own alignment, if it has one (without one it
-/// is shown with the default), the annotations on its start as its own character format,
-/// and its text on a clean base format with the run formats on top. Shared by loading a
-/// chapter and pasting Kalahari content, so both read KML the same way.
+/// Each paragraph gets zero margins, its own alignment, if it has one (without one it is
+/// shown with the alignment of its style), its style, the annotations on its start as its
+/// own character format, and its text on a clean base format with the run formats on top.
+/// An object (a horizontal line, a break) is a block with its character. Shared by loading
+/// a chapter and pasting Kalahari content, so both read KML the same way.
 inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model) {
     QTextBlockFormat zeroMarginFormat;
     zeroMarginFormat.setTopMargin(0);
@@ -52,6 +53,7 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
         if (const Qt::Alignment alignment = model.paragraphAlignment(i); alignment) {
             blockFormat.setAlignment(alignment);
         }
+        setParagraphStyle(blockFormat, model.paragraphStyle(i));
         QTextCharFormat paragraphFormat;  // nothing of the previous paragraph's last run
         setAnnotations(paragraphFormat, model.paragraphStartAnnotations(i));
         if (i > 0) {
@@ -59,6 +61,11 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
         } else {
             cursor.setBlockFormat(blockFormat);
             cursor.setBlockCharFormat(paragraphFormat);
+        }
+
+        if (const TextObject object = model.paragraphObject(i); object != TextObject::None) {
+            cursor.insertText(QString(QChar::ObjectReplacementCharacter), objectCharFormat(object));
+            continue;
         }
 
         // An EXPLICIT default char format, so the text does not take the format the cursor
