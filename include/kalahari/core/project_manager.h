@@ -32,6 +32,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -817,8 +818,11 @@ private:
     QStringList m_missingPackages;                ///< Of the open book: it is read-only
     QHash<QString, PackageCard> m_packageCards;   ///< Cards of the open book, by package id
 
-    // OpenSpec #00041: SQLite Project Database
+    // OpenSpec #00041: SQLite Project Database. A book open read-only has no lock and no
+    // backups, and its database is a copy in a temporary folder: nothing is written into its
+    // folder (the temporary folder goes after the database, which is declared after it)
     std::unique_ptr<ProjectLock> m_projectLock;      ///< Project lock (prevents multiple instances)
+    std::unique_ptr<QTemporaryDir> m_databaseCopy;   ///< Of a book open read-only: its database
     std::unique_ptr<ProjectDatabase> m_database;     ///< SQLite database for metadata
     std::unique_ptr<BackupManager> m_backupManager;  ///< Database backup manager
 

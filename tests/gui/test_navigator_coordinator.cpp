@@ -1409,8 +1409,9 @@ TEST_CASE("Navigator menu: moving an element to the start and to the end of its 
 
 TEST_CASE("Navigator menu: Move Up and Move Down take an element out of its part and its "
           "section, and say why when it has no other place", "[gui][navigator]") {
-    // Test report of 17 October, part 11: no command moved the only chapter of a new novel,
-    // and none said why; a chapter can go before a part
+    // Test reports of 17 October, part 11, and of 19 October, part 3: no command moved the
+    // only chapter of a new novel; a chapter can go before a part, and to the front and the
+    // back section
     OpenNovel novel;
     Navigator navigator;
     core::ProjectManager& pm = novel.pm;
@@ -1422,25 +1423,45 @@ TEST_CASE("Navigator menu: Move Up and Move Down take an element out of its part
     navigator.window.resize(400, 600);
     navigator.window.show();
 
-    // The only chapter of a book without parts: each command is greyed out and says why
+    // The only chapter of a book without parts goes up to the front section and down to the
+    // back one; in its own section it is first and last
     answering([&] { navigator.coordinator.onRequestAddChapter(QString()); }, {acceptAsItIs});
     REQUIRE(titles(novel.book().mainElements) == "Chapter 1");
     const QString chapterId = novel.book().mainElements.first().id;
-    for (const char* command :
-         {"Move...", "Move to Start", "Move Up", "Move Down", "Move to End"}) {
-        QString why;
-        CHECK_FALSE(navigator.inMenuOf(navigator.item(chapterId), QString::fromUtf8(command),
-                                       false, &why));
-        CHECK(why == QStringLiteral("The book has no other place for the chapter."));
-    }
+    CHECK(navigator.inMenuOf(navigator.item(chapterId), QStringLiteral("Move..."), false));
+    CHECK_FALSE(navigator.chooseInMenu(chapterId, QStringLiteral("Move to Start")));
+    CHECK_FALSE(navigator.chooseInMenu(chapterId, QStringLiteral("Move to End")));
+    CHECK(navigator.chooseInMenu(chapterId, QStringLiteral("Move Up")));
+    CHECK(titles(novel.book().frontElements) == "Chapter 1");
+    CHECK(novel.book().mainElements.isEmpty());
+    CHECK(titles(novel.savedBook().frontElements) == "Chapter 1");
+    CHECK(navigator.current() == chapterId);
+    CHECK_FALSE(navigator.chooseInMenu(chapterId, QStringLiteral("Move Up")));
+    CHECK(navigator.chooseInMenu(chapterId, QStringLiteral("Move Down")));
+    CHECK(titles(novel.book().mainElements) == "Chapter 1");
+    CHECK(navigator.chooseInMenu(chapterId, QStringLiteral("Move Down")));
+    CHECK(titles(novel.book().backElements) == "Chapter 1");
+    CHECK(novel.book().mainElements.isEmpty());
+    CHECK_FALSE(navigator.chooseInMenu(chapterId, QStringLiteral("Move Down")));
+    CHECK(navigator.chooseInMenu(chapterId, QStringLiteral("Move Up")));
+    REQUIRE(titles(novel.book().mainElements) == "Chapter 1");
 
-    // The first chapter of a part goes up before it, the last one down after it
+    // The only part of a book, with the chapter in it: each command is greyed out and says why
     const QString partId =
         pm.addElement(pm.partKind(), QStringLiteral("Part I"), core::BookPlace::Main);
     REQUIRE_FALSE(partId.isEmpty());
     navigator.coordinator.refreshNavigator();
     emit navigator.panel->elementMovedTo(chapterId, {core::BookPlace::Main, partId, 0});
     REQUIRE(titles(novel.book().mainElements) == "Part I");
+    for (const char* command :
+         {"Move...", "Move to Start", "Move Up", "Move Down", "Move to End"}) {
+        QString why;
+        CHECK_FALSE(navigator.inMenuOf(navigator.item(partId), QString::fromUtf8(command),
+                                       false, &why));
+        CHECK(why == QStringLiteral("The book has no other place for the part."));
+    }
+
+    // The first chapter of a part goes up before it, the last one down after it
     QString why;
     CHECK(navigator.inMenuOf(navigator.item(chapterId), QStringLiteral("Move Up"), false, &why));
     CHECK_FALSE(why.contains(QStringLiteral("no other place")));
@@ -1456,11 +1477,13 @@ TEST_CASE("Navigator menu: Move Up and Move Down take an element out of its part
     CHECK(titles(novel.book().mainElements) == "Part I, Chapter 1");
     CHECK(novel.book().mainElements.at(0).elements.isEmpty());
 
-    // Out of the main section: a chapter has no place in the others
-    CHECK_FALSE(navigator.chooseInMenu(chapterId, QStringLiteral("Move Down")));
+    // Out of the main section and back
+    CHECK(navigator.chooseInMenu(chapterId, QStringLiteral("Move Down")));
+    CHECK(titles(novel.book().mainElements) == "Part I");
+    CHECK(titles(novel.book().backElements) == "Chapter 1");
     CHECK(navigator.chooseInMenu(chapterId, QStringLiteral("Move Up")));
-    CHECK(titles(novel.book().mainElements) == "Chapter 1, Part I");
-    CHECK_FALSE(navigator.chooseInMenu(chapterId, QStringLiteral("Move Up")));
+    CHECK(titles(novel.book().mainElements) == "Part I, Chapter 1");
+    CHECK(novel.book().backElements.isEmpty());
 
     // The table of contents goes from the back section up to the front one, over the main
     // section where it cannot be, and back down
@@ -1519,6 +1542,8 @@ TEST_CASE("Navigator commands: the sections are hidden, shown and renamed, saved
                      &gui::NavigatorCoordinator::onRequestRenameSection);
     QObject::connect(navigator.panel, &gui::NavigatorPanel::requestMoveElement, &coordinator,
                      &gui::NavigatorCoordinator::onRequestMove);
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::elementMovedTo, &coordinator,
+                     &gui::NavigatorCoordinator::onElementMovedTo);
     navigator.panel->resize(400, 600);
     navigator.window.resize(400, 600);
     navigator.window.show();
@@ -1549,9 +1574,32 @@ TEST_CASE("Navigator commands: the sections are hidden, shown and renamed, saved
     CHECK(navigator.section(QStringLiteral("section_body")) == nullptr);
     CHECK(navigator.properties->currentPage() == gui::PropertiesPanel::Page::Project);
 
-    // The elements move within their sections
+    // An element moves one step in the list, also into the section before or after its own
+    // where its kind can be: a chapter into the front and the back section too (test report
+    // of 19 October, part 3)
+    CHECK(navigator.chooseInMenu(first, QStringLiteral("Move Up")));
+    CHECK(titles(novel.book().frontElements) == "Chapter 1, For Anna");
+    CHECK(navigator.itemsInBook() ==
+          "Chapter 1 [Draft], For Anna [Draft], Chapter 2 [Draft], Thanks [Draft]");
     CHECK_FALSE(navigator.chooseInMenu(first, QStringLiteral("Move Up")));
-    CHECK_FALSE(navigator.chooseInMenu(second, QStringLiteral("Move Down")));
+    CHECK(navigator.chooseInMenu(first, QStringLiteral("Move Down")));
+    CHECK(navigator.chooseInMenu(first, QStringLiteral("Move Down")));
+    CHECK(titles(novel.book().frontElements) == "For Anna");
+    CHECK(titles(novel.book().mainElements) == "Chapter 2, Chapter 1");
+    CHECK(navigator.itemsInBook() ==
+          "For Anna [Draft], Chapter 2 [Draft], Chapter 1 [Draft], Thanks [Draft]");
+    CHECK(navigator.chooseInMenu(first, QStringLiteral("Move Down")));
+    CHECK(titles(novel.book().backElements) == "Thanks, Chapter 1");
+    CHECK_FALSE(navigator.chooseInMenu(first, QStringLiteral("Move Down")));
+    CHECK(navigator.chooseInMenu(first, QStringLiteral("Move Up")));
+    CHECK(titles(novel.book().backElements) == "Chapter 1, Thanks");
+
+    // Up past the last element of the main section: into the main section, not to the end of
+    // the front one, which is the same place in the list
+    CHECK(navigator.chooseInMenu(first, QStringLiteral("Move Up")));
+    CHECK(titles(novel.book().mainElements) == "Chapter 1, Chapter 2");
+    CHECK(titles(novel.book().frontElements) == "For Anna");
+    CHECK(titles(novel.book().backElements) == "Thanks");
     CHECK(navigator.chooseInMenu(second, QStringLiteral("Move Up")));
     CHECK(titles(novel.book().mainElements) == "Chapter 2, Chapter 1");
     CHECK(navigator.itemsInBook() ==

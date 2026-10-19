@@ -751,14 +751,16 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIn
     menu.addSeparator();
 
     // The word is right from now on: in every document (Ignore All until the application
-    // closes, Add to Dictionary for good)
+    // closes, Add to Dictionary for good). Greyed out in a read-only text as well
     QAction* ignore = menu.addAction(tr("&Ignore All"));
+    disableWhileReadOnly(ignore);
     connect(ignore, &QAction::triggered, this, [this, word]() {
         if (m_spellCheckService != nullptr) {
             m_spellCheckService->ignoreWord(word);
         }
     });
     QAction* add = menu.addAction(tr("Add t&o Dictionary"));
+    disableWhileReadOnly(add);
     connect(add, &QAction::triggered, this, [this, word]() {
         if (m_spellCheckService != nullptr) {
             m_spellCheckService->addToUserDictionary(word);
@@ -1201,8 +1203,10 @@ void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error, int p
     }
     menu.addSeparator();
 
-    // The rule is not reported again, in any book (the Settings dialog can bring it back)
+    // The rule is not reported again, in any book (the Settings dialog can bring it back).
+    // Greyed out in a read-only text as well
     QAction* ignore = menu.addAction(tr("&Ignore This Rule"));
+    disableWhileReadOnly(ignore);
     connect(ignore, &QAction::triggered, this,
             [this, ruleId = error.ruleId, description = error.ruleDescription]() {
                 if (m_grammarCheckService != nullptr) {
