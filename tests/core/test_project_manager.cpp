@@ -542,6 +542,51 @@ TEST_CASE("ProjectManager shows, hides and names the sections of the open book",
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager names the book and the Workshop and groups the Workshop",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    // No book is open
+    CHECK_FALSE(pm.setBookName("Book"));
+    CHECK_FALSE(pm.setWorkshopName("Workshop"));
+    CHECK_FALSE(pm.setWorkshopGrouped(true));
+
+    REQUIRE(pm.createProject(dir.path(), "Names", "Anna", "pl", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    CHECK(pm.book()->name.isEmpty());
+    CHECK(pm.project()->workshop.name.isEmpty());
+    CHECK_FALSE(pm.project()->workshop.grouped);
+
+    // Saved at once, without the spaces at the ends of the names
+    REQUIRE(pm.setBookName("  Tom pierwszy "));
+    REQUIRE(pm.setWorkshopName("Pracownia"));
+    REQUIRE(pm.setWorkshopGrouped(true));
+    CHECK_FALSE(pm.isDirty());
+    BookProject saved = savedProject(manifest);
+    CHECK(saved.books.first().name == "Tom pierwszy");
+    CHECK(saved.workshop.name == "Pracownia");
+    CHECK(saved.workshop.grouped);
+
+    // An empty name gives the default one back
+    REQUIRE(pm.setBookName("   "));
+    REQUIRE(pm.setWorkshopName(QString()));
+    saved = savedProject(manifest);
+    CHECK(saved.books.first().name.isEmpty());
+    CHECK(saved.workshop.name.isEmpty());
+
+    // A file that cannot be written: the names and the grouping stay
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkpath(manifest));
+    CHECK_FALSE(pm.setBookName("Lost"));
+    CHECK_FALSE(pm.setWorkshopName("Lost"));
+    CHECK_FALSE(pm.setWorkshopGrouped(false));
+    CHECK(pm.book()->name.isEmpty());
+    CHECK(pm.project()->workshop.name.isEmpty());
+    CHECK(pm.project()->workshop.grouped);
+    REQUIRE(QDir().rmdir(manifest));
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("A new book starts with the elements of its type", "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();
@@ -1556,6 +1601,160 @@ TEST_CASE("A new part takes the epilogue from the end of the last part", "[proje
     CHECK(bookFolder.entryList(QDir::Files) == chapterFiles);
     REQUIRE(QDir().rmdir(manifest));
     REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("A new element added after another goes right after it", "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "After", "Author", "en", true, "kalahari.novel"));
+    const KindRef chapter = pm.chapterKindFor(BookPlace::Main);
+    const KindRef prologueKind = kind("kalahari.novel", "prologue");
+    const KindRef epilogueKind = kind("kalahari.novel", "epilogue");
+    const KindRef note = kind("kalahari.base", "work_note");
+
+    // Prologue, Chapter 1, Chapter 2, Part One (Inside), Epilogue
+    const QString prologue = pm.addElement(prologueKind, "Prologue", BookPlace::Main);
+    const QString first = pm.book()->mainElements.at(1).id;
+    const QString second = pm.addElement(chapter, "Chapter 2", BookPlace::Main);
+    const QString part = pm.addElement(pm.partKind(), "Part One", BookPlace::Main);
+    const QString inside = pm.addElement(chapter, "Inside", BookPlace::Main, part);
+    const QString epilogue = pm.addElement(epilogueKind, "Epilogue", BookPlace::Main);
+    REQUIRE(titles(pm.book()->mainElements) ==
+            "Prologue, Chapter 1, Chapter 2, Part One, Epilogue");
+
+    // Right after the element, in its list
+    CHECK(pm.newPlaceAfter(first, chapter) == ElementPlace{BookPlace::Main, QString(), 2});
+    CHECK(pm.newPlaceAfter(prologue, chapter) == ElementPlace{BookPlace::Main, QString(), 1});
+    CHECK(pm.newPlaceAfter(inside, chapter) == ElementPlace{BookPlace::Main, part, 1});
+    CHECK(pm.newPlaceAfter(second, pm.partKind()) == ElementPlace{BookPlace::Main, QString(), 3});
+
+    // Not after the epilogue, but before it
+    CHECK(pm.newPlaceAfter(epilogue, chapter) == ElementPlace{BookPlace::Main, QString(), 4});
+
+    // A prologue goes where its kind goes
+    REQUIRE(pm.removeElement(prologue).has_value());
+    CHECK(pm.newPlaceAfter(second, prologueKind) == ElementPlace{BookPlace::Main, QString(), 0});
+
+    // No place: a kind that cannot be in the list, an element that the project does not have,
+    // a file of the book outside its text, no kind
+    CHECK_FALSE(pm.newPlaceAfter(inside, pm.partKind()).has_value());
+    CHECK_FALSE(pm.newPlaceAfter(first, note).has_value());
+    CHECK_FALSE(pm.newPlaceAfter("no-element", chapter).has_value());
+    const QString bookFile = pm.addBookFile("Notes");
+    REQUIRE_FALSE(bookFile.isEmpty());
+    CHECK_FALSE(pm.newPlaceAfter(bookFile, chapter).has_value());
+    CHECK_FALSE(pm.newPlaceAfter(first, KindRef{}).has_value());
+
+    // The element added there, with the status the writer chose
+    const std::optional<ElementPlace> at = pm.newPlaceAfter(first, chapter);
+    REQUIRE(at.has_value());
+    const QString added =
+        pm.addElement(chapter, "Chapter 1a", at->place, at->groupId, at->index, {}, std::nullopt,
+                      "revision");
+    REQUIRE_FALSE(added.isEmpty());
+    CHECK(titles(pm.book()->mainElements) == "Chapter 1, Chapter 1a, Chapter 2, Part One, Epilogue");
+    CHECK(pm.findElement(added)->status == "revision");
+    CHECK(chapterFileOf(added).status() == "revision");
+    CHECK(pm.addElement(chapter, "Wrong", BookPlace::Main, QString(), -1, {}, std::nullopt,
+                        "finished")
+              .isEmpty());
+    CHECK(titles(pm.book()->mainElements) == "Chapter 1, Chapter 1a, Chapter 2, Part One, Epilogue");
+
+    // In the Workshop too
+    const QString idea = pm.addElement(note, "Idea", BookPlace::Workshop);
+    REQUIRE_FALSE(idea.isEmpty());
+    CHECK(pm.newPlaceAfter(idea, note) == ElementPlace{BookPlace::Workshop, QString(), 1});
+    CHECK_FALSE(pm.newPlaceAfter(idea, chapter).has_value());
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Workshop", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QDir project(pm.getProjectPath());
+    const KindRef note = kind("kalahari.base", "work_note");
+    const KindRef material = kind("kalahari.base", "material");
+
+    // The kinds of the Workshop; the program adds working notes and materials, and the other
+    // kinds that open in a window of their own wait for their windows
+    CHECK(references(pm.kindsFor(BookPlace::Workshop)) ==
+          "kalahari.base:work_note, kalahari.base:mindmap, kalahari.base:timeline, "
+          "kalahari.base:character, kalahari.base:location, kalahari.base:item, "
+          "kalahari.base:material");
+    CHECK(ProjectManager::canAdd(note));
+    CHECK(ProjectManager::canAdd(material));
+    CHECK(ProjectManager::canAdd(pm.chapterKindFor(BookPlace::Main)));
+    CHECK(ProjectManager::canAdd(pm.partKind()));
+    CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "character")));
+    CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "toc")));
+    CHECK_FALSE(ProjectManager::canAdd(KindRef{}));
+
+    // A working note is a text in the Workshop's folder
+    const QString idea = pm.addElement(note, "Idea", BookPlace::Workshop);
+    REQUIRE_FALSE(idea.isEmpty());
+    CHECK(pm.findElement(idea)->file == "workshop/work_note_001.kchapter");
+    CHECK(pm.formOf(*pm.findElement(idea)) == ElementForm::Text);
+
+    // A material is a copy of the file, named as it, without a status; the file stays
+    const QString picture = QDir(dir.path()).filePath("island map.jpg");
+    writeFile(picture, "a picture");
+    CHECK(pm.newMaterialFile(picture) == "workshop/island map.jpg");
+    const QString map = pm.addMaterial(picture, material, "Island map");
+    REQUIRE_FALSE(map.isEmpty());
+    const ProjectElement* mapElement = pm.findElement(map);
+    REQUIRE(mapElement != nullptr);
+    CHECK(mapElement->file == "workshop/island map.jpg");
+    CHECK(mapElement->kind == KindReference{"kalahari.base", "material"});
+    CHECK(mapElement->status.isEmpty());
+    CHECK(pm.formOf(*mapElement) == ElementForm::Window);
+    QFile copy(pm.filePathOf(*mapElement));
+    REQUIRE(copy.open(QIODevice::ReadOnly));
+    CHECK(copy.readAll() == "a picture");
+    CHECK(QFileInfo::exists(picture));
+
+    // A name the Workshop has gets a number, also when only a file has it; a name without a
+    // suffix too
+    writeFile(project.filePath("workshop/island map_2.jpg"), "the writer's file");
+    CHECK(pm.newMaterialFile(picture) == "workshop/island map_3.jpg");
+    const QString again = pm.addMaterial(picture, material, "Island map");
+    REQUIRE_FALSE(again.isEmpty());
+    CHECK(pm.findElement(again)->file == "workshop/island map_3.jpg");
+    const QString readme = QDir(dir.path()).filePath("README");
+    writeFile(readme, "notes");
+    REQUIRE_FALSE(pm.addMaterial(readme, material, "Readme").isEmpty());
+    CHECK(pm.newMaterialFile(readme) == "workshop/README_2");
+    CHECK(titles(pm.project()->workshop.elements) == "Idea, Island map, Island map, Readme");
+
+    // Not a kind of materials, no file that can be read, or a project that cannot be saved:
+    // nothing is added, and no copy stays
+    const QStringList files = QDir(project.filePath("workshop")).entryList(QDir::Files);
+    CHECK(pm.addMaterial(picture, note, "Wrong").isEmpty());
+    CHECK(pm.addMaterial(picture, kind("kalahari.base", "character"), "Wrong").isEmpty());
+    CHECK(pm.addMaterial(picture, pm.chapterKindFor(BookPlace::Main), "Wrong").isEmpty());
+    CHECK(pm.addMaterial(QDir(dir.path()).filePath("no file.jpg"), material, "Wrong").isEmpty());
+    CHECK(pm.addMaterial(dir.path(), material, "Wrong").isEmpty());
+    const BookProject unchanged = *pm.project();
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkdir(manifest));
+    CHECK(pm.addMaterial(picture, material, "Wrong").isEmpty());
+    REQUIRE(QDir().rmdir(manifest));
+    CHECK(*pm.project() == unchanged);
+    CHECK(QDir(project.filePath("workshop")).entryList(QDir::Files) == files);
+
+    // The .klh file has them, and the materials are no files without an element
+    REQUIRE(pm.saveManifest());
+    CHECK(pm.unassignedFiles().isEmpty());
+    REQUIRE(pm.closeProject(false));
+    const BookProject saved = savedProject(manifest);
+    CHECK(titles(saved.workshop.elements) == "Idea, Island map, Island map, Readme");
+    CHECK(saved.workshop.elements.at(1).file == "workshop/island map.jpg");
+
+    // Without a book there is no file
+    CHECK(pm.newMaterialFile(picture).isEmpty());
+    CHECK(pm.addMaterial(picture, material, "Nothing").isEmpty());
 }
 
 TEST_CASE("Move to Start and Move to End keep the prologue first and the epilogue last",

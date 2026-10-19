@@ -529,7 +529,7 @@
     </message>
     <message>
         <source>New &amp;Item...</source>
-        <translation>Nowy &amp;element...</translation>
+        <translation>Nowy p&amp;rzedmiot...</translation>
     </message>
     <message>
         <source>New &amp;Mind Map...</source>
