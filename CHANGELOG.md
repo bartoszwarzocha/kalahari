@@ -72,8 +72,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   place and its card. New File makes a file outside the book, which the book does not take:
   the bar at the bottom of the new file has Save As... in place of Add to Book, as it has
   while no book is open. The tabs and the Navigator show the icons of the kinds the
-  program does not have from the book's cards. The project database (the places of the
-  cursor, the statistics of writing) is still written: it is the program's, not the book's.
+  program does not have from the book's cards. Nothing is written into the book's folder:
+  the book is not locked, its database (the places of the cursor, the statistics of writing)
+  is read from a copy in a temporary folder that goes when the book closes, and closing it
+  makes no backup (2026-10-19: such a book got a project.db, a .kalahari.lock and a
+  .backups folder).
 
 - **Menus: icons of the submenus** - 2026-10-16. Import, Export, Recent Books, Text Style,
   Statistics, Plugins, Assistant Actions, View Mode, Zoom, Panels, Perspectives and Toolbars

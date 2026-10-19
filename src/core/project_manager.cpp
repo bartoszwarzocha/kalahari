@@ -190,6 +190,25 @@ bool isLocalFile(const QString& path) {
 /// Folder of the backups of the database, in a project's folder and in its archive
 constexpr QLatin1String BACKUPS_FOLDER(".backups");
 
+/// Copy the database of the project in folder @p projectDir, with the log of the changes not
+/// yet in it, to folder @p to, where the program can write it; a project without a database
+/// copies nothing. A book open read-only reads its database there, and nothing is written into
+/// its folder.
+bool copyDatabase(const QString& projectDir, const QString& to) {
+    for (const QString& name : {QStringLiteral("project.db"), QString(DATABASE_LOG)}) {
+        const QString from = QDir(projectDir).filePath(name);
+        const QString copy = QDir(to).filePath(name);
+        if (!QFileInfo::exists(from)) {
+            continue;
+        }
+        if (!QFile::copy(from, copy) ||
+            !QFile::setPermissions(copy, QFileDevice::ReadOwner | QFileDevice::WriteOwner)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /// Whether archive entry @p path is a backup of the database: a file project_*.db in the
 /// .backups folder
 bool isArchivedBackup(const QString& path) {
@@ -812,38 +831,58 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
         return fail(OpenFailure::Unreadable, QString());
     }
 
+    // The book works with the packages the program has; without one of them it can only be
+    // read, and nothing is written into its folder: no lock, no database, no backups
+    const BookTypeRegistry& installed = installedBookTypes();
+    const QStringList missing = project->missingPackages(installed);
+    const bool readOnly = !missing.isEmpty();
+
     // OpenSpec #00041: Acquire project lock
     const QString projectDir = manifestInfo.absolutePath();
-    m_projectLock = std::make_unique<ProjectLock>(projectDir);
-    if (!m_projectLock->tryAcquire()) {
-        m_projectLock.reset();
-        return fail(OpenFailure::OpenElsewhere,
-                    QStringLiteral("%1: the book is open in another program that is running")
-                        .arg(manifestInfo.fileName()));
+    if (!readOnly) {
+        m_projectLock = std::make_unique<ProjectLock>(projectDir);
+        if (!m_projectLock->tryAcquire()) {
+            m_projectLock.reset();
+            return fail(OpenFailure::OpenElsewhere,
+                        QStringLiteral("%1: the book is open in another program that is running")
+                            .arg(manifestInfo.fileName()));
+        }
     }
 
-    // OpenSpec #00041: Open project database
+    // OpenSpec #00041: Open project database; of a book open read-only, a copy of it
+    QString databaseDir = projectDir;
+    if (readOnly) {
+        m_databaseCopy = std::make_unique<QTemporaryDir>();
+        if (!m_databaseCopy->isValid() || !copyDatabase(projectDir, m_databaseCopy->path())) {
+            m_databaseCopy.reset();
+            return fail(OpenFailure::Database,
+                        QStringLiteral("project.db: the database of the book cannot be read"));
+        }
+        databaseDir = m_databaseCopy->path();
+    }
     m_database = std::make_unique<ProjectDatabase>();
-    if (!m_database->open(projectDir)) {
+    if (!m_database->open(databaseDir)) {
         const QString error = m_database->lastError();
         m_database.reset();
-        m_projectLock->release();
-        m_projectLock.reset();
+        m_databaseCopy.reset();
+        if (m_projectLock) {
+            m_projectLock->release();
+            m_projectLock.reset();
+        }
         return fail(OpenFailure::Database,
                     QStringLiteral("project.db: the database of the book cannot be opened%1")
                         .arg(error.isEmpty() ? QString() : QStringLiteral(" (%1)").arg(error)));
     }
-    m_backupManager = std::make_unique<BackupManager>(projectDir);
+    if (!readOnly) {
+        m_backupManager = std::make_unique<BackupManager>(projectDir);
+    }
 
     m_project = std::make_unique<BookProject>(std::move(*project));
     m_manifestPath = std::filesystem::path(manifestInfo.absoluteFilePath().toStdWString());
     m_projectPath = m_manifestPath.parent_path();
 
-    // The book works with the packages the program has; without one of them it can only be
-    // read, and nothing is written into its folder
-    const BookTypeRegistry& installed = installedBookTypes();
-    m_missingPackages = m_project->missingPackages(installed);
-    if (!m_missingPackages.isEmpty()) {
+    m_missingPackages = missing;
+    if (readOnly) {
         logger.warn("The book is open read-only: the program does not have its packages {}, "
                     "or has them without kinds it uses",
                     m_missingPackages.join(QStringLiteral(", ")).toStdString());
@@ -996,6 +1035,7 @@ bool ProjectManager::closeProject(bool promptSave) {
         m_database->close();
         m_database.reset();
     }
+    m_databaseCopy.reset();
     m_backupManager.reset();
 
     // OpenSpec #00041: Release project lock
