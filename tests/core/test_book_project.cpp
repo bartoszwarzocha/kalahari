@@ -605,6 +605,13 @@ TEST_CASE("Book project: an element moves wherever its kind can be, with the ele
           QList<ElementPlace>{main("", 0), main("", 1), main("", 2), main("p1", 0),
                               main("p1", 1), main("", 3)});
 
+    // A chapter also in the front and the back section, where it is not added (test report
+    // of 19 October, part 3)
+    const QList<ElementPlace> chapterPlaces =
+        project.movePlacesOf(registry, QStringLiteral("c1"));
+    CHECK(chapterPlaces.contains(ElementPlace{BookPlace::Front, QString(), 0}));
+    CHECK(chapterPlaces.contains(ElementPlace{BookPlace::Back, QString(), 1}));
+
     // A part only in the body, neither in a part nor in itself; a title page only in the front
     CHECK(project.movePlacesOf(registry, QStringLiteral("p1")) ==
           QList<ElementPlace>{main("", 0), main("", 1), main("", 2), main("", 3)});
@@ -638,7 +645,7 @@ TEST_CASE("Book project: an element moves wherever its kind can be, with the ele
         ->elements.append(element("c3", "kalahari.base", "chapter", "Chapter 3"));
     project.elementsIn(BookPlace::Main).append(element("p2", "kalahari.base", "part", "Part Two"));
     const BookProject before = project;
-    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("c1"),
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("p2"),
                                       {BookPlace::Front, QString(), 0}));
     CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("a"), main("", 0)));
     CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("c1"), main("", 9)));

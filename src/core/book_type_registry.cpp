@@ -9,6 +9,7 @@
 #include <QSet>
 #include <algorithm>
 #include <functional>
+#include <iterator>
 #include <utility>
 
 namespace kalahari::core {
@@ -91,6 +92,19 @@ QList<Style> mergeStyles(const QList<const BookTypePackage*>& lineage,
 
 QString KindRef::reference() const {
     return package && kind ? KindReference{package->id, kind->id}.toString() : QString();
+}
+
+bool KindRef::offeredIn(BookPlace place) const {
+    if (!package || !kind || !kind->allows(place)) {
+        return false;
+    }
+    const QString own = KindReference{package->id, kind->id}.toString();
+    const auto lists = [this, &own](BookPlace listed) {
+        const QStringList& kinds = package->kindsIn(listed);
+        return kinds.contains(kind->id) || kinds.contains(own);
+    };
+    const bool listedAnywhere = std::any_of(std::begin(ALL_PLACES), std::end(ALL_PLACES), lists);
+    return !listedAnywhere || lists(place);
 }
 
 // =============================================================================

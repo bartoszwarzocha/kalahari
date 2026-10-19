@@ -889,7 +889,7 @@ QList<KindRef> BookProject::kindsIn(const BookTypeRegistry& registry, BookPlace 
     QList<KindRef> offered = type ? registry.kindsIn(type->id, place) : QList<KindRef>{};
     for (const KindReference& reference : kinds) {
         const KindRef ref = registry.findKind(reference.packageId, reference.kindId);
-        if (ref && ref.kind->allows(place) && !containsKind(offered, ref)) {
+        if (ref && ref.offeredIn(place) && !containsKind(offered, ref)) {
             offered.append(ref);
         }
     }

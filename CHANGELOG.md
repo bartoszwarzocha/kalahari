@@ -19,10 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Navigator: Move Up and Move Down leave a part and a section** - 2026-10-19. The first
   chapter of a part goes up before the part, the last one down after it, and an element at
   the start or the end of a section goes to the nearest section before or after it where its
-  kind can be (the table of contents from the back matter to the front matter). When an
-  element has no other place in the book, as the only chapter of a novel without parts,
-  Move..., Move to Start, Move Up, Move Down and Move to End are greyed out and their tooltip
-  says why: "The book has no other place for the chapter."
+  kind can be (the table of contents from the back matter to the front matter). A chapter
+  can be moved to the front and the back section too, as in other programs for books, so the
+  only chapter of a book goes up to the front section and down to the back one, also by
+  Move... and by dragging (the test of 19 October found its move commands greyed out); a new
+  chapter is still added to the main section or a part only, as the New Book palette and the
+  windows that add an element offer it. In a book
+  without sections, where the three sections are one list, Move Up and Move Down move an
+  element one step in that list, into the section before or after its own. When an element
+  has no other place in the book, as the only part of a novel, Move..., Move to Start, Move
+  Up, Move Down and Move to End are greyed out and their tooltip says why: "The book has no
+  other place for the part."
 
 - **New Book: only the book types the program has** - 2026-10-17. The New Book window lists
   the types whose packages the program has, and the user project; a type without its package

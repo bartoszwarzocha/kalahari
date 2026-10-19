@@ -241,14 +241,15 @@ private:
         return kind && kind.kind->form == ElementForm::Text ? kind : KindRef{};
     }
 
-    /// Where an element of @p kind that was in @p oldPlace goes: there, else to a place of the
-    /// kind (the main part for a prologue or an epilogue); none for a kind of the Workshop
+    /// Where an element of @p kind that was in @p oldPlace goes: there, else to a place where
+    /// the kind is offered (the main part for a prologue, an epilogue or a chapter); none for a
+    /// kind of the Workshop
     static std::optional<BookPlace> placeOf(const KindRef& kind, BookPlace oldPlace) {
-        if (kind.kind->allows(oldPlace)) {
+        if (kind.offeredIn(oldPlace)) {
             return oldPlace;
         }
         for (const BookPlace place : {BookPlace::Main, BookPlace::Front, BookPlace::Back}) {
-            if (kind.kind->allows(place)) {
+            if (kind.offeredIn(place)) {
                 return place;
             }
         }

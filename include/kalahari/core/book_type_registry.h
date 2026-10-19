@@ -23,6 +23,12 @@ struct KindRef {
     /// @brief "kalahari.base:chapter": the kind with the package that defines it; empty when
     /// there is no kind
     QString reference() const;
+
+    /// @brief Whether a new element of the kind is offered in @p place: one of its places that
+    /// the package defining it lists it in, or any of its places when the package lists it
+    /// nowhere. An element is moved to the other places of its kind, not added there (a
+    /// chapter goes to the front section, but is added to the main one).
+    bool offeredIn(BookPlace place) const;
 };
 
 /// @brief Element that a new book of a type starts with

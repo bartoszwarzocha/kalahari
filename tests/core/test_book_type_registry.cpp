@@ -436,6 +436,39 @@ TEST_CASE("Built-in book types: the palette offers every kind of every package",
           qualified.indexOf(QStringLiteral("kalahari.base/chapter")));
 }
 
+TEST_CASE("Built-in book types: a chapter is added to the main section and moved to the others",
+          "[core][booktypes]") {
+    // Test report of 19 October, part 3: the only chapter of a book could not be moved
+    BookTypeRegistry registry;
+    loadBuiltIn(registry);
+    const KindRef chapter =
+        registry.findKind(QStringLiteral("kalahari.base"), QStringLiteral("chapter"));
+    REQUIRE(chapter);
+    CHECK(chapter.offeredIn(BookPlace::Main));
+    for (const BookPlace place : {BookPlace::Front, BookPlace::Back}) {
+        CHECK(chapter.kind->allows(place));
+        CHECK_FALSE(chapter.offeredIn(place));
+    }
+    CHECK_FALSE(chapter.offeredIn(BookPlace::Workshop));
+
+    // Every other kind is offered wherever it can be: a table of contents in the front and
+    // the back section
+    const KindRef toc = registry.findKind(QStringLiteral("kalahari.base"), QStringLiteral("toc"));
+    REQUIRE(toc);
+    CHECK(toc.offeredIn(BookPlace::Front));
+    CHECK(toc.offeredIn(BookPlace::Back));
+    CHECK_FALSE(toc.offeredIn(BookPlace::Main));
+    for (const KindRef& kind : registry.allKinds()) {
+        for (const BookPlace place :
+             {BookPlace::Front, BookPlace::Main, BookPlace::Back, BookPlace::Workshop}) {
+            INFO(kind.reference().toStdString());
+            if (kind.kind != chapter.kind) {
+                CHECK(kind.offeredIn(place) == kind.kind->allows(place));
+            }
+        }
+    }
+}
+
 TEST_CASE("Built-in book types: groups of the Workshop and the parts layer",
           "[core][booktypes]") {
     BookTypeRegistry registry;
