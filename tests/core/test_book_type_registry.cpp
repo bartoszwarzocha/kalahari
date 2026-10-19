@@ -1007,6 +1007,14 @@ TEST_CASE("Book type packages: a type with a problem is not loaded", "[core][boo
          set("kinds.motto", jsonValue(R"({ "form": "text", "places": ["front"], "position": "end",
                                       "name": { "en": "Motto" }, "plural": { "en": "Mottos" } })")),
          "kinds.motto.position: only a kind of the main part has a position"},
+        {"an opening that is not true or false", set("kinds.prologue.first", "yes"),
+         "kinds.prologue.first: must be true or false"},
+        {"an opening kind with a position",
+         [](QJsonObject& type) {
+             setAt(type, QStringLiteral("kinds.prologue.position"), QStringLiteral("start"));
+             setAt(type, QStringLiteral("kinds.prologue.first"), true);
+         },
+         "kinds.prologue.first: a kind that opens its section has no position"},
         {"a window of a text kind", set("kinds.prologue.editor", "text"),
          "kinds.prologue.editor: only a window kind has an editor"},
         {"a text kind made by a tool", set("kinds.prologue.generated", true),
