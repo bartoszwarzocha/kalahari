@@ -550,14 +550,18 @@ TEST_CASE("Spelling panel: a card unfolded shows the suggestions and the actions
 
 TEST_CASE("Spelling panel: the words of the suggestions are never shortened",
           "[gui][spelling-panel]") {
+    // As in the list: a card placed in its parent as wide as the list is (a window of its own
+    // may be kept wider than asked)
     const std::vector<SpellingPanelIssue> issues = sampleIssues();
-    SpellingIssueCard card;
+    QWidget list;
+    list.resize(480, 480);
+    SpellingIssueCard card(&list);
     card.setIssue(issues.at(0));
     card.setSelected(true);  // the suggestions numbered
     card.setExpanded(true);
-    card.show();
+    list.show();
     const auto layOut = [&card](int width) {
-        card.resize(width, card.heightForWidth(width));
+        card.setGeometry(0, 0, width, card.heightForWidth(width));
         QApplication::processEvents();
     };
 
@@ -609,6 +613,7 @@ TEST_CASE("Spelling panel: the words of the suggestions are never shortened",
         const int width = 140;
         layOut(width);
         layOut(width);  // as polished when shown
+        REQUIRE(card.width() == width);
         const QList<QAbstractButton*> buttons = card.suggestionButtons();
         REQUIRE(buttons.size() == 2);
         QAbstractButton* wide = buttons.at(1);
