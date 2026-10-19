@@ -123,6 +123,10 @@ std::map<std::string, json> buildDefaults() {
         // Where a chapter opens: "lastEdit", where its cursor was when it was closed last, or
         // "start"
         {"editor.chapterOpensAt", "lastEdit"},
+        // How text from other programs is pasted: "merge" (it takes the look of the text it
+        // goes to, keeping headings, quotes, emphasis and lines), "source" (also its fonts,
+        // sizes and colors) or "text" (only the text)
+        {"editor.paste.mode", "merge"},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},

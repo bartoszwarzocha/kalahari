@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Pasting from other programs, in three modes** - 2026-10-19. Text pasted or dropped from
+  Word, LibreOffice or a browser keeps its headings, quotes, horizontal lines, page breaks,
+  line breaks and emphasis (bold, italic, underline, strikethrough, subscript, superscript),
+  and its centered and right-aligned paragraphs, and takes the look of the text it goes to
+  (it came as plain text). Settings > Editor > General, "Paste from Other Programs": Merge
+  Formatting (the default), Keep Source Formatting (also the fonts, sizes, colors and every
+  alignment of the other program) or Keep Text Only. Text copied in Kalahari gives Word and
+  LibreOffice its headings, quotes, horizontal lines, scene breaks and page breaks, and a
+  plain text program a line for each of them.
+
 - **Dashboard: an X on the card of a recent book** - 2026-10-19. A small X in the top right
   corner of each card takes the book off the recent books ("Remove from the recent books (the
   file stays on the disk)"); its file stays where it is. "Open last book on startup" opens

@@ -88,51 +88,43 @@ TEST_CASE("ClipboardHandler htmlToKml conversion", "[editor][clipboard]") {
 
     SECTION("Bold tag converted") {
         QString result = ClipboardHandler::htmlToKml("<b>Bold</b>");
-        REQUIRE(result.contains("<bold>"));
-        REQUIRE(result.contains("</bold>"));
+        REQUIRE(result == "<kml><p><b>Bold</b></p></kml>");
     }
 
     SECTION("Strong tag converted to bold") {
         QString result = ClipboardHandler::htmlToKml("<strong>Bold</strong>");
-        REQUIRE(result.contains("<bold>"));
-        REQUIRE(result.contains("</bold>"));
+        REQUIRE(result == "<kml><p><b>Bold</b></p></kml>");
     }
 
     SECTION("Italic tag converted") {
         QString result = ClipboardHandler::htmlToKml("<i>Italic</i>");
-        REQUIRE(result.contains("<italic>"));
-        REQUIRE(result.contains("</italic>"));
+        REQUIRE(result == "<kml><p><i>Italic</i></p></kml>");
     }
 
     SECTION("Em tag converted to italic") {
         QString result = ClipboardHandler::htmlToKml("<em>Italic</em>");
-        REQUIRE(result.contains("<italic>"));
-        REQUIRE(result.contains("</italic>"));
+        REQUIRE(result == "<kml><p><i>Italic</i></p></kml>");
     }
 
     SECTION("Underline tag converted") {
         QString result = ClipboardHandler::htmlToKml("<u>Underlined</u>");
-        REQUIRE(result.contains("<underline>"));
-        REQUIRE(result.contains("</underline>"));
+        REQUIRE(result == "<kml><p><u>Underlined</u></p></kml>");
     }
 
     SECTION("Strike tag converted") {
         QString result = ClipboardHandler::htmlToKml("<s>Strikethrough</s>");
-        REQUIRE(result.contains("<strike>"));
-        REQUIRE(result.contains("</strike>"));
+        REQUIRE(result == "<kml><p><s>Strikethrough</s></p></kml>");
     }
 
-    SECTION("HTML entities decoded") {
+    SECTION("HTML entities decoded, and escaped again in the KML") {
         QString result = ClipboardHandler::htmlToKml("&lt;test&gt; &amp; &quot;quote&quot;");
-        REQUIRE(result.contains("<test>"));
-        REQUIRE(result.contains("&"));
-        REQUIRE(result.contains("\"quote\""));
+        REQUIRE(ClipboardHandler::kmlToText(result) == "<test> & \"quote\"");
+        REQUIRE(result.contains("&lt;test&gt; &amp;"));
     }
 
     SECTION("Plain text wrapped in paragraph") {
         QString result = ClipboardHandler::htmlToKml("Plain text");
-        REQUIRE(result.startsWith("<p>"));
-        REQUIRE(result.endsWith("</p>"));
+        REQUIRE(result == "<kml><p>Plain text</p></kml>");
     }
 }
 

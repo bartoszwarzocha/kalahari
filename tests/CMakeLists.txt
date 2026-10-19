@@ -39,6 +39,7 @@ set(TEST_SOURCES
     editor/test_viewport_manager.cpp       # OpenSpec #00043: ViewportManager
     editor/test_book_editor.cpp             # Phase 3.1: BookEditor widget
     editor/test_clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard
+    editor/test_clipboard_paste.cpp         # Text of other programs pasted, and given to them
     editor/test_view_modes.cpp              # EditorAppearance and BookEditor view modes
     editor/test_statistics_collector.cpp    # Phase 6/Task 7.17: StatisticsCollector tests
     editor/test_word_frequency_analyzer.cpp # Phase 6/Task 7.17: WordFrequencyAnalyzer tests

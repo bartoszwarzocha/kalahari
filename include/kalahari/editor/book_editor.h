@@ -16,6 +16,7 @@
 
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/auto_correct.h>
+#include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
@@ -543,9 +544,17 @@ public:
     ///
     /// Kalahari content (KML) keeps its formatting. Paragraphs inserted whole keep their
     /// alignment, while the paragraph the content goes into keeps its own. Text from other
-    /// programs takes the formatting of the insertion point.
+    /// programs comes as the paste mode reads its HTML (see setPasteMode()); in
+    /// PasteMode::Merge and PasteMode::Text it takes the formatting of the insertion point.
     /// @param source MIME data to insert (nothing happens for nullptr)
     void insertFromMimeData(const QMimeData* source);
+
+    /// @brief How text from other programs is pasted and dropped; PasteMode::Merge until it
+    ///        is set
+    void setPasteMode(PasteMode mode);
+
+    /// @brief How text from other programs is pasted and dropped
+    PasteMode pasteMode() const { return m_pasteMode; }
 
     /// @brief Insert dropped MIME data at a position and select it, as one undo step
     ///
@@ -1784,6 +1793,8 @@ private:
     // Autocorrect: the changes of the text as it is typed (typeText())
     AutoCorrectOptions m_autoCorrect;          ///< What is changed
     std::function<QString()> m_textLanguage;  ///< The language of the text (setTextLanguage())
+
+    PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted
 
     /// @brief Make the change autocorrect has for the character typed right before the
     ///        cursor, as an undo step of its own (see typeText())
