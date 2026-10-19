@@ -256,11 +256,11 @@ NewFileDialog::Book NewFileDialog::openBook(const QString& untitled)
         }
     }
 
-    // Where the elements of a kind can be: in the parts of the book and in groups
+    // Where the elements of a kind are added: in the parts of the book and in groups
     const auto whereOf = [&groups, projectBook](const core::KindRef& kind) {
         QStringList places;
         for (const core::BookPlace place : BOOK_PLACES) {
-            if (kind.kind->allows(place)) {
+            if (kind.offeredIn(place)) {
                 places << SectionWords::forPart(projectBook, place).inPart;
             }
         }
@@ -314,7 +314,7 @@ NewFileDialog::Book NewFileDialog::openBook(const QString& untitled)
         const QList<core::KindRef> offered = pm.kindsFor(place);
         for (const core::KindRef& kind : project->kindsIn(registry, place)) {
             // A group is no file: the Navigator adds it
-            if (kind.kind->form == core::ElementForm::Group || !kind.kind->allows(place)) {
+            if (kind.kind->form == core::ElementForm::Group || !kind.offeredIn(place)) {
                 continue;
             }
             const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};

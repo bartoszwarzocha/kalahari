@@ -19,10 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Navigator: Move Up and Move Down leave a part and a section** - 2026-10-19. The first
   chapter of a part goes up before the part, the last one down after it, and an element at
   the start or the end of a section goes to the nearest section before or after it where its
-  kind can be (the table of contents from the back matter to the front matter). When an
-  element has no other place in the book, as the only chapter of a novel without parts,
-  Move..., Move to Start, Move Up, Move Down and Move to End are greyed out and their tooltip
-  says why: "The book has no other place for the chapter."
+  kind can be (the table of contents from the back matter to the front matter). A chapter
+  can be moved to the front and the back section too, as in other programs for books, so the
+  only chapter of a book goes up to the front section and down to the back one, also by
+  Move... and by dragging (the test of 19 October found its move commands greyed out); a new
+  chapter is still added to the main section or a part only, as the New Book palette and the
+  windows that add an element offer it. In a book
+  without sections, where the three sections are one list, Move Up and Move Down move an
+  element one step in that list, into the section before or after its own. When an element
+  has no other place in the book, as the only part of a novel, Move..., Move to Start, Move
+  Up, Move Down and Move to End are greyed out and their tooltip says why: "The book has no
+  other place for the part."
 
 - **The Spelling and Grammar panel** - 2026-10-17. View > Panels > Spelling and Grammar opens
   a panel, a tab next to Annotations, with the misspelled words and the grammar issues of the
@@ -30,7 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a few words around the issue, with a frame and a bar in the kind's color. The selected card
   shows the whole sentence (for a grammar issue also what is wrong), up to five suggestions,
   the first one filled with the kind's color, and Ignore Word and Add to Dictionary, or Ignore
-  Rule. The buttons at the top, "Spelling 3" and "Grammar 1", count the issues of each kind
+  Rule. The words of the suggestions are never shortened: the buttons that do not fit in a line
+  go on to the next one, and a word wider than the card goes on in the next line of its
+  button. The buttons at the top, "Spelling 3" and "Grammar 1", count the issues of each kind
   and show or hide its cards ("–" for a kind not checked); the row under them says how far the
   text is checked ("Checking the grammar: paragraph 12 of 40...", "The whole chapter is
   checked.") or why it is not (no dictionary for the language, LanguageTool not prepared yet
@@ -38,8 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the text selects its card. A suggestion takes the issue's place as one step of Undo, the
   other buttons do what they do in the menu of the wave, and then the next issue is selected;
   a right click on a card, the menu key or Shift+F10 opens that menu. In a book open read-only
-  the suggestions are greyed out, on the cards and in the menu of the wave, and their tooltip
-  says why; Ignore Word, Add to Dictionary and Ignore Rule still work, as they change no text.
+  the suggestions, Ignore Word, Add to Dictionary and Ignore Rule are greyed out, on the cards
+  and in the menu of the wave, and their tooltip says why.
   Up and Down, Home and End, Page Up and Page Down select the cards, Enter chooses the first
   suggestion, 1 to 5 the suggestion with that number, Esc goes back to the text; the row at
   the bottom reminds the keys. While the panel shows, the grammar of the whole text is checked
@@ -122,8 +131,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   place and its card. New File makes a file outside the book, which the book does not take:
   the bar at the bottom of the new file has Save As... in place of Add to Book, as it has
   while no book is open. The tabs and the Navigator show the icons of the kinds the
-  program does not have from the book's cards. The project database (the places of the
-  cursor, the statistics of writing) is still written: it is the program's, not the book's.
+  program does not have from the book's cards. Nothing is written into the book's folder:
+  the book is not locked, its database (the places of the cursor, the statistics of writing)
+  is read from a copy in a temporary folder that goes when the book closes, and closing it
+  makes no backup (2026-10-19: such a book got a project.db, a .kalahari.lock and a
+  .backups folder).
 
 - **Menus: icons of the submenus** - 2026-10-16. Import, Export, Recent Books, Text Style,
   Statistics, Plugins, Assistant Actions, View Mode, Zoom, Panels, Perspectives and Toolbars

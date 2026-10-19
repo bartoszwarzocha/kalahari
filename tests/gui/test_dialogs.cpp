@@ -1613,6 +1613,10 @@ TEST_CASE("Move: what changes is said against the book as it is", "[gui][dialogs
                                            "Two\".")));
     CHECK(shownPlace(dialog, QStringLiteral("Chapter 3")) == "Main Section > Part Two");
 
+    // A chapter also goes to the front and the back section (test report of 19 October, part 3)
+    CHECK(dialog.picker()->places().contains(ElementPlace{BookPlace::Front, QString(), 0}));
+    CHECK(dialog.picker()->places().contains(ElementPlace{BookPlace::Back, QString(), 0}));
+
     // A chapter has no options; after the epilogue, the epilogue no longer ends the section
     CHECK_FALSE(option(dialog, QStringLiteral("Elsewhere: show the place in the list"))
                     ->isVisibleTo(&dialog));

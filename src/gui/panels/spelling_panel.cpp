@@ -165,21 +165,22 @@ SpellingPanel::SpellingPanel(QWidget* parent)
     });
     connect(m_list, &SpellingIssueList::suggestionChosen, this,
             &SpellingPanel::onSuggestionChosen);
-    // Copies of the issues: what a receiver does may change the list
+    // Copies of the issues: what a receiver does may change the list. Nothing in a text only
+    // read, where these buttons are greyed out
     connect(m_list, &SpellingIssueList::ignoreWordClicked, this, [this](const QString& key) {
-        if (const SpellingPanelIssue* issue = shownIssue(key)) {
+        if (const SpellingPanelIssue* issue = shownIssue(key); issue != nullptr && !m_readOnly) {
             const SpellingPanelIssue copy = *issue;
             emit ignoreWordRequested(copy);
         }
     });
     connect(m_list, &SpellingIssueList::addToDictionaryClicked, this, [this](const QString& key) {
-        if (const SpellingPanelIssue* issue = shownIssue(key)) {
+        if (const SpellingPanelIssue* issue = shownIssue(key); issue != nullptr && !m_readOnly) {
             const SpellingPanelIssue copy = *issue;
             emit addToDictionaryRequested(copy);
         }
     });
     connect(m_list, &SpellingIssueList::ignoreRuleClicked, this, [this](const QString& key) {
-        if (const SpellingPanelIssue* issue = shownIssue(key)) {
+        if (const SpellingPanelIssue* issue = shownIssue(key); issue != nullptr && !m_readOnly) {
             const SpellingPanelIssue copy = *issue;
             emit ignoreRuleRequested(copy);
         }

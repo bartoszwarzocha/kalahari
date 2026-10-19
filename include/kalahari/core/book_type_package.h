@@ -57,7 +57,9 @@
 /// in the middle of a sentence, the cases that the language has, "indefinite" with an
 /// indefinite article and "gender": "masculine", "feminine", "neuter" or "plural" for a name
 /// plural in form; see kind_words.h),
-/// "icon", "places" (front, main, back, workshop or ids of group kinds it can be inside), "limit"
+/// "icon", "places" (front, main, back, workshop or ids of group kinds it can be inside; in a
+/// part of the book whose list in its package does not name it, an element of the kind is
+/// moved, not added: a chapter goes to the front section, but is added to the main one), "limit"
 /// (most elements of the kind in a book), "title" (default title, "%n" is the number) with
 /// "numbering" ("arabic" or "roman"), "template" (text kinds: a .kchapter file whose text a
 /// new element starts with; "{title}" and "{author}" in it become the book's title and

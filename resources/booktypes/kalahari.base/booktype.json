@@ -99,7 +99,7 @@
       }
     },
     "chapter": {
-      "form": "text", "places": ["main", "part"], "icon": "template.chapter",
+      "form": "text", "places": ["main", "part", "front", "back"], "icon": "template.chapter",
       "name": { "pl": "Rozdział", "en": "Chapter" },
       "plural": { "pl": "Rozdziały", "en": "Chapters" },
       "words": {

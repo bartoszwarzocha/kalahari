@@ -18,6 +18,7 @@
 #include <vector>
 
 class QAbstractButton;
+class QFont;
 class QLabel;
 class QWidget;
 
@@ -48,6 +49,11 @@ IssueContext shortContext(const QString& paragraph, int start, int length);
 ///        text after it to the end of its sentence
 IssueContext sentenceContext(const QString& paragraph, int start, int length);
 
+/// @brief The lines of a suggestion on its button, none wider than @p width in @p font: broken
+///        between words where it can, and inside a word only where the word is wider than the
+///        line. Nothing is left out: the lines together are the whole suggestion
+QStringList suggestionLines(const QString& suggestion, const QFont& font, int width);
+
 /// @brief The colors of the cards of a kind of issue
 struct IssueCardColors {
     AnnotationCardColors card;  ///< As a card of an annotation, in a lighter tint
@@ -72,6 +78,8 @@ IssueCardColors issueCardColors(const QColor& kindColor, const QColor& surface,
 /// has the message of a grammar issue, the whole sentence, the suggestions and the actions:
 /// "Ignore Word" and "Add to Dictionary" for a misspelled word, "Ignore Rule" for a grammar
 /// issue. The suggestions of the selected card are numbered: the keys 1 to 5 choose them.
+/// Their words are never shortened: a button that does not fit in a line goes on to the next
+/// one, and a word wider than the whole line goes on in the next line of its button.
 class SpellingIssueCard : public QFrame {
     Q_OBJECT
 
