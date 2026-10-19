@@ -436,7 +436,7 @@ TEST_CASE("Grammar: the context menu of an issue", "[editor][grammar]") {
         CHECK(grammarWaves(*editor, 0) == QStringList{"dogz"});
     }
 
-    SECTION("a read-only text: the replacements greyed out, saying why; the rule can be ignored") {
+    SECTION("a read-only text: the replacements and Ignore This Rule greyed out, saying why") {
         const QString reason = QStringLiteral("The book is open read-only");
         editor->setReadOnlyReason(reason);
         editor->setReadOnly(true);
@@ -448,10 +448,37 @@ TEST_CASE("Grammar: the context menu of an issue", "[editor][grammar]") {
         CHECK(menu.toolTips.mid(1, 2) == QStringList({reason, reason}));
         CHECK(menu.toolTipsShown);
         REQUIRE(menu.texts.at(4) == QStringLiteral("Ignore This Rule"));
-        CHECK(menu.enabled.at(4));  // it does not change the text
+        CHECK_FALSE(menu.enabled.at(4));
+        CHECK(menu.toolTips.at(4) == reason);
 
         contextMenuAtCursor(*editor, QStringLiteral("hat"));
         CHECK(editor->textDocument()->begin().text() == QStringLiteral("The kat and the dogz."));
+        contextMenuAtCursor(*editor, QStringLiteral("Ignore This Rule"));
+        CHECK_FALSE(grammar->isRuleIgnored(QStringLiteral("RULE_A")));
+    }
+
+    SECTION("a misspelled word in a read-only text: Ignore All and Add to Dictionary greyed out, "
+            "saying why") {
+        SpellCheckService spelling;
+        REQUIRE(spelling.loadDictionary(QStringLiteral("en_US")));
+        editor->setSpellCheckService(&spelling);
+        REQUIRE(waitUntil([&editor]() { return !editor->isSpellCheckPending(); }, 20000));
+        const QString reason = QStringLiteral("The book is open read-only");
+        editor->setReadOnlyReason(reason);
+        editor->setReadOnly(true);
+        editor->setCursorPosition({0, 17});
+        const MenuSeen menu = contextMenuAtCursor(*editor);
+        for (const QString& item :
+             {QStringLiteral("Ignore All"), QStringLiteral("Add to Dictionary")}) {
+            CAPTURE(item.toStdString());
+            const auto at = menu.texts.indexOf(item);
+            REQUIRE(at >= 0);
+            CHECK_FALSE(menu.enabled.at(at));
+            CHECK(menu.toolTips.at(at) == reason);
+        }
+        contextMenuAtCursor(*editor, QStringLiteral("Ignore All"));
+        CHECK_FALSE(spelling.isIgnored(QStringLiteral("dogz")));
+        editor->setSpellCheckService(nullptr);
     }
 
     SECTION("a long message whole, in lines (a keyboard has no tool tip)") {

@@ -9,7 +9,9 @@
 #include <QAbstractButton>
 #include <QApplication>
 #include <QEvent>
+#include <QFont>
 #include <QFontMetrics>
+#include <QFontMetricsF>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
@@ -21,9 +23,12 @@
 #include <QScopedValueRollback>
 #include <QScrollBar>
 #include <QTextDocumentFragment>
+#include <QTextLayout>
+#include <QTextOption>
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 namespace kalahari::gui {
@@ -95,13 +100,17 @@ bool closesQuotation(QChar c) {
 }
 
 /// @brief A suggestion of a card: its number (the key that chooses it) and the word, the
-///        first one filled with the color of the issue's kind
+///        first one filled with the color of the issue's kind. The word is never shortened:
+///        on a line of the card narrower than the word, it goes on in the next line of the
+///        button
 class SuggestionButton : public QAbstractButton {
 public:
     explicit SuggestionButton(QWidget* parent) : QAbstractButton(parent) {
         setObjectName(QStringLiteral("spellingSuggestion"));
         setAttribute(Qt::WA_Hover);
-        setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+        QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+        policy.setHeightForWidth(true);  // the lines of the word
+        setSizePolicy(policy);
     }
 
     /// @brief The number on the button (0: none)
@@ -130,22 +139,22 @@ public:
         update();
     }
 
+    /// @brief The word in one line
     QSize sizeHint() const override {
-        const QFontMetrics metrics(boldFont());
-        int width = 2 * paddingX() + metrics.horizontalAdvance(text());
-        if (m_number > 0) {
-            width += keycapSize().width() + paddingX() / 2;
-        }
-        return {width, metrics.height() + 2 * paddingY()};
+        return {besideWord() + wordWidth(), lineHeight() + 2 * paddingY()};
     }
 
+    /// @brief Narrower than the word on a narrow card: the word then goes on in more lines
     QSize minimumSizeHint() const override {
-        // A long word is shortened on a narrow card
         const QFontMetrics metrics(boldFont());
-        const QSize hint = sizeHint();
-        return {std::min(hint.width(), 2 * paddingX() + metrics.horizontalAdvance(QStringLiteral("www")) +
-                                           (m_number > 0 ? keycapSize().width() : 0)),
-                hint.height()};
+        return {besideWord() +
+                    std::min(wordWidth(), metrics.horizontalAdvance(QStringLiteral("www"))),
+                lineHeight() + 2 * paddingY()};
+    }
+
+    int heightForWidth(int width) const override {
+        const auto lines = suggestionLines(text(), boldFont(), width - besideWord()).size();
+        return static_cast<int>(std::max<qsizetype>(lines, 1)) * lineHeight() + 2 * paddingY();
     }
 
 protected:
@@ -185,12 +194,17 @@ protected:
             x += cap.width() + paddingX() / 2;
         }
 
+        // The whole word, in as many lines as the width of the button needs
         const QFont bold = boldFont();
         painter.setFont(bold);
         painter.setPen(textColor);
-        const QRect textRect(x, 0, width() - x - paddingX(), height());
-        painter.drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft,
-                         QFontMetrics(bold).elidedText(text(), Qt::ElideRight, textRect.width()));
+        const QStringList lines = suggestionLines(text(), bold, width() - x - paddingX());
+        const int ascent = QFontMetrics(bold).ascent();
+        int y = (height() - static_cast<int>(lines.size()) * lineHeight()) / 2;
+        for (const QString& line : lines) {
+            painter.drawText(QPoint(x, y + ascent), line);
+            y += lineHeight();
+        }
 
         // The keys are on it (Tab): a frame inside its edge
         if (hasFocus()) {
@@ -235,6 +249,29 @@ private:
 
     int paddingX() const { return fontMetrics().averageCharWidth() + 3; }
     int paddingY() const { return 3; }
+    int lineHeight() const { return QFontMetrics(boldFont()).height(); }
+
+    /// @brief The width of the button beside its word: the margins and the number
+    int besideWord() const {
+        int width = 2 * paddingX();
+        if (m_number > 0) {
+            width += keycapSize().width() + paddingX() / 2;
+        }
+        return width;
+    }
+
+    /// @brief The width of the word in one line, with the fraction of a pixel it takes and
+    ///        what its last letter reaches past its advance (a width rounded down would put
+    ///        the last letter in the next line), and a pixel to spare
+    int wordWidth() const {
+        const QString word = text();
+        if (word.isEmpty()) {
+            return 0;
+        }
+        const QFontMetricsF metrics(boldFont());
+        const qreal overhang = std::max<qreal>(0, -metrics.rightBearing(word.back()));
+        return static_cast<int>(std::ceil(metrics.horizontalAdvance(word) + overhang)) + 1;
+    }
 
     int m_number = 0;
     bool m_primary = false;
@@ -363,6 +400,21 @@ IssueContext sentenceContext(const QString& paragraph, int start, int length) {
         }
     }
     return {paragraph.mid(from, start - from), paragraph.mid(end, to - end)};
+}
+
+QStringList suggestionLines(const QString& suggestion, const QFont& font, int width) {
+    QStringList lines;
+    QTextLayout layout(suggestion, font);
+    QTextOption option;
+    option.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    layout.setTextOption(option);
+    layout.beginLayout();
+    for (QTextLine line = layout.createLine(); line.isValid(); line = layout.createLine()) {
+        line.setLineWidth(std::max(width, 1));
+        lines.append(suggestion.mid(line.textStart(), line.textLength()));
+    }
+    layout.endLayout();
+    return lines;
 }
 
 IssueCardColors issueCardColors(const QColor& kindColor, const QColor& surface,
@@ -649,11 +701,14 @@ void SpellingIssueCard::updateButtons() {
     m_noSuggestionsLabel->setVisible(m_suggestions.isEmpty());
     m_suggestionRow->setVisible(m_expanded);
 
-    // Ignoring and the dictionary change no text: they work also in a text only read
+    // Ignoring and the dictionary: greyed out in a text only read as well, as in the menu of
+    // the wave
     m_actionButtons.at(0)->setText(spelling ? tr("Ignore Word") : tr("Ignore Rule"));
     m_actionButtons.at(1)->setText(tr("Add to Dictionary"));
     m_actionButtons.at(1)->setVisible(spelling);
     for (QAbstractButton* button : std::as_const(m_actionButtons)) {
+        button->setEnabled(!m_readOnly);
+        button->setToolTip(m_readOnly ? readOnlyReason() : QString());
         button->setFocusPolicy(policy);
     }
     m_actionRow->setVisible(m_expanded);

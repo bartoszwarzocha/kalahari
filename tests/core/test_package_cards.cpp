@@ -12,6 +12,7 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/gui/icon_registrar.h>
 
+#include <QCryptographicHash>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -19,12 +20,13 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QMap>
 #include <QTemporaryDir>
 
 #include <zip.h>
 
 #include <algorithm>
+#include <string>
+#include <vector>
 
 using namespace kalahari::core;
 
@@ -73,15 +75,14 @@ void copyFolder(const QString& from, const QString& to) {
     }
 }
 
-/// The files of the book in @p projectDir that hold the book: its .klh file, its chapters and
-/// the cards of its packages, with their contents
-QMap<QString, QByteArray> bookFilesOf(const QString& projectDir) {
-    QMap<QString, QByteArray> files;
+/// Every file of the folder @p projectDir, sorted, with the hash of its contents, so that a
+/// test that fails names the files
+std::vector<std::string> allFilesOf(const QString& projectDir) {
+    std::vector<std::string> files;
     for (const QString& file : filesOf(projectDir)) {
-        if (file.endsWith(QLatin1String(".klh")) || file.endsWith(QLatin1String(".kchapter")) ||
-            file.startsWith(QLatin1String("types/"))) {
-            files.insert(file, contentsOf(QDir(projectDir).filePath(file)));
-        }
+        const QByteArray hash = QCryptographicHash::hash(
+            contentsOf(QDir(projectDir).filePath(file)), QCryptographicHash::Sha256);
+        files.push_back(QStringLiteral("%1 %2").arg(file, hash.toHex()).toStdString());
     }
     return files;
 }
@@ -378,7 +379,10 @@ TEST_CASE("Package cards: a book whose type the program does not have opens read
     QTemporaryDir dir;
     auto& pm = ProjectManager::getInstance();
     const Novel novel(dir.path());
-    const QMap<QString, QByteArray> files = bookFilesOf(novel.projectDir);
+    const std::vector<std::string> files = allFilesOf(novel.projectDir);
+    REQUIRE(std::any_of(files.begin(), files.end(), [](const std::string& file) {
+        return file.rfind("project.db ", 0) == 0;
+    }));
 
     // Another computer: the program has no novel, nor the collection of stories that uses it
     installed.remove({"kalahari.novel", "kalahari.short_stories"});
@@ -388,6 +392,17 @@ TEST_CASE("Package cards: a book whose type the program does not have opens read
     CHECK(problems.isEmpty());
     CHECK(pm.isReadOnly());
     CHECK(pm.missingPackages() == QStringList{"kalahari.novel"});
+
+    // Its database is read from a copy, where the program writes what is its own (the
+    // statistics of writing, the places of the cursor); the book's folder has no lock
+    ProjectDatabase* database = pm.getDatabase();
+    REQUIRE(database != nullptr);
+    CHECK(database->isOpen());
+    const QString copyDir = database->projectPath();
+    CHECK(QDir(copyDir) != QDir(novel.projectDir));
+    database->setMetadata("test", "written");
+    CHECK(database->getMetadata("test") == "written");
+    CHECK_FALSE(QFileInfo::exists(QDir(novel.projectDir).filePath(".kalahari.lock")));
 
     // The book is named after its card of the type, and its text can be read
     const PackageCard* card = pm.packageCard("kalahari.novel");
@@ -420,9 +435,23 @@ TEST_CASE("Package cards: a book whose type the program does not have opens read
     REQUIRE(pm.closeProject(false));
     CHECK_FALSE(pm.isReadOnly());
     CHECK(pm.missingPackages().isEmpty());
+    CHECK_FALSE(QDir(copyDir).exists());
 
-    // Nothing was written into its folder: its .klh file, its chapters and its cards
-    CHECK(bookFilesOf(novel.projectDir) == files);
+    // Nothing was written into its folder: its .klh file, its chapters, its cards, its
+    // database and its backups are as they were, and there is no new file (test of
+    // 19 October: project.db and .backups appeared in such a book)
+    CHECK(allFilesOf(novel.projectDir) == files);
+
+    // A book without a database, as from another program, gets none
+    REQUIRE(QFile::remove(QDir(novel.projectDir).filePath("project.db")));
+    REQUIRE(QDir(QDir(novel.projectDir).filePath(".backups")).removeRecursively());
+    const std::vector<std::string> withoutDatabase = allFilesOf(novel.projectDir);
+    REQUIRE(pm.openProject(novel.manifest));
+    CHECK(pm.isReadOnly());
+    REQUIRE(pm.getDatabase() != nullptr);
+    CHECK(pm.getDatabase()->isOpen());
+    REQUIRE(pm.closeProject(true));
+    CHECK(allFilesOf(novel.projectDir) == withoutDatabase);
 
     // The program has the novel again: the book can be changed
     installed.restore({"kalahari.novel", "kalahari.short_stories"});

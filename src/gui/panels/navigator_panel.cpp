@@ -133,12 +133,26 @@ bool isBookType(const QString& type) {
     return type != QLatin1String("other_files") && type != QLatin1String("standalone_file");
 }
 
-/// Where Move Up (@p up) or Move Down takes element @p elementId from the start or the end of
-/// its list: before or after its group, or to the end of the nearest section before it or the
-/// start of the nearest one after it, where its kind can be (@p places, of movePlacesOf());
-/// none when its kind cannot be there
+/// The elements of section @p place of @p book
+const QList<kalahari::core::ProjectElement>& sectionOf(const kalahari::core::ProjectBook& book,
+                                                       kalahari::core::BookPlace place) {
+    switch (place) {
+    case kalahari::core::BookPlace::Front:
+        return book.frontElements;
+    case kalahari::core::BookPlace::Back:
+        return book.backElements;
+    default:
+        return book.mainElements;
+    }
+}
+
+/// Where Move Up (@p up) or Move Down takes element @p elementId of @p book from the start or
+/// the end of its list, where its kind can be (@p places, of movePlacesOf()): before or after
+/// its group; else to the end of the nearest section before it or the start of the nearest
+/// one after it, or, in a book without sections, one step up or down in the one list of its
+/// three sections. None when its kind cannot be there.
 std::optional<kalahari::core::ElementPlace> placeBeyondList(
-    const kalahari::core::BookProject& project,
+    const kalahari::core::BookProject& project, const kalahari::core::ProjectBook* book,
     const QList<kalahari::core::ElementPlace>& places, const QString& elementId, bool up) {
     const std::optional<kalahari::core::ElementPlace> from = project.placeOf(elementId);
     if (!from) {
@@ -155,7 +169,40 @@ std::optional<kalahari::core::ElementPlace> placeBeyondList(
         return places.contains(beyond) ? std::optional(beyond) : std::nullopt;
     }
     const qsizetype part = bookParts().indexOf(from->place);
-    for (qsizetype i = part + (up ? -1 : 1); part >= 0 && i >= 0 && i < bookParts().size();
+    if (part < 0) {
+        return std::nullopt;
+    }
+
+    // Without the sections, the end of a section and the start of the next one are the same
+    // place in the list: the element goes past the nearest element of another section, into
+    // the section nearer to its own of the two
+    if (book && !book->partsLayer) {
+        const auto lineOf = [book, &from](const kalahari::core::ElementPlace& place) {
+            qsizetype line = place.index;
+            for (const kalahari::core::BookPlace before : bookParts()) {
+                if (before == place.place) {
+                    break;
+                }
+                line += sectionOf(*book, before).size() - (before == from->place ? 1 : 0);
+            }
+            return line;
+        };
+        const qsizetype now = lineOf(*from);
+        std::optional<kalahari::core::ElementPlace> found;
+        for (const kalahari::core::ElementPlace& place : places) {
+            if (!place.groupId.isEmpty() || place.place == from->place) {
+                continue;
+            }
+            const qsizetype line = lineOf(place);
+            if (up ? line < now && (!found || line >= lineOf(*found))
+                   : line > now && (!found || line < lineOf(*found))) {
+                found = place;
+            }
+        }
+        return found;
+    }
+
+    for (qsizetype i = part + (up ? -1 : 1); i >= 0 && i < bookParts().size();
          i += up ? -1 : 1) {
         std::optional<kalahari::core::ElementPlace> found;
         for (const kalahari::core::ElementPlace& place : places) {
@@ -699,8 +746,10 @@ std::optional<core::ElementPlace> NavigatorPanel::dropPlaceOf(
     const QString targetId = target->data(0, Qt::UserRole).toString();
     const QString targetType = typeOf(target);
 
-    // The places the line or the frame shows, the first ones first
+    // The places the line or the frame shows, the first ones first; in a book without
+    // sections, the places of a line between two sections
     QList<core::ElementPlace> candidates;
+    QList<core::ElementPlace> sameLine;
     if (spot == DropSpot::On) {
         // Where an element of its kind is added to the section or the group
         const std::optional<core::BookPlace> section = sectionPlaceOf(targetType);
@@ -737,12 +786,16 @@ std::optional<core::ElementPlace> NavigatorPanel::dropPlaceOf(
                     break;
                 }
             }
+            if (candidates.size() > 1) {
+                sameLine = candidates;
+            }
         } else {
             // Below a group that shows its elements: first in it
             if (targetType == QLatin1String("group_element") && showsChildren(target)) {
                 candidates.append({at->place, targetId, 0});
             }
             const core::ElementPlace after{at->place, at->groupId, at->index + 1};
+            const qsizetype afterAt = candidates.size();
             candidates.append(after);
             const bool atEnd =
                 oneList && part >= 0 && after.index == without.elementsIn(at->place).size();
@@ -752,11 +805,18 @@ std::optional<core::ElementPlace> NavigatorPanel::dropPlaceOf(
                     break;
                 }
             }
+            if (candidates.size() - afterAt > 1) {
+                sameLine = candidates.mid(afterAt);
+            }
         }
     }
 
-    // The first place its kind can have; none when the element stays where it is
+    // The first place its kind can have; none when the element stays where it is, also on a
+    // line between two sections where it is already
     const QList<core::ElementPlace> places = project.movePlacesOf(registry, elementId);
+    if (sameLine.contains(*from)) {
+        return std::nullopt;
+    }
     for (const core::ElementPlace& candidate : std::as_const(candidates)) {
         if (places.contains(candidate)) {
             return candidate == *from ? std::nullopt : std::optional(candidate);
@@ -1419,11 +1479,11 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         // From the start or the end of its list, Move Up and Move Down take the element out
         // of it: before or after its part, or to the section before or after
         const std::optional<core::ElementPlace> above =
-            project && index == 0 ? placeBeyondList(*project, places, elementId, true)
+            project && index == 0 ? placeBeyondList(*project, pm.book(), places, elementId, true)
                                   : std::nullopt;
         const std::optional<core::ElementPlace> below =
             project && index >= 0 && index == siblingCount - 1
-                ? placeBeyondList(*project, places, elementId, false)
+                ? placeBeyondList(*project, pm.book(), places, elementId, false)
                 : std::nullopt;
 
         QAction* moveUpAction = menu.addAction(
@@ -1457,7 +1517,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 [this, elementId, endIndex]() { emit elementMoved(elementId, endIndex); });
         moveToEndAction->setEnabled(index >= 0 && index < endIndex);
 
-        // A sole chapter in a book without parts: no command can move it, and each says why
+        // An element with no other place in the book (its only part): no command can move it,
+        // and each says why
         if (knownKind && !elsewhere) {
             //: Why the Move commands cannot be used: the element's kind can be nowhere else in
             //: the book. In Polish: W tej książce nie ma innego miejsca na {kind:accusative}.
