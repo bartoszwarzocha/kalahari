@@ -64,6 +64,7 @@ set(TEST_SOURCES
     editor/test_format_without_selection.cpp     # Formats given without a selection
     editor/test_line_breaks.cpp                  # Line breaks in a paragraph (Shift+Enter)
     editor/test_paragraph_styles.cpp             # Paragraph styles and the objects of the text
+    editor/test_styles_view.cpp                  # How the editor shows styles, objects and formatting marks
     editor/test_auto_correct.cpp                 # Autocorrect: the changes of the text as it is typed
     editor/test_read_only_text.cpp               # A read-only text: read, copied, searched, not changed
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
@@ -176,6 +177,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     ${CMAKE_SOURCE_DIR}/src/editor/annotation.cpp  # Comments, TODOs and notes
     ${CMAKE_SOURCE_DIR}/src/editor/paragraph_styles.cpp  # Paragraph styles of a book, the objects of its text
+    ${CMAKE_SOURCE_DIR}/src/editor/formatting_marks.cpp  # The formatting marks of a paragraph
     ${CMAKE_SOURCE_DIR}/src/editor/style_resolver.cpp    # Sub-Project C WS4.4: StyleResolver (Q_OBJECT)
     ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget

@@ -118,7 +118,8 @@ SceneBreakLook sceneBreakLookFromName(const QString& name) {
 
 QString sceneBreakText(SceneBreakLook look) {
     switch (look) {
-        case SceneBreakLook::Asterisks: return QStringLiteral("*\u2002*\u2002*");
+        // Spaced as wide as a letter M: a break, not three words
+        case SceneBreakLook::Asterisks: return QStringLiteral("*\u2003*\u2003*");
         case SceneBreakLook::Asterism: return QString(QChar(0x2042));
         case SceneBreakLook::Fleuron: return QString(QChar(0x2766));
         case SceneBreakLook::Line:

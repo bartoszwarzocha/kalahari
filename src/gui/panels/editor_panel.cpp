@@ -276,6 +276,8 @@ void EditorPanel::applySettings() {
     appearance.colors.continuous.backgroundDark = color("editor.colors.backgroundDark");
     appearance.colors.continuous.textDark = color("editor.colors.textDark");
     appearance.colors.focus.inactiveDark = color("editor.colors.inactiveDark");
+    appearance.colors.formattingMarks.light = color("editor.colors.formattingMarksLight");
+    appearance.colors.formattingMarks.dark = color("editor.colors.formattingMarksDark");
 
     // Cursor
     appearance.cursor.style = static_cast<editor::CursorStyle>(settings.get<int>("editor.cursor.style"));
@@ -306,6 +308,11 @@ void EditorPanel::applySettings() {
 
     // Focus (View > Focus)
     appearance.focusMode.enabled = settings.get<bool>("editor.focus.enabled");
+
+    // The formatting marks (View > Show Formatting Marks) and how the scene breaks look
+    appearance.showFormattingMarks = settings.get<bool>("editor.showFormattingMarks");
+    appearance.sceneBreakLook = editor::sceneBreakLookFromName(
+        QString::fromStdString(settings.get<std::string>("editor.sceneBreak.style")));
 
     // Text frame border
     appearance.textFrameBorder.show = settings.get<bool>("editor.textFrameBorder.show");

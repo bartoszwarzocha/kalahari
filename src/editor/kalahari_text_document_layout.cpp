@@ -61,9 +61,6 @@ constexpr qreal SCENE_BREAK_PADDING = 0.5;
 /// Space above and below a page break, in lines of Normal
 constexpr qreal PAGE_BREAK_PADDING = 0.25;
 
-/// Width of the short line of a scene break, as a share of the line
-constexpr qreal SCENE_BREAK_LINE_SHARE = 1.0 / 6.0;
-
 /// Size of the label of a page break, as a share of the document font
 constexpr qreal PAGE_BREAK_LABEL_SCALE = 0.75;
 

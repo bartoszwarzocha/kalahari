@@ -459,6 +459,13 @@ void EditorRenderPipeline::setConfigFocus(bool enabled) {
     markRepaintOnly();
 }
 
+void EditorRenderPipeline::setConfigFormattingMarks(bool show) {
+    if (m_context.showFormattingMarks == show) return;
+
+    m_context.showFormattingMarks = show;
+    markRepaintOnly();
+}
+
 void EditorRenderPipeline::setConfigAnnotationMarkScale(double scale) {
     if (m_context.annotationMarkScale == scale) return;
 
@@ -999,7 +1006,13 @@ void EditorRenderPipeline::renderParagraphs(QPainter* painter, const QRect& clip
         // Check if paragraph intersects clip rect
         QRectF paraRect(0, widgetY, m_context.viewportSize.width(), height);
         if (paraRect.intersects(clipRect)) {
+            // Finding the marks shapes the paragraph's glyphs, which drawing it then uses (a
+            // paragraph laid out on demand keeps no glyphs once drawn)
+            const std::vector<FormattingMark> marks = m_context.showFormattingMarks
+                ? m_textSource->paragraphFormattingMarks(i)
+                : std::vector<FormattingMark>{};
             renderParagraph(painter, i, widgetY);
+            renderFormattingMarks(painter, marks, widgetY);
         }
     }
 }
@@ -1030,6 +1043,26 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
     // Draw the layout
     layout->draw(painter, QPointF(0, 0));
 
+    painter->restore();
+}
+
+void EditorRenderPipeline::renderFormattingMarks(QPainter* painter,
+                                                 const std::vector<FormattingMark>& marks,
+                                                 double widgetY) {
+    if (marks.empty()) return;
+
+    // In the paragraph's coordinates, zoomed as its text
+    painter->save();
+    painter->translate(m_context.computed.originX, widgetY);
+    const double scale = m_context.computed.viewScale;
+    if (scale != 1.0) {
+        painter->scale(scale, scale);
+    }
+    painter->setPen(m_context.colors.formattingMarks);
+    for (const FormattingMark& mark : marks) {
+        painter->setFont(mark.font);
+        painter->drawText(mark.position, QString(mark.glyph));
+    }
     painter->restore();
 }
 

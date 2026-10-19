@@ -9,19 +9,88 @@
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/gui/utils/chapter_cursor.h"
 #include "kalahari/editor/editor_appearance.h"
+#include "kalahari/editor/paragraph_styles.h"
 
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFontComboBox>
+#include <QFontMetricsF>
 #include <QFormLayout>
+#include <QHBoxLayout>
 #include <QKeySequence>
 #include <QLabel>
+#include <QPainter>
 #include <QSpinBox>
 #include <QVBoxLayout>
 
+#include <cmath>
+
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+/// Size of the font of the scene break preview, over the dialog's font
+constexpr qreal SCENE_BREAK_PREVIEW_SCALE = 1.3;
+
+/// Width of the scene break preview, in letters M of its font
+constexpr qreal SCENE_BREAK_PREVIEW_EMS = 6.0;
+
+/// Length of the short line of the scene break preview, as a share of its width
+constexpr qreal SCENE_BREAK_PREVIEW_LINE_SHARE = 0.5;
+
+/// A scene break as the editor draws it, in the editor's font
+class SceneBreakPreview : public QWidget {
+public:
+    explicit SceneBreakPreview(QWidget* parent = nullptr) : QWidget(parent) {
+        setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+        setFamily(font().family());
+    }
+
+    void setLook(editor::SceneBreakLook look) {
+        m_look = look;
+        update();
+    }
+
+    void setFamily(const QString& family) {
+        m_font = font();
+        m_font.setFamily(family);
+        if (m_font.pointSizeF() > 0) {
+            m_font.setPointSizeF(m_font.pointSizeF() * SCENE_BREAK_PREVIEW_SCALE);
+        }
+        updateGeometry();
+        update();
+    }
+
+    QSize sizeHint() const override {
+        const QFontMetricsF metrics(m_font);
+        return QSize(static_cast<int>(std::ceil(metrics.horizontalAdvance(QLatin1Char('M')) *
+                                                SCENE_BREAK_PREVIEW_EMS)),
+                     static_cast<int>(std::ceil(metrics.height())));
+    }
+
+protected:
+    void paintEvent(QPaintEvent* /*event*/) override {
+        QPainter painter(this);
+        painter.setPen(palette().color(QPalette::WindowText));
+        if (const QString text = editor::sceneBreakText(m_look); !text.isEmpty()) {
+            painter.setFont(m_font);
+            painter.drawText(rect(), Qt::AlignCenter, text);
+        } else if (m_look == editor::SceneBreakLook::Line) {
+            const qreal length = std::round(width() * SCENE_BREAK_PREVIEW_LINE_SHARE);
+            const qreal left = std::round((width() - length) / 2.0);
+            const qreal middle = std::round(height() / 2.0);
+            painter.drawLine(QPointF(left, middle), QPointF(left + length, middle));
+        }
+    }
+
+private:
+    editor::SceneBreakLook m_look = editor::SceneBreakLook::Asterisks;
+    QFont m_font;
+};
+
+}  // namespace
 
 // ============================================================================
 // Editor > General
@@ -74,6 +143,41 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     const auto syncIndent = [indent, indentSize]() { indentSize->setEnabled(indent->isChecked()); };
     connect(indent, &QCheckBox::toggled, this, syncIndent);
     whenLoaded(syncIndent);
+
+    // How the scene breaks look, shown next to the choice in the editor's font
+    auto* sceneBreak = new QComboBox();
+    const auto addLook = [sceneBreak](const QString& text, editor::SceneBreakLook look) {
+        sceneBreak->addItem(text, editor::sceneBreakLookName(look));
+    };
+    addLook(tr("* * * (three asterisks)"), editor::SceneBreakLook::Asterisks);
+    addLook(tr("%1 (asterism)").arg(QChar(0x2042)), editor::SceneBreakLook::Asterism);
+    addLook(tr("%1 (fleuron)").arg(QChar(0x2766)), editor::SceneBreakLook::Fleuron);
+    addLook(tr("Short line"), editor::SceneBreakLook::Line);
+    addLook(tr("Blank line"), editor::SceneBreakLook::Blank);
+    auto* preview = new SceneBreakPreview();
+    preview->setObjectName(QStringLiteral("sceneBreakPreview"));
+    auto* sceneBreakRow = new QWidget();
+    auto* sceneBreakLayout = new QHBoxLayout(sceneBreakRow);
+    sceneBreakLayout->setContentsMargins(0, 0, 0, 0);
+    sceneBreakLayout->addWidget(sceneBreak);
+    sceneBreakLayout->addWidget(preview);
+    sceneBreakLayout->addStretch();
+    auto* sceneBreakLabel = new QLabel(tr("Scene Break Look:"));
+    sceneBreakLabel->setBuddy(sceneBreak);
+    typography->addRow(sceneBreakLabel, sceneBreakRow);
+    bind(sceneBreak, "editor.sceneBreak.style");
+    connect(sceneBreak, &QComboBox::currentIndexChanged, preview, [sceneBreak, preview]() {
+        preview->setLook(editor::sceneBreakLookFromName(sceneBreak->currentData().toString()));
+    });
+    connect(family, &QFontComboBox::currentFontChanged, preview,
+            [preview](const QFont& font) { preview->setFamily(font.family()); });
+    whenLoaded([sceneBreak, family, preview]() {
+        preview->setLook(editor::sceneBreakLookFromName(sceneBreak->currentData().toString()));
+        preview->setFamily(family->currentFont().family());
+    });
+    addNote(typography, tr("Choose from: * * *, %1, %2, a short line, a blank line. Changes only "
+                           "the look: the file keeps the scene break.")
+                            .arg(QString(QChar(0x2042)), QString(QChar(0x2766))));
 
     // Turned on and off with View > Typewriter Scrolling
     QFormLayout* typewriter = addGroup(tr("Typewriter Scrolling"));
@@ -140,10 +244,12 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
     color(light, tr("Background"), "editor.colors.backgroundLight");
     color(light, tr("Text"), "editor.colors.textLight");
     color(light, tr("Inactive (Focus mode)"), "editor.colors.inactiveLight");
+    color(light, tr("Formatting marks"), "editor.colors.formattingMarksLight");
     QFormLayout* dark = addGroup(tr("Dark Mode Colors"));
     color(dark, tr("Background"), "editor.colors.backgroundDark");
     color(dark, tr("Text"), "editor.colors.textDark");
     color(dark, tr("Inactive (Focus mode)"), "editor.colors.inactiveDark");
+    color(dark, tr("Formatting marks"), "editor.colors.formattingMarksDark");
 
     pageLayout()->addStretch();
 }

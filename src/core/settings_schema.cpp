@@ -169,9 +169,11 @@ std::map<std::string, json> buildDefaults() {
         {"editor.colors.backgroundLight", "#ffffff"},
         {"editor.colors.textLight", "#1e1e1e"},
         {"editor.colors.inactiveLight", "#aaaaaa"},
+        {"editor.colors.formattingMarksLight", "#5b7fc0"},
         {"editor.colors.backgroundDark", "#232328"},
         {"editor.colors.textDark", "#e0e0e0"},
         {"editor.colors.inactiveDark", "#78787d"},
+        {"editor.colors.formattingMarksDark", "#7a96d0"},
 
         // Editor: cursor
         {"editor.cursor.style", 0},
@@ -204,6 +206,14 @@ std::map<std::string, json> buildDefaults() {
 
         // Editor: Focus (View > Focus dims every paragraph but the cursor's)
         {"editor.focus.enabled", false},
+
+        // Editor: the formatting marks (View > Show Formatting Marks: ¶ · ° → ↵ ¬), in the
+        // colors editor.colors.formattingMarksLight/Dark
+        {"editor.showFormattingMarks", false},
+
+        // Editor: how the scene breaks look: "asterisks" (* * *), "asterism" (⁂), "fleuron"
+        // (❦), "line" (a short line) or "blank" (an empty line); the files keep the breaks
+        {"editor.sceneBreak.style", "asterisks"},
 
         // Editor: text frame border
         {"editor.textFrameBorder.show", false},

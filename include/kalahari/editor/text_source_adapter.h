@@ -13,6 +13,7 @@
 #include <QFont>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/editor_types.h>
+#include <kalahari/editor/formatting_marks.h>
 #include <kalahari/editor/text_highlight.h>
 #include <vector>
 #include <memory>
@@ -69,6 +70,13 @@ public:
     /// @param index Paragraph index (0-based)
     /// @note Sources without annotations have none
     virtual std::vector<AnnotationMark> paragraphAnnotationMarks(size_t /*index*/) const {
+        return {};
+    }
+
+    /// @brief The formatting marks of a paragraph (see formattingMarksOf())
+    /// @param index Paragraph index (0-based)
+    /// @note Sources without them have none
+    virtual std::vector<FormattingMark> paragraphFormattingMarks(size_t /*index*/) const {
         return {};
     }
 
@@ -182,6 +190,7 @@ public:
     size_t characterCount() const override;
     std::vector<TextHighlight> paragraphHighlights(size_t index) const override;
     std::vector<AnnotationMark> paragraphAnnotationMarks(size_t index) const override;
+    std::vector<FormattingMark> paragraphFormattingMarks(size_t index) const override;
 
     QTextLayout* layout(size_t index) const override;
     bool hasLayout(size_t index) const override;

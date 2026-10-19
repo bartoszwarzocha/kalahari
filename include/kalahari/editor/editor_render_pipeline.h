@@ -192,6 +192,9 @@ public:
     /// @brief Turn Focus on or off: every paragraph but the cursor's is dimmed (repaint only)
     void setConfigFocus(bool enabled);
 
+    /// @brief Show or hide the formatting marks over the text: ¶ · ° → ↵ ¬ (repaint only)
+    void setConfigFormattingMarks(bool show);
+
     /// @brief Set the size of the annotations' marks (repaint only)
     /// @param scale 1: as the text's font asks; 2: twice as big
     void setConfigAnnotationMarkScale(double scale);
@@ -436,6 +439,10 @@ private:
 
     /// @brief Render single paragraph
     void renderParagraph(QPainter* painter, size_t index, double widgetY);
+
+    /// @brief Draw the formatting marks of a paragraph over its text, in their color
+    void renderFormattingMarks(QPainter* painter, const std::vector<FormattingMark>& marks,
+                               double widgetY);
 
     /// @brief Render selection highlights
     void renderSelection(QPainter* painter, const QRect& clipRect);

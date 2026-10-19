@@ -107,6 +107,10 @@ SceneBreakLook sceneBreakLookFromName(const QString& name);
 /// @brief The text of a scene break that is drawn as text; empty for a line or a blank
 QString sceneBreakText(SceneBreakLook look);
 
+/// @brief Width of the short line of a scene break (SceneBreakLook::Line), as a share of the
+///        line
+inline constexpr qreal SCENE_BREAK_LINE_SHARE = 1.0 / 6.0;
+
 /// @brief KML element of an object: "hr", "scene-break", "page-break"; empty for None
 QString kmlElementOf(TextObject object);
 
