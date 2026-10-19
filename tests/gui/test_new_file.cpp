@@ -712,6 +712,8 @@ TEST_CASE("New File: choosing the empty text file moves neither the tiles nor th
     NewFileDialog dialog(NewFileDialog::openBook(QStringLiteral("Untitled 1")),
                          book.pm.bookTypes());
     dialog.show();
+    // In a low window the content scrolls: its scroll bar comes after the first layout
+    QCoreApplication::processEvents();
     QCoreApplication::processEvents();
     const QRect tiles = dialog.kindList()->geometry();
     const QPoint title = dialog.titleEdit()->mapTo(&dialog, QPoint(0, 0));
