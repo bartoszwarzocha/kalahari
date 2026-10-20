@@ -182,7 +182,8 @@ QStringList textsOf(const QList<MenuItem>& items, bool enabled) {
     QStringList texts;
     for (const MenuItem& item : items) {
         if (!item.separator && item.enabled == enabled) {
-            texts << QString(item.text).remove(QLatin1Char('&'));
+            // Without its access key and its keys ("Rena&me...\tF2" is "Rename...")
+            texts << item.text.section(QLatin1Char('\t'), 0, 0).remove(QLatin1Char('&'));
         }
     }
     return texts;
@@ -329,13 +330,22 @@ TEST_CASE("Read-only book: the Navigator's menus open and show, and change nothi
     const QList<MenuItem> chapter = menuOf(itemOf(*tree, Qt::UserRole, novel.chapterId));
     CHECK(textsOf(chapter, true) == QStringList{"Open", "Properties..."});
     CHECK(textsOf(chapter, false) ==
-          QStringList{"Rename...", "Delete...", "Move...", "Move to Start", "Move Up",
-                      "Move Down", "Move to End", "Set Status"});
+          QStringList{"Add...", "Add Chapter...", "Rename...", "Delete...", "Move...",
+                      "Move to Start", "Move Up", "Move Down", "Move to End", "Set Status"});
     CHECK(greyedSayWhy(chapter));
 
     // The book's item: its properties are changed in the Book Properties window
-    const QList<MenuItem> book =
-        menuOf(itemOf(*tree, Qt::UserRole + 1, QStringLiteral("document")));
-    CHECK(textsOf(book, false).contains(QStringLiteral("Book Properties...")));
+    const QList<MenuItem> book = menuOf(itemOf(*tree, Qt::UserRole + 1, QStringLiteral("book")));
+    CHECK(textsOf(book, true) == QStringList{"Expand All", "Collapse All"});
+    CHECK(textsOf(book, false) == QStringList{"Add...", "Add Chapter...", "Add Part...",
+                                              "Rename...", "Show Sections", "Book Properties..."});
     CHECK(greyedSayWhy(book));
+
+    // The Workshop's item: nothing is added, renamed or grouped
+    const QList<MenuItem> workshop =
+        menuOf(itemOf(*tree, Qt::UserRole + 1, QStringLiteral("workshop")));
+    CHECK(textsOf(workshop, false) ==
+          QStringList{"Add...", "Add Working note...", "Add Material...", "Rename...",
+                      "Grouping"});
+    CHECK(greyedSayWhy(workshop));
 }

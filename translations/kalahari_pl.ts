@@ -947,6 +947,10 @@
         <source>Spelling and &amp;Grammar</source>
         <translation>&amp;Pisownia i gramatyka</translation>
     </message>
+    <message>
+        <source>&amp;Add...</source>
+        <translation>&amp;Dodaj...</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -1134,9 +1138,9 @@
         <translation>Program nie ma jeszcze edytora tego rodzaju.</translation>
     </message>
     <message>
-        <source>The Navigator does not show the Workshop yet.</source>
-        <extracomment>The tooltip of &quot;Create now&quot; on a kind of the Workshop, e.g. a work note. In Polish: Nawigator nie pokazuje jeszcze Warsztatu.</extracomment>
-        <translation>Nawigator nie pokazuje jeszcze Warsztatu.</translation>
+        <source>A material is a copy of a file chosen when it is added.</source>
+        <extracomment>The tooltip of &quot;Create now&quot; on a material of the Workshop, e.g. a picture. In Polish: Materiał to kopia pliku wybranego przy dodawaniu.</extracomment>
+        <translation>Materiał to kopia pliku wybranego przy dodawaniu.</translation>
     </message>
 </context>
 <context>
@@ -6471,6 +6475,11 @@ Czy zapisać go przed zamknięciem?</translation>
         <extracomment>After the title of a book open read-only, in the title bar of the window: &quot;Rain [read-only] - Kalahari&quot;. In Polish: [tylko do odczytu]</extracomment>
         <translation>[tylko do odczytu]</translation>
     </message>
+    <message>
+        <source>The program does not have an editor for the {kind} yet.</source>
+        <extracomment>The tooltip of a greyed command of the Book menu that adds an element of a kind of the Workshop, e.g. New Character.... In Polish: Program nie ma jeszcze edytora {kind:genitive}.</extracomment>
+        <translation>Program nie ma jeszcze edytora {kind:genitive}.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
@@ -6534,11 +6543,6 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>Add {Kind} Failed</source>
         <extracomment>In Polish: Nie udało się dodać {kind:genitive}</extracomment>
         <translation>Nie udało się dodać {kind:genitive}</translation>
-    </message>
-    <message>
-        <source>Could not find the place for the new {kind}.</source>
-        <extracomment>In Polish: Nie znaleziono miejsca na {kind:m=nowy|f=nową|n=nowe|p=nowe} {kind:accusative}.</extracomment>
-        <translation>Nie znaleziono miejsca na {kind:m=nowy|f=nową|n=nowe|p=nowe} {kind:accusative}.</translation>
     </message>
     <message>
         <source>{Kind} added: %1</source>
@@ -6702,6 +6706,75 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
         <extracomment>An empty text file added to the files of the book outside its text. In Polish: Dodano plik do grupy „Inne pliki”: %1</extracomment>
         <translation>Dodano plik do grupy „Inne pliki”: %1</translation>
     </message>
+    <message>
+        <source>The copy of the file could not be added to the book:
+%1
+The program&apos;s log has the details.</source>
+        <extracomment>%1: the file the writer chose. In Polish: Nie udało się dodać kopii pliku do książki:
+%1
+Szczegóły są w dzienniku programu.</extracomment>
+        <translation>Nie udało się dodać kopii pliku do książki:
+%1
+Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>Grouping Failed</source>
+        <extracomment>In Polish: Nie udało się zmienić grupowania</extracomment>
+        <translation>Nie udało się zmienić grupowania</translation>
+    </message>
+    <message>
+        <source>Workshop grouped</source>
+        <extracomment>In Polish: Warsztat jest pogrupowany</extracomment>
+        <translation>Warsztat jest pogrupowany</translation>
+    </message>
+    <message>
+        <source>Workshop not grouped</source>
+        <translation>Warsztat nie jest pogrupowany</translation>
+    </message>
+    <message>
+        <source>Open {Kind} Failed</source>
+        <extracomment>In Polish: Nie udało się otworzyć {kind:genitive}</extracomment>
+        <translation>Nie udało się otworzyć {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>The system could not open the file:
+%1</source>
+        <extracomment>%1: the file. In Polish: System nie otworzył pliku:
+%1</extracomment>
+        <translation>System nie otworzył pliku:
+%1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NavigatorPage</name>
+    <message>
+        <source>Node Menus</source>
+        <translation>Menu węzłów</translation>
+    </message>
+    <message>
+        <source>&quot;Add...&quot; and the commands named after kinds</source>
+        <translation>„Dodaj...” i polecenia z nazwą rodzaju</translation>
+    </message>
+    <message>
+        <source>Only &quot;Add...&quot;</source>
+        <translation>Tylko „Dodaj...”</translation>
+    </message>
+    <message>
+        <source>&quot;Add Chapter...&quot;, &quot;Add Part...&quot; and the like.</source>
+        <translation>„Dodaj rozdział...”, „Dodaj część...” i podobne.</translation>
+    </message>
+    <message>
+        <source>The kind is chosen in the Add Element window.</source>
+        <translation>Rodzaj wybiera się w oknie „Dodaj element”.</translation>
+    </message>
+    <message>
+        <source>Add commands:</source>
+        <translation>Polecenia dodawania:</translation>
+    </message>
+    <message>
+        <source>Applies to the menu the right mouse button opens on a node of the Navigator. The Book menu, the &quot;+&quot; button and the keys work the same in both variants.</source>
+        <translation>Dotyczy menu, które otwiera prawy przycisk myszy na węźle Nawigatora. Menu „Książka”, przycisk „+” i klawisze działają tak samo w obu wariantach.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
@@ -6746,10 +6819,6 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
         <translation>Zwiń wszystko</translation>
     </message>
     <message>
-        <source>Files</source>
-        <translation>Pliki</translation>
-    </message>
-    <message>
         <source>Draft</source>
         <translation>Szkic</translation>
     </message>
@@ -6773,10 +6842,6 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
         <source>Unassigned Files (%1)</source>
         <extracomment>The item of the Navigator with the chapter files that no element of the book has; %1: their number. In Polish: Pliki bez przydziału (%1)</extracomment>
         <translation>Pliki bez przydziału (%1)</translation>
-    </message>
-    <message>
-        <source>Chapter files in the book&apos;s folder that no element of the book has</source>
-        <translation>Pliki tekstów w folderze książki, które nie należą do żadnego jej elementu</translation>
     </message>
     <message>
         <source>%1 – %2</source>
@@ -6883,18 +6948,6 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
         <translation>&amp;Usuń...</translation>
     </message>
     <message>
-        <source>&amp;Add Item...</source>
-        <translation>&amp;Dodaj element...</translation>
-    </message>
-    <message>
-        <source>Add Item at the &amp;Beginning of the Book...</source>
-        <translation>Dodaj element na &amp;początku książki...</translation>
-    </message>
-    <message>
-        <source>Add Item at the &amp;End of the Book...</source>
-        <translation>Dodaj element na &amp;końcu książki...</translation>
-    </message>
-    <message>
         <source>&amp;Show Sections</source>
         <translation>Pokaż &amp;sekcje</translation>
     </message>
@@ -6941,6 +6994,55 @@ Usunąć je na zawsze? Nie będzie można ich przywrócić.</translation>
         <source>&amp;Add to Book</source>
         <extracomment>The command of a new file that has no file yet; no window follows. In Polish: &amp;Dodaj do książki</extracomment>
         <translation>&amp;Dodaj do książki</translation>
+    </message>
+    <message>
+        <source>Add... (%1)</source>
+        <extracomment>The &quot;+&quot; button of the Navigator: Add... on the current node; %1: its keys. In Polish: Dodaj... (%1)</extracomment>
+        <translation>Dodaj... (%1)</translation>
+    </message>
+    <message>
+        <source>Chapter files in the folders of the book and of the Workshop that no element has</source>
+        <extracomment>In Polish: Pliki tekstów w folderach książki i Warsztatu, które nie należą do żadnego elementu</extracomment>
+        <translation>Pliki tekstów w folderach książki i Warsztatu, które nie należą do żadnego elementu</translation>
+    </message>
+    <message>
+        <source>Libraries</source>
+        <extracomment>The group of the cards of the Workshop (characters, locations, items) when it is grouped. In Polish: Biblioteki</extracomment>
+        <translation>Biblioteki</translation>
+    </message>
+    <message>
+        <source>Resources</source>
+        <translation>Zasoby</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <extracomment>The node of the book in the Navigator, unless the writer names it. In Polish: Książka</extracomment>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Workshop</source>
+        <extracomment>The node of the Workshop in the Navigator: the elements of the work on the book, which the finished book does not have, unless the writer names it. In Polish: Warsztat</extracomment>
+        <translation>Warsztat</translation>
+    </message>
+    <message>
+        <source>&amp;Add...</source>
+        <extracomment>The command of a node of the Navigator: the Add Element window with the kinds of the node. In Polish: Dod&amp;aj...</extracomment>
+        <translation>Dod&amp;aj...</translation>
+    </message>
+    <message>
+        <source>Project P&amp;roperties...</source>
+        <extracomment>The command of the project&apos;s node in the Navigator. In Polish: Właściwości &amp;projektu...</extracomment>
+        <translation>Właściwości &amp;projektu...</translation>
+    </message>
+    <message>
+        <source>Project Properties (in preparation)</source>
+        <extracomment>Why Project Properties... is grey. In Polish: Właściwości projektu (w przygotowaniu)</extracomment>
+        <translation>Właściwości projektu (w przygotowaniu)</translation>
+    </message>
+    <message>
+        <source>&amp;Grouping</source>
+        <extracomment>Whether the Workshop has its cards in Libraries and its materials in Resources. In Polish: &amp;Grupowanie</extracomment>
+        <translation>&amp;Grupowanie</translation>
     </message>
 </context>
 <context>
@@ -7571,6 +7673,10 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Keyboard Shortcuts</source>
         <translation>Skróty klawiszowe</translation>
+    </message>
+    <message>
+        <source>Navigator</source>
+        <translation>Nawigator</translation>
     </message>
 </context>
 <context>
@@ -8293,6 +8399,26 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>starts a new line in the paragraph</source>
         <translation>zaczyna nowy wiersz w akapicie</translation>
+    </message>
+    <message>
+        <source>Fixed: the Navigator</source>
+        <translation>Stałe: Nawigator</translation>
+    </message>
+    <message>
+        <source>Add... on the node</source>
+        <translation>Dodaj... na węźle</translation>
+    </message>
+    <message>
+        <source>Open the element</source>
+        <translation>Otwórz element</translation>
+    </message>
+    <message>
+        <source>Rename the node</source>
+        <translation>Zmień nazwę węzła</translation>
+    </message>
+    <message>
+        <source>Delete the element</source>
+        <translation>Usuń element</translation>
     </message>
 </context>
 <context>
@@ -10878,136 +11004,6 @@ The button that moves the element. In Polish: Przenieś</extracomment>
     </message>
 </context>
 <context>
-    <name>kalahari::gui::dialogs::NewElementDialog</name>
-    <message>
-        <source>Title</source>
-        <translation>Tytuł</translation>
-    </message>
-    <message>
-        <source>Add</source>
-        <translation>Dodaj</translation>
-    </message>
-    <message>
-        <source>Kind</source>
-        <translation>Rodzaj</translation>
-    </message>
-    <message>
-        <source>The list only shows how the book will look.</source>
-        <translation>Lista pokazuje tylko, jak będzie wyglądać książka.</translation>
-    </message>
-    <message>
-        <source>%1, after &quot;%2&quot;</source>
-        <extracomment>An option: %1 is where in a part of the book, &quot;At the end of the main section&quot;; %2 is the title of its last element. In Polish: %1, za elementem „%2”</extracomment>
-        <translation>%1, za elementem „%2”</translation>
-    </message>
-    <message>
-        <source>%1, before &quot;%2&quot;</source>
-        <extracomment>An option: %1 is where in a part of the book, &quot;At the end of the main section&quot;; %2 is the title of the element the new one goes before. In Polish: %1, przed elementem „%2”</extracomment>
-        <translation>%1, przed elementem „%2”</translation>
-    </message>
-    <message>
-        <source>First in the {group} &quot;%1&quot;</source>
-        <extracomment>In Polish: Jako pierwszy element {group:genitive} „%1”</extracomment>
-        <translation>Jako pierwszy element {group:genitive} „%1”</translation>
-    </message>
-    <message>
-        <source>Last in the {group} &quot;%1&quot;</source>
-        <extracomment>In Polish: Jako ostatni element {group:genitive} „%1”</extracomment>
-        <translation>Jako ostatni element {group:genitive} „%1”</translation>
-    </message>
-    <message>
-        <source>Move &quot;%1&quot; to the end of the new {kind}</source>
-        <extracomment>In Polish: Przenieś element „%1” na koniec {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive}</extracomment>
-        <translation>Przenieś element „%1” na koniec {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive}</translation>
-    </message>
-    <message>
-        <source>Move %1 to the end of the new {kind}</source>
-        <translation>Przenieś elementy %1 na koniec {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive}</translation>
-    </message>
-    <message>
-        <source>&quot;%1&quot; is now the last element %2. At the end of the new {kind} it stays the last one.</source>
-        <extracomment>In Polish: Element „%1” jest teraz ostatni %2. Na końcu {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} nadal będzie ostatni.</extracomment>
-        <translation>Element „%1” jest teraz ostatni %2. Na końcu {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} nadal będzie ostatni.</translation>
-    </message>
-    <message>
-        <source>%1 are now the last elements %2. At the end of the new {kind} they stay the last ones.</source>
-        <translation>Elementy %1 są teraz ostatnie %2. Na końcu {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} nadal będą ostatnie.</translation>
-    </message>
-    <message>
-        <source>&quot;%1&quot; stays where it is, and the {main:plural} added to the new {kind} go after it.</source>
-        <extracomment>{main:plural}: the main texts of the book, &quot;chapters&quot;, &quot;stories&quot;. In Polish: Element „%1” zostanie na swoim miejscu, a {main:plural} dodane do {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} znajdą się za nim.</extracomment>
-        <translation>Element „%1” zostanie na swoim miejscu, a {main:plural} dodane do {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} znajdą się za nim.</translation>
-    </message>
-    <message>
-        <source>%1 stay where they are, and the {main:plural} added to the new {kind} go after them.</source>
-        <translation>Elementy %1 zostaną na swoich miejscach, a {main:plural} dodane do {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} znajdą się za nimi.</translation>
-    </message>
-    <message>
-        <source>After adding the {kind}</source>
-        <extracomment>The list of the body as it will be. In Polish: Po dodaniu {kind:genitive}</extracomment>
-        <translation>Po dodaniu {kind:genitive}</translation>
-    </message>
-    <message>
-        <source>Choose where the new {kind} {kind:s=goes|p=go} in the book.</source>
-        <extracomment>In Polish: Wybierz, gdzie w książce {kind:m=ma się znaleźć nowy|f=ma się znaleźć nowa|n=ma się znaleźć nowe|p=mają się znaleźć nowe} {kind}.</extracomment>
-        <translation>Wybierz, gdzie w książce {kind:m=ma się znaleźć nowy|f=ma się znaleźć nowa|n=ma się znaleźć nowe|p=mają się znaleźć nowe} {kind}.</translation>
-    </message>
-    <message>
-        <source>The {kind} {kind:s=is|p=are} added as the last {kind:s=one|p=ones} %1.</source>
-        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=ostatni|f=ostatnia|n=ostatnie|p=ostatnie} %1.</extracomment>
-        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=ostatni|f=ostatnia|n=ostatnie|p=ostatnie} %1.</translation>
-    </message>
-    <message>
-        <source>The {kind} {kind:s=is|p=are} added %1.</source>
-        <extracomment>%1: where in a part of the book, &quot;at the end of the main section&quot;. In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1.</extracomment>
-        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1.</translation>
-    </message>
-    <message>
-        <source>The {kind} {kind:s=is|p=are} added %1, before &quot;%2&quot;.</source>
-        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1, przed elementem „%2”.</extracomment>
-        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1, przed elementem „%2”.</translation>
-    </message>
-    <message>
-        <source>Add {Kind}</source>
-        <extracomment>In Polish: Dodaj {kind:accusative}</extracomment>
-        <translation>Dodaj {kind:accusative}</translation>
-    </message>
-    <message>
-        <source>&quot;%1&quot; is the last element %2, so the new {kind} {kind:s=goes|p=go} before it, at the end of the {group} &quot;%3&quot;. You can choose another place.</source>
-        <extracomment>%2: the body with its preposition, &quot;in the main section&quot;; %3: the part. In Polish: Element „%1” jest ostatni %2, więc {kind:m=nowy|f=nowa|n=nowe|p=nowe} {kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} przed nim, na końcu {group:genitive} „%3”. Możesz wybrać inne miejsce.</extracomment>
-        <translation>Element „%1” jest ostatni %2, więc {kind:m=nowy|f=nowa|n=nowe|p=nowe} {kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} przed nim, na końcu {group:genitive} „%3”. Możesz wybrać inne miejsce.</translation>
-    </message>
-    <message>
-        <source>%1 are the last elements %2, so the new {kind} {kind:s=goes|p=go} before them, at the end of the {group} &quot;%3&quot;. You can choose another place.</source>
-        <translation>Elementy %1 są ostatnie %2, więc {kind:m=nowy|f=nowa|n=nowe|p=nowe} {kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} przed nimi, na końcu {group:genitive} „%3”. Możesz wybrać inne miejsce.</translation>
-    </message>
-    <message>
-        <source>The {kind} {kind:s=is|p=are} added as the first {kind:s=one|p=ones} %1.</source>
-        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=pierwszy|f=pierwsza|n=pierwsze|p=pierwsze} %1.</extracomment>
-        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=pierwszy|f=pierwsza|n=pierwsze|p=pierwsze} %1.</translation>
-    </message>
-    <message>
-        <source>The {kind} {kind:s=is|p=are} added as the last {kind:s=one|p=ones} in the {group} &quot;%1&quot;.</source>
-        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=ostatni|f=ostatnia|n=ostatnie| p=ostatnie} w {group:locative} „%1”.</extracomment>
-        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} jako {kind:m=ostatni|f=ostatnia|n=ostatnie|p=ostatnie} w {group:locative} „%1”.</translation>
-    </message>
-    <message>
-        <source>The {kind} {kind:s=is|p=are} added at the end of the {group} &quot;%1&quot;, before &quot;%2&quot;.</source>
-        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} na końcu {group:genitive} „%1”, przed elementem „%2”.</extracomment>
-        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} na końcu {group:genitive} „%1”, przed elementem „%2”.</translation>
-    </message>
-    <message>
-        <source>The {kind} {kind:s=is|p=are} added %1, after &quot;%2&quot;.</source>
-        <extracomment>In Polish: {Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1, za elementem „%2”.</extracomment>
-        <translation>{Kind} {kind:m=zostanie dodany|f=zostanie dodana|n=zostanie dodane|p=zostaną dodane} %1, za elementem „%2”.</translation>
-    </message>
-    <message>
-        <source>Before &quot;%1&quot;, at the end of the {group} &quot;%2&quot;</source>
-        <extracomment>%1: the element the new one goes before; %2: the part it is in. In Polish: Przed elementem „%1”, na końcu {group:genitive} „%2”</extracomment>
-        <translation>Przed elementem „%1”, na końcu {group:genitive} „%2”</translation>
-    </message>
-</context>
-<context>
     <name>kalahari::gui::dialogs::NewFileDialog</name>
     <message>
         <source>in {group:plural}</source>
@@ -11150,6 +11146,157 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <source>Choose the kind of the file, its title and where it goes.</source>
         <extracomment>The heading of the New File window. In Polish: Wybierz rodzaj pliku, jego tytuł i miejsce, w którym ma się znaleźć.</extracomment>
         <translation>Wybierz rodzaj pliku, jego tytuł i miejsce, w którym ma się znaleźć.</translation>
+    </message>
+    <message>
+        <source>in the Workshop, in the group &quot;%1&quot;</source>
+        <extracomment>Where the elements of a kind of the Workshop are: in the group of the kind in the Navigator; %1: its name, e.g. Work Notes. In Polish: w Warsztacie, w grupie „%1”</extracomment>
+        <translation>w Warsztacie, w grupie „%1”</translation>
+    </message>
+    <message>
+        <source>none: {kind:indefinite} has no text of its own</source>
+        <extracomment>The file of a new group, e.g. a part: it has none. In Polish: brak – {kind} nie ma własnego tekstu</extracomment>
+        <translation>brak – {kind} nie ma własnego tekstu</translation>
+    </message>
+    <message>
+        <source>a copy of the chosen file in the folder &quot;%1&quot;, with the same name</source>
+        <extracomment>The file of a new material: a copy of the file the writer chooses; %1: the folder of the Workshop. In Polish: kopia wybranego pliku w folderze „%1”, z tą samą nazwą</extracomment>
+        <translation>kopia wybranego pliku w folderze „%1”, z tą samą nazwą</translation>
+    </message>
+    <message>
+        <source>A copy of the file goes to the book&apos;s &quot;%1&quot; folder; the file on the disk stays as it is. The {kind} goes to the group &quot;%2&quot; at the place of its title.</source>
+        <extracomment>Where a new material goes, in place of the list of places; %1: the folder of the Workshop, %2: the group of materials in the Navigator. In Polish: Kopia pliku trafi do folderu „%1” książki; plik na dysku zostaje bez zmian. {Kind} trafi do grupy „%2” na miejsce wynikające z {kind:m=jego|f=jej|n=jego|p=ich} tytułu.</extracomment>
+        <translation>Kopia pliku trafi do folderu „%1” książki; plik na dysku zostaje bez zmian. {Kind} trafi do grupy „%2” na miejsce wynikające z {kind:m=jego|f=jej|n=jego|p=ich} tytułu.</translation>
+    </message>
+    <message>
+        <source>In the Workshop the elements are in alphabetical order, so the {kind} goes to the group &quot;%1&quot; at the place of its title.</source>
+        <extracomment>Where a new element of the Workshop goes, in place of the list of places; %1: the group of its kind in the Navigator. In Polish: W Warsztacie elementy są ułożone alfabetycznie, więc {kind} trafi do grupy „%1” na miejsce wynikające z {kind:m=jego|f=jej|n=jego|p=ich} tytułu.</extracomment>
+        <translation>W Warsztacie elementy są ułożone alfabetycznie, więc {kind} trafi do grupy „%1” na miejsce wynikające z {kind:m=jego|f=jej|n=jego|p=ich} tytułu.</translation>
+    </message>
+    <message>
+        <source>In the {group} &quot;%1&quot;</source>
+        <extracomment>The name of the tiles of the kinds of a group, e.g. a part, in the Add Element window; %1: its title. In Polish: W {group:locative} „%1”</extracomment>
+        <translation>W {group:locative} „%1”</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>&amp;Status:</source>
+        <extracomment>The status of a new text element of the book. In Polish: &amp;Stan:</extracomment>
+        <translation>&amp;Stan:</translation>
+    </message>
+    <message>
+        <source>Draft</source>
+        <extracomment>A status of a text element. In Polish: Szkic</extracomment>
+        <translation>Szkic</translation>
+    </message>
+    <message>
+        <source>Revision</source>
+        <extracomment>A status of a text element. In Polish: Poprawki</extracomment>
+        <translation>Poprawki</translation>
+    </message>
+    <message>
+        <source>Final</source>
+        <extracomment>A status of a text element. In Polish: Gotowy</extracomment>
+        <translation>Gotowy</translation>
+    </message>
+    <message>
+        <source>Fi&amp;le:</source>
+        <extracomment>The file a new material is a copy of. In Polish: P&amp;lik:</extracomment>
+        <translation>P&amp;lik:</translation>
+    </message>
+    <message>
+        <source>C&amp;hoose...</source>
+        <extracomment>Chooses the file of a new material again. In Polish: Wy&amp;bierz...</extracomment>
+        <translation>Wy&amp;bierz...</translation>
+    </message>
+    <message>
+        <source>The list only shows how the book will look.</source>
+        <extracomment>Under the list of a new group, which only shows the book with it. In Polish: Lista tylko pokazuje, jak będzie wyglądać książka.</extracomment>
+        <translation>Lista pokazuje tylko, jak będzie wyglądać książka.</translation>
+    </message>
+    <message>
+        <source>Move &quot;%1&quot; to the end of the new {kind}</source>
+        <extracomment>In Polish: Przenieś element „%1” na koniec {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive}</extracomment>
+        <translation>Przenieś element „%1” na koniec {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>Move %1 to the end of the new {kind}</source>
+        <translation>Przenieś elementy %1 na koniec {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is now the last element %2. At the end of the new {kind} it stays the last one.</source>
+        <extracomment>In Polish: Element „%1” jest teraz ostatni %2. Na końcu {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} nadal będzie ostatni.</extracomment>
+        <translation>Element „%1” jest teraz ostatni %2. Na końcu {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} nadal będzie ostatni.</translation>
+    </message>
+    <message>
+        <source>%1 are now the last elements %2. At the end of the new {kind} they stay the last ones.</source>
+        <translation>Elementy %1 są teraz ostatnie %2. Na końcu {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} nadal będą ostatnie.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; stays where it is, and the {main:plural} added to the new {kind} go after it.</source>
+        <extracomment>{main:plural}: the main texts of the book, &quot;chapters&quot;, &quot;stories&quot;. In Polish: Element „%1” zostanie na swoim miejscu, a {main:plural} dodane do {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} znajdą się za nim.</extracomment>
+        <translation>Element „%1” zostanie na swoim miejscu, a {main:plural} dodane do {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} znajdą się za nim.</translation>
+    </message>
+    <message>
+        <source>%1 stay where they are, and the {main:plural} added to the new {kind} go after them.</source>
+        <translation>Elementy %1 zostaną na swoich miejscach, a {main:plural} dodane do {kind:m=nowego|f=nowej|n=nowego|p=nowych} {kind:genitive} znajdą się za nimi.</translation>
+    </message>
+    <message>
+        <source>After adding the {kind}</source>
+        <extracomment>The list of a part of the book with a new group, e.g. a part. In Polish: Po dodaniu {kind:genitive}</extracomment>
+        <translation>Po dodaniu {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>Choose the file of the {kind} and its title.</source>
+        <extracomment>The heading of the Add Element window for a material. In Polish: Wybierz plik {kind:genitive} i {kind:m=jego|f=jej|n=jego|p=ich} tytuł.</extracomment>
+        <translation>Wybierz plik {kind:genitive} i {kind:m=jego|f=jej|n=jego|p=ich} tytuł.</translation>
+    </message>
+    <message>
+        <source>Choose the kind of the new element of the Workshop and its title.</source>
+        <extracomment>The heading of the Add Element window in the Workshop. In Polish: Wybierz rodzaj nowego elementu Warsztatu i jego tytuł.</extracomment>
+        <translation>Wybierz rodzaj nowego elementu Warsztatu i jego tytuł.</translation>
+    </message>
+    <message>
+        <source>Choose the kind of the new element, its title and place.</source>
+        <extracomment>The heading of the Add Element window for an element without a status, e.g. a part. In Polish: Wybierz rodzaj nowego elementu, jego tytuł i miejsce.</extracomment>
+        <translation>Wybierz rodzaj nowego elementu, jego tytuł i miejsce.</translation>
+    </message>
+    <message>
+        <source>Choose the kind of the new element, its title, status and place.</source>
+        <extracomment>The heading of the Add Element window. In Polish: Wybierz rodzaj nowego elementu, jego tytuł, stan i miejsce.</extracomment>
+        <translation>Wybierz rodzaj nowego elementu, jego tytuł, stan i miejsce.</translation>
+    </message>
+    <message>
+        <source>Add Element</source>
+        <extracomment>The window of a new element at the place of the Navigator or of the editor it was opened on. In Polish: Dodaj element</extracomment>
+        <translation>Dodaj element</translation>
+    </message>
+    <message>
+        <source>All Files (*)</source>
+        <extracomment>The filters of the window of files of a new material: any file first. In Polish: Wszystkie pliki (*)</extracomment>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp)</source>
+        <extracomment>In Polish: Obrazy (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp)</extracomment>
+        <translation>Obrazy (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp)</translation>
+    </message>
+    <message>
+        <source>PDF Files (*.pdf)</source>
+        <extracomment>In Polish: Pliki PDF (*.pdf)</extracomment>
+        <translation>Pliki PDF (*.pdf)</translation>
+    </message>
+    <message>
+        <source>Choose the File of the {Kind}</source>
+        <extracomment>The system&apos;s window of files of a new material. In Polish: Wybierz plik {kind:genitive}</extracomment>
+        <translation>Wybierz plik {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>no file chosen</source>
+        <extracomment>The file of a new material before the writer chooses one. In Polish: nie wybrano pliku</extracomment>
+        <translation>nie wybrano pliku</translation>
     </message>
 </context>
 <context>

@@ -1258,9 +1258,15 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
         core::fillWords(tr("Notes and comments for {kind:s=this|p=these} {kind}"), nouns));
 
     // A file of the book outside its text has no status and no notes: only its title and its
-    // words
+    // words. An element of the Workshop, which the finished book does not have, has no status
+    // either, and one with no text of its own (a material) no words.
     const bool bookFile = !element->hasKind();
-    m_chapterInfoLayout->setRowVisible(m_chapterStatusCombo, !bookFile);
+    const std::optional<core::ElementPlace> at =
+        pm.project() ? pm.project()->placeOf(elementId) : std::nullopt;
+    const bool workshop = at && at->place == core::BookPlace::Workshop;
+    const bool text = pm.formOf(*element) == core::ElementForm::Text;
+    m_chapterInfoLayout->setRowVisible(m_chapterStatusCombo, !bookFile && !workshop && text);
+    m_chapterInfoLayout->setRowVisible(m_chapterWordCountLabel, bookFile || text);
     m_chapterNotesGroup->setVisible(!bookFile);
 
     // Set updating flag to prevent recursive updates

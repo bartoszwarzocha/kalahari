@@ -16,6 +16,7 @@
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/gui/add_target.h"
 
 class QTabWidget;
 class QStatusBar;
@@ -32,10 +33,6 @@ namespace editor {
 }
 
 namespace gui {
-
-namespace dialogs {
-    enum class NewElementKind;
-}
 
 class NavigatorPanel;
 class PropertiesPanel;
@@ -222,16 +219,40 @@ public slots:
     /// @param place Its new place, in the book without it
     void onElementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place);
 
-    /// @brief Handle add chapter request from navigator context menu
-    /// @param groupId Group (part) to add the chapter to; empty: the body of the book
-    void onRequestAddChapter(const QString& groupId);
+    /// @brief Add an element in the Add Element window, with the kinds of @p target, the
+    /// place of the Navigator or of the editor it was opened on; saves the .klh file
+    ///
+    /// The new element is selected in the Navigator; a text element opens in the editor with
+    /// the cursor at the start of its text, and a material is a copy of the file the writer
+    /// chooses.
+    void onRequestAdd(const kalahari::gui::AddTarget& target);
 
-    /// @brief Handle add part request from navigator context menu
-    void onRequestAddPart();
+    /// @brief Book > Add...: Add Element for what is in front (addTargetHere())
+    void onRequestAddHere();
 
-    /// @brief Handle add item request from navigator context menu (front/back section)
-    /// @param sectionType Section type ("front_matter" or "back_matter")
-    void onRequestAddItem(const QString& sectionType);
+    /// @brief Book > New Chapter...: Add Element for what is in front with the main text kind
+    /// of the book chosen; the whole book when the list of the element in front cannot have it
+    void onRequestNewChapter();
+
+    /// @brief Where Book > Add... adds: right after the element of the editor's tab in front,
+    /// with its kind (in the Workshop, in the group of its kind); the whole book for any other
+    /// tab and for the Dashboard
+    AddTarget addTargetHere() const;
+
+    /// @brief Ask for a new name of the node of the book or of the Workshop and give it; saves
+    /// the .klh file
+    ///
+    /// The default name ("Book", "Workshop") is no name of the writer's own: the node keeps
+    /// following the language of the program.
+    /// @param itemType "book" or "workshop"
+    void onRequestRenameNode(const QString& itemType);
+
+    /// @brief Group the Workshop (Libraries and Resources) or not; saves the .klh file
+    void onRequestWorkshopGrouped(bool grouped);
+
+    /// @brief Open material @p elementId of the Workshop in the program the system gives its
+    /// file; the writer is told when it cannot be opened
+    void onRequestOpenMaterial(const QString& elementId);
 
     /// @brief New File with a book open: a new element of the kind, with the title and at the
     /// place the writer chooses in the New File window, or an empty text file of the book
@@ -306,15 +327,9 @@ private:
     /// the writer is told when the book cannot be saved
     void moveElementTo(const QString& elementId, const core::ElementPlace& place);
 
-    /// @brief Ask for a new element and add it at the end of @p place of the book, or of
-    /// group @p groupId
-    /// @param dialogKind What the element is, for the dialog
-    /// @param kinds Kinds it can have, in the order the dialog offers them
-    /// @param current The kind chosen at the start; the first one when it is not one of them
-    /// @param groupTitle Title of group @p groupId, for the dialog
-    void addElement(dialogs::NewElementKind dialogKind, const QList<core::KindRef>& kinds,
-                    const core::KindRef& current, core::BookPlace place,
-                    const QString& groupId, const QString& groupTitle);
+    /// @brief The new element @p elementId with @p title is shown in the Navigator; a text
+    /// element opens in the editor with the cursor at the start of its text
+    void showAdded(const QString& elementId, const QString& title);
 
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;

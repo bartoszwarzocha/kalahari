@@ -120,7 +120,37 @@ TEST_CASE("Navigator restores a fully collapsed tree", "[gui][navigator]") {
     panel.loadProject(project, registry());
     panel.restoreExpansionState(projectId);
 
-    CHECK(panel.expandedItemIds().isEmpty());
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        INFO((*it)->text(0).toStdString());
+        CHECK_FALSE((*it)->isExpanded());
+    }
+}
+
+TEST_CASE("Navigator opens the book and the Workshop for a state saved before they had nodes",
+          "[gui][navigator]") {
+    gui::NavigatorPanel panel;
+    auto* tree = panel.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    panel.loadProject(makeProject(), registry());
+
+    // The project and the main section open, as an older version saved them
+    panel.setExpandedItemIds({QStringLiteral("type:document:Test Book"),
+                              QStringLiteral("type:section_body:Main Section")});
+
+    REQUIRE(tree->topLevelItem(0) != nullptr);
+    CHECK(tree->topLevelItem(0)->isExpanded());
+    CHECK(findSection(tree, "book")->isExpanded());
+    CHECK(findSection(tree, "workshop")->isExpanded());
+    CHECK(findSection(tree, "section_body")->isExpanded());
+    CHECK_FALSE(findSection(tree, "section_frontmatter")->isExpanded());
+    CHECK_FALSE(findItem(tree, "part-001")->isExpanded());
+
+    // Saved again, the state keeps the book and the Workshop as they are
+    panel.setExpandedItemIds(panel.expandedItemIds());
+    CHECK(findSection(tree, "book")->isExpanded());
+    findSection(tree, "workshop")->setExpanded(false);
+    panel.setExpandedItemIds(panel.expandedItemIds());
+    CHECK_FALSE(findSection(tree, "workshop")->isExpanded());
 }
 
 TEST_CASE("Navigator keeps defaults when no state was saved", "[gui][navigator]") {

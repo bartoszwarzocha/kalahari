@@ -37,9 +37,9 @@ class KindTile;
 /// checks the kind for the book, and on a checked kind "Create now", which makes an element of
 /// the kind with the book. A click on the tile checks or unchecks its kind. A kind that can be
 /// in more parts of the book has a tile in each, checked together; "Create now" makes the
-/// element in the part of its tile. Kinds that open in a window the program does not have yet
-/// cannot be created now, and neither can the kinds of the Workshop, which the Navigator does
-/// not show yet.
+/// element in the part of its tile, also in the Workshop. Kinds that open in a window the
+/// program does not have yet cannot be created now, and neither can materials, which are copies
+/// of files chosen when they are added.
 class KindPalette : public QWidget {
     Q_OBJECT
 
@@ -79,9 +79,9 @@ public:
     /// @brief The kinds of the tiles of the group of @p place, in their order
     QList<core::KindRef> kindsIn(core::BookPlace place) const;
 
-    /// @brief Whether "Create now" can be checked on the tile of @p kind in @p place: the
-    ///        program can open its elements, and the Navigator shows them there
-    static bool canCreateNow(const core::KindRef& kind, core::BookPlace place);
+    /// @brief Whether "Create now" can be checked on the tile of @p kind: the program can open
+    ///        its elements, and it makes them without a file chosen (not a material)
+    static bool canCreateNow(const core::KindRef& kind);
 
 signals:
     /// @brief The writer checked or unchecked a kind or "Create now"

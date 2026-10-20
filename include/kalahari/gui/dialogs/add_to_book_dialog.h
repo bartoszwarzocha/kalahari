@@ -7,7 +7,6 @@
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
-#include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/gui/widgets/element_place_picker.h"
 
 #include <QList>
@@ -21,6 +20,14 @@ class QRadioButton;
 namespace kalahari {
 namespace gui {
 namespace dialogs {
+
+/// @brief A kind the new element can have, with the title it starts with and its place
+struct NewElementChoice {
+    core::KindRef kind;          ///< Kind of the element
+    QString title;               ///< Title of an element of the kind, e.g. "Chapter 3"
+    core::ElementPlace place{};  ///< Place an element of the kind takes when the writer does
+                                 ///< not choose it (ProjectManager::newPlaceOf())
+};
 
 /// @brief Add to Book: a file as a new text element of the book
 ///

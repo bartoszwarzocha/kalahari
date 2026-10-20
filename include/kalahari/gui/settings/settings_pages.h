@@ -201,6 +201,17 @@ public:
     explicit AnnotationsPage(QWidget* parent = nullptr);
 };
 
+/// @brief Navigator: the commands that the menu of a node of the Navigator has for adding
+class NavigatorPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit NavigatorPage(QWidget* parent = nullptr);
+
+private:
+    QRadioButton* m_named = nullptr;   ///< "Add..." and the commands named after kinds
+    QRadioButton* m_single = nullptr;  ///< "Add..." only
+};
+
 /// @brief Files > Folders: the folders of the books and of the archives, and where and how
 /// many backups of the database of each book are kept
 ///

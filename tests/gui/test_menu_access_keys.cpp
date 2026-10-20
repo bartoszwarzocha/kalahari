@@ -47,6 +47,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QDockWidget>
+#include <QFile>
 #include <QHash>
 #include <QHostAddress>
 #include <QLabel>
@@ -594,6 +595,27 @@ void checkNavigatorMenus(QStringList& problems) {
     contents.title = QStringLiteral("Contents");
     REQUIRE(pm.book() != nullptr);
     pm.book()->frontElements.append(contents);
+    // The Workshop with a working note and a material, grouped: the groups of its kinds in
+    // Resources
+    const core::BookTypeRegistry& types = pm.bookTypes();
+    REQUIRE_FALSE(pm.addElement(types.findKind(QStringLiteral("kalahari.base"),
+                                               QStringLiteral("work_note")),
+                                QStringLiteral("Ideas"), core::BookPlace::Workshop)
+                      .isEmpty());
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString picture = QDir(files.path()).filePath(QStringLiteral("map.png"));
+    {
+        QFile file(picture);
+        REQUIRE(file.open(QIODevice::WriteOnly));
+        REQUIRE(file.write("PNG") == 3);
+    }
+    REQUIRE_FALSE(pm.addMaterial(picture,
+                                 types.findKind(QStringLiteral("kalahari.base"),
+                                                QStringLiteral("material")),
+                                 QStringLiteral("Map"))
+                      .isEmpty());
+    REQUIRE(pm.setWorkshopGrouped(true));
 
     QWidget window;
     window.setAttribute(Qt::WA_DontShowOnScreen);
@@ -624,10 +646,12 @@ void checkNavigatorMenus(QStringList& problems) {
         return kinds;
     };
     CHECK(readMenus(QStringLiteral("Navigator › ")) ==
-          QSet<QString>{QStringLiteral("document"), QStringLiteral("section_frontmatter"),
-                        QStringLiteral("section_body"), QStringLiteral("section_backmatter"),
-                        QStringLiteral("text_element"), QStringLiteral("group_element"),
-                        QStringLiteral("window_element"), QStringLiteral("unassigned_files"),
+          QSet<QString>{QStringLiteral("document"), QStringLiteral("book"),
+                        QStringLiteral("section_frontmatter"), QStringLiteral("section_body"),
+                        QStringLiteral("section_backmatter"), QStringLiteral("text_element"),
+                        QStringLiteral("group_element"), QStringLiteral("window_element"),
+                        QStringLiteral("workshop"), QStringLiteral("workshop_group"),
+                        QStringLiteral("workshop_shelf"), QStringLiteral("unassigned_files"),
                         QStringLiteral("unassigned_file"), QStringLiteral("other_files"),
                         QStringLiteral("standalone_file")});
 
@@ -636,7 +660,7 @@ void checkNavigatorMenus(QStringList& problems) {
     coordinator.refreshNavigator();
     const QSet<QString> withoutSections =
         readMenus(QStringLiteral("Navigator without sections › "));
-    CHECK(withoutSections.contains(QStringLiteral("document")));
+    CHECK(withoutSections.contains(QStringLiteral("book")));
     CHECK(withoutSections.contains(QStringLiteral("window_element")));
     pm.closeProject(false);
 }

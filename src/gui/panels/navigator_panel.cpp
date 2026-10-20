@@ -11,6 +11,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
+#include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/utils/file_location.h"
 #include "kalahari/core/logger.h"
@@ -36,6 +37,11 @@
 #include <QBrush>
 #include <QDropEvent>
 #include <QBasicTimer>
+#include <QCollator>
+#include <QCoreApplication>
+#include <QFont>
+#include <QKeyEvent>
+#include <QLocale>
 #include <QTimerEvent>
 #include <algorithm>
 #include <functional>
@@ -52,20 +58,49 @@ constexpr int TITLE_ROLE = Qt::UserRole + 4;
 /// Package of an element's kind that the program does not have: the book's card of it has the
 /// icon of the kind (ICON_ROLE)
 constexpr int CARD_ROLE = Qt::UserRole + 5;
+/// The element is of the Workshop: no status, not dragged
+constexpr int WORKSHOP_ROLE = Qt::UserRole + 6;
 /// Milliseconds before a collapsed group or section that a dragged element rests on opens
 constexpr int AUTO_EXPAND_DELAY = 700;
+/// The id of a group of the Workshop starts with it: "workshop:kalahari.base:work_note"
+const QString WORKSHOP_ID_PREFIX = QStringLiteral("workshop:");
+/// In a list of open items, the tree has the book and the Workshop as nodes of their own; a
+/// list without it (saved before them) opens them
+const QString WORKSHOP_LAYOUT = QStringLiteral("layout:workshop");
 /// Icon of a file of the book outside its text, as New File shows an empty text file
 const QString BOOK_FILE_ICON = QStringLiteral("common.file");
 /// Icon of a new file outside the book that has no file yet, as its tab shows it
 const QString NEW_FILE_ICON = QStringLiteral("template.chapter");
 
-/// Whether an item of @p type holds other items: the document, its sections, groups...
+/// Whether an item of @p type holds other items: the project, the book, its sections, groups,
+/// the Workshop and its groups...
 bool isContainerType(const QString& type) {
-    return type == QLatin1String("document") || type == QLatin1String("root") ||
+    return type == QLatin1String("document") || type == QLatin1String("book") ||
            type == QLatin1String("section_frontmatter") || type == QLatin1String("section_body") ||
            type == QLatin1String("section_backmatter") || type == QLatin1String("group_element") ||
-           type == QLatin1String("book_files") || type == QLatin1String("unassigned_files") ||
-           type == QLatin1String("other_files");
+           type == QLatin1String("book_files") || type == QLatin1String("workshop") ||
+           type == QLatin1String("workshop_shelf") || type == QLatin1String("workshop_group") ||
+           type == QLatin1String("unassigned_files") || type == QLatin1String("other_files");
+}
+
+/// Whether an item of @p type is a node of the Workshop: the Workshop or a group of it
+bool isWorkshopNode(const QString& type) {
+    return type == QLatin1String("workshop") || type == QLatin1String("workshop_shelf") ||
+           type == QLatin1String("workshop_group");
+}
+
+/// @p text of a command of a menu with its keys @p keys in the column of the keys, unless the
+/// program shows no keys in menus
+QString withKeys(const QString& text, QKeyCombination keys) {
+    if (QCoreApplication::testAttribute(Qt::AA_DontShowShortcutsInContextMenus)) {
+        return text;
+    }
+    return text + QLatin1Char('\t') + kalahari::gui::ShortcutRules::keysText(keys);
+}
+
+/// The keys of Add... on a node of the Navigator, as in the editor: Ctrl+Shift+Enter
+QKeyCombination addKeys() {
+    return QKeyCombination(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_Return);
 }
 
 /// Whether an item of @p type is "Unassigned Files" or one of its files, which are grey
@@ -359,7 +394,8 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     m_typeFilter->addItem(tr("Timelines"), static_cast<int>(FilterType::Timelines));
     m_typeFilter->addItem(tr("Other"), static_cast<int>(FilterType::OtherFiles));
     m_typeFilter->setToolTip(tr("Filter by document type"));
-    m_typeFilter->setMinimumWidth(80);
+    // Narrower than its texts only in a narrow dock, where the bar keeps its buttons in view
+    m_typeFilter->setMinimumWidth(64);
 
     connect(m_typeFilter, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &NavigatorPanel::onTypeFilterChanged);
@@ -373,6 +409,15 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     m_clearButton->setToolTip(tr("Clear filter"));
     m_clearButton->setAutoRaise(true);
     m_clearButton->setVisible(false);  // Hidden until text is entered
+
+    // Add... on the current node, as its menu and Ctrl+Shift+Enter
+    m_addButton = new QToolButton(this);
+    m_addButton->setIcon(artProvider.getIcon("book.addElement", core::IconContext::Menu));
+    //: The "+" button of the Navigator: Add... on the current node; %1: its keys. In Polish:
+    //: Dodaj... (%1)
+    m_addButton->setToolTip(tr("Add... (%1)").arg(ShortcutRules::keysText(addKeys())));
+    m_addButton->setAutoRaise(true);
+    m_addButton->setEnabled(false);
 
     // Create expand/collapse all buttons
     m_expandAllButton = new QToolButton(this);
@@ -388,6 +433,7 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     searchLayout->addWidget(m_typeFilter);
     searchLayout->addWidget(m_searchEdit);
     searchLayout->addWidget(m_clearButton);
+    searchLayout->addWidget(m_addButton);
     searchLayout->addWidget(m_expandAllButton);
     searchLayout->addWidget(m_collapseAllButton);
     layout->addLayout(searchLayout);
@@ -424,6 +470,8 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     m_treeWidget = tree;
 
     // Connect expand/collapse all buttons (after tree widget creation)
+    connect(m_addButton, &QToolButton::clicked, this,
+            [this]() { addOn(m_treeWidget->currentItem()); });
     connect(m_expandAllButton, &QToolButton::clicked, m_treeWidget, &QTreeWidget::expandAll);
     connect(m_collapseAllButton, &QToolButton::clicked, m_treeWidget, &QTreeWidget::collapseAll);
 
@@ -454,6 +502,8 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     // Connect keyboard navigation - update Properties panel when arrow keys change selection
     connect(m_treeWidget, &QTreeWidget::currentItemChanged,
             this, &NavigatorPanel::onCurrentItemChanged);
+    // The keys of the tree: Add..., Rename and Delete on the current node
+    m_treeWidget->installEventFilter(this);
 
     // Connect Enter key / double-click activation - open element
     connect(m_treeWidget, &QTreeWidget::itemActivated,
@@ -474,17 +524,18 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
                            elementType.toStdString(),
                            elementId.toStdString());
 
-                // Document root uses empty ID to show project properties
+                // The project and the book show the properties of the book
                 // Sections and groups emit with their type for aggregate statistics
-                if (elementType == "document") {
-                    emit requestProperties("");  // Project properties
+                if (elementType == "document" || elementType == "book") {
+                    emit requestProperties("");  // Book properties
                 } else if (elementType == "section_frontmatter" ||
                            elementType == "section_body" ||
                            elementType == "section_backmatter") {
                     emit requestSectionProperties(elementType);
                 } else if (elementType == "group_element") {
                     emit requestPartProperties(elementId);
-                } else if (elementType == "text_element" || elementType == "book_file") {
+                } else if (elementType == "text_element" || elementType == "book_file" ||
+                           (elementType == "window_element" && isWorkshopItem(item))) {
                     emit requestProperties(elementId);
                 }
             });
@@ -525,6 +576,7 @@ void NavigatorPanel::clearDocument() {
     //: The header of the Navigator while no book is open. In Polish: Żadna książka nie jest
     //: otwarta
     m_treeWidget->setHeaderLabel(tr("No book is open"));
+    updateAddButton();
 }
 
 void NavigatorPanel::loadProject(const core::BookProject& project,
@@ -554,7 +606,9 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
     //: The header of the Navigator with the open book. In Polish: Struktura książki
     m_treeWidget->setHeaderLabel(tr("Book Structure"));
 
-    // Create root item: the title of the book
+    // The project, named after the title of its book: the book, its Workshop and the files
+    // that no element has (setUnassignedFiles()); the files open outside the book have a node
+    // of their own after it
     QTreeWidgetItem* rootItem = new QTreeWidgetItem(m_treeWidget);
     rootItem->setText(0, book ? book->title : QString());
     rootItem->setData(0, Qt::UserRole, QString());  // No ID for root
@@ -564,26 +618,35 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
     // Document is not draggable or droppable
     rootItem->setFlags(rootItem->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled);
 
+    // The book, which the writer can name ("Book")
+    const core::ProjectBook noBook;
+    QTreeWidgetItem* bookItem = new QTreeWidgetItem(rootItem);
+    bookItem->setText(0, bookName(book ? *book : noBook));
+    bookItem->setData(0, Qt::UserRole, QString());
+    bookItem->setData(0, Qt::UserRole + 1, QStringLiteral("book"));
+    bookItem->setIcon(0, artProvider.getIcon(getIconIdForType(QStringLiteral("book")),
+                                             core::IconContext::TreeView));
+    bookItem->setFlags(bookItem->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled);
+
     if (book && !book->partsLayer) {
         // A book without sections: the elements of its three sections in reading order. The
         // book's item takes the drops of the elements.
-        rootItem->setFlags(rootItem->flags() | Qt::ItemIsDropEnabled);
-        addElementItems(rootItem, book->frontElements, registry);
-        addElementItems(rootItem, book->mainElements, registry);
-        addElementItems(rootItem, book->backElements, registry);
+        bookItem->setFlags(bookItem->flags() | Qt::ItemIsDropEnabled);
+        addElementItems(bookItem, book->frontElements, registry);
+        addElementItems(bookItem, book->mainElements, registry);
+        addElementItems(bookItem, book->backElements, registry);
     } else {
         // The three sections of the book with its names, also when empty, so that elements can
         // be added to them. Elements are dragged to the sections and the groups, which
         // therefore take drops.
-        const core::ProjectBook noBook;
         const core::ProjectBook& names = book ? *book : noBook;
         QTreeWidgetItem* frontMatterItem =
-            addSectionItem(rootItem, names.sectionName(core::BookPlace::Front),
+            addSectionItem(bookItem, names.sectionName(core::BookPlace::Front),
                            QStringLiteral("section_frontmatter"));
         QTreeWidgetItem* bodyItem = addSectionItem(
-            rootItem, names.sectionName(core::BookPlace::Main), QStringLiteral("section_body"));
+            bookItem, names.sectionName(core::BookPlace::Main), QStringLiteral("section_body"));
         QTreeWidgetItem* backMatterItem =
-            addSectionItem(rootItem, names.sectionName(core::BookPlace::Back),
+            addSectionItem(bookItem, names.sectionName(core::BookPlace::Back),
                            QStringLiteral("section_backmatter"));
 
         if (book) {
@@ -599,8 +662,21 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
 
     // The files of the book outside its text, after its text
     if (book) {
-        addBookFileItems(rootItem, book->files);
+        addBookFileItems(bookItem, book->files);
     }
+    bookItem->setExpanded(true);
+
+    // The Workshop, which the writer can name ("Workshop"), with the groups of its kinds
+    QTreeWidgetItem* workshopItem = new QTreeWidgetItem(rootItem);
+    workshopItem->setText(0, workshopName(project));
+    workshopItem->setData(0, Qt::UserRole, QString());
+    workshopItem->setData(0, Qt::UserRole + 1, QStringLiteral("workshop"));
+    workshopItem->setIcon(0, artProvider.getIcon(getIconIdForType(QStringLiteral("workshop")),
+                                                 core::IconContext::TreeView));
+    workshopItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    addWorkshopItems(workshopItem, project, registry);
+    workshopItem->setExpanded(true);
+
     // A book open read-only is grey (itemIcon())
     if (m_readOnly) {
         refreshItemIcons(rootItem);
@@ -616,6 +692,7 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
         m_highlightedItem = item;
         item->setBackground(0, QBrush(m_highlightColor));
     }
+    updateAddButton();
 
     logger.debug("NavigatorPanel::loadProject() complete");
 }
@@ -639,21 +716,19 @@ void NavigatorPanel::setUnassignedFiles(const QList<core::UnassignedFile>& files
         return;
     }
 
-    // After the book, before "Other Files"; not dragged, and nothing is dropped on it
-    m_unassignedItem = new QTreeWidgetItem();
-    const int otherFiles = m_otherFilesItem ? rootItem->indexOfChild(m_otherFilesItem) : -1;
-    if (otherFiles >= 0) {
-        rootItem->insertChild(otherFiles, m_unassignedItem);
-    } else {
-        rootItem->addChild(m_unassignedItem);
-    }
+    // At the end of the project, after the Workshop: the files can be of the book or of the
+    // Workshop; not dragged, and nothing is dropped on it
+    m_unassignedItem = new QTreeWidgetItem(rootItem);
     //: The item of the Navigator with the chapter files that no element of the book has; %1:
     //: their number. In Polish: Pliki bez przydziału (%1)
     m_unassignedItem->setText(0, tr("Unassigned Files (%1)").arg(files.size()));
     m_unassignedItem->setData(0, Qt::UserRole, QString());
     m_unassignedItem->setData(0, Qt::UserRole + 1, QStringLiteral("unassigned_files"));
+    //: In Polish: Pliki tekstów w folderach książki i Warsztatu, które nie należą do żadnego
+    //: elementu
     m_unassignedItem->setToolTip(
-        0, tr("Chapter files in the book's folder that no element of the book has"));
+        0, tr("Chapter files in the folders of the book and of the Workshop that no element "
+              "has"));
     m_unassignedItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 
     const QDir project(projectFolder);
@@ -775,7 +850,7 @@ std::optional<core::ElementPlace> NavigatorPanel::dropPlaceOf(
         // In a book without sections, at the end of a section the line is also at the start
         // of the next ones up to the first one with elements, and the other way round
         const bool oneList = at->groupId.isEmpty() && target->parent() &&
-                             typeOf(target->parent()) == QLatin1String("document");
+                             typeOf(target->parent()) == QLatin1String("book");
         const qsizetype part = bookParts().indexOf(at->place);
         if (spot == DropSpot::Above) {
             candidates.append(*at);
@@ -881,7 +956,7 @@ QString NavigatorPanel::iconIdOf(const core::KindRef& kind) {
 
 void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
                                      const QList<core::ProjectElement>& elements,
-                                     const core::BookTypeRegistry& registry) {
+                                     const core::BookTypeRegistry& registry, bool workshop) {
     const core::ProjectManager& pm = core::ProjectManager::getInstance();
 
     for (const core::ProjectElement& element : elements) {
@@ -891,8 +966,9 @@ void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
         const QString iconId = iconIdOf(
             registry, element, cardKind ? pm.packageCard(element.kind.packageId) : nullptr);
 
+        // The elements of the Workshop are in alphabetical order: they are not dragged
         QString itemType;
-        Qt::ItemFlags flags = Qt::ItemIsDragEnabled;
+        Qt::ItemFlags flags = workshop ? Qt::ItemFlags() : Qt::ItemFlags(Qt::ItemIsDragEnabled);
         switch (form) {
         case core::ElementForm::Text:
             itemType = QStringLiteral("text_element");
@@ -906,11 +982,13 @@ void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
             break;
         }
 
+        // The elements of the Workshop have no status
         QTreeWidgetItem* item = new QTreeWidgetItem(parent);
-        item->setText(0, getDisplayTitle(element, form == core::ElementForm::Text,
+        item->setText(0, getDisplayTitle(element, form == core::ElementForm::Text && !workshop,
                                          m_modifiedElements.contains(element.id)));
         item->setData(0, Qt::UserRole, element.id);
         item->setData(0, Qt::UserRole + 1, itemType);
+        item->setData(0, WORKSHOP_ROLE, workshop);
         item->setData(0, ICON_ROLE, iconId);
         item->setData(0, KIND_ROLE, element.kind.toString());
         item->setData(0, TITLE_ROLE, element.title);
@@ -921,10 +999,133 @@ void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
         item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
 
         if (form == core::ElementForm::Group) {
-            addElementItems(item, element.elements, registry);
+            addElementItems(item, element.elements, registry, workshop);
             item->setExpanded(true);  // Expand groups by default
         }
     }
+}
+
+void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
+                                      const core::BookProject& project,
+                                      const core::BookTypeRegistry& registry) {
+    const core::ProjectManager& pm = core::ProjectManager::getInstance();
+    const QString language = programLanguage();
+
+    // A group for each kind of the Workshop, in the order of the book's type; then the kinds
+    // the program does not have, of the elements that have them
+    struct KindGroup {
+        core::KindRef kind;
+        QString key;      ///< The kind with its package: "kalahari.base:work_note"
+        QString name;     ///< "Working notes"
+        QString iconId;
+        QString card;     ///< The package of a kind the program does not have
+        core::WorkshopGroup shelf = core::WorkshopGroup::None;
+        QList<core::ProjectElement> elements;
+    };
+    QList<KindGroup> groups;
+    for (const core::KindRef& kind : project.kindsIn(registry, core::BookPlace::Workshop)) {
+        groups.append({kind, kind.reference(), kind.kind->plural.text(language), iconIdOf(kind),
+                       QString(), kind.kind->workshopGroup, {}});
+    }
+    for (const core::ProjectElement& element : project.workshop.elements) {
+        const core::KindRef kind = core::BookProject::kindOf(registry, element);
+        const QString key = kind ? kind.reference() : element.kind.toString();
+        auto group = std::find_if(groups.begin(), groups.end(), [&](const KindGroup& known) {
+            return kind ? known.kind.kind == kind.kind : !known.kind && known.key == key;
+        });
+        if (group == groups.end()) {
+            const core::PackageCard* card = kind ? nullptr : pm.packageCard(element.kind.packageId);
+            groups.append({kind, key,
+                           core::fillWords(QStringLiteral("{Kind:plural}"),
+                                           {{QStringLiteral("kind"),
+                                             wordsOf(registry, element, card)}}),
+                           iconIdOf(registry, element, card),
+                           kind ? QString() : element.kind.packageId,
+                           kind ? kind.kind->workshopGroup : core::WorkshopGroup::None, {}});
+            group = std::prev(groups.end());
+        }
+        group->elements.append(element);
+    }
+
+    // The elements in alphabetical order of their titles, in the language of the book: "Note
+    // 2" before "Note 10"
+    const core::ProjectBook* book = project.books.isEmpty() ? nullptr : &project.books.first();
+    QCollator collator(QLocale(book && !book->language.isEmpty() ? book->language : language));
+    collator.setNumericMode(true);
+    collator.setCaseSensitivity(Qt::CaseInsensitive);
+
+    // Grouped, the groups of cards are in Libraries and those of materials in Resources, each
+    // where its first group would be
+    QTreeWidgetItem* libraries = nullptr;
+    QTreeWidgetItem* resources = nullptr;
+    const auto parentOf = [&](core::WorkshopGroup shelf) -> QTreeWidgetItem* {
+        if (!project.workshop.grouped || shelf == core::WorkshopGroup::None) {
+            return workshopItem;
+        }
+        const bool library = shelf == core::WorkshopGroup::Libraries;
+        QTreeWidgetItem*& item = library ? libraries : resources;
+        if (!item) {
+            item = new QTreeWidgetItem(workshopItem);
+            item->setText(0, library
+                                 //: The group of the cards of the Workshop (characters,
+                                 //: locations, items) when it is grouped. In Polish: Biblioteki
+                                 ? tr("Libraries")
+                                 //: The group of the materials of the Workshop when it is
+                                 //: grouped. In Polish: Zasoby
+                                 : tr("Resources"));
+            item->setData(0, Qt::UserRole,
+                          WORKSHOP_ID_PREFIX + (library ? QStringLiteral("libraries")
+                                                        : QStringLiteral("resources")));
+            item->setData(0, Qt::UserRole + 1, QStringLiteral("workshop_shelf"));
+            const QString iconId = library ? QStringLiteral("structure.libraries")
+                                           : QStringLiteral("structure.resources");
+            item->setData(0, ICON_ROLE, iconId);
+            item->setIcon(0, itemIcon(item, iconId));
+            item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            item->setExpanded(true);
+        }
+        return item;
+    };
+
+    // A kind the program makes elements of has its group also empty, so that one can be added
+    // to it; the other kinds when they have elements
+    for (KindGroup& group : groups) {
+        if (group.elements.isEmpty() && !core::ProjectManager::canAdd(group.kind)) {
+            continue;
+        }
+        std::sort(group.elements.begin(), group.elements.end(),
+                  [&collator](const core::ProjectElement& a, const core::ProjectElement& b) {
+                      return collator.compare(a.title, b.title) < 0;
+                  });
+        auto* item = new QTreeWidgetItem(parentOf(group.shelf));
+        item->setText(0, group.name);
+        item->setData(0, Qt::UserRole, WORKSHOP_ID_PREFIX + group.key);
+        item->setData(0, Qt::UserRole + 1, QStringLiteral("workshop_group"));
+        item->setData(0, ICON_ROLE, group.iconId);
+        item->setData(0, KIND_ROLE, group.key);
+        if (!group.card.isEmpty()) {
+            item->setData(0, CARD_ROLE, group.card);
+        }
+        item->setIcon(0, itemIcon(item, group.iconId));
+        item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+        addElementItems(item, group.elements, registry, true);
+        item->setExpanded(true);
+    }
+}
+
+QString NavigatorPanel::bookName(const core::ProjectBook& book) {
+    //: The node of the book in the Navigator, unless the writer names it. In Polish: Książka
+    return book.name.isEmpty() ? tr("Book") : book.name;
+}
+
+QString NavigatorPanel::workshopName(const core::BookProject& project) {
+    //: The node of the Workshop in the Navigator: the elements of the work on the book, which
+    //: the finished book does not have, unless the writer names it. In Polish: Warsztat
+    return project.workshop.name.isEmpty() ? tr("Workshop") : project.workshop.name;
+}
+
+bool NavigatorPanel::isWorkshopItem(const QTreeWidgetItem* item) {
+    return item && item->data(0, WORKSHOP_ROLE).toBool();
 }
 
 void NavigatorPanel::addBookFileItems(QTreeWidgetItem* parent,
@@ -1008,6 +1209,7 @@ void NavigatorPanel::refreshIcons() {
 
     // Refresh toolbar button icons
     m_clearButton->setIcon(artProvider.getIcon("common.cancel", core::IconContext::Menu));
+    m_addButton->setIcon(artProvider.getIcon("book.addElement", core::IconContext::Menu));
     m_expandAllButton->setIcon(artProvider.getIcon("common.expandMore", core::IconContext::Menu));
     m_collapseAllButton->setIcon(artProvider.getIcon("common.expandLess", core::IconContext::Menu));
 
@@ -1077,6 +1279,10 @@ QString NavigatorPanel::getIconIdForType(const QString& elementType) const {
     // Structure icons (OpenSpec #00034)
     if (elementType == "document") {
         return "project.book";
+    } else if (elementType == "book") {
+        return "structure.book";
+    } else if (elementType == "workshop") {
+        return "structure.workshop";
     } else if (elementType == "section_frontmatter") {
         return "structure.frontmatter";
     } else if (elementType == "section_body") {
@@ -1091,7 +1297,7 @@ QString NavigatorPanel::getIconIdForType(const QString& elementType) const {
         return BOOK_FILE_ICON;
     } else if (elementType == "unassigned_files") {
         return "structure.unassigned";
-    } else if (elementType == "root" || elementType == "book_files") {
+    } else if (elementType == "book_files") {
         return "common.folder";
     } else if (elementType == "standalone_file" || elementType == "window_element") {
         // Standalone files use getIconIdForFile() and elements the icon of their kind;
@@ -1127,22 +1333,8 @@ void NavigatorPanel::ensureOtherFilesSection() {
 
     auto& artProvider = core::ArtProvider::getInstance();
 
-    // Get or create root item
-    QTreeWidgetItem* rootItem = nullptr;
-    if (m_treeWidget->topLevelItemCount() > 0) {
-        rootItem = m_treeWidget->topLevelItem(0);
-    } else {
-        // No document loaded, create a placeholder root
-        rootItem = new QTreeWidgetItem(m_treeWidget);
-        rootItem->setText(0, tr("Files"));
-        rootItem->setData(0, Qt::UserRole, QString());
-        rootItem->setData(0, Qt::UserRole + 1, "root");
-        rootItem->setIcon(0, artProvider.getIcon("common.folder", core::IconContext::TreeView));
-        rootItem->setExpanded(true);
-    }
-
-    // Create "Other Files" section as child of root (always at bottom)
-    m_otherFilesItem = new QTreeWidgetItem(rootItem);
+    // A node of its own after the project, if one is open: the files do not belong to it
+    m_otherFilesItem = new QTreeWidgetItem(m_treeWidget);
     //: The item of the Navigator with the files open beside the book, which are not in it.
     //: In Polish: Pliki spoza książki
     m_otherFilesItem->setText(0, tr("Files Outside the Book"));
@@ -1547,37 +1739,69 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                  << moveToEndAction;
     };
 
-    // "Add Story...", "Dodaj opowiadanie...": a new element of @p kind; none when the place takes
-    // no element of the kind
-    const auto addKindAction = [&](const core::KindRef& kind) -> QAction* {
-        if (!kind) {
-            return nullptr;
+    // Add...: the Add Element window with the kinds of the node, in bold: the command most
+    // used there. In variant A (ADD_COMMANDS_SETTING) also the kinds most added there, by name
+    // ("Add Chapter..."), which open the window with the kind chosen.
+    const auto addAddActions = [&]() {
+        QAction* addAction = menu.addAction(
+            artProvider.getIcon("book.addElement", core::IconContext::Menu),
+            //: The command of a node of the Navigator: the Add Element window with the kinds
+            //: of the node. In Polish: Dod&aj...
+            withKeys(tr("&Add..."), addKeys()));
+        QFont bold = addAction->font();
+        bold.setBold(true);
+        addAction->setFont(bold);
+        addAction->setEnabled(addTargetOf(item).has_value());
+        connect(addAction, &QAction::triggered, this, [this, item]() { addOn(item); });
+        changing << addAction;
+        for (const core::KindRef& kind : namedKindsOf(item)) {
+            // "Add Story...", "Dodaj opowiadanie..."
+            QAction* namedAction = menu.addAction(
+                artProvider.getIcon(iconIdOf(kind), core::IconContext::Menu),
+                core::fillWords(tr("Add {Kind}..."),
+                                {{QStringLiteral("kind"), menuWords(wordsOf(kind))}}));
+            connect(namedAction, &QAction::triggered, this,
+                    [this, item, kind]() { addOn(item, kind); });
+            changing << namedAction;
         }
-        QString iconId = kind.kind->icon;
-        if (iconId.isEmpty()) {
-            iconId = kind.kind->form == core::ElementForm::Group
-                         ? QStringLiteral("structure.part")
-                         : QStringLiteral("template.chapter");
-        }
-        QAction* action = menu.addAction(
-            artProvider.getIcon(iconId, core::IconContext::Menu),
-            core::fillWords(tr("Add {Kind}..."),
-                            {{QStringLiteral("kind"), menuWords(wordsOf(kind))}}));
-        changing << action;
-        return action;
     };
 
     const auto addRenameDeleteActions = [&]() {
         QAction* renameAction = menu.addAction(
             artProvider.getIcon("edit.rename", core::IconContext::Menu),
-            tr("Rena&me..."));
+            withKeys(tr("Rena&me..."), QKeyCombination(Qt::Key_F2)));
         connect(renameAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuRename);
 
         QAction* deleteAction = menu.addAction(
             artProvider.getIcon("edit.delete", core::IconContext::Menu),
-            tr("&Delete..."));
+            withKeys(tr("&Delete..."), QKeyCombination(Qt::Key_Delete)));
         connect(deleteAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuDelete);
         changing << renameAction << deleteAction;
+    };
+
+    // Rename of a node that is no element: a section, the book, the Workshop
+    const auto addRenameNodeAction = [&](const std::function<void()>& rename) {
+        QAction* renameAction = menu.addAction(
+            artProvider.getIcon("edit.rename", core::IconContext::Menu),
+            withKeys(tr("Rena&me..."), QKeyCombination(Qt::Key_F2)));
+        connect(renameAction, &QAction::triggered, this, rename);
+        renameAction->setEnabled(projectOpen);
+        changing << renameAction;
+    };
+
+    const auto addOpenAction = [&]() {
+        QAction* openAction = menu.addAction(
+            artProvider.getIcon("file.open", core::IconContext::Menu),
+            withKeys(tr("&Open"), QKeyCombination(Qt::Key_Enter)));
+        connect(openAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuOpen);
+    };
+
+    const auto addPropertiesAction = [&]() {
+        QAction* propertiesAction = menu.addAction(
+            artProvider.getIcon("common.properties", core::IconContext::Menu),
+            tr("P&roperties..."));
+        connect(propertiesAction, &QAction::triggered, this,
+                &NavigatorPanel::onContextMenuProperties);
     };
 
     const auto addExpandCollapseActions = [&]() {
@@ -1593,13 +1817,44 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     };
 
     // Build menu based on element type
-    if (elementType == "text_element") {
-        // Text elements (chapters, front/back matter items)
-        QAction* openAction = menu.addAction(
-            artProvider.getIcon("file.open", core::IconContext::Menu),
-            tr("&Open"));
-        connect(openAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuOpen);
+    if (elementType == "text_element" && isWorkshopItem(item)) {
+        // A text of the Workshop (a working note) opens in the editor; no status and no moves:
+        // the finished book does not have it, and its place is that of its title
+        addOpenAction();
+        addAddActions();
+        menu.addSeparator();
+        addRenameDeleteActions();
+        menu.addSeparator();
+        addPropertiesAction();
 
+    } else if (elementType == "window_element" && isWorkshopItem(item)) {
+        // A material opens in the program the system gives its file; the other kinds wait for
+        // the windows of the program
+        const core::ProjectElement* element = pm.findElement(elementId);
+        const core::KindRef kind = element ? pm.kindOf(*element) : core::KindRef{};
+        if (kind && kind.kind->isMaterial()) {
+            QAction* openAction = menu.addAction(
+                artProvider.getIcon("file.open", core::IconContext::Menu),
+                withKeys(tr("&Open"), QKeyCombination(Qt::Key_Enter)));
+            connect(openAction, &QAction::triggered, this,
+                    [this, elementId]() { emit requestOpenMaterial(elementId); });
+            const QString path = pm.filePathOf(*element);
+            QAction* showAction = menu.addAction(
+                artProvider.getIcon("common.folder", core::IconContext::Menu),
+                tr("Show in &Folder"));
+            connect(showAction, &QAction::triggered, this,
+                    [this, path]() { showInFileManager(path); });
+        }
+        addAddActions();
+        menu.addSeparator();
+        addRenameDeleteActions();
+        menu.addSeparator();
+        addPropertiesAction();
+
+    } else if (elementType == "text_element") {
+        // Text elements (chapters, front/back matter items)
+        addOpenAction();
+        addAddActions();
         menu.addSeparator();
         addRenameDeleteActions();
         menu.addSeparator();
@@ -1642,119 +1897,58 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 this, &NavigatorPanel::onContextMenuSetStatus);
 
         menu.addSeparator();
-
-        QAction* propertiesAction = menu.addAction(
-            artProvider.getIcon("common.properties", core::IconContext::Menu),
-            tr("P&roperties..."));
-        connect(propertiesAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuProperties);
+        addPropertiesAction();
 
     } else if (elementType == "book_file") {
         // A file of the book outside its text: no place in the text and no status
-        QAction* openAction = menu.addAction(
-            artProvider.getIcon("file.open", core::IconContext::Menu), tr("&Open"));
-        connect(openAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuOpen);
+        addOpenAction();
         menu.addSeparator();
         addRenameDeleteActions();
         menu.addSeparator();
-        QAction* propertiesAction = menu.addAction(
-            artProvider.getIcon("common.properties", core::IconContext::Menu),
-            tr("P&roperties..."));
-        connect(propertiesAction, &QAction::triggered, this,
-                &NavigatorPanel::onContextMenuProperties);
+        addPropertiesAction();
 
     } else if (elementType == "group_element") {
         // Group (part): the main texts of the book (chapters, stories...) are added inside it
-        if (QAction* addChapterAction =
-                addKindAction(pm.chapterKindFor(core::BookPlace::Main, elementId))) {
-            connect(addChapterAction, &QAction::triggered, this,
-                    &NavigatorPanel::onContextMenuAddChapter);
-        }
-
+        addAddActions();
         menu.addSeparator();
         addRenameDeleteActions();
         menu.addSeparator();
         addMoveActions();
+        menu.addSeparator();
+        // The statistics of the group, in the Properties panel brought to the front
+        QAction* propertiesAction = menu.addAction(
+            artProvider.getIcon("common.properties", core::IconContext::Menu),
+            tr("P&roperties..."));
+        connect(propertiesAction, &QAction::triggered, this, [this, elementId]() {
+            emit requestPartProperties(elementId);
+            emit requestPropertiesPanel();
+        });
         menu.addSeparator();
         addExpandCollapseActions();
 
     } else if (elementType == "window_element") {
         // Element that opens in a window of its own; the program has none of them yet
+        addAddActions();
+        menu.addSeparator();
         addRenameDeleteActions();
         menu.addSeparator();
         addMoveActions();
 
-    } else if (elementType == "section_frontmatter" || elementType == "section_body" ||
-               elementType == "section_backmatter") {
-        // Section (Front Matter, Body, Back Matter)
-        if (elementType == "section_body") {
-            // Body section: parts and the main texts of the book, of the kinds of its type
-            if (QAction* addPartAction = addKindAction(pm.partKind())) {
-                connect(addPartAction, &QAction::triggered, this,
-                        &NavigatorPanel::onContextMenuAddPart);
-            }
-            if (QAction* addChapterAction =
-                    addKindAction(pm.chapterKindFor(core::BookPlace::Main))) {
-                connect(addChapterAction, &QAction::triggered, this,
-                        &NavigatorPanel::onContextMenuAddChapter);
-            }
-        } else {
-            // Front/Back Matter - can add items
-            const core::BookPlace place = elementType == "section_frontmatter"
-                                              ? core::BookPlace::Front
-                                              : core::BookPlace::Back;
-            QAction* addItemAction = menu.addAction(
-                artProvider.getIcon("template.chapter", core::IconContext::Menu),
-                tr("&Add Item..."));
-            connect(addItemAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuAddItem);
-            addItemAction->setEnabled(projectOpen && !pm.textKindsFor(place).isEmpty());
-            changing << addItemAction;
-        }
-
-        // The writer can name each section
+    } else if (sectionPlaceOf(elementType)) {
+        // Section (Front Matter, Body, Back Matter), which the writer can name
+        addAddActions();
         menu.addSeparator();
-        QAction* renameAction = menu.addAction(
-            artProvider.getIcon("edit.rename", core::IconContext::Menu), tr("Rena&me..."));
-        connect(renameAction, &QAction::triggered, this,
-                [this, elementType]() { emit requestRenameSection(elementType); });
-        renameAction->setEnabled(projectOpen);
-        changing << renameAction;
-
+        addRenameNodeAction([this, elementType]() { emit requestRenameSection(elementType); });
         menu.addSeparator();
         addExpandCollapseActions();
 
-    } else if (elementType == "document") {
-        // Document root
+    } else if (elementType == "book") {
+        // The book: the kinds of all its sections, also when it shows none
         const core::ProjectBook* book = pm.book();
         const bool sectionsShown = !book || book->partsLayer;
-        if (projectOpen && !sectionsShown) {
-            // A book without sections: its elements are added from its item
-            if (QAction* addPartAction = addKindAction(pm.partKind())) {
-                connect(addPartAction, &QAction::triggered,
-                        this, &NavigatorPanel::onContextMenuAddPart);
-            }
-            if (QAction* addChapterAction =
-                    addKindAction(pm.chapterKindFor(core::BookPlace::Main))) {
-                connect(addChapterAction, &QAction::triggered, this,
-                        [this]() { emit requestAddChapter(QString()); });
-            }
-
-            QAction* addFirstAction = menu.addAction(
-                artProvider.getIcon("structure.frontmatter", core::IconContext::Menu),
-                tr("Add Item at the &Beginning of the Book..."));
-            connect(addFirstAction, &QAction::triggered, this,
-                    [this]() { emit requestAddItem(QStringLiteral("front_matter")); });
-            addFirstAction->setEnabled(!pm.textKindsFor(core::BookPlace::Front).isEmpty());
-
-            QAction* addLastAction = menu.addAction(
-                artProvider.getIcon("structure.backmatter", core::IconContext::Menu),
-                tr("Add Item at the &End of the Book..."));
-            connect(addLastAction, &QAction::triggered, this,
-                    [this]() { emit requestAddItem(QStringLiteral("back_matter")); });
-            addLastAction->setEnabled(!pm.textKindsFor(core::BookPlace::Back).isEmpty());
-            changing << addFirstAction << addLastAction;
-
-            menu.addSeparator();
-        }
+        addAddActions();
+        menu.addSeparator();
+        addRenameNodeAction([this]() { emit requestRenameNode(QStringLiteral("book")); });
         if (projectOpen) {
             // Showing or hiding the sections moves no element
             QAction* showSectionsAction = menu.addAction(tr("&Show Sections"));
@@ -1763,8 +1957,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             connect(showSectionsAction, &QAction::toggled, this,
                     [this](bool shown) { emit requestShowSections(shown); });
             changing << showSectionsAction;
-            menu.addSeparator();
         }
+        menu.addSeparator();
 
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("common.properties", core::IconContext::Menu),
@@ -1772,6 +1966,48 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         connect(propertiesAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuProperties);
         // As Book > Book Properties..., which edits them
         changing << propertiesAction;
+        menu.addSeparator();
+        addExpandCollapseActions();
+
+    } else if (elementType == "document") {
+        // The project: its window comes with the types of books (stage 4); a click on the node
+        // shows the properties of the book
+        QAction* propertiesAction = menu.addAction(
+            artProvider.getIcon("common.properties", core::IconContext::Menu),
+            //: The command of the project's node in the Navigator. In Polish: Właściwości
+            //: &projektu...
+            tr("Project P&roperties..."));
+        propertiesAction->setEnabled(false);
+        //: Why Project Properties... is grey. In Polish: Właściwości projektu (w przygotowaniu)
+        const QString why = tr("Project Properties (in preparation)");
+        propertiesAction->setToolTip(why);
+        propertiesAction->setStatusTip(why);
+        menu.addSeparator();
+        addExpandCollapseActions();
+
+    } else if (elementType == "workshop") {
+        // The Workshop: its kinds, its name, and its groups of cards and materials
+        addAddActions();
+        menu.addSeparator();
+        addRenameNodeAction([this]() { emit requestRenameNode(QStringLiteral("workshop")); });
+        if (const core::BookProject* project = pm.project()) {
+            //: Whether the Workshop has its cards in Libraries and its materials in Resources.
+            //: In Polish: &Grupowanie
+            QAction* groupedAction = menu.addAction(tr("&Grouping"));
+            groupedAction->setCheckable(true);
+            groupedAction->setChecked(project->workshop.grouped);
+            connect(groupedAction, &QAction::toggled, this,
+                    [this](bool grouped) { emit requestWorkshopGrouped(grouped); });
+            changing << groupedAction;
+        }
+        menu.addSeparator();
+        addExpandCollapseActions();
+
+    } else if (elementType == "workshop_shelf" || elementType == "workshop_group") {
+        // A group of the Workshop is named after its kind, and is there as long as the kind
+        addAddActions();
+        menu.addSeparator();
+        addExpandCollapseActions();
 
     } else if (elementType == "standalone_file") {
         // Standalone file
@@ -1942,46 +2178,6 @@ void NavigatorPanel::onContextMenuMoveDown() {
     emit requestMoveElement(elementId, +1);
 }
 
-void NavigatorPanel::onContextMenuAddChapter() {
-    if (!m_contextMenuItem) return;
-
-    // A group, or the body of the book (no ID)
-    QString groupId = m_contextMenuItem->data(0, Qt::UserRole).toString();
-
-    auto& logger = core::Logger::getInstance();
-    logger.debug("NavigatorPanel::onContextMenuAddChapter() - Group ID: {}", groupId.toStdString());
-
-    emit requestAddChapter(groupId);
-}
-
-void NavigatorPanel::onContextMenuAddPart() {
-    auto& logger = core::Logger::getInstance();
-    logger.debug("NavigatorPanel::onContextMenuAddPart()");
-
-    emit requestAddPart();
-}
-
-void NavigatorPanel::onContextMenuAddItem() {
-    if (!m_contextMenuItem) return;
-
-    // Determine section type from element type or text
-    QString elementType = m_contextMenuItem->data(0, Qt::UserRole + 1).toString();
-    QString sectionType;
-
-    if (elementType == "section_frontmatter") {
-        sectionType = "front_matter";
-    } else if (elementType == "section_backmatter") {
-        sectionType = "back_matter";
-    } else {
-        return;
-    }
-
-    auto& logger = core::Logger::getInstance();
-    logger.debug("NavigatorPanel::onContextMenuAddItem() - Section: {}", sectionType.toStdString());
-
-    emit requestAddItem(sectionType);
-}
-
 void NavigatorPanel::onContextMenuExpandAll() {
     if (!m_contextMenuItem) return;
 
@@ -2059,6 +2255,7 @@ void NavigatorPanel::onContextMenuRemoveFromList() {
 
 void NavigatorPanel::onCurrentItemChanged(QTreeWidgetItem* current, QTreeWidgetItem* previous) {
     Q_UNUSED(previous);
+    updateAddButton();
 
     if (!current) {
         return;
@@ -2076,17 +2273,18 @@ void NavigatorPanel::onCurrentItemChanged(QTreeWidgetItem* current, QTreeWidgetI
                  elementId.toStdString());
 
     // Same logic as itemClicked
-    // Document root uses empty ID to show project properties
+    // The project and the book show the properties of the book
     // Sections and groups emit with their type for aggregate statistics
-    if (elementType == "document") {
-        emit requestProperties("");  // Project properties
+    if (elementType == "document" || elementType == "book") {
+        emit requestProperties("");  // Book properties
     } else if (elementType == "section_frontmatter" ||
                elementType == "section_body" ||
                elementType == "section_backmatter") {
         emit requestSectionProperties(elementType);
     } else if (elementType == "group_element") {
         emit requestPartProperties(elementId);
-    } else if (elementType == "text_element" || elementType == "book_file") {
+    } else if (elementType == "text_element" || elementType == "book_file" ||
+               (elementType == "window_element" && isWorkshopItem(current))) {
         emit requestProperties(elementId);
     }
 }
@@ -2121,10 +2319,255 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
     }
 
     // Only text elements and the files of the book open in the editor; sections, groups and
-    // window elements do not
+    // window elements do not. A material of the Workshop opens in the program the system
+    // gives its file.
     if (elementType == "text_element" || elementType == "book_file") {
         emit elementSelected(elementId, item->data(0, TITLE_ROLE).toString());
+    } else if (elementType == "window_element" && isWorkshopItem(item)) {
+        const auto& pm = core::ProjectManager::getInstance();
+        const core::ProjectElement* element = pm.findElement(elementId);
+        const core::KindRef kind = element ? pm.kindOf(*element) : core::KindRef{};
+        if (kind && kind.kind->isMaterial()) {
+            emit requestOpenMaterial(elementId);
+        }
     }
+}
+
+// =============================================================================
+// Add..., Rename and Delete on a node
+// =============================================================================
+
+std::optional<AddTarget> NavigatorPanel::addTargetOf(const QTreeWidgetItem* item) const {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::BookProject* project = pm.project();
+    if (!item || !project) {
+        return std::nullopt;
+    }
+    const QString type = typeOf(item);
+    const QString id = item->data(0, Qt::UserRole).toString();
+    const core::BookTypeRegistry& registry = pm.bookTypes();
+    AddTarget target;
+
+    // The Workshop: all its kinds; a group of it or an element of it: its kind; a group of
+    // groups (Libraries, Resources): the kinds of its groups
+    if (isWorkshopNode(type) || isWorkshopItem(item)) {
+        target.scope = AddTarget::Scope::Workshop;
+        // The kind of a group of the Workshop, or of an element of it
+        const auto kindOfItem = [&registry, &pm](const QTreeWidgetItem* node) {
+            if (isWorkshopItem(node)) {
+                const core::ProjectElement* element =
+                    pm.findElement(node->data(0, Qt::UserRole).toString());
+                return element ? pm.kindOf(*element) : core::KindRef{};
+            }
+            const std::optional<core::KindReference> reference =
+                core::KindReference::parse(node->data(0, KIND_ROLE).toString());
+            return reference ? registry.findKind(reference->packageId, reference->kindId)
+                             : core::KindRef{};
+        };
+        if (type == QLatin1String("workshop_shelf")) {
+            for (int i = 0; i < item->childCount(); ++i) {
+                if (const core::KindRef kind = kindOfItem(item->child(i))) {
+                    target.kinds.append(kind);
+                }
+            }
+        } else if (type != QLatin1String("workshop")) {
+            const core::KindRef kind = kindOfItem(item);
+            if (!kind) {
+                return std::nullopt;  // A kind the program does not have
+            }
+            target.kinds.append(kind);
+            target.kind = kind;
+        }
+        return target;
+    }
+
+    if (type == QLatin1String("book")) {
+        target.scope = AddTarget::Scope::Book;
+        return target;
+    }
+    if (const std::optional<core::BookPlace> place = sectionPlaceOf(type)) {
+        target.scope = AddTarget::Scope::Section;
+        target.place = *place;
+        return target;
+    }
+    if (type == QLatin1String("group_element")) {
+        target.scope = AddTarget::Scope::Group;
+        target.id = id;
+        return target;
+    }
+    if (type == QLatin1String("text_element") || type == QLatin1String("window_element")) {
+        target.scope = AddTarget::Scope::Element;
+        target.id = id;
+        return target;
+    }
+    return std::nullopt;
+}
+
+QList<core::KindRef> NavigatorPanel::namedKindsOf(const QTreeWidgetItem* item) const {
+    QList<core::KindRef> kinds;
+    const auto& settings = core::SettingsManager::getInstance();
+    const std::optional<AddTarget> target = addTargetOf(item);
+    if (!target || settings.get<std::string>(ADD_COMMANDS_SETTING, "named") == "single") {
+        return kinds;
+    }
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::BookProject* project = pm.project();
+
+    // A kind the program can add, below its limit there
+    const auto offered = [](const QList<core::KindRef>& available, const core::KindRef& kind) {
+        return kind && core::ProjectManager::canAdd(kind) &&
+               std::any_of(available.cbegin(), available.cend(),
+                           [&kind](const core::KindRef& other) { return other.kind == kind.kind; });
+    };
+    const auto append = [&kinds](const core::KindRef& kind) {
+        if (kind && std::none_of(kinds.cbegin(), kinds.cend(), [&kind](const core::KindRef& other) {
+                return other.kind == kind.kind;
+            })) {
+            kinds.append(kind);
+        }
+    };
+
+    switch (target->scope) {
+    case AddTarget::Scope::Workshop: {
+        // The kinds of the node the program makes elements of
+        const QList<core::KindRef> available = pm.kindsFor(core::BookPlace::Workshop);
+        const QList<core::KindRef> all =
+            target->kinds.isEmpty() && project
+                ? project->kindsIn(pm.bookTypes(), core::BookPlace::Workshop)
+                : target->kinds;
+        for (const core::KindRef& kind : all) {
+            if (offered(available, kind)) {
+                append(kind);
+            }
+        }
+        break;
+    }
+    case AddTarget::Scope::Book:
+        // The main text (a chapter) and the group (a part) of the book
+        append(pm.chapterKindFor(core::BookPlace::Main));
+        append(pm.partKind());
+        break;
+    case AddTarget::Scope::Section:
+        // The main section: a part and a chapter; the front and back sections have many kinds
+        // of the same weight, so the window shows them
+        if (target->place == core::BookPlace::Main) {
+            append(pm.partKind());
+            append(pm.chapterKindFor(core::BookPlace::Main));
+        }
+        break;
+    case AddTarget::Scope::Group:
+        append(pm.chapterKindFor(core::BookPlace::Main, target->id));
+        break;
+    case AddTarget::Scope::Element: {
+        // Its own kind, after it; else the main text of the book where its list has it (a
+        // chapter after the prologue)
+        const std::optional<core::ElementPlace> at =
+            project ? project->placeOf(target->id) : std::nullopt;
+        const core::ProjectElement* element = pm.findElement(target->id);
+        if (!at || !element) {
+            break;
+        }
+        const QList<core::KindRef> available = pm.kindsFor(at->place, at->groupId);
+        if (const core::KindRef own = pm.kindOf(*element); offered(available, own)) {
+            append(own);
+        } else if (offered(available, pm.mainTextKind())) {
+            append(pm.mainTextKind());
+        }
+        break;
+    }
+    }
+    return kinds;
+}
+
+void NavigatorPanel::addOn(const QTreeWidgetItem* item, const core::KindRef& kind) {
+    std::optional<AddTarget> target = addTargetOf(item);
+    if (!target || !changeRefusal().isEmpty()) {
+        return;
+    }
+    if (kind) {
+        target->kind = kind;
+    }
+    emit requestAdd(*target);
+}
+
+void NavigatorPanel::renameItem(const QTreeWidgetItem* item) {
+    if (!item || !changeRefusal().isEmpty()) {
+        return;
+    }
+    const QString type = typeOf(item);
+    if (isElementType(type) || type == QLatin1String("book_file")) {
+        emit requestRename(item->data(0, Qt::UserRole).toString(),
+                           item->data(0, TITLE_ROLE).toString());
+    } else if (sectionPlaceOf(type)) {
+        emit requestRenameSection(type);
+    } else if (type == QLatin1String("book") || type == QLatin1String("workshop")) {
+        emit requestRenameNode(type);
+    }
+}
+
+void NavigatorPanel::deleteItem(const QTreeWidgetItem* item) {
+    if (!item || !changeRefusal().isEmpty()) {
+        return;
+    }
+    const QString type = typeOf(item);
+    const QString id = item->data(0, Qt::UserRole).toString();
+    if (isElementType(type) || type == QLatin1String("book_file")) {
+        emit requestDelete(id);
+    } else if (type == QLatin1String("unassigned_file")) {
+        emit requestDeleteUnassigned(id);
+    }
+}
+
+QString NavigatorPanel::changeRefusal() const {
+    if (!core::ProjectManager::getInstance().isProjectOpen()) {
+        return tr("No book is open");
+    }
+    return m_readOnly ? readOnlyReason() : QString();
+}
+
+void NavigatorPanel::updateAddButton() {
+    if (!m_addButton) {
+        return;
+    }
+    const QString refusal = changeRefusal();
+    const bool canAdd = refusal.isEmpty() && addTargetOf(m_treeWidget->currentItem()).has_value();
+    m_addButton->setEnabled(canAdd);
+    // A book open read-only says why nothing can be added
+    const QString tip = tr("Add... (%1)").arg(ShortcutRules::keysText(addKeys()));
+    m_addButton->setToolTip(m_readOnly ? tip + QLatin1Char('\n') + refusal : tip);
+}
+
+bool NavigatorPanel::eventFilter(QObject* watched, QEvent* event) {
+    if (watched != m_treeWidget ||
+        (event->type() != QEvent::ShortcutOverride && event->type() != QEvent::KeyPress)) {
+        return QWidget::eventFilter(watched, event);
+    }
+    // The keys of the current node; the same keys of the window's commands (Delete of the
+    // Edit menu) wait while the tree has the keys
+    auto* key = static_cast<QKeyEvent*>(event);
+    const QKeyCombination keys = ShortcutRules::keysOf(key);
+    const Qt::KeyboardModifiers modifiers = keys.keyboardModifiers();
+    const bool enter = keys.key() == Qt::Key_Return || keys.key() == Qt::Key_Enter;
+    const bool add = (keys.key() == Qt::Key_Insert && modifiers == Qt::NoModifier) ||
+                     (enter && modifiers == (Qt::ControlModifier | Qt::ShiftModifier));
+    const bool rename = keys.key() == Qt::Key_F2 && modifiers == Qt::NoModifier;
+    const bool remove = keys.key() == Qt::Key_Delete && modifiers == Qt::NoModifier;
+    if (!add && !rename && !remove) {
+        return QWidget::eventFilter(watched, event);
+    }
+    if (event->type() == QEvent::ShortcutOverride) {
+        key->accept();
+        return true;
+    }
+    QTreeWidgetItem* item = m_treeWidget->currentItem();
+    if (add) {
+        addOn(item);
+    } else if (rename) {
+        renameItem(item);
+    } else {
+        deleteItem(item);
+    }
+    return true;
 }
 
 // =============================================================================
@@ -2155,8 +2598,11 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
     }
 
     // Update display title using the same helper function used in loadProject().
-    // Pass the modified state so the "*" indicator is re-applied on every refresh.
-    item->setText(0, getDisplayTitle(*element, pm.formOf(*element) == core::ElementForm::Text,
+    // Pass the modified state so the "*" indicator is re-applied on every refresh. The
+    // elements of the Workshop have no status.
+    item->setText(0, getDisplayTitle(*element,
+                                     pm.formOf(*element) == core::ElementForm::Text &&
+                                         !isWorkshopItem(item),
                                      m_modifiedElements.contains(elementId)));
     item->setData(0, TITLE_ROLE, element->title);
 
@@ -2336,6 +2782,10 @@ QStringList NavigatorPanel::expandedItemIds() const {
     for (int i = 0; i < m_treeWidget->topLevelItemCount(); ++i) {
         collectExpandedIds(m_treeWidget->topLevelItem(i), expandedIds);
     }
+    // The list knows the nodes of the book and of the Workshop (setExpandedItemIds())
+    if (m_treeWidget->topLevelItemCount() > 0) {
+        expandedIds.append(WORKSHOP_LAYOUT);
+    }
     return expandedIds;
 }
 
@@ -2344,6 +2794,23 @@ void NavigatorPanel::setExpandedItemIds(const QStringList& ids) {
     // otherwise a collapsed part would reopen on every load
     m_treeWidget->collapseAll();
     expandItemsById(ids);
+
+    // A list saved before the book and the Workshop had nodes of their own opens them, and
+    // the groups of the Workshop, as a new book shows them
+    if (!ids.contains(WORKSHOP_LAYOUT)) {
+        const std::function<void(QTreeWidgetItem*)> open = [&open](QTreeWidgetItem* item) {
+            const QString type = typeOf(item);
+            if (type == QLatin1String("book") || isWorkshopNode(type)) {
+                item->setExpanded(true);
+            }
+            for (int i = 0; i < item->childCount(); ++i) {
+                open(item->child(i));
+            }
+        };
+        for (int i = 0; i < m_treeWidget->topLevelItemCount(); ++i) {
+            open(m_treeWidget->topLevelItem(i));
+        }
+    }
 }
 
 void NavigatorPanel::revealElement(const QString& elementId) {
@@ -2432,10 +2899,13 @@ QTreeWidgetItem* NavigatorPanel::findItemByTypeAndTextRecursive(QTreeWidgetItem*
         return nullptr;
     }
 
-    // Check if this item matches. The tree has one document, one of each section and one
-    // "Other Files"; their names change (a renamed book or section), so the type finds them.
+    // Check if this item matches. The tree has one document, one book, one of each section,
+    // one Workshop and one "Other Files"; their names change (a renamed book or section), so
+    // the type finds them.
     QString itemType = parent->data(0, Qt::UserRole + 1).toString();
     const bool single = itemType == QLatin1String("document") ||
+                        itemType == QLatin1String("book") ||
+                        itemType == QLatin1String("workshop") ||
                         itemType == QLatin1String("section_frontmatter") ||
                         itemType == QLatin1String("section_body") ||
                         itemType == QLatin1String("section_backmatter") ||

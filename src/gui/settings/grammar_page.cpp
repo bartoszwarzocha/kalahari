@@ -58,19 +58,6 @@ constexpr int RULE_ROWS = 6;  ///< The rows the list of the rules shows
 constexpr const char* TEMURIN_PAGE = "https://adoptium.net/temurin/releases/";
 constexpr const char* LANGUAGE_TOOL_PAGE = "https://languagetool.org/download/";
 
-/// @brief Put a note under a check box or a radio button in line with its text
-void alignWithText(QLabel* note, const QAbstractButton* button) {
-    const QStyle* style = button->style();
-    const bool radio = qobject_cast<const QRadioButton*>(button) != nullptr;
-    const int indicator =
-        style->pixelMetric(radio ? QStyle::PM_ExclusiveIndicatorWidth : QStyle::PM_IndicatorWidth,
-                           nullptr, button);
-    const int spacing = style->pixelMetric(
-        radio ? QStyle::PM_RadioButtonLabelSpacing : QStyle::PM_CheckBoxLabelSpacing, nullptr,
-        button);
-    note->setContentsMargins(indicator + spacing, 0, 0, 0);
-}
-
 /// @brief A label of plain text that wraps
 QLabel* textLabel(const QString& text = QString()) {
     auto* label = new QLabel(text);

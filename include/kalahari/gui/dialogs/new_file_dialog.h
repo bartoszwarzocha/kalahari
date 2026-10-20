@@ -1,11 +1,13 @@
 /// @file new_file_dialog.h
 /// @brief New File: a new element of the open book, of the kind, with the title and at the
-/// place the writer chooses, or an empty text file, outside the book or with it
+/// place the writer chooses, or an empty text file, outside the book or with it; and Add
+/// Element, the same window for the place of the Navigator or of the editor it was opened on
 
 #pragma once
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/gui/add_target.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/widgets/element_place_picker.h"
 
@@ -13,6 +15,10 @@
 #include <QString>
 #include <QStringList>
 
+#include <functional>
+
+class QCheckBox;
+class QComboBox;
 class QEvent;
 class QLabel;
 class QLayout;
@@ -20,6 +26,7 @@ class QLineEdit;
 class QListWidget;
 class QPushButton;
 class QRadioButton;
+class QShowEvent;
 class QStackedWidget;
 class QWidget;
 
@@ -41,6 +48,9 @@ struct NewFileKind {
     QString count;  ///< How many the book can have: "any number", "one title page in the book"
     QString file;   ///< The file of a new element: "chapter_004.kchapter in the folder "book""
     QString type;   ///< The type of book the kind belongs to: "Novel"
+    /// Where a new element goes when the window shows no list of places (the Workshop, whose
+    /// elements are in alphabetical order); empty: the list shows the place
+    QString placeNote;
 };
 
 /// @brief New File: a new element of the open book, which opens in the editor, or an empty
@@ -71,6 +81,16 @@ struct NewFileKind {
 /// replaces it, and a click in it selects it while it is the proposed one; it follows the kind
 /// until the writer changes it. The dialog cannot be accepted without a kind, a title or a
 /// place; a double click on a tile accepts it.
+///
+/// Add Element (forAdding()) is the same window for the place of the Navigator or of the
+/// editor it was opened on: it offers the kinds of that place only, groups (a part) among
+/// them, and has no empty text file. A text element of the book gets its status, Draft at
+/// first. A new group can take inside it the elements that close the main section at the end
+/// of the groups before it (the epilogue), and the list only shows the book as it will be.
+/// The kinds of the Workshop are never offered with those of the book; its elements are in
+/// alphabetical order, so a note says where a new one goes in place of the list. A material
+/// is a copy of a file the writer chooses: choosing its tile opens the system's window of
+/// files, and its title starts as the name of the file.
 class NewFileDialog : public KalahariDialog {
     Q_OBJECT
 
@@ -89,6 +109,12 @@ public:
         /// Title of an empty text file ("Untitled 2"), as New File without a book names it;
         /// empty: the window has no tile of an empty text file
         QString untitled;
+        /// The window adds an element to the place it was opened on (Add Element): it is
+        /// named so, and has the status of a text element of the book
+        bool adding = false;
+        /// The main text kind of the book, for the words of a new group: "the chapters added
+        /// to the new part"
+        core::KindRef mainKind;
     };
 
     /// @brief The kinds and the parts of the book open in core::ProjectManager; at the start
@@ -96,6 +122,17 @@ public:
     /// a new element can be made
     /// @param untitled Title of an empty text file; empty: no empty text file
     static Book openBook(const QString& untitled = QString());
+
+    /// @brief The kinds of @p target, the place of the book or of the Workshop that Add
+    /// Element was opened on, in core::ProjectManager; at the start @p target's kind is chosen
+    /// when an element of it can be made there, else the usual kind of the place: the main
+    /// text kind of the book, the kind of the element the window was opened on
+    static Book forAdding(const AddTarget& target);
+
+    /// @brief A window in place of the system's window of files that chooses the file of a
+    /// material, for tests: it gets the folder the system's window would open in and returns
+    /// the file, or an empty path for Cancel; an empty function gives the system's window back
+    static void setFileChooserForTests(std::function<QString(const QString& folder)> chooser);
 
     /// @brief Create the dialog
     /// @param book The kinds and the parts of the book
@@ -121,6 +158,32 @@ public:
 
     /// @brief The place of the new element
     core::ElementPlace place() const;
+
+    /// @brief The status of a new text element of the book ("draft", "revision" or "final");
+    /// empty for the other elements and in New File
+    QString status() const;
+
+    /// @brief Ids of the elements a new group takes inside it: those that close the main
+    /// section at the end of the groups before it, unless the writer leaves them there; empty
+    /// for other elements
+    QStringList takeInside() const;
+
+    /// @brief The file of a new material (absolute); empty for other elements and before the
+    /// writer chooses one
+    QString materialFile() const;
+
+    /// @brief The status of a new text element of the book; hidden for other tiles
+    QComboBox* statusBox() const { return m_statusBox; }
+
+    /// @brief Whether a new group takes inside it the elements that close the main section;
+    /// hidden when there are none
+    QCheckBox* takeBox() const { return m_takeBox; }
+
+    /// @brief The file of a new material; hidden for other tiles
+    QLabel* materialLabel() const { return m_materialLabel; }
+
+    /// @brief The button that chooses the file of a new material again
+    QPushButton* chooseButton() const { return m_chooseButton; }
 
     /// @brief The tiles of the kinds, with the names of the parts of the book between them
     QListWidget* kindList() const { return m_kindList; }
@@ -162,6 +225,9 @@ protected:
     /// @brief A new font gives the tiles a new size
     void changeEvent(QEvent* event) override;
 
+    /// @brief A material chosen at the start asks for its file once the window is shown
+    void showEvent(QShowEvent* event) override;
+
     /// @brief A click in the proposed title selects it, so typing replaces it
     bool eventFilter(QObject* watched, QEvent* event) override;
 
@@ -172,8 +238,11 @@ private:
     /// @brief The tiles of the kinds
     QWidget* createKindsGroup(QWidget* parent);
 
-    /// @brief The title of the new element, with its label
+    /// @brief The title of the new element, with its label, and its status
     QLayout* createTitleRow(QWidget* parent);
+
+    /// @brief The file of a new material, with the button that chooses it
+    QWidget* createMaterialRow(QWidget* parent);
 
     /// @brief The place of the new element
     QWidget* createPlaceGroup(QWidget* parent);
@@ -196,8 +265,46 @@ private:
     static QString emptyFileName();
 
     /// @brief The places of @p entry in the part of the book of its tile, with the new
-    /// element at the place it gets when the writer does not choose it
+    /// element at the place it gets when the writer does not choose it; for a group, the book
+    /// as it will be, with the elements it can take inside it
     void showPlaces(const NewFileKind& entry);
+
+    /// @brief The book as it will be with a new group of @p entry, which takes inside it the
+    /// elements that close the main section unless the writer leaves them there
+    void showGroup(const NewFileKind& entry);
+
+    /// @brief What the window notes about the elements a new group takes inside it, with the
+    /// icon @p iconId; an empty @p text hides the note
+    void showNotice(const QString& iconId, const QString& text);
+
+    /// @brief @p text with the words of the chosen kind ({kind}) and of the main text kind of
+    /// the book ({main})
+    QString named(const QString& text) const;
+
+    /// @brief The heading of Add Element for the chosen tile: what the writer chooses
+    void updateHeading();
+
+    /// @brief Ask for the file of a new material in the system's window of files; its title
+    /// follows the file unless the writer has changed it
+    void chooseMaterialFile();
+
+    /// @brief Show the file of a new material, and what its copy is named
+    void showMaterialFile();
+
+    /// @brief Whether a new element of @p entry is a material
+    static bool isMaterial(const NewFileKind* entry);
+
+    /// @brief Whether a new element of @p entry gets a status: a text element of the book in
+    /// Add Element
+    bool hasStatus(const NewFileKind* entry) const;
+
+    /// @brief Describe @p kind, a kind of @p section, in an entry: where its elements can be,
+    /// how many, the file of a new one, the type, and why none can be made now
+    /// @param offered The kinds of which a new element can be made there
+    /// @param groups The group kinds of the book, for the words of where the kind can be
+    static NewFileKind entryOf(const core::KindRef& kind, core::BookPlace section,
+                               const QList<core::KindRef>& offered,
+                               const QList<core::KindRef>& groups);
 
     /// @brief The description, the title and the place of an empty text file, outside the book
     /// or with it
@@ -216,6 +323,8 @@ private:
     Book m_book;
     const core::BookTypeRegistry* m_registry = nullptr;
     bool m_titleChanged = false;  ///< The writer typed the title: it stays as it is
+    QString m_materialFile;       ///< The file of a new material; empty: none chosen yet
+    bool m_choosingFile = false;  ///< The system's window of files is open
 
     QLabel* m_iconLabel = nullptr;
     QLabel* m_nameLabel = nullptr;
@@ -233,6 +342,22 @@ private:
     QStackedWidget* m_placePages = nullptr;
     ElementPlacePicker* m_picker = nullptr;
     QLabel* m_placeNote = nullptr;
+
+    // Add Element
+    QLabel* m_statusLabel = nullptr;
+    QComboBox* m_statusBox = nullptr;
+    QWidget* m_materialRow = nullptr;
+    QLabel* m_materialLabel = nullptr;
+    QPushButton* m_chooseButton = nullptr;
+
+    // A new group: the elements that close the main section, which it takes inside it
+    QList<core::ProjectElement> m_closing;  ///< At the end of the groups before the group
+    bool m_canTake = false;                 ///< The group can have all of them inside it
+    QCheckBox* m_takeBox = nullptr;
+    QWidget* m_noticeBox = nullptr;         ///< What the window notes about them
+    QLabel* m_noticeIcon = nullptr;
+    QLabel* m_noticeText = nullptr;
+    QLabel* m_previewNote = nullptr;        ///< The list only shows the book as it will be
 };
 
 } // namespace dialogs

@@ -1,5 +1,6 @@
 /// @file file_location.cpp
-/// @brief A file or a folder shown in the file manager of the system
+/// @brief A file or a folder shown in the file manager of the system, and a file opened in the
+/// program the system gives it
 
 #include "kalahari/gui/utils/file_location.h"
 #include "kalahari/core/logger.h"
@@ -21,6 +22,11 @@ namespace {
 std::function<bool(const QString&)>& testFileManager() {
     static std::function<bool(const QString&)> show;
     return show;
+}
+
+std::function<bool(const QString&)>& testFileOpener() {
+    static std::function<bool(const QString&)> open;
+    return open;
 }
 
 /// Start the file manager of the system on @p info
@@ -67,6 +73,28 @@ bool showInFolder(const QString& path) {
 
 void setFileManagerForTests(std::function<bool(const QString&)> show) {
     testFileManager() = std::move(show);
+}
+
+bool openWithSystem(const QString& path) {
+    auto& logger = core::Logger::getInstance();
+    const QFileInfo info(path);
+    if (!info.isFile()) {
+        logger.warn("openWithSystem: {} is not a file", path.toStdString());
+        return false;
+    }
+    const bool opened =
+        testFileOpener() ? testFileOpener()(info.absoluteFilePath())
+                         : QDesktopServices::openUrl(QUrl::fromLocalFile(info.absoluteFilePath()));
+    if (opened) {
+        logger.info("openWithSystem: {}", path.toStdString());
+    } else {
+        logger.warn("openWithSystem: The system could not open {}", path.toStdString());
+    }
+    return opened;
+}
+
+void setFileOpenerForTests(std::function<bool(const QString&)> open) {
+    testFileOpener() = std::move(open);
 }
 
 } // namespace gui

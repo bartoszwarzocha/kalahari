@@ -126,6 +126,7 @@ void SettingsDialog::createNavigationTree() {
 
     m_pageItems[ANNOTATIONS_PAGE] =
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
+    addPage(nullptr, tr("Navigator"), []() { return new NavigatorPage(); });
     m_pageItems[SHORTCUTS_PAGE] =
         addPage(nullptr, tr("Keyboard Shortcuts"), []() { return new ShortcutsPage(); });
 
