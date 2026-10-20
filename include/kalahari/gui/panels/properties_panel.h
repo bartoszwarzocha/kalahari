@@ -114,7 +114,6 @@ public slots:
     /// Connects to BookEditor's selectionChanged signal for real-time
     /// updates of selection statistics. Without an editor (another tab in front, or none),
     /// the page of the editor gives way to the page of the book, or to the page without one.
-    /// The writer going to the text (it gets the keys) brings the page of the editor back.
     void setActiveEditor(EditorPanel* editorPanel);
 
     /// @brief Refresh current view with latest data
@@ -172,8 +171,7 @@ private slots:
     void onEditorStyleChanged(int index);
 
 protected:
-    /// @brief Event filter for handling focus events: the notes saved when they lose it, the
-    ///        page of the editor shown when its text gets it
+    /// @brief Event filter for handling focus events
     /// @param obj Object that received the event
     /// @param event The event
     /// @return true if event was handled

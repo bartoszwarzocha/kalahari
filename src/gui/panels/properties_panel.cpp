@@ -790,8 +790,6 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
     // So do new rules of counting, without an edit
     connect(bookEditor, &editor::BookEditor::countsChanged,
             this, &PropertiesPanel::onEditorCursorChanged);
-    // The writer going to the text shows its page again (eventFilter())
-    bookEditor->installEventFilter(this);
 
     // Show editor properties and update stats
     showEditorProperties();
@@ -812,7 +810,6 @@ void PropertiesPanel::disconnectFromEditor() {
                    this, &PropertiesPanel::onEditorCursorChanged);
         disconnect(bookEditor, &editor::BookEditor::countsChanged,
                    this, &PropertiesPanel::onEditorCursorChanged);
-        bookEditor->removeEventFilter(this);
     }
 
     m_activeEditorPanel = nullptr;
@@ -1101,13 +1098,6 @@ void PropertiesPanel::onChapterNotesChanged() {
 bool PropertiesPanel::eventFilter(QObject* obj, QEvent* event) {
     if (obj == m_chapterNotesEdit && event->type() == QEvent::FocusOut) {
         onChapterNotesChanged();  // Save notes on focus lost
-    }
-    // The text in front gets the keys (a click in it, or a chapter opened from the
-    // Navigator): the panel shows the text, with the style of its paragraph, as an element
-    // chosen in the Navigator shows that element
-    if (event->type() == QEvent::FocusIn && m_activeEditorPanel != nullptr &&
-        obj == m_activeEditorPanel->getBookEditor() && currentPage() != Page::Editor) {
-        showEditorProperties();
     }
     return QWidget::eventFilter(obj, event);
 }
