@@ -597,10 +597,8 @@ bool BookEditor::deleteAtObject(bool backward)
     const bool besideObject = atBreak && blockObject(neighbour) != TextObject::None;
 
     QTextBlock removed;
-    if (emptyParagraph && besideObject) {
-        removed = block;  // the empty paragraph, not the object
-    } else if (inObject && !atBreak) {
-        removed = block;  // the object
+    if ((emptyParagraph && besideObject) || (inObject && !atBreak)) {
+        removed = block;  // the empty paragraph (not the object next to it), or the object
     } else if (besideObject) {
         removed = neighbour;  // the object next to the cursor
     } else if (inObject && atBreak && neighbour.isValid()) {
