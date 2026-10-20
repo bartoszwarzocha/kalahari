@@ -43,7 +43,8 @@ class SectionsComboBox;
 /// - NoProject: Placeholder message when no project is open
 /// - Project: Project metadata (title, author, language, genre, sections, statistics)
 /// - Chapter: Chapter properties (title, word count, status, notes)
-/// - Editor: Text selection statistics (word/char count, paragraph style)
+/// - Editor: Text selection statistics (word/char count); the paragraph at the cursor is
+///   the Paragraph and Styles panel's (ParagraphPanel)
 ///
 /// Connects to ProjectManager signals for automatic updates.
 /// Connects to BookEditor for real-time selection statistics.
@@ -165,10 +166,6 @@ private slots:
 
     /// @brief Handle cursor position changed in BookEditor
     void onEditorCursorChanged();
-
-    /// @brief The writer chose a style in the Paragraph Style group: the paragraphs of the
-    ///        cursor or the selection take it, as with Format > Text Style
-    void onEditorStyleChanged(int index);
 
 protected:
     /// @brief Event filter for handling focus events
@@ -330,8 +327,6 @@ private:
     QLabel* m_editorCharNoSpaceLabel;     ///< Character count (without spaces)
     QLabel* m_editorParagraphCountLabel;  ///< Paragraph count
     QLabel* m_editorReadingTimeLabel;     ///< Estimated reading time
-    QComboBox* m_editorStyleCombo;        ///< The styles of the text in front
-    QLabel* m_editorStyleLabel;           ///< The style of the paragraph at the cursor
 
     // State tracking
     QString m_currentChapterId;    ///< Currently displayed chapter ID
@@ -346,10 +341,6 @@ private:
     QTimer* m_cursorDebounceTimer{nullptr};     ///< Debounce rapid cursor changes
 
     int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting
-
-    /// @brief Show the styles of a text in the Paragraph Style group, the style of the
-    ///        paragraph at its cursor chosen (none on a line or a break)
-    void updateParagraphStyle(const editor::BookEditor& bookEditor);
 };
 
 } // namespace gui

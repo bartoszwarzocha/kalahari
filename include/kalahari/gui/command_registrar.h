@@ -88,6 +88,7 @@ struct CommandCallbacks {
     std::function<void()> onFormatItalic;       ///< Format > Italic
     std::function<void()> onFormatUnderline;    ///< Format > Underline
     std::function<void()> onFormatStrikethrough; ///< Format > Strikethrough
+    std::function<void()> onClearFormatting;    ///< Format > Clear Formatting
 
     // Paragraph Alignment
     std::function<void()> onAlignLeft;          ///< Format > Align Left

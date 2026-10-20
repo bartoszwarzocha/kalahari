@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/core/theme_manager.h"
 
 #include <QCheckBox>
@@ -66,6 +67,17 @@ AppearanceGeneralPage::AppearanceGeneralPage(QWidget* parent)
     uiFontSize->setSuffix(tr(" pt"));
     QLabel* uiFontSizeLabel = addField(form, tr("UI Font Size:"), uiFontSize, "appearance.uiFontSize");
     markNotUsedYet(uiFontSize, uiFontSizeLabel);
+
+    QFormLayout* panels = addGroup(tr("Panels"));
+    auto* paragraphPlace = new QComboBox();
+    paragraphPlace->addItem(tr("In a panel of its own"),
+                            QString::fromLatin1(DockCoordinator::PARAGRAPH_IN_PANEL));
+    paragraphPlace->addItem(tr("At the bottom of the Properties panel"),
+                            QString::fromLatin1(DockCoordinator::PARAGRAPH_IN_PROPERTIES));
+    paragraphPlace->setToolTip(tr("Where the paragraph at the cursor and the styles of the book "
+                                  "show: a tab of its own next to Properties, or the lower part "
+                                  "of the Properties panel, which folds"));
+    addField(panels, tr("Paragraph and styles:"), paragraphPlace, DockCoordinator::PARAGRAPH_PLACE_KEY);
 
     pageLayout()->addStretch();
 }

@@ -349,7 +349,8 @@ TEST_CASE("Toolbar manager: the View menu items follow the toolbars and outlive 
     CHECK(toolbar->isVisible());
 }
 
-TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too", "[gui][toolbar]") {
+TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too, by the right edge",
+          "[gui][toolbar]") {
     // The user's test: the Annotations panel (F9) had no button on the Panels toolbar
     registerAllCommands(CommandCallbacks{});
     registerAllIcons();
@@ -363,8 +364,8 @@ TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too", 
 
     // The very actions of View > Panels, so a button is checked with its menu item
     const QList<QAction*> actions = toolbar->actions();
-    for (const char* id : {"view.navigator", "view.properties", "view.search", "view.assistant",
-                           "view.annotations", "view.log"}) {
+    for (const char* id : {"view.navigator", "view.properties", "view.paragraph", "view.search",
+                           "view.assistant", "view.annotations", "view.log"}) {
         INFO(id);
         CHECK(actions.contains(registry.getAction(std::string(id))));
         CHECK(kalahari::core::IconRegistry::getInstance().hasIcon(QString::fromLatin1(id)));
@@ -372,6 +373,14 @@ TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too", 
     // Next to the Assistant panel, with which it shares the tabs on the right
     CHECK(actions.indexOf(registry.getAction(std::string("view.annotations"))) ==
           actions.indexOf(registry.getAction(std::string("view.assistant"))) + 1);
+    // Paragraph and Styles next to Properties, as their tabs
+    CHECK(actions.indexOf(registry.getAction(std::string("view.paragraph"))) ==
+          actions.indexOf(registry.getAction(std::string("view.properties"))) + 1);
+
+    // Standing by the right edge of the window, shown
+    CHECK(window.toolBarArea(toolbar) == Qt::RightToolBarArea);
+    CHECK(toolbar->orientation() == Qt::Vertical);
+    CHECK_FALSE(toolbar->isHidden());
 }
 
 TEST_CASE("Toolbar manager: a renamed toolbar stays selected", "[gui][toolbar]") {

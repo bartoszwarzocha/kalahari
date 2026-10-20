@@ -172,6 +172,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.navigator", "resources/icons/twotone/import_contacts.svg", "Navigator");
     iconRegistry.registerIcon("view.search", "resources/icons/twotone/search.svg", "Search Panel");
     iconRegistry.registerIcon("view.properties", "resources/icons/twotone/tune.svg", "Properties");
+    // The icon of Format > Text Style: the styles are the panel's
+    iconRegistry.registerIcon("view.paragraph", "resources/icons/twotone/format_shapes.svg", "Paragraph and Styles");
     iconRegistry.registerIcon("view.assistant", "resources/icons/twotone/pets.svg", "Assistant");
     iconRegistry.registerIcon("view.log", "resources/icons/twotone/description.svg", "Log");
     iconRegistry.registerIcon("view.annotations", "resources/icons/twotone/comment.svg", "Annotations");

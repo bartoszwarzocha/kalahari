@@ -16,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   book's type, as one step of Undo: Heading 1, 2 and 3 (Alt+1, Alt+2, Alt+3; on macOS
   Option+Cmd with the digit), Normal (Alt+0), Quote, Dialogue and Code, then the other styles
   of the book; Manage Styles... is greyed out. The style of the paragraph at the cursor is
-  checked in the menu and on the Styles toolbar and named in the Paragraph Style field of the
-  Properties panel, which changes it too (greyed out in a book open read-only, saying why).
+  checked in the menu and on the Styles toolbar and selected in the palette of the Paragraph
+  and Styles panel, which gives it too (greyed out in a book open read-only, saying why).
   The styles look as the pack of the book's type says, in their proportions to Normal, which
   keeps the font, the line height and the spacing of the Settings. Enter at the end of a
   heading starts a paragraph in the style that follows it (Normal), Enter in its middle splits
@@ -52,6 +52,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Text copied in Kalahari gives Word and
   LibreOffice its headings, quotes, horizontal lines, scene breaks and page breaks, and a
   plain text program a line for each of them.
+
+- **The Paragraph and Styles panel, Clear Formatting, the buttons of the panels** -
+  2026-10-20. The Paragraph and Styles panel (View > Panels, and a button on the Panels
+  toolbar) is the tab after Properties in the group of panels on the right. A band names the
+  paragraph at the cursor ("paragraph 3 of 12") or the selected paragraphs ("4 of 12"); under
+  it are the buttons of bold, italic and underline, then Clear Formatting, and of the four
+  alignments, the commands of the Format menu, and the palette of the book's styles, by their
+  names or in their look (Names, Preview), with the style of the paragraphs selected. A click
+  on a style gives it to the paragraphs, as one step of Undo, and the keys back to the text.
+  Without a text in front the panel says so; on a line or a break it names its kind and greys
+  the palette out; in a book open read-only the palette is greyed out, saying why. Settings >
+  Appearance > General > Paragraph and styles can put the panel at the bottom of the
+  Properties panel instead, where it folds to its band; the border of the parts and the
+  folding are kept. The Properties panel no longer has the Paragraph Style group. Format >
+  Clear Formatting (Ctrl+Space; Cmd+\ on macOS, where Cmd+Space opens Spotlight) takes off the
+  formatting given by hand to the selected text, or to the word with the cursor (bold, italic,
+  underline, strikethrough, subscript and superscript, the font, the size and the colors) and
+  the alignment given to their paragraphs, as one step of Undo; the styles, the annotations
+  and the objects stay. Outside a word the text typed next is plain. A button of the Panels
+  toolbar shows a closed panel on top, brings an open panel under another tab on top, and
+  closes the panel on top, which unchecks it; a floating panel closes at once. The Panels
+  toolbar stands at the right edge of the window, next to the panels on the right, shown; a
+  toolbar layout saved before stays as it was until View > Reset Layout.
 
 - **Navigator: the book and the Workshop, and one window that adds** - 2026-10-20. The
   Navigator shows the project, named after the title of its book, with two nodes: the book,

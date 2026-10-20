@@ -623,6 +623,16 @@ public:
     ///        would be
     bool isStrikethrough() const;
 
+    /// @brief Take off the formatting given by hand (Format > Clear Formatting), as one undo
+    ///        step
+    ///
+    /// The selection, else the word with the cursor, loses bold, italic, underline,
+    /// strikethrough, sub- and superscript, its own font and size and its colors; without
+    /// either, the text typed next is without the inline formats (bold to superscript). The
+    /// paragraphs of the selection or the cursor lose their own alignments and have those of
+    /// their styles. The styles of the paragraphs, the annotations and the objects stay.
+    void clearFormatting();
+
     // =========================================================================
     // Font of the selection, the word with the cursor or the text typed next. The editor's
     // own font stays: it is the one of the settings (editor.fontFamily, editor.fontSize).
@@ -685,6 +695,16 @@ public:
     /// @brief Put the paragraph at the cursor, or the selected ones, in a style, as one undo
     ///        step; the objects among them stay as they are
     void applyParagraphStyle(const QString& styleId);
+
+    /// @brief The style of the selected paragraphs when they all have it, else empty
+    ///
+    /// Without a selection the style of the paragraph at the cursor (currentParagraphStyle()).
+    /// The objects among the paragraphs do not count; a selection of objects only has none.
+    QString selectedParagraphStyle() const;
+
+    /// @brief The object at the cursor (a horizontal line, a break); None in a paragraph of
+    ///        text
+    TextObject currentObject() const;
 
     /// @brief Insert an object at the cursor, replacing the selection, as one undo step
     ///

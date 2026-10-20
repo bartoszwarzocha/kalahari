@@ -8,9 +8,42 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <QTextBoundaryFinder>
 #include <algorithm>
+#include <array>
 #include <vector>
 
 namespace kalahari::editor {
+
+namespace {
+
+/// @brief The character properties Clear Formatting takes off text: the inline formats, the
+/// font and the colors (KML <b>, <i>, <u>, <s>, <sub>, <sup> and the attributes of <span>)
+constexpr std::array<int, 12> CLEARED_CHARACTER_PROPERTIES{
+    QTextFormat::FontWeight,      QTextFormat::FontItalic,
+    QTextFormat::FontUnderline,   QTextFormat::TextUnderlineStyle,
+    QTextFormat::FontStrikeOut,   QTextFormat::TextVerticalAlignment,
+    QTextFormat::FontFamilies,    QTextFormat::FontFamily,
+    QTextFormat::FontPointSize,   QTextFormat::FontPixelSize,
+    QTextFormat::ForegroundBrush, QTextFormat::BackgroundBrush,
+};
+
+/// @brief Whether text in @p format has formatting Clear Formatting takes off
+bool hasClearedFormatting(const QTextCharFormat& format)
+{
+    return std::any_of(CLEARED_CHARACTER_PROPERTIES.begin(), CLEARED_CHARACTER_PROPERTIES.end(),
+                       [&format](int property) { return format.hasProperty(property); });
+}
+
+/// @brief @p format without the formatting Clear Formatting takes off; the annotations and
+/// the references of the text stay
+QTextCharFormat withoutClearedFormatting(QTextCharFormat format)
+{
+    for (const int property : CLEARED_CHARACTER_PROPERTIES) {
+        format.clearProperty(property);
+    }
+    return format;
+}
+
+}  // namespace
 
 // =============================================================================
 // Formatting (Phase 7.2)
@@ -54,6 +87,118 @@ bool BookEditor::isUnderline() const
 bool BookEditor::isStrikethrough() const
 {
     return hasFormat(InlineFormat::Strikethrough);
+}
+
+void BookEditor::clearFormatting()
+{
+    if (refusesChange()) {
+        return;
+    }
+    if (!m_textBuffer) {
+        return;
+    }
+
+    // The paragraphs of the selection, or the one at the cursor, with alignments of their own
+    int startPara = m_cursorPosition.paragraph;
+    int endPara = m_cursorPosition.paragraph;
+    if (hasSelection()) {
+        const SelectionRange selection = m_selection.normalized();
+        startPara = selection.start.paragraph;
+        endPara = selection.end.paragraph;
+    }
+    std::vector<QTextBlock> aligned;
+    for (QTextBlock block = m_textBuffer->findBlockByNumber(startPara);
+         block.isValid() && block.blockNumber() <= endPara; block = block.next()) {
+        if (blockObject(block) == TextObject::None && ownAlignment(block.blockFormat())) {
+            aligned.push_back(block);
+        }
+    }
+
+    // The pieces of the selection or the word with formatting to take off, objects aside
+    struct Piece {
+        int from;
+        int to;
+        QTextCharFormat format;
+    };
+    std::vector<Piece> pieces;
+    const std::optional<SelectionRange> range = formatRange();
+    if (range) {
+        const SelectionRange& selected = *range;
+        for (int i = selected.start.paragraph; i <= selected.end.paragraph; ++i) {
+            const QTextBlock block = m_textBuffer->findBlockByNumber(i);
+            if (!block.isValid()) {
+                continue;
+            }
+            const int start = i == selected.start.paragraph ? selected.start.offset : 0;
+            const int end =
+                i == selected.end.paragraph ? selected.end.offset : block.length() - 1;
+            const int from = block.position() + start;
+            const int to = block.position() + end;
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                const QTextFragment fragment = it.fragment();
+                const int fragmentFrom = fragment.position();
+                const int fragmentTo = fragmentFrom + fragment.length();
+                const QTextCharFormat format = fragment.charFormat();
+                if (fragmentTo <= from || fragmentFrom >= to ||
+                    textObjectOf(format) != TextObject::None || !hasClearedFormatting(format)) {
+                    continue;
+                }
+                pieces.push_back({std::max(fragmentFrom, from), std::min(fragmentTo, to),
+                                  withoutClearedFormatting(format)});
+            }
+        }
+    }
+
+    // One undo step that brings back the cursor and selection it was made with, as the
+    // alignment does (setParagraphAlignment()); nothing to take off, no step
+    if (!aligned.empty() || !pieces.empty()) {
+        QTextCursor cursor(m_textBuffer.get());
+        cursor.beginEditBlock();
+        m_textBuffer->appendUndoItem(new CallbackUndoItem(
+            [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+        for (const Piece& piece : pieces) {
+            cursor.setPosition(piece.from);
+            cursor.setPosition(piece.to, QTextCursor::KeepAnchor);
+            cursor.setCharFormat(piece.format);
+        }
+        for (const QTextBlock& block : aligned) {
+            QTextBlockFormat format = block.blockFormat();
+            format.clearProperty(QTextFormat::BlockAlignment);
+            cursor.setPosition(block.position());
+            cursor.setBlockFormat(format);
+        }
+        cursor.endEditBlock();
+        if (m_renderPipeline) {
+            m_renderPipeline->markAllDirty();
+        }
+        emit contentChanged();
+        update();
+    }
+
+    // Without a selection or a word: the text typed next is without the inline formats,
+    // whatever the text before it has (the pending format adds to the place's, so what the
+    // place has is turned off). Its font and colors stay those of the place: given here, the
+    // editor's own font would be saved with the text as a font of its own.
+    if (!range) {
+        const QTextCharFormat place = placeFormat();
+        QTextCharFormat pending;
+        if (formatHas(place, InlineFormat::Bold)) {
+            pending.setFontWeight(QFont::Normal);
+        }
+        if (formatHas(place, InlineFormat::Italic)) {
+            pending.setFontItalic(false);
+        }
+        if (formatHas(place, InlineFormat::Underline)) {
+            pending.setFontUnderline(false);
+        }
+        if (formatHas(place, InlineFormat::Strikethrough)) {
+            pending.setFontStrikeOut(false);
+        }
+        if (place.verticalAlignment() != QTextCharFormat::AlignNormal) {
+            pending.setVerticalAlignment(QTextCharFormat::AlignNormal);
+        }
+        setPendingFormat(pending);
+    }
 }
 
 // =============================================================================
@@ -195,6 +340,38 @@ QString BookEditor::currentParagraphStyle() const
         return QString();
     }
     return paragraphStyleOf(block.blockFormat());
+}
+
+QString BookEditor::selectedParagraphStyle() const
+{
+    if (!hasSelection()) {
+        return currentParagraphStyle();
+    }
+    if (!m_textBuffer) {
+        return QString::fromLatin1(NORMAL_STYLE_ID);
+    }
+    const SelectionRange range = m_selection.normalized();
+    QString common;
+    for (QTextBlock block = m_textBuffer->findBlockByNumber(range.start.paragraph);
+         block.isValid() && block.blockNumber() <= range.end.paragraph; block = block.next()) {
+        if (blockObject(block) != TextObject::None) {
+            continue;
+        }
+        const QString style = paragraphStyleOf(block.blockFormat());
+        if (!common.isEmpty() && style != common) {
+            return QString();
+        }
+        common = style;
+    }
+    return common;
+}
+
+TextObject BookEditor::currentObject() const
+{
+    if (!m_textBuffer) {
+        return TextObject::None;
+    }
+    return blockObject(m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph));
 }
 
 void BookEditor::applyParagraphStyle(const QString& styleId)

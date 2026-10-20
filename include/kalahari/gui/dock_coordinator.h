@@ -19,8 +19,12 @@ class QToolButton;
 class QWidget;
 class QAction;
 class QRect;
+class QSplitter;
 
 namespace kalahari {
+namespace editor {
+class BookEditor;
+}
 namespace gui {
 
 // Forward declarations for panels
@@ -32,6 +36,8 @@ class SearchPanel;
 class AssistantPanel;
 class AnnotationsPanel;
 class SpellingPanel;
+class ParagraphPanel;
+class FittingScrollArea;
 class InfoBar;
 class StandaloneInfoBar;
 
@@ -109,6 +115,31 @@ public:
     void showRightPanels();
 
     // =========================================================================
+    // The Paragraph and Styles panel
+    // =========================================================================
+
+    /// @brief The setting of the place of the Paragraph and Styles panel (Settings >
+    /// Appearance > General): a panel of its own (PARAGRAPH_IN_PANEL, the default) or the
+    /// lower part of the Properties panel (PARAGRAPH_IN_PROPERTIES)
+    static constexpr const char* PARAGRAPH_PLACE_KEY = "panels.paragraphPlace";
+    static constexpr const char* PARAGRAPH_IN_PANEL = "panel";
+    static constexpr const char* PARAGRAPH_IN_PROPERTIES = "properties";
+
+    /// @brief Whether the settings put the Paragraph and Styles panel in the Properties panel
+    [[nodiscard]] static bool paragraphInProperties();
+
+    /// @brief Put the Paragraph and Styles panel where the settings say: after the window's
+    /// layout is restored (a saved layout knows the panel of its own) and after the setting
+    /// changes
+    /// @param moved The setting changed now: a panel of its own opens on top, the lower part
+    ///        of the Properties panel opens unfolded with the Properties panel on top
+    void placeParagraphPanel(bool moved);
+
+    /// @brief Follow the text in front with the Paragraph and Styles panel, in both its places
+    /// @param editor The text, nullptr without one (the Dashboard, no tab)
+    void setParagraphEditor(editor::BookEditor* editor);
+
+    // =========================================================================
     // Dock customization
     // =========================================================================
 
@@ -162,6 +193,18 @@ public:
     /// @brief Get the Spelling and Grammar panel
     [[nodiscard]] SpellingPanel* spellingPanel() const { return m_spellingPanel; }
 
+    /// @brief The Paragraph and Styles panel of its own (paragraphDock())
+    [[nodiscard]] ParagraphPanel* paragraphPanel() const { return m_paragraphPanel; }
+
+    /// @brief The Paragraph and Styles panel in the lower part of the Properties panel
+    [[nodiscard]] ParagraphPanel* propertiesParagraphPanel() const
+    {
+        return m_propertiesParagraph;
+    }
+
+    /// @brief The parts of the Properties panel: its own and the Paragraph and Styles panel
+    [[nodiscard]] QSplitter* propertiesSplitter() const { return m_propertiesSplitter; }
+
     /// @brief Get Standalone info bar
     [[nodiscard]] StandaloneInfoBar* standaloneInfoBar() const { return m_standaloneInfoBar; }
 
@@ -192,6 +235,10 @@ public:
 
     /// @brief Get the dock of the Spelling and Grammar panel
     [[nodiscard]] QDockWidget* spellingDock() const { return m_spellingDock; }
+
+    /// @brief The dock of the Paragraph and Styles panel of its own (hidden while the panel is
+    /// in the Properties panel)
+    [[nodiscard]] QDockWidget* paragraphDock() const { return m_paragraphDock; }
 
     // =========================================================================
     // Central widget accessors
@@ -227,6 +274,9 @@ public:
 
     /// @brief Get the Spelling and Grammar toggle action
     [[nodiscard]] QAction* viewSpellingAction() const { return m_viewSpellingAction; }
+
+    /// @brief The Paragraph and Styles toggle action
+    [[nodiscard]] QAction* viewParagraphAction() const { return m_viewParagraphAction; }
 
 signals:
     /// @brief Emitted when tab close is requested
@@ -313,6 +363,26 @@ private:
     /// @brief Create the dock of the Spelling and Grammar panel (hidden until opened)
     void createSpellingDock();
 
+    /// @brief Create the dock of the Paragraph and Styles panel of its own
+    void createParagraphDock();
+
+    /// @brief The Paragraph and Styles command: in a panel of its own the click of the other
+    /// panels (utils::togglePanel()); in the Properties panel the same cycle for its lower
+    /// part: a folded part, or a closed panel, opens unfolded on top, a panel under another
+    /// tab comes on top, and the part on top folds
+    void toggleParagraph();
+
+    /// @brief Whether the Paragraph and Styles panel is open: its own panel, or the
+    /// Properties panel with its lower part unfolded
+    [[nodiscard]] bool isParagraphOpen() const;
+
+    /// @brief Check the Paragraph and Styles toggle while the panel is open
+    void updateParagraphAction();
+
+    /// @brief Fold the lower part of the Properties panel to its band, or give it the height
+    /// it had (panels.propertiesSplit)
+    void applyParagraphFold();
+
     /// @brief Add a button to the title bar of a dock (setupDockTitleBar()), before its Float
     /// and Close buttons; its icon follows the theme (refreshDockIcons())
     /// @param dock The dock
@@ -359,6 +429,7 @@ private:
     QDockWidget* m_assistantDock{nullptr};
     QDockWidget* m_annotationsDock{nullptr};
     QDockWidget* m_spellingDock{nullptr};
+    QDockWidget* m_paragraphDock{nullptr};
 
     // Panels
     NavigatorPanel* m_navigatorPanel{nullptr};
@@ -369,6 +440,10 @@ private:
     AssistantPanel* m_assistantPanel{nullptr};
     AnnotationsPanel* m_annotationsPanel{nullptr};
     SpellingPanel* m_spellingPanel{nullptr};
+    ParagraphPanel* m_paragraphPanel{nullptr};       ///< In its own dock
+    ParagraphPanel* m_propertiesParagraph{nullptr};  ///< The lower part of Properties
+    QSplitter* m_propertiesSplitter{nullptr};        ///< Properties | Paragraph and Styles
+    FittingScrollArea* m_propertiesParagraphArea{nullptr};  ///< The lower part, scrolling
 
     // Central widget
     QTabWidget* m_centralTabs{nullptr};
@@ -384,6 +459,7 @@ private:
     QAction* m_viewAssistantAction{nullptr};
     QAction* m_viewAnnotationsAction{nullptr};
     QAction* m_viewSpellingAction{nullptr};
+    QAction* m_viewParagraphAction{nullptr};
 
     // Icon tracking for refresh
     QList<QLabel*> m_dockIconLabels;

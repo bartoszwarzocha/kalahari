@@ -628,6 +628,13 @@ void MainWindow::registerCommands() {
     callbacks.onFormatItalic = [this]() { onFormatItalic(); };
     callbacks.onFormatUnderline = [this]() { onFormatUnderline(); };
     callbacks.onFormatStrikethrough = [this]() { onFormatStrikethrough(); };
+    callbacks.onClearFormatting = [this]() {
+        EditorPanel* editor = getCurrentEditor();
+        if (editor && editor->getBookEditor()) {
+            editor->getBookEditor()->clearFormatting();
+        }
+        updateEditorActionStates();  // bold and the alignments are off now
+    };
 
     // Alignment commands
     callbacks.onAlignLeft = [this]() { onAlignLeft(); };
@@ -1465,6 +1472,7 @@ void MainWindow::createDocks() {
             if (propertiesPanel) {
                 propertiesPanel->setActiveEditor(nullptr);
             }
+            m_dockCoordinator->setParagraphEditor(nullptr);
             // OpenSpec #00042 Phase 7.2: Sync font toolbar (disabled state)
             if (m_toolbarManager) {
                 m_toolbarManager->syncFontWidgetsToEditor(nullptr);
@@ -1541,6 +1549,8 @@ void MainWindow::createDocks() {
             if (propertiesPanel) {
                 propertiesPanel->setActiveEditor(editor);
             }
+            // The paragraph at its cursor in the Paragraph and Styles panel
+            m_dockCoordinator->setParagraphEditor(editor->getBookEditor());
 
             // OpenSpec #00042 Phase 7.2: Sync font toolbar to current editor
             if (m_toolbarManager) {
@@ -1555,6 +1565,7 @@ void MainWindow::createDocks() {
             if (propertiesPanel) {
                 propertiesPanel->setActiveEditor(nullptr);
             }
+            m_dockCoordinator->setParagraphEditor(nullptr);
             // OpenSpec #00042 Phase 7.2: Sync font toolbar (disabled state)
             if (m_toolbarManager) {
                 m_toolbarManager->syncFontWidgetsToEditor(nullptr);
@@ -2028,6 +2039,9 @@ void MainWindow::showEvent(QShowEvent* event) {
         if (m_toolbarManager) {
             m_toolbarManager->restoreState();
         }
+
+        // A layout saved before the Paragraph and Styles panel, or with it in its other place
+        m_dockCoordinator->placeParagraphPanel(false);
 
         // OpenSpec #00024: LogDock visibility is INDEPENDENT of saveState/restoreState
         // It depends ONLY on diagnostic mode, not on saved window state

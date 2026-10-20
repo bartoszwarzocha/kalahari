@@ -979,6 +979,10 @@
         <source>&amp;Add...</source>
         <translation>&amp;Dodaj...</translation>
     </message>
+    <message>
+        <source>Pa&amp;ragraph and Styles</source>
+        <translation>A&amp;kapit i style</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -3796,6 +3800,26 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>UI Font Size:</source>
         <translation>Rozmiar czcionki interfejsu:</translation>
     </message>
+    <message>
+        <source>Panels</source>
+        <translation>Panele</translation>
+    </message>
+    <message>
+        <source>In a panel of its own</source>
+        <translation>W osobnym panelu</translation>
+    </message>
+    <message>
+        <source>At the bottom of the Properties panel</source>
+        <translation>W dolnej części panelu Właściwości</translation>
+    </message>
+    <message>
+        <source>Where the paragraph at the cursor and the styles of the book show: a tab of its own next to Properties, or the lower part of the Properties panel, which folds</source>
+        <translation>Gdzie widać akapit z kursorem i style książki: na osobnej karcie obok Właściwości albo w dolnej, zwijanej części panelu Właściwości</translation>
+    </message>
+    <message>
+        <source>Paragraph and styles:</source>
+        <translation>Akapit i style:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AssistantPanel</name>
@@ -4263,6 +4287,10 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     <message>
         <source>Spelling and Grammar Settings</source>
         <translation>Ustawienia pisowni i gramatyki</translation>
+    </message>
+    <message>
+        <source>Paragraph and Styles</source>
+        <translation>Akapit i style</translation>
     </message>
 </context>
 <context>
@@ -7149,6 +7177,93 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::ParagraphPanel</name>
+    <message>
+        <source>No text with a cursor is in front. Click in the text of a chapter.</source>
+        <translation>Na wierzchu nie ma tekstu z kursorem. Kliknij w tekst rozdziału.</translation>
+    </message>
+    <message>
+        <source>Fold</source>
+        <translation>Zwiń</translation>
+    </message>
+    <message>
+        <source>Current Paragraph</source>
+        <translation>Bieżący akapit</translation>
+    </message>
+    <message>
+        <source>Kind:</source>
+        <translation>Rodzaj:</translation>
+    </message>
+    <message>
+        <source>Formatting:</source>
+        <translation>Formatowanie:</translation>
+    </message>
+    <message>
+        <source>Alignment:</source>
+        <translation>Wyrównanie:</translation>
+    </message>
+    <message>
+        <source>The look of the scene breaks: Edit &gt; Settings..., group Editor &gt; General.</source>
+        <translation>Wygląd podziałów sceny: Edycja &gt; Ustawienia..., grupa Edytor &gt; Ogólne.</translation>
+    </message>
+    <message>
+        <source>Styles</source>
+        <translation>Style</translation>
+    </message>
+    <message>
+        <source>Names</source>
+        <translation>Nazwy</translation>
+    </message>
+    <message>
+        <source>The styles by their names</source>
+        <translation>Same nazwy stylów</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>The styles in their look</source>
+        <translation>Nazwy stylów w ich wyglądzie</translation>
+    </message>
+    <message>
+        <source>Unfold</source>
+        <translation>Rozwiń</translation>
+    </message>
+    <message>
+        <source>Selected Paragraphs</source>
+        <translation>Zaznaczone akapity</translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <translation>%1 z %2</translation>
+    </message>
+    <message>
+        <source>paragraph %1 of %2</source>
+        <translation>akapit %1 z %2</translation>
+    </message>
+    <message>
+        <source>Horizontal Line</source>
+        <translation>Linia pozioma</translation>
+    </message>
+    <message>
+        <source>Scene Break</source>
+        <translation>Podział sceny</translation>
+    </message>
+    <message>
+        <source>Page Break</source>
+        <translation>Podział strony</translation>
+    </message>
+    <message>
+        <source>Click in the text of a paragraph to give it a style</source>
+        <translation>Kliknij w tekst akapitu, żeby nadać mu styl</translation>
+    </message>
+    <message>
+        <source>A click on a style gives it to the paragraph at the cursor or to the selected paragraphs</source>
+        <translation>Kliknięcie stylu nadaje go akapitowi z kursorem albo zaznaczonym akapitom</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::PropertiesPanel</name>
     <message>
         <source>Title:</source>
@@ -7333,26 +7448,6 @@ Szczegóły są w dzienniku programu.</translation>
     <message>
         <source>Reading time:</source>
         <translation>Czas czytania:</translation>
-    </message>
-    <message>
-        <source>Paragraph Style</source>
-        <translation>Styl akapitu</translation>
-    </message>
-    <message>
-        <source>Current paragraph style at cursor position</source>
-        <translation>Styl akapitu w miejscu kursora</translation>
-    </message>
-    <message>
-        <source>Current:</source>
-        <translation>Bieżący:</translation>
-    </message>
-    <message>
-        <source>Change paragraph style</source>
-        <translation>Zmień styl akapitu</translation>
-    </message>
-    <message>
-        <source>Apply:</source>
-        <translation>Zastosuj:</translation>
     </message>
     <message>
         <source>-</source>

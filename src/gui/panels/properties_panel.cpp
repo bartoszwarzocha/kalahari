@@ -13,7 +13,6 @@
 #include "kalahari/gui/section_words.h"
 #include "kalahari/gui/widgets/sections_field.h"
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/package_card.h"
@@ -99,8 +98,6 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_editorCharNoSpaceLabel(nullptr)
     , m_editorParagraphCountLabel(nullptr)
     , m_editorReadingTimeLabel(nullptr)
-    , m_editorStyleCombo(nullptr)
-    , m_editorStyleLabel(nullptr)
     , m_isUpdating(false)
     , m_activeEditorPanel(nullptr)
 {
@@ -599,30 +596,6 @@ QWidget* PropertiesPanel::createEditorPage() {
 
     layout->addWidget(statsGroup);
 
-    // Style group
-    QGroupBox* styleGroup = new QGroupBox(tr("Paragraph Style"), scrollContent);
-    QFormLayout* styleLayout = new QFormLayout(styleGroup);
-    styleLayout->setSpacing(6);
-    styleLayout->setContentsMargins(11, 11, 11, 11);
-
-    // Current style display
-    m_editorStyleLabel = new QLabel("-", styleGroup);
-    m_editorStyleLabel->setToolTip(tr("Current paragraph style at cursor position"));
-    styleLayout->addRow(tr("Current:"), m_editorStyleLabel);
-
-    // The styles of the text in front (updateParagraphStyle())
-    m_editorStyleLabel->setObjectName(QStringLiteral("editorStyleLabel"));
-    m_editorStyleCombo = new QComboBox(styleGroup);
-    m_editorStyleCombo->setObjectName(QStringLiteral("editorStyleCombo"));
-    m_editorStyleCombo->setToolTip(tr("Change paragraph style"));
-    styleLayout->addRow(tr("Apply:"), m_editorStyleCombo);
-
-    // Connect style combo
-    connect(m_editorStyleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &PropertiesPanel::onEditorStyleChanged);
-
-    layout->addWidget(styleGroup);
-
     // Add stretch at the bottom
     layout->addStretch(1);
 
@@ -776,9 +749,6 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
         logger.warn("PropertiesPanel::setActiveEditor() - EditorPanel has no BookEditor");
         return;
     }
-    // A chapter of a book open read-only takes no style
-    m_editorStyleCombo->setEnabled(!bookEditor->isReadOnly());
-
     // Connect to BookEditor signals
     connect(bookEditor, &editor::BookEditor::selectionChanged,
             this, &PropertiesPanel::onEditorSelectionChanged);
@@ -1510,58 +1480,6 @@ void PropertiesPanel::onEditorCursorChanged() {
     }
 }
 
-void PropertiesPanel::onEditorStyleChanged(int index) {
-    if (m_isUpdating || index < 0 || !m_activeEditorPanel) {
-        return;
-    }
-    editor::BookEditor* bookEditor = m_activeEditorPanel->getBookEditor();
-    if (!bookEditor) {
-        return;
-    }
-    // As Format > Text Style: the paragraphs of the cursor or the selection (a chapter of a
-    // book open read-only refuses it, and says why)
-    bookEditor->applyParagraphStyle(m_editorStyleCombo->itemData(index).toString());
-    updateParagraphStyle(*bookEditor);
-}
-
-void PropertiesPanel::updateParagraphStyle(const editor::BookEditor& bookEditor) {
-    const bool updating = m_isUpdating;
-    m_isUpdating = true;
-
-    // The styles of the text, as Format > Text Style lists them; built again when they change
-    QStringList ids;
-    QStringList names;
-    for (const editor::ParagraphStyle& style : bookEditor.paragraphStyles().styles()) {
-        ids.append(style.id);
-        names.append(style.name.isEmpty() ? style.id : style.name);
-    }
-    bool same = m_editorStyleCombo->count() == ids.size();
-    for (int index = 0; same && index < ids.size(); ++index) {
-        same = m_editorStyleCombo->itemData(index).toString() == ids.at(index) &&
-               m_editorStyleCombo->itemText(index) == names.at(index);
-    }
-    if (!same) {
-        m_editorStyleCombo->clear();
-        for (int index = 0; index < ids.size(); ++index) {
-            m_editorStyleCombo->addItem(names.at(index), ids.at(index));
-        }
-    }
-
-    // The paragraph's style; none on a line or a break
-    const QString current = bookEditor.currentParagraphStyle();
-    const int shown = current.isEmpty() ? -1 : m_editorStyleCombo->findData(current);
-    m_editorStyleCombo->setCurrentIndex(shown);
-    m_editorStyleLabel->setText(shown >= 0 ? m_editorStyleCombo->itemText(shown)
-                                           : QStringLiteral("-"));
-
-    // A chapter of a book open read-only takes no style
-    m_editorStyleCombo->setEnabled(!bookEditor.isReadOnly());
-    m_editorStyleCombo->setToolTip(bookEditor.isReadOnly() ? readOnlyReason()
-                                                           : tr("Change paragraph style"));
-
-    m_isUpdating = updating;
-}
-
 void PropertiesPanel::updateEditorStatistics() {
     auto& logger = core::Logger::getInstance();
 
@@ -1573,7 +1491,6 @@ void PropertiesPanel::updateEditorStatistics() {
         m_editorCharNoSpaceLabel->setText("0");
         m_editorParagraphCountLabel->setText("0");
         m_editorReadingTimeLabel->setText(utils::readingTimeText(0));
-        m_editorStyleLabel->setText("-");
         return;
     }
 
@@ -1600,8 +1517,6 @@ void PropertiesPanel::updateEditorStatistics() {
     m_editorCharNoSpaceLabel->setText(locale.toString(counts.nonSpaceCharacters));
     m_editorParagraphCountLabel->setText(locale.toString(counts.paragraphs));
     m_editorReadingTimeLabel->setText(utils::readingTimeText(counts.words));
-
-    updateParagraphStyle(*bookEditor);
 
     m_isUpdating = false;
 

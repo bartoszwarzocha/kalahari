@@ -1,7 +1,9 @@
 /// @file test_dock_layout.cpp
 /// @brief The panels of the main window: the Annotations panel is on top of the panels on the
-/// right by default, choosing an element in the Navigator does not cover it, the Spelling and
-/// Grammar panel opens as the tab after it, the gears of the panels ask for their settings, on
+/// right by default, choosing an element in the Navigator does not cover it, the Paragraph and
+/// Styles panel is the tab after Properties or the lower part of it, the button of a panel
+/// shows it, brings it on top and closes it, the Spelling and Grammar panel opens as the tab
+/// after Annotations, the gears of the panels ask for their settings, on
 /// a small screen the panels on the right make room for the text, and Reset Layout docks the
 /// toolbars again
 
@@ -13,9 +15,11 @@
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dock_coordinator.h"
+#include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/widgets/info_bar.h"
@@ -43,6 +47,8 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 
+#include <algorithm>
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -157,8 +163,8 @@ struct Panels {
 
     /// The panels on the right of the window
     [[nodiscard]] QList<QDockWidget*> rightDocks() const {
-        return {docks->propertiesDock(), docks->searchDock(), docks->assistantDock(),
-                docks->annotationsDock()};
+        return {docks->propertiesDock(), docks->paragraphDock(), docks->searchDock(),
+                docks->assistantDock(), docks->annotationsDock()};
     }
 
     /// Whether the panels on the right are all open (in their tabs) or all closed
@@ -233,6 +239,170 @@ TEST_CASE("Panels: the Spelling and Grammar panel opens as the tab after the Ann
     CHECK(panels.onTop(spelling));
     REQUIRE(tabIndex(panels.window, annotations) >= 0);
     CHECK(tabIndex(panels.window, spelling) == tabIndex(panels.window, annotations) + 1);
+}
+
+TEST_CASE("Panels: the Paragraph and Styles panel is the tab after Properties",
+          "[gui][panels][styles]") {
+    Panels panels;
+    QDockWidget* paragraph = panels.docks->paragraphDock();
+    QDockWidget* properties = panels.docks->propertiesDock();
+    REQUIRE(paragraph != nullptr);
+
+    // Open, under the Annotations panel on top
+    CHECK(paragraph->toggleViewAction()->isChecked());
+    CHECK(panels.docks->viewParagraphAction()->isChecked());
+    CHECK(panels.onTop(panels.docks->annotationsDock()));
+    REQUIRE(tabIndex(panels.window, properties) >= 0);
+    CHECK(tabIndex(panels.window, paragraph) == tabIndex(panels.window, properties) + 1);
+
+    SECTION("Reset Layout puts it there again") {
+        panels.window.addDockWidget(Qt::LeftDockWidgetArea, paragraph);
+        panels.docks->resetLayout(false, false);
+        panels.docks->showRightPanels();  // hidden by Reset Layout on a small screen
+        QApplication::processEvents();
+        CHECK(paragraph->toggleViewAction()->isChecked());
+        CHECK(panels.window.dockWidgetArea(paragraph) == Qt::RightDockWidgetArea);
+        CHECK(tabIndex(panels.window, paragraph) == tabIndex(panels.window, properties) + 1);
+    }
+}
+
+TEST_CASE("Panels: a layout saved before the Paragraph and Styles panel shows it with the right "
+          "panels",
+          "[gui][panels][styles]") {
+    QByteArray oldLayout;
+    {
+        Panels old;
+        old.window.removeDockWidget(old.docks->paragraphDock());
+        oldLayout = old.window.saveState();
+    }
+    Panels panels;
+    REQUIRE(panels.window.restoreState(oldLayout));
+    panels.docks->placeParagraphPanel(false);
+    QApplication::processEvents();
+
+    QDockWidget* paragraph = panels.docks->paragraphDock();
+    CHECK(paragraph->toggleViewAction()->isChecked());
+    CHECK(panels.window.dockWidgetArea(paragraph) == Qt::RightDockWidgetArea);
+    CHECK(tabIndex(panels.window, paragraph) >= 0);
+    CHECK(panels.onTop(panels.docks->annotationsDock()));
+
+    // Its button brings it on top
+    CommandRegistry::getInstance().executeCommand("view.paragraph");
+    QApplication::processEvents();
+    CHECK(panels.onTop(paragraph));
+}
+
+TEST_CASE("Panels: the button of a panel shows it, brings it on top, closes it",
+          "[gui][panels][styles]") {
+    Panels panels;
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    QDockWidget* paragraph = panels.docks->paragraphDock();
+    QAction* button = panels.docks->viewParagraphAction();
+    const auto click = [&registry]() {
+        registry.executeCommand("view.paragraph");
+        QApplication::processEvents();
+    };
+    REQUIRE(panels.onTop(panels.docks->annotationsDock()));
+    REQUIRE(button->isChecked());
+
+    // Open under another tab: on top, the button still checked
+    click();
+    CHECK(panels.onTop(paragraph));
+    CHECK(button->isChecked());
+
+    // On top: closed, the button unchecked
+    click();
+    CHECK(paragraph->isHidden());
+    CHECK_FALSE(button->isChecked());
+
+    // Closed: open and on top
+    click();
+    CHECK(paragraph->isVisible());
+    CHECK(panels.onTop(paragraph));
+    CHECK(button->isChecked());
+}
+
+TEST_CASE("Panels: Paragraph and Styles at the bottom of the Properties panel",
+          "[gui][panels][styles]") {
+    auto& settings = core::SettingsManager::getInstance();
+    struct PlaceBack {
+        ~PlaceBack() {
+            try {
+                auto& settings = core::SettingsManager::getInstance();
+                settings.set<std::string>(DockCoordinator::PARAGRAPH_PLACE_KEY,
+                                          DockCoordinator::PARAGRAPH_IN_PANEL);
+                settings.set<bool>("panels.paragraphFolded", false);
+            } catch (...) {
+                std::fputs("The place of the Paragraph and Styles panel could not be given "
+                           "back\n",
+                           stderr);
+            }
+        }
+    } placeBack;
+    Panels panels;
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    QDockWidget* properties = panels.docks->propertiesDock();
+    ParagraphPanel* lower = panels.docks->propertiesParagraphPanel();
+    QAction* button = panels.docks->viewParagraphAction();
+    const auto click = [&registry]() {
+        registry.executeCommand("view.paragraph");
+        QApplication::processEvents();
+    };
+
+    // Settings > Appearance > General: the panel goes there and shows in front
+    settings.set<std::string>(DockCoordinator::PARAGRAPH_PLACE_KEY,
+                              DockCoordinator::PARAGRAPH_IN_PROPERTIES);
+    panels.docks->placeParagraphPanel(true);
+    QApplication::processEvents();
+    CHECK(panels.docks->paragraphDock()->isHidden());
+    CHECK(lower->isVisible());
+    CHECK_FALSE(lower->isFolded());
+    CHECK(panels.onTop(properties));
+    CHECK(button->isChecked());
+
+    // The button folds the lower part to its band, and unfolds it
+    click();
+    CHECK(lower->isFolded());
+    CHECK_FALSE(button->isChecked());
+    CHECK(settings.get<bool>("panels.paragraphFolded", false));
+    CHECK(panels.onTop(properties));
+    click();
+    CHECK_FALSE(lower->isFolded());
+    CHECK(button->isChecked());
+
+    // Under another tab: Properties on top, unfolded
+    panels.docks->annotationsDock()->raise();
+    QApplication::processEvents();
+    REQUIRE_FALSE(panels.onTop(properties));
+    click();
+    CHECK(panels.onTop(properties));
+    CHECK_FALSE(lower->isFolded());
+
+    // Its own band folds it as well
+    lower->setFolded(true);
+    CHECK_FALSE(button->isChecked());
+
+    // Back in a panel of its own: shown on top, the lower part gone
+    settings.set<std::string>(DockCoordinator::PARAGRAPH_PLACE_KEY,
+                              DockCoordinator::PARAGRAPH_IN_PANEL);
+    panels.docks->placeParagraphPanel(true);
+    QApplication::processEvents();
+    CHECK_FALSE(lower->isVisible());
+    CHECK(panels.onTop(panels.docks->paragraphDock()));
+    CHECK(button->isChecked());
+}
+
+TEST_CASE("Panels: the Paragraph and Styles panel follows the text in front",
+          "[gui][panels][styles]") {
+    Panels panels;
+    auto* chapter = new EditorPanel();
+    panels.docks->centralTabs()->addTab(chapter, QStringLiteral("Chapter 1"));
+    panels.docks->setParagraphEditor(chapter->getBookEditor());
+    CHECK(panels.docks->paragraphPanel()->editor() == chapter->getBookEditor());
+    CHECK(panels.docks->propertiesParagraphPanel()->editor() == chapter->getBookEditor());
+    panels.docks->setParagraphEditor(nullptr);
+    CHECK(panels.docks->paragraphPanel()->editor() == nullptr);
+    CHECK(panels.docks->propertiesParagraphPanel()->editor() == nullptr);
 }
 
 TEST_CASE("Panels: Reset Layout closes the Spelling and Grammar panel",
@@ -490,16 +660,30 @@ TEST_CASE("Panels: the panels on the right can be made narrow", "[gui][panels]")
         QString name;
         ~StyleBack() { QApplication::setStyle(name); }
     } styleBack{systemStyle};
+    registerAllIcons();  // the buttons of the Paragraph and Styles panel show their icons
     Panels panels;
+    // The Paragraph and Styles panel with all its rows: it follows a text
+    auto* chapter = new EditorPanel();
+    panels.docks->centralTabs()->addTab(chapter, QStringLiteral("Chapter 1"));
+    panels.docks->setParagraphEditor(chapter->getBookEditor());
     QDockWidget* annotations = panels.docks->annotationsDock();
     panels.window.resizeDocks({annotations}, {100}, Qt::Horizontal);
     QApplication::processEvents();
-    // The panel is narrow; the dock adds its frame, wider in some styles (macOS)
-    CHECK(annotations->widget()->minimumSizeHint().width() <= 200);
-    CHECK(annotations->width() <= annotations->minimumSizeHint().width());
+
+    // Each panel is narrow, its long title too; the dock adds its frame, wider in some styles
+    // (macOS). The column is as narrow as its widest panel can be
+    int widest = 0;
+    for (const QDockWidget* dock : panels.rightDocks()) {
+        INFO(dock->objectName().toStdString());
+        CHECK(dock->widget()->minimumSizeHint().width() <= 200);
+        CHECK(dock->titleBarWidget()->minimumSizeHint().width() <= 200);
+        widest = std::max(widest, dock->minimumSizeHint().width());
+    }
+    CHECK(annotations->width() <= widest);
 }
 
-TEST_CASE("Reset Layout: the toolbars dock at the top again, in their rows, shown as by default",
+TEST_CASE("Reset Layout: the toolbars dock at the top again, in their rows, shown as by default, "
+          "and the Panels toolbar by the right edge",
           "[gui][panels][toolbar]") {
     // Reset Layout put the panels back, and a floating toolbar stayed where it was
     Panels panels;
@@ -512,7 +696,7 @@ TEST_CASE("Reset Layout: the toolbars dock at the top again, in their rows, show
 
     const std::vector<std::string> row1 = {"quickActions", "edit", "format", "insert"};
     const std::vector<std::string> row2 = {"book", "styles", "views", "tools", "help", "file",
-                                           "view", mine.toStdString()};
+                                           mine.toStdString()};
     const auto toolbar = [&toolbars](const std::string& id) {
         QToolBar* found = toolbars.getToolbar(id);
         REQUIRE(found != nullptr);
@@ -521,7 +705,7 @@ TEST_CASE("Reset Layout: the toolbars dock at the top again, in their rows, show
 
     // Moved by the writer: Format and their own toolbar floating (the window flags Qt gives a
     // toolbar dragged off the window), their own closed, Edit by the left edge, Help closed
-    // and File opened
+    // and File opened, Panels at the top
     for (QToolBar* floating : {toolbar("format"), toolbar(mine.toStdString())}) {
         floating->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
         floating->move(400, 300);
@@ -531,6 +715,7 @@ TEST_CASE("Reset Layout: the toolbars dock at the top again, in their rows, show
     panels.window.addToolBar(Qt::LeftToolBarArea, toolbar("edit"));
     toolbar("help")->hide();
     toolbar("file")->show();
+    panels.window.addToolBar(Qt::TopToolBarArea, toolbar("view"));
     QApplication::processEvents();
     REQUIRE(toolbar("format")->isFloating());
     REQUIRE(panels.window.toolBarArea(toolbar("edit")) == Qt::LeftToolBarArea);
@@ -561,13 +746,18 @@ TEST_CASE("Reset Layout: the toolbars dock at the top again, in their rows, show
     }
     CHECK(toolbar("book")->y() > toolbar("quickActions")->y());
 
-    // Shown as by default: all but File and Panels, and the writer's own toolbar
+    // Shown as by default: all but File, and the writer's own toolbar
     for (const std::vector<std::string>* row : {&row1, &row2}) {
         for (const std::string& id : *row) {
             INFO(id);
-            CHECK(toolbar(id)->isHidden() == (id == "file" || id == "view"));
+            CHECK(toolbar(id)->isHidden() == (id == "file"));
         }
     }
+
+    // Panels standing by the right edge of the window, shown
+    CHECK(panels.window.toolBarArea(toolbar("view")) == Qt::RightToolBarArea);
+    CHECK(toolbar("view")->orientation() == Qt::Vertical);
+    CHECK_FALSE(toolbar("view")->isHidden());
 
     CHECK(toolbars.deleteUserToolbar(mine));
 }

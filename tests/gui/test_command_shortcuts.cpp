@@ -118,6 +118,11 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"format.alignCenter", QStringLiteral("Ctrl+E")},
         {"format.alignRight", QStringLiteral("Ctrl+R")},
         {"format.justify", QStringLiteral("Ctrl+J")},
+#ifdef Q_OS_MACOS
+        {"format.clearFormatting", QStringLiteral("Ctrl+\\")},  // Cmd+\: Cmd+Space is Spotlight
+#else
+        {"format.clearFormatting", QStringLiteral("Ctrl+Space")},  // as in Word
+#endif
         {"tools.spellcheck", QStringLiteral("Shift+F7")},
         {"tools.nextMisspelling", QStringLiteral("F7")},
         {"view.navigator", QStringLiteral("F2")},

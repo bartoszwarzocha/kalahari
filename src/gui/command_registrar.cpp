@@ -161,6 +161,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     const Qt::KeyboardModifiers styleModifiers = Qt::ControlModifier | Qt::AltModifier;
     const Qt::KeyboardModifiers pasteModifiers =
         Qt::ControlModifier | Qt::AltModifier | Qt::ShiftModifier;
+    const KeyboardShortcut clearFormattingShortcut(Qt::Key_Backslash, Qt::ControlModifier);
 #else
     const KeyboardShortcut exitShortcut(Qt::Key_F4, Qt::AltModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_H, Qt::ControlModifier);
@@ -169,6 +170,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     const KeyboardShortcut previousTodoShortcut(Qt::Key_Up, Qt::AltModifier);
     const Qt::KeyboardModifiers styleModifiers = Qt::AltModifier;
     const Qt::KeyboardModifiers pasteModifiers = Qt::AltModifier | Qt::ShiftModifier;
+    const KeyboardShortcut clearFormattingShortcut(Qt::Key_Space, Qt::ControlModifier);
 #endif
 
     // =========================================================================
@@ -518,7 +520,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     REG_CMD("format.color", QT_TRANSLATE_NOOP("CommandRegistrar", "C&olor"), "FORMAT/Color", 220, true, 1);
 
-    REG_CMD("format.clearFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Clear For&matting"), "FORMAT/Clear Formatting", 230, false, 1);
+    // As in Word: Ctrl+Space, and Cmd+\ on macOS, where Cmd+Space opens Spotlight
+    REG_CMD_KEY_CB("format.clearFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Clear For&matting"), "FORMAT/Clear Formatting", 230, false, 0,
+                   clearFormattingShortcut, callbacks.onClearFormatting);
 
     // =========================================================================
     // TOOLS MENU
@@ -610,6 +614,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // F8, not F3: F3 is Find Next (edit.findNext)
     REG_CMD_KEY("view.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "&Properties"), "VIEW/Panels/Properties", 20, false, 0,
                 KeyboardShortcut(Qt::Key_F8, Qt::NoModifier));
+
+    // A panel of its own, or the lower part of Properties (Settings > Appearance > General)
+    REG_CMD("view.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "Pa&ragraph and Styles"), "VIEW/Panels/Paragraph and Styles", 25, false, 0);
 
     REG_CMD_KEY("view.log", QT_TRANSLATE_NOOP("CommandRegistrar", "&Log"), "VIEW/Panels/Log", 30, false, 0,
                 KeyboardShortcut(Qt::Key_F4, Qt::NoModifier));

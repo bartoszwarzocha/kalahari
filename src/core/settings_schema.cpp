@@ -26,6 +26,15 @@ std::map<std::string, json> buildDefaults() {
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
         // The bar that says the panels on the right were hidden for a small screen was shown
         {"window.smallScreenNoticeShown", false},
+
+        // The Paragraph and Styles panel: a panel of its own ("panel") or the lower part of
+        // the Properties panel ("properties"), folded there to its band or not, with the
+        // border of the parts where the writer put it (QSplitter::saveState() as base64;
+        // empty: halfway). Its palette shows the styles in their look or by their names.
+        {"panels.paragraphPlace", "panel"},
+        {"panels.paragraphFolded", false},
+        {"panels.propertiesSplit", ""},
+        {"panels.stylePreview", false},
         {"recent_files", json::array()},
 
         // Interface

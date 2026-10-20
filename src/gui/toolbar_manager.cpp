@@ -53,13 +53,15 @@ struct AddedCommand {
 ///      Quick Actions
 ///   2: New File, Open File, New Book and Open Book in a new order, on both toolbars
 ///   3: Show Formatting Marks on the Views toolbar
-constexpr std::array<AddedCommand, 6> ADDED_COMMANDS{{
+///   4: Paragraph and Styles on the Panels toolbar
+constexpr std::array<AddedCommand, 7> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
     {"quickActions", "file.saveAs", 1},
     {"quickActions", "file.close", 1},
     {"views", "view.showFormattingMarks", 3},
+    {"view", "view.paragraph", 4},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -79,7 +81,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 3;
+constexpr int CHANGED_COMMANDS_VERSION = 4;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
@@ -162,13 +164,14 @@ void ToolbarManager::initializeConfigs() {
         {"book.newChapter", "book.newCharacter", "book.newLocation", "book.properties"}
     };
 
-    // Panels Toolbar (panel toggles)
+    // Panels Toolbar (panel toggles): standing by the right edge of the window, next to the
+    // panels on the right
     m_configs["view"] = {
         "view",
         QT_TRANSLATE_NOOP("QObject", "&Panels Toolbar"),
-        Qt::TopToolBarArea,
-        false,  // hidden by default (accessible via menu)
-        {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.search", "view.assistant", "view.annotations", "view.log"}
+        Qt::RightToolBarArea,
+        true,  // visible by default
+        {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.paragraph", "view.search", "view.assistant", "view.annotations", "view.log"}
     };
 
     // Tools Toolbar: the switches of the text as you type together, as in the Tools menu
@@ -290,14 +293,14 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
         }
     }
 
-    // Hidden toolbars: File, Panels (create but don't show)
-    std::vector<std::string> hidden = {"file", "view"};
-    for (const std::string& id : hidden) {
+    // File (hidden) and Panels (by the right edge)
+    std::vector<std::string> apart = {"file", "view"};
+    for (const std::string& id : apart) {
         auto it = m_configs.find(id);
         if (it != m_configs.end()) {
             QToolBar* toolbar = createToolbar(it->second, registry);
             m_toolbars[id] = toolbar;
-            logger.debug("ToolbarManager: Created toolbar '{}' (hidden)", id);
+            logger.debug("ToolbarManager: Created toolbar '{}' (apart)", id);
         }
     }
 
@@ -499,7 +502,8 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
     QSet<QChar> usedKeys = {accessKeyOf(managerText)};
 
     // Create checkable action for each toolbar
-    // OpenSpec #00037: Order matches layout - Row 1 visible, Row 2 visible, then hidden
+    // OpenSpec #00037: Order matches layout - Row 1, Row 2, then File (hidden) and Panels (on the
+    // right)
     std::vector<std::string> order = {"quickActions", "edit", "format", "insert", "book", "styles", "views", "tools", "help", "file", "view"};
 
     for (const std::string& id : order) {
@@ -894,7 +898,8 @@ void ToolbarManager::applyDefaultLayout() {
     // OpenSpec #00037: Rearrange toolbars into 2 rows
     // Row 1: Quick Actions, Edit, Format, Insert (visible by default)
     // Row 2: Book, Styles, Views, Tools, Help (visible by default)
-    // Hidden by default: File, Panels
+    // Hidden by default: File
+    // By the right edge of the window, standing: Panels
     // The user toolbars come last in row 2, shown, as when they are made
 
     // First, remove all toolbars from main window (but don't delete them): a toolbar out of
@@ -923,8 +928,8 @@ void ToolbarManager::applyDefaultLayout() {
     // Add toolbar break between Row 1 and Row 2
     m_mainWindow->addToolBarBreak(Qt::TopToolBarArea);
 
-    // Row 2 toolbars: Book, Styles, Views, Tools, Help, then the hidden File and Panels
-    addRow({"book", "styles", "views", "tools", "help", "file", "view"});
+    // Row 2 toolbars: Book, Styles, Views, Tools, Help, then the hidden File
+    addRow({"book", "styles", "views", "tools", "help", "file"});
 
     // The user toolbars, in the order they are made at the start
     std::vector<std::string> userToolbars;
@@ -932,6 +937,11 @@ void ToolbarManager::applyDefaultLayout() {
         userToolbars.push_back(it.key().toStdString());
     }
     addRow(userToolbars);
+
+    // The Panels toolbar by the right edge of the window, standing next to the panels there
+    if (auto panels = m_toolbars.find("view"); panels != m_toolbars.end() && panels->second) {
+        m_mainWindow->addToolBar(Qt::RightToolBarArea, panels->second);
+    }
 
     // CRITICAL: Restore visibility after addToolBar() because removeToolBar() hides toolbars
     // Use defaultVisible from m_configs to determine which toolbars should be visible
