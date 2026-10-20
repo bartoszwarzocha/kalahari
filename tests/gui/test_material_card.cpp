@@ -21,11 +21,14 @@
 #include <QFileInfo>
 #include <QFocusEvent>
 #include <QGraphicsView>
+#include <QImageReader>
+#include <QImageWriter>
 #include <QKeyEvent>
 #include <QListWidget>
 #include <QLocale>
 #include <QMimeData>
 #include <QPlainTextEdit>
+#include <QPluginLoader>
 #include <QStringListModel>
 #include <QTableWidget>
 #include <QToolButton>
@@ -269,6 +272,32 @@ TEST_CASE("Material file: its name, format, size and why the program does not sh
     CHECK_FALSE(gone.exists);
     CHECK(gone.summary() == QStringLiteral("gone.png · PNG"));
     CHECK(gone.problem() == QStringLiteral("The file is not in the book's folder."));
+}
+
+TEST_CASE("Material file: the program reads JPEG and GIF pictures and writes JPEG ones",
+          "[gui][materials]") {
+    // The plugins of the pictures load libraries of their own, which go with the program too.
+    // Where one does not load, the failure says what the system said of it.
+    QStringList problems;
+    for (const QString& folder : QCoreApplication::libraryPaths()) {
+        const QDir plugins(QDir(folder).filePath(QStringLiteral("imageformats")));
+        for (const QString& name : plugins.entryList({QStringLiteral("*.dll"),
+                                                      QStringLiteral("*.so"),
+                                                      QStringLiteral("*.dylib")},
+                                                     QDir::Files)) {
+            QPluginLoader loader(plugins.filePath(name));
+            if (!loader.load()) {
+                problems << loader.errorString();
+            }
+        }
+    }
+    INFO("Plugins that do not load: " << problems.join(QStringLiteral("; ")).toStdString());
+    INFO("Pictures read: "
+         << QString::fromLatin1(QImageReader::supportedImageFormats().join(", ")).toStdString());
+
+    CHECK(QImageReader::supportedImageFormats().contains("jpeg"));
+    CHECK(QImageReader::supportedImageFormats().contains("gif"));
+    CHECK(QImageWriter::supportedImageFormats().contains("jpeg"));
 }
 
 TEST_CASE("Material file: a picture is read turned and within its bounds", "[gui][materials]") {

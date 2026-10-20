@@ -497,7 +497,13 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/bin/libssl-3-x64.dll"
             "$<TARGET_FILE_DIR:kalahari>/"
-        COMMENT "Copying Qt plugins and OpenSSL DLLs to output directory"
+        # The libraries the plugins load (libjpeg of the JPEG plugin, libtiff, libwebp), which
+        # nothing of the program links: without them the plugins do not load
+        COMMAND ${CMAKE_COMMAND}
+            "-DFROM_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/$<IF:$<CONFIG:Debug>,debug,>/bin"
+            "-DTO_DIR=$<TARGET_FILE_DIR:kalahari>"
+            -P "${CMAKE_SOURCE_DIR}/cmake/CopyDlls.cmake"
+        COMMENT "Copying Qt plugins, the libraries they load and OpenSSL DLLs to output directory"
     )
 elseif(UNIX AND NOT APPLE)
     # Linux: Find Qt plugins directory dynamically
