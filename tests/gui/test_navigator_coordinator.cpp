@@ -183,7 +183,8 @@ Answer addAs(const AddChoice& choice = {}) {
             if (QButtonGroup* choices = window->chooserButtons(); !found && choices) {
                 for (QAbstractButton* button : choices->buttons()) {
                     button->click();
-                    if ((found = chooseTile())) {
+                    found = chooseTile();
+                    if (found) {
                         break;
                     }
                 }
