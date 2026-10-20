@@ -51,21 +51,27 @@ void SettingsCoordinator::setGrammarCoordinator(GrammarCoordinator* grammar) {
 
 void SettingsCoordinator::openSettingsDialog() {
     core::Logger::getInstance().info("Action triggered: Settings");
-    runSettingsDialog(false);
+    runSettingsDialog(QString());
 }
 
 void SettingsCoordinator::openKeyboardShortcuts() {
     core::Logger::getInstance().info("Action triggered: Keyboard Shortcuts");
-    runSettingsDialog(true);
+    runSettingsDialog(QString::fromLatin1(SettingsDialog::SHORTCUTS_PAGE));
 }
 
-void SettingsCoordinator::runSettingsDialog(bool shortcuts) {
+void SettingsCoordinator::openSettingsPage(const QString& page) {
+    core::Logger::getInstance().info("Action triggered: Settings at the page {}",
+                                     page.toStdString());
+    runSettingsDialog(page);
+}
+
+void SettingsCoordinator::runSettingsDialog(const QString& page) {
     auto& logger = core::Logger::getInstance();
 
     SettingsDialog dialog(m_mainWindow, m_diagnosticModeGetter(), m_spellCheckService,
                           m_grammarCoordinator);
-    if (shortcuts) {
-        dialog.showShortcutsPage();
+    if (!page.isEmpty()) {
+        dialog.openPage(page);
     }
     connect(&dialog, &SettingsDialog::settingsApplied,
             this, &SettingsCoordinator::onApplySettings);
@@ -136,14 +142,20 @@ void SettingsCoordinator::onApplySettings(const QStringList& changedKeys) {
         logger.info("SettingsCoordinator: Keyboard shortcuts updated");
     }
 
-    // Log panel: buffer size and colors (theme switch or per-theme colors)
+    // Log panel: buffer size and colors (theme switch or per-theme log colors, not the editor
+    // colors kept for each theme as well)
     LogPanel* logPanel = m_dockCoordinator->logPanel();
     if (logPanel && changed(QStringLiteral("log.bufferSize"))) {
         const int bufferSize = core::SettingsManager::getInstance().get<int>("log.bufferSize");
         logPanel->setMaxBufferSize(static_cast<size_t>(bufferSize));
         logger.info("SettingsCoordinator: Log buffer size updated to {}", bufferSize);
     }
-    if (logPanel && (changed(QStringLiteral("appearance.theme")) || changed(QStringLiteral("themes.")))) {
+    const bool logColorChanged =
+        std::any_of(changedKeys.cbegin(), changedKeys.cend(), [](const QString& key) {
+            return key.startsWith(QStringLiteral("themes.")) &&
+                   key.contains(QStringLiteral(".log."));
+        });
+    if (logPanel && (changed(QStringLiteral("appearance.theme")) || logColorChanged)) {
         logPanel->applyThemeColors();
     }
 

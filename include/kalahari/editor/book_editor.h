@@ -20,6 +20,7 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/grammar_error.h>
+#include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
 // KML → QTextDocument (with QTextCharFormat) → Render visible fragment
@@ -727,6 +728,11 @@ public:
     /// @brief Let the text be changed or not (see isReadOnly())
     void setReadOnly(bool readOnly);
 
+    /// @brief Why the text can only be read ("The book is open read-only"): the tooltip and
+    ///        the status tip of the items its context menu greys out (the words of the spelling
+    ///        and of the grammar, the editor's own Cut and Paste)
+    void setReadOnlyReason(const QString& reason);
+
     /// @brief Go to the next TODO not done yet, after the cursor
     /// @return Its id; empty when there is none after the cursor
     QString goToNextTodo();
@@ -763,6 +769,15 @@ public:
     /// @brief Show the text's context menu under the cursor, as the menu key and Shift+F10
     ///        do: for a misspelled word at the cursor it offers what to put in its place
     void showContextMenuAtCursor();
+
+    /// @brief Show the context menu of an issue where it is asked for (the card of the issue
+    ///        in the Spelling and Grammar panel): the menu a right click on its wave shows
+    ///
+    /// The cursor and the keys stay where they are.
+    /// @param issue A misspelled word or a grammar issue of textIssues()
+    /// @param globalPos Where the menu opens, on the screen
+    /// @return false when the text there is not the issue's any more (no menu)
+    bool showIssueMenu(const TextIssue& issue, const QPoint& globalPos);
 
     /// @brief The application's command going to the next spelling or grammar issue
     ///
@@ -987,6 +1002,50 @@ public:
     /// @brief Whether the grammar check has paragraphs to send or answers to wait for
     bool isGrammarCheckPending() const;
 
+    /// @brief Check the grammar of the whole text, not only of the paragraphs in view and
+    ///        around them
+    ///
+    /// For a list of all the text's issues (the Spelling and Grammar panel): the paragraphs
+    /// in view and around them go first, then those after them and those from the start of
+    /// the text, a few at a time. Off, those further away are not sent again; the issues
+    /// found in them stay.
+    void setWholeTextGrammar(bool whole);
+
+    /// @brief Whether the grammar of the whole text is checked (setWholeTextGrammar())
+    bool isWholeTextGrammar() const { return m_wholeTextGrammar; }
+
+    // =========================================================================
+    // Issues: the misspelled words and the grammar issues together
+    // =========================================================================
+
+    /// @brief The misspelled words and grammar issues the waves show, in the order of the
+    ///        text
+    ///
+    /// Where a misspelled word and a grammar issue start at one place, the word comes first,
+    /// as goToNextIssue() goes. issuesChanged() tells when the list changes.
+    std::vector<TextIssue> textIssues() const;
+
+    /// @brief How much of the text is checked: its paragraphs with text, and how many of
+    ///        them have their spelling checked and their grammar known
+    struct CheckProgress {
+        int paragraphs = 0;       ///< Paragraphs with text (blank ones have nothing to check)
+        int spellingChecked = 0;  ///< Of them, checked since their text or the words changed
+        int grammarChecked = 0;   ///< Of them, those whose grammar is known
+    };
+
+    /// @brief How much of the text is checked (see CheckProgress)
+    CheckProgress checkProgress() const;
+
+    /// @brief Select an issue in the text, with the cursor at its end, and scroll to it
+    /// @return false when the text there is not the issue's any more
+    bool selectIssue(const TextIssue& issue);
+
+    /// @brief Put a text in the place of an issue, as one undo step, as the words of the
+    ///        context menu do (its annotations stay)
+    /// @return false when the text there is not the issue's any more, or when the text is
+    ///         read-only (it says so: changeRefused())
+    bool replaceIssue(const TextIssue& issue, const QString& replacement);
+
     // =========================================================================
     // Reading Aloud
     // =========================================================================
@@ -1106,6 +1165,10 @@ signals:
     /// @brief A search of goToNextIssue() that waited for the grammar ended
     /// @param result IssueSearch::Found (the issue is selected), NotFound or Cancelled
     void issueSearchFinished(kalahari::editor::BookEditor::IssueSearch result);
+
+    /// @brief The misspelled words or grammar issues changed (textIssues()), or more of the
+    ///        text was checked (checkProgress()); once for the changes made together
+    void issuesChanged();
 
     /// @brief Emitted when view mode changes
     /// @param mode The new view mode
@@ -1288,6 +1351,10 @@ private:
     /// @brief Whether a change the writer asked for is refused, as the text is read-only
     /// (isReadOnly()); then it says so (changeRefused())
     bool refusesChange();
+
+    /// @brief An item of the context menu that changes the text: greyed out while the text is
+    /// only read, with the reason as its tooltip and its status tip (setReadOnlyReason())
+    void disableWhileReadOnly(QAction* action) const;
 
     /// @brief Put the editor's cursor where an edit of the document ended, show it, and
     /// report the change
@@ -1698,6 +1765,7 @@ private:
     QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
     bool m_readOnly = false;            ///< The text can only be read (isReadOnly())
+    QString m_readOnlyReason;           ///< Why (setReadOnlyReason())
 
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string
@@ -1783,7 +1851,10 @@ private:
     /// @param pos The place: what is offered is for the misspelled word there
     /// @param globalPos Where the menu opens, on the screen
     /// @param fromMouse A right click: outside the selection it puts the cursor at @p pos
-    void showContextMenu(const CursorPosition& pos, const QPoint& globalPos, bool fromMouse);
+    /// @param kind Only a misspelled word or only a grammar issue there (none: either, the
+    ///        word first)
+    void showContextMenu(const CursorPosition& pos, const QPoint& globalPos, bool fromMouse,
+                         std::optional<TextIssueKind> kind = std::nullopt);
 
     /// @brief Find misspelled word at given position
     /// @param paraIndex Paragraph index
@@ -1806,7 +1877,7 @@ private:
     // Grammar
     GrammarCheckService* m_grammarCheckService{nullptr};  ///< The checking (not owned)
     QTimer* m_grammarTimer{nullptr};                      ///< Sends the paragraphs due
-    QElapsedTimer m_grammarEditClock;                     ///< Since the last edit
+    QElapsedTimer m_grammarEditClock;  ///< Since the last typing (not running after another edit)
 
     /// @brief A paragraph sent to be checked
     struct GrammarRequest {
@@ -1814,6 +1885,19 @@ private:
         QString text;       ///< Its text as sent
     };
     std::map<quint64, GrammarRequest> m_grammarRequests;  ///< The requests not answered yet
+    bool m_wholeTextGrammar{false};  ///< The whole text is checked (setWholeTextGrammar())
+
+    // Issues
+    QTimer* m_issuesTimer{nullptr};  ///< Tells issuesChanged() once for changes made together
+
+    /// @brief The issues or what is checked changed: issuesChanged() is emitted soon, once
+    void noteIssuesChanged();
+
+    /// @brief Whether the text at an issue's place is still the issue's
+    bool isIssueAt(const TextIssue& issue) const;
+
+    /// @brief Select a range, with the cursor at its end, and scroll to it
+    void selectRange(const CursorPosition& start, const CursorPosition& end);
 
     /// @brief A search of goToNextIssue() going round the text
     struct IssueSearchState {
@@ -1847,8 +1931,9 @@ private:
     /// @brief Send the paragraphs due after @p delayMs, unless they go sooner
     void scheduleGrammarCheck(int delayMs);
 
-    /// @brief Send the paragraphs due around the view, those in view first, while fewer
-    ///        than a few wait for their answers (not while the writer is typing)
+    /// @brief Send the paragraphs due around the view, those in view first (and then the
+    ///        rest of the text: setWholeTextGrammar()), while fewer than a few wait for their
+    ///        answers (not while the writer is typing)
     void runGrammarCheck();
 
     /// @brief Keep the issues of a paragraph checked, if it still has the text sent

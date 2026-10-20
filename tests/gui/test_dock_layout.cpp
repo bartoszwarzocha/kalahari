@@ -1,8 +1,9 @@
 /// @file test_dock_layout.cpp
 /// @brief The panels of the main window: the Annotations panel is on top of the panels on the
-/// right by default, choosing an element in the Navigator does not cover it, on a small
-/// screen the panels on the right make room for the text, and Reset Layout docks the toolbars
-/// again
+/// right by default, choosing an element in the Navigator does not cover it, the Spelling and
+/// Grammar panel opens as the tab after it, the gears of the panels ask for their settings, on
+/// a small screen the panels on the right make room for the text, and Reset Layout docks the
+/// toolbars again
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/project_manager.h"
@@ -15,14 +16,17 @@
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 
 #include <QAction>
 #include <QApplication>
+#include <QByteArray>
 #include <QDockWidget>
 #include <QLabel>
+#include <QLayout>
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMetaObject>
@@ -69,6 +73,40 @@ QString raisedTab(const QMainWindow& window, const QDockWidget* dock) {
         }
     }
     return {};
+}
+
+/// The place of @p dock's tab in its tab group (-1 without a group)
+int tabIndex(const QMainWindow& window, const QDockWidget* dock) {
+    for (const QTabBar* tabBar : window.findChildren<QTabBar*>()) {
+        for (int i = 0; i < tabBar->count(); ++i) {
+            if (tabBar->tabText(i) == dock->windowTitle()) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+/// The icons of the buttons on the title bar of @p dock, in their order
+std::vector<std::string> titleBarButtons(const QDockWidget* dock) {
+    std::vector<std::string> icons;
+    const QLayout* layout = dock->titleBarWidget()->layout();
+    for (int i = 0; i < layout->count(); ++i) {
+        if (const auto* button = qobject_cast<const QToolButton*>(layout->itemAt(i)->widget())) {
+            icons.push_back(button->property("iconId").toString().toStdString());
+        }
+    }
+    return icons;
+}
+
+/// The button with the icon @p iconId on the title bar of @p dock
+QToolButton* titleBarButton(const QDockWidget* dock, const QString& iconId) {
+    for (QToolButton* button : dock->titleBarWidget()->findChildren<QToolButton*>()) {
+        if (button->property("iconId").toString() == iconId) {
+            return button;
+        }
+    }
+    return nullptr;
 }
 
 /// A book open for the test; closed again when the test ends
@@ -161,6 +199,90 @@ TEST_CASE("Panels: the Annotations panel is on top of the right panels by defaul
             CHECK_FALSE(panels.docks->layoutNoticeBar()->isVisible());
         }
         CHECK(panels.onTop(panels.docks->annotationsDock()));
+    }
+}
+
+TEST_CASE("Panels: the Spelling and Grammar panel opens as the tab after the Annotations tab",
+          "[gui][panels][spelling-panel]") {
+    // The layout of a window saved before the panel existed, which does not know the panel
+    QByteArray oldLayout;
+    {
+        Panels old;
+        old.window.removeDockWidget(old.docks->spellingDock());
+        oldLayout = old.window.saveState();
+    }
+    Panels panels;
+    QDockWidget* spelling = panels.docks->spellingDock();
+    QDockWidget* annotations = panels.docks->annotationsDock();
+
+    SECTION("in the default layout") {
+    }
+    SECTION("in a layout saved before the panel existed") {
+        REQUIRE(panels.window.restoreState(oldLayout));
+        QApplication::processEvents();
+    }
+
+    // Closed until opened
+    CHECK(spelling->isHidden());
+    CHECK(panels.onTop(annotations));
+
+    // View > Panels > Spelling and Grammar
+    CommandRegistry::getInstance().executeCommand("view.spelling");
+    QApplication::processEvents();
+    CHECK(spelling->isVisible());
+    CHECK(panels.onTop(spelling));
+    REQUIRE(tabIndex(panels.window, annotations) >= 0);
+    CHECK(tabIndex(panels.window, spelling) == tabIndex(panels.window, annotations) + 1);
+}
+
+TEST_CASE("Panels: Reset Layout closes the Spelling and Grammar panel",
+          "[gui][panels][spelling-panel]") {
+    Panels panels;
+    QDockWidget* spelling = panels.docks->spellingDock();
+    CommandRegistry::getInstance().executeCommand("view.spelling");
+    QApplication::processEvents();
+    REQUIRE(panels.onTop(spelling));
+
+    panels.docks->resetLayout(false, false);
+    panels.docks->showRightPanels();  // hidden by Reset Layout on a small screen
+    QApplication::processEvents();
+    CHECK(spelling->isHidden());
+    CHECK(panels.onTop(panels.docks->annotationsDock()));
+
+    CommandRegistry::getInstance().executeCommand("view.spelling");
+    QApplication::processEvents();
+    CHECK(panels.onTop(spelling));
+    CHECK(tabIndex(panels.window, spelling) ==
+          tabIndex(panels.window, panels.docks->annotationsDock()) + 1);
+}
+
+TEST_CASE("Panels: the gear on the title bar of a panel asks for the panel's settings",
+          "[gui][panels][spelling-panel]") {
+    Panels panels;
+    QString asked;
+    QObject::connect(panels.docks, &DockCoordinator::settingsPageRequested,
+                     [&asked](const QString& page) { asked = page; });
+
+    SECTION("The Spelling and Grammar panel: the gear, then Float and Close") {
+        QDockWidget* spelling = panels.docks->spellingDock();
+        CHECK(titleBarButtons(spelling) ==
+              std::vector<std::string>{"dock.settings", "dock.float", "dock.close"});
+        QToolButton* gear = titleBarButton(spelling, QStringLiteral("dock.settings"));
+        REQUIRE(gear != nullptr);
+        CHECK(gear->toolTip() == QStringLiteral("Spelling and Grammar Settings"));
+        gear->click();
+        CHECK(asked == QString::fromLatin1(SettingsDialog::SPELLING_PAGE));
+    }
+
+    SECTION("The Annotations panel: the gear, then Float and Close") {
+        QDockWidget* annotations = panels.docks->annotationsDock();
+        CHECK(titleBarButtons(annotations) ==
+              std::vector<std::string>{"dock.settings", "dock.float", "dock.close"});
+        QToolButton* gear = titleBarButton(annotations, QStringLiteral("dock.settings"));
+        REQUIRE(gear != nullptr);
+        CHECK(gear->toolTip() == QStringLiteral("Annotation Settings"));
+        gear->click();
+        CHECK(asked == QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE));
     }
 }
 

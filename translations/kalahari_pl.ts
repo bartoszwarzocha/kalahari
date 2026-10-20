@@ -943,6 +943,10 @@
         <source>&amp;New File...</source>
         <translation>Nowy &amp;plik...</translation>
     </message>
+    <message>
+        <source>Spelling and &amp;Grammar</source>
+        <translation>&amp;Pisownia i gramatyka</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -3584,6 +3588,26 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>Mark Size:</source>
         <translation>Wielkość znaczników:</translation>
     </message>
+    <message>
+        <source>Colors</source>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>The colors of the annotations&apos; marks in the text, of the frame an annotation is written in on the paper and of the cards in the Annotations panel. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolory znaczników uwag w tekście, ramki do pisania uwagi na papierze i kart w panelu „Uwagi”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Comment</source>
+        <translation>Komentarz</translation>
+    </message>
+    <message>
+        <source>To-do</source>
+        <translation>Do zrobienia</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <translation>Notatka</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AnnotationsPanel</name>
@@ -4188,6 +4212,18 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     <message>
         <source>Show the panels on the right</source>
         <translation>Pokaż panele po prawej stronie</translation>
+    </message>
+    <message>
+        <source>Annotation Settings</source>
+        <translation>Ustawienia uwag</translation>
+    </message>
+    <message>
+        <source>Spelling and Grammar</source>
+        <translation>Pisownia i gramatyka</translation>
+    </message>
+    <message>
+        <source>Spelling and Grammar Settings</source>
+        <translation>Ustawienia pisowni i gramatyki</translation>
     </message>
 </context>
 <context>
@@ -5403,6 +5439,14 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <source>Some files in the folder %1 are in use or protected. Close the programs that use them and try again.</source>
         <translation>Niektóre pliki w folderze %1 są używane albo chronione. Zamknij programy, które ich używają, i spróbuj ponownie.</translation>
     </message>
+    <message>
+        <source>Colors</source>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>The color of the wavy line under a grammar issue and of the frames of its cards in the Spelling and Grammar panel. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolor falistej linii pod błędem gramatyki i ramek jego kart w panelu „Pisownia i gramatyka”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorPagesPage</name>
@@ -5632,6 +5676,58 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Words that are right whatever the dictionary says; &quot;Add to Dictionary&quot; in the context menu of a misspelled word puts it here. A word in lower case is right also with capital letters.</source>
         <translation>Słowa poprawne bez względu na słownik; trafia tu każde słowo dodane poleceniem „Dodaj do słownika” z menu podręcznego. Słowo dodane małymi literami jest poprawne także pisane wielkimi literami.</translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>Spelling and Grammar Panel</source>
+        <translation>Panel „Pisownia i gramatyka”</translation>
+    </message>
+    <message>
+        <source>Only on the selected card</source>
+        <translation>Tylko na wybranej karcie</translation>
+    </message>
+    <message>
+        <source>On every card</source>
+        <translation>Na każdej karcie</translation>
+    </message>
+    <message>
+        <source>Fix buttons:</source>
+        <translation>Przyciski poprawek:</translation>
+    </message>
+    <message>
+        <source>Shows it in the panel</source>
+        <translation>Pokazuje go w panelu</translation>
+    </message>
+    <message>
+        <source>Opens its menu at the word</source>
+        <translation>Otwiera jego menu przy słowie</translation>
+    </message>
+    <message>
+        <source>Next spelling or grammar issue:</source>
+        <translation>Następny błąd pisowni lub gramatyki:</translation>
+    </message>
+    <message>
+        <source>Checked in the whole text</source>
+        <translation>Sprawdzana w całym tekście</translation>
+    </message>
+    <message>
+        <source>Checked only around the part in view</source>
+        <translation>Tylko w okolicy widocznego fragmentu</translation>
+    </message>
+    <message>
+        <source>Grammar while the panel is shown:</source>
+        <translation>Gramatyka, gdy panel jest widoczny:</translation>
+    </message>
+    <message>
+        <source>With &quot;Checked in the whole text&quot;, while the panel is shown the whole text is checked in the background, so the counts and the list cover all of it once the check is done. The free server api.languagetool.org limits the requests per minute: there a long text takes longer. On this computer there is no such limit.</source>
+        <translation>Przy ustawieniu „Sprawdzana w całym tekście” cały tekst jest sprawdzany w tle, gdy panel jest widoczny, więc liczniki i lista obejmą go w całości, gdy tylko sprawdzanie się skończy. Bezpłatny serwer api.languagetool.org ogranicza liczbę zapytań na minutę, więc tam długi tekst sprawdza się dłużej. Na tym komputerze takiego ograniczenia nie ma.</translation>
+    </message>
+    <message>
+        <source>The color of the wavy line under a misspelled word and of the frames of its cards in the Spelling and Grammar panel. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolor falistej linii pod błędem pisowni i ramek jego kart w panelu „Pisownia i gramatyka”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
     </message>
 </context>
 <context>
@@ -6062,6 +6158,18 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Show the preparation of grammar checking</source>
         <translation>Pokaż przygotowanie sprawdzania gramatyki</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked yet: the program prepares LanguageTool.</source>
+        <translation>Gramatyka nie jest jeszcze sprawdzana: program przygotowuje LanguageTool.</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked: it is not prepared yet. Tools &gt; Check Grammar as You Type prepares it.</source>
+        <translation>Gramatyka nie jest sprawdzana: jej sprawdzanie nie jest jeszcze przygotowane. Przygotowuje je polecenie Narzędzia &gt; Sprawdzaj gramatykę podczas pisania.</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked: the components it needs were not found. Tools &gt; Check Grammar as You Type prepares them again.</source>
+        <translation>Gramatyka nie jest sprawdzana: nie znaleziono potrzebnych składników. Polecenie Narzędzia &gt; Sprawdzaj gramatykę podczas pisania przygotuje je ponownie.</translation>
     </message>
 </context>
 <context>
@@ -7470,6 +7578,22 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Takes effect after restarting Kalahari.</source>
         <translation>Zmiana zadziała po ponownym uruchomieniu programu Kalahari.</translation>
     </message>
+    <message>
+        <source>Restore Default Colors</source>
+        <translation>Przywróć domyślne kolory</translation>
+    </message>
+    <message>
+        <source>Underline</source>
+        <translation>Podkreślenie</translation>
+    </message>
+    <message>
+        <source>Optimize colors in themes</source>
+        <translation>Optymalizuj kolory w motywach</translation>
+    </message>
+    <message>
+        <source>On: a color too light for a light background is shown darker, and one too dark for a dark background lighter (on the paper and in the panels). Off: the colors exactly as set. One setting for the spelling, the grammar and the annotations.</source>
+        <translation>Włączone: kolor zbyt jasny na jasnym tle jest pokazywany ciemniej, a zbyt ciemny na ciemnym tle – jaśniej (na papierze i w panelach). Wyłączone: kolory dokładnie takie, jak ustawione. Jedno ustawienie dla pisowni, gramatyki i uwag.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::ShortcutRules</name>
@@ -8485,6 +8609,11 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>Język %1 nie ma słownika pisowni: pisownia nie jest sprawdzana</translation>
     </message>
     <message>
+        <source>No spelling dictionary for %1: the spelling is not checked.</source>
+        <extracomment>%1 is the name of the language as in a list of languages (in Polish: francuski)</extracomment>
+        <translation>Język %1 nie ma słownika pisowni: pisownia nie jest sprawdzana.</translation>
+    </message>
+    <message>
         <source>Spelling as you type: on</source>
         <translation>Sprawdzanie pisowni podczas pisania: włączone</translation>
     </message>
@@ -8511,6 +8640,175 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Checking the grammar further on...</source>
         <translation>Sprawdzanie gramatyki w dalszych akapitach...</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpellingIssueCard</name>
+    <message>
+        <source>(No suggestions)</source>
+        <translation>(Brak podpowiedzi)</translation>
+    </message>
+    <message>
+        <source>Spelling</source>
+        <translation>Pisownia</translation>
+    </message>
+    <message>
+        <source>Grammar</source>
+        <translation>Gramatyka</translation>
+    </message>
+    <message>
+        <source>paragraph %1</source>
+        <translation>akapit %1</translation>
+    </message>
+    <message>
+        <source>Ignore Word</source>
+        <translation>Pomijaj to słowo</translation>
+    </message>
+    <message>
+        <source>Ignore Rule</source>
+        <translation>Pomijaj tę regułę</translation>
+    </message>
+    <message>
+        <source>Add to Dictionary</source>
+        <translation>Dodaj do słownika</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpellingPanel</name>
+    <message>
+        <source>Show or hide the misspelled words</source>
+        <translation>Pokaż lub ukryj błędy pisowni</translation>
+    </message>
+    <message>
+        <source>Show or hide the grammar issues</source>
+        <translation>Pokaż lub ukryj błędy gramatyki</translation>
+    </message>
+    <message>
+        <source>Spelling and grammar issues</source>
+        <translation>Błędy pisowni i gramatyki</translation>
+    </message>
+    <message>
+        <source>Turn On Checking</source>
+        <translation>Włącz sprawdzanie</translation>
+    </message>
+    <message>
+        <source>Turn on Tools &gt; Check Spelling as You Type and Check Grammar as You Type</source>
+        <translation>Włącza Narzędzia &gt; Sprawdzaj pisownię podczas pisania i Sprawdzaj gramatykę podczas pisania</translation>
+    </message>
+    <message>
+        <source>Previous</source>
+        <translation>Poprzedni</translation>
+    </message>
+    <message>
+        <source>Select the previous issue (Up)</source>
+        <translation>Zaznacz poprzedni błąd (strzałka w górę)</translation>
+    </message>
+    <message>
+        <source>Next</source>
+        <translation>Następny</translation>
+    </message>
+    <message>
+        <source>Select the next issue (Down)</source>
+        <translation>Zaznacz następny błąd (strzałka w dół)</translation>
+    </message>
+    <message>
+        <source>Spelling %1</source>
+        <translation>Pisownia %1</translation>
+    </message>
+    <message>
+        <source>Grammar %1</source>
+        <translation>Gramatyka %1</translation>
+    </message>
+    <message>
+        <source>Open {kind:indefinite} or a file to see its spelling and grammar issues.</source>
+        <translation>Otwórz {kind:accusative} albo plik, aby zobaczyć błędy pisowni i gramatyki.</translation>
+    </message>
+    <message>
+        <source>Open an element of the book or a file to see its spelling and grammar issues.</source>
+        <translation>Otwórz element książki albo plik, aby zobaczyć błędy pisowni i gramatyki.</translation>
+    </message>
+    <message>
+        <source>Open a book or a file to see the spelling and grammar issues.</source>
+        <translation>Otwórz książkę albo plik, aby zobaczyć błędy pisowni i gramatyki.</translation>
+    </message>
+    <message>
+        <source>Spelling and grammar are not checked.</source>
+        <translation>Pisownia i gramatyka nie są sprawdzane.</translation>
+    </message>
+    <message>
+        <source>No issue matches the filters.</source>
+        <translation>Żaden błąd nie pasuje do filtrów.</translation>
+    </message>
+    <message>
+        <source>No issues found yet.</source>
+        <translation>Nie znaleziono jeszcze błędów.</translation>
+    </message>
+    <message>
+        <source>No spelling or grammar issues.</source>
+        <translation>Brak błędów pisowni i gramatyki.</translation>
+    </message>
+    <message>
+        <source>No spelling or grammar issues in {kind:s=this|p=these} {kind}.</source>
+        <translation>Brak błędów pisowni i gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
+    </message>
+    <message>
+        <source>No misspelled words in {kind:s=this|p=these} {kind}.</source>
+        <translation>Brak błędów pisowni w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
+    </message>
+    <message>
+        <source>No grammar issues in {kind:s=this|p=these} {kind}.</source>
+        <translation>Brak błędów gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
+    </message>
+    <message>
+        <source>Enter, 1–5 – fix · Esc – back to the text</source>
+        <translation>Enter, 1–5 – poprawka · Esc – powrót do tekstu</translation>
+    </message>
+    <message>
+        <source>Esc – back to the text</source>
+        <translation>Esc – powrót do tekstu</translation>
+    </message>
+    <message>
+        <source>%1 – next issue (the keys go to the panel)</source>
+        <translation>%1 – następny błąd (klawisze przechodzą do panelu)</translation>
+    </message>
+    <message>
+        <source>%1 – next issue, with its menu at the word</source>
+        <translation>%1 – następny błąd z menu przy słowie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpellingPanelCoordinator</name>
+    <message>
+        <source>The dictionary is being loaded...</source>
+        <translation>Trwa wczytywanie słownika...</translation>
+    </message>
+    <message>
+        <source>Checking the spelling: paragraph %1 of %2...</source>
+        <translation>Sprawdzanie pisowni: akapit %1 z %2...</translation>
+    </message>
+    <message>
+        <source>Checking the grammar: paragraph %1 of %2...</source>
+        <translation>Sprawdzanie gramatyki: akapit %1 z %2...</translation>
+    </message>
+    <message>
+        <source>The spelling of the whole {kind} is checked, the grammar only around the part in view.</source>
+        <translation>Sprawdzono pisownię w {kind:m=całym|f=całej|n=całym|p=całych} {kind:locative}, a gramatykę tylko wokół widocznego fragmentu.</translation>
+    </message>
+    <message>
+        <source>The grammar is checked only around the part in view.</source>
+        <translation>Gramatyka jest sprawdzana tylko wokół widocznego fragmentu.</translation>
+    </message>
+    <message>
+        <source>The whole {kind} is checked.</source>
+        <translation>Sprawdzono {kind:m=cały|f=całą|n=całe|p=całe} {kind:accusative}.</translation>
+    </message>
+    <message>
+        <source>The spelling is not checked.</source>
+        <translation>Pisownia nie jest sprawdzana.</translation>
+    </message>
+    <message>
+        <source>The grammar is not checked.</source>
+        <translation>Gramatyka nie jest sprawdzana.</translation>
     </message>
 </context>
 <context>

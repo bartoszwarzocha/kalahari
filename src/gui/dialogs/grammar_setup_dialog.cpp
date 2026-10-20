@@ -4,9 +4,9 @@
 
 #include "kalahari/gui/dialogs/grammar_setup_dialog.h"
 #include "kalahari/core/art_provider.h"
-#include "kalahari/editor/render_context.h"
 #include "kalahari/gui/grammar_components.h"
 #include "kalahari/gui/grammar_setup.h"
+#include "kalahari/gui/issue_colors.h"
 #include "kalahari/gui/settings/settings_page.h"
 
 #include <QAbstractTextDocumentLayout>
@@ -100,14 +100,15 @@ QTextEdit* underlineSample(const QString& marked, QWidget* parent) {
     sample->setAccessibleName(QString(marked).remove(QLatin1Char('[')).remove(QLatin1Char(']'))
                                   .remove(QLatin1Char('*')));
 
-    const editor::RenderColors colors;
+    // The colors of the editor's waves, shown on the window
+    const QColor window = parent->palette().color(QPalette::Window);
     QTextCursor cursor(sample->document());
     QTextCharFormat plain;
     QTextCharFormat grammar;
     grammar.setUnderlineStyle(QTextCharFormat::WaveUnderline);
-    grammar.setUnderlineColor(colors.grammarWarning);
+    grammar.setUnderlineColor(issueColorOn(editor::TextIssueKind::Grammar, window));
     QTextCharFormat spelling = grammar;
-    spelling.setUnderlineColor(colors.spellError);
+    spelling.setUnderlineColor(issueColorOn(editor::TextIssueKind::Spelling, window));
 
     // Braces are kept for the names of kinds in translated texts: a misspelled word is between
     // two asterisks
@@ -357,7 +358,7 @@ QWidget* GrammarSetupDialog::createDonePage() {
            "A sample: [a grammar issue] and *a misspelled word*, marked so"),
         page));
     auto* legend = new QHBoxLayout();
-    const editor::RenderColors colors;
+    const QColor window = palette().color(QPalette::Window);
     const qreal ratio = devicePixelRatioF();
     const auto addLegend = [legend, ratio](const QColor& color, const QString& text) {
         auto* wave = new QLabel();
@@ -366,8 +367,9 @@ QWidget* GrammarSetupDialog::createDonePage() {
         legend->addWidget(new QLabel(text));
         legend->addSpacing(2 * STEP_SPACING);
     };
-    addLegend(colors.grammarWarning, tr("grammar, style and punctuation"));
-    addLegend(colors.spellError, tr("spelling"));
+    addLegend(issueColorOn(editor::TextIssueKind::Grammar, window),
+              tr("grammar, style and punctuation"));
+    addLegend(issueColorOn(editor::TextIssueKind::Spelling, window), tr("spelling"));
     legend->addStretch(1);
     layout->addLayout(legend);
 

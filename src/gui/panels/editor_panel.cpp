@@ -4,6 +4,8 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/panels/annotation_colors.h"
+#include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
@@ -71,6 +73,9 @@ EditorPanel::EditorPanel(QWidget* parent)
     // F7 in the menu of an issue goes on to the next one, as in the text
     m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
 
+    // A chapter of a book open read-only: its context menu says why the fixes are greyed out
+    m_bookEditor->setReadOnlyReason(readOnlyReason());
+
     // The light or dark paper chosen in the editor's context menu is the setting of all
     // editors, kept between sessions
     connect(m_bookEditor, &editor::BookEditor::editorColorModeChanged, this,
@@ -104,8 +109,10 @@ EditorPanel::EditorPanel(QWidget* parent)
             }
         });
 
-    // The theme gives the annotations' marks their colors
-    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
+    // The theme gives the annotations' marks and the waves their colors
+    auto& themes = core::ThemeManager::getInstance();
+    connect(&themes, &core::ThemeManager::themeChanged, this, [this]() { scheduleSettings(); });
+    connect(&themes, &core::ThemeManager::editorColorsChanged, this,
             [this]() { scheduleSettings(); });
 
     // Apply settings (font, appearance)
@@ -283,20 +290,33 @@ void EditorPanel::applySettings() {
     appearance.textFrameBorder.color = color("editor.textFrameBorder.color");
     appearance.textFrameBorder.width = settings.get<int>("editor.textFrameBorder.width");
 
-    // The annotations' marks: the theme's colors for each paper, at the size of the setting
+    // The annotations' marks (at the size of the setting) and the waves under the misspelled
+    // words and the grammar issues: the theme's colors, on each paper as "Optimize colors in
+    // themes" shows them
     const auto& themes = core::ThemeManager::getInstance();
-    const auto markColors = [&themes](bool darkPaper) {
-        const auto kindColor = [&themes, darkPaper](editor::AnnotationKind kind) {
-            return themes.editorColor(editor::annotationColorKey(kind, darkPaper), QColor());
-        };
+    const bool optimize = themes.optimizesEditorColors();
+    const auto onPaper = [&themes, optimize](const std::string& key, const QColor& paper) {
+        return shownColor(themes.editorColor(key, QColor()), paper, optimize);
+    };
+    const auto markColors = [&onPaper](const QColor& paper) {
         editor::EditorColors::AnnotationColors colors;
-        colors.comment = kindColor(editor::AnnotationKind::Comment);
-        colors.todo = kindColor(editor::AnnotationKind::Todo);
-        colors.note = kindColor(editor::AnnotationKind::Note);
+        colors.comment = onPaper(editor::annotationColorKey(editor::AnnotationKind::Comment), paper);
+        colors.todo = onPaper(editor::annotationColorKey(editor::AnnotationKind::Todo), paper);
+        colors.note = onPaper(editor::annotationColorKey(editor::AnnotationKind::Note), paper);
         return colors;
     };
-    appearance.colors.annotationsLight = markColors(false);
-    appearance.colors.annotationsDark = markColors(true);
+    const auto waveColors = [&onPaper](const QColor& paper) {
+        editor::EditorColors::IssueColors colors;
+        colors.spelling = onPaper(editor::issueColorKey(editor::TextIssueKind::Spelling), paper);
+        colors.grammar = onPaper(editor::issueColorKey(editor::TextIssueKind::Grammar), paper);
+        return colors;
+    };
+    const QColor lightPaper = appearance.colors.continuous.backgroundLight;
+    const QColor darkPaper = appearance.colors.continuous.backgroundDark;
+    appearance.colors.annotationsLight = markColors(lightPaper);
+    appearance.colors.annotationsDark = markColors(darkPaper);
+    appearance.colors.issuesLight = waveColors(lightPaper);
+    appearance.colors.issuesDark = waveColors(darkPaper);
     appearance.annotationMarkScale =
         std::clamp(settings.get<int>("editor.annotationMarkSize") / 100.0, MIN_MARK_SCALE,
                    MAX_MARK_SCALE);
