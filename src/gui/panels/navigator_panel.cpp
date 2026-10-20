@@ -1477,12 +1477,24 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         moveToStartAction->setEnabled(startIndex >= 0 && index > startIndex);
 
         // From the start or the end of its list, Move Up and Move Down take the element out
-        // of it: before or after its part, or to the section before or after
+        // of it: before or after its part, or to the section before or after. Right after the
+        // title page, which nothing goes before, an element is at the start of its list.
+        QList<core::ProjectElement> without = list ? *list : QList<core::ProjectElement>();
+        if (index >= 0) {
+            without.removeAt(index);
+        }
+        const core::KindRef kind = element ? pm.kindOf(*element) : core::KindRef{};
+        const auto canStepTo = [&pm, &without, &kind](int to) {
+            return core::BookProject::canBeAt(pm.bookTypes(), without, kind, to);
+        };
+        const bool upInList = index > 0 && canStepTo(index - 1);
+        const bool downInList = index >= 0 && index < siblingCount - 1 && canStepTo(index + 1);
         const std::optional<core::ElementPlace> above =
-            project && index == 0 ? placeBeyondList(*project, pm.book(), places, elementId, true)
-                                  : std::nullopt;
+            project && index >= 0 && !upInList
+                ? placeBeyondList(*project, pm.book(), places, elementId, true)
+                : std::nullopt;
         const std::optional<core::ElementPlace> below =
-            project && index >= 0 && index == siblingCount - 1
+            project && index >= 0 && !downInList
                 ? placeBeyondList(*project, pm.book(), places, elementId, false)
                 : std::nullopt;
 
@@ -1496,7 +1508,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 onContextMenuMoveUp();
             }
         });
-        moveUpAction->setEnabled(index > 0 || above);
+        moveUpAction->setEnabled(upInList || above);
 
         QAction* moveDownAction = menu.addAction(
             artProvider.getIcon("navigation.down", core::IconContext::Menu),
@@ -1508,7 +1520,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 onContextMenuMoveDown();
             }
         });
-        moveDownAction->setEnabled((index >= 0 && index < siblingCount - 1) || below);
+        moveDownAction->setEnabled(downInList || below);
 
         QAction* moveToEndAction = menu.addAction(
             artProvider.getIcon("navigation.bottom", core::IconContext::Menu),

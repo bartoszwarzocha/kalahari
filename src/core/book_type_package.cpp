@@ -281,8 +281,8 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
     const QJsonObject object = value.toObject();
     checkKeys(object, field,
               {"form", "name", "plural", "words", "icon", "places", "limit", "title",
-               "numbering", "template", "position", "editor", "generated", "settings",
-               "workshopGroup"},
+               "numbering", "template", "position", "first", "editor", "generated",
+               "settings", "workshopGroup"},
               problems);
 
     ElementKind kind;
@@ -390,6 +390,20 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
         if (!kind.places.contains(QStringLiteral("main"))) {
             addProblem(problems, field + QStringLiteral(".position"),
                        QStringLiteral("only a kind of the main part has a position"));
+        }
+    }
+
+    // The title page opens its section; a prologue opens the story after it
+    const QJsonValue first = object.value(QStringLiteral("first"));
+    if (!first.isUndefined()) {
+        if (!first.isBool()) {
+            addProblem(problems, field + QStringLiteral(".first"),
+                       QStringLiteral("must be true or false"));
+        } else if (first.toBool() && !position.isUndefined()) {
+            addProblem(problems, field + QStringLiteral(".first"),
+                       QStringLiteral("a kind that opens its section has no position"));
+        } else {
+            kind.first = first.toBool();
         }
     }
 

@@ -61,12 +61,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only chapter of a book goes up to the front section and down to the back one, also by
   Move... and by dragging (the test of 19 October found its move commands greyed out); a new
   chapter is still added to the main section or a part only, as the New Book palette and the
-  windows that add an element offer it. In a book
+  windows that add an element offer it. The title page opens the book, as in printed books:
+  nothing is moved or added before it, by Move Up, Move to Start, Move..., dragging or a
+  window that adds an element (the next test found a chapter could go there), and the title
+  page itself stays first. In a book
   without sections, where the three sections are one list, Move Up and Move Down move an
   element one step in that list, into the section before or after its own. When an element
-  has no other place in the book, as the only part of a novel, Move..., Move to Start, Move
-  Up, Move Down and Move to End are greyed out and their tooltip says why: "The book has no
-  other place for the part."
+  has no other place in the book, as the only part of a novel or the title page, Move...,
+  Move to Start, Move Up, Move Down and Move to End are greyed out and their tooltip says
+  why: "The book has no other place for the part."
 
 - **The Spelling and Grammar panel** - 2026-10-17. View > Panels > Spelling and Grammar opens
   a panel, a tab next to Annotations, with the misspelled words and the grammar issues of the
@@ -324,14 +327,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   own style** - 2026-10-19. These windows have the heading, colors and buttons of the
   program's other dialogs: the window's icon, its title and a sentence about what it does,
   the content that scrolls on a small screen while the heading and the buttons stay in view,
-  and the buttons at the bottom. About names the version of the program and of Qt in its
-  heading, in place of the black banner, and has only Close; its texts are in the font of
-  the window, and Kalahari 1.0 is planned for February 2027. In Customize Toolbars Reset to
-  Defaults is at the left, apart from OK, Cancel and Apply. In the Icon Downloader Esc and
-  the close button of the window ask before they stop a download, as Close does, and the
-  preview draws the icon in the icon colors. A test makes sure that the program shows no
-  window of the system but those that choose a file or a folder, and that each of its
-  dialogs is built on the common base.
+  and the buttons at the bottom. Each of them but About is higher by its heading. About
+  names the version of the program and of Qt in its heading, in place of the black banner,
+  and has only Close; its texts are in the font of the window, and Kalahari 1.0 is planned
+  for February 2027. In Customize Toolbars Reset to Defaults is at the left, apart from OK,
+  Cancel and Apply. In the Icon Downloader Esc and the close button of the window ask before
+  they stop a download, as Close does, and the preview draws the icon in the icon colors. In
+  New File the choice of the empty text file no longer moves the tiles and the title in a
+  low window. A test makes sure that the program shows no window of the system but those
+  that choose a file or a folder, and that each of its dialogs is built on the common base.
 
 - **Grammar: checked again at once after a fix, Undo or a paste** - 2026-10-19. A paragraph
   changed otherwise than by typing (a fix chosen in the Spelling and Grammar panel or on the

@@ -65,7 +65,8 @@ void IconDownloaderDialog::setupUi() {
                tr("Downloads an SVG icon from its URL and saves it with the icons of a theme."));
     setHeadingIcon(QStringLiteral("common.download"));
     setModal(true);
-    kalahari::gui::utils::resizeWithinScreen(this, QSize(600, 650));
+    // Higher by the heading, or less on a smaller screen
+    kalahari::gui::utils::resizeWithinScreen(this, withHeading(QSize(600, 650)));
 
     // The settings scroll on a small screen (e.g. 1366x768 at 150%); the buttons stay
     QVBoxLayout* mainLayout = contentLayout();

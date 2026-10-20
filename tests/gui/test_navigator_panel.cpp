@@ -245,7 +245,9 @@ TEST_CASE("Navigator: a book without sections shows its elements one after anoth
     };
     using core::BookPlace;
     CHECK(drop("Part One", "Chapter 1", Spot::Above) == placeAt(BookPlace::Main, "", 0));
-    CHECK(drop("Title", "Chapter 1", Spot::Above) == placeAt(BookPlace::Front, "", 1));
+    CHECK(drop("Chapter 1", "Title", Spot::Below) == placeAt(BookPlace::Front, "", 1));
+    CHECK_FALSE(drop("Title", "Chapter 1", Spot::Above));  // the title page stays first
+    CHECK_FALSE(drop("Dedication", "Title", Spot::Above));
     CHECK(drop("Chapter 2", "Dedication", Spot::Below) == placeAt(BookPlace::Front, "", 2));
     CHECK(drop("Chapter 1", "Afterword", Spot::Above) == placeAt(BookPlace::Back, "", 0));
     CHECK_FALSE(drop("Part One", "Afterword", Spot::Above));     // where it is
@@ -362,6 +364,10 @@ TEST_CASE("Navigator: an element is dragged to any place its kind can have",
           placeAt(BookPlace::Front, "", 1));
     CHECK(drop("Chapter 1", item("Afterword"), Spot::Below) ==
           placeAt(BookPlace::Back, "", 1));
+
+    // Nothing above the title page, which opens the book (test report of 19 October, part 1)
+    CHECK_FALSE(drop("Chapter 1", item("Title"), Spot::Above));
+    CHECK(drop("Chapter 1", item("Title"), Spot::Below) == placeAt(BookPlace::Front, "", 1));
 
     // Where the kind cannot be: a part in the front section, an afterword in the body
     CHECK_FALSE(drop("Part One", findSection(tree, "section_frontmatter"), Spot::On));

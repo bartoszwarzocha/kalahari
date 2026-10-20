@@ -53,9 +53,10 @@ ToolbarManagerDialog::ToolbarManagerDialog(ToolbarManager* manager, QWidget* par
     // A low heading leaves the room to the lists
     setCompactHeading(true);
     setApplyButtonVisible(true);
-    // Smaller where the screen is, e.g. 1366x768 at 150%: the lists get shorter
+    // Higher by the heading, and smaller where the screen is, e.g. 1366x768 at 150%: the
+    // lists get shorter
     setMinimumSize(640, 420);
-    kalahari::gui::utils::resizeWithinScreen(this, QSize(1000, 650));
+    kalahari::gui::utils::resizeWithinScreen(this, withHeading(QSize(1000, 650)));
 
     // Initialize built-in toolbar IDs
     // OpenSpec #00037: Added quickActions, insert, styles, help toolbars

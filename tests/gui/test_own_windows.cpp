@@ -4,22 +4,36 @@
 /// About and the Icon Downloader
 
 #include <catch2/catch_test_macros.hpp>
+#include "kalahari/gui/command_registrar.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/dialogs/new_file_dialog.h"
+#include "kalahari/gui/dialogs/new_item_dialog.h"
+#include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
+#include "kalahari/gui/icon_registrar.h"
+#include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/version.h"
+
+#include "document_window.h"
 
 #include <QApplication>
 #include <QDirIterator>
 #include <QFile>
+#include <QFrame>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QMainWindow>
 #include <QPushButton>
 #include <QRegularExpression>
+#include <QScreen>
 #include <QString>
 #include <QStringList>
 #include <QTabWidget>
 #include <QTimer>
+
+#include <algorithm>
 
 using kalahari::gui::IconDownloaderDialog;
 using kalahari::gui::dialogs::AboutDialog;
@@ -279,4 +293,38 @@ TEST_CASE("Own windows: the Icon Downloader stays open after Download", "[gui][d
     // Close closes it
     dialog.cancelButton()->click();
     CHECK_FALSE(dialog.isVisible());
+}
+
+TEST_CASE("Own windows: a window that got the heading is higher by it", "[gui][dialogs]") {
+    using namespace kalahari;
+    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::registerAllIcons();
+    test::OpenNovel book(QStringLiteral("Rain"));
+    QMainWindow window;
+    gui::ToolbarManager toolbars(&window);
+    toolbars.createToolbars(gui::CommandRegistry::getInstance());
+
+    // The default size the window had before its heading, higher by the heading and the line
+    // under it at that width; a smaller screen gets a lower window
+    const auto check = [](KalahariDialog& dialog, const QSize& before) {
+        dialog.show();
+        QApplication::processEvents();
+        const auto* heading = dialog.findChild<QFrame*>(QStringLiteral("kalahariDialogHeading"));
+        REQUIRE(heading != nullptr);
+        const int higher = before.height() + heading->heightForWidth(before.width()) + 1;
+        const QSize room = dialog.screen()->availableGeometry().size() * 0.9;
+        INFO(dialog.windowTitle().toStdString() << ": the screen has room for "
+             << room.height() << " pixels");
+        CHECK(dialog.height() == std::min(higher, room.height()));
+    };
+
+    gui::dialogs::NewItemDialog newBook(gui::dialogs::NewItemMode::Project);
+    check(newBook, QSize(850, 620));
+    gui::dialogs::NewFileDialog newFile(gui::dialogs::NewFileDialog::openBook(),
+                                        book.pm.bookTypes());
+    check(newFile, QSize(880, 740));
+    gui::dialogs::ToolbarManagerDialog toolbarManager(&toolbars, &window);
+    check(toolbarManager, QSize(1000, 650));
+    IconDownloaderDialog iconDownloader;
+    check(iconDownloader, QSize(600, 650));
 }
