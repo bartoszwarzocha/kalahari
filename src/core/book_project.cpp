@@ -249,7 +249,9 @@ QList<ElementField> readElementFields(const QJsonArray& array, const QString& fi
 /// What an element is about: ids of elements and of sections, each once
 QStringList readLinks(Fields& fields) {
     QStringList links;
-    for (const QJsonValue& value : fields.array("links")) {
+    const QJsonArray values = fields.array("links");
+    for (qsizetype i = 0; i < values.size(); ++i) {
+        const QJsonValue value = values.at(i);
         if (!value.isString() || value.toString().isEmpty()) {
             fields.problem("links", QStringLiteral("must be a list of ids of elements and "
                                                    "sections"));
