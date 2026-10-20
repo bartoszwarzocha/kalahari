@@ -1,9 +1,10 @@
 /// @file test_views_toolbar.cpp
-/// @brief The Views toolbar: the view modes, the switches, the paper, the text frame border and
-///        the zoom of the View menu
+/// @brief The Views toolbar: the view modes, the switches, the paper, the text frame border,
+///        the formatting marks and the zoom of the View menu
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/icon_registry.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -89,8 +90,8 @@ QByteArray layoutWithoutViewsToolbar() {
 
 }  // namespace
 
-TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border and zoom of the View "
-          "menu",
+TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, formatting marks "
+          "and zoom of the View menu",
           "[gui][toolbar]") {
     registerAllCommands(CommandCallbacks{});
     registerAllIcons();
@@ -107,7 +108,7 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border and
 
     // The very actions of the View menu, so a button is checked with its menu item
     const QList<QAction*> actions = toolbar->actions();
-    REQUIRE(actions.size() == 14);
+    REQUIRE(actions.size() == 15);
     CHECK(actions[0] == registry.getAction(std::string("view.mode.continuous")));
     CHECK(actions[1] == registry.getAction(std::string("view.mode.page")));
     CHECK(actions[2]->isSeparator());
@@ -116,12 +117,13 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border and
     CHECK(actions[5] == registry.getAction(std::string("view.typewriter")));
     CHECK(actions[6] == registry.getAction(std::string("view.darkPaper")));
     CHECK(actions[7] == registry.getAction(std::string("view.textFrameBorder")));
-    CHECK(actions[8]->isSeparator());
-    CHECK(actions[9] == registry.getAction(std::string("view.zoomOut")));
-    CHECK(actions[10] == registry.getAction(std::string("view.zoomIn")));
-    CHECK(actions[11] == registry.getAction(std::string("view.resetZoom")));
-    CHECK(actions[12] == registry.getAction(std::string("view.zoomPageWidth")));
-    CHECK(actions[13] == registry.getAction(std::string("view.zoomWholePage")));
+    CHECK(actions[8] == registry.getAction(std::string("view.showFormattingMarks")));
+    CHECK(actions[9]->isSeparator());
+    CHECK(actions[10] == registry.getAction(std::string("view.zoomOut")));
+    CHECK(actions[11] == registry.getAction(std::string("view.zoomIn")));
+    CHECK(actions[12] == registry.getAction(std::string("view.resetZoom")));
+    CHECK(actions[13] == registry.getAction(std::string("view.zoomPageWidth")));
+    CHECK(actions[14] == registry.getAction(std::string("view.zoomWholePage")));
 
     // In the View menu the text frame border follows the paper, before the separator
     const Command* paper = registry.getCommand("view.darkPaper");
@@ -137,7 +139,8 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border and
     auto& icons = kalahari::core::IconRegistry::getInstance();
     for (const char* id : {"view.mode.continuous", "view.mode.page", "view.mode.distraction-free",
                            "view.focus", "view.typewriter", "view.darkPaper",
-                           "view.textFrameBorder", "view.zoomOut", "view.zoomIn",
+                           "view.textFrameBorder", "view.showFormattingMarks", "view.zoomOut",
+                           "view.zoomIn",
                            "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}) {
         INFO(id);
         CHECK(icons.hasIcon(QString::fromLatin1(id)));
@@ -219,6 +222,67 @@ TEST_CASE("Views toolbar: the Page Width and Whole Page icons are a page with a 
             CHECK(whole.pixelColor(8, 11).alpha() == 0);
         }
     }
+}
+
+TEST_CASE("Views toolbar: the formatting marks icon is a pilcrow in every icon theme",
+          "[gui][toolbar]") {
+    for (const char* theme : {"twotone", "filled", "outlined", "rounded"}) {
+        INFO(theme);
+        const QImage image = renderIcon(theme, "format_paragraph");
+        REQUIRE_FALSE(image.isNull());
+
+        // The bar on top, the two stems with room between them and the edge of the bowl
+        CHECK(image.pixelColor(16, 5) == PRIMARY);
+        CHECK(image.pixelColor(11, 16) == PRIMARY);
+        CHECK(image.pixelColor(15, 16) == PRIMARY);
+        CHECK(image.pixelColor(13, 16).alpha() == 0);
+        CHECK(image.pixelColor(7, 6) == PRIMARY);
+
+        // The middle of the bowl: full, empty in outline, the second color in two tones
+        const QLatin1String name(theme);
+        if (name == QLatin1String("twotone")) {
+            CHECK(image.pixelColor(9, 8) == SECONDARY);
+        } else if (name == QLatin1String("outlined")) {
+            CHECK(image.pixelColor(9, 8).alpha() == 0);
+        } else {
+            CHECK(image.pixelColor(9, 8) == PRIMARY);
+        }
+    }
+}
+
+TEST_CASE("Views toolbar: one customized before gets the formatting marks after the text frame "
+          "border, once",
+          "[gui][toolbar]") {
+    registerAllCommands(CommandCallbacks{});
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
+    const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
+    const QString views = QStringLiteral("views");
+
+    // Customized before the button came: the paper moved to the end
+    settings.set<std::string>(
+        "toolbars.configurations",
+        R"({"builtIn":{"views":["view.mode.continuous","view.mode.page","view.textFrameBorder",)"
+        R"("view.zoomIn","view.darkPaper"]}})");
+    settings.set<int>("toolbars.addedCommands", 2);
+    QMainWindow window;
+    {
+        ToolbarManager manager(&window);
+        CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
+              "view.mode.continuous | view.mode.page | view.textFrameBorder | "
+              "view.showFormattingMarks | view.zoomIn | view.darkPaper");
+
+        // Taken away by the writer after that, it stays away
+        QStringList without = manager.getToolbarCommands(views);
+        without.removeAll(QStringLiteral("view.showFormattingMarks"));
+        manager.setToolbarCommands(views, without);
+    }
+    ToolbarManager next(&window);
+    CHECK_FALSE(
+        next.getToolbarCommands(views).contains(QStringLiteral("view.showFormattingMarks")));
+
+    settings.set<std::string>("toolbars.configurations", savedToolbars);
+    settings.set<int>("toolbars.addedCommands", savedVersion);
 }
 
 TEST_CASE("Views toolbar: shown in the second row of a layout saved before it existed",

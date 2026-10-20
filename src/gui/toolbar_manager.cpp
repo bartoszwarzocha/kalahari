@@ -52,12 +52,14 @@ struct AddedCommand {
 ///   1: Open File and Save All on the File toolbar; Open File, Save As and Close Book on
 ///      Quick Actions
 ///   2: New File, Open File, New Book and Open Book in a new order, on both toolbars
-constexpr std::array<AddedCommand, 5> ADDED_COMMANDS{{
+///   3: Show Formatting Marks on the Views toolbar
+constexpr std::array<AddedCommand, 6> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
     {"quickActions", "file.saveAs", 1},
     {"quickActions", "file.close", 1},
+    {"views", "view.showFormattingMarks", 3},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -77,7 +79,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 2;
+constexpr int CHANGED_COMMANDS_VERSION = 3;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
@@ -178,8 +180,9 @@ void ToolbarManager::initializeConfigs() {
         {"tools.spellcheck", "tools.grammar", "tools.autocorrect", "tools.stats.wordCount"}
     };
 
-    // Views Toolbar: the view modes, the switches on top of them (and the paper and the text
-    // frame border) and the zoom, as in the View menu
+    // Views Toolbar: the view modes, the switches on top of them (and the paper, the text
+    // frame border and the formatting marks, the pilcrow button of other editors) and the
+    // zoom, as in the View menu
     m_configs["views"] = {
         "views",
         QT_TRANSLATE_NOOP("QObject", "&Views Toolbar"),
@@ -187,7 +190,7 @@ void ToolbarManager::initializeConfigs() {
         true,  // visible by default (Row 2)
         {"view.mode.continuous", "view.mode.page", SEPARATOR_ID,
          "view.mode.distraction-free", "view.focus", "view.typewriter", "view.darkPaper",
-         "view.textFrameBorder", SEPARATOR_ID,
+         "view.textFrameBorder", "view.showFormattingMarks", SEPARATOR_ID,
          "view.zoomOut", "view.zoomIn", "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}
     };
 
