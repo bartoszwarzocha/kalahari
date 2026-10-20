@@ -44,7 +44,7 @@ NavigatorPage::NavigatorPage(QWidget* parent)
     : SettingsPage(parent)
 {
     QFormLayout* menus = addGroup(tr("Node Menus"));
-    m_named = new QRadioButton(tr("\"Add...\" and the commands named after kinds"));
+    m_named = new QRadioButton(tr("\"Add...\" and a command for each kind"));
     m_named->setObjectName(QStringLiteral("navigatorAddNamed"));
     m_single = new QRadioButton(tr("Only \"Add...\""));
     m_single->setObjectName(QStringLiteral("navigatorAddSingle"));

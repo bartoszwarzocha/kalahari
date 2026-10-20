@@ -6752,7 +6752,7 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>Menu węzłów</translation>
     </message>
     <message>
-        <source>&quot;Add...&quot; and the commands named after kinds</source>
+        <source>&quot;Add...&quot; and a command for each kind</source>
         <translation>„Dodaj...” i polecenia z nazwą rodzaju</translation>
     </message>
     <message>
