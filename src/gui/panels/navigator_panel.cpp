@@ -403,6 +403,9 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     m_searchEdit = new QLineEdit(this);
     m_searchEdit->setPlaceholderText(tr("Filter tree..."));
     m_searchEdit->setClearButtonEnabled(false);  // We use our own clear button
+    // As the combo box: narrower than its own minimum only in a narrow dock, where the fonts
+    // of Windows make that minimum wider than the room the bar has
+    m_searchEdit->setMinimumWidth(36);
 
     m_clearButton = new QToolButton(this);
     m_clearButton->setIcon(artProvider.getIcon("common.cancel", core::IconContext::Menu));
