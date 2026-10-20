@@ -12,7 +12,11 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/utils/reading_time.h"
 
+#include "document_window.h"
+
+#include <QApplication>
 #include <QComboBox>
+#include <QFocusEvent>
 #include <QLabel>
 #include <QLocale>
 #include <QStringList>
@@ -168,4 +172,32 @@ TEST_CASE("Properties panel: the style of the paragraph at the cursor, and a sty
     panel.setActiveEditor(&editorPanel);
     CHECK_FALSE(styles->isEnabled());
     CHECK(styles->toolTip() != QStringLiteral("Change paragraph style"));
+}
+
+TEST_CASE("Properties panel: the writer going to the text shows its page, with the style",
+          "[gui][styles]") {
+    test::OpenNovel novel(QStringLiteral("Rain"));
+    gui::EditorPanel editorPanel;
+    editor::BookEditor* bookEditor = editorPanel.getBookEditor();
+    bookEditor->fromKml(test::kmlOf({QStringLiteral("One two")}));
+    gui::PropertiesPanel panel;
+    panel.setActiveEditor(&editorPanel);
+    REQUIRE(showsLabel(panel, "editorStyleLabel"));
+    const auto goToText = [bookEditor]() {
+        QFocusEvent focusIn(QEvent::FocusIn, Qt::MouseFocusReason);
+        QApplication::sendEvent(bookEditor, &focusIn);
+    };
+
+    // The chapter opened from the Navigator shows its properties, until the writer goes to
+    // its text (a click in it, or the keys the opened chapter gets)
+    panel.showChapterProperties(novel.chapterId);
+    CHECK_FALSE(showsLabel(panel, "editorStyleLabel"));
+    goToText();
+    CHECK(showsLabel(panel, "editorStyleLabel"));
+
+    // A text no longer in front changes nothing
+    panel.showChapterProperties(novel.chapterId);
+    panel.setActiveEditor(nullptr);
+    goToText();
+    CHECK_FALSE(showsLabel(panel, "editorStyleLabel"));
 }
