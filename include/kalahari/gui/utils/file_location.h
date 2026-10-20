@@ -1,5 +1,6 @@
 /// @file file_location.h
-/// @brief A file or a folder shown in the file manager of the system
+/// @brief A file or a folder shown in the file manager of the system, and a file opened in the
+/// program the system gives it
 
 #pragma once
 
@@ -20,6 +21,17 @@ bool showInFolder(const QString& path);
 /// what the program shows; an empty function gives the system's file manager back
 /// @param show Does showInFolder() for a path that exists
 void setFileManagerForTests(std::function<bool(const QString&)> show);
+
+/// @brief Open file @p path in the program the system gives it (a picture in the viewer of
+/// pictures, a PDF file in the reader of PDF files)
+/// @return false when @p path does not exist or the system could not open it; the caller
+///         tells the writer
+bool openWithSystem(const QString& path);
+
+/// @brief A program in place of the system's programs, for tests: no program starts, and a
+/// test sees what the program opens; an empty function gives the system's programs back
+/// @param open Does openWithSystem() for a path that exists
+void setFileOpenerForTests(std::function<bool(const QString&)> open);
 
 } // namespace gui
 } // namespace kalahari

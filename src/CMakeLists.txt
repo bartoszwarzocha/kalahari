@@ -147,7 +147,6 @@ set(KALAHARI_SOURCES
     gui/dialogs/progress_dialog.cpp  # ProgressDialog - own window for the progress of a long task
     gui/dialogs/color_dialog.cpp  # ColorDialog - own window for choosing a color
     gui/dialogs/color_palettes.cpp  # The palettes of the color window
-    gui/dialogs/new_element_dialog.cpp  # NewElementDialog - new chapter, part or item in the Navigator
     gui/dialogs/add_to_book_dialog.cpp  # AddToBookDialog - a file as a new element of the book
     gui/dialogs/new_file_dialog.cpp  # NewFileDialog - New File: a new element of the open book
     gui/dialogs/move_element_dialog.cpp  # MoveElementDialog - a new place in the book for an element
@@ -192,6 +191,7 @@ set(KALAHARI_SOURCES
     gui/settings/editor_pages.cpp
     gui/settings/auto_correct_page.cpp  # Settings > Editor > Auto-correct
     gui/settings/annotations_page.cpp
+    gui/settings/navigator_page.cpp  # Settings > Navigator
     gui/settings/folders_page.cpp
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     gui/shortcut_rules.cpp  # Which keys a command can have
@@ -300,7 +300,6 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/grammar_setup_dialog.h  # GrammarSetupDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/progress_dialog.h  # ProgressDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/color_dialog.h  # ColorDialog with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_element_dialog.h  # NewElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_file_dialog.h  # NewFileDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT

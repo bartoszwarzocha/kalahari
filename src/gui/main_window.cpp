@@ -77,8 +77,11 @@
 #include <QStyle>
 #include <QTimer>
 #include <QAbstractItemView>
+#include <QFont>
+#include <algorithm>
 #include <map>
 #include <memory>
+#include <utility>
 
 namespace kalahari {
 namespace gui {
@@ -87,6 +90,20 @@ namespace {
 
 /// How long the status bar keeps why the open book is read-only, or why a change was refused
 constexpr int READ_ONLY_MESSAGE_MS = 5000;
+
+/// The commands of the Book menu that add an element of a kind of the Workshop, with the id of
+/// the kind in the base package
+constexpr std::pair<const char*, const char*> WORKSHOP_COMMANDS[] = {
+    {"book.newCharacter", "character"}, {"book.newLocation", "location"},
+    {"book.newItem", "item"},           {"book.newMindMap", "mindmap"},
+    {"book.newTimeline", "timeline"},
+};
+
+/// The kind @p kindId of the Workshop of the base package; none when the program has none
+core::KindRef workshopKind(const QString& kindId) {
+    return core::ProjectManager::getInstance().bookTypes().findKind(
+        QString::fromLatin1(core::ProjectManager::BASE_PACKAGE), kindId);
+}
 
 } // namespace
 
@@ -180,13 +197,17 @@ MainWindow::MainWindow(QWidget* parent)
     // A chapter title changed in the Properties panel shows on its tab too
     connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
             m_navigatorCoordinator, &NavigatorCoordinator::refreshTabTitle);
-    // Connect Navigator add item signals (OpenSpec #00042 Task 7.19 Issue #1)
-    connect(m_dockCoordinator, &DockCoordinator::requestAddChapter,
-            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddChapter);
-    connect(m_dockCoordinator, &DockCoordinator::requestAddPart,
-            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddPart);
-    connect(m_dockCoordinator, &DockCoordinator::requestAddItem,
-            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddItem);
+    // Add... on a node of the Navigator: the Add Element window with the kinds of the node
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestAdd,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAdd);
+    // The nodes of the book and of the Workshop: their names, and the groups of the Workshop
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestRenameNode,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestRenameNode);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestWorkshopGrouped,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestWorkshopGrouped);
+    // A material of the Workshop opens in the program the system gives its file
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterial,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenMaterial);
     // The sections of the book: shown or not, and their names
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowSections,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestShowSections);
@@ -501,10 +522,23 @@ void MainWindow::registerCommands() {
     callbacks.onFindReplace = [this]() { onFindReplace(); };
     callbacks.onSettings = [this]() { onSettings(); };
 
-    // Book commands: a main text of the book (a chapter, a story...), placed in the window
-    // of adding it, and the book's properties
+    // Book commands: Add... for what is in front, a main text of the book (a chapter, a
+    // story...) placed in the window of adding it, and the book's properties
+    callbacks.onAddElement = [this]() {
+        if (m_navigatorCoordinator) m_navigatorCoordinator->onRequestAddHere();
+    };
     callbacks.onNewChapter = [this]() {
-        if (m_navigatorCoordinator) m_navigatorCoordinator->onRequestAddChapter(QString());
+        if (m_navigatorCoordinator) m_navigatorCoordinator->onRequestNewChapter();
+    };
+    // The kinds of the Workshop: the window with all of them, that one chosen
+    callbacks.onNewWorkshopElement = [this](const QString& kindId) {
+        if (!m_navigatorCoordinator) {
+            return;
+        }
+        AddTarget target;
+        target.scope = AddTarget::Scope::Workshop;
+        target.kind = workshopKind(kindId);
+        m_navigatorCoordinator->onRequestAdd(target);
     };
     callbacks.onBookProperties = [this]() { showBookProperties(); };
 
@@ -625,6 +659,52 @@ void MainWindow::registerCommands() {
             return projects.isProjectOpen() && !projects.isReadOnly();
         };
         properties->disabledReason = whyReadOnly;
+    }
+    // Add... adds to the book open, after the element in front or anywhere in it; it leads the
+    // menu, in bold, as in the menus of the Navigator
+    if (auto* add = registry.getCommand("book.addElement")) {
+        add->isEnabled = []() {
+            const auto& projects = core::ProjectManager::getInstance();
+            return projects.isProjectOpen() && !projects.isReadOnly();
+        };
+        add->disabledReason = whyReadOnly;
+        if (QAction* action = registry.getAction(std::string("book.addElement"))) {
+            QFont bold = action->font();
+            bold.setBold(true);
+            action->setFont(bold);
+        }
+    }
+    // The kinds of the Workshop wait for their editors, saying so: "The program does not have
+    // an editor for the character yet."
+    for (const auto& [commandId, kindId] : WORKSHOP_COMMANDS) {
+        Command* command = registry.getCommand(commandId);
+        if (command == nullptr) {
+            continue;
+        }
+        const QString kindName = QString::fromLatin1(kindId);
+        command->isEnabled = [kindName]() {
+            const auto& projects = core::ProjectManager::getInstance();
+            const core::KindRef kind = workshopKind(kindName);
+            const QList<core::KindRef> offered =
+                projects.isProjectOpen() ? projects.kindsFor(core::BookPlace::Workshop)
+                                         : QList<core::KindRef>{};
+            return kind && core::ProjectManager::canAdd(kind) && !projects.isReadOnly() &&
+                   std::any_of(offered.cbegin(), offered.cend(), [&kind](const core::KindRef& other) {
+                       return other.kind == kind.kind;
+                   });
+        };
+        command->disabledReason = [kindName, whyReadOnly]() {
+            const core::KindRef kind = workshopKind(kindName);
+            if (kind && !core::ProjectManager::canAdd(kind)) {
+                //: The tooltip of a greyed command of the Book menu that adds an element of a
+                //: kind of the Workshop, e.g. New Character.... In Polish: Program nie ma
+                //: jeszcze edytora {kind:genitive}.
+                return core::fillWords(
+                    tr("The program does not have an editor for the {kind} yet."),
+                    {{QStringLiteral("kind"), wordsOf(kind)}});
+            }
+            return whyReadOnly();
+        };
     }
 
     // Find, the formats, the alignments, the view mode and the zoom work on the document in
@@ -1453,7 +1533,11 @@ void MainWindow::updateBookCommands() {
             action->setText(menuText);
         }
     }
+    registry.updateActionState("book.addElement");
     registry.updateActionState("book.newChapter");
+    for (const auto& [commandId, kindId] : WORKSHOP_COMMANDS) {
+        registry.updateActionState(commandId);
+    }
     registry.updateActionState("book.properties");
     utils::updateOpenBookCommands(registry);
     // A book open read-only says so in the status bar, and in the title of the window

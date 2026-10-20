@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+class QAbstractButton;
 class QCheckBox;
 class QFormLayout;
 class QLabel;
@@ -134,6 +135,9 @@ protected:
     /// Muted, yet readable: it has at least the contrast of normal text (WCAG AA) with the
     /// window in every theme, also after the theme changes.
     QLabel* addNote(QLayout* layout, const QString& text);
+
+    /// @brief Put @p note under check box or radio button @p button in line with its text
+    static void alignWithText(QLabel* note, const QAbstractButton* button);
 
     /// @brief Grey out an option the program does not use yet
     void markNotUsedYet(QWidget* field, QLabel* label = nullptr);

@@ -32,6 +32,7 @@ public:
         ExportArchive,      ///< The folder a book is exported to
         ImportArchive,      ///< The folder of the archive a book is imported from
         ImportDestination,  ///< The folder an imported book goes to
+        AddMaterial,        ///< Add Element: the folder of the file of a new material
     };
 
     /// @brief Setting of the folder of the books; empty: defaultBooksFolder()

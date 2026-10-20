@@ -85,6 +85,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"edit.nextTodo", QStringLiteral("Alt+Down")},
         {"edit.previousTodo", QStringLiteral("Alt+Up")},
 #endif
+        {"book.addElement", QStringLiteral("Ctrl+Shift+Return")},
         {"insert.annotation", QStringLiteral("Ctrl+Shift+M")},
         {"format.bold", QStringLiteral("Ctrl+B")},
         {"format.italic", QStringLiteral("Ctrl+I")},

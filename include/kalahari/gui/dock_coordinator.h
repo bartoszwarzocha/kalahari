@@ -291,17 +291,6 @@ signals:
     /// @param page The page (SettingsDialog::openPage())
     void settingsPageRequested(const QString& page);
 
-    /// @brief Emitted when add chapter is requested from navigator context menu
-    /// @param groupId Group (part) to add the chapter to; empty: the body of the book
-    void requestAddChapter(const QString& groupId);
-
-    /// @brief Emitted when add part is requested from navigator context menu
-    void requestAddPart();
-
-    /// @brief Emitted when add item is requested from navigator context menu
-    /// @param sectionType Section type ("front_matter" or "back_matter")
-    void requestAddItem(const QString& sectionType);
-
 private:
     /// @brief Create Navigator dock widget
     void createNavigatorDock();

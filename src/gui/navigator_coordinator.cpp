@@ -9,7 +9,6 @@
 #include "kalahari/gui/dialogs/file_preview_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/move_element_dialog.h"
-#include "kalahari/gui/dialogs/new_element_dialog.h"
 #include "kalahari/gui/dialogs/new_file_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -17,6 +16,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/section_words.h"
+#include "kalahari/gui/utils/file_location.h"
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/core/file_trash.h"
 #include "kalahari/core/project_manager.h"
@@ -366,8 +366,10 @@ void NavigatorCoordinator::onRequestRename(const QString& elementId, const QStri
     logger.info("NavigatorCoordinator: Renamed element '{}' to '{}'",
                 elementId.toStdString(), newTitle.toStdString());
 
-    // Refresh navigator and the open tab to show new name
+    // Refresh navigator and the open tab to show new name; in the Workshop the element goes
+    // to the place of its new title
     refreshNavigator();
+    m_navigatorPanel->revealElement(elementId);
     refreshTabTitle(elementId);
 
     m_statusBar->showMessage(tr("Renamed to '%1'").arg(newTitle), 2000);
@@ -953,79 +955,246 @@ void NavigatorCoordinator::moveElementTo(const QString& elementId,
 
 
 // =============================================================================
-// Add Chapter/Part/Item Handlers (OpenSpec #00042 Task 7.19 Issue #1)
+// Add Element
 // =============================================================================
 
-void NavigatorCoordinator::onRequestAddChapter(const QString& groupId) {
+void NavigatorCoordinator::onRequestAdd(const AddTarget& target) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
+    auto* window = qobject_cast<QWidget*>(parent());
 
-    if (!pm.isProjectOpen()) {
-        logger.warn("NavigatorCoordinator: Add chapter requested but no project open");
+    if (!pm.isProjectOpen() || pm.isReadOnly()) {
+        logger.warn("NavigatorCoordinator: Add requested but no book can be changed");
         return;
     }
 
-    // The chapter goes to a part, or to the body of the book
-    QString groupTitle;
-    if (!groupId.isEmpty()) {
-        const core::ProjectElement* group = pm.findElement(groupId);
-        if (!group) {
-            logger.error("NavigatorCoordinator: Part not found: {}", groupId.toStdString());
-            // The main texts of the book: "Could not add a story"
-            const QHash<QString, core::KindWords> nouns{
-                {QStringLiteral("kind"), wordsOf(pm.chapterKindFor(core::BookPlace::Main))}};
-            //: In Polish: Nie znaleziono miejsca na {kind:m=nowy|f=nową|n=nowe|p=nowe}
-            //: {kind:accusative}.
-            const QString text = tr("Could not find the place for the new {kind}.");
-            dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()),
-                                            core::fillWords(tr("Add {Kind} Failed"), nouns),
-                                            core::fillWords(text, nouns));
-            return;
+    // The window offers the kinds of the place it was opened on
+    const dialogs::NewFileDialog::Book book = dialogs::NewFileDialog::forAdding(target);
+    if (book.kinds.isEmpty()) {
+        logger.warn("NavigatorCoordinator: Nothing can be added there");
+        return;
+    }
+    dialogs::NewFileDialog dialog(book, pm.bookTypes(), window);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    const core::KindRef kind = dialog.kind();
+    const QString title = dialog.title();
+    // The messages name the kind added: "Working note added", "Could not add a story"
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
+
+    // A material is a copy of the file the writer chose, in the Workshop's folder; any other
+    // element gets its chapter file, and ProjectManager saves the project at once
+    const bool material = kind && kind.kind->isMaterial();
+    const core::ElementPlace at = dialog.place();
+    const QString elementId =
+        material ? pm.addMaterial(dialog.materialFile(), kind, title)
+                 : pm.addElement(kind, title, at.place, at.groupId, at.index, dialog.takeInside(),
+                                 std::nullopt, dialog.status());
+    if (elementId.isEmpty()) {
+        logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
+        //: In Polish: Nie udało się dodać {kind:genitive}
+        const QString heading = core::fillWords(tr("Add {Kind} Failed"), nouns);
+        if (material) {
+            //: %1: the file the writer chose. In Polish: Nie udało się dodać kopii pliku do
+            //: książki:\n%1\nSzczegóły są w dzienniku programu.
+            dialogs::MessageDialog::warning(
+                window, heading,
+                tr("The copy of the file could not be added to the book:\n%1\nThe program's "
+                   "log has the details.")
+                    .arg(QDir::toNativeSeparators(dialog.materialFile())));
+        } else {
+            dialogs::MessageDialog::warning(window, heading, tr("Failed to save changes."));
         }
-        groupTitle = group->title;
+        return;
     }
+    logger.info("NavigatorCoordinator: Added '{}' (id={})", title.toStdString(),
+                elementId.toStdString());
 
-    // A chapter can be of any text kind there (a prologue, a chapter...); the type's main one
-    // is chosen at the start
-    addElement(dialogs::NewElementKind::Chapter,
-               pm.textKindsFor(core::BookPlace::Main, groupId),
-               pm.chapterKindFor(core::BookPlace::Main, groupId), core::BookPlace::Main, groupId,
-               groupTitle);
+    showAdded(elementId, title);
+    //: In Polish: Dodano {kind:accusative}: %1
+    m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(title), 2000);
+    emit documentModified();
 }
 
-void NavigatorCoordinator::onRequestAddPart() {
-    auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+void NavigatorCoordinator::onRequestAddHere() {
+    onRequestAdd(addTargetHere());
+}
 
-    if (!pm.isProjectOpen()) {
-        logger.warn("NavigatorCoordinator: Add part requested but no project open");
+void NavigatorCoordinator::onRequestNewChapter() {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::BookProject* project = pm.project();
+    if (!project) {
+        core::Logger::getInstance().warn(
+            "NavigatorCoordinator: New chapter requested but no project open");
         return;
     }
 
-    // A part can be of any group kind of the body (a part, a cycle...)
-    QList<core::KindRef> kinds = pm.kindsFor(core::BookPlace::Main);
-    kinds.removeIf([](const core::KindRef& kind) {
-        return kind.kind->form != core::ElementForm::Group;
-    });
-    addElement(dialogs::NewElementKind::Part, kinds, pm.partKind(), core::BookPlace::Main,
-               QString(), QString());
+    // Right after the element in front when its list can have a chapter there (in a part, the
+    // kind of a chapter in it); else in the whole book, at the end of the main section
+    AddTarget target = addTargetHere();
+    const std::optional<core::ElementPlace> at =
+        target.scope == AddTarget::Scope::Element ? project->placeOf(target.id) : std::nullopt;
+    const core::KindRef chapter =
+        at && at->place == core::BookPlace::Main ? pm.chapterKindFor(at->place, at->groupId)
+                                                 : core::KindRef{};
+    if (chapter && pm.newPlaceAfter(target.id, chapter)) {
+        target.kind = chapter;
+    } else {
+        target = AddTarget{};
+        target.kind = pm.chapterKindFor(core::BookPlace::Main);
+    }
+    onRequestAdd(target);
 }
 
-void NavigatorCoordinator::onRequestAddItem(const QString& sectionType) {
-    auto& logger = core::Logger::getInstance();
+AddTarget NavigatorCoordinator::addTargetHere() const {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::BookProject* project = pm.project();
+    AddTarget target;  // The whole book
+    const EditorPanel* editor = getCurrentEditor();
+    if (!project || !editor) {
+        return target;
+    }
+    const QString elementId = editor->property("elementId").toString();
+    const core::ProjectElement* element = pm.findElement(elementId);
+    const std::optional<core::ElementPlace> at = project->placeOf(elementId);
+    if (!element || !at) {
+        return target;  // A file of the book outside its text, or a file outside the book
+    }
+
+    // An element of the Workshop: the group of its kind; one of the book: right after it
+    if (at->place == core::BookPlace::Workshop) {
+        target.scope = AddTarget::Scope::Workshop;
+        if (const core::KindRef kind = pm.kindOf(*element)) {
+            target.kinds.append(kind);
+            target.kind = kind;
+        }
+    } else {
+        target.scope = AddTarget::Scope::Element;
+        target.id = elementId;
+    }
+    return target;
+}
+
+void NavigatorCoordinator::showAdded(const QString& elementId, const QString& title) {
     auto& pm = core::ProjectManager::getInstance();
 
-    if (!pm.isProjectOpen()) {
-        logger.warn("NavigatorCoordinator: Add item requested but no project open");
+    // The new element is shown, also inside a collapsed part
+    refreshNavigator();
+    m_navigatorPanel->revealElement(elementId);
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element || pm.formOf(*element) != core::ElementForm::Text) {
         return;
     }
 
-    // An item can be of any text kind of its section (a dedication, a preface...)
-    const bool front = sectionType == QLatin1String("front_matter");
-    const core::BookPlace place = front ? core::BookPlace::Front : core::BookPlace::Back;
-    addElement(front ? dialogs::NewElementKind::FrontMatterItem
-                     : dialogs::NewElementKind::BackMatterItem,
-               pm.textKindsFor(place), core::KindRef{}, place, QString(), QString());
+    // A text opens in the editor, ready for writing at its start
+    onElementSelected(elementId, title);
+    if (EditorPanel* editor = getCurrentEditor();
+        editor != nullptr && editor->property("elementId").toString() == elementId) {
+        editor->getBookEditor()->setCursorPosition(editor::CursorPosition{});
+        editor->getBookEditor()->setFocus(Qt::OtherFocusReason);
+    }
+}
+
+void NavigatorCoordinator::onRequestRenameNode(const QString& itemType) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    const core::BookProject* project = pm.project();
+    const core::ProjectBook* book = pm.book();
+    const bool workshop = itemType == QLatin1String("workshop");
+    if (!project || !book || (!workshop && itemType != QLatin1String("book"))) {
+        logger.warn("NavigatorCoordinator: No node to rename: {}", itemType.toStdString());
+        return;
+    }
+
+    const QString currentName =
+        workshop ? NavigatorPanel::workshopName(*project) : NavigatorPanel::bookName(*book);
+    dialogs::RenameElementDialog dialog(
+        currentName, workshop ? QStringLiteral("structure.workshop") : QStringLiteral("structure.book"),
+        qobject_cast<QWidget*>(parent()));
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    const QString newName = dialog.name();
+    if (newName.isEmpty() || newName == currentName) {
+        return;  // No change
+    }
+
+    // The default name is no name of the writer's own: it follows the language of the program
+    const QString defaultName = workshop ? NavigatorPanel::workshopName(core::BookProject{})
+                                         : NavigatorPanel::bookName(core::ProjectBook{});
+    const QString name = newName == defaultName ? QString() : newName;
+    if (!(workshop ? pm.setWorkshopName(name) : pm.setBookName(name))) {
+        logger.error("NavigatorCoordinator: Failed to save the project after renaming the {}",
+                     itemType.toStdString());
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), tr("Rename Failed"),
+                                        tr("Failed to save changes."));
+        return;
+    }
+    logger.info("NavigatorCoordinator: Renamed the {} '{}' to '{}'", itemType.toStdString(),
+                currentName.toStdString(), newName.toStdString());
+
+    refreshNavigator();
+    m_statusBar->showMessage(tr("Renamed to '%1'").arg(newName), 2000);
+    emit documentModified();
+}
+
+void NavigatorCoordinator::onRequestWorkshopGrouped(bool grouped) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+
+    const core::BookProject* project = pm.project();
+    if (!project) {
+        logger.warn("NavigatorCoordinator: Workshop grouping requested but no project open");
+        return;
+    }
+    if (project->workshop.grouped == grouped) {
+        return;
+    }
+    if (!pm.setWorkshopGrouped(grouped)) {
+        logger.error("NavigatorCoordinator: Failed to save the project after grouping the "
+                     "Workshop");
+        //: In Polish: Nie udało się zmienić grupowania
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()),
+                                        tr("Grouping Failed"), tr("Failed to save changes."));
+        refreshNavigator();  // The check of its menu shows the Workshop as it still is
+        return;
+    }
+    logger.info("NavigatorCoordinator: Workshop {}", grouped ? "grouped" : "not grouped");
+
+    refreshNavigator();
+    m_statusBar->showMessage(grouped
+                                 //: In Polish: Warsztat jest pogrupowany
+                                 ? tr("Workshop grouped")
+                                 //: In Polish: Warsztat nie jest pogrupowany
+                                 : tr("Workshop not grouped"),
+                             2000);
+    emit documentModified();
+}
+
+void NavigatorCoordinator::onRequestOpenMaterial(const QString& elementId) {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element) {
+        core::Logger::getInstance().warn("NavigatorCoordinator: No material to open: {}",
+                                         elementId.toStdString());
+        return;
+    }
+
+    // The program has no window of its own for materials yet
+    const QString path = pm.filePathOf(*element);
+    if (!openWithSystem(path)) {
+        const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+        //: In Polish: Nie udało się otworzyć {kind:genitive}
+        const QString heading = core::fillWords(tr("Open {Kind} Failed"), nouns);
+        //: %1: the file. In Polish: System nie otworzył pliku:\n%1
+        const QString text =
+            tr("The system could not open the file:\n%1").arg(QDir::toNativeSeparators(path));
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), heading, text);
+        return;
+    }
+    m_statusBar->showMessage(tr("Opened: %1").arg(element->title), 2000);
 }
 
 NavigatorCoordinator::NewFile NavigatorCoordinator::onRequestNewFile(const QString& untitled) {
@@ -1205,76 +1374,6 @@ void NavigatorCoordinator::onRequestRenameSection(const QString& sectionType) {
     refreshNavigator();
     m_propertiesPanel->refresh();
     m_statusBar->showMessage(tr("Renamed to '%1'").arg(newName), 2000);
-    emit documentModified();
-}
-
-void NavigatorCoordinator::addElement(dialogs::NewElementKind dialogKind,
-                                      const QList<core::KindRef>& kinds,
-                                      const core::KindRef& current, core::BookPlace place,
-                                      const QString& groupId, const QString& groupTitle) {
-    auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
-
-    // The navigator offers the command only when a kind can be added there
-    if (kinds.isEmpty()) {
-        logger.warn("NavigatorCoordinator: No kind can be added there");
-        return;
-    }
-
-    // The part of the book the dialog was opened on, or a group in it
-    const core::BookProject* project = pm.project();
-    const core::ProjectBook* book = pm.book();
-    if (!project || !book || (!groupId.isEmpty() && !pm.findElement(groupId))) {
-        logger.warn("NavigatorCoordinator: No list to add to");
-        return;
-    }
-
-    // Each kind with the title its new element starts with ("Chapter 3") and its place (a
-    // chapter of the body goes before the epilogue that ends the book)
-    QList<dialogs::NewElementChoice> choices;
-    int currentIndex = 0;
-    for (const core::KindRef& kind : kinds) {
-        if (kind.kind == current.kind) {
-            currentIndex = static_cast<int>(choices.size());
-        }
-        choices.append({kind, pm.defaultTitle(kind), pm.newPlaceOf(kind, place, groupId)});
-    }
-
-    // The dialog shows where the element goes in its part of the book, and lets the writer
-    // choose another place; a book without sections has no rows of its parts
-    dialogs::NewElementDialog dialog(dialogKind, choices, currentIndex, groupTitle,
-                                     qobject_cast<QWidget*>(parent()));
-    dialog.setSection(project->elementsIn(place),
-                      book->partsLayer ? book->sectionName(place) : QString(),
-                      SectionWords::forPart(book, place), pm.bookTypes(), groupId);
-    dialog.setMainKind(pm.mainTextKind());
-    if (dialog.exec() != QDialog::Accepted) {
-        return;
-    }
-    const QString title = dialog.title();
-    const core::ElementPlace at = dialog.place();
-    // The messages name the kind added: "Story added", "Could not add a story"
-    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(dialog.kind())}};
-
-    // ProjectManager makes the chapter file of a text element and saves the project at once
-    const QString elementId = pm.addElement(dialog.kind(), title, at.place, at.groupId, at.index,
-                                            dialog.takeInside());
-    if (elementId.isEmpty()) {
-        logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
-        //: In Polish: Nie udało się dodać {kind:genitive}
-        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()),
-                                        core::fillWords(tr("Add {Kind} Failed"), nouns),
-                                        tr("Failed to save changes."));
-        return;
-    }
-    logger.info("NavigatorCoordinator: Added '{}' (id={})", title.toStdString(),
-                elementId.toStdString());
-
-    // The new element is shown, also inside a collapsed part
-    refreshNavigator();
-    m_navigatorPanel->revealElement(elementId);
-    //: In Polish: Dodano {kind:accusative}: %1
-    m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(title), 2000);
     emit documentModified();
 }
 

@@ -23,6 +23,7 @@
 #include <QLineEdit>
 #include <QPainter>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QSpinBox>
 #include <QStyle>
 #include <QStyleOption>
@@ -291,6 +292,18 @@ QLabel* SettingsPage::addNote(QLayout* layout, const QString& text) {
         layout->addWidget(note);
     }
     return note;
+}
+
+void SettingsPage::alignWithText(QLabel* note, const QAbstractButton* button) {
+    const QStyle* style = button->style();
+    const bool radio = qobject_cast<const QRadioButton*>(button) != nullptr;
+    const int indicator =
+        style->pixelMetric(radio ? QStyle::PM_ExclusiveIndicatorWidth : QStyle::PM_IndicatorWidth,
+                           nullptr, button);
+    const int spacing = style->pixelMetric(
+        radio ? QStyle::PM_RadioButtonLabelSpacing : QStyle::PM_CheckBoxLabelSpacing, nullptr,
+        button);
+    note->setContentsMargins(indicator + spacing, 0, 0, 0);
 }
 
 QColor SettingsPage::noteColor() {

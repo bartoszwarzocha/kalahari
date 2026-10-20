@@ -84,6 +84,10 @@ std::map<std::string, json> buildDefaults() {
         // Annotations: the name new ones are made with. Empty: by no one named
         {"annotations.author", ""},
 
+        // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
+        // and the commands named after the kinds most added there) or "single" ("Add..." only)
+        {"navigator.addCommands", "named"},
+
         // New projects
         {"project.defaultAuthor", ""},
         // Language of new books ("pl"); empty: the language of the program
@@ -104,6 +108,7 @@ std::map<std::string, json> buildDefaults() {
         {"project.lastFolders.exportArchive", ""},
         {"project.lastFolders.importArchive", ""},
         {"project.lastFolders.importDestination", ""},
+        {"project.lastFolders.addMaterial", ""},
         // The writer's last choice of sections for a book type that shows them: a set of
         // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
         {"project.sectionSet", "sections"},

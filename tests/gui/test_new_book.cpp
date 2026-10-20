@@ -418,20 +418,38 @@ TEST_CASE("Palette: \"Create now\" makes an element of a checked kind in the par
     chapter.now->click();
     CHECK(elementsOf(palette.choice()) == "chapter in main");
 
-    // The Navigator does not show the Workshop yet: its kinds are not created with the book
+    // A text of the Workshop is made with the book too, in the Workshop
     note.box->click();
     CHECK(note.now->isVisibleTo(&palette));
-    CHECK_FALSE(note.now->isEnabled());
-    CHECK(note.now->toolTip() == QStringLiteral("The Navigator does not show the Workshop yet."));
+    REQUIRE(note.now->isEnabled());
+    CHECK(note.now->toolTip().isEmpty());
+    note.now->click();
+    CHECK(elementsOf(palette.choice()) == "chapter in main, work_note in workshop");
     CHECK(idsOf(palette.choice().kinds) == "chapter, work_note");
+
+    // A material is a copy of a file chosen when it is added; a kind that opens in a window
+    // of its own has no editor yet
+    const Tile material = tileOf(palette, QStringLiteral("Material"));
+    const Tile mindMap = tileOf(palette, QStringLiteral("Mind map"));
+    REQUIRE(material.now != nullptr);
+    REQUIRE(mindMap.now != nullptr);
+    material.box->click();
+    mindMap.box->click();
+    CHECK_FALSE(material.now->isEnabled());
+    CHECK(material.now->toolTip() ==
+          QStringLiteral("A material is a copy of a file chosen when it is added."));
+    CHECK_FALSE(mindMap.now->isEnabled());
+    CHECK(mindMap.now->toolTip() ==
+          QStringLiteral("The program does not have an editor of this kind yet."));
+    CHECK(elementsOf(palette.choice()) == "chapter in main, work_note in workshop");
 
     // An unchecked kind loses its "Create now", also when it is checked again
     chapter.box->click();
     CHECK_FALSE(chapter.now->isChecked());
-    CHECK(palette.choice().elements.isEmpty());
+    CHECK(elementsOf(palette.choice()) == "work_note in workshop");
     chapter.box->click();
     CHECK_FALSE(chapter.now->isChecked());
-    CHECK(palette.choice().elements.isEmpty());
+    CHECK(elementsOf(palette.choice()) == "work_note in workshop");
 }
 
 TEST_CASE("Palette: all kinds, only the kinds of \"Base\", or none at once", "[gui][palette]") {

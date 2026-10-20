@@ -1317,13 +1317,17 @@ const ProjectElement* ProjectManager::elementWithFile(const QString& path) const
 QString ProjectManager::addElement(const KindRef& kind, const QString& title, BookPlace place,
                                    const QString& groupId, qsizetype index,
                                    const QStringList& takeInside,
-                                   const std::optional<QString>& text) {
+                                   const std::optional<QString>& text, const QString& status) {
     auto& logger = Logger::getInstance();
     if (!m_project) {
         logger.error("addElement: No project is open");
         return QString();
     }
     if (refusesChange("addElement")) {
+        return QString();
+    }
+    if (!status.isEmpty() && !isTextStatus(status)) {
+        logger.error("addElement: {} is not a status of text elements", status.toStdString());
         return QString();
     }
 
@@ -1376,7 +1380,7 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     element.title = title;
     if (kind.kind->form == ElementForm::Text) {
         element.file = newChapterFile(kind, place);
-        element.status = QStringLiteral("draft");
+        element.status = status.isEmpty() ? QStringLiteral("draft") : status;
         // The text given, else the text of the kind's template
         QString kml = text.value_or(QString());
         if (!text && book()) {
@@ -1429,6 +1433,119 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     logger.info("addElement: Added '{}' ({}, id: {}) with {} elements inside it",
                 title.toStdString(), kind.reference().toStdString(), element.id.toStdString(),
                 takeInside.size());
+    return element.id;
+}
+
+bool ProjectManager::canAdd(const KindRef& kind) {
+    return kind && (kind.kind->form != ElementForm::Window || kind.kind->isMaterial());
+}
+
+std::optional<ElementPlace> ProjectManager::newPlaceAfter(const QString& elementId,
+                                                          const KindRef& kind) const {
+    if (!m_project || !kind) {
+        return std::nullopt;
+    }
+    const std::optional<ElementPlace> at = m_project->placeOf(elementId);
+    if (!at) {
+        return std::nullopt;
+    }
+    const QList<KindRef> kinds = kindsFor(at->place, at->groupId);
+    if (std::none_of(kinds.cbegin(), kinds.cend(),
+                     [&kind](const KindRef& offered) { return offered.kind == kind.kind; })) {
+        return std::nullopt;
+    }
+    const ProjectElement* group = at->groupId.isEmpty() ? nullptr : findElement(at->groupId);
+    const QList<ProjectElement>& list = group ? group->elements : m_project->elementsIn(at->place);
+
+    // A prologue or an epilogue goes where its kind goes
+    ElementPlace after{at->place, at->groupId, at->index + 1};
+    if (kind.kind->position != KindPosition::Any) {
+        after.index = newIndexIn(list, kind);
+        return after;
+    }
+    // Any other kind before the elements of the end that it would follow
+    const BookTypeRegistry& registry = bookTypes();
+    const auto closes = [&registry](const ProjectElement& element) {
+        const KindRef elementKind = BookProject::kindOf(registry, element);
+        return elementKind && elementKind.kind->position == KindPosition::End;
+    };
+    while (after.index > 0 && closes(list.at(after.index - 1))) {
+        --after.index;
+    }
+    return after;
+}
+
+QString ProjectManager::newMaterialFile(const QString& sourcePath) const {
+    if (!m_project) {
+        return QString();
+    }
+    // "map.jpg", "map_2.jpg"...; a name without a base name or a suffix is numbered at its end
+    const QFileInfo source(sourcePath);
+    QString base = source.completeBaseName();
+    QString suffix = source.suffix();
+    if (base.isEmpty()) {
+        base = source.fileName();
+        suffix.clear();
+    }
+    const QString folder = folderOf(BookPlace::Workshop, book());
+    const QSet<QString> used = fileKeysOf(*m_project, getProjectPath());
+    const QDir dir(getProjectPath());
+    for (int number = 1;; ++number) {
+        QString name = number == 1 ? base : QStringLiteral("%1_%2").arg(base).arg(number);
+        if (!suffix.isEmpty()) {
+            name += QLatin1Char('.') + suffix;
+        }
+        const QString file = folder + QLatin1Char('/') + name;
+        const QString path = dir.filePath(file);
+        if (!used.contains(fileKey(path)) && !QFileInfo::exists(path)) {
+            return file;
+        }
+    }
+}
+
+QString ProjectManager::addMaterial(const QString& sourcePath, const KindRef& kind,
+                                    const QString& title) {
+    auto& logger = Logger::getInstance();
+    if (refusesChange("addMaterial")) {
+        return QString();
+    }
+    QList<ProjectElement>* list = listForNew(kind, BookPlace::Workshop, QString());
+    if (!list) {
+        return QString();
+    }
+    if (!kind.kind->isMaterial()) {
+        logger.error("addMaterial: {} is not a kind of materials", kind.reference().toStdString());
+        return QString();
+    }
+    const QFileInfo source(sourcePath);
+    if (!source.isFile() || !source.isReadable()) {
+        logger.error("addMaterial: {} is not a file that can be read", sourcePath.toStdString());
+        return QString();
+    }
+
+    ProjectElement element;
+    element.id = m_project->newElementId();
+    element.kind = KindReference{kind.package->id, kind.kind->id};
+    element.title = title;
+    element.file = newMaterialFile(sourcePath);
+    const QString target = filePathOf(element);
+    if (!QDir().mkpath(QFileInfo(target).absolutePath()) || !QFile::copy(sourcePath, target)) {
+        logger.error("addMaterial: Cannot copy {} to {}", sourcePath.toStdString(),
+                     target.toStdString());
+        QFile::remove(target);
+        return QString();
+    }
+
+    const qsizetype at = newIndexIn(*list, kind);
+    list->insert(at, element);
+    if (!saveManifest()) {
+        list->removeAt(at);
+        QFile::remove(target);
+        return QString();
+    }
+
+    logger.info("addMaterial: Added {} as '{}' ({}, id: {})", sourcePath.toStdString(),
+                title.toStdString(), element.file.toStdString(), element.id.toStdString());
     return element.id;
 }
 
@@ -1630,6 +1747,58 @@ bool ProjectManager::setSections(const BookSections& sections) {
     if (!saveManifest()) {
         current->setSections(previous);
         current->sectionNamesExtra = previousExtra;
+        return false;
+    }
+    return true;
+}
+
+bool ProjectManager::setBookName(const QString& name) {
+    ProjectBook* current = book();
+    if (!current) {
+        Logger::getInstance().warn("setBookName: No project is open");
+        return false;
+    }
+    if (refusesChange("setBookName")) {
+        return false;
+    }
+    const QString previous = current->name;
+    current->name = name.trimmed();
+    if (!saveManifest()) {
+        current->name = previous;
+        return false;
+    }
+    return true;
+}
+
+bool ProjectManager::setWorkshopName(const QString& name) {
+    if (!m_project) {
+        Logger::getInstance().warn("setWorkshopName: No project is open");
+        return false;
+    }
+    if (refusesChange("setWorkshopName")) {
+        return false;
+    }
+    const QString previous = m_project->workshop.name;
+    m_project->workshop.name = name.trimmed();
+    if (!saveManifest()) {
+        m_project->workshop.name = previous;
+        return false;
+    }
+    return true;
+}
+
+bool ProjectManager::setWorkshopGrouped(bool grouped) {
+    if (!m_project) {
+        Logger::getInstance().warn("setWorkshopGrouped: No project is open");
+        return false;
+    }
+    if (refusesChange("setWorkshopGrouped")) {
+        return false;
+    }
+    const bool previous = m_project->workshop.grouped;
+    m_project->workshop.grouped = grouped;
+    if (!saveManifest()) {
+        m_project->workshop.grouped = previous;
         return false;
     }
     return true;

@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Navigator: the book and the Workshop, and one window that adds** - 2026-10-20. The
+  Navigator shows the project, named after the title of its book, with two nodes: the book,
+  with its sections, parts and elements as before, and the Workshop, the elements of the work
+  on the book that the finished book does not have, in groups of their kinds (Working notes,
+  Materials; the kinds the program cannot add yet show when they have elements). The writer
+  names both nodes with Rename... (F2); the usual names follow the language of the program.
+  Grouping, in the menu of the Workshop, puts the cards (characters, locations, items) in
+  Libraries and the materials in Resources. "Unassigned Files" is the last node of the
+  project, and the files open outside the book have a node of their own after it.
+  Every node has Add..., in bold, which opens the Add Element window with the kinds of its
+  place: the book the kinds of all its sections, a section its own, a part what goes inside
+  it, an element the kinds of its list right after it, the Workshop its kinds. The window has
+  the tiles of the kinds, the title, the status of a text of the book (Draft, Revision,
+  Final) and the place; a new part can take the elements that close the main section. A
+  working note opens in the editor with the cursor at its start, as a new chapter does; a
+  material is a copy of a file the writer chooses (a picture, a PDF file) in the Workshop's
+  folder, which Open opens in the program the system has for it. By default the menus also
+  have commands named after the kinds most added there (Add Chapter..., Add Part..., Add
+  Working note...), which open the window with that kind chosen; Settings > Navigator can
+  leave only Add... there. The "+" button of the Navigator's bar and Ctrl+Shift+Enter (in the
+  tree also Insert) do Add... on the current node. Book > Add... (Ctrl+Shift+Enter), in bold,
+  adds at the element in the editor: right after it, or in the Workshop to the group of its
+  kind; Book > New Chapter... adds a chapter right after the chapter in the editor. New
+  Character..., New Location..., New Item..., New Mind Map... and New Timeline... are greyed
+  out, with the reason in their tooltip ("The program does not have an editor for the
+  character yet."). In the tree Enter opens the element, F2 renames the node and Delete
+  deletes the element; the menus show these keys, and Settings > Keyboard Shortcuts lists them
+  (Fixed: the Navigator). In the New Book palette a working note can be created with the
+  book, in the Workshop.
+
 - **Dashboard: an X on the card of a recent book** - 2026-10-19. A small X in the top right
   corner of each card takes the book off the recent books ("Remove from the recent books (the
   file stays on the disk)"); its file stays where it is. "Open last book on startup" opens
@@ -681,6 +711,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **The windows Add Chapter, Add Part and Add Item** - 2026-10-20. The Add Element window
+  takes their place, also for Book > New Chapter...; the Navigator's commands Add Item at the
+  Beginning of the Book... and Add Item at the End of the Book... are gone with them (Add...
+  on the book's node, or on a section, offers those places).
 - **Books: the first book model** - 2026-10-16. The classes of the first book model, which
   nothing used since the program works on the book project of the .klh format 2 (`Book`,
   `Part`, `BookElement`, `Document`, `DocumentArchive`, the element types of
