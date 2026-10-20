@@ -194,6 +194,10 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.focus", "resources/icons/twotone/center_focus_strong.svg", "Focus");
     iconRegistry.registerIcon("view.typewriter", "resources/icons/twotone/keyboard_alt.svg", "Typewriter Scrolling");
     iconRegistry.registerIcon("view.darkPaper", "resources/icons/twotone/contrast_square.svg", "Dark Paper");
+    // The preview of a picture: turned by a right angle, or as a negative
+    iconRegistry.registerIcon("view.rotateLeft", "resources/icons/twotone/rotate_left.svg", "Rotate Left");
+    iconRegistry.registerIcon("view.rotateRight", "resources/icons/twotone/rotate_right.svg", "Rotate Right");
+    iconRegistry.registerIcon("view.negative", "resources/icons/twotone/contrast.svg", "Negative");
     iconRegistry.registerIcon("view.textFrameBorder", "resources/icons/twotone/text_frame.svg", "Text Frame Border");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
@@ -260,6 +264,14 @@ void registerAllIcons() {
     iconRegistry.registerIcon("common.arrowUpward", "resources/icons/twotone/arrow_upward.svg", "Arrow Up");
     iconRegistry.registerIcon("common.arrowDownward", "resources/icons/twotone/arrow_downward.svg", "Arrow Down");
     iconRegistry.registerIcon("common.delete", "resources/icons/twotone/delete.svg", "Delete");
+    // Small "+" and "-" buttons of a list: add a row, take it out
+    iconRegistry.registerIcon("common.add", "resources/icons/twotone/add.svg", "Add");
+    iconRegistry.registerIcon("common.remove", "resources/icons/twotone/remove.svg", "Remove");
+    iconRegistry.registerIcon("common.link", "resources/icons/twotone/link.svg", "Link");
+    iconRegistry.registerIcon("common.image", "resources/icons/twotone/image.svg", "Picture");
+    // A file opened in the program the system gives it
+    iconRegistry.registerIcon("common.openExternal", "resources/icons/twotone/open_in_new.svg",
+                              "Open in System Program");
     // Aliases for dialog buttons (navigation.up, navigation.down, action.delete)
     iconRegistry.registerIcon("navigation.up", "resources/icons/twotone/arrow_upward.svg", "Move Up");
     iconRegistry.registerIcon("navigation.down", "resources/icons/twotone/arrow_downward.svg", "Move Down");

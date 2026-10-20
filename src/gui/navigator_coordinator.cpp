@@ -14,7 +14,9 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/image_preview_panel.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/material_file.h"
 #include "kalahari/gui/section_words.h"
 #include "kalahari/gui/utils/file_location.h"
 #include "kalahari/core/chapter_document.h"
@@ -24,6 +26,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
@@ -1183,8 +1186,79 @@ void NavigatorCoordinator::onRequestOpenMaterial(const QString& elementId) {
                                          elementId.toStdString());
         return;
     }
+    // A picture opens on its preview tab, which also says why it shows none; the program has
+    // no preview of the other files
+    const bool card = core::SettingsManager::getInstance().get<std::string>(
+                          NavigatorPanel::OPEN_MATERIALS_SETTING, "card") != "system";
+    if (card && MaterialFile::of(pm.filePathOf(*element)).picture) {
+        onRequestPreview(elementId);
+    } else {
+        onRequestOpenWithSystem(elementId);
+    }
+}
 
-    // The program has no window of its own for materials yet
+void NavigatorCoordinator::onRequestPreview(const QString& elementId) {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element) {
+        return;
+    }
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        if (auto* preview = qobject_cast<ImagePreviewPanel*>(m_centralTabs->widget(i));
+            preview && preview->elementId() == elementId) {
+            m_centralTabs->setCurrentIndex(i);
+            preview->setFocus(Qt::OtherFocusReason);
+            return;
+        }
+    }
+    auto* preview = new ImagePreviewPanel(elementId, m_centralTabs);
+    connect(preview, &ImagePreviewPanel::openWithSystemRequested, this,
+            &NavigatorCoordinator::onRequestOpenWithSystem);
+    // The card and the materials of a chapter show the picture turned as the preview does
+    connect(preview, &ImagePreviewPanel::rotationChanged, m_propertiesPanel,
+            &PropertiesPanel::refresh);
+    const int index = m_centralTabs->addTab(
+        preview,
+        core::ArtProvider::getInstance().getIcon(preview->property("tabIconId").toString()),
+        element->title);
+    m_centralTabs->setCurrentIndex(index);
+    preview->setFocus(Qt::OtherFocusReason);
+}
+
+void NavigatorCoordinator::onRequestOpenLink(const QString& link) {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::BookProject* project = pm.project();
+    if (!project) {
+        return;
+    }
+    if (const std::optional<core::BookPlace> section = project->linkedSection(link)) {
+        m_navigatorPanel->revealSection(*section);
+        return;
+    }
+    const core::ProjectElement* element = pm.findElement(link);
+    if (!element) {
+        return;
+    }
+    if (pm.isMaterial(*element)) {
+        onRequestOpenMaterial(link);
+        return;
+    }
+    // Shown where it is in the book; a text opens in the editor too
+    m_navigatorPanel->revealElement(link);
+    if (pm.formOf(*element) == core::ElementForm::Text) {
+        onElementSelected(link, element->title);
+    }
+}
+
+void NavigatorCoordinator::onRequestOpenWithSystem(const QString& elementId) {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element) {
+        core::Logger::getInstance().warn("NavigatorCoordinator: No material to open: {}",
+                                         elementId.toStdString());
+        return;
+    }
+
     const QString path = pm.filePathOf(*element);
     if (!openWithSystem(path)) {
         const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};

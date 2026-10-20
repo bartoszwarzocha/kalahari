@@ -116,6 +116,7 @@ set(TEST_SOURCES
     gui/test_status_bar_statistics.cpp           # Counts of the document in front in the status bar
     gui/test_reading_time.cpp                    # The reading time of a text as the program shows it
     gui/test_properties_panel.cpp                # Properties panel: the counts of the editor in front
+    gui/test_material_card.cpp                   # The card of a material, its preview and Link
     gui/test_views_toolbar.cpp                   # Views toolbar: view modes and switches
     gui/test_tool_button_columns.cpp             # Panel buttons that wrap into columns
     gui/test_fitting_scroll_area.cpp             # Content that scrolls only on a small screen
@@ -298,6 +299,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/file_location.cpp              # A file shown in the file manager
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp              # Items in more rows when narrow
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/link_dialog.cpp              # What a material is about
+    ${CMAKE_SOURCE_DIR}/src/gui/material_file.cpp                    # The file of a material and its picture
+    ${CMAKE_SOURCE_DIR}/src/gui/link_names.cpp                       # The links of a material in lists
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/material_page.cpp             # The card of a material in Properties
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/image_preview_panel.cpp       # The preview of a material's picture
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_item_dialog.cpp          # New Book dialog: the folder of the book
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/sections_field.cpp           # Fields of the sections of a book
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/kind_palette.cpp             # Kinds of elements of all book types
@@ -392,6 +398,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/sections_field.h  # SectionsComboBox, SectionNamesEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/kind_palette.h  # KindPalette with Q_OBJECT

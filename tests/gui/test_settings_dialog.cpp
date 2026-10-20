@@ -476,6 +476,43 @@ TEST_CASE("Settings dialog: the Navigator page chooses the top of the Add Elemen
     settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, before);
 }
 
+TEST_CASE("Settings dialog: the Navigator page chooses how a material opens",
+          "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string before =
+        settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
+    settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
+
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    auto* card = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
+    auto* system = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsSystem"));
+    REQUIRE(card != nullptr);
+    REQUIRE(system != nullptr);
+    CHECK(card->isChecked());
+    CHECK_FALSE(system->isChecked());
+
+    // A choice of its own, apart from those of the window and the menus
+    auto* sections = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowSections"));
+    REQUIRE(sections != nullptr);
+    const bool sectionsBefore = sections->isChecked();
+    system->click();
+    CHECK(sections->isChecked() == sectionsBefore);
+    CHECK(dialog.applyChanges() ==
+          QStringList{QString::fromLatin1(NavigatorPanel::OPEN_MATERIALS_SETTING)});
+    CHECK(settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING) == "system");
+
+    // Opened again, the page shows the stored choice
+    SettingsDialog again(nullptr);
+    openPage(again, QString(), QStringLiteral("Navigator"));
+    auto* systemAgain =
+        again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsSystem"));
+    REQUIRE(systemAgain != nullptr);
+    CHECK(systemAgain->isChecked());
+
+    settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, before);
+}
+
 TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][settings]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string theme = settings.getTheme();

@@ -202,7 +202,7 @@ public:
 };
 
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,
-/// and what the top of the Add Element window chooses from
+/// what the top of the Add Element window chooses from, and how a material opens
 class NavigatorPage : public SettingsPage {
     Q_OBJECT
 public:
@@ -214,6 +214,8 @@ private:
     QRadioButton* m_sections = nullptr;  ///< A section of the book or the Workshop at a time
     QRadioButton* m_book = nullptr;      ///< The whole book or the Workshop
     QRadioButton* m_place = nullptr;     ///< No choice: the kinds of the place only
+    QRadioButton* m_openCard = nullptr;    ///< A material opens on a tab of the program
+    QRadioButton* m_openSystem = nullptr;  ///< A material opens in the system program
 };
 
 /// @brief Files > Folders: the folders of the books and of the archives, and where and how

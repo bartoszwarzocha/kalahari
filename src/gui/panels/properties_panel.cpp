@@ -7,6 +7,7 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/utils/reading_time.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -36,6 +37,10 @@
 #include <QScrollArea>
 #include <QEvent>
 #include <QDateTime>
+#include <QListWidget>
+#include <QToolButton>
+
+#include <optional>
 
 namespace kalahari {
 namespace gui {
@@ -49,6 +54,33 @@ constexpr const char* WORD_COUNT_RULES_KEY = "editor.wordCount.dashesAsWords";
 ///        status bar and the counts of the editor write them
 QString numberText(int number) {
     return QLocale().toString(number);
+}
+
+/// @brief The part of the book of a section of @p sectionType ("section_body"...); none for
+/// another type
+std::optional<core::BookPlace> sectionPlaceOf(const QString& sectionType) {
+    if (sectionType == QLatin1String("section_frontmatter")) {
+        return core::BookPlace::Front;
+    }
+    if (sectionType == QLatin1String("section_body")) {
+        return core::BookPlace::Main;
+    }
+    if (sectionType == QLatin1String("section_backmatter")) {
+        return core::BookPlace::Back;
+    }
+    return std::nullopt;
+}
+
+/// @brief Give the keys to @p widget, scrolled to it in its page
+void focusInPage(QWidget* widget) {
+    for (QWidget* parent = widget->parentWidget(); parent != nullptr;
+         parent = parent->parentWidget()) {
+        if (auto* area = qobject_cast<QScrollArea*>(parent)) {
+            area->ensureWidgetVisible(widget);
+            break;
+        }
+    }
+    widget->setFocus(Qt::OtherFocusReason);
 }
 
 }  // namespace
@@ -160,6 +192,7 @@ void PropertiesPanel::setupUI() {
     m_stackedWidget->addWidget(createSectionPage());     // Page::Section = 3
     m_stackedWidget->addWidget(createPartPage());        // Page::Part = 4
     m_stackedWidget->addWidget(createEditorPage());      // Page::Editor = 5
+    m_stackedWidget->addWidget(createMaterialPage());    // Page::Material = 6
 
     mainLayout->addWidget(m_stackedWidget);
     setLayout(mainLayout);
@@ -390,6 +423,10 @@ QWidget* PropertiesPanel::createChapterPage() {
 
     layout->addWidget(notesGroup);
 
+    // The materials about the element (populateChapterFields())
+    m_chapterMaterials = createMaterialsBox(scrollContent);
+    layout->addWidget(m_chapterMaterials);
+
     // Add stretch at the bottom
     layout->addStretch(1);
 
@@ -460,6 +497,10 @@ QWidget* PropertiesPanel::createSectionPage() {
 
     layout->addWidget(statusGroup);
 
+    // The materials about the section (showSectionMaterials())
+    m_sectionMaterials = createMaterialsBox(scrollContent);
+    layout->addWidget(m_sectionMaterials);
+
     // Add stretch at the bottom
     layout->addStretch(1);
 
@@ -527,6 +568,10 @@ QWidget* PropertiesPanel::createPartPage() {
     statusLayout->addRow(tr("Final:"), m_partFinalCountLabel);
 
     layout->addWidget(statusGroup);
+
+    // The materials about the part (showPartMaterials())
+    m_partMaterials = createMaterialsBox(scrollContent);
+    layout->addWidget(m_partMaterials);
 
     // Add stretch at the bottom
     layout->addStretch(1);
@@ -642,6 +687,44 @@ QWidget* PropertiesPanel::createEditorPage() {
     return page;
 }
 
+QWidget* PropertiesPanel::createMaterialPage() {
+    QWidget* page = new QWidget();
+
+    // Use scroll area for long content
+    QScrollArea* scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    QWidget* scrollContent = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(scrollContent);
+    layout->setContentsMargins(11, 11, 11, 11);
+    layout->setSpacing(11);
+    m_materialPage = new MaterialPage(scrollContent);
+    layout->addWidget(m_materialPage);
+    connect(m_materialPage, &MaterialPage::requestPreview, this,
+            &PropertiesPanel::requestPreview);
+    connect(m_materialPage, &MaterialPage::requestOpenWithSystem, this,
+            &PropertiesPanel::requestOpenWithSystem);
+    connect(m_materialPage, &MaterialPage::requestOpenLink, this,
+            &PropertiesPanel::requestOpenLink);
+    // The Navigator shows the new title
+    connect(m_materialPage, &MaterialPage::titleChanged, this,
+            &PropertiesPanel::chapterStatusChanged);
+
+    scrollArea->setWidget(scrollContent);
+    QVBoxLayout* pageLayout = new QVBoxLayout(page);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->addWidget(scrollArea);
+    return page;
+}
+
+LinkedMaterialsBox* PropertiesPanel::createMaterialsBox(QWidget* parent) {
+    auto* box = new LinkedMaterialsBox(parent);
+    connect(box, &LinkedMaterialsBox::requestOpenMaterial, this,
+            &PropertiesPanel::requestOpenMaterial);
+    return box;
+}
+
 void PropertiesPanel::connectSignals() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::connectSignals()");
@@ -704,9 +787,58 @@ void PropertiesPanel::showChapterProperties(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::showChapterProperties() - Element: {}", elementId.toStdString());
 
+    // A material has its card
+    const auto& pm = core::ProjectManager::getInstance();
+    if (const core::ProjectElement* element = pm.findElement(elementId);
+        element && pm.isMaterial(*element)) {
+        showMaterialProperties(elementId);
+        return;
+    }
+
     m_currentChapterId = elementId;
     populateChapterFields(elementId);
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Chapter));
+}
+
+void PropertiesPanel::showMaterialProperties(const QString& elementId) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("PropertiesPanel::showMaterialProperties() - Element: {}",
+                 elementId.toStdString());
+
+    m_currentChapterId.clear();
+    m_currentSectionType.clear();
+    m_currentPartId.clear();
+    m_materialPage->showMaterial(elementId);
+    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Material));
+}
+
+void PropertiesPanel::focusFirstField() {
+    switch (currentPage()) {
+        case Page::Project:
+            focusInPage(m_projectTitleEdit);
+            break;
+        case Page::Chapter:
+            focusInPage(m_chapterTitleEdit);
+            break;
+        case Page::Material:
+            focusInPage(m_materialPage->titleEdit());
+            m_materialPage->titleEdit()->selectAll();
+            break;
+        case Page::Section:
+        case Page::Part: {
+            // A section or a part has no field: its materials
+            LinkedMaterialsBox* box =
+                currentPage() == Page::Section ? m_sectionMaterials : m_partMaterials;
+            focusInPage(!box->list()->isHidden() ? static_cast<QWidget*>(box->list())
+                                                 : box->addButton());
+            break;
+        }
+        case Page::Editor:
+            focusInPage(m_editorStyleCombo);
+            break;
+        case Page::NoProject:
+            break;
+    }
 }
 
 void PropertiesPanel::showNoProject() {
@@ -727,6 +859,7 @@ void PropertiesPanel::showSectionProperties(const QString& sectionType) {
     m_currentPartId.clear();
     m_currentSectionType = sectionType;
     populateSectionFields(sectionType);
+    showSectionMaterials();
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Section));
 }
 
@@ -738,6 +871,7 @@ void PropertiesPanel::showPartProperties(const QString& partId) {
     m_currentSectionType.clear();
     m_currentPartId = partId;
     populatePartFields(partId);
+    showPartMaterials();
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Part));
 }
 
@@ -850,17 +984,27 @@ void PropertiesPanel::refresh() {
         case Page::Section:
             if (!m_currentSectionType.isEmpty()) {
                 populateSectionFields(m_currentSectionType);
+                showSectionMaterials();
             }
             break;
         case Page::Part:
             if (pm.findElement(m_currentPartId)) {
                 populatePartFields(m_currentPartId);
+                showPartMaterials();
             } else {
                 showProjectProperties();
             }
             break;
         case Page::Editor:
             updateEditorStatistics();
+            break;
+        case Page::Material:
+            // A material deleted from the book leaves the panel to the book
+            if (pm.findElement(m_materialPage->elementId())) {
+                m_materialPage->refresh();
+            } else {
+                showProjectProperties();
+            }
             break;
     }
 }
@@ -891,6 +1035,7 @@ void PropertiesPanel::updateWordCounts() {
             break;
         case Page::NoProject:
         case Page::Editor:
+        case Page::Material:
             break;  // No counts of the book
     }
 }
@@ -1268,6 +1413,17 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_chapterInfoLayout->setRowVisible(m_chapterStatusCombo, !bookFile && !workshop && text);
     m_chapterInfoLayout->setRowVisible(m_chapterWordCountLabel, bookFile || text);
     m_chapterNotesGroup->setVisible(!bookFile);
+    // The materials about the element; a file of the book is not linked
+    m_chapterMaterials->setVisible(!bookFile);
+    if (!bookFile) {
+        //: In Polish: {kind:m=Ten|f=Ta|n=To|p=Te} {kind} {kind:m=nie ma|f=nie ma|n=nie ma|p=nie
+        //: mają} powiązanych materiałów.
+        m_chapterMaterials->showLinked(
+            elementId,
+            core::fillWords(tr("{Kind:s=This|p=These} {kind} {kind:s=has|p=have} no linked "
+                               "materials."),
+                            nouns));
+    }
 
     // Set updating flag to prevent recursive updates
     m_isUpdating = true;
@@ -1487,6 +1643,28 @@ void PropertiesPanel::populatePartFields(const QString& partId) {
 
     logger.debug("PropertiesPanel: Part fields populated - {} chapters, {} words",
                  statistics.elements, statistics.words);
+}
+
+void PropertiesPanel::showSectionMaterials() {
+    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    const std::optional<core::BookPlace> place = sectionPlaceOf(m_currentSectionType);
+    //: In Polish: Brak powiązanych materiałów.
+    m_sectionMaterials->showLinked(project && place ? project->sectionLink(*place) : QString(),
+                                   tr("No linked materials."));
+}
+
+void PropertiesPanel::showPartMaterials() {
+    const core::ProjectElement* part =
+        core::ProjectManager::getInstance().findElement(m_currentPartId);
+    if (!part) {
+        return;
+    }
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*part)}};
+    m_partMaterials->showLinked(
+        m_currentPartId,
+        core::fillWords(tr("{Kind:s=This|p=These} {kind} {kind:s=has|p=have} no linked "
+                           "materials."),
+                        nouns));
 }
 
 QString PropertiesPanel::formatDate(const QDateTime& dateTime) const {

@@ -18,6 +18,7 @@
 #include <kalahari/gui/dialogs/new_file_dialog.h>
 #include <kalahari/gui/navigator_coordinator.h>
 #include <kalahari/gui/panels/editor_panel.h>
+#include <kalahari/gui/panels/image_preview_panel.h>
 #include <kalahari/gui/panels/navigator_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
 #include <kalahari/gui/utils/access_keys.h>
@@ -864,7 +865,29 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     REQUIRE(navigator.item(map.id) != nullptr);
     CHECK(navigator.item(map.id)->parent()->text(0) == QStringLiteral("Materials"));
 
-    // The material opens in the system's program for its file
+    // A picture opens on its preview tab, which says why it shows none of this file; opened
+    // again, its tab comes to the front
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string before =
+        settings.get<std::string>(gui::NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
+    settings.set<std::string>(gui::NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
+    navigator.coordinator.onRequestOpenMaterial(map.id);
+    CHECK(opener.opened.isEmpty());
+    REQUIRE(navigator.tabs->count() == 3);
+    auto* preview = qobject_cast<gui::ImagePreviewPanel*>(navigator.tabs->currentWidget());
+    REQUIRE(preview != nullptr);
+    CHECK(preview->elementId() == map.id);
+    CHECK(preview->property("elementId").toString() == map.id);
+    CHECK(navigator.tabs->tabText(2) == QStringLiteral("map"));
+    CHECK_FALSE(preview->hasPicture());
+    CHECK(preview->problem().startsWith(QStringLiteral("The picture cannot be read (")));
+    navigator.tabs->setCurrentIndex(0);
+    navigator.coordinator.onRequestOpenMaterial(map.id);
+    CHECK(navigator.tabs->count() == 3);
+    CHECK(navigator.tabs->currentWidget() == preview);
+
+    // As the settings say, it opens in the system's program for its file
+    settings.set<std::string>(gui::NavigatorPanel::OPEN_MATERIALS_SETTING, "system");
     navigator.coordinator.onRequestOpenMaterial(map.id);
     CHECK(opener.opened == QStringList{pm.filePathOf(map)});
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Opened: map"));
@@ -876,6 +899,13 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
                     {answerMessage(&said)}) == 1);
     CHECK(said == QStringLiteral("Open Material Failed\n\nThe system could not open the file:\n") +
                       QDir::toNativeSeparators(pm.filePathOf(map)));
+    settings.set<std::string>(gui::NavigatorPanel::OPEN_MATERIALS_SETTING, before);
+
+    // Deleted from the book, the material takes its preview tab with it
+    CHECK(answering([&navigator, &map] { navigator.coordinator.onRequestDelete(map.id); },
+                    {answerDelete(true, false)}) == 1);
+    CHECK(pm.findElement(map.id) == nullptr);
+    CHECK(navigator.tabs->count() == 2);
 }
 
 TEST_CASE("Navigator commands: Add and New Chapter start from the element in the editor",

@@ -25,6 +25,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTreeWidgetItem>
+#include <QTreeWidgetItemIterator>
 #include <QDir>
 #include <QFileInfo>
 #include <QLineEdit>
@@ -42,6 +43,7 @@
 #include <QFont>
 #include <QKeyEvent>
 #include <QLocale>
+#include <QMimeData>
 #include <QTimerEvent>
 #include <algorithm>
 #include <functional>
@@ -101,6 +103,11 @@ QString withKeys(const QString& text, QKeyCombination keys) {
 /// The keys of Add... on a node of the Navigator, as in the editor: Ctrl+Shift+Enter
 QKeyCombination addKeys() {
     return QKeyCombination(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_Return);
+}
+
+/// The keys of Properties... on a node of the Navigator: Alt+Enter, as in the file managers
+QKeyCombination propertiesKeys() {
+    return QKeyCombination(Qt::AltModifier, Qt::Key_Return);
 }
 
 /// Whether an item of @p type is "Unassigned Files" or one of its files, which are grey
@@ -281,6 +288,24 @@ protected:
     void dragLeaveEvent(QDragLeaveEvent* event) override {
         m_openTimer.stop();
         QTreeWidget::dragLeaveEvent(event);
+    }
+
+    /// The dragged nodes also give their links, which the links of a material take
+    /// (NavigatorPanel::LINKS_MIME_TYPE)
+    QMimeData* mimeData(const QList<QTreeWidgetItem*>& items) const override {
+        QMimeData* data = QTreeWidget::mimeData(items);
+        QStringList links;
+        for (const QTreeWidgetItem* item : items) {
+            const QString link = kalahari::gui::NavigatorPanel::linkOf(item);
+            if (!link.isEmpty()) {
+                links << link;
+            }
+        }
+        if (data && !links.isEmpty()) {
+            data->setData(QLatin1String(kalahari::gui::NavigatorPanel::LINKS_MIME_TYPE),
+                          links.join(QLatin1Char('\n')).toUtf8());
+        }
+        return data;
     }
 
     /// A collapsed group or section that the dragged element rests on opens, so that the
@@ -527,19 +552,9 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
                            elementType.toStdString(),
                            elementId.toStdString());
 
-                // The project and the book show the properties of the book
-                // Sections and groups emit with their type for aggregate statistics
-                if (elementType == "document" || elementType == "book") {
-                    emit requestProperties("");  // Book properties
-                } else if (elementType == "section_frontmatter" ||
-                           elementType == "section_body" ||
-                           elementType == "section_backmatter") {
-                    emit requestSectionProperties(elementType);
-                } else if (elementType == "group_element") {
-                    emit requestPartProperties(elementId);
-                } else if (elementType == "text_element" || elementType == "book_file" ||
-                           (elementType == "window_element" && isWorkshopItem(item))) {
-                    emit requestProperties(elementId);
+                // The card of a material is in the Properties panel: it comes to the front
+                if (requestPropertiesOf(item) && isMaterialItem(item)) {
+                    emit requestPropertiesPanel();
                 }
             });
 
@@ -797,8 +812,9 @@ QTreeWidgetItem* NavigatorPanel::addSectionItem(QTreeWidgetItem* parent, const Q
     item->setData(0, Qt::UserRole + 1, sectionType);
     item->setIcon(0, core::ArtProvider::getInstance().getIcon(getIconIdForType(sectionType),
                                                              core::IconContext::TreeView));
-    // Sections are not draggable, but take the drops of their elements
-    item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled) | Qt::ItemIsDropEnabled);
+    // Sections take the drops of their elements; they are dragged only to the links of a
+    // material
+    item->setFlags(item->flags() | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled);
     return item;
 }
 
@@ -969,9 +985,10 @@ void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
         const QString iconId = iconIdOf(
             registry, element, cardKind ? pm.packageCard(element.kind.packageId) : nullptr);
 
-        // The elements of the Workshop are in alphabetical order: they are not dragged
+        // The elements of the Workshop are in alphabetical order: they are dragged only to the
+        // links of a material
         QString itemType;
-        Qt::ItemFlags flags = workshop ? Qt::ItemFlags() : Qt::ItemFlags(Qt::ItemIsDragEnabled);
+        Qt::ItemFlags flags = Qt::ItemIsDragEnabled;
         switch (form) {
         case core::ElementForm::Text:
             itemType = QStringLiteral("text_element");
@@ -1129,6 +1146,36 @@ QString NavigatorPanel::workshopName(const core::BookProject& project) {
 
 bool NavigatorPanel::isWorkshopItem(const QTreeWidgetItem* item) {
     return item && item->data(0, WORKSHOP_ROLE).toBool();
+}
+
+bool NavigatorPanel::isMaterialItem(const QTreeWidgetItem* item) {
+    if (!isWorkshopItem(item) || typeOf(item) != QLatin1String("window_element")) {
+        return false;
+    }
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(item->data(0, Qt::UserRole).toString());
+    return element && pm.isMaterial(*element);
+}
+
+QString NavigatorPanel::linkOf(const QTreeWidgetItem* item) {
+    if (!item) {
+        return {};
+    }
+    const QString type = typeOf(item);
+    if (isElementType(type)) {
+        return item->data(0, Qt::UserRole).toString();
+    }
+    const std::optional<core::BookPlace> section = sectionPlaceOf(type);
+    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    return section && project ? project->sectionLink(*section) : QString();
+}
+
+QStringList NavigatorPanel::linksOf(const QMimeData* data) {
+    if (!data || !data->hasFormat(QLatin1String(LINKS_MIME_TYPE))) {
+        return {};
+    }
+    return QString::fromUtf8(data->data(QLatin1String(LINKS_MIME_TYPE)))
+        .split(QLatin1Char('\n'), Qt::SkipEmptyParts);
 }
 
 void NavigatorPanel::addBookFileItems(QTreeWidgetItem* parent,
@@ -1802,7 +1849,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     const auto addPropertiesAction = [&]() {
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("common.properties", core::IconContext::Menu),
-            tr("P&roperties..."));
+            withKeys(tr("P&roperties..."), propertiesKeys()));
         connect(propertiesAction, &QAction::triggered, this,
                 &NavigatorPanel::onContextMenuProperties);
     };
@@ -1831,8 +1878,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         addPropertiesAction();
 
     } else if (elementType == "window_element" && isWorkshopItem(item)) {
-        // A material opens in the program the system gives its file; the other kinds wait for
-        // the windows of the program
+        // A material opens as the settings say: its picture on a preview tab or its file in
+        // the program the system gives it; the other kinds wait for the windows of the program
         const core::ProjectElement* element = pm.findElement(elementId);
         const core::KindRef kind = element ? pm.kindOf(*element) : core::KindRef{};
         if (kind && kind.kind->isMaterial()) {
@@ -1921,7 +1968,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         // The statistics of the group, in the Properties panel brought to the front
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("common.properties", core::IconContext::Menu),
-            tr("P&roperties..."));
+            withKeys(tr("P&roperties..."), propertiesKeys()));
         connect(propertiesAction, &QAction::triggered, this, [this, elementId]() {
             emit requestPartProperties(elementId);
             emit requestPropertiesPanel();
@@ -2280,21 +2327,34 @@ void NavigatorPanel::onCurrentItemChanged(QTreeWidgetItem* current, QTreeWidgetI
                  elementType.toStdString(),
                  elementId.toStdString());
 
-    // Same logic as itemClicked
+    // As a click; a material chosen with the keys brings its card to the front, one chosen
+    // by the program (a book opened, an element shown) does not
+    if (requestPropertiesOf(current) && isMaterialItem(current) && m_treeWidget->hasFocus()) {
+        emit requestPropertiesPanel();
+    }
+}
+
+bool NavigatorPanel::requestPropertiesOf(const QTreeWidgetItem* item) {
+    if (!item) {
+        return false;
+    }
+    const QString elementId = item->data(0, Qt::UserRole).toString();
+    const QString elementType = typeOf(item);
     // The project and the book show the properties of the book
     // Sections and groups emit with their type for aggregate statistics
     if (elementType == "document" || elementType == "book") {
         emit requestProperties("");  // Book properties
-    } else if (elementType == "section_frontmatter" ||
-               elementType == "section_body" ||
-               elementType == "section_backmatter") {
+    } else if (sectionPlaceOf(elementType)) {
         emit requestSectionProperties(elementType);
     } else if (elementType == "group_element") {
         emit requestPartProperties(elementId);
     } else if (elementType == "text_element" || elementType == "book_file" ||
-               (elementType == "window_element" && isWorkshopItem(current))) {
+               (elementType == "window_element" && isWorkshopItem(item))) {
         emit requestProperties(elementId);
+    } else {
+        return false;
     }
+    return true;
 }
 
 void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
@@ -2327,8 +2387,8 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
     }
 
     // Only text elements and the files of the book open in the editor; sections, groups and
-    // window elements do not. A material of the Workshop opens in the program the system
-    // gives its file.
+    // window elements do not. A material of the Workshop opens as the settings say
+    // (NavigatorCoordinator::onRequestOpenMaterial()).
     if (elementType == "text_element" || elementType == "book_file") {
         emit elementSelected(elementId, item->data(0, TITLE_ROLE).toString());
     } else if (elementType == "window_element" && isWorkshopItem(item)) {
@@ -2578,7 +2638,8 @@ bool NavigatorPanel::eventFilter(QObject* watched, QEvent* event) {
                      (enter && modifiers == (Qt::ControlModifier | Qt::ShiftModifier));
     const bool rename = keys.key() == Qt::Key_F2 && modifiers == Qt::NoModifier;
     const bool remove = keys.key() == Qt::Key_Delete && modifiers == Qt::NoModifier;
-    if (!add && !rename && !remove) {
+    const bool properties = enter && modifiers == Qt::AltModifier;
+    if (!add && !rename && !remove && !properties) {
         return QWidget::eventFilter(watched, event);
     }
     if (event->type() == QEvent::ShortcutOverride) {
@@ -2586,7 +2647,12 @@ bool NavigatorPanel::eventFilter(QObject* watched, QEvent* event) {
         return true;
     }
     QTreeWidgetItem* item = m_treeWidget->currentItem();
-    if (add) {
+    if (properties) {
+        if (requestPropertiesOf(item)) {
+            emit requestPropertiesPanel();
+            emit requestPropertiesFocus();
+        }
+    } else if (add) {
         addOn(item);
     } else if (rename) {
         renameItem(item);
@@ -2849,6 +2915,21 @@ void NavigatorPanel::revealElement(const QString& elementId) {
     }
     m_treeWidget->setCurrentItem(item);
     m_treeWidget->scrollToItem(item, QAbstractItemView::EnsureVisible);
+}
+
+void NavigatorPanel::revealSection(core::BookPlace place) {
+    for (QTreeWidgetItemIterator it(m_treeWidget); *it; ++it) {
+        const std::optional<core::BookPlace> section = sectionPlaceOf(typeOf(*it));
+        if (!section || *section != place) {
+            continue;
+        }
+        for (QTreeWidgetItem* parent = (*it)->parent(); parent; parent = parent->parent()) {
+            parent->setExpanded(true);
+        }
+        m_treeWidget->setCurrentItem(*it);
+        m_treeWidget->scrollToItem(*it, QAbstractItemView::EnsureVisible);
+        return;
+    }
 }
 
 void NavigatorPanel::collectExpandedIds(QTreeWidgetItem* item, QStringList& expandedIds) const {

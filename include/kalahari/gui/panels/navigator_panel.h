@@ -27,6 +27,7 @@ class QAction;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QLineEdit;
+class QMimeData;
 class QToolButton;
 class QTimer;
 class QComboBox;
@@ -162,6 +163,10 @@ public:
     /// @brief What the top of the Add Element window chooses from, as ADD_WINDOW_SETTING says
     static AddChooser addChooser();
 
+    /// @brief The setting of how a material opens: "card" (its picture on a preview tab of the
+    /// program, the usual one) or "system" (in the program the system gives its file)
+    static constexpr const char* OPEN_MATERIALS_SETTING = "navigator.openMaterials";
+
     /// @brief The name of the node of @p book: the writer's own, or "Book"
     static QString bookName(const core::ProjectBook& book);
 
@@ -171,6 +176,22 @@ public:
 
     /// @brief Whether @p item is an element of the Workshop
     static bool isWorkshopItem(const QTreeWidgetItem* item);
+
+    /// @brief Whether @p item is a material of the Workshop
+    static bool isMaterialItem(const QTreeWidgetItem* item);
+
+    /// @brief The format of the dragged nodes of the tree that a material can be linked with:
+    /// their links, one in a line (linkOf())
+    static constexpr const char* LINKS_MIME_TYPE = "application/x-kalahari-links";
+
+    /// @brief The link of the node of @p item (core::ProjectElement::links): the id of an
+    /// element of the book or of the Workshop, or the section of the open book
+    /// (core::BookProject::sectionLink()); empty for another node
+    static QString linkOf(const QTreeWidgetItem* item);
+
+    /// @brief The links of the nodes of the tree in @p data (LINKS_MIME_TYPE); empty for other
+    /// data
+    static QStringList linksOf(const QMimeData* data);
 
     /// @brief Where Add Element adds an element when it is opened on @p item, with the kinds
     /// it offers there; none for the files and the nodes of a book that is not open. The
@@ -265,6 +286,10 @@ public:
     /// @param elementId Element ID; nothing happens when the tree has no such element
     void revealElement(const QString& elementId);
 
+    /// @brief Show section @p place of the book as revealElement() shows an element; nothing
+    /// happens when the tree does not show it
+    void revealSection(core::BookPlace place);
+
     /// @brief Refresh a single item's display text by element ID
     /// @param elementId Element ID of the item to refresh
     /// @note Updates the display title (including status suffix) from ProjectManager
@@ -318,8 +343,8 @@ signals:
     /// @brief Request to group the Workshop (Libraries and Resources) or not
     void requestWorkshopGrouped(bool grouped);
 
-    /// @brief Request to open material @p elementId of the Workshop in the program the system
-    /// gives its file
+    /// @brief Request to open material @p elementId of the Workshop as the settings say: its
+    /// picture on a preview tab or its file in the program the system gives it
     void requestOpenMaterial(const QString& elementId);
 
     /// @brief Request to show the sections of the book, or to hide them
@@ -364,9 +389,14 @@ signals:
     void requestPartProperties(const QString& partId);
 
     /// @brief Request to bring the Properties panel to the front
-    /// @note Only the Properties command of the context menu asks for it. Choosing an
-    ///       element only fills the panel, so the tab on top of its group stays there.
+    /// @note The Properties command of the context menu and Alt+Enter ask for it, and choosing
+    ///       a material, whose card is in the panel. Choosing another element only fills the
+    ///       panel, so the tab on top of its group stays there.
     void requestPropertiesPanel();
+
+    /// @brief Request to give the keys to the first field of the Properties panel (Alt+Enter),
+    /// after requestPropertiesPanel()
+    void requestPropertiesFocus();
 
     /// @brief Emitted when a file of the "Other Files" section is opened
     /// @param filePath Absolute file path
@@ -441,7 +471,8 @@ private slots:
     void onItemActivated(QTreeWidgetItem* item, int column);
 
 protected:
-    /// @brief The keys of the tree: Insert and Ctrl+Shift+Enter add, F2 renames, Delete deletes
+    /// @brief The keys of the tree: Insert and Ctrl+Shift+Enter add, F2 renames, Delete deletes,
+    /// Alt+Enter gives the keys to the properties of the node
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
@@ -452,6 +483,11 @@ private:
     /// @brief Rename @p item: an element, a section, the book or the Workshop; nothing for the
     /// other items
     void renameItem(const QTreeWidgetItem* item);
+
+    /// @brief Fill the Properties panel with the properties of @p item: of the book for the
+    /// project and the book, the statistics of a section or a group, those of an element
+    /// @return Whether the node has properties
+    bool requestPropertiesOf(const QTreeWidgetItem* item);
 
     /// @brief Delete @p item: an element, a file of the book or one that no element has;
     /// nothing for the other items

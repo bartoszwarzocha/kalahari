@@ -6807,6 +6807,36 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Choice at the top of the window:</source>
         <translation>Wybór u góry okna:</translation>
     </message>
+    <message>
+        <source>Materials</source>
+        <extracomment>The group of the materials of the Workshop. In Polish: Materiały</extracomment>
+        <translation>Materiały</translation>
+    </message>
+    <message>
+        <source>On a tab of the program</source>
+        <extracomment>In Polish: Na karcie w programie</extracomment>
+        <translation>Na karcie w programie</translation>
+    </message>
+    <message>
+        <source>In the system program</source>
+        <extracomment>In Polish: W programie systemowym</extracomment>
+        <translation>W programie systemowym</translation>
+    </message>
+    <message>
+        <source>A picture opens on a preview tab, as a chapter does. A file of another kind, such as a PDF, opens in the system program until the program has a preview of it.</source>
+        <extracomment>In Polish: Obraz otwiera się na karcie podglądu, jak rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki program nie będzie miał jego podglądu.</extracomment>
+        <translation>Obraz otwiera się na karcie podglądu, jak rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki program nie będzie miał jego podglądu.</translation>
+    </message>
+    <message>
+        <source>Pictures too. The Preview button in the Properties panel then opens the preview tab.</source>
+        <extracomment>In Polish: Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</extracomment>
+        <translation>Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</translation>
+    </message>
+    <message>
+        <source>Opening materials:</source>
+        <extracomment>In Polish: Otwieranie materiałów:</extracomment>
+        <translation>Otwieranie materiałów:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
@@ -7466,6 +7496,16 @@ Szczegóły są w dzienniku programu.</translation>
         <source>The type of the book: the kinds of its elements come from it</source>
         <extracomment>The tooltip of the type of the book in the Properties panel. In Polish: Typ książki: z niego pochodzą rodzaje jej elementów</extracomment>
         <translation>Typ książki: z niego pochodzą rodzaje jej elementów</translation>
+    </message>
+    <message>
+        <source>{Kind:s=This|p=These} {kind} {kind:s=has|p=have} no linked materials.</source>
+        <extracomment>In Polish: {kind:m=Ten|f=Ta|n=To|p=Te} {kind} {kind:m=nie ma|f=nie ma|n=nie ma|p=nie mają} powiązanych materiałów.</extracomment>
+        <translation>{kind:m=Ten|f=Ta|n=To|p=Te} {kind} {kind:m=nie ma|f=nie ma|n=nie ma|p=nie mają} powiązanych materiałów.</translation>
+    </message>
+    <message>
+        <source>No linked materials.</source>
+        <extracomment>In Polish: Brak powiązanych materiałów.</extracomment>
+        <translation>Brak powiązanych materiałów.</translation>
     </message>
 </context>
 <context>
@@ -11863,6 +11903,336 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <source>A book (.klh file) or another file to open; when the program runs already, its window opens it</source>
         <extracomment>The argument of the command line without a name. In Polish: Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</extracomment>
         <translation>Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ImagePreviewPanel</name>
+    <message>
+        <source>Fit to Window</source>
+        <extracomment>In Polish: Dopasuj do okna</extracomment>
+        <translation>Dopasuj do okna</translation>
+    </message>
+    <message>
+        <source>Zoom Out</source>
+        <translation>Pomniejsz</translation>
+    </message>
+    <message>
+        <source>Zoom In</source>
+        <translation>Powiększ</translation>
+    </message>
+    <message>
+        <source>Zoom 100%</source>
+        <extracomment>In Polish: Powiększenie 100%</extracomment>
+        <translation>Powiększenie 100%</translation>
+    </message>
+    <message>
+        <source>Rotate Left</source>
+        <extracomment>In Polish: Obróć w lewo</extracomment>
+        <translation>Obróć w lewo</translation>
+    </message>
+    <message>
+        <source>Rotate Right</source>
+        <extracomment>In Polish: Obróć w prawo</extracomment>
+        <translation>Obróć w prawo</translation>
+    </message>
+    <message>
+        <source>Negative</source>
+        <extracomment>The colors of the picture turned to their opposites. In Polish: Negatyw</extracomment>
+        <translation>Negatyw</translation>
+    </message>
+    <message>
+        <source>System Program</source>
+        <extracomment>The button that opens the file in the program the system has for it. In Polish: Program systemowy</extracomment>
+        <translation>Program systemowy</translation>
+    </message>
+    <message>
+        <source>Open in the System Program</source>
+        <extracomment>In Polish: Otwórz w programie systemowym</extracomment>
+        <translation>Otwórz w programie systemowym</translation>
+    </message>
+    <message>
+        <source>Picture preview: the arrows move it, L and R turn it, N shows its negative</source>
+        <extracomment>The picture on the tab of its preview. In Polish: Podgląd obrazu: strzałki przesuwają, L i R obracają, N to negatyw</extracomment>
+        <translation>Podgląd obrazu: strzałki przesuwają, L i R obracają, N to negatyw</translation>
+    </message>
+    <message>
+        <source>&amp;Open in the System Program</source>
+        <extracomment>In Polish: &amp;Otwórz w programie systemowym</extracomment>
+        <translation>&amp;Otwórz w programie systemowym</translation>
+    </message>
+    <message>
+        <source>The program does not show files of this kind. Open the file in the system program.</source>
+        <extracomment>A file of a material that is no picture. In Polish: Program nie pokazuje plików tego rodzaju. Otwórz plik w programie systemowym.</extracomment>
+        <translation>Program nie pokazuje plików tego rodzaju. Otwórz plik w programie systemowym.</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <extracomment>The zoom of a picture; %1: the percent. In Polish: %1%</extracomment>
+        <translation>%1%</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::LinkedMaterialsBox</name>
+    <message>
+        <source>Materials</source>
+        <extracomment>The materials linked with a chapter, in its page of the Properties panel. In Polish: Materiały</extracomment>
+        <translation>Materiały</translation>
+    </message>
+    <message>
+        <source>Link Material... (Insert)</source>
+        <extracomment>In Polish: Powiąż materiał... (Insert)</extracomment>
+        <translation>Powiąż materiał... (Insert)</translation>
+    </message>
+    <message>
+        <source>Remove Link (Delete)</source>
+        <extracomment>In Polish: Usuń powiązanie (Delete)</extracomment>
+        <translation>Usuń powiązanie (Delete)</translation>
+    </message>
+    <message>
+        <source>Linked materials</source>
+        <extracomment>In Polish: Powiązane materiały</extracomment>
+        <translation>Powiązane materiały</translation>
+    </message>
+    <message>
+        <source>A double-click opens the material</source>
+        <extracomment>In Polish: Dwuklik otwiera materiał</extracomment>
+        <translation>Dwuklik otwiera materiał</translation>
+    </message>
+    <message>
+        <source>%1: %2</source>
+        <extracomment>The first own field of a material under its title: %1 the name, %2 the value. In Polish: %1: %2</extracomment>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <source>Links Not Saved</source>
+        <translation>Nie zapisano powiązań</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::MaterialFile</name>
+    <message>
+        <source>%1 × %2 px</source>
+        <extracomment>The size of a picture in pixels: %1 the width, %2 the height. In Polish: %1 × %2 px</extracomment>
+        <translation>%1 × %2 px</translation>
+    </message>
+    <message>
+        <source>The file is not in the book&apos;s folder.</source>
+        <extracomment>In Polish: Pliku nie ma w folderze książki.</extracomment>
+        <translation>Pliku nie ma w folderze książki.</translation>
+    </message>
+    <message>
+        <source>The picture cannot be read (%1). It may be damaged.</source>
+        <extracomment>A picture of a format the program shows, which it cannot read; %1: the reason in English, from Qt. In Polish: Nie da się odczytać obrazu (%1). Może być uszkodzony.</extracomment>
+        <translation>Nie da się odczytać obrazu (%1). Może być uszkodzony.</translation>
+    </message>
+    <message>
+        <source>The program does not show %1 pictures. Open the file in the system program.</source>
+        <extracomment>%1: the format, e.g. WEBP. In Polish: Program nie pokazuje obrazów %1. Otwórz plik w programie systemowym.</extracomment>
+        <translation>Program nie pokazuje obrazów %1. Otwórz plik w programie systemowym.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::MaterialPage</name>
+    <message>
+        <source>Open the Preview</source>
+        <extracomment>The picture of a material in the Properties panel. In Polish: Otwórz podgląd
+----------
+In Polish: Otwórz podgląd</extracomment>
+        <translation>Otwórz podgląd</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <extracomment>The button that opens the preview of a material in the program. In Polish: Podgląd</extracomment>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>System Program</source>
+        <extracomment>The button that opens a material in the program the system has for its file. In Polish: Program systemowy</extracomment>
+        <translation>Program systemowy</translation>
+    </message>
+    <message>
+        <source>Open in the System Program</source>
+        <extracomment>In Polish: Otwórz w programie systemowym</extracomment>
+        <translation>Otwórz w programie systemowym</translation>
+    </message>
+    <message>
+        <source>Title:</source>
+        <translation>Tytuł:</translation>
+    </message>
+    <message>
+        <source>File:</source>
+        <extracomment>The file of a material, in the folder of the book. In Polish: Plik:</extracomment>
+        <translation>Plik:</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <extracomment>The description of a material in the Properties panel. In Polish: Opis</extracomment>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>Description of the material</source>
+        <extracomment>In Polish: Opis materiału</extracomment>
+        <translation>Opis materiału</translation>
+    </message>
+    <message>
+        <source>Enter a description...</source>
+        <extracomment>In Polish: Wpisz opis...</extracomment>
+        <translation>Wpisz opis...</translation>
+    </message>
+    <message>
+        <source>Own Fields</source>
+        <extracomment>The writer&apos;s own fields of a material: a name and a value each. In Polish: Własne pola</extracomment>
+        <translation>Własne pola</translation>
+    </message>
+    <message>
+        <source>Add Field (Insert)</source>
+        <extracomment>In Polish: Dodaj pole (Insert)</extracomment>
+        <translation>Dodaj pole (Insert)</translation>
+    </message>
+    <message>
+        <source>Delete Field (Delete)</source>
+        <extracomment>In Polish: Usuń pole (Delete)</extracomment>
+        <translation>Usuń pole (Delete)</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The columns of the own fields of a material. In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <extracomment>In Polish: Wartość</extracomment>
+        <translation>Wartość</translation>
+    </message>
+    <message>
+        <source>Own fields of the material</source>
+        <extracomment>In Polish: Własne pola materiału</extracomment>
+        <translation>Własne pola materiału</translation>
+    </message>
+    <message>
+        <source>No fields. &quot;+&quot; or Insert adds a field.</source>
+        <extracomment>In Polish: Brak pól. „+” albo Insert dodaje pole.</extracomment>
+        <translation>Brak pól. „+” albo Insert dodaje pole.</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <extracomment>The elements and sections a material is about. In Polish: Powiązania</extracomment>
+        <translation>Powiązania</translation>
+    </message>
+    <message>
+        <source>Link... (Insert)</source>
+        <extracomment>In Polish: Powiąż... (Insert)</extracomment>
+        <translation>Powiąż... (Insert)</translation>
+    </message>
+    <message>
+        <source>Remove Link (Delete)</source>
+        <extracomment>In Polish: Usuń powiązanie (Delete)</extracomment>
+        <translation>Usuń powiązanie (Delete)</translation>
+    </message>
+    <message>
+        <source>Links of the material</source>
+        <extracomment>In Polish: Powiązania materiału</extracomment>
+        <translation>Powiązania materiału</translation>
+    </message>
+    <message>
+        <source>No links. Drag a node of the Navigator here or click &quot;+&quot;.</source>
+        <extracomment>In Polish: Brak powiązań. Przeciągnij tu węzeł z Nawigatora albo kliknij „+”.</extracomment>
+        <translation>Brak powiązań. Przeciągnij tu węzeł z Nawigatora albo kliknij „+”.</translation>
+    </message>
+    <message>
+        <source>{Kind} Information</source>
+        <extracomment>In Polish: Informacje o {kind:locative}</extracomment>
+        <translation>Informacje o {kind:locative}</translation>
+    </message>
+    <message>
+        <source>The program shows only pictures</source>
+        <extracomment>The tooltip of Preview for a file that is no picture. In Polish: Program pokazuje tylko obrazy</extracomment>
+        <translation>Program pokazuje tylko obrazy</translation>
+    </message>
+    <message>
+        <source>Rename Failed</source>
+        <translation>Nie udało się zmienić nazwy</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Description Not Saved</source>
+        <extracomment>In Polish: Nie zapisano opisu</extracomment>
+        <translation>Nie zapisano opisu</translation>
+    </message>
+    <message>
+        <source>Fields Not Saved</source>
+        <extracomment>In Polish: Nie zapisano pól</extracomment>
+        <translation>Nie zapisano pól</translation>
+    </message>
+    <message>
+        <source>Delete the field &quot;%1&quot; with its value?</source>
+        <extracomment>%1: the name of the field. In Polish: Usunąć pole „%1” razem z jego wartością?</extracomment>
+        <translation>Usunąć pole „%1” razem z jego wartością?</translation>
+    </message>
+    <message>
+        <source>Delete Field</source>
+        <extracomment>In Polish: Usuń pole</extracomment>
+        <translation>Usuń pole</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Links Not Saved</source>
+        <extracomment>In Polish: Nie zapisano powiązań</extracomment>
+        <translation>Nie zapisano powiązań</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::LinkDialog</name>
+    <message>
+        <source>Link Material &quot;%1&quot;</source>
+        <extracomment>The window that links a material with what it is about. In Polish: Powiąż materiał „%1”</extracomment>
+        <translation>Powiąż materiał „%1”</translation>
+    </message>
+    <message>
+        <source>Check the elements the material is about.</source>
+        <extracomment>In Polish: Zaznacz elementy, których dotyczy materiał.</extracomment>
+        <translation>Zaznacz elementy, których dotyczy materiał.</translation>
+    </message>
+    <message>
+        <source>&amp;Link</source>
+        <extracomment>In Polish: &amp;Powiąż</extracomment>
+        <translation>&amp;Powiąż</translation>
+    </message>
+    <message>
+        <source>Materials of &quot;%1&quot;</source>
+        <extracomment>The window that links materials with an element of the book or a section; %1: its title. In Polish: Materiały „%1”</extracomment>
+        <translation>Materiały „%1”</translation>
+    </message>
+    <message>
+        <source>Check the materials about it.</source>
+        <extracomment>In Polish: Zaznacz materiały, które go dotyczą.</extracomment>
+        <translation>Zaznacz materiały, które go dotyczą.</translation>
+    </message>
+    <message>
+        <source>Filter...</source>
+        <extracomment>In Polish: Filtruj...</extracomment>
+        <translation>Filtruj...</translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <extracomment>In Polish: Filtr</extracomment>
+        <translation>Filtr</translation>
+    </message>
+    <message>
+        <source>Elements to link</source>
+        <extracomment>In Polish: Elementy do powiązania</extracomment>
+        <translation>Elementy do powiązania</translation>
     </message>
 </context>
 </TS>

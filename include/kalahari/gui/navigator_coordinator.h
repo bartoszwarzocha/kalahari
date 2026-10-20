@@ -250,9 +250,22 @@ public slots:
     /// @brief Group the Workshop (Libraries and Resources) or not; saves the .klh file
     void onRequestWorkshopGrouped(bool grouped);
 
-    /// @brief Open material @p elementId of the Workshop in the program the system gives its
-    /// file; the writer is told when it cannot be opened
+    /// @brief Open material @p elementId of the Workshop as the settings say
+    /// (NavigatorPanel::OPEN_MATERIALS_SETTING): a picture on its preview tab or in the
+    /// program the system gives its file; another file in the system program
     void onRequestOpenMaterial(const QString& elementId);
+
+    /// @brief Show the preview of material @p elementId on a tab of its own beside the
+    /// chapters, or bring its tab to the front
+    void onRequestPreview(const QString& elementId);
+
+    /// @brief Open material @p elementId in the program the system gives its file; the writer
+    /// is told when it cannot be opened
+    void onRequestOpenWithSystem(const QString& elementId);
+
+    /// @brief Open what link @p link of a material names: a text in the editor, a material as
+    /// the settings say; a section or another element is shown in the Navigator
+    void onRequestOpenLink(const QString& link);
 
     /// @brief New File with a book open: a new element of the kind, with the title and at the
     /// place the writer chooses in the New File window, or an empty text file of the book
