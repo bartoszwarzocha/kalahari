@@ -672,13 +672,14 @@ struct Navigator {
 
     /// The "+" button of the Navigator's bar
     QToolButton* addButton() const {
+        QToolButton* plus = nullptr;
         for (QToolButton* button : panel->findChildren<QToolButton*>()) {
             if (button->toolTip().startsWith(QStringLiteral("Add... ("))) {
-                return button;
+                plus = button;
             }
         }
-        FAIL("No \"+\" button");
-        return nullptr;
+        REQUIRE(plus != nullptr);
+        return plus;
     }
 
     /// Choose the action @p text of the menu of the item of element @p id
