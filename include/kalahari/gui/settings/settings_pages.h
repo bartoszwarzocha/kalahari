@@ -201,7 +201,8 @@ public:
     explicit AnnotationsPage(QWidget* parent = nullptr);
 };
 
-/// @brief Navigator: the commands that the menu of a node of the Navigator has for adding
+/// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,
+/// and what the top of the Add Element window chooses from
 class NavigatorPage : public SettingsPage {
     Q_OBJECT
 public:
@@ -210,6 +211,9 @@ public:
 private:
     QRadioButton* m_named = nullptr;   ///< "Add..." and the commands named after kinds
     QRadioButton* m_single = nullptr;  ///< "Add..." only
+    QRadioButton* m_sections = nullptr;  ///< A section of the book or the Workshop at a time
+    QRadioButton* m_book = nullptr;      ///< The whole book or the Workshop
+    QRadioButton* m_place = nullptr;     ///< No choice: the kinds of the place only
 };
 
 /// @brief Files > Folders: the folders of the books and of the archives, and where and how

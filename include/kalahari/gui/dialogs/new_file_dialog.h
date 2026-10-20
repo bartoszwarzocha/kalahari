@@ -17,6 +17,7 @@
 
 #include <functional>
 
+class QButtonGroup;
 class QCheckBox;
 class QComboBox;
 class QEvent;
@@ -83,14 +84,18 @@ struct NewFileKind {
 /// place; a double click on a tile accepts it.
 ///
 /// Add Element (forAdding()) is the same window for the place of the Navigator or of the
-/// editor it was opened on: it offers the kinds of that place only, groups (a part) among
-/// them, and has no empty text file. A text element of the book gets its status, Draft at
-/// first. A new group can take inside it the elements that close the main section at the end
-/// of the groups before it (the epilogue), and the list only shows the book as it will be.
-/// The kinds of the Workshop are never offered with those of the book; its elements are in
-/// alphabetical order, so a note says where a new one goes in place of the list. A material
-/// is a copy of a file the writer chooses: choosing its tile opens the system's window of
-/// files, and its title starts as the name of the file.
+/// editor it was opened on, with groups (a part) among the kinds and no empty text file. Its
+/// top chooses what the tiles are (AddChooser): a section of the book or the Workshop, one at
+/// a time, or the whole book or the Workshop; the place the window was opened on chooses only
+/// where it starts, and Alt with the underlined letter, Ctrl+Tab and Ctrl+Shift+Tab choose
+/// another. Without the choice the window offers the kinds of that place only. A text
+/// element of the book gets its status, Draft at first. A new group can take inside it the
+/// elements that close the main section at the end of the groups before it (the epilogue),
+/// and the list only shows the book as it will be. The kinds of the Workshop are never in one
+/// list with those of the book; its elements are in alphabetical order, so a note says where
+/// a new one goes in place of the list. A material is a copy of a file the writer chooses:
+/// choosing its tile opens the system's window of files, and its title starts as the name of
+/// the file.
 class NewFileDialog : public KalahariDialog {
     Q_OBJECT
 
@@ -115,6 +120,11 @@ public:
         /// The main text kind of the book, for the words of a new group: "the chapters added
         /// to the new part"
         core::KindRef mainKind;
+        /// What the top of Add Element chooses from; AddChooser::None: no choice, the kinds
+        /// of the place the window was opened on only
+        AddChooser chooser = AddChooser::None;
+        /// With a choice, the part of the book (or the Workshop) the window starts at
+        core::BookPlace start = core::BookPlace::Main;
     };
 
     /// @brief The kinds and the parts of the book open in core::ProjectManager; at the start
@@ -123,11 +133,15 @@ public:
     /// @param untitled Title of an empty text file; empty: no empty text file
     static Book openBook(const QString& untitled = QString());
 
-    /// @brief The kinds of @p target, the place of the book or of the Workshop that Add
-    /// Element was opened on, in core::ProjectManager; at the start @p target's kind is chosen
-    /// when an element of it can be made there, else the usual kind of the place: the main
-    /// text kind of the book, the kind of the element the window was opened on
-    static Book forAdding(const AddTarget& target);
+    /// @brief The kinds of Add Element opened on @p target, a place of the book or of the
+    /// Workshop, in core::ProjectManager; at the start @p target's kind is chosen when an
+    /// element of it can be made there, else the usual kind of the place: the kind of the
+    /// element the window was opened on, the main text kind of the book
+    ///
+    /// With a choice at the top (@p chooser) the window has all the kinds of the book and of
+    /// the Workshop, and starts at the part of @p target; those of @p target's place go there
+    /// (right after its element, inside its group). Without it, only the kinds of that place.
+    static Book forAdding(const AddTarget& target, AddChooser chooser);
 
     /// @brief A window in place of the system's window of files that chooses the file of a
     /// material, for tests: it gets the folder the system's window would open in and returns
@@ -188,6 +202,10 @@ public:
     /// @brief The tiles of the kinds, with the names of the parts of the book between them
     QListWidget* kindList() const { return m_kindList; }
 
+    /// @brief The buttons at the top of Add Element that choose what the tiles are, in their
+    /// order; nullptr without the choice
+    QButtonGroup* chooserButtons() const { return m_chooser; }
+
     /// @brief The title of the new element
     QLineEdit* titleEdit() const { return m_titleEdit; }
 
@@ -232,6 +250,22 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    /// @brief forAdding() without a choice: the kinds of the place of @p target only
+    static Book forPlace(const AddTarget& target);
+
+    /// @brief The buttons at the top of Add Element that choose what the tiles are, each
+    /// named with an underlined letter that the window's other words do not underline
+    QWidget* createChooser(QWidget* parent);
+
+    /// @brief The parts of the book (or the Workshop) of choice @p choice of the buttons at
+    /// the top; all of them without the choice
+    QList<core::BookPlace> placesOf(int choice) const;
+
+    /// @brief The tiles of choice @p choice of the buttons at the top, with the kind chosen
+    /// there last, or at first the usual one (the main text kind of the book); the title gets
+    /// the keys, so that typing replaces it
+    void showChoice(int choice);
+
     /// @brief The description of the chosen kind, at the left
     QWidget* createDescriptionPanel(QWidget* parent);
 
@@ -260,6 +294,9 @@ private:
 
     /// @brief The tile of an empty text file is chosen
     bool emptyFileChosen() const;
+
+    /// @brief The tiles shown are the kinds of the Workshop
+    bool workshopShown() const;
 
     /// @brief The name of an empty text file: its tile, and the name above its description
     static QString emptyFileName();
@@ -344,6 +381,11 @@ private:
     QLabel* m_placeNote = nullptr;
 
     // Add Element
+    QButtonGroup* m_chooser = nullptr;  ///< What the tiles are; nullptr without the choice
+    QList<int> m_choices;               ///< Of each choice the index in Book::kinds chosen there
+    int m_shownChoice = -1;             ///< The choice shown; -1: no choice
+    QLabel* m_titleLabel = nullptr;
+    QLabel* m_materialCaption = nullptr;
     QLabel* m_statusLabel = nullptr;
     QComboBox* m_statusBox = nullptr;
     QWidget* m_materialRow = nullptr;

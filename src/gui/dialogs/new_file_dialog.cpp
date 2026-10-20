@@ -14,6 +14,7 @@
 #include "kalahari/gui/utils/program_folders.h"
 
 #include <QAbstractItemView>
+#include <QButtonGroup>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
@@ -38,11 +39,14 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QScrollBar>
+#include <QShortcut>
 #include <QShowEvent>
+#include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QStyle>
 #include <QStyledItemDelegate>
 #include <QTimer>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -80,6 +84,74 @@ constexpr std::array<core::BookPlace, 3> BOOK_PLACES{core::BookPlace::Front, cor
 
 /// The icon of an empty text file, as the Navigator shows a file of the book outside its text
 const QString EMPTY_FILE_ICON = QStringLiteral("common.file");
+
+/// The icons of the buttons at the top of Add Element, as the Navigator shows their nodes
+const QString BOOK_ICON = QStringLiteral("structure.book");
+const QString WORKSHOP_ICON = QStringLiteral("structure.workshop");
+
+/// The choices of the book at the top of Add Element (AddChooser::Book)
+constexpr int BOOK_CHOICE = 0;
+constexpr int WORKSHOP_CHOICE = 1;
+
+/// The icon of the node of part @p place of the book in the Navigator
+QString sectionIconOf(core::BookPlace place)
+{
+    switch (place) {
+    case core::BookPlace::Front:
+        return QStringLiteral("structure.frontmatter");
+    case core::BookPlace::Back:
+        return QStringLiteral("structure.backmatter");
+    case core::BookPlace::Workshop:
+        return WORKSHOP_ICON;
+    case core::BookPlace::Main:
+        break;
+    }
+    return QStringLiteral("structure.body");
+}
+
+/// The letter that Alt with it chooses @p text: "&Title:" gives "t"; none: a null character
+QChar mnemonicOf(const QString& text)
+{
+    for (qsizetype i = 0; i + 1 < text.size(); ++i) {
+        if (text.at(i) != QLatin1Char('&')) {
+            continue;
+        }
+        if (text.at(i + 1) != QLatin1Char('&')) {
+            return text.at(i + 1).toLower();
+        }
+        ++i;  // "&&" is an ampersand
+    }
+    return {};
+}
+
+/// @p name as the text of a button, with the letter that Alt with it chooses the button: the
+/// first letter of its last word that @p taken does not have, else of the words before it,
+/// else any other letter of it; @p taken gets the letter
+QString withMnemonic(const QString& name, QString& taken)
+{
+    QList<qsizetype> letters;
+    for (qsizetype i = 0; i < name.size(); ++i) {
+        if (name.at(i).isLetter() && (i == 0 || !name.at(i - 1).isLetterOrNumber())) {
+            letters.prepend(i);
+        }
+    }
+    for (qsizetype i = 0; i < name.size(); ++i) {
+        if (name.at(i).isLetter() && !letters.contains(i)) {
+            letters.append(i);
+        }
+    }
+    const auto escaped = [](QString text) {
+        return text.replace(QLatin1Char('&'), QStringLiteral("&&"));
+    };
+    for (const qsizetype at : std::as_const(letters)) {
+        const QChar letter = name.at(at).toLower();
+        if (!taken.contains(letter)) {
+            taken.append(letter);
+            return escaped(name.left(at)) + QLatin1Char('&') + escaped(name.mid(at));
+        }
+    }
+    return escaped(name);
+}
 
 /// The window that chooses the file of a new material in the tests; empty: the system's one
 std::function<QString(const QString&)>& fileChooser()
@@ -159,13 +231,16 @@ QStringList idsOf(const QList<core::ProjectElement>& elements)
 }
 
 /// Index in @p kinds of the first kind of which an element can be made, preferring the kind of
-/// @p kind and then the main part of the book; -1: none
-int indexOfKind(const QList<NewFileKind>& kinds, const core::KindRef& kind)
+/// @p kind and then the main part of the book, among the kinds of @p places (empty: of all the
+/// parts); -1: none
+int indexOfKind(const QList<NewFileKind>& kinds, const core::KindRef& kind,
+                const QList<core::BookPlace>& places = {})
 {
     int found = -1;
     for (qsizetype index = 0; index < kinds.size(); ++index) {
         const NewFileKind& entry = kinds.at(index);
-        if (!entry.unavailable.isEmpty() || !kind || entry.kind.kind != kind.kind) {
+        if (!entry.unavailable.isEmpty() || !kind || entry.kind.kind != kind.kind ||
+            (!places.isEmpty() && !places.contains(entry.section))) {
             continue;
         }
         if (found < 0 || entry.section == core::BookPlace::Main) {
@@ -176,6 +251,17 @@ int indexOfKind(const QList<NewFileKind>& kinds, const core::KindRef& kind)
         }
     }
     return found;
+}
+
+/// Index in @p kinds of the first kind of @p places of which an element can be made; -1: none
+int firstAvailable(const QList<NewFileKind>& kinds, const QList<core::BookPlace>& places)
+{
+    for (qsizetype index = 0; index < kinds.size(); ++index) {
+        if (kinds.at(index).unavailable.isEmpty() && places.contains(kinds.at(index).section)) {
+            return static_cast<int>(index);
+        }
+    }
+    return -1;
 }
 
 /// The tiles of the kinds, with the names of the parts of the book between them: each name has
@@ -527,7 +613,142 @@ NewFileDialog::Book NewFileDialog::openBook(const QString& untitled)
     return book;
 }
 
-NewFileDialog::Book NewFileDialog::forAdding(const AddTarget& target)
+NewFileDialog::Book NewFileDialog::forAdding(const AddTarget& target, AddChooser chooser)
+{
+    if (chooser == AddChooser::None) {
+        return forPlace(target);
+    }
+    Book book;
+    book.adding = true;
+    book.chooser = chooser;
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::BookProject* project = pm.project();
+    const core::ProjectBook* projectBook = pm.book();
+    if (!project || !projectBook) {
+        return book;
+    }
+    const core::BookTypeRegistry& registry = pm.bookTypes();
+    const QList<core::KindRef> groups = groupKindsOf(*project, registry);
+    book.mainKind = pm.mainTextKind();
+
+    // The part the window starts at, the group whose kinds go inside it there and the element
+    // they go right after; the kinds chosen at the start, the first that can be made: the one
+    // of the target, then the kind of its element or of its group of the Workshop, then the
+    // main text kind of the book
+    QList<core::KindRef> wanted{target.kind};
+    QString groupId;
+    QString afterId;
+    switch (target.scope) {
+    case AddTarget::Scope::Book:
+        break;
+    case AddTarget::Scope::Section:
+        book.start = target.place;
+        break;
+    case AddTarget::Scope::Group:
+    case AddTarget::Scope::Element: {
+        const std::optional<core::ElementPlace> at = project->placeOf(target.id);
+        if (!at) {
+            return book;
+        }
+        book.start = at->place;
+        if (target.scope == AddTarget::Scope::Group) {
+            groupId = target.id;
+        } else {
+            groupId = at->groupId;
+            afterId = target.id;
+            if (const core::ProjectElement* element = pm.findElement(target.id)) {
+                wanted.append(pm.kindOf(*element));
+            }
+        }
+        break;
+    }
+    case AddTarget::Scope::Workshop:
+        book.start = core::BookPlace::Workshop;
+        wanted.append(target.kinds);
+        break;
+    }
+    const core::ProjectElement* group = groupId.isEmpty() ? nullptr : pm.findElement(groupId);
+    if (!groupId.isEmpty() && !group) {
+        return book;
+    }
+
+    // Each part of the book with all its kinds; where the window starts, those that can be
+    // inside its group go there, and all of them right after its element when they can
+    for (const core::BookPlace place : BOOK_PLACES) {
+        book.sections.append({place,
+                              projectBook->partsLayer ? projectBook->sectionName(place)
+                                                      : QString(),
+                              SectionWords::forPart(projectBook, place),
+                              project->elementsIn(place)});
+        book.groupNames.append(projectBook->partsLayer ? projectBook->sectionName(place)
+                                                       : SectionWords::groupName(place));
+        const bool here = place == book.start;
+        const QList<core::KindRef> offered = pm.kindsFor(place);
+        const QList<core::KindRef> inside =
+            here && group ? pm.kindsFor(place, groupId) : QList<core::KindRef>();
+        QList<core::KindRef> kinds;
+        for (const core::KindRef& kind : project->kindsIn(registry, place)) {
+            if (kind.offeredIn(place)) {
+                kinds.append(kind);
+            }
+        }
+        if (here && group) {
+            for (const core::KindRef& kind :
+                 project->kindsInside(registry, group->kind.kindId)) {
+                if (!hasKind(kinds, kind)) {
+                    kinds.append(kind);
+                }
+            }
+        }
+        for (const core::KindRef& kind : std::as_const(kinds)) {
+            const bool inGroup = hasKind(inside, kind);
+            NewFileKind entry = entryOf(kind, place, inGroup ? inside : offered, groups);
+            if (entry.unavailable.isEmpty()) {
+                const std::optional<core::ElementPlace> after =
+                    here && !afterId.isEmpty() ? pm.newPlaceAfter(afterId, kind) : std::nullopt;
+                entry.place =
+                    after ? *after : pm.newPlaceOf(kind, place, inGroup ? groupId : QString());
+            }
+            book.kinds.append(entry);
+        }
+    }
+
+    // The Workshop with all its kinds; its elements are in alphabetical order
+    book.sections.append({core::BookPlace::Workshop, QString(), SectionWords{},
+                          project->elementsIn(core::BookPlace::Workshop)});
+    book.groupNames.append(NavigatorPanel::workshopName(*project));
+    const QList<core::KindRef> offered = pm.kindsFor(core::BookPlace::Workshop);
+    for (const core::KindRef& kind : project->kindsIn(registry, core::BookPlace::Workshop)) {
+        NewFileKind entry = entryOf(kind, core::BookPlace::Workshop, offered, groups);
+        if (entry.unavailable.isEmpty()) {
+            entry.place = pm.newPlaceOf(kind, core::BookPlace::Workshop);
+        }
+        book.kinds.append(entry);
+    }
+
+    // The kind chosen at the start is one of the part the window starts at; with the whole
+    // book to choose from, else one of the other sections
+    wanted.append(book.mainKind);
+    QList<QList<core::BookPlace>> searched{{book.start}};
+    if (chooser == AddChooser::Book && book.start != core::BookPlace::Workshop) {
+        searched.append(QList<core::BookPlace>(BOOK_PLACES.cbegin(), BOOK_PLACES.cend()));
+    }
+    for (const QList<core::BookPlace>& places : std::as_const(searched)) {
+        for (const core::KindRef& kind : std::as_const(wanted)) {
+            book.current = indexOfKind(book.kinds, kind, places);
+            if (book.current >= 0) {
+                return book;
+            }
+        }
+        book.current = firstAvailable(book.kinds, places);
+        if (book.current >= 0) {
+            return book;
+        }
+    }
+    return book;
+}
+
+NewFileDialog::Book NewFileDialog::forPlace(const AddTarget& target)
 {
     Book book;
     book.adding = true;
@@ -675,6 +896,12 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     // lower: on a small screen (1366x768 at 150%) the content scrolls above the buttons
     setMinimumWidth(MINIMUM_WIDTH);
 
+    // Add Element with a choice at its top: the buttons over the whole width, first of the
+    // keys; they are named once the window's other words with underlined letters are there
+    QWidget* chooser = m_book.adding && m_book.chooser != AddChooser::None
+                           ? createChooser(this)
+                           : nullptr;
+
     // The description of the chosen kind at the left, along the whole height, and at the
     // right the choices in their order: the kind, the title, the place. So the title is close
     // under the tiles and stays in view also when the content scrolls on a small screen.
@@ -692,6 +919,20 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     choices->addLayout(createTitleRow(content));
     choices->addWidget(createPlaceGroup(content), 2);
     columns->addLayout(choices, 1);
+    if (chooser) {
+        // Alt with a letter that no other word of the window underlines
+        QString taken;
+        for (const QString& text : {m_titleLabel->text(), m_statusLabel->text(),
+                                    m_materialCaption->text(), m_chooseButton->text()}) {
+            if (const QChar letter = mnemonicOf(text); !letter.isNull()) {
+                taken.append(letter);
+            }
+        }
+        for (QAbstractButton* button : m_chooser->buttons()) {
+            button->setText(withMnemonic(button->property("choiceName").toString(), taken));
+        }
+        contentLayout()->addWidget(chooser);
+    }
     contentLayout()->addWidget(content, 1);
 
     setAcceptText(m_book.adding
@@ -739,6 +980,12 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
             [this]() {
                 sizeTiles();
                 updateKindIcon();
+                if (m_chooser) {
+                    for (QAbstractButton* button : m_chooser->buttons()) {
+                        button->setIcon(core::ArtProvider::getInstance().getIcon(
+                            button->property("iconId").toString(), core::IconContext::Menu));
+                    }
+                }
             });
 
     // The kind chosen at the start
@@ -832,6 +1079,138 @@ bool NewFileDialog::eventFilter(QObject* watched, QEvent* event)
     return KalahariDialog::eventFilter(watched, event);
 }
 
+QWidget* NewFileDialog::createChooser(QWidget* parent)
+{
+    auto* bar = new QWidget(parent);
+    auto* layout = new QHBoxLayout(bar);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(6);
+    m_chooser = new QButtonGroup(bar);
+
+    // The sections of the book and the Workshop, or the book and the Workshop; the Workshop
+    // apart from the book
+    QList<std::pair<QString, QString>> choices;  // The name and the icon of each
+    int start = 0;
+    if (m_book.chooser == AddChooser::Sections) {
+        for (qsizetype index = 0; index < m_book.sections.size(); ++index) {
+            const core::BookPlace place = m_book.sections.at(index).place;
+            choices.append({m_book.groupNames.value(index), sectionIconOf(place)});
+            if (place == m_book.start) {
+                start = static_cast<int>(index);
+            }
+        }
+    } else {
+        // Named as the Navigator names the book
+        const core::ProjectBook* projectBook = core::ProjectManager::getInstance().book();
+        choices.append(
+            {projectBook ? NavigatorPanel::bookName(*projectBook) : QString(), BOOK_ICON});
+        choices.append({m_book.groupNames.value(m_book.sections.size() - 1), WORKSHOP_ICON});
+        start = m_book.start == core::BookPlace::Workshop ? WORKSHOP_CHOICE : BOOK_CHOICE;
+    }
+    for (qsizetype index = 0; index < choices.size(); ++index) {
+        if (choices.at(index).second == WORKSHOP_ICON && index > 0) {
+            auto* line = new QFrame(bar);
+            line->setFrameShape(QFrame::VLine);
+            line->setFrameShadow(QFrame::Sunken);
+            layout->addWidget(line);
+        }
+        auto* button = new QToolButton(bar);
+        button->setCheckable(true);
+        button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+        button->setProperty("choiceName", choices.at(index).first);
+        button->setProperty("iconId", choices.at(index).second);
+        button->setIcon(core::ArtProvider::getInstance().getIcon(choices.at(index).second,
+                                                                 core::IconContext::Menu));
+        // Named for now; the underlined letter comes once the window has all its words
+        button->setText(QString(choices.at(index).first).replace(QLatin1Char('&'),
+                                                                 QStringLiteral("&&")));
+        m_chooser->addButton(button, static_cast<int>(index));
+        layout->addWidget(button);
+    }
+    layout->addStretch(1);
+
+    // Of each choice the kind it shows first: the one the window starts with, elsewhere the
+    // main text kind of the book, else the first that can be made
+    m_shownChoice = start;
+    for (qsizetype choice = 0; choice < choices.size(); ++choice) {
+        const QList<core::BookPlace> places = placesOf(static_cast<int>(choice));
+        int index = choice == start ? m_book.current
+                                    : indexOfKind(m_book.kinds, m_book.mainKind, places);
+        if (index < 0 && choice != start) {
+            index = firstAvailable(m_book.kinds, places);
+        }
+        m_choices.append(index);
+    }
+    m_chooser->button(start)->setChecked(true);
+    connect(m_chooser, &QButtonGroup::idToggled, this, [this](int choice, bool checked) {
+        if (checked) {
+            showChoice(choice);
+        }
+    });
+
+    // Ctrl+Tab and Ctrl+Shift+Tab go to the next and to the previous choice, as between tabs
+    const auto step = [this](int by) {
+        const int count = static_cast<int>(m_chooser->buttons().size());
+        m_chooser->button((m_shownChoice + by + count) % count)->setChecked(true);
+    };
+    connect(new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Tab), this), &QShortcut::activated,
+            this, [step]() { step(1); });
+    connect(new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Tab), this),
+            &QShortcut::activated, this, [step]() { step(-1); });
+    return bar;
+}
+
+QList<core::BookPlace> NewFileDialog::placesOf(int choice) const
+{
+    QList<core::BookPlace> places;
+    for (qsizetype index = 0; index < m_book.sections.size(); ++index) {
+        const core::BookPlace place = m_book.sections.at(index).place;
+        const bool shown =
+            !m_chooser || choice < 0 ||
+            (m_book.chooser == AddChooser::Sections
+                 ? index == choice
+                 : (place == core::BookPlace::Workshop) == (choice == WORKSHOP_CHOICE));
+        if (shown) {
+            places.append(place);
+        }
+    }
+    return places;
+}
+
+void NewFileDialog::showChoice(int choice)
+{
+    // The kind chosen in the tiles shown so far is chosen there again when they come back
+    if (m_shownChoice >= 0 && m_shownChoice < m_choices.size()) {
+        const QListWidgetItem* item = m_kindList->currentItem();
+        m_choices[m_shownChoice] =
+            item && item->data(KIND_ROLE).isValid() ? item->data(KIND_ROLE).toInt() : -1;
+    }
+    m_shownChoice = choice;
+    {
+        const QSignalBlocker blocker(m_kindList);
+        fillKinds();
+    }
+    QListWidgetItem* chosenItem = nullptr;
+    for (int row = 0; row < m_kindList->count() && !chosenItem; ++row) {
+        QListWidgetItem* item = m_kindList->item(row);
+        if (item->data(KIND_ROLE).isValid() &&
+            item->data(KIND_ROLE).toInt() == m_choices.value(choice, -1)) {
+            chosenItem = item;
+        }
+    }
+    if (chosenItem) {
+        m_kindList->setCurrentItem(chosenItem);
+    } else {
+        onKindChanged();
+    }
+
+    // Typing replaces the proposed title
+    m_titleEdit->setFocus(Qt::OtherFocusReason);
+    if (!m_titleChanged) {
+        m_titleEdit->selectAll();
+    }
+}
+
 QWidget* NewFileDialog::createDescriptionPanel(QWidget* parent)
 {
     auto* panel = new QWidget(parent);
@@ -909,10 +1288,10 @@ QLayout* NewFileDialog::createTitleRow(QWidget* parent)
     auto* row = new QHBoxLayout();
     row->setSpacing(8);
     //: In Polish: &Tytuł:
-    auto* titleLabel = new QLabel(tr("&Title:"), parent);
+    m_titleLabel = new QLabel(tr("&Title:"), parent);
     m_titleEdit = new QLineEdit(parent);
-    titleLabel->setBuddy(m_titleEdit);
-    row->addWidget(titleLabel);
+    m_titleLabel->setBuddy(m_titleEdit);
+    row->addWidget(m_titleLabel);
     row->addWidget(m_titleEdit, 1);
 
     // A new text element of the book gets its status (Add Element), Draft at first
@@ -941,15 +1320,15 @@ QWidget* NewFileDialog::createMaterialRow(QWidget* parent)
     row->setContentsMargins(0, 0, 0, 0);
     row->setSpacing(8);
     //: The file a new material is a copy of. In Polish: P&lik:
-    auto* label = new QLabel(tr("Fi&le:"), m_materialRow);
+    m_materialCaption = new QLabel(tr("Fi&le:"), m_materialRow);
     m_materialLabel = new QLabel(m_materialRow);
     m_materialLabel->setTextFormat(Qt::PlainText);
     // A long path does not widen the window: it is shortened in its middle
     m_materialLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     //: Chooses the file of a new material again. In Polish: Wy&bierz...
     m_chooseButton = new QPushButton(tr("C&hoose..."), m_materialRow);
-    label->setBuddy(m_chooseButton);
-    row->addWidget(label);
+    m_materialCaption->setBuddy(m_chooseButton);
+    row->addWidget(m_materialCaption);
     row->addWidget(m_materialLabel, 1);
     row->addWidget(m_chooseButton);
     m_materialRow->hide();
@@ -1041,19 +1420,25 @@ void NewFileDialog::fillKinds()
 {
     m_kindList->clear();
     const QString language = programLanguage();
+    // The parts of the book of the choice at the top; the buttons name a part shown alone
+    const QList<core::BookPlace> shown = placesOf(m_shownChoice);
+    const bool headings = !m_chooser || shown.size() > 1;
     for (qsizetype section = 0; section < m_book.sections.size(); ++section) {
         const core::BookPlace place = m_book.sections.at(section).place;
         const auto inSection = [place](const NewFileKind& entry) {
             return entry.section == place;
         };
-        if (std::none_of(m_book.kinds.cbegin(), m_book.kinds.cend(), inSection)) {
+        if (!shown.contains(place) ||
+            std::none_of(m_book.kinds.cbegin(), m_book.kinds.cend(), inSection)) {
             continue;
         }
 
         // The name of the part of the book, in a row of its own
-        auto* heading = new QListWidgetItem(m_book.groupNames.value(section), m_kindList);
-        heading->setData(HEADING_ROLE, true);
-        heading->setFlags(Qt::NoItemFlags);
+        if (headings) {
+            auto* heading = new QListWidgetItem(m_book.groupNames.value(section), m_kindList);
+            heading->setData(HEADING_ROLE, true);
+            heading->setFlags(Qt::NoItemFlags);
+        }
 
         // Its tiles; a greyed one says why in its tooltip
         for (qsizetype index = 0; index < m_book.kinds.size(); ++index) {
@@ -1155,6 +1540,11 @@ bool NewFileDialog::emptyFileChosen() const
 {
     const QListWidgetItem* item = m_kindList ? m_kindList->currentItem() : nullptr;
     return item && item->data(EMPTY_FILE_ROLE).toBool();
+}
+
+bool NewFileDialog::workshopShown() const
+{
+    return placesOf(m_shownChoice).contains(core::BookPlace::Workshop);
 }
 
 bool NewFileDialog::outsideBook() const
@@ -1369,9 +1759,7 @@ void NewFileDialog::updateHeading()
         return;
     }
     const NewFileKind* entry = chosen();
-    const bool workshop = std::any_of(
-        m_book.sections.cbegin(), m_book.sections.cend(),
-        [](const PickerSection& section) { return section.place == core::BookPlace::Workshop; });
+    const bool workshop = workshopShown();
     QString description;
     if (isMaterial(entry)) {
         //: The heading of the Add Element window for a material. In Polish: Wybierz plik

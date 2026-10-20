@@ -23,8 +23,10 @@
 #include <kalahari/gui/utils/access_keys.h>
 #include <kalahari/gui/utils/file_location.h>
 
+#include <QAbstractButton>
 #include <QAction>
 #include <QApplication>
+#include <QButtonGroup>
 #include <QCheckBox>
 #include <QChildEvent>
 #include <QComboBox>
@@ -161,16 +163,30 @@ Answer addAs(const AddChoice& choice = {}) {
         if (!choice.kind.isEmpty()) {
             // The first tile of the kind that can be chosen; the names of the parts of the book
             // have no kind
-            QListWidget* tiles = window->kindList();
-            bool found = false;
-            for (int row = 0; row < tiles->count() && !found; ++row) {
-                QListWidgetItem* tile = tiles->item(row);
-                if (!tile->data(Qt::UserRole).isValid() ||
-                    !tile->flags().testFlag(Qt::ItemIsEnabled)) {
-                    continue;
+            const auto chooseTile = [window, &choice]() {
+                QListWidget* tiles = window->kindList();
+                for (int row = 0; row < tiles->count(); ++row) {
+                    QListWidgetItem* tile = tiles->item(row);
+                    if (!tile->data(Qt::UserRole).isValid() ||
+                        !tile->flags().testFlag(Qt::ItemIsEnabled)) {
+                        continue;
+                    }
+                    tiles->setCurrentItem(tile);
+                    if (window->kind() && window->kind().kind->id == choice.kind) {
+                        return true;
+                    }
                 }
-                tiles->setCurrentItem(tile);
-                found = window->kind() && window->kind().kind->id == choice.kind;
+                return false;
+            };
+            // Among the tiles shown, else those of the other choices at the top of the window
+            bool found = chooseTile();
+            if (QButtonGroup* choices = window->chooserButtons(); !found && choices) {
+                for (QAbstractButton* button : choices->buttons()) {
+                    button->click();
+                    if ((found = chooseTile())) {
+                        break;
+                    }
+                }
             }
             if (!found) {
                 dialog.reject();
@@ -1036,14 +1052,34 @@ TEST_CASE("Navigator: the keys and the \"+\" button add, rename and delete on th
                                  QStringLiteral("workshop")});
     CHECK(deleted == QStringList{chapter});
 
-    // Nothing is added on the project's node: the button is grey, and Insert does nothing
+    // On the project's node the window starts at the book, as on the book's node
     added.clear();
     navigator.select(navigator.projectItem());
+    CHECK(plus->isEnabled());
+    navigator.press(Qt::Key_Insert);
+    plus->click();
+    REQUIRE(added.size() == 2);
+    CHECK(added.at(0).scope == gui::AddTarget::Scope::Book);
+    CHECK(added.at(1).scope == gui::AddTarget::Scope::Book);
+    CHECK(navigator.inMenuOf(navigator.projectItem(), QStringLiteral("Add...")));
+    REQUIRE(added.size() == 3);
+    CHECK(added.at(2).scope == gui::AddTarget::Scope::Book);
+
+    // Without the choice at the top of the window nothing is added there: the button is grey,
+    // Insert does nothing and the menu has no Add...
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string before =
+        settings.get<std::string>(gui::NavigatorPanel::ADD_WINDOW_SETTING, "sections");
+    settings.set<std::string>(gui::NavigatorPanel::ADD_WINDOW_SETTING, "place");
+    navigator.panel->onSettingsChanged();
+    added.clear();
     CHECK_FALSE(plus->isEnabled());
     navigator.press(Qt::Key_Insert);
     CHECK(added.isEmpty());
+    CHECK_FALSE(navigator.inMenuOf(navigator.projectItem(), QStringLiteral("Add...")));
     navigator.select(navigator.section(QStringLiteral("workshop")));
     CHECK(plus->isEnabled());
+    settings.set<std::string>(gui::NavigatorPanel::ADD_WINDOW_SETTING, before);
 }
 
 TEST_CASE("Navigator menus: Add... and the commands named after kinds, or Add... only",

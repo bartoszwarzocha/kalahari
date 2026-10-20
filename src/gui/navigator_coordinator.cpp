@@ -968,8 +968,10 @@ void NavigatorCoordinator::onRequestAdd(const AddTarget& target) {
         return;
     }
 
-    // The window offers the kinds of the place it was opened on
-    const dialogs::NewFileDialog::Book book = dialogs::NewFileDialog::forAdding(target);
+    // The window starts at the place it was opened on; without a choice at its top it offers
+    // the kinds of that place only
+    const dialogs::NewFileDialog::Book book =
+        dialogs::NewFileDialog::forAdding(target, NavigatorPanel::addChooser());
     if (book.kinds.isEmpty()) {
         logger.warn("NavigatorCoordinator: Nothing can be added there");
         return;

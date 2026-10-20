@@ -431,6 +431,51 @@ TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in 
     settings.set<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, before);
 }
 
+TEST_CASE("Settings dialog: the Navigator page chooses the top of the Add Element window",
+          "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string before =
+        settings.get<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, "sections");
+    settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, "sections");
+
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    auto* sections = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowSections"));
+    auto* book = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
+    auto* place = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowPlace"));
+    REQUIRE(sections != nullptr);
+    REQUIRE(book != nullptr);
+    REQUIRE(place != nullptr);
+    CHECK(sections->isChecked());
+    CHECK_FALSE(book->isChecked());
+    CHECK_FALSE(place->isChecked());
+    CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::Sections);
+
+    // A choice of its own, apart from the commands of the menus
+    auto* named = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddNamed"));
+    REQUIRE(named != nullptr);
+    const bool namedBefore = named->isChecked();
+    place->click();
+    CHECK(named->isChecked() == namedBefore);
+    CHECK(dialog.applyChanges() ==
+          QStringList{QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING)});
+    CHECK(settings.get<std::string>(NavigatorPanel::ADD_WINDOW_SETTING) == "place");
+    CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::None);
+    book->click();
+    CHECK(dialog.applyChanges() ==
+          QStringList{QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING)});
+    CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::Book);
+
+    // Opened again, the page shows the stored choice
+    SettingsDialog again(nullptr);
+    openPage(again, QString(), QStringLiteral("Navigator"));
+    auto* bookAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
+    REQUIRE(bookAgain != nullptr);
+    CHECK(bookAgain->isChecked());
+
+    settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, before);
+}
+
 TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][settings]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string theme = settings.getTheme();

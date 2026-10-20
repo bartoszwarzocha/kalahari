@@ -1974,7 +1974,12 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
     } else if (elementType == "document") {
         // The project: its window comes with the types of books (stage 4); a click on the node
-        // shows the properties of the book
+        // shows the properties of the book. Add... starts at the book when the Add Element
+        // window chooses where it adds.
+        if (addTargetOf(item)) {
+            addAddActions();
+            menu.addSeparator();
+        }
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("common.properties", core::IconContext::Menu),
             //: The command of the project's node in the Navigator. In Polish: Właściwości
@@ -2340,11 +2345,25 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
 // Add..., Rename and Delete on a node
 // =============================================================================
 
+AddChooser NavigatorPanel::addChooser() {
+    const std::string chooser =
+        core::SettingsManager::getInstance().get<std::string>(ADD_WINDOW_SETTING, "sections");
+    if (chooser == "book") {
+        return AddChooser::Book;
+    }
+    return chooser == "place" ? AddChooser::None : AddChooser::Sections;
+}
+
 std::optional<AddTarget> NavigatorPanel::addTargetOf(const QTreeWidgetItem* item) const {
     const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
-    if (!item || !project) {
+    if (!project) {
         return std::nullopt;
+    }
+    // The project and no node: the book, when the window chooses where it adds
+    if (!item || typeOf(item) == QLatin1String("document")) {
+        return addChooser() == AddChooser::None ? std::nullopt
+                                                : std::optional<AddTarget>(AddTarget{});
     }
     const QString type = typeOf(item);
     const QString id = item->data(0, Qt::UserRole).toString();
@@ -2526,6 +2545,10 @@ QString NavigatorPanel::changeRefusal() const {
         return tr("No book is open");
     }
     return m_readOnly ? readOnlyReason() : QString();
+}
+
+void NavigatorPanel::onSettingsChanged() {
+    updateAddButton();
 }
 
 void NavigatorPanel::updateAddButton() {

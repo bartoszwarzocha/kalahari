@@ -6775,6 +6775,38 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Applies to the menu the right mouse button opens on a node of the Navigator. The Book menu, the &quot;+&quot; button and the keys work the same in both variants.</source>
         <translation>Dotyczy menu, które otwiera prawy przycisk myszy na węźle Nawigatora. Menu „Książka”, przycisk „+” i klawisze działają tak samo w obu wariantach.</translation>
     </message>
+    <message>
+        <source>Add Element Window</source>
+        <translation>Okno „Dodaj element”</translation>
+    </message>
+    <message>
+        <source>Sections and the Workshop</source>
+        <translation>Sekcje i Warsztat</translation>
+    </message>
+    <message>
+        <source>The book and the Workshop</source>
+        <translation>Książka i Warsztat</translation>
+    </message>
+    <message>
+        <source>No choice</source>
+        <translation>Bez wyboru</translation>
+    </message>
+    <message>
+        <source>The window shows one group at a time, first the one of the node chosen in the Navigator.</source>
+        <translation>Okno pokazuje jedną grupę naraz, a na początek tę, w której jest węzeł zaznaczony w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>All kinds of the book at once.</source>
+        <translation>Wszystkie rodzaje książki naraz.</translation>
+    </message>
+    <message>
+        <source>Only the kinds of the place the window is opened on.</source>
+        <translation>Tylko rodzaje miejsca, w którym otwarto okno.</translation>
+    </message>
+    <message>
+        <source>Choice at the top of the window:</source>
+        <translation>Wybór u góry okna:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>

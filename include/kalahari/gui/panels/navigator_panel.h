@@ -66,9 +66,11 @@ namespace gui {
 /// at the end of the project, from where they go back to the book or are deleted.
 ///
 /// "Add..." on a node (its menu, the "+" button of the bar, Insert or Ctrl+Shift+Enter) asks
-/// for the Add Element window with the kinds of that node (requestAdd()). The menu of a node
-/// also names the kinds most added there ("Add Chapter...", "Add Part..."), unless the setting
-/// "navigator.addCommands" is "single". F2 renames the node and Delete deletes the element.
+/// for the Add Element window, which starts at that node (requestAdd()); with a choice at the
+/// top of the window ("navigator.addWindow") also on the project's node and with no node
+/// chosen, at the book. The menu of a node also names the kinds most added there ("Add
+/// Chapter...", "Add Part..."), unless the setting "navigator.addCommands" is "single". F2
+/// renames the node and Delete deletes the element.
 ///
 /// An element is dragged to any place of the book its kind can have (dropPlaceOf()), also in
 /// another group or section; a collapsed group or section under it opens after a moment, so
@@ -153,6 +155,13 @@ public:
     /// the kinds most added there, "Add Chapter...") or "single" (variant B: only "Add...")
     static constexpr const char* ADD_COMMANDS_SETTING = "navigator.addCommands";
 
+    /// @brief The setting of what the top of the Add Element window chooses from: "sections"
+    /// (the usual one), "book" or "place" (AddChooser)
+    static constexpr const char* ADD_WINDOW_SETTING = "navigator.addWindow";
+
+    /// @brief What the top of the Add Element window chooses from, as ADD_WINDOW_SETTING says
+    static AddChooser addChooser();
+
     /// @brief The name of the node of @p book: the writer's own, or "Book"
     static QString bookName(const core::ProjectBook& book);
 
@@ -164,9 +173,14 @@ public:
     static bool isWorkshopItem(const QTreeWidgetItem* item);
 
     /// @brief Where Add Element adds an element when it is opened on @p item, with the kinds
-    /// it offers there; none for the project, the files and the nodes of a book that is not
-    /// open
+    /// it offers there; none for the files and the nodes of a book that is not open. The
+    /// project's node and no node (nullptr) give the book when the window has a choice at its
+    /// top (addChooser()), else none.
     std::optional<AddTarget> addTargetOf(const QTreeWidgetItem* item) const;
+
+    /// @brief New settings: the "+" button follows what the Add Element window can be opened
+    /// on (addChooser())
+    void onSettingsChanged();
 
     /// @brief The tree of the project
     QTreeWidget* tree() const { return m_treeWidget; }
