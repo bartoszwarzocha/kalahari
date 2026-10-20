@@ -90,13 +90,14 @@ struct Window {
 
     /// The item of style @p id
     [[nodiscard]] QListWidgetItem* item(const QString& id) const {
+        QListWidgetItem* found = nullptr;
         for (int i = 0; i < list()->count(); ++i) {
             if (list()->item(i)->data(Qt::UserRole).toString() == id) {
-                return list()->item(i);
+                found = list()->item(i);
             }
         }
-        FAIL("no item of the style");
-        return nullptr;
+        REQUIRE(found != nullptr);
+        return found;
     }
 };
 
