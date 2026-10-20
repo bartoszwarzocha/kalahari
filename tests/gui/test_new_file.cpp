@@ -32,6 +32,7 @@
 #include <QFileInfo>
 #include <QFocusEvent>
 #include <QFrame>
+#include <QGuiApplication>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLabel>
@@ -1543,6 +1544,12 @@ TEST_CASE("Add Element: the sections of the book and the Workshop at the top, on
 }
 
 TEST_CASE("Add Element: the keys choose the sections at the top", "[gui][newfile][addelement]") {
+    // The keys are shortcuts of the window: they need an active window, which the offscreen
+    // platform has without a window on screen
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("needs an active window without a window on screen: run with "
+             "QT_QPA_PLATFORM=offscreen");
+    }
     test::OpenNovel book(QStringLiteral("Rain"));
     const core::BookTypeRegistry& types = book.pm.bookTypes();
     NewFileDialog dialog(bySections(addingOn(gui::AddTarget::Scope::Book)), types);
