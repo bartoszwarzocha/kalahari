@@ -146,6 +146,10 @@ KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
                     clearLines(first, last);
                 });
     }
+    // Qt takes U+FFFC for an object only while the layout has a handler
+    for (const int objectType : {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT, PAGE_BREAK_OBJECT}) {
+        registerHandler(objectType, this);
+    }
     // Runs whenever the event loop has nothing else to do, while blocks wait for layout
     m_backgroundTimer->setInterval(0);
     connect(m_backgroundTimer, &QTimer::timeout, this, &KalahariTextDocumentLayout::layoutStep);
@@ -1336,6 +1340,22 @@ void KalahariTextDocumentLayout::resizeInlineObject(QTextInlineObject item, int 
     item.setWidth(width > 0 ? width : UNWRAPPED_LINE_WIDTH);
     item.setAscent(ascent);
     item.setDescent(height - ascent);
+}
+
+QSizeF KalahariTextDocumentLayout::intrinsicSize(QTextDocument* /*doc*/, int /*posInDocument*/,
+                                                 const QTextFormat& format) {
+    const TextObject object = textObjectOf(format);
+    if (object == TextObject::None) {
+        return QSizeF();
+    }
+    const qreal width = document()->textWidth();
+    return QSizeF(width > 0 ? width : UNWRAPPED_LINE_WIDTH, objectHeight(object));
+}
+
+void KalahariTextDocumentLayout::drawObject(QPainter* painter, const QRectF& rect,
+                                            QTextDocument* /*doc*/, int posInDocument,
+                                            const QTextFormat& format) {
+    drawInlineObject(painter, rect, QTextInlineObject(), posInDocument, format);
 }
 
 void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRectF& rect,

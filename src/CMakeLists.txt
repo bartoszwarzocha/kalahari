@@ -11,7 +11,6 @@ set(KALAHARI_CORE_SOURCES
     editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     editor/annotation.cpp  # Comments, TODOs and notes anchored to the text
     editor/paragraph_styles.cpp  # Paragraph styles of a book, the objects of its text
-    editor/formatting_marks.cpp  # The formatting marks of a paragraph (¶ · ° → ↵ ¬)
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
     core/database_schema_manager.cpp
@@ -279,6 +278,7 @@ set(KALAHARI_SOURCES
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
     editor/kml_document_model.cpp        # KML reader
     editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
+    editor/formatting_marks.cpp               # The formatting marks of a paragraph (¶ · ° → ↵ ¬), drawn by the layout
     editor/text_source_adapter.cpp            # OpenSpec #00043 Phase 12.1: Text source adapters
     editor/editor_render_pipeline.cpp         # OpenSpec #00043 Phase 12.1: Unified render pipeline
     editor/editor_benchmark.cpp               # OpenSpec #00043 Phase 11.11: Performance benchmarks

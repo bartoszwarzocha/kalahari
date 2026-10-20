@@ -49,12 +49,26 @@ namespace kalahari::editor {
 ///   pages; a line that would cross the end of a text area moves to the next one. After
 ///   an edit, only blocks whose place on their page changed are placed again.
 /// - Full QTextCursor and undo/redo compatibility
-class KalahariTextDocumentLayout : public QAbstractTextDocumentLayout {
+/// - The objects of the text (a horizontal line, the breaks): the layout is their handler.
+///   Without a handler registered, Qt (6.5 and later) shapes U+FFFC as a plain character
+///   and never asks the layout to size or draw an object.
+class KalahariTextDocumentLayout : public QAbstractTextDocumentLayout,
+                                   public QTextObjectInterface {
     Q_OBJECT
+    Q_INTERFACES(QTextObjectInterface)
 
 public:
     explicit KalahariTextDocumentLayout(QTextDocument* doc);
     ~KalahariTextDocumentLayout() override = default;
+
+    /// @brief Size of an object of the text (QTextObjectInterface): as wide as the text, one
+    ///        line high, as resizeInlineObject() gives it
+    QSizeF intrinsicSize(QTextDocument* doc, int posInDocument,
+                         const QTextFormat& format) override;
+
+    /// @brief Draw an object of the text (QTextObjectInterface), as drawInlineObject() does
+    void drawObject(QPainter* painter, const QRectF& rect, QTextDocument* doc,
+                    int posInDocument, const QTextFormat& format) override;
 
     // ==========================================================================
     // QAbstractTextDocumentLayout required overrides

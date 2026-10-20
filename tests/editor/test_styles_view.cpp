@@ -23,6 +23,7 @@
 #include <QTextDocument>
 #include <QTextLayout>
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <vector>
@@ -125,13 +126,18 @@ int inkIn(const QImage& image, const QRect& band) {
     return count;
 }
 
-/// Pixels of the marks' color (green, as lightAppearance() gives them)
+/// A pixel of the marks' color (green, as lightAppearance() gives them) over white paper,
+/// also where a thin stroke covers it only in part (a pale green)
+bool isMarkPixel(QRgb pixel) {
+    return qGreen(pixel) - std::max(qRed(pixel), qBlue(pixel)) > 40;
+}
+
+/// Pixels of the marks' color
 int marksIn(const QImage& image) {
     int count = 0;
     for (int y = 0; y < image.height(); ++y) {
         for (int x = 0; x < image.width(); ++x) {
-            const QColor pixel = QColor::fromRgb(image.pixel(x, y));
-            if (pixel.green() > 120 && pixel.red() < 100 && pixel.blue() < 100) {
+            if (isMarkPixel(image.pixel(x, y))) {
                 ++count;
             }
         }
@@ -242,6 +248,11 @@ TEST_CASE("Styles view: a scene break looks as the settings say", "[editor][obje
     const QImage line = look(SceneBreakLook::Line);
     const QImage blank = look(SceneBreakLook::Blank);
     CHECK(layoutOf(*editor)->sceneBreakLook() == SceneBreakLook::Blank);
+
+    // Qt (6.5 and later) draws an object only through the handler of its kind
+    for (const int objectType : {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT, PAGE_BREAK_OBJECT}) {
+        CHECK(layoutOf(*editor)->handlerForObject(objectType) != nullptr);
+    }
 
     // Each look its own; a blank line nothing at all
     const QRect whole(QPoint(0, 0), band.size());
@@ -431,8 +442,7 @@ TEST_CASE("Formatting marks: drawn over the text in their color, only when shown
         // The line of the text, from its start
         for (int y = caret.top(); y <= caret.bottom(); ++y) {
             for (int x = caret.left(); x < caret.left() + caret.height() * 4; ++x) {
-                const QColor pixel = QColor::fromRgb(image.pixel(x, y));
-                if (pixel.green() > 120 && pixel.red() < 100 && pixel.blue() < 100) {
+                if (isMarkPixel(image.pixel(x, y))) {
                     markTop = std::min(markTop, y);
                     markBottom = std::max(markBottom, y);
                 } else if (qGray(image.pixel(x, y)) < 100 &&
