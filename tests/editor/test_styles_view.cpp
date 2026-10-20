@@ -18,6 +18,7 @@
 
 #include <QFontMetricsF>
 #include <QImage>
+#include <QScrollBar>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -26,6 +27,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <string>
 #include <vector>
 
 using namespace kalahari::editor;
@@ -106,24 +108,45 @@ QImage editorImage(BookEditor& editor) {
     return image;
 }
 
-/// The band of the widget a paragraph's first line takes (the caret before it)
+/// The band of the text area a paragraph's first line takes (the caret before it); the
+/// scroll bar is left out, as each system's style draws it its own way
 QRect bandOf(BookEditor& editor, int paragraph) {
     editor.setCursorPosition({paragraph, 0});
     const QRect caret = editor.inputMethodQuery(Qt::ImCursorRectangle).toRect();
-    return QRect(0, caret.top(), editor.width(), caret.height());
+    const QScrollBar* scrollBar = editor.verticalScrollBar();
+    const int width =
+        scrollBar != nullptr && !scrollBar->isHidden() ? scrollBar->x() : editor.width();
+    return QRect(0, caret.top(), width, caret.height());
 }
 
 /// Pixels of a band that are dark: the ink of the text's color
 int inkIn(const QImage& image, const QRect& band) {
     int count = 0;
     for (int y = std::max(0, band.top()); y <= std::min(image.height() - 1, band.bottom()); ++y) {
-        for (int x = 0; x < image.width(); ++x) {
+        const int right = std::min(image.width() - 1, band.right());
+        for (int x = std::max(0, band.left()); x <= right; ++x) {
             if (qGray(image.pixel(x, y)) < 128) {
                 ++count;
             }
         }
     }
     return count;
+}
+
+/// Where the ink of a band is, for the message of a failed check
+std::string inkPlace(const QImage& image, const QRect& band) {
+    QRect ink;
+    for (int y = std::max(0, band.top()); y <= std::min(image.height() - 1, band.bottom()); ++y) {
+        const int right = std::min(image.width() - 1, band.right());
+        for (int x = std::max(0, band.left()); x <= right; ++x) {
+            if (qGray(image.pixel(x, y)) < 128) {
+                ink |= QRect(x, y, 1, 1);
+            }
+        }
+    }
+    return QStringLiteral("ink x %1..%2, y %3..%4 of a band %5x%6")
+        .arg(ink.left()).arg(ink.right()).arg(ink.top()).arg(ink.bottom())
+        .arg(band.width()).arg(band.height()).toStdString();
 }
 
 /// A pixel of the marks' color (green, as lightAppearance() gives them) over white paper,
@@ -258,6 +281,7 @@ TEST_CASE("Styles view: a scene break looks as the settings say", "[editor][obje
     const QRect whole(QPoint(0, 0), band.size());
     CHECK(inkIn(asterisks, whole) > 0);
     CHECK(inkIn(line, whole) > 0);
+    INFO(inkPlace(blank, whole));
     CHECK(inkIn(blank, whole) == 0);
     CHECK(asterisks != asterism);
     CHECK(asterism != fleuron);
