@@ -52,7 +52,11 @@ void registerAllIcons() {
     iconRegistry.registerIcon("edit.cut", "resources/icons/twotone/content_cut.svg", "Cut");
     iconRegistry.registerIcon("edit.copy", "resources/icons/twotone/content_copy.svg", "Copy");
     iconRegistry.registerIcon("edit.paste", "resources/icons/twotone/content_paste.svg", "Paste");
-    iconRegistry.registerIcon("edit.pasteSpecial", "resources/icons/twotone/content_paste_go.svg", "Paste Special");
+    // As Word's paste options: a brush keeps the source's look, plain text leaves it
+    iconRegistry.registerIcon("edit.pasteSourceFormatting", "resources/icons/twotone/brush.svg", "Paste with Source Formatting");
+    iconRegistry.registerIcon("edit.pasteMergeFormatting", "resources/icons/twotone/style.svg", "Paste and Merge Formatting");
+    iconRegistry.registerIcon("edit.pasteTextOnly", "resources/icons/twotone/text_snippet.svg", "Paste Text Only");
+    iconRegistry.registerIcon("edit.pasteSpecial","resources/icons/twotone/content_paste_go.svg", "Paste Special");
     iconRegistry.registerIcon("edit.delete", "resources/icons/twotone/delete.svg", "Delete");
     iconRegistry.registerIcon("edit.selectAll", "resources/icons/twotone/select_all.svg", "Select All");
     iconRegistry.registerIcon("edit.selectWord", "resources/icons/twotone/highlight_alt.svg", "Select Word");

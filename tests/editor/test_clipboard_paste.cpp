@@ -562,8 +562,12 @@ TEST_CASE("Paste: the pastes of the Edit menu in each mode, whatever Paste does"
         editor->pasteAs(PasteMode::Text);
         CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xA</i></p><p><i>By</i></p>")));
         editor->undo();
+        // With its formatting as Paste gives it: its first paragraph joins the one it goes to
         editor->pasteAs(PasteMode::Source);
-        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>x</i></p><h1>A</h1><p><b>B</b><i>y</i></p>")));
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>x</i>A</p><p><b>B</b><i>y</i></p>")));
+        editor->undo();
+        editor->paste();
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>x</i>A</p><p><b>B</b><i>y</i></p>")));
     }
 }
 
