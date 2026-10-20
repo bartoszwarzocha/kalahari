@@ -4,6 +4,7 @@
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
+#include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/core/theme_manager.h"
 
 #include <QCheckBox>
@@ -183,6 +184,11 @@ AdvancedLogPage::AdvancedLogPage(QWidget* parent)
     bufferSize->setToolTip(tr("Higher values use more memory but keep more history"));
     addField(form, tr("Buffer Size (lines):"), bufferSize, "log.bufferSize")
         ->setToolTip(tr("Maximum number of log entries to keep in memory"));
+
+    addCheckBox(form, tr("Show the Log button on the Panels toolbar"),
+                ToolbarManager::LOG_BUTTON_KEY)
+        ->setToolTip(tr("With the button hidden, View > Panels > Log (F4) opens the log "
+                        "panel"));
 
     addNote(form, tr("The log panel displays application messages in real-time.\n\n"
                      "Buffer size determines how many log entries are kept in memory.\n"

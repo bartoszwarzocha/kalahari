@@ -28,6 +28,7 @@
 #include <QRegularExpression>
 #include <QFontComboBox>
 #include <QSpinBox>
+#include <QTimer>
 #include <QLabel>
 #include <QMenuBar>
 
@@ -131,7 +132,30 @@ ToolbarManager::ToolbarManager(QMainWindow* mainWindow)
     // Load user configurations (may override defaults)
     loadConfigurations();
 
+    // The Log button comes and goes with its setting (Settings > Advanced > Log); the listener
+    // runs on the thread that changes the setting, the toolbar is rebuilt on the window's
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (key != LOG_BUTTON_KEY) {
+                return;
+            }
+            QTimer::singleShot(0, &m_connectionContext, [this]() {
+                if (m_toolbars.count("view") != 0) {
+                    rebuildToolbar(QStringLiteral("view"));
+                }
+            });
+        });
+
     logger.debug("ToolbarManager: Initialized with {} toolbar configs", m_configs.size());
+}
+
+ToolbarManager::~ToolbarManager() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
+}
+
+bool ToolbarManager::showsCommand(const QString& toolbarId, const QString& cmdId) {
+    return toolbarId != QLatin1String("view") || cmdId != QLatin1String("view.log") ||
+           core::SettingsManager::getInstance().get<bool>(LOG_BUTTON_KEY, false);
 }
 
 void ToolbarManager::initializeConfigs() {
@@ -343,7 +367,9 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
 
     // Add actions and widgets using shared helper method
     for (const QString& cmdId : commands) {
-        addToolbarItem(toolbar, cmdId, registry);
+        if (showsCommand(toolbarId, cmdId)) {
+            addToolbarItem(toolbar, cmdId, registry);
+        }
     }
 
     setUpToolbar(toolbar);
@@ -813,7 +839,9 @@ void ToolbarManager::rebuildToolbar(const QString& toolbarId) {
 
     // Add actions and widgets using shared helper method
     for (const QString& cmdId : commands) {
-        addToolbarItem(toolbar, cmdId, registry);
+        if (showsCommand(toolbarId, cmdId)) {
+            addToolbarItem(toolbar, cmdId, registry);
+        }
     }
 
     logger.debug("ToolbarManager: Rebuilt toolbar '{}' with {} commands", id, commands.size());

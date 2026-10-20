@@ -74,7 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   toolbar shows a closed panel on top, brings an open panel under another tab on top, and
   closes the panel on top, which unchecks it; a floating panel closes at once. The Panels
   toolbar stands at the right edge of the window, next to the panels on the right, shown; a
-  toolbar layout saved before stays as it was until View > Reset Layout.
+  toolbar layout saved before stays as it was until View > Reset Layout. Its Log button is
+  hidden unless Settings > Advanced > Log > Show the Log button on the Panels toolbar is on;
+  View > Panels > Log (F4) opens the log panel either way.
 
 - **Navigator: the book and the Workshop, and one window that adds** - 2026-10-20. The
   Navigator shows the project, named after the title of its book, with two nodes: the book,

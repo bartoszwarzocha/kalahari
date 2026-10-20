@@ -35,6 +35,9 @@ std::map<std::string, json> buildDefaults() {
         {"panels.paragraphFolded", false},
         {"panels.propertiesSplit", ""},
         {"panels.stylePreview", false},
+        // The Log button of the Panels toolbar, for those who read the log (Settings >
+        // Advanced > Log); View > Panels > Log (F4) opens the panel anyway
+        {"panels.showLogButton", false},
         {"recent_files", json::array()},
 
         // Interface

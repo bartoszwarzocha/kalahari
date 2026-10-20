@@ -3450,6 +3450,14 @@ Menu zostaje tylko do końca tej sesji.</translation>
         <translation>Największa liczba wpisów dziennika przechowywanych w pamięci</translation>
     </message>
     <message>
+        <source>Show the Log button on the Panels toolbar</source>
+        <translation>Pokazuj przycisk dziennika na pasku paneli</translation>
+    </message>
+    <message>
+        <source>With the button hidden, View &gt; Panels &gt; Log (F4) opens the log panel</source>
+        <translation>Gdy przycisk jest ukryty, panel dziennika otwiera polecenie Widok &gt; Panele &gt; Dziennik (F4)</translation>
+    </message>
+    <message>
         <source>The log panel displays application messages in real-time.
 
 Buffer size determines how many log entries are kept in memory.

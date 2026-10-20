@@ -31,6 +31,8 @@
 #include <QToolBar>
 #include <QTreeWidget>
 
+#include <cstdio>
+
 using namespace kalahari::gui;
 
 namespace {
@@ -362,10 +364,11 @@ TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too, b
     QToolBar* toolbar = manager.getToolbar("view");
     REQUIRE(toolbar != nullptr);
 
-    // The very actions of View > Panels, so a button is checked with its menu item
+    // The very actions of View > Panels, so a button is checked with its menu item (the Log
+    // button only with its setting, below)
     const QList<QAction*> actions = toolbar->actions();
     for (const char* id : {"view.navigator", "view.properties", "view.paragraph", "view.search",
-                           "view.assistant", "view.annotations", "view.log"}) {
+                           "view.assistant", "view.annotations"}) {
         INFO(id);
         CHECK(actions.contains(registry.getAction(std::string(id))));
         CHECK(kalahari::core::IconRegistry::getInstance().hasIcon(QString::fromLatin1(id)));
@@ -381,6 +384,50 @@ TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too, b
     CHECK(window.toolBarArea(toolbar) == Qt::RightToolBarArea);
     CHECK(toolbar->orientation() == Qt::Vertical);
     CHECK_FALSE(toolbar->isHidden());
+}
+
+TEST_CASE("Panels toolbar: the Log button only with its setting", "[gui][toolbar]") {
+    // The user's test: the Log button is for those who read the log, not for every writer;
+    // View > Panels > Log (F4) opens the panel anyway
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    struct Back {
+        bool shown;
+        ~Back() {
+            try {
+                kalahari::core::SettingsManager::getInstance().set<bool>(
+                    ToolbarManager::LOG_BUTTON_KEY, shown);
+            } catch (...) {
+                std::fputs("The setting of the Log button could not be given back\n", stderr);
+            }
+        }
+    } back{settings.get<bool>(ToolbarManager::LOG_BUTTON_KEY, false)};
+    settings.set<bool>(ToolbarManager::LOG_BUTTON_KEY, false);
+
+    QMainWindow window;
+    ToolbarManager manager(&window);
+    manager.createToolbars(registry);
+    QToolBar* toolbar = manager.getToolbar("view");
+    REQUIRE(toolbar != nullptr);
+    QAction* log = registry.getAction(std::string("view.log"));
+    REQUIRE(log != nullptr);
+
+    // Hidden by default; the list of the toolbar keeps it, for Customize Toolbars
+    CHECK_FALSE(toolbar->actions().contains(log));
+    CHECK(manager.getToolbarCommands(QStringLiteral("view")).contains(QStringLiteral("view.log")));
+
+    // Settings > Advanced > Log: at its place, the last button
+    settings.set<bool>(ToolbarManager::LOG_BUTTON_KEY, true);
+    QApplication::processEvents();
+    REQUIRE_FALSE(toolbar->actions().isEmpty());
+    CHECK(toolbar->actions().last() == log);
+
+    settings.set<bool>(ToolbarManager::LOG_BUTTON_KEY, false);
+    QApplication::processEvents();
+    CHECK_FALSE(toolbar->actions().contains(log));
+    CHECK(toolbar->actions().contains(registry.getAction(std::string("view.annotations"))));
 }
 
 TEST_CASE("Toolbar manager: a renamed toolbar stays selected", "[gui][toolbar]") {

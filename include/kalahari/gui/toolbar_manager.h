@@ -71,7 +71,7 @@ public:
     ///
     /// ToolbarManager does NOT own toolbars - they are owned by QMainWindow.
     /// Qt parent-child ownership handles cleanup.
-    ~ToolbarManager() = default;
+    ~ToolbarManager();
 
     // Disable copy and move (manager class, single instance per MainWindow)
     ToolbarManager(const ToolbarManager&) = delete;
@@ -91,7 +91,8 @@ public:
     /// - Views: Continuous, Page Layout, [SEP], Distraction-Free, Focus, Typewriter Scrolling,
     ///   Dark Paper, Text Frame Border, [SEP], Zoom Out, Zoom In, Zoom 100%, Page Width,
     ///   Whole Page
-    /// - Panels (id "view"): Dashboard, Navigator, Properties, Search, Assistant, Log
+    /// - Panels (id "view"): Dashboard, Navigator, Properties, Paragraph and Styles, Search,
+    ///   Assistant, Annotations, Log (shown only with LOG_BUTTON_KEY)
     /// - Tools: Spellcheck, Grammar, Auto-correct, WordCount
     ///
     /// @param registry CommandRegistry to retrieve commands from
@@ -275,6 +276,10 @@ public:
     static constexpr const char* WIDGET_FONT_COMBO_ID = "_WIDGET_FONT_COMBO_";
     static constexpr const char* WIDGET_FONT_SIZE_ID = "_WIDGET_FONT_SIZE_";
 
+    /// The setting that shows the Log button on the Panels toolbar; without it the Panels
+    /// toolbar leaves the button out, while its list of commands keeps it
+    static constexpr const char* LOG_BUTTON_KEY = "panels.showLogButton";
+
 private:
     /// @brief Initialize toolbar configurations
     ///
@@ -313,6 +318,10 @@ private:
     /// @param cmdId Command ID or special widget ID (SEPARATOR_ID, WIDGET_FONT_COMBO_ID, etc.)
     /// @param registry CommandRegistry to retrieve command info
     void addToolbarItem(QToolBar* toolbar, const QString& cmdId, CommandRegistry& registry);
+
+    /// @brief Whether toolbar @p toolbarId shows command @p cmdId of its list: all do, but the
+    /// Log button of the Panels toolbar without LOG_BUTTON_KEY
+    [[nodiscard]] static bool showsCommand(const QString& toolbarId, const QString& cmdId);
 
     /// @brief Slot called when View menu toolbar action is toggled
     ///
@@ -372,6 +381,7 @@ public:
 private:
     std::function<EditorPanel*()> m_getEditorCallback;  ///< Callback to get current editor
     bool m_fontWidgetsSyncing = false;                   ///< Prevent recursive updates
+    int m_settingsListener = 0;  ///< Rebuilds the Panels toolbar when LOG_BUTTON_KEY changes
 
     /// Context of the connections whose lambdas capture this manager: declared last, so it is
     /// destroyed first and Qt drops those connections before the rest of the manager goes
