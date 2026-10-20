@@ -93,11 +93,10 @@ std::optional<AnnotationKind> annotationKindFromName(QStringView name);
 
 /// @brief The theme's editor color of a kind (the "editor" section of a theme file)
 ///
-/// Each kind has a color for the light and one for the dark paper, e.g.
-/// "annotationCommentLightPaper"; ThemeManager::editorColor() reads it.
+/// One color for each kind, e.g. "annotationComment": of its marks, of the frame an
+/// annotation is written in and of its cards in the panel; ThemeManager::editorColor() reads it.
 /// @param kind The kind
-/// @param darkPaper true: the color on dark paper (and on a dark panel)
-std::string annotationColorKey(AnnotationKind kind, bool darkPaper);
+std::string annotationColorKey(AnnotationKind kind);
 
 /// @brief A new annotation id, unique in every book
 QString newAnnotationId();

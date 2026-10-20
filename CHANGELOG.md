@@ -34,6 +34,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Move to Start, Move Up, Move Down and Move to End are greyed out and their tooltip says
   why: "The book has no other place for the part."
 
+- **The Spelling and Grammar panel** - 2026-10-17. View > Panels > Spelling and Grammar opens
+  a panel, a tab next to Annotations, with the misspelled words and the grammar issues of the
+  chapter or the file in front as cards, in the order of the text: the kind, the paragraph and
+  a few words around the issue, with a frame and a bar in the kind's color. The selected card
+  shows the whole sentence (for a grammar issue also what is wrong), up to five suggestions,
+  the first one filled with the kind's color, and Ignore Word and Add to Dictionary, or Ignore
+  Rule. The words of the suggestions are never shortened: the buttons that do not fit in a line
+  go on to the next one, and a word wider than the card goes on in the next line of its
+  button. The buttons at the top, "Spelling 3" and "Grammar 1", count the issues of each kind
+  and show or hide its cards ("–" for a kind not checked); the row under them says how far the
+  text is checked ("Checking the grammar: paragraph 12 of 40...", "The whole chapter is
+  checked.") or why it is not (no dictionary for the language, LanguageTool not prepared yet
+  or not answering). A card selected selects its issue in the text, and a click on an issue in
+  the text selects its card. A suggestion takes the issue's place as one step of Undo, the
+  other buttons do what they do in the menu of the wave, and then the next issue is selected;
+  a right click on a card, the menu key or Shift+F10 opens that menu. In a book open read-only
+  the suggestions, Ignore Word, Add to Dictionary and Ignore Rule are greyed out, on the cards
+  and in the menu of the wave, and their tooltip says why.
+  Up and Down, Home and End, Page Up and Page Down select the cards, Enter chooses the first
+  suggestion, 1 to 5 the suggestion with that number, Esc goes back to the text; the row at
+  the bottom reminds the keys. While the panel shows, the grammar of the whole text is checked
+  in the background, so the counts cover all of it (the free server api.languagetool.org
+  limits the requests per minute: there a long text takes longer). With no text in front the
+  panel says what to open; with the checking off it has the button Turn On Checking. Tools >
+  Next Spelling or Grammar Issue (F7) shows the issue it finds in the panel and gives the
+  panel the keys: a closed panel opens, and one under another tab comes on top. The panel
+  stays open until it is closed; Esc gives the keys back to the text. Settings > Editor >
+  Spelling has the group Spelling and Grammar Panel: the fix buttons on the selected card only
+  or on every card, F7 showing the issue in the panel or opening its menu at the word as
+  before, and the grammar checked in the whole text or only around the part in view while the
+  panel shows.
+
+- **Panels: a gear on the title bar of Annotations and of Spelling and Grammar** -
+  2026-10-17. The gear opens Settings at the panel's page: Annotations, or Editor > Spelling,
+  which has the group of the panel. Its tooltip says which: "Annotation Settings", "Spelling
+  and Grammar Settings".
+
+- **Settings: the colors of the misspelled words, the grammar issues and the annotations** -
+  2026-10-17. Settings > Editor > Spelling and Editor > Grammar have the group Colors: the color
+  of the wavy line under a misspelled word or a grammar issue, which is also the color of the
+  frames of their cards in the Spelling and Grammar panel. Settings > Annotations has one color
+  for the comments, one for the to-dos and one for the notes: of their marks in the text, of the
+  frame they are written in and of their cards in the Annotations panel. Each kind has one color
+  for the light and the dark paper alike, and each theme its own colors: until changed they are
+  the theme's, and a changed one is kept for the theme in use. Each group has the button
+  Restore Default Colors and the check box Optimize colors in themes (on by default, one setting
+  for the three pages): a color too light for a light background is then shown darker, and one
+  too dark for a dark background lighter (on the paper, and in the panels for the cards), as
+  little as makes it seen; off, the colors are shown exactly as set. A change reaches the open
+  editors and panels with Apply or OK, at once: only what shows these colors is drawn again,
+  not the whole window with its icons.
+
 - **New Book: only the book types the program has** - 2026-10-17. The New Book window lists
   the types whose packages the program has, and the user project; a type without its package
   is not on the list at all, not even greyed out (a Novel without its package was there,
@@ -233,6 +285,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   book is opened again.
 
 ### Changed
+
+- **About, New File, New Book, Customize Toolbars and the Icon Downloader in the program's
+  own style** - 2026-10-19. These windows have the heading, colors and buttons of the
+  program's other dialogs: the window's icon, its title and a sentence about what it does,
+  the content that scrolls on a small screen while the heading and the buttons stay in view,
+  and the buttons at the bottom. Each of them but About is higher by its heading. About
+  names the version of the program and of Qt in its heading, in place of the black banner,
+  and has only Close; its texts are in the font of the window, and Kalahari 1.0 is planned
+  for February 2027. In Customize Toolbars Reset to Defaults is at the left, apart from OK,
+  Cancel and Apply. In the Icon Downloader Esc and the close button of the window ask before
+  they stop a download, as Close does, and the preview draws the icon in the icon colors. In
+  New File the choice of the empty text file no longer moves the tiles and the title in a
+  low window. A test makes sure that the program shows no window of the system but those
+  that choose a file or a folder, and that each of its dialogs is built on the common base.
+
+- **Grammar: checked again at once after a fix, Undo or a paste** - 2026-10-19. A paragraph
+  changed otherwise than by typing (a fix chosen in the Spelling and Grammar panel or on the
+  menu of the wave, Undo, Redo, a paste) goes to LanguageTool at once: its issues are known
+  again without the second's wait meant for the end of typing.
 
 - **Dashboard: icons in the icon colors** - 2026-10-16. The icons of the books on the
   Dashboard take the icon colors of Settings > Appearance > Icons, as the toolbars and the
@@ -630,6 +701,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Browse Marketplace, Cloud Sync, Collaboration - 2026-10-03
 
 ### Fixed
+
+- **The words of the book and the dialogue dashes** - 2026-10-19. Count standalone dashes as
+  words (Settings > Editor > General > Word Count) counts them in the words of the book, its
+  sections, parts and chapters in the Properties panel too, and in the preview of a file of
+  the book, not only in the chapter in front: every chapter is counted again by the rule at
+  once, also one closed or saved before the rule changed, without reading its file again. A
+  chapter file is counted from its text when the book opens, not by the number it was saved
+  with.
+
+- **Numbers of the Properties panel** - 2026-10-19. The words, the chapters and the counts of
+  the statuses of the book, its sections, parts and chapters are written as the system writes
+  numbers, as the status bar and the counts of the document in front: 12 345 in Polish,
+  12,345 in English.
 
 - **Commands with nothing to work on** - 2026-10-16. Save without a document to save, and
   Save As without a document or on a chapter (saved with the book), are greyed out as Close

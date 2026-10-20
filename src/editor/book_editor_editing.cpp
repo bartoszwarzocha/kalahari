@@ -10,6 +10,7 @@
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <QAction>
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QMimeData>
@@ -241,6 +242,20 @@ void BookEditor::setReadOnly(bool readOnly)
     setAttribute(Qt::WA_InputMethodEnabled, !readOnly);
     if (readOnly && m_findReplaceBar != nullptr && !m_findReplaceBar->isHidden()) {
         m_findReplaceBar->showFind();
+    }
+}
+
+void BookEditor::setReadOnlyReason(const QString& reason)
+{
+    m_readOnlyReason = reason;
+}
+
+void BookEditor::disableWhileReadOnly(QAction* action) const
+{
+    action->setEnabled(!m_readOnly);
+    if (m_readOnly && !m_readOnlyReason.isEmpty()) {
+        action->setToolTip(m_readOnlyReason);
+        action->setStatusTip(m_readOnlyReason);
     }
 }
 

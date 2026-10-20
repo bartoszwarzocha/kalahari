@@ -3,7 +3,8 @@
 
 #pragma once
 
-#include <QDialog>
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
+
 #include <QString>
 #include <QStringList>
 
@@ -12,7 +13,6 @@ class QCheckBox;
 class QComboBox;
 class QProgressBar;
 class QLabel;
-class QPushButton;
 class QTextEdit;
 class QSvgWidget;
 
@@ -25,20 +25,24 @@ namespace core {
 namespace gui {
 
 /// @brief Dialog for downloading SVG icons from URL with preview
-class IconDownloaderDialog : public QDialog {
+///
+/// One of the program's own dialogs: Download (Enter) downloads the icon and keeps the dialog
+/// open; Close (Esc) asks first while a download is in progress.
+class IconDownloaderDialog : public dialogs::KalahariDialog {
     Q_OBJECT
 
 public:
     explicit IconDownloaderDialog(QWidget* parent = nullptr);
     ~IconDownloaderDialog() override;
 
+    /// @brief Download: start the download of the icon; the dialog stays open
+    void accept() override;
+
+    /// @brief Close, Esc and the close button of the window: while a download is in progress,
+    /// only after the user agrees to stop it
+    void reject() override;
+
 private slots:
-    /// @brief Start icon download
-    void onDownloadClicked();
-
-    /// @brief Cancel and close dialog
-    void onCancelClicked();
-
     /// @brief Handle download completion
     void onDownloadComplete(const QString& theme, const QString& svgData);
 
@@ -51,9 +55,6 @@ private slots:
 private:
     /// @brief Setup UI widgets
     void setupUi();
-
-    /// @brief Setup signal/slot connections
-    void setupConnections();
 
     /// @brief Validate input before download
     bool validateInput();
@@ -82,8 +83,6 @@ private:
     QComboBox* m_themeCombo;
     QProgressBar* m_progressBar;
     QLabel* m_statusLabel;
-    QPushButton* m_downloadButton;
-    QPushButton* m_cancelButton;
     QTextEdit* m_errorDisplay;
     QSvgWidget* m_previewWidget;
 

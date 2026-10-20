@@ -41,6 +41,20 @@ bool isParagraphBreak(char32_t ch) {
     }
 }
 
+/// @brief Count a run of non-space characters that has ended: a word when it has a letter or
+///        a digit, a dash standing alone when it is only dashes (a word too under @p rules)
+void countRun(TextCounts& counts, bool runIsWord, bool runIsDashes,
+              const WordCountRules& rules) {
+    if (runIsWord) {
+        ++counts.words;
+    } else if (runIsDashes) {
+        ++counts.dashes;
+        if (rules.dashesAreWords) {
+            ++counts.words;
+        }
+    }
+}
+
 }  // namespace
 
 TextCounts countText(QStringView text, const WordCountRules& rules) {
@@ -58,8 +72,8 @@ TextCounts countText(QStringView text, const WordCountRules& rules) {
         }
 
         if (QChar::isSpace(ch)) {
-            if (inRun && (runIsWord || (runIsDashes && rules.dashesAreWords))) {
-                ++counts.words;
+            if (inRun) {
+                countRun(counts, runIsWord, runIsDashes, rules);
             }
             inRun = false;
             if (!isLineBreak(ch)) {
@@ -81,13 +95,18 @@ TextCounts countText(QStringView text, const WordCountRules& rules) {
         runIsWord = (runIsWord && inRun) || QChar::isLetterOrNumber(ch);
         inRun = true;
     }
-    if (inRun && (runIsWord || (runIsDashes && rules.dashesAreWords))) {
-        ++counts.words;
+    if (inRun) {
+        countRun(counts, runIsWord, runIsDashes, rules);
     }
     if (inText) {
         ++counts.paragraphs;
     }
     return counts;
+}
+
+WordTally tallyWords(QStringView text) {
+    const WordCountRules rules;
+    return WordTally::of(countText(text, rules), rules);
 }
 
 int readingMinutes(int words) {

@@ -7,6 +7,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/grammar_check_service.h"
+#include "kalahari/editor/text_issue.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/grammar_setup.h"
@@ -157,6 +158,7 @@ EditorGrammarPage::EditorGrammarPage(GrammarCoordinator* grammar, QWidget* paren
                "book, like the spelling. LanguageTool does it, a free program that runs on this "
                "computer."));
     createChecking();
+    createColors();
     createRemote();
     createIgnoredRules();
     createAdvanced();
@@ -282,6 +284,16 @@ void EditorGrammarPage::createChecking() {
                                                     : std::string(GrammarCoordinator::LOCAL_MODE));
     };
     m_modeBinding = &bindCustom(std::move(mode));
+}
+
+void EditorGrammarPage::createColors() {
+    QFormLayout* form = addGroup(tr("Colors"));
+    addNote(form, tr("The color of the wavy line under a grammar issue and of the frames of its "
+                     "cards in the Spelling and Grammar panel. Each theme has its own colors: "
+                     "these are the colors of the current theme."));
+    addIssueColor(form, editor::TextIssueKind::Grammar);
+    addOptimizeColorsCheckBox(form);
+    addRestoreColorsButton(form);
 }
 
 void EditorGrammarPage::createRemote() {

@@ -1724,11 +1724,9 @@ TEST_CASE("New Book: on a small screen the buttons stay in view and the details 
     auto* area = dialog.findChild<kalahari::gui::FittingScrollArea*>();
     REQUIRE(area != nullptr);
     CHECK(area->verticalScrollBar()->isVisible());
-    const auto* buttons = dialog.findChild<QDialogButtonBox*>();
-    REQUIRE(buttons != nullptr);
-    REQUIRE(buttons->buttons().size() == 2);
-    for (const QAbstractButton* button : buttons->buttons()) {
+    for (const QAbstractButton* button : {dialog.acceptButton(), dialog.cancelButton()}) {
         INFO(button->text().toStdString());
+        CHECK(button->isVisible());
         CHECK(dialog.rect().contains(QRect(button->mapTo(&dialog, QPoint(0, 0)), button->size())));
     }
 

@@ -29,6 +29,7 @@ constexpr int MARGIN = 20;                ///< Around the heading and around the
 constexpr int SPACING = 12;               ///< Between the parts of the content
 constexpr int LABEL_SPACING = 4;          ///< Between a label and its field, a title and its sentence
 constexpr int COMPACT_MARGIN = 8;         ///< Above and below a compact heading
+constexpr int LINE_HEIGHT = 1;            ///< Of the line under the heading
 constexpr int MINIMUM_WIDTH = 460;        ///< Room for a title in a field
 constexpr qreal TITLE_SCALE = 1.3;        ///< Size of the heading's title against the dialog's font
 constexpr qreal COMPACT_TITLE_SCALE = 1.1;
@@ -45,37 +46,37 @@ KalahariDialog::KalahariDialog(QWidget* parent)
     layout->setSpacing(0);
 
     // Heading: on the background of text fields, with a line under it
-    auto* heading = new QFrame(this);
-    heading->setObjectName(QStringLiteral("kalahariDialogHeading"));
-    heading->setAutoFillBackground(true);
-    heading->setBackgroundRole(QPalette::Base);
-    m_headingLayout = new QHBoxLayout(heading);
+    m_heading = new QFrame(this);
+    m_heading->setObjectName(QStringLiteral("kalahariDialogHeading"));
+    m_heading->setAutoFillBackground(true);
+    m_heading->setBackgroundRole(QPalette::Base);
+    m_headingLayout = new QHBoxLayout(m_heading);
     m_headingLayout->setSpacing(SPACING + LABEL_SPACING);
 
-    m_iconLabel = new QLabel(heading);
+    m_iconLabel = new QLabel(m_heading);
     m_iconLabel->hide();
     m_headingLayout->addWidget(m_iconLabel, 0, Qt::AlignTop);
 
     // Both texts in the color of text in fields: the description is read, not skimmed
     auto* headingTexts = new QVBoxLayout();
     headingTexts->setSpacing(LABEL_SPACING);
-    m_titleLabel = new QLabel(heading);
+    m_titleLabel = new QLabel(m_heading);
     m_titleLabel->setTextFormat(Qt::PlainText);
     m_titleLabel->setWordWrap(true);
     m_titleLabel->setForegroundRole(QPalette::Text);
     headingTexts->addWidget(m_titleLabel);
 
-    m_descriptionLabel = new QLabel(heading);
+    m_descriptionLabel = new QLabel(m_heading);
     m_descriptionLabel->setTextFormat(Qt::PlainText);
     m_descriptionLabel->setWordWrap(true);
     m_descriptionLabel->setForegroundRole(QPalette::Text);
     m_descriptionLabel->hide();
     headingTexts->addWidget(m_descriptionLabel);
     m_headingLayout->addLayout(headingTexts, 1);
-    layout->addWidget(heading);
+    layout->addWidget(m_heading);
 
     auto* line = new QFrame(this);
-    line->setFixedHeight(1);
+    line->setFixedHeight(LINE_HEIGHT);
     line->setAutoFillBackground(true);
     line->setBackgroundRole(QPalette::Mid);
     layout->addWidget(line);
@@ -241,6 +242,14 @@ QMargins KalahariDialog::frameMargins() const
     const int border = style()->pixelMetric(QStyle::PM_DefaultFrameWidth, nullptr, this);
     const int titleBar = style()->pixelMetric(QStyle::PM_TitleBarHeight, nullptr, this);
     return {border, titleBar + border, border, border};
+}
+
+QSize KalahariDialog::withHeading(const QSize& size) const
+{
+    // The heading's texts wrap: at the width of the dialog they take the lines they will have
+    const int heading = m_heading->hasHeightForWidth() ? m_heading->heightForWidth(size.width())
+                                                       : m_heading->sizeHint().height();
+    return {size.width(), size.height() + heading + LINE_HEIGHT};
 }
 
 void KalahariDialog::updateHeadingStyle()

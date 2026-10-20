@@ -10,10 +10,8 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/section_words.h"
 #include "kalahari/gui/utils/layout_utils.h"
-#include "kalahari/gui/widgets/fitting_scroll_area.h"
 
 #include <QAbstractItemView>
-#include <QDialogButtonBox>
 #include <QEvent>
 #include <QFileInfo>
 #include <QFocusEvent>
@@ -52,7 +50,8 @@ namespace dialogs {
 namespace {
 
 constexpr int MINIMUM_WIDTH = 700;         ///< The description and three tiles in a row
-constexpr QSize DEFAULT_SIZE{880, 740};    ///< The tiles of the main part and the place in view
+constexpr QSize DEFAULT_SIZE{880, 740};    ///< The tiles of the main part and the place, under
+                                           ///< the heading
 constexpr int DESCRIPTION_WIDTH = 250;     ///< Of the description at the left, as in New Book
 constexpr int DESCRIPTION_ICON_SIZE = 64;  ///< Of the icon above the description
 constexpr int NAME_POINT_SIZE = 12;        ///< Of the name of the kind above its description
@@ -381,50 +380,47 @@ NewFileDialog::Book NewFileDialog::openBook(const QString& untitled)
 
 NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& registry,
                              QWidget* parent)
-    : QDialog(parent)
+    : KalahariDialog(parent)
     , m_book(book)
     , m_registry(&registry)
 {
     //: The window of a new element of the open book. In Polish: Nowy plik
-    setWindowTitle(tr("New File"));
+    setHeading(tr("New File"),
+               //: The heading of the New File window. In Polish: Wybierz rodzaj pliku, jego
+               //: tytuł i miejsce, w którym ma się znaleźć.
+               tr("Choose the kind of the file, its title and where it goes."));
+    setHeadingIcon(QStringLiteral("file.new"));
+    // A low heading leaves the room to the tiles
+    setCompactHeading(true);
 
     // As wide as the description and three tiles in a row; the height of the content can be
     // lower: on a small screen (1366x768 at 150%) the content scrolls above the buttons
     setMinimumWidth(MINIMUM_WIDTH);
 
-    auto* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(11);
-    mainLayout->setContentsMargins(11, 11, 11, 11);
-
     // The description of the chosen kind at the left, along the whole height, and at the
     // right the choices in their order: the kind, the title, the place. So the title is close
     // under the tiles and stays in view also when the content scrolls on a small screen.
     auto* content = new QWidget(this);
-    auto* contentLayout = new QHBoxLayout(content);
-    contentLayout->setSpacing(11);
-    contentLayout->setContentsMargins(0, 0, 0, 0);
-    contentLayout->addWidget(createDescriptionPanel(content));
+    auto* columns = new QHBoxLayout(content);
+    columns->setSpacing(11);
+    columns->setContentsMargins(0, 0, 0, 0);
+    columns->addWidget(createDescriptionPanel(content));
     auto* choices = new QVBoxLayout();
     choices->setSpacing(11);
     // The tiles and the place share the room the window has above their minimum, 3 to 2
     choices->addWidget(createKindsGroup(content), 3);
     choices->addLayout(createTitleRow(content));
     choices->addWidget(createPlaceGroup(content), 2);
-    contentLayout->addLayout(choices, 1);
-    mainLayout->addWidget(new FittingScrollArea(content, this), 1);
+    columns->addLayout(choices, 1);
+    contentLayout()->addWidget(content, 1);
 
-    auto* buttons = new QDialogButtonBox(this);
     //: The button that makes the new element. In Polish: Utwórz
-    m_createButton = buttons->addButton(tr("Create"), QDialogButtonBox::AcceptRole);
-    buttons->addButton(QDialogButtonBox::Cancel);
-    connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    mainLayout->addWidget(buttons);
+    setAcceptText(tr("Create"));
 
     fillKinds();
     connect(m_kindList, &QListWidget::currentItemChanged, this, &NewFileDialog::onKindChanged);
     connect(m_kindList, &QListWidget::itemDoubleClicked, this, [this]() {
-        if (m_createButton->isEnabled()) {
+        if (acceptButton()->isEnabled()) {
             accept();
         }
     });
@@ -467,8 +463,8 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
         onKindChanged();
     }
 
-    // The size of a big screen, or less on a smaller one
-    utils::resizeWithinScreen(this, DEFAULT_SIZE);
+    // The size of a big screen, higher by the heading, or less on a smaller one
+    utils::resizeWithinScreen(this, withHeading(DEFAULT_SIZE));
 
     // Typing replaces the title
     m_titleEdit->selectAll();
@@ -493,7 +489,7 @@ core::ElementPlace NewFileDialog::place() const
 
 void NewFileDialog::changeEvent(QEvent* event)
 {
-    QDialog::changeEvent(event);
+    KalahariDialog::changeEvent(event);
     if (event->type() == QEvent::FontChange && m_kindList) {
         sizeTiles();
     }
@@ -508,7 +504,7 @@ bool NewFileDialog::eventFilter(QObject* watched, QEvent* event)
         static_cast<QFocusEvent*>(event)->reason() == Qt::MouseFocusReason) {
         QTimer::singleShot(0, m_titleEdit, &QLineEdit::selectAll);
     }
-    return QDialog::eventFilter(watched, event);
+    return KalahariDialog::eventFilter(watched, event);
 }
 
 QWidget* NewFileDialog::createDescriptionPanel(QWidget* parent)
@@ -602,26 +598,9 @@ QWidget* NewFileDialog::createPlaceGroup(QWidget* parent)
     auto* group = new QGroupBox(tr("Place"), parent);
     auto* layout = new QVBoxLayout(group);
 
-    // An empty text file goes outside the book, at first, or with it; the other tiles do not
-    // have these buttons
-    auto* emptyFilePlaces = new QHBoxLayout();
-    emptyFilePlaces->setSpacing(16);
-    //: The place of an empty text file: not in the book, in a tab of its own. In Polish:
-    //: &Poza książką
-    m_outsideButton = new QRadioButton(tr("&Outside the book"), group);
-    //: The place of an empty text file: in the book, among its files outside its text
-    //: ("Other Files" in the Navigator). In Polish: &W książce
-    m_insideButton = new QRadioButton(tr("&In the book"), group);
-    m_outsideButton->setChecked(true);
-    m_outsideButton->hide();
-    m_insideButton->hide();
-    emptyFilePlaces->addWidget(m_outsideButton);
-    emptyFilePlaces->addWidget(m_insideButton);
-    emptyFilePlaces->addStretch(1);
-    layout->addLayout(emptyFilePlaces);
-
     // The list of the part of the book with the element in its place, named by the group; an
-    // empty text file has no place in it, and a note says where it goes instead
+    // empty text file has no place in it, and a note says where it goes instead. Both pages
+    // keep their room, so a choice of a tile does not move the tiles or the title.
     m_placePages = new QStackedWidget(group);
     m_picker = new ElementPlacePicker(m_placePages);
     m_picker->setLabel(QString());
@@ -632,12 +611,36 @@ QWidget* NewFileDialog::createPlaceGroup(QWidget* parent)
     auto* notePage = new QWidget(m_placePages);
     auto* noteLayout = new QVBoxLayout(notePage);
     noteLayout->setContentsMargins(0, 0, 0, 0);
+
+    // An empty text file goes outside the book, at first, or with it; the other tiles do not
+    // have these buttons
+    auto* emptyFilePlaces = new QHBoxLayout();
+    emptyFilePlaces->setSpacing(16);
+    //: The place of an empty text file: not in the book, in a tab of its own. In Polish:
+    //: &Poza książką
+    m_outsideButton = new QRadioButton(tr("&Outside the book"), notePage);
+    //: The place of an empty text file: in the book, among its files outside its text
+    //: ("Other Files" in the Navigator). In Polish: &W książce
+    m_insideButton = new QRadioButton(tr("&In the book"), notePage);
+    m_outsideButton->setChecked(true);
+    emptyFilePlaces->addWidget(m_outsideButton);
+    emptyFilePlaces->addWidget(m_insideButton);
+    emptyFilePlaces->addStretch(1);
+    noteLayout->addLayout(emptyFilePlaces);
+
     m_placeNote = new QLabel(notePage);
     m_placeNote->setTextFormat(Qt::PlainText);
     m_placeNote->setWordWrap(true);
     noteLayout->addWidget(m_placeNote);
     noteLayout->addStretch(1);
     m_placePages->addWidget(notePage);
+    // The page not shown counts as well: the place keeps the room of the list whichever page
+    // is shown
+    for (QWidget* page : {static_cast<QWidget*>(m_picker), notePage}) {
+        QSizePolicy policy = page->sizePolicy();
+        policy.setRetainSizeWhenHidden(true);
+        page->setSizePolicy(policy);
+    }
     layout->addWidget(m_placePages);
     return group;
 }
@@ -776,8 +779,6 @@ void NewFileDialog::onKindChanged()
 {
     // An empty text file has no place in the list of the book: the note says where it goes
     const bool emptyFile = emptyFileChosen();
-    m_outsideButton->setVisible(emptyFile);
-    m_insideButton->setVisible(emptyFile);
     m_placePages->setCurrentWidget(emptyFile ? m_placeNote->parentWidget()
                                              : static_cast<QWidget*>(m_picker));
     if (emptyFile) {
@@ -883,10 +884,10 @@ void NewFileDialog::updateCreateButton()
 {
     // An empty text file needs only its title
     if (emptyFileChosen()) {
-        m_createButton->setEnabled(!title().isEmpty());
+        acceptButton()->setEnabled(!title().isEmpty());
         return;
     }
-    m_createButton->setEnabled(chosen() && !title().isEmpty() && !m_picker->places().isEmpty());
+    acceptButton()->setEnabled(chosen() && !title().isEmpty() && !m_picker->places().isEmpty());
 }
 
 } // namespace dialogs

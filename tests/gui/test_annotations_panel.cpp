@@ -339,6 +339,46 @@ TEST_CASE("Annotations: the colors of the cards are readable on any surface",
     }
 }
 
+TEST_CASE("Colors: a kind's color as Optimize colors in themes shows it", "[gui][annotations]") {
+    const QColor white(Qt::white);
+    const QColor darkPaper(35, 35, 40);
+    const QColor faint(QStringLiteral("#f2c0c0"));
+    const QColor deep(QStringLiteral("#302050"));
+
+    // Not optimized: the color itself, seen or not
+    CHECK(shownColor(faint, white, false) == faint);
+
+    // Optimized: darker on a light background and lighter on a dark one, as little as makes it
+    // seen there
+    const QColor darker = shownColor(faint, white, true);
+    CHECK(contrastRatio(darker, white) >= MIN_MARK_CONTRAST);
+    CHECK(contrastRatio(darker, white) < MIN_MARK_CONTRAST + 0.2);
+    CHECK(darker.lightness() < faint.lightness());
+    const QColor lighter = shownColor(deep, darkPaper, true);
+    CHECK(contrastRatio(lighter, darkPaper) >= MIN_MARK_CONTRAST);
+    CHECK(lighter.lightness() > deep.lightness());
+
+    // Seen already, or no color: as it is
+    CHECK(shownColor(faint, darkPaper, true) == faint);
+    CHECK(shownColor(deep, white, true) == deep);
+    CHECK_FALSE(shownColor(QColor(), white, true).isValid());
+
+    // The kinds' colors of both themes, on both papers and on the panels of both themes
+    const QColor lightBase = themeNamed(QStringLiteral("Light")).palette.base;
+    const QColor darkBase = themeNamed(QStringLiteral("Dark")).palette.base;
+    for (const QString& name : {QStringLiteral("Light"), QStringLiteral("Dark")}) {
+        const core::Theme theme = themeNamed(name);
+        CHECK(theme.editor.size() == 5);
+        for (const auto& [key, color] : theme.editor) {
+            for (const QColor& background : {white, darkPaper, lightBase, darkBase}) {
+                INFO(name.toStdString() << " " << key << " on " << background.name().toStdString());
+                CHECK(contrastRatio(shownColor(color, background, true), background) >=
+                      MIN_MARK_CONTRAST);
+            }
+        }
+    }
+}
+
 TEST_CASE("Annotations panel: its texts are readable in the light and the dark theme",
           "[gui][annotations]") {
     for (const QString& name : {QStringLiteral("Light"), QStringLiteral("Dark")}) {

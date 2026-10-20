@@ -763,8 +763,9 @@ void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& te
     // In the colors of the paper, also when the paper or the theme changes
     connect(writing.editor, &editor::BookEditor::appearanceChanged, frame,
             [this]() { colorFrame(); });
-    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, frame,
-            [this]() { colorFrame(); });
+    auto& themes = core::ThemeManager::getInstance();
+    connect(&themes, &core::ThemeManager::themeChanged, frame, [this]() { colorFrame(); });
+    connect(&themes, &core::ThemeManager::editorColorsChanged, frame, [this]() { colorFrame(); });
     colorFrame();
 
     // At the end of its fragment, or on its place, as the text moves
@@ -893,9 +894,9 @@ void AnnotationsCoordinator::colorFrame() {
         break;
     }
     if (!kind.isValid()) {
-        kind = core::ThemeManager::getInstance().editorColor(
-            editor::annotationColorKey(m_writing->kind, mode == editor::EditorColorMode::Dark),
-            text);
+        const auto& themes = core::ThemeManager::getInstance();
+        kind = shownColor(themes.editorColor(editor::annotationColorKey(m_writing->kind), text),
+                          paper, themes.optimizesEditorColors());
     }
     m_frame->setColors(annotationCardColors(kind, paper, text));
 }

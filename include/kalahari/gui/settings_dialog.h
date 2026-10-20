@@ -45,6 +45,11 @@ class SettingsDialog : public dialogs::KalahariDialog {
     Q_OBJECT
 
 public:
+    /// @brief The pages the dialog can be opened at (openPage())
+    static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
+    static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
+    static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
+
     /// @brief Constructor
     /// @param parent Parent widget (usually MainWindow)
     /// @param diagnosticMode Whether the diagnostic menu is shown now (not a stored setting)
@@ -71,6 +76,12 @@ public:
     /// @brief Open the Keyboard Shortcuts page (Help > Keyboard Shortcuts), the cursor in its
     /// search
     void showShortcutsPage();
+
+    /// @brief Open a page: SPELLING_PAGE (the gear of the Spelling and Grammar panel),
+    /// ANNOTATIONS_PAGE (the gear of the Annotations panel) or SHORTCUTS_PAGE (as
+    /// showShortcutsPage())
+    /// @return Whether the dialog has the page
+    bool openPage(const QString& page);
 
 public slots:
     /// @brief OK: write the changed settings, then close; a value that cannot be written
@@ -107,6 +118,10 @@ private:
     /// @note Called once when the Theme or the Icons page is built
     void connectPages();
 
+    /// @brief Keep the shared check boxes of a newly built page (SettingsPage::SHARED_CHECK_BOX)
+    ///        alike with those of the pages built before it: the same choice on every page
+    void shareCheckBoxes(QWidget* page);
+
     /// @brief Show the length fields of the built pages in another unit
     void setLengthUnit(LengthUnit unit);
 
@@ -128,7 +143,7 @@ private:
     std::vector<SettingsPage*> m_pages;                  ///< Built pages with settings
     ThemePage* m_themePage = nullptr;
     IconsPage* m_iconsPage = nullptr;
-    QTreeWidgetItem* m_shortcutsItem = nullptr;
+    std::map<QString, QTreeWidgetItem*> m_pageItems;  ///< The pages of openPage()
     std::vector<QTreeWidgetItem*> m_plannedItems;  ///< Pages of options not available yet
 };
 

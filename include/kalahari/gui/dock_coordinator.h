@@ -31,6 +31,7 @@ class DashboardPanel;
 class SearchPanel;
 class AssistantPanel;
 class AnnotationsPanel;
+class SpellingPanel;
 class InfoBar;
 class StandaloneInfoBar;
 
@@ -158,6 +159,9 @@ public:
     /// @brief Get Annotations panel
     [[nodiscard]] AnnotationsPanel* annotationsPanel() const { return m_annotationsPanel; }
 
+    /// @brief Get the Spelling and Grammar panel
+    [[nodiscard]] SpellingPanel* spellingPanel() const { return m_spellingPanel; }
+
     /// @brief Get Standalone info bar
     [[nodiscard]] StandaloneInfoBar* standaloneInfoBar() const { return m_standaloneInfoBar; }
 
@@ -185,6 +189,9 @@ public:
 
     /// @brief Get Annotations dock widget
     [[nodiscard]] QDockWidget* annotationsDock() const { return m_annotationsDock; }
+
+    /// @brief Get the dock of the Spelling and Grammar panel
+    [[nodiscard]] QDockWidget* spellingDock() const { return m_spellingDock; }
 
     // =========================================================================
     // Central widget accessors
@@ -217,6 +224,9 @@ public:
 
     /// @brief Get Annotations toggle action
     [[nodiscard]] QAction* viewAnnotationsAction() const { return m_viewAnnotationsAction; }
+
+    /// @brief Get the Spelling and Grammar toggle action
+    [[nodiscard]] QAction* viewSpellingAction() const { return m_viewSpellingAction; }
 
 signals:
     /// @brief Emitted when tab close is requested
@@ -276,6 +286,11 @@ signals:
     /// @brief Emitted when Log panel requests settings dialog
     void openSettingsRequested();
 
+    /// @brief The gear on the title bar of a panel was clicked: the settings dialog is to open
+    /// at the panel's page
+    /// @param page The page (SettingsDialog::openPage())
+    void settingsPageRequested(const QString& page);
+
     /// @brief Emitted when add chapter is requested from navigator context menu
     /// @param groupId Group (part) to add the chapter to; empty: the body of the book
     void requestAddChapter(const QString& groupId);
@@ -306,6 +321,25 @@ private:
     /// @brief Create Annotations dock widget
     void createAnnotationsDock();
 
+    /// @brief Create the dock of the Spelling and Grammar panel (hidden until opened)
+    void createSpellingDock();
+
+    /// @brief Add a button to the title bar of a dock (setupDockTitleBar()), before its Float
+    /// and Close buttons; its icon follows the theme (refreshDockIcons())
+    /// @param dock The dock
+    /// @param iconId Icon command ID
+    /// @param toolTip Translated tooltip
+    /// @return The button
+    QToolButton* addTitleBarButton(QDockWidget* dock, const QString& iconId,
+                                   const QString& toolTip);
+
+    /// @brief Add the gear to the title bar of a dock: it opens the settings dialog at the
+    /// panel's page (settingsPageRequested())
+    /// @param dock The dock
+    /// @param page The page (SettingsDialog::openPage())
+    /// @param toolTip Translated tooltip
+    void addSettingsButton(QDockWidget* dock, const QString& page, const QString& toolTip);
+
     /// @brief Create central tabbed workspace
     void createCentralWidget();
 
@@ -335,6 +369,7 @@ private:
     QDockWidget* m_searchDock{nullptr};
     QDockWidget* m_assistantDock{nullptr};
     QDockWidget* m_annotationsDock{nullptr};
+    QDockWidget* m_spellingDock{nullptr};
 
     // Panels
     NavigatorPanel* m_navigatorPanel{nullptr};
@@ -344,6 +379,7 @@ private:
     SearchPanel* m_searchPanel{nullptr};
     AssistantPanel* m_assistantPanel{nullptr};
     AnnotationsPanel* m_annotationsPanel{nullptr};
+    SpellingPanel* m_spellingPanel{nullptr};
 
     // Central widget
     QTabWidget* m_centralTabs{nullptr};
@@ -358,6 +394,7 @@ private:
     QAction* m_viewSearchAction{nullptr};
     QAction* m_viewAssistantAction{nullptr};
     QAction* m_viewAnnotationsAction{nullptr};
+    QAction* m_viewSpellingAction{nullptr};
 
     // Icon tracking for refresh
     QList<QLabel*> m_dockIconLabels;

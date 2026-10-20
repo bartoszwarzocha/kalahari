@@ -15,6 +15,7 @@
 #include <QApplication>
 #include <QByteArray>
 #include <QColor>
+#include <QDialogButtonBox>
 #include <QFile>
 #include <QImage>
 #include <QLabel>
@@ -27,6 +28,7 @@
 #include <QSvgRenderer>
 #include <QTimer>
 #include <QToolBar>
+#include <QTreeWidget>
 
 using namespace kalahari::gui;
 
@@ -350,6 +352,84 @@ TEST_CASE("Toolbar manager: a renamed toolbar stays selected", "[gui][toolbar]")
     CHECK(list->currentItem()->data(Qt::UserRole).toString() == id);
     CHECK(list->currentItem()->text().endsWith(QStringLiteral("Second")));
     CHECK(rename->isEnabled());
+
+    manager.deleteUserToolbar(id);
+}
+
+TEST_CASE("Toolbar manager: Apply and OK save a changed toolbar, Reset to Defaults stands apart",
+          "[gui][toolbar]") {
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+
+    QMainWindow window;
+    ToolbarManager manager(&window);
+    manager.createToolbars(CommandRegistry::getInstance());
+    const QString id = manager.createUserToolbar(QStringLiteral("Mine"));
+
+    dialogs::ToolbarManagerDialog dialog(&manager, &window);
+    dialog.show();
+    QApplication::processEvents();
+    CHECK(dialog.windowTitle() == QStringLiteral("Customize Toolbars"));
+    CHECK(dialog.acceptButton()->text() == QStringLiteral("OK"));
+    REQUIRE(dialog.applyButton()->isVisibleTo(&dialog));
+    CHECK_FALSE(dialog.applyButton()->isEnabled());
+
+    // Reset to Defaults is no button that closes the dialog
+    QPushButton* reset = nullptr;
+    QPushButton* add = nullptr;
+    for (QPushButton* button : dialog.findChildren<QPushButton*>()) {
+        if (button->text() == QStringLiteral("Reset to Defaults")) {
+            reset = button;
+        } else if (button->text() == QStringLiteral("Add to Toolbar >>")) {
+            add = button;
+        }
+    }
+    REQUIRE(reset != nullptr);
+    REQUIRE(add != nullptr);
+    CHECK(qobject_cast<QDialogButtonBox*>(reset->parentWidget()) == nullptr);
+    CHECK(reset->mapTo(&dialog, QPoint(0, 0)).x() <
+          dialog.acceptButton()->mapTo(&dialog, QPoint(0, 0)).x());
+
+    // The new toolbar, and the first command of the first category on it
+    for (QListWidget* list : dialog.findChildren<QListWidget*>()) {
+        for (int i = 0; i < list->count(); ++i) {
+            if (list->item(i)->data(Qt::UserRole).toString() == id) {
+                list->setCurrentRow(i);
+            }
+        }
+    }
+    auto* commands = dialog.findChild<QTreeWidget*>();
+    REQUIRE(commands != nullptr);
+    REQUIRE(commands->topLevelItemCount() > 0);
+    QTreeWidgetItem* command = commands->topLevelItem(0)->child(0);
+    REQUIRE(command != nullptr);
+    commands->setCurrentItem(command);
+    REQUIRE(add->isEnabled());
+    add->click();
+    const QString commandId = command->data(0, Qt::UserRole).toString();
+    CHECK(dialog.applyButton()->isEnabled());
+    CHECK(dialog.windowTitle() == QStringLiteral("Customize Toolbars *"));
+    CHECK(manager.getToolbarCommands(id).isEmpty());
+
+    SECTION("Apply saves the toolbar and keeps the dialog open") {
+        dialog.applyButton()->click();
+        CHECK(manager.getToolbarCommands(id) == QStringList{commandId});
+        CHECK_FALSE(dialog.applyButton()->isEnabled());
+        CHECK(dialog.isVisible());
+    }
+
+    SECTION("OK saves the toolbar and closes the dialog") {
+        dialog.acceptButton()->click();
+        CHECK(manager.getToolbarCommands(id) == QStringList{commandId});
+        CHECK(dialog.result() == QDialog::Accepted);
+        CHECK_FALSE(dialog.isVisible());
+    }
+
+    SECTION("Cancel leaves the toolbar as it was") {
+        dialog.cancelButton()->click();
+        CHECK(manager.getToolbarCommands(id).isEmpty());
+        CHECK(dialog.result() == QDialog::Rejected);
+    }
 
     manager.deleteUserToolbar(id);
 }

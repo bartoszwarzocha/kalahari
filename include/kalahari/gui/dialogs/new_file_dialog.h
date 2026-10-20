@@ -6,9 +6,9 @@
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/widgets/element_place_picker.h"
 
-#include <QDialog>
 #include <QList>
 #include <QString>
 #include <QStringList>
@@ -46,10 +46,11 @@ struct NewFileKind {
 /// @brief New File: a new element of the open book, which opens in the editor, or an empty
 /// text file
 ///
-/// The choices go from the top down: the kind, the title, the place. The kinds of the book are
-/// tiles in groups of the parts of the book (front, main and back), named as the Navigator
-/// names them; the groups of a book without sections are named after their place in the book
-/// ("Content"). Under the tiles is the title of the new element, and under it its place in the
+/// One of the program's own dialogs: its heading says what the window makes, and Create and
+/// Cancel are at the bottom. The choices go from the top down: the kind, the title, the place.
+/// The kinds of the book are tiles in groups of the parts of the book (front, main and back),
+/// named as the Navigator names them; the groups of a book without sections are named after
+/// their place in the book ("Content"). Under the tiles is the title of the new element, and under it its place in the
 /// list of the part of the book of its tile. At the left, along the whole height, the window
 /// describes the chosen kind: where its elements can be, how many the book can have, the file
 /// a new one gets and the type of book the kind belongs to.
@@ -70,7 +71,7 @@ struct NewFileKind {
 /// replaces it, and a click in it selects it while it is the proposed one; it follows the kind
 /// until the writer changes it. The dialog cannot be accepted without a kind, a title or a
 /// place; a double click on a tile accepts it.
-class NewFileDialog : public QDialog {
+class NewFileDialog : public KalahariDialog {
     Q_OBJECT
 
 public:
@@ -140,7 +141,7 @@ public:
     QRadioButton* insideButton() const { return m_insideButton; }
 
     /// @brief The button that creates the element
-    QPushButton* createButton() const { return m_createButton; }
+    QPushButton* createButton() const { return acceptButton(); }
 
     /// @brief The name of the chosen kind, above its description
     QLabel* nameLabel() const { return m_nameLabel; }
@@ -232,7 +233,6 @@ private:
     QStackedWidget* m_placePages = nullptr;
     ElementPlacePicker* m_picker = nullptr;
     QLabel* m_placeNote = nullptr;
-    QPushButton* m_createButton = nullptr;
 };
 
 } // namespace dialogs

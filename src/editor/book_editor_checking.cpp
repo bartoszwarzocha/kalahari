@@ -18,6 +18,7 @@
 #include <QTextOption>
 #include <QTimer>
 #include <algorithm>
+#include <cstddef>
 #include <utility>
 #include <vector>
 
@@ -286,6 +287,7 @@ void BookEditor::requestSpellCheck()
             paragraphData->spelling.current = false;
         }
     }
+    noteIssuesChanged();
     scheduleSpellCheck(0);
 }
 
@@ -395,14 +397,7 @@ BookEditor::IssueSearch BookEditor::continueIssueSearch()
         }
         if (first != nullptr) {
             const int paragraph = block.blockNumber();
-            const CursorPosition start{paragraph, first->start};
-            const CursorPosition end{paragraph, first->start + first->length};
-            clearSelection();
-            setCursorPosition(end);
-            m_selectionAnchor = start;
-            setSelection({start, end});
-            ensureCursorVisible();
-            update();
+            selectRange({paragraph, first->start}, {paragraph, first->start + first->length});
             return IssueSearch::Found;
         }
         block = block.next();
@@ -470,6 +465,7 @@ void BookEditor::clearSpelling()
             paragraphData->spelling = ParagraphCheck{};
         }
     }
+    noteIssuesChanged();
     if (hadWaves) {
         update();
     }
@@ -577,6 +573,7 @@ bool BookEditor::checkSpelling(const QTextBlock& block)
     check.issues = std::move(issues);
     check.text = check.issues.empty() ? QString() : text;
     check.current = true;
+    noteIssuesChanged();  // one more paragraph checked, at least
     return changed;
 }
 
@@ -616,6 +613,7 @@ void BookEditor::adjustSpellingToEdit(int from, int charsRemoved, int charsAdded
             break;
         }
     }
+    noteIssuesChanged();  // the waves moved with the text, or went
     scheduleSpellCheck(SPELL_EDIT_DELAY_MS);
 }
 
@@ -645,6 +643,7 @@ void BookEditor::endSpellingTyping()
     m_spellTyping = -1;
     if (ParagraphData* paragraphData = ParagraphData::find(typed)) {
         paragraphData->spelling.current = false;
+        noteIssuesChanged();
     }
     if (m_spellCheckService != nullptr && m_spellCheckService->isActive()) {
         scheduleSpellCheck(0);
@@ -712,7 +711,7 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIn
         QFont bold = action->font();
         bold.setBold(true);
         action->setFont(bold);
-        action->setEnabled(!m_readOnly);  // a read-only text keeps its words
+        disableWhileReadOnly(action);  // a read-only text keeps its words
         connect(action, &QAction::triggered, this,
                 [this, paraIndex, startOffset, endOffset, suggestion]() {
                     replaceWord(paraIndex, startOffset, endOffset, suggestion);
@@ -721,14 +720,16 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIn
     menu.addSeparator();
 
     // The word is right from now on: in every document (Ignore All until the application
-    // closes, Add to Dictionary for good)
+    // closes, Add to Dictionary for good). Greyed out in a read-only text as well
     QAction* ignore = menu.addAction(tr("&Ignore All"));
+    disableWhileReadOnly(ignore);
     connect(ignore, &QAction::triggered, this, [this, word]() {
         if (m_spellCheckService != nullptr) {
             m_spellCheckService->ignoreWord(word);
         }
     });
     QAction* add = menu.addAction(tr("Add t&o Dictionary"));
+    disableWhileReadOnly(add);
     connect(add, &QAction::triggered, this, [this, word]() {
         if (m_spellCheckService != nullptr) {
             m_spellCheckService->addToUserDictionary(word);
@@ -808,6 +809,7 @@ void BookEditor::requestGrammarCheck()
             paragraphData->grammar.current = false;
         }
     }
+    noteIssuesChanged();
     scheduleGrammarCheck(0);
 }
 
@@ -815,6 +817,17 @@ bool BookEditor::isGrammarCheckPending() const
 {
     return (m_grammarTimer != nullptr && m_grammarTimer->isActive()) ||
            !m_grammarRequests.empty();
+}
+
+void BookEditor::setWholeTextGrammar(bool whole)
+{
+    if (m_wholeTextGrammar == whole) {
+        return;
+    }
+    m_wholeTextGrammar = whole;
+    if (whole && m_grammarCheckService != nullptr && m_grammarCheckService->isActive()) {
+        scheduleGrammarCheck(0);
+    }
 }
 
 void BookEditor::scheduleGrammarCheck(int delayMs)
@@ -871,6 +884,21 @@ void BookEditor::runGrammarCheck()
             return;
         }
     }
+
+    // The whole text, for a list of all its issues: on to its end, then from its start
+    if (m_wholeTextGrammar) {
+        for (int number = viewLast + GRAMMAR_PARAGRAPHS_AFTER_VIEW + 1; number <= last;
+             ++number) {
+            if (!send(number)) {
+                return;
+            }
+        }
+        for (int number = 0; number < viewFirst - GRAMMAR_PARAGRAPHS_BEFORE_VIEW; ++number) {
+            if (!send(number)) {
+                return;
+            }
+        }
+    }
 }
 
 bool BookEditor::sendGrammarCheck(int paragraph)
@@ -892,6 +920,7 @@ bool BookEditor::sendGrammarCheck(int paragraph)
     const QString text = block.text();
     if (text.trimmed().isEmpty()) {
         keepGrammarIssues(block, {});  // nothing to check
+        noteIssuesChanged();
         return true;
     }
     const quint64 request = m_grammarCheckService->check(text);
@@ -920,8 +949,11 @@ void BookEditor::onGrammarChecked(quint64 request, const QList<GrammarError>& er
 
     // The issues apply while the paragraph has the text sent
     const QTextBlock block = sent.place.block();
-    if (block.isValid() && block.text() == sent.text && keepGrammarIssues(block, errors)) {
-        update();
+    if (block.isValid() && block.text() == sent.text) {
+        if (keepGrammarIssues(block, errors)) {
+            update();
+        }
+        noteIssuesChanged();  // its grammar is known now
     }
     resumeIssueSearch();
     scheduleGrammarCheck(0);
@@ -975,6 +1007,7 @@ void BookEditor::onGrammarRuleIgnored(const QString& ruleId)
         }
     }
     if (changed) {
+        noteIssuesChanged();
         update();
     }
 }
@@ -1040,9 +1073,17 @@ void BookEditor::adjustGrammarToEdit(int from, int charsRemoved, int charsAdded)
         }
     }
 
-    // The paragraphs go when the writer stops typing
-    m_grammarEditClock.restart();
-    scheduleGrammarCheck(GRAMMAR_EDIT_DELAY_MS);
+    noteIssuesChanged();  // the waves moved with the text, or went
+
+    // The paragraphs go when the writer stops typing; at once after an edit not made by typing
+    // (a fix chosen, undo, a paste): its issues are known again without a wait
+    if (m_spellTypingEdit) {
+        m_grammarEditClock.restart();
+        scheduleGrammarCheck(GRAMMAR_EDIT_DELAY_MS);
+    } else {
+        m_grammarEditClock.invalidate();
+        scheduleGrammarCheck(0);
+    }
 }
 
 void BookEditor::dropGrammarRequests()
@@ -1072,6 +1113,7 @@ void BookEditor::clearGrammar()
             paragraphData->grammarErrors.clear();
         }
     }
+    noteIssuesChanged();
     if (hadWaves) {
         update();
     }
@@ -1123,15 +1165,17 @@ void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error, int p
         QFont bold = action->font();
         bold.setBold(true);
         action->setFont(bold);
-        action->setEnabled(!m_readOnly);  // a read-only text keeps its words
+        disableWhileReadOnly(action);  // a read-only text keeps its words
         connect(action, &QAction::triggered, this, [this, paraIndex, error, suggestion]() {
             replaceWord(paraIndex, error.startPos, error.startPos + error.length, suggestion);
         });
     }
     menu.addSeparator();
 
-    // The rule is not reported again, in any book (the Settings dialog can bring it back)
+    // The rule is not reported again, in any book (the Settings dialog can bring it back).
+    // Greyed out in a read-only text as well
     QAction* ignore = menu.addAction(tr("&Ignore This Rule"));
+    disableWhileReadOnly(ignore);
     connect(ignore, &QAction::triggered, this,
             [this, ruleId = error.ruleId, description = error.ruleDescription]() {
                 if (m_grammarCheckService != nullptr) {
@@ -1139,6 +1183,133 @@ void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error, int p
                 }
             });
     menu.addSeparator();
+}
+
+// =============================================================================
+// Issues
+// =============================================================================
+
+std::vector<TextIssue> BookEditor::textIssues() const
+{
+    std::vector<TextIssue> issues;
+    if (!m_textBuffer) {
+        return issues;
+    }
+    for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+        const ParagraphData* paragraphData = ParagraphData::find(block);
+        if (paragraphData == nullptr ||
+            (paragraphData->spelling.issues.empty() && paragraphData->grammar.issues.empty())) {
+            continue;
+        }
+
+        // Those the waves show: made for the paragraph's text as it is
+        const QString text = block.text();
+        const int paragraph = block.blockNumber();
+        const auto first = static_cast<std::ptrdiff_t>(issues.size());
+        const auto add = [&issues, &text, paragraph](TextIssueKind kind,
+                                                     const TextHighlight& range) -> TextIssue& {
+            TextIssue& issue = issues.emplace_back();
+            issue.kind = kind;
+            issue.paragraph = paragraph;
+            issue.start = range.start;
+            issue.length = range.length;
+            issue.text = text.mid(range.start, range.length);
+            return issue;
+        };
+        if (const auto* words = paragraphData->spelling.issuesFor(text)) {
+            for (const TextHighlight& word : *words) {
+                add(TextIssueKind::Spelling, word);
+            }
+        }
+        if (const auto* grammar = paragraphData->grammar.issuesFor(text)) {
+            const std::size_t count = std::min(grammar->size(), paragraphData->grammarErrors.size());
+            for (std::size_t i = 0; i < count; ++i) {
+                const GrammarError& error = paragraphData->grammarErrors[i];
+                TextIssue& issue = add(TextIssueKind::Grammar, (*grammar)[i]);
+                issue.message = error.message;
+                issue.shortMessage = error.shortMessage;
+                issue.ruleId = error.ruleId;
+                issue.ruleDescription = error.ruleDescription;
+                issue.suggestions = error.suggestions;
+            }
+        }
+
+        // In the order of the paragraph; at one place the word (put in first) before the
+        // grammar issue
+        std::stable_sort(issues.begin() + first, issues.end(),
+                         [](const TextIssue& a, const TextIssue& b) { return a.start < b.start; });
+    }
+    return issues;
+}
+
+BookEditor::CheckProgress BookEditor::checkProgress() const
+{
+    CheckProgress progress;
+    if (!m_textBuffer) {
+        return progress;
+    }
+    for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+        if (block.length() <= 1 || block.text().trimmed().isEmpty()) {
+            continue;  // nothing to check
+        }
+        ++progress.paragraphs;
+        if (const ParagraphData* paragraphData = ParagraphData::find(block)) {
+            progress.spellingChecked += paragraphData->spelling.current ? 1 : 0;
+            progress.grammarChecked += paragraphData->grammar.current ? 1 : 0;
+        }
+    }
+    return progress;
+}
+
+bool BookEditor::selectIssue(const TextIssue& issue)
+{
+    if (!isIssueAt(issue)) {
+        return false;
+    }
+    selectRange({issue.paragraph, issue.start}, {issue.paragraph, issue.start + issue.length});
+    return true;
+}
+
+bool BookEditor::replaceIssue(const TextIssue& issue, const QString& replacement)
+{
+    if (refusesChange() || !isIssueAt(issue)) {
+        return false;
+    }
+    replaceWord(issue.paragraph, issue.start, issue.start + issue.length, replacement);
+    return true;
+}
+
+bool BookEditor::isIssueAt(const TextIssue& issue) const
+{
+    if (!m_textBuffer || issue.length <= 0 || issue.start < 0) {
+        return false;
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(issue.paragraph);
+    return block.isValid() && issue.start + issue.length <= block.length() - 1 &&
+           QStringView(block.text()).mid(issue.start, issue.length) == issue.text;
+}
+
+void BookEditor::selectRange(const CursorPosition& start, const CursorPosition& end)
+{
+    clearSelection();
+    setCursorPosition(end);
+    m_selectionAnchor = start;
+    setSelection({start, end});
+    ensureCursorVisible();
+    update();
+}
+
+void BookEditor::noteIssuesChanged()
+{
+    if (m_issuesTimer == nullptr) {
+        m_issuesTimer = new QTimer(this);
+        m_issuesTimer->setSingleShot(true);
+        m_issuesTimer->setInterval(0);
+        connect(m_issuesTimer, &QTimer::timeout, this, &BookEditor::issuesChanged);
+    }
+    if (!m_issuesTimer->isActive()) {
+        m_issuesTimer->start();
+    }
 }
 
 // =============================================================================

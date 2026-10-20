@@ -56,6 +56,7 @@ class AnnotationsCoordinator;
 class EditCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
+class SpellingPanelCoordinator;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
 }
@@ -377,6 +378,9 @@ private:
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
     GrammarCoordinator* m_grammarCoordinator{nullptr};
+
+    /// @brief The Spelling and Grammar panel and when it shows
+    SpellingPanelCoordinator* m_spellingPanelCoordinator{nullptr};
 
     /// @brief Undo, Redo, Cut, Copy, Paste and Select All on the element with the keys
     EditCoordinator* m_editCoordinator{nullptr};

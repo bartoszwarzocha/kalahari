@@ -83,7 +83,8 @@ struct Theme {
     /// @brief Editor colors by name, from the theme file's "editor" section
     ///
     /// Open-ended: a new editor color needs only an entry in each theme file.
-    /// The user's value is stored per theme as themes.<name>.editor.<key>.
+    /// The user's values are kept for each theme, themes.<name>.editor.<key>
+    /// (ThemeManager::editorColorSetting()).
     std::map<std::string, QColor> editor;
 
     /// @brief Load Theme from JSON object

@@ -7,9 +7,11 @@
 #include <QObject>
 #include <QString>
 #include <QColor>
+#include <atomic>
 #include <memory>
 #include <map>
 #include <optional>
+#include <string>
 
 namespace kalahari {
 namespace core {
@@ -48,6 +50,30 @@ public:
     /// @param key Name from the theme file's "editor" section (e.g. "commentMarker")
     /// @param fallback Returned if the theme does not define the color
     QColor editorColor(const std::string& key, const QColor& fallback) const;
+
+    /// @brief An editor color as the current theme's file gives it, without the user's value
+    /// @param key Name from the theme file's "editor" section
+    /// @param fallback Returned if the theme does not define the color
+    QColor defaultEditorColor(const std::string& key, const QColor& fallback) const;
+
+    /// @brief The setting of the user's own value of an editor color of a theme
+    ///
+    /// Each theme keeps its own values. A changed setting of the current theme reaches it by
+    /// itself (editorColorsChanged() follows).
+    /// @param themeName The theme's name (Theme::name)
+    /// @param key Name from the theme file's "editor" section (e.g. "spelling")
+    /// @return "themes.<themeName>.editor.<key>"
+    static std::string editorColorSetting(const std::string& themeName, const std::string& key);
+
+    /// @brief The setting of "Optimize colors in themes" (a bool, on by default)
+    static constexpr const char* OPTIMIZE_COLORS_SETTING = "editor.colors.optimize";
+
+    /// @brief Whether the editor colors are adapted to what they are shown on: darker on a
+    ///        light background and lighter on a dark one where they are hard to see there
+    ///
+    /// The setting OPTIMIZE_COLORS_SETTING; a change of it emits editorColorsChanged(), as a
+    /// changed color does.
+    bool optimizesEditorColors() const;
 
     /// @brief Get list of available themes in resources/themes/
     /// @return List of theme names (without .json extension)
@@ -97,9 +123,19 @@ signals:
     /// @brief Emitted after the palette is applied (for additional widget refresh)
     void themeStyleChanged();
 
+    /// @brief Emitted when an editor color of the theme in use or "Optimize colors in themes"
+    ///        changed, and not the theme: the editors and the panels that show these colors
+    ///        show them anew, the icons and the rest of the window stay as they are
+    void editorColorsChanged();
+
+private slots:
+    /// @brief Apply the user's editor colors again; emit editorColorsChanged when one changed
+    ///        (called by name, queued after the settings changed)
+    void reloadEditorColors();
+
 private:
     ThemeManager(); // Private constructor (singleton)
-    ~ThemeManager() override = default;
+    ~ThemeManager() override;
 
     Theme m_currentTheme;         ///< Currently active theme
     Theme m_baseTheme;            ///< Base theme (before overrides)
@@ -107,6 +143,10 @@ private:
 
     /// @brief Apply the user's stored per-theme colors to m_currentTheme
     void applyStoredColors();
+
+    int m_settingsListener = -1;                     ///< Subscription to the editor colors
+    std::atomic<bool> m_editorColorsPending{false};  ///< A reload of the editor colors is queued
+    bool m_optimizesEditorColors = true;             ///< optimizesEditorColors() at the last reload
 
     /// @brief Apply m_currentTheme's palette to the application and its tooltips
     void applyPalette();

@@ -15,6 +15,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QContextMenuEvent>
+#include <QElapsedTimer>
 #include <QKeyEvent>
 #include <QMenu>
 #include <QTextBlock>
@@ -90,8 +91,11 @@ void pressKey(BookEditor& editor, int key) {
 
 /// What the context menu at the cursor offered
 struct MenuSeen {
-    QStringList texts;  ///< Its items, without their access keys ("-": a separator)
-    QList<bool> bold;   ///< Whether they are in bold
+    QStringList texts;     ///< Its items, without their access keys ("-": a separator)
+    QList<bool> bold;      ///< Whether they are in bold
+    QList<bool> enabled;   ///< Whether they can be chosen
+    QStringList toolTips;  ///< Their tooltips
+    bool toolTipsShown = false;  ///< The menu shows the tooltips of its items
 };
 
 /// Open the context menu at the cursor (as the menu key does) and choose an item of it by its
@@ -109,11 +113,14 @@ MenuSeen contextMenuAtCursor(BookEditor& editor, const QString& choice = QString
             return;
         }
         poll.stop();
+        seen.toolTipsShown = menu->toolTipsVisible();
         QAction* chosen = nullptr;
         for (QAction* action : menu->actions()) {
             const QString text = kalahari::gui::withoutAccessKey(action->text());
             seen.texts << (action->isSeparator() ? QStringLiteral("-") : text);
             seen.bold << action->font().bold();
+            seen.enabled << action->isEnabled();
+            seen.toolTips << action->toolTip();
             if (!choice.isEmpty() && text == choice) {
                 chosen = action;
             }
@@ -188,6 +195,42 @@ TEST_CASE("Grammar: nothing is sent while the writer types", "[editor][grammar]"
     REQUIRE(checked(*editor));
     CHECK(server.requests() == 2);
     CHECK(server.texts().last() == QStringLiteral("The end. A kat."));
+    CHECK(grammarWaves(*editor, 0) == QStringList{"kat"});
+}
+
+TEST_CASE("Grammar: after an edit not made by typing the paragraph is sent at once",
+          "[editor][grammar]") {
+    FakeLanguageTool server;
+    server.addIssue({QStringLiteral("kat"), QStringLiteral("RULE_A"), QString(),
+                     {QStringLiteral("cat")}});
+    auto grammar = serviceOn(server);
+    auto editor = shownEditor({QStringLiteral("The kat sat.")}, grammar.get());
+    REQUIRE(checked(*editor));
+    REQUIRE(server.requests() == 1);
+
+    // Sent with no wait for the end of the typing (a second): well before it
+    const auto sentSoon = [&server](int requests) {
+        QElapsedTimer clock;
+        clock.start();
+        return waitUntil([&server, requests]() { return server.requests() == requests; },
+                         5000) &&
+               clock.elapsed() < 800;
+    };
+
+    // A fix chosen (in the Spelling and Grammar panel, on the context menu)
+    const std::vector<TextIssue> issues = editor->textIssues();
+    REQUIRE(issues.size() == 1);
+    REQUIRE(editor->replaceIssue(issues.front(), QStringLiteral("cat")));
+    CHECK(sentSoon(2));
+    CHECK(server.texts().last() == QStringLiteral("The cat sat."));
+    REQUIRE(checked(*editor));
+    CHECK(grammarWaves(*editor, 0).isEmpty());
+
+    // Undone: the issue is back without a wait
+    editor->undo();
+    CHECK(sentSoon(3));
+    CHECK(server.texts().last() == QStringLiteral("The kat sat."));
+    REQUIRE(checked(*editor));
     CHECK(grammarWaves(*editor, 0) == QStringList{"kat"});
 }
 
@@ -391,6 +434,51 @@ TEST_CASE("Grammar: the context menu of an issue", "[editor][grammar]") {
         contextMenuAtCursor(*editor, QStringLiteral("Ignore This Rule"));
         CHECK(grammar->isRuleIgnored(QStringLiteral("RULE_A")));
         CHECK(grammarWaves(*editor, 0) == QStringList{"dogz"});
+    }
+
+    SECTION("a read-only text: the replacements and Ignore This Rule greyed out, saying why") {
+        const QString reason = QStringLiteral("The book is open read-only");
+        editor->setReadOnlyReason(reason);
+        editor->setReadOnly(true);
+        editor->setCursorPosition({0, 5});
+        const MenuSeen menu = contextMenuAtCursor(*editor);
+        REQUIRE(menu.texts.size() > 5);
+        CHECK(menu.texts.mid(1, 2) == QStringList({"cat", "hat"}));
+        CHECK(menu.enabled.mid(1, 2) == QList<bool>({false, false}));
+        CHECK(menu.toolTips.mid(1, 2) == QStringList({reason, reason}));
+        CHECK(menu.toolTipsShown);
+        REQUIRE(menu.texts.at(4) == QStringLiteral("Ignore This Rule"));
+        CHECK_FALSE(menu.enabled.at(4));
+        CHECK(menu.toolTips.at(4) == reason);
+
+        contextMenuAtCursor(*editor, QStringLiteral("hat"));
+        CHECK(editor->textDocument()->begin().text() == QStringLiteral("The kat and the dogz."));
+        contextMenuAtCursor(*editor, QStringLiteral("Ignore This Rule"));
+        CHECK_FALSE(grammar->isRuleIgnored(QStringLiteral("RULE_A")));
+    }
+
+    SECTION("a misspelled word in a read-only text: Ignore All and Add to Dictionary greyed out, "
+            "saying why") {
+        SpellCheckService spelling;
+        REQUIRE(spelling.loadDictionary(QStringLiteral("en_US")));
+        editor->setSpellCheckService(&spelling);
+        REQUIRE(waitUntil([&editor]() { return !editor->isSpellCheckPending(); }, 20000));
+        const QString reason = QStringLiteral("The book is open read-only");
+        editor->setReadOnlyReason(reason);
+        editor->setReadOnly(true);
+        editor->setCursorPosition({0, 17});
+        const MenuSeen menu = contextMenuAtCursor(*editor);
+        for (const QString& item :
+             {QStringLiteral("Ignore All"), QStringLiteral("Add to Dictionary")}) {
+            CAPTURE(item.toStdString());
+            const auto at = menu.texts.indexOf(item);
+            REQUIRE(at >= 0);
+            CHECK_FALSE(menu.enabled.at(at));
+            CHECK(menu.toolTips.at(at) == reason);
+        }
+        contextMenuAtCursor(*editor, QStringLiteral("Ignore All"));
+        CHECK_FALSE(spelling.isIgnored(QStringLiteral("dogz")));
+        editor->setSpellCheckService(nullptr);
     }
 
     SECTION("a long message whole, in lines (a keyboard has no tool tip)") {

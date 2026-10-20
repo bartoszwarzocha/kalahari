@@ -20,6 +20,8 @@
 #include <QScopedValueRollback>
 #include <QTimer>
 #include <algorithm>
+#include <optional>
+#include <tuple>
 #include <utility>
 
 namespace kalahari::editor {
@@ -731,14 +733,29 @@ void BookEditor::showContextMenuAtCursor()
     showContextMenu(m_cursorPosition, menuPos, false);
 }
 
+bool BookEditor::showIssueMenu(const TextIssue& issue, const QPoint& globalPos)
+{
+    if (!isIssueAt(issue)) {
+        return false;
+    }
+    // Inside the issue: a word that ends where it starts is not taken for it
+    showContextMenu({issue.paragraph, issue.start + issue.length / 2}, globalPos, false,
+                    issue.kind);
+    return true;
+}
+
 void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& globalPos,
-                                 bool fromMouse)
+                                 bool fromMouse, std::optional<TextIssueKind> kind)
 {
     // A misspelled word or a grammar issue: what to put in its place, on top of the usual
     // menu (the spelling first, where both are)
-    const auto [word, startOffset, endOffset] = getMisspelledWordAt(pos.paragraph, pos.offset);
+    const auto [word, startOffset, endOffset] =
+        kind != TextIssueKind::Grammar ? getMisspelledWordAt(pos.paragraph, pos.offset)
+                                       : std::tuple<QString, int, int>{QString(), 0, 0};
     const std::optional<GrammarError> grammarError =
-        word.isEmpty() ? getGrammarErrorAt(pos.paragraph, pos.offset) : std::nullopt;
+        word.isEmpty() && kind != TextIssueKind::Spelling
+            ? getGrammarErrorAt(pos.paragraph, pos.offset)
+            : std::nullopt;
 
     // A right click outside the selection puts the cursor there, as a click does, so what
     // the menu does (pasting, adding an annotation) happens where the writer clicked
@@ -750,8 +767,10 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
     }
 
     // Default context menu. Each item with its access key, unique in the menu with the
-    // commands below and the items of spelling (test_menu_access_keys)
+    // commands below and the items of spelling (test_menu_access_keys). A greyed-out item says
+    // why in its tooltip (a read-only text), as in the program's menus
     QMenu menu(this);
+    menu.setToolTipsVisible(true);
     if (!word.isEmpty()) {
         addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
     } else if (grammarError.has_value()) {
@@ -765,8 +784,10 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
                                            void (BookEditor::*edit)(), bool changes) {
         if (command != nullptr) {
             menu.addAction(command);
+        } else if (changes) {
+            disableWhileReadOnly(menu.addAction(text, this, edit));
         } else {
-            menu.addAction(text, this, edit)->setEnabled(!changes || !m_readOnly);
+            menu.addAction(text, this, edit);
         }
     };
     const ContextMenuEditActions& commands = m_contextMenuEditActions;

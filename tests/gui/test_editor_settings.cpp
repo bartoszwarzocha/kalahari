@@ -5,7 +5,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/utils/setting_toggle.h"
@@ -101,6 +103,53 @@ TEST_CASE("Editor settings: an editor follows the changed settings once the even
     QCoreApplication::processEvents();
     CHECK(applied == 1);
 
+    restore(before);
+}
+
+TEST_CASE("Editor settings: the waves and the marks in the theme's colors, optimized for each "
+          "paper or not",
+          "[gui][editor][settings][colors]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string theme = core::ThemeManager::getInstance().getCurrentTheme().name;
+    const std::string spelling = core::ThemeManager::editorColorSetting(theme, "spelling");
+    const std::string comment = core::ThemeManager::editorColorSetting(theme, "annotationComment");
+    const std::string optimize = core::ThemeManager::OPTIMIZE_COLORS_SETTING;
+    const auto before = valuesOf({"editor.colors.backgroundLight", "editor.colors.backgroundDark"});
+    const QColor lightPaper(QStringLiteral("#ffffff"));
+    const QColor darkPaper(QStringLiteral("#232328"));
+    settings.set<std::string>("editor.colors.backgroundLight", lightPaper.name().toStdString());
+    settings.set<std::string>("editor.colors.backgroundDark", darkPaper.name().toStdString());
+
+    // A spelling color too faint for the light paper, a comment color too dark for the dark one
+    const QColor faint(QStringLiteral("#ffd0d0"));
+    const QColor deep(QStringLiteral("#202060"));
+    settings.set<std::string>(spelling, faint.name().toStdString());
+    settings.set<std::string>(comment, deep.name().toStdString());
+    settings.removeKey(optimize);
+    QCoreApplication::processEvents();  // the theme follows the settings
+
+    gui::EditorPanel panel;
+    const auto colors = [&panel]() { return panel.getBookEditor()->appearance().colors; };
+
+    // Optimized by default: darker on the light paper and lighter on the dark one, as far as
+    // they need to be seen there; as set where they are seen already
+    CHECK(colors().issuesLight.spelling != faint);
+    CHECK(gui::contrastRatio(colors().issuesLight.spelling, lightPaper) >= gui::MIN_MARK_CONTRAST);
+    CHECK(colors().issuesDark.spelling == faint);
+    CHECK(colors().annotationsDark.comment != deep);
+    CHECK(gui::contrastRatio(colors().annotationsDark.comment, darkPaper) >= gui::MIN_MARK_CONTRAST);
+    CHECK(colors().annotationsLight.comment == deep);
+
+    // Not optimized: as set on both papers
+    settings.set<bool>(optimize, false);
+    QCoreApplication::processEvents();
+    QCoreApplication::processEvents();
+    CHECK(colors().issuesLight.spelling == faint);
+    CHECK(colors().annotationsDark.comment == deep);
+
+    settings.removeKey(spelling);
+    settings.removeKey(comment);
+    settings.removeKey(optimize);
     restore(before);
 }
 

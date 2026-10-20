@@ -553,6 +553,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_KEY("view.annotations", QT_TRANSLATE_NOOP("CommandRegistrar", "Ann&otations"), "VIEW/Panels/Annotations", 60, false, 0,
                 KeyboardShortcut(Qt::Key_F9, Qt::NoModifier));
 
+    // No key of its own: Next Spelling or Grammar Issue (F7) opens it at the issue it finds
+    REG_CMD("view.spelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Spelling and &Grammar"), "VIEW/Panels/Spelling and Grammar", 70, false, 0);
+
     // View Mode submenu (OpenSpec #00042 Phase 7.3)
     // View modes for BookEditor - radio group (only one can be active)
     REG_CMD_TOOL_ICON("view.mode.continuous", QT_TRANSLATE_NOOP("CommandRegistrar", "&Continuous"), "VIEW/View Mode/Continuous", 55, false, 0,

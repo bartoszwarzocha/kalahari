@@ -46,6 +46,7 @@ set(TEST_SOURCES
     editor/test_grammar_check_service.cpp   # Grammar: texts checked on a LanguageTool server
     editor/test_grammar.cpp                 # Grammar as you type in the editor
     editor/test_spelling.cpp                # Spelling as you type in the editor
+    editor/test_text_issues.cpp             # The misspelled words and grammar issues as one list
     editor/test_book_editor_integration.cpp # Task 7.18: Integration tests
     editor/test_buffer_commands.cpp        # Cursor position helpers
     editor/test_search_engine.cpp          # OpenSpec #00044 Task 9.4: SearchEngine tests
@@ -77,6 +78,7 @@ set(TEST_SOURCES
     gui/test_edit_coordinator.cpp                # Clipboard and undo on the element with the keys
     gui/test_toolbar_keys.cpp                    # A toolbar gives the keys back after a command
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
+    gui/test_color_settings.cpp                  # The colors of the issues and the annotations in Settings
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
     gui/test_program_instance.cpp                # A later start hands its request to the program that runs
@@ -96,6 +98,7 @@ set(TEST_SOURCES
     gui/test_kalahari_style.cpp                  # Grey menu items under the keys highlighted
     gui/test_program_folders.cpp                 # Folders of the program and the Folders page
     gui/test_spelling_coordinator.cpp            # Spelling as you type: dictionary, command, settings page
+    gui/test_spelling_panel.cpp                  # Spelling and Grammar panel: cards, counts, keys, the text in front, F7
     gui/test_grammar_coordinator.cpp             # Grammar as you type: where it is checked, command, settings page
     gui/test_grammar_components.cpp              # Java and LanguageTool: versions, downloads, folders
     gui/test_language_tool_server.cpp            # LanguageTool server: started with Java or outside, restarts
@@ -104,6 +107,7 @@ set(TEST_SOURCES
     gui/test_dialogs.cpp                         # The program's own dialogs
     gui/test_archive_dialogs.cpp                 # Export and Import Project Archive windows
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
+    gui/test_own_windows.cpp                     # Only own windows, on their common base
     gui/test_widget_wheel.cpp                    # The mouse wheel changes only the field with the focus
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing
     gui/test_tab_focus.cpp                       # The keys go to the page in front of the tabs
@@ -232,6 +236,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/editor_panel.cpp     # Editor panel: settings to and from its editor
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_coordinator.cpp    # Spelling as you type: the editors' dictionary
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_coordinator.cpp     # Grammar as you type: the editors' LanguageTool server
+    ${CMAKE_SOURCE_DIR}/src/gui/spelling_panel_coordinator.cpp  # The Spelling and Grammar panel and the text in front
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_components.cpp      # Grammar: Java and LanguageTool on this computer
     ${CMAKE_SOURCE_DIR}/src/gui/language_tool_server.cpp    # Grammar: the LanguageTool server the program starts
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_setup.cpp           # Grammar: Java and LanguageTool downloaded and prepared
@@ -240,6 +245,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_colors.cpp # Annotations: readable colors of cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotation_frame.cpp  # Annotations: the frame text is written in
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotations_panel.cpp # Annotations panel
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_panel.cpp  # Spelling and Grammar panel
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
     ${CMAKE_SOURCE_DIR}/src/gui/auto_correct_coordinator.cpp  # Auto-correct turned on and off as a whole
@@ -268,6 +275,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_manager.cpp         # Toolbars of the main window
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/toolbar_manager_dialog.cpp  # Toolbar Manager dialog for ToolbarManager
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/kalahari_dialog.cpp          # Base of the program's own dialogs
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/about_dialog.cpp             # About on the common base
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/icon_downloader_dialog.cpp   # Icon Downloader on the common base
+    ${CMAKE_SOURCE_DIR}/src/core/utils/icon_downloader.cpp           # Downloads of the Icon Downloader
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/message_dialog.cpp           # Own messages, questions and typed texts
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/grammar_setup_dialog.cpp     # The window of the grammar preparation
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/progress_dialog.cpp          # Own window for the progress of a long task
@@ -338,11 +348,14 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_panel_coordinator.h  # SpellingPanelCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/language_tool_server.h  # LanguageToolServer with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_setup.h  # GrammarSetup with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h  # AnnotationCard with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h  # AnnotationFrame with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h  # AnnotationsPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_panel.h  # SpellingPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
@@ -363,6 +376,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h  # AboutDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h  # IconDownloaderDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/grammar_setup_dialog.h  # GrammarSetupDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/progress_dialog.h  # ProgressDialog with Q_OBJECT
@@ -391,7 +407,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/theme_manager.h   # ThemeManager with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/project_manager.h # ProjectManager with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/recent_books_manager.h
-    # NOTE: IconDownloader moved to kalahari executable, not needed in tests
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
 )
@@ -439,6 +454,7 @@ target_link_libraries(kalahari-tests PRIVATE
     Qt6::Xml
     Qt6::Sql        # OpenSpec #00041: SQLite Project Database
     Qt6::Svg        # For IconRegistry (QSvgRenderer) used by ArtProvider
+    Qt6::SvgWidgets # For the preview of the Icon Downloader
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip

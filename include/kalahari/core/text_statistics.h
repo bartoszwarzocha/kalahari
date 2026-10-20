@@ -13,6 +13,9 @@ struct TextCounts {
     int characters = 0;          ///< Characters with spaces, without line and paragraph breaks
     int nonSpaceCharacters = 0;  ///< Characters other than whitespace
     int paragraphs = 0;          ///< Paragraphs with text, as defined by countText()
+    int dashes = 0;              ///< Dashes standing alone (WordCountRules::dashesAreWords),
+                                 ///< whatever the rules; in words too when the rules make
+                                 ///< them words
 };
 
 /// @brief The reading speed of the reading times, in words a minute
@@ -25,6 +28,25 @@ struct WordCountRules {
     bool dashesAreWords = false;
 
     bool operator==(const WordCountRules&) const = default;
+};
+
+/// @brief The words of a text under any rules of counting, so that new rules (a choice in the
+///        settings) need no counting again: the counts of a whole book follow them at once
+struct WordTally {
+    int words = 0;   ///< Words under any rules: runs with a letter or a digit
+    int dashes = 0;  ///< Dashes standing alone, words when the rules make them words
+
+    /// @brief The words under @p rules, as countText() counts them
+    int wordsUnder(const WordCountRules& rules) const {
+        return words + (rules.dashesAreWords ? dashes : 0);
+    }
+
+    /// @brief The tally of the text whose counts under @p rules are @p counts
+    static WordTally of(const TextCounts& counts, const WordCountRules& rules) {
+        return {counts.words - (rules.dashesAreWords ? counts.dashes : 0), counts.dashes};
+    }
+
+    bool operator==(const WordTally&) const = default;
 };
 
 /// @brief Count the words, characters and paragraphs of @p text in one pass
@@ -41,6 +63,9 @@ struct WordCountRules {
 /// @param text The text to count
 /// @param rules What counts as a word: the user's choice is wordCountRules()
 TextCounts countText(QStringView text, const WordCountRules& rules);
+
+/// @brief The words of @p text under any rules, as countText() counts them
+WordTally tallyWords(QStringView text);
 
 /// @brief The reading time of @p words words in minutes, at READING_WORDS_PER_MINUTE, a
 ///        minute begun being a minute (no words: no time)
