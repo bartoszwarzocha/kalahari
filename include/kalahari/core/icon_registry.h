@@ -169,6 +169,19 @@ public:
     QIcon getIconWithColors(const QString& actionId, const QString& theme, int size,
                             const QColor& primary, const QColor& secondary);
 
+    /// @brief Icon from the SVG file @p svgPath, with the theme's colors: an icon that is not
+    /// registered, e.g. one that comes with a book (PackageCard)
+    /// @return The icon, or an empty QIcon when the file cannot be read as an SVG
+    QIcon getIconFromFile(const QString& svgPath);
+
+    /// @brief The icon themes the program has: "twotone", "filled", "outlined", "rounded"
+    static const QStringList& iconThemes();
+
+    /// @brief The program's SVG file of icon @p actionId in icon theme @p theme, as it was
+    /// registered (not the user's own file), with the colors as placeholders
+    /// @return Its absolute path, or empty when the icon is not registered or has no file there
+    QString svgFileOf(const QString& actionId, const QString& theme) const;
+
     /// @brief Get icon descriptor for action
     /// @return IconDescriptor pointer or nullptr if not found
     const IconDescriptor* getIconDescriptor(const QString& actionId) const;
@@ -257,6 +270,13 @@ private:
     /// @param filePath Absolute or relative SVG file path
     /// @return SVG content as QString, or empty string if error
     QString loadSVGFromFile(const QString& filePath) const;
+
+    /// @brief Absolute path of an SVG file: a relative "resources/icons/<theme>/<name>.svg" in
+    /// the resources folder, else in the program's folder
+    static QString resolveSVGPath(const QString& filePath);
+
+    /// @brief @p svgPath, a path of the program's icons, in icon theme @p theme
+    static QString inIconTheme(QString svgPath, const QString& theme);
 
     /// @brief Replace {COLOR_PRIMARY} and {COLOR_SECONDARY} placeholders
     /// @param svgContent Original SVG content with placeholders

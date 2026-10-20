@@ -358,7 +358,8 @@ private:
     /// @param path The file, or the key of a new file in the Navigator (openNewFile())
     EditorPanel* findStandaloneEditor(const QString& path) const;
 
-    /// @brief Show the info bar for the current tab's standalone file, or hide it
+    /// @brief Show the info bar for the current tab's standalone file, or why the open book is
+    /// read-only under any other tab (until the writer closes it), or hide it
     void updateStandaloneInfoBar();
 
     /// @brief List the standalone files in the navigator again after it was cleared, with the
@@ -418,6 +419,8 @@ private:
     NavigatorCoordinator* m_navigatorCoordinator;
     StandaloneInfoBar* m_standaloneInfoBar;
     bool m_infoBarAllowed{true};    ///< The info bar may show (not in Distraction-Free)
+    bool m_readOnlyBarDismissed{false};  ///< The writer closed the message of the book open
+                                         ///< read-only; it shows again with the next book
     QStatusBar* m_statusBar;
 
     WindowTitleUpdater m_updateWindowTitle;

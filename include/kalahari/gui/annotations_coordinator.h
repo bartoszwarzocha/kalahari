@@ -110,6 +110,9 @@ public:
     /// @param fromPanel true: the text goes to the annotation first, and the keys go back to
     ///        the panel when the frame closes; false: the cursor stays and the keys go back
     ///        to the text
+    ///
+    /// An annotation of a chapter of a book open read-only is not edited: the text shows its
+    /// place, and the panel its card.
     /// @return Whether the frame opened
     bool editAnnotation(const QString& elementId, const QString& annotationId, bool fromPanel);
 

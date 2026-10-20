@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/package_card.h"
 #include "kalahari/core/project_manager.h"
 
 #include <QCoreApplication>
@@ -27,7 +28,8 @@ void setProgramLanguage(const QString& code) {
     language() = code.isEmpty() ? QStringLiteral("en") : code;
 }
 
-QString typeNameOf(const core::BookTypeRegistry& registry, const core::BookProject& project) {
+QString typeNameOf(const core::BookTypeRegistry& registry, const core::BookProject& project,
+                   const core::PackageCard* card) {
     if (!project.type) {
         //: The type of a book whose author chose its kinds. In Polish: Projekt użytkownika
         return QCoreApplication::translate("KindNames", "User Project");
@@ -35,9 +37,13 @@ QString typeNameOf(const core::BookTypeRegistry& registry, const core::BookProje
     if (const core::BookTypePackage* package = registry.package(project.type->id)) {
         return package->name.text(programLanguage());
     }
-    //: The type of a book whose package is not installed; %1: the id of the type. In Polish:
-    //: %1 (typ niezainstalowany)
-    return QCoreApplication::translate("KindNames", "%1 (not installed)").arg(project.type->id);
+    // A type the program does not have: the name on the book's card of it, else its id
+    const QString name = card != nullptr && !card->name.isEmpty()
+                             ? card->name.text(programLanguage())
+                             : project.type->id;
+    //: The type of a book that the program does not have; %1: its name. In Polish:
+    //: %1 (nie ma w programie)
+    return QCoreApplication::translate("KindNames", "%1 (not in the program)").arg(name);
 }
 
 core::KindWords wordsOf(const core::KindRef& kind) {
@@ -62,7 +68,7 @@ QString newTextMenuText(const core::KindRef& kind) {
 }
 
 core::KindWords wordsOf(const core::BookTypeRegistry& registry,
-                        const core::ProjectElement& element) {
+                        const core::ProjectElement& element, const core::PackageCard* card) {
     if (const core::KindRef kind = core::BookProject::kindOf(registry, element)) {
         return wordsOf(kind);
     }
@@ -70,7 +76,12 @@ core::KindWords wordsOf(const core::BookTypeRegistry& registry,
     if (!element.hasKind()) {
         return fileWords();
     }
-    // A kind of a package that is not installed: its id stands for its name
+    // A kind the program does not have: the names on the book's card of its package, else
+    // its id stands for its name
+    if (const core::ElementKind* kind =
+            card != nullptr ? card->kind(element.kind.kindId) : nullptr) {
+        return kind->wordsIn(programLanguage());
+    }
     core::KindWords words;
     words.forms.insert(QStringLiteral("singular"), element.kind.kindId);
     words.forms.insert(QStringLiteral("plural"), element.kind.kindId);
@@ -78,7 +89,8 @@ core::KindWords wordsOf(const core::BookTypeRegistry& registry,
 }
 
 core::KindWords wordsOf(const core::ProjectElement& element) {
-    return wordsOf(core::ProjectManager::getInstance().bookTypes(), element);
+    const core::ProjectManager& pm = core::ProjectManager::getInstance();
+    return wordsOf(pm.bookTypes(), element, pm.packageCard(element.kind.packageId));
 }
 
 bool sameKind(const core::BookTypeRegistry& registry, const core::ProjectElement& a,

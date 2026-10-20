@@ -267,10 +267,11 @@ struct BookProject {
     /// @brief Places that element @p elementId can be moved to, in reading order
     ///
     /// In a book, the places of its kind: in the sections of the book that allow the kind, and
-    /// in the groups that can have it, but not inside the element itself; in the Workshop, the
-    /// places of the Workshop. A place is in the project without the element: its index is
-    /// the one the element gets in its new list, so the place the element has now is one of
-    /// them. An element whose kind @p registry does not have moves only within its list.
+    /// in the groups that can have it, but not inside the element itself nor before the
+    /// title page (canBeAt()); in the Workshop, the places of the Workshop. A place is in the
+    /// project without the element: its index is the one the element gets in its new list, so
+    /// the place the element has now is one of them, if its kind can be there. An element
+    /// whose kind @p registry does not have moves only within its list.
     /// @return The places; empty when the project has no element @p elementId, and for a file
     ///         of a book outside its text
     QList<ElementPlace> movePlacesOf(const BookTypeRegistry& registry,
@@ -311,9 +312,24 @@ struct BookProject {
     /// @brief Place in @p elements that a new element of @p kind takes when the writer does
     /// not choose it: the start for a kind of the start (a prologue), the end for a kind of the
     /// end (an epilogue), and before the elements of the end at the end of the list for the
-    /// other kinds (a chapter goes before the epilogue)
+    /// other kinds (a chapter goes before the epilogue); never before the element that opens
+    /// the list (the title page)
     static qsizetype newIndexIn(const BookTypeRegistry& registry,
                                 const QList<ProjectElement>& elements, const KindRef& kind);
+
+    /// @brief Whether a new or moved element of @p kind can be at place @p index of
+    /// @p elements, a list without it
+    ///
+    /// An element of a kind that opens its section (ElementKind::first, the title page) is
+    /// only first, and any other element only after the elements of such kinds: nothing goes
+    /// before the title page. A kind that @p registry does not have counts as any other.
+    static bool canBeAt(const BookTypeRegistry& registry, const QList<ProjectElement>& elements,
+                        const KindRef& kind, qsizetype index);
+
+    /// @brief First place of @p elements after the elements of the kinds that open their
+    /// section (the title page); 0 when it has none
+    static qsizetype afterOpeningOf(const BookTypeRegistry& registry,
+                                    const QList<ProjectElement>& elements);
 
     /// @brief The elements of @p elements and of the groups in them, without the groups, in
     /// reading order: the content of a list as the reader meets it
@@ -330,7 +346,12 @@ struct BookProject {
     static QList<const ProjectElement*> closingElementsOf(const BookTypeRegistry& registry,
                                                           const QList<ProjectElement>& elements);
 
-    /// @brief Packages of the type, the kinds and the elements that @p registry does not have
+    /// @brief Ids of the packages the project names: of its type, of the kinds it took and of
+    /// the kinds of its elements, each once, in this order
+    QStringList packageIds() const;
+
+    /// @brief Packages of the type, the kinds and the elements that @p registry does not have,
+    /// or has without a kind the project names (another version of the package), sorted
     QStringList missingPackages(const BookTypeRegistry& registry) const;
 
     /// @brief The project as the JSON object of its .klh file

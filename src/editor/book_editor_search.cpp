@@ -109,8 +109,9 @@ void BookEditor::showFindReplace()
         setupFindReplace();
     }
 
+    // A read-only text is only searched
     takeSearchTextFromSelection();
-    openFindBar(true);
+    openFindBar(!m_readOnly);
     m_findReplaceBar->focusSearchInput();
 }
 

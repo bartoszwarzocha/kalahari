@@ -235,7 +235,8 @@ TEST_CASE("Navigator: a book without sections shows its elements one after anoth
 
     // The book's item takes the drops of its elements. The line between the last element of
     // a section and the first one of the next is in both of them: the element goes to the
-    // first one that can have it, unless it is there already
+    // first one that can have it (the section of the element below which it is dropped, or
+    // above which), unless it is there already
     CHECK(root->flags().testFlag(Qt::ItemIsDropEnabled));
     const auto drop = [tree, &project](const char* dragged, const char* target, Spot spot) {
         return gui::NavigatorPanel::dropPlaceOf(project, registry(),
@@ -244,9 +245,12 @@ TEST_CASE("Navigator: a book without sections shows its elements one after anoth
     };
     using core::BookPlace;
     CHECK(drop("Part One", "Chapter 1", Spot::Above) == placeAt(BookPlace::Main, "", 0));
-    CHECK(drop("Title", "Chapter 1", Spot::Above) == placeAt(BookPlace::Front, "", 1));
-    CHECK(drop("Chapter 2", "Dedication", Spot::Below) == placeAt(BookPlace::Main, "", 0));
-    CHECK(drop("Chapter 1", "Afterword", Spot::Above) == placeAt(BookPlace::Main, "", 1));
+    CHECK(drop("Chapter 1", "Title", Spot::Below) == placeAt(BookPlace::Front, "", 1));
+    CHECK_FALSE(drop("Title", "Chapter 1", Spot::Above));  // the title page stays first
+    CHECK_FALSE(drop("Dedication", "Title", Spot::Above));
+    CHECK(drop("Chapter 2", "Dedication", Spot::Below) == placeAt(BookPlace::Front, "", 2));
+    CHECK(drop("Chapter 1", "Afterword", Spot::Above) == placeAt(BookPlace::Back, "", 0));
+    CHECK_FALSE(drop("Part One", "Afterword", Spot::Above));     // where it is
     CHECK_FALSE(drop("Dedication", "Chapter 1", Spot::Above));  // where it is
     CHECK_FALSE(drop("Chapter 1", "Dedication", Spot::Below));
     CHECK_FALSE(drop("Chapter 1", "Part One", Spot::Above));
@@ -262,7 +266,8 @@ TEST_CASE("Navigator: a book without sections shows its elements one after anoth
           findSection(tree, QStringLiteral("section_frontmatter")));
     CHECK_FALSE(tree->topLevelItem(0)->flags().testFlag(Qt::ItemIsDropEnabled));
     CHECK(drop("Part One", "Chapter 1", Spot::Above) == placeAt(BookPlace::Main, "", 0));
-    CHECK_FALSE(drop("Chapter 2", "Dedication", Spot::Below));  // the sections are apart
+    CHECK_FALSE(drop("Part One", "Dedication", Spot::Below));  // the sections are apart
+    CHECK(drop("Chapter 1", "Dedication", Spot::Below) == placeAt(BookPlace::Front, "", 2));
 }
 
 TEST_CASE("Navigator: elements show the icons of their kinds", "[gui][navigator]") {
@@ -354,9 +359,19 @@ TEST_CASE("Navigator: an element is dragged to any place its kind can have",
     CHECK(drop("Part One", item("Prologue"), Spot::Below) == placeAt(BookPlace::Main, "", 1));
     CHECK_FALSE(drop("Part One", item("Chapter 2"), Spot::Above));
 
-    // Where the kind cannot be: a chapter in the front section, an afterword in the body
-    CHECK_FALSE(drop("Chapter 1", findSection(tree, "section_frontmatter"), Spot::On));
-    CHECK_FALSE(drop("Chapter 1", item("Title"), Spot::Below));
+    // A chapter in the front and the back section too (test report of 19 October, part 3)
+    CHECK(drop("Chapter 1", findSection(tree, "section_frontmatter"), Spot::On) ==
+          placeAt(BookPlace::Front, "", 1));
+    CHECK(drop("Chapter 1", item("Afterword"), Spot::Below) ==
+          placeAt(BookPlace::Back, "", 1));
+
+    // Nothing above the title page, which opens the book (test report of 19 October, part 1)
+    CHECK_FALSE(drop("Chapter 1", item("Title"), Spot::Above));
+    CHECK(drop("Chapter 1", item("Title"), Spot::Below) == placeAt(BookPlace::Front, "", 1));
+
+    // Where the kind cannot be: a part in the front section, an afterword in the body
+    CHECK_FALSE(drop("Part One", findSection(tree, "section_frontmatter"), Spot::On));
+    CHECK_FALSE(drop("Part One", item("Title"), Spot::Below));
     CHECK_FALSE(drop("Afterword", item("Chapter 1"), Spot::Above));
 
     // Where it is, on itself, on the book; a section is not dragged

@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/panels/annotation_card.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/gui/read_only_book.h"
 
 #include <QCheckBox>
 #include <QHBoxLayout>
@@ -226,6 +227,12 @@ void AnnotationCard::updateElidedLabels() {
     setElidedText(m_authorLabel, m_entry.annotation.author.trimmed());
 }
 
+void AnnotationCard::setReadOnly(bool readOnly) {
+    m_readOnly = readOnly;
+    m_doneBox->setEnabled(!readOnly);
+    m_doneBox->setToolTip(readOnly ? readOnlyReason() : QString());
+}
+
 void AnnotationCard::showMenu() {
     QMenu menu(this);
     fillMenu(&menu);
@@ -255,6 +262,20 @@ void AnnotationCard::fillMenu(QMenu* menu) {
     QAction* deleteAction =
         menu->addAction(tr("&Delete"), this, &AnnotationCard::deleteRequested);
     deleteAction->setShortcut(QKeySequence(Qt::Key_Delete));
+
+    // An annotation of a book open read-only is only read: its place is shown, the menu
+    // changes nothing
+    if (m_readOnly) {
+        const QString why = readOnlyReason();
+        menu->setToolTipsVisible(true);
+        for (QAction* action : menu->actions()) {
+            if (!action->isSeparator()) {
+                action->setEnabled(false);
+                action->setToolTip(why);
+                action->setStatusTip(why);
+            }
+        }
+    }
 }
 
 void AnnotationCard::paintEvent(QPaintEvent* event) {

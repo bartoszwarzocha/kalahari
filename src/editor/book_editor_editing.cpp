@@ -7,6 +7,7 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/clipboard_handler.h>
+#include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <QClipboard>
@@ -163,6 +164,9 @@ QString& killedText() {
 
 void BookEditor::insertText(const QString& text)
 {
+    if (refusesChange()) {
+        return;
+    }
     if (text.isEmpty()) {
         return;
     }
@@ -193,6 +197,9 @@ void BookEditor::insertText(const QString& text)
 
 void BookEditor::typeText(const QString& text)
 {
+    if (refusesChange()) {
+        return;
+    }
     qsizetype typed = 0;
     for (qsizetype i = 0; i < text.size(); ++i) {
         if (startsAutoCorrection(text.at(i))) {
@@ -214,6 +221,27 @@ void BookEditor::setAutoCorrect(const AutoCorrectOptions& options)
 void BookEditor::setTextLanguage(std::function<QString()> language)
 {
     m_textLanguage = std::move(language);
+}
+
+bool BookEditor::refusesChange()
+{
+    if (m_readOnly) {
+        emit changeRefused();
+    }
+    return m_readOnly;
+}
+
+void BookEditor::setReadOnly(bool readOnly)
+{
+    if (m_readOnly == readOnly) {
+        return;
+    }
+    m_readOnly = readOnly;
+    // Nothing is composed in a read-only text, and Find and Replace only finds in it
+    setAttribute(Qt::WA_InputMethodEnabled, !readOnly);
+    if (readOnly && m_findReplaceBar != nullptr && !m_findReplaceBar->isHidden()) {
+        m_findReplaceBar->showFind();
+    }
 }
 
 void BookEditor::autoCorrectTyped()
@@ -269,6 +297,9 @@ void BookEditor::autoCorrectTyped()
 
 bool BookEditor::deleteSelectedText()
 {
+    if (refusesChange()) {
+        return false;
+    }
     return removeSelection(true);
 }
 
@@ -304,6 +335,9 @@ bool BookEditor::removeSelection(bool keepAnnotations)
 
 void BookEditor::insertNewline()
 {
+    if (refusesChange()) {
+        return;
+    }
     ensureDocument();
 
     // Split the paragraph via a direct QTextCursor insertBlock() — recorded by
@@ -334,6 +368,9 @@ void BookEditor::insertNewline()
 
 void BookEditor::insertLineBreak()
 {
+    if (refusesChange()) {
+        return;
+    }
     ensureDocument();
 
     // A character of the paragraph, typed as text: it takes the format of the place and
@@ -354,6 +391,9 @@ void BookEditor::insertLineBreak()
 
 void BookEditor::deleteBackward()
 {
+    if (refusesChange()) {
+        return;
+    }
     ensureDocument();
 
     if (hasSelection()) {
@@ -390,6 +430,9 @@ void BookEditor::deleteBackward()
 
 void BookEditor::deleteForward()
 {
+    if (refusesChange()) {
+        return;
+    }
     ensureDocument();
 
     if (hasSelection()) {
@@ -423,6 +466,9 @@ void BookEditor::deleteForward()
 
 void BookEditor::deleteTo(const CursorPosition& position)
 {
+    if (refusesChange()) {
+        return;
+    }
     if (hasSelection()) {
         deleteSelectedText();
         return;
@@ -457,6 +503,9 @@ void BookEditor::deleteTo(const CursorPosition& position)
 
 void BookEditor::deleteDiacritic()
 {
+    if (refusesChange()) {
+        return;
+    }
     if (hasSelection() || !m_textBuffer || m_cursorPosition.offset == 0) {
         deleteBackward();  // The selection, or the paragraph break before the cursor
         return;
@@ -490,6 +539,9 @@ void BookEditor::deleteDiacritic()
 
 void BookEditor::killToParagraphEnd()
 {
+    if (refusesChange()) {
+        return;
+    }
     if (!m_textBuffer || m_textBuffer->blockCount() == 0) {
         return;
     }
@@ -528,6 +580,9 @@ void BookEditor::killToParagraphEnd()
 
 void BookEditor::yank()
 {
+    if (refusesChange()) {
+        return;
+    }
     if (killedText().isEmpty()) {
         return;
     }
@@ -547,6 +602,9 @@ void BookEditor::yank()
 
 void BookEditor::transposeCharacters()
 {
+    if (refusesChange()) {
+        return;
+    }
     if (!m_textBuffer || hasSelection()) {
         return;
     }
@@ -598,16 +656,19 @@ void BookEditor::transposeCharacters()
 
 bool BookEditor::canUndo() const
 {
-    return m_textBuffer && m_textBuffer->isUndoAvailable();
+    return !m_readOnly && m_textBuffer && m_textBuffer->isUndoAvailable();
 }
 
 bool BookEditor::canRedo() const
 {
-    return m_textBuffer && m_textBuffer->isRedoAvailable();
+    return !m_readOnly && m_textBuffer && m_textBuffer->isRedoAvailable();
 }
 
 void BookEditor::undo()
 {
+    if (refusesChange()) {
+        return;
+    }
     if (!m_textBuffer || !m_textBuffer->isUndoAvailable()) {
         return;
     }
@@ -633,6 +694,9 @@ void BookEditor::undo()
 
 void BookEditor::redo()
 {
+    if (refusesChange()) {
+        return;
+    }
     if (!m_textBuffer || !m_textBuffer->isRedoAvailable()) {
         return;
     }
@@ -655,6 +719,9 @@ void BookEditor::redo()
 
 void BookEditor::undoWithoutRedo()
 {
+    if (refusesChange()) {
+        return;
+    }
     if (!m_textBuffer || !m_textBuffer->isUndoAvailable()) {
         return;
     }
@@ -688,6 +755,9 @@ void BookEditor::copy()
 
 void BookEditor::cut()
 {
+    if (refusesChange()) {
+        return;
+    }
     if (!hasSelection() || !m_textBuffer) {
         return;
     }
@@ -736,6 +806,9 @@ bool BookEditor::canInsertFromMimeData(const QMimeData* source)
 
 void BookEditor::insertFromMimeData(const QMimeData* source)
 {
+    if (refusesChange()) {
+        return;
+    }
     if (!canInsertFromMimeData(source)) {
         return;
     }
@@ -760,6 +833,9 @@ void BookEditor::insertFromMimeData(const QMimeData* source)
 bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& position,
                               bool moveSelection)
 {
+    if (refusesChange()) {
+        return false;
+    }
     if (!canInsertFromMimeData(source)) {
         return false;
     }
@@ -809,7 +885,7 @@ void BookEditor::finishEdit(const QTextCursor& cursor)
 
 bool BookEditor::canPaste() const
 {
-    return ClipboardHandler::canPaste();
+    return !m_readOnly && ClipboardHandler::canPaste();
 }
 
 }  // namespace kalahari::editor

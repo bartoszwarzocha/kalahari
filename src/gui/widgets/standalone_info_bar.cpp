@@ -4,6 +4,7 @@
 /// OpenSpec #00033 Phase F: Info bar for standalone files
 
 #include "kalahari/gui/widgets/standalone_info_bar.h"
+#include "kalahari/gui/read_only_book.h"
 
 namespace kalahari {
 namespace gui {
@@ -14,19 +15,71 @@ StandaloneInfoBar::StandaloneInfoBar(QWidget* parent)
     setMessage(tr("This file is not part of a book. Some features are not available."));
     setFilePath(QString());
     setBookOpen(true);
-    connect(this, &InfoBar::actionClicked, this, &StandaloneInfoBar::addToProjectClicked);
+    connect(this, &InfoBar::actionClicked, this, [this]() {
+        if (m_readOnlyBook) {
+            emit exportArchiveClicked();
+        } else if (savesAs()) {
+            emit saveAsClicked();
+        } else {
+            emit addToProjectClicked();
+        }
+    });
 }
 
 void StandaloneInfoBar::setFilePath(const QString& path) {
     m_filePath = path;
-    // A new file goes into the book at once; a file on the disk in the Add to Book window
-    setActionText(path.isEmpty() ? tr("Add to Book") : tr("Add to Book..."));
+    m_readOnlyBook = false;
+    updateAction();
 }
 
-void StandaloneInfoBar::setBookOpen(bool open) {
-    setActionEnabled(open);
-    setActionToolTip(open ? tr("Add the file to the open book as a new element")
-                          : tr("No book is open"));
+void StandaloneInfoBar::setBookOpen(bool open, bool readOnly) {
+    m_bookOpen = open;
+    m_bookReadOnly = readOnly;
+    if (!m_readOnlyBook) {
+        updateAction();
+    }
+}
+
+bool StandaloneInfoBar::savesAs() const {
+    return !m_readOnlyBook && m_filePath.isEmpty() && (!m_bookOpen || m_bookReadOnly);
+}
+
+void StandaloneInfoBar::updateAction() {
+    // A new file that no book can take is saved as a file of its own
+    if (savesAs()) {
+        //: The button of the bar at the bottom of a new file while no book can take it, as
+        //: File > Save As... In Polish: Zapisz jako...
+        setActionText(tr("Save As..."));
+        setActionEnabled(true);
+        //: In Polish: Zapisz nowy plik na dysku
+        setActionToolTip(tr("Save the new file on the disk"));
+        return;
+    }
+
+    // A new file goes into the book at once; a file on the disk in the Add to Book window
+    setActionText(m_filePath.isEmpty() ? tr("Add to Book") : tr("Add to Book..."));
+    setActionEnabled(m_bookOpen && !m_bookReadOnly);
+    if (!m_bookOpen) {
+        setActionToolTip(tr("No book is open"));
+    } else if (m_bookReadOnly) {
+        setActionToolTip(readOnlyReason());
+    } else {
+        setActionToolTip(tr("Add the file to the open book as a new element"));
+    }
+}
+
+void StandaloneInfoBar::showReadOnlyBook(const QString& message) {
+    m_filePath.clear();
+    m_readOnlyBook = true;
+    setMessage(message);
+    //: The button of the message at the bottom of the window over a book open read-only, as
+    //: File > Export > Project Archive... In Polish: Eksportuj archiwum projektu...
+    setActionText(tr("Export Project Archive..."));
+    setActionEnabled(true);
+    //: In Polish: Zapisz książkę w archiwum projektu, które można otworzyć w programie mającym
+    //: jej typ
+    setActionToolTip(tr("Save the book in a project archive, which a program that has its type "
+                        "can open"));
 }
 
 } // namespace gui

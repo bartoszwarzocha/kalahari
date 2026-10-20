@@ -64,8 +64,8 @@ QAccessible::State BookEditorAccessible::state() const
             s.focused = true;
         }
 
-        // Read-only state (always editable for now)
-        s.readOnly = false;
+        // A chapter of a book open read-only
+        s.readOnly = editor->isReadOnly();
     }
 
     return s;

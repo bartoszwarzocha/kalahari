@@ -85,6 +85,15 @@ public:
     /// @brief Whether a chapter or document is in front (what the empty panel says)
     void setDocumentAvailable(bool available);
 
+    /// @brief Whether the annotations it lists are only read: those of a book open read-only.
+    /// Their cards change nothing then (AnnotationCard::setReadOnly()), and Space and Delete do
+    /// nothing; Enter, F2 and a double click still ask for editing (editRequested()), which
+    /// shows the annotation's place
+    void setReadOnly(bool readOnly);
+
+    /// @brief Whether the annotations it lists are only read (setReadOnly())
+    bool isReadOnly() const { return m_readOnly; }
+
     /// @brief The names of what the panel lists, in the program's language: the button of the
     /// text in front and what the empty panel says ("Story", "This story has no annotations")
     /// @param inFront Kind of the element of the book in front; nullopt: a file outside the
@@ -209,6 +218,7 @@ private:
     AnnotationScope m_scope = AnnotationScope::Chapter;
     bool m_annotationsAllowed = true;
     bool m_documentAvailable = false;
+    bool m_readOnly = false;  ///< The annotations are only read (setReadOnly())
     std::optional<core::KindWords> m_inFront;    ///< Kind of the element in front, if any
     std::optional<core::KindWords> m_bookTexts;  ///< Main texts of the open book, if any
     bool m_bookOpen = false;

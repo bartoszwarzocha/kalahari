@@ -6,14 +6,19 @@
 
 #include "kalahari/core/archive_problem.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/package_card.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
+#include <QHash>
 #include <QList>
 #include <QPair>
 #include <QString>
 #include <QStringList>
+#include <QTemporaryDir>
 
 #include <functional>
+#include <memory>
 #include <optional>
 
 class QCheckBox;
@@ -351,7 +356,10 @@ public:
                            const Progress& progress, core::ArchiveProblem* problem)>;
 
     /// @brief Create the window without an archive
-    /// @param registry The book types, for the names of the type and the kinds
+    /// @param registry The installed book types. The window names the type and the kinds of
+    /// the book of an archive after them; a type or a kind that the program does not have
+    /// after the archive's cards of the packages (core::PackageCard), the type greyed out, as
+    /// the book will show them after the import.
     /// @param folder Folder in which the folder of the book is made, at the start
     /// @param importer Unpacks the archive and opens the book
     /// @param parent Parent widget
@@ -392,8 +400,11 @@ public:
     /// @param registry The book types, for the names of the kinds
     /// @param elements The elements; the kinds of as many elements go in the order of their
     /// first elements
+    /// @param cards The book's cards of the packages, by their ids, for the names of the kinds
+    /// that @p registry does not have
     static QString contentsOf(const core::BookTypeRegistry& registry,
-                              const QList<const core::ProjectElement*>& elements);
+                              const QList<const core::ProjectElement*>& elements,
+                              const QHash<QString, core::PackageCard>& cards = {});
 
 protected:
     /// @brief Import the archive
@@ -420,6 +431,8 @@ private:
     QString reasonOf(const core::ArchiveProblem& problem) const;
 
     const core::BookTypeRegistry* m_registry;
+    std::unique_ptr<QTemporaryDir> m_cardsFolder;  ///< The cards of the archive, unpacked
+    QHash<QString, core::PackageCard> m_cards;     ///< The archive's cards of the packages
     Importer m_importer;
     OpeningQuestion m_openingQuestion;
     QString m_archive;

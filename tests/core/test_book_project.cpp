@@ -605,6 +605,14 @@ TEST_CASE("Book project: an element moves wherever its kind can be, with the ele
           QList<ElementPlace>{main("", 0), main("", 1), main("", 2), main("p1", 0),
                               main("p1", 1), main("", 3)});
 
+    // A chapter also in the front and the back section, where it is not added (test report
+    // of 19 October, part 3), but not before the title page
+    const QList<ElementPlace> chapterPlaces =
+        project.movePlacesOf(registry, QStringLiteral("c1"));
+    CHECK(chapterPlaces.contains(ElementPlace{BookPlace::Front, QString(), 1}));
+    CHECK_FALSE(chapterPlaces.contains(ElementPlace{BookPlace::Front, QString(), 0}));
+    CHECK(chapterPlaces.contains(ElementPlace{BookPlace::Back, QString(), 1}));
+
     // A part only in the body, neither in a part nor in itself; a title page only in the front
     CHECK(project.movePlacesOf(registry, QStringLiteral("p1")) ==
           QList<ElementPlace>{main("", 0), main("", 1), main("", 2), main("", 3)});
@@ -638,7 +646,7 @@ TEST_CASE("Book project: an element moves wherever its kind can be, with the ele
         ->elements.append(element("c3", "kalahari.base", "chapter", "Chapter 3"));
     project.elementsIn(BookPlace::Main).append(element("p2", "kalahari.base", "part", "Part Two"));
     const BookProject before = project;
-    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("c1"),
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("p2"),
                                       {BookPlace::Front, QString(), 0}));
     CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("a"), main("", 0)));
     CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("c1"), main("", 9)));
@@ -659,6 +667,88 @@ TEST_CASE("Book project: an element moves wherever its kind can be, with the ele
     CHECK(listed(project.findElement(QStringLiteral("p1"))->elements).toStdString() ==
           "c3, x2");
     CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("x2"), main("", 0)));
+}
+
+TEST_CASE("Book project: nothing is moved or added before the title page",
+          "[core][bookproject]") {
+    // Test report of 19 October, part 1: a chapter could be moved before the title page,
+    // which opens the book
+    BookTypeRegistry registry;
+    loadBuiltIn(registry);
+    BookProject project = projectOf(R"({
+      "format": 2, "id": "p", "type": { "id": "kalahari.novel", "version": "1.0" },
+      "books": [ { "id": "b", "folder": "book",
+        "front": [ { "id": "t", "kind": "kalahari.base:title_page", "title": "Title page" },
+                   { "id": "d", "kind": "kalahari.base:dedication", "title": "For Anna" } ],
+        "main": [ { "id": "c1", "kind": "kalahari.base:chapter", "title": "Chapter 1" } ],
+        "back": [] } ]
+    })");
+    const auto front = [](qsizetype index) {
+        return ElementPlace{BookPlace::Front, QString(), index};
+    };
+    const auto frontPlaces = [&project, &registry](const char* elementId) {
+        QList<qsizetype> indexes;
+        for (const ElementPlace& place :
+             project.movePlacesOf(registry, QString::fromLatin1(elementId))) {
+            if (place.place == BookPlace::Front) {
+                indexes << place.index;
+            }
+        }
+        return indexes;
+    };
+    const KindRef titlePage =
+        registry.findKind(QStringLiteral("kalahari.base"), QStringLiteral("title_page"));
+    const KindRef chapter =
+        registry.findKind(QStringLiteral("kalahari.base"), QStringLiteral("chapter"));
+    const KindRef dedication =
+        registry.findKind(QStringLiteral("kalahari.base"), QStringLiteral("dedication"));
+    REQUIRE(titlePage);
+    REQUIRE(chapter);
+    REQUIRE(dedication);
+    CHECK(titlePage.kind->first);
+    CHECK_FALSE(chapter.kind->first);
+
+    // The title page is first; anything else, also of a kind the program does not have,
+    // after it
+    const QList<ProjectElement>& frontElements = project.elementsIn(BookPlace::Front);
+    CHECK(BookProject::afterOpeningOf(registry, frontElements) == 1);
+    CHECK(BookProject::afterOpeningOf(registry, project.elementsIn(BookPlace::Main)) == 0);
+    CHECK_FALSE(BookProject::canBeAt(registry, frontElements, chapter, 0));
+    CHECK(BookProject::canBeAt(registry, frontElements, chapter, 1));
+    CHECK(BookProject::canBeAt(registry, frontElements, chapter, 2));
+    CHECK_FALSE(BookProject::canBeAt(registry, frontElements, chapter, 3));
+    CHECK_FALSE(BookProject::canBeAt(registry, frontElements, KindRef{}, 0));
+    CHECK(BookProject::canBeAt(registry, frontElements, KindRef{}, 1));
+    CHECK(BookProject::canBeAt(registry, {}, titlePage, 0));
+    CHECK_FALSE(BookProject::canBeAt(registry, frontElements.mid(1), titlePage, 1));
+    CHECK(BookProject::newIndexIn(registry, {}, titlePage) == 0);
+    CHECK(BookProject::newIndexIn(registry, frontElements.mid(1), titlePage) == 0);
+    CHECK(BookProject::newIndexIn(registry, frontElements, dedication) == 2);
+
+    // A chapter goes to the front section after the title page; the dedication has no other
+    // place, and neither has the title page
+    CHECK(frontPlaces("c1") == QList<qsizetype>{1, 2});
+    CHECK(frontPlaces("d") == QList<qsizetype>{1});
+    CHECK(frontPlaces("t") == QList<qsizetype>{0});
+    const BookProject before = project;
+    CHECK_FALSE(project.moveElementTo(registry, QStringLiteral("c1"), front(0)));
+    CHECK(project == before);
+    CHECK(project.moveElementTo(registry, QStringLiteral("c1"), front(1)));
+    CHECK(project.elementsIn(BookPlace::Front).at(1).id == QStringLiteral("c1"));
+
+    // A book where something stands before the title page: everything else goes after it,
+    // and the title page back to the start
+    project = projectOf(R"({
+      "format": 2, "id": "p", "type": { "id": "kalahari.novel", "version": "1.0" },
+      "books": [ { "id": "b", "folder": "book",
+        "front": [ { "id": "d", "kind": "kalahari.base:dedication", "title": "For Anna" },
+                   { "id": "t", "kind": "kalahari.base:title_page", "title": "Title page" } ],
+        "main": [ { "id": "c1", "kind": "kalahari.base:chapter", "title": "Chapter 1" } ],
+        "back": [] } ]
+    })");
+    CHECK(frontPlaces("c1") == QList<qsizetype>{2});
+    CHECK(frontPlaces("d") == QList<qsizetype>{1});
+    CHECK(frontPlaces("t") == QList<qsizetype>{0});
 }
 
 TEST_CASE("Book project: names of the front, main and back part", "[core][bookproject]") {

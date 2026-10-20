@@ -808,10 +808,12 @@ QList<ElementPlace> BookProject::movePlacesOf(const BookTypeRegistry& registry,
     const KindRef kind = element ? kindOf(registry, *element) : KindRef{};
     const qsizetype book = bookOf(*this, elementId);
     if (!kind) {
-        // A kind the registry does not have: the places of its list
+        // A kind the registry does not have: the places of its list after the title page
         const QList<ProjectElement>* list = listAt(without, *from, book);
         for (qsizetype i = 0; list && i <= list->size(); ++i) {
-            places.append({from->place, from->groupId, i});
+            if (canBeAt(registry, *list, kind, i)) {
+                places.append({from->place, from->groupId, i});
+            }
         }
         return places;
     }
@@ -821,7 +823,7 @@ QList<ElementPlace> BookProject::movePlacesOf(const BookTypeRegistry& registry,
         addPlaces = [&](BookPlace part, const QList<ProjectElement>& elements,
                         const QString& groupId, bool here) {
             for (qsizetype i = 0; i <= elements.size(); ++i) {
-                if (here) {
+                if (here && canBeAt(registry, elements, kind, i)) {
                     places.append({part, groupId, i});
                 }
                 if (i < elements.size() && canHold(registry, elements.at(i), kind)) {
@@ -889,7 +891,7 @@ QList<KindRef> BookProject::kindsIn(const BookTypeRegistry& registry, BookPlace 
     QList<KindRef> offered = type ? registry.kindsIn(type->id, place) : QList<KindRef>{};
     for (const KindReference& reference : kinds) {
         const KindRef ref = registry.findKind(reference.packageId, reference.kindId);
-        if (ref && ref.kind->allows(place) && !containsKind(offered, ref)) {
+        if (ref && ref.offeredIn(place) && !containsKind(offered, ref)) {
             offered.append(ref);
         }
     }
@@ -928,18 +930,45 @@ ElementForm BookProject::formOf(const BookTypeRegistry& registry, const ProjectE
 
 qsizetype BookProject::newIndexIn(const BookTypeRegistry& registry,
                                   const QList<ProjectElement>& elements, const KindRef& kind) {
+    if (kind && kind.kind->first) {
+        return 0;
+    }
+    const qsizetype opening = afterOpeningOf(registry, elements);
     const KindPosition position = kind ? kind.kind->position : KindPosition::Any;
     if (position == KindPosition::Start) {
-        return 0;
+        return opening;
     }
     qsizetype index = elements.size();
     if (position == KindPosition::End) {
         return index;
     }
-    while (index > 0 && positionOf(registry, elements.at(index - 1)) == KindPosition::End) {
+    while (index > opening &&
+           positionOf(registry, elements.at(index - 1)) == KindPosition::End) {
         --index;
     }
     return index;
+}
+
+bool BookProject::canBeAt(const BookTypeRegistry& registry, const QList<ProjectElement>& elements,
+                          const KindRef& kind, qsizetype index) {
+    if (index < 0 || index > elements.size()) {
+        return false;
+    }
+    if (kind && kind.kind->first) {
+        return index == 0;
+    }
+    return index >= afterOpeningOf(registry, elements);
+}
+
+qsizetype BookProject::afterOpeningOf(const BookTypeRegistry& registry,
+                                      const QList<ProjectElement>& elements) {
+    for (qsizetype i = elements.size(); i > 0; --i) {
+        const KindRef kind = kindOf(registry, elements.at(i - 1));
+        if (kind && kind.kind->first) {
+            return i;
+        }
+    }
+    return 0;
 }
 
 QList<const ProjectElement*> BookProject::contentOf(const BookTypeRegistry& registry,
@@ -972,12 +1001,11 @@ QList<const ProjectElement*> BookProject::closingElementsOf(const BookTypeRegist
     return closing;
 }
 
-QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const {
-    QStringList missing;
-    const auto note = [&registry, &missing](const QString& packageId) {
-        if (!packageId.isEmpty() && !registry.package(packageId) &&
-            !missing.contains(packageId)) {
-            missing.append(packageId);
+QStringList BookProject::packageIds() const {
+    QStringList ids;
+    const auto note = [&ids](const QString& packageId) {
+        if (!packageId.isEmpty() && !ids.contains(packageId)) {
+            ids.append(packageId);
         }
     };
     const auto noteElement = [&note](const ProjectElement& element) {
@@ -991,6 +1019,32 @@ QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const
         note(reference.packageId);
     }
     forEachElement(*this, noteElement);
+    return ids;
+}
+
+QStringList BookProject::missingPackages(const BookTypeRegistry& registry) const {
+    QStringList missing;
+    const auto note = [&missing](const QString& packageId) {
+        if (!missing.contains(packageId)) {
+            missing.append(packageId);
+        }
+    };
+    for (const QString& packageId : packageIds()) {
+        if (!registry.package(packageId)) {
+            note(packageId);
+        }
+    }
+    // A package of another version, without a kind the project names
+    const auto noteKind = [&registry, &note](const KindReference& reference) {
+        if (!reference.kindId.isEmpty() && registry.package(reference.packageId) &&
+            !registry.findKind(reference.packageId, reference.kindId)) {
+            note(reference.packageId);
+        }
+    };
+    for (const KindReference& reference : kinds) {
+        noteKind(reference);
+    }
+    forEachElement(*this, [&noteKind](const ProjectElement& element) { noteKind(element.kind); });
     missing.sort();
     return missing;
 }

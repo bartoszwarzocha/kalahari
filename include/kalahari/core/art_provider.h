@@ -25,6 +25,8 @@
 namespace kalahari {
 namespace core {
 
+struct PackageCard;
+
 // ============================================================================
 // IconContext - Context for icon sizing
 // ============================================================================
@@ -113,6 +115,14 @@ public:
     /// @param context Icon context for sizing
     /// @return QIcon with current theme colors applied
     QIcon getIcon(const QString& cmdId, IconContext context = IconContext::Toolbar);
+
+    /// @brief Icon @p iconId of a book type package, as getIcon() gives it; where the program
+    /// has no icon of this id, the SVG file of it on @p card, a book's card of the package
+    /// (PackageCard), in the current icon theme
+    /// @param card The card, or nullptr for none
+    /// @return The icon; an empty QIcon when neither the program nor the card has it
+    QIcon getPackageIcon(const QString& iconId, const PackageCard* card,
+                         IconContext context = IconContext::Toolbar);
 
     /// @brief Get pixmap for command ID with specific size
     /// @param cmdId Command ID

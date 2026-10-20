@@ -28,6 +28,7 @@ class QDockWidget;
 class QCloseEvent;
 class QShowEvent;
 class QTimer;
+class QToolButton;
 
 namespace kalahari {
 
@@ -285,6 +286,10 @@ private slots:
     /// @brief Show the cursor's page and the zoom of the editor in front in the status bar
     void updatePageStatus();
 
+    /// @brief Show "Read-only" with a lock in the status bar while the open book is
+    /// read-only, its tooltip saying why
+    void updateReadOnlyStatus();
+
     /// @brief Turn Focus on or off in every editor (remembered; the view mode stays)
     void onFocusToggle();
 
@@ -389,6 +394,8 @@ private:
     StatusBarStatistics* m_statusBarStatistics{nullptr};  ///< Words, characters, reading time
     QLabel* m_pageLabel{nullptr};                     ///< Page of the cursor (Page Layout view)
     QLabel* m_zoomLabel{nullptr};                     ///< Zoom of the editor in front
+    QToolButton* m_readOnlyStatus{nullptr};           ///< "Read-only" with a lock, while the
+                                                      ///< open book is read-only
 
     // OpenSpec #00043: Debounce timer for action state updates
     QTimer* m_actionStateDebounceTimer{nullptr};      ///< Debounce rapid cursor changes

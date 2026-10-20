@@ -26,6 +26,15 @@ namespace {
     QT_TRANSLATE_NOOP("kalahari::core::IconDownloader", "Download failed: %1"),
     QT_TRANSLATE_NOOP("kalahari::core::IconDownloader", "The downloaded file is empty"),
 
+    // core/plugin_archive.cpp: why a plugin was not unpacked
+    QT_TRANSLATE_NOOP("kalahari::core::PluginArchive", "The plugin \"%1\" cannot be opened: its file is not a ZIP archive, it is damaged or it cannot be read."),
+    QT_TRANSLATE_NOOP("kalahari::core::PluginArchive", "The plugin \"%1\" was not unpacked: one of its files has no name."),
+    QT_TRANSLATE_NOOP("kalahari::core::PluginArchive", "The plugin \"%1\" was not unpacked: its file \"%2\" would be written outside the plugin's folder."),
+    QT_TRANSLATE_NOOP("kalahari::core::PluginArchive", "The plugin \"%1\" cannot be unpacked: the folder \"%2\" cannot be created."),
+    QT_TRANSLATE_NOOP("kalahari::core::PluginArchive", "The plugin \"%1\" cannot be unpacked: its file \"%2\" cannot be read from the archive, which may be damaged."),
+    QT_TRANSLATE_NOOP("kalahari::core::PluginArchive", "The plugin \"%1\" cannot be unpacked: the file \"%2\" cannot be written."),
+    QT_TRANSLATE_NOOP("kalahari::core::PluginArchive", "The plugin \"%1\" cannot be unpacked: %2"),
+
     // core/utils/svg_converter.cpp: why a downloaded icon is not a usable SVG
     QT_TRANSLATE_NOOP("kalahari::core::SvgConverter", "The SVG file is empty"),
     QT_TRANSLATE_NOOP("kalahari::core::SvgConverter", "Invalid XML in line %1, column %2: %3"),

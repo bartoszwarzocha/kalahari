@@ -17,6 +17,7 @@
 namespace kalahari {
 namespace core {
 struct BookProject;
+struct PackageCard;
 struct ProjectElement;
 } // namespace core
 
@@ -34,9 +35,11 @@ QString programLanguage();
 void setProgramLanguage(const QString& language);
 
 /// @brief Name of the type of @p project in the program's language: the name of its package in
-/// @p registry; "User Project" for a book without a type; for a type whose package is not
-/// installed, its id with "(not installed)"
-QString typeNameOf(const core::BookTypeRegistry& registry, const core::BookProject& project);
+/// @p registry; "User Project" for a book without a type; for a type that the registry does
+/// not have, its name on @p card, the book's card of the type, or else its id, with "(not in
+/// the program)"
+QString typeNameOf(const core::BookTypeRegistry& registry, const core::BookProject& project,
+                   const core::PackageCard* card = nullptr);
 
 /// @brief Forms of the name of @p kind in the program's language; none without a kind
 core::KindWords wordsOf(const core::KindRef& kind);
@@ -52,13 +55,15 @@ core::KindWords menuWords(core::KindWords words);
 QString newTextMenuText(const core::KindRef& kind);
 
 /// @brief Forms of the name of the kind of @p element, a kind of @p registry; when the registry
-/// does not have the kind (its package is not installed), the id of the kind stands for its
-/// name; a file of a book outside its text, which has no kind, is named "file" (fileWords())
+/// does not have the kind, the names of the kind on @p card, the book's card of the kind's
+/// package, or else the id of the kind; a file of a book outside its text, which has no kind,
+/// is named "file" (fileWords())
 core::KindWords wordsOf(const core::BookTypeRegistry& registry,
-                        const core::ProjectElement& element);
+                        const core::ProjectElement& element,
+                        const core::PackageCard* card = nullptr);
 
 /// @brief Forms of the name of the kind of @p element of the open book (wordsOf() with the
-/// book types of core::ProjectManager)
+/// book types and the book's cards of core::ProjectManager)
 core::KindWords wordsOf(const core::ProjectElement& element);
 
 /// @brief Whether @p a and @p b are elements of the same kind of @p registry; when the registry

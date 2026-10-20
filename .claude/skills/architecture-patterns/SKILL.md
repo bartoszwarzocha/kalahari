@@ -52,8 +52,8 @@ description: Kalahari architecture patterns and key classes. Use for code analys
 - Components connect to update on changes
 
 ### Composite
-- Book → Part → Chapter (Document)
-- BookElement hierarchy
+- BookProject → ProjectBook (front, main, back) and ProjectWorkshop → ProjectElement (groups hold elements)
+- Kinds and types come from book type packages (BookTypeRegistry); a book keeps copies of its packages in types/ (PackageCopies)
 
 ## 3. Source Structure
 
@@ -64,7 +64,7 @@ include/kalahari/
 ├── core/           # business logic, singletons
 │   ├── art_provider.h, icon_registry.h, theme_manager.h, theme.h
 │   ├── settings_manager.h, logger.h, event_bus.h
-│   ├── book.h, part.h, book_element.h, document.h, chapter_document.h
+│   ├── book_project.h, book_type_package.h, book_type_registry.h, package_copies.h, chapter_document.h
 │   ├── project_manager.h, project_database.h, project_lock.h, backup_manager.h
 │   ├── plugin_manager.h, plugin_manifest.h, plugin_archive.h, python_interpreter.h
 │   ├── plugin_signature.h, trusted_keys.h   # Ed25519 plugin security

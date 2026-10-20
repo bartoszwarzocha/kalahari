@@ -436,6 +436,39 @@ TEST_CASE("Built-in book types: the palette offers every kind of every package",
           qualified.indexOf(QStringLiteral("kalahari.base/chapter")));
 }
 
+TEST_CASE("Built-in book types: a chapter is added to the main section and moved to the others",
+          "[core][booktypes]") {
+    // Test report of 19 October, part 3: the only chapter of a book could not be moved
+    BookTypeRegistry registry;
+    loadBuiltIn(registry);
+    const KindRef chapter =
+        registry.findKind(QStringLiteral("kalahari.base"), QStringLiteral("chapter"));
+    REQUIRE(chapter);
+    CHECK(chapter.offeredIn(BookPlace::Main));
+    for (const BookPlace place : {BookPlace::Front, BookPlace::Back}) {
+        CHECK(chapter.kind->allows(place));
+        CHECK_FALSE(chapter.offeredIn(place));
+    }
+    CHECK_FALSE(chapter.offeredIn(BookPlace::Workshop));
+
+    // Every other kind is offered wherever it can be: a table of contents in the front and
+    // the back section
+    const KindRef toc = registry.findKind(QStringLiteral("kalahari.base"), QStringLiteral("toc"));
+    REQUIRE(toc);
+    CHECK(toc.offeredIn(BookPlace::Front));
+    CHECK(toc.offeredIn(BookPlace::Back));
+    CHECK_FALSE(toc.offeredIn(BookPlace::Main));
+    for (const KindRef& kind : registry.allKinds()) {
+        for (const BookPlace place :
+             {BookPlace::Front, BookPlace::Main, BookPlace::Back, BookPlace::Workshop}) {
+            INFO(kind.reference().toStdString());
+            if (kind.kind != chapter.kind) {
+                CHECK(kind.offeredIn(place) == kind.kind->allows(place));
+            }
+        }
+    }
+}
+
 TEST_CASE("Built-in book types: groups of the Workshop and the parts layer",
           "[core][booktypes]") {
     BookTypeRegistry registry;
@@ -974,6 +1007,14 @@ TEST_CASE("Book type packages: a type with a problem is not loaded", "[core][boo
          set("kinds.motto", jsonValue(R"({ "form": "text", "places": ["front"], "position": "end",
                                       "name": { "en": "Motto" }, "plural": { "en": "Mottos" } })")),
          "kinds.motto.position: only a kind of the main part has a position"},
+        {"an opening that is not true or false", set("kinds.prologue.first", "yes"),
+         "kinds.prologue.first: must be true or false"},
+        {"an opening kind with a position",
+         [](QJsonObject& type) {
+             setAt(type, QStringLiteral("kinds.prologue.position"), QStringLiteral("start"));
+             setAt(type, QStringLiteral("kinds.prologue.first"), true);
+         },
+         "kinds.prologue.first: a kind that opens its section has no position"},
         {"a window of a text kind", set("kinds.prologue.editor", "text"),
          "kinds.prologue.editor: only a window kind has an editor"},
         {"a text kind made by a tool", set("kinds.prologue.generated", true),

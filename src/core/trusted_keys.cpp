@@ -4,6 +4,7 @@
 #include <kalahari/core/trusted_keys.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/unicode_paths.h>
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 #include <QCoreApplication>
@@ -85,11 +86,11 @@ bool TrustedKeys::loadBuiltinKeys() {
     }
 
     QString keysPath = resourcesDir + "/keys/trusted_publishers.json";
-    std::filesystem::path filePath(keysPath.toStdString());
+    std::filesystem::path filePath(keysPath.toStdU16String());
 
     if (!std::filesystem::exists(filePath)) {
         Logger::getInstance().warn("TrustedKeys: Built-in keys file not found: {}",
-                                   filePath.string());
+                                   pathText(filePath));
         return false;
     }
 
@@ -97,7 +98,7 @@ bool TrustedKeys::loadBuiltinKeys() {
         std::ifstream file(filePath);
         if (!file) {
             Logger::getInstance().error("TrustedKeys: Cannot open keys file: {}",
-                                        filePath.string());
+                                        pathText(filePath));
             return false;
         }
 

@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <system_error>
 #include <vector>
 
 namespace kalahari {
@@ -34,7 +35,13 @@ spdlog::sink_ptr Logger::openFileSink(const std::string& logFilePath, std::strin
     std::error_code ec;
     const auto tempDir = std::filesystem::temp_directory_path(ec);
     if (!ec) {
-        candidates.push_back((tempDir / "kalahari.log").string());
+        // spdlog takes the narrow name of the file, which on Windows is in the code page of
+        // the system: a folder whose name it has no place for cannot take the log
+        try {
+            candidates.push_back((tempDir / "kalahari.log").string());
+        } catch (const std::system_error& e) {
+            std::cerr << "Cannot name the log file in the temp directory: " << e.what() << '\n';
+        }
     }
 
     for (const auto& path : candidates) {

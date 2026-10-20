@@ -712,6 +712,7 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIn
         QFont bold = action->font();
         bold.setBold(true);
         action->setFont(bold);
+        action->setEnabled(!m_readOnly);  // a read-only text keeps its words
         connect(action, &QAction::triggered, this,
                 [this, paraIndex, startOffset, endOffset, suggestion]() {
                     replaceWord(paraIndex, startOffset, endOffset, suggestion);
@@ -1122,6 +1123,7 @@ void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error, int p
         QFont bold = action->font();
         bold.setBold(true);
         action->setFont(bold);
+        action->setEnabled(!m_readOnly);  // a read-only text keeps its words
         connect(action, &QAction::triggered, this, [this, paraIndex, error, suggestion]() {
             replaceWord(paraIndex, error.startPos, error.startPos + error.length, suggestion);
         });

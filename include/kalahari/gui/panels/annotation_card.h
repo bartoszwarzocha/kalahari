@@ -64,6 +64,13 @@ public:
     /// @brief Whether the keys are in the list of cards
     bool isListFocused() const { return m_listFocused; }
 
+    /// @brief Let the annotation be changed, or only read (an annotation of a book open
+    /// read-only): its check box and the items of its menu greyed out, saying why
+    void setReadOnly(bool readOnly);
+
+    /// @brief Whether the annotation is only read (setReadOnly())
+    bool isReadOnly() const { return m_readOnly; }
+
     /// @brief The text as shown
     QString text() const;
 
@@ -118,6 +125,7 @@ private:
     QLabel* m_textLabel{nullptr};
     bool m_selected = false;
     bool m_listFocused = false;
+    bool m_readOnly = false;  ///< The annotation is only read (setReadOnly())
 };
 
 }  // namespace kalahari::gui

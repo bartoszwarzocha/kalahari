@@ -52,6 +52,17 @@ KindRef kind(const QString& packageId, const QString& kindId) {
     return found;
 }
 
+/// The open book takes kind @p kindId of package @p packageId too: its .klh file names the kind,
+/// and the book opens again with a copy of the package. Kinds taken before are no longer valid.
+void takeKind(const QString& packageId, const QString& kindId) {
+    auto& pm = ProjectManager::getInstance();
+    const QString manifest = pm.getManifestPath();
+    pm.project()->kinds.append(KindReference{packageId, kindId});
+    REQUIRE(pm.saveManifest());
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+}
+
 /// Kinds with their packages, "?" for no kind
 std::string references(const QList<KindRef>& kinds) {
     QStringList list;
@@ -725,8 +736,9 @@ TEST_CASE("ProjectManager does not create a user project from a wrong palette",
         expected = {"kalahari.base:part is not a kind of the project"};
     }
     SECTION("An element in a place its kind does not allow") {
-        palette.elements = {{kind("kalahari.base", "chapter"), BookPlace::Front}};
-        expected = {"kalahari.base:chapter cannot be in front"};
+        palette.kinds = {kind("kalahari.base", "part")};
+        palette.elements = {{kind("kalahari.base", "part"), BookPlace::Front}};
+        expected = {"kalahari.base:part cannot be in front"};
     }
     request.palette = palette;
 
@@ -1123,7 +1135,8 @@ TEST_CASE("ProjectManager does not open a book that another Kalahari program has
     REQUIRE(pm.closeProject(false));
 }
 
-TEST_CASE("ProjectManager opens elements whose package is not installed", "[project_manager]") {
+TEST_CASE("ProjectManager opens elements whose package is not installed, read-only",
+          "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();
 
@@ -1164,6 +1177,8 @@ TEST_CASE("ProjectManager opens elements whose package is not installed", "[proj
     QStringList problems;
     REQUIRE(pm.openProject(manifest, &problems));
     CHECK(problems.isEmpty());
+    CHECK(pm.isReadOnly());
+    CHECK(pm.missingPackages() == QStringList{"acme.thriller"});
 
     const ProjectElement* arc = pm.findElement(part);
     const ProjectElement* sceneElement = pm.findElement(chapter);
@@ -1176,13 +1191,13 @@ TEST_CASE("ProjectManager opens elements whose package is not installed", "[proj
     CHECK(pm.formOf(*sceneElement) == ElementForm::Text);
     CHECK(pm.formOf(*board) == ElementForm::Window);
 
-    // Its text opens, is counted and keeps its status
+    // Its text opens, is counted and keeps its status, which does not change: the book is
+    // read-only without the package
     CHECK(pm.loadChapterContent(chapter) == kmlWith("Dark night"));
     CHECK(pm.wordCount(chapter) == 2);
     CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 2}});  // and the title page
-    REQUIRE(pm.setStatus(chapter, "final"));
-    CHECK(chapterFileOf(chapter).status() == "final");
-    CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 1}, {"final", 1}});
+    CHECK_FALSE(pm.setStatus(chapter, "final"));
+    CHECK(chapterFileOf(chapter).status() == "draft");
 
     // No new elements of its kinds: the project does not offer them
     CHECK(pm.textKindsFor(BookPlace::Main, part).isEmpty());
@@ -1395,6 +1410,7 @@ TEST_CASE("A new chapter of the body goes before the epilogue that ends the last
     QTemporaryDir dir;
     auto& pm = projects();
     REQUIRE(pm.createProject(dir.path(), "Epilogue", "Author", "en", true, "kalahari.novel"));
+    takeKind("kalahari.short_stories", "story");
     const KindRef chapter = pm.chapterKindFor(BookPlace::Main);
     const KindRef prologueKind = kind("kalahari.novel", "prologue");
     const KindRef epilogueKind = kind("kalahari.novel", "epilogue");
@@ -1446,7 +1462,6 @@ TEST_CASE("A new chapter of the body goes before the epilogue that ends the last
     CHECK(pm.newPlaceOf(chapter, BookPlace::Main) == ElementPlace{BookPlace::Main, QString(), 3});
 
     // A kind that cannot be in a part goes to the end of the body
-    pm.project()->kinds.append(KindReference{"kalahari.short_stories", "story"});
     const KindRef story = kind("kalahari.short_stories", "story");
     REQUIRE(pm.removeElement(pm.findElement(partTwo)->elements.first().id).has_value());
     CHECK(pm.newPlaceOf(story, BookPlace::Main) == ElementPlace{BookPlace::Main, QString(), 3});
@@ -1470,6 +1485,7 @@ TEST_CASE("A new part takes the epilogue from the end of the last part", "[proje
     QTemporaryDir dir;
     auto& pm = projects();
     REQUIRE(pm.createProject(dir.path(), "Parts", "Author", "en", true, "kalahari.novel"));
+    takeKind("kalahari.short_stories", "story");
     const QString manifest = pm.getManifestPath();
     const KindRef chapter = pm.chapterKindFor(BookPlace::Main);
     const KindRef part = pm.partKind();
@@ -1481,7 +1497,6 @@ TEST_CASE("A new part takes the epilogue from the end of the last part", "[proje
     const QString epilogue =
         pm.addElement(kind("kalahari.novel", "epilogue"), "Epilogue", BookPlace::Main, partOne);
     REQUIRE_FALSE(epilogue.isEmpty());
-    pm.project()->kinds.append(KindReference{"kalahari.short_stories", "story"});
     const QString story = pm.addElement(kind("kalahari.short_stories", "story"), "Story",
                                         BookPlace::Main, QString(), 0);
     REQUIRE_FALSE(story.isEmpty());
@@ -1615,9 +1630,15 @@ TEST_CASE("ProjectManager moves an element to another part of the book or group,
     REQUIRE(pm.moveElementTo(chapter, inBody(part, 0)));
     CHECK(titles(pm.findElement(part)->elements) == "Chapter 1, Epilogue");
 
+    // A chapter can also be in the front and the back section (test report of 19 October,
+    // part 3: the only chapter of a book could not be moved), but not before the title page
+    CHECK(pm.canMoveTo(chapter, {BookPlace::Front, QString(), 1}));
+    CHECK_FALSE(pm.canMoveTo(chapter, {BookPlace::Front, QString(), 0}));
+    CHECK(pm.canMoveTo(chapter, {BookPlace::Back, QString(), 0}));
+
     // Where its kind cannot be, or a place that is not in the book: the book stays as it was
     const BookProject unchanged = *pm.project();
-    CHECK_FALSE(pm.moveElementTo(chapter, {BookPlace::Back, QString(), 0}));
+    CHECK_FALSE(pm.moveElementTo(part, {BookPlace::Back, QString(), 0}));
     CHECK_FALSE(pm.moveElementTo(part, inBody(part, 0)));
     CHECK_FALSE(pm.moveElementTo(chapter, inBody(part, 5)));
     CHECK_FALSE(pm.moveElementTo("no-element", inBody(QString(), 0)));
@@ -2254,8 +2275,8 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
     REQUIRE(project.mkpath(".backups"));
     writeFile(project.filePath(".backups/project_backup.db"), "old");
 
-    // The archive has the files of the book, without its lock, the log files of its database
-    // and the backups; the book stays open
+    // The archive has the files of the book with the cards of its packages, without its lock,
+    // the log files of its database and the backups; the book stays open
     const QString archive = project.filePath("Travels.klh.zip");
     ArchiveProblem problem;
     QList<int> progress;
@@ -2267,8 +2288,15 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
     CHECK(std::is_sorted(progress.cbegin(), progress.cend()));
     CHECK(progress.last() == 100);
     CHECK(pm.isProjectOpen());
-    const QStringList entries{"Travels.klh", "book/chapter_001.kchapter",
-                              "book/title_page_001.kchapter", "project.db"};
+    QStringList entries{"Travels.klh", "book/chapter_001.kchapter",
+                        "book/title_page_001.kchapter", "project.db"};
+    QDirIterator cards(project.filePath("types"), QDir::Files, QDirIterator::Subdirectories);
+    while (cards.hasNext()) {
+        entries << project.relativeFilePath(cards.next());
+    }
+    entries.sort();
+    CHECK(entries.contains("types/kalahari.base/card.json"));
+    CHECK(entries.contains("types/kalahari.novel/card.json"));
     CHECK(entriesOf(archive) == entries);
 
     // An archive written to the book's folder is not in the next one

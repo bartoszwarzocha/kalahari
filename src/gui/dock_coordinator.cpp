@@ -20,6 +20,8 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/log_panel_sink.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/package_card.h"
+#include "kalahari/core/project_manager.h"
 #include <QMainWindow>
 #include <QDockWidget>
 #include <QTabWidget>
@@ -400,8 +402,14 @@ void DockCoordinator::refreshTabIcons() {
             continue;
         }
         const QString iconId = page->property("tabIconId").toString();
+        // A chapter of a kind the program does not have: the icon on the book's card of its
+        // package
+        const QString package = page->property("tabIconPackage").toString();
+        const core::PackageCard* card =
+            package.isEmpty() ? nullptr
+                              : core::ProjectManager::getInstance().packageCard(package);
         if (!iconId.isEmpty()) {
-            m_centralTabs->setTabIcon(i, artProvider.getIcon(iconId));
+            m_centralTabs->setTabIcon(i, artProvider.getPackageIcon(iconId, card));
         }
     }
 }

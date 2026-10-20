@@ -57,14 +57,17 @@
 /// in the middle of a sentence, the cases that the language has, "indefinite" with an
 /// indefinite article and "gender": "masculine", "feminine", "neuter" or "plural" for a name
 /// plural in form; see kind_words.h),
-/// "icon", "places" (front, main, back, workshop or ids of group kinds it can be inside), "limit"
+/// "icon", "places" (front, main, back, workshop or ids of group kinds it can be inside; in a
+/// part of the book whose list in its package does not name it, an element of the kind is
+/// moved, not added: a chapter goes to the front section, but is added to the main one), "limit"
 /// (most elements of the kind in a book), "title" (default title, "%n" is the number) with
 /// "numbering" ("arabic" or "roman"), "template" (text kinds: a .kchapter file whose text a
 /// new element starts with; "{title}" and "{author}" in it become the book's title and
 /// author), "position" (kinds of the main part: "start" for a kind that opens the story, like
-/// a prologue, "end" for one that closes it, like an epilogue), "editor", "generated" and
-/// "settings" (window kinds), "workshopGroup" (kinds of the Workshop: "libraries" or
-/// "resources", the group they go to when the Workshop is grouped).
+/// a prologue, "end" for one that closes it, like an epilogue), "first" (true for a kind that
+/// opens its section, like the title page: nothing is moved or added before its element),
+/// "editor", "generated" and "settings" (window kinds), "workshopGroup" (kinds of the
+/// Workshop: "libraries" or "resources", the group they go to when the Workshop is grouped).
 ///
 /// styles.json has the fields of the paragraph_styles and character_styles tables of
 /// project.db, with names in several languages and the style of the next paragraph:
@@ -182,6 +185,7 @@ struct ElementKind {
     TitleNumbering numbering = TitleNumbering::Arabic;
     QString templateFile;                ///< Text kinds: starting .kchapter, in the package
     KindPosition position = KindPosition::Any;  ///< Where its elements stand in the main part
+    bool first = false;                  ///< Its element opens its section: the title page
     QString editor;                      ///< Window kinds: id of the window that opens the element
     bool generated = false;              ///< Window kinds: content made by a tool of the type
     QJsonObject settings;                ///< Window kinds: settings of the window
@@ -260,6 +264,10 @@ struct BookTypePackage {
 
     /// @brief Kinds offered in @p place
     const QStringList& kindsIn(BookPlace place) const;
+
+    /// @brief Ids of the packages this package needs: those it uses, then those whose kinds
+    /// it names in its lists, "primary" and "start", each once
+    QStringList requiredPackages() const;
 
     /// @brief Read the package in folder @p directory
     /// @param problems Gets one line per problem: "<field>: <what is wrong>"

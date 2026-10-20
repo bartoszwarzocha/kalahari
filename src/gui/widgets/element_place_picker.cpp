@@ -207,12 +207,19 @@ void ElementPlacePicker::setElement(const core::KindRef& kind, const QString& ti
     m_kind = kind;
     m_title = title;
     m_inside = inside;
+    fillPlaces();
+}
 
+void ElementPlacePicker::fillPlaces()
+{
+    // A new element where its kind is offered; one that is moved, anywhere its kind can be (a
+    // chapter also in the front section)
     m_places.clear();
     if (m_registry && m_kind) {
         for (const PickerSection& section : std::as_const(m_sections)) {
             addPlacesIn(section.place, section.elements, QString(),
-                        m_kind.kind->allows(section.place));
+                        m_movedFrom ? m_kind.kind->allows(section.place)
+                                    : m_kind.offeredIn(section.place));
         }
     }
     m_place = m_places.isEmpty() ? -1 : 0;
@@ -273,7 +280,7 @@ void ElementPlacePicker::setPlace(const core::ElementPlace& place)
 void ElementPlacePicker::setMovedFrom(const core::ElementPlace& place)
 {
     m_movedFrom = place;
-    showPlace();
+    fillPlaces();
 }
 
 bool ElementPlacePicker::canBeAt(const core::ElementPlace& place) const
@@ -413,7 +420,8 @@ void ElementPlacePicker::addPlacesIn(core::BookPlace part,
                                      const QString& groupId, bool here)
 {
     for (qsizetype i = 0; i <= elements.size(); ++i) {
-        if (here) {
+        // Nothing before the title page
+        if (here && core::BookProject::canBeAt(*m_registry, elements, m_kind, i)) {
             m_places.append({part, groupId, i});
         }
         if (i < elements.size() && canBeInside(elements.at(i))) {

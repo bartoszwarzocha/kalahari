@@ -32,6 +32,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -42,6 +43,7 @@
 #include "kalahari/core/archive_problem.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/package_card.h"
 // OpenSpec #00041: SQLite Project Database
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/project_lock.h"
@@ -258,12 +260,29 @@ public:
     bool closeProject(bool promptSave = true);
 
     /// @brief Save the project to its .klh file
-    /// @return true if the file was written
+    /// @return true if the file was written; false also when the book is open read-only
     bool saveManifest();
 
     /// @brief Check if a project is currently open
     /// @return true if a project is open (ProjectMode), false otherwise
     bool isProjectOpen() const;
+
+    /// @brief Whether the open book is open read-only: the program does not have a package it
+    /// uses (missingPackages())
+    ///
+    /// The book can be read and exported (exportArchive()), but not changed: the methods that
+    /// change it do nothing and report so, and nothing is written into its folder, neither
+    /// its .klh file nor its chapters nor the cards of its packages.
+    bool isReadOnly() const;
+
+    /// @brief Packages of the open book that the program does not have, or has without a kind
+    /// the book names (BookProject::missingPackages()), sorted; empty when it has them all or
+    /// no book is open
+    const QStringList& missingPackages() const;
+
+    /// @brief The card of package @p packageId that the open book keeps (package_card.h), or
+    /// nullptr when it has none or no book is open
+    const PackageCard* packageCard(const QString& packageId) const;
 
     // =========================================================================
     // Paths
@@ -311,14 +330,24 @@ public:
     // Book Types
     // =========================================================================
 
-    /// @brief Packages of book types and kinds the program has
+    /// @brief Packages of book types and kinds the program has, which the open book works with:
+    /// installedBookTypes()
+    ///
+    /// Where the program does not have a package of the book, the book opens read-only
+    /// (isReadOnly()) and shows its type and kinds after its cards (packageCard()).
+    const BookTypeRegistry& bookTypes() const;
+
+    /// @brief Packages of book types and kinds installed with the program
     ///
     /// The built-in packages of the resources folder, loaded the first time they are needed.
-    const BookTypeRegistry& bookTypes() const;
+    /// The New Book window, the palette, new books and the open book take their types and
+    /// kinds from here.
+    const BookTypeRegistry& installedBookTypes() const;
 
     /// @brief Load the packages in @p folders instead of the built-in ones
     ///
-    /// Kinds of the packages loaded before (KindRef) are no longer valid.
+    /// Kinds of the packages loaded before (KindRef) are no longer valid. Whether the open book
+    /// is read-only is decided when it opens.
     void loadBookTypes(const QStringList& folders);
 
     /// @brief Kind of @p element; none when its package is not installed
@@ -499,7 +528,8 @@ public:
                               qsizetype index = -1);
 
     /// @brief Move element @p elementId to place @p index of its list and save the .klh file
-    /// @return false when the element or the place does not exist or the file cannot be written
+    /// @return false when the element or the place does not exist, its kind cannot be there
+    ///         (before the title page, BookProject::canBeAt()) or the file cannot be written
     bool moveElement(const QString& elementId, qsizetype index);
 
     /// @brief Places that element @p elementId can be moved to, in reading order
@@ -522,15 +552,17 @@ public:
 
     /// @brief Place in its list that Move to Start gives element @p elementId
     ///
-    /// The first place; an element of a kind that is not of the start goes after the elements
-    /// of the kinds of the start, so a chapter moved to the start stays after the prologue.
+    /// The first place after the title page (BookProject::canBeAt()), which is first itself;
+    /// an element of a kind that is not of the start goes after the elements of the kinds of
+    /// the start, so a chapter moved to the start stays after the prologue.
     /// @return The index; -1 when the project has no such element
     qsizetype startIndexOf(const QString& elementId) const;
 
     /// @brief Place in its list that Move to End gives element @p elementId
     ///
     /// The last place; an element of a kind that is not of the end goes before the elements of
-    /// the kinds of the end, so a chapter moved to the end stays before the epilogue.
+    /// the kinds of the end, so a chapter moved to the end stays before the epilogue. The title
+    /// page keeps its place.
     /// @return The index; -1 when the project has no such element
     qsizetype endIndexOf(const QString& elementId) const;
 
@@ -637,6 +669,15 @@ public:
     static std::optional<BookProject> readArchive(const QString& archivePath,
                                                   ArchiveProblem* problem = nullptr,
                                                   int* backups = nullptr);
+
+    /// @brief Unpack the cards of the packages of the book of a .klh.zip archive (its folder
+    /// types/) to folder @p targetDir, as the folder of the book has them
+    ///
+    /// The book of the archive is shown before it is imported with these cards where the
+    /// program does not have its packages (PackageCards::read()). An archive of an earlier
+    /// version has none. Entries that would land outside @p targetDir are skipped.
+    /// @return false when the archive cannot be read or a file cannot be written
+    static bool unpackArchiveCards(const QString& archivePath, const QString& targetDir);
 
     /// @brief Unpack a .klh.zip archive to a new folder, without opening the project in it
     ///
@@ -749,6 +790,10 @@ private:
     /// back to how it was, empty when it existed (@p folderExisted), else it is removed
     static void removeNewProject(const QString& projectDir, bool folderExisted);
 
+    /// @brief Whether the open book is read-only, so that @p what does not change it; the log
+    /// says so
+    bool refusesChange(const char* what) const;
+
     /// @brief List that a new element of @p kind goes to: @p place of the book, or group
     /// @p groupId; nullptr, with the reason in the log, when the kind cannot be there
     QList<ProjectElement>* listForNew(const KindRef& kind, BookPlace place,
@@ -766,11 +811,16 @@ private:
     bool m_isDirty;                               ///< The .klh file has unsaved changes
     OpenFailure m_lastOpenFailure = OpenFailure::None;  ///< Of the last openProject()
 
-    mutable BookTypeRegistry m_bookTypes;         ///< Packages of book types and kinds
+    mutable BookTypeRegistry m_bookTypes;         ///< Installed packages of book types and kinds
     mutable bool m_bookTypesLoaded = false;       ///< m_bookTypes was loaded
+    QStringList m_missingPackages;                ///< Of the open book: it is read-only
+    QHash<QString, PackageCard> m_packageCards;   ///< Cards of the open book, by package id
 
-    // OpenSpec #00041: SQLite Project Database
+    // OpenSpec #00041: SQLite Project Database. A book open read-only has no lock and no
+    // backups, and its database is a copy in a temporary folder: nothing is written into its
+    // folder (the temporary folder goes after the database, which is declared after it)
     std::unique_ptr<ProjectLock> m_projectLock;      ///< Project lock (prevents multiple instances)
+    std::unique_ptr<QTemporaryDir> m_databaseCopy;   ///< Of a book open read-only: its database
     std::unique_ptr<ProjectDatabase> m_database;     ///< SQLite database for metadata
     std::unique_ptr<BackupManager> m_backupManager;  ///< Database backup manager
 

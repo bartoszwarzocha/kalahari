@@ -19,6 +19,7 @@
 #include "kalahari/gui/panels/annotation_frame.h"
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/read_only_book.h"
 
 #include <QAction>
 #include <QApplication>
@@ -158,27 +159,37 @@ AnnotationsCoordinator::~AnnotationsCoordinator() {
 void AnnotationsCoordinator::connectCommands() {
     auto& registry = CommandRegistry::getInstance();
     const auto connectCommand = [&registry](const std::string& id, std::function<void()> execute,
-                                            std::function<bool()> enabled) {
+                                            std::function<bool()> enabled,
+                                            std::function<QString()> whyNot = {}) {
         if (Command* command = registry.getCommand(id)) {
             command->execute = std::move(execute);
             command->isEnabled = std::move(enabled);
+            command->disabledReason = std::move(whyNot);
             registry.updateActionState(id);
         }
     };
 
     const auto hasDocument = [this]() { return currentEditor() != nullptr; };
-    // A plain text file keeps no annotations: none is added to it
+    // A plain text file keeps no annotations: none is added to it; nor to a chapter of a book
+    // open read-only, whose commands say why
     const auto canAnnotate = [this]() {
         const editor::BookEditor* editor = currentEditor();
-        return editor != nullptr && editor->annotationsAllowed();
+        return editor != nullptr && editor->annotationsAllowed() && !editor->isReadOnly();
     };
-    connectCommand("insert.annotation", [this]() { showAddMenu(); }, canAnnotate);
+    const auto whyNot = [this]() {
+        const editor::BookEditor* editor = currentEditor();
+        return editor != nullptr && editor->isReadOnly() ? readOnlyReason() : QString();
+    };
+    connectCommand("insert.annotation", [this]() { showAddMenu(); }, canAnnotate, whyNot);
     connectCommand(
-        "insert.comment", [this]() { addAnnotation(editor::AnnotationKind::Comment); }, canAnnotate);
+        "insert.comment", [this]() { addAnnotation(editor::AnnotationKind::Comment); }, canAnnotate,
+        whyNot);
     connectCommand(
-        "insert.todo", [this]() { addAnnotation(editor::AnnotationKind::Todo); }, canAnnotate);
+        "insert.todo", [this]() { addAnnotation(editor::AnnotationKind::Todo); }, canAnnotate,
+        whyNot);
     connectCommand(
-        "insert.note", [this]() { addAnnotation(editor::AnnotationKind::Note); }, canAnnotate);
+        "insert.note", [this]() { addAnnotation(editor::AnnotationKind::Note); }, canAnnotate,
+        whyNot);
     connectCommand("edit.nextTodo", [this]() { goToNextTodo(); }, hasDocument);
     connectCommand("edit.previousTodo", [this]() { goToPreviousTodo(); }, hasDocument);
 
@@ -226,7 +237,7 @@ bool AnnotationsCoordinator::eventFilter(QObject* watched, QEvent* event) {
 bool AnnotationsCoordinator::addAnnotation(editor::AnnotationKind kind) {
     EditorPanel* panel = currentEditorPanel();
     editor::BookEditor* editor = panel != nullptr ? panel->getBookEditor() : nullptr;
-    if (editor == nullptr || !editor->annotationsAllowed()) {
+    if (editor == nullptr || !editor->annotationsAllowed() || editor->isReadOnly()) {
         return false;
     }
     finishWriting();  // the text of the open frame is kept
@@ -287,6 +298,16 @@ bool AnnotationsCoordinator::editAnnotation(const QString& elementId, const QStr
     const std::optional<editor::AnnotationPlace> place =
         editor != nullptr ? placeOf(*editor, annotationId) : std::nullopt;
     if (!place) {
+        return false;
+    }
+    // An annotation of a book open read-only is only read: the text shows its place, and the
+    // panel its card
+    if (editor->isReadOnly()) {
+        editor->goToAnnotation(annotationId);
+        if (m_dock != nullptr && !m_dock->isVisible()) {
+            m_dock->show();
+        }
+        m_panel->revealAnnotation(annotationKey(elementId, annotationId));
         return false;
     }
     if (fromPanel) {
@@ -425,6 +446,11 @@ void AnnotationsCoordinator::refresh() {
     m_panel->setAnnotationsAllowed(editor == nullptr || editor->annotationsAllowed());
     m_panel->setBookScopeAvailable(bookOpen);
     m_panel->setDocumentAvailable(editor != nullptr);
+    // The annotations of a book open read-only are only read: those of the book, or of its
+    // chapter in front
+    m_panel->setReadOnly(m_panel->scope() == AnnotationScope::Book && bookOpen
+                             ? projects.isReadOnly()
+                             : editor != nullptr && editor->isReadOnly());
 
     // The names of what the panel lists: the kind of the element in front ("Story"), and the
     // main texts the writer opens in the book

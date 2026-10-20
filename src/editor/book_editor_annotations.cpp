@@ -26,8 +26,8 @@ Annotation BookEditor::addAnnotation(AnnotationKind kind, const QString& text,
 Annotation BookEditor::addAnnotation(int from, int to, AnnotationKind kind, const QString& text,
                                      const QString& author)
 {
-    if (!m_annotationsAllowed) {
-        return {};  // a plain text file keeps no annotations
+    if (!m_annotationsAllowed || m_readOnly) {
+        return {};  // a plain text file keeps no annotations; a read-only text takes none
     }
     ensureDocument();
 
@@ -91,6 +91,9 @@ QString BookEditor::annotationMarkAt(const QPointF& point) const
 
 bool BookEditor::updateAnnotation(const Annotation& annotation, bool joinPreviousStep)
 {
+    if (m_readOnly) {
+        return false;
+    }
     // A step only for a change: one with nothing but the cursor in it would be undone too
     if (!m_textBuffer || !findAnnotation(*m_textBuffer, annotation.id)) {
         return false;
@@ -107,6 +110,9 @@ bool BookEditor::updateAnnotation(const Annotation& annotation, bool joinPreviou
 
 bool BookEditor::removeAnnotation(const QString& id)
 {
+    if (m_readOnly) {
+        return false;
+    }
     if (!m_textBuffer || !findAnnotation(*m_textBuffer, id)) {
         return false;
     }

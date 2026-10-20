@@ -271,6 +271,10 @@ private:
     /// @brief Select @p status in the chapter's status combo; "draft" when it is not there
     void selectChapterStatus(const QString& status);
 
+    /// @brief Show the type of the open book @p project: its icon and its name, greyed out
+    /// when the program does not have it, as the Dashboard shows it
+    void showBookType(const core::BookProject& project, const core::ProjectBook& book);
+
     // Main widget
     QStackedWidget* m_stackedWidget;
 
@@ -278,6 +282,9 @@ private:
     QLabel* m_noProjectLabel;
 
     // Project Page widgets
+    QLabel* m_projectTypeIcon = nullptr;   ///< Icon of the book's type (showBookType())
+    QLabel* m_projectTypeLabel = nullptr;  ///< Name of the book's type: "Novel", "Novel (not in
+                                           ///< the program)"
     QLineEdit* m_projectTitleEdit;
     QLineEdit* m_projectAuthorEdit;
     QComboBox* m_projectLanguageCombo;
