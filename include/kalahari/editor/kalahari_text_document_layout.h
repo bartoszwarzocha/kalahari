@@ -59,7 +59,7 @@ class KalahariTextDocumentLayout : public QAbstractTextDocumentLayout,
 
 public:
     explicit KalahariTextDocumentLayout(QTextDocument* doc);
-    ~KalahariTextDocumentLayout() override = default;
+    ~KalahariTextDocumentLayout() override;
 
     /// @brief Size of an object of the text (QTextObjectInterface): as wide as the text, one
     ///        line high, as resizeInlineObject() gives it

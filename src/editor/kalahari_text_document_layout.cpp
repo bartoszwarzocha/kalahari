@@ -155,6 +155,14 @@ KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
     connect(m_backgroundTimer, &QTimer::timeout, this, &KalahariTextDocumentLayout::layoutStep);
 }
 
+KalahariTextDocumentLayout::~KalahariTextDocumentLayout() {
+    // A handler's destroyed() goes to the layout; while the layout itself is destroyed, a
+    // debug Qt stops there, as the layout's part of the object is gone already
+    for (const int objectType : {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT, PAGE_BREAK_OBJECT}) {
+        unregisterHandler(objectType, this);
+    }
+}
+
 // =============================================================================
 // Configuration
 // =============================================================================
