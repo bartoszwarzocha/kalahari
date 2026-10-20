@@ -8,6 +8,7 @@
 #include <kalahari/core/file_trash.h>
 #include <kalahari/core/kind_words.h>
 #include <kalahari/core/project_manager.h>
+#include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/gui/dialogs/add_to_book_dialog.h>
@@ -27,6 +28,7 @@
 #include <QCheckBox>
 #include <QChildEvent>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QDialog>
 #include <QDir>
 #include <QFile>
@@ -43,6 +45,7 @@
 #include <QTemporaryDir>
 #include <QTextBrowser>
 #include <QTimer>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QTreeWidgetItemIterator>
@@ -610,6 +613,74 @@ struct Navigator {
         return enabled;
     }
 
+    /// The texts of the actions of the menu of @p found, without their access keys and keys;
+    /// @p bold gets the texts of the actions in bold
+    QStringList menuTexts(QTreeWidgetItem* found, QStringList* bold = nullptr) {
+        auto* tree = panel->findChild<QTreeWidget*>();
+        REQUIRE(tree != nullptr);
+        REQUIRE(found != nullptr);
+        tree->scrollToItem(found);
+        QStringList texts;
+        MenuReader reader(panel, [&texts, bold](QMenu& menu) {
+            for (QAction* action : menu.actions()) {
+                if (action->isSeparator()) {
+                    continue;
+                }
+                const QString text =
+                    gui::withoutAccessKey(action->text().section(QLatin1Char('\t'), 0, 0));
+                texts << text;
+                if (bold && action->font().bold()) {
+                    *bold << text;
+                }
+            }
+        });
+        emit tree->customContextMenuRequested(tree->visualItemRect(found).center());
+        return texts;
+    }
+
+    /// The commands of the menu of @p found that add: "Add..." and those named after kinds
+    QStringList addCommandsOf(QTreeWidgetItem* found) {
+        QStringList adding;
+        for (const QString& text : menuTexts(found)) {
+            if (text.startsWith(QStringLiteral("Add "), Qt::CaseSensitive) ||
+                text == QStringLiteral("Add...")) {
+                adding << text;
+            }
+        }
+        return adding;
+    }
+
+    /// Press @p key with @p modifiers in the tree, on its current item
+    /// @return Whether the tree took the key before the window's commands
+    bool press(Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
+        auto* tree = panel->findChild<QTreeWidget*>();
+        REQUIRE(tree != nullptr);
+        QKeyEvent override(QEvent::ShortcutOverride, key, modifiers);
+        QCoreApplication::sendEvent(tree, &override);
+        QKeyEvent pressed(QEvent::KeyPress, key, modifiers);
+        QCoreApplication::sendEvent(tree, &pressed);
+        return override.isAccepted();
+    }
+
+    /// Make @p found the current item of the tree
+    void select(QTreeWidgetItem* found) {
+        auto* tree = panel->findChild<QTreeWidget*>();
+        REQUIRE(tree != nullptr);
+        REQUIRE(found != nullptr);
+        tree->setCurrentItem(found);
+    }
+
+    /// The "+" button of the Navigator's bar
+    QToolButton* addButton() const {
+        for (QToolButton* button : panel->findChildren<QToolButton*>()) {
+            if (button->toolTip().startsWith(QStringLiteral("Add... ("))) {
+                return button;
+            }
+        }
+        FAIL("No \"+\" button");
+        return nullptr;
+    }
+
     /// Choose the action @p text of the menu of the item of element @p id
     /// @return Whether the menu had the action, enabled
     bool chooseInMenu(const QString& id, const QString& text) {
@@ -892,6 +963,143 @@ TEST_CASE("Navigator commands: the book and the Workshop are named and the Works
     CHECK_FALSE(novel.savedProject().workshop.grouped);
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Working notes, Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop not grouped"));
+}
+
+TEST_CASE("Navigator: the keys and the \"+\" button add, rename and delete on the current "
+          "node",
+          "[gui][navigator]") {
+    OpenNovel novel;
+    Navigator navigator;
+    const QString chapter = navigator.added(QStringLiteral("chapter"));
+    QList<gui::AddTarget> added;
+    QStringList renamed;
+    QStringList deleted;
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAdd,
+                     [&added](const gui::AddTarget& target) { added << target; });
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestRename,
+                     [&renamed](const QString& id, const QString&) { renamed << id; });
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestRenameNode,
+                     [&renamed](const QString& node) { renamed << node; });
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestRenameSection,
+                     [&renamed](const QString& section) { renamed << section; });
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestDelete,
+                     [&deleted](const QString& id) { deleted << id; });
+
+    // On an element: Insert and Ctrl+Shift+Enter add right after it, F2 renames it, Delete
+    // deletes it; the tree takes the keys before the window's commands with them
+    navigator.select(navigator.item(chapter));
+    CHECK(navigator.press(Qt::Key_Insert));
+    CHECK(navigator.press(Qt::Key_Return, Qt::ControlModifier | Qt::ShiftModifier));
+    CHECK(navigator.press(Qt::Key_Enter, Qt::ControlModifier | Qt::ShiftModifier));
+    REQUIRE(added.size() == 3);
+    for (const gui::AddTarget& target : added) {
+        CHECK(target.scope == gui::AddTarget::Scope::Element);
+        CHECK(target.id == chapter);
+    }
+    CHECK(navigator.press(Qt::Key_F2));
+    CHECK(navigator.press(Qt::Key_Delete));
+    CHECK(renamed == QStringList{chapter});
+    CHECK(deleted == QStringList{chapter});
+    // Other keys stay the tree's and the window's
+    CHECK_FALSE(navigator.press(Qt::Key_Delete, Qt::ShiftModifier));
+    CHECK_FALSE(navigator.press(Qt::Key_Insert, Qt::ControlModifier));
+
+    // The "+" button adds on the current node
+    QToolButton* plus = navigator.addButton();
+    REQUIRE(plus != nullptr);
+    CHECK(plus->isEnabled());
+    plus->click();
+    REQUIRE(added.size() == 4);
+    CHECK(added.last().scope == gui::AddTarget::Scope::Element);
+
+    // On the book, a section and the Workshop: they are added to and renamed, not deleted
+    added.clear();
+    renamed.clear();
+    navigator.select(navigator.bookItem());
+    navigator.press(Qt::Key_Insert);
+    navigator.press(Qt::Key_F2);
+    navigator.press(Qt::Key_Delete);
+    navigator.select(navigator.section(QStringLiteral("section_frontmatter")));
+    navigator.press(Qt::Key_Insert);
+    navigator.press(Qt::Key_F2);
+    navigator.select(navigator.section(QStringLiteral("workshop")));
+    navigator.press(Qt::Key_Insert);
+    navigator.press(Qt::Key_F2);
+    navigator.press(Qt::Key_Delete);
+    REQUIRE(added.size() == 3);
+    CHECK(added.at(0).scope == gui::AddTarget::Scope::Book);
+    CHECK(added.at(1).scope == gui::AddTarget::Scope::Section);
+    CHECK(added.at(1).place == core::BookPlace::Front);
+    CHECK(added.at(2).scope == gui::AddTarget::Scope::Workshop);
+    CHECK(renamed == QStringList{QStringLiteral("book"), QStringLiteral("section_frontmatter"),
+                                 QStringLiteral("workshop")});
+    CHECK(deleted == QStringList{chapter});
+
+    // Nothing is added on the project's node: the button is grey, and Insert does nothing
+    added.clear();
+    navigator.select(navigator.projectItem());
+    CHECK_FALSE(plus->isEnabled());
+    navigator.press(Qt::Key_Insert);
+    CHECK(added.isEmpty());
+    navigator.select(navigator.section(QStringLiteral("workshop")));
+    CHECK(plus->isEnabled());
+}
+
+TEST_CASE("Navigator menus: Add... and the commands named after kinds, or Add... only",
+          "[gui][navigator]") {
+    OpenNovel novel;
+    Navigator navigator;
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string before =
+        settings.get<std::string>(gui::NavigatorPanel::ADD_COMMANDS_SETTING, "named");
+    settings.set<std::string>(gui::NavigatorPanel::ADD_COMMANDS_SETTING, "named");
+    const QString part = navigator.added(QStringLiteral("part"));
+    const QString chapter = navigator.added(QStringLiteral("chapter"), core::BookPlace::Main, part);
+    const QString dedication =
+        navigator.added(QStringLiteral("dedication"), core::BookPlace::Front);
+
+    // Add... is the first command of the menus that add, in bold
+    QStringList bold;
+    const QStringList chapterMenu = navigator.menuTexts(navigator.item(chapter), &bold);
+    CHECK(chapterMenu.value(1) == QStringLiteral("Add..."));
+    CHECK(bold == QStringList{QStringLiteral("Add...")});
+
+    // By default also the kinds most added there, by name
+    CHECK(navigator.addCommandsOf(navigator.bookItem()) ==
+          QStringList{"Add...", "Add Chapter...", "Add Part..."});
+    CHECK(navigator.addCommandsOf(navigator.section(QStringLiteral("section_body"))) ==
+          QStringList{"Add...", "Add Part...", "Add Chapter..."});
+    CHECK(navigator.addCommandsOf(navigator.section(QStringLiteral("section_frontmatter"))) ==
+          QStringList{"Add..."});
+    CHECK(navigator.addCommandsOf(navigator.item(part)) ==
+          QStringList{"Add...", "Add Chapter..."});
+    CHECK(navigator.addCommandsOf(navigator.item(chapter)) ==
+          QStringList{"Add...", "Add Chapter..."});
+    CHECK(navigator.addCommandsOf(navigator.item(dedication)) == QStringList{"Add..."});
+    CHECK(navigator.addCommandsOf(navigator.section(QStringLiteral("workshop"))) ==
+          QStringList{"Add...", "Add Working note...", "Add Material..."});
+
+    // A command named after a kind opens the window with that kind chosen
+    QList<gui::AddTarget> requested;
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAdd,
+                     [&requested](const gui::AddTarget& target) { requested << target; });
+    CHECK(navigator.inMenuOf(navigator.item(part), QStringLiteral("Add Chapter...")));
+    REQUIRE(requested.size() == 1);
+    CHECK(requested.first().scope == gui::AddTarget::Scope::Group);
+    CHECK(requested.first().id == part);
+    REQUIRE(requested.first().kind);
+    CHECK(requested.first().kind.kind->id == QStringLiteral("chapter"));
+
+    // Add... only: the kind is chosen in the window
+    settings.set<std::string>(gui::NavigatorPanel::ADD_COMMANDS_SETTING, "single");
+    for (QTreeWidgetItem* node :
+         {navigator.bookItem(), navigator.section(QStringLiteral("section_body")),
+          navigator.item(part), navigator.item(chapter),
+          navigator.section(QStringLiteral("workshop"))}) {
+        INFO(node->text(0).toStdString());
+        CHECK(navigator.addCommandsOf(node) == QStringList{"Add..."});
+    }
+    settings.set<std::string>(gui::NavigatorPanel::ADD_COMMANDS_SETTING, before);
 }
 
 TEST_CASE("Navigator commands: an element moves to the place chosen in the Move dialog, or "

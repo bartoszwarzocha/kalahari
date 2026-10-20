@@ -20,10 +20,12 @@
 
 #include <QAbstractItemView>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QKeyEvent>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -32,6 +34,7 @@
 #include <QPushButton>
 #include <QTemporaryDir>
 #include <QTextEdit>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
@@ -348,4 +351,29 @@ TEST_CASE("Read-only book: the Navigator's menus open and show, and change nothi
           QStringList{"Add...", "Add Working note...", "Add Material...", "Rename...",
                       "Grouping"});
     CHECK(greyedSayWhy(workshop));
+
+    // The "+" button is grey and says why; the keys of the node change nothing
+    tree->setCurrentItem(itemOf(*tree, Qt::UserRole, novel.chapterId));
+    QToolButton* plus = nullptr;
+    for (QToolButton* button : window.navigatorPanel->findChildren<QToolButton*>()) {
+        if (button->toolTip().startsWith(QStringLiteral("Add... ("))) {
+            plus = button;
+        }
+    }
+    REQUIRE(plus != nullptr);
+    CHECK_FALSE(plus->isEnabled());
+    CHECK(plus->toolTip().endsWith(QLatin1Char('\n') + READ_ONLY));
+    int requests = 0;
+    QObject::connect(window.navigatorPanel, &gui::NavigatorPanel::requestAdd,
+                     [&requests]() { ++requests; });
+    QObject::connect(window.navigatorPanel, &gui::NavigatorPanel::requestRename,
+                     [&requests]() { ++requests; });
+    QObject::connect(window.navigatorPanel, &gui::NavigatorPanel::requestDelete,
+                     [&requests]() { ++requests; });
+    for (const Qt::Key key : {Qt::Key_Insert, Qt::Key_F2, Qt::Key_Delete}) {
+        QKeyEvent pressed(QEvent::KeyPress, key, Qt::NoModifier);
+        QCoreApplication::sendEvent(tree, &pressed);
+    }
+    CHECK(requests == 0);
+    CHECK(window.navigatorPanel->isReadOnly());
 }
