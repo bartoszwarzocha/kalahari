@@ -67,7 +67,7 @@ public:
     explicit PropertiesPanel(QWidget* parent = nullptr);
 
     /// @brief Destructor
-    ~PropertiesPanel() override = default;
+    ~PropertiesPanel() override;
 
     /// @brief The page the panel shows
     Page currentPage() const;
@@ -351,6 +351,8 @@ private:
 
     // OpenSpec #00043: Debounce timer for cursor change updates
     QTimer* m_cursorDebounceTimer{nullptr};     ///< Debounce rapid cursor changes
+
+    int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting
 
     // Style resolver (OpenSpec #00042 Task 7.6)
     editor::StyleResolver* m_styleResolver{nullptr};  ///< Style resolver for the project

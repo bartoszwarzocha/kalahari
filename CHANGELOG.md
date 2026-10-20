@@ -688,6 +688,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The words of the book and the dialogue dashes** - 2026-10-19. Count standalone dashes as
+  words (Settings > Editor > General > Word Count) counts them in the words of the book, its
+  sections, parts and chapters in the Properties panel too, and in the preview of a file of
+  the book, not only in the chapter in front: every chapter is counted again by the rule at
+  once, also one closed or saved before the rule changed, without reading its file again. A
+  chapter file is counted from its text when the book opens, not by the number it was saved
+  with.
+
+- **Numbers of the Properties panel** - 2026-10-19. The words, the chapters and the counts of
+  the statuses of the book, its sections, parts and chapters are written as the system writes
+  numbers, as the status bar and the counts of the document in front: 12 345 in Polish,
+  12,345 in English.
+
 - **Commands with nothing to work on** - 2026-10-16. Save without a document to save, and
   Save As without a document or on a chapter (saved with the book), are greyed out as Close
   Book and Export Project Archive without a book; the tooltip of each and the status bar say

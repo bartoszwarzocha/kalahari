@@ -41,7 +41,8 @@ FilePreviewDialog::FilePreviewDialog(const core::ChapterDocument& chapter, const
         facts << tr("Status: %1").arg(AddToBookDialog::statusName(chapter.status()));
     }
     //: %1: the number of words of the text in the file
-    facts << tr("Words: %1").arg(QLocale().toString(chapter.wordCount()));
+    facts << tr("Words: %1")
+                 .arg(QLocale().toString(chapter.wordTally().wordsUnder(core::wordCountRules())));
     const QString title =
         chapter.title().trimmed().isEmpty() ? QFileInfo(path).fileName() : chapter.title();
     setHeading(title, facts.join(QStringLiteral(" · ")));

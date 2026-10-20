@@ -20,6 +20,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/database_types.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/core/text_statistics.h"
 #include <QLabel>
 #include <QLineEdit>
@@ -38,6 +39,19 @@
 
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+/// @brief The setting of the rules of counting whose change counts the words of the book again
+constexpr const char* WORD_COUNT_RULES_KEY = "editor.wordCount.dashesAsWords";
+
+/// @brief @p number as the system writes numbers: 12 345 in Polish, 12,345 in English, as the
+///        status bar and the counts of the editor write them
+QString numberText(int number) {
+    return QLocale().toString(number);
+}
+
+}  // namespace
 
 PropertiesPanel::PropertiesPanel(QWidget* parent)
     : QWidget(parent)
@@ -103,6 +117,15 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     connect(m_cursorDebounceTimer, &QTimer::timeout,
             this, &PropertiesPanel::updateEditorStatistics);
 
+    // The words of the book follow new rules of counting at once, wherever they are chosen;
+    // the listener runs on the thread that changes them, the panel counts on its own
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (key == WORD_COUNT_RULES_KEY) {
+                QMetaObject::invokeMethod(this, "updateWordCounts", Qt::QueuedConnection);
+            }
+        });
+
     // Set initial state based on ProjectManager
     auto& pm = core::ProjectManager::getInstance();
     if (pm.isProjectOpen()) {
@@ -112,6 +135,10 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     }
 
     logger.debug("PropertiesPanel initialized");
+}
+
+PropertiesPanel::~PropertiesPanel() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 }
 
 void PropertiesPanel::setupUI() {
@@ -849,7 +876,7 @@ void PropertiesPanel::updateWordCounts() {
             break;
         case Page::Chapter:
             if (pm.findElement(m_currentChapterId)) {
-                m_chapterWordCountLabel->setText(QString::number(pm.wordCount(m_currentChapterId)));
+                m_chapterWordCountLabel->setText(numberText(pm.wordCount(m_currentChapterId)));
             }
             break;
         case Page::Section:
@@ -1241,7 +1268,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
 
     // Populate fields
     m_chapterTitleEdit->setText(element->title);
-    m_chapterWordCountLabel->setText(QString::number(pm.wordCount(elementId)));
+    m_chapterWordCountLabel->setText(numberText(pm.wordCount(elementId)));
     selectChapterStatus(core::ProjectManager::statusOf(*element));
     m_chapterNotesEdit->setPlainText(pm.notes(elementId));
 
@@ -1295,11 +1322,11 @@ void showStatistics(const core::TextStatistics& statistics, int count, QLabel* e
         }
     }
 
-    elementsLabel->setText(QString::number(count));
-    wordsLabel->setText(QString::number(statistics.words));
-    draftLabel->setText(QString::number(draftCount));
-    revisionLabel->setText(QString::number(revisionCount));
-    finalLabel->setText(QString::number(finalCount));
+    elementsLabel->setText(numberText(count));
+    wordsLabel->setText(numberText(statistics.words));
+    draftLabel->setText(numberText(draftCount));
+    revisionLabel->setText(numberText(revisionCount));
+    finalLabel->setText(numberText(finalCount));
 }
 
 }  // namespace
@@ -1331,22 +1358,22 @@ void PropertiesPanel::updateProjectStatistics() {
         //: In Polish: Liczba {main:genitivePlural} w książce
         m_projectChaptersLabel->setToolTip(
             core::fillWords(tr("Number of {main:plural} in the book"), nouns));
-        m_projectChaptersLabel->setText(QString::number(countOf(body, mainKind)));
+        m_projectChaptersLabel->setText(numberText(countOf(body, mainKind)));
     } else {
         m_projectChaptersTitle->setText(tr("Elements:"));
         m_projectChaptersLabel->setToolTip(QString());
-        m_projectChaptersLabel->setText(QString::number(body.elements));
+        m_projectChaptersLabel->setText(numberText(body.elements));
     }
     //: %1: the body with its preposition, "in the main section". In Polish: Liczba słów %1
     m_projectWordsLabel->setToolTip(
         tr("Number of words %1").arg(SectionWords::forPart(book, core::BookPlace::Main).inPart));
-    m_projectWordsLabel->setText(QString::number(body.words));
+    m_projectWordsLabel->setText(numberText(body.words));
 
     // Get status statistics of the whole book
     auto statusStats = pm.getStatusStatistics();
-    m_projectDraftCountLabel->setText(QString::number(statusStats["draft"]));
-    m_projectRevisionCountLabel->setText(QString::number(statusStats["revision"]));
-    m_projectFinalCountLabel->setText(QString::number(statusStats["final"]));
+    m_projectDraftCountLabel->setText(numberText(statusStats["draft"]));
+    m_projectRevisionCountLabel->setText(numberText(statusStats["revision"]));
+    m_projectFinalCountLabel->setText(numberText(statusStats["final"]));
 
     logger.debug("PropertiesPanel: Statistics - {} chapters, {} words, draft={}, revision={}, final={}",
                  body.elements, body.words,

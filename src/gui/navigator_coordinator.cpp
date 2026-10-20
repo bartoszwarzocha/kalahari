@@ -160,8 +160,10 @@ void NavigatorCoordinator::countWords() {
         if (!changed.contains(elementId) || !m_dirtyChapters.value(elementId, false)) {
             continue;
         }
+        // Under any rules, so that the counts of the book follow new ones at once
         if (const editor::BookEditor* bookEditor = editor->getBookEditor()) {
-            pm.setEditorWordCount(elementId, static_cast<int>(bookEditor->wordCount()));
+            pm.setEditorWords(elementId, core::WordTally::of(bookEditor->textCounts(),
+                                                             bookEditor->wordCountRules()));
         }
     }
     m_propertiesPanel->updateWordCounts();

@@ -208,6 +208,36 @@ TEST_CASE("ChapterDocument statistics calculation", "[core][chapter_document]") 
         CHECK(doc.wordCount() == 4);         // dashes and "&" are not words
         CHECK(doc.paragraphCount() == 2);    // the empty paragraph does not count
     }
+
+    SECTION("The tally counts the words under any rules, the dashes alone apart") {
+        doc.setKml(QStringLiteral(
+            "<kml><p>\u2013 Tak \u2013 rzek\u0142.</p><p>Tom &amp; Jerry</p></kml>"));
+
+        CHECK(doc.wordTally() == WordTally{4, 2});
+    }
+
+    SECTION("The tally of a file read counts its text now, not as it was saved") {
+        // The number the file was saved with, by other rules, and the plain text an older
+        // version of the program made: the line break joined the words of a paragraph
+        QJsonObject json = ChapterDocument(QStringLiteral(
+            "<kml><p>\u2013 Tak.</p><p>Roses<br/>are red</p></kml>")).toJson();
+        QJsonObject statistics = json["statistics"].toObject();
+        statistics["wordCount"] = 99;
+        json["statistics"] = statistics;
+        QJsonObject content = json["content"].toObject();
+        content["plainText"] = QStringLiteral("\u2013 Tak.\nRosesare red");
+        json["content"] = content;
+        const ChapterDocument read = ChapterDocument::fromJson(json);
+
+        CHECK(read.wordCount() == 99);
+        CHECK(read.wordTally() == WordTally{4, 1});
+    }
+
+    SECTION("The tally of a file without KML counts its plain text") {
+        QJsonObject json;
+        json["content"] = QJsonObject{{"plainText", QStringLiteral("One two \u2013 three")}};
+        CHECK(ChapterDocument::fromJson(json).wordTally() == WordTally{3, 1});
+    }
 }
 
 // =============================================================================

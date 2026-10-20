@@ -73,6 +73,13 @@ int ChapterDocument::wordCount() const
     return m_wordCount;
 }
 
+WordTally ChapterDocument::wordTally() const
+{
+    // The text of the KML, as the editor has it: the plain text of a file is only a copy,
+    // which an older version of the program may have made in another way
+    return tallyWords(m_kml.isEmpty() ? m_plainText : kmlToPlainText(m_kml));
+}
+
 int ChapterDocument::characterCount() const
 {
     return m_characterCount;

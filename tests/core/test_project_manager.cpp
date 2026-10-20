@@ -2166,6 +2166,89 @@ TEST_CASE("ProjectManager counts the words and statuses of the book", "[project_
     REQUIRE(pm.closeProject(false));
 }
 
+namespace {
+
+/// The dialogue dashes count as words or not (Settings > Editor > General > Word Count) until
+/// the test ends; then the choice is as it was
+class DashRule {
+public:
+    explicit DashRule(bool dashesAreWords)
+        : m_saved(SettingsManager::getInstance().get<bool>(KEY)) {
+        set(dashesAreWords);
+    }
+    ~DashRule() {
+        try {
+            set(m_saved);
+        } catch (...) {
+            std::fputs("The rule of the dialogue dashes could not be given back\n", stderr);
+        }
+    }
+    DashRule(const DashRule&) = delete;
+    DashRule& operator=(const DashRule&) = delete;
+
+    /// Count the dialogue dashes as words, or not
+    static void set(bool dashesAreWords) {
+        SettingsManager::getInstance().set<bool>(KEY, dashesAreWords);
+    }
+
+private:
+    static constexpr const char* KEY = "editor.wordCount.dashesAsWords";
+    bool m_saved;
+};
+
+}  // namespace
+
+TEST_CASE("The words of the book follow the rule of the dialogue dashes at once",
+          "[project_manager]") {
+    // Regression: the counts of the book were those its chapter files were saved with, so
+    // the dialogue dashes counted as words only in the chapter in front
+    QTemporaryDir dir;
+    auto& pm = projects();
+    DashRule rule(false);
+    REQUIRE(pm.createProject(dir.path(), "Dashes", "Author", "en", true, "kalahari.novel"));
+
+    const KindRef chapter = pm.chapterKindFor(BookPlace::Main);
+    const QString saved = pm.addElement(chapter, "Saved", BookPlace::Main);
+    const QString edited = pm.addElement(chapter, "Edited", BookPlace::Main);
+    REQUIRE_FALSE(edited.isEmpty());
+    pm.setChapterContent(saved, kmlWith(QStringLiteral("\u2013 Tak \u2013 powiedzia\u0142.")));
+    REQUIRE(pm.saveAllDirty());
+    REQUIRE(chapterFileOf(saved).wordCount() == 2);  // saved without the dashes
+    // A text in its editor, with changes that are not saved
+    pm.setEditorWords(edited, tallyWords(QStringLiteral("\u2014 Nie \u2014 odpar\u0142a.")));
+
+    CHECK(pm.wordCount(saved) == 2);
+    CHECK(pm.wordCount(edited) == 2);
+    CHECK(pm.statisticsOf(pm.book()->mainElements).words == 4);
+
+    SECTION("The dashes as words: the saved text and the text in the editor") {
+        DashRule::set(true);
+        CHECK(pm.wordCount(saved) == 4);
+        CHECK(pm.wordCount(edited) == 4);
+        CHECK(pm.statisticsOf(pm.book()->mainElements).words == 8);
+
+        DashRule::set(false);
+        CHECK(pm.statisticsOf(pm.book()->mainElements).words == 4);
+    }
+
+    SECTION("The book opened again: its file saved without the dashes counts them") {
+        const QString manifest = pm.getManifestPath();
+        REQUIRE(pm.closeProject(false));
+        DashRule::set(true);
+        REQUIRE(pm.openProject(manifest));
+        CHECK(pm.wordCount(saved) == 4);
+        CHECK(pm.statisticsOf(pm.book()->mainElements).words == 4);  // "Edited" has no text
+
+        // ... and so do the details of the chapter written to its file
+        REQUIRE(pm.setStatus(saved, "revision"));
+        CHECK(pm.wordCount(saved) == 4);
+        DashRule::set(false);
+        CHECK(pm.wordCount(saved) == 2);
+    }
+
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("The main text kind of a book names its texts", "[project_manager]") {
     auto& pm = projects();
     CHECK_FALSE(pm.mainTextKind());

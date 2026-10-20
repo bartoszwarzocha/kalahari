@@ -107,6 +107,42 @@ TEST_CASE("countText counts standalone dashes as words when the rules say so",
         CHECK(with.characters == without.characters);
         CHECK(with.nonSpaceCharacters == without.nonSpaceCharacters);
     }
+
+    SECTION("The dashes alone are counted under any rules, apart from the words") {
+        WordCountRules rules;
+        rules.dashesAreWords = true;
+        const QString text = QStringLiteral("– Tak – powiedział. 2010–2020 *** --");
+        CHECK(countText(text, WordCountRules{}).dashes == 3);
+        CHECK(countText(text, rules).dashes == 3);
+        CHECK(countText(QStringLiteral("e-mail –Tak"), rules).dashes == 0);
+    }
+}
+
+TEST_CASE("tallyWords counts the words of a text once for any rules",
+          "[core][text_statistics]") {
+    WordCountRules dashesAsWords;
+    dashesAsWords.dashesAreWords = true;
+    const QString text = QStringLiteral("– Tak – powiedział. – Nie.\n— Yes — she said.");
+    const WordTally tally = tallyWords(text);
+    CHECK(tally.words == 6);
+    CHECK(tally.dashes == 5);
+
+    SECTION("The words under the rules are those countText() counts") {
+        CHECK(tally.wordsUnder(WordCountRules{}) == countText(text, WordCountRules{}).words);
+        CHECK(tally.wordsUnder(dashesAsWords) == countText(text, dashesAsWords).words);
+        CHECK(tally.wordsUnder(dashesAsWords) == 11);
+    }
+
+    SECTION("The tally of the counts under any rules is the same") {
+        CHECK(WordTally::of(countText(text, WordCountRules{}), WordCountRules{}) == tally);
+        CHECK(WordTally::of(countText(text, dashesAsWords), dashesAsWords) == tally);
+    }
+
+    SECTION("A text without dashes or without words") {
+        CHECK(tallyWords(QStringLiteral("One two three")) == WordTally{3, 0});
+        CHECK(tallyWords(QStringLiteral("– –")) == WordTally{0, 2});
+        CHECK(tallyWords(QString()) == WordTally{});
+    }
 }
 
 TEST_CASE("countText counts non-space characters", "[core][text_statistics]") {

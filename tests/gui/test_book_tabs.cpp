@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/project_manager.h>
+#include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/gui/command_registrar.h>
 #include <kalahari/gui/command_registry.h>
@@ -24,12 +25,15 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QLabel>
+#include <QLocale>
+#include <QStringList>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QWidget>
 
+#include <cstdio>
 #include <functional>
 
 using namespace kalahari;
@@ -542,6 +546,97 @@ TEST_CASE("Book tabs: the words of a chapter count in the book before it is save
     editor->deleteLater();
     CHECK(novel.pm.wordCount(novel.chapterId) == 5);
     CHECK(bookWords->text() == QStringLiteral("5"));
+}
+
+namespace {
+
+/// Numbers are written as in Polish (12 345) until the test ends; then as before
+class PolishNumbers {
+public:
+    PolishNumbers() { QLocale::setDefault(QLocale(QLocale::Polish, QLocale::Poland)); }
+    ~PolishNumbers() { QLocale::setDefault(m_saved); }
+    PolishNumbers(const PolishNumbers&) = delete;
+    PolishNumbers& operator=(const PolishNumbers&) = delete;
+
+private:
+    QLocale m_saved;
+};
+
+/// The dialogue dashes count as words or not (Settings > Editor > General > Word Count) until
+/// the test ends; then the choice is as it was
+class DashRule {
+public:
+    explicit DashRule(bool dashesAreWords)
+        : m_saved(core::SettingsManager::getInstance().get<bool>(KEY)) {
+        set(dashesAreWords);
+    }
+    ~DashRule() {
+        try {
+            set(m_saved);
+        } catch (...) {
+            std::fputs("The rule of the dialogue dashes could not be given back\n", stderr);
+        }
+    }
+    DashRule(const DashRule&) = delete;
+    DashRule& operator=(const DashRule&) = delete;
+
+    /// Count the dialogue dashes as words, or not, as the Settings dialog does
+    static void set(bool dashesAreWords) {
+        core::SettingsManager::getInstance().set<bool>(KEY, dashesAreWords);
+    }
+
+private:
+    static constexpr const char* KEY = "editor.wordCount.dashesAsWords";
+    bool m_saved;
+};
+
+}  // namespace
+
+TEST_CASE("Book tabs: the words of the book with a space between the thousands, and the "
+          "dialogue dashes counted in every chapter when the settings say so",
+          "[gui][booktabs]") {
+    PolishNumbers polish;
+    DashRule rule(false);
+    OpenNovel novel(QStringLiteral("Rain"));
+    Window window;
+    auto* chapterWords =
+        window.properties->findChild<QLabel*>(QStringLiteral("chapterWordCountLabel"));
+    auto* bookWords = window.properties->findChild<QLabel*>(QStringLiteral("projectWordsLabel"));
+    REQUIRE(chapterWords != nullptr);
+    REQUIRE(bookWords != nullptr);
+
+    // A long chapter with a line of dialogue, saved: 12 345 words, and two dashes
+    QStringList words{QStringLiteral("\u2013 Tak \u2013 powiedzia\u0142a.")};
+    for (int i = 0; i < 12343; ++i) {
+        words << QStringLiteral("deszcz");
+    }
+    window.writeChapter(novel.chapterId, words.join(QLatin1Char(' ')));
+    window.documents.onSaveBook();
+    REQUIRE_FALSE(window.navigator.isChapterDirty(novel.chapterId));
+    // ... and a chapter not saved yet: two words, and two dashes
+    const QString unsaved = novel.pm.addElement(novel.pm.chapterKindFor(core::BookPlace::Main),
+                                                QStringLiteral("Night"), core::BookPlace::Main);
+    window.navigator.refreshNavigator();
+    window.writeChapter(unsaved, QStringLiteral("\u2014 Nie \u2014 odpar\u0142."));
+
+    // The words of the book with a space between the thousands, as the status bar writes them
+    window.properties->showProjectProperties();
+    const QLocale locale;
+    CHECK(waitFor([&]() { return bookWords->text() == locale.toString(12347); }));
+    CHECK(bookWords->text().size() == 6);
+    CHECK(bookWords->text().at(2).isSpace());
+    window.properties->showChapterProperties(novel.chapterId);
+    CHECK(chapterWords->text() == locale.toString(12345));
+
+    // The dashes as words: the saved chapter and the one in its editor count them at once
+    DashRule::set(true);
+    CHECK(waitFor([&]() { return chapterWords->text() == locale.toString(12347); }));
+    window.properties->showProjectProperties();
+    CHECK(bookWords->text() == locale.toString(12351));
+
+    // And no more
+    DashRule::set(false);
+    CHECK(waitFor([&]() { return bookWords->text() == locale.toString(12347); }));
 }
 
 // ----------------------------------------------------------------------------

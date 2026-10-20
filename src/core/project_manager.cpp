@@ -1813,7 +1813,7 @@ QString ProjectManager::addUnassignedFile(const QString& file, const KindRef& ki
     // ... and its notes; the file takes the title
     ElementState& state = m_elementStates[element.id];
     state.notes = chapter->notes();
-    state.wordCount = chapter->wordCount();
+    state.words = chapter->wordTally();
     if (!writeChapterFile(element, std::nullopt)) {
         logger.warn("addUnassignedFile: The title of {} is not in its chapter file",
                     element.id.toStdString());
@@ -2009,16 +2009,20 @@ bool ProjectManager::setNotes(const QString& elementId, const QString& notes) {
 }
 
 int ProjectManager::wordCount(const QString& elementId) const {
+    return wordsUnder(elementId, wordCountRules());
+}
+
+int ProjectManager::wordsUnder(const QString& elementId, const WordCountRules& rules) const {
     const auto state = m_elementStates.constFind(elementId);
     if (state == m_elementStates.constEnd()) {
         return 0;
     }
-    return state->editorWordCount.value_or(state->wordCount);
+    return state->editorWords.value_or(state->words).wordsUnder(rules);
 }
 
-void ProjectManager::setEditorWordCount(const QString& elementId, int words) {
+void ProjectManager::setEditorWords(const QString& elementId, const WordTally& words) {
     if (ElementState* state = stateOf(elementId)) {
-        state->editorWordCount = words;
+        state->editorWords = words;
     }
 }
 
@@ -2026,11 +2030,12 @@ TextStatistics ProjectManager::statisticsOf(const QList<ProjectElement>& element
     QList<const ProjectElement*> all;
     appendAll(elements, all);
 
+    const WordCountRules rules = wordCountRules();
     TextStatistics statistics;
     for (const ProjectElement* element : all) {
         if (formOf(*element) == ElementForm::Text) {
             ++statistics.elements;
-            statistics.words += wordCount(element->id);
+            statistics.words += wordsUnder(element->id, rules);
             ++statistics.statuses[statusOf(*element)];
             const KindRef kind = kindOf(*element);
             ++statistics.kinds[kind ? kind.reference() : element->kind.toString()];
@@ -2063,8 +2068,8 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
     state.content = chapter->kml();
     state.loaded = true;
     state.dirty = false;
-    state.wordCount = chapter->wordCount();
-    state.editorWordCount.reset();
+    state.words = chapter->wordTally();
+    state.editorWords.reset();
     state.notes = chapter->notes();
     logger.debug("Loaded .kchapter for element: {} ({} chars)", elementId.toStdString(),
                  state.content.length());
@@ -2087,7 +2092,7 @@ void ProjectManager::discardChapterContent(const QString& elementId) {
         state->content.clear();
         state->loaded = false;
         state->dirty = false;
-        state->editorWordCount.reset();  // the file counts the words again
+        state->editorWords.reset();  // the file counts the words again
     }
 }
 
@@ -2228,7 +2233,7 @@ void ProjectManager::loadElementStates() {
             logger.warn("The chapter file of '{}' is missing: {}", element->title.toStdString(),
                         path.toStdString());
         } else if (std::optional<ChapterDocument> chapter = ChapterDocument::load(path)) {
-            state.wordCount = chapter->wordCount();
+            state.words = chapter->wordTally();
             state.notes = chapter->notes();
         }
         m_elementStates.insert(element->id, state);
@@ -2281,10 +2286,12 @@ bool ProjectManager::writeChapterFile(const ProjectElement& element,
         logger.error("writeChapterFile: Cannot write {}", path.toStdString());
         return false;
     }
+    // The words of the text the file has now: the text just set (its plain text is that of
+    // its KML), or the text it had
     ElementState& state = m_elementStates[element.id];
-    state.wordCount = chapter.wordCount();
+    state.words = kml ? tallyWords(chapter.plainText()) : chapter.wordTally();
     if (kml) {
-        state.editorWordCount.reset();  // the file has the text of the editor now
+        state.editorWords.reset();  // the file has the text of the editor now
     }
     return true;
 }
