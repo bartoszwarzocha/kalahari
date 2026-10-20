@@ -7,6 +7,7 @@
 #include <QString>
 
 class QDialogButtonBox;
+class QFrame;
 class QHBoxLayout;
 class QLabel;
 class QPushButton;
@@ -105,6 +106,10 @@ protected:
     ///        exists, else the style's guess
     QMargins frameMargins() const;
 
+    /// @brief @p size made higher by the heading and the line under it, at its width: the
+    ///        default size of a dialog given for its content and buttons alone
+    QSize withHeading(const QSize& size) const;
+
     /// @brief The buttons that close the dialog, for a dialog that adds one of its own
     QDialogButtonBox* buttonBox() const { return m_buttonBox; }
 
@@ -125,6 +130,7 @@ private:
     /// @brief Draw the heading's icon at the size and in the colors of the current icons
     void updateHeadingIcon();
 
+    QFrame* m_heading = nullptr;
     QHBoxLayout* m_headingLayout = nullptr;
     QLabel* m_iconLabel = nullptr;
     QLabel* m_titleLabel = nullptr;

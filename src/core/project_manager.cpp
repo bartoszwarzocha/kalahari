@@ -1348,8 +1348,10 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
                      kind.reference().toStdString());
         return QString();
     }
-    if (at.index > list->size()) {
-        logger.error("addElement: The list has no place {}", at.index);
+    // Nothing goes before the title page
+    if (!BookProject::canBeAt(bookTypes(), *list, kind, at.index)) {
+        logger.error("addElement: An element of {} cannot be at place {} of its list",
+                     kind.reference().toStdString(), at.index);
         return QString();
     }
 
@@ -1956,8 +1958,10 @@ QString ProjectManager::addUnassignedFile(const QString& file, const KindRef& ki
                      kind.reference().toStdString());
         return QString();
     }
-    if (at.index > list->size()) {
-        logger.error("addUnassignedFile: The list has no place {}", at.index);
+    // Nothing goes before the title page
+    if (!BookProject::canBeAt(bookTypes(), *list, kind, at.index)) {
+        logger.error("addUnassignedFile: An element of {} cannot be at place {} of its list",
+                     kind.reference().toStdString(), at.index);
         return QString();
     }
 
@@ -2002,6 +2006,14 @@ bool ProjectManager::moveElement(const QString& elementId, qsizetype index) {
     }
     if (from == index) {
         return true;
+    }
+    // Nothing goes before the title page; the list without the element has its new place
+    QList<ProjectElement> without = *list;
+    without.removeAt(from);
+    if (!BookProject::canBeAt(bookTypes(), without, kindOf(list->at(from)), index)) {
+        Logger::getInstance().warn("moveElement: {} cannot be at place {} of its list",
+                                   elementId.toStdString(), index);
+        return false;
     }
     list->move(from, index);
     if (!saveManifest()) {
@@ -2063,18 +2075,19 @@ qsizetype ProjectManager::startIndexOf(const QString& elementId) const {
         const KindRef kind = kindOf(element);
         return kind && kind.kind->position == KindPosition::Start;
     };
-    if (isOfStart(list->at(from))) {
+    const KindRef own = kindOf(list->at(from));
+    if (own && own.kind->first) {
         return 0;
     }
-    // After the other elements of the kinds of the start that open the list
-    qsizetype index = 0;
-    for (qsizetype i = 0; i < list->size(); ++i) {
-        if (i == from) {
-            continue;
-        }
-        if (!isOfStart(list->at(i))) {
-            break;
-        }
+    // After the title page, and after the other elements of the kinds of the start that open
+    // the list
+    QList<ProjectElement> without = *list;
+    without.removeAt(from);
+    qsizetype index = BookProject::afterOpeningOf(bookTypes(), without);
+    if (isOfStart(list->at(from))) {
+        return index;
+    }
+    while (index < without.size() && isOfStart(without.at(index))) {
         ++index;
     }
     return index;
@@ -2094,6 +2107,11 @@ qsizetype ProjectManager::endIndexOf(const QString& elementId) const {
     const qsizetype last = list->size() - 1;
     if (isOfEnd(list->at(from))) {
         return last;
+    }
+    // The title page stays first
+    const KindRef own = kindOf(list->at(from));
+    if (own && own.kind->first) {
+        return from;
     }
     // Before the other elements of the kinds of the end that close the list
     qsizetype index = last;

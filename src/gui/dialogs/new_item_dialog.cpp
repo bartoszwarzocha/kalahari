@@ -33,7 +33,7 @@ using kalahari::gui::ProgramFolders;
 namespace {
 
 constexpr int MINIMUM_WIDTH = 700;          ///< The description and two templates in a row
-constexpr QSize DEFAULT_SIZE{850, 620};     ///< The templates and the details without scrolling
+constexpr QSize DEFAULT_SIZE{850, 620};     ///< The templates and the details, under the heading
 
 /// The writer's last choice in the Sections field for a template that shows sections
 constexpr const char* SECTIONS_SETTING = "project.sectionSet";
@@ -113,8 +113,8 @@ NewItemDialog::NewItemDialog(NewItemMode mode, QWidget* parent)
 
     validateInput();
 
-    // The size of a big screen, or less on a smaller one
-    kalahari::gui::utils::resizeWithinScreen(this, DEFAULT_SIZE);
+    // The size of a big screen, higher by the heading, or less on a smaller one
+    kalahari::gui::utils::resizeWithinScreen(this, withHeading(DEFAULT_SIZE));
 }
 
 // ============================================================================

@@ -1830,8 +1830,9 @@ TEST_CASE("ProjectManager moves an element to another part of the book or group,
     CHECK(titles(pm.findElement(part)->elements) == "Chapter 1, Epilogue");
 
     // A chapter can also be in the front and the back section (test report of 19 October,
-    // part 3: the only chapter of a book could not be moved)
-    CHECK(pm.canMoveTo(chapter, {BookPlace::Front, QString(), 0}));
+    // part 3: the only chapter of a book could not be moved), but not before the title page
+    CHECK(pm.canMoveTo(chapter, {BookPlace::Front, QString(), 1}));
+    CHECK_FALSE(pm.canMoveTo(chapter, {BookPlace::Front, QString(), 0}));
     CHECK(pm.canMoveTo(chapter, {BookPlace::Back, QString(), 0}));
 
     // Where its kind cannot be, or a place that is not in the book: the book stays as it was

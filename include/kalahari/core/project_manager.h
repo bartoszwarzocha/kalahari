@@ -582,7 +582,8 @@ public:
                               qsizetype index = -1);
 
     /// @brief Move element @p elementId to place @p index of its list and save the .klh file
-    /// @return false when the element or the place does not exist or the file cannot be written
+    /// @return false when the element or the place does not exist, its kind cannot be there
+    ///         (before the title page, BookProject::canBeAt()) or the file cannot be written
     bool moveElement(const QString& elementId, qsizetype index);
 
     /// @brief Places that element @p elementId can be moved to, in reading order
@@ -605,15 +606,17 @@ public:
 
     /// @brief Place in its list that Move to Start gives element @p elementId
     ///
-    /// The first place; an element of a kind that is not of the start goes after the elements
-    /// of the kinds of the start, so a chapter moved to the start stays after the prologue.
+    /// The first place after the title page (BookProject::canBeAt()), which is first itself;
+    /// an element of a kind that is not of the start goes after the elements of the kinds of
+    /// the start, so a chapter moved to the start stays after the prologue.
     /// @return The index; -1 when the project has no such element
     qsizetype startIndexOf(const QString& elementId) const;
 
     /// @brief Place in its list that Move to End gives element @p elementId
     ///
     /// The last place; an element of a kind that is not of the end goes before the elements of
-    /// the kinds of the end, so a chapter moved to the end stays before the epilogue.
+    /// the kinds of the end, so a chapter moved to the end stays before the epilogue. The title
+    /// page keeps its place.
     /// @return The index; -1 when the project has no such element
     qsizetype endIndexOf(const QString& elementId) const;
 
