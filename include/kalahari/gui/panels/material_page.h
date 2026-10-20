@@ -70,6 +70,9 @@ public:
 
     /// @brief The card; @p full: the full card, else the short one
     explicit MaterialPage(QWidget* parent = nullptr, bool full = false);
+    /// @note What a field does while the card is destroyed (a title losing the keys) does not
+    /// reach the card
+    ~MaterialPage() override;
 
     /// @brief Whether it is the full card
     bool isFull() const { return m_full; }
@@ -272,6 +275,8 @@ class LinkedMaterialsBox : public QGroupBox {
 
 public:
     explicit LinkedMaterialsBox(QWidget* parent = nullptr);
+    /// @note What the list does while the box is destroyed does not reach the box
+    ~LinkedMaterialsBox() override;
 
     /// @brief Show the materials linked with @p link, an element or a section
     /// (core::BookProject::sectionLink()); @p emptyText says that it has none

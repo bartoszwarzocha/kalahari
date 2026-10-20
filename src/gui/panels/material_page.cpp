@@ -201,6 +201,14 @@ private:
     }
 };
 
+/// Nothing of the children of @p widget reaches it any more. QWidget's destructor deletes them
+/// after the class of @p widget is gone, and a field with the keys finishes its editing then.
+void cutOffChildren(QWidget* widget) {
+    for (QObject* child : widget->findChildren<QObject*>()) {
+        child->disconnect(widget);
+    }
+}
+
 } // namespace
 
 // =============================================================================
@@ -467,6 +475,10 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
     // The icons of the kinds, of a file that is no picture and of the links
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &MaterialPage::refresh);
+}
+
+MaterialPage::~MaterialPage() {
+    cutOffChildren(this);
 }
 
 void MaterialPage::showMaterial(const QString& elementId) {
@@ -1062,6 +1074,10 @@ LinkedMaterialsBox::LinkedMaterialsBox(QWidget* parent) : QGroupBox(parent) {
     // The icons of the materials that are no pictures
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &LinkedMaterialsBox::refresh);
+}
+
+LinkedMaterialsBox::~LinkedMaterialsBox() {
+    cutOffChildren(this);
 }
 
 void LinkedMaterialsBox::showLinked(const QString& link, const QString& emptyText) {

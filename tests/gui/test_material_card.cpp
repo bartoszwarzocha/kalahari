@@ -1,6 +1,7 @@
 /// @file test_material_card.cpp
 /// @brief The card of a material in the Properties panel, its preview tab and Link
 
+#include "../editor/editor_test_utils.h"
 #include "document_window.h"
 
 #include "kalahari/core/settings_manager.h"
@@ -38,6 +39,16 @@
 using namespace kalahari;
 
 namespace {
+
+/// The tests of the keys need an active window; the offscreen platform has one without a
+/// window on screen
+bool canActivateWindows() {
+    return QGuiApplication::platformName() == QStringLiteral("offscreen");
+}
+
+constexpr const char* NEEDS_OFFSCREEN =
+    "needs an active window without a window on screen: run with QT_QPA_PLATFORM=offscreen";
+
 
 /// A picture of @p size in folder @p dir: red in its top left quarter, blue elsewhere
 QString writePicture(const QString& dir, const QString& name, const QSize& size) {
@@ -411,6 +422,34 @@ TEST_CASE("Material card: the picture, the file, the title and the description, 
     CHECK(page.previewButton()->isEnabled());
     page.thumbnail()->click();
     CHECK(previews == QStringList{stamp});
+}
+
+TEST_CASE("Material card: a field with the keys gives nothing to a card being destroyed",
+          "[gui][materials]") {
+    if (!canActivateWindows()) {
+        SKIP(NEEDS_OFFSCREEN);
+    }
+    gui::registerAllIcons();
+    test::OpenNovel novel(QStringLiteral("Rain"));
+    auto& pm = novel.pm;
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString map =
+        addMaterial(pm, writePicture(files.path(), QStringLiteral("map.png"), QSize(40, 20)),
+                    QStringLiteral("Map"));
+
+    // QWidget's destructor takes the keys from the title after the card is gone: the title
+    // then finishes its editing, which nothing of the card may take
+    auto page = std::make_unique<gui::MaterialPage>();
+    page->showMaterial(map);
+    page->show();
+    page->activateWindow();
+    REQUIRE(test::waitUntil([&page] { return QApplication::activeWindow() == page.get(); }));
+    page->titleEdit()->setFocus(Qt::OtherFocusReason);
+    REQUIRE(test::waitUntil([&page] { return page->titleEdit()->hasFocus(); }));
+    page->titleEdit()->setText(QStringLiteral("Not finished"));
+    page.reset();
+    CHECK(pm.findElement(map)->title == QStringLiteral("Map"));
 }
 
 TEST_CASE("Material card: own fields are added with their names suggested, saved in their "
