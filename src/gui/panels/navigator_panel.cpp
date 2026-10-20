@@ -2010,14 +2010,15 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 &NavigatorPanel::onContextMenuProperties);
     };
 
+    // The icons of the panel's Expand All and Collapse All buttons
     const auto addExpandCollapseActions = [&]() {
         QAction* expandAllAction = menu.addAction(
-            artProvider.getIcon("common.expand", core::IconContext::Menu),
+            artProvider.getIcon("common.expandMore", core::IconContext::Menu),
             tr("&Expand All"));
         connect(expandAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuExpandAll);
 
         QAction* collapseAllAction = menu.addAction(
-            artProvider.getIcon("common.collapse", core::IconContext::Menu),
+            artProvider.getIcon("common.expandLess", core::IconContext::Menu),
             tr("&Collapse All"));
         connect(collapseAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuCollapseAll);
     };

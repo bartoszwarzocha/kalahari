@@ -16,6 +16,7 @@
 #include <kalahari/gui/dialogs/file_preview_dialog.h>
 #include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/dialogs/new_file_dialog.h>
+#include <kalahari/gui/icon_registrar.h>
 #include <kalahari/gui/material_downloader.h>
 #include <kalahari/gui/navigator_coordinator.h>
 #include <kalahari/gui/panels/editor_panel.h>
@@ -26,6 +27,8 @@
 #include <kalahari/gui/paste_target.h>
 #include <kalahari/gui/utils/access_keys.h>
 #include <kalahari/gui/utils/file_location.h>
+
+#include "context_menu_reader.h"
 
 #include <QAbstractButton>
 #include <QAction>
@@ -2773,6 +2776,58 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
         CHECK(card->elementId() == lastMaterial().id);
         CHECK(card->page()->isFull());
     }
+}
+
+TEST_CASE("Navigator: Expand All and Collapse All of a menu have the icons of the panel's "
+          "buttons",
+          "[gui][navigator]") {
+    gui::registerAllIcons();
+    OpenNovel novel;
+    Navigator navigator;
+    navigator.window.setAttribute(Qt::WA_DontShowOnScreen);
+    navigator.window.resize(400, 900);
+    navigator.panel->setGeometry(0, 0, 400, 900);
+    navigator.window.show();
+    auto* tree = navigator.panel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    QTreeWidgetItem* book = nullptr;
+    for (QTreeWidgetItemIterator it(tree); *it != nullptr; ++it) {
+        if ((*it)->data(0, Qt::UserRole + 1).toString() == QStringLiteral("book")) {
+            book = *it;
+        }
+    }
+    REQUIRE(book != nullptr);
+
+    test::ContextMenuReader reader(navigator.panel);
+    emit tree->customContextMenuRequested(tree->visualItemRect(book).center());
+    REQUIRE(reader.menusRead() == 1);
+    // A null icon where there is no such item or button
+    const auto iconOf = [&reader](const QString& text) {
+        for (const test::MenuItem& item : reader.items()) {
+            if (item.text == text) {
+                return item.icon;
+            }
+        }
+        return QIcon();
+    };
+    const auto buttonIcon = [&navigator](const QString& toolTip) {
+        for (const QToolButton* button : navigator.panel->findChildren<QToolButton*>()) {
+            if (button->toolTip() == toolTip) {
+                return button->icon();
+            }
+        }
+        return QIcon();
+    };
+    const auto picture = [](const QIcon& icon) { return icon.pixmap(QSize(16, 16)).toImage(); };
+
+    const QIcon expand = iconOf(QStringLiteral("&Expand All"));
+    const QIcon collapse = iconOf(QStringLiteral("&Collapse All"));
+    REQUIRE_FALSE(expand.isNull());
+    REQUIRE_FALSE(collapse.isNull());
+    REQUIRE_FALSE(buttonIcon(QStringLiteral("Expand All")).isNull());
+    CHECK(picture(expand) == picture(buttonIcon(QStringLiteral("Expand All"))));
+    CHECK(picture(collapse) == picture(buttonIcon(QStringLiteral("Collapse All"))));
+    CHECK(picture(expand) != picture(collapse));
 }
 
 TEST_CASE("Navigator: a material opens as its source says; the title of its page and the copy "
