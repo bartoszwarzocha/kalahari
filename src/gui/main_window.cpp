@@ -219,6 +219,25 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenWithSystem);
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenLink,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenLink);
+    // A material with an address: its page in the browser, the copy of its picture; a change
+    // on one card of a material shows on the others
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenInBrowser,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenInBrowser);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSaveCopy,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestSaveCopy);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::materialChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::onMaterialChanged);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::message, this,
+            [this](const QString& text) { statusBar()->showMessage(text, 2000); });
+    // The card of a material in the middle of the window; files, web addresses and pictures
+    // dropped on the Navigator or pasted in it are new materials
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterialCard,
+            m_navigatorCoordinator,
+            [this](const QString& elementId) {
+                m_navigatorCoordinator->onRequestOpenMaterialCard(elementId);
+            });
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestAddMaterials,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddMaterials);
     // The sections of the book: shown or not, and their names
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowSections,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestShowSections);

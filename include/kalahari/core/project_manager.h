@@ -120,6 +120,18 @@ struct NewProject {
     std::optional<PaletteChoice> palette;
 };
 
+/// @brief A new material of the Workshop, as ProjectManager::addMaterial() adds it: a copy of
+/// a file, a picture or a web address, or none of them (a paper book, a talk, a quotation)
+struct NewMaterial {
+    QString title;       ///< Title
+    QString filePath;    ///< A file whose copy goes to the Workshop's folder; empty: none
+    QByteArray data;     ///< Else the contents of the material's file, such as a picture from
+                         ///< the clipboard; empty: none
+    QString fileName;    ///< Name of the file with @c data: "picture.png"
+    QString url;         ///< Web address of a page or of a picture; empty: none
+    QStringList links;   ///< What it is about (ProjectElement::links)
+};
+
 /// @brief Singleton manager of the book project open in the program
 ///
 /// Signals:
@@ -469,6 +481,23 @@ public:
     ///         be added to the Workshop, @p sourcePath is not a file that can be read, or the
     ///         copy or the .klh file cannot be written; no copy stays then
     QString addMaterial(const QString& sourcePath, const KindRef& kind, const QString& title);
+
+    /// @brief Add @p material to the Workshop as a new material of @p kind
+    ///
+    /// A copy of its file, or a file with its data, goes to the Workshop's folder, named as the
+    /// file (newMaterialFile()); a material with neither has no file. Its links are those of
+    /// @p material that the project has. Otherwise as addMaterial() of a file.
+    /// @return The new material's id; empty when @p kind is not a kind of materials that can
+    ///         be added to the Workshop, its file cannot be read, or a file cannot be written
+    QString addMaterial(const NewMaterial& material, const KindRef& kind);
+
+    /// @brief Give material @p elementId, which has no file, a copy of its picture: a file
+    /// named @p fileName (newMaterialFile()) in the Workshop's folder with @p data; saves the
+    /// .klh file
+    /// @return false when the project has no such element, it has a file already, or a file
+    ///         cannot be written; no file stays then
+    bool setMaterialCopy(const QString& elementId, const QByteArray& data,
+                         const QString& fileName);
 
     /// @brief Whether @p elementId is a file of the book outside its text (ProjectBook::files)
     bool isBookFile(const QString& elementId) const;

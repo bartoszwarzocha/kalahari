@@ -45,7 +45,9 @@
 ///       { "id": "e7", "kind": "kalahari.base:material", "title": "mapa",
 ///         "file": "workshop/mapa.png", "description": "Mapa okolic oazy.",
 ///         "fields": [{ "name": "Skala", "value": "1 : 50 000" }],
-///         "links": ["e3", "c2a1/main"], "view": { "rotation": 90 } }
+///         "links": ["e3", "c2a1/main"], "view": { "rotation": 90 } },
+///       { "id": "e8", "kind": "kalahari.base:material", "title": "Pustynia Kalahari",
+///         "url": "https://pl.wikipedia.org/wiki/Kalahari" }
 ///     ]
 ///   }
 /// }
@@ -73,6 +75,9 @@
 ///   saved once, with the element that has it; an element deleted from the project leaves the
 ///   links. "view" has how its picture is shown: "rotation", 0, 90, 180 or 270 degrees
 ///   clockwise. None of these: the element has none.
+/// - A material is a copy of a file in the Workshop's folder ("file"), a web address ("url":
+///   a page, or a picture on the web, whose copy in the book is then its file), or neither of
+///   them: a paper book, a talk or a quotation that its description and fields tell of.
 /// - A file of a book outside its text, such as notes or a text pasted from elsewhere, has an
 ///   id unique in the project, a title and a chapter file, but no kind and no status; the
 ///   finished book does not have it. A book without such files has no "files".
@@ -106,6 +111,9 @@ struct ProjectElement {
     KindReference kind;              ///< Kind, with the package that defines it
     QString title;                   ///< Title
     QString file;                    ///< File, relative to the project folder; empty: none
+    QString url;                     ///< Web address of a material: a page, or a picture
+                                     ///< whose copy in the book is its file when it has one;
+                                     ///< empty: none
     QString status;                  ///< "draft", "revision" or "final"; empty: none (groups)
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QString description;             ///< Description of an element of the Workshop without a

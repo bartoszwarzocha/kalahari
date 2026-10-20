@@ -384,6 +384,12 @@ zip_t* openZip(const QString& path, int flags, ZipFailure* failure) {
     return archive;
 }
 
+/// Write @p data as the whole of file @p path, which is replaced only once it is written
+bool writeWhole(const QString& path, const QByteArray& data) {
+    QSaveFile file(path);
+    return file.open(QIODevice::WriteOnly) && file.write(data) == data.size() && file.commit();
+}
+
 }  // namespace
 
 // =============================================================================
@@ -1505,6 +1511,13 @@ QString ProjectManager::newMaterialFile(const QString& sourcePath) const {
 
 QString ProjectManager::addMaterial(const QString& sourcePath, const KindRef& kind,
                                     const QString& title) {
+    NewMaterial material;
+    material.title = title;
+    material.filePath = sourcePath;
+    return addMaterial(material, kind);
+}
+
+QString ProjectManager::addMaterial(const NewMaterial& material, const KindRef& kind) {
     auto& logger = Logger::getInstance();
     if (refusesChange("addMaterial")) {
         return QString();
@@ -1517,36 +1530,79 @@ QString ProjectManager::addMaterial(const QString& sourcePath, const KindRef& ki
         logger.error("addMaterial: {} is not a kind of materials", kind.reference().toStdString());
         return QString();
     }
-    const QFileInfo source(sourcePath);
-    if (!source.isFile() || !source.isReadable()) {
-        logger.error("addMaterial: {} is not a file that can be read", sourcePath.toStdString());
-        return QString();
+    const bool copy = !material.filePath.isEmpty();
+    if (copy) {
+        const QFileInfo source(material.filePath);
+        if (!source.isFile() || !source.isReadable()) {
+            logger.error("addMaterial: {} is not a file that can be read",
+                         material.filePath.toStdString());
+            return QString();
+        }
     }
 
     ProjectElement element;
     element.id = m_project->newElementId();
     element.kind = KindReference{kind.package->id, kind.kind->id};
-    element.title = title;
-    element.file = newMaterialFile(sourcePath);
-    const QString target = filePathOf(element);
-    if (!QDir().mkpath(QFileInfo(target).absolutePath()) || !QFile::copy(sourcePath, target)) {
-        logger.error("addMaterial: Cannot copy {} to {}", sourcePath.toStdString(),
-                     target.toStdString());
-        QFile::remove(target);
-        return QString();
+    element.title = material.title;
+    element.url = material.url;
+    for (const QString& link : material.links) {
+        if (!element.links.contains(link) && m_project->hasLinkTarget(link)) {
+            element.links << link;
+        }
+    }
+    QString target;
+    if (copy || !material.data.isEmpty()) {
+        element.file = newMaterialFile(copy ? material.filePath : material.fileName);
+        target = filePathOf(element);
+        const bool written = QDir().mkpath(QFileInfo(target).absolutePath()) &&
+                             (copy ? QFile::copy(material.filePath, target)
+                                   : writeWhole(target, material.data));
+        if (!written) {
+            logger.error("addMaterial: Cannot write {}", target.toStdString());
+            QFile::remove(target);
+            return QString();
+        }
     }
 
     const qsizetype at = newIndexIn(*list, kind);
     list->insert(at, element);
     if (!saveManifest()) {
         list->removeAt(at);
-        QFile::remove(target);
+        if (!target.isEmpty()) {
+            QFile::remove(target);
+        }
         return QString();
     }
 
-    logger.info("addMaterial: Added {} as '{}' ({}, id: {})", sourcePath.toStdString(),
-                title.toStdString(), element.file.toStdString(), element.id.toStdString());
+    logger.info("addMaterial: Added '{}' (file: {}, address: {}, id: {})",
+                material.title.toStdString(), element.file.toStdString(),
+                element.url.toStdString(), element.id.toStdString());
     return element.id;
+}
+
+bool ProjectManager::setMaterialCopy(const QString& elementId, const QByteArray& data,
+                                     const QString& fileName) {
+    auto& logger = Logger::getInstance();
+    if (refusesChange("setMaterialCopy")) {
+        return false;
+    }
+    ProjectElement* element = findElement(elementId);
+    if (!element || !element->file.isEmpty()) {
+        logger.warn("setMaterialCopy: {} is no element without a file", elementId.toStdString());
+        return false;
+    }
+    element->file = newMaterialFile(fileName);
+    const QString target = filePathOf(*element);
+    if (!QDir().mkpath(QFileInfo(target).absolutePath()) || !writeWhole(target, data) ||
+        !saveManifest()) {
+        logger.error("setMaterialCopy: Cannot write {}", target.toStdString());
+        element->file.clear();
+        QFile::remove(target);
+        return false;
+    }
+    logger.info("setMaterialCopy: {} has its copy in {}", elementId.toStdString(),
+                target.toStdString());
+    return true;
 }
 
 bool ProjectManager::isBookFile(const QString& elementId) const {

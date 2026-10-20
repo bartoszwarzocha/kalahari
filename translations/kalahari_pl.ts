@@ -6744,6 +6744,119 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>System nie otworzył pliku:
 %1</translation>
     </message>
+    <message>
+        <source>The picture could not be saved in the book. The program&apos;s log has the details.</source>
+        <extracomment>In Polish: Nie udało się zapisać obrazu w książce. Szczegóły są w dzienniku programu.</extracomment>
+        <translation>Nie udało się zapisać obrazu w książce. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>The system could not open the address:
+%1</source>
+        <extracomment>%1: the web address. In Polish: System nie otworzył adresu:
+%1</extracomment>
+        <translation>System nie otworzył adresu:
+%1</translation>
+    </message>
+    <message>
+        <source>Download Failed</source>
+        <extracomment>In Polish: Pobieranie się nie udało</extracomment>
+        <translation>Pobieranie się nie udało</translation>
+    </message>
+    <message>
+        <source>%1
+
+The material keeps its address:
+%2</source>
+        <extracomment>%1: why, %2: the address. In Polish: %1
+
+Materiał zachowuje swój adres: 
+%2</extracomment>
+        <translation>%1
+
+Materiał zachowuje swój adres:
+%2</translation>
+    </message>
+    <message>
+        <source>Nothing was downloaded for &quot;%1&quot;: %2</source>
+        <extracomment>%1: the material, %2: why. In Polish: Nie pobrano niczego dla „%1”: %2</extracomment>
+        <translation>Nie pobrano niczego dla „%1”: %2</translation>
+    </message>
+    <message>
+        <source>The copy of the picture could not be saved in the book. The program&apos;s log has the details.</source>
+        <extracomment>In Polish: Nie udało się zapisać kopii obrazu w książce. Szczegóły są w dzienniku programu.</extracomment>
+        <translation>Nie udało się zapisać kopii obrazu w książce. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>Copy of the picture saved: %1</source>
+        <extracomment>In Polish: Zapisano kopię obrazu: %1</extracomment>
+        <translation>Zapisano kopię obrazu: %1</translation>
+    </message>
+    <message>
+        <source>The program found no title on the page of &quot;%1&quot;.</source>
+        <extracomment>%1: the material. In Polish: Program nie znalazł tytułu na stronie materiału „%1”.</extracomment>
+        <translation>Program nie znalazł tytułu na stronie materiału „%1”.</translation>
+    </message>
+    <message>
+        <source>Title from the page: %1</source>
+        <extracomment>In Polish: Tytuł ze strony: %1</extracomment>
+        <translation>Tytuł ze strony: %1</translation>
+    </message>
+    <message>
+        <source>The clipboard has no file, web address or picture, so nothing was added.</source>
+        <extracomment>Ctrl+V in the Navigator with a text on the clipboard. In Polish: W schowku nie ma pliku, adresu internetowego ani obrazu, więc niczego nie dodano.</extracomment>
+        <translation>W schowku nie ma pliku, adresu internetowego ani obrazu, więc niczego nie dodano.</translation>
+    </message>
+    <message>
+        <source>a copy of the file in the book</source>
+        <extracomment>What a material dropped on the Navigator is. In Polish: kopia pliku w książce</extracomment>
+        <translation>kopia pliku w książce</translation>
+    </message>
+    <message>
+        <source>the address of a picture</source>
+        <extracomment>What a material dropped on the Navigator is. In Polish: adres obrazu</extracomment>
+        <translation>adres obrazu</translation>
+    </message>
+    <message>
+        <source>the address of a page</source>
+        <extracomment>What a material dropped on the Navigator is. In Polish: adres strony</extracomment>
+        <translation>adres strony</translation>
+    </message>
+    <message>
+        <source>a picture saved in the book</source>
+        <extracomment>In Polish: obraz zapisany w książce</extracomment>
+        <translation>obraz zapisany w książce</translation>
+    </message>
+    <message>
+        <source>{Kind} added: %1 – %2</source>
+        <extracomment>%1: the title, %2: what it is, e.g. &quot;a copy of the file in the book&quot;. In Polish: Dodano {kind:accusative}: %1 – %2</extracomment>
+        <translation>Dodano {kind:accusative}: %1 – %2</translation>
+    </message>
+    <message>
+        <source>Added to &quot;%1&quot;: %2</source>
+        <extracomment>%1: the group of the materials in the Navigator, %2: their titles. In Polish: Dodano do grupy „%1”: %2</extracomment>
+        <translation>Dodano do grupy „%1”: %2</translation>
+    </message>
+    <message>
+        <source>These could not be added to the book:
+%1
+The program&apos;s log has the details.</source>
+        <extracomment>%1: the files or the addresses, one in a line. In Polish: Nie udało się dodać do książki:
+%1
+Szczegóły są w dzienniku programu.</extracomment>
+        <translation>Nie udało się dodać do książki:
+%1
+Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>{Kind} added: %1 – %2, linked with &quot;%3&quot;</source>
+        <extracomment>%1: the title, %2: what it is, e.g. &quot;a copy of the file in the book&quot;, %3: the element or the section it is linked with. In Polish: Dodano {kind:accusative}: %1 – %2, powiązan{kind:m=y|f=a|n=e|p=e} z „%3”</extracomment>
+        <translation>Dodano {kind:accusative}: %1 – %2, powiązan{kind:m=y|f=a|n=e|p=e} z „%3”</translation>
+    </message>
+    <message>
+        <source>Added to &quot;%1&quot;: %2; all linked with &quot;%3&quot;</source>
+        <extracomment>%1: the group of the materials in the Navigator, %2: their titles, %3: the element or the section they are linked with. In Polish: Dodano do grupy „%1”: %2; wszystkie powiązane z „%3”</extracomment>
+        <translation>Dodano do grupy „%1”: %2; wszystkie powiązane z „%3”</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPage</name>
@@ -6823,11 +6936,6 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>W programie systemowym</translation>
     </message>
     <message>
-        <source>A picture opens on a preview tab, as a chapter does. A file of another kind, such as a PDF, opens in the system program until the program has a preview of it.</source>
-        <extracomment>In Polish: Obraz otwiera się na karcie podglądu, jak rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki program nie będzie miał jego podglądu.</extracomment>
-        <translation>Obraz otwiera się na karcie podglądu, jak rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki program nie będzie miał jego podglądu.</translation>
-    </message>
-    <message>
         <source>Pictures too. The Preview button in the Properties panel then opens the preview tab.</source>
         <extracomment>In Polish: Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</extracomment>
         <translation>Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</translation>
@@ -6836,6 +6944,76 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Opening materials:</source>
         <extracomment>In Polish: Otwieranie materiałów:</extracomment>
         <translation>Otwieranie materiałów:</translation>
+    </message>
+    <message>
+        <source>A picture, also the copy of one from the web, opens on a preview tab, as a chapter does. A file of another kind, such as a PDF, opens in the system program until the program has a preview of it. A material without a file and an address opens on its card.</source>
+        <extracomment>In Polish: Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki program nie będzie miał jego podglądu. Materiał bez pliku i adresu otwiera się na swojej karcie.</extracomment>
+        <translation>Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki program nie będzie miał jego podglądu. Materiał bez pliku i adresu otwiera się na swojej karcie.</translation>
+    </message>
+    <message>
+        <source>In the browser</source>
+        <extracomment>In Polish: W przeglądarce</extracomment>
+        <translation>W przeglądarce</translation>
+    </message>
+    <message>
+        <source>On the card of the material</source>
+        <extracomment>In Polish: Na karcie materiału</extracomment>
+        <translation>Na karcie materiału</translation>
+    </message>
+    <message>
+        <source>Double-click and Enter open the address in the system&apos;s browser. Open Card in the menu of the node opens the card of the material in the middle of the window.</source>
+        <extracomment>In Polish: Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.</extracomment>
+        <translation>Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.</translation>
+    </message>
+    <message>
+        <source>Double-click and Enter open the card of the material in the middle of the window; its Open in Browser button opens the address.</source>
+        <extracomment>In Polish: Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk „Otwórz w przeglądarce” na tej karcie.</extracomment>
+        <translation>Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk „Otwórz w przeglądarce” na tej karcie.</translation>
+    </message>
+    <message>
+        <source>Pages and pictures on the web:</source>
+        <extracomment>In Polish: Strony i obrazy z sieci:</extracomment>
+        <translation>Strony i obrazy z sieci:</translation>
+    </message>
+    <message>
+        <source>At once, linked</source>
+        <extracomment>In Polish: Od razu, z powiązaniem</extracomment>
+        <translation>Od razu, z powiązaniem</translation>
+    </message>
+    <message>
+        <source>At once</source>
+        <extracomment>In Polish: Od razu</extracomment>
+        <translation>Od razu</translation>
+    </message>
+    <message>
+        <source>In the Add Element window</source>
+        <extracomment>In Polish: W oknie „Dodaj element”</extracomment>
+        <translation>W oknie „Dodaj element”</translation>
+    </message>
+    <message>
+        <source>The material is added without a window. Dropped or pasted on a chapter, a part or a section, it is linked with it at once.</source>
+        <extracomment>In Polish: Materiał dochodzi bez okna. Upuszczony albo wklejony na rozdział, część albo sekcję od razu się z nimi wiąże.</extracomment>
+        <translation>Materiał zostaje dodany bez okna. Upuszczony albo wklejony na rozdział, część lub sekcję, od razu zostaje powiązany z tym węzłem.</translation>
+    </message>
+    <message>
+        <source>The material is added without a window, always without links.</source>
+        <extracomment>In Polish: Materiał dochodzi bez okna, zawsze bez powiązań.</extracomment>
+        <translation>Materiał zostaje dodany bez okna, zawsze bez powiązań.</translation>
+    </message>
+    <message>
+        <source>The window opens filled with the file, the address or the picture; Add adds the material.</source>
+        <extracomment>In Polish: Okno otwiera się wypełnione plikiem, adresem albo obrazem; materiał dodaje dopiero „Dodaj”.</extracomment>
+        <translation>Okno otwiera się wypełnione plikiem, adresem albo obrazem; materiał dodaje dopiero „Dodaj”.</translation>
+    </message>
+    <message>
+        <source>Dropped or pasted:</source>
+        <extracomment>In Polish: Upuszczone albo wklejone:</extracomment>
+        <translation>Upuszczone albo wklejone:</translation>
+    </message>
+    <message>
+        <source>Applies to a file dragged from the file manager, an address dragged from the browser, and an address, a file or a picture pasted in the Navigator (Ctrl+V).</source>
+        <extracomment>In Polish: Dotyczy pliku przeciągniętego z Eksploratora, adresu przeciągniętego z przeglądarki oraz adresu, pliku albo obrazu wklejonego w Nawigatorze (Ctrl+V).</extracomment>
+        <translation>Dotyczy pliku przeciągniętego z Eksploratora plików, adresu przeciągniętego z przeglądarki oraz adresu, pliku albo obrazu wklejonego w Nawigatorze (Ctrl+V).</translation>
     </message>
 </context>
 <context>
@@ -7105,6 +7283,11 @@ Szczegóły są w dzienniku programu.</translation>
         <source>&amp;Grouping</source>
         <extracomment>Whether the Workshop has its cards in Libraries and its materials in Resources. In Polish: &amp;Grupowanie</extracomment>
         <translation>&amp;Grupowanie</translation>
+    </message>
+    <message>
+        <source>Open &amp;Card</source>
+        <extracomment>Opens the card of a material in the middle of the window. In Polish: Otwórz &amp;kartę</extracomment>
+        <translation>Otwórz &amp;kartę</translation>
     </message>
 </context>
 <context>
@@ -7749,6 +7932,11 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Navigator</source>
         <translation>Nawigator</translation>
+    </message>
+    <message>
+        <source>Materials</source>
+        <extracomment>The page of the downloads for the materials with a web address. In Polish: Materiały</extracomment>
+        <translation>Materiały</translation>
     </message>
 </context>
 <context>
@@ -11230,16 +11418,6 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <translation>brak – {kind} nie ma własnego tekstu</translation>
     </message>
     <message>
-        <source>a copy of the chosen file in the folder &quot;%1&quot;, with the same name</source>
-        <extracomment>The file of a new material: a copy of the file the writer chooses; %1: the folder of the Workshop. In Polish: kopia wybranego pliku w folderze „%1”, z tą samą nazwą</extracomment>
-        <translation>kopia wybranego pliku w folderze „%1”, z tą samą nazwą</translation>
-    </message>
-    <message>
-        <source>A copy of the file goes to the book&apos;s &quot;%1&quot; folder; the file on the disk stays as it is. The {kind} goes to the group &quot;%2&quot; at the place of its title.</source>
-        <extracomment>Where a new material goes, in place of the list of places; %1: the folder of the Workshop, %2: the group of materials in the Navigator. In Polish: Kopia pliku trafi do folderu „%1” książki; plik na dysku zostaje bez zmian. {Kind} trafi do grupy „%2” na miejsce wynikające z {kind:m=jego|f=jej|n=jego|p=ich} tytułu.</extracomment>
-        <translation>Kopia pliku trafi do folderu „%1” książki; plik na dysku zostaje bez zmian. {Kind} trafi do grupy „%2” na miejsce wynikające z {kind:m=jego|f=jej|n=jego|p=ich} tytułu.</translation>
-    </message>
-    <message>
         <source>In the Workshop the elements are in alphabetical order, so the {kind} goes to the group &quot;%1&quot; at the place of its title.</source>
         <extracomment>Where a new element of the Workshop goes, in place of the list of places; %1: the group of its kind in the Navigator. In Polish: W Warsztacie elementy są ułożone alfabetycznie, więc {kind} trafi do grupy „%1” na miejsce wynikające z {kind:m=jego|f=jej|n=jego|p=ich} tytułu.</extracomment>
         <translation>W Warsztacie elementy są ułożone alfabetycznie, więc {kind} trafi do grupy „%1” na miejsce wynikające z {kind:m=jego|f=jej|n=jego|p=ich} tytułu.</translation>
@@ -11279,11 +11457,6 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <translation>P&amp;lik:</translation>
     </message>
     <message>
-        <source>C&amp;hoose...</source>
-        <extracomment>Chooses the file of a new material again. In Polish: Wy&amp;bierz...</extracomment>
-        <translation>Wy&amp;bierz...</translation>
-    </message>
-    <message>
         <source>The list only shows how the book will look.</source>
         <extracomment>Under the list of a new group, which only shows the book with it. In Polish: Lista tylko pokazuje, jak będzie wyglądać książka.</extracomment>
         <translation>Lista pokazuje tylko, jak będzie wyglądać książka.</translation>
@@ -11319,11 +11492,6 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <source>After adding the {kind}</source>
         <extracomment>The list of a part of the book with a new group, e.g. a part. In Polish: Po dodaniu {kind:genitive}</extracomment>
         <translation>Po dodaniu {kind:genitive}</translation>
-    </message>
-    <message>
-        <source>Choose the file of the {kind} and its title.</source>
-        <extracomment>The heading of the Add Element window for a material. In Polish: Wybierz plik {kind:genitive} i {kind:m=jego|f=jej|n=jego|p=ich} tytuł.</extracomment>
-        <translation>Wybierz plik {kind:genitive} i {kind:m=jego|f=jej|n=jego|p=ich} tytuł.</translation>
     </message>
     <message>
         <source>Choose the kind of the new element of the Workshop and its title.</source>
@@ -11366,9 +11534,149 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <translation>Wybierz plik {kind:genitive}</translation>
     </message>
     <message>
-        <source>no file chosen</source>
-        <extracomment>The file of a new material before the writer chooses one. In Polish: nie wybrano pliku</extracomment>
-        <translation>nie wybrano pliku</translation>
+        <source>Save a &amp;copy of the picture in the book (downloads it from the web)</source>
+        <extracomment>The box of a material with the address of a picture. In Polish: &amp;Zapisz kopię obrazu w książce (pobiera obraz z sieci)</extracomment>
+        <translation>&amp;Zapisz kopię obrazu w książce (pobiera obraz z sieci)</translation>
+    </message>
+    <message>
+        <source>&amp;Download the title of the page from the web</source>
+        <extracomment>The box of a material with the address of a page. In Polish: Pobierz tytuł strony &amp;z sieci</extracomment>
+        <translation>Pobierz tytuł strony &amp;z sieci</translation>
+    </message>
+    <message>
+        <source>a copy in the folder &quot;%1&quot; of a file from the disk or of a picture from the web; a page and a material without a file have none</source>
+        <extracomment>The file of a new material: a copy of a file from the disk or of a picture from the web; %1: the folder of the Workshop. In Polish: kopia pliku z dysku albo obrazu z sieci w folderze „%1”; strona i materiał bez pliku nie mają pliku</extracomment>
+        <translation>kopia pliku z dysku albo obrazu z sieci w folderze „%1”; strona i materiał bez pliku nie mają kopii</translation>
+    </message>
+    <message>
+        <source>Picture from the clipboard (PNG, %1 × %2 px)</source>
+        <extracomment>The path of a material from a picture on the clipboard, which has no file; %1 × %2: its pixels. In Polish: Obraz ze schowka (PNG, %1 × %2 px)</extracomment>
+        <translation>Obraz ze schowka (PNG, %1 × %2 px)</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <extracomment>Where a new material comes from: a file, a web address or neither. In Polish: Źródło</extracomment>
+        <translation>Źródło</translation>
+    </message>
+    <message>
+        <source>File from the disk</source>
+        <extracomment>A source of a new material. In Polish: Plik z dysku</extracomment>
+        <translation>Plik z dysku</translation>
+    </message>
+    <message>
+        <source>Web address</source>
+        <extracomment>A source of a new material. In Polish: Adres internetowy</extracomment>
+        <translation>Adres internetowy</translation>
+    </message>
+    <message>
+        <source>No file or address</source>
+        <extracomment>A source of a new material: a paper book, a talk, a quotation. In Polish: Bez pliku i adresu</extracomment>
+        <translation>Bez pliku i adresu</translation>
+    </message>
+    <message>
+        <source>The path of a file, or drop it here</source>
+        <extracomment>The path of the file of a new material before the writer gives it. In Polish: Ścieżka pliku albo upuść go tutaj</extracomment>
+        <translation>Wpisz ścieżkę pliku albo upuść go tutaj</translation>
+    </message>
+    <message>
+        <source>C&amp;hoose File...</source>
+        <extracomment>Chooses the file of a new material in the system&apos;s window of files. In Polish: Wy&amp;bierz plik...</extracomment>
+        <translation>Wy&amp;bierz plik...</translation>
+    </message>
+    <message>
+        <source>&amp;Address:</source>
+        <extracomment>The web address of a new material. In Polish: &amp;Adres:</extracomment>
+        <translation>&amp;Adres:</translation>
+    </message>
+    <message>
+        <source>A material without a file and an address, e.g. a paper book, a talk or a quotation. Its text goes in the description, and its author, title and page in its own fields.</source>
+        <extracomment>A new material without a file and an address. In Polish: Materiał bez pliku i adresu, np. książka papierowa, rozmowa albo cytat. Treść wpiszesz w opisie, a autora, tytuł i stronę we własnych polach.</extracomment>
+        <translation>Materiał bez pliku i adresu, np. książka papierowa, rozmowa albo cytat. Treść wpiszesz w opisie, a autora, tytuł i stronę we własnych polach.</translation>
+    </message>
+    <message>
+        <source>Choose the source of the {kind} and its title.</source>
+        <extracomment>The heading of the Add Element window for a material. In Polish: Wybierz źródło {kind:genitive} i {kind:m=jego|f=jej|n=jego|p=ich} tytuł.</extracomment>
+        <translation>Wybierz źródło {kind:genitive} i {kind:m=jego|f=jej|n=jego|p=ich} tytuł.</translation>
+    </message>
+    <message>
+        <source>The picture from the clipboard is saved in the book&apos;s &quot;%1&quot; folder as a PNG file.</source>
+        <extracomment>Under the path of a material from a picture on the clipboard; %1: the folder of the Workshop. In Polish: Obraz ze schowka zapisze się w folderze „%1” książki jako plik PNG.</extracomment>
+        <translation>Obraz ze schowka zapisze się w folderze „%1” książki jako plik PNG.</translation>
+    </message>
+    <message>
+        <source>Type or paste the path of a file, drop a file on this field or click &quot;%1&quot;.</source>
+        <extracomment>Under the empty path of a new material; %1: the button that chooses the file. In Polish: Wpisz albo wklej ścieżkę pliku, upuść plik na to pole albo kliknij „%1”.</extracomment>
+        <translation>Wpisz albo wklej ścieżkę pliku, upuść plik na to pole albo kliknij „%1”.</translation>
+    </message>
+    <message>
+        <source>There is no file at this path.</source>
+        <extracomment>Under the path of a new material that names no file. In Polish: Pod tą ścieżką nie ma pliku.</extracomment>
+        <translation>Pod tą ścieżką nie ma pliku.</translation>
+    </message>
+    <message>
+        <source>%1. A copy goes to the book&apos;s &quot;%2&quot; folder; the file on the disk stays as it is.</source>
+        <extracomment>Under the path of a new material; %1: the file, e.g. &quot;mapa.png · PNG · 1600 × 1000 px · 245 KB&quot;; %2: the folder of the Workshop. In Polish: %1. Kopia trafi do folderu „%2” książki; plik na dysku zostaje bez zmian.</extracomment>
+        <translation>%1. Kopia trafi do folderu „%2” książki; plik na dysku zostaje bez zmian.</translation>
+    </message>
+    <message>
+        <source>Type or paste the address of a page or a picture; it starts with https://.</source>
+        <extracomment>Under the empty web address of a new material. In Polish: Wpisz albo wklej adres strony albo obrazu; zaczyna się od https://.</extracomment>
+        <translation>Wpisz albo wklej adres strony albo obrazu; zaczyna się od https://.</translation>
+    </message>
+    <message>
+        <source>This is not a web address: it should start with https://.</source>
+        <extracomment>Under a text that is no web address. In Polish: To nie jest adres internetowy: powinien zaczynać się od https://.</extracomment>
+        <translation>To nie jest adres internetowy: powinien zaczynać się od https://.</translation>
+    </message>
+    <message>
+        <source>Recognized: a picture on the web (%1).</source>
+        <extracomment>Under the address of a picture; %1: its server. In Polish: Rozpoznano: obraz w sieci (%1).</extracomment>
+        <translation>Rozpoznano: obraz w sieci (%1).</translation>
+    </message>
+    <message>
+        <source>Recognized: a web page (%1).</source>
+        <extracomment>Under the address of a page; %1: its server. In Polish: Rozpoznano: strona internetowa (%1).</extracomment>
+        <translation>Rozpoznano: strona internetowa (%1).</translation>
+    </message>
+    <message>
+        <source>The program does not connect to the network: the material keeps only its address, and the browser opens the picture.</source>
+        <extracomment>In Polish: Program nie łączy się z siecią: materiał zapamięta sam adres, a obraz otworzy przeglądarka.</extracomment>
+        <translation>Program nie łączy się z siecią: materiał zapamięta sam adres, a obraz otworzy przeglądarka.</translation>
+    </message>
+    <message>
+        <source>The program does not connect to the network: the material keeps only its address, and the end of the address gives its title.</source>
+        <extracomment>In Polish: Program nie łączy się z siecią: materiał zapamięta sam adres, a tytuł podpowiada koniec adresu.</extracomment>
+        <translation>Program nie łączy się z siecią: materiał zapamięta sam adres, a tytuł podpowiada koniec adresu.</translation>
+    </message>
+    <message>
+        <source>Downloads are on in Settings &gt; Network &gt; Materials: after Add the program downloads the picture at this address and saves its copy in the book&apos;s &quot;%1&quot; folder.</source>
+        <extracomment>%1: the folder of the Workshop. In Polish: Pobieranie jest włączone w Ustawieniach &gt; Sieć &gt; Materiały: po „Dodaj” program pobierze obraz z tego adresu i zapisze jego kopię w folderze „%1” książki.</extracomment>
+        <translation>Pobieranie jest włączone w Ustawieniach &gt; Sieć &gt; Materiały: po „Dodaj” program pobierze obraz z tego adresu i zapisze jego kopię w folderze „%1” książki.</translation>
+    </message>
+    <message>
+        <source>Downloads are on in Settings &gt; Network &gt; Materials: after Add the program downloads the page at this address only to read its title.</source>
+        <extracomment>In Polish: Pobieranie jest włączone w Ustawieniach &gt; Sieć &gt; Materiały: po „Dodaj” program pobierze stronę z tego adresu tylko po to, żeby odczytać jej tytuł.</extracomment>
+        <translation>Pobieranie jest włączone w Ustawieniach &gt; Sieć &gt; Materiały: po „Dodaj” program pobierze stronę z tego adresu tylko po to, żeby odczytać jej tytuł.</translation>
+    </message>
+    <message>
+        <source>The program does not connect to the network: the material keeps only its address. The box above saves a copy of the picture, which has a preview and does not vanish with the page.</source>
+        <extracomment>In Polish: Program nie połączy się z siecią: materiał zapamięta sam adres. Pole powyżej pozwala zapisać kopię obrazu, która ma podgląd i nie zniknie razem ze stroną.</extracomment>
+        <translation>Program nie połączy się z siecią: materiał zapamięta sam adres. Pole powyżej pozwala zapisać kopię obrazu, która ma podgląd i nie zniknie razem ze stroną.</translation>
+    </message>
+    <message>
+        <source>The program does not connect to the network: the material keeps only its address. The box above downloads the title of the page.</source>
+        <extracomment>In Polish: Program nie połączy się z siecią: materiał zapamięta sam adres. Pole powyżej pozwala pobrać tytuł strony.</extracomment>
+        <translation>Program nie połączy się z siecią: materiał zapamięta sam adres. Pole powyżej pozwala pobrać tytuł strony.</translation>
+    </message>
+    <message>
+        <source>After Add the program downloads the picture at this address and saves its copy in the book&apos;s &quot;%1&quot; folder. The copy has a preview and does not vanish with the page.</source>
+        <extracomment>%1: the folder of the Workshop. In Polish: Po „Dodaj” program pobierze obraz z tego adresu i zapisze jego kopię w folderze „%1” książki. Kopia ma podgląd i nie zniknie razem ze stroną.</extracomment>
+        <translation>Po „Dodaj” program pobierze obraz z tego adresu i zapisze jego kopię w folderze „%1” książki. Kopia ma podgląd i nie zniknie razem ze stroną.</translation>
+    </message>
+    <message>
+        <source>After Add the program downloads the page at this address only to read its title. It sends and saves nothing else.</source>
+        <extracomment>In Polish: Po „Dodaj” program pobierze stronę z tego adresu tylko po to, żeby odczytać jej tytuł. Nic więcej nie wysyła ani nie zapisuje.</extracomment>
+        <translation>Po „Dodaj” program pobierze stronę z tego adresu tylko po to, żeby odczytać jej tytuł. Nic więcej nie wysyła ani nie zapisuje.</translation>
     </message>
 </context>
 <context>
@@ -12191,6 +12499,66 @@ In Polish: Otwórz podgląd</extracomment>
         <extracomment>In Polish: Nie zapisano powiązań</extracomment>
         <translation>Nie zapisano powiązań</translation>
     </message>
+    <message>
+        <source>Open in Browser</source>
+        <extracomment>The button that opens the web address of a material in the system&apos;s browser. In Polish: Otwórz w przeglądarce</extracomment>
+        <translation>Otwórz w przeglądarce</translation>
+    </message>
+    <message>
+        <source>Copy Address</source>
+        <extracomment>In Polish: Kopiuj adres</extracomment>
+        <translation>Kopiuj adres</translation>
+    </message>
+    <message>
+        <source>Save Copy</source>
+        <extracomment>The button that downloads the picture of a material&apos;s web address and saves its copy in the book. In Polish: Zapisz kopię</extracomment>
+        <translation>Zapisz kopię</translation>
+    </message>
+    <message>
+        <source>Download the picture from the web and save its copy in the book&apos;s folder &quot;workshop&quot;</source>
+        <extracomment>In Polish: Pobierz obraz z sieci i zapisz jego kopię w folderze „workshop” książki</extracomment>
+        <translation>Pobierz obraz z sieci i zapisz jego kopię w folderze „workshop” książki</translation>
+    </message>
+    <message>
+        <source>Address:</source>
+        <extracomment>The web address of a material. In Polish: Adres:</extracomment>
+        <translation>Adres:</translation>
+    </message>
+    <message>
+        <source>%1 · copy from the web</source>
+        <extracomment>The line under the picture of a material with a copy of a picture on the web: %1 its name, format and size. In Polish: %1 · kopia z sieci</extracomment>
+        <translation>%1 · kopia z sieci</translation>
+    </message>
+    <message>
+        <source>The program shows the picture once the book has its copy.</source>
+        <extracomment>In Polish: Program pokaże obraz, gdy w książce będzie jego kopia.</extracomment>
+        <translation>Program pokaże obraz, gdy w książce będzie jego kopia.</translation>
+    </message>
+    <message>
+        <source>No file and no address. Its description and own fields tell where it comes from.</source>
+        <extracomment>In Polish: Bez pliku i adresu. Skąd pochodzi, mówią opis i własne pola.</extracomment>
+        <translation>Bez pliku i adresu. Skąd pochodzi, mówią opis i własne pola.</translation>
+    </message>
+    <message>
+        <source>Open %1 in the browser</source>
+        <extracomment>The tooltip of Open in Browser: %1 the address. In Polish: Otwórz %1 w przeglądarce</extracomment>
+        <translation>Otwórz %1 w przeglądarce</translation>
+    </message>
+    <message>
+        <source>Downloading...</source>
+        <extracomment>Save Copy while the picture is being downloaded. In Polish: Pobieranie...</extracomment>
+        <translation>Pobieranie...</translation>
+    </message>
+    <message>
+        <source>Copy:</source>
+        <extracomment>The copy of a picture on the web in the book&apos;s folder. In Polish: Kopia:</extracomment>
+        <translation>Kopia:</translation>
+    </message>
+    <message>
+        <source>Address copied: %1</source>
+        <extracomment>%1: the address. In Polish: Skopiowano adres: %1</extracomment>
+        <translation>Skopiowano adres: %1</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::LinkDialog</name>
@@ -12233,6 +12601,100 @@ In Polish: Otwórz podgląd</extracomment>
         <source>Elements to link</source>
         <extracomment>In Polish: Elementy do powiązania</extracomment>
         <translation>Elementy do powiązania</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::IncomingMaterials</name>
+    <message>
+        <source>Picture from the clipboard %1</source>
+        <extracomment>The title of a material from a picture on the clipboard, e.g. a screenshot; %1: when it was pasted. In Polish: Obraz ze schowka %1</extracomment>
+        <translation>Obraz ze schowka %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::MaterialDownloader</name>
+    <message>
+        <source>The server of the address was not found. The computer may not be connected to the network.</source>
+        <extracomment>In Polish: Nie znaleziono serwera tego adresu. Może nie ma połączenia z siecią.</extracomment>
+        <translation>Nie znaleziono serwera tego adresu. Może nie ma połączenia z siecią.</translation>
+    </message>
+    <message>
+        <source>The server did not answer in time.</source>
+        <extracomment>In Polish: Serwer nie odpowiedział na czas.</extracomment>
+        <translation>Serwer nie odpowiedział na czas.</translation>
+    </message>
+    <message>
+        <source>There is nothing at this address (error 404).</source>
+        <extracomment>In Polish: Pod tym adresem nic nie ma (błąd 404).</extracomment>
+        <translation>Pod tym adresem nic nie ma (błąd 404).</translation>
+    </message>
+    <message>
+        <source>The server does not allow downloading this address.</source>
+        <extracomment>In Polish: Serwer nie pozwala pobrać tego adresu.</extracomment>
+        <translation>Serwer nie pozwala pobrać tego adresu.</translation>
+    </message>
+    <message>
+        <source>The download failed (%1).</source>
+        <extracomment>%1: what went wrong, in English, from Qt. In Polish: Pobieranie się nie udało (%1).</extracomment>
+        <translation>Pobieranie się nie udało (%1).</translation>
+    </message>
+    <message>
+        <source>The picture is larger than %1.</source>
+        <extracomment>%1: the most, e.g. 50 MB. In Polish: Obraz jest większy niż %1.</extracomment>
+        <translation>Obraz jest większy niż %1.</translation>
+    </message>
+    <message>
+        <source>There is no picture the program knows at this address.</source>
+        <extracomment>In Polish: Pod tym adresem nie ma obrazu, który program zna.</extracomment>
+        <translation>Pod tym adresem nie ma obrazu, który program zna.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NetworkMaterialsPage</name>
+    <message>
+        <source>Materials with an Address</source>
+        <extracomment>The group of the page Network &gt; Materials. In Polish: Materiały z adresem</extracomment>
+        <translation>Materiały z adresem</translation>
+    </message>
+    <message>
+        <source>On request</source>
+        <extracomment>In Polish: Na życzenie</extracomment>
+        <translation>Na życzenie</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <extracomment>In Polish: Zawsze</extracomment>
+        <translation>Zawsze</translation>
+    </message>
+    <message>
+        <source>Never</source>
+        <extracomment>In Polish: Nigdy</extracomment>
+        <translation>Nigdy</translation>
+    </message>
+    <message>
+        <source>The box in the Add Element window, empty each time, turns it on. Without it the program does not connect to the network, and the material keeps only its address.</source>
+        <extracomment>In Polish: Pobieranie włącza pole w oknie „Dodaj element”, za każdym razem puste. Bez niego program nie łączy się z siecią, a materiał zachowuje sam adres.</extracomment>
+        <translation>Pobieranie włącza pole w oknie „Dodaj element”, za każdym razem puste. Bez niego program nie łączy się z siecią, a materiał zachowuje sam adres.</translation>
+    </message>
+    <message>
+        <source>Every new material with an address, also one dropped on the Navigator or pasted in it, gets the title of its page or a copy of its picture.</source>
+        <extracomment>In Polish: Każdy nowy materiał z adresem, także upuszczony na Nawigator albo wklejony w nim, dostaje tytuł strony albo kopię obrazu.</extracomment>
+        <translation>Każdy nowy materiał z adresem, także upuszczony na Nawigator albo wklejony w nim, dostaje tytuł strony albo kopię obrazu.</translation>
+    </message>
+    <message>
+        <source>The program does not connect to the addresses of materials: the end of the address gives the title, and a picture on the web has no copy.</source>
+        <extracomment>In Polish: Program nie łączy się z adresami materiałów: tytuł podpowiada koniec adresu, a obraz z sieci nie ma kopii.</extracomment>
+        <translation>Program nie łączy się z adresami materiałów: tytuł podpowiada koniec adresu, a obraz z sieci nie ma kopii.</translation>
+    </message>
+    <message>
+        <source>Downloading the title of a page and the copy of a picture:</source>
+        <extracomment>In Polish: Pobieranie tytułu strony i kopii obrazu:</extracomment>
+        <translation>Pobieranie tytułu strony i kopii obrazu:</translation>
+    </message>
+    <message>
+        <source>The program downloads only the address of the material: a page up to its title, or a picture, whose copy it saves in the book&apos;s &quot;workshop&quot; folder.</source>
+        <extracomment>In Polish: Program pobiera tylko adres materiału: stronę do jej tytułu albo obraz, którego kopię zapisuje w folderze „workshop” książki.</extracomment>
+        <translation>Program pobiera tylko adres materiału: stronę do jej tytułu albo obraz, którego kopię zapisuje w folderze „workshop” książki.</translation>
     </message>
 </context>
 </TS>

@@ -1844,6 +1844,90 @@ TEST_CASE("ProjectManager keeps the description, own fields, links and turn of a
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager adds a material with a web address, with a picture's data, or "
+          "without a file",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Sources", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QDir project(QFileInfo(manifest).absolutePath());
+    const KindRef material = kind("kalahari.base", "material");
+    const QString chapter =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    REQUIRE_FALSE(chapter.isEmpty());
+    const QString body = pm.project()->sectionLink(BookPlace::Main);
+
+    // A web address only: no file
+    NewMaterial page;
+    page.title = "Kalahari";
+    page.url = "https://pl.wikipedia.org/wiki/Kalahari";
+    page.links = {chapter, "nothing", chapter, body};
+    const QString pageId = pm.addMaterial(page, material);
+    REQUIRE_FALSE(pageId.isEmpty());
+    const ProjectElement* pageElement = pm.findElement(pageId);
+    CHECK(pageElement->url == "https://pl.wikipedia.org/wiki/Kalahari");
+    CHECK(pageElement->file.isEmpty());
+    CHECK(pageElement->links == QStringList{chapter, body});
+
+    // Neither a file nor an address: a paper book, a talk
+    NewMaterial book;
+    book.title = "Caravan Trails";
+    const QString bookId = pm.addMaterial(book, material);
+    REQUIRE_FALSE(bookId.isEmpty());
+    CHECK(pm.findElement(bookId)->file.isEmpty());
+    CHECK(pm.findElement(bookId)->url.isEmpty());
+
+    // A picture from the clipboard: its data in a file of the Workshop
+    NewMaterial shot;
+    shot.title = "Screenshot";
+    shot.data = "png data";
+    shot.fileName = "screenshot.png";
+    const QString shotId = pm.addMaterial(shot, material);
+    REQUIRE_FALSE(shotId.isEmpty());
+    CHECK(pm.findElement(shotId)->file == "workshop/screenshot.png");
+    QFile shotFile(project.filePath("workshop/screenshot.png"));
+    REQUIRE(shotFile.open(QIODevice::ReadOnly));
+    CHECK(shotFile.readAll() == "png data");
+    shotFile.close();
+    CHECK(pm.findElement(pm.addMaterial(shot, material))->file == "workshop/screenshot_2.png");
+
+    // The copy of a picture on the web, saved later, named as the picture
+    NewMaterial camel;
+    camel.title = "Camel";
+    camel.url = "https://example.org/camel.jpg";
+    const QString camelId = pm.addMaterial(camel, material);
+    REQUIRE_FALSE(camelId.isEmpty());
+    REQUIRE(pm.setMaterialCopy(camelId, "jpeg data", "camel.jpg"));
+    CHECK(pm.findElement(camelId)->file == "workshop/camel.jpg");
+    CHECK(pm.findElement(camelId)->url == "https://example.org/camel.jpg");
+    // Once: a material with a file keeps it
+    CHECK_FALSE(pm.setMaterialCopy(camelId, "other", "camel.jpg"));
+    CHECK_FALSE(pm.setMaterialCopy("nothing", "other", "camel.jpg"));
+    CHECK_FALSE(QFileInfo::exists(project.filePath("workshop/camel_2.jpg")));
+
+    // A .klh file that cannot be written leaves no copy and no element
+    const qsizetype count = pm.project()->workshop.elements.size();
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkdir(manifest));
+    CHECK(pm.addMaterial(shot, material).isEmpty());
+    CHECK_FALSE(pm.setMaterialCopy(pageId, "jpeg data", "page.jpg"));
+    REQUIRE(QDir().rmdir(manifest));
+    CHECK(pm.project()->workshop.elements.size() == count);
+    CHECK(pm.findElement(pageId)->file.isEmpty());
+    CHECK_FALSE(QFileInfo::exists(project.filePath("workshop/screenshot_3.png")));
+    CHECK_FALSE(QFileInfo::exists(project.filePath("workshop/page.jpg")));
+    REQUIRE(pm.saveManifest());
+
+    // The .klh file has the addresses
+    REQUIRE(pm.closeProject(false));
+    const BookProject saved = savedProject(manifest);
+    REQUIRE(saved.findElement(pageId) != nullptr);
+    CHECK(saved.findElement(pageId)->url == "https://pl.wikipedia.org/wiki/Kalahari");
+    CHECK(saved.findElement(camelId)->file == "workshop/camel.jpg");
+    CHECK(saved.findElement(bookId)->file.isEmpty());
+}
+
 TEST_CASE("Move to Start and Move to End keep the prologue first and the epilogue last",
           "[project_manager]") {
     QTemporaryDir dir;

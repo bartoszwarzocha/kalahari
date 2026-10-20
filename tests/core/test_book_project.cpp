@@ -344,10 +344,28 @@ TEST_CASE("Book project: the description, own fields, links and turn of a materi
                       { "name": "Source", "value": "", "page": 4 } ],
           "links": ["e3", "c2a1/main"], "view": { "rotation": 90, "zoom": 2 } },
         { "id": "e8", "kind": "kalahari.base:material", "title": "photo",
-          "file": "workshop/photo.jpg" }
+          "file": "workshop/photo.jpg" },
+        { "id": "e9", "kind": "kalahari.base:material", "title": "Kalahari",
+          "url": "https://pl.wikipedia.org/wiki/Kalahari" },
+        { "id": "e10", "kind": "kalahari.base:material", "title": "camel",
+          "file": "workshop/camel.jpg", "url": "https://example.org/camel.jpg" },
+        { "id": "e11", "kind": "kalahari.base:material", "title": "Caravan Trails" }
       ] }
     })";
     const BookProject project = projectOf(text);
+
+    // A file, a web address, both (the copy of a picture on the web) or neither
+    CHECK(project.workshop.elements.at(0).url.isEmpty());
+    CHECK(project.workshop.elements.at(2).url ==
+          QStringLiteral("https://pl.wikipedia.org/wiki/Kalahari"));
+    CHECK(project.workshop.elements.at(2).file.isEmpty());
+    CHECK(project.workshop.elements.at(3).url == QStringLiteral("https://example.org/camel.jpg"));
+    CHECK(project.workshop.elements.at(3).file == QStringLiteral("workshop/camel.jpg"));
+    CHECK(project.workshop.elements.at(4).url.isEmpty());
+    CHECK(project.workshop.elements.at(4).file.isEmpty());
+    BookProject moved = project;
+    moved.workshop.elements[2].url = QStringLiteral("https://example.org/");
+    CHECK_FALSE(moved == project);
 
     const ProjectElement& map = project.workshop.elements.at(0);
     CHECK(map.description == QStringLiteral("The oasis and the road."));
@@ -1390,6 +1408,13 @@ TEST_CASE("Book project: a .klh file with problems", "[core][bookproject]") {
         {"a view that is not an object",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "view": 90 })"),
          "books[0].main[0].view: must be an object"},
+        {"a web address that is not a text",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:material", "url": 7 })"),
+         "books[0].main[0].url: must be a web address"},
+        {"a web address without its scheme",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:material",
+                          "url": "pl.wikipedia.org/wiki/Kalahari" })"),
+         "books[0].main[0].url: must be a web address"},
         {"a turn that is not a right angle",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
                           "view": { "rotation": 45 } })"),

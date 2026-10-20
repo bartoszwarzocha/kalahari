@@ -149,6 +149,10 @@ public slots:
     /// Re-reads data from ProjectManager and updates displayed values.
     void refresh();
 
+    /// @brief Show again what the current page shows of material @p elementId: its card, or
+    /// its title among the linked materials; the fields the writer edits stay as they are
+    void refreshMaterial(const QString& elementId);
+
     /// @brief Show the words ProjectManager counts now on the current page, also of the
     /// changes that are not saved; the fields the writer edits stay as they are
     void updateWordCounts();
@@ -234,6 +238,18 @@ signals:
     /// @brief Open what link @p link of a material names: an element, or the section in the
     /// Navigator
     void requestOpenLink(const QString& link);
+
+    /// @brief Open the web address of material @p elementId in the browser
+    void requestOpenInBrowser(const QString& elementId);
+
+    /// @brief Download the copy of the picture of material @p elementId
+    void requestSaveCopy(const QString& elementId);
+
+    /// @brief Material @p elementId changed on its card in the panel: its other cards show it
+    void materialChanged(const QString& elementId);
+
+    /// @brief Something to say on the status bar: "Address copied: ..."
+    void message(const QString& text);
 
 private:
     /// @brief Setup UI components

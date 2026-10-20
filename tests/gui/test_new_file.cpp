@@ -10,6 +10,7 @@
 #include <kalahari/gui/command_registry.h>
 #include <kalahari/gui/dialogs/new_file_dialog.h>
 #include <kalahari/gui/icon_registrar.h>
+#include <kalahari/gui/material_downloader.h>
 #include <kalahari/gui/menu_builder.h>
 #include <kalahari/gui/recent_books_menu.h>
 #include <kalahari/gui/toolbar_manager.h>
@@ -24,14 +25,18 @@
 #include <QAbstractButton>
 #include <QAction>
 #include <QButtonGroup>
+#include <QClipboard>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDir>
+#include <QDropEvent>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFocusEvent>
 #include <QFrame>
+#include <QImage>
+#include <QGroupBox>
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QKeySequence>
@@ -40,6 +45,7 @@
 #include <QListWidget>
 #include <QMainWindow>
 #include <QMenu>
+#include <QMimeData>
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QRadioButton>
@@ -53,6 +59,7 @@
 #include <QTreeWidgetItemIterator>
 
 #include <algorithm>
+#include <cstdio>
 #include <functional>
 #include <string>
 
@@ -1189,6 +1196,33 @@ struct MaterialChooser {
     MaterialChooser& operator=(const MaterialChooser&) = delete;
 };
 
+/// @brief Gives the settings of the source of a material and of the downloads back as they
+/// were; the window starts with a file and asks about the downloads meanwhile
+struct KeptMaterialSettings {
+    std::string source;
+    std::string downloads;
+
+    KeptMaterialSettings()
+        : source(settings().get<std::string>(NewFileDialog::SOURCE_SETTING, "file"))
+        , downloads(settings().get<std::string>(gui::MaterialDownloader::SETTING, "ask")) {
+        settings().set<std::string>(NewFileDialog::SOURCE_SETTING, "file");
+        settings().set<std::string>(gui::MaterialDownloader::SETTING, "ask");
+    }
+    ~KeptMaterialSettings() {
+        try {
+            settings().set<std::string>(NewFileDialog::SOURCE_SETTING, source);
+            settings().set<std::string>(gui::MaterialDownloader::SETTING, downloads);
+        } catch (...) {
+            // A destructor may not throw: the later tests then find the settings of this one
+            std::fputs("KeptMaterialSettings: the settings of the test stay\n", stderr);
+        }
+    }
+    KeptMaterialSettings(const KeptMaterialSettings&) = delete;
+    KeptMaterialSettings& operator=(const KeptMaterialSettings&) = delete;
+
+    static core::SettingsManager& settings() { return core::SettingsManager::getInstance(); }
+};
+
 /// @brief Add Element on @p scope of the book, @p id the group or the element of the scope
 gui::AddTarget addingOn(gui::AddTarget::Scope scope, const QString& id = QString(),
                         BookPlace place = BookPlace::Main) {
@@ -1360,42 +1394,208 @@ TEST_CASE("Add Element: in the Workshop a working note and a material, without p
         CHECK(joined(enabledRowsOf(dialog)) == "# Workshop | Working note");
     }
 
-    SECTION("a material is a copy of the file chosen, named after it") {
+    SECTION("a material from a file: typed, dropped or chosen, without the window of files at "
+            "first") {
+        KeptMaterialSettings kept;
         QTemporaryDir files;
         REQUIRE(files.isValid());
         const QString picture = QDir(files.path()).filePath(QStringLiteral("Old Map.png"));
+        QImage image(40, 30, QImage::Format_RGB32);
+        image.fill(Qt::darkYellow);
+        REQUIRE(image.save(picture));
         MaterialChooser chooser(QString{});
         NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
         choose(dialog, QStringLiteral("Material"));
         CHECK(test::textsOf(dialog).contains(
-            QStringLiteral("Choose the file of the material and its title.")));
-        CHECK(dialog.materialLabel()->isVisibleTo(&dialog));
+            QStringLiteral("Choose the source of the material and its title.")));
+        CHECK(dialog.sourceGroup()->isVisibleTo(&dialog));
+        CHECK(dialog.materialOrigin() == NewFileDialog::MaterialOrigin::File);
+        CHECK(dialog.fileEdit()->isVisibleTo(&dialog));
         CHECK(dialog.chooseButton()->isVisibleTo(&dialog));
+        // The tile does not open the system's window of files
+        QCoreApplication::processEvents();
+        CHECK(chooser.folders.isEmpty());
 
-        // No file chosen yet: nothing to add
-        dialog.chooseButton()->click();
+        // No file yet: nothing to add
         CHECK(dialog.materialFile().isEmpty());
         CHECK(dialog.titleEdit()->text().isEmpty());
         CHECK_FALSE(dialog.createButton()->isEnabled());
-
-        // The file chosen gives its title; the writer's own title stays
-        chooser.file = picture;
+        CHECK(dialog.fileNote()->text().startsWith(QStringLiteral("Type or paste the path")));
         dialog.chooseButton()->click();
+        CHECK(dialog.materialFile().isEmpty());
+        CHECK_FALSE(dialog.createButton()->isEnabled());
+
+        // A typed path that names no file, then the file in quotes, as "Copy as path" gives it
+        typeText(dialog.fileEdit(), QDir::toNativeSeparators(picture) + QStringLiteral("x"));
+        CHECK(dialog.fileNote()->text() == QStringLiteral("There is no file at this path."));
+        CHECK_FALSE(dialog.createButton()->isEnabled());
+        eraseText(dialog.fileEdit());
+        typeText(dialog.fileEdit(),
+                 QLatin1Char('"') + QDir::toNativeSeparators(picture) + QLatin1Char('"'));
         CHECK(dialog.materialFile() == QFileInfo(picture).absoluteFilePath());
         CHECK(dialog.titleEdit()->text() == QStringLiteral("Old Map"));
+        CHECK(dialog.fileNote()->text().startsWith(
+            QStringLiteral("Old Map.png · PNG · 40 × 30 px")));
         CHECK(dialog.createButton()->isEnabled());
+
+        // The writer's own title stays; the window of files opens in the folder of the file
         eraseText(dialog.titleEdit());
         typeText(dialog.titleEdit(), QStringLiteral("The Map"));
+        const QString other = QDir(files.path()).filePath(QStringLiteral("route.pdf"));
+        QFile pdf(other);
+        REQUIRE(pdf.open(QIODevice::WriteOnly));
+        pdf.write("%PDF-1.4");
+        pdf.close();
+        chooser.file = other;
         dialog.chooseButton()->click();
+        CHECK(dialog.materialFile() == QFileInfo(other).absoluteFilePath());
         CHECK(dialog.titleEdit()->text() == QStringLiteral("The Map"));
-        // The second time the window opens in the folder of the file
-        REQUIRE(chooser.folders.size() == 3);
-        CHECK(chooser.folders.at(2) == QFileInfo(picture).absolutePath());
+        REQUIRE(chooser.folders.size() == 2);
+        CHECK(chooser.folders.at(1) == QFileInfo(picture).absolutePath());
 
-        // Another kind has no file
-        choose(dialog, QStringLiteral("Working note"));
+        // A file dropped on the path
+        QMimeData dropped;
+        dropped.setUrls({QUrl::fromLocalFile(picture)});
+        QDragEnterEvent enter(QPoint(5, 5), Qt::CopyAction, &dropped, Qt::LeftButton,
+                              Qt::NoModifier);
+        QCoreApplication::sendEvent(dialog.fileEdit(), &enter);
+        CHECK(enter.isAccepted());
+        QDropEvent drop(QPointF(5, 5), Qt::CopyAction, &dropped, Qt::LeftButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(dialog.fileEdit(), &drop);
+        CHECK(dialog.materialFile() == QFileInfo(picture).absoluteFilePath());
+
+        // Add remembers the source
+        core::SettingsManager::getInstance().set<std::string>(NewFileDialog::SOURCE_SETTING,
+                                                              "none");
+        dialog.accept();
+        CHECK(core::SettingsManager::getInstance().get<std::string>(
+                  NewFileDialog::SOURCE_SETTING, "") == "file");
+    }
+
+    SECTION("a material from a web address: a page or a picture, told by its end") {
+        KeptMaterialSettings kept;
+        core::SettingsManager::getInstance().set<std::string>(NewFileDialog::SOURCE_SETTING,
+                                                              "address");
+        QGuiApplication::clipboard()->setText(
+            QStringLiteral("  https://pl.wikipedia.org/wiki/Kalahari \n"));
+        NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
+        choose(dialog, QStringLiteral("Material"));
+        CHECK(dialog.materialOrigin() == NewFileDialog::MaterialOrigin::Address);
+        CHECK(dialog.addressEdit()->isVisibleTo(&dialog));
+        CHECK_FALSE(dialog.fileEdit()->isVisibleTo(&dialog));
+
+        // The address on the clipboard is there; the end of it gives the title
+        const QString kalahari = QStringLiteral("https://pl.wikipedia.org/wiki/Kalahari");
+        CHECK(dialog.addressEdit()->text() == kalahari);
+        CHECK(dialog.materialAddress() == QUrl(kalahari));
+        CHECK(dialog.titleEdit()->text() == QStringLiteral("Kalahari"));
+        CHECK(dialog.addressNote()->text() ==
+              QStringLiteral("Recognized: a web page (pl.wikipedia.org)."));
+        CHECK(dialog.createButton()->isEnabled());
+
+        // The box is empty: the program does not connect to the network
+        CHECK(dialog.downloadBox()->isVisibleTo(&dialog));
+        CHECK_FALSE(dialog.downloadBox()->isChecked());
+        CHECK(dialog.downloadBox()->text() ==
+              QStringLiteral("&Download the title of the page from the web"));
+        CHECK_FALSE(dialog.downloadChosen());
+        CHECK(dialog.networkNote()->text().startsWith(
+            QStringLiteral("The program does not connect to the network")));
+        dialog.downloadBox()->click();
+        CHECK(dialog.downloadChosen());
+        CHECK(dialog.networkNote()->text().startsWith(
+            QStringLiteral("After Add the program downloads the page")));
+
+        // A picture, told by the end of its address
+        eraseText(dialog.addressEdit());
+        typeText(dialog.addressEdit(),
+                 QStringLiteral("https://upload.wikimedia.org/a/b/Camel_on_a_dune.jpg"));
+        CHECK(dialog.addressNote()->text() ==
+              QStringLiteral("Recognized: a picture on the web (upload.wikimedia.org)."));
+        CHECK(dialog.downloadBox()->text().startsWith(QStringLiteral("Save a &copy")));
+        CHECK(dialog.titleEdit()->text() == QStringLiteral("Camel on a dune"));
+
+        // A text that is no web address adds nothing
+        eraseText(dialog.addressEdit());
+        typeText(dialog.addressEdit(), QStringLiteral("pl.wikipedia.org/wiki/Kalahari"));
+        CHECK(dialog.materialAddress().isEmpty());
+        CHECK(dialog.addressNote()->text().startsWith(QStringLiteral("This is not a web address")));
+        CHECK_FALSE(dialog.downloadBox()->isEnabled());
+        CHECK_FALSE(dialog.downloadChosen());
+        CHECK_FALSE(dialog.createButton()->isEnabled());
+        QGuiApplication::clipboard()->clear();
+    }
+
+    SECTION("the setting of the downloads: the box only when it asks") {
+        KeptMaterialSettings kept;
+        auto& settings = core::SettingsManager::getInstance();
+        settings.set<std::string>(NewFileDialog::SOURCE_SETTING, "address");
+        settings.set<std::string>(gui::MaterialDownloader::SETTING, "never");
+        NewFileDialog never(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
+        choose(never, QStringLiteral("Material"));
+        never.setMaterialAddress(QUrl(QStringLiteral("https://example.com/oasis")));
+        CHECK_FALSE(never.downloadBox()->isVisibleTo(&never));
+        CHECK_FALSE(never.downloadChosen());
+        CHECK(never.networkNote()->text().startsWith(
+            QStringLiteral("The program does not connect to the network: the material keeps "
+                           "only its address, and the end")));
+
+        settings.set<std::string>(gui::MaterialDownloader::SETTING, "always");
+        NewFileDialog always(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
+        choose(always, QStringLiteral("Material"));
+        always.setMaterialAddress(QUrl(QStringLiteral("https://example.com/oasis")));
+        CHECK_FALSE(always.downloadBox()->isVisibleTo(&always));
+        CHECK(always.downloadChosen());
+        CHECK(always.networkNote()->text().startsWith(
+            QStringLiteral("Downloads are on in Settings > Network > Materials")));
+    }
+
+    SECTION("a material without a file and an address, and a picture without a file") {
+        KeptMaterialSettings kept;
+        NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
+        choose(dialog, QStringLiteral("Material"));
+        dialog.sourceButtons()
+            ->button(static_cast<int>(NewFileDialog::MaterialOrigin::None))
+            ->click();
+        CHECK(dialog.materialOrigin() == NewFileDialog::MaterialOrigin::None);
         CHECK(dialog.materialFile().isEmpty());
-        CHECK_FALSE(dialog.materialLabel()->isVisibleTo(&dialog));
+        CHECK(dialog.materialAddress().isEmpty());
+        CHECK(dialog.titleEdit()->text().isEmpty());
+        CHECK_FALSE(dialog.createButton()->isEnabled());
+        typeText(dialog.titleEdit(), QStringLiteral("Caravan Trails"));
+        CHECK(dialog.createButton()->isEnabled());
+        dialog.accept();
+        CHECK(core::SettingsManager::getInstance().get<std::string>(
+                  NewFileDialog::SOURCE_SETTING, "") == "none");
+
+        // A picture from the clipboard takes the place of the path, and a dropped chapter its
+        // link; the program gave the source, so it is not remembered
+        NewFileDialog pasted(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
+        choose(pasted, QStringLiteral("Material"));
+        QImage shot(64, 48, QImage::Format_RGB32);
+        shot.fill(Qt::white);
+        pasted.setMaterialPicture(shot);
+        pasted.setMaterialLinks({QStringLiteral("e1")});
+        CHECK(pasted.materialOrigin() == NewFileDialog::MaterialOrigin::File);
+        CHECK(pasted.materialPicture().size() == QSize(64, 48));
+        CHECK(pasted.materialFile().isEmpty());
+        CHECK(pasted.fileEdit()->isReadOnly());
+        CHECK(pasted.fileEdit()->text() ==
+              QStringLiteral("Picture from the clipboard (PNG, 64 × 48 px)"));
+        CHECK(pasted.titleEdit()->text().startsWith(QStringLiteral("Picture from the clipboard ")));
+        CHECK(pasted.materialLinks() == QStringList{QStringLiteral("e1")});
+        CHECK(pasted.createButton()->isEnabled());
+        pasted.accept();
+        CHECK(core::SettingsManager::getInstance().get<std::string>(
+                  NewFileDialog::SOURCE_SETTING, "") == "none");
+
+        // Another kind has no source
+        NewFileDialog note(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
+        choose(note, QStringLiteral("Material"));
+        choose(note, QStringLiteral("Working note"));
+        CHECK_FALSE(note.sourceGroup()->isVisibleTo(&note));
+        CHECK(note.materialFile().isEmpty());
+        CHECK(note.materialLinks().isEmpty());
     }
 }
 

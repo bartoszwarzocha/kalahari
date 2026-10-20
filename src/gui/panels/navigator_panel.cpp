@@ -10,6 +10,8 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/material_source.h"
+#include "kalahari/gui/paste_target.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/utils/access_keys.h"
@@ -38,12 +40,20 @@
 #include <QBrush>
 #include <QDropEvent>
 #include <QBasicTimer>
+#include <QClipboard>
 #include <QCollator>
 #include <QCoreApplication>
 #include <QFont>
+#include <QGuiApplication>
 #include <QKeyEvent>
 #include <QLocale>
 #include <QMimeData>
+#include <QMimeDatabase>
+#include <QPainter>
+#include <QPen>
+#include <QPersistentModelIndex>
+#include <QScrollBar>
+#include <QSignalBlocker>
 #include <QTimerEvent>
 #include <algorithm>
 #include <functional>
@@ -265,7 +275,11 @@ std::optional<kalahari::core::ElementPlace> placeBeyondList(
 /// and the tree shows the book as it is once it is loaded again. In a book without sections
 /// the elements of the three sections are all under the book's item, each section after the
 /// one before it.
-class NavigatorTree : public QTreeWidget {
+///
+/// Files and web addresses dragged from outside the program, and Paste of the clipboard, give
+/// new materials (onMaterials); a dashed frame shows the node the drop links them with, or the
+/// whole tree when it links them with none.
+class NavigatorTree : public QTreeWidget, public kalahari::gui::PasteTarget {
 public:
     using QTreeWidget::QTreeWidget;
 
@@ -273,12 +287,48 @@ public:
     std::function<void(const QString& elementId, const kalahari::core::ElementPlace& place)>
         onMove;
 
+    /// Called with the materials dropped from outside the program or pasted, and the link of
+    /// the node they were dropped or pasted on (empty: none)
+    std::function<void(const kalahari::gui::IncomingMaterials& incoming, const QString& link)>
+        onMaterials;
+
+    /// Whether the book takes new materials now, and whether they are linked with the node
+    /// they are dropped on
+    std::function<bool()> takesMaterials;
+    std::function<bool(const QTreeWidgetItem* item)> linksMaterials;
+
+    bool canPasteHere() const override {
+        const QMimeData* data = QGuiApplication::clipboard()->mimeData();
+        return takesMaterials && takesMaterials() && data != nullptr &&
+               (data->hasUrls() || data->hasImage() || data->hasText());
+    }
+
+    void pasteHere() override {
+        if (onMaterials) {
+            onMaterials(
+                kalahari::gui::IncomingMaterials::of(QGuiApplication::clipboard()->mimeData()),
+                linkOf(currentItem()));
+        }
+    }
+
 protected:
+    void dragEnterEvent(QDragEnterEvent* event) override {
+        if (takesFromOutside(event)) {
+            showDrop(event);
+            return;
+        }
+        QTreeWidget::dragEnterEvent(event);
+    }
+
     void dragMoveEvent(QDragMoveEvent* event) override {
         // The item under the dragged element opens when it rests there (timerEvent())
         m_openPos = event->position().toPoint();
         m_openTimer.start(AUTO_EXPAND_DELAY, this);
 
+        if (takesFromOutside(event)) {
+            showDrop(event);
+            return;
+        }
         QTreeWidget::dragMoveEvent(event);
         if (event->isAccepted() && !dropPlace(event->position().toPoint())) {
             event->ignore();
@@ -287,7 +337,23 @@ protected:
 
     void dragLeaveEvent(QDragLeaveEvent* event) override {
         m_openTimer.stop();
+        hideDrop();
         QTreeWidget::dragLeaveEvent(event);
+    }
+
+    /// The dashed frame of a drop from outside the program
+    void paintEvent(QPaintEvent* event) override {
+        QTreeWidget::paintEvent(event);
+        if (!m_outsideDrop) {
+            return;
+        }
+        QPainter painter(viewport());
+        QPen pen(palette().color(QPalette::Highlight), 2, Qt::DashLine);
+        painter.setPen(pen);
+        painter.setBrush(Qt::NoBrush);
+        const QRect frame = m_dropIndex.isValid() ? visualRect(m_dropIndex)
+                                                  : viewport()->rect();
+        painter.drawRect(frame.adjusted(1, 1, -2, -2));
     }
 
     /// The dragged nodes also give their links, which the links of a material take
@@ -325,6 +391,20 @@ protected:
 
     void dropEvent(QDropEvent* event) override {
         m_openTimer.stop();
+        if (takesFromOutside(event)) {
+            const kalahari::gui::IncomingMaterials incoming =
+                kalahari::gui::IncomingMaterials::of(event->mimeData());
+            const QString link = linkOf(itemAt(event->position().toPoint()));
+            event->setDropAction(Qt::CopyAction);
+            event->accept();
+            hideDrop();
+            if (onMaterials) {
+                // After the drop has ended: the new materials load the tree again
+                QTimer::singleShot(0, this,
+                                   [this, incoming, link]() { onMaterials(incoming, link); });
+            }
+            return;
+        }
         const std::optional<kalahari::core::ElementPlace> place =
             dropPlace(event->position().toPoint());
         const QTreeWidgetItem* dragged = selectedItems().value(0);
@@ -344,6 +424,42 @@ protected:
     }
 
 private:
+    /// Whether @p event brings files, web addresses or a picture from outside the program that
+    /// the book takes now
+    bool takesFromOutside(const QDropEvent* event) const {
+        return event->source() == nullptr && takesMaterials && takesMaterials() &&
+               kalahari::gui::IncomingMaterials::of(event->mimeData()).hasMaterials();
+    }
+
+    /// Accept the drop from outside the program of @p event as a copy, with the frame of the
+    /// node it links the materials with
+    void showDrop(QDragMoveEvent* event) {
+        const QTreeWidgetItem* item = itemAt(event->position().toPoint());
+        const QModelIndex index = !linkOf(item).isEmpty() ? indexFromItem(item) : QModelIndex();
+        if (!m_outsideDrop || index != m_dropIndex) {
+            m_outsideDrop = true;
+            m_dropIndex = index;
+            viewport()->update();
+        }
+        event->setDropAction(Qt::CopyAction);
+        event->accept();
+    }
+
+    void hideDrop() {
+        if (m_outsideDrop) {
+            m_outsideDrop = false;
+            m_dropIndex = QPersistentModelIndex();
+            viewport()->update();
+        }
+    }
+
+    /// The link new materials get from node @p item; empty when it gives none
+    QString linkOf(const QTreeWidgetItem* item) const {
+        return item && linksMaterials && linksMaterials(item)
+                   ? kalahari::gui::NavigatorPanel::linkOf(item)
+                   : QString();
+    }
+
     /// The new place of the dragged element when it is dropped at @p pos; none when it cannot
     /// go there or stays where it is
     std::optional<kalahari::core::ElementPlace> dropPlace(const QPoint& pos) const {
@@ -373,6 +489,8 @@ private:
 
     QBasicTimer m_openTimer;  ///< Opens the item under the dragged element
     QPoint m_openPos;         ///< Where the dragged element is in the viewport
+    bool m_outsideDrop = false;            ///< Files or addresses are dragged over the tree
+    QPersistentModelIndex m_dropIndex;     ///< The node they would be linked with
 };
 
 } // anonymous namespace
@@ -494,6 +612,18 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
                                              ? core::bookPlaceName(place.place).toStdString()
                                              : place.groupId.toStdString());
         emit elementMovedTo(elementId, place);
+    };
+    // Files, web addresses and pictures from outside the program are new materials, linked
+    // with the node of the book they were dropped or pasted on (QUICK_MATERIALS_SETTING)
+    tree->takesMaterials = [this]() {
+        return !m_readOnly && core::ProjectManager::getInstance().isProjectOpen();
+    };
+    tree->linksMaterials = [](const QTreeWidgetItem* item) {
+        return quickMaterials() == QLatin1String("link") && !isWorkshopItem(item) &&
+               !NavigatorPanel::linkOf(item).isEmpty();
+    };
+    tree->onMaterials = [this](const IncomingMaterials& incoming, const QString& link) {
+        emit requestAddMaterials(incoming, link);
     };
     m_treeWidget = tree;
 
@@ -934,6 +1064,17 @@ QString formIconId(core::ElementForm form) {
     return QStringLiteral("template.chapter");
 }
 
+/// The order of the elements in a group of the Workshop: alphabetical by title, in the
+/// language of the book, "Note 2" before "Note 10"
+QCollator workshopOrder(const core::BookProject& project) {
+    const core::ProjectBook* book = project.books.isEmpty() ? nullptr : &project.books.first();
+    QCollator collator(
+        QLocale(book && !book->language.isEmpty() ? book->language : programLanguage()));
+    collator.setNumericMode(true);
+    collator.setCaseSensitivity(Qt::CaseInsensitive);
+    return collator;
+}
+
 }  // namespace
 
 QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
@@ -944,6 +1085,25 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
         return BOOK_FILE_ICON;
     }
     const core::KindRef kind = core::BookProject::kindOf(registry, element);
+    // A material shows where it comes from: a picture or another file, a web page, a picture
+    // on the web, neither
+    if (kind && kind.kind->isMaterial()) {
+        switch (materialSourceOf(element)) {
+        case MaterialSource::Page:
+            return QStringLiteral("material.page");
+        case MaterialSource::WebPicture:
+            return QStringLiteral("material.webPicture");
+        case MaterialSource::None:
+            return QStringLiteral("material.noFile");
+        case MaterialSource::File:
+            if (QMimeDatabase().mimeTypeForFile(element.file, QMimeDatabase::MatchExtension)
+                    .name()
+                    .startsWith(QLatin1String("image/"))) {
+                return QStringLiteral("common.image");
+            }
+            break;
+        }
+    }
     if (kind && !kind.kind->icon.isEmpty()) {
         return kind.kind->icon;
     }
@@ -1067,12 +1227,8 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
         group->elements.append(element);
     }
 
-    // The elements in alphabetical order of their titles, in the language of the book: "Note
-    // 2" before "Note 10"
-    const core::ProjectBook* book = project.books.isEmpty() ? nullptr : &project.books.first();
-    QCollator collator(QLocale(book && !book->language.isEmpty() ? book->language : language));
-    collator.setNumericMode(true);
-    collator.setCaseSensitivity(Qt::CaseInsensitive);
+    // The elements in alphabetical order of their titles
+    const QCollator collator = workshopOrder(project);
 
     // Grouped, the groups of cards are in Libraries and those of materials in Resources, each
     // where its first group would be
@@ -1878,8 +2034,9 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         addPropertiesAction();
 
     } else if (elementType == "window_element" && isWorkshopItem(item)) {
-        // A material opens as the settings say: its picture on a preview tab or its file in
-        // the program the system gives it; the other kinds wait for the windows of the program
+        // A material opens as the settings say: its picture on a preview tab, its file in the
+        // program the system gives it, its page in the browser; its card opens in the middle
+        // of the window. The other kinds wait for the windows of the program.
         const core::ProjectElement* element = pm.findElement(elementId);
         const core::KindRef kind = element ? pm.kindOf(*element) : core::KindRef{};
         if (kind && kind.kind->isMaterial()) {
@@ -1888,12 +2045,22 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 withKeys(tr("&Open"), QKeyCombination(Qt::Key_Enter)));
             connect(openAction, &QAction::triggered, this,
                     [this, elementId]() { emit requestOpenMaterial(elementId); });
-            const QString path = pm.filePathOf(*element);
-            QAction* showAction = menu.addAction(
-                artProvider.getIcon("common.folder", core::IconContext::Menu),
-                tr("Show in &Folder"));
-            connect(showAction, &QAction::triggered, this,
-                    [this, path]() { showInFileManager(path); });
+            //: Opens the card of a material in the middle of the window. In Polish: Otwórz
+            //: &kartę
+            QAction* cardAction = menu.addAction(
+                artProvider.getIcon("material.noFile", core::IconContext::Menu),
+                tr("Open &Card"));
+            connect(cardAction, &QAction::triggered, this,
+                    [this, elementId]() { emit requestOpenMaterialCard(elementId); });
+            // A material without a file has no folder to show
+            if (!element->file.isEmpty()) {
+                const QString path = pm.filePathOf(*element);
+                QAction* showAction = menu.addAction(
+                    artProvider.getIcon("common.folder", core::IconContext::Menu),
+                    tr("Show in &Folder"));
+                connect(showAction, &QAction::triggered, this,
+                        [this, path]() { showInFileManager(path); });
+            }
         }
         addAddActions();
         menu.addSeparator();
@@ -2405,6 +2572,14 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
 // Add..., Rename and Delete on a node
 // =============================================================================
 
+QString NavigatorPanel::quickMaterials() {
+    const QString value = QString::fromStdString(
+        core::SettingsManager::getInstance().get<std::string>(QUICK_MATERIALS_SETTING, "link"));
+    return value == QLatin1String("add") || value == QLatin1String("window")
+               ? value
+               : QStringLiteral("link");
+}
+
 AddChooser NavigatorPanel::addChooser() {
     const std::string chooser =
         core::SettingsManager::getInstance().get<std::string>(ADD_WINDOW_SETTING, "sections");
@@ -2697,8 +2872,55 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
                                          !isWorkshopItem(item),
                                      m_modifiedElements.contains(elementId)));
     item->setData(0, TITLE_ROLE, element->title);
+    if (item->parent() && typeOf(item->parent()) == QLatin1String("workshop_group")) {
+        placeInWorkshopGroup(item);
+    }
 
     logger.debug("NavigatorPanel: Refreshed item text to: {}", item->text(0).toStdString());
+}
+
+void NavigatorPanel::placeInWorkshopGroup(QTreeWidgetItem* item) {
+    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    QTreeWidgetItem* group = item->parent();
+    if (!project || !group) {
+        return;
+    }
+    const QCollator order = workshopOrder(*project);
+    const QString title = item->data(0, TITLE_ROLE).toString();
+    const auto titleAt = [group](int index) {
+        return group->child(index)->data(0, TITLE_ROLE).toString();
+    };
+    const int at = group->indexOfChild(item);
+    const bool afterPrevious = at == 0 || order.compare(titleAt(at - 1), title) <= 0;
+    const bool beforeNext =
+        at == group->childCount() - 1 || order.compare(title, titleAt(at + 1)) <= 0;
+    if (afterPrevious && beforeNext) {
+        return;
+    }
+    // Its place: after the others whose titles do not come after its own
+    int place = 0;
+    for (int i = 0; i < group->childCount(); ++i) {
+        if (i != at && order.compare(titleAt(i), title) <= 0) {
+            ++place;
+        }
+    }
+
+    // The tree keeps its current item, the items open under the element and its scroll; the
+    // move asks for no properties, so the Properties panel keeps what is typed in it
+    const bool current = m_treeWidget->currentItem() == item;
+    QStringList expanded;
+    collectExpandedIds(item, expanded);
+    const int scrolled = m_treeWidget->verticalScrollBar()->value();
+    {
+        const QSignalBlocker blocker(m_treeWidget);
+        group->takeChild(at);
+        group->insertChild(place, item);
+        if (current) {
+            m_treeWidget->setCurrentItem(item);
+        }
+    }
+    expandItemsById(expanded);
+    m_treeWidget->verticalScrollBar()->setValue(scrolled);
 }
 
 // =============================================================================

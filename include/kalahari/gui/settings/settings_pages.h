@@ -216,6 +216,25 @@ private:
     QRadioButton* m_place = nullptr;     ///< No choice: the kinds of the place only
     QRadioButton* m_openCard = nullptr;    ///< A material opens on a tab of the program
     QRadioButton* m_openSystem = nullptr;  ///< A material opens in the system program
+    QRadioButton* m_pagesBrowser = nullptr;  ///< A page opens in the browser
+    QRadioButton* m_pagesCard = nullptr;     ///< A page opens on the card of its material
+    QRadioButton* m_quickLink = nullptr;    ///< Dropped or pasted: at once, linked with the node
+    QRadioButton* m_quickAdd = nullptr;     ///< At once, without links
+    QRadioButton* m_quickWindow = nullptr;  ///< In the Add Element window
+};
+
+/// @brief Network > Materials: whether the program downloads the title of the page or the copy
+/// of the picture of a material with a web address (MaterialDownloader::SETTING): when the box
+/// of the Add Element window asks for it (the usual one), always, or never
+class NetworkMaterialsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit NetworkMaterialsPage(QWidget* parent = nullptr);
+
+private:
+    QRadioButton* m_ask = nullptr;     ///< The box of the Add Element window, empty each time
+    QRadioButton* m_always = nullptr;  ///< Every new material with an address
+    QRadioButton* m_never = nullptr;   ///< The program does not connect to the addresses
 };
 
 /// @brief Files > Folders: the folders of the books and of the archives, and where and how

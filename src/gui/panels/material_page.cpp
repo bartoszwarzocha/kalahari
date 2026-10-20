@@ -8,6 +8,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/link_names.h"
+#include "kalahari/gui/material_downloader.h"
 #include "kalahari/gui/material_file.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/core/art_provider.h"
@@ -15,6 +16,11 @@
 #include "kalahari/core/project_manager.h"
 
 #include <QAbstractItemDelegate>
+#include <QClipboard>
+#include <QGridLayout>
+#include <QGuiApplication>
+#include <QTextCursor>
+#include <QUrl>
 #include <QCompleter>
 #include <QDragEnterEvent>
 #include <QDropEvent>
@@ -201,13 +207,11 @@ private:
 // MaterialPage
 // =============================================================================
 
-MaterialPage::MaterialPage(QWidget* parent) : QWidget(parent) {
-    setObjectName(QStringLiteral("materialPage"));
-    auto* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(11);
+MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full(full) {
+    setObjectName(full ? QStringLiteral("materialFullCard") : QStringLiteral("materialPage"));
 
-    // The picture, the file and the two ways of opening it; the title and the path
+    // The picture or the source, the file and the ways of opening it; the title, the file and
+    // the address
     m_infoGroup = new QGroupBox(this);
     auto* infoLayout = new QVBoxLayout(m_infoGroup);
     infoLayout->setContentsMargins(11, 11, 11, 11);
@@ -246,27 +250,61 @@ MaterialPage::MaterialPage(QWidget* parent) : QWidget(parent) {
     keepIcon(m_systemButton, QStringLiteral("common.openExternal"), core::IconContext::Button);
     //: In Polish: Otwórz w programie systemowym
     m_systemButton->setToolTip(tr("Open in the System Program"));
+    //: The button that opens the web address of a material in the system's browser.
+    //: In Polish: Otwórz w przeglądarce
+    m_browserButton = new QPushButton(tr("Open in Browser"), m_infoGroup);
+    m_browserButton->setObjectName(QStringLiteral("materialBrowserButton"));
+    keepIcon(m_browserButton, QStringLiteral("material.page"), core::IconContext::Button);
+    //: In Polish: Kopiuj adres
+    m_copyAddressButton = new QPushButton(tr("Copy Address"), m_infoGroup);
+    m_copyAddressButton->setObjectName(QStringLiteral("materialCopyAddressButton"));
+    keepIcon(m_copyAddressButton, QStringLiteral("edit.copy"), core::IconContext::Button);
+    //: The button that downloads the picture of a material's web address and saves its copy
+    //: in the book. In Polish: Zapisz kopię
+    m_saveCopyButton = new QPushButton(tr("Save Copy"), m_infoGroup);
+    m_saveCopyButton->setObjectName(QStringLiteral("materialSaveCopyButton"));
+    keepIcon(m_saveCopyButton, QStringLiteral("common.download"), core::IconContext::Button);
+    //: In Polish: Pobierz obraz z sieci i zapisz jego kopię w folderze „workshop” książki
+    m_saveCopyButton->setToolTip(tr("Download the picture from the web and save its copy in "
+                                    "the book's folder \"workshop\""));
+    openRow->addWidget(m_saveCopyButton);
     openRow->addWidget(m_previewButton);
     openRow->addWidget(m_systemButton);
+    openRow->addWidget(m_browserButton);
+    openRow->addWidget(m_copyAddressButton);
     infoLayout->addLayout(openRow);
     connect(m_previewButton, &QPushButton::clicked, this,
             [this]() { emit requestPreview(m_elementId); });
     connect(m_systemButton, &QPushButton::clicked, this,
             [this]() { emit requestOpenWithSystem(m_elementId); });
+    connect(m_browserButton, &QPushButton::clicked, this,
+            [this]() { emit requestOpenInBrowser(m_elementId); });
+    connect(m_copyAddressButton, &QPushButton::clicked, this, &MaterialPage::copyAddress);
+    connect(m_saveCopyButton, &QPushButton::clicked, this,
+            [this]() { emit requestSaveCopy(m_elementId); });
 
-    auto* form = new QFormLayout();
-    form->setSpacing(6);
+    m_form = new QFormLayout();
+    m_form->setSpacing(6);
     m_titleEdit = new QLineEdit(m_infoGroup);
     m_titleEdit->setObjectName(QStringLiteral("materialTitleEdit"));
-    form->addRow(tr("Title:"), m_titleEdit);
+    m_form->addRow(tr("Title:"), m_titleEdit);
     m_pathLabel = new QLabel(m_infoGroup);
     m_pathLabel->setObjectName(QStringLiteral("materialPathLabel"));
     m_pathLabel->setWordWrap(true);
     m_pathLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     //: The file of a material, in the folder of the book. In Polish: Plik:
-    form->addRow(tr("File:"), m_pathLabel);
-    infoLayout->addLayout(form);
-    layout->addWidget(m_infoGroup);
+    m_form->addRow(tr("File:"), m_pathLabel);
+    m_addressLabel = new QLabel(m_infoGroup);
+    m_addressLabel->setObjectName(QStringLiteral("materialAddressLabel"));
+    m_addressLabel->setTextFormat(Qt::PlainText);
+    m_addressLabel->setWordWrap(true);
+    m_addressLabel->setTextInteractionFlags(Qt::TextSelectableByMouse |
+                                            Qt::TextSelectableByKeyboard);
+    // A long address without spaces wraps anywhere, not past the card
+    m_addressLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    //: The web address of a material. In Polish: Adres:
+    m_form->addRow(tr("Address:"), m_addressLabel);
+    infoLayout->addLayout(m_form);
     connect(m_titleEdit, &QLineEdit::editingFinished, this, &MaterialPage::saveTitle);
 
     // The description, saved when the field loses the keys
@@ -281,11 +319,13 @@ MaterialPage::MaterialPage(QWidget* parent) : QWidget(parent) {
     //: In Polish: Wpisz opis...
     m_descriptionEdit->setPlaceholderText(tr("Enter a description..."));
     m_descriptionEdit->setTabChangesFocus(true);
-    m_descriptionEdit->setMinimumHeight(80);
-    m_descriptionEdit->setMaximumHeight(200);
+    // On the full card the description is the place to write: a quotation, notes of a talk
+    m_descriptionEdit->setMinimumHeight(full ? 180 : 80);
+    if (!full) {
+        m_descriptionEdit->setMaximumHeight(200);
+    }
     m_descriptionEdit->installEventFilter(this);
     descriptionLayout->addWidget(m_descriptionEdit);
-    layout->addWidget(descriptionGroup);
 
     // The writer's own fields
     //: The writer's own fields of a material: a name and a value each. In Polish: Własne pola
@@ -323,7 +363,9 @@ MaterialPage::MaterialPage(QWidget* parent) : QWidget(parent) {
     m_noFieldsLabel = hintLabel(fieldsGroup, tr("No fields. \"+\" or Insert adds a field."),
                                 "materialNoFields");
     fieldsLayout->addWidget(m_noFieldsLabel);
-    layout->addWidget(fieldsGroup);
+    if (full) {
+        fieldsLayout->addStretch(1);
+    }
     connect(m_addFieldButton, &QToolButton::clicked, this, &MaterialPage::addField);
     connect(m_removeFieldButton, &QToolButton::clicked, this, &MaterialPage::removeField);
     connect(m_fieldsTable, &QTableWidget::itemChanged, this, [this]() {
@@ -392,7 +434,6 @@ MaterialPage::MaterialPage(QWidget* parent) : QWidget(parent) {
                                   "\"+\"."),
                                "materialNoLinks");
     linksLayout->addWidget(m_noLinksLabel);
-    layout->addWidget(linksGroup);
     connect(m_addLinkButton, &QToolButton::clicked, this, &MaterialPage::editLinks);
     connect(m_removeLinkButton, &QToolButton::clicked, this, &MaterialPage::removeLink);
     connect(m_linksList, &QTreeWidget::itemActivated, this, [this](QTreeWidgetItem* item) {
@@ -400,7 +441,28 @@ MaterialPage::MaterialPage(QWidget* parent) : QWidget(parent) {
     });
     connect(m_linksList, &QTreeWidget::currentItemChanged, this, &MaterialPage::updateButtons);
 
-    layout->addStretch(1);
+    if (full) {
+        // The description beside the own fields, the links under them
+        auto* grid = new QGridLayout(this);
+        grid->setContentsMargins(0, 0, 0, 0);
+        grid->setSpacing(11);
+        grid->addWidget(m_infoGroup, 0, 0, 1, 2);
+        grid->addWidget(descriptionGroup, 1, 0);
+        grid->addWidget(fieldsGroup, 1, 1);
+        grid->addWidget(linksGroup, 2, 0, 1, 2);
+        grid->setColumnStretch(0, 3);
+        grid->setColumnStretch(1, 2);
+        grid->setRowStretch(3, 1);
+    } else {
+        auto* layout = new QVBoxLayout(this);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->setSpacing(11);
+        layout->addWidget(m_infoGroup);
+        layout->addWidget(descriptionGroup);
+        layout->addWidget(fieldsGroup);
+        layout->addWidget(linksGroup);
+        layout->addStretch(1);
+    }
 
     // The icons of the kinds, of a file that is no picture and of the links
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
@@ -423,32 +485,11 @@ void MaterialPage::refresh() {
     //: In Polish: Informacje o {kind:locative}
     m_infoGroup->setTitle(core::fillWords(tr("{Kind} Information"), nouns));
 
-    m_path = pm.filePathOf(*element);
-    m_rotation = element->rotation;
-    MaterialFile file = MaterialFile::of(m_path);
-    m_picture = file.readable;
-    const QString readError = updateThumbnail();
-    if (file.readable && !m_picture) {
-        file.unreadable(readError);
-    }
-    const QString problem = file.problem();
-    m_thumbnailProblem->setText(problem);
-    m_thumbnailProblem->setVisible(!problem.isEmpty());
-    m_fileLabel->setText(file.summary());
-    m_previewButton->setEnabled(m_picture);
-    //: The tooltip of Preview for a file that is no picture. In Polish: Program pokazuje
-    //: tylko obrazy
-    const QString onlyPictures = tr("The program shows only pictures");
-    //: In Polish: Otwórz podgląd
-    m_previewButton->setToolTip(m_picture           ? tr("Open the Preview")
-                                : problem.isEmpty() ? onlyPictures
-                                                    : problem);
-    m_systemButton->setEnabled(file.exists);
+    showSource(*element);
 
     if (!m_titleEdit->hasFocus()) {
         m_titleEdit->setText(element->title);
     }
-    m_pathLabel->setText(element->file);
     if (!m_descriptionEdit->hasFocus()) {
         m_descriptionEdit->setPlainText(element->description);
     }
@@ -467,9 +508,124 @@ void MaterialPage::refresh() {
     updateButtons();
 }
 
+void MaterialPage::showSource(const core::ProjectElement& element) {
+    const auto& pm = core::ProjectManager::getInstance();
+    m_source = materialSourceOf(element);
+    m_url = element.url;
+    m_path = pm.filePathOf(element);
+    m_rotation = element.rotation;
+    const bool hasFile = !element.file.isEmpty();
+    MaterialFile file = MaterialFile::of(m_path);
+    m_picture = hasFile && file.readable;
+    const QString readError = updateThumbnail();
+    if (file.readable && !m_picture) {
+        file.unreadable(readError);
+    }
+
+    // The sentence under the picture or the icon, and the line under it
+    QString problem;
+    QString line;
+    switch (m_source) {
+    case MaterialSource::File:
+        problem = file.problem();
+        line = file.summary();
+        break;
+    case MaterialSource::WebPicture:
+        if (hasFile) {
+            problem = file.problem();
+            //: The line under the picture of a material with a copy of a picture on the web:
+            //: %1 its name, format and size. In Polish: %1 · kopia z sieci
+            line = tr("%1 · copy from the web").arg(file.summary());
+        } else {
+            //: In Polish: Program pokaże obraz, gdy w książce będzie jego kopia.
+            problem = tr("The program shows the picture once the book has its copy.");
+            line = QUrl(m_url).host();
+        }
+        break;
+    case MaterialSource::Page:
+        line = QUrl(m_url).host();
+        break;
+    case MaterialSource::None:
+        //: In Polish: Bez pliku i adresu. Skąd pochodzi, mówią opis i własne pola.
+        problem = tr("No file and no address. Its description and own fields tell where it "
+                     "comes from.");
+        break;
+    }
+    m_thumbnailProblem->setText(problem);
+    m_thumbnailProblem->setVisible(!problem.isEmpty());
+    m_fileLabel->setText(line);
+    m_fileLabel->setVisible(!line.isEmpty());
+
+    // The ways of opening it
+    const bool fromFile = m_source == MaterialSource::File;
+    const bool fromWeb = m_source == MaterialSource::Page || m_source == MaterialSource::WebPicture;
+    m_previewButton->setVisible(fromFile || (m_source == MaterialSource::WebPicture && hasFile));
+    m_previewButton->setEnabled(m_picture);
+    //: The tooltip of Preview for a file that is no picture. In Polish: Program pokazuje
+    //: tylko obrazy
+    const QString onlyPictures = tr("The program shows only pictures");
+    //: In Polish: Otwórz podgląd
+    m_previewButton->setToolTip(m_picture           ? tr("Open the Preview")
+                                : problem.isEmpty() ? onlyPictures
+                                                    : problem);
+    m_systemButton->setVisible(fromFile);
+    m_systemButton->setEnabled(file.exists);
+    m_browserButton->setVisible(fromWeb);
+    //: The tooltip of Open in Browser: %1 the address. In Polish: Otwórz %1 w przeglądarce
+    m_browserButton->setToolTip(tr("Open %1 in the browser").arg(m_url));
+    m_copyAddressButton->setVisible(m_source == MaterialSource::Page);
+    m_saveCopyButton->setVisible(m_source == MaterialSource::WebPicture && !hasFile &&
+                                 MaterialDownloader::policy() !=
+                                     MaterialDownloader::Policy::Never);
+    const bool downloading = m_downloading.contains(m_elementId);
+    m_saveCopyButton->setEnabled(!pm.isReadOnly() && !downloading);
+    //: Save Copy while the picture is being downloaded. In Polish: Pobieranie...
+    m_saveCopyButton->setText(downloading ? tr("Downloading...") : tr("Save Copy"));
+
+    // The file is the copy of a picture on the web; the address of a page or of a picture
+    m_pathLabel->setText(element.file);
+    m_form->setRowVisible(m_pathLabel, hasFile);
+    if (auto* caption = qobject_cast<QLabel*>(m_form->labelForField(m_pathLabel))) {
+        //: The copy of a picture on the web in the book's folder. In Polish: Kopia:
+        const QString copy = tr("Copy:");
+        caption->setText(m_source == MaterialSource::WebPicture ? copy : tr("File:"));
+    }
+    m_addressLabel->setText(m_url);
+    m_addressLabel->setToolTip(m_url);
+    m_form->setRowVisible(m_addressLabel, fromWeb);
+}
+
+void MaterialPage::setDownloading(const QString& elementId, bool downloading) {
+    if (m_downloading.contains(elementId) == downloading) {
+        return;
+    }
+    if (downloading) {
+        m_downloading.insert(elementId);
+    } else {
+        m_downloading.remove(elementId);
+    }
+    if (elementId == m_elementId) {
+        refresh();
+    }
+}
+
+void MaterialPage::copyAddress() {
+    if (m_url.isEmpty()) {
+        return;
+    }
+    QGuiApplication::clipboard()->setText(m_url);
+    //: %1: the address. In Polish: Skopiowano adres: %1
+    emit message(tr("Address copied: %1").arg(m_url));
+}
+
 void MaterialPage::focusFirstField() {
     m_titleEdit->setFocus(Qt::OtherFocusReason);
     m_titleEdit->selectAll();
+}
+
+void MaterialPage::focusDescription() {
+    m_descriptionEdit->setFocus(Qt::OtherFocusReason);
+    m_descriptionEdit->moveCursor(QTextCursor::End);
 }
 
 QString MaterialPage::updateThumbnail() {
@@ -495,7 +651,8 @@ QString MaterialPage::updateThumbnail() {
             readError = m_thumbnailError;
         } else {
             const QSize fitted = picture.size().scaled(
-                QSize(width, MAXIMUM_THUMBNAIL_HEIGHT), Qt::KeepAspectRatio);
+                QSize(width, m_full ? MAXIMUM_FULL_THUMBNAIL_HEIGHT : MAXIMUM_THUMBNAIL_HEIGHT),
+                Qt::KeepAspectRatio);
             const QSize size = picture.width() <= fitted.width() &&
                                        picture.height() <= fitted.height()
                                    ? picture.size()
@@ -505,7 +662,8 @@ QString MaterialPage::updateThumbnail() {
         }
     }
     if (shown.isNull()) {
-        // A file that is no picture, or one the program cannot show: the icon of its kind
+        // A file that is no picture, one the program cannot show, or no file: the icon of its
+        // kind or of its source
         const int iconSize =
             core::ArtProvider::getInstance().getIconSize(core::IconContext::Dialog);
         shown = linkIcon(m_elementId, core::IconContext::Dialog).pixmap(iconSize * 2);
@@ -602,6 +760,7 @@ void MaterialPage::saveTitle() {
         return;
     }
     emit titleChanged(m_elementId);
+    emit changed(m_elementId);
 }
 
 void MaterialPage::saveDescription() {
@@ -618,7 +777,9 @@ void MaterialPage::saveDescription() {
         //: In Polish: Nie zapisano opisu
         dialogs::MessageDialog::warning(this, tr("Description Not Saved"),
                                         tr("Failed to save changes."));
+        return;
     }
+    emit changed(m_elementId);
 }
 
 QList<core::ElementField> MaterialPage::tableFields() const {
@@ -652,6 +813,7 @@ void MaterialPage::saveFields() {
     }
     m_fields = tableFields();
     updateButtons();
+    emit changed(m_elementId);
 }
 
 void MaterialPage::addField() {
@@ -780,6 +942,7 @@ void MaterialPage::saveLinks(const QStringList& links) {
                                         tr("Failed to save changes."));
     }
     refresh();
+    emit changed(m_elementId);
 }
 
 bool MaterialPage::eventFilter(QObject* watched, QEvent* event) {
@@ -817,6 +980,45 @@ bool MaterialPage::eventFilter(QObject* watched, QEvent* event) {
         }
     }
     return QWidget::eventFilter(watched, event);
+}
+
+// =============================================================================
+// MaterialCardPanel
+// =============================================================================
+
+MaterialCardPanel::MaterialCardPanel(const QString& elementId, QWidget* parent)
+    : QScrollArea(parent) {
+    setObjectName(QStringLiteral("materialCardPanel"));
+    setWidgetResizable(true);
+    setFrameShape(QFrame::NoFrame);
+    // The card in the middle of a wide tab, at most MAXIMUM_WIDTH wide
+    auto* content = new QWidget(this);
+    auto* row = new QHBoxLayout(content);
+    row->setContentsMargins(16, 16, 16, 16);
+    m_page = new MaterialPage(content, true);
+    m_page->setMaximumWidth(MAXIMUM_WIDTH);
+    row->addStretch(1);
+    row->addWidget(m_page, 100);
+    row->addStretch(1);
+    setWidget(content);
+    setFocusProxy(m_page->titleEdit());
+    m_page->showMaterial(elementId);
+    setProperty("elementId", elementId);
+    refresh();
+}
+
+QString MaterialCardPanel::elementId() const {
+    return m_page->elementId();
+}
+
+void MaterialCardPanel::refresh() {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(elementId());
+    if (element == nullptr) {
+        return;
+    }
+    setProperty("tabIconId", NavigatorPanel::iconIdOf(pm.bookTypes(), *element));
+    m_page->refresh();
 }
 
 // =============================================================================

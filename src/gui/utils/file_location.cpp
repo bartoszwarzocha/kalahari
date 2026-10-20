@@ -29,6 +29,11 @@ std::function<bool(const QString&)>& testFileOpener() {
     return open;
 }
 
+std::function<bool(const QUrl&)>& testBrowser() {
+    static std::function<bool(const QUrl&)> open;
+    return open;
+}
+
 /// Start the file manager of the system on @p info
 bool startFileManager(const QFileInfo& info) {
     const QString path = QDir::toNativeSeparators(info.absoluteFilePath());
@@ -95,6 +100,26 @@ bool openWithSystem(const QString& path) {
 
 void setFileOpenerForTests(std::function<bool(const QString&)> open) {
     testFileOpener() = std::move(open);
+}
+
+bool openInBrowser(const QUrl& url) {
+    auto& logger = core::Logger::getInstance();
+    const QString scheme = url.scheme().toLower();
+    if (!url.isValid() || (scheme != QLatin1String("http") && scheme != QLatin1String("https"))) {
+        logger.warn("openInBrowser: {} is not a web address", url.toString().toStdString());
+        return false;
+    }
+    const bool opened = testBrowser() ? testBrowser()(url) : QDesktopServices::openUrl(url);
+    if (opened) {
+        logger.info("openInBrowser: {}", url.toString().toStdString());
+    } else {
+        logger.warn("openInBrowser: The system could not open {}", url.toString().toStdString());
+    }
+    return opened;
+}
+
+void setBrowserForTests(std::function<bool(const QUrl&)> open) {
+    testBrowser() = std::move(open);
 }
 
 } // namespace gui

@@ -10,7 +10,10 @@
 /// was opened on only). The window reads the setting each time it opens.
 ///
 /// How a material opens: its picture on a preview tab of the program, or in the program the
-/// system gives its file. The Navigator reads the setting each time a material opens.
+/// system gives its file; a material with the address of a page in the browser or on its card.
+/// What a file, a web address or a picture dropped on the Navigator or pasted in it gives: a
+/// material at once, linked with the node or not, or the Add Element window. The Navigator
+/// reads the settings each time a material opens or comes.
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -44,6 +47,14 @@ constexpr const char* PLACE = "place";
 /// The values of NavigatorPanel::OPEN_MATERIALS_SETTING
 constexpr const char* CARD = "card";
 constexpr const char* SYSTEM = "system";
+
+/// The values of NavigatorPanel::OPEN_PAGES_SETTING ("card" as above)
+constexpr const char* BROWSER = "browser";
+
+/// The values of NavigatorPanel::QUICK_MATERIALS_SETTING
+constexpr const char* LINK = "link";
+constexpr const char* ADD = "add";
+constexpr const char* WINDOW = "window";
 
 } // namespace
 
@@ -142,12 +153,16 @@ NavigatorPage::NavigatorPage(QWidget* parent)
     auto* openLayout = new QVBoxLayout(openChoices);
     openLayout->setContentsMargins(0, 0, 0, 0);
     openLayout->addWidget(m_openCard);
-    //: In Polish: Obraz otwiera się na karcie podglądu, jak rozdział. Plik innego rodzaju, np.
-    //: PDF, otwiera się w programie systemowym, dopóki program nie będzie miał jego podglądu.
-    alignWithText(addNote(openLayout, tr("A picture opens on a preview tab, as a chapter does. "
-                                         "A file of another kind, such as a PDF, opens in the "
-                                         "system program until the program has a preview of "
-                                         "it.")),
+    //: In Polish: Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak
+    //: rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki
+    //: program nie będzie miał jego podglądu. Materiał bez pliku i adresu otwiera się na swojej
+    //: karcie.
+    alignWithText(addNote(openLayout, tr("A picture, also the copy of one from the web, opens "
+                                         "on a preview tab, as a chapter does. A file of "
+                                         "another kind, such as a PDF, opens in the system "
+                                         "program until the program has a preview of it. A "
+                                         "material without a file and an address opens on its "
+                                         "card.")),
                   m_openCard);
     openLayout->addWidget(m_openSystem);
     //: In Polish: Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we
@@ -175,6 +190,111 @@ NavigatorPage::NavigatorPage(QWidget* parent)
                                   value.get<std::string>());
     };
     bindCustom(std::move(openMaterials));
+
+    // A page, and a picture on the web without a copy: the program shows no web pages
+    //: In Polish: W przeglądarce
+    m_pagesBrowser = new QRadioButton(tr("In the browser"));
+    m_pagesBrowser->setObjectName(QStringLiteral("navigatorOpenPagesBrowser"));
+    //: In Polish: Na karcie materiału
+    m_pagesCard = new QRadioButton(tr("On the card of the material"));
+    m_pagesCard->setObjectName(QStringLiteral("navigatorOpenPagesCard"));
+    auto* pagesChoices = new QWidget();
+    auto* pagesLayout = new QVBoxLayout(pagesChoices);
+    pagesLayout->setContentsMargins(0, 0, 0, 0);
+    pagesLayout->addWidget(m_pagesBrowser);
+    //: In Polish: Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału
+    //: na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.
+    alignWithText(addNote(pagesLayout, tr("Double-click and Enter open the address in the "
+                                          "system's browser. Open Card in the menu of the node "
+                                          "opens the card of the material in the middle of the "
+                                          "window.")),
+                  m_pagesBrowser);
+    pagesLayout->addWidget(m_pagesCard);
+    //: In Polish: Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk
+    //: „Otwórz w przeglądarce” na tej karcie.
+    alignWithText(addNote(pagesLayout, tr("Double-click and Enter open the card of the material "
+                                          "in the middle of the window; its Open in Browser "
+                                          "button opens the address.")),
+                  m_pagesCard);
+    //: In Polish: Strony i obrazy z sieci:
+    auto* pagesLabel = new QLabel(tr("Pages and pictures on the web:"));
+    pagesLabel->setBuddy(m_pagesBrowser);
+    materials->addRow(pagesLabel, pagesChoices);
+
+    Binding openPages;
+    openPages.key = []() { return std::string(NavigatorPanel::OPEN_PAGES_SETTING); };
+    openPages.stored = [&settings]() {
+        return json(settings.get<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, BROWSER));
+    };
+    openPages.shown = [this]() { return json(m_pagesCard->isChecked() ? CARD : BROWSER); };
+    openPages.show = [this](const json& value) {
+        const bool card = value.is_string() && value.get<std::string>() == CARD;
+        (card ? m_pagesCard : m_pagesBrowser)->setChecked(true);
+    };
+    openPages.store = [&settings](const json& value) {
+        settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, value.get<std::string>());
+    };
+    bindCustom(std::move(openPages));
+
+    // Files, web addresses and pictures dropped on the Navigator or pasted in it
+    //: In Polish: Od razu, z powiązaniem
+    m_quickLink = new QRadioButton(tr("At once, linked"));
+    m_quickLink->setObjectName(QStringLiteral("navigatorQuickMaterialsLink"));
+    //: In Polish: Od razu
+    m_quickAdd = new QRadioButton(tr("At once"));
+    m_quickAdd->setObjectName(QStringLiteral("navigatorQuickMaterialsAdd"));
+    //: In Polish: W oknie „Dodaj element”
+    m_quickWindow = new QRadioButton(tr("In the Add Element window"));
+    m_quickWindow->setObjectName(QStringLiteral("navigatorQuickMaterialsWindow"));
+    auto* quickChoices = new QWidget();
+    auto* quickLayout = new QVBoxLayout(quickChoices);
+    quickLayout->setContentsMargins(0, 0, 0, 0);
+    quickLayout->addWidget(m_quickLink);
+    //: In Polish: Materiał dochodzi bez okna. Upuszczony albo wklejony na rozdział, część albo
+    //: sekcję od razu się z nimi wiąże.
+    alignWithText(addNote(quickLayout, tr("The material is added without a window. Dropped or "
+                                          "pasted on a chapter, a part or a section, it is "
+                                          "linked with it at once.")),
+                  m_quickLink);
+    quickLayout->addWidget(m_quickAdd);
+    //: In Polish: Materiał dochodzi bez okna, zawsze bez powiązań.
+    alignWithText(addNote(quickLayout, tr("The material is added without a window, always "
+                                          "without links.")),
+                  m_quickAdd);
+    quickLayout->addWidget(m_quickWindow);
+    //: In Polish: Okno otwiera się wypełnione plikiem, adresem albo obrazem; materiał dodaje
+    //: dopiero „Dodaj”.
+    alignWithText(addNote(quickLayout, tr("The window opens filled with the file, the address "
+                                          "or the picture; Add adds the material.")),
+                  m_quickWindow);
+    //: In Polish: Upuszczone albo wklejone:
+    auto* quickLabel = new QLabel(tr("Dropped or pasted:"));
+    quickLabel->setBuddy(m_quickLink);
+    materials->addRow(quickLabel, quickChoices);
+    //: In Polish: Dotyczy pliku przeciągniętego z Eksploratora, adresu przeciągniętego z
+    //: przeglądarki oraz adresu, pliku albo obrazu wklejonego w Nawigatorze (Ctrl+V).
+    addNote(materials, tr("Applies to a file dragged from the file manager, an address dragged "
+                          "from the browser, and an address, a file or a picture pasted in the "
+                          "Navigator (Ctrl+V)."));
+
+    Binding quick;
+    quick.key = []() { return std::string(NavigatorPanel::QUICK_MATERIALS_SETTING); };
+    quick.stored = [&settings]() {
+        return json(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, LINK));
+    };
+    quick.shown = [this]() {
+        return json(m_quickAdd->isChecked() ? ADD : m_quickWindow->isChecked() ? WINDOW : LINK);
+    };
+    quick.show = [this](const json& value) {
+        const std::string chosen = value.is_string() ? value.get<std::string>() : LINK;
+        (chosen == ADD ? m_quickAdd : chosen == WINDOW ? m_quickWindow : m_quickLink)
+            ->setChecked(true);
+    };
+    quick.store = [&settings](const json& value) {
+        settings.set<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING,
+                                  value.get<std::string>());
+    };
+    bindCustom(std::move(quick));
 
     pageLayout()->addStretch();
 }

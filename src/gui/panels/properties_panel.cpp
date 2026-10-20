@@ -707,6 +707,12 @@ QWidget* PropertiesPanel::createMaterialPage() {
             &PropertiesPanel::requestOpenWithSystem);
     connect(m_materialPage, &MaterialPage::requestOpenLink, this,
             &PropertiesPanel::requestOpenLink);
+    connect(m_materialPage, &MaterialPage::requestOpenInBrowser, this,
+            &PropertiesPanel::requestOpenInBrowser);
+    connect(m_materialPage, &MaterialPage::requestSaveCopy, this,
+            &PropertiesPanel::requestSaveCopy);
+    connect(m_materialPage, &MaterialPage::changed, this, &PropertiesPanel::materialChanged);
+    connect(m_materialPage, &MaterialPage::message, this, &PropertiesPanel::message);
     // The Navigator shows the new title
     connect(m_materialPage, &MaterialPage::titleChanged, this,
             &PropertiesPanel::chapterStatusChanged);
@@ -1005,6 +1011,29 @@ void PropertiesPanel::refresh() {
             } else {
                 showProjectProperties();
             }
+            break;
+    }
+}
+
+void PropertiesPanel::refreshMaterial(const QString& elementId) {
+    switch (currentPage()) {
+        case Page::Material:
+            if (m_materialPage->elementId() == elementId) {
+                m_materialPage->refresh();
+            }
+            break;
+        case Page::Chapter:
+            m_chapterMaterials->refresh();
+            break;
+        case Page::Section:
+            m_sectionMaterials->refresh();
+            break;
+        case Page::Part:
+            m_partMaterials->refresh();
+            break;
+        case Page::NoProject:
+        case Page::Project:
+        case Page::Editor:
             break;
     }
 }

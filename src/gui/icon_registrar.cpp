@@ -269,6 +269,13 @@ void registerAllIcons() {
     iconRegistry.registerIcon("common.remove", "resources/icons/twotone/remove.svg", "Remove");
     iconRegistry.registerIcon("common.link", "resources/icons/twotone/link.svg", "Link");
     iconRegistry.registerIcon("common.image", "resources/icons/twotone/image.svg", "Picture");
+    // Where a material comes from: a web page, a picture on the web, neither a file nor an
+    // address (a paper book, a talk, a quotation)
+    iconRegistry.registerIcon("material.page", "resources/icons/twotone/public.svg", "Web Page");
+    iconRegistry.registerIcon("material.webPicture", "resources/icons/twotone/web_picture.svg",
+                              "Picture on the Web");
+    iconRegistry.registerIcon("material.noFile", "resources/icons/twotone/quote_card.svg",
+                              "Material Without a File");
     // A file opened in the program the system gives it
     iconRegistry.registerIcon("common.openExternal", "resources/icons/twotone/open_in_new.svg",
                               "Open in System Program");

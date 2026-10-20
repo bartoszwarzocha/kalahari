@@ -12,6 +12,7 @@
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/gui/add_target.h"
+#include "kalahari/gui/material_source.h"
 
 #include <QWidget>
 #include <QHash>
@@ -167,6 +168,19 @@ public:
     /// program, the usual one) or "system" (in the program the system gives its file)
     static constexpr const char* OPEN_MATERIALS_SETTING = "navigator.openMaterials";
 
+    /// @brief The setting of how a material with the address of a page opens: "browser" (in
+    /// the system's browser, the usual one) or "card" (its card in the middle of the window)
+    static constexpr const char* OPEN_PAGES_SETTING = "navigator.openPages";
+
+    /// @brief The setting of what a file, a web address or a picture dropped on the Navigator
+    /// or pasted in it gives: "link" (a material at once, linked with the chapter, part or
+    /// section it was dropped or pasted on; the usual one), "add" (a material at once, without
+    /// links) or "window" (the Add Element window with it)
+    static constexpr const char* QUICK_MATERIALS_SETTING = "navigator.quickMaterials";
+
+    /// @brief What QUICK_MATERIALS_SETTING says: "link", "add" or "window"
+    static QString quickMaterials();
+
     /// @brief The name of the node of @p book: the writer's own, or "Book"
     static QString bookName(const core::ProjectBook& book);
 
@@ -294,6 +308,7 @@ public:
     /// @param elementId Element ID of the item to refresh
     /// @note Updates the display title (including status suffix) from ProjectManager
     /// @note Does nothing if element not found in tree
+    /// @note In a group of the Workshop the element goes to the place of its title
     void refreshItem(const QString& elementId);
 
     /// @brief Set modified indicator for a chapter element (OpenSpec #00042 Phase 7.5)
@@ -346,6 +361,15 @@ signals:
     /// @brief Request to open material @p elementId of the Workshop as the settings say: its
     /// picture on a preview tab or its file in the program the system gives it
     void requestOpenMaterial(const QString& elementId);
+
+    /// @brief Request to open the card of material @p elementId in the middle of the window
+    void requestOpenMaterialCard(const QString& elementId);
+
+    /// @brief Request to add the materials @p incoming, dropped on the Navigator from outside
+    /// the program or pasted in it; @p link: the node they are linked with (empty: none), as
+    /// QUICK_MATERIALS_SETTING says
+    void requestAddMaterials(const kalahari::gui::IncomingMaterials& incoming,
+                             const QString& link);
 
     /// @brief Request to show the sections of the book, or to hide them
     /// @param shown Whether the Navigator shows the sections
@@ -594,6 +618,11 @@ private:
     /// @param ids List of item IDs to expand
     /// @note Handles both regular IDs and "type:<elementType>:<text>" format
     void expandItemsById(const QStringList& ids);
+
+    /// @brief Move @p item of a group of the Workshop to the place of its title among the
+    /// others; the tree keeps its current item, the items open under it and its scroll, and
+    /// asks for no properties
+    void placeInWorkshopGroup(QTreeWidgetItem* item);
 
     /// @brief Find item by type-text identifier (OpenSpec #00034 Phase F)
     /// @param elementType Element type stored in Qt::UserRole + 1

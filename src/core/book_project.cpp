@@ -10,6 +10,7 @@
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QSaveFile>
+#include <QUrl>
 #include <QUuid>
 #include <algorithm>
 #include <cmath>
@@ -209,6 +210,22 @@ QString readFile(Fields& fields, const QString& field, Seen& seen, bool required
     return file;
 }
 
+/// The web address of the element of @p fields: an absolute one, such as "https://..."; empty
+/// when it has none
+QString readUrl(Fields& fields) {
+    const QJsonValue value = fields.take("url");
+    if (value.isUndefined()) {
+        return {};
+    }
+    const QUrl url(value.toString(), QUrl::StrictMode);
+    if (!value.isString() || !url.isValid() || url.isRelative()) {
+        fields.problem("url", QStringLiteral("must be a web address, e.g. "
+                                             "\"https://pl.wikipedia.org/wiki/Kalahari\""));
+        return {};
+    }
+    return value.toString();
+}
+
 /// The writer's own fields of an element: a name and a value each
 QList<ElementField> readElementFields(const QJsonArray& array, const QString& field,
                                       QStringList& problems) {
@@ -289,6 +306,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
 
     element.title = fields.string("title");
     element.file = readFile(fields, field, seen, false);
+    element.url = readUrl(fields);
     element.status = fields.string("status");
     element.elements = readElements(fields.array("elements"), fields.path("elements"), seen,
                                     problems);
@@ -448,6 +466,7 @@ QJsonObject elementToJson(const ProjectElement& element) {
     json.insert(QLatin1String("kind"), element.kind.toString());
     json.insert(QLatin1String("title"), element.title);
     setOrRemove(json, "file", element.file);
+    setOrRemove(json, "url", element.url);
     setOrRemove(json, "status", element.status);
     if (element.elements.isEmpty()) {
         json.remove(QLatin1String("elements"));
@@ -775,9 +794,9 @@ void ProjectBook::setSections(const BookSections& sections) {
 
 bool ProjectElement::operator==(const ProjectElement& other) const {
     return id == other.id && kind == other.kind && title == other.title &&
-           file == other.file && status == other.status && elements == other.elements &&
-           description == other.description && fields == other.fields &&
-           links == other.links && rotation == other.rotation &&
+           file == other.file && url == other.url && status == other.status &&
+           elements == other.elements && description == other.description &&
+           fields == other.fields && links == other.links && rotation == other.rotation &&
            viewExtra == other.viewExtra && extra == other.extra;
 }
 
