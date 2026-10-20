@@ -298,9 +298,9 @@ public:
     std::function<bool(const QTreeWidgetItem* item)> linksMaterials;
 
     bool canPasteHere() const override {
-        const QMimeData* data = QGuiApplication::clipboard()->mimeData();
-        return takesMaterials && takesMaterials() && data != nullptr &&
-               (data->hasUrls() || data->hasImage() || data->hasText());
+        const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
+        return takesMaterials && takesMaterials() && mime != nullptr &&
+               (mime->hasUrls() || mime->hasImage() || mime->hasText());
     }
 
     void pasteHere() override {
@@ -359,7 +359,7 @@ protected:
     /// The dragged nodes also give their links, which the links of a material take
     /// (NavigatorPanel::LINKS_MIME_TYPE)
     QMimeData* mimeData(const QList<QTreeWidgetItem*>& items) const override {
-        QMimeData* data = QTreeWidget::mimeData(items);
+        QMimeData* mime = QTreeWidget::mimeData(items);
         QStringList links;
         for (const QTreeWidgetItem* item : items) {
             const QString link = kalahari::gui::NavigatorPanel::linkOf(item);
@@ -367,11 +367,11 @@ protected:
                 links << link;
             }
         }
-        if (data && !links.isEmpty()) {
-            data->setData(QLatin1String(kalahari::gui::NavigatorPanel::LINKS_MIME_TYPE),
+        if (mime && !links.isEmpty()) {
+            mime->setData(QLatin1String(kalahari::gui::NavigatorPanel::LINKS_MIME_TYPE),
                           links.join(QLatin1Char('\n')).toUtf8());
         }
-        return data;
+        return mime;
     }
 
     /// A collapsed group or section that the dragged element rests on opens, so that the
