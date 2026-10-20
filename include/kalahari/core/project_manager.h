@@ -626,11 +626,55 @@ public:
     /// book outside its text has no status.
     bool setStatus(const QString& elementId, const QString& status);
 
-    /// @brief Notes of a text element, from its chapter file
+    /// @brief Notes of a text element, from its chapter file; of an element without a chapter
+    /// file (a card of the Workshop), its description (ProjectElement::description)
     QString notes(const QString& elementId) const;
 
-    /// @brief Set the notes of a text element and write them to its chapter file
+    /// @brief Set the notes of a text element and write them to its chapter file; an element
+    /// without a chapter file takes them as its description (setDescription())
     bool setNotes(const QString& elementId, const QString& notes);
+
+    // =========================================================================
+    // Materials and Their Details
+    // =========================================================================
+
+    /// @brief Whether @p element is a material: a file the writer keeps in the Workshop, of a
+    /// kind of materials (ElementKind::isMaterial())
+    bool isMaterial(const ProjectElement& element) const;
+
+    /// @brief Give element @p elementId the description @p description and save the .klh file
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element keeps its description then
+    bool setDescription(const QString& elementId, const QString& description);
+
+    /// @brief Give element @p elementId the writer's own fields @p fields, in this order, and
+    /// save the .klh file
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element keeps its fields then
+    bool setFields(const QString& elementId, const QList<ElementField>& fields);
+
+    /// @brief Link element @p elementId with @p links, in this order, and save the .klh file
+    ///
+    /// A link names an element of the project or a section of its book
+    /// (BookProject::sectionLink()); a link that names nothing of the project, or the element
+    /// itself, is left out, and each one is kept once.
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element keeps its links then
+    bool setLinks(const QString& elementId, const QStringList& links);
+
+    /// @brief Turn the picture of element @p elementId in its preview to @p rotation degrees
+    /// clockwise (0, 90, 180 or 270) and save the .klh file
+    /// @return false for another angle, when the project has no such element or the file
+    ///         cannot be written
+    bool setRotation(const QString& elementId, int rotation);
+
+    /// @brief Materials linked with @p link, an element or a section of the book
+    /// (BookProject::sectionLink()), in the order of the Workshop
+    QList<const ProjectElement*> materialsLinkedTo(const QString& link) const;
+
+    /// @brief Names of the writer's own fields of the elements of the project, each once and
+    /// sorted, for the names of new fields
+    QStringList fieldNames() const;
 
     /// @brief Words of a text element under the rules of the settings (wordCountRules()):
     /// of its text in the editor while its changes are not saved (setEditorWords()), else of
@@ -825,6 +869,13 @@ private:
 
     /// @brief State of text element @p elementId; nullptr when it is not one
     ElementState* stateOf(const QString& elementId);
+
+    /// @brief Change the details of element @p elementId with @p change (its description, fields,
+    /// links or turn) and save the .klh file; @p what names the change in the log
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element stays as it was then
+    bool changeDetails(const char* what, const QString& elementId,
+                       const std::function<void(ProjectElement&)>& change);
 
     /// @brief Words of text element @p elementId under @p rules, as wordCount() gives them
     int wordsUnder(const QString& elementId, const WordCountRules& rules) const;

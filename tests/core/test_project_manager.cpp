@@ -1757,6 +1757,93 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     CHECK(pm.addMaterial(picture, material, "Nothing").isEmpty());
 }
 
+TEST_CASE("ProjectManager keeps the description, own fields, links and turn of a material",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Materials", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString first =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    const QString second =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 2", BookPlace::Main);
+    REQUIRE_FALSE(first.isEmpty());
+    REQUIRE_FALSE(second.isEmpty());
+    const QString picture = QDir(dir.path()).filePath("map.png");
+    writeFile(picture, "a picture");
+    const KindRef material = kind("kalahari.base", "material");
+    const QString map = pm.addMaterial(picture, material, "Map");
+    const QString photo = pm.addMaterial(picture, material, "Photo");
+    REQUIRE_FALSE(map.isEmpty());
+    REQUIRE_FALSE(photo.isEmpty());
+    CHECK(pm.isMaterial(*pm.findElement(map)));
+    CHECK_FALSE(pm.isMaterial(*pm.findElement(first)));
+    const QString body = pm.project()->sectionLink(BookPlace::Main);
+    REQUIRE_FALSE(body.isEmpty());
+
+    // The description is the notes of an element without a chapter file
+    REQUIRE(pm.setDescription(map, "The oasis and the road."));
+    CHECK(pm.findElement(map)->description == "The oasis and the road.");
+    CHECK(pm.notes(map) == "The oasis and the road.");
+    REQUIRE(pm.setNotes(photo, "Taken in 1931."));
+    CHECK(pm.findElement(photo)->description == "Taken in 1931.");
+
+    // The writer's own fields, in the writer's order; their names are suggested for others
+    REQUIRE(pm.setFields(map, {{"Scale", "1 : 50 000", {}}, {"source", "the author", {}}}));
+    REQUIRE(pm.setFields(photo, {{"Scale", "", {}}, {"Place", "Siwa", {}}, {" ", "", {}}}));
+    CHECK(pm.findElement(map)->fields.size() == 2);
+    CHECK(pm.findElement(photo)->fields.at(1).value == "Siwa");
+    CHECK(pm.fieldNames() == QStringList{"Place", "Scale", "source"});
+
+    // Links: only what the project has, not the element itself, each once
+    REQUIRE(pm.setLinks(map, {first, body, "nothing", map, first, second}));
+    CHECK(pm.findElement(map)->links == QStringList{first, body, second});
+    REQUIRE(pm.setLinks(photo, {second}));
+    CHECK(pm.materialsLinkedTo(first) == QList<const ProjectElement*>{pm.findElement(map)});
+    CHECK(pm.materialsLinkedTo(second) ==
+          (QList<const ProjectElement*>{pm.findElement(map), pm.findElement(photo)}));
+    CHECK(pm.materialsLinkedTo(body).size() == 1);
+    CHECK(pm.materialsLinkedTo(QString()).isEmpty());
+
+    // The turn of the picture: a right angle only
+    REQUIRE(pm.setRotation(map, 90));
+    CHECK(pm.findElement(map)->rotation == 90);
+    CHECK_FALSE(pm.setRotation(map, 45));
+    CHECK_FALSE(pm.setRotation("nothing", 180));
+    CHECK(pm.findElement(map)->rotation == 90);
+
+    // A .klh file that cannot be written leaves everything as it was
+    const BookProject unchanged = *pm.project();
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkdir(manifest));
+    CHECK_FALSE(pm.setDescription(map, "Changed"));
+    CHECK_FALSE(pm.setFields(map, {}));
+    CHECK_FALSE(pm.setLinks(map, {}));
+    CHECK_FALSE(pm.setRotation(map, 180));
+    CHECK_FALSE(pm.removeElement(second).has_value());
+    CHECK(*pm.project() == unchanged);
+    REQUIRE(QDir().rmdir(manifest));
+    REQUIRE(pm.saveManifest());
+
+    // An element deleted from the book leaves the links
+    REQUIRE(pm.removeElement(second).has_value());
+    CHECK(pm.findElement(map)->links == QStringList{first, body});
+    CHECK(pm.findElement(photo)->links.isEmpty());
+
+    // The .klh file has them all
+    REQUIRE(pm.closeProject(false));
+    const BookProject saved = savedProject(manifest);
+    const ProjectElement* savedMap = saved.findElement(map);
+    REQUIRE(savedMap != nullptr);
+    CHECK(savedMap->description == "The oasis and the road.");
+    CHECK(savedMap->fields.at(0).name == "Scale");
+    CHECK(savedMap->links == QStringList{first, body});
+    CHECK(savedMap->rotation == 90);
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.notes(map) == "The oasis and the road.");
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("Move to Start and Move to End keep the prologue first and the epilogue last",
           "[project_manager]") {
     QTemporaryDir dir;

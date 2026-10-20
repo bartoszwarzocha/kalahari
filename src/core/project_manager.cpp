@@ -1816,14 +1816,35 @@ std::optional<ProjectElement> ProjectManager::removeElement(const QString& eleme
         return std::nullopt;
     }
     ProjectElement element = list->takeAt(index);
+    QList<const ProjectElement*> removed{&element};
+    appendAll(element.elements, removed);
+
+    // The links to the element and to the elements inside it go with it
+    QSet<QString> removedIds;
+    for (const ProjectElement* gone : removed) {
+        removedIds.insert(gone->id);
+    }
+    QList<std::pair<QString, QStringList>> unlinked;  // Elements and their links before
+    for (const ProjectElement* each : allElements(*m_project)) {
+        if (std::any_of(each->links.cbegin(), each->links.cend(),
+                        [&removedIds](const QString& link) { return removedIds.contains(link); })) {
+            unlinked.append({each->id, each->links});
+        }
+    }
+    for (const auto& [linkedId, links] : unlinked) {
+        m_project->findElement(linkedId)->links.removeIf(
+            [&removedIds](const QString& link) { return removedIds.contains(link); });
+    }
+
     if (!saveManifest()) {
+        for (const auto& [linkedId, links] : unlinked) {
+            m_project->findElement(linkedId)->links = links;
+        }
         list->insert(index, element);
         return std::nullopt;
     }
 
     // The program forgets the element and the elements inside it; their files stay
-    QList<const ProjectElement*> removed{&element};
-    appendAll(element.elements, removed);
     for (const ProjectElement* gone : removed) {
         m_elementStates.remove(gone->id);
     }
@@ -2153,6 +2174,11 @@ bool ProjectManager::setStatus(const QString& elementId, const QString& status) 
 }
 
 QString ProjectManager::notes(const QString& elementId) const {
+    // An element without a chapter file keeps them in the .klh file
+    const ProjectElement* element = findElement(elementId);
+    if (element && (element->file.isEmpty() || formOf(*element) != ElementForm::Text)) {
+        return element->description;
+    }
     return m_elementStates.value(elementId).notes;
 }
 
@@ -2161,9 +2187,13 @@ bool ProjectManager::setNotes(const QString& elementId, const QString& notes) {
         return false;
     }
     const ProjectElement* element = findElement(elementId);
-    if (!element || !stateOf(elementId)) {
-        Logger::getInstance().warn("setNotes: Not a text element: {}", elementId.toStdString());
+    if (!element) {
+        Logger::getInstance().warn("setNotes: Element not found: {}", elementId.toStdString());
         return false;
+    }
+    // An element without a chapter file keeps them in the .klh file
+    if (!stateOf(elementId)) {
+        return setDescription(elementId, notes);
     }
     const QString previous = m_elementStates.value(elementId).notes;
     if (previous == notes) {
@@ -2175,6 +2205,101 @@ bool ProjectManager::setNotes(const QString& elementId, const QString& notes) {
         return false;
     }
     return true;
+}
+
+bool ProjectManager::isMaterial(const ProjectElement& element) const {
+    const KindRef kind = kindOf(element);
+    return kind && kind.kind->isMaterial();
+}
+
+bool ProjectManager::changeDetails(const char* what, const QString& elementId,
+                                   const std::function<void(ProjectElement&)>& change) {
+    if (refusesChange(what)) {
+        return false;
+    }
+    ProjectElement* element = findElement(elementId);
+    if (!element) {
+        Logger::getInstance().warn("{}: Element not found: {}", what, elementId.toStdString());
+        return false;
+    }
+    const ProjectElement previous = *element;
+    change(*element);
+    if (*element == previous) {
+        return true;
+    }
+    if (!saveManifest()) {
+        *element = previous;
+        return false;
+    }
+    return true;
+}
+
+bool ProjectManager::setDescription(const QString& elementId, const QString& description) {
+    return changeDetails("setDescription", elementId, [&description](ProjectElement& element) {
+        element.description = description;
+    });
+}
+
+bool ProjectManager::setFields(const QString& elementId, const QList<ElementField>& fields) {
+    return changeDetails("setFields", elementId,
+                         [&fields](ProjectElement& element) { element.fields = fields; });
+}
+
+bool ProjectManager::setLinks(const QString& elementId, const QStringList& links) {
+    if (!m_project) {
+        Logger::getInstance().warn("setLinks: No project is open");
+        return false;
+    }
+    // Only what the project has, without the element itself, each once
+    QStringList kept;
+    for (const QString& link : links) {
+        if (link != elementId && !kept.contains(link) && m_project->hasLinkTarget(link)) {
+            kept << link;
+        }
+    }
+    return changeDetails("setLinks", elementId,
+                         [&kept](ProjectElement& element) { element.links = kept; });
+}
+
+bool ProjectManager::setRotation(const QString& elementId, int rotation) {
+    if (rotation != 0 && rotation != 90 && rotation != 180 && rotation != 270) {
+        Logger::getInstance().warn("setRotation: {} is not 0, 90, 180 or 270", rotation);
+        return false;
+    }
+    return changeDetails("setRotation", elementId,
+                         [rotation](ProjectElement& element) { element.rotation = rotation; });
+}
+
+QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& link) const {
+    QList<const ProjectElement*> linked;
+    if (!m_project || link.isEmpty()) {
+        return linked;
+    }
+    QList<const ProjectElement*> workshop;
+    appendAll(m_project->workshop.elements, workshop);
+    for (const ProjectElement* element : workshop) {
+        if (element->links.contains(link) && isMaterial(*element)) {
+            linked << element;
+        }
+    }
+    return linked;
+}
+
+QStringList ProjectManager::fieldNames() const {
+    QStringList names;
+    if (!m_project) {
+        return names;
+    }
+    for (const ProjectElement* element : allElements(*m_project)) {
+        for (const ElementField& field : element->fields) {
+            const QString name = field.name.trimmed();
+            if (!name.isEmpty() && !names.contains(name)) {
+                names << name;
+            }
+        }
+    }
+    names.sort(Qt::CaseInsensitive);
+    return names;
 }
 
 int ProjectManager::wordCount(const QString& elementId) const {
