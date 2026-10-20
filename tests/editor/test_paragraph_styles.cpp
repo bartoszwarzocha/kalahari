@@ -474,12 +474,13 @@ TEST_CASE("Objects: selections that end at them", "[editor][objects]") {
 }
 
 TEST_CASE("Objects: they have no text", "[editor][objects]") {
-    SECTION("Copied: the KML keeps the object, the plain text has an empty line for it") {
+    SECTION("Copied: the KML keeps the object, the plain text a line for it, not its mark") {
         auto editor = editorWith(kml(QStringLiteral("<p>ab</p><hr/><p>cd</p>")));
         select(*editor, {0, 0}, {2, 2});
         const std::unique_ptr<QMimeData> data = editor->createMimeDataFromSelection();
         REQUIRE(data != nullptr);
-        REQUIRE(data->text() == QStringLiteral("ab\n\ncd"));
+        REQUIRE(data->text() ==
+                QStringLiteral("ab\n") + QString(10, QChar(0x2500)) + QStringLiteral("\ncd"));
         REQUIRE(QString::fromUtf8(data->data(QString::fromLatin1(MIME_KML))) ==
                 kml(QStringLiteral("<p>ab</p><hr/><p>cd</p>")));
     }

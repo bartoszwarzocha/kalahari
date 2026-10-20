@@ -8,6 +8,7 @@
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/gui/utils/chapter_cursor.h"
+#include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/paragraph_styles.h"
 
@@ -109,6 +110,17 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     addField(font, tr("Font Size:"), size, "editor.fontSize");
 
     QFormLayout* behavior = addGroup(tr("Editor Behavior"));
+    // Text of other programs: their headings, quotes, emphasis and lines in the look of the
+    // place it goes to, also their fonts, sizes and colors, or only the text
+    auto* pasteMode = new QComboBox();
+    pasteMode->addItem(tr("Merge Formatting"), QString::fromLatin1(editor::PASTE_MODE_MERGE));
+    pasteMode->addItem(tr("Keep Source Formatting"),
+                       QString::fromLatin1(editor::PASTE_MODE_SOURCE));
+    pasteMode->addItem(tr("Keep Text Only"), QString::fromLatin1(editor::PASTE_MODE_TEXT));
+    addField(behavior, tr("Paste from Other Programs:"), pasteMode, editor::PASTE_MODE_KEY);
+    addNote(behavior, tr("Merge Formatting keeps the headings, quotes, emphasis and lines, and "
+                         "gives the text the look of the place it is pasted to. Text copied in "
+                         "Kalahari keeps all its formatting."));
     // A chapter opens where its cursor was when it was closed last, or at its start
     auto* opensAt = new QComboBox();
     opensAt->addItem(tr("Where You Last Edited"),

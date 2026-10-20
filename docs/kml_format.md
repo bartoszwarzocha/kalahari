@@ -109,8 +109,8 @@ the base pack, with the styles `normal`, `heading_1`, `heading_2`, `heading_3`, 
 - A page break starts a new page in the page view. The continuous views show it as a dashed
   line with the words "Page Break"; the page view shows that line too when the formatting
   marks are shown.
-- An object has no text: it adds nothing to the word and character counts, and in the plain
-  text of the clipboard its paragraph is an empty line.
+- An object has no text: it adds nothing to the word and character counts. Other programs
+  get it from the clipboard as the section "The clipboard of other programs" says.
 
 ## Text
 
@@ -233,6 +233,39 @@ Copied text carries the annotations anchored in it: the KML on the clipboard has
 `id`, the annotation comes in as a copy with a new `id` – unless the text is pasted inside the
 fragment of that annotation, which it then simply joins. The HTML and the plain text on the
 clipboard, for other programs, have no annotations.
+
+## The clipboard of other programs
+
+The clipboard gives other programs HTML and plain text of the copied KML, and HTML of other
+programs is read into KML (`ClipboardHandler::kmlToHtml()`, `kmlToText()` and `htmlToKml()`;
+tests in `tests/editor/test_clipboard_paste.cpp`).
+
+| KML | HTML for other programs | Plain text |
+|-----|-------------------------|------------|
+| `<h1>`, `<h2>`, `<h3>` | `<h1>`, `<h2>`, `<h3>` | A line |
+| `<p style="quote">`, `<p style="block_quote">` | A `<p>` in a `<blockquote>`, one for the quote paragraphs in a row | A line |
+| `<p>` in another style | `<p>` | A line |
+| `align` | CSS `text-align` (`center`, `right`, `justify`) | – |
+| `<hr/>` | `<hr/>` | A line of ten `─` (U+2500) |
+| `<scene-break/>` | As the setting `editor.sceneBreak.style` shows it: a centered paragraph with `* * *`, `⁂` or `❦`, a short line (`<hr width="30%"/>`) for `line`, an empty paragraph for `blank` | Its symbol (`───` for `line`) on a line, an empty line for `blank` |
+| `<page-break/>` | CSS `page-break-before:always` of what follows it; an empty paragraph when nothing does | A form feed (U+000C) on a line of its own |
+
+The HTML of another program (Word, LibreOffice, a browser) is pasted, and dropped, in the mode
+of the setting `editor.paste.mode` (Settings > Editor > General, "Paste from Other
+Programs"). Qt reads the HTML (`QTextDocumentFragment::fromHtml()`) as a browser shows it,
+without the files it refers to.
+
+| Mode | Value | What the KML keeps |
+|------|-------|--------------------|
+| Merge Formatting (the default) | `merge` | The headings (`<h4>` to `<h6>` as `<h3>`); the quotes (`<blockquote>`, Word's quote styles) as `<p style="quote">`; `<hr/>`; the page breaks (CSS `page-break-before` and `page-break-after: always`, Word's page break) as `<page-break/>`; the line breaks; bold, italic, underline, strikethrough, subscript and superscript; centered and right-aligned paragraphs. The text takes the format of the place it is pasted to, with its emphasis on top. |
+| Keep Source Formatting | `source` | Also every alignment, the font (the first of a CSS list that is not a generic family), the size (in points) and the colors, and the styles of the head of Word's HTML |
+| Keep Text Only | `text` | The paragraphs and line breaks of the plain text |
+
+Text copied in Kalahari is pasted as KML in every mode. Until the editor has them, a list item
+comes as a paragraph starting with its bullet or number, a table row as a paragraph with its
+cells separated by tabs, and a link as its text; images are left out. A heading's bold is the
+look of the heading and is not kept. A scene break of another program comes as the paragraph
+of its symbol.
 
 ## References
 

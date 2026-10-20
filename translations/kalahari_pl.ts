@@ -5070,6 +5070,26 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <source>Choose from: * * *, %1, %2, a short line, a blank line. Changes only the look: the file keeps the scene break.</source>
         <translation>Do wyboru: * * *, %1, %2, krótka linia, pusty wiersz. Zmienia tylko wygląd – w pliku zostaje podział sceny.</translation>
     </message>
+    <message>
+        <source>Merge Formatting</source>
+        <translation>Scal formatowanie</translation>
+    </message>
+    <message>
+        <source>Keep Source Formatting</source>
+        <translation>Zachowaj formatowanie źródła</translation>
+    </message>
+    <message>
+        <source>Keep Text Only</source>
+        <translation>Tylko tekst</translation>
+    </message>
+    <message>
+        <source>Paste from Other Programs:</source>
+        <translation>Wklejanie z innych programów:</translation>
+    </message>
+    <message>
+        <source>Merge Formatting keeps the headings, quotes, emphasis and lines, and gives the text the look of the place it is pasted to. Text copied in Kalahari keeps all its formatting.</source>
+        <translation>Scal formatowanie zachowuje nagłówki, cytaty, wyróżnienia i linie, a wygląd tekstu dopasowuje do miejsca wklejenia. Tekst skopiowany w Kalahari zachowuje całe formatowanie.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorGrammarPage</name>

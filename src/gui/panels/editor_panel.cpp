@@ -368,6 +368,10 @@ void EditorPanel::applySettings() {
     autoCorrect.ellipsis = replaces("editor.autoCorrect.ellipsis");
     m_bookEditor->setAutoCorrect(autoCorrect);
 
+    // How text from other programs is pasted (Settings > Editor > General)
+    m_bookEditor->setPasteMode(editor::ClipboardHandler::pasteModeFromId(
+        QString::fromStdString(settings.get<std::string>(editor::PASTE_MODE_KEY))));
+
     // What the counts take for a word (a setting of the whole program)
     m_bookEditor->setWordCountRules(core::wordCountRules());
     applyPaperScale();
