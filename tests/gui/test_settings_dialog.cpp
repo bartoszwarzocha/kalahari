@@ -5,6 +5,7 @@
 #include <catch2/catch_approx.hpp>
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/annotations_coordinator.h"
+#include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/core/settings_manager.h"
@@ -23,6 +24,7 @@
 #include <QLayout>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSpinBox>
@@ -394,6 +396,39 @@ TEST_CASE("Settings dialog: the Annotations page has the author and the size of 
     for (const QSpinBox* spin : stack->currentWidget()->findChildren<QSpinBox*>()) {
         CHECK(spin->suffix() != QStringLiteral(" %"));
     }
+}
+
+TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in the menus",
+          "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string before =
+        settings.get<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, "named");
+    settings.set<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, "named");
+
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    auto* named = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddNamed"));
+    auto* single = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddSingle"));
+    REQUIRE(named != nullptr);
+    REQUIRE(single != nullptr);
+    CHECK(named->isChecked());
+    CHECK_FALSE(single->isChecked());
+    CHECK_FALSE(dialog.hasChanges());
+
+    single->click();
+    CHECK(dialog.hasChanges());
+    CHECK(dialog.applyChanges() ==
+          QStringList{QString::fromLatin1(NavigatorPanel::ADD_COMMANDS_SETTING)});
+    CHECK(settings.get<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING) == "single");
+
+    // Opened again, the page shows the stored choice
+    SettingsDialog again(nullptr);
+    openPage(again, QString(), QStringLiteral("Navigator"));
+    auto* singleAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorAddSingle"));
+    REQUIRE(singleAgain != nullptr);
+    CHECK(singleAgain->isChecked());
+
+    settings.set<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, before);
 }
 
 TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][settings]") {

@@ -353,28 +353,48 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // BOOK MENU
     // =========================================================================
 
+    // Add... for what is in front: right after the element in the editor, else in the whole
+    // book (MainWindow)
+    REG_CMD_KEY_CB("book.addElement", QT_TRANSLATE_NOOP("CommandRegistrar", "&Add..."), "BOOK/Add...", 5, true, 1,
+                   KeyboardShortcut(Qt::Key_Return, Qt::ControlModifier | Qt::ShiftModifier),
+                   callbacks.onAddElement);
+
     // The open book names it after its main texts, "New Story..." (MainWindow)
     REG_CMD_TOOL_ICON("book.newChapter", QT_TRANSLATE_NOOP("CommandRegistrar", "&New Chapter..."), "BOOK/New Chapter...", 10, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onNewChapter);
 
-    REG_CMD("book.newScene", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Scene..."), "BOOK/New Scene...", 20, true, 1);
+    REG_CMD("book.newScene", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Scene..."), "BOOK/New Scene...", 20, false, 1);
+
+    // The kinds of the Workshop: Add Element with the kind chosen, when the program has its
+    // editor (MainWindow greys them out until then, saying why)
+    const auto newInWorkshop = [&callbacks](const char* kindId) -> std::function<void()> {
+        if (!callbacks.onNewWorkshopElement) {
+            return nullptr;
+        }
+        return [add = callbacks.onNewWorkshopElement, kindId]() {
+            add(QString::fromLatin1(kindId));
+        };
+    };
 
     REG_CMD_TOOL_ICON("book.newCharacter", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Character..."), "BOOK/New Character...", 30, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
-                      nullptr);
+                      newInWorkshop("character"));
 
     REG_CMD_TOOL_ICON("book.newLocation", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Location..."), "BOOK/New Location...", 40, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
-                      nullptr);
+                      newInWorkshop("location"));
 
-    REG_CMD("book.newItem", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Item..."), "BOOK/New Item...", 50, true, 1);
+    REG_CMD_CB("book.newItem", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Item..."), "BOOK/New Item...", 50, false, 1,
+               newInWorkshop("item"));
 
-    REG_CMD("book.newMindMap", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Mind Map..."), "BOOK/New Mind Map...", 60, false, 1);
-    REG_CMD("book.newTimeline", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Timeline..."), "BOOK/New Timeline...", 70, true, 1);
+    REG_CMD_CB("book.newMindMap", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Mind Map..."), "BOOK/New Mind Map...", 60, false, 1,
+               newInWorkshop("mindmap"));
+    REG_CMD_CB("book.newTimeline", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Timeline..."), "BOOK/New Timeline...", 70, true, 1,
+               newInWorkshop("timeline"));
 
     // The same as Insert > Scene Break
     REG_CMD_CB("book.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Sc&ene Break"), "BOOK/Scene Break", 90, true, 0,

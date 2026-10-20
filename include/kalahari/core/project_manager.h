@@ -426,13 +426,49 @@ public:
     /// @param takeInside Ids of elements that the new group takes inside it
     /// @param text The text of a text element (KML), such as the text of a new file that the
     ///        writer adds to the book; none: the text of its kind's template
+    /// @param status The status of a text element ("draft", "revision" or "final"); empty:
+    ///        "draft"
     /// @return The new element's id; empty when the kind cannot be there or is a window kind,
     ///         the project has no group @p groupId, @p index is beyond the list, an element of
-    ///         @p takeInside cannot be inside the group, or a file cannot be written
+    ///         @p takeInside cannot be inside the group, @p status is not a status of text
+    ///         elements, or a file cannot be written
     QString addElement(const KindRef& kind, const QString& title, BookPlace place,
                        const QString& groupId = QString(), qsizetype index = -1,
                        const QStringList& takeInside = {},
-                       const std::optional<QString>& text = std::nullopt);
+                       const std::optional<QString>& text = std::nullopt,
+                       const QString& status = QString());
+
+    /// @brief Whether the program can add elements of @p kind: text kinds, group kinds and the
+    /// kinds of materials (ElementKind::isMaterial()); elements of the other kinds that open in
+    /// a window of their own wait until the program has their windows
+    static bool canAdd(const KindRef& kind);
+
+    /// @brief Place that a new element of @p kind takes right after element @p elementId, as
+    /// adding after an element offers it (Ctrl+Shift+Enter in its editor)
+    ///
+    /// The next place in the element's list. A kind of the start or of the end (a prologue, an
+    /// epilogue) gets the place of its kind in that list (newIndexIn()), and any other kind
+    /// does not go between the elements of the end: a new chapter after the epilogue goes
+    /// before it.
+    /// @return The place; nullopt when the project has no element @p elementId, it is a file of
+    ///         the book outside its text, or @p kind cannot be added to its list
+    std::optional<ElementPlace> newPlaceAfter(const QString& elementId, const KindRef& kind) const;
+
+    /// @brief A free file for a copy of file @p sourcePath in the Workshop, relative to the
+    /// project: workshop/<its name>, or workshop/<its base name>_2.<its suffix>, _3... when an
+    /// element or a file there has the name; the file that addMaterial() gives the copy
+    QString newMaterialFile(const QString& sourcePath) const;
+
+    /// @brief Add a copy of file @p sourcePath (a picture, a PDF file...) to the Workshop as a
+    /// new material of @p kind with @p title
+    ///
+    /// The copy goes to the Workshop's folder, named as the file (newMaterialFile()); the file
+    /// itself does not change. A material has no status, and its place in the Workshop is at
+    /// the end. Saves the .klh file.
+    /// @return The new material's id; empty when @p kind is not a kind of materials that can
+    ///         be added to the Workshop, @p sourcePath is not a file that can be read, or the
+    ///         copy or the .klh file cannot be written; no copy stays then
+    QString addMaterial(const QString& sourcePath, const KindRef& kind, const QString& title);
 
     /// @brief Whether @p elementId is a file of the book outside its text (ProjectBook::files)
     bool isBookFile(const QString& elementId) const;
@@ -485,6 +521,23 @@ public:
     /// @return false when no project is open or the file cannot be written; the book keeps
     ///         its sections then
     bool setSections(const BookSections& sections);
+
+    /// @brief Name the node of the book in the Navigator (ProjectBook::name) and save the .klh
+    /// file; the name loses the spaces at its ends, and an empty one gives the node its
+    /// default name back ("Book" in the user's language)
+    /// @return false when no project is open or the file cannot be written; the book keeps
+    ///         its name then
+    bool setBookName(const QString& name);
+
+    /// @brief Name the node of the Workshop in the Navigator (ProjectWorkshop::name) and save
+    /// the .klh file, as setBookName() does for the book ("Workshop")
+    bool setWorkshopName(const QString& name);
+
+    /// @brief Group the Workshop or not (ProjectWorkshop::grouped): cards go to Libraries and
+    /// materials to Resources; saves the .klh file
+    /// @return false when no project is open or the file cannot be written; the Workshop stays
+    ///         as it was then
+    bool setWorkshopGrouped(bool grouped);
 
     /// @brief Take element @p elementId, with the elements inside it, out of the project and
     /// save the .klh file

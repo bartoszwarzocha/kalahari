@@ -96,6 +96,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"edit.nextTodo", QStringLiteral("Alt+Down")},
         {"edit.previousTodo", QStringLiteral("Alt+Up")},
 #endif
+        {"book.addElement", QStringLiteral("Ctrl+Shift+Return")},
         {"insert.annotation", QStringLiteral("Ctrl+Shift+M")},
         {"insert.pageBreak", QStringLiteral("Ctrl+Return")},  // and Ctrl with the keypad's Enter
 #ifdef Q_OS_MACOS

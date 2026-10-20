@@ -173,6 +173,10 @@ struct KindReference {
 
 /// @brief Kind of element (rodzaj): chapter, dedication, act, poem, mind map...
 struct ElementKind {
+    /// Editor of the kinds of materials: files of any type that the Workshop keeps (pictures,
+    /// PDF files), which open in the program the system has for them
+    static constexpr const char* MATERIAL_EDITOR = "material";
+
     QString id;                          ///< Unique in its package, e.g. "chapter"
     ElementForm form = ElementForm::Text;
     LocalizedText name;                  ///< Singular name: "Chapter"
@@ -190,6 +194,11 @@ struct ElementKind {
     bool generated = false;              ///< Window kinds: content made by a tool of the type
     QJsonObject settings;                ///< Window kinds: settings of the window
     WorkshopGroup workshopGroup = WorkshopGroup::None;  ///< Workshop kinds: group when grouped
+
+    /// @brief Whether its elements are materials: a window kind with MATERIAL_EDITOR
+    bool isMaterial() const {
+        return form == ElementForm::Window && editor == QLatin1String(MATERIAL_EDITOR);
+    }
 
     /// @brief Whether an element of this kind can be in @p place, outside groups
     bool allows(BookPlace place) const;

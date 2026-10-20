@@ -1154,3 +1154,234 @@ TEST_CASE("New File: a book opened from its card on the Dashboard leaves the cha
     CHECK(note->property("dirty").toBool());
     pm.closeProject(false);
 }
+
+// =============================================================================
+// Add Element: the window at a place of the Navigator or of the editor
+// =============================================================================
+
+namespace {
+
+/// @brief The window of files that chooses the file of a new material, in place of the
+/// system's until the test ends: it chooses @c file
+struct MaterialChooser {
+    QString file;         ///< The file it chooses; empty: Cancel
+    QStringList folders;  ///< The folders it was opened in
+
+    explicit MaterialChooser(QString chosen) : file(std::move(chosen)) {
+        NewFileDialog::setFileChooserForTests([this](const QString& folder) {
+            folders << folder;
+            return file;
+        });
+    }
+    ~MaterialChooser() { NewFileDialog::setFileChooserForTests({}); }
+    MaterialChooser(const MaterialChooser&) = delete;
+    MaterialChooser& operator=(const MaterialChooser&) = delete;
+};
+
+/// @brief Add Element on @p scope of the book, @p id the group or the element of the scope
+gui::AddTarget addingOn(gui::AddTarget::Scope scope, const QString& id = QString(),
+                        BookPlace place = BookPlace::Main) {
+    gui::AddTarget target;
+    target.scope = scope;
+    target.id = id;
+    target.place = place;
+    return target;
+}
+
+/// @brief The rows of the kinds that can be chosen in the list of @p dialog
+QStringList enabledRowsOf(const NewFileDialog& dialog) {
+    QStringList rows;
+    for (const QString& row : rowsOf(*dialog.kindList())) {
+        if (!row.contains(QStringLiteral(" (greyed): "))) {
+            rows << row;
+        }
+    }
+    return rows;
+}
+
+} // namespace
+
+TEST_CASE("Add Element: the kinds of the place it was opened on, the usual one chosen",
+          "[gui][newfile][addelement]") {
+    test::OpenNovel book(QStringLiteral("Rain"));
+    const core::BookTypeRegistry& types = book.pm.bookTypes();
+    REQUIRE(book.pm.book() != nullptr);
+    const QString chapterOne = book.pm.book()->mainElements.first().id;
+
+    SECTION("the book: the kinds of all its sections, the chapter at the end of the body") {
+        NewFileDialog dialog(NewFileDialog::forAdding(addingOn(gui::AddTarget::Scope::Book)),
+                             types);
+        CHECK(dialog.windowTitle() == QStringLiteral("Add Element"));
+        CHECK(test::textsOf(dialog).contains(
+            QStringLiteral("Choose the kind of the new element, its title, status and place.")));
+        CHECK(joined(enabledRowsOf(dialog)) ==
+              "# Front Section | Copyright page | Dedication | Epigraph | Preface | "
+              "# Main Section | Prologue | Part | Chapter | Epilogue | # Back Section | "
+              "Afterword | Acknowledgments | Glossary | About the author");
+        REQUIRE(dialog.kind());
+        CHECK(dialog.kind().kind->id == QStringLiteral("chapter"));
+        CHECK(dialog.place() == core::ElementPlace{BookPlace::Main, QString(), 2});
+        CHECK(dialog.titleEdit()->text() == QStringLiteral("Chapter 3"));
+
+        // A text of the book has a status, a draft at the start; a part has none
+        CHECK(dialog.statusBox()->isVisibleTo(&dialog));
+        CHECK(dialog.status() == QStringLiteral("draft"));
+        dialog.statusBox()->setCurrentIndex(dialog.statusBox()->findData(QStringLiteral("final")));
+        CHECK(dialog.status() == QStringLiteral("final"));
+        choose(dialog, QStringLiteral("Part"));
+        CHECK_FALSE(dialog.statusBox()->isVisibleTo(&dialog));
+        CHECK(dialog.status().isEmpty());
+        CHECK(test::textsOf(dialog).contains(
+            QStringLiteral("Choose the kind of the new element, its title and place.")));
+    }
+
+    SECTION("a section: its kinds only") {
+        NewFileDialog dialog(NewFileDialog::forAdding(addingOn(gui::AddTarget::Scope::Section,
+                                                               QString(), BookPlace::Back)),
+                             types);
+        CHECK(joined(enabledRowsOf(dialog)) ==
+              "# Back Section | Afterword | Acknowledgments | Glossary | About the author");
+        REQUIRE(dialog.kind());
+        CHECK(dialog.kind().kind->id == QStringLiteral("afterword"));
+        CHECK(dialog.place().place == BookPlace::Back);
+    }
+
+    SECTION("a part: what goes inside it (an epigraph opens a part), at its end") {
+        const QString part =
+            book.pm.addElement(book.pm.partKind(), QStringLiteral("Part One"), BookPlace::Main);
+        REQUIRE_FALSE(part.isEmpty());
+        NewFileDialog dialog(NewFileDialog::forAdding(addingOn(gui::AddTarget::Scope::Group, part)),
+                             types);
+        CHECK(joined(enabledRowsOf(dialog)) ==
+              "# In the part \"Part One\" | Prologue | Chapter | Epilogue | Epigraph");
+        REQUIRE(dialog.kind());
+        CHECK(dialog.kind().kind->id == QStringLiteral("chapter"));
+        CHECK(dialog.place() == core::ElementPlace{BookPlace::Main, part, 0});
+    }
+
+    SECTION("an element: the kinds of its list, right after it") {
+        NewFileDialog dialog(
+            NewFileDialog::forAdding(addingOn(gui::AddTarget::Scope::Element, chapterOne)), types);
+        REQUIRE(dialog.kind());
+        CHECK(dialog.kind().kind->id == QStringLiteral("chapter"));
+        CHECK(dialog.place() == core::ElementPlace{BookPlace::Main, QString(), 1});
+        CHECK(enabledRowsOf(dialog).contains(QStringLiteral("Part")));
+        CHECK_FALSE(enabledRowsOf(dialog).contains(QStringLiteral("Dedication")));
+    }
+
+    SECTION("the kind chosen at the start, where an element of it can be made") {
+        gui::AddTarget target = addingOn(gui::AddTarget::Scope::Book);
+        target.kind = types.findKind(QStringLiteral("kalahari.novel"), QStringLiteral("prologue"));
+        REQUIRE(target.kind);
+        NewFileDialog dialog(NewFileDialog::forAdding(target), types);
+        REQUIRE(dialog.kind());
+        CHECK(dialog.kind().kind->id == QStringLiteral("prologue"));
+        CHECK(dialog.place() == core::ElementPlace{BookPlace::Main, QString(), 0});
+    }
+}
+
+TEST_CASE("Add Element: a new part takes the elements that close the main section, or leaves "
+          "them",
+          "[gui][newfile][addelement]") {
+    test::OpenNovel book(QStringLiteral("Rain"));
+    const core::BookTypeRegistry& types = book.pm.bookTypes();
+    // The epilogue closes the main section at the end of its only part
+    const QString part =
+        book.pm.addElement(book.pm.partKind(), QStringLiteral("Part One"), BookPlace::Main);
+    REQUIRE_FALSE(part.isEmpty());
+    const QString epilogue = book.pm.addElement(
+        types.findKind(QStringLiteral("kalahari.novel"), QStringLiteral("epilogue")),
+        QStringLiteral("Epilogue"), BookPlace::Main, part);
+    REQUIRE_FALSE(epilogue.isEmpty());
+
+    gui::AddTarget target = addingOn(gui::AddTarget::Scope::Book);
+    target.kind = book.pm.partKind();
+    NewFileDialog dialog(NewFileDialog::forAdding(target), types);
+    REQUIRE(dialog.kind());
+    CHECK(dialog.kind().kind->id == QStringLiteral("part"));
+    CHECK(dialog.takeBox()->isVisibleTo(&dialog));
+    CHECK(dialog.takeBox()->isChecked());
+    CHECK(dialog.takeInside() == QStringList{epilogue});
+    dialog.takeBox()->setChecked(false);
+    CHECK(dialog.takeInside().isEmpty());
+
+    // A chapter takes nothing
+    choose(dialog, QStringLiteral("Chapter"));
+    CHECK_FALSE(dialog.takeBox()->isVisibleTo(&dialog));
+    CHECK(dialog.takeInside().isEmpty());
+}
+
+TEST_CASE("Add Element: in the Workshop a working note and a material, without places and "
+          "statuses",
+          "[gui][newfile][addelement]") {
+    test::OpenNovel book(QStringLiteral("Rain"));
+    const core::BookTypeRegistry& types = book.pm.bookTypes();
+
+    SECTION("the kinds of the Workshop; those without an editor say why") {
+        NewFileDialog dialog(NewFileDialog::forAdding(addingOn(gui::AddTarget::Scope::Workshop)),
+                             types);
+        CHECK(test::textsOf(dialog).contains(
+            QStringLiteral("Choose the kind of the new element of the Workshop and its title.")));
+        CHECK(joined(enabledRowsOf(dialog)) == "# Workshop | Working note | Material");
+        CHECK(rowsOf(*dialog.kindList()).contains(
+            QStringLiteral("Mind map (greyed): The program does not have an editor for the mind "
+                           "map yet.")));
+        REQUIRE(dialog.kind());
+        CHECK(dialog.kind().kind->id == QStringLiteral("work_note"));
+        CHECK(dialog.titleEdit()->text() == QStringLiteral("Note 1"));
+        CHECK_FALSE(dialog.statusBox()->isVisibleTo(&dialog));
+        CHECK(dialog.status().isEmpty());
+        CHECK_FALSE(dialog.picker()->isVisibleTo(&dialog));
+        CHECK(dialog.placeNote()->text() ==
+              QStringLiteral("In the Workshop the elements are in alphabetical order, so the "
+                             "working note goes to the group \"Working notes\" at the place of "
+                             "its title."));
+        CHECK(dialog.place().place == BookPlace::Workshop);
+    }
+
+    SECTION("the kinds of a group of the Workshop only") {
+        gui::AddTarget target = addingOn(gui::AddTarget::Scope::Workshop);
+        target.kinds = {types.findKind(QStringLiteral("kalahari.base"), QStringLiteral("work_note"))};
+        NewFileDialog dialog(NewFileDialog::forAdding(target), types);
+        CHECK(joined(enabledRowsOf(dialog)) == "# Workshop | Working note");
+    }
+
+    SECTION("a material is a copy of the file chosen, named after it") {
+        QTemporaryDir files;
+        REQUIRE(files.isValid());
+        const QString picture = QDir(files.path()).filePath(QStringLiteral("Old Map.png"));
+        MaterialChooser chooser(QString{});
+        NewFileDialog dialog(NewFileDialog::forAdding(addingOn(gui::AddTarget::Scope::Workshop)),
+                             types);
+        choose(dialog, QStringLiteral("Material"));
+        CHECK(test::textsOf(dialog).contains(
+            QStringLiteral("Choose the file of the material and its title.")));
+        CHECK(dialog.materialLabel()->isVisibleTo(&dialog));
+        CHECK(dialog.chooseButton()->isVisibleTo(&dialog));
+
+        // No file chosen yet: nothing to add
+        dialog.chooseButton()->click();
+        CHECK(dialog.materialFile().isEmpty());
+        CHECK(dialog.titleEdit()->text().isEmpty());
+        CHECK_FALSE(dialog.createButton()->isEnabled());
+
+        // The file chosen gives its title; the writer's own title stays
+        chooser.file = picture;
+        dialog.chooseButton()->click();
+        CHECK(dialog.materialFile() == QFileInfo(picture).absoluteFilePath());
+        CHECK(dialog.titleEdit()->text() == QStringLiteral("Old Map"));
+        CHECK(dialog.createButton()->isEnabled());
+        eraseText(dialog.titleEdit());
+        typeText(dialog.titleEdit(), QStringLiteral("The Map"));
+        dialog.chooseButton()->click();
+        CHECK(dialog.titleEdit()->text() == QStringLiteral("The Map"));
+        // The second time the window opens in the folder of the file
+        REQUIRE(chooser.folders.size() == 3);
+        CHECK(chooser.folders.at(2) == QFileInfo(picture).absolutePath());
+
+        // Another kind has no file
+        choose(dialog, QStringLiteral("Working note"));
+        CHECK(dialog.materialFile().isEmpty());
+        CHECK_FALSE(dialog.materialLabel()->isVisibleTo(&dialog));
+    }
+}

@@ -100,19 +100,27 @@ TEST_CASE("Navigator: the elements of a book in its three sections", "[gui][navi
     REQUIRE(tree != nullptr);
     panel.loadProject(project, registry());
 
-    // The book, named by its title, with its sections
+    // The project, named by the title of its book, with the book and the Workshop; the book
+    // has its sections
     REQUIRE(tree->topLevelItemCount() == 1);
     const QTreeWidgetItem* root = tree->topLevelItem(0);
     CHECK(root->text(0) == QStringLiteral("Test Book"));
     CHECK(typeOf(root) == QStringLiteral("document"));
-    REQUIRE(root->childCount() == 3);
-    CHECK(typeOf(root->child(0)) == QStringLiteral("section_frontmatter"));
-    CHECK(typeOf(root->child(1)) == QStringLiteral("section_body"));
-    CHECK(typeOf(root->child(2)) == QStringLiteral("section_backmatter"));
+    REQUIRE(root->childCount() == 2);
+    const QTreeWidgetItem* book = root->child(0);
+    CHECK(typeOf(book) == QStringLiteral("book"));
+    CHECK(book->text(0) == QStringLiteral("Book"));
+    CHECK(book->isExpanded());
+    CHECK(typeOf(root->child(1)) == QStringLiteral("workshop"));
+    CHECK(root->child(1)->text(0) == QStringLiteral("Workshop"));
+    REQUIRE(book->childCount() == 3);
+    CHECK(typeOf(book->child(0)) == QStringLiteral("section_frontmatter"));
+    CHECK(typeOf(book->child(1)) == QStringLiteral("section_body"));
+    CHECK(typeOf(book->child(2)) == QStringLiteral("section_backmatter"));
 
     // A chapter can be in the body itself or in a part; text elements show their status
     // unless it is final, a chapter without one is a draft
-    const QTreeWidgetItem* body = root->child(1);
+    const QTreeWidgetItem* body = book->child(1);
     REQUIRE(body->childCount() == 2);
     CHECK(body->child(0)->text(0) == QStringLiteral("Prologue [Revision]"));
     CHECK(typeOf(body->child(0)) == QStringLiteral("text_element"));
@@ -135,6 +143,8 @@ TEST_CASE("Navigator: the elements of a book in its three sections", "[gui][navi
     CHECK_FALSE(body->flags().testFlag(Qt::ItemIsDragEnabled));
     CHECK(body->flags().testFlag(Qt::ItemIsDropEnabled));
     CHECK_FALSE(root->flags().testFlag(Qt::ItemIsDropEnabled));
+    CHECK_FALSE(book->flags().testFlag(Qt::ItemIsDropEnabled));
+    CHECK_FALSE(book->flags().testFlag(Qt::ItemIsDragEnabled));
 
     // A chapter with unsaved changes keeps its mark when the tree is loaded again
     panel.setElementModified(QStringLiteral("Chapter 1"), true);
@@ -164,10 +174,11 @@ TEST_CASE("Navigator: the sections have the names the book gives them", "[gui][n
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     const auto names = [tree]() {
-        const QTreeWidgetItem* root = tree->topLevelItem(0);
+        const QTreeWidgetItem* book = findSection(tree, QStringLiteral("book"));
+        REQUIRE(book != nullptr);
         QStringList list;
-        for (int i = 0; i < root->childCount(); ++i) {
-            list << root->child(i)->text(0);
+        for (int i = 0; i < book->childCount(); ++i) {
+            list << book->child(i)->text(0);
         }
         return list.join(QStringLiteral(", ")).toStdString();
     };
@@ -223,10 +234,11 @@ TEST_CASE("Navigator: a book without sections shows its elements one after anoth
 
     // No items of sections: the elements of the front, main and back section in reading order
     REQUIRE(tree->topLevelItemCount() == 1);
-    const QTreeWidgetItem* root = tree->topLevelItem(0);
+    const QTreeWidgetItem* book = findSection(tree, QStringLiteral("book"));
+    REQUIRE(book != nullptr);
     QStringList ids;
-    for (int i = 0; i < root->childCount(); ++i) {
-        ids << root->child(i)->data(0, Qt::UserRole).toString();
+    for (int i = 0; i < book->childCount(); ++i) {
+        ids << book->child(i)->data(0, Qt::UserRole).toString();
     }
     CHECK(ids.join(QStringLiteral(", ")).toStdString() ==
           "Title, Dedication, Chapter 1, Part One, Afterword");
@@ -237,7 +249,8 @@ TEST_CASE("Navigator: a book without sections shows its elements one after anoth
     // a section and the first one of the next is in both of them: the element goes to the
     // first one that can have it (the section of the element below which it is dropped, or
     // above which), unless it is there already
-    CHECK(root->flags().testFlag(Qt::ItemIsDropEnabled));
+    CHECK(book->flags().testFlag(Qt::ItemIsDropEnabled));
+    CHECK_FALSE(tree->topLevelItem(0)->flags().testFlag(Qt::ItemIsDropEnabled));
     const auto drop = [tree, &project](const char* dragged, const char* target, Spot spot) {
         return gui::NavigatorPanel::dropPlaceOf(project, registry(),
                                                 findItem(tree, QString::fromLatin1(dragged)),
@@ -264,7 +277,7 @@ TEST_CASE("Navigator: a book without sections shows its elements one after anoth
           findSection(tree, QStringLiteral("section_body")));
     CHECK(findItem(tree, "Title")->parent() ==
           findSection(tree, QStringLiteral("section_frontmatter")));
-    CHECK_FALSE(tree->topLevelItem(0)->flags().testFlag(Qt::ItemIsDropEnabled));
+    CHECK_FALSE(findSection(tree, QStringLiteral("book"))->flags().testFlag(Qt::ItemIsDropEnabled));
     CHECK(drop("Part One", "Chapter 1", Spot::Above) == placeAt(BookPlace::Main, "", 0));
     CHECK_FALSE(drop("Part One", "Dedication", Spot::Below));  // the sections are apart
     CHECK(drop("Chapter 1", "Dedication", Spot::Below) == placeAt(BookPlace::Front, "", 2));
@@ -374,10 +387,13 @@ TEST_CASE("Navigator: an element is dragged to any place its kind can have",
     CHECK_FALSE(drop("Part One", item("Title"), Spot::Below));
     CHECK_FALSE(drop("Afterword", item("Chapter 1"), Spot::Above));
 
-    // Where it is, on itself, on the book; a section is not dragged
+    // Where it is, on itself, on the book, on the project, in the Workshop; a section is not
+    // dragged
     CHECK_FALSE(drop("Chapter 2", item("Part One"), Spot::On));
     CHECK_FALSE(drop("Chapter 1", item("Chapter 1"), Spot::Above));
+    CHECK_FALSE(drop("Chapter 1", findSection(tree, "book"), Spot::On));
     CHECK_FALSE(drop("Chapter 1", tree->topLevelItem(0), Spot::On));
+    CHECK_FALSE(drop("Chapter 1", findSection(tree, "workshop"), Spot::On));
     CHECK_FALSE(gui::NavigatorPanel::dropPlaceOf(project, registry(),
                                                  findSection(tree, "section_body"),
                                                  item("Chapter 1"), Spot::Above));

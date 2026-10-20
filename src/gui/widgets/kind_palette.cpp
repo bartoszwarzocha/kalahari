@@ -97,19 +97,19 @@ public:
         QSizePolicy nowPolicy = m_now->sizePolicy();
         nowPolicy.setRetainSizeWhenHidden(true);
         m_now->setSizePolicy(nowPolicy);
-        if (!KindPalette::canCreateNow(kind, place)) {
+        if (!KindPalette::canCreateNow(kind)) {
             m_now->setEnabled(false);
-            if (kind.kind->form == core::ElementForm::Window) {
+            if (kind.kind->isMaterial()) {
+                //: The tooltip of "Create now" on a material of the Workshop, e.g. a picture.
+                //: In Polish: Materiał to kopia pliku wybranego przy dodawaniu.
+                m_now->setToolTip(QCoreApplication::translate(
+                    "KindPalette", "A material is a copy of a file chosen when it is added."));
+            } else {
                 //: The tooltip of "Create now" on a kind that opens in a window of its own,
                 //: e.g. a character card. In Polish: Program nie ma jeszcze edytora tego
                 //: rodzaju.
                 m_now->setToolTip(QCoreApplication::translate(
                     "KindPalette", "The program does not have an editor of this kind yet."));
-            } else {
-                //: The tooltip of "Create now" on a kind of the Workshop, e.g. a work note.
-                //: In Polish: Nawigator nie pokazuje jeszcze Warsztatu.
-                m_now->setToolTip(QCoreApplication::translate(
-                    "KindPalette", "The Navigator does not show the Workshop yet."));
             }
         }
         m_now->hide();
@@ -397,10 +397,9 @@ QList<core::KindRef> KindPalette::kindsIn(core::BookPlace place) const
     return kinds;
 }
 
-bool KindPalette::canCreateNow(const core::KindRef& kind, core::BookPlace place)
+bool KindPalette::canCreateNow(const core::KindRef& kind)
 {
-    return kind && kind.kind->form != core::ElementForm::Window &&
-           place != core::BookPlace::Workshop;
+    return kind && kind.kind->form != core::ElementForm::Window;
 }
 
 void KindPalette::changeEvent(QEvent* event)

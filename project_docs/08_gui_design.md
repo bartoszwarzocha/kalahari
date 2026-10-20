@@ -1558,6 +1558,7 @@ Rules for a new shortcut:
 | Edit > Find & Replace... | Ctrl+H |
 | Edit > Next To Do | Alt+Down |
 | Edit > Previous To Do | Alt+Up |
+| Book > Add... | Ctrl+Shift+Enter |
 | Insert > Add Annotation... | Ctrl+Shift+M |
 | Format > Bold | Ctrl+B |
 | Format > Italic | Ctrl+I |
@@ -1606,6 +1607,9 @@ may have them too.
   field – replace, Esc – close, Alt+C – match case, Alt+W – whole words, Alt+R – regular
   expression (in the bar and in the text under it, before the menus with these letters).
 - **Annotation frame:** Ctrl+Enter – keep the text, Esc – drop it.
+- **Navigator:** Insert or Ctrl+Shift+Enter – Add... on the node, Enter – open the element,
+  F2 – rename the node, Delete – delete the element (in the tree only, before the commands
+  with these keys).
 - **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –
   edit, Space – done or resolved, Delete – delete, the Menu key or Shift+F10 – its menu,
   Esc – back to the text.

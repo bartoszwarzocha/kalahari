@@ -391,6 +391,21 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
         {tr("Back to the text"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
     groups.push_back(std::move(annotations));
 
+    // The tree of the Navigator takes its keys only while it has the keys: F2 elsewhere shows
+    // the Navigator, and Ctrl+Shift+Enter elsewhere is Book > Add... for what is in front
+    FixedKeyGroup navigator;
+    navigator.title = tr("Fixed: the Navigator");
+    navigator.local = true;
+    QList<QKeyCombination> addKeys{keyWith(NONE, Qt::Key_Insert)};
+    addKeys.append(enterKeys(CTRL | SHIFT));
+    navigator.rows.push_back({tr("Add... on the node"), addKeys, NONE, {}, {}, {}});
+    navigator.rows.push_back({tr("Open the element"), enterKeys(NONE), NONE, {}, {}, {}});
+    navigator.rows.push_back(
+        {tr("Rename the node"), {keyWith(NONE, Qt::Key_F2)}, NONE, {}, {}, {}});
+    navigator.rows.push_back(
+        {tr("Delete the element"), {keyWith(NONE, Qt::Key_Delete)}, NONE, {}, {}, {}});
+    groups.push_back(std::move(navigator));
+
     FixedKeyGroup distractionFree;
     distractionFree.title = tr("Fixed: Distraction-Free");
     distractionFree.rows.push_back(

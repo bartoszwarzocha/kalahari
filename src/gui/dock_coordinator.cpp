@@ -246,14 +246,6 @@ void DockCoordinator::createNavigatorDock() {
         m_propertiesDock->raise();
     });
 
-    // Connect Navigator add item signals (OpenSpec #00042 Task 7.19 Issue #1)
-    connect(m_navigatorPanel, &NavigatorPanel::requestAddChapter,
-            this, &DockCoordinator::requestAddChapter);
-    connect(m_navigatorPanel, &NavigatorPanel::requestAddPart,
-            this, &DockCoordinator::requestAddPart);
-    connect(m_navigatorPanel, &NavigatorPanel::requestAddItem,
-            this, &DockCoordinator::requestAddItem);
-
     logger.debug("DockCoordinator: Navigator dock created");
 }
 

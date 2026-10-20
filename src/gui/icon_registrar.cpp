@@ -74,6 +74,7 @@ void registerAllIcons() {
     // -------------------------------------------------------------------------
     // BOOK MENU ICONS
     // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("book.addElement", "resources/icons/twotone/add_box.svg", "Add Element");
     iconRegistry.registerIcon("book.newChapter", "resources/icons/twotone/article.svg", "New Chapter");
     iconRegistry.registerIcon("book.newScene", "resources/icons/twotone/theaters.svg", "New Scene");
     iconRegistry.registerIcon("book.newCharacter", "resources/icons/twotone/person.svg", "New Character");
@@ -319,6 +320,12 @@ void registerAllIcons() {
     // STRUCTURE ICONS (OpenSpec #00034)
     // Navigator panel section differentiation
     // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("structure.book", "resources/icons/twotone/book.svg", "Book");
+    iconRegistry.registerIcon("structure.workshop", "resources/icons/twotone/build.svg", "Workshop");
+    iconRegistry.registerIcon("structure.libraries", "resources/icons/twotone/import_contacts.svg",
+                              "Libraries");
+    iconRegistry.registerIcon("structure.resources", "resources/icons/twotone/layers.svg",
+                              "Resources");
     iconRegistry.registerIcon("structure.frontmatter", "resources/icons/twotone/first_page.svg", "Front Matter");
     iconRegistry.registerIcon("structure.body", "resources/icons/twotone/menu_book.svg", "Body");
     iconRegistry.registerIcon("structure.backmatter", "resources/icons/twotone/last_page.svg", "Back Matter");
@@ -328,7 +335,7 @@ void registerAllIcons() {
                               "Unassigned Files");
     iconRegistry.registerIcon("project.book", "resources/icons/twotone/auto_stories.svg", "Book Project");
 
-    logger.debug("Registered {} icons with IconRegistry", 184);
+    logger.debug("Registered {} icons with IconRegistry", 189);
 }
 
 } // namespace gui

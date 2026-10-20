@@ -64,8 +64,14 @@ struct CommandCallbacks {
     // =========================================================================
     // BOOK COMMANDS
     // =========================================================================
+    std::function<void()> onAddElement;         ///< Book > Add...: Add Element for what is
+                                                ///< in front
     std::function<void()> onNewChapter;         ///< Book > New Chapter... (named after the
                                                 ///< main texts of the book: New Story...)
+    /// Book > New Character..., New Location..., New Item..., New Mind Map..., New
+    /// Timeline...: Add Element in the Workshop with the kind of the base package of that id
+    /// ("character")
+    std::function<void(const QString& kindId)> onNewWorkshopElement;
     std::function<void()> onBookProperties;     ///< Book > Book Properties...
 
     // =========================================================================

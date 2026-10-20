@@ -28,12 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it adds nothing to the word count. A scene break looks as
   Settings > Editor > General > Scene Break Look says, with a preview: three asterisks, an
   asterism, a fleuron, a short line or a blank line; the file keeps the break whatever its
-  look. A page break starts a new page in the page view; the continuous views show it as a
-  dashed line with the words "Page Break". View > Show Formatting Marks (Ctrl+Shift+8) shows ¶ at
+  look. A page break shows as a dashed line with the words "Page Break" in every view, with
+  the formatting marks or without them, and in the page view the text after it starts a new
+  page. View > Show Formatting Marks (Ctrl+Shift+8) shows ¶ at
   the end of the paragraphs, · in the spaces, ° in the no-break spaces, → for the tabs, ↵ for
   the line breaks and ¬ for the optional hyphens, in a color of their own (Settings > Editor >
-  Colors > Formatting marks); the lines do not move, the choice is kept between sessions, and
-  the page view then shows the page breaks too. Edit > Select Word, Select Paragraph and
+  Colors > Formatting marks); the lines do not move and the choice is kept between sessions.
+  Edit > Select Word, Select Paragraph and
   Delete (Del) work. KML has the headings `<h1>`-`<h3>`, the paragraph attribute `style` and
   the elements `<hr/>`, `<scene-break/>` and `<page-break/>` (docs/kml_format.md); a style the
   book's type does not have is kept.
@@ -42,11 +43,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Word, LibreOffice or a browser keeps its headings, quotes, horizontal lines, page breaks,
   line breaks and emphasis (bold, italic, underline, strikethrough, subscript, superscript),
   and its centered and right-aligned paragraphs, and takes the look of the text it goes to
-  (it came as plain text). Settings > Editor > General, "Paste from Other Programs": Merge
-  Formatting (the default), Keep Source Formatting (also the fonts, sizes, colors and every
-  alignment of the other program) or Keep Text Only. Text copied in Kalahari gives Word and
+  (it came as plain text). Edit > Paste (Ctrl+V) pastes as Settings > Editor > General >
+  Paste Command says: Merge Formatting (the default), Keep Source Formatting (also the fonts,
+  sizes, colors and every alignment of the other program) or Keep Text Only. The Edit menu
+  has a paste for each of them too, whatever Paste does: Paste with Source Formatting
+  (Alt+Shift+V), Paste and Merge Formatting (Alt+Shift+M) and Paste Text Only (Ctrl+Shift+V,
+  which leaves the formatting of text copied in Kalahari too); on macOS with Option+Shift+Cmd.
+  Text copied in Kalahari gives Word and
   LibreOffice its headings, quotes, horizontal lines, scene breaks and page breaks, and a
   plain text program a line for each of them.
+
+- **Navigator: the book and the Workshop, and one window that adds** - 2026-10-20. The
+  Navigator shows the project, named after the title of its book, with two nodes: the book,
+  with its sections, parts and elements as before, and the Workshop, the elements of the work
+  on the book that the finished book does not have, in groups of their kinds (Working notes,
+  Materials; the kinds the program cannot add yet show when they have elements). The writer
+  names both nodes with Rename... (F2); the usual names follow the language of the program.
+  Grouping, in the menu of the Workshop, puts the cards (characters, locations, items) in
+  Libraries and the materials in Resources. "Unassigned Files" is the last node of the
+  project, and the files open outside the book have a node of their own after it.
+  Every node has Add..., in bold, which opens the Add Element window with the kinds of its
+  place: the book the kinds of all its sections, a section its own, a part what goes inside
+  it, an element the kinds of its list right after it, the Workshop its kinds. The window has
+  the tiles of the kinds, the title, the status of a text of the book (Draft, Revision,
+  Final) and the place; a new part can take the elements that close the main section. A
+  working note opens in the editor with the cursor at its start, as a new chapter does; a
+  material is a copy of a file the writer chooses (a picture, a PDF file) in the Workshop's
+  folder, which Open opens in the program the system has for it. By default the menus also
+  have commands named after the kinds most added there (Add Chapter..., Add Part..., Add
+  Working note...), which open the window with that kind chosen; Settings > Navigator can
+  leave only Add... there. The "+" button of the Navigator's bar and Ctrl+Shift+Enter (in the
+  tree also Insert) do Add... on the current node. Book > Add... (Ctrl+Shift+Enter), in bold,
+  adds at the element in the editor: right after it, or in the Workshop to the group of its
+  kind; Book > New Chapter... adds a chapter right after the chapter in the editor. New
+  Character..., New Location..., New Item..., New Mind Map... and New Timeline... are greyed
+  out, with the reason in their tooltip ("The program does not have an editor for the
+  character yet."). In the tree Enter opens the element, F2 renames the node and Delete
+  deletes the element; the menus show these keys, and Settings > Keyboard Shortcuts lists them
+  (Fixed: the Navigator). In the New Book palette a working note can be created with the
+  book, in the Workshop.
 
 - **Dashboard: an X on the card of a recent book** - 2026-10-19. A small X in the top right
   corner of each card takes the book off the recent books ("Remove from the recent books (the
@@ -718,6 +753,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **The windows Add Chapter, Add Part and Add Item** - 2026-10-20. The Add Element window
+  takes their place, also for Book > New Chapter...; the Navigator's commands Add Item at the
+  Beginning of the Book... and Add Item at the End of the Book... are gone with them (Add...
+  on the book's node, or on a section, offers those places).
 - **Books: the first book model** - 2026-10-16. The classes of the first book model, which
   nothing used since the program works on the book project of the .klh format 2 (`Book`,
   `Part`, `BookElement`, `Document`, `DocumentArchive`, the element types of

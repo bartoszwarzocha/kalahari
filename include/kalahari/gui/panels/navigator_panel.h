@@ -11,6 +11,7 @@
 #pragma once
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/gui/add_target.h"
 
 #include <QWidget>
 #include <QHash>
@@ -44,15 +45,30 @@ namespace gui {
 
 /// @brief Navigator panel showing project structure tree
 ///
-/// Displays a QTreeWidget for the book of the project: its front, main and back sections with
-/// the book's names and their elements, and the elements inside groups (parts). A book without
+/// Displays a QTreeWidget for the project, named after the title of its book. Under it are the
+/// book ("Book") and the Workshop, which the writer can name (core::ProjectBook::name,
+/// core::ProjectWorkshop::name). The book has its front, main and back sections with the
+/// book's names and their elements, and the elements inside groups (parts). A book without
 /// sections shows the elements of the three sections one after another under the book's item.
 /// Supports icons, element selection, and automatic theme refresh.
 /// OpenSpec #00034 Phase C: Added editor synchronization (highlight current chapter).
 ///
-/// The chapter files in the book's folder that no element has (the files of elements deleted
-/// from the book without their files) are listed, grey, under "Unassigned Files", from where
-/// they go back to the book or are deleted.
+/// The Workshop, which the finished book does not have, has a group for each of its kinds in
+/// the order of the book's type, named after the kind ("Working notes"), with the elements in
+/// alphabetical order of their titles. A kind whose elements the program can make has its
+/// group always, also empty, so that an element can be added to it; the other kinds when they
+/// have elements. A grouped Workshop (core::ProjectWorkshop::grouped) has the groups of cards
+/// in "Libraries" and those of materials in "Resources". The elements of the Workshop have no
+/// status in the tree, and are not dragged: their place is that of their title.
+///
+/// The chapter files in the folders of the book and of the Workshop that no element has (the
+/// files of elements deleted without their files) are listed, grey, under "Unassigned Files"
+/// at the end of the project, from where they go back to the book or are deleted.
+///
+/// "Add..." on a node (its menu, the "+" button of the bar, Insert or Ctrl+Shift+Enter) asks
+/// for the Add Element window with the kinds of that node (requestAdd()). The menu of a node
+/// also names the kinds most added there ("Add Chapter...", "Add Part..."), unless the setting
+/// "navigator.addCommands" is "single". F2 renames the node and Delete deletes the element.
 ///
 /// An element is dragged to any place of the book its kind can have (dropPlaceOf()), also in
 /// another group or section; a collapsed group or section under it opens after a moment, so
@@ -61,14 +77,17 @@ namespace gui {
 ///
 /// The files of the book outside its text, such as notes, which the finished book does not
 /// have, are in a group of their own after the sections, "Other Files" (core::ProjectBook::files).
-/// Every file open outside the book is listed under "Files Outside the Book", also a new file
-/// that has no file yet (addNewFile()).
+/// Every file open outside the book is listed under "Files Outside the Book", a node of its own
+/// after the project, also a new file that has no file yet (addNewFile()).
 ///
 /// Item data: Qt::UserRole holds the element ID (the path of a standalone file or the key of a
-/// new one, the file of an unassigned file relative to the project folder), Qt::UserRole + 1 the
-/// item type: "document", "section_frontmatter", "section_body", "section_backmatter",
-/// "text_element", "group_element", "window_element", "book_files", "book_file",
-/// "unassigned_files", "unassigned_file", "other_files" or "standalone_file".
+/// new one, the file of an unassigned file relative to the project folder, "workshop:" and the
+/// kind or the shelf for a group of the Workshop), Qt::UserRole + 1 the item type: "document"
+/// (the project), "book", "section_frontmatter", "section_body", "section_backmatter",
+/// "text_element", "group_element", "window_element", "book_files", "book_file", "workshop",
+/// "workshop_shelf", "workshop_group", "unassigned_files", "unassigned_file", "other_files" or
+/// "standalone_file". The elements of the Workshop are "text_element" and "window_element"
+/// items, which isWorkshopItem() tells apart.
 class NavigatorPanel : public QWidget {
     Q_OBJECT
 
@@ -129,6 +148,31 @@ public:
     /// @brief ArtProvider id of the icon of the elements of @p kind: its own, or that of its
     /// form; that of a text without a kind
     static QString iconIdOf(const core::KindRef& kind);
+
+    /// @brief The setting of the commands that add on a node: "named" (variant A: "Add..." and
+    /// the kinds most added there, "Add Chapter...") or "single" (variant B: only "Add...")
+    static constexpr const char* ADD_COMMANDS_SETTING = "navigator.addCommands";
+
+    /// @brief The name of the node of @p book: the writer's own, or "Book"
+    static QString bookName(const core::ProjectBook& book);
+
+    /// @brief The name of the node of the Workshop of @p project: the writer's own, or
+    /// "Workshop"
+    static QString workshopName(const core::BookProject& project);
+
+    /// @brief Whether @p item is an element of the Workshop
+    static bool isWorkshopItem(const QTreeWidgetItem* item);
+
+    /// @brief Where Add Element adds an element when it is opened on @p item, with the kinds
+    /// it offers there; none for the project, the files and the nodes of a book that is not
+    /// open
+    std::optional<AddTarget> addTargetOf(const QTreeWidgetItem* item) const;
+
+    /// @brief The tree of the project
+    QTreeWidget* tree() const { return m_treeWidget; }
+
+    /// @brief The "+" button of the bar: Add... on the current node
+    QToolButton* addButton() const { return m_addButton; }
 
     /// @brief Where an element is dropped, as the line or the frame of the tree shows it
     enum class DropSpot {
@@ -249,16 +293,20 @@ signals:
     /// @param elementId Element ID
     void requestDelete(const QString& elementId);
 
-    /// @brief Request to add a chapter to a group (part) or to the body of the book
-    /// @param groupId Group ID to add chapter to; empty: the body of the book
-    void requestAddChapter(const QString& groupId);
+    /// @brief Request to add an element in the Add Element window, with the kinds of
+    /// @p target and the kind it names chosen at the start
+    void requestAdd(const kalahari::gui::AddTarget& target);
 
-    /// @brief Request to add a new part to the body
-    void requestAddPart();
+    /// @brief Request to name the node of the book or of the Workshop
+    /// @param itemType "book" or "workshop"
+    void requestRenameNode(const QString& itemType);
 
-    /// @brief Request to add an item to the front or back section
-    /// @param sectionType "front_matter" or "back_matter"
-    void requestAddItem(const QString& sectionType);
+    /// @brief Request to group the Workshop (Libraries and Resources) or not
+    void requestWorkshopGrouped(bool grouped);
+
+    /// @brief Request to open material @p elementId of the Workshop in the program the system
+    /// gives its file
+    void requestOpenMaterial(const QString& elementId);
 
     /// @brief Request to show the sections of the book, or to hide them
     /// @param shown Whether the Navigator shows the sections
@@ -361,9 +409,6 @@ private slots:
     void onContextMenuDelete();
     void onContextMenuMoveUp();
     void onContextMenuMoveDown();
-    void onContextMenuAddChapter();
-    void onContextMenuAddPart();
-    void onContextMenuAddItem();
     void onContextMenuExpandAll();
     void onContextMenuCollapseAll();
     void onContextMenuProperties();
@@ -381,7 +426,38 @@ private slots:
     /// @param column Column index
     void onItemActivated(QTreeWidgetItem* item, int column);
 
+protected:
+    /// @brief The keys of the tree: Insert and Ctrl+Shift+Enter add, F2 renames, Delete deletes
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
 private:
+    /// @brief Add... on @p item: the Add Element window with its kinds, the kind @p kind
+    /// chosen at the start; nothing when nothing can be added there
+    void addOn(const QTreeWidgetItem* item, const core::KindRef& kind = {});
+
+    /// @brief Rename @p item: an element, a section, the book or the Workshop; nothing for the
+    /// other items
+    void renameItem(const QTreeWidgetItem* item);
+
+    /// @brief Delete @p item: an element, a file of the book or one that no element has;
+    /// nothing for the other items
+    void deleteItem(const QTreeWidgetItem* item);
+
+    /// @brief Why the command of @p item cannot change the book; empty when it can
+    QString changeRefusal() const;
+
+    /// @brief The "+" button can add on the current node
+    void updateAddButton();
+
+    /// @brief The kinds the menu of @p item names in its own commands ("Add Chapter..."),
+    /// those most added there; none in variant "single" of "navigator.addCommands"
+    QList<core::KindRef> namedKindsOf(const QTreeWidgetItem* item) const;
+
+    /// @brief Add the groups of the kinds of the Workshop of @p project with their elements
+    /// under @p workshopItem
+    void addWorkshopItems(QTreeWidgetItem* workshopItem, const core::BookProject& project,
+                          const core::BookTypeRegistry& registry);
+
     /// @brief Recursively refresh icons on all tree items
     /// @param item Starting item (nullptr for root)
     void refreshItemIcons(QTreeWidgetItem* item);
@@ -397,8 +473,9 @@ private:
     QIcon itemIcon(const QTreeWidgetItem* item, const QString& iconId) const;
 
     /// @brief Add the items of @p elements, and of the elements inside them, under @p parent
+    /// @param workshop The elements are of the Workshop: no status, not dragged
     void addElementItems(QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements,
-                         const core::BookTypeRegistry& registry);
+                         const core::BookTypeRegistry& registry, bool workshop = false);
 
     /// @brief Add the group "Other Files" with the files of the book outside its text, @p files,
     /// under @p parent; nothing when the book has none
@@ -418,7 +495,7 @@ private:
     /// @return Icon ID for ArtProvider
     QString getIconIdForFile(const QString& path) const;
 
-    /// @brief Ensure "Other Files" section exists and is visible
+    /// @brief Ensure "Files Outside the Book" exists, after the project
     void ensureOtherFilesSection();
 
     /// @brief Give the items of "Unassigned Files" their grey look in the colors of the
@@ -506,6 +583,7 @@ private:
     FilterType m_currentFilterType;      ///< Current type filter
     QLineEdit* m_searchEdit;             ///< Filter input field
     QToolButton* m_clearButton;          ///< Clear filter button
+    QToolButton* m_addButton = nullptr;  ///< Add... on the current node
     QToolButton* m_expandAllButton;      ///< Expand all tree items button
     QToolButton* m_collapseAllButton;    ///< Collapse all tree items button
     QTimer* m_filterDebounceTimer;       ///< Debounce timer for filter (300ms)
