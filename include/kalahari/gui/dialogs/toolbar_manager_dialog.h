@@ -10,13 +10,13 @@
 
 #pragma once
 
-#include <QDialog>
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
+
 #include <QListWidget>
 #include <QTreeWidget>
 #include <QComboBox>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QDialogButtonBox>
 #include <QMap>
 #include <QString>
 #include <QStringList>
@@ -51,14 +51,16 @@ namespace ToolbarConstants {
 /// - Create new user-defined toolbars
 /// - Reset toolbars to defaults
 ///
-/// The dialog uses a 3-column layout:
+/// One of the program's own dialogs: its heading says what the window does, Reset to Defaults
+/// is at the left of the buttons and OK, Cancel and Apply at the right. Its content uses a
+/// 3-column layout:
 /// 1. Left: Toolbar list with sections (Built-in, User, Plugin)
 /// 2. Center: Available commands tree with category filter and search
 /// 3. Right: Current toolbar commands with ordering controls
 ///
 /// @see ToolbarManager
 /// @see CommandRegistry
-class ToolbarManagerDialog : public QDialog {
+class ToolbarManagerDialog : public KalahariDialog {
     Q_OBJECT
 
 public:
@@ -69,6 +71,9 @@ public:
 
     /// @brief Destructor
     ~ToolbarManagerDialog() override = default;
+
+    /// @brief OK: save the changes and close the dialog
+    void accept() override;
 
 private slots:
     // ========================================================================
@@ -138,9 +143,6 @@ private slots:
 
     /// @brief Reset all toolbars to default configuration
     void onReset();
-
-    /// @brief Handle OK button (apply and close)
-    void onAccept();
 
     // ========================================================================
     // State Updates
@@ -273,9 +275,6 @@ private:
 
     /// @brief Reset to defaults button
     QPushButton* m_resetBtn;
-
-    /// @brief Standard dialog buttons (Apply, OK, Cancel)
-    QDialogButtonBox* m_buttonBox;
 
     // ========================================================================
     // State

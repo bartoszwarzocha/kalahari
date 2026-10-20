@@ -24,7 +24,6 @@
 #include <QAction>
 #include <QComboBox>
 #include <QCoreApplication>
-#include <QDialogButtonBox>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -145,8 +144,7 @@ std::string titlesOf(const QList<core::ProjectElement>& elements) {
 
 /// @brief The Cancel button of the New File window
 QAbstractButton* cancelButton(const NewFileDialog& dialog) {
-    const auto* buttons = dialog.findChild<QDialogButtonBox*>();
-    return buttons ? buttons->button(QDialogButtonBox::Cancel) : nullptr;
+    return dialog.cancelButton();
 }
 
 /// @brief Run @p command; in the New File window it shows, do @p act and press the button it
@@ -714,6 +712,8 @@ TEST_CASE("New File: choosing the empty text file moves neither the tiles nor th
     NewFileDialog dialog(NewFileDialog::openBook(QStringLiteral("Untitled 1")),
                          book.pm.bookTypes());
     dialog.show();
+    // In a low window the content scrolls: its scroll bar comes after the first layout
+    QCoreApplication::processEvents();
     QCoreApplication::processEvents();
     const QRect tiles = dialog.kindList()->geometry();
     const QPoint title = dialog.titleEdit()->mapTo(&dialog, QPoint(0, 0));

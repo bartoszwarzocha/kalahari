@@ -6068,6 +6068,11 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <source>Please enter an icon name.</source>
         <translation>Wpisz nazwę ikony.</translation>
     </message>
+    <message>
+        <source>Downloads an SVG icon from its URL and saves it with the icons of a theme.</source>
+        <extracomment>The heading of the icon downloader, a tool of the developers. In Polish: Pobiera ikonę SVG z podanego adresu i zapisuje ją wśród ikon wybranego stylu.</extracomment>
+        <translation>Pobiera ikonę SVG z podanego adresu i zapisuje ją wśród ikon wybranego stylu.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::GrammarCoordinator</name>
@@ -9268,60 +9273,8 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>Zamknij</translation>
     </message>
     <message>
-        <source>Kalahari Writer&apos;s IDE %1</source>
-        <translation>Kalahari Writer&apos;s IDE %1</translation>
-    </message>
-    <message>
         <source>Cross-platform Writer&apos;s IDE for Windows, macOS, and Linux</source>
         <translation>Środowisko pracy pisarza dla systemów Windows, macOS i Linux</translation>
-    </message>
-    <message>
-        <source>Kalahari is a modern writing environment designed for book authors.
-Built with C++20 and Qt6 6.5.0+.
-
-A comprehensive writing toolkit with project management,
-statistics tracking, and powerful export capabilities.</source>
-        <translation>Kalahari to nowoczesne środowisko pracy dla autorów książek.
-Napisane w C++20 i Qt6 6.5.0+.
-
-Kompletny zestaw narzędzi pisarza: zarządzanie projektem,
-statystyki i rozbudowany eksport.</translation>
-    </message>
-    <message>
-        <source>Built with Qt %1</source>
-        <translation>Zbudowano z Qt %1</translation>
-    </message>
-    <message>
-        <source>Kalahari Writer&apos;s IDE - Development Team
-
-Project Vision &amp; Architecture:
-  Bartosz Warzocha (bartosz.warzocha@gmail.com)
-Technology Stack:
-  C++20, Qt6 6.9+, CMake, vcpkg
-
-Special Thanks:
-  - Anthropic for Claude AI assistance
-  - Qt team for excellent cross-platform GUI framework
-  - Open source community for exceptional libraries
-
-Project Timeline:
-  Start: 2025-11
-  Target Release: Q2-Q3 2026 (Kalahari 1.0)</source>
-        <translation>Kalahari Writer&apos;s IDE – zespół
-
-Wizja i architektura projektu:
-  Bartosz Warzocha (bartosz.warzocha@gmail.com)
-Technologie:
-  C++20, Qt6 6.9+, CMake, vcpkg
-
-Podziękowania:
-  – Anthropic za pomoc Claude AI
-  – zespołowi Qt za świetną wieloplatformową bibliotekę interfejsu
-  – społeczności open source za znakomite biblioteki
-
-Harmonogram projektu:
-  Początek: 2025-11
-  Planowane wydanie: II–III kwartał 2026 (Kalahari 1.0)</translation>
     </message>
     <message>
         <source>Copyright (c) 2025 Kalahari Project</source>
@@ -9333,12 +9286,6 @@ Harmonogram projektu:
 </source>
         <translation>Kalahari korzysta z następujących składników innych autorów:
 
-</translation>
-    </message>
-    <message>
-        <source>Qt6 6.5.0+ (www.qt.io)
-</source>
-        <translation>Qt6 6.5.0+ (www.qt.io)
 </translation>
     </message>
     <message>
@@ -9651,6 +9598,61 @@ Harmonogram projektu:
 </source>
         <translation>  Licencja: licencja SCOWL (podobna do BSD)
 
+</translation>
+    </message>
+    <message>
+        <source>Version %1, Qt %2</source>
+        <extracomment>The heading of the About window. %1: the version of the program, %2: the version of Qt it runs with. In Polish: Wersja %1, Qt %2</extracomment>
+        <translation>Wersja %1, Qt %2</translation>
+    </message>
+    <message>
+        <source>Kalahari is a modern writing environment designed for book authors.
+Built with C++20 and Qt 6.
+
+A comprehensive writing toolkit with project management,
+statistics tracking, and powerful export capabilities.</source>
+        <translation>Kalahari to nowoczesne środowisko pracy dla autorów książek.
+Napisane w C++20 i Qt 6.
+
+Kompletny zestaw narzędzi pisarza: zarządzanie projektem,
+statystyki i rozbudowany eksport.</translation>
+    </message>
+    <message>
+        <source>Kalahari Writer&apos;s IDE - Development Team
+
+Project Vision &amp; Architecture:
+  Bartosz Warzocha (bartosz.warzocha@gmail.com)
+Technology Stack:
+  C++20, Qt6 6.9+, CMake, vcpkg
+
+Special Thanks:
+  - Anthropic for Claude AI assistance
+  - Qt team for excellent cross-platform GUI framework
+  - Open source community for exceptional libraries
+
+Project Timeline:
+  Start: 2025-11
+  Target Release: February 2027 (Kalahari 1.0)</source>
+        <translation>Kalahari Writer&apos;s IDE – zespół
+
+Wizja i architektura projektu:
+  Bartosz Warzocha (bartosz.warzocha@gmail.com)
+Technologie:
+  C++20, Qt6 6.9+, CMake, vcpkg
+
+Podziękowania:
+  – Anthropic za pomoc Claude AI
+  – zespołowi Qt za świetną wieloplatformową bibliotekę interfejsu
+  – społeczności open source za znakomite biblioteki
+
+Harmonogram projektu:
+  Początek: 2025-11
+  Planowane wydanie: luty 2027 (Kalahari 1.0)</translation>
+    </message>
+    <message>
+        <source>Qt 6 (www.qt.io)
+</source>
+        <translation>Qt 6 (www.qt.io)
 </translation>
     </message>
 </context>
@@ -11144,6 +11146,11 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <extracomment>Where an empty text file outside the book goes, in place of the list of places. In Polish: Plik otworzy się w nowej karcie, poza książką. Miejsce i format pliku wybierzesz przy pierwszym zapisie.</extracomment>
         <translation>Plik otworzy się w nowej karcie, poza książką. Miejsce i format pliku wybierzesz przy pierwszym zapisie.</translation>
     </message>
+    <message>
+        <source>Choose the kind of the file, its title and where it goes.</source>
+        <extracomment>The heading of the New File window. In Polish: Wybierz rodzaj pliku, jego tytuł i miejsce, w którym ma się znaleźć.</extracomment>
+        <translation>Wybierz rodzaj pliku, jego tytuł i miejsce, w którym ma się znaleźć.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::NewItemDialog</name>
@@ -11319,6 +11326,11 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <source>Next</source>
         <extracomment>The button of the New Book window for a user project, whose kinds the writer chooses in the next window. In Polish: Dalej</extracomment>
         <translation>Dalej</translation>
+    </message>
+    <message>
+        <source>Choose a template, then the title, author, language and folder of the book.</source>
+        <extracomment>The heading of the New Book window. In Polish: Wybierz szablon, a potem tytuł, autora, język i folder książki.</extracomment>
+        <translation>Wybierz szablon, a potem tytuł, autora, język i folder książki.</translation>
     </message>
 </context>
 <context>
@@ -11513,6 +11525,11 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     <message>
         <source>Reset Toolbars</source>
         <translation>Przywróć paski narzędzi</translation>
+    </message>
+    <message>
+        <source>Choose a toolbar on the left, then add, remove and order its commands.</source>
+        <extracomment>The heading of the Customize Toolbars window. In Polish: Wybierz pasek narzędzi po lewej, a potem dodawaj, usuwaj i układaj jego polecenia.</extracomment>
+        <translation>Wybierz pasek narzędzi po lewej, a potem dodawaj, usuwaj i układaj jego polecenia.</translation>
     </message>
 </context>
 <context>

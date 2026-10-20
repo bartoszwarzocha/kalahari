@@ -6,12 +6,12 @@
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/core/utils/icon_downloader.h"
 #include "kalahari/core/utils/svg_converter.h"
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/gui/settings/settings_page.h"
 
 #include <QVBoxLayout>
-#include <QScrollArea>
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QLabel>
@@ -28,7 +28,7 @@ using namespace kalahari::gui;
 using namespace kalahari::core;
 
 IconDownloaderDialog::IconDownloaderDialog(QWidget* parent)
-    : QDialog(parent)
+    : KalahariDialog(parent)
     , m_iconNameEdit(nullptr)
     , m_twotoneCheckBox(nullptr)
     , m_roundedCheckBox(nullptr)
@@ -36,8 +36,6 @@ IconDownloaderDialog::IconDownloaderDialog(QWidget* parent)
     , m_sourceUrlEdit(nullptr)
     , m_progressBar(nullptr)
     , m_statusLabel(nullptr)
-    , m_downloadButton(nullptr)
-    , m_cancelButton(nullptr)
     , m_errorDisplay(nullptr)
     , m_previewWidget(nullptr)
     , m_downloader(nullptr)
@@ -48,7 +46,6 @@ IconDownloaderDialog::IconDownloaderDialog(QWidget* parent)
     , m_isDownloading(false)
 {
     setupUi();
-    setupConnections();
 
     // Initialize downloader and converter
     m_downloader = new IconDownloader(this);
@@ -62,14 +59,17 @@ IconDownloaderDialog::~IconDownloaderDialog() {
 }
 
 void IconDownloaderDialog::setupUi() {
-    setWindowTitle(tr("Icon Downloader"));
+    setHeading(tr("Icon Downloader"),
+               //: The heading of the icon downloader, a tool of the developers. In Polish:
+               //: Pobiera ikonę SVG z podanego adresu i zapisuje ją wśród ikon wybranego stylu.
+               tr("Downloads an SVG icon from its URL and saves it with the icons of a theme."));
+    setHeadingIcon(QStringLiteral("common.download"));
     setModal(true);
-    kalahari::gui::utils::resizeWithinScreen(this, QSize(600, 650));
+    // Higher by the heading, or less on a smaller screen
+    kalahari::gui::utils::resizeWithinScreen(this, withHeading(QSize(600, 650)));
 
     // The settings scroll on a small screen (e.g. 1366x768 at 150%); the buttons stay
-    auto* content = new QWidget(this);
-    QVBoxLayout* mainLayout = new QVBoxLayout(content);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
+    QVBoxLayout* mainLayout = contentLayout();
 
     // === URL Input Group ===
     QGroupBox* urlGroup = new QGroupBox(tr("Icon URL"), this);
@@ -154,35 +154,13 @@ void IconDownloaderDialog::setupUi() {
     mainLayout->addWidget(m_errorDisplay);
     mainLayout->addStretch(1);
 
-    auto* scrollArea = new QScrollArea(this);
-    scrollArea->setFrameShape(QFrame::NoFrame);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    scrollArea->setWidget(content);
-    auto* dialogLayout = new QVBoxLayout(this);
-    dialogLayout->addWidget(scrollArea, 1);
-
     // === Buttons ===
-    QHBoxLayout* buttonLayout = new QHBoxLayout();
-    buttonLayout->addStretch();
-
-    m_downloadButton = new QPushButton(tr("Download"), this);
-    m_downloadButton->setDefault(true);
-    buttonLayout->addWidget(m_downloadButton);
-
-    m_cancelButton = new QPushButton(tr("Close"), this);
-    buttonLayout->addWidget(m_cancelButton);
-
-    dialogLayout->addLayout(buttonLayout);
+    // Download (also Enter in a field) keeps the dialog open; Close closes it
+    setAcceptText(tr("Download"));
+    cancelButton()->setText(tr("Close"));
 }
 
-void IconDownloaderDialog::setupConnections() {
-    connect(m_downloadButton, &QPushButton::clicked, this, &IconDownloaderDialog::onDownloadClicked);
-    connect(m_cancelButton, &QPushButton::clicked, this, &IconDownloaderDialog::onCancelClicked);
-    connect(m_sourceUrlEdit, &QLineEdit::returnPressed, this, &IconDownloaderDialog::onDownloadClicked);
-}
-
-void IconDownloaderDialog::onDownloadClicked() {
+void IconDownloaderDialog::accept() {
     if (m_isDownloading) {
         Logger::getInstance().warn("IconDownloaderDialog: Download already in progress");
         return;
@@ -212,7 +190,7 @@ void IconDownloaderDialog::onDownloadClicked() {
 
     // Update UI state
     m_isDownloading = true;
-    m_downloadButton->setEnabled(false);
+    acceptButton()->setEnabled(false);
     m_statusLabel->setText(tr("Downloading..."));
 
     Logger::getInstance().info("IconDownloaderDialog: Downloading from {}", url.toStdString());
@@ -221,7 +199,7 @@ void IconDownloaderDialog::onDownloadClicked() {
     m_downloader->downloadFromUrl(url, theme);
 }
 
-void IconDownloaderDialog::onCancelClicked() {
+void IconDownloaderDialog::reject() {
     if (m_isDownloading) {
         const bool stop = dialogs::MessageDialog::confirm(this, tr("Cancel Download"),
             tr("The download is in progress. Do you want to stop it?"),
@@ -233,7 +211,7 @@ void IconDownloaderDialog::onCancelClicked() {
     }
 
     Logger::getInstance().info("IconDownloaderDialog: Closing dialog");
-    reject();
+    KalahariDialog::reject();
 }
 
 void IconDownloaderDialog::onDownloadComplete(const QString& theme, const QString& svgData) {
@@ -301,7 +279,7 @@ void IconDownloaderDialog::checkDownloadComplete() {
 
     if (totalProcessed >= m_totalDownloads) {
         m_isDownloading = false;
-        m_downloadButton->setEnabled(true);
+        acceptButton()->setEnabled(true);
         m_progressBar->setValue(100);
 
         if (m_failedDownloads == 0) {
@@ -351,10 +329,11 @@ void IconDownloaderDialog::updatePreview(const QString& svgData) {
         return;
     }
 
-    // Replace placeholders with preview colors
+    // Replace placeholders with the colors of the icons
+    const auto& art = ArtProvider::getInstance();
     QString previewSvg = svgData;
-    previewSvg.replace("{COLOR_PRIMARY}", "#333333");
-    previewSvg.replace("{COLOR_SECONDARY}", "#999999");
+    previewSvg.replace("{COLOR_PRIMARY}", art.getPrimaryColor().name());
+    previewSvg.replace("{COLOR_SECONDARY}", art.getSecondaryColor().name());
 
     m_previewWidget->load(previewSvg.toUtf8());
 

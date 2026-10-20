@@ -11,10 +11,9 @@
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/gui/dialogs/item_templates.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/widgets/sections_field.h"
 
-#include <QDialog>
-#include <QDialogButtonBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QComboBox>
@@ -88,7 +87,8 @@ using NewBookQuestion = std::function<NewBookOpening(QWidget* window, const QStr
 /// - Project mode: Shows author, language, location fields
 /// - File mode: Shows only name field
 ///
-/// Layout structure:
+/// One of the program's own dialogs: its heading says what the window makes, and Create Book
+/// and Cancel are at the bottom. Layout structure of its content:
 /// - LEFT panel (250px): Description area with icon and text
 /// - RIGHT panel (flexible): Template grid with icons
 /// - BOTTOM: Details group with input fields
@@ -104,7 +104,7 @@ using NewBookQuestion = std::function<NewBookOpening(QWidget* window, const QStr
 ///
 /// @see TemplateRegistry
 /// @see NewItemResult
-class NewItemDialog : public QDialog {
+class NewItemDialog : public KalahariDialog {
     Q_OBJECT
 
 public:
@@ -130,6 +130,10 @@ public:
     /// whose kinds the writer chooses in the next window
     static bool isUserProject(const QString& templateId);
 
+    /// @brief Create Book: the result, and for a book of a type the question about the open
+    /// book; the window closes unless the question is cancelled
+    void accept() override;
+
 private slots:
     /// @brief Handle template selection change
     /// @param current Currently selected item
@@ -142,9 +146,6 @@ private slots:
     /// @brief Handle title/name text change
     /// @param text New text value
     void onTitleChanged(const QString& text);
-
-    /// @brief Handle Create button click
-    void onAccept();
 
     /// @brief Refresh icons when theme changes
     void onThemeChanged();
@@ -311,16 +312,6 @@ private:
 
     /// @brief Folder line: the folder the book will be in, or why it cannot be made there
     QLabel* m_folderLabel;
-
-    // ========================================================================
-    // Dialog Buttons
-    // ========================================================================
-
-    /// @brief Standard dialog buttons (Create, Cancel)
-    QDialogButtonBox* m_buttonBox;
-
-    /// @brief Create button reference (for enable/disable)
-    QPushButton* m_createBtn;
 };
 
 } // namespace dialogs
