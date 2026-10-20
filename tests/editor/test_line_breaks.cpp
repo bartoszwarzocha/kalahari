@@ -356,8 +356,9 @@ TEST_CASE("Line breaks: copied, they are line ends for other programs and <br> i
     CHECK(kmlData(*mimeData) == kml);
     // The empty line after a break at a paragraph's end keeps a no-break space, as an
     // empty paragraph does: most programs would drop it
-    CHECK(mimeData->html() == QStringLiteral("<p>Roses are red,<br/>violets are blue.</p>"
-                                             "<p>Next<br/> </p>"));
+    CHECK(mimeData->html() ==
+          ClipboardHandler::htmlDocument(QStringLiteral("<p>Roses are red,<br/>violets are blue.</p>"
+                                                        "<p>Next<br/> </p>")));
 
     SECTION("Pasted in the editor, they are line breaks again") {
         auto other = editorWith(kmlOf({QString()}));

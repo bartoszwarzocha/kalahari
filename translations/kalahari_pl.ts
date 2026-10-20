@@ -456,6 +456,18 @@
         <translation>Wk&amp;lej</translation>
     </message>
     <message>
+        <source>Paste with Source Formatt&amp;ing</source>
+        <translation>Wkle&amp;j z formatowaniem źródła</translation>
+    </message>
+    <message>
+        <source>Paste and &amp;Merge Formatting</source>
+        <translation>Wklej ze scalon&amp;ym formatowaniem</translation>
+    </message>
+    <message>
+        <source>Paste Text Onl&amp;y</source>
+        <translation>Wklej &amp;bez formatowania</translation>
+    </message>
+    <message>
         <source>Paste &amp;Special...</source>
         <translation>Wklej &amp;specjalnie...</translation>
     </message>
@@ -4947,6 +4959,22 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Działanie edytora</translation>
     </message>
     <message>
+        <source>Paste Command:</source>
+        <translation>Polecenie Wklej:</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Paste pastes text of other programs this way.</source>
+        <translation>Edycja &gt; Wklej wkleja w ten sposób tekst z innych programów.</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Paste (%1) pastes text of other programs this way.</source>
+        <translation>Edycja &gt; Wklej (%1) wkleja w ten sposób tekst z innych programów.</translation>
+    </message>
+    <message>
+        <source>The Edit menu has a paste for each way too. Merge Formatting keeps the headings, quotes, emphasis and lines, and gives the text the look of the place it is pasted to. Text copied in Kalahari keeps all its formatting, except with Paste Text Only.</source>
+        <translation>Menu Edycja ma też osobne polecenie dla każdego sposobu wklejania. Scal formatowanie zachowuje nagłówki, cytaty, wyróżnienia i linie, a wygląd tekstu dopasowuje do miejsca wklejenia. Tekst skopiowany w Kalahari zachowuje całe formatowanie, chyba że zostanie wklejony poleceniem „Wklej bez formatowania”.</translation>
+    </message>
+    <message>
         <source>Where You Last Edited</source>
         <translation>W miejscu ostatniej edycji</translation>
     </message>
@@ -5081,14 +5109,6 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>Keep Text Only</source>
         <translation>Tylko tekst</translation>
-    </message>
-    <message>
-        <source>Paste from Other Programs:</source>
-        <translation>Wklejanie z innych programów:</translation>
-    </message>
-    <message>
-        <source>Merge Formatting keeps the headings, quotes, emphasis and lines, and gives the text the look of the place it is pasted to. Text copied in Kalahari keeps all its formatting.</source>
-        <translation>Scal formatowanie zachowuje nagłówki, cytaty, wyróżnienia i linie, a wygląd tekstu dopasowuje do miejsca wklejenia. Tekst skopiowany w Kalahari zachowuje całe formatowanie.</translation>
     </message>
 </context>
 <context>

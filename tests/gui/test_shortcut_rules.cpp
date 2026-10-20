@@ -344,6 +344,44 @@ TEST_CASE("Shortcut rules: a key press is written as the shortcuts are",
     CHECK(pressed(Qt::Key_Alt, ALT).key() == Qt::Key_unknown);
 }
 
+TEST_CASE("Shortcut rules: Shift with a key of the row of digits is written with the digit",
+          "[gui][shortcuts][rules]") {
+    // The system's codes of the key 8 above the letters and of the key - beside 0
+#if defined(Q_OS_WIN)
+    const quint32 eightScanCode = 0x09;
+    const quint32 eightVirtualKey = '8';
+    const quint32 minusScanCode = 0x0C;
+    const quint32 minusVirtualKey = 0xBD;  // VK_OEM_MINUS
+#elif defined(Q_OS_MACOS)
+    const quint32 eightScanCode = 0;
+    const quint32 eightVirtualKey = 0x1C;  // kVK_ANSI_8
+    const quint32 minusScanCode = 0;
+    const quint32 minusVirtualKey = 0x1B;  // kVK_ANSI_Minus
+#else
+    const quint32 eightScanCode = 17;  // XKB key codes
+    const quint32 eightVirtualKey = 0x2a;  // the key sym of "*"
+    const quint32 minusScanCode = 20;
+    const quint32 minusVirtualKey = 0x5f;  // the key sym of "_"
+#endif
+    const auto pressed = [](int key, Qt::KeyboardModifiers modifiers, quint32 scanCode,
+                            quint32 virtualKey) {
+        const QKeyEvent event(QEvent::KeyPress, key, modifiers, scanCode, virtualKey, 0);
+        return ShortcutRules::keysOf(&event);
+    };
+
+    // Ctrl+Shift+8 comes as Ctrl+* on Polish and American keyboards: the shortcut of
+    // View > Show Formatting Marks, so the list of shortcuts finds it taken
+    CHECK(pressed(Qt::Key_Asterisk, CTRL | SHIFT, eightScanCode, eightVirtualKey) ==
+          keys(CTRL | SHIFT, Qt::Key_8));
+    CHECK(pressed(Qt::Key_8, CTRL | SHIFT, eightScanCode, eightVirtualKey) ==
+          keys(CTRL | SHIFT, Qt::Key_8));
+    // Without Shift the key is what it types
+    CHECK(pressed(Qt::Key_8, CTRL, eightScanCode, eightVirtualKey) == keys(CTRL, Qt::Key_8));
+    // Any other key is the character Shift types, without Shift
+    CHECK(pressed(Qt::Key_Underscore, CTRL | SHIFT, minusScanCode, minusVirtualKey) ==
+          keys(CTRL, Qt::Key_Underscore));
+}
+
 TEST_CASE("Shortcut rules: the Windows key and the Super key go by their names",
           "[gui][shortcuts][rules]") {
 #if !defined(Q_OS_MACOS)

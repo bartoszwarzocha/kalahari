@@ -545,6 +545,13 @@ public:
     /// step - see insertFromMimeData().
     void paste();
 
+    /// @brief Paste the clipboard in a paste mode, whatever the setting says (Edit > Paste
+    ///        with Source Formatting, Paste and Merge Formatting, Paste Text Only)
+    ///
+    /// As paste(), with text from other programs read as @p mode says. Without formatting
+    /// (PasteMode::Text) text copied in Kalahari comes as its plain text too.
+    void pasteAs(PasteMode mode);
+
     /// @brief Clipboard content of the selection: KML (native), HTML and plain text
     /// @return New MIME data, or nullptr without a selection
     std::unique_ptr<QMimeData> createMimeDataFromSelection() const;
@@ -1402,6 +1409,9 @@ private:
     /// @brief Put the editor's cursor where an edit of the document ended, show it, and
     /// report the change
     void finishEdit(const QTextCursor& cursor);
+
+    /// @brief insertFromMimeData() with text from other programs read as @p mode says
+    void insertMimeDataAs(const QMimeData* source, PasteMode mode);
 
     /// @brief Remove the selected text
     /// @param keepAnnotations true: its annotations stay on its place; false: they go with

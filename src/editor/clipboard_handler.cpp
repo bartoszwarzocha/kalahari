@@ -749,6 +749,13 @@ QString ClipboardHandler::sceneBreakStyle()
         "editor.sceneBreak.style", std::string("asterisks")));
 }
 
+QString ClipboardHandler::htmlDocument(const QString& fragment)
+{
+    return QStringLiteral("<html><head><meta charset=\"utf-8\"></head><body>"
+                          "<!--StartFragment-->") +
+           fragment + QStringLiteral("<!--EndFragment--></body></html>");
+}
+
 QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBreakStyle)
 {
     if (kml.isEmpty()) {

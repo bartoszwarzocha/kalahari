@@ -110,17 +110,35 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     addField(font, tr("Font Size:"), size, "editor.fontSize");
 
     QFormLayout* behavior = addGroup(tr("Editor Behavior"));
-    // Text of other programs: their headings, quotes, emphasis and lines in the look of the
-    // place it goes to, also their fonts, sizes and colors, or only the text
+    // What Edit > Paste does with text of other programs: their headings, quotes, emphasis and
+    // lines in the look of the place it goes to, also their fonts, sizes and colors, or only
+    // the text. The Edit menu has a paste for each of them too
     auto* pasteMode = new QComboBox();
     pasteMode->addItem(tr("Merge Formatting"), QString::fromLatin1(editor::PASTE_MODE_MERGE));
     pasteMode->addItem(tr("Keep Source Formatting"),
                        QString::fromLatin1(editor::PASTE_MODE_SOURCE));
     pasteMode->addItem(tr("Keep Text Only"), QString::fromLatin1(editor::PASTE_MODE_TEXT));
-    addField(behavior, tr("Paste from Other Programs:"), pasteMode, editor::PASTE_MODE_KEY);
-    addNote(behavior, tr("Merge Formatting keeps the headings, quotes, emphasis and lines, and "
-                         "gives the text the look of the place it is pasted to. Text copied in "
-                         "Kalahari keeps all its formatting."));
+    addField(behavior, tr("Paste Command:"), pasteMode, editor::PASTE_MODE_KEY);
+    QLabel* pasteNote = addNote(behavior, QString());
+    // With the keys Paste has now (the user may change them)
+    const auto showPasteKeys = [pasteNote]() {
+        const Command* command = CommandRegistry::getInstance().getCommand("edit.paste");
+        const QString keys = command != nullptr && !command->shortcut.isEmpty()
+            ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
+            : QString();
+        const QString paste = keys.isEmpty()
+            ? tr("Edit > Paste pastes text of other programs this way.")
+            : tr("Edit > Paste (%1) pastes text of other programs this way.").arg(keys);
+        pasteNote->setText(
+            paste + QLatin1Char(' ') +
+            tr("The Edit menu has a paste for each way too. Merge Formatting keeps the headings, "
+               "quotes, emphasis and lines, and gives the text the look of the place it is "
+               "pasted to. Text copied in Kalahari keeps all its formatting, except with Paste "
+               "Text Only."));
+    };
+    showPasteKeys();
+    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, pasteNote,
+            showPasteKeys);
     // A chapter opens where its cursor was when it was closed last, or at its start
     auto* opensAt = new QComboBox();
     opensAt->addItem(tr("Where You Last Edited"),

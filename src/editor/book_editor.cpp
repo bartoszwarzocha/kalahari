@@ -348,12 +348,11 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         applyPageLayout();
     }
 
-    // How the scene breaks look, and the page breaks in the page view with the marks
+    // How the scene breaks look
     if (auto* layout = m_textBuffer ? qobject_cast<KalahariTextDocumentLayout*>(
                                           m_textBuffer->documentLayout())
                                     : nullptr) {
         layout->setSceneBreakLook(m_appearance.sceneBreakLook);
-        layout->setFormattingMarksShown(m_appearance.showFormattingMarks);
     }
 
     // The page's margins set the scroll range (the pipeline gives the viewport the scroll
@@ -981,8 +980,7 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     auto* layout = new KalahariTextDocumentLayout(m_textBuffer.get());
     m_textBuffer->setDocumentLayout(layout);
     layout->setParagraphStyles(m_paragraphStyles);  // the book's styles (setParagraphStyles())
-    layout->setSceneBreakLook(m_appearance.sceneBreakLook);  // the view's settings
-    layout->setFormattingMarksShown(m_appearance.showFormattingMarks);
+    layout->setSceneBreakLook(m_appearance.sceneBreakLook);  // the view's setting
 
     // The render pipeline applies the font and the wrap width while the document is
     // still empty, so the content below is laid out exactly once.

@@ -287,13 +287,29 @@ TEST_CASE("Styles view: a scene break looks as the settings say", "[editor][obje
     CHECK(asterism != fleuron);
     CHECK(fleuron != line);
 
+    // The page view draws the look of the settings too
+    editor->setViewMode(ViewMode::Page);
+    const auto pageLook = [&editor](SceneBreakLook sceneBreakLook) {
+        EditorAppearance appearance = editor->appearance();
+        appearance.sceneBreakLook = sceneBreakLook;
+        editor->setAppearance(appearance);
+        editor->setCursorPosition({0, 0});
+        return editorImage(*editor).copy(bandOf(*editor, 1));
+    };
+    const QImage pageAsterism = pageLook(SceneBreakLook::Asterism);
+    CHECK(inkIn(pageAsterism, QRect(QPoint(0, 0), pageAsterism.size())) > 0);
+    CHECK(pageLook(SceneBreakLook::Asterisks) != pageAsterism);
+    editor->setViewMode(ViewMode::Continuous);
+
     // The text keeps the break
     CHECK(editor->toKml() ==
           QStringLiteral("<kml><p>Text</p><scene-break/><p>More</p></kml>"));
 }
 
-TEST_CASE("Styles view: a page break shows in the page view with the formatting marks",
+TEST_CASE("Styles view: a page break shows in both views, with the formatting marks or without",
           "[editor][objects][view][marks]") {
+    // Regression: the page view drew it only with the formatting marks, so a break seemed to
+    // come and go between the chapters
     auto editor = editorWith(QStringLiteral("<p>Text</p><page-break/><p>More</p>"));
     const auto shown = [&editor](ViewMode mode, bool marks) {
         editor->setViewMode(mode);
@@ -305,11 +321,11 @@ TEST_CASE("Styles view: a page break shows in the page view with the formatting 
         return inkIn(editorImage(*editor), band.adjusted(0, 1, 0, -1)) > 0;
     };
 
-    // A dashed line with "Page Break" on the endless page; the pages show it themselves
+    // A dashed line with "Page Break"
     CHECK(shown(ViewMode::Continuous, false));
-    CHECK_FALSE(shown(ViewMode::Page, false));
+    CHECK(shown(ViewMode::Continuous, true));
+    CHECK(shown(ViewMode::Page, false));
     CHECK(shown(ViewMode::Page, true));
-    CHECK(layoutOf(*editor)->formattingMarksShown());
 }
 
 // =============================================================================

@@ -25,10 +25,12 @@ constexpr const char* MIME_KML = "application/x-kalahari-kml";
 // Paste Modes
 // =============================================================================
 
-/// @brief How text from other programs is pasted: the setting editor.paste.mode (Settings >
-///        Editor > General, "Paste from Other Programs")
+/// @brief How text from other programs is pasted: by Edit > Paste as the setting
+///        editor.paste.mode says (Settings > Editor > General, "Paste Command"), and by the
+///        paste of each mode in the Edit menu
 ///
-/// Text copied in Kalahari keeps everything in every mode: it comes as KML.
+/// Text copied in Kalahari keeps everything in every mode, but Paste Text Only
+/// (BookEditor::pasteAs()): it comes as KML.
 enum class PasteMode {
     Merge,   ///< Headings, quotes, paragraphs, emphasis and lines; the text takes the look of
              ///< the place it goes to (Word's "Merge Formatting"; the default)
@@ -106,6 +108,13 @@ public:
     ///        empty: the setting
     /// @return HTML string with equivalent formatting
     static QString kmlToHtml(const QString& kml, const QString& sceneBreakStyle = QString());
+
+    /// @brief HTML for the clipboard: a whole document in UTF-8 around @p fragment, with the
+    ///        fragment marked in it
+    ///
+    /// As the browsers and Word put it on the clipboard: the programs of Windows read the
+    /// clipboard's HTML (CF_HTML) as a document, and Qt adds only the markers of the fragment.
+    static QString htmlDocument(const QString& fragment);
 
     /// @brief Convert HTML of another program (Word, LibreOffice, a browser) to KML
     ///

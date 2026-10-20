@@ -14,8 +14,10 @@
 #include <kalahari/gui/settings_dialog.h>
 #include "editor_test_utils.h"
 
+#include <QClipboard>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QGuiApplication>
 #include <QMimeData>
 #include <QPushButton>
 #include <QTextBlock>
@@ -518,6 +520,53 @@ TEST_CASE("Paste: text of another program in the editor, in each mode", "[editor
     }
 }
 
+TEST_CASE("Paste: the pastes of the Edit menu in each mode, whatever Paste does",
+          "[editor][paste]") {
+    auto editor = editorWith(kml("<p><i>xy</i></p>"));
+    editor->setCursorPosition({0, 1});  // x|y, in italic text
+    const auto copy = [](const QString& text, const QString& html, const QByteArray& own = {}) {
+        auto* data = new QMimeData();
+        data->setText(text);
+        data->setHtml(html);
+        if (!own.isEmpty()) {
+            data->setData(QString::fromLatin1(MIME_KML), own);
+        }
+        QGuiApplication::clipboard()->setMimeData(data);
+    };
+    copy(QStringLiteral("A B"),
+         QStringLiteral("<p><span style=\"font-family: Arial\">A</span> <b>B</b></p>"));
+
+    SECTION("Paste with Source Formatting, while Paste merges") {
+        editor->pasteAs(PasteMode::Source);
+        CHECK(utf8(editor->toKml()) ==
+              utf8(kml("<p><i>x</i><span font=\"Arial\">A</span> <b>B</b><i>y</i></p>")));
+        CHECK(editor->pasteMode() == PasteMode::Merge);
+    }
+
+    SECTION("Paste and Merge Formatting, while Paste keeps only the text") {
+        editor->setPasteMode(PasteMode::Text);
+        editor->pasteAs(PasteMode::Merge);
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xA </i><b><i>B</i></b><i>y</i></p>")));
+    }
+
+    SECTION("Paste Text Only: one step of Undo takes it back") {
+        editor->pasteAs(PasteMode::Text);
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xA By</i></p>")));
+        editor->undo();
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xy</i></p>")));
+    }
+
+    SECTION("Text copied in Kalahari: without formatting only its text, its paragraphs kept") {
+        copy(QStringLiteral("A\nB"), QStringLiteral("<h1>A</h1><p><b>B</b></p>"),
+             QByteArrayLiteral("<kml><h1>A</h1><p><b>B</b></p></kml>"));
+        editor->pasteAs(PasteMode::Text);
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xA</i></p><p><i>By</i></p>")));
+        editor->undo();
+        editor->pasteAs(PasteMode::Source);
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>x</i></p><h1>A</h1><p><b>B</b><i>y</i></p>")));
+    }
+}
+
 TEST_CASE("Paste: headings, quotes, lines and breaks of another program in the editor",
           "[editor][paste][objects]") {
     auto editor = editorWith(kml("<p>ab</p><p></p>"));
@@ -645,5 +694,12 @@ TEST_CASE("Copy: the editor gives other programs plain text of its KML", "[edito
     const std::unique_ptr<QMimeData> copied = editor->createMimeDataFromSelection();
     REQUIRE(copied);
     CHECK(utf8(copied->text()) == "One\ntwo\nThree");
-    CHECK(utf8(copied->html()) == "<p>One<br/>two</p><p><b>Three</b></p>");
+    // A whole document with the fragment marked, as Word and the browsers put it on the
+    // clipboard
+    CHECK(utf8(copied->html()) ==
+          "<html><head><meta charset=\"utf-8\"></head><body><!--StartFragment-->"
+          "<p>One<br/>two</p><p><b>Three</b></p><!--EndFragment--></body></html>");
+    // Pasted back from the HTML alone (without Kalahari's own format) it is the same text
+    CHECK(utf8(ClipboardHandler::htmlToKml(copied->html())) ==
+          utf8(kml("<p>One<br/>two</p><p><b>Three</b></p>")));
 }

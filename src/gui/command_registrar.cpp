@@ -150,7 +150,8 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // have the keys of macOS there: programs quit with Cmd+Q (Alt+F4 does nothing), Cmd+H
     // hides the program, F11 shows the desktop, Option+Up and Option+Down move the cursor by
     // paragraphs in the text (editor/text_keys.h), and Option with a digit types a character,
-    // so the paragraph styles have Option+Cmd with it.
+    // so the paragraph styles have Option+Cmd with it (and the pastes Option+Shift+Cmd with a
+    // letter).
 #ifdef Q_OS_MACOS
     const KeyboardShortcut exitShortcut(Qt::Key_Q, Qt::ControlModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_F, Qt::ControlModifier | Qt::AltModifier);
@@ -158,6 +159,8 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     const KeyboardShortcut nextTodoShortcut(Qt::Key_Down, Qt::ControlModifier | Qt::AltModifier);
     const KeyboardShortcut previousTodoShortcut(Qt::Key_Up, Qt::ControlModifier | Qt::AltModifier);
     const Qt::KeyboardModifiers styleModifiers = Qt::ControlModifier | Qt::AltModifier;
+    const Qt::KeyboardModifiers pasteModifiers =
+        Qt::ControlModifier | Qt::AltModifier | Qt::ShiftModifier;
 #else
     const KeyboardShortcut exitShortcut(Qt::Key_F4, Qt::AltModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_H, Qt::ControlModifier);
@@ -165,6 +168,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     const KeyboardShortcut nextTodoShortcut(Qt::Key_Down, Qt::AltModifier);
     const KeyboardShortcut previousTodoShortcut(Qt::Key_Up, Qt::AltModifier);
     const Qt::KeyboardModifiers styleModifiers = Qt::AltModifier;
+    const Qt::KeyboardModifiers pasteModifiers = Qt::AltModifier | Qt::ShiftModifier;
 #endif
 
     // =========================================================================
@@ -289,6 +293,16 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       KeyboardShortcut(Qt::Key_V, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onPaste);
+
+    // Text of other programs in each of the paste modes, whatever Paste does (Settings >
+    // Editor > General): without formatting with Ctrl+Shift+V, as in LibreOffice and the
+    // browsers, the others with Alt+Shift (Option+Shift+Cmd on macOS); Ctrl+Alt is AltGr
+    REG_CMD_KEY_CB("edit.pasteSourceFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste with Source Formatt&ing"), "EDIT/Paste with Source Formatting", 52, false, 0,
+                   KeyboardShortcut(Qt::Key_V, pasteModifiers), callbacks.onPasteSourceFormatting);
+    REG_CMD_KEY_CB("edit.pasteMergeFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste and &Merge Formatting"), "EDIT/Paste and Merge Formatting", 54, false, 0,
+                   KeyboardShortcut(Qt::Key_M, pasteModifiers), callbacks.onPasteMergeFormatting);
+    REG_CMD_KEY_CB("edit.pasteTextOnly", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste Text Onl&y"), "EDIT/Paste Text Only", 56, false, 0,
+                   KeyboardShortcut(Qt::Key_V, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onPasteTextOnly);
 
     REG_CMD("edit.pasteSpecial", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste &Special..."), "EDIT/Paste Special...", 60, false, 1);
     // Delete: in the text and the fields the key deletes the selection itself (and the
@@ -642,9 +656,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     REG_CMD("view.showStatusBar", QT_TRANSLATE_NOOP("CommandRegistrar", "Show &Status Bar"), "VIEW/Show Status Bar", 180, false, 0);
     REG_CMD("view.showStatsBar", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Statistics &Bar"), "VIEW/Show Statistics Bar", 190, false, 1);
-    // Ctrl+* (Ctrl+Shift+8), as in Word; written as the shortcuts page records it
+    // Ctrl+Shift+8 (Shift+Cmd+8 on macOS), as in Word: written with the key, not with the "*"
+    // it types on some keyboards, on every system; Qt matches the key on every keyboard
     REG_CMD_KEY_CB("view.showFormattingMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Formattin&g Marks"), "VIEW/Show Formatting Marks", 210, true, 0,
-                   KeyboardShortcut(Qt::Key_Asterisk, Qt::ControlModifier), callbacks.onFormattingMarksToggle);
+                   KeyboardShortcut(Qt::Key_8, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onFormattingMarksToggle);
 
     REG_CMD_KEY_CB("view.zoomIn", QT_TRANSLATE_NOOP("CommandRegistrar", "Zoom &In"), "VIEW/Zoom/Zoom In", 220, false, 0,
                    KeyboardShortcut(Qt::Key_Plus, Qt::ControlModifier), callbacks.onZoomIn);

@@ -421,14 +421,6 @@ void KalahariTextDocumentLayout::setSceneBreakLook(SceneBreakLook look) {
     emit update(QRectF(0, 0, UNBOUNDED_EXTENT, UNBOUNDED_EXTENT));
 }
 
-void KalahariTextDocumentLayout::setFormattingMarksShown(bool shown) {
-    if (shown == m_formattingMarksShown) {
-        return;
-    }
-    m_formattingMarksShown = shown;
-    emit update(QRectF(0, 0, UNBOUNDED_EXTENT, UNBOUNDED_EXTENT));
-}
-
 void KalahariTextDocumentLayout::applyStyleFormats(const QTextBlock& block) const {
     QTextLayout* layout = block.layout();
     if (layout == nullptr) {
@@ -1108,7 +1100,7 @@ qreal KalahariTextDocumentLayout::paginateBlock(QTextLayout* layout, qreal top,
                                                 const BlockMetrics& metrics) const {
     // Line boxes are stacked as layoutBlock() stacks them; a page break moves a line and
     // all lines after it down to the next text area. A page break's own line stays where it
-    // is (it is drawn only with the formatting marks): it may end in the page's margin.
+    // is (a thin line that says why the page ends there): it may end in the page's margin.
     const bool empty = layout->text().isEmpty();
     qreal natural = metrics.spaceBefore;  // box top within the block without page breaks
     qreal shift = 0;                      // how far page breaks moved the lines so far
@@ -1401,10 +1393,8 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
             break;
         }
         case TextObject::PageBreak: {
-            // The pages show the break themselves; the formatting marks show it there too
-            if (m_pageFlow.enabled && !m_formattingMarksShown) {
-                break;
-            }
+            // In every view, with the formatting marks or without them: the pages start the
+            // next one, the line says why the text ends there
             QColor markColor = textColor;
             markColor.setAlphaF(markColor.alphaF() * OBJECT_LINE_OPACITY);
             QFont labelFont = document()->defaultFont();

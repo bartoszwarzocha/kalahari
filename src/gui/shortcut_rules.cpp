@@ -57,6 +57,41 @@ bool isCharacterKey(int key) {
     return key > 0 && key < Qt::Key_Escape && QChar::isPrint(static_cast<char32_t>(key));
 }
 
+/// The digit of a key of the row of digits above the letters (Qt::Key_0 to Qt::Key_9), by
+/// the key's place on the keyboard, whatever it types; 0 for another key or a press without
+/// the system's code of the key
+int digitRowKey(const QKeyEvent* event) {
+#if defined(Q_OS_WIN)
+    // The virtual keys of the row are the codes of the digits
+    const quint32 virtualKey = event->nativeVirtualKey();
+    if (virtualKey >= '0' && virtualKey <= '9') {
+        return Qt::Key_0 + static_cast<int>(virtualKey - '0');
+    }
+#elif defined(Q_OS_MACOS)
+    // kVK_ANSI_0 to kVK_ANSI_9 of the Carbon key codes, in the order of the digits
+    constexpr quint32 DIGIT_KEY_CODES[] = {0x1D, 0x12, 0x13, 0x14, 0x15,
+                                           0x17, 0x16, 0x1A, 0x1C, 0x19};
+    const quint32 keyCode = event->nativeVirtualKey();
+    for (int digit = 0; digit < 10; ++digit) {
+        if (DIGIT_KEY_CODES[digit] == keyCode) {
+            return Qt::Key_0 + digit;
+        }
+    }
+#else
+    // The XKB key codes of X11 and Wayland: 10 to 18 for 1 to 9, 19 for 0
+    constexpr quint32 FIRST_DIGIT_KEY = 10;
+    constexpr quint32 ZERO_KEY = 19;
+    const quint32 scanCode = event->nativeScanCode();
+    if (scanCode >= FIRST_DIGIT_KEY && scanCode < ZERO_KEY) {
+        return Qt::Key_1 + static_cast<int>(scanCode - FIRST_DIGIT_KEY);
+    }
+    if (scanCode == ZERO_KEY) {
+        return Qt::Key_0;
+    }
+#endif
+    return 0;
+}
+
 }  // namespace
 
 // ============================================================================
@@ -167,10 +202,17 @@ QKeyCombination ShortcutRules::keysOf(const QKeyEvent* event) {
         break;
     }
 
-    // Shift+1 comes as "!": the shortcut is Ctrl+!, as Qt matches it, not Ctrl+Shift+!
+    // Shift+1 comes as "!": a key of the row of digits is the digit with Shift, as the
+    // shortcuts with Shift and a digit are written (Ctrl+Shift+8, not Ctrl+*) and as Qt
+    // matches them too; any other key is the character, without Shift: Ctrl+_, not Ctrl+Shift+_
     if (modifiers.testFlag(Qt::ShiftModifier) && isCharacterKey(key) && key != Qt::Key_Space &&
         !QChar::isLetterOrNumber(static_cast<char32_t>(key))) {
-        modifiers &= ~Qt::ShiftModifier;
+        const int digit = digitRowKey(event);
+        if (digit != 0) {
+            key = digit;
+        } else {
+            modifiers &= ~Qt::ShiftModifier;
+        }
     }
     return QKeyCombination(modifiers, static_cast<Qt::Key>(key));
 }
@@ -495,7 +537,7 @@ FixedKeyGroup ShortcutRules::systemGroup() const {
              {},
              tr("%1 moves the keys to the menu bar, the Dock or the windows of macOS."),
              {}},
-            // Cmd+Shift+3 comes as Cmd+# (keysOf())
+            // Cmd+Shift+3 comes as Cmd+# from a press without the key's code (keysOf())
             {tr("Screenshots"),
              {keyWith(CTRL | SHIFT, Qt::Key_3), keyWith(CTRL | SHIFT, Qt::Key_4),
               keyWith(CTRL | SHIFT, Qt::Key_5), keyWith(CTRL, Qt::Key_NumberSign),

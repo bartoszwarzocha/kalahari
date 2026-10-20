@@ -942,6 +942,24 @@ void BookEditor::paste()
     insertFromMimeData(QGuiApplication::clipboard()->mimeData());
 }
 
+void BookEditor::pasteAs(PasteMode mode)
+{
+    const QMimeData* clipboard = QGuiApplication::clipboard()->mimeData();
+    if (mode != PasteMode::Text || clipboard == nullptr ||
+        !clipboard->hasFormat(QString::fromLatin1(MIME_KML))) {
+        insertMimeDataAs(clipboard, mode);
+        return;
+    }
+    // Kalahari's own text without its formatting: its plain text, with the HTML that tells
+    // its line breaks from its paragraph ends
+    QMimeData plain;
+    plain.setText(clipboard->text());
+    if (clipboard->hasHtml()) {
+        plain.setHtml(clipboard->html());
+    }
+    insertMimeDataAs(&plain, mode);
+}
+
 std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
 {
     if (!hasSelection() || !m_textBuffer) {
@@ -956,7 +974,7 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
     // Plain text: the paragraphs and the line breaks in them end a line
     auto mimeData = std::make_unique<QMimeData>();
     mimeData->setText(ClipboardHandler::kmlToText(kml));
-    mimeData->setHtml(ClipboardHandler::kmlToHtml(kml));
+    mimeData->setHtml(ClipboardHandler::htmlDocument(ClipboardHandler::kmlToHtml(kml)));
     mimeData->setData(QString::fromLatin1(MIME_KML), kml.toUtf8());
     return mimeData;
 }
@@ -968,6 +986,11 @@ bool BookEditor::canInsertFromMimeData(const QMimeData* source)
 }
 
 void BookEditor::insertFromMimeData(const QMimeData* source)
+{
+    insertMimeDataAs(source, m_pasteMode);
+}
+
+void BookEditor::insertMimeDataAs(const QMimeData* source, PasteMode mode)
 {
     if (refusesChange()) {
         return;
@@ -989,7 +1012,7 @@ void BookEditor::insertFromMimeData(const QMimeData* source)
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
         clearSelection();
     }
-    insertMimeData(cursor, *source, m_pasteMode, pending);
+    insertMimeData(cursor, *source, mode, pending);
     finishEdit(cursor);
 }
 

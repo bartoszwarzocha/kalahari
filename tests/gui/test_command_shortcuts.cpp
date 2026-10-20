@@ -68,6 +68,16 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"edit.cut", QStringLiteral("Ctrl+X")},
         {"edit.copy", QStringLiteral("Ctrl+C")},
         {"edit.paste", QStringLiteral("Ctrl+V")},
+#ifdef Q_OS_MACOS
+        // Option+Shift+Cmd: Option with a letter types a character
+        {"edit.pasteSourceFormatting", QStringLiteral("Ctrl+Alt+Shift+V")},
+        {"edit.pasteMergeFormatting", QStringLiteral("Ctrl+Alt+Shift+M")},
+#else
+        // Ctrl+Alt is AltGr on Windows
+        {"edit.pasteSourceFormatting", QStringLiteral("Alt+Shift+V")},
+        {"edit.pasteMergeFormatting", QStringLiteral("Alt+Shift+M")},
+#endif
+        {"edit.pasteTextOnly", QStringLiteral("Ctrl+Shift+V")},
         {"edit.delete", QStringLiteral("Del")},
         {"edit.selectAll", QStringLiteral("Ctrl+A")},
         {"edit.find", QStringLiteral("Ctrl+F")},
@@ -123,7 +133,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"view.zoomIn", QStringLiteral("Ctrl++")},
         {"view.zoomOut", QStringLiteral("Ctrl+-")},
         {"view.resetZoom", QStringLiteral("Ctrl+0")},
-        {"view.showFormattingMarks", QStringLiteral("Ctrl+*")},  // Ctrl+Shift+8, as in Word
+        {"view.showFormattingMarks", QStringLiteral("Ctrl+Shift+8")},  // as in Word
 #ifdef Q_OS_MACOS
         {"view.fullScreen", QStringLiteral("Ctrl+Meta+F")},  // Control+Cmd+F: F11 shows the desktop
 #else

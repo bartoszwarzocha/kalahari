@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Settings > Editor > General > Scene Break Look says, with a preview: three asterisks, an
   asterism, a fleuron, a short line or a blank line; the file keeps the break whatever its
   look. A page break starts a new page in the page view; the continuous views show it as a
-  dashed line with the words "Page Break". View > Show Formatting Marks (Ctrl+*) shows ¶ at
+  dashed line with the words "Page Break". View > Show Formatting Marks (Ctrl+Shift+8) shows ¶ at
   the end of the paragraphs, · in the spaces, ° in the no-break spaces, → for the tabs, ↵ for
   the line breaks and ¬ for the optional hyphens, in a color of their own (Settings > Editor >
   Colors > Formatting marks); the lines do not move, the choice is kept between sessions, and

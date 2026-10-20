@@ -121,11 +121,12 @@ TEST_CASE("Text Style menu: the keys of the new commands", "[gui][shortcuts]") {
     CHECK(registry.getCommand("insert.pageBreak")->shortcut.toString() ==
           QStringLiteral("Ctrl+Enter"));
 
-    // Ctrl+* as the shortcuts page records it, Delete for Edit > Delete
+    // Ctrl+Shift+8 with the key, not the "*" it types on some keyboards; Delete for Edit > Delete
     CHECK(shortcutsOf("view.showFormattingMarks") ==
-          QList<QKeySequence>{QKeySequence(QKeyCombination(Qt::ControlModifier, Qt::Key_Asterisk))});
+          QList<QKeySequence>{QKeySequence(
+              QKeyCombination(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_8))});
     CHECK(registry.getCommand("view.showFormattingMarks")->shortcut.toString() ==
-          QStringLiteral("Ctrl+*"));
+          QStringLiteral("Ctrl+Shift+8"));
     CHECK(shortcutsOf("edit.delete") == QList<QKeySequence>{QKeySequence(Qt::Key_Delete)});
 
     // The other commands have one shortcut each

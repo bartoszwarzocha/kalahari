@@ -439,8 +439,9 @@ TEST_CASE("Stage2 paste: copy puts KML, HTML and plain text on the clipboard",
         CHECK(mimeData->text() == QStringLiteral("bold text.\nRight"));
         CHECK(kmlData(*mimeData) ==
               QStringLiteral("<kml><p><b>bold</b> text.</p><p align=\"right\"><i>Right</i></p></kml>"));
-        CHECK(mimeData->html() == QStringLiteral("<p><b>bold</b> text.</p>"
-                                                 "<p style=\"text-align:right\"><i>Right</i></p>"));
+        CHECK(mimeData->html() == ClipboardHandler::htmlDocument(QStringLiteral(
+                                      "<p><b>bold</b> text.</p>"
+                                      "<p style=\"text-align:right\"><i>Right</i></p>")));
     }
 
     SECTION("whole paragraphs end with an empty one") {

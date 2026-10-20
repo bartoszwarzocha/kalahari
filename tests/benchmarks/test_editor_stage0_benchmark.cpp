@@ -253,7 +253,7 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
     // View > Show Formatting Marks: drawn over the text, the lines stay as they are
     {
         LaidOutBlockCounter laidOut(editor);
-        rows.push_back({QStringLiteral("Pokazanie znaków formatowania (Ctrl+*) + paintEvent"),
+        rows.push_back({QStringLiteral("Pokazanie znaków formatowania (Ctrl+Shift+8) + paintEvent"),
                         timeMs([&] {
                             showFormattingMarks(editor, true);
                             paint(editor);

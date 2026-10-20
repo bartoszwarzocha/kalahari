@@ -400,7 +400,6 @@ TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the sce
     }
     CHECK_FALSE(toggle.isChecked());
     CHECK_FALSE(first.getBookEditor()->appearance().showFormattingMarks);
-    CHECK_FALSE(layoutOf(first)->formattingMarksShown());
 
     // The marks, in every editor; the setting keeps them after a restart
     settings.set<bool>("editor.showFormattingMarks", true);
@@ -408,7 +407,6 @@ TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the sce
     CHECK(toggle.isChecked());
     for (gui::EditorPanel* panel : {&first, &second}) {
         CHECK(panel->getBookEditor()->appearance().showFormattingMarks);
-        CHECK(layoutOf(*panel)->formattingMarksShown());
     }
 
     // Their color on each paper

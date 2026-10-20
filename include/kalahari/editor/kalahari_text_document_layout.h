@@ -187,11 +187,6 @@ public:
     void setSceneBreakLook(SceneBreakLook look);
     SceneBreakLook sceneBreakLook() const { return m_sceneBreakLook; }
 
-    /// @brief Whether the formatting marks are shown: a page break is then drawn in the page
-    ///        view too (the view draws the other marks)
-    void setFormattingMarksShown(bool shown);
-    bool formattingMarksShown() const { return m_formattingMarksShown; }
-
     /// @brief Lay out every block now, also the ones already laid out
     void layoutAllBlocks();
 
@@ -437,9 +432,8 @@ private:
     // True while restyle() announces the whole document as changed
     bool m_restyling = false;
 
-    // How scene breaks look, and whether the formatting marks are shown
+    // How scene breaks look
     SceneBreakLook m_sceneBreakLook = SceneBreakLook::Asterisks;
-    bool m_formattingMarksShown = false;
 
     // Page flow (page mode); its text areas in whole pixels
     PageFlow m_pageFlow;

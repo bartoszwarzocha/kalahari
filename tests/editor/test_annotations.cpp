@@ -504,7 +504,7 @@ TEST_CASE("Annotations KML: a copied range holds the annotations anchored in it"
         CHECK(kmlData(*data) == kmlWith(record(QStringLiteral("a")),
                                         {QStringLiteral("<anchor ref=\"a\">ne</anchor> t")}));
         CHECK(data->text() == QStringLiteral("ne t"));
-        CHECK(data->html() == QStringLiteral("<p>ne t</p>"));
+        CHECK(data->html() == ClipboardHandler::htmlDocument(QStringLiteral("<p>ne t</p>")));
     }
 
     SECTION("a place at its end and the start of a paragraph; other programs get only the text") {
@@ -516,7 +516,8 @@ TEST_CASE("Annotations KML: a copied range holds the annotations anchored in it"
                                         {QStringLiteral("two<anchor ref=\"b\"/>"),
                                          QStringLiteral("<anchor ref=\"c\"/>Th")}));
         CHECK(data->text() == QStringLiteral("two\nTh"));
-        CHECK(data->html() == QStringLiteral("<p>two</p><p>Th</p>"));
+        CHECK(data->html() ==
+              ClipboardHandler::htmlDocument(QStringLiteral("<p>two</p><p>Th</p>")));
         CHECK(ClipboardHandler::kmlToText(kmlData(*data)) == QStringLiteral("two\nTh"));
     }
 }

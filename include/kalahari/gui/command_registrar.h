@@ -48,6 +48,9 @@ struct CommandCallbacks {
     std::function<void()> onCut;                ///< Edit > Cut
     std::function<void()> onCopy;               ///< Edit > Copy
     std::function<void()> onPaste;              ///< Edit > Paste
+    std::function<void()> onPasteSourceFormatting;  ///< Edit > Paste with Source Formatting
+    std::function<void()> onPasteMergeFormatting;   ///< Edit > Paste and Merge Formatting
+    std::function<void()> onPasteTextOnly;      ///< Edit > Paste Text Only
     std::function<void()> onDelete;             ///< Edit > Delete
     std::function<void()> onSelectAll;          ///< Edit > Select All
     std::function<void()> onSelectWord;         ///< Edit > Select Word
