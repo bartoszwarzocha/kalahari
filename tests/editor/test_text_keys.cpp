@@ -106,8 +106,11 @@ TEST_CASE("Text keys: Windows and Linux have the keys of Windows word processors
     CHECK(isKey(WINDOWS, Qt::Key_Backspace, CTRL, Action::DeleteWordBackward));
     CHECK(isKey(WINDOWS, Qt::Key_Delete, CTRL, Action::DeleteWordForward));
     CHECK(isKey(WINDOWS, Qt::Key_Backspace, SHIFT, Action::DeleteBackward));
-    CHECK(isKey(WINDOWS, Qt::Key_Return, CTRL, Action::NewParagraph));
+    CHECK(isKey(WINDOWS, Qt::Key_Return, NONE, Action::NewParagraph));
     CHECK(isKey(WINDOWS, Qt::Key_Enter, Qt::KeypadModifier, Action::NewParagraph));
+    // Ctrl+Enter is Insert > Page Break, a command of the window
+    CHECK(isKey(WINDOWS, Qt::Key_Return, CTRL, Action::None));
+    CHECK(isKey(WINDOWS, Qt::Key_Enter, CTRL | Qt::KeypadModifier, Action::None));
     // Shift+Enter breaks the line in the paragraph, as in Word
     CHECK(isKey(WINDOWS, Qt::Key_Return, SHIFT, Action::NewLine));
     CHECK(isKey(WINDOWS, Qt::Key_Enter, SHIFT | Qt::KeypadModifier, Action::NewLine));
@@ -157,6 +160,7 @@ TEST_CASE("Text keys: macOS has the keys of its text fields", "[editor][textkeys
     CHECK(isKey(MAC, Qt::Key_Z, CTRL | SHIFT, Action::Redo));
     CHECK(isKey(MAC, Qt::Key_Return, ALT, Action::NewParagraph));
     CHECK(isKey(MAC, Qt::Key_Return, SHIFT, Action::NewLine));
+    CHECK(isKey(MAC, Qt::Key_Return, CTRL, Action::None));  // Insert > Page Break
 
     // The Control keys
     CHECK(isKey(MAC, Qt::Key_A, META, Action::ParagraphStart));

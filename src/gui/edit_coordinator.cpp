@@ -21,6 +21,7 @@
 #include <QMenuBar>
 #include <QMimeData>
 #include <QPlainTextEdit>
+#include <QTextCursor>
 #include <QTextDocument>
 #include <QTextEdit>
 #include <QToolBar>
@@ -36,12 +37,13 @@ namespace {
 using Edit = EditCoordinator::Edit;
 
 /// The commands and their ids
-constexpr std::array<std::pair<Edit, const char*>, 6> COMMANDS = {{
+constexpr std::array<std::pair<Edit, const char*>, 7> COMMANDS = {{
     {Edit::Undo, "edit.undo"},
     {Edit::Redo, "edit.redo"},
     {Edit::Cut, "edit.cut"},
     {Edit::Copy, "edit.copy"},
     {Edit::Paste, "edit.paste"},
+    {Edit::Delete, "edit.delete"},
     {Edit::SelectAll, "edit.selectAll"},
 }};
 
@@ -100,6 +102,8 @@ bool lineCan(const QLineEdit& line, Edit edit) {
         return copies;
     case Edit::Paste:
         return editable && clipboardHasText();
+    case Edit::Delete:
+        return editable && line.hasSelectedText();
     case Edit::SelectAll:
         return !line.text().isEmpty();
     }
@@ -123,10 +127,25 @@ bool textCan(const Text& text, Edit edit) {
         return selected;
     case Edit::Paste:
         return editable && text.canPaste();
+    case Edit::Delete:
+        return editable && selected;
     case Edit::SelectAll:
         return !document->isEmpty();
     }
     return false;
+}
+
+/// Delete the selection of a field (Delete is enabled only with one)
+void deleteSelection(QLineEdit& line) {
+    line.del();
+}
+
+/// Delete the selection of a field, as one step of its undo history
+template <typename Text>
+void deleteSelection(Text& text) {
+    QTextCursor cursor = text.textCursor();
+    cursor.removeSelectedText();
+    text.setTextCursor(cursor);
 }
 
 /// QLineEdit, QTextEdit and QPlainTextEdit
@@ -148,6 +167,9 @@ void fieldDo(Field& field, Edit edit) {
     case Edit::Paste:
         field.paste();
         break;
+    case Edit::Delete:
+        deleteSelection(field);
+        break;
     case Edit::SelectAll:
         field.selectAll();
         break;
@@ -168,6 +190,8 @@ bool bookCan(const editor::BookEditor& book, Edit edit) {
         return book.hasSelection();
     case Edit::Paste:
         return book.canPaste();
+    case Edit::Delete:
+        return book.hasSelection() && !book.isReadOnly();
     case Edit::SelectAll:
         return true;
     }
@@ -190,6 +214,9 @@ void bookDo(editor::BookEditor& book, Edit edit) {
         break;
     case Edit::Paste:
         book.paste();
+        break;
+    case Edit::Delete:
+        book.deleteSelectedText();
         break;
     case Edit::SelectAll:
         book.selectAll();
@@ -244,6 +271,11 @@ EditCoordinator::~EditCoordinator() {
             found->isEnabled = nullptr;
         }
     }
+    for (const auto& [id, can] : m_textCommands) {
+        if (Command* found = registry.getCommand(id)) {
+            found->isEnabled = nullptr;
+        }
+    }
 }
 
 void EditCoordinator::connectCommands() {
@@ -267,6 +299,24 @@ void EditCoordinator::connectCommands() {
     QWidget* focus = QApplication::focusWidget();
     setLastFocus(focus != nullptr && !givesCommands(focus) ? focus : nullptr);
     updateStates();
+}
+
+editor::BookEditor* EditCoordinator::textWithKeys() const {
+    return targetOf(focusedElement()).book;
+}
+
+void EditCoordinator::addTextCommands(const std::vector<std::string>& ids, const TextCan& can) {
+    auto& registry = CommandRegistry::getInstance();
+    for (const std::string& id : ids) {
+        if (Command* command = registry.getCommand(id)) {
+            command->isEnabled = [this, can]() {
+                const editor::BookEditor* text = textWithKeys();
+                return text != nullptr && can(*text);
+            };
+            m_textCommands.emplace_back(id, can);
+            registry.updateActionState(id);
+        }
+    }
 }
 
 void EditCoordinator::setLastFocus(QWidget* element) {
@@ -393,6 +443,9 @@ void EditCoordinator::updateStates() {
     auto& registry = CommandRegistry::getInstance();
     for (const auto& command : COMMANDS) {
         registry.updateActionState(command.second);
+    }
+    for (const auto& [id, can] : m_textCommands) {
+        registry.updateActionState(id);
     }
 }
 

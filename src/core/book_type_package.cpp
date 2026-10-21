@@ -486,6 +486,9 @@ constexpr PropertySpec PARAGRAPH_PROPERTIES[] = {
     {"leftMargin", PropertyType::Distance},    {"rightMargin", PropertyType::Distance},
     {"spaceBefore", PropertyType::Distance},   {"spaceAfter", PropertyType::Distance},
     {"lineHeight", PropertyType::Factor},
+    // The heading stays on the page of the paragraph after it; spelling and grammar are not
+    // checked in a paragraph of the style (true without it)
+    {"keepWithNext", PropertyType::Flag},      {"spellCheck", PropertyType::Flag},
 };
 
 /// Properties that StyleResolver applies to characters

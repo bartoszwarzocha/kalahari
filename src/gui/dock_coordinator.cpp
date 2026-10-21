@@ -14,6 +14,7 @@
 #include "kalahari/gui/panels/assistant_panel.h"
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/spelling_panel.h"
+#include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 #include "kalahari/gui/widgets/info_bar.h"
@@ -26,6 +27,9 @@
 #include "kalahari/core/project_manager.h"
 #include <QMainWindow>
 #include <QDockWidget>
+#include <QPainter>
+#include <QResizeEvent>
+#include <QStyle>
 #include <QTabWidget>
 #include <QLabel>
 #include <QToolButton>
@@ -34,6 +38,7 @@
 #include <QAction>
 #include <QRect>
 #include <QScreen>
+#include <QSplitter>
 
 #include <algorithm>
 
@@ -65,6 +70,43 @@ FittingScrollArea* scrollingPanel(QWidget* panel, QDockWidget* dock) {
     return area;
 }
 
+/// @brief The setting that the lower part of the Properties panel (the Paragraph and Styles
+/// panel) is folded to its band
+constexpr const char* PARAGRAPH_FOLDED_KEY = "panels.paragraphFolded";
+
+/// @brief The setting of the border of the parts of the Properties panel
+constexpr const char* PROPERTIES_SPLIT_KEY = "panels.propertiesSplit";
+
+/// @brief The title on the title bar of a panel: cut with an ellipsis in a narrow panel, and
+/// whole in its tooltip then, so a long title ("Paragraph and Styles") does not keep the
+/// column of panels wide
+class PanelTitleLabel : public QLabel {
+public:
+    using QLabel::QLabel;
+
+    /// @brief Two letters and the ellipsis
+    [[nodiscard]] QSize minimumSizeHint() const override {
+        const QSize least = QLabel::minimumSizeHint();
+        const int width = fontMetrics().horizontalAdvance(QStringLiteral("Ab\u2026"));
+        return {std::min(least.width(), width), least.height()};
+    }
+
+protected:
+    void paintEvent(QPaintEvent* /*event*/) override {
+        QPainter painter(this);
+        const QRect area = contentsRect();
+        const QString shown = fontMetrics().elidedText(text(), Qt::ElideRight, area.width());
+        style()->drawItemText(&painter, area, static_cast<int>(alignment()), palette(),
+                              isEnabled(), shown, foregroundRole());
+    }
+
+    void resizeEvent(QResizeEvent* event) override {
+        QLabel::resizeEvent(event);
+        const bool cut = fontMetrics().horizontalAdvance(text()) > contentsRect().width();
+        setToolTip(cut ? text() : QString());
+    }
+};
+
 } // anonymous namespace
 
 DockCoordinator::DockCoordinator(QMainWindow* mainWindow, QObject* parent)
@@ -93,14 +135,16 @@ void DockCoordinator::createDocks() {
     // Create dock widgets
     createNavigatorDock();
     createPropertiesDock();
+    createParagraphDock();
     createLogDock();
     createSearchDock();
     createAssistantDock();
     createAnnotationsDock();
     createSpellingDock();
 
-    // Tab right-side docks
-    m_mainWindow->tabifyDockWidget(m_propertiesDock, m_searchDock);
+    // Tab right-side docks: Paragraph and Styles next to Properties
+    m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
+    m_mainWindow->tabifyDockWidget(m_paragraphDock, m_searchDock);
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
     m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
@@ -111,7 +155,11 @@ void DockCoordinator::createDocks() {
     m_annotationsDock->raise();
 
     // A panel on the right shown again: the bar that says they were hidden has done its job
-    for (QDockWidget* dock : rightDocks()) {
+    QList<QDockWidget*> right = rightDocks();
+    if (!right.contains(m_paragraphDock)) {
+        right.append(m_paragraphDock);
+    }
+    for (QDockWidget* dock : right) {
         connect(dock, &QDockWidget::visibilityChanged, this, [this](bool visible) {
             if (visible) {
                 m_layoutNoticeBar->hide();
@@ -121,6 +169,9 @@ void DockCoordinator::createDocks() {
 
     // Setup VIEW menu panel actions
     setupViewMenuActions();
+
+    // The Paragraph and Styles panel where the settings say
+    placeParagraphPanel(false);
 
     logger.debug("DockCoordinator: Dock widgets created successfully");
 }
@@ -254,16 +305,129 @@ void DockCoordinator::createPropertiesDock() {
 
     m_propertiesPanel = new PropertiesPanel(m_mainWindow);
     m_propertiesDock = new QDockWidget(QObject::tr("Properties"), m_mainWindow);
-    m_propertiesDock->setWidget(scrollingPanel(m_propertiesPanel, m_propertiesDock));
     m_propertiesDock->setObjectName("PropertiesDock");
+
+    // Its own part and, when the settings put it there, the Paragraph and Styles panel under
+    // it (placeParagraphPanel()), each scrolling by itself
+    m_propertiesSplitter = new QSplitter(Qt::Vertical, m_propertiesDock);
+    m_propertiesSplitter->setObjectName(QStringLiteral("propertiesSplitter"));
+    m_propertiesSplitter->setChildrenCollapsible(false);
+    m_propertiesSplitter->addWidget(scrollingPanel(m_propertiesPanel, m_propertiesDock));
+    m_propertiesParagraph = new ParagraphPanel(m_mainWindow);
+    m_propertiesParagraph->setObjectName(QStringLiteral("propertiesParagraphPanel"));
+    m_propertiesParagraph->setFoldable(true);
+    m_propertiesParagraph->setFolded(
+        core::SettingsManager::getInstance().get<bool>(PARAGRAPH_FOLDED_KEY, false));
+    m_propertiesParagraphArea = scrollingPanel(m_propertiesParagraph, m_propertiesDock);
+    m_propertiesSplitter->addWidget(m_propertiesParagraphArea);
+    m_propertiesSplitter->setStretchFactor(0, 1);
+    m_propertiesSplitter->setStretchFactor(1, 1);
+    m_propertiesParagraphArea->hide();
+    m_propertiesDock->setWidget(m_propertiesSplitter);
+
     setupDockTitleBar(m_propertiesDock, "view.properties", QObject::tr("Properties"));
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_propertiesDock);
+
+    // The border of the parts where the writer puts it, kept while the lower part is unfolded
+    connect(m_propertiesSplitter, &QSplitter::splitterMoved, this, [this]() {
+        if (!m_propertiesParagraph->isFolded()) {
+            core::SettingsManager::getInstance().setBinary(PROPERTIES_SPLIT_KEY,
+                                                           m_propertiesSplitter->saveState());
+        }
+    });
+    connect(m_propertiesParagraph, &ParagraphPanel::foldedChanged, this, [this](bool folded) {
+        core::SettingsManager::getInstance().set<bool>(PARAGRAPH_FOLDED_KEY, folded);
+        applyParagraphFold();
+        updateParagraphAction();
+    });
 
     // Connect PropertiesPanel status change to coordinator
     connect(m_propertiesPanel, &PropertiesPanel::chapterStatusChanged,
             this, &DockCoordinator::chapterStatusChanged);
 
     logger.debug("DockCoordinator: Properties dock created");
+}
+
+void DockCoordinator::createParagraphDock() {
+    m_paragraphPanel = new ParagraphPanel(m_mainWindow);
+    m_paragraphDock = new QDockWidget(tr("Paragraph and Styles"), m_mainWindow);
+    m_paragraphDock->setWidget(scrollingPanel(m_paragraphPanel, m_paragraphDock));
+    m_paragraphDock->setObjectName("ParagraphDock");
+    setupDockTitleBar(m_paragraphDock, "view.paragraph", tr("Paragraph and Styles"));
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_paragraphDock);
+
+    core::Logger::getInstance().debug("DockCoordinator: Paragraph and Styles dock created");
+}
+
+bool DockCoordinator::paragraphInProperties() {
+    return core::SettingsManager::getInstance().get<std::string>(
+               PARAGRAPH_PLACE_KEY, PARAGRAPH_IN_PANEL) == PARAGRAPH_IN_PROPERTIES;
+}
+
+void DockCoordinator::placeParagraphPanel(bool moved) {
+    const bool inProperties = paragraphInProperties();
+    m_propertiesParagraphArea->setVisible(inProperties);
+    if (inProperties) {
+        m_paragraphDock->hide();
+        if (moved) {
+            m_propertiesParagraph->setFolded(false);
+            m_propertiesDock->show();
+            m_propertiesDock->raise();
+        }
+        applyParagraphFold();
+    } else if (moved) {
+        m_paragraphDock->show();
+        m_paragraphDock->raise();
+    }
+    updateParagraphAction();
+}
+
+void DockCoordinator::setParagraphEditor(editor::BookEditor* editor) {
+    m_paragraphPanel->setEditor(editor);
+    m_propertiesParagraph->setEditor(editor);
+}
+
+void DockCoordinator::applyParagraphFold() {
+    if (m_propertiesParagraph->isFolded()) {
+        // The band alone; the rest of the height for the properties
+        m_propertiesParagraphArea->setMaximumHeight(
+            m_propertiesParagraphArea->sizeHint().height());
+        return;
+    }
+    m_propertiesParagraphArea->setMaximumHeight(QWIDGETSIZE_MAX);
+    const QByteArray split =
+        core::SettingsManager::getInstance().getBinary(PROPERTIES_SPLIT_KEY);
+    if (split.isEmpty() || !m_propertiesSplitter->restoreState(split)) {
+        const int half = m_propertiesSplitter->height() / 2;
+        m_propertiesSplitter->setSizes({half, half});
+    }
+}
+
+bool DockCoordinator::isParagraphOpen() const {
+    if (paragraphInProperties()) {
+        return utils::isPanelOpen(m_propertiesDock) && !m_propertiesParagraph->isFolded();
+    }
+    return utils::isPanelOpen(m_paragraphDock);
+}
+
+void DockCoordinator::toggleParagraph() {
+    if (!paragraphInProperties()) {
+        utils::togglePanel(m_paragraphDock);
+        return;
+    }
+    if (isParagraphOpen() && utils::isPanelOnTop(m_propertiesDock)) {
+        m_propertiesParagraph->setFolded(true);
+        return;
+    }
+    m_propertiesParagraph->setFolded(false);
+    m_propertiesDock->show();
+    m_propertiesDock->raise();
+}
+
+void DockCoordinator::updateParagraphAction() {
+    if (m_viewParagraphAction != nullptr) {
+        m_viewParagraphAction->setChecked(isParagraphOpen());
+    }
 }
 
 void DockCoordinator::createLogDock() {
@@ -402,7 +566,7 @@ void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId
     m_dockIconLabels.append(iconLabel);
 
     // Title label
-    QLabel* titleLabel = new QLabel(title, titleBar);
+    QLabel* titleLabel = new PanelTitleLabel(title, titleBar);
     titleLabel->setStyleSheet("font-weight: bold;");
     layout->addWidget(titleLabel);
 
@@ -505,6 +669,14 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.annotations", m_annotationsDock);
     connectPanelCommand("view.spelling", m_spellingDock);
 
+    // Paragraph and Styles: a panel of its own or the lower part of Properties
+    auto& registry = CommandRegistry::getInstance();
+    if (Command* command = registry.getCommand("view.paragraph")) {
+        command->execute = [this]() { toggleParagraph(); };
+        command->isChecked = [this]() { return isParagraphOpen(); };
+        registry.updateActionState("view.paragraph");
+    }
+
     // The panel toggles of the View > Panels submenu (built by MenuBuilder from the
     // commands) follow the docks' visibility
     m_viewNavigatorAction = createPanelAction("view.navigator", m_navigatorDock);
@@ -514,13 +686,23 @@ void DockCoordinator::setupViewMenuActions() {
     m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock);
     m_viewAnnotationsAction = createPanelAction("view.annotations", m_annotationsDock);
     m_viewSpellingAction = createPanelAction("view.spelling", m_spellingDock);
+    m_viewParagraphAction = registry.getAction(std::string("view.paragraph"));
+    if (m_viewParagraphAction != nullptr) {
+        m_viewParagraphAction->setCheckable(true);
+        for (QDockWidget* dock : {m_paragraphDock, m_propertiesDock}) {
+            connect(dock, &QDockWidget::visibilityChanged, this,
+                    &DockCoordinator::updateParagraphAction);
+        }
+        updateParagraphAction();
+    }
 }
 
 void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget* dock) {
     auto& registry = CommandRegistry::getInstance();
     Command* cmd = registry.getCommand(cmdId);
     if (cmd) {
-        // The command closes an open panel and opens a closed one
+        // The command opens a closed panel on top, brings one under another tab on top and
+        // closes the one on top
         cmd->execute = [dock]() {
             utils::togglePanel(dock);
         };
@@ -565,10 +747,12 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->removeDockWidget(m_assistantDock);
     m_mainWindow->removeDockWidget(m_annotationsDock);
     m_mainWindow->removeDockWidget(m_spellingDock);
+    m_mainWindow->removeDockWidget(m_paragraphDock);
 
     // Re-add in default layout
     m_mainWindow->addDockWidget(Qt::LeftDockWidgetArea, m_navigatorDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_propertiesDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_paragraphDock);
     m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, m_logDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_searchDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_assistantDock);
@@ -576,15 +760,19 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_spellingDock);
 
     // Tab right-side docks
-    m_mainWindow->tabifyDockWidget(m_propertiesDock, m_searchDock);
+    m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
+    m_mainWindow->tabifyDockWidget(m_paragraphDock, m_searchDock);
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
     m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
 
     // Show docks (LogDock only in diagnostic/dev mode; the Spelling and Grammar panel only
-    // when opened)
+    // when opened; Paragraph and Styles unfolded where the settings put it)
     m_navigatorDock->show();
     m_propertiesDock->show();
+    m_paragraphDock->setVisible(!paragraphInProperties());
+    m_propertiesParagraph->setFolded(false);
+    placeParagraphPanel(false);
     m_logDock->setVisible(diagnosticMode || devMode);
     m_searchDock->show();
     m_assistantDock->show();
@@ -657,7 +845,11 @@ void DockCoordinator::showRightPanels() {
 }
 
 QList<QDockWidget*> DockCoordinator::rightDocks() const {
-    return {m_propertiesDock, m_searchDock, m_assistantDock, m_annotationsDock};
+    // Paragraph and Styles in the Properties panel has no dock of its own
+    if (paragraphInProperties()) {
+        return {m_propertiesDock, m_searchDock, m_assistantDock, m_annotationsDock};
+    }
+    return {m_propertiesDock, m_paragraphDock, m_searchDock, m_assistantDock, m_annotationsDock};
 }
 
 } // namespace gui

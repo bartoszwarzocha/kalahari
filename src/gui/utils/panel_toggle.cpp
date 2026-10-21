@@ -14,16 +14,25 @@ bool isPanelOpen(const QDockWidget* dock) {
     return dock != nullptr && !dock->isHidden();
 }
 
+bool isPanelOnTop(const QDockWidget* dock) {
+    if (!isPanelOpen(dock) || !dock->isVisible()) {
+        return false;
+    }
+    // A floating panel is a window of its own; a docked one under another tab of its group
+    // has nothing of it to show
+    return dock->isFloating() || !dock->visibleRegion().isEmpty();
+}
+
 void togglePanel(QDockWidget* dock) {
     if (dock == nullptr) {
         return;
     }
-    if (isPanelOpen(dock)) {
+    if (isPanelOnTop(dock)) {
         dock->hide();
         return;
     }
+    // A closed panel shown again, or an open one under another tab, comes on top of its group
     dock->show();
-    // A panel shown again in a tab group would lie under the current tab
     dock->raise();
 }
 

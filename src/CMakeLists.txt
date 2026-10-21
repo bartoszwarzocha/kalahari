@@ -10,6 +10,7 @@ set(KALAHARI_CORE_SOURCES
     editor/kml_serializer.cpp  # Phase 11.2: QTextDocument to KML serializer
     editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     editor/annotation.cpp  # Comments, TODOs and notes anchored to the text
+    editor/paragraph_styles.cpp  # Paragraph styles of a book, the objects of its text
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
     core/database_schema_manager.cpp
@@ -170,6 +171,7 @@ set(KALAHARI_SOURCES
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
+    gui/paragraph_style_menu.cpp  # ParagraphStyleMenu - Format > Text Style shows the text's styles
     gui/auto_correct_coordinator.cpp  # AutoCorrectCoordinator - auto-correct turned on and off as a whole
     gui/toolbar_keys.cpp  # ToolbarKeys - a toolbar gives the keys back after a command
     gui/spelling_coordinator.cpp  # SpellingCoordinator - spelling as you type: the editors' dictionary
@@ -228,6 +230,7 @@ set(KALAHARI_SOURCES
     gui/panels/log_panel.cpp
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
+    gui/panels/paragraph_panel.cpp
     gui/panels/search_panel.cpp
     gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards, made only in view
     gui/panels/spelling_panel.cpp  # Spelling and Grammar panel: the counts, the state, the keys
@@ -276,6 +279,7 @@ set(KALAHARI_SOURCES
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
     editor/kml_document_model.cpp        # KML reader
     editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
+    editor/formatting_marks.cpp               # The formatting marks of a paragraph (¶ · ° → ↵ ¬), drawn by the layout
     editor/text_source_adapter.cpp            # OpenSpec #00043 Phase 12.1: Text source adapters
     editor/editor_render_pipeline.cpp         # OpenSpec #00043 Phase 12.1: Unified render pipeline
     editor/editor_benchmark.cpp               # OpenSpec #00043 Phase 11.11: Performance benchmarks
@@ -352,6 +356,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT

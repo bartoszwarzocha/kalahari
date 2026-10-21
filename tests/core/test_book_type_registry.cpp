@@ -559,26 +559,26 @@ TEST_CASE("Built-in book types: styles of a type with those of the packages it u
     };
 
     CHECK(styleIds(paragraphs("kalahari.base")) ==
-          "normal, heading_1, heading_2, heading_3, quote, dialogue");
+          "normal, heading_1, heading_2, heading_3, quote, dialogue, code, caption, footnote");
     CHECK(styleIds(registry.characterStyles(QStringLiteral("kalahari.base"))) ==
           "emphasis, strong");
 
     CHECK(styleIds(paragraphs("kalahari.novel")) ==
-          "normal, heading_1, heading_2, heading_3, quote, dialogue, part_title, chapter_title, "
-          "motto, letter");
+          "normal, heading_1, heading_2, heading_3, quote, dialogue, code, caption, footnote, "
+          "part_title, chapter_title, motto, letter");
     CHECK(styleIds(registry.characterStyles(QStringLiteral("kalahari.novel"))) ==
           "emphasis, strong, thought, proper_name");
 
     // As in the novel, and the title, subtitle and author of a story
     CHECK(styleIds(paragraphs("kalahari.short_stories")) ==
-          "normal, heading_1, heading_2, heading_3, quote, dialogue, part_title, chapter_title, "
-          "motto, letter, story_title, story_subtitle, story_author");
+          "normal, heading_1, heading_2, heading_3, quote, dialogue, code, caption, footnote, "
+          "part_title, chapter_title, motto, letter, story_title, story_subtitle, story_author");
 
     // The screenplay's dialogue replaces the Base one where it stands
     const QList<PackageParagraphStyle> screenplay = paragraphs("kalahari.screenplay");
     CHECK(styleIds(screenplay) ==
-          "normal, heading_1, heading_2, heading_3, quote, dialogue, action, scene_heading, "
-          "character_cue, parenthetical, transition");
+          "normal, heading_1, heading_2, heading_3, quote, dialogue, code, caption, footnote, "
+          "action, scene_heading, character_cue, parenthetical, transition");
     const PackageParagraphStyle* dialogue = findStyle(screenplay, QStringLiteral("dialogue"));
     REQUIRE(dialogue != nullptr);
     CHECK(dialogue->baseStyle == QStringLiteral("action"));

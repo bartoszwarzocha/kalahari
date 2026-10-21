@@ -11,6 +11,8 @@
 
 #pragma once
 
+#include <kalahari/editor/paragraph_styles.h>
+
 #include <QColor>
 #include <QFont>
 #include <QSizeF>
@@ -80,6 +82,17 @@ struct EditorColors {
         return mode == EditorColorMode::Light
             ? focus.inactiveLight
             : focus.inactiveDark;
+    }
+
+    /// @brief The formatting marks (View > Show Formatting Marks: ¶ · ° → ↵ ¬)
+    struct FormattingMarkColors {
+        QColor light{91, 127, 192};              ///< On the light paper
+        QColor dark{122, 150, 208};              ///< On the dark paper
+    } formattingMarks;
+
+    /// @brief The formatting marks' color on the paper of a mode
+    QColor formattingMarksColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? formattingMarks.light : formattingMarks.dark;
     }
 
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on
@@ -270,6 +283,8 @@ public:
     TextFrameBorder textFrameBorder;           ///< Text frame border settings
     PageMarginsConfig pageMargins;             ///< The page's margins, in every view
     double annotationMarkScale{1.0};           ///< Size of the annotations' marks (1 = 100%)
+    SceneBreakLook sceneBreakLook{SceneBreakLook::Asterisks};  ///< How the scene breaks look
+    bool showFormattingMarks{false};           ///< View > Show Formatting Marks
 };
 
 }  // namespace kalahari::editor

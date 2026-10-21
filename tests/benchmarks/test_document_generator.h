@@ -33,9 +33,10 @@ public:
         int targetWordCount = 150000;       ///< Target word count (~150k)
         int minParagraphWords = 10;         ///< Minimum words per paragraph
         int maxParagraphWords = 200;        ///< Maximum words per paragraph
-        double headingRatio = 0.05;         ///< 5% headings
-        double shortParagraphRatio = 0.10;  ///< 10% dialog-like short paragraphs
+        double headingRatio = 0.05;         ///< 5% headings (<h2> in KML, as short as dialog)
+        double shortParagraphRatio = 0.10;  ///< 10% dialog-like short paragraphs (KML: style Dialogue)
         double formattedRatio = 0.20;       ///< 20% text with formatting
+        double sceneBreakRatio = 0.02;      ///< 2% of the paragraphs of text followed by a scene break (KML)
         unsigned int seed = 42;             ///< Random seed for reproducibility
     };
 

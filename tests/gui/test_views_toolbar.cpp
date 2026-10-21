@@ -1,9 +1,10 @@
 /// @file test_views_toolbar.cpp
-/// @brief The Views toolbar: the view modes, the switches, the paper, the text frame border and
-///        the zoom of the View menu
+/// @brief The Views toolbar: the view modes, the switches, the paper, the text frame border,
+///        the formatting marks and the zoom of the View menu
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/icon_registry.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -29,6 +30,8 @@
 #include <QTimer>
 #include <QToolBar>
 #include <QTreeWidget>
+
+#include <cstdio>
 
 using namespace kalahari::gui;
 
@@ -89,8 +92,8 @@ QByteArray layoutWithoutViewsToolbar() {
 
 }  // namespace
 
-TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border and zoom of the View "
-          "menu",
+TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, formatting marks "
+          "and zoom of the View menu",
           "[gui][toolbar]") {
     registerAllCommands(CommandCallbacks{});
     registerAllIcons();
@@ -107,7 +110,7 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border and
 
     // The very actions of the View menu, so a button is checked with its menu item
     const QList<QAction*> actions = toolbar->actions();
-    REQUIRE(actions.size() == 14);
+    REQUIRE(actions.size() == 15);
     CHECK(actions[0] == registry.getAction(std::string("view.mode.continuous")));
     CHECK(actions[1] == registry.getAction(std::string("view.mode.page")));
     CHECK(actions[2]->isSeparator());
@@ -116,12 +119,13 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border and
     CHECK(actions[5] == registry.getAction(std::string("view.typewriter")));
     CHECK(actions[6] == registry.getAction(std::string("view.darkPaper")));
     CHECK(actions[7] == registry.getAction(std::string("view.textFrameBorder")));
-    CHECK(actions[8]->isSeparator());
-    CHECK(actions[9] == registry.getAction(std::string("view.zoomOut")));
-    CHECK(actions[10] == registry.getAction(std::string("view.zoomIn")));
-    CHECK(actions[11] == registry.getAction(std::string("view.resetZoom")));
-    CHECK(actions[12] == registry.getAction(std::string("view.zoomPageWidth")));
-    CHECK(actions[13] == registry.getAction(std::string("view.zoomWholePage")));
+    CHECK(actions[8] == registry.getAction(std::string("view.showFormattingMarks")));
+    CHECK(actions[9]->isSeparator());
+    CHECK(actions[10] == registry.getAction(std::string("view.zoomOut")));
+    CHECK(actions[11] == registry.getAction(std::string("view.zoomIn")));
+    CHECK(actions[12] == registry.getAction(std::string("view.resetZoom")));
+    CHECK(actions[13] == registry.getAction(std::string("view.zoomPageWidth")));
+    CHECK(actions[14] == registry.getAction(std::string("view.zoomWholePage")));
 
     // In the View menu the text frame border follows the paper, before the separator
     const Command* paper = registry.getCommand("view.darkPaper");
@@ -137,7 +141,8 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border and
     auto& icons = kalahari::core::IconRegistry::getInstance();
     for (const char* id : {"view.mode.continuous", "view.mode.page", "view.mode.distraction-free",
                            "view.focus", "view.typewriter", "view.darkPaper",
-                           "view.textFrameBorder", "view.zoomOut", "view.zoomIn",
+                           "view.textFrameBorder", "view.showFormattingMarks", "view.zoomOut",
+                           "view.zoomIn",
                            "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}) {
         INFO(id);
         CHECK(icons.hasIcon(QString::fromLatin1(id)));
@@ -221,6 +226,67 @@ TEST_CASE("Views toolbar: the Page Width and Whole Page icons are a page with a 
     }
 }
 
+TEST_CASE("Views toolbar: the formatting marks icon is a pilcrow in every icon theme",
+          "[gui][toolbar]") {
+    for (const char* theme : {"twotone", "filled", "outlined", "rounded"}) {
+        INFO(theme);
+        const QImage image = renderIcon(theme, "format_paragraph");
+        REQUIRE_FALSE(image.isNull());
+
+        // The bar on top, the two stems with room between them and the edge of the bowl
+        CHECK(image.pixelColor(16, 5) == PRIMARY);
+        CHECK(image.pixelColor(11, 16) == PRIMARY);
+        CHECK(image.pixelColor(15, 16) == PRIMARY);
+        CHECK(image.pixelColor(13, 16).alpha() == 0);
+        CHECK(image.pixelColor(7, 6) == PRIMARY);
+
+        // The middle of the bowl: full, empty in outline, the second color in two tones
+        const QLatin1String name(theme);
+        if (name == QLatin1String("twotone")) {
+            CHECK(image.pixelColor(9, 8) == SECONDARY);
+        } else if (name == QLatin1String("outlined")) {
+            CHECK(image.pixelColor(9, 8).alpha() == 0);
+        } else {
+            CHECK(image.pixelColor(9, 8) == PRIMARY);
+        }
+    }
+}
+
+TEST_CASE("Views toolbar: one customized before gets the formatting marks after the text frame "
+          "border, once",
+          "[gui][toolbar]") {
+    registerAllCommands(CommandCallbacks{});
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
+    const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
+    const QString views = QStringLiteral("views");
+
+    // Customized before the button came: the paper moved to the end
+    settings.set<std::string>(
+        "toolbars.configurations",
+        R"({"builtIn":{"views":["view.mode.continuous","view.mode.page","view.textFrameBorder",)"
+        R"("view.zoomIn","view.darkPaper"]}})");
+    settings.set<int>("toolbars.addedCommands", 2);
+    QMainWindow window;
+    {
+        ToolbarManager manager(&window);
+        CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
+              "view.mode.continuous | view.mode.page | view.textFrameBorder | "
+              "view.showFormattingMarks | view.zoomIn | view.darkPaper");
+
+        // Taken away by the writer after that, it stays away
+        QStringList without = manager.getToolbarCommands(views);
+        without.removeAll(QStringLiteral("view.showFormattingMarks"));
+        manager.setToolbarCommands(views, without);
+    }
+    ToolbarManager next(&window);
+    CHECK_FALSE(
+        next.getToolbarCommands(views).contains(QStringLiteral("view.showFormattingMarks")));
+
+    settings.set<std::string>("toolbars.configurations", savedToolbars);
+    settings.set<int>("toolbars.addedCommands", savedVersion);
+}
+
 TEST_CASE("Views toolbar: shown in the second row of a layout saved before it existed",
           "[gui][toolbar]") {
     // A window keeps its toolbar layout between sessions; the layout saved by an earlier
@@ -285,7 +351,8 @@ TEST_CASE("Toolbar manager: the View menu items follow the toolbars and outlive 
     CHECK(toolbar->isVisible());
 }
 
-TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too", "[gui][toolbar]") {
+TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too, by the right edge",
+          "[gui][toolbar]") {
     // The user's test: the Annotations panel (F9) had no button on the Panels toolbar
     registerAllCommands(CommandCallbacks{});
     registerAllIcons();
@@ -297,10 +364,11 @@ TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too", 
     QToolBar* toolbar = manager.getToolbar("view");
     REQUIRE(toolbar != nullptr);
 
-    // The very actions of View > Panels, so a button is checked with its menu item
+    // The very actions of View > Panels, so a button is checked with its menu item (the Log
+    // button only with its setting, below)
     const QList<QAction*> actions = toolbar->actions();
-    for (const char* id : {"view.navigator", "view.properties", "view.search", "view.assistant",
-                           "view.annotations", "view.log"}) {
+    for (const char* id : {"view.navigator", "view.properties", "view.paragraph", "view.search",
+                           "view.assistant", "view.annotations"}) {
         INFO(id);
         CHECK(actions.contains(registry.getAction(std::string(id))));
         CHECK(kalahari::core::IconRegistry::getInstance().hasIcon(QString::fromLatin1(id)));
@@ -308,6 +376,58 @@ TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too", 
     // Next to the Assistant panel, with which it shares the tabs on the right
     CHECK(actions.indexOf(registry.getAction(std::string("view.annotations"))) ==
           actions.indexOf(registry.getAction(std::string("view.assistant"))) + 1);
+    // Paragraph and Styles next to Properties, as their tabs
+    CHECK(actions.indexOf(registry.getAction(std::string("view.paragraph"))) ==
+          actions.indexOf(registry.getAction(std::string("view.properties"))) + 1);
+
+    // Standing by the right edge of the window, shown
+    CHECK(window.toolBarArea(toolbar) == Qt::RightToolBarArea);
+    CHECK(toolbar->orientation() == Qt::Vertical);
+    CHECK_FALSE(toolbar->isHidden());
+}
+
+TEST_CASE("Panels toolbar: the Log button only with its setting", "[gui][toolbar]") {
+    // The user's test: the Log button is for those who read the log, not for every writer;
+    // View > Panels > Log (F4) opens the panel anyway
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    struct Back {
+        bool shown;
+        ~Back() {
+            try {
+                kalahari::core::SettingsManager::getInstance().set<bool>(
+                    ToolbarManager::LOG_BUTTON_KEY, shown);
+            } catch (...) {
+                std::fputs("The setting of the Log button could not be given back\n", stderr);
+            }
+        }
+    } back{settings.get<bool>(ToolbarManager::LOG_BUTTON_KEY, false)};
+    settings.set<bool>(ToolbarManager::LOG_BUTTON_KEY, false);
+
+    QMainWindow window;
+    ToolbarManager manager(&window);
+    manager.createToolbars(registry);
+    QToolBar* toolbar = manager.getToolbar("view");
+    REQUIRE(toolbar != nullptr);
+    QAction* log = registry.getAction(std::string("view.log"));
+    REQUIRE(log != nullptr);
+
+    // Hidden by default; the list of the toolbar keeps it, for Customize Toolbars
+    CHECK_FALSE(toolbar->actions().contains(log));
+    CHECK(manager.getToolbarCommands(QStringLiteral("view")).contains(QStringLiteral("view.log")));
+
+    // Settings > Advanced > Log: at its place, the last button
+    settings.set<bool>(ToolbarManager::LOG_BUTTON_KEY, true);
+    QApplication::processEvents();
+    REQUIRE_FALSE(toolbar->actions().isEmpty());
+    CHECK(toolbar->actions().last() == log);
+
+    settings.set<bool>(ToolbarManager::LOG_BUTTON_KEY, false);
+    QApplication::processEvents();
+    CHECK_FALSE(toolbar->actions().contains(log));
+    CHECK(toolbar->actions().contains(registry.getAction(std::string("view.annotations"))));
 }
 
 TEST_CASE("Toolbar manager: a renamed toolbar stays selected", "[gui][toolbar]") {

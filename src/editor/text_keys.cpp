@@ -69,7 +69,8 @@ std::vector<TextKey> windowsKeys() {
         .key(Qt::Key_Delete, NONE, Action::DeleteForward)
         .key(Qt::Key_Backspace, CTRL, Action::DeleteWordBackward)
         .key(Qt::Key_Delete, CTRL, Action::DeleteWordForward)
-        .enter({NONE, CTRL}, Action::NewParagraph)
+        // Ctrl+Enter is Insert > Page Break, a command of the window
+        .enter({NONE}, Action::NewParagraph)
         .enter({SHIFT}, Action::NewLine)
         // The second keys of the commands, those of every Windows text field
         .key(Qt::Key_Z, CTRL | SHIFT, Action::Redo)
@@ -117,7 +118,8 @@ std::vector<TextKey> macKeys() {
         .key(Qt::Key_Delete, ALT, Action::DeleteToWordEnd)
         .key(Qt::Key_Backspace, CTRL, Action::DeleteToLineStart)
         .key(Qt::Key_Backspace, META, Action::DeleteDiacritic)
-        .enter({NONE, CTRL, ALT}, Action::NewParagraph)
+        // Cmd+Return is Insert > Page Break, a command of the window
+        .enter({NONE, ALT}, Action::NewParagraph)
         .enter({SHIFT}, Action::NewLine)
         .key(Qt::Key_Z, CTRL | SHIFT, Action::Redo)
         // The Control keys of the text fields of macOS

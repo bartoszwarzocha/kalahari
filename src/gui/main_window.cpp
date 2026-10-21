@@ -11,6 +11,7 @@
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
+#include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/grammar_coordinator.h"
@@ -32,6 +33,7 @@
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/view_modes.h"
 #include "kalahari/editor/editor_types.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -330,6 +332,51 @@ MainWindow::MainWindow(QWidget* parent)
         this);
     m_editCoordinator->connectCommands();
 
+    // Select Word, Select Paragraph, the objects of the Insert menu and the pastes in each
+    // mode work in the book's text with the keys: in a field (the find bar, the Navigator's
+    // filter) they are greyed out, and Ctrl+Enter stays with the field. Over a chapter of a
+    // book open read-only the objects and the pastes are greyed out, saying why
+    m_editCoordinator->addTextCommands({"edit.selectWord", "edit.selectParagraph"},
+                                       [](const editor::BookEditor&) { return true; });
+    const std::vector<std::string> objectCommands = {"insert.horizontalLine", "insert.sceneBreak",
+                                                     "insert.pageBreak", "book.sceneBreak"};
+    m_editCoordinator->addTextCommands(
+        objectCommands, [](const editor::BookEditor& text) { return !text.isReadOnly(); });
+    // The pastes in each mode: with something on the clipboard, as Paste
+    const std::vector<std::string> pasteCommands = {
+        "edit.pasteSourceFormatting", "edit.pasteMergeFormatting", "edit.pasteTextOnly"};
+    m_editCoordinator->addTextCommands(
+        pasteCommands, [](const editor::BookEditor& text) { return text.canPaste(); });
+    std::vector<std::string> changingCommands = objectCommands;
+    changingCommands.insert(changingCommands.end(), pasteCommands.begin(), pasteCommands.end());
+    for (const std::string& id : changingCommands) {
+        if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
+            command->disabledReason = [this]() {
+                const editor::BookEditor* text = m_editCoordinator->textWithKeys();
+                return text != nullptr && text->isReadOnly() ? readOnlyReason() : QString();
+            };
+        }
+    }
+    m_editCoordinator->updateStates();
+
+    // Format > Text Style also shows the other styles of the text in front (the window owns
+    // the object)
+    if (QAction* heading = CommandRegistry::getInstance().getAction(
+            QString::fromLatin1(styleCommands().front().commandId))) {
+        for (QObject* object : heading->associatedObjects()) {
+            if (auto* menu = qobject_cast<QMenu*>(object)) {
+                new ParagraphStyleMenu(
+                    menu,
+                    [this]() -> editor::BookEditor* {
+                        EditorPanel* panel = getCurrentEditor();
+                        return panel != nullptr ? panel->getBookEditor() : nullptr;
+                    },
+                    this);
+                break;
+            }
+        }
+    }
+
     // After a command given in a toolbar the keys go back where they were, in the text or a
     // field; a floating toolbar, a window of its own, takes them at a click (the window owns
     // the object)
@@ -515,7 +562,41 @@ void MainWindow::registerCommands() {
     callbacks.onCut = [this]() { onCut(); };
     callbacks.onCopy = [this]() { onCopy(); };
     callbacks.onPaste = [this]() { onPaste(); };
+    callbacks.onDelete = [this]() {
+        if (m_editCoordinator) {
+            m_editCoordinator->execute(EditCoordinator::Edit::Delete);
+        }
+    };
     callbacks.onSelectAll = [this]() { onSelectAll(); };
+
+    // Select Word, Select Paragraph, the objects of the Insert menu and the pastes in each
+    // mode work in the book's text with the keys (EditCoordinator::addTextCommands())
+    const auto inText = [this](const std::function<void(editor::BookEditor&)>& action) {
+        return [this, action]() {
+            if (editor::BookEditor* text =
+                    m_editCoordinator ? m_editCoordinator->textWithKeys() : nullptr) {
+                action(*text);
+            }
+        };
+    };
+    callbacks.onSelectWord = inText([](editor::BookEditor& text) { text.selectWord(); });
+    callbacks.onSelectParagraph =
+        inText([](editor::BookEditor& text) { text.selectParagraph(); });
+    const auto insert = [&inText](editor::TextObject object) {
+        return inText([object](editor::BookEditor& text) { text.insertTextObject(object); });
+    };
+    callbacks.onInsertHorizontalLine = insert(editor::TextObject::HorizontalRule);
+    callbacks.onInsertSceneBreak = insert(editor::TextObject::SceneBreak);
+    callbacks.onInsertPageBreak = insert(editor::TextObject::PageBreak);
+    const auto pasteAs = [this, &inText](editor::PasteMode mode) {
+        return inText([this, mode](editor::BookEditor& text) {
+            text.pasteAs(mode);
+            statusBar()->showMessage(tr("Pasted from clipboard"), 2000);
+        });
+    };
+    callbacks.onPasteSourceFormatting = pasteAs(editor::PasteMode::Source);
+    callbacks.onPasteMergeFormatting = pasteAs(editor::PasteMode::Merge);
+    callbacks.onPasteTextOnly = pasteAs(editor::PasteMode::Text);
     callbacks.onFind = [this]() { onFind(); };
     callbacks.onFindNext = [this]() { onFindNext(); };
     callbacks.onFindPrevious = [this]() { onFindPrevious(); };
@@ -547,12 +628,31 @@ void MainWindow::registerCommands() {
     callbacks.onFormatItalic = [this]() { onFormatItalic(); };
     callbacks.onFormatUnderline = [this]() { onFormatUnderline(); };
     callbacks.onFormatStrikethrough = [this]() { onFormatStrikethrough(); };
+    callbacks.onClearFormatting = [this]() {
+        EditorPanel* editor = getCurrentEditor();
+        if (editor && editor->getBookEditor()) {
+            editor->getBookEditor()->clearFormatting();
+        }
+        updateEditorActionStates();  // bold and the alignments are off now
+    };
 
     // Alignment commands
     callbacks.onAlignLeft = [this]() { onAlignLeft(); };
     callbacks.onAlignCenter = [this]() { onAlignCenter(); };
     callbacks.onAlignRight = [this]() { onAlignRight(); };
     callbacks.onAlignJustify = [this]() { onAlignJustify(); };
+
+    // Format > Text Style, as the alignments: the paragraphs of the cursor or the selection
+    // in the document in front
+    callbacks.onParagraphStyle = [this](const QString& styleId) {
+        core::Logger::getInstance().info("Action triggered: Text Style {}", styleId.toStdString());
+        EditorPanel* editor = getCurrentEditor();
+        if (editor && editor->getBookEditor()) {
+            editor->getBookEditor()->applyParagraphStyle(styleId);
+        }
+        // Choosing the style in use changes nothing, the style stays checked
+        updateEditorActionStates();
+    };
 
     // View Mode commands (OpenSpec #00042 Phase 7.3)
     callbacks.onViewModeContinuous = [this]() { onViewModeContinuous(); };
@@ -562,6 +662,7 @@ void MainWindow::registerCommands() {
     callbacks.onDarkPaperToggle = [this]() { onDarkPaperToggle(); };
     callbacks.onTextFrameBorderToggle = [this]() { onTextFrameBorderToggle(); };
     callbacks.onDistractionFreeToggle = [this]() { onDistractionFreeToggle(); };
+    callbacks.onFormattingMarksToggle = [this]() { onFormattingMarksToggle(); };
 
     // Zoom commands act on the editor in front
     const auto onEditor = [this](void (editor::BookEditor::*action)()) {
@@ -734,6 +835,8 @@ void MainWindow::registerCommands() {
     utils::followSetting(registry.getAction(std::string("view.typewriter")),
                          "editor.typewriter.enabled");
     utils::followSetting(registry.getAction(std::string("view.focus")), "editor.focus.enabled");
+    utils::followSetting(registry.getAction(std::string("view.showFormattingMarks")),
+                         "editor.showFormattingMarks");
 
     logger.debug("Commands registered successfully ({} commands)", count);
 }
@@ -1118,6 +1221,18 @@ void MainWindow::onTextFrameBorderToggle() {
                              2000);
 }
 
+void MainWindow::onFormattingMarksToggle() {
+    auto& settings = core::SettingsManager::getInstance();
+
+    // A setting of all editors, kept between sessions: every editor follows it
+    const bool show = !settings.get<bool>("editor.showFormattingMarks");
+    settings.set<bool>("editor.showFormattingMarks", show);
+    core::Logger::getInstance().info("Action triggered: Show Formatting Marks {}",
+                                     show ? "on" : "off");
+    statusBar()->showMessage(show ? tr("Formatting marks: shown") : tr("Formatting marks: hidden"),
+                             2000);
+}
+
 bool MainWindow::isDistractionFree() const {
     return m_distractionFreeLayout != nullptr && m_distractionFreeLayout->isActive();
 }
@@ -1198,6 +1313,12 @@ void MainWindow::updateEditorActionStates() {
     setChecked("format.alignCenter", alignment == Qt::AlignHCenter);
     setChecked("format.alignRight", alignment == Qt::AlignRight);
     setChecked("format.justify", alignment == Qt::AlignJustify);
+
+    // The style of the paragraph at the cursor; none on a line or a break
+    const QString style = bookEditor != nullptr ? bookEditor->currentParagraphStyle() : QString();
+    for (const StyleCommand& command : styleCommands()) {
+        setChecked(command.commandId, !style.isEmpty() && style == QLatin1String(command.styleId));
+    }
 
     utils::updateDocumentCommands(registry);
     // Save, Save As and Save All follow the tabs: a chapter, a file outside the book, none
@@ -1351,6 +1472,7 @@ void MainWindow::createDocks() {
             if (propertiesPanel) {
                 propertiesPanel->setActiveEditor(nullptr);
             }
+            m_dockCoordinator->setParagraphEditor(nullptr);
             // OpenSpec #00042 Phase 7.2: Sync font toolbar (disabled state)
             if (m_toolbarManager) {
                 m_toolbarManager->syncFontWidgetsToEditor(nullptr);
@@ -1427,6 +1549,8 @@ void MainWindow::createDocks() {
             if (propertiesPanel) {
                 propertiesPanel->setActiveEditor(editor);
             }
+            // The paragraph at its cursor in the Paragraph and Styles panel
+            m_dockCoordinator->setParagraphEditor(editor->getBookEditor());
 
             // OpenSpec #00042 Phase 7.2: Sync font toolbar to current editor
             if (m_toolbarManager) {
@@ -1441,6 +1565,7 @@ void MainWindow::createDocks() {
             if (propertiesPanel) {
                 propertiesPanel->setActiveEditor(nullptr);
             }
+            m_dockCoordinator->setParagraphEditor(nullptr);
             // OpenSpec #00042 Phase 7.2: Sync font toolbar (disabled state)
             if (m_toolbarManager) {
                 m_toolbarManager->syncFontWidgetsToEditor(nullptr);
@@ -1914,6 +2039,9 @@ void MainWindow::showEvent(QShowEvent* event) {
         if (m_toolbarManager) {
             m_toolbarManager->restoreState();
         }
+
+        // A layout saved before the Paragraph and Styles panel, or with it in its other place
+        m_dockCoordinator->placeParagraphPanel(false);
 
         // OpenSpec #00024: LogDock visibility is INDEPENDENT of saveState/restoreState
         // It depends ONLY on diagnostic mode, not on saved window state

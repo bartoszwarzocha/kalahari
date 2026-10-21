@@ -72,6 +72,10 @@ std::vector<AnnotationMark> QTextDocumentSource::paragraphAnnotationMarks(size_t
     return annotationMarksIn(blockAt(index));
 }
 
+std::vector<FormattingMark> QTextDocumentSource::paragraphFormattingMarks(size_t index) const {
+    return formattingMarksOf(blockAt(index));
+}
+
 QTextLayout* QTextDocumentSource::layout(size_t index) const {
     // The pipeline also reads blocks outside the viewport (the cursor's, the pages'):
     // one waiting for layout gets its lines now
@@ -230,9 +234,8 @@ void QTextDocumentSource::setTypography(const LayoutTypography& typography) {
     }
 }
 
-double QTextDocumentSource::lineSpacing() const {
-    const auto* layout = kalahariLayout();
-    return layout ? layout->typography().lineSpacing : 1.0;
+QRectF QTextDocumentSource::lineBox(size_t index, const QTextLine& line) const {
+    return KalahariTextDocumentLayout::blockLineBox(blockAt(index), line);
 }
 
 double QTextDocumentSource::paragraphSpacing() const {

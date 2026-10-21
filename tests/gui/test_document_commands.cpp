@@ -35,13 +35,15 @@ CommandCallbacks runningCallbacks() {
          {&callbacks.onSaveDocument, &callbacks.onUndo, &callbacks.onFind,
           &callbacks.onFindNext, &callbacks.onFindPrevious, &callbacks.onFindReplace,
           &callbacks.onFormatBold, &callbacks.onFormatItalic, &callbacks.onFormatUnderline,
-          &callbacks.onFormatStrikethrough, &callbacks.onAlignLeft, &callbacks.onAlignCenter,
+          &callbacks.onFormatStrikethrough, &callbacks.onClearFormatting,
+          &callbacks.onAlignLeft, &callbacks.onAlignCenter,
           &callbacks.onAlignRight, &callbacks.onAlignJustify, &callbacks.onViewModeContinuous,
           &callbacks.onViewModePage, &callbacks.onDarkPaperToggle, &callbacks.onZoomIn,
           &callbacks.onZoomOut, &callbacks.onZoomReset, &callbacks.onZoomPageWidth,
           &callbacks.onZoomWholePage}) {
         *callback = none;
     }
+    callbacks.onParagraphStyle = [](const QString&) {};
     return callbacks;
 }
 
@@ -84,11 +86,16 @@ TEST_CASE("Document commands: greyed out without a document in front, with their
         CHECK(command->canExecute());
         REQUIRE(registry.getAction(id) != nullptr);
     }
-    // Find, the formats, the alignments, the view mode and the zoom, each with its keys
+    // Find, the formats, the alignments, the styles, the view mode and the zoom, each with its
+    // keys
     for (const char* id : {"edit.find", "edit.findNext", "edit.findPrevious", "edit.findReplace",
                            "format.bold", "format.italic", "format.underline",
-                           "format.strikethrough", "format.alignLeft", "format.alignCenter",
-                           "format.alignRight", "format.justify", "view.mode.continuous",
+                           "format.strikethrough", "format.clearFormatting", "format.alignLeft",
+                           "format.alignCenter", "format.alignRight", "format.justify",
+                           "format.style.heading1",
+                           "format.style.heading2", "format.style.heading3", "format.style.body",
+                           "format.style.quote", "format.style.dialogue", "format.style.code",
+                           "view.mode.continuous",
                            "view.mode.page", "view.zoomIn", "view.zoomOut", "view.resetZoom",
                            "view.zoomPageWidth", "view.zoomWholePage"}) {
         INFO(id);
@@ -135,8 +142,13 @@ TEST_CASE("Document commands: over a read-only chapter those that change it are 
     CHECK(utils::changingDocumentCommands() ==
           std::vector<std::string>{"edit.findReplace", "format.bold", "format.italic",
                                    "format.underline", "format.strikethrough",
-                                   "format.alignLeft", "format.alignCenter",
-                                   "format.alignRight", "format.justify"});
+                                   "format.clearFormatting", "format.alignLeft",
+                                   "format.alignCenter",
+                                   "format.alignRight", "format.justify",
+                                   "format.style.heading1", "format.style.heading2",
+                                   "format.style.heading3", "format.style.body",
+                                   "format.style.quote", "format.style.dialogue",
+                                   "format.style.code"});
     const auto changes = [](const std::string& id) {
         const std::vector<std::string>& ids = utils::changingDocumentCommands();
         return std::find(ids.begin(), ids.end(), id) != ids.end();

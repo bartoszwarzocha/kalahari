@@ -456,6 +456,18 @@
         <translation>Wk&amp;lej</translation>
     </message>
     <message>
+        <source>Paste with Source Formatt&amp;ing</source>
+        <translation>Wkle&amp;j z formatowaniem źródła</translation>
+    </message>
+    <message>
+        <source>Paste and &amp;Merge Formatting</source>
+        <translation>Wklej ze scalon&amp;ym formatowaniem</translation>
+    </message>
+    <message>
+        <source>Paste Text Onl&amp;y</source>
+        <translation>Wklej &amp;bez formatowania</translation>
+    </message>
+    <message>
         <source>Paste &amp;Special...</source>
         <translation>Wklej &amp;specjalnie...</translation>
     </message>
@@ -602,10 +614,6 @@
     <message>
         <source>Heading &amp;3</source>
         <translation>Nagłówek &amp;3</translation>
-    </message>
-    <message>
-        <source>&amp;Body Text</source>
-        <translation>&amp;Tekst podstawowy</translation>
     </message>
     <message>
         <source>&amp;Quote</source>
@@ -948,8 +956,32 @@
         <translation>&amp;Pisownia i gramatyka</translation>
     </message>
     <message>
+        <source>&amp;Horizontal Line</source>
+        <translation>&amp;Linia pozioma</translation>
+    </message>
+    <message>
+        <source>S&amp;cene Break</source>
+        <translation>Podział sc&amp;eny</translation>
+    </message>
+    <message>
+        <source>&amp;Page Break</source>
+        <translation>Podział st&amp;rony</translation>
+    </message>
+    <message>
+        <source>&amp;Normal</source>
+        <translation>&amp;Normalny</translation>
+    </message>
+    <message>
+        <source>&amp;Dialogue</source>
+        <translation>&amp;Dialog</translation>
+    </message>
+    <message>
         <source>&amp;Add...</source>
         <translation>&amp;Dodaj...</translation>
+    </message>
+    <message>
+        <source>Pa&amp;ragraph and Styles</source>
+        <translation>A&amp;kapit i style</translation>
     </message>
 </context>
 <context>
@@ -3295,6 +3327,13 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     </message>
 </context>
 <context>
+    <name>kalahari::editor::KalahariTextDocumentLayout</name>
+    <message>
+        <source>Page Break</source>
+        <translation>Podział strony</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::editor::QuickInsertPopup</name>
     <message>
         <source>No matches</source>
@@ -3409,6 +3448,14 @@ Menu zostaje tylko do końca tej sesji.</translation>
     <message>
         <source>Maximum number of log entries to keep in memory</source>
         <translation>Największa liczba wpisów dziennika przechowywanych w pamięci</translation>
+    </message>
+    <message>
+        <source>Show the Log button on the Panels toolbar</source>
+        <translation>Pokazuj przycisk dziennika na pasku paneli</translation>
+    </message>
+    <message>
+        <source>With the button hidden, View &gt; Panels &gt; Log (F4) opens the log panel</source>
+        <translation>Gdy przycisk jest ukryty, panel dziennika otwiera polecenie Widok &gt; Panele &gt; Dziennik (F4)</translation>
     </message>
     <message>
         <source>The log panel displays application messages in real-time.
@@ -3760,6 +3807,26 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>UI Font Size:</source>
         <translation>Rozmiar czcionki interfejsu:</translation>
+    </message>
+    <message>
+        <source>Panels</source>
+        <translation>Panele</translation>
+    </message>
+    <message>
+        <source>In a panel of its own</source>
+        <translation>W osobnym panelu</translation>
+    </message>
+    <message>
+        <source>At the bottom of the Properties panel</source>
+        <translation>W dolnej części panelu Właściwości</translation>
+    </message>
+    <message>
+        <source>Where the paragraph at the cursor and the styles of the book show: a tab of its own next to Properties, or the lower part of the Properties panel, which folds</source>
+        <translation>Gdzie widać akapit z kursorem i style książki: na osobnej karcie obok Właściwości albo w dolnej, zwijanej części panelu Właściwości</translation>
+    </message>
+    <message>
+        <source>Paragraph and styles:</source>
+        <translation>Akapit i style:</translation>
     </message>
 </context>
 <context>
@@ -4228,6 +4295,10 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     <message>
         <source>Spelling and Grammar Settings</source>
         <translation>Ustawienia pisowni i gramatyki</translation>
+    </message>
+    <message>
+        <source>Paragraph and Styles</source>
+        <translation>Akapit i style</translation>
     </message>
 </context>
 <context>
@@ -4813,6 +4884,10 @@ Tryb kolorów edytora nie zależy od motywu programu.</translation>
         <source>Dark Mode Colors</source>
         <translation>Kolory trybu ciemnego</translation>
     </message>
+    <message>
+        <source>Formatting marks</source>
+        <translation>Znaki formatowania</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
@@ -4924,6 +4999,22 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Działanie edytora</translation>
     </message>
     <message>
+        <source>Paste Command:</source>
+        <translation>Polecenie Wklej:</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Paste pastes text of other programs this way.</source>
+        <translation>Edycja &gt; Wklej wkleja w ten sposób tekst z innych programów.</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Paste (%1) pastes text of other programs this way.</source>
+        <translation>Edycja &gt; Wklej (%1) wkleja w ten sposób tekst z innych programów.</translation>
+    </message>
+    <message>
+        <source>The Edit menu has a paste for each way too. Merge Formatting keeps the headings, quotes, emphasis and lines, and gives the text the look of the place it is pasted to. Text copied in Kalahari keeps all its formatting, except with Paste Text Only.</source>
+        <translation>Menu Edycja ma też osobne polecenie dla każdego sposobu wklejania. Scal formatowanie zachowuje nagłówki, cytaty, wyróżnienia i linie, a wygląd tekstu dopasowuje do miejsca wklejenia. Tekst skopiowany w Kalahari zachowuje całe formatowanie, chyba że zostanie wklejony poleceniem „Wklej bez formatowania”.</translation>
+    </message>
+    <message>
         <source>Where You Last Edited</source>
         <translation>W miejscu ostatniej edycji</translation>
     </message>
@@ -5018,6 +5109,46 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>View &gt; Typewriter Scrolling (%1) keeps the line you write at one height of the view, in the Continuous and the Page Layout view.</source>
         <translation>Widok &gt; Przewijanie jak w maszynie do pisania (%1) utrzymuje pisany wiersz na jednej wysokości widoku – w widoku „Ciągły” i „Układ strony”.</translation>
+    </message>
+    <message>
+        <source>* * * (three asterisks)</source>
+        <translation>* * * (trzy gwiazdki)</translation>
+    </message>
+    <message>
+        <source>%1 (asterism)</source>
+        <translation>%1 (asteryzm)</translation>
+    </message>
+    <message>
+        <source>%1 (fleuron)</source>
+        <translation>%1 (ozdobnik)</translation>
+    </message>
+    <message>
+        <source>Short line</source>
+        <translation>Krótka linia</translation>
+    </message>
+    <message>
+        <source>Blank line</source>
+        <translation>Pusty wiersz</translation>
+    </message>
+    <message>
+        <source>Scene Break Look:</source>
+        <translation>Wygląd podziału sceny:</translation>
+    </message>
+    <message>
+        <source>Choose from: * * *, %1, %2, a short line, a blank line. Changes only the look: the file keeps the scene break.</source>
+        <translation>Do wyboru: * * *, %1, %2, krótka linia, pusty wiersz. Zmienia tylko wygląd – w pliku zostaje podział sceny.</translation>
+    </message>
+    <message>
+        <source>Merge Formatting</source>
+        <translation>Scal formatowanie</translation>
+    </message>
+    <message>
+        <source>Keep Source Formatting</source>
+        <translation>Zachowaj formatowanie źródła</translation>
+    </message>
+    <message>
+        <source>Keep Text Only</source>
+        <translation>Tylko tekst</translation>
     </message>
 </context>
 <context>
@@ -6476,6 +6607,14 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>[tylko do odczytu]</translation>
     </message>
     <message>
+        <source>Formatting marks: shown</source>
+        <translation>Znaki formatowania: widoczne</translation>
+    </message>
+    <message>
+        <source>Formatting marks: hidden</source>
+        <translation>Znaki formatowania: ukryte</translation>
+    </message>
+    <message>
         <source>The program does not have an editor for the {kind} yet.</source>
         <extracomment>The tooltip of a greyed command of the Book menu that adds an element of a kind of the Workshop, e.g. New Character.... In Polish: Program nie ma jeszcze edytora {kind:genitive}.</extracomment>
         <translation>Program nie ma jeszcze edytora {kind:genitive}.</translation>
@@ -7046,6 +7185,93 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::ParagraphPanel</name>
+    <message>
+        <source>No text with a cursor is in front. Click in the text of a chapter.</source>
+        <translation>Na wierzchu nie ma tekstu z kursorem. Kliknij w tekst rozdziału.</translation>
+    </message>
+    <message>
+        <source>Fold</source>
+        <translation>Zwiń</translation>
+    </message>
+    <message>
+        <source>Current Paragraph</source>
+        <translation>Bieżący akapit</translation>
+    </message>
+    <message>
+        <source>Kind:</source>
+        <translation>Rodzaj:</translation>
+    </message>
+    <message>
+        <source>Formatting:</source>
+        <translation>Formatowanie:</translation>
+    </message>
+    <message>
+        <source>Alignment:</source>
+        <translation>Wyrównanie:</translation>
+    </message>
+    <message>
+        <source>The look of the scene breaks: Edit &gt; Settings..., group Editor &gt; General.</source>
+        <translation>Wygląd podziałów sceny: Edycja &gt; Ustawienia..., grupa Edytor &gt; Ogólne.</translation>
+    </message>
+    <message>
+        <source>Styles</source>
+        <translation>Style</translation>
+    </message>
+    <message>
+        <source>Names</source>
+        <translation>Nazwy</translation>
+    </message>
+    <message>
+        <source>The styles by their names</source>
+        <translation>Same nazwy stylów</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>The styles in their look</source>
+        <translation>Nazwy stylów w ich wyglądzie</translation>
+    </message>
+    <message>
+        <source>Unfold</source>
+        <translation>Rozwiń</translation>
+    </message>
+    <message>
+        <source>Selected Paragraphs</source>
+        <translation>Zaznaczone akapity</translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <translation>%1 z %2</translation>
+    </message>
+    <message>
+        <source>paragraph %1 of %2</source>
+        <translation>akapit %1 z %2</translation>
+    </message>
+    <message>
+        <source>Horizontal Line</source>
+        <translation>Linia pozioma</translation>
+    </message>
+    <message>
+        <source>Scene Break</source>
+        <translation>Podział sceny</translation>
+    </message>
+    <message>
+        <source>Page Break</source>
+        <translation>Podział strony</translation>
+    </message>
+    <message>
+        <source>Click in the text of a paragraph to give it a style</source>
+        <translation>Kliknij w tekst akapitu, żeby nadać mu styl</translation>
+    </message>
+    <message>
+        <source>A click on a style gives it to the paragraph at the cursor or to the selected paragraphs</source>
+        <translation>Kliknięcie stylu nadaje go akapitowi z kursorem albo zaznaczonym akapitom</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::PropertiesPanel</name>
     <message>
         <source>Title:</source>
@@ -7230,50 +7456,6 @@ Szczegóły są w dzienniku programu.</translation>
     <message>
         <source>Reading time:</source>
         <translation>Czas czytania:</translation>
-    </message>
-    <message>
-        <source>Paragraph Style</source>
-        <translation>Styl akapitu</translation>
-    </message>
-    <message>
-        <source>Current paragraph style at cursor position</source>
-        <translation>Styl akapitu w miejscu kursora</translation>
-    </message>
-    <message>
-        <source>Current:</source>
-        <translation>Bieżący:</translation>
-    </message>
-    <message>
-        <source>Change paragraph style</source>
-        <translation>Zmień styl akapitu</translation>
-    </message>
-    <message>
-        <source>Normal</source>
-        <translation>Zwykły</translation>
-    </message>
-    <message>
-        <source>Heading 1</source>
-        <translation>Nagłówek 1</translation>
-    </message>
-    <message>
-        <source>Heading 2</source>
-        <translation>Nagłówek 2</translation>
-    </message>
-    <message>
-        <source>Heading 3</source>
-        <translation>Nagłówek 3</translation>
-    </message>
-    <message>
-        <source>Block Quote</source>
-        <translation>Cytat blokowy</translation>
-    </message>
-    <message>
-        <source>Preformatted</source>
-        <translation>Tekst preformatowany</translation>
-    </message>
-    <message>
-        <source>Apply:</source>
-        <translation>Zastosuj:</translation>
     </message>
     <message>
         <source>-</source>

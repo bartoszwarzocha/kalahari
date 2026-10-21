@@ -13,6 +13,7 @@
 #include <QFont>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/editor_types.h>
+#include <kalahari/editor/formatting_marks.h>
 #include <kalahari/editor/text_highlight.h>
 #include <vector>
 #include <memory>
@@ -69,6 +70,13 @@ public:
     /// @param index Paragraph index (0-based)
     /// @note Sources without annotations have none
     virtual std::vector<AnnotationMark> paragraphAnnotationMarks(size_t /*index*/) const {
+        return {};
+    }
+
+    /// @brief The formatting marks of a paragraph (see formattingMarksOf())
+    /// @param index Paragraph index (0-based)
+    /// @note Sources without them have none
+    virtual std::vector<FormattingMark> paragraphFormattingMarks(size_t /*index*/) const {
         return {};
     }
 
@@ -138,11 +146,13 @@ public:
     /// @note Sources without typography support ignore it
     virtual void setTypography(const LayoutTypography& /*typography*/) {}
 
-    /// @brief Line spacing multiplier the layout uses
+    /// @brief Box of a laid out line of a paragraph: the line plus its share of the extra
+    ///        spacing (the line spacing of the paragraph's style), for selection and hit tests
     ///
-    /// Together with KalahariTextDocumentLayout::lineBox() it gives the full box of a
-    /// line (the line plus its share of the extra spacing) for selection and hit tests.
-    virtual double lineSpacing() const { return 1.0; }
+    /// Consecutive boxes of a paragraph touch. Paragraph coordinates.
+    virtual QRectF lineBox(size_t /*index*/, const QTextLine& line) const {
+        return QRectF(line.x(), line.y(), line.width(), line.height());
+    }
 
     /// @brief Space the layout leaves below every paragraph (current font, pixels)
     virtual double paragraphSpacing() const { return 0.0; }
@@ -180,6 +190,7 @@ public:
     size_t characterCount() const override;
     std::vector<TextHighlight> paragraphHighlights(size_t index) const override;
     std::vector<AnnotationMark> paragraphAnnotationMarks(size_t index) const override;
+    std::vector<FormattingMark> paragraphFormattingMarks(size_t index) const override;
 
     QTextLayout* layout(size_t index) const override;
     bool hasLayout(size_t index) const override;
@@ -195,7 +206,7 @@ public:
     void setFont(const QFont& font) override;
     QFont font() const override;
     void setTypography(const LayoutTypography& typography) override;
-    double lineSpacing() const override;
+    QRectF lineBox(size_t index, const QTextLine& line) const override;
     double paragraphSpacing() const override;
     void setPageFlow(const PageFlow& flow) override;
     int pageCount() const override;

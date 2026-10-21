@@ -300,6 +300,9 @@ private slots:
     /// @brief Show or hide the border around the text of every editor (remembered)
     void onTextFrameBorderToggle();
 
+    /// @brief Show or hide the formatting marks of every editor (remembered)
+    void onFormattingMarksToggle();
+
     /// @brief Turn Distraction-Free writing on or off (the view mode stays)
     void onDistractionFreeToggle();
 

@@ -223,6 +223,20 @@ QKeySequence KeyboardShortcut::toQKeySequence() const {
     return QKeySequence(combined);
 }
 
+QList<QKeySequence> KeyboardShortcut::toQKeySequences() const {
+    if (isEmpty()) {
+        return {};
+    }
+    QList<QKeySequence> keys{toQKeySequence()};
+    // Qt matches a key of the keypad with the shortcut of the same key without the keypad
+    if (keyCode == Qt::Key_Return) {
+        keys.append(QKeySequence(QKeyCombination(modifiers, Qt::Key_Enter)));
+    } else if (keyCode == Qt::Key_Enter) {
+        keys.append(QKeySequence(QKeyCombination(modifiers, Qt::Key_Return)));
+    }
+    return keys;
+}
+
 KeyboardShortcut KeyboardShortcut::fromQKeySequence(const QKeySequence& seq) {
     if (seq.isEmpty()) {
         return KeyboardShortcut();
@@ -279,7 +293,7 @@ QAction* Command::toQAction(QObject* parent) const {
 
     // Set keyboard shortcut
     if (!shortcut.isEmpty()) {
-        action->setShortcut(shortcut.toQKeySequence());
+        action->setShortcuts(shortcut.toQKeySequences());
     }
 
     // Set enabled state

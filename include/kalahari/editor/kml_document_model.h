@@ -2,13 +2,15 @@
 /// @brief KML reader: the paragraphs of a chapter with their text and formatting
 ///
 /// KmlDocumentModel reads KML into paragraphs: plain text, format runs (formatting,
-/// metadata and annotations as QTextCharFormat) and alignment. BookEditor builds its
+/// metadata and annotations as QTextCharFormat), alignment and style, and the objects
+/// between them (a horizontal line, the scene and page breaks). BookEditor builds its
 /// QTextDocument from it, both when loading a chapter and when pasting Kalahari content.
 
 #pragma once
 
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/format_run.h>
+#include <kalahari/editor/paragraph_styles.h>
 
 #include <QHash>
 #include <QSet>
@@ -32,6 +34,8 @@ namespace editor {
 ///     QString text = content.paragraphText(i);
 ///     const std::vector<FormatRun>& formats = content.paragraphFormats(i);
 ///     Qt::Alignment alignment = content.paragraphAlignment(i);
+///     QString style = content.paragraphStyle(i);       // empty: Normal
+///     TextObject object = content.paragraphObject(i);  // None: a paragraph of text
 /// }
 /// @endcode
 class KmlDocumentModel {
@@ -77,6 +81,17 @@ public:
     ///         DEFAULT_PARAGRAPH_ALIGNMENT) or if index is out of range
     Qt::Alignment paragraphAlignment(size_t index) const;
 
+    /// @brief The paragraph's style: <h1>-<h3> are the headings, <p style="..."> names one
+    /// @param index Paragraph index (0-based)
+    /// @return The id of its style; empty for Normal (a <p> without one), an object, or if
+    ///         index is out of range
+    QString paragraphStyle(size_t index) const;
+
+    /// @brief The object the paragraph is: <hr/>, <scene-break/> or <page-break/>
+    /// @param index Paragraph index (0-based)
+    /// @return The object; None for a paragraph of text or if index is out of range
+    TextObject paragraphObject(size_t index) const;
+
     /// @brief The annotations on the place where the paragraph starts
     /// @param index Paragraph index (0-based)
     /// @return Annotations on a place (the annotations inside the paragraph are in its
@@ -102,14 +117,19 @@ private:
         std::vector<FormatRun> formats;         ///< Format runs within paragraph, in text order
         Qt::Alignment alignment;                ///< Own alignment (none: the default)
         AnnotationList startAnnotations;        ///< Annotations on the paragraph's start
+        QString style;                          ///< Id of its style (empty: Normal)
+        TextObject object = TextObject::None;   ///< The object it is (None: text)
     };
+
+    /// @brief Whether an element at the top level of KML is a paragraph or an object
+    static bool isBlockElement(QStringView tag);
 
     /// @brief Read the <annotations> section: the annotations the anchors refer to
     /// @param reader XML reader positioned at the section's start element; on return it is
     ///               positioned at its end element
     void parseAnnotations(QXmlStreamReader& reader);
 
-    /// @brief Parse a paragraph element
+    /// @brief Parse a paragraph element: <p>, <paragraph> or a heading <h1>-<h3>
     /// @param reader XML reader positioned at the paragraph's start element; on return it
     ///               is positioned after the matching end element
     /// @param para Output paragraph structure

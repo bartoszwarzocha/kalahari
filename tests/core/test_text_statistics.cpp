@@ -194,6 +194,18 @@ TEST_CASE("countText counts the paragraphs with text", "[core][text_statistics]"
     }
 }
 
+TEST_CASE("countText does not count the objects of the text", "[core][text_statistics]") {
+    // A horizontal line or a break is an object replacement character in a paragraph of its
+    // own: no character, no paragraph
+    const QString object(QChar::ObjectReplacementCharacter);
+    const TextCounts counts =
+        countText(QStringLiteral("One\n") + object + QStringLiteral("\nTwo"), WordCountRules{});
+    CHECK(counts.characters == 6);
+    CHECK(counts.nonSpaceCharacters == 6);
+    CHECK(counts.paragraphs == 2);
+    CHECK(counts.words == 2);
+}
+
 TEST_CASE("readingMinutes counts a minute begun as a minute", "[core][text_statistics]") {
     CHECK(readingMinutes(0) == 0);
     CHECK(readingMinutes(1) == 1);

@@ -123,7 +123,14 @@ bool KmlDocumentModel::loadKml(const QString& kml)
         if (reader.isStartElement()) {
             QString tag = reader.name().toString();
 
-            if (tag == QStringLiteral("p") || tag == QStringLiteral("paragraph")) {
+            if (const TextObject object = textObjectOfElement(tag); object != TextObject::None) {
+                // A horizontal line or a break: a block of its own, without content
+                Paragraph para;
+                para.object = object;
+                m_paragraphs.push_back(std::move(para));
+                reader.skipCurrentElement();
+                reader.readNext();
+            } else if (isBlockElement(tag)) {
                 // Parse the paragraph straight from the document reader (consumes </p>)
                 Paragraph para;
                 parseParagraphElement(reader, para);
@@ -179,7 +186,7 @@ AnnotationList KmlDocumentModel::readAnnotations(const QString& kml)
     // before the first paragraph the chapter has no annotations
     while (reader.readNextStartElement()) {
         const QStringView tag = reader.name();
-        if (tag == QStringLiteral("p") || tag == QStringLiteral("paragraph")) {
+        if (isBlockElement(tag)) {
             break;
         }
         if (tag != QStringLiteral("annotations")) {
@@ -242,6 +249,22 @@ Qt::Alignment KmlDocumentModel::paragraphAlignment(size_t index) const
     return m_paragraphs[index].alignment;
 }
 
+QString KmlDocumentModel::paragraphStyle(size_t index) const
+{
+    if (index >= m_paragraphs.size()) {
+        return {};
+    }
+    return m_paragraphs[index].style;
+}
+
+TextObject KmlDocumentModel::paragraphObject(size_t index) const
+{
+    if (index >= m_paragraphs.size()) {
+        return TextObject::None;
+    }
+    return m_paragraphs[index].object;
+}
+
 AnnotationList KmlDocumentModel::paragraphStartAnnotations(size_t index) const
 {
     if (index >= m_paragraphs.size()) {
@@ -253,6 +276,14 @@ AnnotationList KmlDocumentModel::paragraphStartAnnotations(size_t index) const
 // =============================================================================
 // Private Methods
 // =============================================================================
+
+bool KmlDocumentModel::isBlockElement(QStringView tag)
+{
+    if (tag == QStringLiteral("p") || tag == QStringLiteral("paragraph")) {
+        return true;
+    }
+    return headingLevelOfElement(tag) > 0 || textObjectOfElement(tag.toString()) != TextObject::None;
+}
 
 void KmlDocumentModel::parseAnnotations(QXmlStreamReader& reader)
 {
@@ -306,9 +337,13 @@ void KmlDocumentModel::anchorAfterText(Paragraph& para, const Annotation& annota
     setAnnotations(format, withAnnotation(annotationsOf(format), annotation));
 }
 
-void KmlDocumentModel::appendText(Paragraph& para, const QString& text,
+void KmlDocumentModel::appendText(Paragraph& para, const QString& source,
                                   const QTextCharFormat& format)
 {
+    // The object replacement character is the editor's mark of an object (its own element in
+    // KML): in the text it would be an object without a kind
+    QString text = source;
+    text.remove(QChar::ObjectReplacementCharacter);
     if (text.isEmpty()) {
         return;
     }
@@ -330,8 +365,19 @@ void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph
 {
     const QString tag = reader.name().toString();
 
-    // Parse alignment attribute
+    // A heading is in the style of its level; a paragraph in the style it names (a style the
+    // book does not have is kept: the editor shows it as Normal)
     QXmlStreamAttributes attrs = reader.attributes();
+    if (const int level = headingLevelOfElement(tag); level > 0) {
+        para.style = headingStyleId(level);
+    } else {
+        para.style = attrs.value(QStringLiteral("style")).toString().trimmed();
+        if (para.style == QLatin1String(NORMAL_STYLE_ID)) {
+            para.style.clear();
+        }
+    }
+
+    // Parse alignment attribute
     if (attrs.hasAttribute(QStringLiteral("align"))) {
         QString alignStr = attrs.value(QStringLiteral("align")).toString().toLower();
         if (alignStr == QStringLiteral("left")) {

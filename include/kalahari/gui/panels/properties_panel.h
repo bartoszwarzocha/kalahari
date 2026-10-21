@@ -28,7 +28,6 @@ class QTimer;
 
 namespace kalahari::editor {
 class BookEditor;
-class StyleResolver;
 }
 
 namespace kalahari {
@@ -44,7 +43,8 @@ class SectionsComboBox;
 /// - NoProject: Placeholder message when no project is open
 /// - Project: Project metadata (title, author, language, genre, sections, statistics)
 /// - Chapter: Chapter properties (title, word count, status, notes)
-/// - Editor: Text selection statistics (word/char count, paragraph style)
+/// - Editor: Text selection statistics (word/char count); the paragraph at the cursor is
+///   the Paragraph and Styles panel's (ParagraphPanel)
 ///
 /// Connects to ProjectManager signals for automatic updates.
 /// Connects to BookEditor for real-time selection statistics.
@@ -117,13 +117,6 @@ public slots:
     /// the page of the editor gives way to the page of the book, or to the page without one.
     void setActiveEditor(EditorPanel* editorPanel);
 
-    /// @brief Set the style resolver for style operations
-    /// @param resolver StyleResolver to use for style resolution (nullptr to disconnect)
-    ///
-    /// When set, the properties panel can resolve style IDs to display names
-    /// and update styles via the database. Connected to project's StyleResolver.
-    void setStyleResolver(editor::StyleResolver* resolver);
-
     /// @brief Refresh current view with latest data
     ///
     /// Re-reads data from ProjectManager and updates displayed values.
@@ -173,9 +166,6 @@ private slots:
 
     /// @brief Handle cursor position changed in BookEditor
     void onEditorCursorChanged();
-
-    /// @brief Handle paragraph style changed from combo box
-    void onEditorStyleChanged(int index);
 
 protected:
     /// @brief Event filter for handling focus events
@@ -337,8 +327,6 @@ private:
     QLabel* m_editorCharNoSpaceLabel;     ///< Character count (without spaces)
     QLabel* m_editorParagraphCountLabel;  ///< Paragraph count
     QLabel* m_editorReadingTimeLabel;     ///< Estimated reading time
-    QComboBox* m_editorStyleCombo;        ///< Paragraph style selector
-    QLabel* m_editorStyleLabel;           ///< Current style display
 
     // State tracking
     QString m_currentChapterId;    ///< Currently displayed chapter ID
@@ -353,18 +341,6 @@ private:
     QTimer* m_cursorDebounceTimer{nullptr};     ///< Debounce rapid cursor changes
 
     int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting
-
-    // Style resolver (OpenSpec #00042 Task 7.6)
-    editor::StyleResolver* m_styleResolver{nullptr};  ///< Style resolver for the project
-
-    /// @brief Populate style combo with styles from StyleResolver
-    void populateStyleComboFromResolver();
-
-    /// @brief Add default built-in styles to combo (fallback when no database)
-    void addDefaultStylesToCombo();
-
-    /// @brief Handle style combo selection to update style from resolver
-    void applyStyleFromCombo();
 };
 
 } // namespace gui

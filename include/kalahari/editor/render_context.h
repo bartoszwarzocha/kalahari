@@ -71,6 +71,9 @@ struct RenderColors {
     QColor annotationTodo;
     QColor annotationNote;
 
+    /// @brief The formatting marks (¶ · ° → ↵ ¬)
+    QColor formattingMarks{91, 127, 192};
+
     /// @brief Check if colors are equal
     bool operator==(const RenderColors& other) const {
         return text == other.text &&
@@ -87,7 +90,8 @@ struct RenderColors {
                spokenWord == other.spokenWord &&
                annotationComment == other.annotationComment &&
                annotationTodo == other.annotationTodo &&
-               annotationNote == other.annotationNote;
+               annotationNote == other.annotationNote &&
+               formattingMarks == other.formattingMarks;
     }
 
     bool operator!=(const RenderColors& other) const {
@@ -196,6 +200,8 @@ struct RenderContext {
                                                ///< is dimmed (in any view mode)
     double annotationMarkScale = 1.0;          ///< Size of the annotations' marks (1 = as
                                                ///< the text's font asks)
+    bool showFormattingMarks = false;          ///< ¶ · ° → ↵ ¬ over the text (in any view
+                                               ///< mode)
 
     // -------------------------------------------------------------------------
     // Text Frame Border

@@ -26,6 +26,18 @@ std::map<std::string, json> buildDefaults() {
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
         // The bar that says the panels on the right were hidden for a small screen was shown
         {"window.smallScreenNoticeShown", false},
+
+        // The Paragraph and Styles panel: a panel of its own ("panel") or the lower part of
+        // the Properties panel ("properties"), folded there to its band or not, with the
+        // border of the parts where the writer put it (QSplitter::saveState() as base64;
+        // empty: halfway). Its palette shows the styles in their look or by their names.
+        {"panels.paragraphPlace", "panel"},
+        {"panels.paragraphFolded", false},
+        {"panels.propertiesSplit", ""},
+        {"panels.stylePreview", false},
+        // The Log button of the Panels toolbar, for those who read the log (Settings >
+        // Advanced > Log); View > Panels > Log (F4) opens the panel anyway
+        {"panels.showLogButton", false},
         {"recent_files", json::array()},
 
         // Interface
@@ -128,6 +140,10 @@ std::map<std::string, json> buildDefaults() {
         // Where a chapter opens: "lastEdit", where its cursor was when it was closed last, or
         // "start"
         {"editor.chapterOpensAt", "lastEdit"},
+        // How text from other programs is pasted: "merge" (it takes the look of the text it
+        // goes to, keeping headings, quotes, emphasis and lines), "source" (also its fonts,
+        // sizes and colors) or "text" (only the text)
+        {"editor.paste.mode", "merge"},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},
@@ -174,9 +190,11 @@ std::map<std::string, json> buildDefaults() {
         {"editor.colors.backgroundLight", "#ffffff"},
         {"editor.colors.textLight", "#1e1e1e"},
         {"editor.colors.inactiveLight", "#aaaaaa"},
+        {"editor.colors.formattingMarksLight", "#5b7fc0"},
         {"editor.colors.backgroundDark", "#232328"},
         {"editor.colors.textDark", "#e0e0e0"},
         {"editor.colors.inactiveDark", "#78787d"},
+        {"editor.colors.formattingMarksDark", "#7a96d0"},
 
         // Editor: cursor
         {"editor.cursor.style", 0},
@@ -209,6 +227,14 @@ std::map<std::string, json> buildDefaults() {
 
         // Editor: Focus (View > Focus dims every paragraph but the cursor's)
         {"editor.focus.enabled", false},
+
+        // Editor: the formatting marks (View > Show Formatting Marks: ¶ · ° → ↵ ¬), in the
+        // colors editor.colors.formattingMarksLight/Dark
+        {"editor.showFormattingMarks", false},
+
+        // Editor: how the scene breaks look: "asterisks" (* * *), "asterism" (⁂), "fleuron"
+        // (❦), "line" (a short line) or "blank" (an empty line); the files keep the breaks
+        {"editor.sceneBreak.style", "asterisks"},
 
         // Editor: text frame border
         {"editor.textFrameBorder.show", false},

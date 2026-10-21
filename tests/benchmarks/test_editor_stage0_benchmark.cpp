@@ -16,11 +16,18 @@
 /// a window. Since Stage 2 a load, a width or a font change leaves the paragraphs waiting
 /// for layout: the paint lays out the ones it shows, a background pass the others (here
 /// run at once with layoutPendingBlocks(), as there is no event loop).
+///
+/// The document has headings, dialog in the style Dialogue and scene breaks, and the editor
+/// the paragraph styles of the base book type, as a chapter of a book in the program.
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book_type_registry.h>
+#include <kalahari/core/project_manager.h>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/viewport_manager.h>
 #include "../editor/editor_test_utils.h"
@@ -76,9 +83,27 @@ double timeMs(const std::function<void()>& fn) {
 QString generateKml(int words) {
     TestDocumentGenerator::Config config;
     config.targetWordCount = words;
-    config.headingRatio = 0.0;  // <h> is not a KML paragraph; the loader would drop it
     TestDocumentGenerator generator(config);
     return generator.generateKml();
+}
+
+/// The paragraph styles of the base book type, which every book type of the program uses
+const ParagraphStyleSet& bookStyles() {
+    static const ParagraphStyleSet styles = [] {
+        kalahari::core::BookTypeRegistry registry;
+        registry.load({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+        return ParagraphStyleSet::fromPackage(
+            registry.paragraphStyles(QString::fromLatin1(kalahari::core::ProjectManager::BASE_PACKAGE)),
+            QStringLiteral("pl"));
+    }();
+    return styles;
+}
+
+/// Show or hide the formatting marks (View > Show Formatting Marks)
+void showFormattingMarks(BookEditor& editor, bool show) {
+    EditorAppearance appearance = editor.appearance();
+    appearance.showFormattingMarks = show;
+    editor.setAppearance(appearance);
 }
 
 void paint(QWidget& widget) {
@@ -171,6 +196,7 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
 
         BookEditor editor;
         resizeWidget(editor, QSize(1000, 800));
+        editor.setParagraphStyles(bookStyles());
         const double loadMs = timeMs([&] { editor.fromKml(kml); });
         const double firstPaintMs = timeMs([&] { paint(editor); });
         const double restMs = timeMs([&] { layoutOf(editor)->layoutPendingBlocks(); });
@@ -199,12 +225,17 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
     const QString kml = generateKml(150000);
     BookEditor editor;
     resizeWidget(editor, QSize(1000, 800));
+    editor.setParagraphStyles(bookStyles());
     editor.fromKml(kml);
     KalahariTextDocumentLayout* layout = layoutOf(editor);
-    header << QStringLiteral("Dokument: %1 słów, %2 akapitów, %3 znaków")
+    header << QStringLiteral("Dokument: %1 słów, %2 akapitów, %3 znaków; w tym %4 nagłówków, "
+                             "%5 akapitów w stylu Dialog i %6 podziałów sceny")
                   .arg(editor.wordCount())
                   .arg(editor.paragraphCount())
-                  .arg(editor.characterCount());
+                  .arg(editor.characterCount())
+                  .arg(kml.count(QStringLiteral("<h2>")))
+                  .arg(kml.count(QStringLiteral("style=\"dialogue\"")))
+                  .arg(kml.count(QStringLiteral("<scene-break/>")));
 
     rows.push_back({QStringLiteral("Ctrl+End zaraz po wczytaniu (+ paintEvent)"),
                     timeMs([&] {
@@ -218,6 +249,51 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
     paint(editor);  // warm-up
     rows.push_back({QStringLiteral("paintEvent – Continuous (średnio z 10)"),
                     timeMs([&] { for (int i = 0; i < 10; ++i) paint(editor); }) / 10.0, QString()});
+
+    // View > Show Formatting Marks: drawn over the text, the lines stay as they are
+    {
+        LaidOutBlockCounter laidOut(editor);
+        rows.push_back({QStringLiteral("Pokazanie znaków formatowania (Ctrl+Shift+8) + paintEvent"),
+                        timeMs([&] {
+                            showFormattingMarks(editor, true);
+                            paint(editor);
+                        }),
+                        QStringLiteral("złamanych akapitów: %1").arg(laidOut.count())});
+        rows.push_back({QStringLiteral("paintEvent ze znakami formatowania – Continuous (średnio z 10)"),
+                        timeMs([&] { for (int i = 0; i < 10; ++i) paint(editor); }) / 10.0,
+                        QStringLiteral("porównaj z Continuous bez znaków")});
+        showFormattingMarks(editor, false);
+        paint(editor);
+    }
+
+    // Format > Text Style: one paragraph (Alt+1), and the whole text at once
+    {
+        const int middleParagraph = static_cast<int>(editor.paragraphCount() / 2);
+        editor.setCursorPosition({middleParagraph, 0});
+        rows.push_back({QStringLiteral("Nagłówek 1 dla akapitu w środku (Alt+1) + paintEvent"),
+                        timeMs([&] {
+                            editor.applyParagraphStyle(QStringLiteral("heading_1"));
+                            paint(editor);
+                        }),
+                        QString()});
+        CHECK(editor.currentParagraphStyle() == QStringLiteral("heading_1"));
+        editor.undo();
+        editor.selectAll();
+        rows.push_back({QStringLiteral("Styl Cytat dla całego tekstu (Ctrl+A, Format > Styl tekstu)"),
+                        timeMs([&] { editor.applyParagraphStyle(QStringLiteral("quote")); }),
+                        QStringLiteral("jeden krok cofania")});
+        CHECK(editor.currentParagraphStyle() == QStringLiteral("quote"));
+        rows.push_back({QStringLiteral("paintEvent po zmianie stylu całego tekstu"),
+                        timeMs([&] { paint(editor); }), QString()});
+        rows.push_back({QStringLiteral("Łamanie pozostałych akapitów po zmianie stylu"),
+                        timeMs([&] { layout->layoutPendingBlocks(); }), QString()});
+        rows.push_back({QStringLiteral("Cofnięcie zmiany stylu całego tekstu (Ctrl+Z)"),
+                        timeMs([&] { editor.undo(); }), QString()});
+        editor.clearSelection();
+        editor.moveCursorToDocStart();
+        paint(editor);
+        layout->layoutPendingBlocks();
+    }
 
     // Resize (width change): applied at once; the paint lays out what it shows
     {
@@ -291,7 +367,25 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
 
     editor.setViewMode(ViewMode::Page);
     rows.push_back({QStringLiteral("Przełączenie na Page + pierwszy paintEvent (paginacja)"),
-                    timeMs([&] { paint(editor); }), QString()});
+                    timeMs([&] { paint(editor); }),
+                    QStringLiteral("nagłówki nie zostają same u dołu strony")});
+    editor.setCursorPosition({middle, 0});
+    const size_t paragraphsBefore = editor.paragraphCount();
+    rows.push_back({QStringLiteral("Podział strony w środku (Ctrl+Enter) + paintEvent – Page"),
+                    timeMs([&] {
+                        editor.insertTextObject(TextObject::PageBreak);
+                        paint(editor);
+                    }),
+                    QStringLiteral("strony za nim przesuwają się")});
+    CHECK(editor.paragraphCount() == paragraphsBefore + 1);
+    editor.undo();
+    CHECK(editor.paragraphCount() == paragraphsBefore);
+    paint(editor);
+    showFormattingMarks(editor, true);
+    paint(editor);
+    rows.push_back({QStringLiteral("paintEvent ze znakami formatowania – Page (średnio z 10)"),
+                    timeMs([&] { for (int i = 0; i < 10; ++i) paint(editor); }) / 10.0, QString()});
+    showFormattingMarks(editor, false);
     editor.setCursorPosition({middle, 0});
     rows.push_back({QStringLiteral("Wpisanie 100 znaków – Page (bez malowania)"),
                     typeHundred(false), QString()});
