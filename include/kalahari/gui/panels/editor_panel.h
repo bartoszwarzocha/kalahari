@@ -19,6 +19,7 @@ namespace kalahari::editor {
 class BookEditor;
 class ParagraphStyleSet;
 class StatisticsCollector;
+enum class LearnedException;
 }
 
 namespace kalahari {
@@ -147,6 +148,14 @@ private slots:
     void applyScheduledSettings();
 
 private:
+    /// @brief Add to an exception list of autocorrect the word whose change the writer
+    ///        undid right after it (editor.autoCorrect.learnExceptions), and say so in the
+    ///        status bar
+    void learnAutoCorrectException(editor::LearnedException list, const QString& exception);
+
+    /// @brief A message of autocorrect in the status bar of the main window
+    void showStatusMessage(const QString& message);
+
     /// @brief Set the editor's paper scale from the screen the panel is on
     ///
     /// Runs when the panel is shown or moves to another screen, and when a screen's display

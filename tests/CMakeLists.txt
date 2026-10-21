@@ -133,6 +133,7 @@ set(TEST_SOURCES
     gui/test_wrapping_labels.cpp                 # Labels that wrap on a narrow panel
     gui/test_panel_widths.cpp                    # Side panels fit a narrow dock, muted texts read
     gui/test_auto_correct_settings.cpp           # Settings > Editor > Auto-correct and the editors
+    gui/test_special_characters.cpp              # Special characters: groups, names, search
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -244,6 +245,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/tab_focus.cpp         # The keys go to the page in front of the tabs
     ${CMAKE_SOURCE_DIR}/src/gui/utils/chapter_cursor.cpp    # A chapter opens where its cursor was
     ${CMAKE_SOURCE_DIR}/src/gui/panels/editor_panel.cpp     # Editor panel: settings to and from its editor
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/caps_lock.cpp         # Caps Lock turned off after autocorrect
+    ${CMAKE_SOURCE_DIR}/src/gui/special_characters.cpp      # Special characters: groups, names, search
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_coordinator.cpp    # Spelling as you type: the editors' dictionary
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_coordinator.cpp     # Grammar as you type: the editors' LanguageTool server
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_panel_coordinator.cpp  # The Spelling and Grammar panel and the text in front

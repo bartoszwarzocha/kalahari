@@ -18,6 +18,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/utils/caps_lock.h"
 
 #include <QAction>
 #include <QApplication>
@@ -37,7 +38,9 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
+#include <algorithm>
 #include <array>
+#include <nlohmann/json.hpp>
 #include <string>
 
 using namespace kalahari;
@@ -118,6 +121,30 @@ void press(QWidget* widget, int key, Qt::KeyboardModifiers modifiers = Qt::NoMod
     QApplication::sendEvent(widget, &released);
 }
 
+/// The options with the lists (the replacement table, the exceptions) of @p from; their
+/// switches are compared apart from the lists
+editor::AutoCorrectOptions withListsOf(editor::AutoCorrectOptions options,
+                                       const editor::AutoCorrectOptions& from) {
+    options.replacements = from.replacements;
+    options.languageAbbreviations = from.languageAbbreviations;
+    options.twoCapitalsExceptions = from.twoCapitalsExceptions;
+    return options;
+}
+
+/// Whether a list of the settings has a text
+bool textsContain(const nlohmann::json& list, const char* text) {
+    return list.is_array() && std::find(list.begin(), list.end(), text) != list.end();
+}
+
+/// Type the text with Caps Lock on: Shift held for its small letters
+void typeWithCapsLock(QWidget* widget, const QString& text) {
+    for (const QChar ch : text) {
+        QKeyEvent pressed(QEvent::KeyPress, 0, ch.isLower() ? Qt::ShiftModifier : Qt::NoModifier,
+                          QString(ch));
+        QApplication::sendEvent(widget, &pressed);
+    }
+}
+
 /// The window's tests need an active window; the offscreen platform has one without a window
 /// on screen
 bool canActivateWindows() {
@@ -136,7 +163,8 @@ TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors 
     EditorPanel panel;
     editor::BookEditor* bookEditor = panel.getBookEditor();
     REQUIRE(bookEditor != nullptr);
-    CHECK(bookEditor->autoCorrect() == editor::AutoCorrectOptions{});
+    const editor::AutoCorrectOptions lists = bookEditor->autoCorrect();
+    CHECK(bookEditor->autoCorrect() == withListsOf({}, lists));
 
     SettingsDialog dialog(nullptr);
     QWidget* page = openAutoCorrectPage(dialog);
@@ -177,7 +205,7 @@ TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors 
     CHECK_FALSE(settings.get<bool>("editor.autoCorrect.ellipsis"));
     QCoreApplication::processEvents();
 
-    editor::AutoCorrectOptions expected;
+    editor::AutoCorrectOptions expected = withListsOf({}, lists);
     expected.quotes = false;
     expected.dash = editor::DialogueDash::En;
     expected.ellipsis = false;
@@ -431,6 +459,15 @@ TEST_CASE("Autocorrect: Tools > Auto-correct as You Type turns all the replaceme
         nothing.apostrophe = false;
         nothing.dialogueDash = false;
         nothing.ellipsis = false;
+        nothing.dashBetweenWords = false;
+        nothing.doubleHyphen = false;
+        nothing.sentenceCapitals = false;
+        nothing.twoInitialCapitals = false;
+        nothing.capsLock = false;
+        nothing.sceneBreak = false;
+        nothing.horizontalRule = false;
+        nothing.languageAbbreviations = panel.getBookEditor()->autoCorrect().languageAbbreviations;
+        nothing.twoCapitalsExceptions = panel.getBookEditor()->autoCorrect().twoCapitalsExceptions;
         REQUIRE(test::waitUntil([bookEditor, &nothing]() {
             return bookEditor->autoCorrect() == nothing;
         }));
@@ -460,7 +497,8 @@ TEST_CASE("Autocorrect: Tools > Auto-correct as You Type turns all the replaceme
         chosen.apostrophe = false;
         chosen.dash = editor::DialogueDash::En;
         REQUIRE(test::waitUntil([bookEditor, &chosen]() {
-            return bookEditor->autoCorrect() == chosen;
+            return bookEditor->autoCorrect() == withListsOf(chosen, bookEditor->autoCorrect()) &&
+                   !bookEditor->autoCorrect().replacements.empty();
         }));
         CHECK(test::waitUntil([action]() {
             return action->toolTip().contains(QStringLiteral(
@@ -489,4 +527,142 @@ TEST_CASE("Autocorrect: Tools > Auto-correct as You Type turns all the replaceme
     const Command* command = registry.getCommand("tools.autocorrect");
     REQUIRE(command != nullptr);
     CHECK_FALSE(static_cast<bool>(command->execute));
+}
+
+TEST_CASE("Autocorrect: the settings of the words reach the editors",
+          "[gui][settings][autocorrect]") {
+    auto& settings = core::SettingsManager::getInstance();
+    EditorPanel panel;
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    REQUIRE(bookEditor != nullptr);
+
+    // The program's own lists
+    const editor::AutoCorrectOptions& options = bookEditor->autoCorrect();
+    CHECK(options.replacements.size() == 11);
+    CHECK(std::find(options.replacements.begin(), options.replacements.end(),
+                    editor::Replacement{QStringLiteral("(c)"), QStringLiteral("©")}) !=
+          options.replacements.end());
+    REQUIRE(options.languageAbbreviations.contains(QStringLiteral("pl")));
+    REQUIRE(options.languageAbbreviations.contains(QStringLiteral("en")));
+    CHECK(options.languageAbbreviations.at(QStringLiteral("pl")).contains(QStringLiteral("np.")));
+    CHECK_FALSE(
+        options.languageAbbreviations.at(QStringLiteral("pl")).contains(QStringLiteral("itd.")));
+    CHECK(options.languageAbbreviations.at(QStringLiteral("en")).contains(QStringLiteral("Mr.")));
+    CHECK(options.twoCapitalsExceptions == QStringList{QStringLiteral("IDs"), QStringLiteral("PCs")});
+
+    // A pair turned off, a pair of the writer's, the dashes, the switches
+    nlohmann::json pairs = settings.get<nlohmann::json>("editor.autoCorrect.replacements");
+    REQUIRE(pairs.is_array());
+    pairs[0]["enabled"] = false;  // (c)
+    pairs.push_back({{"from", "kal"}, {"to", "Kalahari"}});
+    settings.set<nlohmann::json>("editor.autoCorrect.replacements", pairs);
+    settings.set<std::string>("editor.autoCorrect.dashBetweenWordsType", "emDash");
+    settings.set<bool>("editor.autoCorrect.dashInDialogue", false);
+    settings.set<bool>("editor.autoCorrect.sentenceCapitals", false);
+    settings.set<bool>("editor.autoCorrect.sceneBreak", false);
+    REQUIRE(test::waitUntil([bookEditor]() { return !bookEditor->autoCorrect().sceneBreak; }));
+    const editor::AutoCorrectOptions& changed = bookEditor->autoCorrect();
+    CHECK(changed.replacements.size() == 11);
+    CHECK(changed.replacements.front() ==
+          editor::Replacement{QStringLiteral("(r)"), QStringLiteral("®")});
+    CHECK(changed.replacements.back() ==
+          editor::Replacement{QStringLiteral("kal"), QStringLiteral("Kalahari")});
+    CHECK(changed.wordDash == editor::DialogueDash::Em);
+    CHECK_FALSE(changed.dialogueDashInDialogue);
+    CHECK_FALSE(changed.sentenceCapitals);
+    CHECK(changed.horizontalRule);
+
+    bookEditor->fromKml(test::kmlOf({QString()}));
+    type(bookEditor, QStringLiteral("o kal (c) - (r) "));
+    CHECK(bookEditor->plainText() == QStringLiteral("o Kalahari (c) — ® "));
+
+    // The table off as a whole: no pair
+    settings.set<bool>("editor.autoCorrect.replacementTable", false);
+    REQUIRE(test::waitUntil([bookEditor]() { return bookEditor->autoCorrect().replacements.empty(); }));
+}
+
+TEST_CASE("Autocorrect: a capital undone right after it adds to the exceptions",
+          "[gui][autocorrect][undo]") {
+    auto& settings = core::SettingsManager::getInstance();
+    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    settings.set<std::string>("editor.spellCheck.language", "pl");
+    QMainWindow window;
+    auto* panel = new EditorPanel();
+    window.setCentralWidget(panel);
+    editor::BookEditor* bookEditor = panel->getBookEditor();
+    bookEditor->fromKml(test::kmlOf({QString()}));
+
+    SECTION("An abbreviation, in the list of the text's language") {
+        type(bookEditor, QStringLiteral("Pies zw. reksem "));
+        REQUIRE(bookEditor->plainText() == QStringLiteral("Pies zw. Reksem "));
+        bookEditor->undo();
+        CHECK(bookEditor->plainText() == QStringLiteral("Pies zw. reksem "));
+        CHECK(settings.get<nlohmann::json>("editor.autoCorrect.abbreviations.pl").back() ==
+              "zw.");
+        CHECK(window.statusBar()->currentMessage() ==
+              QStringLiteral("After “zw.” auto-correct no longer starts a sentence with a "
+                             "capital: it is among the exceptions now."));
+
+        // The editors have it: the next word after it stays
+        REQUIRE(test::waitUntil([bookEditor]() {
+            return bookEditor->autoCorrect()
+                .languageAbbreviations.at(QStringLiteral("pl"))
+                .contains(QStringLiteral("zw."));
+        }));
+        type(bookEditor, QStringLiteral("i zw. burkiem "));
+        CHECK(bookEditor->plainText() == QStringLiteral("Pies zw. reksem i zw. burkiem "));
+    }
+
+    SECTION("A word with two capitals") {
+        type(bookEditor, QStringLiteral("Ala ABc "));
+        REQUIRE(bookEditor->plainText() == QStringLiteral("Ala Abc "));
+        bookEditor->undo();
+        CHECK(settings.get<nlohmann::json>("editor.autoCorrect.twoCapitalsExceptions").back() ==
+              "ABc");
+        CHECK(window.statusBar()->currentMessage() ==
+              QStringLiteral(
+                  "Auto-correct no longer changes “ABc”: it is among the exceptions now."));
+    }
+
+    SECTION("Not when the writer turned it off") {
+        settings.set<bool>("editor.autoCorrect.learnExceptions", false);
+        type(bookEditor, QStringLiteral("Pies ps. reksem "));
+        REQUIRE(bookEditor->plainText() == QStringLiteral("Pies ps. Reksem "));
+        bookEditor->undo();
+        CHECK_FALSE(textsContain(settings.get<nlohmann::json>("editor.autoCorrect.abbreviations.pl"),
+                                 "ps."));
+        CHECK(window.statusBar()->currentMessage().isEmpty());
+    }
+}
+
+TEST_CASE("Autocorrect: a word typed with Caps Lock on turns it off, or the writer is told",
+          "[gui][autocorrect]") {
+    QMainWindow window;
+    auto* panel = new EditorPanel();
+    window.setCentralWidget(panel);
+    editor::BookEditor* bookEditor = panel->getBookEditor();
+    bookEditor->fromKml(test::kmlOf({QString()}));
+
+    int turnedOff = 0;
+    bool systemLets = true;
+    setCapsLockForTests([&turnedOff, &systemLets]() {
+        ++turnedOff;
+        return systemLets;
+    });
+
+    typeWithCapsLock(bookEditor, QStringLiteral("Ala wIELKI "));
+    CHECK(bookEditor->plainText() == QStringLiteral("Ala Wielki "));
+    CHECK(turnedOff == 1);
+    CHECK(window.statusBar()->currentMessage() ==
+          QStringLiteral("Caps Lock was on: the word typed with it is corrected, and Caps Lock "
+                         "is off now."));
+
+    systemLets = false;
+    typeWithCapsLock(bookEditor, QStringLiteral("kOT "));
+    CHECK(bookEditor->plainText() == QStringLiteral("Ala Wielki Kot "));
+    CHECK(turnedOff == 2);
+    CHECK(window.statusBar()->currentMessage() ==
+          QStringLiteral("Caps Lock is on: the word typed with it is corrected. Turn Caps Lock "
+                         "off."));
+    setCapsLockForTests({});
 }

@@ -450,7 +450,9 @@ public:
     /// @brief Insert a newline, splitting the paragraph at cursor position
     ///
     /// If there is an active selection, it is deleted first.
-    /// The cursor moves to the start of the new paragraph.
+    /// The cursor moves to the start of the new paragraph. Without a selection autocorrect
+    /// then changes the last word of the paragraph Enter ended, or the paragraph into a
+    /// scene break or a line ("***", "---"), as an undo step of its own (see typeText()).
     void insertNewline();
 
     /// @brief Start a new line in the paragraph (Shift+Enter), as Word's line break
@@ -458,16 +460,18 @@ public:
     /// The break is a QChar::LineSeparator in the paragraph's text (<br/> in KML), so the
     /// lines keep the paragraph's format and spacing. It replaces the selection, and the
     /// cursor goes to the start of the new line. The break and the text typed after it are
-    /// one undo step, apart from the text typed before it.
+    /// one undo step, apart from the text typed before it. Autocorrect sees the break as a
+    /// space that ends a word.
     void insertLineBreak();
 
     /// @brief Type text at the cursor, as the keyboard and the input methods do: the text goes
     ///        in as insertText() puts it, and autocorrect changes what was typed
     ///
-    /// Each quotation mark, apostrophe, space and period goes in as typed alone, so
-    /// autocorrect sees it with the text before it (an input method can commit several
-    /// characters at once). A change of autocorrect is an undo step of its own: undoing it
-    /// right after brings back the typed characters, with the cursor after them.
+    /// Each quotation mark, apostrophe, space and punctuation mark that ends a word goes in
+    /// as typed alone, so autocorrect sees it with the text before it (an input method can
+    /// commit several characters at once). A change of autocorrect is an undo step of its
+    /// own: undoing it right after brings back the typed characters, with the cursor after
+    /// them. In a paragraph whose spelling is not checked (the style Code) nothing changes.
     void typeText(const QString& text);
 
     /// @brief What autocorrect changes in the text as it is typed (typeText()); everything,
@@ -1198,6 +1202,16 @@ signals:
     /// it, pasted, cut, undid, redid, formatted or aligned it; nothing changed
     void changeRefused();
 
+    /// @brief The writer undid a change of autocorrect right after it, one an exception list
+    ///        can keep from (AutoCorrection::learns): as in Word, the list may get it
+    /// @param list The list: the abbreviations, or the words with two capitals
+    /// @param exception What the list gets: "godz.", "PCs"
+    void autoCorrectionUndone(kalahari::editor::LearnedException list, const QString& exception);
+
+    /// @brief Autocorrect changed a word typed with Caps Lock on by mistake ("wIELKI" to
+    ///        "Wielki"); Caps Lock is still on
+    void capsLockCorrected();
+
     /// @brief Emitted when the document content changes
     ///
     /// This signal is emitted whenever text is inserted, deleted, or modified.
@@ -1873,9 +1887,37 @@ private:
 
     PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted
 
+    /// @brief Whether the letters typed last showed Caps Lock on: a small one typed with
+    ///        Shift, or a capital without it (the program is not told the state of the key)
+    bool m_capsLockOn = false;
+
+    /// @brief A change of autocorrect an exception list can keep from, when it is undone
+    ///        right after it (autoCorrectionUndone())
+    struct LearnableChange {
+        LearnedException list = LearnedException::None;
+        QString exception;
+        int undoSteps = 0;  ///< The undo steps right after the change
+    };
+    std::optional<LearnableChange> m_learnableChange;
+
+    /// @brief What autocorrect changes, with the abbreviations of the text's language
+    AutoCorrectOptions autoCorrectForText() const;
+
     /// @brief Make the change autocorrect has for the character typed right before the
     ///        cursor, as an undo step of its own (see typeText())
     void autoCorrectTyped();
+
+    /// @brief Make the change autocorrect has for the end of a paragraph, as an undo step of
+    ///        its own, after Enter split it: in its last word, or the whole paragraph a scene
+    ///        break or a line ("***", "---")
+    /// @param paragraph The paragraph Enter ended, its text the text before the cursor
+    /// @param atEnd Whether Enter was pressed at the end of the paragraph
+    void autoCorrectEndedParagraph(int paragraph, bool atEnd);
+
+    /// @brief Make a change of autocorrect in a block, as an undo step of its own: undone, it
+    ///        brings back the typed text with the cursor at @p typed
+    void applyAutoCorrection(const QTextBlock& block, const AutoCorrection& change,
+                             const CursorPosition& typed);
 
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode

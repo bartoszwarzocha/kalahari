@@ -108,6 +108,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (Fixed: the Navigator). In the New Book palette a working note can be created with the
   book, in the Workshop.
 
+- **Editor: autocorrect of words, the replacement table, scene breaks typed** - 2026-10-21.
+  A space, a punctuation mark, Shift+Enter or Enter after a word can change it, as in Word:
+  a pair of the replacement table takes the place of the whole word, also in quotation marks
+  or brackets, with its capital ((c) ©, (r) ®, (tm) ™, 1/2 ½, 1/4 ¼, 3/4 ¾, -> →, <- ←,
+  <-> ↔, => ⇒, +- ±); two hyphens alone or between two words (1939--1945) become an en dash;
+  a hyphen between two spaces after a word becomes a dash (an en dash, in a line of dialogue
+  the dash that starts it); the first letter of a sentence becomes a capital: at the start of
+  the paragraph, after the dialogue dash that starts it, after . ? or !, not after an
+  abbreviation of the text's language (Polish and English lists), a number (5. pułk), an
+  initial (J. Kowalski) or an ellipsis, and not in a word with a capital in it (iPhone); "TWo
+  INitial CApitals" lose the second one, except the exceptions (IDs, PCs); a word typed with
+  Caps Lock on by mistake ("wIELKI") becomes "Wielki", and Caps Lock goes off (on Windows and
+  X11; elsewhere the status bar asks to turn it off). "***" or "---" alone in a paragraph
+  becomes a scene break or a horizontal line with Enter. Each change is an undo step of its
+  own; undoing a capital after a word with a period, or the change of "TWo", right after it
+  adds the word to its exceptions, and the status bar says so. The paragraphs in Code are
+  not changed. Every change has its own setting, on at first, and the lists are in the
+  settings (editor.autoCorrect); the Auto-correct page of the Settings does not show them yet.
+
 - **Dashboard: an X on the card of a recent book** - 2026-10-19. A small X in the top right
   corner of each card takes the book off the recent books ("Remove from the recent books (the
   file stays on the disk)"); its file stays where it is. "Open last book on startup" opens

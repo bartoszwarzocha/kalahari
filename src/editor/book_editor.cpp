@@ -855,6 +855,7 @@ bool BookEditor::fromKml(const QString& kml)
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
     m_pendingFormat = QTextCharFormat();  // it was given for the old text
+    m_learnableChange.reset();            // a change of the old text
 
     // Unreadable KML gives the paragraphs read before the error
     KmlDocumentModel content;
