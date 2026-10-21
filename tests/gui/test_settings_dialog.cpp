@@ -5,6 +5,7 @@
 #include <catch2/catch_approx.hpp>
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/annotations_coordinator.h"
+#include "kalahari/gui/material_downloader.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/settings/settings_page.h"
@@ -429,6 +430,194 @@ TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in 
     CHECK(singleAgain->isChecked());
 
     settings.set<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, before);
+}
+
+TEST_CASE("Settings dialog: the Navigator page chooses the top of the Add Element window",
+          "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string before =
+        settings.get<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, "sections");
+    settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, "sections");
+
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    auto* sections = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowSections"));
+    auto* book = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
+    auto* place = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowPlace"));
+    REQUIRE(sections != nullptr);
+    REQUIRE(book != nullptr);
+    REQUIRE(place != nullptr);
+    CHECK(sections->isChecked());
+    CHECK_FALSE(book->isChecked());
+    CHECK_FALSE(place->isChecked());
+    CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::Sections);
+
+    // A choice of its own, apart from the commands of the menus
+    auto* named = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddNamed"));
+    REQUIRE(named != nullptr);
+    const bool namedBefore = named->isChecked();
+    place->click();
+    CHECK(named->isChecked() == namedBefore);
+    CHECK(dialog.applyChanges() ==
+          QStringList{QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING)});
+    CHECK(settings.get<std::string>(NavigatorPanel::ADD_WINDOW_SETTING) == "place");
+    CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::None);
+    book->click();
+    CHECK(dialog.applyChanges() ==
+          QStringList{QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING)});
+    CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::Book);
+
+    // Opened again, the page shows the stored choice
+    SettingsDialog again(nullptr);
+    openPage(again, QString(), QStringLiteral("Navigator"));
+    auto* bookAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
+    REQUIRE(bookAgain != nullptr);
+    CHECK(bookAgain->isChecked());
+
+    settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, before);
+}
+
+TEST_CASE("Settings dialog: the Navigator page chooses how a material opens",
+          "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string before =
+        settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
+    settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
+
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    auto* card = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
+    auto* system = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsSystem"));
+    REQUIRE(card != nullptr);
+    REQUIRE(system != nullptr);
+    CHECK(card->isChecked());
+    CHECK_FALSE(system->isChecked());
+
+    // A choice of its own, apart from those of the window and the menus
+    auto* sections = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowSections"));
+    REQUIRE(sections != nullptr);
+    const bool sectionsBefore = sections->isChecked();
+    system->click();
+    CHECK(sections->isChecked() == sectionsBefore);
+    CHECK(dialog.applyChanges() ==
+          QStringList{QString::fromLatin1(NavigatorPanel::OPEN_MATERIALS_SETTING)});
+    CHECK(settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING) == "system");
+
+    // Opened again, the page shows the stored choice
+    SettingsDialog again(nullptr);
+    openPage(again, QString(), QStringLiteral("Navigator"));
+    auto* systemAgain =
+        again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsSystem"));
+    REQUIRE(systemAgain != nullptr);
+    CHECK(systemAgain->isChecked());
+
+    settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, before);
+}
+
+TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a drop gives",
+          "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string pagesBefore =
+        settings.get<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, "browser");
+    const std::string quickBefore =
+        settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, "link");
+    const std::string materialsBefore =
+        settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
+    settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, "browser");
+    settings.set<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, "link");
+    settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
+
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesBrowser"));
+    auto* onCard = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesCard"));
+    auto* link = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsLink"));
+    auto* add = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsAdd"));
+    auto* window = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsWindow"));
+    auto* materialsCard =
+        dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
+    REQUIRE(browser != nullptr);
+    REQUIRE(onCard != nullptr);
+    REQUIRE(link != nullptr);
+    REQUIRE(add != nullptr);
+    REQUIRE(window != nullptr);
+    REQUIRE(materialsCard != nullptr);
+    // The usual ones: the browser, and at once with the link
+    CHECK(browser->isChecked());
+    CHECK(link->isChecked());
+    CHECK_FALSE(add->isChecked());
+    CHECK_FALSE(window->isChecked());
+
+    // Each row is a choice of its own
+    onCard->click();
+    window->click();
+    CHECK(onCard->isChecked());
+    CHECK_FALSE(browser->isChecked());
+    CHECK(window->isChecked());
+    CHECK_FALSE(link->isChecked());
+    CHECK(materialsCard->isChecked());
+    const QStringList written = dialog.applyChanges();
+    CHECK(written.size() == 2);
+    CHECK(written.contains(QString::fromLatin1(NavigatorPanel::OPEN_PAGES_SETTING)));
+    CHECK(written.contains(QString::fromLatin1(NavigatorPanel::QUICK_MATERIALS_SETTING)));
+    CHECK(settings.get<std::string>(NavigatorPanel::OPEN_PAGES_SETTING) == "card");
+    CHECK(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING) == "window");
+    CHECK(NavigatorPanel::quickMaterials() == QStringLiteral("window"));
+
+    add->click();
+    CHECK(dialog.applyChanges() ==
+          QStringList{QString::fromLatin1(NavigatorPanel::QUICK_MATERIALS_SETTING)});
+    CHECK(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING) == "add");
+
+    // Opened again, the page shows the stored choices
+    SettingsDialog again(nullptr);
+    openPage(again, QString(), QStringLiteral("Navigator"));
+    auto* onCardAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesCard"));
+    auto* addAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsAdd"));
+    REQUIRE(onCardAgain != nullptr);
+    REQUIRE(addAgain != nullptr);
+    CHECK(onCardAgain->isChecked());
+    CHECK(addAgain->isChecked());
+
+    settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, pagesBefore);
+    settings.set<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, quickBefore);
+    settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, materialsBefore);
+}
+
+TEST_CASE("Settings dialog: Network > Materials chooses the downloads of the materials",
+          "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string before = settings.get<std::string>(MaterialDownloader::SETTING, "ask");
+    settings.set<std::string>(MaterialDownloader::SETTING, "ask");
+
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QStringLiteral("Network"), QStringLiteral("Materials"));
+    auto* ask = dialog.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAsk"));
+    auto* always = dialog.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAlways"));
+    auto* never = dialog.findChild<QRadioButton*>(QStringLiteral("networkDownloadsNever"));
+    REQUIRE(ask != nullptr);
+    REQUIRE(always != nullptr);
+    REQUIRE(never != nullptr);
+    CHECK(ask->isChecked());
+    CHECK(MaterialDownloader::policy() == MaterialDownloader::Policy::Ask);
+
+    never->click();
+    CHECK(dialog.applyChanges() == QStringList{QString::fromLatin1(MaterialDownloader::SETTING)});
+    CHECK(settings.get<std::string>(MaterialDownloader::SETTING) == "never");
+    CHECK(MaterialDownloader::policy() == MaterialDownloader::Policy::Never);
+
+    always->click();
+    CHECK(dialog.applyChanges() == QStringList{QString::fromLatin1(MaterialDownloader::SETTING)});
+    CHECK(MaterialDownloader::policy() == MaterialDownloader::Policy::Always);
+
+    // Opened again, the page shows the stored choice
+    SettingsDialog again(nullptr);
+    openPage(again, QStringLiteral("Network"), QStringLiteral("Materials"));
+    auto* alwaysAgain = again.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAlways"));
+    REQUIRE(alwaysAgain != nullptr);
+    CHECK(alwaysAgain->isChecked());
+
+    settings.set<std::string>(MaterialDownloader::SETTING, before);
 }
 
 TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][settings]") {

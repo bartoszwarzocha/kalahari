@@ -171,6 +171,13 @@ BookProject fullProject() {
 
     ProjectElement character = element("e7", "kalahari.base", "character", "Anna");
     character.file = QStringLiteral("workshop/character_001.json");
+    character.description = QStringLiteral("The heroine.\nShe leads the caravan.");
+    character.fields = {{QStringLiteral("Age"), QStringLiteral("32"), {}},
+                        {QStringLiteral("Eyes"), QString(), {}}};
+    character.fields[1].extra.insert(QStringLiteral("hidden"), true);
+    character.links = {QStringLiteral("e3"), QStringLiteral("b1/main")};
+    character.rotation = 270;
+    character.viewExtra.insert(QStringLiteral("zoom"), 2);
     ProjectElement note = element("e8", "kalahari.base", "work_note", "Ideas");
     note.file = QStringLiteral("workshop/work_note_001.kchapter");
     note.status = QStringLiteral("draft");
@@ -305,6 +312,112 @@ TEST_CASE("Book project: a project is saved and read back unchanged", "[core][bo
     changed = project;
     changed.books[0].files[0].title = QStringLiteral("Wycinki");
     CHECK_FALSE(changed == project);
+    changed = project;
+    changed.workshop.elements[0].description = QStringLiteral("The guide.");
+    CHECK_FALSE(changed == project);
+    changed = project;
+    changed.workshop.elements[0].fields[0].value = QStringLiteral("33");
+    CHECK_FALSE(changed == project);
+    changed = project;
+    changed.workshop.elements[0].links.removeLast();
+    CHECK_FALSE(changed == project);
+    changed = project;
+    changed.workshop.elements[0].rotation = 0;
+    CHECK_FALSE(changed == project);
+    changed = project;
+    changed.workshop.elements[0].viewExtra.remove(QStringLiteral("zoom"));
+    CHECK_FALSE(changed == project);
+}
+
+TEST_CASE("Book project: the description, own fields, links and turn of a material",
+          "[core][bookproject]") {
+    const char* const text = R"({
+      "format": 2, "id": "p",
+      "books": [
+        { "id": "c2a1", "folder": "book", "main": [
+            { "id": "e3", "kind": "kalahari.base:chapter", "title": "Chapter 1" } ] }
+      ],
+      "workshop": { "grouped": false, "elements": [
+        { "id": "e7", "kind": "kalahari.base:material", "title": "map",
+          "file": "workshop/map.png", "description": "The oasis and the road.",
+          "fields": [ { "name": "Scale", "value": "1 : 50 000" },
+                      { "name": "Source", "value": "", "page": 4 } ],
+          "links": ["e3", "c2a1/main"], "view": { "rotation": 90, "zoom": 2 } },
+        { "id": "e8", "kind": "kalahari.base:material", "title": "photo",
+          "file": "workshop/photo.jpg" },
+        { "id": "e9", "kind": "kalahari.base:material", "title": "Kalahari",
+          "url": "https://pl.wikipedia.org/wiki/Kalahari" },
+        { "id": "e10", "kind": "kalahari.base:material", "title": "camel",
+          "file": "workshop/camel.jpg", "url": "https://example.org/camel.jpg" },
+        { "id": "e11", "kind": "kalahari.base:material", "title": "Caravan Trails" }
+      ] }
+    })";
+    const BookProject project = projectOf(text);
+
+    // A file, a web address, both (the copy of a picture on the web) or neither
+    CHECK(project.workshop.elements.at(0).url.isEmpty());
+    CHECK(project.workshop.elements.at(2).url ==
+          QStringLiteral("https://pl.wikipedia.org/wiki/Kalahari"));
+    CHECK(project.workshop.elements.at(2).file.isEmpty());
+    CHECK(project.workshop.elements.at(3).url == QStringLiteral("https://example.org/camel.jpg"));
+    CHECK(project.workshop.elements.at(3).file == QStringLiteral("workshop/camel.jpg"));
+    CHECK(project.workshop.elements.at(4).url.isEmpty());
+    CHECK(project.workshop.elements.at(4).file.isEmpty());
+    BookProject moved = project;
+    moved.workshop.elements[2].url = QStringLiteral("https://example.org/");
+    CHECK_FALSE(moved == project);
+
+    const ProjectElement& map = project.workshop.elements.at(0);
+    CHECK(map.description == QStringLiteral("The oasis and the road."));
+    REQUIRE(map.fields.size() == 2);
+    CHECK(map.fields.at(0).name == QStringLiteral("Scale"));
+    CHECK(map.fields.at(0).value == QStringLiteral("1 : 50 000"));
+    CHECK(map.fields.at(1).value.isEmpty());
+    CHECK(map.fields.at(1).extra.value(QStringLiteral("page")).toInt() == 4);
+    CHECK(map.links == QStringList{QStringLiteral("e3"), QStringLiteral("c2a1/main")});
+    CHECK(map.rotation == 90);
+    CHECK(map.viewExtra.keys() == QStringList{QStringLiteral("zoom")});
+    CHECK(map.extra.isEmpty());
+
+    // An element without them has none, and saves none
+    const ProjectElement& photo = project.workshop.elements.at(1);
+    CHECK(photo.description.isEmpty());
+    CHECK(photo.fields.isEmpty());
+    CHECK(photo.links.isEmpty());
+    CHECK(photo.rotation == 0);
+    CHECK(project.toJson()[QStringLiteral("workshop")] ==
+          jsonOf(text)[QStringLiteral("workshop")]);
+
+    // The links name elements and the sections of the book
+    CHECK(project.sectionLink(BookPlace::Front) == QStringLiteral("c2a1/front"));
+    CHECK(project.sectionLink(BookPlace::Main) == QStringLiteral("c2a1/main"));
+    CHECK(project.sectionLink(BookPlace::Back) == QStringLiteral("c2a1/back"));
+    CHECK(project.sectionLink(BookPlace::Workshop).isEmpty());
+    CHECK(project.sectionLink(BookPlace::Main, 1).isEmpty());
+    CHECK(project.linkedSection(QStringLiteral("c2a1/back")) == BookPlace::Back);
+    CHECK_FALSE(project.linkedSection(QStringLiteral("e3")).has_value());
+    CHECK_FALSE(project.linkedSection(QStringLiteral("other/main")).has_value());
+    CHECK(project.hasLinkTarget(QStringLiteral("e3")));
+    CHECK(project.hasLinkTarget(QStringLiteral("e8")));
+    CHECK(project.hasLinkTarget(QStringLiteral("c2a1/front")));
+    CHECK_FALSE(project.hasLinkTarget(QStringLiteral("e99")));
+    CHECK_FALSE(project.hasLinkTarget(QStringLiteral("c2a1/workshop")));
+    CHECK_FALSE(project.hasLinkTarget(QString()));
+
+    // A turn back to 0 leaves no "view" when it has nothing else
+    BookProject turned = project;
+    turned.workshop.elements[0].rotation = 0;
+    turned.workshop.elements[0].viewExtra = {};
+    const QJsonObject written =
+        turned.toJson()[QStringLiteral("workshop")][QStringLiteral("elements")][0].toObject();
+    CHECK_FALSE(written.contains(QStringLiteral("view")));
+
+    // A link given twice is kept once
+    const BookProject twice = projectOf(R"({ "format": 2, "id": "p",
+        "books": [ { "id": "b", "folder": "book", "main": [
+          { "id": "e1", "kind": "kalahari.base:chapter" },
+          { "id": "e2", "kind": "kalahari.base:chapter", "links": ["e1", "e1"] } ] } ] })");
+    CHECK(twice.books.at(0).mainElements.at(1).links == QStringList{QStringLiteral("e1")});
 }
 
 TEST_CASE("Book project: fields this version does not know are kept", "[core][bookproject]") {
@@ -1270,6 +1383,46 @@ TEST_CASE("Book project: a .klh file with problems", "[core][bookproject]") {
                           "file": "book/chapter_001.kchapter" })"),
          "books[0].main[1].file: 'book/chapter_001.kchapter' is already the file of "
          "books[0].main[0]"},
+        {"a description that is not a text",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "description": [] })"),
+         "books[0].main[0].description: must be a text"},
+        {"own fields that are not a list",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "fields": {} })"),
+         "books[0].main[0].fields: must be a list"},
+        {"an own field that is not an object",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "fields": ["Age"] })"),
+         "books[0].main[0].fields[0]: must be an object with a name and a value"},
+        {"an own field whose value is not a text",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "fields": [ { "name": "Age", "value": 32 } ] })"),
+         "books[0].main[0].fields[0].value: must be a text"},
+        {"links that are not a list",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "links": "e2" })"),
+         "books[0].main[0].links: must be a list"},
+        {"a link that is not an id",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "links": ["e2", 3] })"),
+         "books[0].main[0].links: must be a list of ids of elements and sections"},
+        {"an empty link",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "links": [""] })"),
+         "books[0].main[0].links: must be a list of ids of elements and sections"},
+        {"a view that is not an object",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "view": 90 })"),
+         "books[0].main[0].view: must be an object"},
+        {"a web address that is not a text",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:material", "url": 7 })"),
+         "books[0].main[0].url: must be a web address"},
+        {"a web address without its scheme",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:material",
+                          "url": "pl.wikipedia.org/wiki/Kalahari" })"),
+         "books[0].main[0].url: must be a web address"},
+        {"a turn that is not a right angle",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "view": { "rotation": 45 } })"),
+         "books[0].main[0].view.rotation: must be 0, 90, 180 or 270"},
+        {"a turn that is not a number",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "view": { "rotation": "90" } })"),
+         "books[0].main[0].view.rotation: must be 0, 90, 180 or 270"},
         {"files of a book that are not a list",
          project(R"({ "format": 2, "id": "p",
                       "books": [ { "id": "b", "folder": "book", "files": {} } ] })"),

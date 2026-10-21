@@ -10,6 +10,8 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/material_source.h"
+#include "kalahari/gui/paste_target.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/utils/access_keys.h"
@@ -25,6 +27,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTreeWidgetItem>
+#include <QTreeWidgetItemIterator>
 #include <QDir>
 #include <QFileInfo>
 #include <QLineEdit>
@@ -37,11 +40,20 @@
 #include <QBrush>
 #include <QDropEvent>
 #include <QBasicTimer>
+#include <QClipboard>
 #include <QCollator>
 #include <QCoreApplication>
 #include <QFont>
+#include <QGuiApplication>
 #include <QKeyEvent>
 #include <QLocale>
+#include <QMimeData>
+#include <QMimeDatabase>
+#include <QPainter>
+#include <QPen>
+#include <QPersistentModelIndex>
+#include <QScrollBar>
+#include <QSignalBlocker>
 #include <QTimerEvent>
 #include <algorithm>
 #include <functional>
@@ -101,6 +113,11 @@ QString withKeys(const QString& text, QKeyCombination keys) {
 /// The keys of Add... on a node of the Navigator, as in the editor: Ctrl+Shift+Enter
 QKeyCombination addKeys() {
     return QKeyCombination(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_Return);
+}
+
+/// The keys of Properties... on a node of the Navigator: Alt+Enter, as in the file managers
+QKeyCombination propertiesKeys() {
+    return QKeyCombination(Qt::AltModifier, Qt::Key_Return);
 }
 
 /// Whether an item of @p type is "Unassigned Files" or one of its files, which are grey
@@ -258,7 +275,11 @@ std::optional<kalahari::core::ElementPlace> placeBeyondList(
 /// and the tree shows the book as it is once it is loaded again. In a book without sections
 /// the elements of the three sections are all under the book's item, each section after the
 /// one before it.
-class NavigatorTree : public QTreeWidget {
+///
+/// Files and web addresses dragged from outside the program, and Paste of the clipboard, give
+/// new materials (onMaterials); a dashed frame shows the node the drop links them with, or the
+/// whole tree when it links them with none.
+class NavigatorTree : public QTreeWidget, public kalahari::gui::PasteTarget {
 public:
     using QTreeWidget::QTreeWidget;
 
@@ -266,12 +287,48 @@ public:
     std::function<void(const QString& elementId, const kalahari::core::ElementPlace& place)>
         onMove;
 
+    /// Called with the materials dropped from outside the program or pasted, and the link of
+    /// the node they were dropped or pasted on (empty: none)
+    std::function<void(const kalahari::gui::IncomingMaterials& incoming, const QString& link)>
+        onMaterials;
+
+    /// Whether the book takes new materials now, and whether they are linked with the node
+    /// they are dropped on
+    std::function<bool()> takesMaterials;
+    std::function<bool(const QTreeWidgetItem* item)> linksMaterials;
+
+    bool canPasteHere() const override {
+        const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
+        return takesMaterials && takesMaterials() && mime != nullptr &&
+               (mime->hasUrls() || mime->hasImage() || mime->hasText());
+    }
+
+    void pasteHere() override {
+        if (onMaterials) {
+            onMaterials(
+                kalahari::gui::IncomingMaterials::of(QGuiApplication::clipboard()->mimeData()),
+                linkOf(currentItem()));
+        }
+    }
+
 protected:
+    void dragEnterEvent(QDragEnterEvent* event) override {
+        if (takesFromOutside(event)) {
+            showDrop(event);
+            return;
+        }
+        QTreeWidget::dragEnterEvent(event);
+    }
+
     void dragMoveEvent(QDragMoveEvent* event) override {
         // The item under the dragged element opens when it rests there (timerEvent())
         m_openPos = event->position().toPoint();
         m_openTimer.start(AUTO_EXPAND_DELAY, this);
 
+        if (takesFromOutside(event)) {
+            showDrop(event);
+            return;
+        }
         QTreeWidget::dragMoveEvent(event);
         if (event->isAccepted() && !dropPlace(event->position().toPoint())) {
             event->ignore();
@@ -280,7 +337,41 @@ protected:
 
     void dragLeaveEvent(QDragLeaveEvent* event) override {
         m_openTimer.stop();
+        hideDrop();
         QTreeWidget::dragLeaveEvent(event);
+    }
+
+    /// The dashed frame of a drop from outside the program
+    void paintEvent(QPaintEvent* event) override {
+        QTreeWidget::paintEvent(event);
+        if (!m_outsideDrop) {
+            return;
+        }
+        QPainter painter(viewport());
+        QPen pen(palette().color(QPalette::Highlight), 2, Qt::DashLine);
+        painter.setPen(pen);
+        painter.setBrush(Qt::NoBrush);
+        const QRect frame = m_dropIndex.isValid() ? visualRect(m_dropIndex)
+                                                  : viewport()->rect();
+        painter.drawRect(frame.adjusted(1, 1, -2, -2));
+    }
+
+    /// The dragged nodes also give their links, which the links of a material take
+    /// (NavigatorPanel::LINKS_MIME_TYPE)
+    QMimeData* mimeData(const QList<QTreeWidgetItem*>& items) const override {
+        QMimeData* mime = QTreeWidget::mimeData(items);
+        QStringList links;
+        for (const QTreeWidgetItem* item : items) {
+            const QString link = kalahari::gui::NavigatorPanel::linkOf(item);
+            if (!link.isEmpty()) {
+                links << link;
+            }
+        }
+        if (mime && !links.isEmpty()) {
+            mime->setData(QLatin1String(kalahari::gui::NavigatorPanel::LINKS_MIME_TYPE),
+                          links.join(QLatin1Char('\n')).toUtf8());
+        }
+        return mime;
     }
 
     /// A collapsed group or section that the dragged element rests on opens, so that the
@@ -300,6 +391,20 @@ protected:
 
     void dropEvent(QDropEvent* event) override {
         m_openTimer.stop();
+        if (takesFromOutside(event)) {
+            const kalahari::gui::IncomingMaterials incoming =
+                kalahari::gui::IncomingMaterials::of(event->mimeData());
+            const QString link = linkOf(itemAt(event->position().toPoint()));
+            event->setDropAction(Qt::CopyAction);
+            event->accept();
+            hideDrop();
+            if (onMaterials) {
+                // After the drop has ended: the new materials load the tree again
+                QTimer::singleShot(0, this,
+                                   [this, incoming, link]() { onMaterials(incoming, link); });
+            }
+            return;
+        }
         const std::optional<kalahari::core::ElementPlace> place =
             dropPlace(event->position().toPoint());
         const QTreeWidgetItem* dragged = selectedItems().value(0);
@@ -319,6 +424,42 @@ protected:
     }
 
 private:
+    /// Whether @p event brings files, web addresses or a picture from outside the program that
+    /// the book takes now
+    bool takesFromOutside(const QDropEvent* event) const {
+        return event->source() == nullptr && takesMaterials && takesMaterials() &&
+               kalahari::gui::IncomingMaterials::of(event->mimeData()).hasMaterials();
+    }
+
+    /// Accept the drop from outside the program of @p event as a copy, with the frame of the
+    /// node it links the materials with
+    void showDrop(QDragMoveEvent* event) {
+        const QTreeWidgetItem* item = itemAt(event->position().toPoint());
+        const QModelIndex index = !linkOf(item).isEmpty() ? indexFromItem(item) : QModelIndex();
+        if (!m_outsideDrop || index != m_dropIndex) {
+            m_outsideDrop = true;
+            m_dropIndex = index;
+            viewport()->update();
+        }
+        event->setDropAction(Qt::CopyAction);
+        event->accept();
+    }
+
+    void hideDrop() {
+        if (m_outsideDrop) {
+            m_outsideDrop = false;
+            m_dropIndex = QPersistentModelIndex();
+            viewport()->update();
+        }
+    }
+
+    /// The link new materials get from node @p item; empty when it gives none
+    QString linkOf(const QTreeWidgetItem* item) const {
+        return item && linksMaterials && linksMaterials(item)
+                   ? kalahari::gui::NavigatorPanel::linkOf(item)
+                   : QString();
+    }
+
     /// The new place of the dragged element when it is dropped at @p pos; none when it cannot
     /// go there or stays where it is
     std::optional<kalahari::core::ElementPlace> dropPlace(const QPoint& pos) const {
@@ -348,6 +489,8 @@ private:
 
     QBasicTimer m_openTimer;  ///< Opens the item under the dragged element
     QPoint m_openPos;         ///< Where the dragged element is in the viewport
+    bool m_outsideDrop = false;            ///< Files or addresses are dragged over the tree
+    QPersistentModelIndex m_dropIndex;     ///< The node they would be linked with
 };
 
 } // anonymous namespace
@@ -470,6 +613,18 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
                                              : place.groupId.toStdString());
         emit elementMovedTo(elementId, place);
     };
+    // Files, web addresses and pictures from outside the program are new materials, linked
+    // with the node of the book they were dropped or pasted on (QUICK_MATERIALS_SETTING)
+    tree->takesMaterials = [this]() {
+        return !m_readOnly && core::ProjectManager::getInstance().isProjectOpen();
+    };
+    tree->linksMaterials = [](const QTreeWidgetItem* item) {
+        return quickMaterials() == QLatin1String("link") && !isWorkshopItem(item) &&
+               !NavigatorPanel::linkOf(item).isEmpty();
+    };
+    tree->onMaterials = [this](const IncomingMaterials& incoming, const QString& link) {
+        emit requestAddMaterials(incoming, link);
+    };
     m_treeWidget = tree;
 
     // Connect expand/collapse all buttons (after tree widget creation)
@@ -527,19 +682,9 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
                            elementType.toStdString(),
                            elementId.toStdString());
 
-                // The project and the book show the properties of the book
-                // Sections and groups emit with their type for aggregate statistics
-                if (elementType == "document" || elementType == "book") {
-                    emit requestProperties("");  // Book properties
-                } else if (elementType == "section_frontmatter" ||
-                           elementType == "section_body" ||
-                           elementType == "section_backmatter") {
-                    emit requestSectionProperties(elementType);
-                } else if (elementType == "group_element") {
-                    emit requestPartProperties(elementId);
-                } else if (elementType == "text_element" || elementType == "book_file" ||
-                           (elementType == "window_element" && isWorkshopItem(item))) {
-                    emit requestProperties(elementId);
+                // The card of a material is in the Properties panel: it comes to the front
+                if (requestPropertiesOf(item) && isMaterialItem(item)) {
+                    emit requestPropertiesPanel();
                 }
             });
 
@@ -797,8 +942,9 @@ QTreeWidgetItem* NavigatorPanel::addSectionItem(QTreeWidgetItem* parent, const Q
     item->setData(0, Qt::UserRole + 1, sectionType);
     item->setIcon(0, core::ArtProvider::getInstance().getIcon(getIconIdForType(sectionType),
                                                              core::IconContext::TreeView));
-    // Sections are not draggable, but take the drops of their elements
-    item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled) | Qt::ItemIsDropEnabled);
+    // Sections take the drops of their elements; they are dragged only to the links of a
+    // material
+    item->setFlags(item->flags() | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled);
     return item;
 }
 
@@ -918,6 +1064,17 @@ QString formIconId(core::ElementForm form) {
     return QStringLiteral("template.chapter");
 }
 
+/// The order of the elements in a group of the Workshop: alphabetical by title, in the
+/// language of the book, "Note 2" before "Note 10"
+QCollator workshopOrder(const core::BookProject& project) {
+    const core::ProjectBook* book = project.books.isEmpty() ? nullptr : &project.books.first();
+    QCollator collator(
+        QLocale(book && !book->language.isEmpty() ? book->language : programLanguage()));
+    collator.setNumericMode(true);
+    collator.setCaseSensitivity(Qt::CaseInsensitive);
+    return collator;
+}
+
 }  // namespace
 
 QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
@@ -928,6 +1085,25 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
         return BOOK_FILE_ICON;
     }
     const core::KindRef kind = core::BookProject::kindOf(registry, element);
+    // A material shows where it comes from: a picture or another file, a web page, a picture
+    // on the web, neither
+    if (kind && kind.kind->isMaterial()) {
+        switch (materialSourceOf(element)) {
+        case MaterialSource::Page:
+            return QStringLiteral("material.page");
+        case MaterialSource::WebPicture:
+            return QStringLiteral("material.webPicture");
+        case MaterialSource::None:
+            return QStringLiteral("material.noFile");
+        case MaterialSource::File:
+            if (QMimeDatabase().mimeTypeForFile(element.file, QMimeDatabase::MatchExtension)
+                    .name()
+                    .startsWith(QLatin1String("image/"))) {
+                return QStringLiteral("common.image");
+            }
+            break;
+        }
+    }
     if (kind && !kind.kind->icon.isEmpty()) {
         return kind.kind->icon;
     }
@@ -969,9 +1145,10 @@ void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
         const QString iconId = iconIdOf(
             registry, element, cardKind ? pm.packageCard(element.kind.packageId) : nullptr);
 
-        // The elements of the Workshop are in alphabetical order: they are not dragged
+        // The elements of the Workshop are in alphabetical order: they are dragged only to the
+        // links of a material
         QString itemType;
-        Qt::ItemFlags flags = workshop ? Qt::ItemFlags() : Qt::ItemFlags(Qt::ItemIsDragEnabled);
+        Qt::ItemFlags flags = Qt::ItemIsDragEnabled;
         switch (form) {
         case core::ElementForm::Text:
             itemType = QStringLiteral("text_element");
@@ -1050,12 +1227,8 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
         group->elements.append(element);
     }
 
-    // The elements in alphabetical order of their titles, in the language of the book: "Note
-    // 2" before "Note 10"
-    const core::ProjectBook* book = project.books.isEmpty() ? nullptr : &project.books.first();
-    QCollator collator(QLocale(book && !book->language.isEmpty() ? book->language : language));
-    collator.setNumericMode(true);
-    collator.setCaseSensitivity(Qt::CaseInsensitive);
+    // The elements in alphabetical order of their titles
+    const QCollator collator = workshopOrder(project);
 
     // Grouped, the groups of cards are in Libraries and those of materials in Resources, each
     // where its first group would be
@@ -1129,6 +1302,36 @@ QString NavigatorPanel::workshopName(const core::BookProject& project) {
 
 bool NavigatorPanel::isWorkshopItem(const QTreeWidgetItem* item) {
     return item && item->data(0, WORKSHOP_ROLE).toBool();
+}
+
+bool NavigatorPanel::isMaterialItem(const QTreeWidgetItem* item) {
+    if (!isWorkshopItem(item) || typeOf(item) != QLatin1String("window_element")) {
+        return false;
+    }
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(item->data(0, Qt::UserRole).toString());
+    return element && pm.isMaterial(*element);
+}
+
+QString NavigatorPanel::linkOf(const QTreeWidgetItem* item) {
+    if (!item) {
+        return {};
+    }
+    const QString type = typeOf(item);
+    if (isElementType(type)) {
+        return item->data(0, Qt::UserRole).toString();
+    }
+    const std::optional<core::BookPlace> section = sectionPlaceOf(type);
+    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    return section && project ? project->sectionLink(*section) : QString();
+}
+
+QStringList NavigatorPanel::linksOf(const QMimeData* data) {
+    if (!data || !data->hasFormat(QLatin1String(LINKS_MIME_TYPE))) {
+        return {};
+    }
+    return QString::fromUtf8(data->data(QLatin1String(LINKS_MIME_TYPE)))
+        .split(QLatin1Char('\n'), Qt::SkipEmptyParts);
 }
 
 void NavigatorPanel::addBookFileItems(QTreeWidgetItem* parent,
@@ -1799,22 +2002,24 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         connect(openAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuOpen);
     };
 
+    // The icon of the Properties panel, which Properties... brings to the front
     const auto addPropertiesAction = [&]() {
         QAction* propertiesAction = menu.addAction(
-            artProvider.getIcon("common.properties", core::IconContext::Menu),
-            tr("P&roperties..."));
+            artProvider.getIcon("view.properties", core::IconContext::Menu),
+            withKeys(tr("P&roperties..."), propertiesKeys()));
         connect(propertiesAction, &QAction::triggered, this,
                 &NavigatorPanel::onContextMenuProperties);
     };
 
+    // The icons of the panel's Expand All and Collapse All buttons
     const auto addExpandCollapseActions = [&]() {
         QAction* expandAllAction = menu.addAction(
-            artProvider.getIcon("common.expand", core::IconContext::Menu),
+            artProvider.getIcon("common.expandMore", core::IconContext::Menu),
             tr("&Expand All"));
         connect(expandAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuExpandAll);
 
         QAction* collapseAllAction = menu.addAction(
-            artProvider.getIcon("common.collapse", core::IconContext::Menu),
+            artProvider.getIcon("common.expandLess", core::IconContext::Menu),
             tr("&Collapse All"));
         connect(collapseAllAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuCollapseAll);
     };
@@ -1831,8 +2036,9 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         addPropertiesAction();
 
     } else if (elementType == "window_element" && isWorkshopItem(item)) {
-        // A material opens in the program the system gives its file; the other kinds wait for
-        // the windows of the program
+        // A material opens as the settings say: its picture on a preview tab, its file in the
+        // program the system gives it, its page in the browser; its card opens in the middle
+        // of the window. The other kinds wait for the windows of the program.
         const core::ProjectElement* element = pm.findElement(elementId);
         const core::KindRef kind = element ? pm.kindOf(*element) : core::KindRef{};
         if (kind && kind.kind->isMaterial()) {
@@ -1841,12 +2047,22 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 withKeys(tr("&Open"), QKeyCombination(Qt::Key_Enter)));
             connect(openAction, &QAction::triggered, this,
                     [this, elementId]() { emit requestOpenMaterial(elementId); });
-            const QString path = pm.filePathOf(*element);
-            QAction* showAction = menu.addAction(
-                artProvider.getIcon("common.folder", core::IconContext::Menu),
-                tr("Show in &Folder"));
-            connect(showAction, &QAction::triggered, this,
-                    [this, path]() { showInFileManager(path); });
+            //: Opens the card of a material in the middle of the window. In Polish: Otwórz
+            //: &kartę
+            QAction* cardAction = menu.addAction(
+                artProvider.getIcon("material.noFile", core::IconContext::Menu),
+                tr("Open &Card"));
+            connect(cardAction, &QAction::triggered, this,
+                    [this, elementId]() { emit requestOpenMaterialCard(elementId); });
+            // A material without a file has no folder to show
+            if (!element->file.isEmpty()) {
+                const QString path = pm.filePathOf(*element);
+                QAction* showAction = menu.addAction(
+                    artProvider.getIcon("common.folder", core::IconContext::Menu),
+                    tr("Show in &Folder"));
+                connect(showAction, &QAction::triggered, this,
+                        [this, path]() { showInFileManager(path); });
+            }
         }
         addAddActions();
         menu.addSeparator();
@@ -1920,8 +2136,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
         // The statistics of the group, in the Properties panel brought to the front
         QAction* propertiesAction = menu.addAction(
-            artProvider.getIcon("common.properties", core::IconContext::Menu),
-            tr("P&roperties..."));
+            artProvider.getIcon("view.properties", core::IconContext::Menu),
+            withKeys(tr("P&roperties..."), propertiesKeys()));
         connect(propertiesAction, &QAction::triggered, this, [this, elementId]() {
             emit requestPartProperties(elementId);
             emit requestPropertiesPanel();
@@ -1963,8 +2179,9 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         }
         menu.addSeparator();
 
+        // The icon of Book > Book Properties...
         QAction* propertiesAction = menu.addAction(
-            artProvider.getIcon("common.properties", core::IconContext::Menu),
+            artProvider.getIcon("book.properties", core::IconContext::Menu),
             tr("Book P&roperties..."));
         connect(propertiesAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuProperties);
         // As Book > Book Properties..., which edits them
@@ -1974,9 +2191,14 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
     } else if (elementType == "document") {
         // The project: its window comes with the types of books (stage 4); a click on the node
-        // shows the properties of the book
+        // shows the properties of the book. Add... starts at the book when the Add Element
+        // window chooses where it adds.
+        if (addTargetOf(item)) {
+            addAddActions();
+            menu.addSeparator();
+        }
         QAction* propertiesAction = menu.addAction(
-            artProvider.getIcon("common.properties", core::IconContext::Menu),
+            artProvider.getIcon("view.properties", core::IconContext::Menu),
             //: The command of the project's node in the Navigator. In Polish: Właściwości
             //: &projektu...
             tr("Project P&roperties..."));
@@ -2275,21 +2497,34 @@ void NavigatorPanel::onCurrentItemChanged(QTreeWidgetItem* current, QTreeWidgetI
                  elementType.toStdString(),
                  elementId.toStdString());
 
-    // Same logic as itemClicked
+    // As a click; a material chosen with the keys brings its card to the front, one chosen
+    // by the program (a book opened, an element shown) does not
+    if (requestPropertiesOf(current) && isMaterialItem(current) && m_treeWidget->hasFocus()) {
+        emit requestPropertiesPanel();
+    }
+}
+
+bool NavigatorPanel::requestPropertiesOf(const QTreeWidgetItem* item) {
+    if (!item) {
+        return false;
+    }
+    const QString elementId = item->data(0, Qt::UserRole).toString();
+    const QString elementType = typeOf(item);
     // The project and the book show the properties of the book
     // Sections and groups emit with their type for aggregate statistics
     if (elementType == "document" || elementType == "book") {
         emit requestProperties("");  // Book properties
-    } else if (elementType == "section_frontmatter" ||
-               elementType == "section_body" ||
-               elementType == "section_backmatter") {
+    } else if (sectionPlaceOf(elementType)) {
         emit requestSectionProperties(elementType);
     } else if (elementType == "group_element") {
         emit requestPartProperties(elementId);
     } else if (elementType == "text_element" || elementType == "book_file" ||
-               (elementType == "window_element" && isWorkshopItem(current))) {
+               (elementType == "window_element" && isWorkshopItem(item))) {
         emit requestProperties(elementId);
+    } else {
+        return false;
     }
+    return true;
 }
 
 void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
@@ -2322,8 +2557,8 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
     }
 
     // Only text elements and the files of the book open in the editor; sections, groups and
-    // window elements do not. A material of the Workshop opens in the program the system
-    // gives its file.
+    // window elements do not. A material of the Workshop opens as the settings say
+    // (NavigatorCoordinator::onRequestOpenMaterial()).
     if (elementType == "text_element" || elementType == "book_file") {
         emit elementSelected(elementId, item->data(0, TITLE_ROLE).toString());
     } else if (elementType == "window_element" && isWorkshopItem(item)) {
@@ -2340,11 +2575,33 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
 // Add..., Rename and Delete on a node
 // =============================================================================
 
+QString NavigatorPanel::quickMaterials() {
+    const QString value = QString::fromStdString(
+        core::SettingsManager::getInstance().get<std::string>(QUICK_MATERIALS_SETTING, "link"));
+    return value == QLatin1String("add") || value == QLatin1String("window")
+               ? value
+               : QStringLiteral("link");
+}
+
+AddChooser NavigatorPanel::addChooser() {
+    const std::string chooser =
+        core::SettingsManager::getInstance().get<std::string>(ADD_WINDOW_SETTING, "sections");
+    if (chooser == "book") {
+        return AddChooser::Book;
+    }
+    return chooser == "place" ? AddChooser::None : AddChooser::Sections;
+}
+
 std::optional<AddTarget> NavigatorPanel::addTargetOf(const QTreeWidgetItem* item) const {
     const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
-    if (!item || !project) {
+    if (!project) {
         return std::nullopt;
+    }
+    // The project and no node: the book, when the window chooses where it adds
+    if (!item || typeOf(item) == QLatin1String("document")) {
+        return addChooser() == AddChooser::None ? std::nullopt
+                                                : std::optional<AddTarget>(AddTarget{});
     }
     const QString type = typeOf(item);
     const QString id = item->data(0, Qt::UserRole).toString();
@@ -2528,6 +2785,10 @@ QString NavigatorPanel::changeRefusal() const {
     return m_readOnly ? readOnlyReason() : QString();
 }
 
+void NavigatorPanel::onSettingsChanged() {
+    updateAddButton();
+}
+
 void NavigatorPanel::updateAddButton() {
     if (!m_addButton) {
         return;
@@ -2555,7 +2816,8 @@ bool NavigatorPanel::eventFilter(QObject* watched, QEvent* event) {
                      (enter && modifiers == (Qt::ControlModifier | Qt::ShiftModifier));
     const bool rename = keys.key() == Qt::Key_F2 && modifiers == Qt::NoModifier;
     const bool remove = keys.key() == Qt::Key_Delete && modifiers == Qt::NoModifier;
-    if (!add && !rename && !remove) {
+    const bool properties = enter && modifiers == Qt::AltModifier;
+    if (!add && !rename && !remove && !properties) {
         return QWidget::eventFilter(watched, event);
     }
     if (event->type() == QEvent::ShortcutOverride) {
@@ -2563,7 +2825,12 @@ bool NavigatorPanel::eventFilter(QObject* watched, QEvent* event) {
         return true;
     }
     QTreeWidgetItem* item = m_treeWidget->currentItem();
-    if (add) {
+    if (properties) {
+        if (requestPropertiesOf(item)) {
+            emit requestPropertiesPanel();
+            emit requestPropertiesFocus();
+        }
+    } else if (add) {
         addOn(item);
     } else if (rename) {
         renameItem(item);
@@ -2608,8 +2875,55 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
                                          !isWorkshopItem(item),
                                      m_modifiedElements.contains(elementId)));
     item->setData(0, TITLE_ROLE, element->title);
+    if (item->parent() && typeOf(item->parent()) == QLatin1String("workshop_group")) {
+        placeInWorkshopGroup(item);
+    }
 
     logger.debug("NavigatorPanel: Refreshed item text to: {}", item->text(0).toStdString());
+}
+
+void NavigatorPanel::placeInWorkshopGroup(QTreeWidgetItem* item) {
+    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    QTreeWidgetItem* group = item->parent();
+    if (!project || !group) {
+        return;
+    }
+    const QCollator order = workshopOrder(*project);
+    const QString title = item->data(0, TITLE_ROLE).toString();
+    const auto titleAt = [group](int index) {
+        return group->child(index)->data(0, TITLE_ROLE).toString();
+    };
+    const int at = group->indexOfChild(item);
+    const bool afterPrevious = at == 0 || order.compare(titleAt(at - 1), title) <= 0;
+    const bool beforeNext =
+        at == group->childCount() - 1 || order.compare(title, titleAt(at + 1)) <= 0;
+    if (afterPrevious && beforeNext) {
+        return;
+    }
+    // Its place: after the others whose titles do not come after its own
+    int place = 0;
+    for (int i = 0; i < group->childCount(); ++i) {
+        if (i != at && order.compare(titleAt(i), title) <= 0) {
+            ++place;
+        }
+    }
+
+    // The tree keeps its current item, the items open under the element and its scroll; the
+    // move asks for no properties, so the Properties panel keeps what is typed in it
+    const bool current = m_treeWidget->currentItem() == item;
+    QStringList expanded;
+    collectExpandedIds(item, expanded);
+    const int scrolled = m_treeWidget->verticalScrollBar()->value();
+    {
+        const QSignalBlocker blocker(m_treeWidget);
+        group->takeChild(at);
+        group->insertChild(place, item);
+        if (current) {
+            m_treeWidget->setCurrentItem(item);
+        }
+    }
+    expandItemsById(expanded);
+    m_treeWidget->verticalScrollBar()->setValue(scrolled);
 }
 
 // =============================================================================
@@ -2826,6 +3140,21 @@ void NavigatorPanel::revealElement(const QString& elementId) {
     }
     m_treeWidget->setCurrentItem(item);
     m_treeWidget->scrollToItem(item, QAbstractItemView::EnsureVisible);
+}
+
+void NavigatorPanel::revealSection(core::BookPlace place) {
+    for (QTreeWidgetItemIterator it(m_treeWidget); *it; ++it) {
+        const std::optional<core::BookPlace> section = sectionPlaceOf(typeOf(*it));
+        if (!section || *section != place) {
+            continue;
+        }
+        for (QTreeWidgetItem* parent = (*it)->parent(); parent; parent = parent->parent()) {
+            parent->setExpanded(true);
+        }
+        m_treeWidget->setCurrentItem(*it);
+        m_treeWidget->scrollToItem(*it, QAbstractItemView::EnsureVisible);
+        return;
+    }
 }
 
 void NavigatorPanel::collectExpandedIds(QTreeWidgetItem* item, QStringList& expandedIds) const {

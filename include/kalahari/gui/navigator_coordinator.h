@@ -17,6 +17,8 @@
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/gui/add_target.h"
+#include "kalahari/gui/material_downloader.h"
+#include "kalahari/gui/material_source.h"
 
 class QTabWidget;
 class QStatusBar;
@@ -37,6 +39,11 @@ namespace gui {
 class NavigatorPanel;
 class PropertiesPanel;
 class EditorPanel;
+class MaterialCardPanel;
+
+namespace dialogs {
+class NewFileDialog;
+}
 
 /// @brief Coordinates navigator panel interactions
 ///
@@ -250,9 +257,53 @@ public slots:
     /// @brief Group the Workshop (Libraries and Resources) or not; saves the .klh file
     void onRequestWorkshopGrouped(bool grouped);
 
-    /// @brief Open material @p elementId of the Workshop in the program the system gives its
-    /// file; the writer is told when it cannot be opened
+    /// @brief Open material @p elementId of the Workshop as its source and the settings say: a
+    /// picture, also the copy of a picture from the web, on its preview tab or in the program
+    /// the system gives its file (NavigatorPanel::OPEN_MATERIALS_SETTING); another file in the
+    /// system program; a web page, and a picture on the web without a copy, in the browser or
+    /// on its card (NavigatorPanel::OPEN_PAGES_SETTING); a material without a file and an
+    /// address on its card
     void onRequestOpenMaterial(const QString& elementId);
+
+    /// @brief Show the card of material @p elementId on a tab of its own in the middle of the
+    /// window, or bring its tab to the front
+    /// @param description The description gets the keys, at its end, else the title
+    void onRequestOpenMaterialCard(const QString& elementId, bool description = false);
+
+    /// @brief Open the web address of material @p elementId in the system's browser; the
+    /// writer is told when it cannot be opened
+    void onRequestOpenInBrowser(const QString& elementId);
+
+    /// @brief Download the picture at the address of material @p elementId for the copy it
+    /// has not got (Save Copy on its card); the writer is told when it does not come
+    void onRequestSaveCopy(const QString& elementId);
+
+    /// @brief Material @p elementId changed on one of its cards: the others, its tabs and its
+    /// node in the Navigator show it
+    void onMaterialChanged(const QString& elementId);
+
+    /// @brief Add the materials @p incoming, dropped on the Navigator from outside the program
+    /// or pasted in it, as NavigatorPanel::QUICK_MATERIALS_SETTING says: at once, linked with
+    /// @p link when it is not empty, or each in the Add Element window; the Navigator shows the
+    /// new ones and the status bar says what was added. A text that is no file and no address
+    /// adds nothing, and the status bar says why.
+    void onRequestAddMaterials(const kalahari::gui::IncomingMaterials& incoming,
+                               const QString& link);
+
+    /// @brief The downloads for the materials with an address, for tests
+    MaterialDownloader* materialDownloader() const { return m_downloader; }
+
+    /// @brief Show the preview of material @p elementId on a tab of its own beside the
+    /// chapters, or bring its tab to the front
+    void onRequestPreview(const QString& elementId);
+
+    /// @brief Open material @p elementId in the program the system gives its file; the writer
+    /// is told when it cannot be opened
+    void onRequestOpenWithSystem(const QString& elementId);
+
+    /// @brief Open what link @p link of a material names: a text in the editor, a material as
+    /// the settings say; a section or another element is shown in the Navigator
+    void onRequestOpenLink(const QString& link);
 
     /// @brief New File with a book open: a new element of the kind, with the title and at the
     /// place the writer chooses in the New File window, or an empty text file of the book
@@ -331,6 +382,31 @@ private:
     /// element opens in the editor with the cursor at the start of its text
     void showAdded(const QString& elementId, const QString& title);
 
+    /// @brief The Add Element window on @p target, which @p prepare fills before it opens (a
+    /// material dropped on the Navigator), and the element added with it: a material opens on
+    /// its card in the middle of the window, with the keys in its description
+    /// @return false when the writer closed the window without adding
+    bool addWithWindow(const AddTarget& target,
+                       const std::function<void(dialogs::NewFileDialog&)>& prepare = {});
+
+    /// @brief The kind of the materials of the open book; none without one
+    core::KindRef materialKind() const;
+
+    /// @brief Download what material @p elementId needs from its address: the title of its
+    /// page, or the copy of its picture; @p asked: the writer asked for it, so a failure is
+    /// told in a window, else on the status bar
+    void download(const QString& elementId, bool asked);
+
+    /// @brief A download for a material ended with @p result: the title of its page replaces
+    /// the title its address gave, unless the writer changed it, and the picture is its copy
+    void onDownloadFinished(const MaterialDownloader::Result& result);
+
+    /// @brief The cards of material @p elementId show whether a download for it is on its way
+    void showDownloading(const QString& elementId);
+
+    /// @brief The tabs of the cards of materials
+    QList<MaterialCardPanel*> materialCards() const;
+
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;
     QTabWidget* m_centralTabs;
@@ -350,6 +426,13 @@ private:
 
     /// @brief Chapters changed since their words were counted
     QSet<QString> m_uncountedChapters;
+
+    /// @brief The title of the page or the copy of the picture of a material with an address
+    MaterialDownloader* m_downloader{nullptr};
+
+    /// @brief The materials whose downloads the writer asked for: a failure is told in a
+    /// window
+    QSet<QString> m_askedDownloads;
 };
 
 } // namespace gui

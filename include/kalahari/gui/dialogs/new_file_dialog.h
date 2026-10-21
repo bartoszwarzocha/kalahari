@@ -11,22 +11,25 @@
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/widgets/element_place_picker.h"
 
+#include <QImage>
 #include <QList>
 #include <QString>
 #include <QStringList>
+#include <QUrl>
 
 #include <functional>
 
+class QButtonGroup;
 class QCheckBox;
 class QComboBox;
 class QEvent;
+class QGroupBox;
 class QLabel;
 class QLayout;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
 class QRadioButton;
-class QShowEvent;
 class QStackedWidget;
 class QWidget;
 
@@ -83,14 +86,26 @@ struct NewFileKind {
 /// place; a double click on a tile accepts it.
 ///
 /// Add Element (forAdding()) is the same window for the place of the Navigator or of the
-/// editor it was opened on: it offers the kinds of that place only, groups (a part) among
-/// them, and has no empty text file. A text element of the book gets its status, Draft at
-/// first. A new group can take inside it the elements that close the main section at the end
-/// of the groups before it (the epilogue), and the list only shows the book as it will be.
-/// The kinds of the Workshop are never offered with those of the book; its elements are in
-/// alphabetical order, so a note says where a new one goes in place of the list. A material
-/// is a copy of a file the writer chooses: choosing its tile opens the system's window of
-/// files, and its title starts as the name of the file.
+/// editor it was opened on, with groups (a part) among the kinds and no empty text file. Its
+/// top chooses what the tiles are (AddChooser): a section of the book or the Workshop, one at
+/// a time, or the whole book or the Workshop; the place the window was opened on chooses only
+/// where it starts, and Alt with the underlined letter, Ctrl+Tab and Ctrl+Shift+Tab choose
+/// another. Without the choice the window offers the kinds of that place only. A text
+/// element of the book gets its status, Draft at first. A new group can take inside it the
+/// elements that close the main section at the end of the groups before it (the epilogue),
+/// and the list only shows the book as it will be. The kinds of the Workshop are never in one
+/// list with those of the book; its elements are in alphabetical order, so a note says where
+/// a new one goes in place of the list.
+///
+/// A material comes from a source the window chooses above its title (Source): a file from
+/// the disk, whose copy goes to the book, a web address, or neither (a paper book, a talk). The
+/// path of a file is typed, pasted or dropped on its field, or chosen in the system's window of
+/// files, which only Choose File opens; the address is typed or pasted, and a web address on
+/// the clipboard when the window opens is there already, selected. The window tells a page from
+/// a picture by the end of the address, without connecting to it. Whether the program downloads
+/// the title of the page or a copy of the picture after Add is a box, empty each time, or the
+/// setting MaterialDownloader::SETTING. The title of a material starts as the name of its file
+/// or the end of its address. The window remembers the source chosen last.
 class NewFileDialog : public KalahariDialog {
     Q_OBJECT
 
@@ -115,6 +130,11 @@ public:
         /// The main text kind of the book, for the words of a new group: "the chapters added
         /// to the new part"
         core::KindRef mainKind;
+        /// What the top of Add Element chooses from; AddChooser::None: no choice, the kinds
+        /// of the place the window was opened on only
+        AddChooser chooser = AddChooser::None;
+        /// With a choice, the part of the book (or the Workshop) the window starts at
+        core::BookPlace start = core::BookPlace::Main;
     };
 
     /// @brief The kinds and the parts of the book open in core::ProjectManager; at the start
@@ -123,11 +143,15 @@ public:
     /// @param untitled Title of an empty text file; empty: no empty text file
     static Book openBook(const QString& untitled = QString());
 
-    /// @brief The kinds of @p target, the place of the book or of the Workshop that Add
-    /// Element was opened on, in core::ProjectManager; at the start @p target's kind is chosen
-    /// when an element of it can be made there, else the usual kind of the place: the main
-    /// text kind of the book, the kind of the element the window was opened on
-    static Book forAdding(const AddTarget& target);
+    /// @brief The kinds of Add Element opened on @p target, a place of the book or of the
+    /// Workshop, in core::ProjectManager; at the start @p target's kind is chosen when an
+    /// element of it can be made there, else the usual kind of the place: the kind of the
+    /// element the window was opened on, the main text kind of the book
+    ///
+    /// With a choice at the top (@p chooser) the window has all the kinds of the book and of
+    /// the Workshop, and starts at the part of @p target; those of @p target's place go there
+    /// (right after its element, inside its group). Without it, only the kinds of that place.
+    static Book forAdding(const AddTarget& target, AddChooser chooser);
 
     /// @brief A window in place of the system's window of files that chooses the file of a
     /// material, for tests: it gets the folder the system's window would open in and returns
@@ -168,9 +192,51 @@ public:
     /// for other elements
     QStringList takeInside() const;
 
-    /// @brief The file of a new material (absolute); empty for other elements and before the
-    /// writer chooses one
+    /// @brief Where a new material comes from, chosen in the Source of the window
+    enum class MaterialOrigin {
+        File,     ///< A file from the disk, or a picture without a file (setMaterialPicture())
+        Address,  ///< A web address
+        None,     ///< Neither a file nor an address
+    };
+
+    /// @brief The setting of the source chosen last: "file", "address" or "none"
+    static constexpr const char* SOURCE_SETTING = "navigator.addMaterialSource";
+
+    /// @brief The source of a new material; File for other elements
+    MaterialOrigin materialOrigin() const;
+
+    /// @brief The file of a new material (absolute); empty for other elements, other sources,
+    /// a picture without a file and while the path names no file
     QString materialFile() const;
+
+    /// @brief The picture without a file of a new material (setMaterialPicture()); a null
+    /// image for other elements and sources
+    QImage materialPicture() const;
+
+    /// @brief The web address of a new material; empty for other elements and sources and
+    /// while the text is no web address
+    QUrl materialAddress() const;
+
+    /// @brief Whether the program downloads the title of the page or the copy of the picture
+    /// of a new material with an address after Add: the box of the window, or the setting
+    bool downloadChosen() const;
+
+    /// @brief The elements a new material is linked to (setMaterialLinks()); empty for other
+    /// elements
+    QStringList materialLinks() const;
+
+    /// @brief A material from the file @p path: the source File with its path
+    void setMaterialFile(const QString& path);
+
+    /// @brief A material from the web address @p url: the source Address with it
+    void setMaterialAddress(const QUrl& url);
+
+    /// @brief A material from @p picture, without a file (a screenshot on the clipboard): the
+    /// source File, with the picture in place of the path; its copy is a PNG file
+    void setMaterialPicture(const QImage& picture);
+
+    /// @brief The elements a new material is linked to (a chapter it was dropped on)
+    void setMaterialLinks(const QStringList& links);
 
     /// @brief The status of a new text element of the book; hidden for other tiles
     QComboBox* statusBox() const { return m_statusBox; }
@@ -179,14 +245,41 @@ public:
     /// hidden when there are none
     QCheckBox* takeBox() const { return m_takeBox; }
 
-    /// @brief The file of a new material; hidden for other tiles
-    QLabel* materialLabel() const { return m_materialLabel; }
+    /// @brief The source of a new material, with its buttons, fields and notes; hidden for
+    /// other tiles
+    QGroupBox* sourceGroup() const { return m_sourceGroup; }
 
-    /// @brief The button that chooses the file of a new material again
+    /// @brief The buttons of the source of a new material, with the ids of MaterialOrigin
+    QButtonGroup* sourceButtons() const { return m_sourceButtons; }
+
+    /// @brief The path of the file of a new material
+    QLineEdit* fileEdit() const { return m_fileEdit; }
+
+    /// @brief The button that chooses the file of a new material in the system's window
     QPushButton* chooseButton() const { return m_chooseButton; }
+
+    /// @brief What the window tells of the file of a new material
+    QLabel* fileNote() const { return m_fileNote; }
+
+    /// @brief The web address of a new material
+    QLineEdit* addressEdit() const { return m_addressEdit; }
+
+    /// @brief What the window tells of the address: a page or a picture
+    QLabel* addressNote() const { return m_addressNote; }
+
+    /// @brief The box that downloads the title of the page or the copy of the picture; hidden
+    /// unless the setting asks
+    QCheckBox* downloadBox() const { return m_downloadBox; }
+
+    /// @brief What the program takes from the network for the address
+    QLabel* networkNote() const { return m_networkNote; }
 
     /// @brief The tiles of the kinds, with the names of the parts of the book between them
     QListWidget* kindList() const { return m_kindList; }
+
+    /// @brief The buttons at the top of Add Element that choose what the tiles are, in their
+    /// order; nullptr without the choice
+    QButtonGroup* chooserButtons() const { return m_chooser; }
 
     /// @brief The title of the new element
     QLineEdit* titleEdit() const { return m_titleEdit; }
@@ -225,13 +318,30 @@ protected:
     /// @brief A new font gives the tiles a new size
     void changeEvent(QEvent* event) override;
 
-    /// @brief A material chosen at the start asks for its file once the window is shown
-    void showEvent(QShowEvent* event) override;
-
-    /// @brief A click in the proposed title selects it, so typing replaces it
+    /// @brief A click in the proposed title selects it, so typing replaces it; a file dropped
+    /// on the path of a material is its file
     bool eventFilter(QObject* watched, QEvent* event) override;
 
+    /// @brief Add remembers the source of a material
+    void done(int result) override;
+
 private:
+    /// @brief forAdding() without a choice: the kinds of the place of @p target only
+    static Book forPlace(const AddTarget& target);
+
+    /// @brief The buttons at the top of Add Element that choose what the tiles are, each
+    /// named with an underlined letter that the window's other words do not underline
+    QWidget* createChooser(QWidget* parent);
+
+    /// @brief The parts of the book (or the Workshop) of choice @p choice of the buttons at
+    /// the top; all of them without the choice
+    QList<core::BookPlace> placesOf(int choice) const;
+
+    /// @brief The tiles of choice @p choice of the buttons at the top, with the kind chosen
+    /// there last, or at first the usual one (the main text kind of the book); the title gets
+    /// the keys, so that typing replaces it
+    void showChoice(int choice);
+
     /// @brief The description of the chosen kind, at the left
     QWidget* createDescriptionPanel(QWidget* parent);
 
@@ -241,8 +351,8 @@ private:
     /// @brief The title of the new element, with its label, and its status
     QLayout* createTitleRow(QWidget* parent);
 
-    /// @brief The file of a new material, with the button that chooses it
-    QWidget* createMaterialRow(QWidget* parent);
+    /// @brief The source of a new material: its buttons, and the path, the address or a note
+    QGroupBox* createSourceGroup(QWidget* parent);
 
     /// @brief The place of the new element
     QWidget* createPlaceGroup(QWidget* parent);
@@ -260,6 +370,9 @@ private:
 
     /// @brief The tile of an empty text file is chosen
     bool emptyFileChosen() const;
+
+    /// @brief The tiles shown are the kinds of the Workshop
+    bool workshopShown() const;
 
     /// @brief The name of an empty text file: its tile, and the name above its description
     static QString emptyFileName();
@@ -288,8 +401,16 @@ private:
     /// follows the file unless the writer has changed it
     void chooseMaterialFile();
 
-    /// @brief Show the file of a new material, and what its copy is named
-    void showMaterialFile();
+    /// @brief The page of the chosen source, what the window tells of it, and the title it
+    /// gives unless the writer has changed it
+    void showSource();
+
+    /// @brief The title the source of a new material gives: the name of its file, the end of
+    /// its address; empty without either
+    QString sourceTitle() const;
+
+    /// @brief The file the path of a new material names, absolute; empty when it names none
+    QString typedFile() const;
 
     /// @brief Whether a new element of @p entry is a material
     static bool isMaterial(const NewFileKind* entry);
@@ -323,8 +444,11 @@ private:
     Book m_book;
     const core::BookTypeRegistry* m_registry = nullptr;
     bool m_titleChanged = false;  ///< The writer typed the title: it stays as it is
-    QString m_materialFile;       ///< The file of a new material; empty: none chosen yet
     bool m_choosingFile = false;  ///< The system's window of files is open
+    QImage m_materialPicture;     ///< A picture without a file; null: none
+    QString m_pictureTitle;       ///< The title of the picture without a file
+    QStringList m_materialLinks;  ///< The elements a new material is linked to
+    bool m_sourceGiven = false;   ///< The program gave the source: it is not remembered
 
     QLabel* m_iconLabel = nullptr;
     QLabel* m_nameLabel = nullptr;
@@ -344,11 +468,28 @@ private:
     QLabel* m_placeNote = nullptr;
 
     // Add Element
+    QButtonGroup* m_chooser = nullptr;  ///< What the tiles are; nullptr without the choice
+    QList<int> m_choices;               ///< Of each choice the index in Book::kinds chosen there
+    int m_shownChoice = -1;             ///< The choice shown; -1: no choice
+    QLabel* m_titleLabel = nullptr;
     QLabel* m_statusLabel = nullptr;
     QComboBox* m_statusBox = nullptr;
-    QWidget* m_materialRow = nullptr;
-    QLabel* m_materialLabel = nullptr;
+
+    // The source of a new material
+    QGroupBox* m_sourceGroup = nullptr;
+    QButtonGroup* m_sourceButtons = nullptr;
+    QStackedWidget* m_sourcePages = nullptr;  ///< The path, the address or the note of none
+    QLabel* m_fileCaption = nullptr;
+    QLineEdit* m_fileEdit = nullptr;
     QPushButton* m_chooseButton = nullptr;
+    QLabel* m_fileNote = nullptr;
+    QLabel* m_addressCaption = nullptr;
+    QLineEdit* m_addressEdit = nullptr;
+    QLabel* m_addressNote = nullptr;
+    QCheckBox* m_downloadBox = nullptr;
+    QWidget* m_networkBox = nullptr;  ///< What the program takes from the network, with an icon
+    QLabel* m_networkIcon = nullptr;
+    QLabel* m_networkNote = nullptr;
 
     // A new group: the elements that close the main section, which it takes inside it
     QList<core::ProjectElement> m_closing;  ///< At the end of the groups before the group

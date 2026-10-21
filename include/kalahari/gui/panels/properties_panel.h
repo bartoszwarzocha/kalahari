@@ -35,6 +35,8 @@ namespace kalahari {
 namespace gui {
 
 class EditorPanel;
+class LinkedMaterialsBox;
+class MaterialPage;
 class SectionNamesEdit;
 class SectionsComboBox;
 
@@ -43,7 +45,8 @@ class SectionsComboBox;
 /// Shows different content based on current context:
 /// - NoProject: Placeholder message when no project is open
 /// - Project: Project metadata (title, author, language, genre, sections, statistics)
-/// - Chapter: Chapter properties (title, word count, status, notes)
+/// - Chapter: Chapter properties (title, word count, status, notes, linked materials)
+/// - Material: The short card of a material (MaterialPage)
 /// - Editor: Text selection statistics (word/char count, paragraph style)
 ///
 /// Connects to ProjectManager signals for automatic updates.
@@ -59,7 +62,8 @@ public:
         Chapter = 2,    ///< Chapter properties view
         Section = 3,    ///< Section aggregate statistics view
         Part = 4,       ///< Part aggregate statistics view
-        Editor = 5      ///< Editor statistics view (selection/document stats)
+        Editor = 5,     ///< Editor statistics view (selection/document stats)
+        Material = 6    ///< The short card of a material of the Workshop
     };
 
     /// @brief Constructor
@@ -71,6 +75,14 @@ public:
 
     /// @brief The page the panel shows
     Page currentPage() const;
+
+    /// @brief The card of a material
+    MaterialPage* materialPage() const { return m_materialPage; }
+
+    /// @brief The materials of the element of the chapter page, of the section and of the part
+    LinkedMaterialsBox* chapterMaterials() const { return m_chapterMaterials; }
+    LinkedMaterialsBox* sectionMaterials() const { return m_sectionMaterials; }
+    LinkedMaterialsBox* partMaterials() const { return m_partMaterials; }
 
 public slots:
     /// @brief Show project properties view
@@ -87,8 +99,16 @@ public slots:
     /// @param elementId Element ID of the chapter to display
     ///
     /// Switches to chapter properties page and populates fields from
-    /// the specified chapter element.
+    /// the specified chapter element; a material shows its card (showMaterialProperties()).
     void showChapterProperties(const QString& elementId);
+
+    /// @brief Show the card of material @p elementId of the Workshop
+    void showMaterialProperties(const QString& elementId);
+
+    /// @brief Give the keys to the first field of the page shown, scrolled to it (Alt+Enter in
+    /// the Navigator): the title of the book, of an element or of a material; the materials of
+    /// a section or a part
+    void focusFirstField();
 
     /// @brief Show no project placeholder
     ///
@@ -128,6 +148,10 @@ public slots:
     ///
     /// Re-reads data from ProjectManager and updates displayed values.
     void refresh();
+
+    /// @brief Show again what the current page shows of material @p elementId: its card, or
+    /// its title among the linked materials; the fields the writer edits stay as they are
+    void refreshMaterial(const QString& elementId);
 
     /// @brief Show the words ProjectManager counts now on the current page, also of the
     /// changes that are not saved; the fields the writer edits stay as they are
@@ -202,6 +226,31 @@ signals:
     /// @param language Its code (pl, en...)
     void bookLanguageChanged(const QString& language);
 
+    /// @brief Open the preview of material @p elementId
+    void requestPreview(const QString& elementId);
+
+    /// @brief Open material @p elementId in the program the system gives its file
+    void requestOpenWithSystem(const QString& elementId);
+
+    /// @brief Open material @p elementId as the settings say
+    void requestOpenMaterial(const QString& elementId);
+
+    /// @brief Open what link @p link of a material names: an element, or the section in the
+    /// Navigator
+    void requestOpenLink(const QString& link);
+
+    /// @brief Open the web address of material @p elementId in the browser
+    void requestOpenInBrowser(const QString& elementId);
+
+    /// @brief Download the copy of the picture of material @p elementId
+    void requestSaveCopy(const QString& elementId);
+
+    /// @brief Material @p elementId changed on its card in the panel: its other cards show it
+    void materialChanged(const QString& elementId);
+
+    /// @brief Something to say on the status bar: "Address copied: ..."
+    void message(const QString& text);
+
 private:
     /// @brief Setup UI components
     void setupUI();
@@ -229,6 +278,20 @@ private:
     /// @brief Setup "Editor Properties" page (selection/document statistics)
     /// @return Created widget
     QWidget* createEditorPage();
+
+    /// @brief Setup the page of the card of a material
+    /// @return Created widget
+    QWidget* createMaterialPage();
+
+    /// @brief A box of the materials linked with an element or a section, which forwards their
+    /// opening
+    LinkedMaterialsBox* createMaterialsBox(QWidget* parent);
+
+    /// @brief Show the materials linked with the section of the section page
+    void showSectionMaterials();
+
+    /// @brief Show the materials linked with the part of the part page
+    void showPartMaterials();
 
     /// @brief Connect signals to ProjectManager
     void connectSignals();
@@ -310,6 +373,7 @@ private:
     QComboBox* m_chapterStatusCombo;
     QGroupBox* m_chapterNotesGroup;
     QTextEdit* m_chapterNotesEdit;
+    LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element
 
     // Section Page widgets
     QLabel* m_sectionTitleLabel;
@@ -320,6 +384,7 @@ private:
     QLabel* m_sectionDraftCountLabel;
     QLabel* m_sectionRevisionCountLabel;
     QLabel* m_sectionFinalCountLabel;
+    LinkedMaterialsBox* m_sectionMaterials = nullptr;  ///< The materials of the section
 
     // Part Page widgets
     QLabel* m_partTitleLabel;
@@ -329,6 +394,9 @@ private:
     QLabel* m_partDraftCountLabel;
     QLabel* m_partRevisionCountLabel;
     QLabel* m_partFinalCountLabel;
+    LinkedMaterialsBox* m_partMaterials = nullptr;  ///< The materials of the part
+    // The card of a material
+    MaterialPage* m_materialPage = nullptr;
 
     // Editor Page widgets (OpenSpec #00042 Task 7.4)
     QLabel* m_editorTitleLabel;           ///< "Selection" or "Document"

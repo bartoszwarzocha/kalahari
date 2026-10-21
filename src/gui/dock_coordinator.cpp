@@ -239,12 +239,16 @@ void DockCoordinator::createNavigatorDock() {
     connect(m_navigatorPanel, &NavigatorPanel::requestPartProperties,
             this, &DockCoordinator::navigatorRequestPartProperties);
 
-    // Only the Properties command brings the panel to the front; choosing an element
-    // only fills it, so a panel on top of the same tab group (Annotations) stays there
+    // The Properties command, Alt+Enter and a material chosen bring the panel to the front;
+    // choosing another element only fills it, so a panel on top of the same tab group
+    // (Annotations) stays there
     connect(m_navigatorPanel, &NavigatorPanel::requestPropertiesPanel, this, [this]() {
         m_propertiesDock->show();
         m_propertiesDock->raise();
     });
+    // Alt+Enter: the keys go to the first field of the panel
+    connect(m_navigatorPanel, &NavigatorPanel::requestPropertiesFocus, this,
+            [this]() { m_propertiesPanel->focusFirstField(); });
 
     logger.debug("DockCoordinator: Navigator dock created");
 }

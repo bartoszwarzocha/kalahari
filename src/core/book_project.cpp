@@ -10,6 +10,7 @@
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QSaveFile>
+#include <QUrl>
 #include <QUuid>
 #include <algorithm>
 #include <cmath>
@@ -209,6 +210,84 @@ QString readFile(Fields& fields, const QString& field, Seen& seen, bool required
     return file;
 }
 
+/// The web address of the element of @p fields: an absolute one, such as "https://..."; empty
+/// when it has none
+QString readUrl(Fields& fields) {
+    const QJsonValue value = fields.take("url");
+    if (value.isUndefined()) {
+        return {};
+    }
+    const QUrl url(value.toString(), QUrl::StrictMode);
+    if (!value.isString() || !url.isValid() || url.isRelative()) {
+        fields.problem("url", QStringLiteral("must be a web address, e.g. "
+                                             "\"https://pl.wikipedia.org/wiki/Kalahari\""));
+        return {};
+    }
+    return value.toString();
+}
+
+/// The writer's own fields of an element: a name and a value each
+QList<ElementField> readElementFields(const QJsonArray& array, const QString& field,
+                                      QStringList& problems) {
+    QList<ElementField> result;
+    for (qsizetype i = 0; i < array.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(field).arg(i);
+        if (!array.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object with a name and a value"));
+            continue;
+        }
+        Fields entry(array.at(i).toObject(), path, problems);
+        ElementField each;
+        each.name = entry.string("name");
+        each.value = entry.string("value");
+        each.extra = entry.rest();
+        result << each;
+    }
+    return result;
+}
+
+/// What an element is about: ids of elements and of sections, each once
+QStringList readLinks(Fields& fields) {
+    QStringList links;
+    const QJsonArray values = fields.array("links");
+    for (qsizetype i = 0; i < values.size(); ++i) {
+        const QJsonValue value = values.at(i);
+        if (!value.isString() || value.toString().isEmpty()) {
+            fields.problem("links", QStringLiteral("must be a list of ids of elements and "
+                                                   "sections"));
+            return {};
+        }
+        if (!links.contains(value.toString())) {
+            links << value.toString();
+        }
+    }
+    return links;
+}
+
+/// How the picture of an element is shown: its turn, with the fields of "view" this version
+/// does not know
+void readView(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue view = fields.take("view");
+    if (view.isUndefined()) {
+        return;
+    }
+    if (!view.isObject()) {
+        fields.problem("view", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields viewFields(view.toObject(), fields.path("view"), problems);
+    const QJsonValue rotation = viewFields.take("rotation");
+    if (!rotation.isUndefined()) {
+        const int degrees = isWholeNumber(rotation) ? rotation.toInt(-1) : -1;
+        if (degrees != 0 && degrees != 90 && degrees != 180 && degrees != 270) {
+            viewFields.problem("rotation", QStringLiteral("must be 0, 90, 180 or 270"));
+        } else {
+            element.rotation = degrees;
+        }
+    }
+    element.viewExtra = viewFields.rest();
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -229,9 +308,14 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
 
     element.title = fields.string("title");
     element.file = readFile(fields, field, seen, false);
+    element.url = readUrl(fields);
     element.status = fields.string("status");
     element.elements = readElements(fields.array("elements"), fields.path("elements"), seen,
                                     problems);
+    element.description = fields.string("description");
+    element.fields = readElementFields(fields.array("fields"), fields.path("fields"), problems);
+    element.links = readLinks(fields);
+    readView(fields, element, problems);
     element.extra = fields.rest();
     return element;
 }
@@ -384,11 +468,39 @@ QJsonObject elementToJson(const ProjectElement& element) {
     json.insert(QLatin1String("kind"), element.kind.toString());
     json.insert(QLatin1String("title"), element.title);
     setOrRemove(json, "file", element.file);
+    setOrRemove(json, "url", element.url);
     setOrRemove(json, "status", element.status);
     if (element.elements.isEmpty()) {
         json.remove(QLatin1String("elements"));
     } else {
         json.insert(QLatin1String("elements"), elementsToJson(element.elements));
+    }
+    setOrRemove(json, "description", element.description);
+    if (element.fields.isEmpty()) {
+        json.remove(QLatin1String("fields"));
+    } else {
+        QJsonArray fields;
+        for (const ElementField& field : element.fields) {
+            QJsonObject each = field.extra;
+            each.insert(QLatin1String("name"), field.name);
+            each.insert(QLatin1String("value"), field.value);
+            fields.append(each);
+        }
+        json.insert(QLatin1String("fields"), fields);
+    }
+    if (element.links.isEmpty()) {
+        json.remove(QLatin1String("links"));
+    } else {
+        json.insert(QLatin1String("links"), QJsonArray::fromStringList(element.links));
+    }
+    QJsonObject view = element.viewExtra;
+    if (element.rotation != 0) {
+        view.insert(QLatin1String("rotation"), element.rotation);
+    }
+    if (view.isEmpty()) {
+        json.remove(QLatin1String("view"));
+    } else {
+        json.insert(QLatin1String("view"), view);
     }
     return json;
 }
@@ -684,8 +796,10 @@ void ProjectBook::setSections(const BookSections& sections) {
 
 bool ProjectElement::operator==(const ProjectElement& other) const {
     return id == other.id && kind == other.kind && title == other.title &&
-           file == other.file && status == other.status && elements == other.elements &&
-           extra == other.extra;
+           file == other.file && url == other.url && status == other.status &&
+           elements == other.elements && description == other.description &&
+           fields == other.fields && links == other.links && rotation == other.rotation &&
+           viewExtra == other.viewExtra && extra == other.extra;
 }
 
 // =============================================================================
@@ -736,6 +850,34 @@ bool BookProject::isBookFile(const QString& elementId) const {
                                       return file.id == elementId;
                                   });
            });
+}
+
+QString BookProject::sectionLink(BookPlace place, qsizetype book) const {
+    if (place == BookPlace::Workshop || book < 0 || book >= books.size()) {
+        return {};
+    }
+    return books.at(book).id + QLatin1Char('/') + QLatin1String(bookPart(place).key);
+}
+
+std::optional<BookPlace> BookProject::linkedSection(const QString& link, qsizetype book) const {
+    for (const BookPart& part : BOOK_PARTS) {
+        if (!link.isEmpty() && link == sectionLink(part.place, book)) {
+            return part.place;
+        }
+    }
+    return std::nullopt;
+}
+
+bool BookProject::hasLinkTarget(const QString& link) const {
+    if (findElement(link) != nullptr) {
+        return true;
+    }
+    for (qsizetype book = 0; book < books.size(); ++book) {
+        if (linkedSection(link, book)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 QList<ProjectElement>* BookProject::listOf(const QString& elementId, qsizetype* index) {

@@ -54,6 +54,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("edit.paste", "resources/icons/twotone/content_paste.svg", "Paste");
     iconRegistry.registerIcon("edit.pasteSpecial", "resources/icons/twotone/content_paste_go.svg", "Paste Special");
     iconRegistry.registerIcon("edit.delete", "resources/icons/twotone/delete.svg", "Delete");
+    // The pencil: the icon set has no icon of its own for renaming
+    iconRegistry.registerIcon("edit.rename", "resources/icons/twotone/edit.svg", "Rename");
     iconRegistry.registerIcon("edit.selectAll", "resources/icons/twotone/select_all.svg", "Select All");
     iconRegistry.registerIcon("edit.selectWord", "resources/icons/twotone/highlight_alt.svg", "Select Word");
     iconRegistry.registerIcon("edit.selectParagraph", "resources/icons/twotone/segment.svg", "Select Paragraph");
@@ -194,6 +196,10 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.focus", "resources/icons/twotone/center_focus_strong.svg", "Focus");
     iconRegistry.registerIcon("view.typewriter", "resources/icons/twotone/keyboard_alt.svg", "Typewriter Scrolling");
     iconRegistry.registerIcon("view.darkPaper", "resources/icons/twotone/contrast_square.svg", "Dark Paper");
+    // The preview of a picture: turned by a right angle, or as a negative
+    iconRegistry.registerIcon("view.rotateLeft", "resources/icons/twotone/rotate_left.svg", "Rotate Left");
+    iconRegistry.registerIcon("view.rotateRight", "resources/icons/twotone/rotate_right.svg", "Rotate Right");
+    iconRegistry.registerIcon("view.negative", "resources/icons/twotone/contrast.svg", "Negative");
     iconRegistry.registerIcon("view.textFrameBorder", "resources/icons/twotone/text_frame.svg", "Text Frame Border");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
@@ -260,6 +266,21 @@ void registerAllIcons() {
     iconRegistry.registerIcon("common.arrowUpward", "resources/icons/twotone/arrow_upward.svg", "Arrow Up");
     iconRegistry.registerIcon("common.arrowDownward", "resources/icons/twotone/arrow_downward.svg", "Arrow Down");
     iconRegistry.registerIcon("common.delete", "resources/icons/twotone/delete.svg", "Delete");
+    // Small "+" and "-" buttons of a list: add a row, take it out
+    iconRegistry.registerIcon("common.add", "resources/icons/twotone/add.svg", "Add");
+    iconRegistry.registerIcon("common.remove", "resources/icons/twotone/remove.svg", "Remove");
+    iconRegistry.registerIcon("common.link", "resources/icons/twotone/link.svg", "Link");
+    iconRegistry.registerIcon("common.image", "resources/icons/twotone/image.svg", "Picture");
+    // Where a material comes from: a web page, a picture on the web, neither a file nor an
+    // address (a paper book, a talk, a quotation)
+    iconRegistry.registerIcon("material.page", "resources/icons/twotone/public.svg", "Web Page");
+    iconRegistry.registerIcon("material.webPicture", "resources/icons/twotone/web_picture.svg",
+                              "Picture on the Web");
+    iconRegistry.registerIcon("material.noFile", "resources/icons/twotone/quote_card.svg",
+                              "Material Without a File");
+    // A file opened in the program the system gives it
+    iconRegistry.registerIcon("common.openExternal", "resources/icons/twotone/open_in_new.svg",
+                              "Open in System Program");
     // Aliases for dialog buttons (navigation.up, navigation.down, action.delete)
     iconRegistry.registerIcon("navigation.up", "resources/icons/twotone/arrow_upward.svg", "Move Up");
     iconRegistry.registerIcon("navigation.down", "resources/icons/twotone/arrow_downward.svg", "Move Down");

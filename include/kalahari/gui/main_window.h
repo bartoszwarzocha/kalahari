@@ -41,6 +41,7 @@ namespace gui {
 // Forward declarations for panels
 class DashboardPanel;
 class EditorPanel;
+class ImagePreviewPanel;
 class NavigatorPanel;
 class PropertiesPanel;
 class LogPanel;
@@ -119,6 +120,9 @@ public:
     /// @note Returns nullptr if current tab is Dashboard or other panel type
     /// @note Made public for diagnostic/benchmark access (OpenSpec #00043)
     EditorPanel* getCurrentEditor();
+
+    /// @brief The preview of a material in front, or nullptr
+    ImagePreviewPanel* currentPreview();
 
     /// @brief Open a chapter/element by ID (OpenSpec #00043 - Benchmark CLI)
     /// @param elementId Element ID to open (ProjectElement::id)
@@ -284,7 +288,8 @@ private slots:
     /// @brief Turn typewriter scrolling on or off in every editor (remembered)
     void onTypewriterToggle();
 
-    /// @brief Show the cursor's page and the zoom of the editor in front in the status bar
+    /// @brief Show the cursor's page and the zoom of the editor in front in the status bar, or
+    /// the zoom of the preview of a material in front
     void updatePageStatus();
 
     /// @brief Show "Read-only" with a lock in the status bar while the open book is
