@@ -418,13 +418,13 @@ QWidget* EditorAutoCorrectPage::createCapitalsTab()
         QString example;
     };
     auto* abbreviations = new QStackedWidget();
-    for (const LanguageList& language :
+    for (const LanguageList& languageList :
          {LanguageList{"pl", tr("Abbreviations, Polish"), tr("e.g. godz.")},
           LanguageList{"en", tr("Abbreviations, English and other languages"),
                        tr("e.g. Mr.")}}) {
-        auto* list = new WordListEditor(language.name, language.example);
+        auto* list = new WordListEditor(languageList.name, languageList.example);
         abbreviations->addWidget(list);
-        std::string key = std::string("editor.autoCorrect.abbreviations.") + language.code;
+        std::string key = std::string("editor.autoCorrect.abbreviations.") + languageList.code;
         Binding words;
         words.key = [key]() { return key; };
         words.stored = [key]() { return core::SettingsManager::getInstance().get<json>(key); };
