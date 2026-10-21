@@ -99,6 +99,14 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"book.addElement", QStringLiteral("Ctrl+Shift+Return")},
         {"insert.annotation", QStringLiteral("Ctrl+Shift+M")},
         {"insert.pageBreak", QStringLiteral("Ctrl+Return")},  // and Ctrl with the keypad's Enter
+        // The formatting characters, as in Word; Ctrl+_ is Ctrl+Shift+-
+        {"insert.noBreakSpace", QStringLiteral("Ctrl+Shift+Space")},
+        {"insert.nonBreakingHyphen", QStringLiteral("Ctrl+_")},
+#ifndef Q_OS_MACOS
+        // Word has Ctrl with the keypad's minus (Zoom Out); Option+- types them on macOS
+        {"insert.enDash", QStringLiteral("Alt+-")},
+        {"insert.emDash", QStringLiteral("Alt+_")},
+#endif
 #ifdef Q_OS_MACOS
         // Option+Cmd: Option with a digit types a character
         {"format.style.heading1", QStringLiteral("Ctrl+Alt+1")},

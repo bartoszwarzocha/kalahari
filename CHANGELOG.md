@@ -127,6 +127,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not changed. Every change has its own setting, on at first, and the lists are in the
   settings (editor.autoCorrect); the Auto-correct page of the Settings does not show them yet.
 
+- **Editor: Insert > Formatting Character** - 2026-10-21. The characters of typesetting a
+  keyboard does not have, with the keys of Word: a non-breaking space (Ctrl+Shift+Space), a
+  non-breaking hyphen (Ctrl+_), an optional hyphen, an en dash (Alt+-) and an em dash
+  (Alt+_; on macOS without a key, since Option with the minus types them). Each goes in at
+  the cursor or in place of the selection as an undo step of its own, and autocorrect does
+  not change it; in a book open read-only the items are greyed out, saying why.
+
 - **Dashboard: an X on the card of a recent book** - 2026-10-19. A small X in the top right
   corner of each card takes the book off the recent books ("Remove from the recent books (the
   file stays on the disk)"); its file stays where it is. "Open last book on startup" opens

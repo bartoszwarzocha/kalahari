@@ -332,22 +332,25 @@ MainWindow::MainWindow(QWidget* parent)
         this);
     m_editCoordinator->connectCommands();
 
-    // Select Word, Select Paragraph, the objects of the Insert menu and the pastes in each
-    // mode work in the book's text with the keys: in a field (the find bar, the Navigator's
-    // filter) they are greyed out, and Ctrl+Enter stays with the field. Over a chapter of a
-    // book open read-only the objects and the pastes are greyed out, saying why
+    // Select Word, Select Paragraph, the objects and the formatting characters of the Insert
+    // menu and the pastes in each mode work in the book's text with the keys: in a field (the
+    // find bar, the Navigator's filter) they are greyed out, and Ctrl+Enter stays with the
+    // field. Over a chapter of a book open read-only the objects, the characters and the
+    // pastes are greyed out, saying why
     m_editCoordinator->addTextCommands({"edit.selectWord", "edit.selectParagraph"},
                                        [](const editor::BookEditor&) { return true; });
-    const std::vector<std::string> objectCommands = {"insert.horizontalLine", "insert.sceneBreak",
-                                                     "insert.pageBreak", "book.sceneBreak"};
+    const std::vector<std::string> insertCommands = {
+        "insert.horizontalLine", "insert.sceneBreak", "insert.pageBreak", "book.sceneBreak",
+        "insert.noBreakSpace", "insert.nonBreakingHyphen", "insert.optionalHyphen",
+        "insert.enDash", "insert.emDash"};
     m_editCoordinator->addTextCommands(
-        objectCommands, [](const editor::BookEditor& text) { return !text.isReadOnly(); });
+        insertCommands, [](const editor::BookEditor& text) { return !text.isReadOnly(); });
     // The pastes in each mode: with something on the clipboard, as Paste
     const std::vector<std::string> pasteCommands = {
         "edit.pasteSourceFormatting", "edit.pasteMergeFormatting", "edit.pasteTextOnly"};
     m_editCoordinator->addTextCommands(
         pasteCommands, [](const editor::BookEditor& text) { return text.canPaste(); });
-    std::vector<std::string> changingCommands = objectCommands;
+    std::vector<std::string> changingCommands = insertCommands;
     changingCommands.insert(changingCommands.end(), pasteCommands.begin(), pasteCommands.end());
     for (const std::string& id : changingCommands) {
         if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
@@ -588,6 +591,12 @@ void MainWindow::registerCommands() {
     callbacks.onInsertHorizontalLine = insert(editor::TextObject::HorizontalRule);
     callbacks.onInsertSceneBreak = insert(editor::TextObject::SceneBreak);
     callbacks.onInsertPageBreak = insert(editor::TextObject::PageBreak);
+    callbacks.onInsertCharacters = [this](const QString& characters) {
+        if (editor::BookEditor* text =
+                m_editCoordinator ? m_editCoordinator->textWithKeys() : nullptr) {
+            text->insertCharacters(characters);
+        }
+    };
     const auto pasteAs = [this, &inText](editor::PasteMode mode) {
         return inText([this, mode](editor::BookEditor& text) {
             text.pasteAs(mode);

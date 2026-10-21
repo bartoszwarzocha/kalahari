@@ -580,6 +580,28 @@ void BookEditor::insertLineBreak()
     autoCorrectTyped();  // the break ends a word, as a space does
 }
 
+void BookEditor::insertCharacters(const QString& characters)
+{
+    if (refusesChange() || characters.isEmpty()) {
+        return;
+    }
+    ensureDocument();
+
+    // As typed text, in an edit block of its own, which parts it from the text typed before
+    // it in the undo history; autocorrect does not look at it
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    const QTextCharFormat pending = pendingFormat();
+    if (hasSelection()) {
+        const SelectionRange sel = m_selection.normalized();
+        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        clearSelection();
+    }
+    cursor.beginEditBlock();
+    insertKeepingAnnotations(cursor, characters, pending);
+    cursor.endEditBlock();
+    finishEdit(cursor);
+}
+
 void BookEditor::deleteBackward()
 {
     if (refusesChange()) {

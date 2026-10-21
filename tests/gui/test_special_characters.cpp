@@ -85,13 +85,13 @@ TEST_CASE("SpecialCharacters: the groups and their characters", "[gui][special-c
     }
 
     // The characters of the plan of the editor
-    for (const char32_t code : {U'—', U'–', U'…', U'„', U'”', U'«', U'»', U' ', U' ',
-                                U'‑', U'­', U'§', U'©', U'→', U'±', U'€', U'½', U'²'}) {
+    for (const char32_t code : {U'—', U'–', U'…', U'„', U'”', U'«', U'»', U'\u00A0', U'\u202F',
+                                U'\u2011', U'\u00AD', U'§', U'©', U'→', U'±', U'€', U'½', U'²'}) {
         INFO(SpecialCharacters::codeText(code).toStdString());
         CHECK(characters.contains(code));
     }
     CHECK(characters.character(U'—').group == QStringLiteral("punctuation"));
-    CHECK(characters.character(U' ').group == QStringLiteral("spaces"));
+    CHECK(characters.character(U'\u00A0').group == QStringLiteral("spaces"));
 }
 
 TEST_CASE("SpecialCharacters: the names", "[gui][special-characters]") {
@@ -104,8 +104,8 @@ TEST_CASE("SpecialCharacters: the names", "[gui][special-characters]") {
         CHECK(dash.text() == QStringLiteral("—"));
         CHECK(dash.mark.isEmpty());
 
-        CHECK(characters.character(U' ').name == QStringLiteral("No-break space"));
-        CHECK(characters.character(U' ').mark == QStringLiteral("°"));
+        CHECK(characters.character(U'\u00A0').name == QStringLiteral("No-break space"));
+        CHECK(characters.character(U'\u00A0').mark == QStringLiteral("°"));
         CHECK(characters.character(U'ł').name == QStringLiteral("l with stroke"));
         CHECK(characters.character(U'Ł').name == QStringLiteral("L with stroke"));
     }

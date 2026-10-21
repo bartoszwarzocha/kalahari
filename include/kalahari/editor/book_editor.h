@@ -464,6 +464,14 @@ public:
     /// space that ends a word.
     void insertLineBreak();
 
+    /// @brief Insert characters chosen by a command or a window (Insert > Special Character...,
+    ///        Insert > Formatting Character), in place of the selection
+    ///
+    /// They are an undo step of their own, apart from the text typed before them, and
+    /// autocorrect does not change them: "--" inserted stays two hyphens. Next to an object
+    /// they get a paragraph of their own, as typed text does.
+    void insertCharacters(const QString& characters);
+
     /// @brief Type text at the cursor, as the keyboard and the input methods do: the text goes
     ///        in as insertText() puts it, and autocorrect changes what was typed
     ///

@@ -79,6 +79,8 @@ ICONS=(
     "edit_note"         # insert.annotation
     "sticky_note_2"     # insert.annotation (alt)
     "emoji_symbols"     # insert.specialChar
+    "space_bar"         # insert.noBreakSpace
+    "wrap_text"         # insert.optionalHyphen
     "schedule"          # insert.dateTime
     "event"             # insert.dateTime (alt)
     "data_object"       # insert.field

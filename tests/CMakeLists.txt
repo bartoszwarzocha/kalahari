@@ -68,6 +68,7 @@ set(TEST_SOURCES
     editor/test_paragraph_styles.cpp             # Paragraph styles and the objects of the text
     editor/test_styles_view.cpp                  # How the editor shows styles, objects and formatting marks
     editor/test_auto_correct.cpp                 # Autocorrect: the changes of the text as it is typed
+    editor/test_insert_characters.cpp            # Characters inserted by a command or a window
     editor/test_read_only_text.cpp               # A read-only text: read, copied, searched, not changed
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
@@ -134,6 +135,7 @@ set(TEST_SOURCES
     gui/test_panel_widths.cpp                    # Side panels fit a narrow dock, muted texts read
     gui/test_auto_correct_settings.cpp           # Settings > Editor > Auto-correct and the editors
     gui/test_special_characters.cpp              # Special characters: groups, names, search
+    gui/test_formatting_characters.cpp           # Insert > Formatting Character
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)

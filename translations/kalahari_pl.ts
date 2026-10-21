@@ -983,6 +983,26 @@
         <source>Pa&amp;ragraph and Styles</source>
         <translation>A&amp;kapit i style</translation>
     </message>
+    <message>
+        <source>&amp;Non-breaking Space</source>
+        <translation>&amp;Spacja nierozdzielająca</translation>
+    </message>
+    <message>
+        <source>Non-breaking &amp;Hyphen</source>
+        <translation>Łącznik &amp;nierozdzielający</translation>
+    </message>
+    <message>
+        <source>&amp;Optional Hyphen</source>
+        <translation>Łącznik &amp;opcjonalny</translation>
+    </message>
+    <message>
+        <source>&amp;En Dash</source>
+        <translation>&amp;Półpauza</translation>
+    </message>
+    <message>
+        <source>E&amp;m Dash</source>
+        <translation>P&amp;auza</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -2182,6 +2202,10 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>&amp;Reset to Default</source>
         <translation>P&amp;rzywróć domyślne</translation>
+    </message>
+    <message>
+        <source>Fo&amp;rmatting Character</source>
+        <translation>Znak &amp;formatujący</translation>
     </message>
 </context>
 <context>

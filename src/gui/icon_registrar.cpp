@@ -103,6 +103,13 @@ void registerAllIcons() {
     iconRegistry.registerIcon("insert.horizontalLine", "resources/icons/twotone/horizontal_rule.svg", "Insert Horizontal Line");
     iconRegistry.registerIcon("insert.sceneBreak", "resources/icons/twotone/more_horiz.svg", "Insert Scene Break");
     iconRegistry.registerIcon("insert.pageBreak", "resources/icons/twotone/horizontal_split.svg", "Insert Page Break");
+    // Material has no icons of the hyphen and the dashes: theirs are the program's own, of
+    // their lengths, the non-breaking hyphen with a tie under it
+    iconRegistry.registerIcon("insert.noBreakSpace", "resources/icons/twotone/space_bar.svg", "Insert Non-breaking Space");
+    iconRegistry.registerIcon("insert.nonBreakingHyphen", "resources/icons/twotone/non_breaking_hyphen.svg", "Insert Non-breaking Hyphen");
+    iconRegistry.registerIcon("insert.optionalHyphen", "resources/icons/twotone/wrap_text.svg", "Insert Optional Hyphen");
+    iconRegistry.registerIcon("insert.enDash", "resources/icons/twotone/en_dash.svg", "Insert En Dash");
+    iconRegistry.registerIcon("insert.emDash", "resources/icons/twotone/em_dash.svg", "Insert Em Dash");
 
     // -------------------------------------------------------------------------
     // FORMAT MENU ICONS
@@ -214,6 +221,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.import", "resources/icons/twotone/input.svg", "Import");
     iconRegistry.registerIcon("menu.export", "resources/icons/twotone/share.svg", "Export");
     iconRegistry.registerIcon("menu.recentBooks", "resources/icons/twotone/history.svg", "Recent Books");
+    iconRegistry.registerIcon("menu.formattingCharacter", "resources/icons/twotone/format_paragraph.svg", "Formatting Character");
     iconRegistry.registerIcon("menu.textStyle", "resources/icons/twotone/format_shapes.svg", "Text Style");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
