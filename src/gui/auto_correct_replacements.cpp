@@ -13,10 +13,7 @@
 namespace kalahari {
 namespace gui {
 
-namespace {
-
-/// @brief The pairs of a value of the setting
-std::vector<ReplacementEntry> entriesOf(const nlohmann::json& pairs)
+std::vector<ReplacementEntry> replacementEntriesOf(const nlohmann::json& pairs)
 {
     std::vector<ReplacementEntry> entries;
     if (!pairs.is_array()) {
@@ -39,21 +36,7 @@ std::vector<ReplacementEntry> entriesOf(const nlohmann::json& pairs)
     return entries;
 }
 
-} // namespace
-
-std::vector<ReplacementEntry> replacementEntries()
-{
-    return entriesOf(
-        core::SettingsManager::getInstance().get<nlohmann::json>(REPLACEMENTS_SETTING));
-}
-
-std::vector<ReplacementEntry> defaultReplacementEntries()
-{
-    const nlohmann::json* defaults = core::settings_schema::defaultValue(REPLACEMENTS_SETTING);
-    return defaults != nullptr ? entriesOf(*defaults) : std::vector<ReplacementEntry>();
-}
-
-void setReplacementEntries(const std::vector<ReplacementEntry>& entries)
+nlohmann::json replacementsValue(const std::vector<ReplacementEntry>& entries)
 {
     nlohmann::json pairs = nlohmann::json::array();
     for (const ReplacementEntry& entry : entries) {
@@ -61,7 +44,26 @@ void setReplacementEntries(const std::vector<ReplacementEntry>& entries)
                          {"to", entry.to.toStdString()},
                          {"enabled", entry.enabled}});
     }
-    core::SettingsManager::getInstance().set<nlohmann::json>(REPLACEMENTS_SETTING, pairs);
+    return pairs;
+}
+
+std::vector<ReplacementEntry> replacementEntries()
+{
+    return replacementEntriesOf(
+        core::SettingsManager::getInstance().get<nlohmann::json>(REPLACEMENTS_SETTING));
+}
+
+std::vector<ReplacementEntry> defaultReplacementEntries()
+{
+    const nlohmann::json* defaults = core::settings_schema::defaultValue(REPLACEMENTS_SETTING);
+    return defaults != nullptr ? replacementEntriesOf(*defaults)
+                               : std::vector<ReplacementEntry>();
+}
+
+void setReplacementEntries(const std::vector<ReplacementEntry>& entries)
+{
+    core::SettingsManager::getInstance().set<nlohmann::json>(REPLACEMENTS_SETTING,
+                                                             replacementsValue(entries));
 }
 
 void addReplacement(const QString& from, const QString& to)

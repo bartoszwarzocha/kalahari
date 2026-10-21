@@ -125,7 +125,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   own; undoing a capital after a word with a period, or the change of "TWo", right after it
   adds the word to its exceptions, and the status bar says so. The paragraphs in Code are
   not changed. Every change has its own setting, on at first, and the lists are in the
-  settings (editor.autoCorrect); the Auto-correct page of the Settings does not show them yet.
+  settings (editor.autoCorrect), on the Auto-correct page of the Settings.
+
+- **Settings > Editor > Auto-correct: three tabs** - 2026-10-21. While Typing has every
+  replacement of the characters with its check box: the quotation marks, the apostrophe, the
+  dialogue dash and the dash between words with the dash beside each (and in a line of
+  dialogue its dash), "--", the ellipsis, the replacement table as a whole, and the text
+  elements typed ("***" and "---" with Enter). Capitals has the first letter of a sentence,
+  "TWo INitial CApitals" and Caps Lock, and the exceptions: the abbreviations after which a
+  sentence does not end, for a text in Polish and for one in English and the other languages,
+  and the words with two capitals, each list with a field to add a word (Enter) and Delete to
+  remove it, and the choice to add an exception when a change is undone right after it.
+  Replacement Table lists all the pairs, the built-in ones and the writer's own, each with its
+  check box: a new pair is typed in two fields over the table (Add, or Enter; a word of the
+  table gets the new replacement, as the note over the table says first), Space turns the
+  pairs selected on and off, F2 changes a cell (a word that cannot be, as one with a space or
+  one of another pair, is put back, saying why), Delete removes the pairs, Insert goes to the
+  field of a new pair, and Restore Defaults brings back the built-in pairs as they were, the
+  writer's own staying. Ctrl+Page Down and Ctrl+Page Up go to the next and the previous tab.
 
 - **Editor: Insert > Formatting Character** - 2026-10-21. The characters of typesetting a
   keyboard does not have, with the keys of Word: a non-breaking space (Ctrl+Shift+Space), a

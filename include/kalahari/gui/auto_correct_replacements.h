@@ -7,6 +7,8 @@
 #include <QString>
 #include <QStringList>
 
+#include <nlohmann/json.hpp>
+
 #include <vector>
 
 namespace kalahari {
@@ -30,6 +32,12 @@ struct ReplacementEntry {
 
 /// @brief The program's own pairs (Restore Defaults brings them back)
 [[nodiscard]] std::vector<ReplacementEntry> defaultReplacementEntries();
+
+/// @brief The pairs of a value of the setting, as replacementEntries() gives them
+[[nodiscard]] std::vector<ReplacementEntry> replacementEntriesOf(const nlohmann::json& value);
+
+/// @brief The value of the setting with the pairs
+[[nodiscard]] nlohmann::json replacementsValue(const std::vector<ReplacementEntry>& entries);
 
 /// @brief Keep the pairs in the settings; the editors take them at once
 void setReplacementEntries(const std::vector<ReplacementEntry>& entries);

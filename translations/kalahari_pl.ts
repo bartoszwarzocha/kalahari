@@ -4847,20 +4847,12 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <translation>Apostrof &apos; na ’</translation>
     </message>
     <message>
-        <source>Hyphen opening a paragraph with a dash</source>
-        <translation>Dywiz na początku akapitu na myślnik</translation>
-    </message>
-    <message>
         <source>Em Dash (—)</source>
         <translation>Pauza (—)</translation>
     </message>
     <message>
         <source>En Dash (–)</source>
         <translation>Półpauza (–)</translation>
-    </message>
-    <message>
-        <source>Dialogue dash:</source>
-        <translation>Myślnik dialogowy:</translation>
     </message>
     <message>
         <source>“...” with an ellipsis “…”</source>
@@ -4882,6 +4874,240 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>Edit &gt; Undo right after a replacement undoes just the replacement.</source>
         <translation>Edycja &gt; Cofnij zaraz po zamianie cofa samą zamianę.</translation>
+    </message>
+    <message>
+        <source>A word to add: %1</source>
+        <extracomment>%1 is what the list is, as "Words with two capitals"</extracomment>
+        <translation>Wyraz do dodania: %1</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>While Typing</source>
+        <translation>Podczas pisania</translation>
+    </message>
+    <message>
+        <source>Capitals</source>
+        <translation>Wielkie litery</translation>
+    </message>
+    <message>
+        <source>Replacement Table</source>
+        <translation>Tabela zamian</translation>
+    </message>
+    <message>
+        <source>Dialogue dash</source>
+        <translation>Myślnik dialogowy</translation>
+    </message>
+    <message>
+        <source>“ - ” between words with:</source>
+        <translation>„ - ” między wyrazami na:</translation>
+    </message>
+    <message>
+        <source>Dash between words</source>
+        <translation>Myślnik między wyrazami</translation>
+    </message>
+    <message>
+        <source>“--” with an en dash “–”</source>
+        <translation>„--” na półpauzę „–”</translation>
+    </message>
+    <message>
+        <source>Text Elements</source>
+        <translation>Elementy tekstu</translation>
+    </message>
+    <message>
+        <source>In a paragraph of the Code style auto-correct changes nothing.</source>
+        <translation>W akapicie w stylu Kod autokorekta niczego nie zmienia.</translation>
+    </message>
+    <message>
+        <source>A capital at the start of a sentence</source>
+        <translation>Wielka litera na początku zdania</translation>
+    </message>
+    <message>
+        <source>Correct TWo INitial CApitals</source>
+        <translation>Poprawiaj DWie WIelkie litery</translation>
+    </message>
+    <message>
+        <source>Exceptions</source>
+        <translation>Wyjątki</translation>
+    </message>
+    <message>
+        <source>Sentences do not end after these abbreviations</source>
+        <translation>Po tych skrótach zdanie się nie kończy</translation>
+    </message>
+    <message>
+        <source>Words with two capitals</source>
+        <translation>Wyrazy z dwiema wielkimi literami</translation>
+    </message>
+    <message>
+        <source>Polish</source>
+        <translation>polskim</translation>
+    </message>
+    <message>
+        <source>English and other languages</source>
+        <translation>angielskim i innych</translation>
+    </message>
+    <message>
+        <source>For a text in:</source>
+        <translation>Dla tekstu w języku:</translation>
+    </message>
+    <message>
+        <source>They stay as typed.</source>
+        <translation>Zostają tak, jak je wpisano.</translation>
+    </message>
+    <message>
+        <source>Abbreviations, Polish</source>
+        <translation>Skróty, język polski</translation>
+    </message>
+    <message>
+        <source>e.g. godz.</source>
+        <translation>np. godz.</translation>
+    </message>
+    <message>
+        <source>Abbreviations, English and other languages</source>
+        <translation>Skróty, język angielski i inne</translation>
+    </message>
+    <message>
+        <source>e.g. Mr.</source>
+        <translation>np. Mr.</translation>
+    </message>
+    <message>
+        <source>e.g. PCs</source>
+        <translation>np. PCs</translation>
+    </message>
+    <message>
+        <source>All Fixed Replacements</source>
+        <translation>Wszystkie stałe zamiany</translation>
+    </message>
+    <message>
+        <source>e.g. (c)</source>
+        <translation>np. (c)</translation>
+    </message>
+    <message>
+        <source>The word of a new pair</source>
+        <translation>Wyraz nowej pary</translation>
+    </message>
+    <message>
+        <source>e.g. ©</source>
+        <translation>np. ©</translation>
+    </message>
+    <message>
+        <source>Its replacement</source>
+        <translation>Na co go zamienić</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation>Przywróć domyślne</translation>
+    </message>
+    <message>
+        <source>Brings back the built-in replacements as they were; your own stay</source>
+        <translation>Przywraca wbudowane zamiany w pierwotnej postaci; własne zostają</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>Zamień</translation>
+    </message>
+    <message>
+        <source>with</source>
+        <translation>na</translation>
+    </message>
+    <message>
+        <source>Replacement table</source>
+        <translation>Tabela zamian</translation>
+    </message>
+    <message>
+        <source>With</source>
+        <translation>Na</translation>
+    </message>
+    <message>
+        <source>Each replacement can be turned off, changed or removed; Restore Defaults brings back the built-in ones. In the table Space turns the pairs selected on and off, F2 changes a cell, Delete removes the pairs and Insert starts a new one.</source>
+        <translation>Każdą zamianę można wyłączyć, zmienić albo usunąć; „Przywróć domyślne” przywraca wbudowane. W tabeli Spacja włącza i wyłącza wybrane pary, F2 zmienia komórkę, Delete usuwa pary, a Insert zaczyna nową.</translation>
+    </message>
+    <message>
+        <source>The table is not used now: “Replacements from the table” is off on the While Typing tab.</source>
+        <translation>Tabela teraz nie działa: na karcie „Podczas pisania” wyłączono „Zamiany z tabeli zamian”.</translation>
+    </message>
+    <message>
+        <source>A replacement needs a word: “%1” stays.</source>
+        <extracomment>%1 is the word the pair had</extracomment>
+        <translation>Zamiana musi mieć wyraz: zostaje „%1”.</translation>
+    </message>
+    <message>
+        <source>A replacement is one word: without spaces.</source>
+        <translation>Zamieniane jest jedno słowo: bez spacji.</translation>
+    </message>
+    <message>
+        <source>The table has a pair of “%1” already: “%2” stays.</source>
+        <extracomment>%1 is the word typed, %2 the word the pair had</extracomment>
+        <translation>Tabela ma już parę dla „%1”: zostaje „%2”.</translation>
+    </message>
+    <message>
+        <source>A word cannot be replaced with nothing: “%1” stays.</source>
+        <extracomment>%1 is the replacement the pair had</extracomment>
+        <translation>Wyrazu nie można zamienić na nic: zostaje „%1”.</translation>
+    </message>
+    <message>
+        <source>built-in</source>
+        <extracomment>The program's own pair of the replacement table</extracomment>
+        <translation>wbudowana</translation>
+    </message>
+    <message>
+        <source>your own</source>
+        <translation>własna</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces “%1” with “%2” now: Add puts “%3” in its place.</source>
+        <translation>Autokorekta zamienia teraz „%1” na „%2”: Dodaj wstawi w to miejsce „%3”.</translation>
+    </message>
+    <message>
+        <source>Hyphen opening a paragraph with:</source>
+        <translation>Dywiz na początku akapitu na:</translation>
+    </message>
+    <message>
+        <source>In dialogue: the dash it starts with</source>
+        <translation>W dialogu: myślnik z początku akapitu</translation>
+    </message>
+    <message>
+        <source>Replacements from the table</source>
+        <translation>Zamiany z tabeli zamian</translation>
+    </message>
+    <message>
+        <source>“***” and Enter: a scene break</source>
+        <translation>„***” i Enter – podział sceny</translation>
+    </message>
+    <message>
+        <source>“---” and Enter: a horizontal line</source>
+        <translation>„---” i Enter – linia pozioma</translation>
+    </message>
+    <message>
+        <source>Typed in an empty paragraph. “* ” and “1. ” at the start of a paragraph will come with the lists.</source>
+        <translation>Wpisane w pustym akapicie. „* ” i „1. ” na początku akapitu dojdą razem z listami.</translation>
+    </message>
+    <message>
+        <source>Correct words typed with Caps Lock on</source>
+        <translation>Poprawiaj wyrazy pisane z Caps Lock</translation>
+    </message>
+    <message>
+        <source>A sentence starts also after a dialogue dash. No capital after an abbreviation of the list below, a number with a period (5.), an initial (J. Kowalski) or an ellipsis. A word typed with Caps Lock on by mistake, as “cAPS”, becomes “Caps”.</source>
+        <translation>Zdanie zaczyna się także po myślniku dialogowym. Bez wielkiej litery po skrócie z listy poniżej, po liczbie z kropką (5.), po inicjale (J. Kowalski) i po wielokropku. Wyraz wpisany przypadkiem z włączonym Caps Lock, np. „wIELKI”, zmienia się w „Wielki”.</translation>
+    </message>
+    <message>
+        <source>Add an exception when I undo a change</source>
+        <translation>Dodawaj wyjątek, gdy cofnę zamianę</translation>
+    </message>
+    <message>
+        <source>%1 right after a capital or a change of two capitals adds the abbreviation or the word to its list.</source>
+        <extracomment>%1 is the keys of Edit &gt; Undo, as Ctrl+Z</extracomment>
+        <translation>%1 zaraz po wielkiej literze albo poprawie dwóch wielkich liter dopisuje skrót albo wyraz do jego listy.</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Undo right after a capital or a change of two capitals adds the abbreviation or the word to its list.</source>
+        <translation>Edycja &gt; Cofnij zaraz po wielkiej literze albo poprawie dwóch wielkich liter dopisuje skrót albo wyraz do jego listy.</translation>
     </message>
 </context>
 <context>
