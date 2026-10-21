@@ -24,6 +24,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
@@ -45,6 +46,30 @@ namespace {
 /// How long after the last change in a chapter its words are counted for the counts of the
 /// book: often enough to follow the writing, not at each key
 constexpr int WORD_COUNT_DELAY_MS = 500;
+
+/// Before Replace All in chapter @p elementId, the book keeps the text of @p editor as it is
+/// as a version, if the settings say so: @p count matches of @p found are replaced with
+/// @p replacement
+void keepVersionBeforeReplaceAll(const QString& elementId, const editor::BookEditor& editor,
+                                 const QString& found, const QString& replacement, int count) {
+    auto& pm = core::ProjectManager::getInstance();
+    if (!pm.isProjectOpen() || pm.isReadOnly() ||
+        !core::SettingsManager::getInstance().get<bool>(
+            core::ChapterVersions::BEFORE_REPLACE_ALL_SETTING)) {
+        return;
+    }
+    const core::ProjectManager::VersionKept kept =
+        pm.keepVersion(elementId, editor.toKml(),
+                       {.origin = core::VersionOrigin::ReplaceAll,
+                        .found = found,
+                        .replacement = replacement,
+                        .replaced = count});
+    if (kept == core::ProjectManager::VersionKept::Failed) {
+        core::Logger::getInstance().warn(
+            "NavigatorCoordinator: No version of {} was kept before Replace All",
+            elementId.toStdString());
+    }
+}
 
 /// A section of the book as the Navigator names its item, with its icon
 struct SectionItem {
@@ -300,6 +325,14 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
             m_wordCountTimer->start();
         }
     });
+    // Replace All can be undone in the editor only until the chapter is closed: the book
+    // keeps the text before it as a version
+    const editor::BookEditor* bookEditor = newEditor->getBookEditor();
+    connect(bookEditor, &editor::BookEditor::aboutToReplaceAll, this,
+            [elementId, bookEditor](const QString& found, const QString& replacement,
+                                    int count) {
+                keepVersionBeforeReplaceAll(elementId, *bookEditor, found, replacement, count);
+            });
 
     // Connect to statistics collector if available (OpenSpec #00042 Task 7.7)
     if (m_statisticsCollector) {
