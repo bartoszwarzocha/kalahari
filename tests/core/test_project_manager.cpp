@@ -1237,8 +1237,10 @@ TEST_CASE("ProjectManager opens elements whose package is not installed, read-on
     CHECK(pm.formOf(*board) == ElementForm::Window);
 
     // Its text opens, is counted and keeps its status, which does not change: the book is
-    // read-only without the package
+    // read-only without the package, and keeps no versions
     CHECK(pm.loadChapterContent(chapter) == kmlWith("Dark night"));
+    CHECK(pm.keepVersion(chapter, kmlWith("Dark night"), {.origin = VersionOrigin::Manual}) ==
+          ProjectManager::VersionKept::Failed);
     CHECK(pm.wordCount(chapter) == 2);
     CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 2}});  // and the title page
     CHECK_FALSE(pm.setStatus(chapter, "final"));
@@ -2535,6 +2537,162 @@ TEST_CASE("The book opened at startup is the book opened last, not one added wit
 }
 
 // =============================================================================
+// Versions of the texts
+// =============================================================================
+
+TEST_CASE("ProjectManager keeps versions of the texts of the book", "[project_manager][versions]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Caravan", "Anna", "en", true, "kalahari.novel"));
+    auto& settings = SettingsManager::getInstance();
+    settings.set<bool>(ChapterVersions::ON_SAVE_SETTING, false);
+    const QString chapter = pm.book()->mainElements.first().id;
+    const QString file = pm.findElement(chapter)->file;
+
+    std::optional<ChapterVersions> versions = pm.versionsOf(chapter);
+    REQUIRE(versions.has_value());
+    CHECK(versions->file() == file);
+    CHECK(versions->folder() == ChapterVersions::folderOf(pm.getProjectPath(), file));
+    CHECK(versions->list().isEmpty());
+
+    // The writer's version is always kept, also of a text kept before or without text
+    ChapterVersion kept;
+    CHECK(pm.keepVersion(chapter, kmlWith("Storm"),
+                         {.origin = VersionOrigin::Manual, .name = "First"},
+                         &kept) == ProjectManager::VersionKept::Added);
+    CHECK(kept.name == "First");
+    CHECK(kept.origin == VersionOrigin::Manual);
+    CHECK(pm.keepVersion(chapter, kmlWith("Storm"), {.origin = VersionOrigin::Manual}) ==
+          ProjectManager::VersionKept::Added);
+    CHECK(pm.keepVersion(chapter, "<kml><p> </p></kml>", {.origin = VersionOrigin::Manual}) ==
+          ProjectManager::VersionKept::Added);
+    CHECK(versions->count() == 3);
+
+    // The program keeps no version of a text without characters, nor the same text again
+    CHECK(pm.keepVersion(chapter, "<kml><p> </p></kml>", {.origin = VersionOrigin::Restore}) ==
+          ProjectManager::VersionKept::NoText);
+    ChapterVersion restored;
+    CHECK(pm.keepVersion(chapter, kmlWith("Storm"),
+                         {.origin = VersionOrigin::Restore, .restored = kept.created},
+                         &restored) == ProjectManager::VersionKept::Added);
+    CHECK(restored.restored == kept.created);
+    ChapterVersion same;
+    CHECK(pm.keepVersion(chapter, kmlWith("Storm"),
+                         {.origin = VersionOrigin::ReplaceAll,
+                          .found = "a",
+                          .replacement = "b",
+                          .replaced = 2},
+                         &same) == ProjectManager::VersionKept::Same);
+    CHECK(same == *versions->newest());
+    CHECK(same.origin == VersionOrigin::Restore);
+    CHECK(same.restored == kept.created);
+    CHECK(same.replaced == 0);
+    CHECK(versions->count() == 4);
+
+    // Of the versions that the program keeps by itself, the newest of the setting stay
+    settings.set<int>(ChapterVersions::KEEP_AUTOMATIC_SETTING, 2);
+    for (const char* text : {"One", "Two", "Three"}) {
+        CHECK(pm.keepVersion(chapter, kmlWith(text),
+                             {.origin = VersionOrigin::ReplaceAll,
+                              .found = "x",
+                              .replacement = "y",
+                              .replaced = 1}) == ProjectManager::VersionKept::Added);
+    }
+    const QList<ChapterVersion> listed = versions->list();
+    REQUIRE(listed.size() == 5);
+    CHECK(versions->text(listed.at(0).file) == kmlWith("Three"));
+    CHECK(versions->text(listed.at(1).file) == kmlWith("Two"));
+    CHECK(listed.at(1).found == "x");
+    CHECK(listed.at(1).replacement == "y");
+    CHECK(listed.at(1).replaced == 1);
+    CHECK(std::count_if(listed.cbegin(), listed.cend(),
+                        [](const ChapterVersion& v) { return v.isAutomatic(); }) == 2);
+
+    // A part has no text, and an unknown element no file
+    const QString part = pm.addElement(pm.partKind(), "Part", BookPlace::Main);
+    REQUIRE_FALSE(part.isEmpty());
+    CHECK_FALSE(pm.versionsOf(part));
+    CHECK_FALSE(pm.versionsOf("unknown"));
+    CHECK(pm.keepVersion(part, kmlWith("Text"), {.origin = VersionOrigin::Manual}) ==
+          ProjectManager::VersionKept::Failed);
+
+    // The versions belong to the file: an element added with it again has them
+    const std::optional<ProjectElement> removed = pm.removeElement(chapter);
+    REQUIRE(removed.has_value());
+    const QString again = pm.addUnassignedFile(file, pm.chapterKindFor(BookPlace::Main),
+                                               "Storm", BookPlace::Main);
+    REQUIRE_FALSE(again.isEmpty());
+    REQUIRE(pm.versionsOf(again).has_value());
+    CHECK(pm.versionsOf(again)->count() == 5);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("Saving a chapter keeps its text as a version when the settings say so",
+          "[project_manager][versions]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Caravan", "Anna", "en", true, "kalahari.novel"));
+    auto& settings = SettingsManager::getInstance();
+    const QString chapter = pm.book()->mainElements.first().id;
+    const std::optional<ChapterVersions> versions = pm.versionsOf(chapter);
+    REQUIRE(versions.has_value());
+
+    // The first save keeps a version; the next ones within the minutes of the setting do not
+    pm.setChapterContent(chapter, kmlWith("Storm"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    REQUIRE(versions->count() == 1);
+    CHECK(versions->newest()->origin == VersionOrigin::Save);
+    CHECK(versions->text(versions->newest()->file) == kmlWith("Storm"));
+    pm.setChapterContent(chapter, kmlWith("Storm came"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(versions->count() == 1);
+
+    // With no minutes, each save of another text keeps one
+    settings.set<int>(ChapterVersions::ON_SAVE_MINUTES_SETTING, 0);
+    pm.setChapterContent(chapter, kmlWith("Storm came at night"));
+    REQUIRE(pm.saveAllDirty());
+    REQUIRE(versions->count() == 2);
+    CHECK(versions->text(versions->newest()->file) == kmlWith("Storm came at night"));
+    pm.setChapterContent(chapter, kmlWith("Storm came at night"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(versions->count() == 2);  // the same text
+
+    // A version on saving of a writer's version
+    REQUIRE(pm.keepVersion(chapter, kmlWith("Mine"), {.origin = VersionOrigin::Manual}) ==
+            ProjectManager::VersionKept::Added);
+    pm.setChapterContent(chapter, kmlWith("Storm came at dawn"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(versions->count() == 4);
+
+    // Without the setting, none
+    settings.set<bool>(ChapterVersions::ON_SAVE_SETTING, false);
+    pm.setChapterContent(chapter, kmlWith("Storm came at noon"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(versions->count() == 4);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("The folders of the versions of files go with the files", "[project_manager][versions]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Caravan", "Anna", "en", true, "kalahari.novel"));
+    const KindRef kind = pm.chapterKindFor(BookPlace::Main);
+    const QString part = pm.addElement(pm.partKind(), "Part", BookPlace::Main);
+    const QString a = pm.addElement(kind, "A", BookPlace::Main, part);
+    const QString b = pm.addElement(kind, "B", BookPlace::Main, part);
+    REQUIRE_FALSE(b.isEmpty());
+    REQUIRE(pm.keepVersion(a, kmlWith("A"), {.origin = VersionOrigin::Manual}) ==
+            ProjectManager::VersionKept::Added);
+
+    // Only the files with versions have folders
+    const QStringList files = pm.filesOf(*pm.findElement(part));
+    REQUIRE(files.size() == 2);
+    CHECK(pm.versionFoldersOf(files) == QStringList{pm.versionsOf(a)->folder()});
+    CHECK(pm.versionFoldersOf({files.at(1)}).isEmpty());
+    REQUIRE(pm.closeProject(false));
+}
+
+// =============================================================================
 // Archives
 // =============================================================================
 
@@ -2576,10 +2734,21 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
     while (cards.hasNext()) {
         entries << project.relativeFilePath(cards.next());
     }
+    // The text saved has a version, kept on saving
+    const std::optional<ChapterVersions> versions = pm.versionsOf(chapter);
+    REQUIRE(versions.has_value());
+    REQUIRE(versions->count() == 1);
+    const QString version = "versions/book/chapter_001/" + versions->newest()->file;
+    entries << "versions/book/chapter_001/index.json" << version;
     entries.sort();
     CHECK(entries.contains("types/kalahari.base/card.json"));
     CHECK(entries.contains("types/kalahari.novel/card.json"));
     CHECK(entriesOf(archive) == entries);
+
+    // Without the versions when the writer says so
+    REQUIRE(pm.exportArchive(archive, nullptr, &problem, false, false));
+    CHECK(entriesOf(archive).filter("versions/").isEmpty());
+    CHECK(entriesOf(archive).size() == entries.size() - 2);
 
     // An archive written to the book's folder is not in the next one
     REQUIRE(pm.exportArchive(archive));
@@ -2596,6 +2765,8 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
     CHECK(pm.loadChapterContent(chapter) == kmlWith("Far away"));
     CHECK(hasParagraphStyle("travel_note"));
     CHECK_FALSE(QFileInfo::exists(imported.filePath(".backups/project_backup.db")));
+    REQUIRE(pm.versionsOf(chapter).has_value());
+    CHECK(pm.versionsOf(chapter)->text(QFileInfo(version).fileName()) == kmlWith("Far away"));
     REQUIRE(pm.closeProject(false));
 
     // A second import does not touch the folder of the first

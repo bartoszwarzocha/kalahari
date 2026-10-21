@@ -3341,13 +3341,6 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     </message>
 </context>
 <context>
-    <name>kalahari::editor::SnapshotManager</name>
-    <message>
-        <source>Auto-save %1</source>
-        <translation>Automatyczny zapis %1</translation>
-    </message>
-</context>
-<context>
     <name>kalahari::editor::SpellCheckService</name>
     <message>
         <source>No dictionary %1 was found</source>

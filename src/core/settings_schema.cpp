@@ -257,6 +257,17 @@ std::map<std::string, json> buildDefaults() {
         {"editor.autoCorrect.dialogueDash", true},
         {"editor.autoCorrect.dialogueDashType", "emDash"},
         {"editor.autoCorrect.ellipsis", true},
+
+        // Editor: versions of the texts (Settings > Editor > Versions, ChapterVersions). Save
+        // Version asks for a description; the program keeps a version by itself when a chapter
+        // is saved, at most once in onSaveMinutes, and before Replace All in a chapter (and
+        // always before another version is restored), keeping at most keepAutomatic of them
+        // for each file. The writer's own versions stay until the writer deletes them.
+        {"editor.versions.askName", true},
+        {"editor.versions.onSave", true},
+        {"editor.versions.onSaveMinutes", 30},
+        {"editor.versions.beforeReplaceAll", true},
+        {"editor.versions.keepAutomatic", 20},
     };
 }
 

@@ -2284,6 +2284,7 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
 
     Logger::getInstance().debug("Saved .kchapter for element: {} ({} words)",
                                 elementId.toStdString(), wordCount(elementId));
+    keepVersionOnSave(elementId, state.content);
     return true;
 }
 
@@ -2309,6 +2310,111 @@ bool ProjectManager::saveChapterDetails(const QString& elementId) {
                                "notes",
                                element->title.toStdString());
     return true;
+}
+
+// =============================================================================
+// Versions of the Texts
+// =============================================================================
+
+std::optional<ChapterVersions> ProjectManager::versionsOf(const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (!element || element->file.isEmpty() || formOf(*element) != ElementForm::Text ||
+        m_projectPath.empty()) {
+        return std::nullopt;
+    }
+    ChapterVersions versions(getProjectPath(), element->file);
+    if (!versions.isValid()) {
+        return std::nullopt;
+    }
+    return versions;
+}
+
+ProjectManager::VersionKept ProjectManager::keepVersion(const QString& elementId,
+                                                        const QString& kml,
+                                                        const ChapterVersion& about,
+                                                        ChapterVersion* version) {
+    auto& logger = Logger::getInstance();
+    if (refusesChange("keepVersion")) {
+        return VersionKept::Failed;
+    }
+    std::optional<ChapterVersions> versions = versionsOf(elementId);
+    if (!versions) {
+        logger.warn("keepVersion: {} is not a text element with a file in the folder of the "
+                    "book",
+                    elementId.toStdString());
+        return VersionKept::Failed;
+    }
+
+    const bool automatic = about.isAutomatic();
+    if (automatic) {
+        if (ChapterDocument::kmlToPlainText(kml).trimmed().isEmpty()) {
+            return VersionKept::NoText;
+        }
+        if (versions->newestHas(kml)) {
+            if (version) {
+                *version = *versions->newest();
+            }
+            return VersionKept::Same;
+        }
+    }
+
+    const std::optional<ChapterVersion> added = versions->add(kml, about);
+    if (!added) {
+        return VersionKept::Failed;
+    }
+    if (version) {
+        *version = *added;
+    }
+    if (automatic) {
+        const int keep = SettingsManager::getInstance().get<int>(
+            ChapterVersions::KEEP_AUTOMATIC_SETTING);
+        if (versions->removeOldAutomatic(keep) < 0) {
+            logger.warn("keepVersion: The old versions of {} stay",
+                        versions->file().toStdString());
+        }
+    }
+    return VersionKept::Added;
+}
+
+void ProjectManager::keepVersionOnSave(const QString& elementId, const QString& kml) {
+    const auto& settings = SettingsManager::getInstance();
+    if (!settings.get<bool>(ChapterVersions::ON_SAVE_SETTING)) {
+        return;
+    }
+    const std::optional<ChapterVersions> versions = versionsOf(elementId);
+    if (!versions) {
+        return;
+    }
+    const std::optional<QDateTime> last = versions->lastCreated(VersionOrigin::Save);
+    const qint64 minutes =
+        std::max(settings.get<int>(ChapterVersions::ON_SAVE_MINUTES_SETTING), 0);
+    // A version kept "later" than now (the clock was turned back) does not stop the next one
+    const qint64 since = last ? last->secsTo(QDateTime::currentDateTimeUtc()) : -1;
+    if (since >= 0 && since < minutes * 60) {
+        return;
+    }
+    if (keepVersion(elementId, kml, {.origin = VersionOrigin::Save}) == VersionKept::Failed) {
+        Logger::getInstance().warn("saveChapterContent: The text of {} is saved, but not kept "
+                                   "as a version",
+                                   elementId.toStdString());
+    }
+}
+
+QStringList ProjectManager::versionFoldersOf(const QStringList& files) const {
+    QStringList folders;
+    if (m_projectPath.empty()) {
+        return folders;
+    }
+    const QString projectDir = getProjectPath();
+    const QDir dir(projectDir);
+    for (const QString& file : files) {
+        const QString relative = dir.relativeFilePath(QFileInfo(file).absoluteFilePath());
+        const QString folder = ChapterVersions::folderOf(projectDir, relative);
+        if (!folder.isEmpty() && QFileInfo(folder).isDir() && !folders.contains(folder)) {
+            folders.append(folder);
+        }
+    }
+    return folders;
 }
 
 std::vector<QString> ProjectManager::getDirtyElements() const {
@@ -2557,7 +2663,8 @@ QStringList ProjectManager::databaseBackups() const {
 
 bool ProjectManager::exportArchive(const QString& outputPath,
                                    const std::function<void(int)>& progressCallback,
-                                   ArchiveProblem* problem, bool withBackups) {
+                                   ArchiveProblem* problem, bool withBackups,
+                                   bool withVersions) {
     auto& logger = Logger::getInstance();
     const auto fail = [&logger, problem](ArchiveProblem::Kind kind, const QString& line) {
         logger.error("exportArchive: {}", line.toStdString());
@@ -2577,6 +2684,10 @@ bool ProjectManager::exportArchive(const QString& outputPath,
     // that cannot be written to it goes with it
     const QString projectDir = getProjectPath();
     QStringList files = archivedFiles(projectDir, outputPath);
+    if (!withVersions) {
+        const QString versions = QString::fromLatin1(ChapterVersions::FOLDER) + QLatin1Char('/');
+        files.removeIf([&versions](const QString& file) { return file.startsWith(versions); });
+    }
     if (m_database && m_database->isOpen() && !m_database->checkpoint()) {
         logger.warn("exportArchive: The database log cannot be written to project.db, so the "
                     "archive has the log");
