@@ -506,7 +506,9 @@ TEST_CASE("Special characters: keys given to a character", "[gui][special-charac
     REQUIRE(action != nullptr);
     CHECK(action->shortcut() == keys.toQKeySequence());
     CHECK(window.actions().contains(action));
-    CHECK(SpecialCharacterCoordinator::keysOf(U'→') == QStringLiteral("Ctrl+F7"));
+    // As the system writes them: "Ctrl+F7", on macOS "⌘F7"
+    CHECK(SpecialCharacterCoordinator::keysOf(U'→') ==
+          keys.toQKeySequence().toString(QKeySequence::NativeText));
     const auto stored =
         core::SettingsManager::getInstance().get<nlohmann::json>(SHORTCUTS_SETTING);
     CHECK(stored.value("insert.character.2192", std::string()) == "Ctrl+F7");
