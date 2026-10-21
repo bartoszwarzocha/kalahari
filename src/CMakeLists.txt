@@ -160,6 +160,10 @@ set(KALAHARI_SOURCES
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
     gui/read_only_book.cpp # What the program says of a book open read-only
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
+    gui/dialogs/special_character_dialog.cpp  # SpecialCharacterDialog - Insert > Special Character...
+    gui/widgets/character_grid.cpp  # CharacterGrid - characters in cells, in the font of the text
+    gui/widgets/quick_character_palette.cpp  # QuickCharacterPalette - Insert > Quick Character
+    gui/dialogs/character_dialogs.cpp  # The keys of a character, a replacement of auto-correct
     gui/kalahari_syntax_highlighter.cpp
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)
     gui/command_registrar.cpp  # CommandRegistrar - Command registration extracted from MainWindow (OpenSpec #00038)
@@ -199,6 +203,10 @@ set(KALAHARI_SOURCES
     gui/shortcut_rules.cpp  # Which keys a command can have
     gui/shortcut_settings.cpp  # The user's keys in the settings and in the files
     gui/special_characters.cpp  # The characters of Insert > Special Character, by group, with names
+    gui/special_character_choices.cpp  # The favorite characters and those inserted last
+    gui/character_commands.cpp  # The commands of the characters given keys
+    gui/auto_correct_replacements.cpp  # The replacement table of auto-correct in the settings
+    gui/special_character_coordinator.cpp  # SpecialCharacterCoordinator - Insert > Special Character...
     gui/widget_keys.cpp  # Qt's widgets have the keys of Windows, also on Linux
     gui/widgets/color_config_widget.cpp
     gui/widgets/path_label.cpp  # A file path that wraps also inside a long name
@@ -314,6 +322,9 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/special_character_dialog.h  # SpecialCharacterDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/diagnostic_controller.h  # DiagnosticController with Q_OBJECT (OpenSpec #00038)
@@ -323,6 +334,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/special_character_coordinator.h  # SpecialCharacterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT

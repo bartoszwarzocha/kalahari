@@ -732,18 +732,36 @@ QList<char32_t> SpecialCharacters::find(const QString& text) const {
         found.append(*code);
     }
 
-    // Every word in the names or the other words
+    // Every word in the names or the other words: first the characters where each starts a
+    // word of them ("arrow": the arrows), then those where one is inside a word ("narrow")
     const QStringList words = folded(query).split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    const auto startsWord = [](const QString& searched, const QString& word) {
+        for (qsizetype at = searched.indexOf(word); at >= 0;
+             at = searched.indexOf(word, at + 1)) {
+            if (at == 0 || !searched.at(at - 1).isLetterOrNumber()) {
+                return true;
+            }
+        }
+        return false;
+    };
+    QList<char32_t> inside;
     for (const SpecialCharacterGroup& group : m_groups) {
         for (const char32_t code : group.characters) {
             const QString& searched = m_searchTexts[code];
-            if (!found.contains(code) &&
-                std::all_of(words.begin(), words.end(),
-                            [&searched](const QString& word) { return searched.contains(word); })) {
-                found.append(code);
+            const auto contained = [&searched](const QString& word) {
+                return searched.contains(word);
+            };
+            if (found.contains(code) || !std::all_of(words.begin(), words.end(), contained)) {
+                continue;
             }
+            const auto atStart = [&searched, &startsWord](const QString& word) {
+                return startsWord(searched, word);
+            };
+            const bool atStarts = std::all_of(words.begin(), words.end(), atStart);
+            (atStarts ? found : inside).append(code);
         }
     }
+    found.append(inside);
     return found;
 }
 

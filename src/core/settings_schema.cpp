@@ -79,6 +79,16 @@ std::map<std::string, json> buildDefaults() {
         // none); the other commands have the program's (Settings > Keyboard Shortcuts)
         {"keyboard.shortcuts", json::object()},
 
+        // Insert > Special Character...: the writer's favorite characters (at first those a
+        // writer of fiction uses most), the ones inserted last (the last first), whether
+        // the window stays open after Insert, and the view it opens in: the one shown last
+        // ("grid" or "list")
+        {"specialCharacters.favorites",
+         json::array({"—", "–", "…", "„", "”", "⁂", "❦", "→", "°", "§"})},
+        {"specialCharacters.recent", json::array()},
+        {"specialCharacters.keepOpen", true},
+        {"specialCharacters.view", "grid"},
+
         // Log panel
         {"log.bufferSize", 500},
 

@@ -1003,6 +1003,10 @@
         <source>E&amp;m Dash</source>
         <translation>P&amp;auza</translation>
     </message>
+    <message>
+        <source>&amp;Quick Character</source>
+        <translation>Szybki &amp;wybór znaku</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -3915,6 +3919,14 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>The replacements are chosen in Edit &gt; Settings..., group Editor &gt; Auto-correct.</source>
         <translation>Wybór zamian: Edycja &gt; Ustawienia..., grupa Edytor &gt; Autokorekta.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CharacterCommands</name>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>The name of a command that inserts a character (Settings &gt; Keyboard Shortcuts, the group of the characters): its name and the character, as "Em dash (—)"</extracomment>
+        <translation>%1 (%2)</translation>
     </message>
 </context>
 <context>
@@ -7661,6 +7673,80 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::QuickCharacterPalette</name>
+    <message>
+        <source>Quick Character</source>
+        <translation>Szybki wybór znaku</translation>
+    </message>
+    <message>
+        <source>Find a character: a name or a code</source>
+        <translation>Znajdź znak: nazwa lub kod</translation>
+    </message>
+    <message>
+        <source>Find a character</source>
+        <translation>Szukaj znaku</translation>
+    </message>
+    <message>
+        <source>&amp;Favorites</source>
+        <translation>&amp;Ulubione</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>Ulubione</translation>
+    </message>
+    <message>
+        <source>No favorites yet. Add them in the window Insert &gt; Special Character...</source>
+        <translation>Nie masz jeszcze ulubionych. Dodasz je w oknie Wstaw &gt; Znak specjalny...</translation>
+    </message>
+    <message>
+        <source>Recently &amp;used</source>
+        <translation>&amp;Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Recently used</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>The characters you insert appear here.</source>
+        <translation>Tu pojawią się wstawiane znaki.</translation>
+    </message>
+    <message>
+        <source>Characters found</source>
+        <translation>Znalezione znaki</translation>
+    </message>
+    <message>
+        <source>&amp;All Characters...</source>
+        <translation>&amp;Wszystkie znaki...</translation>
+    </message>
+    <message>
+        <source>The window Insert &gt; Special Character... (%1)</source>
+        <translation>Okno Wstaw &gt; Znak specjalny... (%1)</translation>
+    </message>
+    <message>
+        <source>Found: the first %1 of %2</source>
+        <extracomment>%1 characters of the %2 found are shown</extracomment>
+        <translation>Znalezione: pierwsze %1 z %2</translation>
+    </message>
+    <message>
+        <source>Found</source>
+        <translation>Znalezione</translation>
+    </message>
+    <message>
+        <source>Nothing matches “%1”.</source>
+        <translation>Nic nie pasuje do „%1”.</translation>
+    </message>
+    <message>
+        <source>auto-correct %1</source>
+        <extracomment>What auto-correct replaces with the character, as "(c)" or "--"</extracomment>
+        <translation>autokorekta %1</translation>
+    </message>
+    <message>
+        <source>Not in the font %1: in the text another font shows it.</source>
+        <extracomment>%1 is the name of a font</extracomment>
+        <translation>Nie ma go w czcionce %1: w tekście pokaże go inna czcionka.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::RecentBooksMenu</name>
     <message>
         <source>No Recent Books</source>
@@ -8954,6 +9040,43 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Press the new shortcut... (Esc – cancel)</source>
         <translation>Naciśnij nowy skrót... (Esc – anuluj)</translation>
+    </message>
+    <message>
+        <source>Characters</source>
+        <extracomment>The group of Settings &gt; Keyboard Shortcuts with the characters given keys in Insert &gt; Special Character...</extracomment>
+        <translation>Znaki</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpecialCharacterCoordinator</name>
+    <message>
+        <source>No chapter or file is open</source>
+        <translation>Nie jest otwarty żaden rozdział ani plik</translation>
+    </message>
+    <message>
+        <source>Inserted: %1</source>
+        <extracomment>%1 is a character with its name, as "Em dash (—)"</extracomment>
+        <translation>Wstawiono: %1</translation>
+    </message>
+    <message>
+        <source>%1 has no shortcut now.</source>
+        <extracomment>%1 is a character with its name, as "Em dash (—)"</extracomment>
+        <translation>Usunięto skrót znaku: %1.</translation>
+    </message>
+    <message>
+        <source>%1 inserts %2 now; %3 has no shortcut.</source>
+        <extracomment>%1 are keys, %2 a character with its name, %3 the command that had the keys</extracomment>
+        <translation>Skrót %1 wstawia teraz: %2. Polecenie „%3” nie ma już skrótu.</translation>
+    </message>
+    <message>
+        <source>%1 inserts %2 now.</source>
+        <extracomment>%1 are keys, %2 a character with its name</extracomment>
+        <translation>Skrót %1 wstawia teraz: %2.</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces “%1” with %2 now.</source>
+        <extracomment>%1 is a word, %2 a character with its name</extracomment>
+        <translation>Autokorekta zamienia teraz „%1” na: %2.</translation>
     </message>
 </context>
 <context>
@@ -11154,6 +11277,51 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::CharacterShortcutDialog</name>
+    <message>
+        <source>Shortcut for a Character</source>
+        <translation>Skrót znaku</translation>
+    </message>
+    <message>
+        <source>Press the keys that are to insert %1.</source>
+        <extracomment>%1 is a character with its name, as "Em dash (—)"</extracomment>
+        <translation>Naciśnij klawisze, które mają wstawiać znak: %1.</translation>
+    </message>
+    <message>
+        <source>Assign</source>
+        <translation>Przypisz</translation>
+    </message>
+    <message>
+        <source>No shortcut</source>
+        <translation>Bez skrótu</translation>
+    </message>
+    <message>
+        <source>Shortcut</source>
+        <translation>Skrót</translation>
+    </message>
+    <message>
+        <source>The shortcut is also on the page Settings &gt; Keyboard Shortcuts, in the group Characters, where it can be changed or removed.</source>
+        <translation>Skrót widać też na stronie Ustawienia &gt; Skróty klawiszowe, w grupie Znaki – tam można go zmienić lub usunąć.</translation>
+    </message>
+    <message>
+        <source>&amp;Press Other Keys</source>
+        <translation>&amp;Naciśnij inne klawisze</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Shortcut</source>
+        <translation>&amp;Usuń skrót</translation>
+    </message>
+    <message>
+        <source>Press the keys... (Esc – cancel)</source>
+        <translation>Naciśnij klawisze... (Esc – anuluj)</translation>
+    </message>
+    <message>
+        <source>%1 belongs to &lt;b&gt;%2&lt;/b&gt; now: if you assign it here, that command will be left without a shortcut.</source>
+        <extracomment>%1 are keys, %2 the command that has them</extracomment>
+        <translation>Skrót %1 należy teraz do polecenia &lt;b&gt;%2&lt;/b&gt;: jeśli przypiszesz go tutaj, tamto polecenie zostanie bez skrótu.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::ColorDialog</name>
     <message>
         <source>Select Color</source>
@@ -12757,6 +12925,226 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>New name</source>
         <translation>Nowa nazwa</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ReplacementDialog</name>
+    <message>
+        <source>New Replacement</source>
+        <translation>Nowa zamiana</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces the word you type here with %1.</source>
+        <extracomment>%1 is a character with its name, as "Rightwards arrow (→)"</extracomment>
+        <translation>Autokorekta zamieni wpisane tu słowo na znak: %1.</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>e.g. -&gt;</source>
+        <translation>np. -&gt;</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>Słowo do zamiany</translation>
+    </message>
+    <message>
+        <source>A replacement is one word: without spaces.</source>
+        <translation>Zamieniane jest jedno słowo: bez spacji.</translation>
+    </message>
+    <message>
+        <source>The replacement table has this pair already.</source>
+        <translation>Ta para jest już w tabeli zamian.</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces “%1” with “%2” now: Add puts “%3” in its place.</source>
+        <extracomment>%1 is a word, %2 what replaces it now, %3 the character</extracomment>
+        <translation>Autokorekta zamienia teraz „%1” na „%2”: Dodaj wstawi w to miejsce „%3”.</translation>
+    </message>
+    <message>
+        <source>The pair goes to the replacement table on the page Settings &gt; Editor &gt; Auto-correct, and works after a space or a punctuation mark.</source>
+        <translation>Para trafi do tabeli zamian na stronie Ustawienia &gt; Edytor &gt; Autokorekta i zadziała po spacji lub znaku interpunkcyjnym.</translation>
+    </message>
+    <message>
+        <source>The replacements of the table are turned off now (Settings &gt; Editor &gt; Auto-correct).</source>
+        <translation>Zamiany z tabeli są teraz wyłączone (Ustawienia &gt; Edytor &gt; Autokorekta).</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::SpecialCharacterDialog</name>
+    <message>
+        <source>Special Character</source>
+        <translation>Znak specjalny</translation>
+    </message>
+    <message>
+        <source>Enter inserts the character at the cursor. Esc closes the window.</source>
+        <translation>Enter wstawia znak w miejscu kursora. Esc zamyka okno.</translation>
+    </message>
+    <message>
+        <source>&amp;Insert</source>
+        <translation>&amp;Wstaw</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the window open after inserting</source>
+        <translation>&amp;Zostaw okno otwarte po wstawieniu</translation>
+    </message>
+    <message>
+        <source>Add to &amp;Favorites</source>
+        <translation>Dodaj do &amp;ulubionych</translation>
+    </message>
+    <message>
+        <source>Assign &amp;Shortcut...</source>
+        <translation>Przypisz s&amp;krót...</translation>
+    </message>
+    <message>
+        <source>Add &amp;Replacement...</source>
+        <translation>Dodaj za&amp;mianę...</translation>
+    </message>
+    <message>
+        <source>Find: a name or a code, e.g. em dash, arrow, euro, 2014</source>
+        <translation>Szukaj: nazwa lub kod, np. pauza, strzałka, euro, 2014</translation>
+    </message>
+    <message>
+        <source>Find a character</source>
+        <translation>Szukaj znaku</translation>
+    </message>
+    <message>
+        <source>View</source>
+        <translation>Widok</translation>
+    </message>
+    <message>
+        <source>&amp;Grid</source>
+        <translation>&amp;Siatka</translation>
+    </message>
+    <message>
+        <source>The characters in a grid, by group</source>
+        <translation>Znaki w siatce, według grup</translation>
+    </message>
+    <message>
+        <source>&amp;List</source>
+        <translation>&amp;Lista</translation>
+    </message>
+    <message>
+        <source>The characters in a list, with their names</source>
+        <translation>Znaki na liście, z nazwami</translation>
+    </message>
+    <message>
+        <source>Groups</source>
+        <translation>Grupy</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>Ulubione</translation>
+    </message>
+    <message>
+        <source>Recently Used</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Characters</source>
+        <translation>Znaki</translation>
+    </message>
+    <message>
+        <source>Give the character keys that insert it</source>
+        <translation>Przypisz znakowi klawisze, które go wstawiają</translation>
+    </message>
+    <message>
+        <source>Add a text that auto-correct replaces with the character as you type</source>
+        <translation>Dodaj tekst, który autokorekta zamieni na ten znak podczas pisania</translation>
+    </message>
+    <message>
+        <source>Recently &amp;used</source>
+        <translation>&amp;Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Recently used</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>The characters you insert appear here.</source>
+        <translation>Tu pojawią się wstawiane znaki.</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <translation>Wszystkie</translation>
+    </message>
+    <message>
+        <source>Character</source>
+        <translation>Znak</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Code</source>
+        <translation>Kod</translation>
+    </message>
+    <message>
+        <source>Shortcut, auto-correct</source>
+        <translation>Skrót, autokorekta</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Ulubiony</translation>
+    </message>
+    <message>
+        <source>Nothing matches “%1”. Type another name, or a code such as U+2014.</source>
+        <translation>Nic nie pasuje do „%1”. Wpisz inną nazwę albo kod, np. U+2014.</translation>
+    </message>
+    <message>
+        <source>auto-correct %1</source>
+        <extracomment>In the list of the characters: what auto-correct replaces with one</extracomment>
+        <translation>autokorekta %1</translation>
+    </message>
+    <message>
+        <source>A favorite: click to remove it</source>
+        <translation>Ulubiony: kliknij, aby usunąć</translation>
+    </message>
+    <message>
+        <source>Click to add it to the favorites</source>
+        <translation>Kliknij, aby dodać do ulubionych</translation>
+    </message>
+    <message>
+        <source>Code: %1</source>
+        <translation>Kod: %1</translation>
+    </message>
+    <message>
+        <source>Shortcut: %1</source>
+        <translation>Skrót: %1</translation>
+    </message>
+    <message>
+        <source>Auto-correct: %1</source>
+        <extracomment>%1: what auto-correct replaces with the character, as "(c)" or "--"</extracomment>
+        <translation>Autokorekta: %1</translation>
+    </message>
+    <message>
+        <source>The font %1 has no such character: in the text another font shows it.</source>
+        <extracomment>%1 is the name of a font</extracomment>
+        <translation>Czcionka %1 nie ma tego znaku: w tekście pokaże go inna czcionka.</translation>
+    </message>
+    <message>
+        <source>No character</source>
+        <translation>Brak znaku</translation>
+    </message>
+    <message>
+        <source>Remove from &amp;Favorites</source>
+        <translation>Usuń z &amp;ulubionych</translation>
+    </message>
+    <message>
+        <source>Insert is greyed out: %1</source>
+        <extracomment>%1 says why, as "No chapter is open"</extracomment>
+        <translation>Nie można wstawić: %1</translation>
+    </message>
+    <message>
+        <source>Not in the font %1: in the text another font shows it.</source>
+        <translation>Nie ma go w czcionce %1: w tekście pokaże go inna czcionka.</translation>
     </message>
 </context>
 <context>

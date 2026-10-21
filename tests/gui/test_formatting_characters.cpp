@@ -52,11 +52,12 @@ TEST_CASE("Formatting characters: the submenu of the Insert menu", "[gui][charac
     QMenu* insert = builder.getMenu("INSERT");
     REQUIRE(insert != nullptr);
 
-    // Right after Special Character...
+    // Right after Special Character... and Quick Character
     const QStringList items = itemsOf(*insert);
     const qsizetype special = items.indexOf(QStringLiteral("Special Character..."));
     REQUIRE(special >= 0);
-    CHECK(items.value(special + 1) == QStringLiteral("Formatting Character"));
+    CHECK(items.value(special + 1) == QStringLiteral("Quick Character"));
+    CHECK(items.value(special + 2) == QStringLiteral("Formatting Character"));
 
     QMenu* characters = submenuOf(*insert, QStringLiteral("Formatting Character"));
     REQUIRE(characters != nullptr);

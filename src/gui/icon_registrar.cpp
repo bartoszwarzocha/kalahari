@@ -98,6 +98,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("insert.todo", "resources/icons/twotone/check_circle.svg", "Add To Do");
     iconRegistry.registerIcon("insert.note", "resources/icons/twotone/sticky_note_2.svg", "Add Note");
     iconRegistry.registerIcon("insert.specialChar", "resources/icons/twotone/emoji_symbols.svg", "Insert Special Character");
+    iconRegistry.registerIcon("insert.quickCharacter", "resources/icons/twotone/bolt.svg", "Quick Character");
     iconRegistry.registerIcon("insert.dateTime", "resources/icons/twotone/schedule.svg", "Insert Date/Time");
     iconRegistry.registerIcon("insert.field", "resources/icons/twotone/data_object.svg", "Insert Field");
     iconRegistry.registerIcon("insert.horizontalLine", "resources/icons/twotone/horizontal_rule.svg", "Insert Horizontal Line");
@@ -278,6 +279,9 @@ void registerAllIcons() {
     iconRegistry.registerIcon("common.arrowUpward", "resources/icons/twotone/arrow_upward.svg", "Arrow Up");
     iconRegistry.registerIcon("common.arrowDownward", "resources/icons/twotone/arrow_downward.svg", "Arrow Down");
     iconRegistry.registerIcon("common.delete", "resources/icons/twotone/delete.svg", "Delete");
+    // The views of a window: Insert > Special Character...
+    iconRegistry.registerIcon("common.gridView", "resources/icons/twotone/grid_view.svg", "Grid");
+    iconRegistry.registerIcon("common.listView", "resources/icons/twotone/view_list.svg", "List");
     // Aliases for dialog buttons (navigation.up, navigation.down, action.delete)
     iconRegistry.registerIcon("navigation.up", "resources/icons/twotone/arrow_upward.svg", "Move Up");
     iconRegistry.registerIcon("navigation.down", "resources/icons/twotone/arrow_downward.svg", "Move Down");

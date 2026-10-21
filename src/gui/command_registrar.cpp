@@ -434,7 +434,14 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("insert.todo", QT_TRANSLATE_NOOP("CommandRegistrar", "Add To &Do"), "INSERT/Add To Do", 72, false, 0);
     REG_CMD("insert.note", QT_TRANSLATE_NOOP("CommandRegistrar", "Add &Note"), "INSERT/Add Note", 73, true, 0);
 
-    REG_CMD("insert.specialChar", QT_TRANSLATE_NOOP("CommandRegistrar", "&Special Character..."), "INSERT/Special Character...", 80, false, 1);
+    REG_CMD_CB("insert.specialChar", QT_TRANSLATE_NOOP("CommandRegistrar", "&Special Character..."), "INSERT/Special Character...", 80, false, 0,
+               callbacks.onSpecialCharacter);
+    // The favorites, the characters used last and a search at the cursor. Ctrl+Shift+I: I as
+    // insert, beside Ctrl+I (italic); neither the program nor the systems have it (Ctrl+Shift+E
+    // and Ctrl+. pick an emoji on some Linux desktops, Ctrl+Shift+U types a code there)
+    REG_CMD_KEY_CB("insert.quickCharacter", QT_TRANSLATE_NOOP("CommandRegistrar", "&Quick Character"), "INSERT/Quick Character", 81, false, 0,
+                   KeyboardShortcut(Qt::Key_I, Qt::ControlModifier | Qt::ShiftModifier),
+                   callbacks.onQuickCharacter);
 
     // Formatting Character: the characters of the typesetting a keyboard does not have, as in
     // Word and LibreOffice, with Word's keys. Ctrl+_ is Ctrl+Shift+- (the keys are written

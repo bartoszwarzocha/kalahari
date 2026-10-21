@@ -156,6 +156,12 @@ TEST_CASE("SpecialCharacters: finding by a name, a code or the character",
         CHECK_FALSE(ogonek.contains(U'ł'));
 
         CHECK(characters.find(QStringLiteral("dash nothing")).isEmpty());
+
+        // A word at the start of a word of the name first, then inside one
+        const QList<char32_t> arrows = characters.find(QStringLiteral("arrow"));
+        CHECK(arrows.first() == U'←');
+        CHECK(arrows.contains(U'\u202F'));  // the narrow no-break space
+        CHECK(arrows.indexOf(U'→') < arrows.indexOf(U'\u202F'));
         CHECK(characters.find(QStringLiteral("   ")).isEmpty());
     }
 

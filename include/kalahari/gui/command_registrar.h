@@ -80,6 +80,8 @@ struct CommandCallbacks {
     std::function<void()> onInsertHorizontalLine;  ///< Insert > Horizontal Line
     std::function<void()> onInsertSceneBreak;   ///< Insert > Scene Break, Book > Scene Break
     std::function<void()> onInsertPageBreak;    ///< Insert > Page Break
+    std::function<void()> onSpecialCharacter;   ///< Insert > Special Character...
+    std::function<void()> onQuickCharacter;     ///< Insert > Quick Character (the palette)
     /// Insert > Formatting Character: the characters into the text with the keys
     std::function<void(const QString& characters)> onInsertCharacters;
 

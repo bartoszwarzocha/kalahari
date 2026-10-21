@@ -99,6 +99,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"book.addElement", QStringLiteral("Ctrl+Shift+Return")},
         {"insert.annotation", QStringLiteral("Ctrl+Shift+M")},
         {"insert.pageBreak", QStringLiteral("Ctrl+Return")},  // and Ctrl with the keypad's Enter
+        {"insert.quickCharacter", QStringLiteral("Ctrl+Shift+I")},
         // The formatting characters, as in Word; Ctrl+_ is Ctrl+Shift+-
         {"insert.noBreakSpace", QStringLiteral("Ctrl+Shift+Space")},
         {"insert.nonBreakingHyphen", QStringLiteral("Ctrl+_")},

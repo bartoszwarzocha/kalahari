@@ -168,6 +168,8 @@ ICONS=(
     "dashboard"         # view.perspectives.manage, view.resetLayout
     "view_module"       # view.perspectives.manage (alt)
     "view_headline"     # view.toolbars.standard
+    "grid_view"         # common.gridView (Insert > Special Character...)
+    "view_list"         # common.listView (Insert > Special Character...)
     "toolbar"           # view.toolbars.standard (doesn't exist, use view_headline)
     "format_shapes"     # view.toolbars.format (alt)
     "bolt"              # view.toolbars.quickAccess

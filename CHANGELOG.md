@@ -134,6 +134,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the cursor or in place of the selection as an undo step of its own, and autocorrect does
   not change it; in a book open read-only the items are greyed out, saying why.
 
+- **Editor: Insert > Special Character...** - 2026-10-21. A window of the characters a
+  keyboard does not have, in two views switched by the buttons Grid and List beside the
+  search (Alt+G, Alt+L); it opens in the view shown last, the grid at first. The search finds
+  a character by its name, in the language of the program or in English and without the
+  accents, or by its code (U+2014, 2014; also a character of no group). The grid has the
+  groups at the left (Favorites, Recently Used and nine groups of characters), the characters
+  of the group, the one selected large with its name, code, keys and auto-correct, and under
+  them the 16 characters inserted last (a click inserts one). The list shows each character
+  with its name, code, keys and auto-correct, the groups as buttons over it, and a star that
+  makes a character a favorite. The characters are shown in the font of the text at the
+  cursor: one the font has not is greyed out, and its details say that another font shows it.
+  Enter, Insert or a double click puts the character in at the cursor as an undo step of its
+  own, and the status bar says which; the window stays open after it, as "Keep the window open
+  after inserting" says. The menu of a character (the right button, the Menu key or
+  Shift+F10) has Insert, Add to Favorites, Assign Shortcut... and Add Replacement....
+  Assign Shortcut... records keys that insert the character: keys the program keeps are
+  refused, saying why, and keys of another command take them from it, as the window says
+  before; the character is then in the group Characters of Settings > Keyboard Shortcuts.
+  Add Replacement... adds a word auto-correct replaces with the character to the replacement
+  table. With no chapter open or in a book open read-only Insert is greyed out, saying why.
+  The favorites, the characters inserted last, the view and the choice to keep the window
+  open are in the settings (specialCharacters).
+
+- **Editor: Insert > Quick Character (Ctrl+Shift+I)** - 2026-10-21. A small window under the
+  cursor of the text (over it at the bottom of the screen) with a row of the favorite
+  characters and a row of those inserted last. Typing finds the characters by a name or a
+  code, as the window Insert > Special Character... does, showing the first three rows of
+  them; a name finds first the characters whose names have words starting so ("arrow": the
+  arrows before the characters with "narrow" in their names). The arrows choose a character,
+  Enter or a click inserts it at the cursor as an undo step of its own and closes the window,
+  Esc closes it, and All Characters... (Ctrl+Enter) opens Insert > Special Character....
+  Under the rows the character chosen with its name, code, keys and auto-correct. The keys
+  can be changed in Settings > Keyboard Shortcuts; in a book open read-only the status bar
+  says why it does not open.
+
 - **Dashboard: an X on the card of a recent book** - 2026-10-19. A small X in the top right
   corner of each card takes the book off the recent books ("Remove from the recent books (the
   file stays on the disk)"); its file stays where it is. "Open last book on startup" opens
