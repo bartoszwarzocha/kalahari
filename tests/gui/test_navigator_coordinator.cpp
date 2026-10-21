@@ -3,6 +3,7 @@
 /// deleting elements, which ProjectManager saves at once, and the files that no element has
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/art_provider.h>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/file_trash.h>
@@ -46,6 +47,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QHash>
+#include <QIcon>
 #include <QImage>
 #include <QKeyEvent>
 #include <QLabel>
@@ -2828,6 +2831,73 @@ TEST_CASE("Navigator: Expand All and Collapse All of a menu have the icons of th
     CHECK(picture(expand) == picture(buttonIcon(QStringLiteral("Expand All"))));
     CHECK(picture(collapse) == picture(buttonIcon(QStringLiteral("Collapse All"))));
     CHECK(picture(expand) != picture(collapse));
+}
+
+TEST_CASE("Navigator: Rename and Properties of a menu have the icons of their commands",
+          "[gui][navigator]") {
+    gui::registerAllIcons();
+    OpenNovel novel;
+    auto& pm = novel.pm;
+    const QString partId =
+        pm.addElement(pm.partKind(), QStringLiteral("Part I"), core::BookPlace::Main);
+    REQUIRE_FALSE(partId.isEmpty());
+    const QString chapterId = pm.addElement(pm.chapterKindFor(core::BookPlace::Main),
+                                            QStringLiteral("The Storm"), core::BookPlace::Main,
+                                            partId);
+    REQUIRE_FALSE(chapterId.isEmpty());
+    Navigator navigator;
+    navigator.window.setAttribute(Qt::WA_DontShowOnScreen);
+    navigator.window.resize(400, 900);
+    navigator.panel->setGeometry(0, 0, 400, 900);
+    navigator.window.show();
+    auto* tree = navigator.panel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+
+    auto& artProvider = core::ArtProvider::getInstance();
+    const QIcon rename = artProvider.getIcon(QStringLiteral("edit.rename"), core::IconContext::Menu);
+    const QIcon panel =
+        artProvider.getIcon(QStringLiteral("view.properties"), core::IconContext::Menu);
+    const QIcon book =
+        artProvider.getIcon(QStringLiteral("book.properties"), core::IconContext::Menu);
+    REQUIRE_FALSE(rename.isNull());
+    REQUIRE_FALSE(panel.isNull());
+    REQUIRE_FALSE(book.isNull());
+    const auto picture = [](const QIcon& icon) { return icon.pixmap(QSize(16, 16)).toImage(); };
+
+    test::ContextMenuReader reader(navigator.panel);
+    struct Command {
+        QTreeWidgetItem* node;
+        QString text;  ///< Without its access key and keys
+        QIcon icon;
+    };
+    const QList<Command> commands{
+        {navigator.item(chapterId), QStringLiteral("Rename..."), rename},
+        {navigator.item(chapterId), QStringLiteral("Properties..."), panel},
+        {navigator.item(partId), QStringLiteral("Rename..."), rename},
+        {navigator.item(partId), QStringLiteral("Properties..."), panel},
+        {navigator.section(QStringLiteral("section_body")), QStringLiteral("Rename..."), rename},
+        {navigator.section(QStringLiteral("workshop")), QStringLiteral("Rename..."), rename},
+        {navigator.bookItem(), QStringLiteral("Rename..."), rename},
+        {navigator.bookItem(), QStringLiteral("Book Properties..."), book},
+        {navigator.projectItem(), QStringLiteral("Project Properties..."), panel},
+    };
+    for (const Command& command : commands) {
+        REQUIRE(command.node != nullptr);
+        INFO(command.text.toStdString() << " of " << command.node->text(0).toStdString());
+        tree->scrollToItem(command.node);
+        const int read = reader.menusRead();
+        emit tree->customContextMenuRequested(tree->visualItemRect(command.node).center());
+        REQUIRE(reader.menusRead() == read + 1);
+        QHash<QString, QIcon> icons;
+        for (const test::MenuItem& item : reader.items()) {
+            icons.insert(gui::withoutAccessKey(item.text.section(QLatin1Char('\t'), 0, 0)),
+                         item.icon);
+        }
+        REQUIRE(icons.contains(command.text));
+        REQUIRE_FALSE(icons.value(command.text).isNull());
+        CHECK(picture(icons.value(command.text)) == picture(command.icon));
+    }
+    CHECK(picture(rename) != picture(panel));
 }
 
 TEST_CASE("Navigator: a material opens as its source says; the title of its page and the copy "

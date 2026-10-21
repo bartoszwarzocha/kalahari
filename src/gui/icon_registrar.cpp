@@ -54,6 +54,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("edit.paste", "resources/icons/twotone/content_paste.svg", "Paste");
     iconRegistry.registerIcon("edit.pasteSpecial", "resources/icons/twotone/content_paste_go.svg", "Paste Special");
     iconRegistry.registerIcon("edit.delete", "resources/icons/twotone/delete.svg", "Delete");
+    // The pencil: the icon set has no icon of its own for renaming
+    iconRegistry.registerIcon("edit.rename", "resources/icons/twotone/edit.svg", "Rename");
     iconRegistry.registerIcon("edit.selectAll", "resources/icons/twotone/select_all.svg", "Select All");
     iconRegistry.registerIcon("edit.selectWord", "resources/icons/twotone/highlight_alt.svg", "Select Word");
     iconRegistry.registerIcon("edit.selectParagraph", "resources/icons/twotone/segment.svg", "Select Paragraph");

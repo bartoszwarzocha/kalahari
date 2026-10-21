@@ -2002,9 +2002,10 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         connect(openAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuOpen);
     };
 
+    // The icon of the Properties panel, which Properties... brings to the front
     const auto addPropertiesAction = [&]() {
         QAction* propertiesAction = menu.addAction(
-            artProvider.getIcon("common.properties", core::IconContext::Menu),
+            artProvider.getIcon("view.properties", core::IconContext::Menu),
             withKeys(tr("P&roperties..."), propertiesKeys()));
         connect(propertiesAction, &QAction::triggered, this,
                 &NavigatorPanel::onContextMenuProperties);
@@ -2135,7 +2136,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
         // The statistics of the group, in the Properties panel brought to the front
         QAction* propertiesAction = menu.addAction(
-            artProvider.getIcon("common.properties", core::IconContext::Menu),
+            artProvider.getIcon("view.properties", core::IconContext::Menu),
             withKeys(tr("P&roperties..."), propertiesKeys()));
         connect(propertiesAction, &QAction::triggered, this, [this, elementId]() {
             emit requestPartProperties(elementId);
@@ -2178,8 +2179,9 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         }
         menu.addSeparator();
 
+        // The icon of Book > Book Properties...
         QAction* propertiesAction = menu.addAction(
-            artProvider.getIcon("common.properties", core::IconContext::Menu),
+            artProvider.getIcon("book.properties", core::IconContext::Menu),
             tr("Book P&roperties..."));
         connect(propertiesAction, &QAction::triggered, this, &NavigatorPanel::onContextMenuProperties);
         // As Book > Book Properties..., which edits them
@@ -2196,7 +2198,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             menu.addSeparator();
         }
         QAction* propertiesAction = menu.addAction(
-            artProvider.getIcon("common.properties", core::IconContext::Menu),
+            artProvider.getIcon("view.properties", core::IconContext::Menu),
             //: The command of the project's node in the Navigator. In Polish: Właściwości
             //: &projektu...
             tr("Project P&roperties..."));
