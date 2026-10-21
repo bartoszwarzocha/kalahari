@@ -710,6 +710,12 @@ public:
     /// filesOf() gives them) that are on the disk, so that they go with the files
     QStringList versionFoldersOf(const QStringList& files) const;
 
+    /// @brief Delete the versions of @p files, which are deleted (absolute paths of files of
+    /// the book): to the Trash of the system when @p trash, as the files went, else for good
+    /// (ChapterVersions::removeFolder())
+    /// @return The folders of the versions that stay on the disk
+    QStringList deleteVersionsOf(const QStringList& files, bool trash);
+
     /// @brief Get all dirty elements
     /// @return IDs of the text elements whose text is not saved
     std::vector<QString> getDirtyElements() const;

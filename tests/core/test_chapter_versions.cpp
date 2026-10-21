@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/chapter_versions.h>
+#include <kalahari/core/file_trash.h>
 
 #include <QDir>
 #include <QFile>
@@ -270,6 +271,61 @@ TEST_CASE("A version gets the writer's description and can be deleted", "[core][
     CHECK(other.remove(other.newest()->file));
     CHECK_FALSE(QFileInfo::exists(QDir(dir.path()).filePath("versions")));
     CHECK(QFileInfo::exists(dir.path()));
+}
+
+TEST_CASE("All the versions of a file go with it, to the Trash or for good",
+          "[core][versions]") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    ChapterVersions versions(dir.path(), CHAPTER);
+    ChapterVersions other(dir.path(), "book/chapter_003.kchapter");
+    CHECK(versions.removeFolder(false));  // none yet
+    REQUIRE(versions.add(kmlWith("One"), {.origin = VersionOrigin::Manual}, at(8, 0)));
+    REQUIRE(versions.add(kmlWith("Two"), {.origin = VersionOrigin::Save}, at(9, 0)));
+    REQUIRE(other.add(kmlWith("Other"), {.origin = VersionOrigin::Manual}, at(9, 0)));
+    const QString root = QDir(dir.path()).filePath("versions");
+
+    SECTION("For good: versions/ stays for the other file, then goes") {
+        CHECK(versions.removeFolder(false));
+        CHECK_FALSE(QFileInfo::exists(versions.folder()));
+        CHECK(versions.list().isEmpty());
+        CHECK(other.count() == 1);
+        CHECK(other.removeFolder(false));
+        CHECK_FALSE(QFileInfo::exists(root));
+        CHECK(QFileInfo::exists(dir.path()));
+    }
+
+    SECTION("To the Trash, unless it refuses them") {
+        // A Trash of the test until the section ends
+        struct TestTrash {
+            bool takes = false;  ///< It takes what it is given; else it refuses it
+            QStringList taken;   ///< What it was given
+
+            TestTrash() {
+                setTrashForTests([](const QString&) { return true; },
+                                 [this](const QString& path) {
+                                     taken << path;
+                                     return takes && QDir(path).removeRecursively();
+                                 });
+            }
+            ~TestTrash() { setTrashForTests({}, {}); }
+            TestTrash(const TestTrash&) = delete;
+            TestTrash& operator=(const TestTrash&) = delete;
+        } trash;
+
+        CHECK_FALSE(versions.removeFolder(true));
+        CHECK(versions.count() == 2);
+        trash.takes = true;
+        CHECK(versions.removeFolder(true));
+        CHECK(trash.taken == QStringList{versions.folder(), versions.folder()});
+        CHECK_FALSE(QFileInfo::exists(versions.folder()));
+        CHECK(other.count() == 1);
+    }
+
+    SECTION("Not of a file outside the book") {
+        CHECK_FALSE(ChapterVersions(dir.path(), "../chapter.kchapter").removeFolder(false));
+        CHECK(QFileInfo::exists(root));
+    }
 }
 
 TEST_CASE("The oldest versions kept by the program go; the writer's own stay",

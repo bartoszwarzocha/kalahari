@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/database_types.h>
+#include <kalahari/core/file_trash.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/project_database.h>
 #include <kalahari/core/recent_books_manager.h>
@@ -2687,8 +2688,48 @@ TEST_CASE("The folders of the versions of files go with the files", "[project_ma
     // Only the files with versions have folders
     const QStringList files = pm.filesOf(*pm.findElement(part));
     REQUIRE(files.size() == 2);
-    CHECK(pm.versionFoldersOf(files) == QStringList{pm.versionsOf(a)->folder()});
+    const QString folderOfA = pm.versionsOf(a)->folder();
+    CHECK(pm.versionFoldersOf(files) == QStringList{folderOfA});
     CHECK(pm.versionFoldersOf({files.at(1)}).isEmpty());
+
+    // A new file never gets the versions of a file deleted outside the program
+    const QString fileOfA = pm.findElement(a)->file;
+    REQUIRE(pm.removeElement(a).has_value());
+    REQUIRE(QFile::remove(files.at(0)));
+    const QString c = pm.addElement(kind, "C", BookPlace::Main);
+    REQUIRE_FALSE(c.isEmpty());
+    CHECK(pm.findElement(c)->file != fileOfA);
+    CHECK(pm.versionsOf(c)->list().isEmpty());
+
+    // The versions go with the files deleted: for good, or to the Trash
+    CHECK(pm.deleteVersionsOf(files, false).isEmpty());
+    CHECK_FALSE(QFileInfo::exists(folderOfA));
+    CHECK_FALSE(QFileInfo::exists(QDir(pm.getProjectPath()).filePath("versions")));
+    REQUIRE(pm.keepVersion(b, kmlWith("B"), {.origin = VersionOrigin::Manual}) ==
+            ProjectManager::VersionKept::Added);
+    // A Trash of the test until the test ends
+    struct TestTrash {
+        bool takes = false;  ///< It takes what it is given; else it refuses it
+        QStringList taken;   ///< What it was given
+
+        TestTrash() {
+            setTrashForTests([](const QString&) { return true; },
+                             [this](const QString& path) {
+                                 taken << path;
+                                 return takes && QDir(path).removeRecursively();
+                             });
+        }
+        ~TestTrash() { setTrashForTests({}, {}); }
+        TestTrash(const TestTrash&) = delete;
+        TestTrash& operator=(const TestTrash&) = delete;
+    } trash;
+    const QString folderOfB = pm.versionsOf(b)->folder();
+    CHECK(pm.deleteVersionsOf({files.at(1)}, true) == QStringList{folderOfB});
+    CHECK(QFileInfo(folderOfB).isDir());  // the Trash refused it
+    trash.takes = true;
+    CHECK(pm.deleteVersionsOf({files.at(1)}, true).isEmpty());
+    CHECK(trash.taken == QStringList{folderOfB, folderOfB});
+    CHECK_FALSE(QFileInfo::exists(QDir(pm.getProjectPath()).filePath("versions")));
     REQUIRE(pm.closeProject(false));
 }
 

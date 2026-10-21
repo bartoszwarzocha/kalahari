@@ -562,13 +562,18 @@ QStringList NavigatorCoordinator::deleteFiles(const QStringList& files, bool tra
     bool gone = false;
     QStringList refused;
     QStringList failed;
+    QStringList trashed;
+    QStringList deletedForGood;
     for (const QString& file : files) {
         if (trash) {
-            if (!core::moveToTrash(file)) {
+            if (core::moveToTrash(file)) {
+                trashed << file;
+            } else {
                 refused << file;
             }
         } else if (QFile::remove(file)) {
             gone = true;
+            deletedForGood << file;
         } else {
             failed << file;
         }
@@ -598,6 +603,7 @@ QStringList NavigatorCoordinator::deleteFiles(const QStringList& files, bool tra
             for (const QString& file : std::as_const(refused)) {
                 if (QFile::remove(file)) {
                     gone = true;
+                    deletedForGood << file;
                 } else {
                     failed << file;
                 }
@@ -605,6 +611,15 @@ QStringList NavigatorCoordinator::deleteFiles(const QStringList& files, bool tra
         } else {
             kept << refused;
         }
+    }
+
+    // The versions of the texts go as their files went; those of a file that stays stay
+    auto& pm = core::ProjectManager::getInstance();
+    const QStringList versionsStay =
+        pm.deleteVersionsOf(trashed, true) + pm.deleteVersionsOf(deletedForGood, false);
+    if (!versionsStay.isEmpty()) {
+        logger.warn("NavigatorCoordinator: The versions of {} deleted file(s) stay",
+                    versionsStay.size());
     }
 
     if (!failed.isEmpty()) {

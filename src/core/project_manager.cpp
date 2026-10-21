@@ -145,7 +145,9 @@ QStringList unassignedPathsIn(const QString& folder, const QSet<QString>& used) 
 }
 
 /// A chapter file that no element of @p project and no file of @p projectDir has, for a new
-/// element of kind @p kindId in @p folder: <folder>/<kind>_001.kchapter, _002...
+/// element of kind @p kindId in @p folder: <folder>/<kind>_001.kchapter, _002... A file whose
+/// versions are still there (ChapterVersions: the file was deleted outside the program) is
+/// not new: the new text would get them
 QString freeChapterFile(const BookProject& project, const QString& projectDir,
                         const QString& folder, const QString& kindId) {
     static const QRegularExpression notPlain(QStringLiteral("[^A-Za-z0-9_]"));
@@ -157,7 +159,8 @@ QString freeChapterFile(const BookProject& project, const QString& projectDir,
         const QString file = QStringLiteral("%1/%2_%3.kchapter")
                                  .arg(folder, name)
                                  .arg(number, 3, 10, QLatin1Char('0'));
-        if (!project.hasFile(file) && !QFileInfo::exists(dir.filePath(file))) {
+        if (!project.hasFile(file) && !QFileInfo::exists(dir.filePath(file)) &&
+            !QFileInfo::exists(ChapterVersions::folderOf(projectDir, file))) {
             return file;
         }
     }
@@ -2350,9 +2353,10 @@ ProjectManager::VersionKept ProjectManager::keepVersion(const QString& elementId
         if (ChapterDocument::kmlToPlainText(kml).trimmed().isEmpty()) {
             return VersionKept::NoText;
         }
-        if (versions->newestHas(kml)) {
+        const std::optional<ChapterVersion> newest = versions->newest();
+        if (newest && versions->text(newest->file) == kml) {
             if (version) {
-                *version = *versions->newest();
+                *version = *newest;
             }
             return VersionKept::Same;
         }
@@ -2398,6 +2402,24 @@ void ProjectManager::keepVersionOnSave(const QString& elementId, const QString& 
                                    "as a version",
                                    elementId.toStdString());
     }
+}
+
+QStringList ProjectManager::deleteVersionsOf(const QStringList& files, bool trash) {
+    QStringList stay;
+    if (m_projectPath.empty()) {
+        return stay;
+    }
+    const QString projectDir = getProjectPath();
+    const QDir dir(projectDir);
+    for (const QString& file : files) {
+        ChapterVersions versions(projectDir,
+                                 dir.relativeFilePath(QFileInfo(file).absoluteFilePath()));
+        if (versions.isValid() && !versions.removeFolder(trash) &&
+            !stay.contains(versions.folder())) {
+            stay.append(versions.folder());
+        }
+    }
+    return stay;
 }
 
 QStringList ProjectManager::versionFoldersOf(const QStringList& files) const {

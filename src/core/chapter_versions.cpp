@@ -3,6 +3,7 @@
 
 #include <kalahari/core/chapter_versions.h>
 #include <kalahari/core/chapter_document.h>
+#include <kalahari/core/file_trash.h>
 #include <kalahari/core/logger.h>
 
 #include <QDir>
@@ -314,7 +315,8 @@ ChapterVersions::Index ChapterVersions::read() const {
     index.format = root.value(QLatin1String("format")).toInt(FORMAT);
 
     const QDir folder(m_folder);
-    for (const QJsonValue& value : root.value(QLatin1String("versions")).toArray()) {
+    const QJsonArray entries = root.value(QLatin1String("versions")).toArray();
+    for (const auto& value : entries) {
         const QJsonObject entry = value.toObject();
         ChapterVersion version;
         version.file = entry.value(QLatin1String("file")).toString();
@@ -386,6 +388,25 @@ bool ChapterVersions::write(const Index& index) const {
     return writeWhole(path, QJsonDocument(root).toJson(QJsonDocument::Indented));
 }
 
+bool ChapterVersions::removeFolder(bool trash) {
+    if (!isValid()) {
+        return false;
+    }
+    if (!QFileInfo(m_folder).isDir()) {
+        return true;
+    }
+    const bool gone = trash ? moveToTrash(m_folder) : QDir(m_folder).removeRecursively();
+    if (!gone || QFileInfo::exists(m_folder)) {
+        Logger::getInstance().warn("ChapterVersions: The versions of {} stay in {}",
+                                   m_file.toStdString(), m_folder.toStdString());
+        return false;
+    }
+    Logger::getInstance().info("ChapterVersions: The versions of {} went {}",
+                               m_file.toStdString(), trash ? "to the Trash" : "for good");
+    removeEmptyFolders();
+    return true;
+}
+
 void ChapterVersions::removeEmptyFolders() const {
     if (!isValid()) {
         return;
@@ -394,9 +415,10 @@ void ChapterVersions::removeEmptyFolders() const {
     QString path = m_folder;
     while (path == m_root || path.startsWith(m_root + QLatin1Char('/'))) {
         const QFileInfo info(path);
-        if (!QDir(path).isEmpty(QDir::AllEntries | QDir::Hidden | QDir::System |
-                                QDir::NoDotAndDotDot) ||
-            !info.dir().rmdir(info.fileName())) {
+        // A folder that is gone already leaves the ones above it to this loop
+        if (info.exists() && (!QDir(path).isEmpty(QDir::AllEntries | QDir::Hidden |
+                                                  QDir::System | QDir::NoDotAndDotDot) ||
+                              !info.dir().rmdir(info.fileName()))) {
             return;
         }
         path = info.path();

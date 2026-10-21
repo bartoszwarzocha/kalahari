@@ -163,6 +163,14 @@ public:
     /// @return The number of the versions deleted; -1 when index.json cannot be written
     int removeOldAutomatic(int keep);
 
+    /// @brief Delete all the versions, with the file they are of: their folder goes to the
+    /// Trash of the system when @p trash (moveToTrash()), else for good
+    ///
+    /// The folders above it that are left empty go too, versions/ when no file has versions.
+    /// @return true when the folder is gone or there was none; false when it stays (the Trash
+    ///         refused it, or not all of it could be deleted)
+    bool removeFolder(bool trash);
+
 private:
     /// @brief index.json as the disk has it
     struct Index {
@@ -180,7 +188,7 @@ private:
     bool write(const Index& index) const;
 
     /// @brief Remove the folder of the versions when it is empty, and the empty folders above
-    /// it, versions/ too
+    /// it (also when it is gone), versions/ too
     void removeEmptyFolders() const;
 
     /// @brief Name of a new .kml file for a version kept at @p created: its local time, with

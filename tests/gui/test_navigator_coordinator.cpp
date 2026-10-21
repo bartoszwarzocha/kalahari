@@ -314,16 +314,21 @@ QString textOf(const QString& path) {
 /// @brief The Trash of a test in place of the system's until the test ends; it keeps the text
 /// each file had when it took it
 struct TestTrash {
-    bool exists = true;  ///< The files can go to it
-    bool takes = true;   ///< It takes them; else it refuses them
-    QStringList taken;   ///< The files it took
-    QStringList texts;   ///< Their texts
+    bool exists = true;   ///< The files can go to it
+    bool takes = true;    ///< It takes them; else it refuses them
+    QStringList taken;    ///< The files it took
+    QStringList texts;    ///< Their texts
+    QStringList folders;  ///< The folders it took: of the versions of the texts
 
     TestTrash() {
         core::setTrashForTests([this](const QString&) { return exists; },
                                [this](const QString& path) {
                                    if (!takes) {
                                        return false;
+                                   }
+                                   if (QFileInfo(path).isDir()) {
+                                       folders << path;
+                                       return QDir(path).removeRecursively();
                                    }
                                    taken << path;
                                    texts << textOf(path);
@@ -1409,6 +1414,16 @@ TEST_CASE("Navigator commands: the files deleted with an element go to the Trash
     REQUIRE(navigator.tabs->count() == 1);
     write(*navigator.tabs, 0, QStringLiteral("The storm came at night."));
     REQUIRE(navigator.coordinator.isChapterDirty(chapters.at(0).id));
+    // The versions of the texts: of the first chapter, kept when its text is saved before it
+    // goes, and of the second one, kept by the writer
+    const QString versionsFolder = QDir(pm.getProjectPath()).filePath(QStringLiteral("versions"));
+    const QStringList versionFolders{
+        core::ChapterVersions::folderOf(pm.getProjectPath(), chapters.at(0).file),
+        core::ChapterVersions::folderOf(pm.getProjectPath(), chapters.at(1).file)};
+    REQUIRE(pm.keepVersion(chapters.at(1).id, editor::ClipboardHandler::textToKml("Dawn."),
+                           {.origin = core::VersionOrigin::Manual}) ==
+            core::ProjectManager::VersionKept::Added);
+    REQUIRE(QFileInfo(versionFolders.at(1)).isDir());
 
     SECTION("To the Trash, with the text of the open tab") {
         QString said;
@@ -1425,6 +1440,9 @@ TEST_CASE("Navigator commands: the files deleted with an element go to the Trash
         CHECK(trash.texts.value(0).contains(QStringLiteral("The storm came at night.")));
         CHECK_FALSE(QFileInfo::exists(files.at(0)));
         CHECK_FALSE(QFileInfo::exists(files.at(1)));
+        // Their versions went to the Trash with them
+        CHECK(trash.folders == versionFolders);
+        CHECK_FALSE(QFileInfo::exists(versionsFolder));
         CHECK(navigator.tabs->count() == 0);
         CHECK(navigator.section(QStringLiteral("unassigned_files")) == nullptr);
         CHECK(navigator.statusBar->currentMessage() ==
@@ -1444,6 +1462,9 @@ TEST_CASE("Navigator commands: the files deleted with an element go to the Trash
         CHECK(trash.taken.isEmpty());
         CHECK_FALSE(QFileInfo::exists(files.at(0)));
         CHECK_FALSE(QFileInfo::exists(files.at(1)));
+        // ... and so are their versions
+        CHECK(trash.folders.isEmpty());
+        CHECK_FALSE(QFileInfo::exists(versionsFolder));
         CHECK(navigator.section(QStringLiteral("unassigned_files")) == nullptr);
     }
 
@@ -1460,12 +1481,17 @@ TEST_CASE("Navigator commands: the files deleted with an element go to the Trash
         CHECK(QFileInfo::exists(files.at(1)));
         CHECK(navigator.itemsInSection(QStringLiteral("unassigned_files")) ==
               "Chapter 2 – " + QFileInfo(files.at(1)).fileName().toStdString());
+        // The file stays, and so do its versions
+        CHECK(QFileInfo(versionFolders.at(1)).isDir());
 
-        // The writer says so
+        // The writer says so: its versions go for good too
         CHECK(answering([&] { navigator.coordinator.onRequestDelete(chapters.at(0).id); },
                         {answerDelete(true, true), answerQuestion(true)}) == 2);
         CHECK(novel.book().mainElements.first().elements.isEmpty());
         CHECK_FALSE(QFileInfo::exists(files.at(0)));
+        CHECK_FALSE(QFileInfo::exists(versionFolders.at(0)));
+        CHECK(QFileInfo(versionFolders.at(1)).isDir());
+        CHECK(trash.folders.isEmpty());
         CHECK(navigator.tabs->count() == 0);
     }
 
