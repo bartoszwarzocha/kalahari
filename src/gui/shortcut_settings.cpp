@@ -120,6 +120,46 @@ CommandRegistry::ShortcutMap loadCustomShortcuts() {
     return valid;
 }
 
+std::string ownerOfKeys(const KeyboardShortcut& keys) {
+    if (keys.isEmpty()) {
+        return {};
+    }
+    const CommandRegistry& registry = CommandRegistry::getInstance();
+    const CommandRegistry::ShortcutMap keysNow = CommandRegistry::resolveShortcuts(
+        registry.defaultShortcuts(), registry.customShortcuts());
+    for (const auto& [id, commandKeys] : keysNow) {
+        if (commandKeys == keys) {
+            return id;
+        }
+    }
+    return {};
+}
+
+CommandRegistry::ShortcutMap withKeys(const std::string& commandId,
+                                      const KeyboardShortcut& keys) {
+    const CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry::ShortcutMap custom = registry.customShortcuts();
+    const std::string owner = ownerOfKeys(keys);
+    if (!owner.empty() && owner != commandId) {
+        custom[owner] = KeyboardShortcut();
+    }
+    // The program's own keys of the command are not the user's; a command without keys of
+    // the program needs no entry for none
+    const KeyboardShortcut programKeys = registry.defaultShortcut(commandId);
+    if (keys == programKeys) {
+        custom.erase(commandId);
+    } else {
+        custom[commandId] = keys;
+    }
+    return custom;
+}
+
+void saveCustomShortcuts(const CommandRegistry::ShortcutMap& custom) {
+    core::SettingsManager::getInstance().set<nlohmann::json>(SHORTCUTS_SETTING,
+                                                             shortcutsToJson(custom));
+    CommandRegistry::getInstance().setCustomShortcuts(loadCustomShortcuts());
+}
+
 nlohmann::json shortcutsFile(const CommandRegistry::ShortcutMap& custom) {
     return {{"format", FILE_FORMAT},
             {"version", FILE_VERSION},

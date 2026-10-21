@@ -6,6 +6,7 @@
 /// keys the commands will have after Apply. Every key given here passes ShortcutRules.
 
 #include "kalahari/gui/settings/shortcuts_page.h"
+#include "kalahari/gui/character_commands.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/shortcut_settings.h"
@@ -739,6 +740,39 @@ void ShortcutsPage::buildList() {
                 }
             };
         addItems(menu, QString());
+    }
+
+    // The characters the writer gave keys in Insert > Special Character..., by their codes
+    std::vector<const Command*> characters;
+    for (const Command& command : commands) {
+        if (isCharacterCommand(command.id) && command.isShortcutCustomizable) {
+            characters.push_back(&command);
+        }
+    }
+    std::sort(characters.begin(), characters.end(), [](const Command* a, const Command* b) {
+        return *characterOfCommand(a->id) < *characterOfCommand(b->id);
+    });
+    if (!characters.empty()) {
+        //: The group of Settings > Keyboard Shortcuts with the characters given keys in
+        //: Insert > Special Character...
+        const QString groupTitle = tr("Characters");
+        auto* group = new QTreeWidgetItem(m_list);
+        group->setText(0, groupTitle);
+        group->setData(0, KIND_ROLE, static_cast<int>(ItemKind::Menu));
+        group->setFirstColumnSpanned(true);
+        group->setFont(0, groupFont);
+        for (const Command* command : characters) {
+            Entry entry;
+            entry.id = command->id;
+            entry.menu = groupTitle;
+            entry.label = QString::fromStdString(command->label);
+            entry.available = command->canExecute();
+            entry.item = new QTreeWidgetItem(group);
+            entry.item->setText(0, entry.label);
+            entry.item->setData(0, KIND_ROLE, static_cast<int>(ItemKind::Command));
+            entry.item->setData(0, INDEX_ROLE, static_cast<int>(m_entries.size()));
+            m_entries.push_back(std::move(entry));
+        }
     }
 
     // The keys no command can have, last and muted (updateColors), the groups with a lock

@@ -983,6 +983,30 @@
         <source>Pa&amp;ragraph and Styles</source>
         <translation>A&amp;kapit i style</translation>
     </message>
+    <message>
+        <source>&amp;Non-breaking Space</source>
+        <translation>&amp;Spacja nierozdzielająca</translation>
+    </message>
+    <message>
+        <source>Non-breaking &amp;Hyphen</source>
+        <translation>Łącznik &amp;nierozdzielający</translation>
+    </message>
+    <message>
+        <source>&amp;Optional Hyphen</source>
+        <translation>Łącznik &amp;opcjonalny</translation>
+    </message>
+    <message>
+        <source>&amp;En Dash</source>
+        <translation>&amp;Półpauza</translation>
+    </message>
+    <message>
+        <source>E&amp;m Dash</source>
+        <translation>P&amp;auza</translation>
+    </message>
+    <message>
+        <source>&amp;Quick Character</source>
+        <translation>Szybki &amp;wybór znaku</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -2182,6 +2206,10 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>&amp;Reset to Default</source>
         <translation>P&amp;rzywróć domyślne</translation>
+    </message>
+    <message>
+        <source>Fo&amp;rmatting Character</source>
+        <translation>Znak &amp;formatujący</translation>
     </message>
 </context>
 <context>
@@ -3894,6 +3922,14 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::CharacterCommands</name>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>The name of a command that inserts a character (Settings &gt; Keyboard Shortcuts, the group of the characters): its name and the character, as "Em dash (—)"</extracomment>
+        <translation>%1 (%2)</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::ColorConfigWidget</name>
     <message>
         <source>Click to select color</source>
@@ -4811,20 +4847,12 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <translation>Apostrof &apos; na ’</translation>
     </message>
     <message>
-        <source>Hyphen opening a paragraph with a dash</source>
-        <translation>Dywiz na początku akapitu na myślnik</translation>
-    </message>
-    <message>
         <source>Em Dash (—)</source>
         <translation>Pauza (—)</translation>
     </message>
     <message>
         <source>En Dash (–)</source>
         <translation>Półpauza (–)</translation>
-    </message>
-    <message>
-        <source>Dialogue dash:</source>
-        <translation>Myślnik dialogowy:</translation>
     </message>
     <message>
         <source>“...” with an ellipsis “…”</source>
@@ -4846,6 +4874,240 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>Edit &gt; Undo right after a replacement undoes just the replacement.</source>
         <translation>Edycja &gt; Cofnij zaraz po zamianie cofa samą zamianę.</translation>
+    </message>
+    <message>
+        <source>A word to add: %1</source>
+        <extracomment>%1 is what the list is, as "Words with two capitals"</extracomment>
+        <translation>Wyraz do dodania: %1</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>While Typing</source>
+        <translation>Podczas pisania</translation>
+    </message>
+    <message>
+        <source>Capitals</source>
+        <translation>Wielkie litery</translation>
+    </message>
+    <message>
+        <source>Replacement Table</source>
+        <translation>Tabela zamian</translation>
+    </message>
+    <message>
+        <source>Dialogue dash</source>
+        <translation>Myślnik dialogowy</translation>
+    </message>
+    <message>
+        <source>“ - ” between words with:</source>
+        <translation>„ - ” między wyrazami na:</translation>
+    </message>
+    <message>
+        <source>Dash between words</source>
+        <translation>Myślnik między wyrazami</translation>
+    </message>
+    <message>
+        <source>“--” with an en dash “–”</source>
+        <translation>„--” na półpauzę „–”</translation>
+    </message>
+    <message>
+        <source>Text Elements</source>
+        <translation>Elementy tekstu</translation>
+    </message>
+    <message>
+        <source>In a paragraph of the Code style auto-correct changes nothing.</source>
+        <translation>W akapicie w stylu Kod autokorekta niczego nie zmienia.</translation>
+    </message>
+    <message>
+        <source>A capital at the start of a sentence</source>
+        <translation>Wielka litera na początku zdania</translation>
+    </message>
+    <message>
+        <source>Correct TWo INitial CApitals</source>
+        <translation>Poprawiaj DWie WIelkie litery</translation>
+    </message>
+    <message>
+        <source>Exceptions</source>
+        <translation>Wyjątki</translation>
+    </message>
+    <message>
+        <source>Sentences do not end after these abbreviations</source>
+        <translation>Po tych skrótach zdanie się nie kończy</translation>
+    </message>
+    <message>
+        <source>Words with two capitals</source>
+        <translation>Wyrazy z dwiema wielkimi literami</translation>
+    </message>
+    <message>
+        <source>Polish</source>
+        <translation>polskim</translation>
+    </message>
+    <message>
+        <source>English and other languages</source>
+        <translation>angielskim i innych</translation>
+    </message>
+    <message>
+        <source>For a text in:</source>
+        <translation>Dla tekstu w języku:</translation>
+    </message>
+    <message>
+        <source>They stay as typed.</source>
+        <translation>Zostają tak, jak je wpisano.</translation>
+    </message>
+    <message>
+        <source>Abbreviations, Polish</source>
+        <translation>Skróty, język polski</translation>
+    </message>
+    <message>
+        <source>e.g. godz.</source>
+        <translation>np. godz.</translation>
+    </message>
+    <message>
+        <source>Abbreviations, English and other languages</source>
+        <translation>Skróty, język angielski i inne</translation>
+    </message>
+    <message>
+        <source>e.g. Mr.</source>
+        <translation>np. Mr.</translation>
+    </message>
+    <message>
+        <source>e.g. PCs</source>
+        <translation>np. PCs</translation>
+    </message>
+    <message>
+        <source>All Fixed Replacements</source>
+        <translation>Wszystkie stałe zamiany</translation>
+    </message>
+    <message>
+        <source>e.g. (c)</source>
+        <translation>np. (c)</translation>
+    </message>
+    <message>
+        <source>The word of a new pair</source>
+        <translation>Wyraz nowej pary</translation>
+    </message>
+    <message>
+        <source>e.g. ©</source>
+        <translation>np. ©</translation>
+    </message>
+    <message>
+        <source>Its replacement</source>
+        <translation>Na co go zamienić</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation>Przywróć domyślne</translation>
+    </message>
+    <message>
+        <source>Brings back the built-in replacements as they were; your own stay</source>
+        <translation>Przywraca wbudowane zamiany w pierwotnej postaci; własne zostają</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>Zamień</translation>
+    </message>
+    <message>
+        <source>with</source>
+        <translation>na</translation>
+    </message>
+    <message>
+        <source>Replacement table</source>
+        <translation>Tabela zamian</translation>
+    </message>
+    <message>
+        <source>With</source>
+        <translation>Na</translation>
+    </message>
+    <message>
+        <source>Each replacement can be turned off, changed or removed; Restore Defaults brings back the built-in ones. In the table Space turns the pairs selected on and off, F2 changes a cell, Delete removes the pairs and Insert starts a new one.</source>
+        <translation>Każdą zamianę można wyłączyć, zmienić albo usunąć; „Przywróć domyślne” przywraca wbudowane. W tabeli Spacja włącza i wyłącza wybrane pary, F2 zmienia komórkę, Delete usuwa pary, a Insert zaczyna nową.</translation>
+    </message>
+    <message>
+        <source>The table is not used now: “Replacements from the table” is off on the While Typing tab.</source>
+        <translation>Tabela teraz nie działa: na karcie „Podczas pisania” wyłączono „Zamiany z tabeli zamian”.</translation>
+    </message>
+    <message>
+        <source>A replacement needs a word: “%1” stays.</source>
+        <extracomment>%1 is the word the pair had</extracomment>
+        <translation>Zamiana musi mieć wyraz: zostaje „%1”.</translation>
+    </message>
+    <message>
+        <source>A replacement is one word: without spaces.</source>
+        <translation>Zamieniane jest jedno słowo: bez spacji.</translation>
+    </message>
+    <message>
+        <source>The table has a pair of “%1” already: “%2” stays.</source>
+        <extracomment>%1 is the word typed, %2 the word the pair had</extracomment>
+        <translation>Tabela ma już parę dla „%1”: zostaje „%2”.</translation>
+    </message>
+    <message>
+        <source>A word cannot be replaced with nothing: “%1” stays.</source>
+        <extracomment>%1 is the replacement the pair had</extracomment>
+        <translation>Wyrazu nie można zamienić na nic: zostaje „%1”.</translation>
+    </message>
+    <message>
+        <source>built-in</source>
+        <extracomment>The program's own pair of the replacement table</extracomment>
+        <translation>wbudowana</translation>
+    </message>
+    <message>
+        <source>your own</source>
+        <translation>własna</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces “%1” with “%2” now: Add puts “%3” in its place.</source>
+        <translation>Autokorekta zamienia teraz „%1” na „%2”: Dodaj wstawi w to miejsce „%3”.</translation>
+    </message>
+    <message>
+        <source>Hyphen opening a paragraph with:</source>
+        <translation>Dywiz na początku akapitu na:</translation>
+    </message>
+    <message>
+        <source>In dialogue: the dash it starts with</source>
+        <translation>W dialogu: myślnik z początku akapitu</translation>
+    </message>
+    <message>
+        <source>Replacements from the table</source>
+        <translation>Zamiany z tabeli zamian</translation>
+    </message>
+    <message>
+        <source>“***” and Enter: a scene break</source>
+        <translation>„***” i Enter – podział sceny</translation>
+    </message>
+    <message>
+        <source>“---” and Enter: a horizontal line</source>
+        <translation>„---” i Enter – linia pozioma</translation>
+    </message>
+    <message>
+        <source>Typed in an empty paragraph. “* ” and “1. ” at the start of a paragraph will come with the lists.</source>
+        <translation>Wpisane w pustym akapicie. „* ” i „1. ” na początku akapitu dojdą razem z listami.</translation>
+    </message>
+    <message>
+        <source>Correct words typed with Caps Lock on</source>
+        <translation>Poprawiaj wyrazy pisane z Caps Lock</translation>
+    </message>
+    <message>
+        <source>A sentence starts also after a dialogue dash. No capital after an abbreviation of the list below, a number with a period (5.), an initial (J. Kowalski) or an ellipsis. A word typed with Caps Lock on by mistake, as “cAPS”, becomes “Caps”.</source>
+        <translation>Zdanie zaczyna się także po myślniku dialogowym. Bez wielkiej litery po skrócie z listy poniżej, po liczbie z kropką (5.), po inicjale (J. Kowalski) i po wielokropku. Wyraz wpisany przypadkiem z włączonym Caps Lock, np. „wIELKI”, zmienia się w „Wielki”.</translation>
+    </message>
+    <message>
+        <source>Add an exception when I undo a change</source>
+        <translation>Dodawaj wyjątek, gdy cofnę zamianę</translation>
+    </message>
+    <message>
+        <source>%1 right after a capital or a change of two capitals adds the abbreviation or the word to its list.</source>
+        <extracomment>%1 is the keys of Edit &gt; Undo, as Ctrl+Z</extracomment>
+        <translation>%1 zaraz po wielkiej literze albo poprawie dwóch wielkich liter dopisuje skrót albo wyraz do jego listy.</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Undo right after a capital or a change of two capitals adds the abbreviation or the word to its list.</source>
+        <translation>Edycja &gt; Cofnij zaraz po wielkiej literze albo poprawie dwóch wielkich liter dopisuje skrót albo wyraz do jego listy.</translation>
     </message>
 </context>
 <context>
@@ -5759,6 +6021,24 @@ Saving the {kind} keeps only this text. Close {kind:s=it|p=them} without saving 
         <translation>{Kind} „%1” {kind:m=jest uszkodzony|f=jest uszkodzona|n=jest uszkodzone|p=są uszkodzone}, dlatego widać tylko tekst sprzed uszkodzonego miejsca.
 
 Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmian, zamknij {kind:accusative} bez zapisywania.</translation>
+    </message>
+    <message>
+        <source>Caps Lock was on: the word typed with it is corrected, and Caps Lock is off now.</source>
+        <translation>Caps Lock był włączony: słowo wpisane z nim zostało poprawione, a Caps Lock jest teraz wyłączony.</translation>
+    </message>
+    <message>
+        <source>Caps Lock is on: the word typed with it is corrected. Turn Caps Lock off.</source>
+        <translation>Caps Lock jest włączony: słowo wpisane z nim zostało poprawione. Wyłącz Caps Lock.</translation>
+    </message>
+    <message>
+        <source>After “%1” auto-correct no longer starts a sentence with a capital: it is among the exceptions now.</source>
+        <extracomment>%1 is an abbreviation with its period, as "godz."</extracomment>
+        <translation>Po „%1” autokorekta nie zaczyna już zdania wielką literą: ten skrót jest teraz wśród wyjątków.</translation>
+    </message>
+    <message>
+        <source>Auto-correct no longer changes “%1”: it is among the exceptions now.</source>
+        <extracomment>%1 is a word with two capitals at its start, as "PCs"</extracomment>
+        <translation>Autokorekta nie zmienia już „%1”: to słowo jest teraz wśród wyjątków.</translation>
     </message>
 </context>
 <context>
@@ -7619,6 +7899,80 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::QuickCharacterPalette</name>
+    <message>
+        <source>Quick Character</source>
+        <translation>Szybki wybór znaku</translation>
+    </message>
+    <message>
+        <source>Find a character: a name or a code</source>
+        <translation>Znajdź znak: nazwa lub kod</translation>
+    </message>
+    <message>
+        <source>Find a character</source>
+        <translation>Szukaj znaku</translation>
+    </message>
+    <message>
+        <source>&amp;Favorites</source>
+        <translation>&amp;Ulubione</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>Ulubione</translation>
+    </message>
+    <message>
+        <source>No favorites yet. Add them in the window Insert &gt; Special Character...</source>
+        <translation>Nie masz jeszcze ulubionych. Dodasz je w oknie Wstaw &gt; Znak specjalny...</translation>
+    </message>
+    <message>
+        <source>Recently &amp;used</source>
+        <translation>&amp;Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Recently used</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>The characters you insert appear here.</source>
+        <translation>Tu pojawią się wstawiane znaki.</translation>
+    </message>
+    <message>
+        <source>Characters found</source>
+        <translation>Znalezione znaki</translation>
+    </message>
+    <message>
+        <source>&amp;All Characters...</source>
+        <translation>&amp;Wszystkie znaki...</translation>
+    </message>
+    <message>
+        <source>The window Insert &gt; Special Character... (%1)</source>
+        <translation>Okno Wstaw &gt; Znak specjalny... (%1)</translation>
+    </message>
+    <message>
+        <source>Found: the first %1 of %2</source>
+        <extracomment>%1 characters of the %2 found are shown</extracomment>
+        <translation>Znalezione: pierwsze %1 z %2</translation>
+    </message>
+    <message>
+        <source>Found</source>
+        <translation>Znalezione</translation>
+    </message>
+    <message>
+        <source>Nothing matches “%1”.</source>
+        <translation>Nic nie pasuje do „%1”.</translation>
+    </message>
+    <message>
+        <source>auto-correct %1</source>
+        <extracomment>What auto-correct replaces with the character, as "(c)" or "--"</extracomment>
+        <translation>autokorekta %1</translation>
+    </message>
+    <message>
+        <source>Not in the font %1: in the text another font shows it.</source>
+        <extracomment>%1 is the name of a font</extracomment>
+        <translation>Nie ma go w czcionce %1: w tekście pokaże go inna czcionka.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::RecentBooksMenu</name>
     <message>
         <source>No Recent Books</source>
@@ -8913,6 +9267,1083 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Press the new shortcut... (Esc – cancel)</source>
         <translation>Naciśnij nowy skrót... (Esc – anuluj)</translation>
     </message>
+    <message>
+        <source>Characters</source>
+        <extracomment>The group of Settings &gt; Keyboard Shortcuts with the characters given keys in Insert &gt; Special Character...</extracomment>
+        <translation>Znaki</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpecialCharacterCoordinator</name>
+    <message>
+        <source>No chapter or file is open</source>
+        <translation>Nie jest otwarty żaden rozdział ani plik</translation>
+    </message>
+    <message>
+        <source>Inserted: %1</source>
+        <extracomment>%1 is a character with its name, as "Em dash (—)"</extracomment>
+        <translation>Wstawiono: %1</translation>
+    </message>
+    <message>
+        <source>%1 has no shortcut now.</source>
+        <extracomment>%1 is a character with its name, as "Em dash (—)"</extracomment>
+        <translation>Usunięto skrót znaku: %1.</translation>
+    </message>
+    <message>
+        <source>%1 inserts %2 now; %3 has no shortcut.</source>
+        <extracomment>%1 are keys, %2 a character with its name, %3 the command that had the keys</extracomment>
+        <translation>Skrót %1 wstawia teraz: %2. Polecenie „%3” nie ma już skrótu.</translation>
+    </message>
+    <message>
+        <source>%1 inserts %2 now.</source>
+        <extracomment>%1 are keys, %2 a character with its name</extracomment>
+        <translation>Skrót %1 wstawia teraz: %2.</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces “%1” with %2 now.</source>
+        <extracomment>%1 is a word, %2 a character with its name</extracomment>
+        <translation>Autokorekta zamienia teraz „%1” na: %2.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpecialCharacters</name>
+    <message>
+        <source>Em dash</source>
+        <translation>Pauza</translation>
+    </message>
+    <message>
+        <source>dash dialogue</source>
+        <translation>myślnik dialogowy</translation>
+    </message>
+    <message>
+        <source>En dash</source>
+        <translation>Półpauza</translation>
+    </message>
+    <message>
+        <source>dash range</source>
+        <translation>myślnik przedział</translation>
+    </message>
+    <message>
+        <source>Ellipsis</source>
+        <translation>Wielokropek</translation>
+    </message>
+    <message>
+        <source>dots</source>
+        <translation>kropki</translation>
+    </message>
+    <message>
+        <source>Low double opening quotation mark</source>
+        <translation>Cudzysłów otwierający dolny</translation>
+    </message>
+    <message>
+        <source>quote</source>
+        <translation>cudzysłów</translation>
+    </message>
+    <message>
+        <source>Double closing quotation mark</source>
+        <translation>Cudzysłów zamykający</translation>
+    </message>
+    <message>
+        <source>Low single opening quotation mark</source>
+        <translation>Cudzysłów pojedynczy otwierający dolny</translation>
+    </message>
+    <message>
+        <source>Apostrophe</source>
+        <translation>Apostrof</translation>
+    </message>
+    <message>
+        <source>single closing quotation mark</source>
+        <translation>cudzysłów pojedynczy zamykający</translation>
+    </message>
+    <message>
+        <source>Double opening quotation mark</source>
+        <translation>Cudzysłów otwierający górny</translation>
+    </message>
+    <message>
+        <source>quote English</source>
+        <translation>cudzysłów angielski</translation>
+    </message>
+    <message>
+        <source>Single opening quotation mark</source>
+        <translation>Cudzysłów pojedynczy otwierający górny</translation>
+    </message>
+    <message>
+        <source>Opening guillemet</source>
+        <translation>Cudzysłów francuski otwierający</translation>
+    </message>
+    <message>
+        <source>quote French</source>
+        <translation>cudzysłów francuski jodełka</translation>
+    </message>
+    <message>
+        <source>Closing guillemet</source>
+        <translation>Cudzysłów francuski zamykający</translation>
+    </message>
+    <message>
+        <source>Single opening guillemet</source>
+        <translation>Pojedyncza jodełka otwierająca</translation>
+    </message>
+    <message>
+        <source>Single closing guillemet</source>
+        <translation>Pojedyncza jodełka zamykająca</translation>
+    </message>
+    <message>
+        <source>Middle dot</source>
+        <translation>Kropka środkowa</translation>
+    </message>
+    <message>
+        <source>point</source>
+        <translation>punkt</translation>
+    </message>
+    <message>
+        <source>Bullet</source>
+        <translation>Punktor</translation>
+    </message>
+    <message>
+        <source>point list</source>
+        <translation>kropka lista</translation>
+    </message>
+    <message>
+        <source>Section sign</source>
+        <translation>Paragraf</translation>
+    </message>
+    <message>
+        <source>paragraph law</source>
+        <translation>prawo</translation>
+    </message>
+    <message>
+        <source>Pilcrow</source>
+        <translation>Znak akapitu</translation>
+    </message>
+    <message>
+        <source>paragraph mark</source>
+        <translation>akapit</translation>
+    </message>
+    <message>
+        <source>Dagger</source>
+        <translation>Krzyżyk</translation>
+    </message>
+    <message>
+        <source>cross obelisk died</source>
+        <translation>obelisk zmarły</translation>
+    </message>
+    <message>
+        <source>Double dagger</source>
+        <translation>Podwójny krzyżyk</translation>
+    </message>
+    <message>
+        <source>cross</source>
+        <translation>krzyż</translation>
+    </message>
+    <message>
+        <source>Degree sign</source>
+        <translation>Stopień</translation>
+    </message>
+    <message>
+        <source>temperature angle</source>
+        <translation>temperatura kąt</translation>
+    </message>
+    <message>
+        <source>Prime</source>
+        <translation>Prim</translation>
+    </message>
+    <message>
+        <source>minute foot</source>
+        <translation>minuta stopa</translation>
+    </message>
+    <message>
+        <source>Double prime</source>
+        <translation>Bis</translation>
+    </message>
+    <message>
+        <source>second inch</source>
+        <translation>sekunda cal</translation>
+    </message>
+    <message>
+        <source>Per mille sign</source>
+        <translation>Promil</translation>
+    </message>
+    <message>
+        <source>thousand</source>
+        <translation>tysiąc</translation>
+    </message>
+    <message>
+        <source>Numero sign</source>
+        <translation>Numer</translation>
+    </message>
+    <message>
+        <source>number</source>
+        <translation>numero</translation>
+    </message>
+    <message>
+        <source>Copyright sign</source>
+        <translation>Znak praw autorskich</translation>
+    </message>
+    <message>
+        <source>rights</source>
+        <translation>copyright prawa</translation>
+    </message>
+    <message>
+        <source>Registered sign</source>
+        <translation>Zastrzeżony znak towarowy</translation>
+    </message>
+    <message>
+        <source>registered trademark</source>
+        <translation>zastrzeżony</translation>
+    </message>
+    <message>
+        <source>Trade mark sign</source>
+        <translation>Znak towarowy</translation>
+    </message>
+    <message>
+        <source>trademark</source>
+        <translation>towarowy</translation>
+    </message>
+    <message>
+        <source>Inverted exclamation mark</source>
+        <translation>Odwrócony wykrzyknik</translation>
+    </message>
+    <message>
+        <source>Spanish</source>
+        <translation>hiszpański</translation>
+    </message>
+    <message>
+        <source>Inverted question mark</source>
+        <translation>Odwrócony pytajnik</translation>
+    </message>
+    <message>
+        <source>Spanish question</source>
+        <translation>hiszpański znak zapytania</translation>
+    </message>
+    <message>
+        <source>Interrobang</source>
+        <translation>Pytajnik z wykrzyknikiem</translation>
+    </message>
+    <message>
+        <source>question exclamation</source>
+        <translation>pytajnik wykrzyknik</translation>
+    </message>
+    <message>
+        <source>Asterism</source>
+        <translation>Asteryzm</translation>
+    </message>
+    <message>
+        <source>three asterisks scene break</source>
+        <translation>trzy gwiazdki podział sceny</translation>
+    </message>
+    <message>
+        <source>Reference mark</source>
+        <translation>Znak odniesienia</translation>
+    </message>
+    <message>
+        <source>note</source>
+        <translation>przypis</translation>
+    </message>
+    <message>
+        <source>No-break space</source>
+        <translation>Spacja nierozdzielająca</translation>
+    </message>
+    <message>
+        <source>hard nbsp</source>
+        <translation>twarda</translation>
+    </message>
+    <message>
+        <source>Narrow no-break space</source>
+        <translation>Wąska spacja nierozdzielająca</translation>
+    </message>
+    <message>
+        <source>thin hard</source>
+        <translation>twarda cienka</translation>
+    </message>
+    <message>
+        <source>Thin space</source>
+        <translation>Cienka spacja</translation>
+    </message>
+    <message>
+        <source>narrow</source>
+        <translation>wąska</translation>
+    </message>
+    <message>
+        <source>En space</source>
+        <translation>Spacja półfiretowa</translation>
+    </message>
+    <message>
+        <source>wide</source>
+        <translation>szeroka</translation>
+    </message>
+    <message>
+        <source>Em space</source>
+        <translation>Spacja firetowa</translation>
+    </message>
+    <message>
+        <source>Non-breaking hyphen</source>
+        <translation>Łącznik nierozdzielający</translation>
+    </message>
+    <message>
+        <source>hard dash</source>
+        <translation>twardy dywiz</translation>
+    </message>
+    <message>
+        <source>Optional hyphen</source>
+        <translation>Łącznik opcjonalny</translation>
+    </message>
+    <message>
+        <source>soft shy hyphenation</source>
+        <translation>miękki dywiz dzielenie wyrazów</translation>
+    </message>
+    <message>
+        <source>Hyphen</source>
+        <translation>Łącznik</translation>
+    </message>
+    <message>
+        <source>dash</source>
+        <translation>dywiz</translation>
+    </message>
+    <message>
+        <source>Zero width space</source>
+        <translation>Spacja zerowej szerokości</translation>
+    </message>
+    <message>
+        <source>invisible break</source>
+        <translation>niewidoczny podział</translation>
+    </message>
+    <message>
+        <source>Leftwards arrow</source>
+        <translation>Strzałka w lewo</translation>
+    </message>
+    <message>
+        <source>Rightwards arrow</source>
+        <translation>Strzałka w prawo</translation>
+    </message>
+    <message>
+        <source>Upwards arrow</source>
+        <translation>Strzałka w górę</translation>
+    </message>
+    <message>
+        <source>Downwards arrow</source>
+        <translation>Strzałka w dół</translation>
+    </message>
+    <message>
+        <source>Left right arrow</source>
+        <translation>Strzałka w lewo i w prawo</translation>
+    </message>
+    <message>
+        <source>Up down arrow</source>
+        <translation>Strzałka w górę i w dół</translation>
+    </message>
+    <message>
+        <source>Leftwards double arrow</source>
+        <translation>Podwójna strzałka w lewo</translation>
+    </message>
+    <message>
+        <source>Rightwards double arrow</source>
+        <translation>Podwójna strzałka w prawo</translation>
+    </message>
+    <message>
+        <source>Left right double arrow</source>
+        <translation>Podwójna strzałka w obie strony</translation>
+    </message>
+    <message>
+        <source>North west arrow</source>
+        <translation>Strzałka w lewo w górę</translation>
+    </message>
+    <message>
+        <source>North east arrow</source>
+        <translation>Strzałka w prawo w górę</translation>
+    </message>
+    <message>
+        <source>South east arrow</source>
+        <translation>Strzałka w prawo w dół</translation>
+    </message>
+    <message>
+        <source>South west arrow</source>
+        <translation>Strzałka w lewo w dół</translation>
+    </message>
+    <message>
+        <source>Leftwards arrow with hook</source>
+        <translation>Strzałka zawracająca</translation>
+    </message>
+    <message>
+        <source>Heavy rightwards arrow</source>
+        <translation>Gruba strzałka w prawo</translation>
+    </message>
+    <message>
+        <source>Plus-minus sign</source>
+        <translation>Plus minus</translation>
+    </message>
+    <message>
+        <source>Multiplication sign</source>
+        <translation>Znak mnożenia</translation>
+    </message>
+    <message>
+        <source>times</source>
+        <translation>razy</translation>
+    </message>
+    <message>
+        <source>Division sign</source>
+        <translation>Znak dzielenia</translation>
+    </message>
+    <message>
+        <source>Minus sign</source>
+        <translation>Minus</translation>
+    </message>
+    <message>
+        <source>subtraction</source>
+        <translation>odejmowanie</translation>
+    </message>
+    <message>
+        <source>Almost equal to</source>
+        <translation>Prawie równe</translation>
+    </message>
+    <message>
+        <source>about</source>
+        <translation>około</translation>
+    </message>
+    <message>
+        <source>Not equal to</source>
+        <translation>Różne</translation>
+    </message>
+    <message>
+        <source>unequal</source>
+        <translation>nierówne</translation>
+    </message>
+    <message>
+        <source>Less-than or equal to</source>
+        <translation>Mniejsze lub równe</translation>
+    </message>
+    <message>
+        <source>Greater-than or equal to</source>
+        <translation>Większe lub równe</translation>
+    </message>
+    <message>
+        <source>Infinity</source>
+        <translation>Nieskończoność</translation>
+    </message>
+    <message>
+        <source>endless</source>
+        <translation>bez końca</translation>
+    </message>
+    <message>
+        <source>Square root</source>
+        <translation>Pierwiastek</translation>
+    </message>
+    <message>
+        <source>root</source>
+        <translation>pierwiastek kwadratowy</translation>
+    </message>
+    <message>
+        <source>Summation</source>
+        <translation>Suma</translation>
+    </message>
+    <message>
+        <source>sigma</source>
+        <translation>sigma</translation>
+    </message>
+    <message>
+        <source>Product</source>
+        <translation>Iloczyn</translation>
+    </message>
+    <message>
+        <source>Integral</source>
+        <translation>Całka</translation>
+    </message>
+    <message>
+        <source>Partial differential</source>
+        <translation>Pochodna cząstkowa</translation>
+    </message>
+    <message>
+        <source>Increment</source>
+        <translation>Przyrost</translation>
+    </message>
+    <message>
+        <source>delta</source>
+        <translation>delta</translation>
+    </message>
+    <message>
+        <source>Nabla</source>
+        <translation>Nabla</translation>
+    </message>
+    <message>
+        <source>Element of</source>
+        <translation>Należy do</translation>
+    </message>
+    <message>
+        <source>Not an element of</source>
+        <translation>Nie należy do</translation>
+    </message>
+    <message>
+        <source>Intersection</source>
+        <translation>Część wspólna</translation>
+    </message>
+    <message>
+        <source>Union</source>
+        <translation>Suma zbiorów</translation>
+    </message>
+    <message>
+        <source>Subset of</source>
+        <translation>Zawiera się w</translation>
+    </message>
+    <message>
+        <source>For all</source>
+        <translation>Dla każdego</translation>
+    </message>
+    <message>
+        <source>There exists</source>
+        <translation>Istnieje</translation>
+    </message>
+    <message>
+        <source>Not sign</source>
+        <translation>Negacja</translation>
+    </message>
+    <message>
+        <source>Angle</source>
+        <translation>Kąt</translation>
+    </message>
+    <message>
+        <source>Perpendicular</source>
+        <translation>Prostopadłe</translation>
+    </message>
+    <message>
+        <source>Parallel to</source>
+        <translation>Równoległe</translation>
+    </message>
+    <message>
+        <source>Euro sign</source>
+        <translation>Euro</translation>
+    </message>
+    <message>
+        <source>currency money</source>
+        <translation>waluta pieniądze</translation>
+    </message>
+    <message>
+        <source>Dollar sign</source>
+        <translation>Dolar</translation>
+    </message>
+    <message>
+        <source>Pound sign</source>
+        <translation>Funt</translation>
+    </message>
+    <message>
+        <source>Yen sign</source>
+        <translation>Jen</translation>
+    </message>
+    <message>
+        <source>Cent sign</source>
+        <translation>Cent</translation>
+    </message>
+    <message>
+        <source>Ruble sign</source>
+        <translation>Rubel</translation>
+    </message>
+    <message>
+        <source>Hryvnia sign</source>
+        <translation>Hrywna</translation>
+    </message>
+    <message>
+        <source>Indian rupee sign</source>
+        <translation>Rupia indyjska</translation>
+    </message>
+    <message>
+        <source>Won sign</source>
+        <translation>Won</translation>
+    </message>
+    <message>
+        <source>New shekel sign</source>
+        <translation>Szekel</translation>
+    </message>
+    <message>
+        <source>Turkish lira sign</source>
+        <translation>Lira turecka</translation>
+    </message>
+    <message>
+        <source>French franc sign</source>
+        <translation>Frank francuski</translation>
+    </message>
+    <message>
+        <source>Bitcoin sign</source>
+        <translation>Bitcoin</translation>
+    </message>
+    <message>
+        <source>Currency sign</source>
+        <translation>Znak waluty</translation>
+    </message>
+    <message>
+        <source>One half</source>
+        <translation>Jedna druga</translation>
+    </message>
+    <message>
+        <source>fraction half</source>
+        <translation>ułamek pół</translation>
+    </message>
+    <message>
+        <source>One third</source>
+        <translation>Jedna trzecia</translation>
+    </message>
+    <message>
+        <source>fraction</source>
+        <translation>ułamek</translation>
+    </message>
+    <message>
+        <source>Two thirds</source>
+        <translation>Dwie trzecie</translation>
+    </message>
+    <message>
+        <source>One quarter</source>
+        <translation>Jedna czwarta</translation>
+    </message>
+    <message>
+        <source>fraction quarter</source>
+        <translation>ułamek ćwierć</translation>
+    </message>
+    <message>
+        <source>Three quarters</source>
+        <translation>Trzy czwarte</translation>
+    </message>
+    <message>
+        <source>One fifth</source>
+        <translation>Jedna piąta</translation>
+    </message>
+    <message>
+        <source>One eighth</source>
+        <translation>Jedna ósma</translation>
+    </message>
+    <message>
+        <source>Three eighths</source>
+        <translation>Trzy ósme</translation>
+    </message>
+    <message>
+        <source>Five eighths</source>
+        <translation>Pięć ósmych</translation>
+    </message>
+    <message>
+        <source>Seven eighths</source>
+        <translation>Siedem ósmych</translation>
+    </message>
+    <message>
+        <source>Floral heart</source>
+        <translation>Kwiatowe serce</translation>
+    </message>
+    <message>
+        <source>fleuron scene break</source>
+        <translation>ozdobnik podział sceny</translation>
+    </message>
+    <message>
+        <source>Rotated floral heart</source>
+        <translation>Obrócone kwiatowe serce</translation>
+    </message>
+    <message>
+        <source>fleuron</source>
+        <translation>ozdobnik</translation>
+    </message>
+    <message>
+        <source>Reversed rotated floral heart</source>
+        <translation>Odwrócone kwiatowe serce</translation>
+    </message>
+    <message>
+        <source>Diamond of four diamonds</source>
+        <translation>Romb z czterech rombów</translation>
+    </message>
+    <message>
+        <source>Heavy asterisk</source>
+        <translation>Gruba gwiazdka</translation>
+    </message>
+    <message>
+        <source>star</source>
+        <translation>gwiazda</translation>
+    </message>
+    <message>
+        <source>Black star</source>
+        <translation>Gwiazda pełna</translation>
+    </message>
+    <message>
+        <source>White star</source>
+        <translation>Gwiazda pusta</translation>
+    </message>
+    <message>
+        <source>Spade suit</source>
+        <translation>Pik</translation>
+    </message>
+    <message>
+        <source>card</source>
+        <translation>karta</translation>
+    </message>
+    <message>
+        <source>Club suit</source>
+        <translation>Trefl</translation>
+    </message>
+    <message>
+        <source>Heart suit</source>
+        <translation>Kier</translation>
+    </message>
+    <message>
+        <source>card heart</source>
+        <translation>karta serce</translation>
+    </message>
+    <message>
+        <source>Diamond suit</source>
+        <translation>Karo</translation>
+    </message>
+    <message>
+        <source>Eighth note</source>
+        <translation>Ósemka</translation>
+    </message>
+    <message>
+        <source>music</source>
+        <translation>muzyka</translation>
+    </message>
+    <message>
+        <source>Beamed eighth notes</source>
+        <translation>Dwie ósemki</translation>
+    </message>
+    <message>
+        <source>Check mark</source>
+        <translation>Ptaszek</translation>
+    </message>
+    <message>
+        <source>tick</source>
+        <translation>znak wyboru</translation>
+    </message>
+    <message>
+        <source>Ballot X</source>
+        <translation>Iks</translation>
+    </message>
+    <message>
+        <source>cross x</source>
+        <translation>krzyżyk iks</translation>
+    </message>
+    <message>
+        <source>Ballot box</source>
+        <translation>Puste pole wyboru</translation>
+    </message>
+    <message>
+        <source>check box</source>
+        <translation>kratka</translation>
+    </message>
+    <message>
+        <source>Ballot box with check</source>
+        <translation>Pole wyboru z ptaszkiem</translation>
+    </message>
+    <message>
+        <source>Latin cross</source>
+        <translation>Krzyż łaciński</translation>
+    </message>
+    <message>
+        <source>Sun</source>
+        <translation>Słońce</translation>
+    </message>
+    <message>
+        <source>Moon</source>
+        <translation>Księżyc</translation>
+    </message>
+    <message>
+        <source>Envelope</source>
+        <translation>Koperta</translation>
+    </message>
+    <message>
+        <source>letter mail</source>
+        <translation>list</translation>
+    </message>
+    <message>
+        <source>Telephone</source>
+        <translation>Telefon</translation>
+    </message>
+    <message>
+        <source>phone</source>
+        <translation>aparat</translation>
+    </message>
+    <message>
+        <source>Scissors</source>
+        <translation>Nożyczki</translation>
+    </message>
+    <message>
+        <source>cut</source>
+        <translation>wytnij</translation>
+    </message>
+    <message>
+        <source>Writing hand</source>
+        <translation>Pisząca ręka</translation>
+    </message>
+    <message>
+        <source>write</source>
+        <translation>pisanie</translation>
+    </message>
+    <message>
+        <source>Ligature ae</source>
+        <translation>Ligatura ae</translation>
+    </message>
+    <message>
+        <source>Ligature AE</source>
+        <translation>Ligatura AE</translation>
+    </message>
+    <message>
+        <source>Ligature oe</source>
+        <translation>Ligatura oe</translation>
+    </message>
+    <message>
+        <source>Ligature OE</source>
+        <translation>Ligatura OE</translation>
+    </message>
+    <message>
+        <source>o with stroke</source>
+        <translation>o przekreślone</translation>
+    </message>
+    <message>
+        <source>O with stroke</source>
+        <translation>O przekreślone</translation>
+    </message>
+    <message>
+        <source>d with stroke</source>
+        <translation>d przekreślone</translation>
+    </message>
+    <message>
+        <source>D with stroke</source>
+        <translation>D przekreślone</translation>
+    </message>
+    <message>
+        <source>l with stroke</source>
+        <translation>l przekreślone</translation>
+    </message>
+    <message>
+        <source>L with stroke</source>
+        <translation>L przekreślone</translation>
+    </message>
+    <message>
+        <source>Sharp s (eszett)</source>
+        <translation>Ostre s (eszett)</translation>
+    </message>
+    <message>
+        <source>Thorn</source>
+        <translation>Thorn</translation>
+    </message>
+    <message>
+        <source>Thorn (capital letter)</source>
+        <translation>Thorn (wielka litera)</translation>
+    </message>
+    <message>
+        <source>Eth</source>
+        <translation>Eth</translation>
+    </message>
+    <message>
+        <source>Eth (capital letter)</source>
+        <translation>Eth (wielka litera)</translation>
+    </message>
+    <message>
+        <source>Dotless i</source>
+        <translation>i bez kropki</translation>
+    </message>
+    <message>
+        <source>%1 with acute</source>
+        <translation>%1 z kreską</translation>
+    </message>
+    <message>
+        <source>%1 with grave</source>
+        <translation>%1 z akcentem ciężkim</translation>
+    </message>
+    <message>
+        <source>%1 with circumflex</source>
+        <translation>%1 z daszkiem</translation>
+    </message>
+    <message>
+        <source>%1 with diaeresis</source>
+        <translation>%1 z dierezą (umlaut)</translation>
+    </message>
+    <message>
+        <source>%1 with tilde</source>
+        <translation>%1 z tyldą</translation>
+    </message>
+    <message>
+        <source>%1 with ring above</source>
+        <translation>%1 z kółkiem</translation>
+    </message>
+    <message>
+        <source>%1 with macron</source>
+        <translation>%1 z makronem</translation>
+    </message>
+    <message>
+        <source>%1 with breve</source>
+        <translation>%1 z łuczkiem</translation>
+    </message>
+    <message>
+        <source>%1 with ogonek</source>
+        <translation>%1 z ogonkiem</translation>
+    </message>
+    <message>
+        <source>%1 with cedilla</source>
+        <translation>%1 z cedyllą</translation>
+    </message>
+    <message>
+        <source>%1 with caron</source>
+        <translation>%1 z haczkiem</translation>
+    </message>
+    <message>
+        <source>%1 with dot above</source>
+        <translation>%1 z kropką</translation>
+    </message>
+    <message>
+        <source>%1 with double acute</source>
+        <translation>%1 z podwójną kreską</translation>
+    </message>
+    <message>
+        <source>%1 with comma below</source>
+        <translation>%1 z przecinkiem pod spodem</translation>
+    </message>
+    <message>
+        <source>alpha</source>
+        <translation>alfa</translation>
+    </message>
+    <message>
+        <source>beta</source>
+        <translation>beta</translation>
+    </message>
+    <message>
+        <source>gamma</source>
+        <translation>gamma</translation>
+    </message>
+    <message>
+        <source>epsilon</source>
+        <translation>epsilon</translation>
+    </message>
+    <message>
+        <source>zeta</source>
+        <translation>dzeta</translation>
+    </message>
+    <message>
+        <source>eta</source>
+        <translation>eta</translation>
+    </message>
+    <message>
+        <source>theta</source>
+        <translation>theta</translation>
+    </message>
+    <message>
+        <source>iota</source>
+        <translation>jota</translation>
+    </message>
+    <message>
+        <source>kappa</source>
+        <translation>kappa</translation>
+    </message>
+    <message>
+        <source>lambda</source>
+        <translation>lambda</translation>
+    </message>
+    <message>
+        <source>mu</source>
+        <translation>mi</translation>
+    </message>
+    <message>
+        <source>nu</source>
+        <translation>ni</translation>
+    </message>
+    <message>
+        <source>xi</source>
+        <translation>ksi</translation>
+    </message>
+    <message>
+        <source>omicron</source>
+        <translation>omikron</translation>
+    </message>
+    <message>
+        <source>pi</source>
+        <translation>pi</translation>
+    </message>
+    <message>
+        <source>rho</source>
+        <translation>rho</translation>
+    </message>
+    <message>
+        <source>tau</source>
+        <translation>tau</translation>
+    </message>
+    <message>
+        <source>upsilon</source>
+        <translation>ypsilon</translation>
+    </message>
+    <message>
+        <source>phi</source>
+        <translation>fi</translation>
+    </message>
+    <message>
+        <source>chi</source>
+        <translation>chi</translation>
+    </message>
+    <message>
+        <source>psi</source>
+        <translation>psi</translation>
+    </message>
+    <message>
+        <source>omega</source>
+        <translation>omega</translation>
+    </message>
+    <message>
+        <source>Punctuation and Typography</source>
+        <translation>Interpunkcja i typografia</translation>
+    </message>
+    <message>
+        <source>Spaces and Hyphens</source>
+        <translation>Spacje i łączniki</translation>
+    </message>
+    <message>
+        <source>Accented Letters</source>
+        <translation>Litery z akcentami</translation>
+    </message>
+    <message>
+        <source>letter accent</source>
+        <translation>litera akcent diakrytyczny</translation>
+    </message>
+    <message>
+        <source>Greek Alphabet</source>
+        <translation>Alfabet grecki</translation>
+    </message>
+    <message>
+        <source>greek</source>
+        <translation>grecki</translation>
+    </message>
+    <message>
+        <source>%1 (small letter)</source>
+        <translation>%1 (mała litera)</translation>
+    </message>
+    <message>
+        <source>%1 (capital letter)</source>
+        <translation>%1 (wielka litera)</translation>
+    </message>
+    <message>
+        <source>Arrows</source>
+        <translation>Strzałki</translation>
+    </message>
+    <message>
+        <source>Mathematics</source>
+        <translation>Matematyka</translation>
+    </message>
+    <message>
+        <source>Currencies</source>
+        <translation>Waluty</translation>
+    </message>
+    <message>
+        <source>Fractions and Indices</source>
+        <translation>Ułamki i indeksy</translation>
+    </message>
+    <message>
+        <source>power</source>
+        <translation>potęga</translation>
+    </message>
+    <message>
+        <source>Superscript %1</source>
+        <translation>Indeks górny %1</translation>
+    </message>
+    <message>
+        <source>Subscript %1</source>
+        <translation>Indeks dolny %1</translation>
+    </message>
+    <message>
+        <source>Ornaments</source>
+        <translation>Ozdobniki</translation>
+    </message>
+    <message>
+        <source>Character %1</source>
+        <extracomment>%1 is the code of a character, as U+2603</extracomment>
+        <translation>Znak %1</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SpellingCoordinator</name>
@@ -10069,6 +11500,51 @@ Harmonogram projektu:
         <source>Copy puts the technical description of the error on the clipboard.</source>
         <extracomment>Under what went wrong when the program does not know its cause. In Polish: Opis techniczny błędu skopiujesz przyciskiem „Kopiuj”.</extracomment>
         <translation>Opis techniczny błędu skopiujesz przyciskiem „Kopiuj”.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::CharacterShortcutDialog</name>
+    <message>
+        <source>Shortcut for a Character</source>
+        <translation>Skrót znaku</translation>
+    </message>
+    <message>
+        <source>Press the keys that are to insert %1.</source>
+        <extracomment>%1 is a character with its name, as "Em dash (—)"</extracomment>
+        <translation>Naciśnij klawisze, które mają wstawiać znak: %1.</translation>
+    </message>
+    <message>
+        <source>Assign</source>
+        <translation>Przypisz</translation>
+    </message>
+    <message>
+        <source>No shortcut</source>
+        <translation>Bez skrótu</translation>
+    </message>
+    <message>
+        <source>Shortcut</source>
+        <translation>Skrót</translation>
+    </message>
+    <message>
+        <source>The shortcut is also on the page Settings &gt; Keyboard Shortcuts, in the group Characters, where it can be changed or removed.</source>
+        <translation>Skrót widać też na stronie Ustawienia &gt; Skróty klawiszowe, w grupie Znaki – tam można go zmienić lub usunąć.</translation>
+    </message>
+    <message>
+        <source>&amp;Press Other Keys</source>
+        <translation>&amp;Naciśnij inne klawisze</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Shortcut</source>
+        <translation>&amp;Usuń skrót</translation>
+    </message>
+    <message>
+        <source>Press the keys... (Esc – cancel)</source>
+        <translation>Naciśnij klawisze... (Esc – anuluj)</translation>
+    </message>
+    <message>
+        <source>%1 belongs to &lt;b&gt;%2&lt;/b&gt; now: if you assign it here, that command will be left without a shortcut.</source>
+        <extracomment>%1 are keys, %2 the command that has them</extracomment>
+        <translation>Skrót %1 należy teraz do polecenia &lt;b&gt;%2&lt;/b&gt;: jeśli przypiszesz go tutaj, tamto polecenie zostanie bez skrótu.</translation>
     </message>
 </context>
 <context>
@@ -11675,6 +13151,226 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>New name</source>
         <translation>Nowa nazwa</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ReplacementDialog</name>
+    <message>
+        <source>New Replacement</source>
+        <translation>Nowa zamiana</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces the word you type here with %1.</source>
+        <extracomment>%1 is a character with its name, as "Rightwards arrow (→)"</extracomment>
+        <translation>Autokorekta zamieni wpisane tu słowo na znak: %1.</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>e.g. -&gt;</source>
+        <translation>np. -&gt;</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>Słowo do zamiany</translation>
+    </message>
+    <message>
+        <source>A replacement is one word: without spaces.</source>
+        <translation>Zamieniane jest jedno słowo: bez spacji.</translation>
+    </message>
+    <message>
+        <source>The replacement table has this pair already.</source>
+        <translation>Ta para jest już w tabeli zamian.</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces “%1” with “%2” now: Add puts “%3” in its place.</source>
+        <extracomment>%1 is a word, %2 what replaces it now, %3 the character</extracomment>
+        <translation>Autokorekta zamienia teraz „%1” na „%2”: Dodaj wstawi w to miejsce „%3”.</translation>
+    </message>
+    <message>
+        <source>The pair goes to the replacement table on the page Settings &gt; Editor &gt; Auto-correct, and works after a space or a punctuation mark.</source>
+        <translation>Para trafi do tabeli zamian na stronie Ustawienia &gt; Edytor &gt; Autokorekta i zadziała po spacji lub znaku interpunkcyjnym.</translation>
+    </message>
+    <message>
+        <source>The replacements of the table are turned off now (Settings &gt; Editor &gt; Auto-correct).</source>
+        <translation>Zamiany z tabeli są teraz wyłączone (Ustawienia &gt; Edytor &gt; Autokorekta).</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::SpecialCharacterDialog</name>
+    <message>
+        <source>Special Character</source>
+        <translation>Znak specjalny</translation>
+    </message>
+    <message>
+        <source>Enter inserts the character at the cursor. Esc closes the window.</source>
+        <translation>Enter wstawia znak w miejscu kursora. Esc zamyka okno.</translation>
+    </message>
+    <message>
+        <source>&amp;Insert</source>
+        <translation>&amp;Wstaw</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the window open after inserting</source>
+        <translation>&amp;Zostaw okno otwarte po wstawieniu</translation>
+    </message>
+    <message>
+        <source>Add to &amp;Favorites</source>
+        <translation>Dodaj do &amp;ulubionych</translation>
+    </message>
+    <message>
+        <source>Assign &amp;Shortcut...</source>
+        <translation>Przypisz s&amp;krót...</translation>
+    </message>
+    <message>
+        <source>Add &amp;Replacement...</source>
+        <translation>Dodaj za&amp;mianę...</translation>
+    </message>
+    <message>
+        <source>Find: a name or a code, e.g. em dash, arrow, euro, 2014</source>
+        <translation>Szukaj: nazwa lub kod, np. pauza, strzałka, euro, 2014</translation>
+    </message>
+    <message>
+        <source>Find a character</source>
+        <translation>Szukaj znaku</translation>
+    </message>
+    <message>
+        <source>View</source>
+        <translation>Widok</translation>
+    </message>
+    <message>
+        <source>&amp;Grid</source>
+        <translation>&amp;Siatka</translation>
+    </message>
+    <message>
+        <source>The characters in a grid, by group</source>
+        <translation>Znaki w siatce, według grup</translation>
+    </message>
+    <message>
+        <source>&amp;List</source>
+        <translation>&amp;Lista</translation>
+    </message>
+    <message>
+        <source>The characters in a list, with their names</source>
+        <translation>Znaki na liście, z nazwami</translation>
+    </message>
+    <message>
+        <source>Groups</source>
+        <translation>Grupy</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>Ulubione</translation>
+    </message>
+    <message>
+        <source>Recently Used</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Characters</source>
+        <translation>Znaki</translation>
+    </message>
+    <message>
+        <source>Give the character keys that insert it</source>
+        <translation>Przypisz znakowi klawisze, które go wstawiają</translation>
+    </message>
+    <message>
+        <source>Add a text that auto-correct replaces with the character as you type</source>
+        <translation>Dodaj tekst, który autokorekta zamieni na ten znak podczas pisania</translation>
+    </message>
+    <message>
+        <source>Recently &amp;used</source>
+        <translation>&amp;Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Recently used</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>The characters you insert appear here.</source>
+        <translation>Tu pojawią się wstawiane znaki.</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <translation>Wszystkie</translation>
+    </message>
+    <message>
+        <source>Character</source>
+        <translation>Znak</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Code</source>
+        <translation>Kod</translation>
+    </message>
+    <message>
+        <source>Shortcut, auto-correct</source>
+        <translation>Skrót, autokorekta</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Ulubiony</translation>
+    </message>
+    <message>
+        <source>Nothing matches “%1”. Type another name, or a code such as U+2014.</source>
+        <translation>Nic nie pasuje do „%1”. Wpisz inną nazwę albo kod, np. U+2014.</translation>
+    </message>
+    <message>
+        <source>auto-correct %1</source>
+        <extracomment>In the list of the characters: what auto-correct replaces with one</extracomment>
+        <translation>autokorekta %1</translation>
+    </message>
+    <message>
+        <source>A favorite: click to remove it</source>
+        <translation>Ulubiony: kliknij, aby usunąć</translation>
+    </message>
+    <message>
+        <source>Click to add it to the favorites</source>
+        <translation>Kliknij, aby dodać do ulubionych</translation>
+    </message>
+    <message>
+        <source>Code: %1</source>
+        <translation>Kod: %1</translation>
+    </message>
+    <message>
+        <source>Shortcut: %1</source>
+        <translation>Skrót: %1</translation>
+    </message>
+    <message>
+        <source>Auto-correct: %1</source>
+        <extracomment>%1: what auto-correct replaces with the character, as "(c)" or "--"</extracomment>
+        <translation>Autokorekta: %1</translation>
+    </message>
+    <message>
+        <source>The font %1 has no such character: in the text another font shows it.</source>
+        <extracomment>%1 is the name of a font</extracomment>
+        <translation>Czcionka %1 nie ma tego znaku: w tekście pokaże go inna czcionka.</translation>
+    </message>
+    <message>
+        <source>No character</source>
+        <translation>Brak znaku</translation>
+    </message>
+    <message>
+        <source>Remove from &amp;Favorites</source>
+        <translation>Usuń z &amp;ulubionych</translation>
+    </message>
+    <message>
+        <source>Insert is greyed out: %1</source>
+        <extracomment>%1 says why, as "No chapter is open"</extracomment>
+        <translation>Nie można wstawić: %1</translation>
+    </message>
+    <message>
+        <source>Not in the font %1: in the text another font shows it.</source>
+        <translation>Nie ma go w czcionce %1: w tekście pokaże go inna czcionka.</translation>
     </message>
 </context>
 <context>

@@ -151,7 +151,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // hides the program, F11 shows the desktop, Option+Up and Option+Down move the cursor by
     // paragraphs in the text (editor/text_keys.h), and Option with a digit types a character,
     // so the paragraph styles have Option+Cmd with it (and the pastes Option+Shift+Cmd with a
-    // letter).
+    // letter). Option with the hyphen types the dashes itself, so their commands have no keys.
 #ifdef Q_OS_MACOS
     const KeyboardShortcut exitShortcut(Qt::Key_Q, Qt::ControlModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_F, Qt::ControlModifier | Qt::AltModifier);
@@ -162,6 +162,8 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     const Qt::KeyboardModifiers pasteModifiers =
         Qt::ControlModifier | Qt::AltModifier | Qt::ShiftModifier;
     const KeyboardShortcut clearFormattingShortcut(Qt::Key_Backslash, Qt::ControlModifier);
+    const KeyboardShortcut enDashShortcut;
+    const KeyboardShortcut emDashShortcut;
 #else
     const KeyboardShortcut exitShortcut(Qt::Key_F4, Qt::AltModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_H, Qt::ControlModifier);
@@ -171,6 +173,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     const Qt::KeyboardModifiers styleModifiers = Qt::AltModifier;
     const Qt::KeyboardModifiers pasteModifiers = Qt::AltModifier | Qt::ShiftModifier;
     const KeyboardShortcut clearFormattingShortcut(Qt::Key_Space, Qt::ControlModifier);
+    // Word has Ctrl with the minus of the keypad, here Zoom Out
+    const KeyboardShortcut enDashShortcut(Qt::Key_Minus, Qt::AltModifier);
+    const KeyboardShortcut emDashShortcut(Qt::Key_Underscore, Qt::AltModifier);
 #endif
 
     // =========================================================================
@@ -429,7 +434,36 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("insert.todo", QT_TRANSLATE_NOOP("CommandRegistrar", "Add To &Do"), "INSERT/Add To Do", 72, false, 0);
     REG_CMD("insert.note", QT_TRANSLATE_NOOP("CommandRegistrar", "Add &Note"), "INSERT/Add Note", 73, true, 0);
 
-    REG_CMD("insert.specialChar", QT_TRANSLATE_NOOP("CommandRegistrar", "&Special Character..."), "INSERT/Special Character...", 80, false, 1);
+    REG_CMD_CB("insert.specialChar", QT_TRANSLATE_NOOP("CommandRegistrar", "&Special Character..."), "INSERT/Special Character...", 80, false, 0,
+               callbacks.onSpecialCharacter);
+    // The favorites, the characters used last and a search at the cursor. Ctrl+Shift+I: I as
+    // insert, beside Ctrl+I (italic); neither the program nor the systems have it (Ctrl+Shift+E
+    // and Ctrl+. pick an emoji on some Linux desktops, Ctrl+Shift+U types a code there)
+    REG_CMD_KEY_CB("insert.quickCharacter", QT_TRANSLATE_NOOP("CommandRegistrar", "&Quick Character"), "INSERT/Quick Character", 81, false, 0,
+                   KeyboardShortcut(Qt::Key_I, Qt::ControlModifier | Qt::ShiftModifier),
+                   callbacks.onQuickCharacter);
+
+    // Formatting Character: the characters of the typesetting a keyboard does not have, as in
+    // Word and LibreOffice, with Word's keys. Ctrl+_ is Ctrl+Shift+- (the keys are written
+    // as the list of shortcuts records them)
+    const auto insertCharacters = [&callbacks](const QString& characters) -> std::function<void()> {
+        if (!callbacks.onInsertCharacters) {
+            return {};
+        }
+        return [onInsert = callbacks.onInsertCharacters, characters]() { onInsert(characters); };
+    };
+    REG_CMD_KEY_CB("insert.noBreakSpace", QT_TRANSLATE_NOOP("CommandRegistrar", "&Non-breaking Space"), "INSERT/Formatting Character/Non-breaking Space", 82, false, 0,
+                   KeyboardShortcut(Qt::Key_Space, Qt::ControlModifier | Qt::ShiftModifier),
+                   insertCharacters(QString(QChar(0x00A0))));
+    REG_CMD_KEY_CB("insert.nonBreakingHyphen", QT_TRANSLATE_NOOP("CommandRegistrar", "Non-breaking &Hyphen"), "INSERT/Formatting Character/Non-breaking Hyphen", 83, false, 0,
+                   KeyboardShortcut(Qt::Key_Underscore, Qt::ControlModifier),
+                   insertCharacters(QString(QChar(0x2011))));
+    REG_CMD_CB("insert.optionalHyphen", QT_TRANSLATE_NOOP("CommandRegistrar", "&Optional Hyphen"), "INSERT/Formatting Character/Optional Hyphen", 84, true, 0,
+               insertCharacters(QString(QChar(0x00AD))));
+    REG_CMD_KEY_CB("insert.enDash", QT_TRANSLATE_NOOP("CommandRegistrar", "&En Dash"), "INSERT/Formatting Character/En Dash", 85, false, 0,
+                   enDashShortcut, insertCharacters(QString(QChar(0x2013))));
+    REG_CMD_KEY_CB("insert.emDash", QT_TRANSLATE_NOOP("CommandRegistrar", "E&m Dash"), "INSERT/Formatting Character/Em Dash", 86, false, 0,
+                   emDashShortcut, insertCharacters(QString(QChar(0x2014))));
     REG_CMD("insert.dateTime", QT_TRANSLATE_NOOP("CommandRegistrar", "Date && &Time"), "INSERT/Date & Time", 90, false, 1);
     REG_CMD("insert.field", QT_TRANSLATE_NOOP("CommandRegistrar", "&Field..."), "INSERT/Field...", 100, true, 1);
 

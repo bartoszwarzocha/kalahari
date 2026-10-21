@@ -38,6 +38,7 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Import") return QObject::tr("&Import");
     if (technicalName == "Export") return QObject::tr("&Export");
     if (technicalName == "Text Style") return QObject::tr("Text &Style");
+    if (technicalName == "Formatting Character") return QObject::tr("Fo&rmatting Character");
     if (technicalName == "Statistics") return QObject::tr("&Statistics");
     if (technicalName == "Plugins") return QObject::tr("P&lugins");
     if (technicalName == "Assistant Actions") return QObject::tr("Assistant A&ctions");
@@ -69,6 +70,7 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Import", QStringLiteral("menu.import")},
         {"Export", QStringLiteral("menu.export")},
         {"Recent Books", QStringLiteral("menu.recentBooks")},
+        {"Formatting Character", QStringLiteral("menu.formattingCharacter")},
         {"Text Style", QStringLiteral("menu.textStyle")},
         {"Statistics", QStringLiteral("menu.statistics")},
         {"Plugins", QStringLiteral("menu.plugins")},

@@ -54,6 +54,7 @@ class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
 class EditCoordinator;
+class SpecialCharacterCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
@@ -380,6 +381,8 @@ private:
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
+    /// Insert > Special Character... and Insert > Quick Character
+    SpecialCharacterCoordinator* m_specialCharacterCoordinator{nullptr};
     GrammarCoordinator* m_grammarCoordinator{nullptr};
 
     /// @brief The Spelling and Grammar panel and when it shows
