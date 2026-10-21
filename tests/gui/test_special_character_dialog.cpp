@@ -513,20 +513,19 @@ TEST_CASE("Special characters: keys given to a character", "[gui][special-charac
     action->trigger();
     CHECK(inserted == QStringList{QStringLiteral("→")});
 
-    // Keys of another command: it is left without them
-    const KeyboardShortcut emDashKeys =
-        CommandRegistry::getInstance().defaultShortcut("insert.emDash");
-#ifndef Q_OS_MACOS
-    REQUIRE_FALSE(emDashKeys.isEmpty());
-    coordinator.setCharacterKeys(U'←', emDashKeys);
+    // Keys of another command (Insert > Annotation..., the same keys on every system): it is
+    // left without them
+    const KeyboardShortcut annotationKeys =
+        CommandRegistry::getInstance().defaultShortcut("insert.annotation");
+    REQUIRE_FALSE(annotationKeys.isEmpty());
+    coordinator.setCharacterKeys(U'←', annotationKeys);
     CHECK(CommandRegistry::getInstance()
-              .getAction(std::string("insert.emDash"))
+              .getAction(std::string("insert.annotation"))
               ->shortcut()
               .isEmpty());
     CHECK(CommandRegistry::getInstance()
               .getAction(std::string("insert.character.2190"))
-              ->shortcut() == emDashKeys.toQKeySequence());
-#endif
+              ->shortcut() == annotationKeys.toQKeySequence());
 
     // A character of Insert > Formatting Character: the keys of its command
     coordinator.setCharacterKeys(U'­', KeyboardShortcut(Qt::Key_F8, Qt::ControlModifier));
