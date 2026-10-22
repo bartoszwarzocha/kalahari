@@ -735,7 +735,11 @@ TEST_CASE("Versions: the Navigator has Version History for a text, and its keys"
         w.window.window.show();
         tree->expandAll();
         test::ContextMenuReader reader(w.window.navigatorPanel);
+#ifdef Q_OS_MACOS
+        reader.chooseItem(QStringLiteral("Version &History..."));  // macOS has no access keys
+#else
         reader.chooseWith(QLatin1Char('H'));
+#endif
         emit tree->customContextMenuRequested(tree->visualItemRect(chapter).center());
         REQUIRE(reader.menusRead() == 1);
         bool listed = false;
