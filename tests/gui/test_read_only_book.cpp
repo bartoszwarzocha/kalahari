@@ -329,9 +329,9 @@ TEST_CASE("Read-only book: the Navigator's menus open and show, and change nothi
         return reader.items();
     };
 
-    // A chapter opens and shows its properties, only read
+    // A chapter opens and shows its versions and its properties, only read
     const QList<MenuItem> chapter = menuOf(itemOf(*tree, Qt::UserRole, novel.chapterId));
-    CHECK(textsOf(chapter, true) == QStringList{"Open", "Properties..."});
+    CHECK(textsOf(chapter, true) == QStringList{"Open", "Version History...", "Properties..."});
     CHECK(textsOf(chapter, false) ==
           QStringList{"Add...", "Add Chapter...", "Rename...", "Delete...", "Move...",
                       "Move to Start", "Move Up", "Move Down", "Move to End", "Set Status"});

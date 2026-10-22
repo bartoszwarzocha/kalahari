@@ -17,6 +17,7 @@
 #include <functional>
 #include <optional>
 
+class QButtonGroup;
 class QCheckBox;
 class QLabel;
 class QListWidget;
@@ -182,6 +183,7 @@ private:
     QPushButton* m_saveButton = nullptr;
     QPushButton* m_textButton = nullptr;
     QPushButton* m_changesButton = nullptr;
+    QButtonGroup* m_modes = nullptr;
     QToolButton* m_previousButton = nullptr;
     QToolButton* m_nextButton = nullptr;
     QLabel* m_summaryLabel = nullptr;

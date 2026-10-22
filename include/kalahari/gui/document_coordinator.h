@@ -9,7 +9,6 @@
 #include "kalahari/core/standalone_file.h"
 
 #include <QObject>
-#include <QPointer>
 #include <QString>
 #include <QStringList>
 #include <functional>
@@ -444,12 +443,13 @@ private:
 
     /// @brief A notice under a text (showNotice())
     struct Notice {
-        QPointer<EditorPanel> editor;  ///< The tab of the text; null: no notice
+        EditorPanel* editor = nullptr;  ///< The tab of the text; null: no notice
         QString message;
         QString actionText;
         QString actionToolTip;
         std::function<void()> action;
         QMetaObject::Connection changed;  ///< The first change of the text ends it
+        QMetaObject::Connection closed;   ///< So does closing its tab
     };
     Notice m_notice;
     QStatusBar* m_statusBar;

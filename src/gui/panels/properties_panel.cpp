@@ -1353,8 +1353,9 @@ void PropertiesPanel::showVersions(const QString& elementId) {
                                       "as a version"),
                                    {{QStringLiteral("kind"), kind}}));
     //: In Polish: Przeczytaj, porównaj albo przywróć wersje {kind:genitive}
-    m_versionHistoryButton->setToolTip(core::fillWords(
-        tr("Read, compare or restore the versions of the {kind}"), {{QStringLiteral("kind"), kind}}));
+    m_versionHistoryButton->setToolTip(
+        core::fillWords(tr("Read, compare or restore the versions of the {kind}"),
+                        {{QStringLiteral("kind"), kind}}));
 }
 
 void PropertiesPanel::selectChapterStatus(const QString& status) {

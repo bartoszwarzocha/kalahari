@@ -6,6 +6,7 @@
 #include "document_window.h"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <kalahari/core/chapter_versions.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
@@ -41,9 +42,11 @@
 #include <QStatusBar>
 #include <QTimer>
 #include <QToolButton>
+#include <QTranslator>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
+#include <cstdio>
 #include <functional>
 
 using namespace kalahari;
@@ -79,9 +82,14 @@ public:
         settings.set<bool>(core::ChapterVersions::ON_SAVE_SETTING, false);
     }
     ~KeptVersionSettings() {
-        auto& settings = core::SettingsManager::getInstance();
-        settings.set<bool>(core::ChapterVersions::ASK_NAME_SETTING, m_ask);
-        settings.set<bool>(core::ChapterVersions::ON_SAVE_SETTING, m_onSave);
+        try {
+            auto& settings = core::SettingsManager::getInstance();
+            settings.set<bool>(core::ChapterVersions::ASK_NAME_SETTING, m_ask);
+            settings.set<bool>(core::ChapterVersions::ON_SAVE_SETTING, m_onSave);
+        } catch (...) {
+            // Left as the test made them; the next tests set what they need
+            std::fputs("The settings of the versions could not be given back\n", stderr);
+        }
     }
     KeptVersionSettings(const KeptVersionSettings&) = delete;
     KeptVersionSettings& operator=(const KeptVersionSettings&) = delete;
@@ -249,13 +257,15 @@ TEST_CASE("Versions: the history compares a version with the current text, chang
     CHECK(window.preview().contains(QStringLiteral("storm")));
     CHECK(window.preview().contains(QStringLiteral("long")));
     CHECK(window.dialog->currentChange() == 0);
-    CHECK(window.dialog->summary() == QStringLiteral("Change 1 of 2 · deleted words: 1 · added: 2"));
+    CHECK(window.dialog->summary() ==
+          QStringLiteral("Change 1 of 2 · deleted words: 1 · added: 2"));
     CHECK(window.dialog->preview()->isReadOnly());
 
     // From change to change, from the last to the first again
     window.dialog->goToChange(true);
     CHECK(window.dialog->currentChange() == 1);
-    CHECK(window.dialog->summary() == QStringLiteral("Change 2 of 2 · deleted words: 1 · added: 2"));
+    CHECK(window.dialog->summary() ==
+          QStringLiteral("Change 2 of 2 · deleted words: 1 · added: 2"));
     window.dialog->goToChange(true);
     CHECK(window.dialog->currentChange() == 0);
     window.dialog->goToChange(false);
@@ -431,6 +441,17 @@ TEST_CASE("Versions: in a book open read-only the history only reads and compare
 
 TEST_CASE("Versions: the history fits a small screen with its buttons in view",
           "[gui][versions][dialogs]") {
+    // In English and in Polish, whose words are longer; the translation goes with the test
+    struct Translation {
+        QTranslator translator;
+        ~Translation() { QCoreApplication::removeTranslator(&translator); }
+    } polish;
+    const bool inPolish = GENERATE(false, true);
+    if (inPolish) {
+        REQUIRE(polish.translator.load(QStringLiteral(":/i18n/kalahari_pl.qm")));
+        QCoreApplication::installTranslator(&polish.translator);
+    }
+    INFO((inPolish ? "Polish" : "English"));
     KeptVersionSettings settings;
     OpenNovel novel(QStringLiteral("Rain"));
     kept(novel.chapterId, QStringLiteral("Dark night."));
@@ -590,7 +611,9 @@ TEST_CASE("Versions: a version restored takes the place of the text, which is ke
     CHECK(plainOf(*w.novel.pm.versionsOf(w.novel.chapterId)->text(before.file)) ==
           QStringLiteral("Bright day."));
 
-    // The bar under the text says so, with Undo
+    // The bar under the text says so, with Undo, also after what waited for the events
+    QApplication::processEvents();
+    QApplication::processEvents();
     REQUIRE(w.window.infoBar->showsNotice());
     CHECK_FALSE(w.window.infoBar->isHidden());
     CHECK(w.window.infoBar->message() ==
@@ -618,6 +641,12 @@ TEST_CASE("Versions: a version restored takes the place of the text, which is ke
         test::write(*panel, QStringLiteral("Dark night came."));
         CHECK(w.window.infoBar->isHidden());
         CHECK_FALSE(w.window.documents.hasNotice(panel));
+    }
+
+    SECTION("Closing its tab ends it") {
+        const gui::EditorPanel* closed = panel;
+        delete panel;
+        CHECK_FALSE(w.window.documents.hasNotice(closed));
     }
 
     SECTION("The bar goes with its X") {

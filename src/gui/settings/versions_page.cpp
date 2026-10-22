@@ -104,7 +104,7 @@ EditorVersionsPage::EditorVersionsPage(QWidget* parent)
     connect(onSave, &QCheckBox::toggled, this, syncMinutes);
     whenLoaded(syncMinutes);
 
-    //: In Polish: Przed „Zamień wszystko” w rozdziale
+    //: In Polish: Przed „Zamień wszystkie” w rozdziale
     QCheckBox* beforeReplaceAll =
         addCheckBox(automatic, tr("Before Replace All in a chapter"),
                     ChapterVersions::BEFORE_REPLACE_ALL_SETTING);

@@ -1545,6 +1545,8 @@ Rules for a new shortcut:
 | File > Close Book | Ctrl+F4 |
 | File > Save | Ctrl+S |
 | File > Save As... | Ctrl+Shift+S |
+| File > Save Version... | Alt+Shift+S (macOS: Cmd+Option+Shift+S) |
+| File > Version History... | Alt+Shift+H (macOS: Cmd+Option+Shift+H) |
 | File > Exit | Alt+F4 |
 | Edit > Undo | Ctrl+Z |
 | Edit > Redo | Ctrl+Y (in the text also Ctrl+Shift+Z) |
@@ -1608,11 +1610,14 @@ may have them too.
   expression (in the bar and in the text under it, before the menus with these letters).
 - **Annotation frame:** Ctrl+Enter – keep the text, Esc – drop it.
 - **Navigator:** Insert or Ctrl+Shift+Enter – Add... on the node, Enter – open the element,
-  F2 – rename the node, Delete – delete the element (in the tree only, before the commands
-  with these keys).
+  F2 – rename the node, Delete – delete the element, Alt+Shift+H – the version history of
+  the selected text (in the tree only, before the commands with these keys).
 - **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –
   edit, Space – done or resolved, Delete – delete, the Menu key or Shift+F10 – its menu,
   Esc – back to the text.
+- **Version History window:** F2 – change the description, Delete – delete the version (in
+  the list); Alt+Down and Alt+Up – the next and the previous change (macOS: Cmd+Option with
+  the arrows); Ctrl+C and Ctrl+A in the preview.
 - **Distraction-Free:** Esc – leave it; Alt with the letter of a menu – the menus at the
   top with that menu open.
 - **Menus (Windows and Linux):** Alt with the underlined letter of a menu's name opens it; in

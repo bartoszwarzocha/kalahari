@@ -85,7 +85,8 @@ public:
         const QColor text =
             option.palette.color(group, selected ? QPalette::HighlightedText : QPalette::Text);
         const QColor details =
-            selected ? text : SettingsPage::noteColorOn(option.palette.color(group, QPalette::Base));
+            selected ? text
+                     : SettingsPage::noteColorOn(option.palette.color(group, QPalette::Base));
 
         const QRect area = option.rect.adjusted(ROW_PADDING, ROW_PADDING, -ROW_PADDING,
                                                 -ROW_PADDING);
@@ -221,11 +222,11 @@ VersionHistoryDialog::VersionHistoryDialog(Text text, SaveVersion saveVersion, Q
     //: In Polish: &Zmiany do bieżącego tekstu
     m_changesButton = new QPushButton(tr("&Changes to the Current Text"), previewColumn);
     m_changesButton->setObjectName(QStringLiteral("versionChangesMode"));
-    auto* modes = new QButtonGroup(this);
+    m_modes = new QButtonGroup(this);
     for (QPushButton* button : {m_textButton, m_changesButton}) {
         button->setCheckable(true);
         button->setAutoDefault(false);
-        modes->addButton(button);
+        m_modes->addButton(button);
         tools->addWidget(button);
     }
     m_changesButton->setChecked(true);
@@ -399,13 +400,14 @@ void VersionHistoryDialog::setUpPreview() {
     auto& art = core::ArtProvider::getInstance();
     auto* copy = new QAction(art.getIcon(QStringLiteral("edit.copy"), core::IconContext::Menu),
                              tr("&Copy"), m_preview);
-    copy->setShortcuts(QKeySequence::Copy);
+    copy->setShortcuts({QKeySequence(Qt::ControlModifier | Qt::Key_C),
+                        QKeySequence(Qt::ControlModifier | Qt::Key_Insert)});
     copy->setShortcutContext(Qt::WidgetShortcut);
     connect(copy, &QAction::triggered, this, &VersionHistoryDialog::copySelected);
     auto* selectAll = new QAction(
         art.getIcon(QStringLiteral("edit.selectAll"), core::IconContext::Menu), tr("Select &All"),
         m_preview);
-    selectAll->setShortcuts(QKeySequence::SelectAll);
+    selectAll->setShortcut(QKeySequence(Qt::ControlModifier | Qt::Key_A));
     selectAll->setShortcutContext(Qt::WidgetShortcut);
     connect(selectAll, &QAction::triggered, m_preview, &editor::BookEditor::selectAll);
     m_preview->addAction(copy);

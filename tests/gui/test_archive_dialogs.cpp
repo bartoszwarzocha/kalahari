@@ -476,7 +476,8 @@ TEST_CASE("Export Project Archive: why the archive could not be saved",
     const QString folder = QDir(dir.path()).filePath(QStringLiteral("Archives"));
     Kind failure = Kind::Other;
     ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, folder,
-                               [&failure](const QString&, bool, bool, const ArchiveDialog::Progress&,
+                               [&failure](const QString&, bool, bool,
+                                          const ArchiveDialog::Progress&,
                                           core::ArchiveProblem* problem) {
                                    problem->kind = failure;
                                    if (failure != Kind::ChangesNotSaved) {
@@ -563,8 +564,8 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
                              QStringLiteral("template.chapter")});
     }
     ExportArchiveDialog dialog(book, folder,
-                               [](const QString& archive, bool, bool, const ArchiveDialog::Progress&,
-                                  core::ArchiveProblem*) {
+                               [](const QString& archive, bool, bool,
+                                  const ArchiveDialog::Progress&, core::ArchiveProblem*) {
                                    writeFile(archive, "archive");
                                    return true;
                                });
@@ -761,8 +762,8 @@ TEST_CASE("Export Project Archive: a window that cannot grow for its content sta
                              QStringLiteral("template.chapter")});
     }
     ExportArchiveDialog dialog(book, dir.path(),
-                               [](const QString& archive, bool, bool, const ArchiveDialog::Progress&,
-                                  core::ArchiveProblem*) {
+                               [](const QString& archive, bool, bool,
+                                  const ArchiveDialog::Progress&, core::ArchiveProblem*) {
                                    writeFile(archive, "archive");
                                    return true;
                                });

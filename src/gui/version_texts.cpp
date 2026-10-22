@@ -66,7 +66,7 @@ QString versionOrigin(const core::ChapterVersion& version, const core::KindWords
                                {{QStringLiteral("kind"), kind}});
     case core::VersionOrigin::ReplaceAll:
         //: A version the program kept before Replace All: %1 was replaced with %2. In Polish:
-        //: Przed „Zamień wszystko”: „%1” → „%2”, %Ln zamiana / zamiany / zamian
+        //: Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamiana / zamiany / zamian
         return VersionTexts::tr("Before Replace All: \"%1\" → \"%2\", %Ln replacement(s)", nullptr,
                                 version.replaced)
             .arg(shortened(version.found), shortened(version.replacement));

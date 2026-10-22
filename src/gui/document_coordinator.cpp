@@ -1371,6 +1371,7 @@ void DocumentCoordinator::showNotice(EditorPanel* editor, const QString& message
                                    clearNotice();
                                    updateStandaloneInfoBar();
                                });
+    m_notice.closed = connect(editor, &QObject::destroyed, this, [this]() { clearNotice(); });
     updateStandaloneInfoBar();
 }
 
@@ -1380,7 +1381,14 @@ bool DocumentCoordinator::hasNotice(const EditorPanel* editor) const {
 
 void DocumentCoordinator::clearNotice() {
     disconnect(m_notice.changed);
-    m_notice = Notice();
+    disconnect(m_notice.closed);
+    m_notice.changed = QMetaObject::Connection();
+    m_notice.closed = QMetaObject::Connection();
+    m_notice.editor = nullptr;
+    m_notice.message.clear();
+    m_notice.actionText.clear();
+    m_notice.actionToolTip.clear();
+    m_notice.action = nullptr;
 }
 
 void DocumentCoordinator::updateStandaloneInfoBar() {
