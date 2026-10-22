@@ -403,8 +403,8 @@ QCheckBox* SettingsPage::addOptimizeColorsCheckBox(QFormLayout* form) {
     box->setProperty(SHARED_CHECK_BOX, true);
     box->setToolTip(tr("On: a color too light for a light background is shown darker, and one "
                        "too dark for a dark background lighter (on the paper and in the panels). "
-                       "Off: the colors exactly as set. One setting for the spelling, the grammar "
-                       "and the annotations."));
+                       "Off: the colors exactly as set. One setting for the spelling, the grammar, "
+                       "the annotations and the comparison of the versions."));
     return box;
 }
 

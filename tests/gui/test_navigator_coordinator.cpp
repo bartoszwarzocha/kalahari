@@ -11,6 +11,7 @@
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/clipboard_handler.h>
+#include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/gui/dialogs/add_to_book_dialog.h>
 #include <kalahari/gui/dialogs/delete_dialogs.h>
 #include <kalahari/gui/dialogs/file_preview_dialog.h>
@@ -313,16 +314,21 @@ QString textOf(const QString& path) {
 /// @brief The Trash of a test in place of the system's until the test ends; it keeps the text
 /// each file had when it took it
 struct TestTrash {
-    bool exists = true;  ///< The files can go to it
-    bool takes = true;   ///< It takes them; else it refuses them
-    QStringList taken;   ///< The files it took
-    QStringList texts;   ///< Their texts
+    bool exists = true;   ///< The files can go to it
+    bool takes = true;    ///< It takes them; else it refuses them
+    QStringList taken;    ///< The files it took
+    QStringList texts;    ///< Their texts
+    QStringList folders;  ///< The folders it took: of the versions of the texts
 
     TestTrash() {
         core::setTrashForTests([this](const QString&) { return exists; },
                                [this](const QString& path) {
                                    if (!takes) {
                                        return false;
+                                   }
+                                   if (QFileInfo(path).isDir()) {
+                                       folders << path;
+                                       return QDir(path).removeRecursively();
                                    }
                                    taken << path;
                                    texts << textOf(path);
@@ -1408,6 +1414,16 @@ TEST_CASE("Navigator commands: the files deleted with an element go to the Trash
     REQUIRE(navigator.tabs->count() == 1);
     write(*navigator.tabs, 0, QStringLiteral("The storm came at night."));
     REQUIRE(navigator.coordinator.isChapterDirty(chapters.at(0).id));
+    // The versions of the texts: of the first chapter, kept when its text is saved before it
+    // goes, and of the second one, kept by the writer
+    const QString versionsFolder = QDir(pm.getProjectPath()).filePath(QStringLiteral("versions"));
+    const QStringList versionFolders{
+        core::ChapterVersions::folderOf(pm.getProjectPath(), chapters.at(0).file),
+        core::ChapterVersions::folderOf(pm.getProjectPath(), chapters.at(1).file)};
+    REQUIRE(pm.keepVersion(chapters.at(1).id, editor::ClipboardHandler::textToKml("Dawn."),
+                           {.origin = core::VersionOrigin::Manual}) ==
+            core::ProjectManager::VersionKept::Added);
+    REQUIRE(QFileInfo(versionFolders.at(1)).isDir());
 
     SECTION("To the Trash, with the text of the open tab") {
         QString said;
@@ -1424,6 +1440,9 @@ TEST_CASE("Navigator commands: the files deleted with an element go to the Trash
         CHECK(trash.texts.value(0).contains(QStringLiteral("The storm came at night.")));
         CHECK_FALSE(QFileInfo::exists(files.at(0)));
         CHECK_FALSE(QFileInfo::exists(files.at(1)));
+        // Their versions went to the Trash with them
+        CHECK(trash.folders == versionFolders);
+        CHECK_FALSE(QFileInfo::exists(versionsFolder));
         CHECK(navigator.tabs->count() == 0);
         CHECK(navigator.section(QStringLiteral("unassigned_files")) == nullptr);
         CHECK(navigator.statusBar->currentMessage() ==
@@ -1443,6 +1462,9 @@ TEST_CASE("Navigator commands: the files deleted with an element go to the Trash
         CHECK(trash.taken.isEmpty());
         CHECK_FALSE(QFileInfo::exists(files.at(0)));
         CHECK_FALSE(QFileInfo::exists(files.at(1)));
+        // ... and so are their versions
+        CHECK(trash.folders.isEmpty());
+        CHECK_FALSE(QFileInfo::exists(versionsFolder));
         CHECK(navigator.section(QStringLiteral("unassigned_files")) == nullptr);
     }
 
@@ -1459,12 +1481,17 @@ TEST_CASE("Navigator commands: the files deleted with an element go to the Trash
         CHECK(QFileInfo::exists(files.at(1)));
         CHECK(navigator.itemsInSection(QStringLiteral("unassigned_files")) ==
               "Chapter 2 – " + QFileInfo(files.at(1)).fileName().toStdString());
+        // The file stays, and so do its versions
+        CHECK(QFileInfo(versionFolders.at(1)).isDir());
 
-        // The writer says so
+        // The writer says so: its versions go for good too
         CHECK(answering([&] { navigator.coordinator.onRequestDelete(chapters.at(0).id); },
                         {answerDelete(true, true), answerQuestion(true)}) == 2);
         CHECK(novel.book().mainElements.first().elements.isEmpty());
         CHECK_FALSE(QFileInfo::exists(files.at(0)));
+        CHECK_FALSE(QFileInfo::exists(versionFolders.at(0)));
+        CHECK(QFileInfo(versionFolders.at(1)).isDir());
+        CHECK(trash.folders.isEmpty());
         CHECK(navigator.tabs->count() == 0);
     }
 
@@ -1502,6 +1529,81 @@ TEST_CASE("Navigator commands: the files deleted with an element go to the Trash
         CHECK(trash.taken.isEmpty());
         CHECK(QFileInfo::exists(files.at(0)));
         CHECK(QFileInfo::exists(files.at(1)));
+    }
+}
+
+TEST_CASE("Navigator: Replace All in a chapter keeps the text before it as a version",
+          "[gui][navigator][versions]") {
+    OpenNovel novel;
+    Navigator navigator;
+    auto& pm = novel.pm;
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<bool>(core::ChapterVersions::ON_SAVE_SETTING, false);
+
+    const QString chapterId = navigator.added(QStringLiteral("chapter"));
+    navigator.coordinator.onElementSelected(chapterId, pm.findElement(chapterId)->title);
+    REQUIRE(navigator.tabs->count() == 1);
+    write(*navigator.tabs, 0, QStringLiteral("Taun stood still. Taun waited."));
+    auto* panel = qobject_cast<gui::EditorPanel*>(navigator.tabs->widget(0));
+    REQUIRE(panel != nullptr);
+    editor::BookEditor* editor = panel->getBookEditor();
+    const QString before = editor->toKml();
+    const std::optional<core::ChapterVersions> versions = pm.versionsOf(chapterId);
+    REQUIRE(versions.has_value());
+    REQUIRE(versions->list().isEmpty());
+
+    // Replace All of the Find/Replace bar, as the writer does it
+    const auto replaceAll = [editor](const QString& found, const QString& replacement) {
+        editor->showFindReplace();
+        auto* bar = editor->findChild<editor::FindReplaceBar*>();
+        REQUIRE(bar != nullptr);
+        bar->setSearchText(found);
+        QLineEdit* replaceField = nullptr;
+        for (QLineEdit* field : bar->findChildren<QLineEdit*>()) {
+            if (field->placeholderText() == QStringLiteral("Replace...")) {
+                replaceField = field;
+            }
+        }
+        QPushButton* button = nullptr;
+        for (QPushButton* candidate : bar->findChildren<QPushButton*>()) {
+            if (candidate->text() == QStringLiteral("Replace All")) {
+                button = candidate;
+            }
+        }
+        REQUIRE(replaceField != nullptr);
+        REQUIRE(button != nullptr);
+        replaceField->setText(replacement);
+        button->click();
+    };
+
+    SECTION("With the setting, the text as it was is kept, with what was replaced") {
+        replaceAll(QStringLiteral("Taun"), QStringLiteral("Tau"));
+        CHECK(editor->plainText() == QStringLiteral("Tau stood still. Tau waited."));
+        REQUIRE(versions->count() == 1);
+        const core::ChapterVersion version = *versions->newest();
+        CHECK(version.origin == core::VersionOrigin::ReplaceAll);
+        CHECK(version.found == QStringLiteral("Taun"));
+        CHECK(version.replacement == QStringLiteral("Tau"));
+        CHECK(version.replaced == 2);
+        CHECK(versions->text(version.file) == before);
+
+        // Nothing to replace: no version
+        replaceAll(QStringLiteral("Nadia"), QStringLiteral("Nadja"));
+        CHECK(versions->count() == 1);
+
+        // The text of the newest version again: no other one
+        editor->undo();
+        REQUIRE(editor->toKml() == before);
+        replaceAll(QStringLiteral("Taun"), QStringLiteral("Tau"));
+        CHECK(editor->plainText() == QStringLiteral("Tau stood still. Tau waited."));
+        CHECK(versions->count() == 1);
+    }
+
+    SECTION("Without the setting, none") {
+        settings.set<bool>(core::ChapterVersions::BEFORE_REPLACE_ALL_SETTING, false);
+        replaceAll(QStringLiteral("Taun"), QStringLiteral("Tau"));
+        CHECK(editor->plainText() == QStringLiteral("Tau stood still. Tau waited."));
+        CHECK(versions->list().isEmpty());
     }
 }
 

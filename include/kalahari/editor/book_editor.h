@@ -1198,6 +1198,12 @@ signals:
     /// it, pasted, cut, undid, redid, formatted or aligned it; nothing changed
     void changeRefused();
 
+    /// @brief Replace All of the Find/Replace bar is about to replace @p count matches of
+    /// @p found with @p replacement; the text is still as it was (toKml())
+    ///
+    /// The book keeps the text as a version first (ChapterVersions).
+    void aboutToReplaceAll(const QString& found, const QString& replacement, int count);
+
     /// @brief Emitted when the document content changes
     ///
     /// This signal is emitted whenever text is inserted, deleted, or modified.

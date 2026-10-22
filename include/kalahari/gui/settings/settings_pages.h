@@ -194,6 +194,14 @@ public:
     explicit EditorAutoCorrectPage(QWidget* parent = nullptr);
 };
 
+/// @brief Editor > Versions: whether Save Version asks for a description, the versions the
+/// program keeps by itself and how many, and the colors of the comparison of a version
+class EditorVersionsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorVersionsPage(QWidget* parent = nullptr);
+};
+
 /// @brief Annotations: who new comments, to-dos and notes are by, and their marks in the text
 class AnnotationsPage : public SettingsPage {
     Q_OBJECT

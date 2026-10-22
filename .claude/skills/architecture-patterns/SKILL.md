@@ -65,6 +65,7 @@ include/kalahari/
 │   ├── art_provider.h, icon_registry.h, theme_manager.h, theme.h
 │   ├── settings_manager.h, logger.h, event_bus.h
 │   ├── book_project.h, book_type_package.h, book_type_registry.h, package_copies.h, chapter_document.h
+│   ├── chapter_versions.h                    # versions of the texts (versions/ in the book's folder)
 │   ├── project_manager.h, project_database.h, project_lock.h, backup_manager.h
 │   ├── plugin_manager.h, plugin_manifest.h, plugin_archive.h, python_interpreter.h
 │   ├── plugin_signature.h, trusted_keys.h   # Ed25519 plugin security
@@ -74,7 +75,7 @@ include/kalahari/
 │   ├── kml_*.h                               # KML reader (kml_document_model.h), serializer, format registry
 │   ├── kalahari_text_document_layout.h, viewport_manager.h, search_engine.h
 │   ├── editor_render_pipeline.h, render_context.h, text_source_adapter.h, style_resolver.h
-│   ├── buffer_commands.h, clipboard_handler.h, snapshot_manager.h
+│   ├── buffer_commands.h, clipboard_handler.h
 │   └── *_service.h                           # spell/grammar check, TTS
 └── gui/            # UI components
     ├── main_window.h + coordinators (icon_registrar, command_registrar,
