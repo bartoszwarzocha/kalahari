@@ -706,6 +706,22 @@ public:
     VersionKept keepVersion(const QString& elementId, const QString& kml,
                             const ChapterVersion& about, ChapterVersion* version = nullptr);
 
+    /// @brief Give the version of the text of element @p elementId kept in .kml file
+    /// @p versionFile the writer's description @p name (empty: none)
+    /// @return false when the book is read-only, there is no such version or it cannot be
+    ///         written (ChapterVersions::rename())
+    bool renameVersion(const QString& elementId, const QString& versionFile, const QString& name);
+
+    /// @brief Delete the version of the text of element @p elementId kept in .kml file
+    /// @p versionFile
+    /// @return false when the book is read-only, there is no such version or the list of the
+    ///         versions cannot be written (ChapterVersions::remove())
+    bool removeVersion(const QString& elementId, const QString& versionFile);
+
+    /// @brief Number of the versions of all the texts of the book, which its archive takes
+    /// (ChapterVersions::countAll()); 0 without a book
+    int versionCount() const;
+
     /// @brief Folders of the versions of @p files (absolute paths of files of the book, as
     /// filesOf() gives them) that are on the disk, so that they go with the files
     QStringList versionFoldersOf(const QStringList& files) const;
@@ -845,6 +861,10 @@ signals:
     /// @brief Emitted when dirty state changes
     /// @param dirty true if project has unsaved changes
     void dirtyStateChanged(bool dirty);
+
+    /// @brief The versions of the text of element @p elementId changed: one was kept (and the
+    /// oldest that the program kept by itself may have gone), renamed or deleted
+    void versionsChanged(const QString& elementId);
 
 private:
     /// @brief What the program keeps of a text element while it works, outside the .klh file

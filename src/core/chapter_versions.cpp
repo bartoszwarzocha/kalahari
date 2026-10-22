@@ -7,6 +7,7 @@
 #include <kalahari/core/logger.h>
 
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -84,6 +85,27 @@ std::optional<VersionOrigin> versionOriginNamed(const QString& name) {
         }
     }
     return std::nullopt;
+}
+
+int ChapterVersions::countAll(const QString& projectDir) {
+    if (projectDir.isEmpty()) {
+        return 0;
+    }
+    // A folder of versions is named after its file without ".kchapter": the file with it again
+    // has that folder
+    const QDir root(QDir(projectDir).filePath(QString::fromLatin1(FOLDER)));
+    int count = 0;
+    QDirIterator indexes(root.path(), {QString::fromLatin1(INDEX_FILE)}, QDir::Files,
+                         QDirIterator::Subdirectories);
+    while (indexes.hasNext()) {
+        const QString relative = root.relativeFilePath(QFileInfo(indexes.next()).path());
+        if (relative == QLatin1String(".") || relative.startsWith(QLatin1String(".."))) {
+            continue;
+        }
+        count += static_cast<int>(
+            ChapterVersions(projectDir, relative + CHAPTER_EXTENSION).count());
+    }
+    return count;
 }
 
 QString ChapterVersions::folderOf(const QString& projectDir, const QString& file) {

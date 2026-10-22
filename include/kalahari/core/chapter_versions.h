@@ -95,6 +95,10 @@ public:
     /// @brief Setting: how many versions that the program kept by itself each file keeps
     static constexpr const char* KEEP_AUTOMATIC_SETTING = "editor.versions.keepAutomatic";
 
+    /// @brief Number of the versions of all files of the book in folder @p projectDir: of
+    /// every folder of versions under versions/, also of files no element has now
+    static int countAll(const QString& projectDir);
+
     /// @brief Folder of the versions of file @p file of the book in folder @p projectDir
     /// @param file The file, relative to the folder of the book, with "/"
     ///        (ProjectElement::file)

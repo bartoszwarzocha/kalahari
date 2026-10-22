@@ -267,7 +267,7 @@ TEST_CASE("Export Project Archive: the folder and the name of the archive",
     QTemporaryDir dir;
     const QString folder = QDir(dir.path()).filePath(QStringLiteral("Archives"));
     ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, folder,
-                               [](const QString&, bool, const ArchiveDialog::Progress&,
+                               [](const QString&, bool, bool, const ArchiveDialog::Progress&,
                                   core::ArchiveProblem*) { return true; });
 
     CHECK(dialog.windowTitle() == QStringLiteral("Export Project Archive"));
@@ -352,7 +352,7 @@ TEST_CASE("Export Project Archive: the files that are not ready and the unsaved 
         true,
         0};
     ExportArchiveDialog dialog(book, dir.path(),
-                               [](const QString&, bool, const ArchiveDialog::Progress&,
+                               [](const QString&, bool, bool, const ArchiveDialog::Progress&,
                                   core::ArchiveProblem*) { return true; });
 
     REQUIRE(dialog.unreadyGroup()->isVisibleTo(&dialog));
@@ -380,7 +380,7 @@ TEST_CASE("Export Project Archive: the progress and the result in the window",
     ExportArchiveDialog* shown = nullptr;
     ExportArchiveDialog dialog(
         {QStringLiteral("Travels"), {}, false, 0}, folder,
-        [&](const QString& archive, bool, const ArchiveDialog::Progress& progress,
+        [&](const QString& archive, bool, bool, const ArchiveDialog::Progress& progress,
             core::ArchiveProblem* problem) {
             written << archive;
             // While the work lasts, the window waits and cannot be closed
@@ -476,7 +476,7 @@ TEST_CASE("Export Project Archive: why the archive could not be saved",
     const QString folder = QDir(dir.path()).filePath(QStringLiteral("Archives"));
     Kind failure = Kind::Other;
     ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, folder,
-                               [&failure](const QString&, bool, const ArchiveDialog::Progress&,
+                               [&failure](const QString&, bool, bool, const ArchiveDialog::Progress&,
                                           core::ArchiveProblem* problem) {
                                    problem->kind = failure;
                                    if (failure != Kind::ChangesNotSaved) {
@@ -517,7 +517,7 @@ TEST_CASE("Export Project Archive: a changed field takes away the failure of the
     QTemporaryDir dir;
     const QString folder = QDir(dir.path()).filePath(QStringLiteral("Archives"));
     ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 2}, folder,
-                               [](const QString&, bool, const ArchiveDialog::Progress&,
+                               [](const QString&, bool, bool, const ArchiveDialog::Progress&,
                                   core::ArchiveProblem* problem) {
                                    problem->kind = core::ArchiveProblem::Kind::DiskFull;
                                    problem->lines.append(QStringLiteral(
@@ -563,7 +563,7 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
                              QStringLiteral("template.chapter")});
     }
     ExportArchiveDialog dialog(book, folder,
-                               [](const QString& archive, bool, const ArchiveDialog::Progress&,
+                               [](const QString& archive, bool, bool, const ArchiveDialog::Progress&,
                                   core::ArchiveProblem*) {
                                    writeFile(archive, "archive");
                                    return true;
@@ -605,7 +605,7 @@ TEST_CASE("Export Project Archive: the window that grew shows the whole result",
     // lines, and Show in Folder stayed out of view
     QTemporaryDir dir;
     ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, dir.path(),
-                               [](const QString&, bool, const ArchiveDialog::Progress&,
+                               [](const QString&, bool, bool, const ArchiveDialog::Progress&,
                                   core::ArchiveProblem*) { return true; });
     // A long name of short words: the sentence of the result takes a few lines, and more
     // beside the bar
@@ -683,7 +683,7 @@ TEST_CASE("Export Project Archive: in a low window the progress and the result a
             .toStdString();
     };
     ExportArchiveDialog dialog(book, folder,
-                               [&](const QString& archive, bool,
+                               [&](const QString& archive, bool, bool,
                                    const ArchiveDialog::Progress& progress,
                                    core::ArchiveProblem* problem) {
                                    // The window takes its place in a few passes of the event
@@ -761,7 +761,7 @@ TEST_CASE("Export Project Archive: a window that cannot grow for its content sta
                              QStringLiteral("template.chapter")});
     }
     ExportArchiveDialog dialog(book, dir.path(),
-                               [](const QString& archive, bool, const ArchiveDialog::Progress&,
+                               [](const QString& archive, bool, bool, const ArchiveDialog::Progress&,
                                   core::ArchiveProblem*) {
                                    writeFile(archive, "archive");
                                    return true;
@@ -797,7 +797,7 @@ TEST_CASE("Export Project Archive: a line under a field is as high as its senten
     QTemporaryDir dir;
     writeFile(QDir(dir.path()).filePath(QStringLiteral("Travels.klh.zip")), "old");
     ExportArchiveDialog dialog({QStringLiteral("Travels"), {}, false, 0}, dir.path(),
-                               [](const QString&, bool, const ArchiveDialog::Progress&,
+                               [](const QString&, bool, bool, const ArchiveDialog::Progress&,
                                   core::ArchiveProblem*) { return true; });
     dialog.show();
     settle();
@@ -837,7 +837,7 @@ TEST_CASE("Export Project Archive: the backups of the database go when the write
           "[gui][dialogs][archive]") {
     QTemporaryDir dir;
     QList<bool> withBackups;
-    const auto exporter = [&withBackups](const QString& archive, bool backups,
+    const auto exporter = [&withBackups](const QString& archive, bool backups, bool,
                                          const ArchiveDialog::Progress&, core::ArchiveProblem*) {
         withBackups << backups;
         writeFile(archive, "archive");

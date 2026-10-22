@@ -221,8 +221,8 @@ private:
 ///
 /// The window says under the name when the export replaces an archive, and lists the text
 /// elements that are not final, which go to the archive as they are. The backups of the
-/// database go only when the writer checks it. The changes of the book that are not saved are
-/// saved before the export.
+/// database go only when the writer checks it; the versions of the texts go unless the writer
+/// unchecks them. The changes of the book that are not saved are saved before the export.
 class ExportArchiveDialog : public ArchiveDialog {
     Q_OBJECT
 
@@ -240,12 +240,15 @@ public:
         QList<UnreadyFile> unready;   ///< Text elements that are not final, in reading order
         bool unsavedChanges = false;  ///< Whether the book has changes that are not saved
         int backups = 0;              ///< Number of the backups of the database of the book
+        int versions = 0;             ///< Number of the versions of the texts of the book
     };
 
     /// @brief Writes the archive to @p path, with the backups of the database when
-    /// @p withBackups is true; false, with what went wrong in @p problem, when it cannot
-    using Exporter = std::function<bool(const QString& path, bool withBackups,
-                                        const Progress& progress, core::ArchiveProblem* problem)>;
+    /// @p withBackups is true and with the versions of the texts when @p withVersions is true;
+    /// false, with what went wrong in @p problem, when it cannot
+    using Exporter =
+        std::function<bool(const QString& path, bool withBackups, bool withVersions,
+                           const Progress& progress, core::ArchiveProblem* problem)>;
 
     /// @brief What the window says about the book open in the program, without its changes
     /// that are not saved, which the caller knows
@@ -286,6 +289,13 @@ public:
     /// has none yet
     QString backupsNote() const { return noteText(m_backupsNote); }
 
+    /// @brief The check box that takes the versions of the texts to the archive
+    QCheckBox* versionsBox() const { return m_versionsBox; }
+
+    /// @brief The line under the check box of the versions: what they give, or that the book
+    /// has none yet
+    QString versionsNote() const { return noteText(m_versionsNote); }
+
     /// @brief The group of the files that are not ready; hidden when there are none
     QGroupBox* unreadyGroup() const { return m_unreadyGroup; }
 
@@ -323,6 +333,8 @@ private:
     FieldNote m_nameNote;
     QCheckBox* m_backupsBox = nullptr;
     FieldNote m_backupsNote;
+    QCheckBox* m_versionsBox = nullptr;
+    FieldNote m_versionsNote;
     QGroupBox* m_unreadyGroup = nullptr;
     RowList* m_unreadyList = nullptr;
 };

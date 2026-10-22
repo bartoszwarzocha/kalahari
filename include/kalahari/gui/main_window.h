@@ -54,6 +54,7 @@ class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
 class EditCoordinator;
+class VersionsCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
@@ -387,6 +388,9 @@ private:
 
     /// @brief Undo, Redo, Cut, Copy, Paste and Select All on the element with the keys
     EditCoordinator* m_editCoordinator{nullptr};
+
+    /// @brief Save Version and Version History of the texts of the book
+    VersionsCoordinator* m_versionsCoordinator{nullptr};
 
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen

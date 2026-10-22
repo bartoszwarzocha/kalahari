@@ -24,6 +24,7 @@ class QComboBox;
 class QTextEdit;
 class QFormLayout;
 class QGroupBox;
+class QPushButton;
 class QTimer;
 
 namespace kalahari::editor {
@@ -192,6 +193,14 @@ signals:
     /// @param language Its code (pl, en...)
     void bookLanguageChanged(const QString& language);
 
+    /// @brief Save Version in the group of the versions: keep the text of element
+    /// @p elementId as a version
+    void requestSaveVersion(const QString& elementId);
+
+    /// @brief Version History... in the group of the versions: the versions of the text of
+    /// element @p elementId
+    void requestVersionHistory(const QString& elementId);
+
 private:
     /// @brief Setup UI components
     void setupUI();
@@ -261,6 +270,10 @@ private:
     /// @brief Select @p status in the chapter's status combo; "draft" when it is not there
     void selectChapterStatus(const QString& status);
 
+    /// @brief The group of the versions of the text of element @p elementId: how many, the
+    /// last one and its description; hidden for an element whose text has none
+    void showVersions(const QString& elementId);
+
     /// @brief Show the type of the open book @p project: its icon and its name, greyed out
     /// when the program does not have it, as the Dashboard shows it
     void showBookType(const core::BookProject& project, const core::ProjectBook& book);
@@ -300,6 +313,11 @@ private:
     QComboBox* m_chapterStatusCombo;
     QGroupBox* m_chapterNotesGroup;
     QTextEdit* m_chapterNotesEdit;
+    QGroupBox* m_chapterVersionsGroup = nullptr;  ///< The versions of the text (showVersions())
+    QLabel* m_versionsCountLabel = nullptr;       ///< How many, and when the last one was kept
+    QLabel* m_versionsLastLabel = nullptr;        ///< The description of the last one
+    QPushButton* m_saveVersionButton = nullptr;
+    QPushButton* m_versionHistoryButton = nullptr;
 
     // Section Page widgets
     QLabel* m_sectionTitleLabel;

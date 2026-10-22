@@ -2377,7 +2377,39 @@ ProjectManager::VersionKept ProjectManager::keepVersion(const QString& elementId
                         versions->file().toStdString());
         }
     }
+    emit versionsChanged(elementId);
     return VersionKept::Added;
+}
+
+bool ProjectManager::renameVersion(const QString& elementId, const QString& versionFile,
+                                   const QString& name) {
+    if (refusesChange("renameVersion")) {
+        return false;
+    }
+    std::optional<ChapterVersions> versions = versionsOf(elementId);
+    if (!versions || !versions->rename(versionFile, name)) {
+        return false;
+    }
+    emit versionsChanged(elementId);
+    return true;
+}
+
+bool ProjectManager::removeVersion(const QString& elementId, const QString& versionFile) {
+    if (refusesChange("removeVersion")) {
+        return false;
+    }
+    std::optional<ChapterVersions> versions = versionsOf(elementId);
+    if (!versions || !versions->remove(versionFile)) {
+        return false;
+    }
+    Logger::getInstance().info("removeVersion: Version {} of {} deleted",
+                               versionFile.toStdString(), versions->file().toStdString());
+    emit versionsChanged(elementId);
+    return true;
+}
+
+int ProjectManager::versionCount() const {
+    return m_projectPath.empty() ? 0 : ChapterVersions::countAll(getProjectPath());
 }
 
 void ProjectManager::keepVersionOnSave(const QString& elementId, const QString& kml) {

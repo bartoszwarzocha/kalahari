@@ -162,6 +162,10 @@ set(KALAHARI_SOURCES
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
     gui/read_only_book.cpp # What the program says of a book open read-only
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
+    gui/version_texts.cpp  # What the program says of a version of a text
+    gui/versions_coordinator.cpp  # VersionsCoordinator - Save Version and Version History
+    gui/dialogs/version_name_dialog.cpp  # VersionNameDialog - the description of a version
+    gui/dialogs/version_history_dialog.cpp  # VersionHistoryDialog - the versions of a text
     gui/kalahari_syntax_highlighter.cpp
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)
     gui/command_registrar.cpp  # CommandRegistrar - Command registration extracted from MainWindow (OpenSpec #00038)
@@ -194,6 +198,7 @@ set(KALAHARI_SOURCES
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
     gui/settings/auto_correct_page.cpp  # Settings > Editor > Auto-correct
+    gui/settings/versions_page.cpp  # Settings > Editor > Versions
     gui/settings/annotations_page.cpp
     gui/settings/navigator_page.cpp  # Settings > Navigator
     gui/settings/folders_page.cpp
@@ -262,6 +267,7 @@ set(KALAHARI_SOURCES
     editor/book_editor_search.cpp
     editor/book_editor_view.cpp
     editor/find_replace_bar.cpp  # Find/Replace bar of the editor
+    editor/version_comparison.cpp  # A version of a text compared with the text now
     editor/book_editor_accessible.cpp  # Task 7.16: Accessibility interface
     editor/buffer_commands.cpp  # Cursor position helpers
     editor/text_keys.cpp  # The keys of the text on each system
@@ -313,6 +319,9 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/versions_coordinator.h  # VersionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/diagnostic_controller.h  # DiagnosticController with Q_OBJECT (OpenSpec #00038)

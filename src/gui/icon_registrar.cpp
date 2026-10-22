@@ -27,6 +27,13 @@ void registerAllIcons() {
     iconRegistry.registerIcon("file.save", "resources/icons/twotone/save.svg", "Save");
     iconRegistry.registerIcon("file.saveAs", "resources/icons/twotone/save_as.svg", "Save As");
     iconRegistry.registerIcon("file.saveAll", "resources/icons/twotone/save_all.svg", "Save All");
+    iconRegistry.registerIcon("file.saveVersion", "resources/icons/twotone/update.svg", "Save Version");
+    iconRegistry.registerIcon("file.versionHistory", "resources/icons/twotone/history.svg", "Version History");
+    // The versions in the list of Version History, by where they come from
+    iconRegistry.registerIcon("version.manual", "resources/icons/twotone/draw.svg", "Version Saved by the Writer");
+    iconRegistry.registerIcon("version.save", "resources/icons/twotone/schedule.svg", "Version Kept on Saving");
+    iconRegistry.registerIcon("version.replaceAll", "resources/icons/twotone/find_replace.svg", "Version Kept before Replace All");
+    iconRegistry.registerIcon("version.restore", "resources/icons/twotone/history.svg", "Version Kept before Restoring");
     iconRegistry.registerIcon("file.exit", "resources/icons/twotone/logout.svg", "Exit");
     iconRegistry.registerIcon("file.open.file", "resources/icons/twotone/description.svg", "Open File");
     iconRegistry.registerIcon("file.import.docx", "resources/icons/twotone/upload_file.svg", "Import DOCX");
@@ -58,6 +65,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("edit.pasteTextOnly", "resources/icons/twotone/text_snippet.svg", "Paste Text Only");
     iconRegistry.registerIcon("edit.pasteSpecial","resources/icons/twotone/content_paste_go.svg", "Paste Special");
     iconRegistry.registerIcon("edit.delete", "resources/icons/twotone/delete.svg", "Delete");
+    iconRegistry.registerIcon("edit.rename", "resources/icons/twotone/edit.svg", "Rename");
     iconRegistry.registerIcon("edit.selectAll", "resources/icons/twotone/select_all.svg", "Select All");
     iconRegistry.registerIcon("edit.selectWord", "resources/icons/twotone/highlight_alt.svg", "Select Word");
     iconRegistry.registerIcon("edit.selectParagraph", "resources/icons/twotone/segment.svg", "Select Paragraph");
@@ -143,7 +151,6 @@ void registerAllIcons() {
     iconRegistry.registerIcon("tools.autocorrect", "resources/icons/twotone/auto_fix_normal.svg", "Auto-correct");
     iconRegistry.registerIcon("tools.backupNow", "resources/icons/twotone/backup.svg", "Backup Now");
     iconRegistry.registerIcon("tools.autoSaveSettings", "resources/icons/twotone/sync.svg", "Auto-Save Settings");
-    iconRegistry.registerIcon("tools.versionHistory", "resources/icons/twotone/history.svg", "Version History");
     iconRegistry.registerIcon("tools.plugins.manager", "resources/icons/twotone/extension.svg", "Plugin Manager");
     iconRegistry.registerIcon("tools.plugins.updates", "resources/icons/twotone/system_update.svg", "Plugin Updates");
     iconRegistry.registerIcon("tools.plugins.reload", "resources/icons/twotone/refresh.svg", "Reload Plugins");

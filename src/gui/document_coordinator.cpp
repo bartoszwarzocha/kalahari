@@ -133,7 +133,10 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
     connect(m_centralTabs, &QTabWidget::currentChanged,
             this, &DocumentCoordinator::updateStandaloneInfoBar);
     connect(m_standaloneInfoBar, &StandaloneInfoBar::dismissed, this, [this]() {
-        if (m_standaloneInfoBar->showsReadOnlyBook()) {
+        if (m_standaloneInfoBar->showsNotice()) {
+            clearNotice();  // closed for good: another notice comes with what is done next
+            updateStandaloneInfoBar();
+        } else if (m_standaloneInfoBar->showsReadOnlyBook()) {
             m_readOnlyBarDismissed = true;  // closed until a book opens again
         } else if (EditorPanel* editor = getCurrentEditor()) {
             editor->setProperty("infoBarDismissed", true);  // closed for this tab
@@ -145,6 +148,15 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
     // A new file that no book can take is saved on the disk
     connect(m_standaloneInfoBar, &StandaloneInfoBar::saveAsClicked, this,
             &DocumentCoordinator::onSaveAsDocument);
+    // The button of a notice: the notice goes, then its action is done
+    connect(m_standaloneInfoBar, &StandaloneInfoBar::noticeActionClicked, this, [this]() {
+        const std::function<void()> action = m_notice.action;
+        clearNotice();
+        updateStandaloneInfoBar();
+        if (action) {
+            action();
+        }
+    });
     connect(m_navigatorPanel, &NavigatorPanel::standaloneFileSelected,
             this, &DocumentCoordinator::openStandaloneFile);
     connect(m_navigatorPanel, &NavigatorPanel::requestAddToProject,
@@ -1341,10 +1353,48 @@ void DocumentCoordinator::setInfoBarAllowed(bool allowed) {
     updateStandaloneInfoBar();
 }
 
+void DocumentCoordinator::showNotice(EditorPanel* editor, const QString& message,
+                                     const QString& actionText, const QString& actionToolTip,
+                                     std::function<void()> action) {
+    clearNotice();
+    if (editor == nullptr || editor->getBookEditor() == nullptr) {
+        return;
+    }
+    m_notice.editor = editor;
+    m_notice.message = message;
+    m_notice.actionText = actionText;
+    m_notice.actionToolTip = actionToolTip;
+    m_notice.action = std::move(action);
+    // What it says is true until the text changes
+    m_notice.changed = connect(editor->getBookEditor(), &editor::BookEditor::contentChanged, this,
+                               [this]() {
+                                   clearNotice();
+                                   updateStandaloneInfoBar();
+                               });
+    updateStandaloneInfoBar();
+}
+
+bool DocumentCoordinator::hasNotice(const EditorPanel* editor) const {
+    return editor != nullptr && m_notice.editor == editor;
+}
+
+void DocumentCoordinator::clearNotice() {
+    disconnect(m_notice.changed);
+    m_notice = Notice();
+}
+
 void DocumentCoordinator::updateStandaloneInfoBar() {
     EditorPanel* editor = getCurrentEditor();
     const bool fileInFront = editor != nullptr && editorKind(editor) == EditorKind::StandaloneFile;
     const auto& pm = core::ProjectManager::getInstance();
+
+    // A notice of what was just done to the text in front
+    if (m_infoBarAllowed && editor != nullptr && m_notice.editor == editor) {
+        m_standaloneInfoBar->showNotice(m_notice.message, m_notice.actionText,
+                                        m_notice.actionToolTip);
+        m_standaloneInfoBar->show();
+        return;
+    }
 
     // A book open read-only says why under every tab but a file outside it, which says what
     // the file is: also under the Dashboard and without a tab
@@ -1758,7 +1808,7 @@ void DocumentCoordinator::onExportArchive() {
     book.unsavedChanges = bookHasUnsavedChanges();
     dialogs::ExportArchiveDialog dialog(
         book, ProgramFolders::startFolder(ProgramFolders::Operation::ExportArchive),
-        [this, &pm, &logger](const QString& path, bool withBackups,
+        [this, &pm, &logger](const QString& path, bool withBackups, bool withVersions,
                              const dialogs::ArchiveDialog::Progress& progress,
                              core::ArchiveProblem* problem) {
             ProgramFolders::remember(ProgramFolders::Operation::ExportArchive,
@@ -1768,7 +1818,7 @@ void DocumentCoordinator::onExportArchive() {
                 problem->kind = core::ArchiveProblem::Kind::ChangesNotSaved;
                 return false;
             }
-            if (!pm.exportArchive(path, progress, problem, withBackups)) {
+            if (!pm.exportArchive(path, progress, problem, withBackups, withVersions)) {
                 logger.error("Failed to export project archive");
                 return false;
             }

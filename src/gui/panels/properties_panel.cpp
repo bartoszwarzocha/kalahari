@@ -11,6 +11,9 @@
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/section_words.h"
+#include "kalahari/gui/settings/settings_page.h"
+#include "kalahari/gui/version_texts.h"
+#include "kalahari/gui/widgets/flow_layout.h"
 #include "kalahari/gui/widgets/sections_field.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/core/art_provider.h"
@@ -21,8 +24,10 @@
 #include "kalahari/core/database_types.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/text_statistics.h"
+#include "kalahari/core/theme_manager.h"
 #include <QLabel>
 #include <QLineEdit>
+#include <QPushButton>
 #include <QComboBox>
 #include <QTextEdit>
 #include <QStackedWidget>
@@ -387,6 +392,51 @@ QWidget* PropertiesPanel::createChapterPage() {
 
     layout->addWidget(notesGroup);
 
+    // The versions of the text: how many, the last one, and the commands of the File menu
+    // for them (showVersions())
+    //: The group of the Properties panel with the versions of a text. In Polish: Wersje
+    m_chapterVersionsGroup = new QGroupBox(tr("Versions"), scrollContent);
+    m_chapterVersionsGroup->setObjectName(QStringLiteral("chapterVersionsGroup"));
+    auto* versionsLayout = new QVBoxLayout(m_chapterVersionsGroup);
+    versionsLayout->setSpacing(6);
+    versionsLayout->setContentsMargins(11, 11, 11, 11);
+    m_versionsCountLabel = new QLabel(m_chapterVersionsGroup);
+    m_versionsCountLabel->setObjectName(QStringLiteral("versionsCountLabel"));
+    m_versionsCountLabel->setTextFormat(Qt::PlainText);
+    m_versionsCountLabel->setWordWrap(true);
+    versionsLayout->addWidget(m_versionsCountLabel);
+    m_versionsLastLabel = new QLabel(m_chapterVersionsGroup);
+    m_versionsLastLabel->setObjectName(QStringLiteral("versionsLastLabel"));
+    m_versionsLastLabel->setTextFormat(Qt::PlainText);
+    m_versionsLastLabel->setWordWrap(true);
+    versionsLayout->addWidget(m_versionsLastLabel);
+    // The buttons in two rows on a narrow panel
+    auto* buttonRow = new QWidget(m_chapterVersionsGroup);
+    auto* buttons = new FlowLayout(buttonRow, 6, 6);
+    buttons->setContentsMargins(0, 0, 0, 0);
+    auto& art = core::ArtProvider::getInstance();
+    //: The button of the group of the versions, as File > Save Version... In Polish: Zapisz
+    //: wersję
+    m_saveVersionButton = new QPushButton(
+        art.getIcon(QStringLiteral("file.saveVersion"), core::IconContext::Button),
+        tr("Save Version"), buttonRow);
+    m_saveVersionButton->setObjectName(QStringLiteral("saveVersionButton"));
+    //: The button of the group of the versions, as File > Version History... In Polish:
+    //: Historia wersji...
+    m_versionHistoryButton = new QPushButton(
+        art.getIcon(QStringLiteral("file.versionHistory"), core::IconContext::Button),
+        tr("Version History..."), buttonRow);
+    m_versionHistoryButton->setObjectName(QStringLiteral("versionHistoryButton"));
+    buttons->addWidget(m_saveVersionButton);
+    buttons->addWidget(m_versionHistoryButton);
+    versionsLayout->addWidget(buttonRow);
+    connect(m_saveVersionButton, &QPushButton::clicked, this,
+            [this]() { emit requestSaveVersion(m_currentChapterId); });
+    connect(m_versionHistoryButton, &QPushButton::clicked, this,
+            [this]() { emit requestVersionHistory(m_currentChapterId); });
+    m_chapterVersionsGroup->hide();
+    layout->addWidget(m_chapterVersionsGroup);
+
     // Add stretch at the bottom
     layout->addStretch(1);
 
@@ -643,6 +693,16 @@ void PropertiesPanel::connectSignals() {
 
     // Notes are saved on focus lost via eventFilter (not on every keystroke)
     m_chapterNotesEdit->installEventFilter(this);
+
+    // A version kept, renamed or deleted, and another theme, show in the group of the versions
+    const auto versionsChanged = [this](const QString& elementId) {
+        if (currentPage() == Page::Chapter && elementId == m_currentChapterId) {
+            showVersions(elementId);
+        }
+    };
+    connect(&pm, &core::ProjectManager::versionsChanged, this, versionsChanged);
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
+            [this, versionsChanged]() { versionsChanged(m_currentChapterId); });
 }
 
 void PropertiesPanel::showProjectProperties() {
@@ -1247,10 +1307,54 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_chapterTitleEdit->setReadOnly(readOnly);
     m_chapterStatusCombo->setEnabled(!readOnly);
     m_chapterNotesEdit->setReadOnly(readOnly);
+    showVersions(elementId);
 
     m_isUpdating = false;
 
     logger.debug("PropertiesPanel: Chapter fields populated");
+}
+
+void PropertiesPanel::showVersions(const QString& elementId) {
+    auto& pm = core::ProjectManager::getInstance();
+    const std::optional<core::ChapterVersions> versions = pm.versionsOf(elementId);
+    const core::ProjectElement* element = pm.findElement(elementId);
+    m_chapterVersionsGroup->setVisible(versions.has_value() && element != nullptr);
+    if (!versions || element == nullptr) {
+        return;
+    }
+    const core::KindWords kind = wordsOf(*element);
+    const QList<core::ChapterVersion> list = versions->list();
+    if (list.isEmpty()) {
+        //: In Polish: Jeszcze nie ma wersji
+        m_versionsCountLabel->setText(tr("No versions yet"));
+        //: In Polish: Wersja zachowa tekst {kind:genitive} taki, jak teraz w edytorze.
+        m_versionsLastLabel->setText(core::fillWords(
+            tr("A version keeps the text of the {kind} as it is in the editor now."),
+            {{QStringLiteral("kind"), kind}}));
+    } else {
+        //: %Ln: how many versions, %1: when the last one was kept (today, 14:52). In Polish:
+        //: %Ln wersja / wersje / wersji, ostatnia: %1
+        m_versionsCountLabel->setText(
+            tr("%Ln version(s), the last one: %1", nullptr, static_cast<int>(list.size()))
+                .arg(versionTime(list.first().created)));
+        m_versionsLastLabel->setText(versionTitle(list.first(), kind));
+    }
+    m_versionsLastLabel->setStyleSheet(
+        QStringLiteral("color: %1;").arg(SettingsPage::noteColor().name()));
+
+    // A book open read-only keeps no new version: the button says why
+    const bool readOnly = pm.isReadOnly();
+    m_saveVersionButton->setEnabled(!readOnly);
+    m_saveVersionButton->setToolTip(
+        readOnly ? readOnlyReason()
+                 //: In Polish: Zachowaj tekst {kind:genitive} taki, jak teraz w edytorze, jako
+                 //: wersję
+                 : core::fillWords(tr("Keep the text of the {kind} as it is in the editor now "
+                                      "as a version"),
+                                   {{QStringLiteral("kind"), kind}}));
+    //: In Polish: Przeczytaj, porównaj albo przywróć wersje {kind:genitive}
+    m_versionHistoryButton->setToolTip(core::fillWords(
+        tr("Read, compare or restore the versions of the {kind}"), {{QStringLiteral("kind"), kind}}));
 }
 
 void PropertiesPanel::selectChapterStatus(const QString& status) {
