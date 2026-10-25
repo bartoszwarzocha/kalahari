@@ -132,8 +132,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
             if (key == WORD_COUNT_RULES_KEY) {
                 QMetaObject::invokeMethod(this, "updateWordCounts", Qt::QueuedConnection);
             } else if (key == core::ChapterVersions::ENABLED_SETTING) {
-                QMetaObject::invokeMethod(
-                    this, [this]() { refreshVersions(); }, Qt::QueuedConnection);
+                QMetaObject::invokeMethod(this, "refreshVersions", Qt::QueuedConnection);
             }
         });
 

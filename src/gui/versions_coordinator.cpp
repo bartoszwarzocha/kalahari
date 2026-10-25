@@ -81,8 +81,7 @@ VersionsCoordinator::VersionsCoordinator(QTabWidget* centralTabs, ChapterOpener 
     m_settingsListener =
         core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
             if (key == core::ChapterVersions::ENABLED_SETTING) {
-                QMetaObject::invokeMethod(
-                    this, [this]() { updateCommandStates(); }, Qt::QueuedConnection);
+                QMetaObject::invokeMethod(this, "updateCommandStates", Qt::QueuedConnection);
             }
         });
 }

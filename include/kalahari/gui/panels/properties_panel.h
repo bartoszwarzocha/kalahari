@@ -171,6 +171,9 @@ private slots:
     /// @brief Handle cursor position changed in BookEditor
     void onEditorCursorChanged();
 
+    /// @brief The group of the versions again, when the page with it is shown
+    void refreshVersions();
+
 protected:
     /// @brief Event filter for handling focus events
     /// @param obj Object that received the event
@@ -284,9 +287,6 @@ private:
     /// last one and its description; hidden for an element whose text has none. While
     /// versions are turned off it says so, and how many can be read in the history.
     void showVersions(const QString& elementId);
-
-    /// @brief The group of the versions again, when the page with it is shown
-    void refreshVersions();
 
     /// @brief Put the gear of the group of the versions at the end of the line of its title
     void placeVersionSettingsButton();
