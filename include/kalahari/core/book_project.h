@@ -222,7 +222,7 @@ struct ProjectBook {
 /// @brief Workshop of a project: files that go with its books but not into them
 struct ProjectWorkshop {
     QString name;                    ///< Name of the Workshop's node; empty: "Workshop"
-    bool grouped = false;            ///< Whether cards go to Libraries and materials to Resources
+    bool grouped = false;            ///< Whether cards go to Libraries
     QList<ProjectElement> elements;  ///< Elements, in the order they were added
     QJsonObject extra;               ///< Fields this version does not know, saved back
 

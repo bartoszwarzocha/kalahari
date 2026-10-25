@@ -595,8 +595,8 @@ void checkNavigatorMenus(QStringList& problems) {
     contents.title = QStringLiteral("Contents");
     REQUIRE(pm.book() != nullptr);
     pm.book()->frontElements.append(contents);
-    // The Workshop with a working note and a material, grouped: the groups of its kinds in
-    // Resources
+    // The Workshop with a working note and a material, grouped: the groups of their kinds in
+    // Materials
     const core::BookTypeRegistry& types = pm.bookTypes();
     REQUIRE_FALSE(pm.addElement(types.findKind(QStringLiteral("kalahari.base"),
                                                QStringLiteral("work_note")),
@@ -612,7 +612,7 @@ void checkNavigatorMenus(QStringList& problems) {
     }
     REQUIRE_FALSE(pm.addMaterial(picture,
                                  types.findKind(QStringLiteral("kalahari.base"),
-                                                QStringLiteral("material")),
+                                                QStringLiteral("picture")),
                                  QStringLiteral("Map"))
                       .isEmpty());
     REQUIRE(pm.setWorkshopGrouped(true));

@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Workshop: kinds of materials, always in Materials** - 2026-10-25. A material is now a
+  quote, a web page, a picture, a document, a publication, a recording or another file, each
+  with its group, name and icon; all types of books have them in the Workshop. The Workshop
+  of the Navigator has the node Materials, always, also when the Workshop is grouped: the
+  working notes and the groups of the kinds of materials, also empty, each with its number of
+  elements at the right, and Materials with the number of all of them (a screen reader reads
+  the numbers with the names). Resources is gone; Grouping puts only the cards in Libraries.
+  A file, an address or a picture dropped on the Navigator or pasted gets the kind of its
+  source: a picture, on the disk or on the web, is a picture; the address of a page a web
+  page; a sound or a film a recording; a PDF, Word, OpenDocument, RTF, text, Markdown file, a
+  spreadsheet, a presentation or an e-book a document; any other file another file. In the
+  Add Element window the source follows the kind: a web page starts with its address, a quote
+  with neither a file nor an address, the other kinds with a file, until the writer chooses
+  another one. A book saved before has its materials of the one kind "Material": when it
+  opens, they get the kinds of their sources by the same rule, a material without a file and
+  an address becomes a working note whose text is its description, and the book is saved so;
+  "Material" stays in the packages, retired (`"retired": true`), so that such books are read,
+  but it is offered nowhere.
+
 - **Navigator: the book and the Workshop, and one window that adds** - 2026-10-20. The
   Navigator shows the project, named after the title of its book, with two nodes: the book,
   with its sections, parts and elements as before, and the Workshop, the elements of the work

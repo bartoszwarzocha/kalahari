@@ -6,6 +6,7 @@
 #include "kalahari/gui/dialogs/new_file_dialog.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/kind_words.h"
+#include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/kind_names.h"
@@ -59,6 +60,7 @@
 #include <algorithm>
 #include <array>
 #include <limits>
+#include <optional>
 #include <utility>
 
 namespace kalahari {
@@ -183,6 +185,40 @@ QString downloadText(bool picture)
 
 /// The values of NewFileDialog::SOURCE_SETTING, in the order of NewFileDialog::MaterialOrigin
 constexpr std::array<const char*, 3> SOURCE_NAMES{"file", "address", "none"};
+
+/// The source a new material of @p kind starts with: a web page its address, a quote neither a
+/// file nor an address, the other kinds of materials of the base package a file; none for the
+/// kinds of other packages
+std::optional<NewFileDialog::MaterialOrigin> originOfKind(const core::KindRef& kind)
+{
+    using Origin = NewFileDialog::MaterialOrigin;
+    if (!kind || kind.package->id != QLatin1String(core::ProjectManager::BASE_PACKAGE)) {
+        return std::nullopt;
+    }
+    const QString& id = kind.kind->id;
+    if (id == QLatin1String(core::MaterialKinds::WEB_PAGE)) {
+        return Origin::Address;
+    }
+    if (id == QLatin1String(core::MaterialKinds::QUOTE)) {
+        return Origin::None;
+    }
+    if (core::MaterialKinds::all().contains(id)) {
+        return Origin::File;
+    }
+    return std::nullopt;
+}
+
+/// The source chosen last for a kind without a source of its own (SOURCE_SETTING); a file at
+/// first
+NewFileDialog::MaterialOrigin rememberedOrigin()
+{
+    const std::string last = core::SettingsManager::getInstance().get<std::string>(
+        NewFileDialog::SOURCE_SETTING, SOURCE_NAMES.front());
+    const auto at = std::find(SOURCE_NAMES.cbegin(), SOURCE_NAMES.cend(), last);
+    return at != SOURCE_NAMES.cend()
+               ? static_cast<NewFileDialog::MaterialOrigin>(at - SOURCE_NAMES.cbegin())
+               : NewFileDialog::MaterialOrigin::File;
+}
 
 /// The kinds of the groups of the book (a part, a cycle), for the words that say where the
 /// elements of a kind can be: "in parts"
@@ -992,12 +1028,14 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
             showGroup(*entry);
         }
     });
-    // The source of a new material: its page, what the window tells of it and the title
+    // The source of a new material: its page, what the window tells of it and the title. The
+    // source the writer chooses stays when the kind changes.
     connect(m_sourceButtons, &QButtonGroup::idToggled, this, [this](int, bool checked) {
         if (checked) {
             showSource();
         }
     });
+    connect(m_sourceButtons, &QButtonGroup::idClicked, this, [this]() { m_sourceChosen = true; });
     connect(m_fileEdit, &QLineEdit::textChanged, this, &NewFileDialog::showSource);
     connect(m_addressEdit, &QLineEdit::textChanged, this, &NewFileDialog::showSource);
     connect(m_downloadBox, &QCheckBox::toggled, this, &NewFileDialog::showSource);
@@ -1180,6 +1218,7 @@ bool NewFileDialog::eventFilter(QObject* watched, QEvent* event)
             if (event->type() == QEvent::Drop) {
                 setMaterialFile(incoming.files.constFirst());
                 m_sourceGiven = false;
+                m_sourceChosen = true;
             }
             return true;
         }
@@ -1197,9 +1236,11 @@ bool NewFileDialog::eventFilter(QObject* watched, QEvent* event)
 
 void NewFileDialog::done(int result)
 {
-    // The source of a material is the one the window starts with next time, unless the
-    // program gave it (a file dropped on the Navigator)
-    if (result == QDialog::Accepted && isMaterial(chosen()) && !m_sourceGiven) {
+    // The source of a material of a kind without a source of its own is the one such a
+    // material starts with next time, unless the program gave it (a file dropped on the
+    // Navigator)
+    if (result == QDialog::Accepted && isMaterial(chosen()) && !m_sourceGiven &&
+        !originOfKind(chosen()->kind)) {
         core::SettingsManager::getInstance().set<std::string>(
             SOURCE_SETTING, SOURCE_NAMES.at(static_cast<std::size_t>(materialOrigin())));
     }
@@ -1562,14 +1603,9 @@ QGroupBox* NewFileDialog::createSourceGroup(QWidget* parent)
     }
     layout->addWidget(m_sourcePages);
 
-    // The source chosen last, a file at first; a web address on the clipboard is in its field,
-    // selected, so that typing replaces it
-    const std::string last = core::SettingsManager::getInstance().get<std::string>(
-        SOURCE_SETTING, SOURCE_NAMES.front());
-    const auto at = std::find(SOURCE_NAMES.cbegin(), SOURCE_NAMES.cend(), last);
-    m_sourceButtons
-        ->button(at != SOURCE_NAMES.cend() ? static_cast<int>(at - SOURCE_NAMES.cbegin()) : 0)
-        ->setChecked(true);
+    // The source chosen last, a file at first, until the kind gives its own (onKindChanged());
+    // a web address on the clipboard is in its field, selected, so that typing replaces it
+    m_sourceButtons->button(static_cast<int>(rememberedOrigin()))->setChecked(true);
     if (const QClipboard* clipboard = QGuiApplication::clipboard()) {
         if (const QUrl address = webAddress(clipboard->text()); !address.isEmpty()) {
             m_addressEdit->setText(address.toString());
@@ -1846,6 +1882,15 @@ void NewFileDialog::onKindChanged()
         return;
     }
 
+    // A material starts with the source of its kind: a web page with its address, a quote with
+    // neither a file nor an address, a picture or a document with its file; unless the program
+    // gave the source or the writer chose one
+    if (isMaterial(entry) && !m_sourceGiven && !m_sourceChosen) {
+        const std::optional<MaterialOrigin> origin = originOfKind(entry->kind);
+        m_sourceButtons->button(static_cast<int>(origin ? *origin : rememberedOrigin()))
+            ->setChecked(true);
+    }
+
     // The title follows the kind, or the source of a material, until the writer changes it
     if (!m_titleChanged) {
         m_titleEdit->setText(isMaterial(entry) ? sourceTitle() : entry->title);
@@ -2101,7 +2146,7 @@ void NewFileDialog::showSource()
         m_fileNote->setText(note);
     } else if (origin == MaterialOrigin::Address) {
         const QUrl url = webAddress(m_addressEdit->text());
-        const bool picture = !url.isEmpty() && isPictureAddress(url);
+        const bool picture = !url.isEmpty() && core::MaterialKinds::isPictureAddress(url);
         if (m_addressEdit->text().trimmed().isEmpty()) {
             //: Under the empty web address of a new material. In Polish: Wpisz albo wklej adres
             //: strony albo obrazu; zaczyna się od https://.

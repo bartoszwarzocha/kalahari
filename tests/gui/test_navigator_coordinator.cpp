@@ -839,8 +839,12 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     }
     TestFileChooser chooser(picture);
 
-    // The Workshop has the groups of the kinds the program makes, also empty
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Working notes, Materials");
+    // The Workshop has the groups of the kinds the program makes, also empty: the working
+    // notes and the kinds of materials, in Materials
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
+    CHECK(navigator.itemsIn(QStringLiteral("workshop:materials")) ==
+          "Working notes, Quotes, Web pages, Pictures, Documents, Publications, Recordings, "
+          "Other files");
 
     // A working note has no status; it opens in the editor
     CHECK(navigator.add(onWorkshop(), {addAs({.kind = "work_note"})}) == 1);
@@ -865,11 +869,11 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
 
     // A material is a copy of the file chosen, named after it; it has no text to open, and its
     // card opens in the middle of the window, ready for its description
-    CHECK(navigator.add(onWorkshop(), {addAs({.kind = "material"})}) == 1);
+    CHECK(navigator.add(onWorkshop(), {addAs({.kind = "picture"})}) == 1);
     REQUIRE(pm.project()->workshop.elements.size() == 3);
     const core::ProjectElement map = pm.project()->workshop.elements.last();
     CHECK(map.title == QStringLiteral("map"));
-    CHECK(map.kind.toString() == QStringLiteral("kalahari.base:material"));
+    CHECK(map.kind.toString() == QStringLiteral("kalahari.base:picture"));
     CHECK(map.status.isEmpty());
     CHECK(QFileInfo(pm.filePathOf(map)).fileName() == QStringLiteral("map.png"));
     CHECK(QFileInfo::exists(pm.filePathOf(map)));
@@ -880,7 +884,7 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     REQUIRE(card != nullptr);
     CHECK(card->elementId() == map.id);
     CHECK(navigator.tabs->tabText(2) == QStringLiteral("map"));
-    CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Material added: map"));
+    CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Picture added: map"));
 
     // Saved at once, and shown in the groups of their kinds
     CHECK(titles(novel.savedProject().workshop.elements) == "Note 1, Ideas, map");
@@ -888,7 +892,26 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     CHECK(navigator.item(note.id)->text(0) == QStringLiteral("Note 1"));
     CHECK(navigator.item(note.id)->parent()->text(0) == QStringLiteral("Working notes"));
     REQUIRE(navigator.item(map.id) != nullptr);
-    CHECK(navigator.item(map.id)->parent()->text(0) == QStringLiteral("Materials"));
+    CHECK(navigator.item(map.id)->parent()->text(0) == QStringLiteral("Pictures"));
+    CHECK(navigator.item(note.id)->parent()->parent()->text(0) == QStringLiteral("Materials"));
+
+    // Materials and each group of it have their numbers of elements, which a screen reader
+    // reads with their names; an empty group has 0
+    const auto count = [&navigator](const QString& id) {
+        const QTreeWidgetItem* found = navigator.item(id);
+        REQUIRE(found != nullptr);
+        return found->data(0, Qt::UserRole + 7).toInt();
+    };
+    CHECK(count(QStringLiteral("workshop:materials")) == 3);
+    CHECK(count(QStringLiteral("workshop:kalahari.base:work_note")) == 2);
+    CHECK(count(QStringLiteral("workshop:kalahari.base:picture")) == 1);
+    CHECK(count(QStringLiteral("workshop:kalahari.base:quote")) == 0);
+    CHECK(navigator.item(QStringLiteral("workshop:kalahari.base:picture"))
+              ->data(0, Qt::AccessibleTextRole)
+              .toString() == QStringLiteral("Pictures (1)"));
+    CHECK(navigator.item(QStringLiteral("workshop:materials"))
+              ->data(0, Qt::AccessibleTextRole)
+              .toString() == QStringLiteral("Materials (3)"));
 
     // A picture opens on its preview tab, which says why it shows none of this file; opened
     // again, its tab comes to the front
@@ -922,7 +945,7 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     QString said;
     CHECK(answering([&navigator, &map] { navigator.coordinator.onRequestOpenMaterial(map.id); },
                     {answerMessage(&said)}) == 1);
-    CHECK(said == QStringLiteral("Open Material Failed\n\nThe system could not open the file:\n") +
+    CHECK(said == QStringLiteral("Open Picture Failed\n\nThe system could not open the file:\n") +
                       QDir::toNativeSeparators(pm.filePathOf(map)));
     settings.set<std::string>(gui::NavigatorPanel::OPEN_MATERIALS_SETTING, before);
 
@@ -1025,16 +1048,16 @@ TEST_CASE("Navigator commands: the book and the Workshop are named and the Works
     CHECK(novel.savedProject().workshop.name.isEmpty());
     CHECK(workshopItem()->text(0) == QStringLiteral("Workshop"));
 
-    // Grouped, the materials are in Resources
+    // Grouped or not, the working notes and the materials are in Materials
     navigator.coordinator.onRequestWorkshopGrouped(true);
     CHECK(pm.project()->workshop.grouped);
     CHECK(novel.savedProject().workshop.grouped);
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Working notes, Resources");
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop grouped"));
     navigator.coordinator.onRequestWorkshopGrouped(false);
     CHECK_FALSE(pm.project()->workshop.grouped);
     CHECK_FALSE(novel.savedProject().workshop.grouped);
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Working notes, Materials");
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop not grouped"));
 }
 
@@ -1169,8 +1192,14 @@ TEST_CASE("Navigator menus: Add... and the commands named after kinds, or Add...
     CHECK(navigator.addCommandsOf(navigator.item(chapter)) ==
           QStringList{"Add...", "Add Chapter..."});
     CHECK(navigator.addCommandsOf(navigator.item(dedication)) == QStringList{"Add..."});
+    // The Workshop and Materials leave the many kinds of materials to the window; a group
+    // of a kind of materials names its kind
     CHECK(navigator.addCommandsOf(navigator.section(QStringLiteral("workshop"))) ==
-          QStringList{"Add...", "Add Working note...", "Add Material..."});
+          QStringList{"Add...", "Add Working note..."});
+    CHECK(navigator.addCommandsOf(navigator.item(QStringLiteral("workshop:materials"))) ==
+          QStringList{"Add...", "Add Working note..."});
+    CHECK(navigator.addCommandsOf(navigator.item(QStringLiteral("workshop:kalahari.base:quote"))) ==
+          QStringList{"Add...", "Add Quote..."});
 
     // A command named after a kind opens the window with that kind chosen
     QList<gui::AddTarget> requested;
@@ -2621,8 +2650,8 @@ const core::ProjectElement& lastMaterial() {
 
 }  // namespace
 
-TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are materials, "
-          "linked with the chapter they were dropped on",
+TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are materials of "
+          "the kinds of their sources, linked with the chapter they were dropped on",
           "[gui][navigator][materials]") {
     KeptMaterialSettings kept;
     OpenNovel novel;
@@ -2666,13 +2695,14 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
 
         const core::ProjectElement& map = lastMaterial();
         CHECK(map.title == QStringLiteral("map"));
+        CHECK(map.kind.toString() == QStringLiteral("kalahari.base:picture"));
         CHECK(map.links == QStringList{chapter});
         CHECK(QFileInfo(pm.filePathOf(map)).fileName() == QStringLiteral("map.png"));
         CHECK(QFileInfo::exists(pm.filePathOf(map)));
         CHECK(navigator.current() == map.id);
         CHECK(navigator.tabs->count() == 0);
         CHECK(navigator.statusBar->currentMessage() ==
-              QStringLiteral("Material added: map – a copy of the file in the book, linked with "
+              QStringLiteral("Picture added: map – a copy of the file in the book, linked with "
                              "\"Chapter 1\""));
         CHECK(titles(novel.savedProject().workshop.elements) == "map");
     }
@@ -2702,6 +2732,9 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
         for (const core::ProjectElement& material : pm.project()->workshop.elements) {
             CHECK(material.links == QStringList{chapter});
         }
+        // Of two kinds, in the groups of their kinds
+        CHECK(pm.project()->workshop.elements.at(0).kind.kindId == QStringLiteral("picture"));
+        CHECK(pm.project()->workshop.elements.at(1).kind.kindId == QStringLiteral("document"));
         CHECK(navigator.statusBar->currentMessage() ==
               QStringLiteral("Added to \"Materials\": map, notes; all linked with \"Chapter 1\""));
         CHECK(navigator.tabs->count() == 0);
@@ -2719,8 +2752,9 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
         CHECK(page.url == QStringLiteral("https://pl.wikipedia.org/wiki/Kalahari"));
         CHECK(page.file.isEmpty());
         CHECK(page.links == QStringList{chapter});
+        CHECK(page.kind.kindId == QStringLiteral("web_page"));
         CHECK(navigator.statusBar->currentMessage() ==
-              QStringLiteral("Material added: Kalahari – the address of a page, linked with "
+              QStringLiteral("Web page added: Kalahari – the address of a page, linked with "
                              "\"Chapter 1\""));
 
         // A screenshot: a PNG file in the book
@@ -2732,6 +2766,7 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
         CHECK(shot.file.startsWith(QStringLiteral("workshop/clipboard_")));
         CHECK(shot.file.endsWith(QStringLiteral(".png")));
         CHECK(shot.links.isEmpty());
+        CHECK(shot.kind.kindId == QStringLiteral("picture"));
         CHECK(QImage(pm.filePathOf(shot)).size() == QSize(30, 20));
 
         // A text that is no file and no address
@@ -2755,22 +2790,27 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
         CHECK(lastMaterial().links.isEmpty());
         CHECK(navigator.tabs->count() == 0);
 
-        // The window, filled with the address; Add opens the card of the material
+        // The window, filled with the address and on its kind; Add opens the card of the
+        // material
         settings.set<std::string>(gui::NavigatorPanel::QUICK_MATERIALS_SETTING, "window");
         gui::IncomingMaterials address;
         address.addresses << QUrl(QStringLiteral("https://example.com/oasis"));
         QString filled;
+        QString kindId;
         CHECK(answering(
                   [&navigator, &address] {
                       navigator.coordinator.onRequestAddMaterials(address, QString());
                   },
-                  {[&filled](QDialog& dialog) {
+                  {[&filled, &kindId](QDialog& dialog) {
                       auto* window = qobject_cast<gui::dialogs::NewFileDialog*>(&dialog);
                       REQUIRE(window != nullptr);
                       filled = window->addressEdit()->text();
+                      kindId = window->kind() ? window->kind().kind->id : QString();
                       window->createButton()->click();
                   }}) == 1);
         CHECK(filled == QStringLiteral("https://example.com/oasis"));
+        CHECK(kindId == QStringLiteral("web_page"));
+        CHECK(lastMaterial().kind.kindId == QStringLiteral("web_page"));
         CHECK(lastMaterial().url == QStringLiteral("https://example.com/oasis"));
         CHECK(lastMaterial().title == QStringLiteral("oasis"));
         REQUIRE(navigator.tabs->count() == 1);
@@ -2908,20 +2948,17 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
     Navigator navigator;
     TestBrowser browser;
     auto& pm = core::ProjectManager::getInstance();
-    const core::KindRef kind = novelKind(QStringLiteral("material"));
-    REQUIRE(kind);
-
     core::NewMaterial page;
     page.title = QStringLiteral("Kalahari");
     page.url = QStringLiteral("https://pl.wikipedia.org/wiki/Kalahari");
-    const QString pageId = pm.addMaterial(page, kind);
+    const QString pageId = pm.addMaterial(page, novelKind(QStringLiteral("web_page")));
     core::NewMaterial camel;
     camel.title = QStringLiteral("Camel on a dune");
     camel.url = QStringLiteral("https://upload.wikimedia.org/a/b/Camel_on_a_dune.jpg");
-    const QString camelId = pm.addMaterial(camel, kind);
+    const QString camelId = pm.addMaterial(camel, novelKind(QStringLiteral("picture")));
     core::NewMaterial book;
     book.title = QStringLiteral("Caravan Trails");
-    const QString bookId = pm.addMaterial(book, kind);
+    const QString bookId = pm.addMaterial(book, novelKind(QStringLiteral("publication")));
     REQUIRE_FALSE(pageId.isEmpty());
     REQUIRE_FALSE(camelId.isEmpty());
     REQUIRE_FALSE(bookId.isEmpty());
@@ -2966,6 +3003,13 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
     }
 
     SECTION("the title of the page replaces the one its address gave, not the writer's own") {
+        // Another page, which the new title puts it before
+        core::NewMaterial dunes;
+        dunes.title = QStringLiteral("Dunes");
+        dunes.url = QStringLiteral("https://example.com/dunes");
+        REQUIRE_FALSE(pm.addMaterial(dunes, novelKind(QStringLiteral("web_page"))).isEmpty());
+        navigator.coordinator.refreshNavigator();
+
         // The writer is at a chapter, typing its notes, when the download ends
         const QString chapter = navigator.added(QStringLiteral("chapter"));
         auto* tree = navigator.panel->findChild<QTreeWidget*>();
@@ -2988,9 +3032,9 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
         CHECK(pm.findElement(pageId)->title == result.title);
         CHECK(navigator.statusBar->currentMessage() ==
               QStringLiteral("Title from the page: Basin of the Kalahari – Wikipedia"));
-        CHECK(novel.savedProject().workshop.elements.size() == 3);
-        // In the Workshop at the place of its new title; the chapter stays current and its
-        // notes as typed
+        CHECK(novel.savedProject().workshop.elements.size() == 4);
+        // In the group of its kind at the place of its new title; the chapter stays current
+        // and its notes as typed
         const QTreeWidgetItem* group = navigator.item(pageId)->parent();
         REQUIRE(group != nullptr);
         QStringList order;
@@ -2998,7 +3042,7 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
             order << group->child(i)->text(0);
         }
         CHECK(order.join(QStringLiteral(", ")) ==
-              QStringLiteral("Basin of the Kalahari – Wikipedia, Camel on a dune, Caravan Trails"));
+              QStringLiteral("Basin of the Kalahari – Wikipedia, Dunes"));
         CHECK(navigator.current() == chapter);
         CHECK(asked == 0);
         CHECK(notes->toPlainText() == QStringLiteral("Not saved yet"));

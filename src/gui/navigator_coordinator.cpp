@@ -27,6 +27,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/material_kinds.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/statistics_collector.h"
@@ -106,6 +107,16 @@ QByteArray pngOf(const QImage& picture) {
     buffer.open(QIODevice::WriteOnly);
     picture.save(&buffer, "PNG");
     return data;
+}
+
+/// The kind of all @p kinds; none when they are of several kinds, or there are none
+core::KindRef oneKindOf(const QList<core::KindRef>& kinds) {
+    if (kinds.isEmpty() || std::any_of(kinds.cbegin(), kinds.cend(), [&kinds](const auto& kind) {
+            return kind.kind != kinds.constFirst().kind;
+        })) {
+        return {};
+    }
+    return kinds.constFirst();
 }
 
 /// The name of @p link, an element or a section of the book, as the Navigator shows it
@@ -1484,18 +1495,25 @@ QList<MaterialCardPanel*> NavigatorCoordinator::materialCards() const {
     return cards;
 }
 
-core::KindRef NavigatorCoordinator::materialKind() const {
+core::KindRef NavigatorCoordinator::materialKind(const QString& kindId) const {
     const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
     if (!project) {
         return {};
     }
+    core::KindRef first;
     for (const core::KindRef& kind : project->kindsIn(pm.bookTypes(), core::BookPlace::Workshop)) {
-        if (kind.kind->isMaterial() && core::ProjectManager::canAdd(kind)) {
+        if (!kind.kind->isMaterial() || !core::ProjectManager::canAdd(kind)) {
+            continue;
+        }
+        if (kind.kind->id == kindId) {
             return kind;
         }
+        if (!first) {
+            first = kind;
+        }
     }
-    return {};
+    return first;
 }
 
 void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incoming,
@@ -1503,8 +1521,7 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
     auto* window = qobject_cast<QWidget*>(parent());
-    const core::KindRef kind = materialKind();
-    if (!pm.isProjectOpen() || pm.isReadOnly() || !kind) {
+    if (!pm.isProjectOpen() || pm.isReadOnly() || !materialKind(QString())) {
         logger.warn("NavigatorCoordinator: No materials can be added now");
         return;
     }
@@ -1517,28 +1534,43 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
         return;
     }
 
-    // Each of them in the Add Element window, filled; Cancel stops the rest
+    // The kind of each of them is that of its source: a picture, a web page, a document...
+    const auto kindOfFile = [this](const QString& file) {
+        return materialKind(core::MaterialKinds::ofFile(file));
+    };
+    const auto kindOfAddress = [this](const QUrl& address) {
+        return materialKind(core::MaterialKinds::ofSource(address, QString()));
+    };
+    const core::KindRef pictureKind =
+        materialKind(QString::fromLatin1(core::MaterialKinds::PICTURE));
+
+    // Each of them in the Add Element window, filled and on its kind; Cancel stops the rest
     if (NavigatorPanel::quickMaterials() == QLatin1String("window")) {
-        AddTarget target;
-        target.scope = AddTarget::Scope::Workshop;
-        target.kinds = {kind};
-        target.kind = kind;
+        const auto targetOf = [](const core::KindRef& kind) {
+            AddTarget target;
+            target.scope = AddTarget::Scope::Workshop;
+            target.kinds = {kind};
+            target.kind = kind;
+            return target;
+        };
         const QStringList links = link.isEmpty() ? QStringList() : QStringList{link};
         bool going = true;
         for (const QString& file : incoming.files) {
-            going = going && addWithWindow(target, [&](dialogs::NewFileDialog& dialog) {
-                dialog.setMaterialFile(file);
-                dialog.setMaterialLinks(links);
-            });
+            going = going &&
+                    addWithWindow(targetOf(kindOfFile(file)), [&](dialogs::NewFileDialog& dialog) {
+                        dialog.setMaterialFile(file);
+                        dialog.setMaterialLinks(links);
+                    });
         }
         for (const QUrl& address : incoming.addresses) {
-            going = going && addWithWindow(target, [&](dialogs::NewFileDialog& dialog) {
-                dialog.setMaterialAddress(address);
-                dialog.setMaterialLinks(links);
-            });
+            going = going && addWithWindow(targetOf(kindOfAddress(address)),
+                                           [&](dialogs::NewFileDialog& dialog) {
+                                               dialog.setMaterialAddress(address);
+                                               dialog.setMaterialLinks(links);
+                                           });
         }
         if (going && !incoming.picture.isNull()) {
-            addWithWindow(target, [&](dialogs::NewFileDialog& dialog) {
+            addWithWindow(targetOf(pictureKind), [&](dialogs::NewFileDialog& dialog) {
                 dialog.setMaterialPicture(incoming.picture);
                 dialog.setMaterialLinks(links);
             });
@@ -1550,12 +1582,14 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
     const QStringList links = link.isEmpty() ? QStringList() : QStringList{link};
     const bool downloads = MaterialDownloader::policy() == MaterialDownloader::Policy::Always;
     QList<core::NewMaterial> materials;
+    QList<core::KindRef> kinds;
     QStringList hows;
     for (const QString& file : incoming.files) {
         core::NewMaterial material;
         material.title = QFileInfo(file).completeBaseName();
         material.filePath = file;
         materials << material;
+        kinds << kindOfFile(file);
         //: What a material dropped on the Navigator is. In Polish: kopia pliku w książce
         hows << tr("a copy of the file in the book");
     }
@@ -1564,7 +1598,8 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
         material.title = titleOfAddress(address);
         material.url = address.toString();
         materials << material;
-        if (isPictureAddress(address)) {
+        kinds << kindOfAddress(address);
+        if (core::MaterialKinds::isPictureAddress(address)) {
             //: What a material dropped on the Navigator is. In Polish: adres obrazu
             hows << tr("the address of a picture");
         } else {
@@ -1579,6 +1614,7 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
         material.fileName = IncomingMaterials::pictureFileName(now);
         material.data = pngOf(incoming.picture);
         materials << material;
+        kinds << pictureKind;
         //: In Polish: obraz zapisany w książce
         hows << tr("a picture saved in the book");
     }
@@ -1586,15 +1622,18 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
     QStringList added;
     QStringList titles;
     QStringList addedHows;
+    QList<core::KindRef> addedKinds;
     QStringList failed;
+    QList<core::KindRef> failedKinds;
     for (qsizetype i = 0; i < materials.size(); ++i) {
         core::NewMaterial& material = materials[i];
         material.links = links;
-        const QString elementId = pm.addMaterial(material, kind);
+        const QString elementId = pm.addMaterial(material, kinds.at(i));
         if (elementId.isEmpty()) {
             failed << (!material.filePath.isEmpty() ? QDir::toNativeSeparators(material.filePath)
                        : !material.url.isEmpty()    ? material.url
                                                     : material.title);
+            failedKinds << kinds.at(i);
             continue;
         }
         logger.info("NavigatorCoordinator: Material added at once: '{}' (id={})",
@@ -1602,6 +1641,7 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
         added << elementId;
         titles << material.title;
         addedHows << hows.at(i);
+        addedKinds << kinds.at(i);
         if (downloads && !material.url.isEmpty()) {
             download(elementId, false);
         }
@@ -1613,8 +1653,14 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
         for (const QString& elementId : std::as_const(added)) {
             m_navigatorPanel->revealElement(elementId);
         }
+        const core::KindRef kind = oneKindOf(addedKinds);
         const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
         const QString linked = links.isEmpty() ? QString() : linkName(links.constFirst());
+        // The group they went to: that of their kind, or Materials for several kinds
+        //: The node of the Navigator with the materials of several kinds added at once. In
+        //: Polish: Materiały
+        const QString several = tr("Materials");
+        const QString groupName = kind ? kind.kind->plural.text(programLanguage()) : several;
         QString message;
         if (added.size() == 1 && linked.isEmpty()) {
             //: %1: the title, %2: what it is, e.g. "a copy of the file in the book".
@@ -1630,24 +1676,25 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
         } else if (linked.isEmpty()) {
             //: %1: the group of the materials in the Navigator, %2: their titles. In Polish:
             //: Dodano do grupy „%1”: %2
-            message = tr("Added to \"%1\": %2")
-                          .arg(kind.kind->plural.text(programLanguage()),
-                               titles.join(QStringLiteral(", ")));
+            message = tr("Added to \"%1\": %2").arg(groupName, titles.join(QStringLiteral(", ")));
         } else {
             //: %1: the group of the materials in the Navigator, %2: their titles, %3: the
             //: element or the section they are linked with. In Polish: Dodano do grupy „%1”:
             //: %2; wszystkie powiązane z „%3”
             message = tr("Added to \"%1\": %2; all linked with \"%3\"")
-                          .arg(kind.kind->plural.text(programLanguage()),
-                               titles.join(QStringLiteral(", ")), linked);
+                          .arg(groupName, titles.join(QStringLiteral(", ")), linked);
         }
         m_statusBar->showMessage(message, MATERIALS_MESSAGE_MS);
         emit documentModified();
     }
     if (!failed.isEmpty()) {
+        const core::KindRef kind = oneKindOf(failedKinds);
         const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
+        //: The title of the message about materials of several kinds that could not be added.
+        //: In Polish: Nie udało się dodać materiałów
+        const QString several = tr("Add Materials Failed");
         dialogs::MessageDialog::warning(
-            window, core::fillWords(tr("Add {Kind} Failed"), nouns),
+            window, kind ? core::fillWords(tr("Add {Kind} Failed"), nouns) : several,
             //: %1: the files or the addresses, one in a line. In Polish: Nie udało się dodać
             //: do książki:\n%1\nSzczegóły są w dzienniku programu.
             tr("These could not be added to the book:\n%1\nThe program's log has the details.")

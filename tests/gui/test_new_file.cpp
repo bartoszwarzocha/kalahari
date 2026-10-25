@@ -1223,6 +1223,10 @@ struct KeptMaterialSettings {
     static core::SettingsManager& settings() { return core::SettingsManager::getInstance(); }
 };
 
+/// @brief The kinds of the Workshop of a novel that Add Element can add, in their order
+constexpr const char* WORKSHOP_KINDS = "Working note | Quote | Web page | Picture | Document | "
+                                       "Publication | Recording | Other file";
+
 /// @brief Add Element on @p scope of the book, @p id the group or the element of the scope
 gui::AddTarget addingOn(gui::AddTarget::Scope scope, const QString& id = QString(),
                         BookPlace place = BookPlace::Main) {
@@ -1360,8 +1364,8 @@ TEST_CASE("Add Element: a new part takes the elements that close the main sectio
     CHECK(dialog.takeInside().isEmpty());
 }
 
-TEST_CASE("Add Element: in the Workshop a working note and a material, without places and "
-          "statuses",
+TEST_CASE("Add Element: in the Workshop a working note and materials of their kinds, without "
+          "places and statuses",
           "[gui][newfile][addelement]") {
     test::OpenNovel book(QStringLiteral("Rain"));
     const core::BookTypeRegistry& types = book.pm.bookTypes();
@@ -1370,7 +1374,9 @@ TEST_CASE("Add Element: in the Workshop a working note and a material, without p
         NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
         CHECK(test::textsOf(dialog).contains(
             QStringLiteral("Choose the kind of the new element of the Workshop and its title.")));
-        CHECK(joined(enabledRowsOf(dialog)) == "# Workshop | Working note | Material");
+        CHECK(joined(enabledRowsOf(dialog)) ==
+              "# Workshop | Working note | Quote | Web page | Picture | Document | Publication | "
+              "Recording | Other file");
         CHECK(rowsOf(*dialog.kindList()).contains(
             QStringLiteral("Mind map (greyed): The program does not have an editor for the mind "
                            "map yet.")));
@@ -1405,9 +1411,9 @@ TEST_CASE("Add Element: in the Workshop a working note and a material, without p
         REQUIRE(image.save(picture));
         MaterialChooser chooser(QString{});
         NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
-        choose(dialog, QStringLiteral("Material"));
+        choose(dialog, QStringLiteral("Picture"));
         CHECK(test::textsOf(dialog).contains(
-            QStringLiteral("Choose the source of the material and its title.")));
+            QStringLiteral("Choose the source of the picture and its title.")));
         CHECK(dialog.sourceGroup()->isVisibleTo(&dialog));
         CHECK(dialog.materialOrigin() == NewFileDialog::MaterialOrigin::File);
         CHECK(dialog.fileEdit()->isVisibleTo(&dialog));
@@ -1464,22 +1470,54 @@ TEST_CASE("Add Element: in the Workshop a working note and a material, without p
         QCoreApplication::sendEvent(dialog.fileEdit(), &drop);
         CHECK(dialog.materialFile() == QFileInfo(picture).absoluteFilePath());
 
-        // Add remembers the source
+        // A kind with a source of its own does not change the source of the other kinds
         core::SettingsManager::getInstance().set<std::string>(NewFileDialog::SOURCE_SETTING,
                                                               "none");
         dialog.accept();
         CHECK(core::SettingsManager::getInstance().get<std::string>(
-                  NewFileDialog::SOURCE_SETTING, "") == "file");
+                  NewFileDialog::SOURCE_SETTING, "") == "none");
+    }
+
+    SECTION("the source follows the kind until the writer chooses one") {
+        KeptMaterialSettings kept;
+        core::SettingsManager::getInstance().set<std::string>(NewFileDialog::SOURCE_SETTING,
+                                                              "none");
+        NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
+        const auto originOf = [&dialog](const QString& name) {
+            choose(dialog, name);
+            return dialog.materialOrigin();
+        };
+        CHECK(originOf(QStringLiteral("Web page")) == NewFileDialog::MaterialOrigin::Address);
+        CHECK(originOf(QStringLiteral("Quote")) == NewFileDialog::MaterialOrigin::None);
+        CHECK(originOf(QStringLiteral("Picture")) == NewFileDialog::MaterialOrigin::File);
+        CHECK(originOf(QStringLiteral("Document")) == NewFileDialog::MaterialOrigin::File);
+        CHECK(originOf(QStringLiteral("Publication")) == NewFileDialog::MaterialOrigin::File);
+        CHECK(originOf(QStringLiteral("Recording")) == NewFileDialog::MaterialOrigin::File);
+        CHECK(originOf(QStringLiteral("Other file")) == NewFileDialog::MaterialOrigin::File);
+        CHECK(dialog.fileEdit()->isVisibleTo(&dialog));
+
+        // The source the writer chose stays for another kind
+        dialog.sourceButtons()
+            ->button(static_cast<int>(NewFileDialog::MaterialOrigin::Address))
+            ->click();
+        CHECK(originOf(QStringLiteral("Quote")) == NewFileDialog::MaterialOrigin::Address);
+        CHECK(originOf(QStringLiteral("Picture")) == NewFileDialog::MaterialOrigin::Address);
+
+        // ... as does the source the program gave
+        NewFileDialog given(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
+        choose(given, QStringLiteral("Picture"));
+        given.setMaterialAddress(QUrl(QStringLiteral("https://example.com/oasis")));
+        choose(given, QStringLiteral("Quote"));
+        CHECK(given.materialOrigin() == NewFileDialog::MaterialOrigin::Address);
+        CHECK(given.materialAddress() == QUrl(QStringLiteral("https://example.com/oasis")));
     }
 
     SECTION("a material from a web address: a page or a picture, told by its end") {
         KeptMaterialSettings kept;
-        core::SettingsManager::getInstance().set<std::string>(NewFileDialog::SOURCE_SETTING,
-                                                              "address");
         QGuiApplication::clipboard()->setText(
             QStringLiteral("  https://pl.wikipedia.org/wiki/Kalahari \n"));
         NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
-        choose(dialog, QStringLiteral("Material"));
+        choose(dialog, QStringLiteral("Web page"));
         CHECK(dialog.materialOrigin() == NewFileDialog::MaterialOrigin::Address);
         CHECK(dialog.addressEdit()->isVisibleTo(&dialog));
         CHECK_FALSE(dialog.fileEdit()->isVisibleTo(&dialog));
@@ -1532,7 +1570,7 @@ TEST_CASE("Add Element: in the Workshop a working note and a material, without p
         settings.set<std::string>(NewFileDialog::SOURCE_SETTING, "address");
         settings.set<std::string>(gui::MaterialDownloader::SETTING, "never");
         NewFileDialog never(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
-        choose(never, QStringLiteral("Material"));
+        choose(never, QStringLiteral("Web page"));
         never.setMaterialAddress(QUrl(QStringLiteral("https://example.com/oasis")));
         CHECK_FALSE(never.downloadBox()->isVisibleTo(&never));
         CHECK_FALSE(never.downloadChosen());
@@ -1542,7 +1580,7 @@ TEST_CASE("Add Element: in the Workshop a working note and a material, without p
 
         settings.set<std::string>(gui::MaterialDownloader::SETTING, "always");
         NewFileDialog always(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
-        choose(always, QStringLiteral("Material"));
+        choose(always, QStringLiteral("Web page"));
         always.setMaterialAddress(QUrl(QStringLiteral("https://example.com/oasis")));
         CHECK_FALSE(always.downloadBox()->isVisibleTo(&always));
         CHECK(always.downloadChosen());
@@ -1553,10 +1591,7 @@ TEST_CASE("Add Element: in the Workshop a working note and a material, without p
     SECTION("a material without a file and an address, and a picture without a file") {
         KeptMaterialSettings kept;
         NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
-        choose(dialog, QStringLiteral("Material"));
-        dialog.sourceButtons()
-            ->button(static_cast<int>(NewFileDialog::MaterialOrigin::None))
-            ->click();
+        choose(dialog, QStringLiteral("Quote"));
         CHECK(dialog.materialOrigin() == NewFileDialog::MaterialOrigin::None);
         CHECK(dialog.materialFile().isEmpty());
         CHECK(dialog.materialAddress().isEmpty());
@@ -1566,12 +1601,12 @@ TEST_CASE("Add Element: in the Workshop a working note and a material, without p
         CHECK(dialog.createButton()->isEnabled());
         dialog.accept();
         CHECK(core::SettingsManager::getInstance().get<std::string>(
-                  NewFileDialog::SOURCE_SETTING, "") == "none");
+                  NewFileDialog::SOURCE_SETTING, "") == "file");
 
         // A picture from the clipboard takes the place of the path, and a dropped chapter its
         // link; the program gave the source, so it is not remembered
         NewFileDialog pasted(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
-        choose(pasted, QStringLiteral("Material"));
+        choose(pasted, QStringLiteral("Picture"));
         QImage shot(64, 48, QImage::Format_RGB32);
         shot.fill(Qt::white);
         pasted.setMaterialPicture(shot);
@@ -1587,11 +1622,11 @@ TEST_CASE("Add Element: in the Workshop a working note and a material, without p
         CHECK(pasted.createButton()->isEnabled());
         pasted.accept();
         CHECK(core::SettingsManager::getInstance().get<std::string>(
-                  NewFileDialog::SOURCE_SETTING, "") == "none");
+                  NewFileDialog::SOURCE_SETTING, "") == "file");
 
         // Another kind has no source
         NewFileDialog note(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
-        choose(note, QStringLiteral("Material"));
+        choose(note, QStringLiteral("Picture"));
         choose(note, QStringLiteral("Working note"));
         CHECK_FALSE(note.sourceGroup()->isVisibleTo(&note));
         CHECK(note.materialFile().isEmpty());
@@ -1689,7 +1724,7 @@ TEST_CASE("Add Element: the sections of the book and the Workshop at the top, on
 
         // The Workshop: its kinds without places and statuses
         choiceOf(dialog, QStringLiteral("Workshop"))->click();
-        CHECK(joined(enabledRowsOf(dialog)) == "Working note | Material");
+        CHECK(joined(enabledRowsOf(dialog)) == WORKSHOP_KINDS);
         CHECK(chosenTileOf(dialog) == QStringLiteral("Working note"));
         CHECK(dialog.place().place == BookPlace::Workshop);
         CHECK_FALSE(dialog.statusBox()->isVisibleTo(&dialog));
@@ -1736,7 +1771,7 @@ TEST_CASE("Add Element: the sections of the book and the Workshop at the top, on
         target.kinds = {target.kind};
         NewFileDialog dialog(bySections(target), types);
         CHECK(chosenOf(dialog) == QStringLiteral("Workshop"));
-        CHECK(joined(enabledRowsOf(dialog)) == "Working note | Material");
+        CHECK(joined(enabledRowsOf(dialog)) == WORKSHOP_KINDS);
         CHECK(chosenTileOf(dialog) == QStringLiteral("Working note"));
         choiceOf(dialog, QStringLiteral("Main Section"))->click();
         CHECK(chosenTileOf(dialog) == QStringLiteral("Chapter"));
@@ -1792,7 +1827,7 @@ TEST_CASE("Add Element: the book and the Workshop at the top, all sections of th
           "Afterword | Acknowledgments | Glossary | About the author");
     CHECK(chosenTileOf(dialog) == QStringLiteral("Chapter"));
     choiceOf(dialog, QStringLiteral("Workshop"))->click();
-    CHECK(joined(enabledRowsOf(dialog)) == "Working note | Material");
+    CHECK(joined(enabledRowsOf(dialog)) == WORKSHOP_KINDS);
 
     // On the front section the window starts at its first kind
     NewFileDialog front(NewFileDialog::forAdding(addingOn(gui::AddTarget::Scope::Section,

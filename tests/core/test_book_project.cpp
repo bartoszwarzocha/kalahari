@@ -1131,9 +1131,11 @@ TEST_CASE("Book project: a book takes kinds of other types", "[core][bookproject
           "kalahari.base:afterword, kalahari.base:acknowledgments, kalahari.base:glossary, "
           "kalahari.base:about_author, kalahari.base:toc, kalahari.nonfiction:bibliography");
     CHECK(references(project.kindsIn(registry, BookPlace::Workshop)) ==
-          "kalahari.base:work_note, kalahari.base:mindmap, kalahari.base:timeline, "
-          "kalahari.base:character, kalahari.base:location, kalahari.base:item, "
-          "kalahari.base:material, kalahari.screenplay:logline");
+          "kalahari.base:mindmap, kalahari.base:timeline, kalahari.base:character, "
+          "kalahari.base:location, kalahari.base:item, kalahari.base:work_note, "
+          "kalahari.base:quote, kalahari.base:web_page, kalahari.base:picture, "
+          "kalahari.base:document, kalahari.base:publication, kalahari.base:recording, "
+          "kalahari.base:other_file, kalahari.screenplay:logline");
     CHECK(references(project.kindsIn(registry, BookPlace::Main)) ==
           "kalahari.novel:prologue, kalahari.base:part, kalahari.base:chapter, "
           "kalahari.novel:epilogue");

@@ -3,10 +3,11 @@
 
 #include "kalahari/gui/material_source.h"
 
+#include "kalahari/core/material_kinds.h"
+
 #include <QFileInfo>
 #include <QLocale>
 #include <QMimeData>
-#include <QSet>
 
 namespace kalahari {
 namespace gui {
@@ -15,17 +16,6 @@ namespace {
 
 /// Longest name of the copy of a picture, before its suffix
 constexpr qsizetype MAXIMUM_NAME = 100;
-
-/// The suffixes of pictures on the web, in small letters
-const QSet<QString>& pictureSuffixes() {
-    static const QSet<QString> suffixes{
-        QStringLiteral("jpg"),  QStringLiteral("jpeg"), QStringLiteral("jpe"),
-        QStringLiteral("jfif"), QStringLiteral("png"),  QStringLiteral("gif"),
-        QStringLiteral("webp"), QStringLiteral("svg"),  QStringLiteral("bmp"),
-        QStringLiteral("tif"),  QStringLiteral("tiff"), QStringLiteral("ico"),
-        QStringLiteral("avif"), QStringLiteral("heic"), QStringLiteral("heif")};
-    return suffixes;
-}
 
 /// The last part of the path of @p url that is not empty, decoded
 QString lastPart(const QUrl& url) {
@@ -44,7 +34,8 @@ QString suffixOf(const QString& name) {
 
 MaterialSource materialSourceOf(const core::ProjectElement& element) {
     if (!element.url.isEmpty()) {
-        return !element.file.isEmpty() || isPictureAddress(QUrl(element.url))
+        return core::MaterialKinds::ofSource(QUrl(element.url), element.file) ==
+                       QLatin1String(core::MaterialKinds::PICTURE)
                    ? MaterialSource::WebPicture
                    : MaterialSource::Page;
     }
@@ -65,14 +56,9 @@ QUrl webAddress(const QString& text) {
     return url;
 }
 
-bool isPictureAddress(const QUrl& url) {
-    const QString last = lastPart(url);
-    return !last.contains(QLatin1Char(':')) && pictureSuffixes().contains(suffixOf(last));
-}
-
 QString titleOfAddress(const QUrl& url) {
     QString title = lastPart(url);
-    if (isPictureAddress(url)) {
+    if (core::MaterialKinds::isPictureAddress(url)) {
         title.truncate(title.lastIndexOf(QLatin1Char('.')));
     }
     title.replace(QLatin1Char('_'), QLatin1Char(' '));

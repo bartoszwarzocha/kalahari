@@ -452,7 +452,8 @@ public:
 
     /// @brief Whether the program can add elements of @p kind: text kinds, group kinds and the
     /// kinds of materials (ElementKind::isMaterial()); elements of the other kinds that open in
-    /// a window of their own wait until the program has their windows
+    /// a window of their own wait until the program has their windows. A retired kind
+    /// (ElementKind::retired) gets no new elements.
     static bool canAdd(const KindRef& kind);
 
     /// @brief Place that a new element of @p kind takes right after element @p elementId, as
@@ -892,6 +893,15 @@ private:
     /// @brief Set work mode and emit signal
     /// @param mode New work mode
     void setWorkMode(WorkMode mode);
+
+    /// @brief Gives the materials of the one kind of earlier versions (MaterialKinds::
+    /// OLD_MATERIAL) the kinds of their sources, and saves the book
+    ///
+    /// A material with a file or an address gets the kind they give (MaterialKinds::ofSource());
+    /// one with neither becomes a working note, whose text is its description. The kinds that
+    /// a book of its own type takes get the kinds of materials and the working notes in place
+    /// of the old kind. A book that cannot be saved stays as it was.
+    void convertOldMaterials();
 
     /// @brief Read the word counts and notes of the text elements from their chapter files
     void loadElementStates();

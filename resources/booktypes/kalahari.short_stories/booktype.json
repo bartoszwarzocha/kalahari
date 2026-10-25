@@ -68,7 +68,8 @@
   "front":    ["title_page", "copyright", "dedication", "motto", "toc", "introduction"],
   "main":     ["story", "section"],
   "back":     ["contributors", "first_publications", "acknowledgments", "about_author", "toc"],
-  "workshop": ["work_note", "mindmap", "character", "location", "material"],
+  "workshop": ["mindmap", "character", "location", "work_note", "quote", "web_page",
+               "picture", "document", "publication", "recording", "other_file"],
   "primary":  "story",
   "start":    ["title_page", "story"],
   "styles":   "styles.json"

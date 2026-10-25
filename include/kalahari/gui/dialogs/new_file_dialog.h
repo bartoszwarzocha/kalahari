@@ -199,7 +199,10 @@ public:
         None,     ///< Neither a file nor an address
     };
 
-    /// @brief The setting of the source chosen last: "file", "address" or "none"
+    /// @brief The setting of the source chosen last for a kind of materials without a source of
+    /// its own (of a package other than the base one): "file", "address" or "none"; a web page
+    /// starts with its address, a quote with neither, the other kinds of the base package with
+    /// a file
     static constexpr const char* SOURCE_SETTING = "navigator.addMaterialSource";
 
     /// @brief The source of a new material; File for other elements
@@ -449,6 +452,7 @@ private:
     QString m_pictureTitle;       ///< The title of the picture without a file
     QStringList m_materialLinks;  ///< The elements a new material is linked to
     bool m_sourceGiven = false;   ///< The program gave the source: it is not remembered
+    bool m_sourceChosen = false;  ///< The writer chose the source: it stays for another kind
 
     QLabel* m_iconLabel = nullptr;
     QLabel* m_nameLabel = nullptr;

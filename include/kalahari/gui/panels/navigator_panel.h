@@ -59,9 +59,11 @@ namespace gui {
 /// the order of the book's type, named after the kind ("Working notes"), with the elements in
 /// alphabetical order of their titles. A kind whose elements the program can make has its
 /// group always, also empty, so that an element can be added to it; the other kinds when they
-/// have elements. A grouped Workshop (core::ProjectWorkshop::grouped) has the groups of cards
-/// in "Libraries" and those of materials in "Resources". The elements of the Workshop have no
-/// status in the tree, and are not dragged: their place is that of their title.
+/// have elements. The groups of the working notes and of the kinds of materials are always in
+/// "Materials", each with its number of elements, and Materials with the number of all of
+/// them; a grouped Workshop (core::ProjectWorkshop::grouped) has the groups of cards in
+/// "Libraries". The elements of the Workshop have no status in the tree, and are not dragged:
+/// their place is that of their title.
 ///
 /// The chapter files in the folders of the book and of the Workshop that no element has (the
 /// files of elements deleted without their files) are listed, grey, under "Unassigned Files"
@@ -355,7 +357,7 @@ signals:
     /// @param itemType "book" or "workshop"
     void requestRenameNode(const QString& itemType);
 
-    /// @brief Request to group the Workshop (Libraries and Resources) or not
+    /// @brief Request to group the cards of the Workshop in Libraries or not
     void requestWorkshopGrouped(bool grouped);
 
     /// @brief Request to open material @p elementId of the Workshop as the settings say: its
@@ -526,6 +528,10 @@ private:
     /// @brief The kinds the menu of @p item names in its own commands ("Add Chapter..."),
     /// those most added there; none in variant "single" of "navigator.addCommands"
     QList<core::KindRef> namedKindsOf(const QTreeWidgetItem* item) const;
+
+    /// @brief Gives @p item, Materials or a group of it, its number of elements @p count,
+    /// which the tree shows at the right of its name and a screen reader reads with it
+    static void setCount(QTreeWidgetItem* item, qsizetype count);
 
     /// @brief Add the groups of the kinds of the Workshop of @p project with their elements
     /// under @p workshopItem

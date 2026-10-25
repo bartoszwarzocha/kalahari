@@ -33,6 +33,7 @@ set(KALAHARI_CORE_SOURCES
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/book_type_registry.cpp # Book type packages loaded from folders
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
+    core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
     core/unicode_paths.cpp      # Paths with any characters, as UTF-8 text, and their ZIP archives

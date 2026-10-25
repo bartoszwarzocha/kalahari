@@ -278,6 +278,11 @@ void registerAllIcons() {
                               "Picture on the Web");
     iconRegistry.registerIcon("material.noFile", "resources/icons/twotone/quote_card.svg",
                               "Material Without a File");
+    // Kinds of materials: a book or an article, a sound or a film
+    iconRegistry.registerIcon("material.publication", "resources/icons/twotone/menu_book.svg",
+                              "Publication");
+    iconRegistry.registerIcon("material.recording", "resources/icons/twotone/play_circle.svg",
+                              "Recording");
     // A file opened in the program the system gives it
     iconRegistry.registerIcon("common.openExternal", "resources/icons/twotone/open_in_new.svg",
                               "Open in System Program");
@@ -337,8 +342,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("structure.workshop", "resources/icons/twotone/build.svg", "Workshop");
     iconRegistry.registerIcon("structure.libraries", "resources/icons/twotone/import_contacts.svg",
                               "Libraries");
-    iconRegistry.registerIcon("structure.resources", "resources/icons/twotone/layers.svg",
-                              "Resources");
+    iconRegistry.registerIcon("structure.materials", "resources/icons/twotone/attach_file.svg",
+                              "Materials");
     iconRegistry.registerIcon("structure.frontmatter", "resources/icons/twotone/first_page.svg", "Front Matter");
     iconRegistry.registerIcon("structure.body", "resources/icons/twotone/menu_book.svg", "Body");
     iconRegistry.registerIcon("structure.backmatter", "resources/icons/twotone/last_page.svg", "Back Matter");

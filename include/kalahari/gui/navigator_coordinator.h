@@ -254,7 +254,7 @@ public slots:
     /// @param itemType "book" or "workshop"
     void onRequestRenameNode(const QString& itemType);
 
-    /// @brief Group the Workshop (Libraries and Resources) or not; saves the .klh file
+    /// @brief Group the cards of the Workshop in Libraries or not; saves the .klh file
     void onRequestWorkshopGrouped(bool grouped);
 
     /// @brief Open material @p elementId of the Workshop as its source and the settings say: a
@@ -389,8 +389,9 @@ private:
     bool addWithWindow(const AddTarget& target,
                        const std::function<void(dialogs::NewFileDialog&)>& prepare = {});
 
-    /// @brief The kind of the materials of the open book; none without one
-    core::KindRef materialKind() const;
+    /// @brief The kind of materials @p kindId (core::MaterialKinds) of the open book; its first
+    /// kind of materials when it has not that one or @p kindId is empty; none without any
+    core::KindRef materialKind(const QString& kindId) const;
 
     /// @brief Download what material @p elementId needs from its address: the title of its
     /// page, or the copy of its picture; @p asked: the writer asked for it, so a failure is

@@ -5,6 +5,7 @@
 #include <kalahari/core/backup_manager.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/material_kinds.h>
 #include <kalahari/core/old_book_conversion.h>
 #include <kalahari/core/package_card.h>
 #include <kalahari/core/resource_paths.h>
@@ -913,6 +914,9 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
                 }
             }
         }
+
+        // The materials of a book saved before the kinds of materials get theirs
+        convertOldMaterials();
     }
     m_packageCards = PackageCards::readAll(projectDir, *m_project);
 
@@ -1443,7 +1447,8 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
 }
 
 bool ProjectManager::canAdd(const KindRef& kind) {
-    return kind && (kind.kind->form != ElementForm::Window || kind.kind->isMaterial());
+    return kind && !kind.kind->retired &&
+           (kind.kind->form != ElementForm::Window || kind.kind->isMaterial());
 }
 
 std::optional<ElementPlace> ProjectManager::newPlaceAfter(const QString& elementId,
@@ -2565,6 +2570,86 @@ void ProjectManager::setWorkMode(WorkMode mode) {
                                     mode == WorkMode::ProjectMode ? "ProjectMode" : "StandaloneMode");
         emit workModeChanged(mode);
     }
+}
+
+void ProjectManager::convertOldMaterials() {
+    auto& logger = Logger::getInstance();
+    const QString base = QString::fromLatin1(BASE_PACKAGE);
+    const KindReference old{base, QString::fromLatin1(MaterialKinds::OLD_MATERIAL)};
+    const KindRef workNote =
+        bookTypes().findKind(base, QString::fromLatin1(MaterialKinds::WORK_NOTE));
+
+    // The book as it was, for a book that cannot be saved; then the files of the new notes
+    const BookProject before = *m_project;
+    QStringList noteFiles;
+    int kinds = 0;
+    QList<ProjectElement>& elements = m_project->workshop.elements;
+    for (qsizetype i = 0; i < elements.size(); ++i) {
+        ProjectElement& element = elements[i];
+        if (element.kind != old) {
+            continue;
+        }
+        // The kind of its source: a picture, a web page, a document...
+        const QString kindId = MaterialKinds::ofSource(
+            QUrl(element.url), element.file.isEmpty() ? QString() : filePathOf(element));
+        if (!kindId.isEmpty()) {
+            element.kind.kindId = kindId;
+            ++kinds;
+            continue;
+        }
+        // Neither a file nor an address: a working note, whose text is the description
+        if (!workNote) {
+            continue;
+        }
+        element.kind.kindId = workNote.kind->id;
+        element.file = newChapterFile(workNote, BookPlace::Workshop);
+        element.status = QStringLiteral("draft");
+        if (!writeChapterFile(element, editor::ClipboardHandler::textToKml(element.description))) {
+            logger.warn("convertOldMaterials: '{}' stays a material: its note cannot be written",
+                        element.title.toStdString());
+            element = before.workshop.elements.at(i);
+            continue;
+        }
+        noteFiles << filePathOf(element);
+        element.description.clear();
+    }
+
+    // The kinds a book of its own type takes: those of the materials, and the working notes,
+    // in place of the old one
+    bool listChanged = false;
+    for (qsizetype i = 0; i < m_project->kinds.size(); ++i) {
+        if (m_project->kinds.at(i) != old) {
+            continue;
+        }
+        m_project->kinds.removeAt(i);
+        qsizetype at = i;
+        for (const QString& kindId :
+             QStringList{QString::fromLatin1(MaterialKinds::WORK_NOTE)} + MaterialKinds::all()) {
+            const KindReference reference{base, kindId};
+            if (!m_project->kinds.contains(reference)) {
+                m_project->kinds.insert(at++, reference);
+            }
+        }
+        listChanged = true;
+        --i;
+    }
+
+    if (kinds == 0 && noteFiles.isEmpty() && !listChanged) {
+        return;
+    }
+    if (!saveManifest()) {
+        // The book stays as it was, and is converted the next time it opens
+        logger.warn("convertOldMaterials: The book cannot be saved, so its materials keep "
+                    "their kind");
+        *m_project = before;
+        for (const QString& path : std::as_const(noteFiles)) {
+            QFile::remove(path);
+        }
+        return;
+    }
+    logger.info("convertOldMaterials: {} materials got the kinds of their sources, {} became "
+                "working notes",
+                kinds, noteFiles.size());
 }
 
 void ProjectManager::loadElementStates() {

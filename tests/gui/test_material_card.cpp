@@ -4,6 +4,7 @@
 #include "../editor/editor_test_utils.h"
 #include "document_window.h"
 
+#include "kalahari/core/material_kinds.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/dialogs/link_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
@@ -98,10 +99,13 @@ bool isRed(const QImage& image, int x, int y) {
     return qRed(pixel) > 200 && qBlue(pixel) < 50;
 }
 
-/// A copy of file @p path in the Workshop of the open book, as material @p title
+/// A copy of file @p path in the Workshop of the open book, as material @p title of the kind
+/// its file gives it
 QString addMaterial(core::ProjectManager& pm, const QString& path, const QString& title) {
     const QString id = pm.addMaterial(
-        path, pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("material")),
+        path,
+        pm.bookTypes().findKind(QStringLiteral("kalahari.base"),
+                                core::MaterialKinds::ofFile(path)),
         title);
     REQUIRE_FALSE(id.isEmpty());
     return id;
@@ -695,7 +699,7 @@ TEST_CASE("Link: a material is linked with the sections and the elements, not wi
     REQUIRE(dialog.itemOf(photo) != nullptr);
     const QTreeWidgetItem* group = dialog.itemOf(photo)->parent();
     REQUIRE(group != nullptr);
-    CHECK(group->text(0) == QStringLiteral("Materials"));
+    CHECK(group->text(0) == QStringLiteral("Pictures"));
     CHECK_FALSE(group->flags().testFlag(Qt::ItemIsUserCheckable));
     CHECK(group->parent() == tree->topLevelItem(1));
 

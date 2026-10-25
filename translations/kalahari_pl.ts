@@ -1138,9 +1138,9 @@
         <translation>Program nie ma jeszcze edytora tego rodzaju.</translation>
     </message>
     <message>
-        <source>A material is a copy of a file chosen when it is added.</source>
-        <extracomment>The tooltip of &quot;Create now&quot; on a material of the Workshop, e.g. a picture. In Polish: Materiał to kopia pliku wybranego przy dodawaniu.</extracomment>
-        <translation>Materiał to kopia pliku wybranego przy dodawaniu.</translation>
+        <source>A material is added later, in the Workshop.</source>
+        <extracomment>The tooltip of &quot;Create now&quot; on a material of the Workshop, e.g. a picture, which is added with its file or address. In Polish: Materiał dodaje się później, w Warsztacie.</extracomment>
+        <translation>Materiał dodaje się później, w Warsztacie.</translation>
     </message>
 </context>
 <context>
@@ -6857,6 +6857,16 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>%1: the group of the materials in the Navigator, %2: their titles, %3: the element or the section they are linked with. In Polish: Dodano do grupy „%1”: %2; wszystkie powiązane z „%3”</extracomment>
         <translation>Dodano do grupy „%1”: %2; wszystkie powiązane z „%3”</translation>
     </message>
+    <message>
+        <source>Materials</source>
+        <extracomment>The node of the Navigator with the materials of several kinds added at once. In Polish: Materiały</extracomment>
+        <translation>Materiały</translation>
+    </message>
+    <message>
+        <source>Add Materials Failed</source>
+        <extracomment>The title of the message about materials of several kinds that could not be added. In Polish: Nie udało się dodać materiałów</extracomment>
+        <translation>Nie udało się dodać materiałów</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPage</name>
@@ -7251,8 +7261,14 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>Biblioteki</translation>
     </message>
     <message>
-        <source>Resources</source>
-        <translation>Zasoby</translation>
+        <source>Materials</source>
+        <extracomment>The node of the Workshop with the working notes and the materials (quotes, web pages, pictures...), in groups of their kinds. In Polish: Materiały</extracomment>
+        <translation>Materiały</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A node of the Navigator with its number of elements, as a screen reader reads it: %1 the name, %2 the number. In Polish: %1 (%2)</extracomment>
+        <translation>%1 (%2)</translation>
     </message>
     <message>
         <source>Book</source>
@@ -7281,7 +7297,7 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
     <message>
         <source>&amp;Grouping</source>
-        <extracomment>Whether the Workshop has its cards in Libraries and its materials in Resources. In Polish: &amp;Grupowanie</extracomment>
+        <extracomment>Whether the Workshop has its cards (characters, locations, items) in Libraries. In Polish: &amp;Grupowanie</extracomment>
         <translation>&amp;Grupowanie</translation>
     </message>
     <message>

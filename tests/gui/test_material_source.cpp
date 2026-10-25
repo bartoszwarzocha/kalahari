@@ -4,6 +4,7 @@
 
 #include "document_window.h"
 
+#include "kalahari/core/material_kinds.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/material_downloader.h"
@@ -98,11 +99,16 @@ private:
     std::string m_saved;
 };
 
-/// Add @p material to the Workshop of the open book
+/// Add @p material to the Workshop of the open book, of the kind its source gives it; a quote
+/// without one
 QString addMaterial(core::ProjectManager& pm, const core::NewMaterial& material) {
+    QString kindId = core::MaterialKinds::ofSource(
+        QUrl(material.url), material.filePath.isEmpty() ? material.fileName : material.filePath);
+    if (kindId.isEmpty()) {
+        kindId = QString::fromLatin1(core::MaterialKinds::QUOTE);
+    }
     const QString id = pm.addMaterial(
-        material,
-        pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("material")));
+        material, pm.bookTypes().findKind(QStringLiteral("kalahari.base"), kindId));
     REQUIRE_FALSE(id.isEmpty());
     return id;
 }
@@ -114,7 +120,7 @@ bool shown(const QWidget* widget, const QWidget& page) {
 
 } // namespace
 
-TEST_CASE("Material source: a web address, a picture by its address, a title and a file name",
+TEST_CASE("Material source: a web address, a title and a file name",
           "[gui][materials]") {
     // A web address has http or https and a host, and no spaces in it
     CHECK(gui::webAddress(QStringLiteral("  https://en.wikipedia.org/wiki/Kalahari  ")) ==
@@ -126,14 +132,6 @@ TEST_CASE("Material source: a web address, a picture by its address, a title and
     CHECK(gui::webAddress(QStringLiteral("https://example.com/a b")).isEmpty());
     CHECK(gui::webAddress(QStringLiteral("https://example.com/\nhttps://example.org/")).isEmpty());
     CHECK(gui::webAddress(QStringLiteral("The Kalahari is a desert")).isEmpty());
-
-    // A picture by the end of its path; a page of a wiki about a picture is a page
-    CHECK(gui::isPictureAddress(QUrl(QStringLiteral("https://example.com/a/Camel.JPG"))));
-    CHECK(gui::isPictureAddress(QUrl(QStringLiteral("https://example.com/dune.webp?w=800"))));
-    CHECK_FALSE(gui::isPictureAddress(
-        QUrl(QStringLiteral("https://commons.wikimedia.org/wiki/File:Camel.jpg"))));
-    CHECK_FALSE(gui::isPictureAddress(QUrl(QStringLiteral("https://example.com/kalahari"))));
-    CHECK_FALSE(gui::isPictureAddress(QUrl(QStringLiteral("https://example.com/"))));
 
     // The title the end of an address gives
     CHECK(gui::titleOfAddress(

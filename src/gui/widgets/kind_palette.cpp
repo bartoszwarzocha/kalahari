@@ -100,10 +100,11 @@ public:
         if (!KindPalette::canCreateNow(kind)) {
             m_now->setEnabled(false);
             if (kind.kind->isMaterial()) {
-                //: The tooltip of "Create now" on a material of the Workshop, e.g. a picture.
-                //: In Polish: Materiał to kopia pliku wybranego przy dodawaniu.
+                //: The tooltip of "Create now" on a material of the Workshop, e.g. a picture,
+                //: which is added with its file or address. In Polish: Materiał dodaje się
+                //: później, w Warsztacie.
                 m_now->setToolTip(QCoreApplication::translate(
-                    "KindPalette", "A material is a copy of a file chosen when it is added."));
+                    "KindPalette", "A material is added later, in the Workshop."));
             } else {
                 //: The tooltip of "Create now" on a kind that opens in a window of its own,
                 //: e.g. a character card. In Polish: Program nie ma jeszcze edytora tego

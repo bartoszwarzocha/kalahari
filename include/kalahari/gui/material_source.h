@@ -28,17 +28,12 @@ enum class MaterialSource {
 };
 
 /// @brief The source of material @p element: a picture on the web when its address names a
-/// picture or it has a copy of one
+/// picture (core::MaterialKinds::isPictureAddress()) or it has a copy of one
 MaterialSource materialSourceOf(const core::ProjectElement& element);
 
 /// @brief The web address @p text is, without spaces around it: an http or https address with
 /// its host; an empty address for any other text
 QUrl webAddress(const QString& text);
-
-/// @brief Whether @p url names a picture by the end of its path (.jpg, .png...), which the
-/// program tells without connecting to it; a page of a wiki about a picture
-/// (".../wiki/File:Camel.jpg") is a page
-bool isPictureAddress(const QUrl& url);
 
 /// @brief The title the end of @p url gives: "Kalahari" from ".../wiki/Kalahari", "Camel on a
 /// dune" from ".../Camel_on_a_dune.jpg"; its host, without "www.", when its path has none

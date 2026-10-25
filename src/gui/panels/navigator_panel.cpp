@@ -37,6 +37,7 @@
 #include <QMenu>
 #include <QActionGroup>
 #include <QPalette>
+#include <QApplication>
 #include <QBrush>
 #include <QDropEvent>
 #include <QBasicTimer>
@@ -54,6 +55,7 @@
 #include <QPersistentModelIndex>
 #include <QScrollBar>
 #include <QSignalBlocker>
+#include <QStyledItemDelegate>
 #include <QTimerEvent>
 #include <algorithm>
 #include <functional>
@@ -72,6 +74,11 @@ constexpr int TITLE_ROLE = Qt::UserRole + 4;
 constexpr int CARD_ROLE = Qt::UserRole + 5;
 /// The element is of the Workshop: no status, not dragged
 constexpr int WORKSHOP_ROLE = Qt::UserRole + 6;
+/// The number of the elements of the Materials of the Workshop, and of each of its groups,
+/// which the tree shows at the right of the name
+constexpr int COUNT_ROLE = Qt::UserRole + 7;
+/// Room between the name of a node and its number, in multiples of the width of a space
+constexpr int COUNT_GAP = 3;
 /// Milliseconds before a collapsed group or section that a dragged element rests on opens
 constexpr int AUTO_EXPAND_DELAY = 700;
 /// The id of a group of the Workshop starts with it: "workshop:kalahari.base:work_note"
@@ -269,6 +276,61 @@ std::optional<kalahari::core::ElementPlace> placeBeyondList(
     }
     return std::nullopt;
 }
+
+/// Draws the number of a node that has one (COUNT_ROLE) at the right of the row, grey, and
+/// shortens the name to leave room for it
+class CountDelegate : public QStyledItemDelegate {
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    void paint(QPainter* painter, const QStyleOptionViewItem& option,
+               const QModelIndex& index) const override {
+        const QVariant count = index.data(COUNT_ROLE);
+        if (!count.isValid()) {
+            QStyledItemDelegate::paint(painter, option, index);
+            return;
+        }
+        QStyleOptionViewItem item(option);
+        initStyleOption(&item, index);
+        const QWidget* widget = option.widget;
+        QStyle* style = widget ? widget->style() : QApplication::style();
+        const QString number = QLocale().toString(count.toInt());
+        const int room = item.fontMetrics.horizontalAdvance(number) + gap(item.fontMetrics);
+        const QRect textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &item, widget);
+        item.text = item.fontMetrics.elidedText(item.text, item.textElideMode,
+                                                std::max(0, textRect.width() - room));
+        style->drawControl(QStyle::CE_ItemViewItem, &item, painter, widget);
+
+        // On the selected row in the color of its text, elsewhere grey
+        const bool selected = (option.state & QStyle::State_Selected) != 0;
+        const QPalette::ColorGroup group = (option.state & QStyle::State_Enabled) == 0
+                                               ? QPalette::Disabled
+                                           : (option.state & QStyle::State_Active) != 0
+                                               ? QPalette::Active
+                                               : QPalette::Inactive;
+        painter->save();
+        painter->setFont(item.font);
+        painter->setPen(option.palette.color(
+            group, selected ? QPalette::HighlightedText : QPalette::PlaceholderText));
+        painter->drawText(textRect, Qt::AlignRight | Qt::AlignVCenter, number);
+        painter->restore();
+    }
+
+    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+        QSize size = QStyledItemDelegate::sizeHint(option, index);
+        const QVariant count = index.data(COUNT_ROLE);
+        if (count.isValid()) {
+            const QString number = QLocale().toString(count.toInt());
+            size.rwidth() += option.fontMetrics.horizontalAdvance(number) + gap(option.fontMetrics);
+        }
+        return size;
+    }
+
+private:
+    static int gap(const QFontMetrics& metrics) {
+        return COUNT_GAP * metrics.horizontalAdvance(QLatin1Char(' '));
+    }
+};
 
 /// Tree of the Navigator. An element is dragged to any place of the book its kind can have
 /// (NavigatorPanel::dropPlaceOf()); the drop does not change the tree, it asks for the move,
@@ -605,6 +667,7 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
 
     // Create tree widget
     auto* tree = new NavigatorTree(this);
+    tree->setItemDelegate(new CountDelegate(tree));
     tree->onMove = [this](const QString& elementId, const core::ElementPlace& place) {
         core::Logger::getInstance().info("NavigatorPanel: Element {} dragged to place {} of {}",
                                          elementId.toStdString(), place.index,
@@ -1230,31 +1293,33 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
     // The elements in alphabetical order of their titles
     const QCollator collator = workshopOrder(project);
 
-    // Grouped, the groups of cards are in Libraries and those of materials in Resources, each
-    // where its first group would be
+    // The working notes and the materials are in Materials, and, grouped, the groups of cards
+    // in Libraries, each where its first group would be
     QTreeWidgetItem* libraries = nullptr;
-    QTreeWidgetItem* resources = nullptr;
+    QTreeWidgetItem* materials = nullptr;
     const auto parentOf = [&](core::WorkshopGroup shelf) -> QTreeWidgetItem* {
-        if (!project.workshop.grouped || shelf == core::WorkshopGroup::None) {
+        const bool library = shelf == core::WorkshopGroup::Libraries;
+        if (shelf == core::WorkshopGroup::None || (library && !project.workshop.grouped)) {
             return workshopItem;
         }
-        const bool library = shelf == core::WorkshopGroup::Libraries;
-        QTreeWidgetItem*& item = library ? libraries : resources;
+        QTreeWidgetItem*& item = library ? libraries : materials;
         if (!item) {
             item = new QTreeWidgetItem(workshopItem);
-            item->setText(0, library
-                                 //: The group of the cards of the Workshop (characters,
-                                 //: locations, items) when it is grouped. In Polish: Biblioteki
-                                 ? tr("Libraries")
-                                 //: The group of the materials of the Workshop when it is
-                                 //: grouped. In Polish: Zasoby
-                                 : tr("Resources"));
+            if (library) {
+                //: The group of the cards of the Workshop (characters, locations, items) when
+                //: it is grouped. In Polish: Biblioteki
+                item->setText(0, tr("Libraries"));
+            } else {
+                //: The node of the Workshop with the working notes and the materials (quotes,
+                //: web pages, pictures...), in groups of their kinds. In Polish: Materiały
+                item->setText(0, tr("Materials"));
+            }
             item->setData(0, Qt::UserRole,
                           WORKSHOP_ID_PREFIX + (library ? QStringLiteral("libraries")
-                                                        : QStringLiteral("resources")));
+                                                        : QStringLiteral("materials")));
             item->setData(0, Qt::UserRole + 1, QStringLiteral("workshop_shelf"));
             const QString iconId = library ? QStringLiteral("structure.libraries")
-                                           : QStringLiteral("structure.resources");
+                                           : QStringLiteral("structure.materials");
             item->setData(0, ICON_ROLE, iconId);
             item->setIcon(0, itemIcon(item, iconId));
             item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
@@ -1286,7 +1351,27 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
         item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
         addElementItems(item, group.elements, registry, true);
         item->setExpanded(true);
+        if (item->parent() == materials) {
+            setCount(item, group.elements.size());
+        }
     }
+
+    // Materials has the number of all of them
+    if (materials) {
+        int all = 0;
+        for (int i = 0; i < materials->childCount(); ++i) {
+            all += materials->child(i)->data(0, COUNT_ROLE).toInt();
+        }
+        setCount(materials, all);
+    }
+}
+
+void NavigatorPanel::setCount(QTreeWidgetItem* item, qsizetype count) {
+    item->setData(0, COUNT_ROLE, static_cast<int>(count));
+    //: A node of the Navigator with its number of elements, as a screen reader reads it: %1
+    //: the name, %2 the number. In Polish: %1 (%2)
+    item->setData(0, Qt::AccessibleTextRole,
+                  tr("%1 (%2)").arg(item->text(0), QLocale().toString(count)));
 }
 
 QString NavigatorPanel::bookName(const core::ProjectBook& book) {
@@ -2216,8 +2301,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
         addRenameNodeAction([this]() { emit requestRenameNode(QStringLiteral("workshop")); });
         if (const core::BookProject* project = pm.project()) {
-            //: Whether the Workshop has its cards in Libraries and its materials in Resources.
-            //: In Polish: &Grupowanie
+            //: Whether the Workshop has its cards (characters, locations, items) in
+            //: Libraries. In Polish: &Grupowanie
             QAction* groupedAction = menu.addAction(tr("&Grouping"));
             groupedAction->setCheckable(true);
             groupedAction->setChecked(project->workshop.grouped);
@@ -2609,7 +2694,7 @@ std::optional<AddTarget> NavigatorPanel::addTargetOf(const QTreeWidgetItem* item
     AddTarget target;
 
     // The Workshop: all its kinds; a group of it or an element of it: its kind; a group of
-    // groups (Libraries, Resources): the kinds of its groups
+    // groups (Libraries, Materials): the kinds of its groups the program makes elements of
     if (isWorkshopNode(type) || isWorkshopItem(item)) {
         target.scope = AddTarget::Scope::Workshop;
         // The kind of a group of the Workshop, or of an element of it
@@ -2626,7 +2711,8 @@ std::optional<AddTarget> NavigatorPanel::addTargetOf(const QTreeWidgetItem* item
         };
         if (type == QLatin1String("workshop_shelf")) {
             for (int i = 0; i < item->childCount(); ++i) {
-                if (const core::KindRef kind = kindOfItem(item->child(i))) {
+                if (const core::KindRef kind = kindOfItem(item->child(i));
+                    core::ProjectManager::canAdd(kind)) {
                     target.kinds.append(kind);
                 }
             }
@@ -2689,14 +2775,17 @@ QList<core::KindRef> NavigatorPanel::namedKindsOf(const QTreeWidgetItem* item) c
 
     switch (target->scope) {
     case AddTarget::Scope::Workshop: {
-        // The kinds of the node the program makes elements of
+        // The kinds of the node the program makes elements of; a node of several kinds (the
+        // Workshop, Materials) leaves the kinds of materials, many of the same weight, to the
+        // window, as the front and back sections do
         const QList<core::KindRef> available = pm.kindsFor(core::BookPlace::Workshop);
         const QList<core::KindRef> all =
             target->kinds.isEmpty() && project
                 ? project->kindsIn(pm.bookTypes(), core::BookPlace::Workshop)
                 : target->kinds;
+        const bool several = all.size() > 1;
         for (const core::KindRef& kind : all) {
-            if (offered(available, kind)) {
+            if (offered(available, kind) && !(several && kind.kind->isMaterial())) {
                 append(kind);
             }
         }
