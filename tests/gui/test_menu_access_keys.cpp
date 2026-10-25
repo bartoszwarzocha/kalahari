@@ -881,6 +881,21 @@ TEST_CASE("Menu access keys: the menu of the panels' titles names them with keys
     CHECK(navigator->isHidden() == hidden);
 }
 
+TEST_CASE("Menu access keys: the copy of a menu leaves its hidden items out",
+          "[gui][menus][keys]") {
+    // Qt's menu of the window lists every toolbar; one not in use is hidden there
+    QMenu qtMenu;
+    qtMenu.addAction(QStringLiteral("Quick Actions"));
+    qtMenu.addAction(QStringLiteral("Versions and Backups"))->setVisible(false);
+    qtMenu.addAction(QStringLiteral("Edit"));
+    const std::unique_ptr<QMenu> menu(menuWithAccessKeys(qtMenu, nullptr));
+    QStringList names;
+    for (const QAction* item : menu->actions()) {
+        names << withoutAccessKey(item->text());
+    }
+    CHECK(names == QStringList{QStringLiteral("Quick Actions"), QStringLiteral("Edit")});
+}
+
 TEST_CASE("Menu access keys: lists and toolbar buttons show the names without them",
           "[gui][menus][keys]") {
     registerAllCommands(CommandCallbacks{});

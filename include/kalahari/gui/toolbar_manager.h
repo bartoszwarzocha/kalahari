@@ -37,8 +37,8 @@ class EditorPanel;
 /// control, and persists toolbar state (positions and visibility) across sessions.
 ///
 /// Features:
-/// - Multiple toolbars (Quick Actions, Edit, Format, Insert, Book, Styles, Views, Tools,
-///   Help, File, Panels)
+/// - Multiple toolbars (Quick Actions, Versions and Backups, Edit, Format, Insert, Book,
+///   Styles, Views, Tools, Help, File, Panels)
 /// - Icon-based toolbar buttons (24x24 icons)
 /// - View menu integration (toggle visibility)
 /// - State persistence via QSettings
@@ -211,10 +211,11 @@ public:
     /// @brief Apply default 2-row toolbar layout
     ///
     /// Docks every toolbar at the top of the window again, a floating one too, in 2 rows:
-    /// - Row 1: Quick Actions, Edit, Format, Insert
+    /// - Row 1: Quick Actions, Versions and Backups, Edit, Format, Insert
     /// - Row 2: Book, Styles, Views, Tools, Help, the hidden File and Panels, then the user
     ///   toolbars
-    /// and shows the toolbars shown by default and the user toolbars, hiding the others.
+    /// and shows the toolbars shown by default and the user toolbars, hiding the others
+    /// (Versions and Backups too while the buttons of the versions are on Quick Actions).
     ///
     /// OpenSpec #00037: Call this after resetToDefaults() or when detecting
     /// that saved layout doesn't match expected multi-row layout; View > Reset Layout calls it
@@ -280,6 +281,17 @@ public:
     /// toolbar leaves the button out, while its list of commands keeps it
     static constexpr const char* LOG_BUTTON_KEY = "panels.showLogButton";
 
+    /// The setting with the place of the buttons of Save Version and Version History: on the
+    /// toolbar Versions and Backups, with Backup Now (VERSION_BUTTONS_OWN_TOOLBAR), or on
+    /// Quick Actions, next to Backup Now there (VERSION_BUTTONS_QUICK_ACTIONS). The other
+    /// place leaves them out, while its list of commands keeps them; Versions and Backups is
+    /// hidden then, also in the menus of the toolbars.
+    static constexpr const char* VERSION_BUTTONS_KEY = "editor.versions.buttons";
+    static constexpr const char* VERSION_BUTTONS_OWN_TOOLBAR = "ownToolbar";
+    static constexpr const char* VERSION_BUTTONS_QUICK_ACTIONS = "quickActions";
+    /// Id of the toolbar Versions and Backups
+    static constexpr const char* VERSIONS_TOOLBAR_ID = "versions";
+
 private:
     /// @brief Initialize toolbar configurations
     ///
@@ -320,8 +332,28 @@ private:
     void addToolbarItem(QToolBar* toolbar, const QString& cmdId, CommandRegistry& registry);
 
     /// @brief Whether toolbar @p toolbarId shows command @p cmdId of its list: all do, but the
-    /// Log button of the Panels toolbar without LOG_BUTTON_KEY
+    /// Log button of the Panels toolbar without LOG_BUTTON_KEY, and the buttons of the toolbar
+    /// Versions and Backups on Quick Actions while that toolbar has them (VERSION_BUTTONS_KEY)
     [[nodiscard]] static bool showsCommand(const QString& toolbarId, const QString& cmdId);
+
+    /// @brief The items of @p commands that toolbar @p toolbarId shows (showsCommand()),
+    /// without a separator at either end or next to another one
+    [[nodiscard]] static QStringList shownItems(const QString& toolbarId,
+                                                const QStringList& commands);
+
+    /// @brief Whether the buttons of the versions are on the toolbar Versions and Backups
+    /// (VERSION_BUTTONS_KEY)
+    [[nodiscard]] static bool versionsToolbarInUse();
+
+    /// @brief Versions and Backups and its items in the menus shown or hidden as
+    /// VERSION_BUTTONS_KEY says, and Quick Actions with the buttons of the versions or without
+    /// @param changed The setting has just changed: the toolbar chosen shows; else a hidden
+    ///        one stays hidden
+    void applyVersionButtons(bool changed);
+
+    /// @brief Versions and Backups right after Quick Actions, in its row: in a layout saved
+    /// before it existed, where Qt leaves it at the end of the last row
+    void placeVersionsToolbar();
 
     /// @brief Slot called when View menu toolbar action is toggled
     ///
@@ -381,7 +413,8 @@ public:
 private:
     std::function<EditorPanel*()> m_getEditorCallback;  ///< Callback to get current editor
     bool m_fontWidgetsSyncing = false;                   ///< Prevent recursive updates
-    int m_settingsListener = 0;  ///< Rebuilds the Panels toolbar when LOG_BUTTON_KEY changes
+    int m_settingsListener = 0;  ///< Rebuilds the Panels toolbar when LOG_BUTTON_KEY changes,
+                                 ///< and Quick Actions when VERSION_BUTTONS_KEY does
 
     /// Context of the connections whose lambdas capture this manager: declared last, so it is
     /// destroyed first and Qt drops those connections before the rest of the manager goes

@@ -53,9 +53,10 @@ constexpr int WORD_COUNT_DELAY_MS = 500;
 void keepVersionBeforeReplaceAll(const QString& elementId, const editor::BookEditor& editor,
                                  const QString& found, const QString& replacement, int count) {
     auto& pm = core::ProjectManager::getInstance();
+    const auto& settings = core::SettingsManager::getInstance();
     if (!pm.isProjectOpen() || pm.isReadOnly() ||
-        !core::SettingsManager::getInstance().get<bool>(
-            core::ChapterVersions::BEFORE_REPLACE_ALL_SETTING)) {
+        !settings.get<bool>(core::ChapterVersions::ENABLED_SETTING) ||
+        !settings.get<bool>(core::ChapterVersions::BEFORE_REPLACE_ALL_SETTING)) {
         return;
     }
     const core::ProjectManager::VersionKept kept =

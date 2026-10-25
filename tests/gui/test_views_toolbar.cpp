@@ -11,6 +11,7 @@
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/utils/access_keys.h"
 
 #include <QAction>
 #include <QApplication>
@@ -31,6 +32,8 @@
 #include <QToolBar>
 #include <QTreeWidget>
 
+#include <algorithm>
+#include <array>
 #include <cstdio>
 
 using namespace kalahari::gui;
@@ -315,6 +318,228 @@ TEST_CASE("Views toolbar: shown in the second row of a layout saved before it ex
     CHECK(views->isVisible());
     CHECK(views->y() == book->y());
     CHECK(views->y() > edit->y());
+}
+
+namespace {
+
+/// The buttons of the versions and Backup Now
+const std::array<const char*, 3> VERSION_BUTTONS{"file.saveVersion", "file.versionHistory",
+                                                 "tools.backupNow"};
+
+/// Whether @p toolbar has the buttons of the versions and Backup Now
+bool hasVersionButtons(const QToolBar& toolbar) {
+    const QList<QAction*> actions = toolbar.actions();
+    return std::all_of(VERSION_BUTTONS.begin(), VERSION_BUTTONS.end(), [&actions](const char* id) {
+        return actions.contains(CommandRegistry::getInstance().getAction(std::string(id)));
+    });
+}
+
+/// Whether @p toolbar has none of the buttons of the versions and Backup Now
+bool hasNoVersionButtons(const QToolBar& toolbar) {
+    const QList<QAction*> actions = toolbar.actions();
+    return std::none_of(VERSION_BUTTONS.begin(), VERSION_BUTTONS.end(),
+                        [&actions](const char* id) {
+                            return actions.contains(
+                                CommandRegistry::getInstance().getAction(std::string(id)));
+                        });
+}
+
+/// Whether @p toolbar has a separator only between two buttons
+bool separatesOnlyButtons(const QToolBar& toolbar) {
+    const QList<QAction*> actions = toolbar.actions();
+    for (qsizetype i = 0; i < actions.size(); ++i) {
+        if (actions.at(i)->isSeparator() &&
+            (i == 0 || i == actions.size() - 1 || actions.at(i - 1)->isSeparator())) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/// The item of @p toolbarId in View > Toolbars @p menu
+QAction* menuItemOf(const QMenu& menu, const QString& toolbarId) {
+    for (QAction* action : menu.findChildren<QAction*>()) {
+        if (action->data().toString() == toolbarId) {
+            return action;
+        }
+    }
+    return nullptr;
+}
+
+}  // namespace
+
+TEST_CASE("Versions and Backups toolbar: in the first row after Quick Actions",
+          "[gui][toolbar][versions]") {
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    QMainWindow window;
+    window.setCentralWidget(new QLabel(QStringLiteral("text")));
+    ToolbarManager manager(&window);
+    manager.createToolbars(registry);
+    window.resize(1600, 900);
+    window.show();
+    QApplication::processEvents();
+
+    QToolBar* versions = manager.getToolbar(ToolbarManager::VERSIONS_TOOLBAR_ID);
+    QToolBar* quickActions = manager.getToolbar("quickActions");
+    QToolBar* edit = manager.getToolbar("edit");
+    REQUIRE(versions != nullptr);
+    REQUIRE(quickActions != nullptr);
+    REQUIRE(edit != nullptr);
+    CHECK(versions->isVisible());
+    CHECK(versions->windowTitle() == QStringLiteral("Versions and Backups Toolbar"));
+    CHECK(versions->y() == quickActions->y());
+    CHECK(versions->x() > quickActions->x());
+    CHECK(versions->x() < edit->x());
+
+    // Save Version, Version History, then Backup Now
+    const QList<QAction*> actions = versions->actions();
+    REQUIRE(actions.size() == 4);
+    CHECK(actions.at(0) == registry.getAction(std::string("file.saveVersion")));
+    CHECK(actions.at(1) == registry.getAction(std::string("file.versionHistory")));
+    CHECK(actions.at(2)->isSeparator());
+    CHECK(actions.at(3) == registry.getAction(std::string("tools.backupNow")));
+
+    // Not on Quick Actions as well, whose list keeps them for Customize Toolbars
+    CHECK(hasNoVersionButtons(*quickActions));
+    CHECK(separatesOnlyButtons(*quickActions));
+    const QStringList quickList = manager.getToolbarCommands(QStringLiteral("quickActions"));
+    CHECK(quickList.indexOf(QStringLiteral("file.saveVersion")) ==
+          quickList.indexOf(QStringLiteral("tools.backupNow")) + 1);
+    CHECK(quickList.indexOf(QStringLiteral("file.versionHistory")) ==
+          quickList.indexOf(QStringLiteral("tools.backupNow")) + 2);
+}
+
+TEST_CASE("Versions and Backups toolbar: its buttons on Quick Actions, as the settings say",
+          "[gui][toolbar][versions]") {
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.set<std::string>(ToolbarManager::VERSION_BUTTONS_KEY,
+                              ToolbarManager::VERSION_BUTTONS_QUICK_ACTIONS);
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    QMainWindow window;
+    window.setCentralWidget(new QLabel(QStringLiteral("text")));
+    ToolbarManager manager(&window);
+    manager.createToolbars(registry);
+    auto* viewMenu = new QMenu(&window);
+    manager.createViewMenuActions(viewMenu);
+    window.show();
+    QApplication::processEvents();
+    QToolBar* versions = manager.getToolbar(ToolbarManager::VERSIONS_TOOLBAR_ID);
+    QToolBar* quickActions = manager.getToolbar("quickActions");
+    REQUIRE(versions != nullptr);
+    REQUIRE(quickActions != nullptr);
+    QAction* item = menuItemOf(*viewMenu, QString::fromLatin1(ToolbarManager::VERSIONS_TOOLBAR_ID));
+    REQUIRE(item != nullptr);
+
+    // Next to Backup Now on Quick Actions; the toolbar of their own is hidden, in the menus too
+    const auto onQuickActions = [&]() {
+        CHECK(hasVersionButtons(*quickActions));
+        CHECK(separatesOnlyButtons(*quickActions));
+        const QList<QAction*> actions = quickActions->actions();
+        const qsizetype backup = actions.indexOf(registry.getAction(std::string("tools.backupNow")));
+        CHECK(actions.indexOf(registry.getAction(std::string("file.saveVersion"))) == backup + 1);
+        CHECK(actions.indexOf(registry.getAction(std::string("file.versionHistory"))) ==
+              backup + 2);
+        CHECK_FALSE(versions->isVisible());
+        CHECK_FALSE(item->isVisible());
+        CHECK_FALSE(versions->toggleViewAction()->isVisible());
+        QMenu contextMenu;
+        manager.fillContextMenu(&contextMenu);
+        for (const QAction* action : contextMenu.actions()) {
+            CHECK(withoutAccessKey(action->text()) != versions->windowTitle());
+        }
+    };
+    onQuickActions();
+
+    // On a toolbar of their own: it shows, with the buttons, after a change in the settings
+    settings.set<std::string>(ToolbarManager::VERSION_BUTTONS_KEY,
+                              ToolbarManager::VERSION_BUTTONS_OWN_TOOLBAR);
+    QApplication::processEvents();
+    CHECK(versions->isVisible());
+    CHECK(item->isVisible());
+    CHECK(item->isChecked());
+    CHECK(versions->toggleViewAction()->isVisible());
+    CHECK(hasVersionButtons(*versions));
+    CHECK(hasNoVersionButtons(*quickActions));
+    CHECK(separatesOnlyButtons(*quickActions));
+
+    settings.set<std::string>(ToolbarManager::VERSION_BUTTONS_KEY,
+                              ToolbarManager::VERSION_BUTTONS_QUICK_ACTIONS);
+    QApplication::processEvents();
+    onQuickActions();
+}
+
+TEST_CASE("Versions and Backups toolbar: after Quick Actions in a layout saved before it",
+          "[gui][toolbar][versions]") {
+    // The layout of an earlier version has no Versions and Backups: Qt would leave it at the
+    // end of the second row
+    const QByteArray savedLayout = layoutWithoutViewsToolbar();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.set<bool>("toolbars.visible.quickActions", true);
+
+    registerAllCommands(CommandCallbacks{});
+    QMainWindow window;
+    window.setCentralWidget(new QLabel(QStringLiteral("text")));
+    ToolbarManager manager(&window);
+    manager.createToolbars(CommandRegistry::getInstance());
+    REQUIRE(window.restoreState(savedLayout));
+    manager.restoreState();
+    window.resize(1600, 900);
+    window.show();
+    QApplication::processEvents();
+
+    QToolBar* versions = manager.getToolbar(ToolbarManager::VERSIONS_TOOLBAR_ID);
+    QToolBar* quickActions = manager.getToolbar("quickActions");
+    QToolBar* edit = manager.getToolbar("edit");
+    REQUIRE(versions != nullptr);
+    REQUIRE(quickActions != nullptr);
+    REQUIRE(edit != nullptr);
+    CHECK(versions->isVisible());
+    CHECK(quickActions->isVisible());
+    CHECK(versions->y() == quickActions->y());
+    CHECK(versions->x() > quickActions->x());
+    CHECK(versions->x() < edit->x());
+
+    // Once: a layout that has it keeps its place, wherever the writer moved it
+    manager.saveState();
+    const QToolBar* book = manager.getToolbar("book");
+    REQUIRE(book != nullptr);
+    window.addToolBar(Qt::TopToolBarArea, versions);  // the end of the last row
+    QApplication::processEvents();
+    REQUIRE(versions->y() == book->y());
+    const QByteArray moved = window.saveState();
+    QMainWindow next;
+    next.setCentralWidget(new QLabel(QStringLiteral("text")));
+    ToolbarManager nextManager(&next);
+    nextManager.createToolbars(CommandRegistry::getInstance());
+    REQUIRE(next.restoreState(moved));
+    nextManager.restoreState();
+    next.resize(1600, 900);
+    next.show();
+    QApplication::processEvents();
+    CHECK(nextManager.getToolbar(ToolbarManager::VERSIONS_TOOLBAR_ID)->y() ==
+          nextManager.getToolbar("book")->y());
+}
+
+TEST_CASE("Versions and Backups toolbar: Quick Actions customized before gets the buttons of "
+          "the versions after Backup Now",
+          "[gui][toolbar][versions]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.set<std::string>(
+        "toolbars.configurations",
+        R"({"builtIn":{"quickActions":["file.new","file.save","_SEPARATOR_","tools.backupNow",)"
+        R"("_SEPARATOR_","edit.settings"]}})");
+    settings.set<int>("toolbars.addedCommands", 4);
+    QMainWindow window;
+    ToolbarManager manager(&window);
+    CHECK(manager.getToolbarCommands(QStringLiteral("quickActions"))
+              .join(QStringLiteral(" | "))
+              .toStdString() ==
+          "file.new | file.save | _SEPARATOR_ | tools.backupNow | file.saveVersion | "
+          "file.versionHistory | _SEPARATOR_ | edit.settings");
 }
 
 TEST_CASE("Toolbar manager: the View menu items follow the toolbars and outlive no menu",

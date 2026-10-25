@@ -84,6 +84,9 @@ public:
     /// @brief Format of index.json
     static constexpr int FORMAT = 1;
 
+    /// @brief Setting: whether the program keeps new versions at all, the writer's own and those
+    /// it keeps by itself; the versions kept stay, to be read and restored, whatever it says
+    static constexpr const char* ENABLED_SETTING = "editor.versions.enabled";
     /// @brief Setting: whether Save Version asks for a description
     static constexpr const char* ASK_NAME_SETTING = "editor.versions.askName";
     /// @brief Setting: whether saving a chapter keeps its text as a version

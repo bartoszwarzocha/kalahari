@@ -2637,6 +2637,8 @@ TEST_CASE("Saving a chapter keeps its text as a version when the settings say so
     const QString chapter = pm.book()->mainElements.first().id;
     const std::optional<ChapterVersions> versions = pm.versionsOf(chapter);
     REQUIRE(versions.has_value());
+    // At most one in an hour by default
+    CHECK(settings.get<int>(ChapterVersions::ON_SAVE_MINUTES_SETTING) == 60);
 
     // The first save keeps a version; the next ones within the minutes of the setting do not
     pm.setChapterContent(chapter, kmlWith("Storm"));
@@ -2668,6 +2670,13 @@ TEST_CASE("Saving a chapter keeps its text as a version when the settings say so
     // Without the setting, none
     settings.set<bool>(ChapterVersions::ON_SAVE_SETTING, false);
     pm.setChapterContent(chapter, kmlWith("Storm came at noon"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(versions->count() == 4);
+
+    // Nor with the versions turned off, whatever the setting of saving says
+    settings.set<bool>(ChapterVersions::ON_SAVE_SETTING, true);
+    settings.set<bool>(ChapterVersions::ENABLED_SETTING, false);
+    pm.setChapterContent(chapter, kmlWith("Storm came at dusk"));
     REQUIRE(pm.saveChapterContent(chapter));
     CHECK(versions->count() == 4);
     REQUIRE(pm.closeProject(false));

@@ -76,6 +76,19 @@ VersionsCoordinator::VersionsCoordinator(QTabWidget* centralTabs, ChapterOpener 
             &VersionsCoordinator::updateCommandStates);
     connect(&projects, &core::ProjectManager::projectClosed, this,
             &VersionsCoordinator::updateCommandStates);
+    // And the setting that turns new versions off; the listener runs on the thread that
+    // changes it, the commands change on the window's
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (key == core::ChapterVersions::ENABLED_SETTING) {
+                QMetaObject::invokeMethod(
+                    this, [this]() { updateCommandStates(); }, Qt::QueuedConnection);
+            }
+        });
+}
+
+VersionsCoordinator::~VersionsCoordinator() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 }
 
 void VersionsCoordinator::connectCommands() {
@@ -184,6 +197,7 @@ bool VersionsCoordinator::showHistory(const QString& elementId) {
     text.kml = editor->toKml();
     text.editor = editor;
     text.readOnly = pm.isReadOnly();
+    text.whyNotSave = whyNot(panel, true);
 
     // Saved from the window, a version is the text in its editor, as Save Version keeps it
     dialogs::VersionHistoryDialog dialog(
@@ -342,6 +356,10 @@ QString VersionsCoordinator::elementIdOf(const EditorPanel* panel) {
 
 QString VersionsCoordinator::whyNot(const EditorPanel* panel, bool saving) const {
     auto& pm = core::ProjectManager::getInstance();
+    // With where to turn them on, whatever is in front
+    if (saving && !versionsEnabled()) {
+        return versionsOffReason();
+    }
     if (panel == nullptr) {
         //: Why Save Version and Version History are greyed out. In Polish: Na wierzchu nie ma
         //: tekstu książki

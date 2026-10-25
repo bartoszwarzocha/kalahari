@@ -2187,6 +2187,10 @@ Uruchomić ponownie teraz?</translation>
         <source>&amp;Reset to Default</source>
         <translation>P&amp;rzywróć domyślne</translation>
     </message>
+    <message>
+        <source>Versions &amp;and Backups Toolbar</source>
+        <translation>Wers&amp;je i kopie</translation>
+    </message>
 </context>
 <context>
     <name>QPlatformTheme</name>
@@ -7662,6 +7666,28 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>In Polish: Przeczytaj, porównaj albo przywróć wersje {kind:genitive}</extracomment>
         <translation>Przeczytaj, porównaj albo przywróć wersje {kind:genitive}</translation>
     </message>
+    <message>
+        <source>Version Settings</source>
+        <extracomment>The gear at the title of the group of the versions in the Properties panel: Settings &gt; Editor &gt; Versions. In Polish: Ustawienia wersji</extracomment>
+        <translation>Ustawienia wersji</translation>
+    </message>
+    <message>
+        <source>Creating versions is turned off</source>
+        <extracomment>The group of the versions while Settings &gt; Editor &gt; Versions &gt; Create Versions of the Texts is off. In Polish: Tworzenie wersji jest wyłączone</extracomment>
+        <translation>Tworzenie wersji jest wyłączone</translation>
+    </message>
+    <message>
+        <source>There are no saved versions.</source>
+        <translation>Nie ma zapisanych wersji.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n saved version(s) can be read and restored in the history.</source>
+        <translation>
+            <numerusform>%n zapisaną wersję można czytać i przywracać w historii.</numerusform>
+            <numerusform>%n zapisane wersje można czytać i przywracać w historii.</numerusform>
+            <numerusform>%n zapisanych wersji można czytać i przywracać w historii.</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::RecentBooksMenu</name>
@@ -12125,11 +12151,6 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <translation>Co ile minut najwyżej powstaje wersja przy zapisie rozdziału</translation>
     </message>
     <message>
-        <source>When the text differs from the last version saved in the chapter.</source>
-        <extracomment>In Polish: Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale.</extracomment>
-        <translation>Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale.</translation>
-    </message>
-    <message>
         <source>Before Replace All in a chapter</source>
         <extracomment>In Polish: Przed „Zamień wszystkie” w rozdziale</extracomment>
         <translation>Przed „Zamień wszystkie” w rozdziale</translation>
@@ -12178,6 +12199,60 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <source>Added text</source>
         <extracomment>Underlined: written later. In Polish: Dopisany tekst</extracomment>
         <translation>Dopisany tekst</translation>
+    </message>
+    <message>
+        <source>Versions of the Texts</source>
+        <extracomment>The first group of Settings &gt; Editor &gt; Versions. In Polish: Wersje tekstów</extracomment>
+        <translation>Wersje tekstów</translation>
+    </message>
+    <message>
+        <source>Create versions of the texts</source>
+        <extracomment>In Polish: Twórz wersje tekstów</extracomment>
+        <translation>Twórz wersje tekstów</translation>
+    </message>
+    <message>
+        <source>When the text differs from the last version saved in the chapter. A version is the whole text of the chapter: about 40 KB for 5,000 words.</source>
+        <extracomment>In Polish: Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale. Wersja to cały tekst rozdziału: przy 5000 słów około 40 KB.</extracomment>
+        <translation>Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale. Wersja to cały tekst rozdziału: przy 5000 słów około 40 KB.</translation>
+    </message>
+    <message>
+        <source>A version keeps the whole text of a chapter, so that it can be brought back.</source>
+        <extracomment>In Polish: Wersja zachowuje cały tekst rozdziału, żeby można było do niego wrócić.</extracomment>
+        <translation>Wersja zachowuje cały tekst rozdziału, żeby można było do niego wrócić.</translation>
+    </message>
+    <message>
+        <source>Off: the program keeps no new versions, neither yours nor its own.</source>
+        <extracomment>In Polish: Wyłączone: program nie zapisuje nowych wersji – ani Twoich, ani samoczynnych.</extracomment>
+        <translation>Wyłączone: program nie zapisuje nowych wersji – ani Twoich, ani samoczynnych.</translation>
+    </message>
+    <message>
+        <source>The program keeps no new versions now. Those saved can still be read, compared and restored in the history; before a restore the program keeps the current text.</source>
+        <translation>Program nie zapisuje teraz nowych wersji. Zapisane można dalej czytać, porównywać i przywracać w historii; przed przywróceniem program zachowuje bieżący tekst.</translation>
+    </message>
+    <message>
+        <source>Toolbar</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Versions with the place of the buttons. In Polish: Pasek narzędzi</extracomment>
+        <translation>Pasek narzędzi</translation>
+    </message>
+    <message>
+        <source>On a toolbar of their own, &quot;Versions and Backups&quot;</source>
+        <extracomment>The toolbar View &gt; Toolbars &gt; Versions and Backups. In Polish: Na osobnym pasku „Wersje i kopie”</extracomment>
+        <translation>Na osobnym pasku „Wersje i kopie”</translation>
+    </message>
+    <message>
+        <source>On the toolbar &quot;Quick Actions&quot;</source>
+        <extracomment>In Polish: Na pasku „Szybki dostęp”</extracomment>
+        <translation>Na pasku „Szybki dostęp”</translation>
+    </message>
+    <message>
+        <source>Version buttons:</source>
+        <extracomment>In Polish: Przyciski wersji:</extracomment>
+        <translation>Przyciski wersji:</translation>
+    </message>
+    <message>
+        <source>&quot;Save Version&quot; and &quot;Version History&quot;. The toolbar of their own can be moved, or hidden in the menu View &gt; Toolbars.</source>
+        <extracomment>In Polish: „Zapisz wersję” i „Historia wersji”. Osobny pasek można przesunąć albo ukryć w menu Widok &gt; Paski narzędzi.</extracomment>
+        <translation>„Zapisz wersję” i „Historia wersji”. Osobny pasek można przesunąć albo ukryć w menu Widok &gt; Paski narzędzi.</translation>
     </message>
 </context>
 <context>
@@ -12491,6 +12566,11 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <source>File &gt; Save Version</source>
         <extracomment>Save Version without keys. In Polish: Plik &gt; Zapisz wersję</extracomment>
         <translation>Plik &gt; Zapisz wersję</translation>
+    </message>
+    <message>
+        <source>Creating versions is turned off (Settings &gt; Editor &gt; Versions)</source>
+        <extracomment>Why Save Version is greyed out (the menu, the toolbar, the Properties panel, the window of the versions). In Polish: Tworzenie wersji jest wyłączone (Ustawienia &gt; Edytor &gt; Wersje)</extracomment>
+        <translation>Tworzenie wersji jest wyłączone (Ustawienia &gt; Edytor &gt; Wersje)</translation>
     </message>
 </context>
 <context>

@@ -16,10 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   editor, with its formatting, its annotations and the changes not saved yet, as a version:
   after a small window with an optional description (Enter saves also without one), or at
   once when Settings > Editor > Versions says so; the status bar says it is kept. The program
-  keeps versions by itself too: when a chapter is saved, at most once in 30 minutes and only
-  when its text differs from the last version; before Replace All in a chapter, with what was
-  replaced; and always before another version is restored. It keeps at most 20 of its own in
-  each chapter (both in the Settings, with the minutes), and never deletes the writer's.
+  keeps versions by itself too: when a chapter is saved, at most once an hour and only when
+  its text differs from the last version (a version is the whole text: about 40 KB for 5,000
+  words); before Replace All in a chapter, with what was replaced; and always before another
+  version is restored. It keeps at most 20 of its own in each chapter (both in the Settings,
+  with the minutes), and never deletes the writer's. Settings > Editor > Versions > Create
+  Versions of the Texts (on by default) turns them off: no new versions, neither the
+  writer's nor the program's, Save Version is greyed out everywhere, saying why, and the
+  history still reads, compares and restores the versions kept, keeping the current text
+  first.
   File > Version History (Alt+Shift+H) lists the versions of the text from the newest, with
   their descriptions or where they come from, their dates and words, wrapped to the width of
   the list; a box hides the program's own. The preview, its page at the width of the preview
@@ -34,7 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reads and compares only. The Navigator has Version History in the menu of a text
   (Alt+Shift+H in the tree), and the Properties panel of a text has the group Versions: how
   many, the last one, Save Version and Version History, also under the counts of the text in
-  front. The versions of a file are in the
+  front, and a gear that opens Settings > Editor > Versions. Save Version and Version History
+  are on the toolbar Versions and Backups, with Backup Now (moved from Quick Actions), in
+  the first row after Quick Actions; it can be moved or hidden like any toolbar, and
+  Settings > Editor > Versions > Version Buttons puts the two on Quick Actions, next to
+  Backup Now, instead. The notes of a greyed-out group in the Settings are greyed out with
+  it. The versions of a file are in the
   book's folder, under versions/ (a .kml file for each and index.json), go with the file to
   the Trash, and go into the book's archive unless its export leaves them out. Tools > Version
   History, which was always greyed out, is gone.

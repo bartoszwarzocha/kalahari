@@ -2414,7 +2414,8 @@ int ProjectManager::versionCount() const {
 
 void ProjectManager::keepVersionOnSave(const QString& elementId, const QString& kml) {
     const auto& settings = SettingsManager::getInstance();
-    if (!settings.get<bool>(ChapterVersions::ON_SAVE_SETTING)) {
+    if (!settings.get<bool>(ChapterVersions::ENABLED_SETTING) ||
+        !settings.get<bool>(ChapterVersions::ON_SAVE_SETTING)) {
         return;
     }
     const std::optional<ChapterVersions> versions = versionsOf(elementId);

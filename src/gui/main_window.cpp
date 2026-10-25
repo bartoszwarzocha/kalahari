@@ -351,6 +351,14 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestVersionHistory,
             m_versionsCoordinator,
             [this](const QString& elementId) { m_versionsCoordinator->showHistory(elementId); });
+    // The gear of the group of the versions: their settings
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestVersionSettings, this,
+            [this]() {
+                if (m_settingsCoordinator) {
+                    m_settingsCoordinator->openSettingsPage(
+                        QString::fromLatin1(SettingsDialog::VERSIONS_PAGE));
+                }
+            });
 
     // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
     // is done in the Annotations panel is undone in the text in front

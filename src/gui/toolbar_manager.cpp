@@ -55,7 +55,9 @@ struct AddedCommand {
 ///   2: New File, Open File, New Book and Open Book in a new order, on both toolbars
 ///   3: Show Formatting Marks on the Views toolbar
 ///   4: Paragraph and Styles on the Panels toolbar
-constexpr std::array<AddedCommand, 7> ADDED_COMMANDS{{
+///   5: Save Version and Version History on Quick Actions (shown there when the buttons of the
+///      versions are not on Versions and Backups)
+constexpr std::array<AddedCommand, 9> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
@@ -63,6 +65,8 @@ constexpr std::array<AddedCommand, 7> ADDED_COMMANDS{{
     {"quickActions", "file.close", 1},
     {"views", "view.showFormattingMarks", 3},
     {"view", "view.paragraph", 4},
+    {"quickActions", "file.saveVersion", 5},
+    {"quickActions", "file.versionHistory", 5},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -82,10 +86,18 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 4;
+constexpr int CHANGED_COMMANDS_VERSION = 5;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
+
+/// The buttons of the toolbar Versions and Backups, which Quick Actions has too and shows only
+/// while that toolbar does not (ToolbarManager::VERSION_BUTTONS_KEY)
+constexpr std::array<const char*, 3> VERSIONS_TOOLBAR_COMMANDS{
+    "file.saveVersion", "file.versionHistory", "tools.backupNow"};
+
+/// The prefix of the setting with whether a toolbar was shown when the window closed
+constexpr const char* VISIBLE_SETTING_PREFIX = "toolbars.visible.";
 
 }  // namespace
 
@@ -97,9 +109,10 @@ constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
 //   3: Fix toolbar visibility reset - force re-apply of default visibility
 //   4: Final toolbar fix - quickActions/edit/format/help visible, no addToolBarBreak
 //   5: Final layout - Row 1: Quick Actions, Edit, Format, Insert; Row 2: Book, Styles, Tools, Help; Hidden: File, View
-// A toolbar added later (Views) needs no new version: QMainWindow::restoreState() leaves a
-// toolbar the saved state does not know in its area, at the end of the last row, whereas a
-// new version would also discard the saved places of the panels.
+// A toolbar added later (Views, Versions and Backups) needs no new version:
+// QMainWindow::restoreState() leaves a toolbar the saved state does not know in its area, at
+// the end of the last row (placeVersionsToolbar() moves one where it belongs), whereas a new
+// version would also discard the saved places of the panels.
 static constexpr int TOOLBAR_CONFIG_VERSION = 5;
 
 namespace {
@@ -132,18 +145,21 @@ ToolbarManager::ToolbarManager(QMainWindow* mainWindow)
     // Load user configurations (may override defaults)
     loadConfigurations();
 
-    // The Log button comes and goes with its setting (Settings > Advanced > Log); the listener
-    // runs on the thread that changes the setting, the toolbar is rebuilt on the window's
+    // The Log button comes and goes with its setting (Settings > Advanced > Log), the buttons
+    // of the versions with theirs (Settings > Editor > Versions); the listener runs on the
+    // thread that changes the setting, the toolbars change on the window's
     m_settingsListener =
         core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
-            if (key != LOG_BUTTON_KEY) {
-                return;
+            if (key == LOG_BUTTON_KEY) {
+                QTimer::singleShot(0, &m_connectionContext, [this]() {
+                    if (m_toolbars.count("view") != 0) {
+                        rebuildToolbar(QStringLiteral("view"));
+                    }
+                });
+            } else if (key == VERSION_BUTTONS_KEY) {
+                QTimer::singleShot(0, &m_connectionContext,
+                                   [this]() { applyVersionButtons(true); });
             }
-            QTimer::singleShot(0, &m_connectionContext, [this]() {
-                if (m_toolbars.count("view") != 0) {
-                    rebuildToolbar(QStringLiteral("view"));
-                }
-            });
         });
 
     logger.debug("ToolbarManager: Initialized with {} toolbar configs", m_configs.size());
@@ -154,8 +170,40 @@ ToolbarManager::~ToolbarManager() {
 }
 
 bool ToolbarManager::showsCommand(const QString& toolbarId, const QString& cmdId) {
-    return toolbarId != QLatin1String("view") || cmdId != QLatin1String("view.log") ||
-           core::SettingsManager::getInstance().get<bool>(LOG_BUTTON_KEY, false);
+    if (toolbarId == QLatin1String("view") && cmdId == QLatin1String("view.log")) {
+        return core::SettingsManager::getInstance().get<bool>(LOG_BUTTON_KEY, false);
+    }
+    if (toolbarId == QLatin1String("quickActions") &&
+        std::any_of(VERSIONS_TOOLBAR_COMMANDS.begin(), VERSIONS_TOOLBAR_COMMANDS.end(),
+                    [&cmdId](const char* command) { return cmdId == QLatin1String(command); })) {
+        return !versionsToolbarInUse();
+    }
+    return true;
+}
+
+QStringList ToolbarManager::shownItems(const QString& toolbarId, const QStringList& commands) {
+    QStringList shown;
+    for (const QString& cmdId : commands) {
+        if (!showsCommand(toolbarId, cmdId)) {
+            continue;
+        }
+        // A separator divides two groups: none at the start or after another one
+        if (cmdId == QLatin1String(SEPARATOR_ID) &&
+            (shown.isEmpty() || shown.constLast() == QLatin1String(SEPARATOR_ID))) {
+            continue;
+        }
+        shown.append(cmdId);
+    }
+    if (!shown.isEmpty() && shown.constLast() == QLatin1String(SEPARATOR_ID)) {
+        shown.removeLast();
+    }
+    return shown;
+}
+
+bool ToolbarManager::versionsToolbarInUse() {
+    return core::SettingsManager::getInstance().get<std::string>(
+               VERSION_BUTTONS_KEY, VERSION_BUTTONS_OWN_TOOLBAR) !=
+           VERSION_BUTTONS_QUICK_ACTIONS;
 }
 
 void ToolbarManager::initializeConfigs() {
@@ -257,7 +305,9 @@ void ToolbarManager::initializeConfigs() {
 
     // Quick Actions Toolbar (OpenSpec #00037 - Phase C)
     // Consolidated toolbar with most frequently used actions for rapid access: every command
-    // of the File toolbar, in its order, as text editors have them
+    // of the File toolbar, in its order, as text editors have them. Backup Now, Save Version
+    // and Version History show here only while Versions and Backups does not have them
+    // (VERSION_BUTTONS_KEY)
     // Note: Undo/Redo are in Edit toolbar, not duplicated here
     m_configs["quickActions"] = {
         "quickActions",
@@ -268,8 +318,20 @@ void ToolbarManager::initializeConfigs() {
          "file.saveAs", "file.saveAll", "file.close",
          SEPARATOR_ID,
          "edit.find", SEPARATOR_ID,
-         "tools.backupNow", SEPARATOR_ID,
+         "tools.backupNow", "file.saveVersion", "file.versionHistory", SEPARATOR_ID,
          "edit.settings", "tools.toolbarManager"}
+    };
+
+    // Versions and Backups Toolbar: the versions of the texts, and the backups of the book,
+    // right after Quick Actions; the writer can move it or hide it, or have its buttons on
+    // Quick Actions instead (VERSION_BUTTONS_KEY)
+    m_configs[VERSIONS_TOOLBAR_ID] = {
+        VERSIONS_TOOLBAR_ID,
+        QT_TRANSLATE_NOOP("QObject", "Versions &and Backups Toolbar"),
+        Qt::TopToolBarArea,
+        true,  // visible by default (Row 1)
+        {VERSIONS_TOOLBAR_COMMANDS[0], VERSIONS_TOOLBAR_COMMANDS[1], SEPARATOR_ID,
+         VERSIONS_TOOLBAR_COMMANDS[2]}
     };
 
     // Help Toolbar (OpenSpec #00037 - Phase D)
@@ -288,12 +350,13 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
     logger.debug("ToolbarManager: Creating toolbars from configurations");
 
     // OpenSpec #00037 Phase E: Multi-row toolbar layout
-    // Row 1: Quick Actions, Edit, Format, Insert (visible by default)
+    // Row 1: Quick Actions, Versions and Backups, Edit, Format, Insert (visible by default)
     // Row 2: Book, Styles, Views, Tools, Help (visible by default)
     // Hidden: File, Panels
 
-    // Row 1 toolbars: Quick Actions, Edit, Format, Insert
-    std::vector<std::string> row1 = {"quickActions", "edit", "format", "insert"};
+    // Row 1 toolbars: Quick Actions, Versions and Backups, Edit, Format, Insert
+    std::vector<std::string> row1 = {"quickActions", VERSIONS_TOOLBAR_ID, "edit", "format",
+                                     "insert"};
     for (const std::string& id : row1) {
         auto it = m_configs.find(id);
         if (it != m_configs.end()) {
@@ -347,6 +410,9 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
                      toolbarId.toStdString(), displayName.toStdString());
     }
 
+    // Versions and Backups only with the buttons of the versions
+    applyVersionButtons(false);
+
     logger.info("ToolbarManager: Created {} toolbars", m_toolbars.size());
 }
 
@@ -366,10 +432,8 @@ QToolBar* ToolbarManager::createToolbar(const ToolbarConfig& config, CommandRegi
                  config.id, commands.size());
 
     // Add actions and widgets using shared helper method
-    for (const QString& cmdId : commands) {
-        if (showsCommand(toolbarId, cmdId)) {
-            addToolbarItem(toolbar, cmdId, registry);
-        }
+    for (const QString& cmdId : shownItems(toolbarId, commands)) {
+        addToolbarItem(toolbar, cmdId, registry);
     }
 
     setUpToolbar(toolbar);
@@ -439,7 +503,7 @@ void ToolbarManager::saveState() {
 
     // Save visibility for each toolbar
     for (const auto& [id, toolbar] : m_toolbars) {
-        settings.set("toolbars.visible." + id, toolbar->isVisible());
+        settings.set(VISIBLE_SETTING_PREFIX + id, toolbar->isVisible());
     }
 
     logger.debug("ToolbarManager: Toolbar state saved");
@@ -458,10 +522,15 @@ void ToolbarManager::restoreState() {
     // If not (first run or after clearSavedWindowState), use defaults and apply layout
     bool hasSavedSettings = false;
     for (const auto& [id, config] : m_configs) {
-        if (settings.hasKey("toolbars.visible." + id)) {
+        if (settings.hasKey(VISIBLE_SETTING_PREFIX + id)) {
             hasSavedSettings = true;
             break;
         }
+    }
+    // A layout saved before Versions and Backups existed leaves it at the end of the last row
+    if (hasSavedSettings &&
+        !settings.hasKey(std::string(VISIBLE_SETTING_PREFIX) + VERSIONS_TOOLBAR_ID)) {
+        placeVersionsToolbar();
     }
 
     // Restore visibility for each toolbar
@@ -474,8 +543,9 @@ void ToolbarManager::restoreState() {
         }
 
         // If no saved settings, use defaults directly
-        bool visible = hasSavedSettings ? settings.get<bool>("toolbars.visible." + id, defaultVisible)
-                                        : defaultVisible;
+        bool visible = hasSavedSettings
+                           ? settings.get<bool>(VISIBLE_SETTING_PREFIX + id, defaultVisible)
+                           : defaultVisible;
         toolbar->setVisible(visible);
 
         // Update View menu action if exists
@@ -494,6 +564,9 @@ void ToolbarManager::restoreState() {
         logger.info("ToolbarManager: No saved toolbar settings, applying default 2-row layout");
         applyDefaultLayout();
     }
+
+    // Versions and Backups only with the buttons of the versions
+    applyVersionButtons(false);
 
     // Note: Toolbar positions are automatically restored by Qt via
     // QMainWindow::restoreState() in MainWindow::showEvent()
@@ -530,7 +603,9 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
     // Create checkable action for each toolbar
     // OpenSpec #00037: Order matches layout - Row 1, Row 2, then File (hidden) and Panels (on the
     // right)
-    std::vector<std::string> order = {"quickActions", "edit", "format", "insert", "book", "styles", "views", "tools", "help", "file", "view"};
+    std::vector<std::string> order = {"quickActions", VERSIONS_TOOLBAR_ID, "edit", "format",
+                                      "insert", "book", "styles", "views", "tools", "help",
+                                      "file", "view"};
 
     for (const std::string& id : order) {
         auto it = m_configs.find(id);
@@ -568,6 +643,10 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
 
         toolbarsMenu->addAction(action);
         m_viewActions[id] = action;
+        // Versions and Backups only with the buttons of the versions
+        if (id == VERSIONS_TOOLBAR_ID) {
+            action->setVisible(versionsToolbarInUse());
+        }
 
         logger.debug("ToolbarManager: Created View menu action for toolbar '{}'", id);
     }
@@ -838,10 +917,8 @@ void ToolbarManager::rebuildToolbar(const QString& toolbarId) {
     auto& registry = CommandRegistry::getInstance();
 
     // Add actions and widgets using shared helper method
-    for (const QString& cmdId : commands) {
-        if (showsCommand(toolbarId, cmdId)) {
-            addToolbarItem(toolbar, cmdId, registry);
-        }
+    for (const QString& cmdId : shownItems(toolbarId, commands)) {
+        addToolbarItem(toolbar, cmdId, registry);
     }
 
     logger.debug("ToolbarManager: Rebuilt toolbar '{}' with {} commands", id, commands.size());
@@ -950,8 +1027,8 @@ void ToolbarManager::applyDefaultLayout() {
         }
     };
 
-    // Row 1 toolbars: Quick Actions, Edit, Format, Insert
-    addRow({"quickActions", "edit", "format", "insert"});
+    // Row 1 toolbars: Quick Actions, Versions and Backups, Edit, Format, Insert
+    addRow({"quickActions", VERSIONS_TOOLBAR_ID, "edit", "format", "insert"});
 
     // Add toolbar break between Row 1 and Row 2
     m_mainWindow->addToolBarBreak(Qt::TopToolBarArea);
@@ -984,8 +1061,47 @@ void ToolbarManager::applyDefaultLayout() {
             logger.debug("ToolbarManager: Toolbar '{}' visibility set to {} (default)", id, defaultVisible);
         }
     }
+    // Versions and Backups only with the buttons of the versions
+    applyVersionButtons(false);
 
     logger.info("ToolbarManager: Applied default 2-row toolbar layout");
+}
+
+void ToolbarManager::applyVersionButtons(bool changed) {
+    const bool own = versionsToolbarInUse();
+    if (QToolBar* versions = getToolbar(VERSIONS_TOOLBAR_ID)) {
+        // A toolbar the writer hid stays hidden, until the buttons come back to it
+        if (!own || changed) {
+            versions->setVisible(own);
+        }
+        // Not in the menu of the window either (MainWindow::createPopupMenu())
+        versions->toggleViewAction()->setVisible(own);
+    }
+    if (auto action = m_viewActions.find(VERSIONS_TOOLBAR_ID); action != m_viewActions.end()) {
+        action->second->setVisible(own);
+    }
+    if (changed && m_toolbars.count("quickActions") != 0) {
+        rebuildToolbar(QStringLiteral("quickActions"));
+    }
+}
+
+void ToolbarManager::placeVersionsToolbar() {
+    QToolBar* versions = getToolbar(VERSIONS_TOOLBAR_ID);
+    QToolBar* quickActions = getToolbar("quickActions");
+    if (versions == nullptr || quickActions == nullptr || quickActions->isFloating() ||
+        m_mainWindow->toolBarArea(quickActions) != m_mainWindow->toolBarArea(versions)) {
+        return;
+    }
+    // QMainWindow can put a toolbar only before another one: Versions and Backups before
+    // Quick Actions, then Quick Actions before it, each keeping whether it is shown
+    const bool versionsShown = !versions->isHidden();
+    const bool quickActionsShown = !quickActions->isHidden();
+    m_mainWindow->insertToolBar(quickActions, versions);
+    m_mainWindow->insertToolBar(versions, quickActions);
+    versions->setVisible(versionsShown);
+    quickActions->setVisible(quickActionsShown);
+    core::Logger::getInstance().info(
+        "ToolbarManager: Versions and Backups placed after Quick Actions in a saved layout");
 }
 
 void ToolbarManager::loadConfigurations() {
@@ -1197,6 +1313,8 @@ void ToolbarManager::fillContextMenu(QMenu* menu) {
         if (it == m_toolbars.end()) continue;
         QToolBar* toolbar = it->second;
         if (!toolbar) continue;
+        // Versions and Backups only with the buttons of the versions
+        if (idStd == VERSIONS_TOOLBAR_ID && !versionsToolbarInUse()) continue;
 
         toolbars.append(toolbar);
         auto config = m_configs.find(idStd);

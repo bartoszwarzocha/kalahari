@@ -60,6 +60,12 @@ public:
                         NoticeShower showNotice, QStatusBar* statusBar, QWidget* window,
                         QObject* parent = nullptr);
 
+    /// @brief Destructor
+    ~VersionsCoordinator() override;
+
+    VersionsCoordinator(const VersionsCoordinator&) = delete;
+    VersionsCoordinator& operator=(const VersionsCoordinator&) = delete;
+
     /// @brief Give Save Version and Version History their callbacks
     /// @note Call after the commands are registered
     void connectCommands();
@@ -116,8 +122,8 @@ private:
     /// @brief The element of the text of @p panel; empty: a document outside the book
     static QString elementIdOf(const EditorPanel* panel);
 
-    /// @brief Why the versions of the text of @p panel cannot be kept (@p saving) or shown;
-    /// empty: they can
+    /// @brief Why the versions of the text of @p panel cannot be kept (@p saving: also while
+    /// the program keeps no new versions) or shown; empty: they can
     QString whyNot(const EditorPanel* panel, bool saving) const;
 
     /// @brief Save Version for the text of @p panel, the window of its description over
@@ -135,6 +141,7 @@ private:
     NoticeShower m_showNotice;
     QStatusBar* m_statusBar;
     QWidget* m_window;
+    int m_settingsListener = 0;  ///< Greys Save Version out when versions are turned off
 };
 
 }  // namespace kalahari::gui

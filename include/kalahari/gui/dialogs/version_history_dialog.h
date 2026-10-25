@@ -43,7 +43,8 @@ namespace dialogs {
 /// choice (choice()): whoever opened it does it in the text's editor. Change Description (F2)
 /// and Delete (Delete, after a question) change the versions at once, as Save the Current Text
 /// as a Version does. In a book open read-only only reading, comparing and copying work: the
-/// other buttons are greyed out and say why.
+/// other buttons are greyed out and say why. While versions are turned off only Save the
+/// Current Text as a Version is.
 ///
 /// Close is the default button: Enter brings nothing back by mistake.
 class VersionHistoryDialog : public KalahariDialog {
@@ -66,6 +67,8 @@ public:
         QString kml;            ///< The text as it is in the editor now
         const editor::BookEditor* editor = nullptr;  ///< Its editor: the look of the preview
         bool readOnly = false;  ///< The book is open read-only
+        QString whyNotSave;     ///< Why Save the Current Text as a Version is greyed out (the
+                                ///< book is read-only, versions are turned off); empty: it is not
     };
 
     /// @brief Keep the text as it is now as a version, as Save Version does, over @p parent

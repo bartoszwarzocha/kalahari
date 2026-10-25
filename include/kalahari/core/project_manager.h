@@ -663,8 +663,9 @@ public:
     /// @brief Write the unsaved text of a text element to its chapter file
     ///
     /// The text written is kept as a version of the file too (VersionOrigin::Save), when the
-    /// setting editor.versions.onSave says so and no version kept on saving is newer than
-    /// editor.versions.onSaveMinutes; keepVersion() says when it is not kept.
+    /// settings editor.versions.enabled and editor.versions.onSave say so and no version kept
+    /// on saving is newer than editor.versions.onSaveMinutes; keepVersion() says when it is
+    /// not kept.
     /// @return true when it is written or there is nothing to write
     bool saveChapterContent(const QString& elementId);
 

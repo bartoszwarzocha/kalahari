@@ -3,12 +3,14 @@
 ///
 /// Save Version and the program read these settings each time they keep a version
 /// (VersionsCoordinator, ProjectManager); the colors of the comparison reach the window of the
-/// versions through the theme (ThemeManager::editorColor()).
+/// versions through the theme (ThemeManager::editorColor()), the place of the buttons the
+/// toolbars (ToolbarManager).
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/core/chapter_versions.h"
 #include "kalahari/editor/version_comparison.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/version_texts.h"
 #include "kalahari/gui/widgets/flow_layout.h"
 
@@ -30,6 +32,9 @@ constexpr int ON_SAVE_MINUTES[] = {5, 10, 15, 30, 60, 120};
 /// At most this many versions kept by the program in each chapter
 constexpr int MAX_KEPT = 500;
 
+/// The place of the buttons of the versions is at least this many characters wide
+constexpr int MIN_BUTTONS_CHARACTERS = 20;
+
 /// A row of a form with @p widgets in one line, as a sentence; in more lines in a narrow window
 QWidget* sentenceRow(std::initializer_list<QWidget*> widgets) {
     auto* row = new QWidget();
@@ -48,6 +53,18 @@ EditorVersionsPage::EditorVersionsPage(QWidget* parent)
     : SettingsPage(parent)
 {
     using core::ChapterVersions;
+
+    // Versions at all: off, the program keeps no new versions and the groups of how it keeps
+    // them wait; the versions kept can be read and restored, the colors and the buttons stay
+    //: The first group of Settings > Editor > Versions. In Polish: Wersje tekstów
+    QFormLayout* versions = addGroup(tr("Versions of the Texts"));
+    //: In Polish: Twórz wersje tekstów
+    QCheckBox* enabled = addCheckBox(versions, tr("Create versions of the texts"),
+                                     ChapterVersions::ENABLED_SETTING);
+    enabled->setObjectName(QStringLiteral("versionsEnabled"));
+    QLabel* enabledNote = addNote(versions, QString());
+    enabledNote->setObjectName(QStringLiteral("versionsEnabledNote"));
+    alignWithText(enabledNote, enabled);
 
     // Save Version: the small window of the description, or the version kept at once
     //: The group of Settings > Editor > Versions with Save Version. In Polish: Zapisywanie
@@ -96,9 +113,11 @@ EditorVersionsPage::EditorVersionsPage(QWidget* parent)
     automatic->addRow(sentenceRow({onSave, minutes}));
     bind(onSave, ChapterVersions::ON_SAVE_SETTING);
     bind(minutes, ChapterVersions::ON_SAVE_MINUTES_SETTING);
-    //: In Polish: Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale.
+    //: In Polish: Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale. Wersja
+    //: to cały tekst rozdziału: przy 5000 słów około 40 KB.
     alignWithText(addNote(automatic, tr("When the text differs from the last version saved in "
-                                        "the chapter.")),
+                                        "the chapter. A version is the whole text of the "
+                                        "chapter: about 40 KB for 5,000 words.")),
                   onSave);
     const auto syncMinutes = [onSave, minutes]() { minutes->setEnabled(onSave->isChecked()); };
     connect(onSave, &QCheckBox::toggled, this, syncMinutes);
@@ -132,6 +151,58 @@ EditorVersionsPage::EditorVersionsPage(QWidget* parent)
     //: usuniesz.
     addNote(automatic, tr("The program deletes the older ones. The versions you save stay until "
                           "you delete them."));
+
+    // Turned off, the program keeps no new version: the groups of how it keeps them wait, and
+    // the note says what still works
+    QWidget* savingGroup = saving->parentWidget();
+    QWidget* automaticGroup = automatic->parentWidget();
+    const auto syncEnabled = [enabled, enabledNote, savingGroup, automaticGroup]() {
+        const bool on = enabled->isChecked();
+        savingGroup->setEnabled(on);
+        automaticGroup->setEnabled(on);
+        //: In Polish: Wersja zachowuje cały tekst rozdziału, żeby można było do niego wrócić.
+        const QString what = tr("A version keeps the whole text of a chapter, so that it can be "
+                                "brought back.");
+        enabledNote->setText(
+            what + QLatin1Char(' ') +
+            (on
+                 //: In Polish: Wyłączone: program nie zapisuje nowych wersji – ani Twoich, ani
+                 //: samoczynnych.
+                 ? tr("Off: the program keeps no new versions, neither yours nor its own.")
+                 //: In Polish: Program nie zapisuje teraz nowych wersji. Zapisane można dalej
+                 //: czytać, porównywać i przywracać w historii; przed przywróceniem program
+                 //: zachowuje bieżący tekst.
+                 : tr("The program keeps no new versions now. Those saved can still be read, "
+                      "compared and restored in the history; before a restore the program "
+                      "keeps the current text.")));
+    };
+    connect(enabled, &QCheckBox::toggled, this, syncEnabled);
+    whenLoaded(syncEnabled);
+
+    // Where the buttons of the versions are: on a toolbar of their own, with Backup Now, or
+    // on Quick Actions; the toolbars change at once when the setting is applied
+    //: The group of Settings > Editor > Versions with the place of the buttons. In Polish:
+    //: Pasek narzędzi
+    QFormLayout* toolbar = addGroup(tr("Toolbar"));
+    auto* buttons = new QComboBox();
+    buttons->setObjectName(QStringLiteral("versionsButtons"));
+    // As wide as the window lets it be: in the narrowest one the long names are cut, the list
+    // shows them whole
+    buttons->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    buttons->setMinimumContentsLength(MIN_BUTTONS_CHARACTERS);
+    //: The toolbar View > Toolbars > Versions and Backups. In Polish: Na osobnym pasku „Wersje
+    //: i kopie”
+    buttons->addItem(tr("On a toolbar of their own, \"Versions and Backups\""),
+                     QString::fromLatin1(ToolbarManager::VERSION_BUTTONS_OWN_TOOLBAR));
+    //: In Polish: Na pasku „Szybki dostęp”
+    buttons->addItem(tr("On the toolbar \"Quick Actions\""),
+                     QString::fromLatin1(ToolbarManager::VERSION_BUTTONS_QUICK_ACTIONS));
+    //: In Polish: Przyciski wersji:
+    addField(toolbar, tr("Version buttons:"), buttons, ToolbarManager::VERSION_BUTTONS_KEY);
+    //: In Polish: „Zapisz wersję” i „Historia wersji”. Osobny pasek można przesunąć albo ukryć
+    //: w menu Widok > Paski narzędzi.
+    addNote(toolbar, tr("\"Save Version\" and \"Version History\". The toolbar of their own can "
+                        "be moved, or hidden in the menu View > Toolbars."));
 
     // The marks of the changes in the window of the versions, kept for each theme
     //: In Polish: Kolory porównania

@@ -27,6 +27,7 @@ class QVBoxLayout;
 class QGroupBox;
 class QPushButton;
 class QTimer;
+class QToolButton;
 
 namespace kalahari::editor {
 class BookEditor;
@@ -203,6 +204,9 @@ signals:
     /// element @p elementId
     void requestVersionHistory(const QString& elementId);
 
+    /// @brief The gear of the group of the versions: Settings > Editor > Versions
+    void requestVersionSettings();
+
 private:
     /// @brief Setup UI components
     void setupUI();
@@ -277,8 +281,18 @@ private:
     void selectChapterStatus(const QString& status);
 
     /// @brief The group of the versions of the text of element @p elementId: how many, the
-    /// last one and its description; hidden for an element whose text has none
+    /// last one and its description; hidden for an element whose text has none. While
+    /// versions are turned off it says so, and how many can be read in the history.
     void showVersions(const QString& elementId);
+
+    /// @brief The group of the versions again, when the page with it is shown
+    void refreshVersions();
+
+    /// @brief Put the gear of the group of the versions at the end of the line of its title
+    void placeVersionSettingsButton();
+
+    /// @brief The icons of the buttons of the group of the versions, in the icon colors
+    void updateVersionIcons();
 
     /// @brief Show the type of the open book @p project: its icon and its name, greyed out
     /// when the program does not have it, as the Dashboard shows it
@@ -324,6 +338,7 @@ private:
     QLabel* m_versionsLastLabel = nullptr;        ///< The description of the last one
     QPushButton* m_saveVersionButton = nullptr;
     QPushButton* m_versionHistoryButton = nullptr;
+    QToolButton* m_versionSettingsButton = nullptr;  ///< The gear at the end of the title
     QString m_versionsElementId;  ///< The text whose versions the group shows
     QVBoxLayout* m_chapterPageLayout = nullptr;  ///< The Chapter page, for the versions group
     QVBoxLayout* m_editorPageLayout = nullptr;   ///< The Editor page, for the versions group
@@ -367,7 +382,8 @@ private:
     // OpenSpec #00043: Debounce timer for cursor change updates
     QTimer* m_cursorDebounceTimer{nullptr};     ///< Debounce rapid cursor changes
 
-    int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting
+    int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting,
+                                ///< versions turned on or off
 };
 
 } // namespace gui

@@ -388,6 +388,11 @@ VersionHistoryDialog::VersionHistoryDialog(Text text, SaveVersion saveVersion, Q
             button->setToolTip(readOnlyReason());
         }
     }
+    // No new version while versions are turned off: the others can be read and restored
+    if (!m_text.whyNotSave.isEmpty()) {
+        m_saveButton->setEnabled(false);
+        m_saveButton->setToolTip(m_text.whyNotSave);
+    }
 
     reload();
     m_list->setFocus();

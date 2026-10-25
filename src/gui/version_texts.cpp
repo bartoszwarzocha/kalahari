@@ -2,6 +2,7 @@
 /// @brief What the program says of a version of a text
 
 #include "kalahari/gui/version_texts.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/core/text_statistics.h"
 #include "kalahari/gui/command_registry.h"
 
@@ -104,6 +105,18 @@ QString saveVersionKeys() {
     }
     //: Save Version without keys. In Polish: Plik > Zapisz wersję
     return VersionTexts::tr("File > Save Version");
+}
+
+bool versionsEnabled() {
+    return core::SettingsManager::getInstance().get<bool>(
+        core::ChapterVersions::ENABLED_SETTING);
+}
+
+QString versionsOffReason() {
+    //: Why Save Version is greyed out (the menu, the toolbar, the Properties panel, the
+    //: window of the versions). In Polish: Tworzenie wersji jest wyłączone (Ustawienia >
+    //: Edytor > Wersje)
+    return VersionTexts::tr("Creating versions is turned off (Settings > Editor > Versions)");
 }
 
 QString versionIconId(core::VersionOrigin origin) {

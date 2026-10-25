@@ -16,16 +16,20 @@
 #include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/dialogs/version_history_dialog.h>
 #include <kalahari/gui/dialogs/version_name_dialog.h>
+#include <kalahari/gui/command_registrar.h>
+#include <kalahari/gui/command_registry.h>
 #include <kalahari/gui/kind_names.h>
 #include <kalahari/gui/panels/editor_panel.h>
 #include <kalahari/gui/panels/navigator_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
 #include <kalahari/gui/settings/settings_pages.h>
+#include <kalahari/gui/toolbar_manager.h>
 #include <kalahari/gui/version_texts.h>
 #include <kalahari/gui/versions_coordinator.h>
 #include <kalahari/gui/widgets/standalone_info_bar.h>
 #include "context_menu_reader.h"
 
+#include <QAction>
 #include <QApplication>
 #include <QCheckBox>
 #include <QClipboard>
@@ -62,6 +66,8 @@ using test::Window;
 namespace {
 
 const QString READ_ONLY = QStringLiteral("The book is open read-only");
+const QString VERSIONS_OFF =
+    QStringLiteral("Creating versions is turned off (Settings > Editor > Versions)");
 
 /// KML of @p text, one paragraph a line
 QString kmlOf(const QString& text) {
@@ -141,7 +147,8 @@ struct HistoryWindow {
     std::unique_ptr<VersionHistoryDialog> dialog;
     int saved = 0;  ///< Save the Current Text as a Version was pressed
 
-    HistoryWindow(const OpenNovel& novel, const QString& current, bool readOnly = false) {
+    HistoryWindow(const OpenNovel& novel, const QString& current, bool readOnly = false,
+                  const QString& whyNotSave = QString()) {
         editor.fromKml(kmlOf(current));
         const core::ProjectElement* element = novel.pm.findElement(novel.chapterId);
         REQUIRE(element != nullptr);
@@ -153,6 +160,7 @@ struct HistoryWindow {
         text.kml = editor.toKml();
         text.editor = &editor;
         text.readOnly = readOnly;
+        text.whyNotSave = readOnly ? READ_ONLY : whyNotSave;
         dialog = std::make_unique<VersionHistoryDialog>(
             text, [this](QWidget*) { ++saved; });
     }
@@ -443,6 +451,23 @@ TEST_CASE("Versions: in a book open read-only the history only reads and compare
     CHECK(window.dialog->summary().startsWith(QStringLiteral("Change 1 of 1")));
 }
 
+TEST_CASE("Versions: turned off, the history saves no version and still restores",
+          "[gui][versions][dialogs]") {
+    KeptVersionSettings settings;
+    OpenNovel novel(QStringLiteral("Rain"));
+    kept(novel.chapterId, QStringLiteral("Dark night."));
+    HistoryWindow window(novel, QStringLiteral("Bright day."), false, VERSIONS_OFF);
+    window.dialog->preview()->selectAll();
+    CHECK_FALSE(window.dialog->saveButton()->isEnabled());
+    CHECK(window.dialog->saveButton()->toolTip() == VERSIONS_OFF);
+    for (QPushButton* button :
+         {window.dialog->restoreButton(), window.dialog->insertButton(),
+          window.dialog->renameButton(), window.dialog->deleteButton()}) {
+        INFO(button->text().toStdString());
+        CHECK(button->isEnabled());
+    }
+}
+
 TEST_CASE("Versions: the history fits a small screen with its buttons in view",
           "[gui][versions][dialogs]") {
     // In English and in Polish, whose words are longer; the translation goes with the test
@@ -606,6 +631,48 @@ TEST_CASE("Versions: the commands work for the texts of the book, and say why no
     CHECK(w.versions.whyNotShowHistory() == why);
     CHECK_FALSE(w.versions.saveVersion());
     CHECK(w.window.statusBar.currentMessage() == why);
+}
+
+TEST_CASE("Versions: turned off, no new version is saved; those kept are read and restored",
+          "[gui][versions]") {
+    gui::registerAllCommands(gui::CommandCallbacks{});
+    VersionsWindow w;
+    w.versions.connectCommands();
+    auto& settings = core::SettingsManager::getInstance();
+    QAction* save = gui::CommandRegistry::getInstance().getAction(std::string("file.saveVersion"));
+    QAction* history =
+        gui::CommandRegistry::getInstance().getAction(std::string("file.versionHistory"));
+    REQUIRE(save != nullptr);
+    REQUIRE(history != nullptr);
+    const core::ChapterVersion old = kept(w.novel.chapterId, QStringLiteral("Dark night."));
+    gui::EditorPanel* panel = w.chapter(QStringLiteral("Bright day."));
+    CHECK(save->isEnabled());
+
+    // Save Version greyed out in the menu and on the toolbars, saying where to turn them on
+    settings.set<bool>(core::ChapterVersions::ENABLED_SETTING, false);
+    QApplication::processEvents();
+    CHECK(w.versions.whyNotSave() == VERSIONS_OFF);
+    CHECK_FALSE(save->isEnabled());
+    CHECK(save->toolTip() == VERSIONS_OFF);
+    CHECK_FALSE(w.versions.saveVersion());
+    CHECK(w.window.statusBar.currentMessage() == VERSIONS_OFF);
+    CHECK(w.list().size() == 1);
+
+    // The history is there, and a restore keeps the current text first
+    CHECK(w.versions.whyNotShowHistory().isEmpty());
+    CHECK(history->isEnabled());
+    REQUIRE(w.versions.restoreVersion(panel, old, kmlOf(QStringLiteral("Dark night."))));
+    CHECK(textOf(panel) == QStringLiteral("Dark night."));
+    REQUIRE(w.list().size() == 2);
+    CHECK(w.list().first().origin == core::VersionOrigin::Restore);
+    CHECK(plainOf(*w.novel.pm.versionsOf(w.novel.chapterId)->text(w.list().first().file)) ==
+          QStringLiteral("Bright day."));
+
+    // On again
+    settings.set<bool>(core::ChapterVersions::ENABLED_SETTING, true);
+    QApplication::processEvents();
+    CHECK(w.versions.whyNotSave().isEmpty());
+    CHECK(save->isEnabled());
 }
 
 TEST_CASE("Versions: Save Version keeps the text in the editor, with its description or at once",
@@ -907,6 +974,128 @@ TEST_CASE("Versions: the Properties panel keeps the versions of the text in fron
     CHECK_FALSE(group->isVisibleTo(panel));
 }
 
+TEST_CASE("Versions: the gear of the group in the Properties panel opens their settings",
+          "[gui][versions][properties]") {
+    VersionsWindow w;
+    gui::PropertiesPanel* panel = w.window.properties;
+    w.window.window.resize(900, 760);
+    w.window.window.show();
+    panel->setGeometry(0, 0, 320, 700);
+    panel->show();
+    panel->showChapterProperties(w.novel.chapterId);
+    QApplication::processEvents();
+    auto* group = panel->findChild<QGroupBox*>(QStringLiteral("chapterVersionsGroup"));
+    auto* count = panel->findChild<QLabel*>(QStringLiteral("versionsCountLabel"));
+    auto* history = panel->findChild<QPushButton*>(QStringLiteral("versionHistoryButton"));
+    auto* gear = panel->findChild<QToolButton*>(QStringLiteral("versionSettingsButton"));
+    REQUIRE(group != nullptr);
+    REQUIRE(count != nullptr);
+    REQUIRE(history != nullptr);
+    REQUIRE(gear != nullptr);
+    CHECK(gear->toolTip() == QStringLiteral("Version Settings"));
+    CHECK(gear->accessibleName() == QStringLiteral("Version Settings"));
+    CHECK(gear->isVisible());
+
+    // At the right end of the line of the title, over the first line of the group
+    CHECK(gear->parentWidget() == group);
+    CHECK(group->width() - 1 - gear->geometry().right() <= 2);
+    CHECK(gear->geometry().top() >= 0);
+    CHECK(gear->geometry().bottom() < count->geometry().top());
+
+    // Tab reaches it after Version History...
+    QWidget* next = history->nextInFocusChain();
+    while (next != nullptr && next != history &&
+           ((next->focusPolicy() & Qt::TabFocus) == 0 || !next->isVisibleTo(panel))) {
+        next = next->nextInFocusChain();
+    }
+    CHECK(next == gear);
+
+    int asked = 0;
+    QObject::connect(panel, &gui::PropertiesPanel::requestVersionSettings,
+                     [&asked]() { ++asked; });
+    gear->click();
+    CHECK(asked == 1);
+}
+
+TEST_CASE("Versions: turned off, the Properties panel says so; their history is there",
+          "[gui][versions][properties]") {
+    VersionsWindow w;
+    auto& settings = core::SettingsManager::getInstance();
+    gui::PropertiesPanel* panel = w.window.properties;
+    panel->showChapterProperties(w.novel.chapterId);
+    auto* group = panel->findChild<QGroupBox*>(QStringLiteral("chapterVersionsGroup"));
+    auto* count = panel->findChild<QLabel*>(QStringLiteral("versionsCountLabel"));
+    auto* last = panel->findChild<QLabel*>(QStringLiteral("versionsLastLabel"));
+    auto* save = panel->findChild<QPushButton*>(QStringLiteral("saveVersionButton"));
+    auto* history = panel->findChild<QPushButton*>(QStringLiteral("versionHistoryButton"));
+    auto* gear = panel->findChild<QToolButton*>(QStringLiteral("versionSettingsButton"));
+    REQUIRE(group != nullptr);
+    REQUIRE(count != nullptr);
+    REQUIRE(last != nullptr);
+    REQUIRE(save != nullptr);
+    REQUIRE(history != nullptr);
+    REQUIRE(gear != nullptr);
+
+    // None kept yet
+    settings.set<bool>(core::ChapterVersions::ENABLED_SETTING, false);
+    QApplication::processEvents();
+    CHECK_FALSE(group->isHidden());
+    CHECK(count->text() == QStringLiteral("Creating versions is turned off"));
+    CHECK(last->text() == QStringLiteral("There are no saved versions."));
+    CHECK_FALSE(save->isEnabled());
+    CHECK(save->toolTip() == VERSIONS_OFF);
+    CHECK(history->isEnabled());
+    CHECK(gear->isEnabled());
+
+    // Those kept before can be read
+    kept(w.novel.chapterId, QStringLiteral("Dark night."));
+    kept(w.novel.chapterId, QStringLiteral("Dark day."));
+    kept(w.novel.chapterId, QStringLiteral("Bright day."));
+    CHECK(count->text() == QStringLiteral("Creating versions is turned off"));
+    CHECK(last->text() ==
+          QStringLiteral("3 saved version(s) can be read and restored in the history."));
+
+    // On again
+    settings.set<bool>(core::ChapterVersions::ENABLED_SETTING, true);
+    QApplication::processEvents();
+    CHECK(save->isEnabled());
+    CHECK(count->text().startsWith(QStringLiteral("3 version(s), the last one: ")));
+}
+
+TEST_CASE("Versions: turned off, the Properties panel counts them in Polish",
+          "[gui][versions][properties]") {
+    struct Polish {
+        QTranslator translator;
+        ~Polish() { QCoreApplication::removeTranslator(&translator); }
+    } polish;
+    REQUIRE(polish.translator.load(QStringLiteral(":/i18n/kalahari_pl.qm")));
+    QCoreApplication::installTranslator(&polish.translator);
+
+    VersionsWindow w;
+    core::SettingsManager::getInstance().set<bool>(core::ChapterVersions::ENABLED_SETTING,
+                                                   false);
+    gui::PropertiesPanel* panel = w.window.properties;
+    panel->showChapterProperties(w.novel.chapterId);
+    auto* count = panel->findChild<QLabel*>(QStringLiteral("versionsCountLabel"));
+    auto* last = panel->findChild<QLabel*>(QStringLiteral("versionsLastLabel"));
+    REQUIRE(count != nullptr);
+    REQUIRE(last != nullptr);
+    CHECK(count->text() == QStringLiteral("Tworzenie wersji jest wyłączone"));
+    const QStringList texts = {QStringLiteral("Dark night."), QStringLiteral("Dark day."),
+                               QStringLiteral("Bright day."), QStringLiteral("Bright night."),
+                               QStringLiteral("Grey dawn.")};
+    const QStringList said = {
+        QStringLiteral("1 zapisaną wersję można czytać i przywracać w historii."),
+        QStringLiteral("2 zapisane wersje można czytać i przywracać w historii."),
+        QStringLiteral("3 zapisane wersje można czytać i przywracać w historii."),
+        QStringLiteral("4 zapisane wersje można czytać i przywracać w historii."),
+        QStringLiteral("5 zapisanych wersji można czytać i przywracać w historii.")};
+    for (qsizetype i = 0; i < texts.size(); ++i) {
+        kept(w.novel.chapterId, texts.at(i));
+        CHECK(last->text() == said.at(i));
+    }
+}
+
 // =============================================================================
 // Settings > Editor > Versions
 // =============================================================================
@@ -938,6 +1127,107 @@ TEST_CASE("Versions: their settings page has the settings of the versions",
     ask->setChecked(false);
     page.apply();
     CHECK_FALSE(manager.get<bool>(core::ChapterVersions::ASK_NAME_SETTING));
+
+    // At most once an hour by default, and how big a version is
+    CHECK(minutes->currentData().toInt() == 60);
+    QStringList notes;
+    for (const QLabel* note : page.notes()) {
+        notes << note->text();
+    }
+    CHECK(notes.contains(QStringLiteral("When the text differs from the last version saved in "
+                                        "the chapter. A version is the whole text of the "
+                                        "chapter: about 40 KB for 5,000 words.")));
+}
+
+TEST_CASE("Versions: their settings turn them off, the rest of the page waits",
+          "[gui][versions][settings]") {
+    auto& manager = core::SettingsManager::getInstance();
+    gui::EditorVersionsPage page;
+    page.load();
+    auto* enabled = page.findChild<QCheckBox*>(QStringLiteral("versionsEnabled"));
+    auto* note = page.findChild<QLabel*>(QStringLiteral("versionsEnabledNote"));
+    auto* ask = page.findChild<QCheckBox*>(QStringLiteral("versionsAskName"));
+    auto* onSave = page.findChild<QCheckBox*>(QStringLiteral("versionsOnSave"));
+    auto* keep = page.findChild<QSpinBox*>(QStringLiteral("versionsKeepAutomatic"));
+    auto* buttons = page.findChild<QComboBox*>(QStringLiteral("versionsButtons"));
+    REQUIRE(enabled != nullptr);
+    REQUIRE(note != nullptr);
+    REQUIRE(ask != nullptr);
+    REQUIRE(onSave != nullptr);
+    REQUIRE(keep != nullptr);
+    REQUIRE(buttons != nullptr);
+    const QList<QGroupBox*> groups = page.findChildren<QGroupBox*>();
+    REQUIRE(groups.size() == 5);
+    CHECK(groups.at(0)->title() == QStringLiteral("Versions of the Texts"));
+
+    // On by default, at the top of the page
+    CHECK(enabled->isChecked());
+    CHECK(groups.at(0)->isAncestorOf(enabled));
+    CHECK(note->text() == QStringLiteral(
+                              "A version keeps the whole text of a chapter, so that it can be "
+                              "brought back. Off: the program keeps no new versions, neither "
+                              "yours nor its own."));
+    CHECK(ask->isEnabled());
+    CHECK(keep->isEnabled());
+
+    // Off: how the versions are kept waits; the colors and the buttons do not
+    enabled->setChecked(false);
+    CHECK(note->text() == QStringLiteral(
+                              "A version keeps the whole text of a chapter, so that it can be "
+                              "brought back. The program keeps no new versions now. Those "
+                              "saved can still be read, compared and restored in the history; "
+                              "before a restore the program keeps the current text."));
+    CHECK_FALSE(ask->isEnabled());
+    CHECK_FALSE(onSave->isEnabled());
+    CHECK_FALSE(keep->isEnabled());
+    CHECK(buttons->isEnabled());
+    for (QGroupBox* group : groups) {
+        INFO(group->title().toStdString());
+        const bool waits = group->title() == QStringLiteral("Saving") ||
+                           group->title() == QStringLiteral("Versions Saved by the Program");
+        CHECK(group->isEnabled() == !waits);
+    }
+
+    // A note in a group that waits is greyed out with it: half transparent, not darker
+    QLabel* waitingNote = nullptr;
+    for (QLabel* each : page.notes()) {
+        if (!each->isEnabled()) {
+            waitingNote = each;
+            break;
+        }
+    }
+    REQUIRE(waitingNote != nullptr);
+    waitingNote->ensurePolished();
+    const QColor greyed = waitingNote->palette().color(QPalette::Disabled, QPalette::WindowText);
+    CHECK(greyed.rgb() == gui::SettingsPage::noteColor().rgb());
+    CHECK(greyed.alpha() < 255);
+    page.apply();
+    CHECK_FALSE(manager.get<bool>(core::ChapterVersions::ENABLED_SETTING));
+
+    // Filled again: still off
+    gui::EditorVersionsPage again;
+    again.load();
+    CHECK_FALSE(again.findChild<QCheckBox*>(QStringLiteral("versionsEnabled"))->isChecked());
+    CHECK_FALSE(again.findChild<QCheckBox*>(QStringLiteral("versionsAskName"))->isEnabled());
+}
+
+TEST_CASE("Versions: their settings say where their buttons are", "[gui][versions][settings]") {
+    auto& manager = core::SettingsManager::getInstance();
+    gui::EditorVersionsPage page;
+    page.load();
+    auto* buttons = page.findChild<QComboBox*>(QStringLiteral("versionsButtons"));
+    REQUIRE(buttons != nullptr);
+    REQUIRE(buttons->count() == 2);
+    CHECK(buttons->itemText(0) == QStringLiteral("On a toolbar of their own, \"Versions and "
+                                                 "Backups\""));
+    CHECK(buttons->itemText(1) == QStringLiteral("On the toolbar \"Quick Actions\""));
+    // On their own toolbar by default
+    CHECK(buttons->currentIndex() == 0);
+
+    buttons->setCurrentIndex(1);
+    page.apply();
+    CHECK(manager.get<std::string>(gui::ToolbarManager::VERSION_BUTTONS_KEY) ==
+          gui::ToolbarManager::VERSION_BUTTONS_QUICK_ACTIONS);
 }
 
 // =============================================================================

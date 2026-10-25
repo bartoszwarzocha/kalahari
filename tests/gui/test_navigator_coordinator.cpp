@@ -1605,6 +1605,13 @@ TEST_CASE("Navigator: Replace All in a chapter keeps the text before it as a ver
         CHECK(editor->plainText() == QStringLiteral("Tau stood still. Tau waited."));
         CHECK(versions->list().isEmpty());
     }
+
+    SECTION("With the versions turned off, none") {
+        settings.set<bool>(core::ChapterVersions::ENABLED_SETTING, false);
+        replaceAll(QStringLiteral("Taun"), QStringLiteral("Tau"));
+        CHECK(editor->plainText() == QStringLiteral("Tau stood still. Tau waited."));
+        CHECK(versions->list().isEmpty());
+    }
 }
 
 TEST_CASE("Navigator: the files that no element has go back to the book or are deleted",

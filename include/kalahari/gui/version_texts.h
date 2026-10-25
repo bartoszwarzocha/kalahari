@@ -41,6 +41,14 @@ QString wordCountText(int words);
 /// keys, where the command is: "File > Save Version"
 QString saveVersionKeys();
 
+/// @brief Whether the program keeps new versions (Settings > Editor > Versions > Create
+/// Versions of the Texts); the versions kept can be read and restored either way
+bool versionsEnabled();
+
+/// @brief Why Save Version is greyed out while the program keeps no new versions, with where
+/// to turn them on
+QString versionsOffReason();
+
 /// @brief The icon of a version kept for @p origin: a pen for the writer's own one, a clock
 /// for one kept on saving, Find and Replace, Restore
 QString versionIconId(core::VersionOrigin origin);

@@ -80,9 +80,23 @@ json colorValue(const QColor& color) {
     return json(color.name().toStdString());
 }
 
-/// The style of the notes (see SettingsPage::noteColor())
+/// The style of the notes (see SettingsPage::noteColor()); greyed out with their group as the
+/// theme greys out the texts of its controls (Theme::Palette::toQPalette): half transparent
+/// over the background. A color name drops the transparency, and a disabled note came out
+/// darker than one in use
 QString noteStyleSheet() {
-    return QStringLiteral("color: %1;").arg(SettingsPage::noteColor().name());
+    const QColor note = SettingsPage::noteColor();
+    const int alpha = core::ThemeManager::getInstance()
+                          .getCurrentTheme()
+                          .palette.toQPalette()
+                          .color(QPalette::Disabled, QPalette::WindowText)
+                          .alpha();
+    return QStringLiteral("QLabel { color: %1; } QLabel:disabled { color: rgba(%2, %3, %4, %5); }")
+        .arg(note.name())
+        .arg(note.red())
+        .arg(note.green())
+        .arg(note.blue())
+        .arg(alpha);
 }
 
 /// The color inside a group on the window, as the style draws it (Fusion a shade darker)
