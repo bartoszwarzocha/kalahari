@@ -84,6 +84,11 @@ std::map<std::string, json> buildDefaults() {
         // Annotations: the name new ones are made with. Empty: by no one named
         {"annotations.author", ""},
 
+        // Whether a link of a material may name a paragraph of a text, which the editor marks
+        // with a paperclip (core::LinkRoles::PARAGRAPHS_SETTING); false hides the paragraphs of
+        // the links and keeps them
+        {"materials.linkParagraphs", true},
+
         // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
         // and the commands named after the kinds most added there) or "single" ("Add..." only)
         {"navigator.addCommands", "named"},

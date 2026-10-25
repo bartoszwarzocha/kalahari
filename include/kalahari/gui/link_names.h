@@ -5,6 +5,7 @@
 #pragma once
 
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
 
 #include <QIcon>
 #include <QString>
@@ -24,6 +25,15 @@ QIcon linkIcon(const QString& link, core::IconContext context);
 /// element of the book, the group of an element of the Workshop ("Materials"), the book of a
 /// section
 QString linkPlace(const QString& link);
+
+/// @brief Name of role @p role of a link (core::LinkRoles): "quoted in the text"...; the id
+/// itself for a role of a later version, empty for none
+QString linkRoleName(const QString& role);
+
+/// @brief The role and the paragraph of @p link in a few words: "quoted in the text ·
+/// paragraph 4"; the paragraph only while links may name one
+/// (core::LinkRoles::paragraphsShown()); empty when it says neither
+QString linkDetails(const core::ElementLink& link);
 
 } // namespace gui
 } // namespace kalahari

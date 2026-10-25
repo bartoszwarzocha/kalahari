@@ -246,19 +246,60 @@ QList<ElementField> readElementFields(const QJsonArray& array, const QString& fi
     return result;
 }
 
-/// What an element is about: ids of elements and of sections, each once
-QStringList readLinks(Fields& fields) {
-    QStringList links;
+/// A link with its details: what it links, how, the paragraph and a note
+std::optional<ElementLink> readLinkObject(const QJsonObject& object, const QString& field,
+                                          QStringList& problems) {
+    QStringList found;
+    Fields fields(object, field, found);
+    ElementLink link;
+    link.to = fields.string("to", true);
+    link.role = fields.string("role");
+    const QJsonValue paragraph = fields.take("paragraph");
+    if (!paragraph.isUndefined()) {
+        const int number = isWholeNumber(paragraph) ? paragraph.toInt(-1) : -1;
+        if (number < 0) {
+            fields.problem("paragraph", QStringLiteral("must be a whole number, 0 or more"));
+        } else {
+            link.paragraph = number;
+        }
+    }
+    link.excerpt = fields.string("excerpt");
+    link.note = fields.string("note");
+    link.extra = fields.rest();
+    problems << found;
+    if (!found.isEmpty()) {
+        return std::nullopt;
+    }
+    return link;
+}
+
+/// What an element is about: ids of elements and of sections, or links with their details
+/// (ElementLink), each element or section once
+QList<ElementLink> readLinks(Fields& fields, QStringList& problems) {
+    QList<ElementLink> links;
     const QJsonArray values = fields.array("links");
     for (qsizetype i = 0; i < values.size(); ++i) {
         const QJsonValue value = values.at(i);
-        if (!value.isString() || value.toString().isEmpty()) {
+        std::optional<ElementLink> link;
+        if (value.isString() && !value.toString().isEmpty()) {
+            link = ElementLink{value.toString(), {}, 0, {}, {}, {}};
+        } else if (value.isObject()) {
+            link = readLinkObject(value.toObject(),
+                                  QStringLiteral("%1[%2]").arg(fields.path("links")).arg(i),
+                                  problems);
+            if (!link) {
+                return {};
+            }
+        } else {
             fields.problem("links", QStringLiteral("must be a list of ids of elements and "
-                                                   "sections"));
+                                                   "sections, or of links with \"to\""));
             return {};
         }
-        if (!links.contains(value.toString())) {
-            links << value.toString();
+        const bool twice =
+            std::any_of(links.cbegin(), links.cend(),
+                        [&link](const ElementLink& each) { return each.to == link->to; });
+        if (!twice) {
+            links << *link;
         }
     }
     return links;
@@ -314,7 +355,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
                                     problems);
     element.description = fields.string("description");
     element.fields = readElementFields(fields.array("fields"), fields.path("fields"), problems);
-    element.links = readLinks(fields);
+    element.links = readLinks(fields, problems);
     readView(fields, element, problems);
     element.extra = fields.rest();
     return element;
@@ -491,7 +532,30 @@ QJsonObject elementToJson(const ProjectElement& element) {
     if (element.links.isEmpty()) {
         json.remove(QLatin1String("links"));
     } else {
-        json.insert(QLatin1String("links"), QJsonArray::fromStringList(element.links));
+        // The id alone while a link says nothing more, as earlier versions read it
+        QJsonArray links;
+        for (const ElementLink& link : element.links) {
+            if (!link.hasDetails()) {
+                links.append(link.to);
+                continue;
+            }
+            QJsonObject each = link.extra;
+            each.insert(QLatin1String("to"), link.to);
+            if (!link.role.isEmpty()) {
+                each.insert(QLatin1String("role"), link.role);
+            }
+            if (link.paragraph > 0) {
+                each.insert(QLatin1String("paragraph"), link.paragraph);
+            }
+            if (!link.excerpt.isEmpty()) {
+                each.insert(QLatin1String("excerpt"), link.excerpt);
+            }
+            if (!link.note.isEmpty()) {
+                each.insert(QLatin1String("note"), link.note);
+            }
+            links.append(each);
+        }
+        json.insert(QLatin1String("links"), links);
     }
     QJsonObject view = element.viewExtra;
     if (element.rotation != 0) {
@@ -792,6 +856,22 @@ void ProjectBook::setSections(const BookSections& sections) {
         const QString given = sections.names.value(i).trimmed();
         sectionNames << (given.isEmpty() ? first.name(BOOK_PARTS[i].place, language) : given);
     }
+}
+
+QStringList ProjectElement::linkTargets() const {
+    QStringList targets;
+    targets.reserve(links.size());
+    for (const ElementLink& link : links) {
+        targets << link.to;
+    }
+    return targets;
+}
+
+const ElementLink* ProjectElement::linkTo(const QString& target) const {
+    const auto found =
+        std::find_if(links.cbegin(), links.cend(),
+                     [&target](const ElementLink& link) { return link.to == target; });
+    return found == links.cend() ? nullptr : &*found;
 }
 
 bool ProjectElement::operator==(const ProjectElement& other) const {

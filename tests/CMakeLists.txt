@@ -19,6 +19,7 @@ set(TEST_SOURCES
     core/test_book_type_registry.cpp  # Book type packages and their registry
     core/test_kind_words.cpp          # Names of kinds in sentences, and the markers of translations
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
+    core/test_link_roles.cpp          # The roles of links, and the paragraph a link names
     core/test_book_project.cpp        # Book project and its .klh file
     core/test_old_book_conversion.cpp # Books of the first .klh format, converted to this version
     core/test_package_cards.cpp       # Cards of the packages a book uses; a book read-only without them
@@ -61,6 +62,7 @@ set(TEST_SOURCES
     editor/test_editor_stage3.cpp                # Editor Stage 3: drag and drop, find and replace, cursor
     editor/test_editor_stage4.cpp                # Editor Stage 4: page mode, zoom, typewriter scrolling
     editor/test_editor_stage5.cpp                # Editor Stage 5: highlight layer
+    editor/test_paragraph_marks.cpp              # The paperclips beside the paragraphs
     editor/test_text_keys.cpp                    # The keys of the text on each system
     editor/test_format_without_selection.cpp     # Formats given without a selection
     editor/test_line_breaks.cpp                  # Line breaks in a paragraph (Shift+Enter)
@@ -160,6 +162,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
     ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/link_roles.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_project.cpp
     ${CMAKE_SOURCE_DIR}/src/core/old_book_conversion.cpp
     ${CMAKE_SOURCE_DIR}/src/core/package_card.cpp
@@ -254,6 +257,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_panel.cpp  # Spelling and Grammar panel
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
+    ${CMAKE_SOURCE_DIR}/src/gui/paragraph_marks_coordinator.cpp  # Paperclips of linked paragraphs
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
     ${CMAKE_SOURCE_DIR}/src/gui/auto_correct_coordinator.cpp  # Auto-correct turned on and off as a whole
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_keys.cpp            # A toolbar gives the keys back after a command
@@ -369,6 +373,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_panel.h  # SpellingPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/paragraph_marks_coordinator.h  # ParagraphMarksCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT

@@ -9,6 +9,7 @@
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/annotations_coordinator.h"
+#include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/toolbar_keys.h"
@@ -349,6 +350,21 @@ MainWindow::MainWindow(QWidget* parent)
         statusBar(),
         this);
     m_annotationsCoordinator->connectCommands();
+
+    // The paperclips beside the paragraphs that materials are linked with: one chosen shows
+    // its material in the Properties panel, brought to the front
+    m_paragraphMarksCoordinator = new ParagraphMarksCoordinator(
+        m_dockCoordinator->centralTabs(),
+        [this](const QString& materialId) {
+            m_dockCoordinator->propertiesPanel()->showMaterialProperties(materialId);
+            QDockWidget* dock = m_dockCoordinator->propertiesDock();
+            dock->show();
+            dock->raise();
+            if (dock->isFloating()) {
+                dock->activateWindow();
+            }
+        },
+        this);
 
     // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
     // is done in the Annotations panel is undone in the text in front

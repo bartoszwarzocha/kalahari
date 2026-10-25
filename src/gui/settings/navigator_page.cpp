@@ -14,11 +14,16 @@
 /// What a file, a web address or a picture dropped on the Navigator or pasted in it gives: a
 /// material at once, linked with the node or not, or the Add Element window. The Navigator
 /// reads the settings each time a material opens or comes.
+///
+/// Whether a link of a material may name a paragraph of a chapter, marked with a paperclip in
+/// the editor (core::LinkRoles::PARAGRAPHS_SETTING). The paperclips follow the setting at once.
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/core/link_roles.h"
 #include "kalahari/core/settings_manager.h"
 
+#include <QCheckBox>
 #include <QFormLayout>
 #include <QLabel>
 #include <QRadioButton>
@@ -295,6 +300,19 @@ NavigatorPage::NavigatorPage(QWidget* parent)
                                   value.get<std::string>());
     };
     bindCustom(std::move(quick));
+
+    // Paragraphs of the links, with the paperclips beside them in the editor
+    //: In Polish: Powiązania wskazują akapity tekstu
+    QCheckBox* paragraphs = addCheckBox(materials, tr("Links name paragraphs of the text"),
+                                        core::LinkRoles::PARAGRAPHS_SETTING);
+    paragraphs->setObjectName(QStringLiteral("navigatorLinkParagraphs"));
+    //: In Polish: W oknie „Powiąż” można wskazać akapit rozdziału, którego dotyczy materiał, a
+    //: edytor oznacza taki akapit spinaczem na marginesie. Po wyłączeniu akapity i spinacze
+    //: znikają z widoku, ale wskazania zostają zapisane.
+    addNote(materials, tr("The Link window can name the paragraph of a chapter that a material "
+                          "is about, and the editor marks that paragraph with a paperclip in "
+                          "the margin. Turned off, the paragraphs and the paperclips are hidden; "
+                          "the paragraphs named are kept."));
 
     pageLayout()->addStretch();
 }

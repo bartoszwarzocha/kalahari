@@ -54,6 +54,7 @@ class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
 class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
+class ParagraphMarksCoordinator;
 class EditCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
@@ -381,6 +382,8 @@ private:
 
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
+    /// @brief The paperclips beside the paragraphs that materials are linked with
+    ParagraphMarksCoordinator* m_paragraphMarksCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
     GrammarCoordinator* m_grammarCoordinator{nullptr};
 

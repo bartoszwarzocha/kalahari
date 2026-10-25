@@ -475,6 +475,14 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
     // The icons of the kinds, of a file that is no picture and of the links
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &MaterialPage::refresh);
+    // The links changed elsewhere, or their paragraphs moved when a chapter was saved
+    connect(&core::ProjectManager::getInstance(), &core::ProjectManager::linksChanged, this,
+            [this]() {
+                if (const core::ProjectElement* element =
+                        core::ProjectManager::getInstance().findElement(m_elementId)) {
+                    fillLinks(*element);
+                }
+            });
 }
 
 MaterialPage::~MaterialPage() {
@@ -718,25 +726,34 @@ void MaterialPage::fillLinks(const core::ProjectElement& element) {
     m_linksList->clear();
     const QColor grey = palette().color(QPalette::PlaceholderText);
     const core::BookProject* project = core::ProjectManager::getInstance().project();
-    for (const QString& link : element.links) {
+    bool details = false;  // Whether a row has the role or the paragraph under its title
+    for (const core::ElementLink& link : element.links) {
         // A link that names nothing of the book any more is not shown
-        if (project == nullptr || !project->hasLinkTarget(link)) {
+        if (project == nullptr || !project->hasLinkTarget(link.to)) {
             continue;
         }
         auto* item = new QTreeWidgetItem(m_linksList);
-        item->setText(0, linkTitle(link));
-        item->setIcon(0, linkIcon(link, core::IconContext::TreeView));
-        item->setText(1, linkPlace(link));
+        const QString title = linkTitle(link.to);
+        const QString how = linkDetails(link);
+        item->setText(0, how.isEmpty() ? title : title + QLatin1Char('\n') + how);
+        item->setIcon(0, linkIcon(link.to, core::IconContext::TreeView));
+        item->setText(1, linkPlace(link.to));
         item->setForeground(1, grey);
-        item->setData(0, LINK_ROLE, link);
-        item->setToolTip(0, item->text(0));
-        if (link == current) {
+        item->setData(0, LINK_ROLE, link.to);
+        //: The tooltip of a link with a note: %1 the title and the role, %2 the note. In
+        //: Polish: %1\nNotatka: %2
+        item->setToolTip(0, link.note.isEmpty() ? item->text(0)
+                                                : tr("%1\nNote: %2").arg(item->text(0), link.note));
+        details = details || !how.isEmpty();
+        if (link.to == current) {
             m_linksList->setCurrentItem(item);
         }
     }
     const int count = m_linksList->topLevelItemCount();
-    const int rowHeight = std::max(m_linksList->fontMetrics().height() + 6,
+    const int lines = details ? 2 : 1;
+    const int rowHeight = std::max(lines * m_linksList->fontMetrics().height() + 6,
                                    m_linksList->iconSize().height() + 4);
+    m_linksList->setUniformRowHeights(!details);
     m_linksList->setFixedHeight(listHeight(m_linksList, count, std::max(rowHeight, 22), 0));
     m_linksList->setVisible(count > 0);
     m_noLinksLabel->setVisible(count == 0);
@@ -891,37 +908,49 @@ void MaterialPage::editLinks() {
         return;
     }
     dialogs::LinkDialog dialog(dialogs::LinkDialog::Mode::Targets, m_elementId, window());
+    if (const QTreeWidgetItem* item = m_linksList->currentItem()) {
+        dialog.setCurrentLink(item->data(0, LINK_ROLE).toString());
+    }
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
-    // The links kept stay in their order, the new ones come after them
+    // The links kept stay in their order, the new ones come after them; each as it is set in
+    // the window
     const core::ProjectElement* element =
         core::ProjectManager::getInstance().findElement(m_elementId);
     if (element == nullptr) {
         return;
     }
     const QStringList checked = dialog.checkedLinks();
-    QStringList links;
-    for (const QString& link : element->links) {
-        if (checked.contains(link)) {
-            links << link;
+    QStringList targets;
+    for (const QString& target : element->linkTargets()) {
+        if (checked.contains(target)) {
+            targets << target;
         }
     }
-    for (const QString& link : checked) {
-        if (!links.contains(link)) {
-            links << link;
+    for (const QString& target : checked) {
+        if (!targets.contains(target)) {
+            targets << target;
         }
+    }
+    QList<core::ElementLink> links;
+    for (const QString& target : targets) {
+        links << dialog.linkOf(target);
     }
     saveLinks(links);
 }
 
 void MaterialPage::addLinks(const QStringList& links) {
-    const core::ProjectElement* element =
-        core::ProjectManager::getInstance().findElement(m_elementId);
+    auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(m_elementId);
     if (element == nullptr) {
         return;
     }
-    saveLinks(element->links + links);
+    QList<core::ElementLink> all = element->links;
+    for (const QString& link : links) {
+        all << pm.newLink(m_elementId, link);
+    }
+    saveLinks(all);
 }
 
 void MaterialPage::removeLink() {
@@ -932,8 +961,9 @@ void MaterialPage::removeLink() {
         return;
     }
     const int index = m_linksList->indexOfTopLevelItem(const_cast<QTreeWidgetItem*>(item));
-    QStringList links = element->links;
-    links.removeAll(item->data(0, LINK_ROLE).toString());
+    const QString target = item->data(0, LINK_ROLE).toString();
+    QList<core::ElementLink> links = element->links;
+    links.removeIf([&target](const core::ElementLink& link) { return link.to == target; });
     saveLinks(links);
     // The next link is the current one
     if (m_linksList->topLevelItemCount() > 0) {
@@ -943,7 +973,7 @@ void MaterialPage::removeLink() {
     }
 }
 
-void MaterialPage::saveLinks(const QStringList& links) {
+void MaterialPage::saveLinks(const QList<core::ElementLink>& links) {
     auto& pm = core::ProjectManager::getInstance();
     if (m_elementId.isEmpty() || pm.isReadOnly()) {
         return;
@@ -1074,6 +1104,13 @@ LinkedMaterialsBox::LinkedMaterialsBox(QWidget* parent) : QGroupBox(parent) {
     // The icons of the materials that are no pictures
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &LinkedMaterialsBox::refresh);
+    // The links changed elsewhere, or their paragraphs moved when a chapter was saved
+    connect(&core::ProjectManager::getInstance(), &core::ProjectManager::linksChanged, this,
+            [this]() {
+                if (!m_link.isEmpty()) {
+                    refresh();
+                }
+            });
 }
 
 LinkedMaterialsBox::~LinkedMaterialsBox() {
@@ -1097,9 +1134,14 @@ void LinkedMaterialsBox::refresh() {
         const QIcon icon = picture.isNull()
                                ? linkIcon(material->id, core::IconContext::Dialog)
                                : QIcon(QPixmap::fromImage(picture));
-        // The title, and the first field under it: "Scale: 1 : 50 000"
+        // The title, and under it the role and the paragraph of the link, else the first
+        // field: "Scale: 1 : 50 000"
         QString text = material->title;
-        if (!material->fields.isEmpty()) {
+        const core::ElementLink* link = material->linkTo(m_link);
+        const QString how = link != nullptr ? linkDetails(*link) : QString();
+        if (!how.isEmpty()) {
+            text += QLatin1Char('\n') + how;
+        } else if (!material->fields.isEmpty()) {
             const core::ElementField& field = material->fields.first();
             //: The first own field of a material under its title: %1 the name, %2 the
             //: value. In Polish: %1: %2
@@ -1107,8 +1149,14 @@ void LinkedMaterialsBox::refresh() {
         }
         auto* item = new QListWidgetItem(icon, text, m_list);
         item->setData(LINK_ROLE, material->id);
-        item->setToolTip(material->description.isEmpty() ? material->title
-                                                         : material->description);
+        QString tooltip = material->description.isEmpty() ? material->title
+                                                           : material->description;
+        if (link != nullptr && !link->note.isEmpty()) {
+            //: The tooltip of a material with a note of its link: %1 its description, %2 the
+            //: note. In Polish: %1\nNotatka: %2
+            tooltip = tr("%1\nNote: %2").arg(tooltip, link->note);
+        }
+        item->setToolTip(tooltip);
         if (material->id == current) {
             m_list->setCurrentItem(item);
         }
@@ -1134,19 +1182,36 @@ void LinkedMaterialsBox::editMaterials() {
         return;
     }
     dialogs::LinkDialog dialog(dialogs::LinkDialog::Mode::Materials, m_link, window());
+    if (const QListWidgetItem* item = m_list->currentItem()) {
+        dialog.setCurrentLink(item->data(LINK_ROLE).toString());
+    }
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
-    // Each material that changes gets the link or loses it; the link is saved with it
+    // Each material that changes gets the link as it is set in the window, or loses it; the
+    // link is saved with it
     const QStringList checked = dialog.checkedLinks();
     const QStringList before = dialog.initialLinks();
     bool saved = true;
     for (const QString& material : checked) {
-        if (!before.contains(material)) {
-            const core::ProjectElement* element = pm.findElement(material);
-            saved = element != nullptr &&
-                    pm.setLinks(material, element->links + QStringList{m_link}) && saved;
+        const core::ProjectElement* element = pm.findElement(material);
+        if (element == nullptr) {
+            saved = false;
+            continue;
         }
+        const core::ElementLink link = dialog.linkOf(material);
+        QList<core::ElementLink> links = element->links;
+        const auto had =
+            std::find_if(links.begin(), links.end(),
+                         [this](const core::ElementLink& each) { return each.to == m_link; });
+        if (had == links.end()) {
+            links << link;
+        } else if (*had != link) {
+            *had = link;
+        } else {
+            continue;
+        }
+        saved = pm.setLinks(material, links) && saved;
     }
     for (const QString& material : before) {
         if (!checked.contains(material)) {
@@ -1154,8 +1219,8 @@ void LinkedMaterialsBox::editMaterials() {
             if (element == nullptr) {
                 continue;
             }
-            QStringList links = element->links;
-            links.removeAll(m_link);
+            QList<core::ElementLink> links = element->links;
+            links.removeIf([this](const core::ElementLink& each) { return each.to == m_link; });
             saved = pm.setLinks(material, links) && saved;
         }
     }
@@ -1178,8 +1243,8 @@ void LinkedMaterialsBox::removeMaterial() {
     if (element == nullptr) {
         return;
     }
-    QStringList links = element->links;
-    links.removeAll(m_link);
+    QList<core::ElementLink> links = element->links;
+    links.removeIf([this](const core::ElementLink& each) { return each.to == m_link; });
     if (!pm.setLinks(material, links)) {
         dialogs::MessageDialog::warning(this, tr("Links Not Saved"),
                                         tr("Failed to save changes."));

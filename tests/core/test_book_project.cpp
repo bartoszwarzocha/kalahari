@@ -175,7 +175,11 @@ BookProject fullProject() {
     character.fields = {{QStringLiteral("Age"), QStringLiteral("32"), {}},
                         {QStringLiteral("Eyes"), QString(), {}}};
     character.fields[1].extra.insert(QStringLiteral("hidden"), true);
-    character.links = {QStringLiteral("e3"), QStringLiteral("b1/main")};
+    character.links = {{QStringLiteral("e3"), QStringLiteral("inspiration"), 2,
+                        QStringLiteral("The storm came from the west."),
+                        QStringLiteral("Her fear of water"), {}},
+                       {QStringLiteral("b1/main"), {}, 0, {}, {}, {}}};
+    character.links[0].extra.insert(QStringLiteral("colour"), QStringLiteral("red"));
     character.rotation = 270;
     character.viewExtra.insert(QStringLiteral("zoom"), 2);
     ProjectElement note = element("e8", "kalahari.base", "work_note", "Ideas");
@@ -322,6 +326,9 @@ TEST_CASE("Book project: a project is saved and read back unchanged", "[core][bo
     changed.workshop.elements[0].links.removeLast();
     CHECK_FALSE(changed == project);
     changed = project;
+    changed.workshop.elements[0].links[0].paragraph = 3;
+    CHECK_FALSE(changed == project);
+    changed = project;
     changed.workshop.elements[0].rotation = 0;
     CHECK_FALSE(changed == project);
     changed = project;
@@ -374,7 +381,7 @@ TEST_CASE("Book project: the description, own fields, links and turn of a materi
     CHECK(map.fields.at(0).value == QStringLiteral("1 : 50 000"));
     CHECK(map.fields.at(1).value.isEmpty());
     CHECK(map.fields.at(1).extra.value(QStringLiteral("page")).toInt() == 4);
-    CHECK(map.links == QStringList{QStringLiteral("e3"), QStringLiteral("c2a1/main")});
+    CHECK(map.linkTargets() == QStringList{QStringLiteral("e3"), QStringLiteral("c2a1/main")});
     CHECK(map.rotation == 90);
     CHECK(map.viewExtra.keys() == QStringList{QStringLiteral("zoom")});
     CHECK(map.extra.isEmpty());
@@ -417,7 +424,84 @@ TEST_CASE("Book project: the description, own fields, links and turn of a materi
         "books": [ { "id": "b", "folder": "book", "main": [
           { "id": "e1", "kind": "kalahari.base:chapter" },
           { "id": "e2", "kind": "kalahari.base:chapter", "links": ["e1", "e1"] } ] } ] })");
-    CHECK(twice.books.at(0).mainElements.at(1).links == QStringList{QStringLiteral("e1")});
+    CHECK(twice.books.at(0).mainElements.at(1).linkTargets() == QStringList{QStringLiteral("e1")});
+}
+
+TEST_CASE("Book project: a link with its role, paragraph, excerpt and note",
+          "[core][bookproject][links]") {
+    const char* const text = R"({
+      "format": 2, "id": "p",
+      "books": [
+        { "id": "c2a1", "folder": "book", "main": [
+            { "id": "e3", "kind": "kalahari.base:chapter", "title": "Chapter 1" } ] }
+      ],
+      "workshop": { "grouped": false, "elements": [
+        { "id": "e7", "kind": "kalahari.base:quote", "title": "Desert",
+          "links": [
+            { "to": "e3", "role": "quoted", "paragraph": 4,
+              "excerpt": "- And the water? - asked Nadia.", "note": "Nadia's line",
+              "colour": "red" },
+            "c2a1/main",
+            { "to": "c2a1/back" },
+            { "to": "e3", "role": "source" } ] }
+      ] }
+    })";
+    const BookProject project = projectOf(text);
+    const ProjectElement& quote = project.workshop.elements.at(0);
+
+    // The ids and the objects are links alike; a link given twice is kept once, the first one
+    CHECK(quote.linkTargets() == (QStringList{QStringLiteral("e3"), QStringLiteral("c2a1/main"),
+                                              QStringLiteral("c2a1/back")}));
+    const ElementLink* inText = quote.linkTo(QStringLiteral("e3"));
+    REQUIRE(inText != nullptr);
+    CHECK(inText->role == QStringLiteral("quoted"));
+    CHECK(inText->paragraph == 4);
+    CHECK(inText->excerpt == QStringLiteral("- And the water? - asked Nadia."));
+    CHECK(inText->note == QStringLiteral("Nadia's line"));
+    CHECK(inText->extra.keys() == QStringList{QStringLiteral("colour")});
+    CHECK(inText->hasDetails());
+    REQUIRE(quote.linkTo(QStringLiteral("c2a1/main")) != nullptr);
+    CHECK_FALSE(quote.linkTo(QStringLiteral("c2a1/main"))->hasDetails());
+    CHECK_FALSE(quote.linkTo(QStringLiteral("c2a1/back"))->hasDetails());
+    CHECK(quote.linkTo(QStringLiteral("e99")) == nullptr);
+
+    // Saved, a link with details is an object with them and what it does not know; a link
+    // without them is its id
+    const QJsonArray written = project.toJson()[QStringLiteral("workshop")]
+                                   [QStringLiteral("elements")][0][QStringLiteral("links")]
+                                       .toArray();
+    REQUIRE(written.size() == 3);
+    CHECK(written.at(0).toObject() ==
+          QJsonObject{{QStringLiteral("to"), QStringLiteral("e3")},
+                      {QStringLiteral("role"), QStringLiteral("quoted")},
+                      {QStringLiteral("paragraph"), 4},
+                      {QStringLiteral("excerpt"),
+                       QStringLiteral("- And the water? - asked Nadia.")},
+                      {QStringLiteral("note"), QStringLiteral("Nadia's line")},
+                      {QStringLiteral("colour"), QStringLiteral("red")}});
+    CHECK(written.at(1) == QJsonValue(QStringLiteral("c2a1/main")));
+    CHECK(written.at(2) == QJsonValue(QStringLiteral("c2a1/back")));
+
+    // Only the details it has: a role alone
+    BookProject roleOnly = project;
+    roleOnly.workshop.elements[0].links[0] =
+        ElementLink{QStringLiteral("e3"), QStringLiteral("source"), 0, {}, {}, {}};
+    CHECK(roleOnly.toJson()[QStringLiteral("workshop")][QStringLiteral("elements")][0]
+                           [QStringLiteral("links")][0]
+                               .toObject() ==
+          QJsonObject{{QStringLiteral("to"), QStringLiteral("e3")},
+                      {QStringLiteral("role"), QStringLiteral("source")}});
+
+    // Read again, it is the same
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("project.kalahari"));
+    REQUIRE(project.save(path));
+    QStringList problems;
+    const std::optional<BookProject> loaded = BookProject::load(path, problems);
+    INFO(joined(problems));
+    REQUIRE(loaded.has_value());
+    CHECK(*loaded == project);
 }
 
 TEST_CASE("Book project: fields this version does not know are kept", "[core][bookproject]") {
@@ -1403,10 +1487,28 @@ TEST_CASE("Book project: a .klh file with problems", "[core][bookproject]") {
          "books[0].main[0].links: must be a list"},
         {"a link that is not an id",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "links": ["e2", 3] })"),
-         "books[0].main[0].links: must be a list of ids of elements and sections"},
+         "books[0].main[0].links: must be a list of ids of elements and sections, or of links "
+         "with \"to\""},
         {"an empty link",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "links": [""] })"),
-         "books[0].main[0].links: must be a list of ids of elements and sections"},
+         "books[0].main[0].links: must be a list of ids of elements and sections, or of links "
+         "with \"to\""},
+        {"a link without what it links",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:material",
+                          "links": ["e2", { "role": "source" }] })"),
+         "books[0].main[0].links[1].to: must be a text that is not empty"},
+        {"a role of a link that is not a text",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:material",
+                          "links": [ { "to": "e2", "role": 1 } ] })"),
+         "books[0].main[0].links[0].role: must be a text"},
+        {"a paragraph of a link that is not a whole number",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:material",
+                          "links": [ { "to": "e2", "paragraph": 2.5 } ] })"),
+         "books[0].main[0].links[0].paragraph: must be a whole number, 0 or more"},
+        {"a paragraph of a link below 0",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:material",
+                          "links": [ { "to": "e2", "paragraph": -1 } ] })"),
+         "books[0].main[0].links[0].paragraph: must be a whole number, 0 or more"},
         {"a view that is not an object",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "view": 90 })"),
          "books[0].main[0].view: must be an object"},

@@ -4,11 +4,14 @@
 #include "../editor/editor_test_utils.h"
 #include "document_window.h"
 
+#include "kalahari/core/link_roles.h"
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/dialogs/link_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
+#include "kalahari/gui/link_names.h"
 #include "kalahari/gui/material_file.h"
+#include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/panels/image_preview_panel.h"
 #include "kalahari/gui/panels/material_page.h"
 
@@ -16,6 +19,7 @@
 
 #include <QAbstractItemDelegate>
 #include <QBuffer>
+#include <QComboBox>
 #include <QCompleter>
 #include <QDir>
 #include <QDropEvent>
@@ -25,6 +29,8 @@
 #include <QImageReader>
 #include <QImageWriter>
 #include <QKeyEvent>
+#include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QLocale>
 #include <QMimeData>
@@ -125,6 +131,20 @@ void press(QWidget* widget, Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::N
     QCoreApplication::sendEvent(widget, &event);
 }
 
+/// @p text typed in @p widget, a key for each character
+void type(QWidget* widget, const QString& text) {
+    for (const QChar character : text) {
+        press(widget, static_cast<Qt::Key>(character.toUpper().unicode()), Qt::NoModifier,
+              QString(character));
+    }
+}
+
+/// The KML of a text with @p paragraphs
+QString kmlOf(const QStringList& paragraphs) {
+    return QStringLiteral("<kml><p>") + paragraphs.join(QStringLiteral("</p><p>")) +
+           QStringLiteral("</p></kml>");
+}
+
 /// The editor of the cell at @p row, @p column of @p table, open now
 QLineEdit* cellEditor(const QTableWidget* table, int row, int column) {
     auto* editor = qobject_cast<QLineEdit*>(table->indexWidget(table->model()->index(row, column)));
@@ -208,6 +228,34 @@ public:
 
 private:
     std::string m_saved;
+};
+
+/// The setting of whether links name paragraphs, as it was before the test
+class ParagraphsSetting {
+public:
+    explicit ParagraphsSetting(bool shown)
+        : m_saved(core::SettingsManager::getInstance().get<bool>(
+              core::LinkRoles::PARAGRAPHS_SETTING, true)) {
+        set(shown);
+    }
+    ~ParagraphsSetting() {
+        try {
+            set(m_saved);
+        } catch (...) {
+            // A destructor may not throw: the later tests then find the setting of this one
+            std::fputs("ParagraphsSetting: the setting of the test stays\n", stderr);
+        }
+    }
+    ParagraphsSetting(const ParagraphsSetting&) = delete;
+    ParagraphsSetting& operator=(const ParagraphsSetting&) = delete;
+
+    static void set(bool shown) {
+        core::SettingsManager::getInstance().set<bool>(core::LinkRoles::PARAGRAPHS_SETTING,
+                                                       shown);
+    }
+
+private:
+    bool m_saved;
 };
 
 } // namespace
@@ -592,9 +640,11 @@ TEST_CASE("Material card: links are added, dropped from the Navigator, opened an
     CHECK_FALSE(page.removeLinkButton()->isEnabled());
 
     page.addLinks({novel.chapterId});
-    CHECK(pm.findElement(map)->links == QStringList{novel.chapterId});
+    CHECK(pm.findElement(map)->linkTargets() == QStringList{novel.chapterId});
     REQUIRE(links->topLevelItemCount() == 1);
-    CHECK(links->topLevelItem(0)->text(0) == QStringLiteral("The Storm"));
+    // A new link of a picture is an illustration, under the title
+    CHECK(links->topLevelItem(0)->text(0) == QStringLiteral("The Storm\nillustration"));
+    CHECK(pm.findElement(map)->linkTo(novel.chapterId)->role == core::LinkRoles::ILLUSTRATION);
     CHECK_FALSE(links->topLevelItem(0)->text(1).isEmpty());
     CHECK_FALSE(links->isHidden());
 
@@ -631,7 +681,7 @@ TEST_CASE("Material card: links are added, dropped from the Navigator, opened an
                     Qt::LeftButton, Qt::NoModifier);
     QCoreApplication::sendEvent(links->viewport(), &drop);
     CHECK(drop.isAccepted());
-    CHECK(pm.findElement(map)->links == (QStringList{novel.chapterId, body}));
+    CHECK(pm.findElement(map)->linkTargets() == (QStringList{novel.chapterId, body}));
     CHECK(links->topLevelItemCount() == 2);
     CHECK(manifestFile(pm).contains(body.toUtf8()));
 
@@ -642,7 +692,7 @@ TEST_CASE("Material card: links are added, dropped from the Navigator, opened an
                      Qt::NoModifier);
     QCoreApplication::sendEvent(links->viewport(), &again);
     page.addLinks({map});
-    CHECK(pm.findElement(map)->links == (QStringList{novel.chapterId, body}));
+    CHECK(pm.findElement(map)->linkTargets() == (QStringList{novel.chapterId, body}));
 
     // Enter opens the link; Delete takes it out, and the next link is the current one
     links->setCurrentItem(links->topLevelItem(0));
@@ -650,20 +700,30 @@ TEST_CASE("Material card: links are added, dropped from the Navigator, opened an
     CHECK(opened == QStringList{novel.chapterId});
     CHECK(page.removeLinkButton()->isEnabled());
     press(links, Qt::Key_Delete);
-    CHECK(pm.findElement(map)->links == QStringList{body});
+    CHECK(pm.findElement(map)->linkTargets() == QStringList{body});
     REQUIRE(links->currentItem() != nullptr);
     CHECK(links->currentItem()->text(0) == links->topLevelItem(0)->text(0));
     page.removeLinkButton()->click();
     CHECK(pm.findElement(map)->links.isEmpty());
     CHECK(links->isHidden());
 
-    // Insert opens Link, where the checked elements are linked
+    // Insert opens Link, where the checked elements are linked, each as it is set there
     CHECK(linking([&]() { press(links, Qt::Key_Insert); },
                   [&](gui::dialogs::LinkDialog& dialog) {
                       REQUIRE(dialog.itemOf(novel.chapterId) != nullptr);
                       dialog.itemOf(novel.chapterId)->setCheckState(0, Qt::Checked);
+                      dialog.setCurrentLink(novel.chapterId);
+                      dialog.roleCombo()->setCurrentIndex(dialog.roleCombo()->findData(
+                          QString::fromLatin1(core::LinkRoles::INSPIRATION)));
+                      type(dialog.noteEdit(), QStringLiteral("The sky"));
                   }) == 1);
-    CHECK(pm.findElement(map)->links == QStringList{novel.chapterId});
+    CHECK(pm.findElement(map)->linkTargets() == QStringList{novel.chapterId});
+    CHECK(pm.findElement(map)->links.first().role == core::LinkRoles::INSPIRATION);
+    CHECK(pm.findElement(map)->links.first().note == QStringLiteral("The sky"));
+    REQUIRE(links->topLevelItemCount() == 1);
+    CHECK(links->topLevelItem(0)->text(0) == QStringLiteral("The Storm\ninspiration"));
+    CHECK(links->topLevelItem(0)->toolTip(0) ==
+          QStringLiteral("The Storm\ninspiration\nNote: The sky"));
 }
 
 TEST_CASE("Link: a material is linked with the sections and the elements, not with itself",
@@ -731,6 +791,199 @@ TEST_CASE("Link: a material is linked with the sections and the elements, not wi
     CHECK(dialog.checkedLinks() == (QStringList{body, novel.chapterId, photo}));
 }
 
+TEST_CASE("Link: each link has its role, its place in the text and a note",
+          "[gui][materials][links]") {
+    gui::registerAllIcons();
+    test::OpenNovel novel(QStringLiteral("Rain"));
+    auto& pm = novel.pm;
+    const ParagraphsSetting setting(true);
+    const QStringList text{
+        QStringLiteral("The storm came from the west."),
+        QStringLiteral("- We turn back - said Tau."),
+        QString(), QStringLiteral("- And the water? - asked Nadia, looking at the dry riverbed.")};
+    pm.setChapterContent(novel.chapterId, kmlOf(text));
+    REQUIRE(pm.saveChapterContent(novel.chapterId));
+    core::NewMaterial words;
+    words.title = QStringLiteral("Water");
+    const QString quote = pm.addMaterial(
+        words, pm.bookTypes().findKind(QStringLiteral("kalahari.base"),
+                                       QString::fromLatin1(core::MaterialKinds::QUOTE)));
+    REQUIRE_FALSE(quote.isEmpty());
+    REQUIRE(pm.setDescription(quote, QStringLiteral("\u201EAnd the water?\u201D")));
+    const QString body = pm.project()->sectionLink(core::BookPlace::Main);
+    REQUIRE(pm.setLinks(quote, QList<core::ElementLink>{{body, core::LinkRoles::TO_CHECK, 0, {},
+                                                         QStringLiteral("The whole part"), {}}}));
+
+    auto dialog = std::make_unique<gui::dialogs::LinkDialog>(
+        gui::dialogs::LinkDialog::Mode::Targets, quote);
+    const auto* hint = dialog->findChild<QLabel*>(QStringLiteral("linkHint"));
+    REQUIRE(hint != nullptr);
+
+    // A link it has: its role and its note; a section has no paragraphs
+    dialog->setCurrentLink(body);
+    CHECK(dialog->roleCombo()->isEnabled());
+    CHECK(dialog->roleCombo()->currentText() == QStringLiteral("to check"));
+    CHECK(dialog->paragraphCombo()->count() == 1);
+    CHECK_FALSE(dialog->paragraphCombo()->isEnabled());
+    CHECK(dialog->noteEdit()->text() == QStringLiteral("The whole part"));
+
+    // An element not checked: the fields wait, and say why
+    QTreeWidgetItem* chapter = dialog->itemOf(novel.chapterId);
+    REQUIRE(chapter != nullptr);
+    dialog->setCurrentLink(novel.chapterId);
+    CHECK_FALSE(dialog->roleCombo()->isEnabled());
+    CHECK_FALSE(dialog->noteEdit()->isEnabled());
+    CHECK(hint->text() == QStringLiteral("Check the box of the element to set its link."));
+
+    // Checked, a quote is quoted in the text, in the paragraph with its words; an empty
+    // paragraph is not offered
+    chapter->setCheckState(0, Qt::Checked);
+    CHECK(dialog->roleCombo()->isEnabled());
+    CHECK(dialog->roleCombo()->currentText() == QStringLiteral("quoted in the text"));
+    QComboBox* paragraph = dialog->paragraphCombo();
+    REQUIRE(paragraph->count() == 4);
+    CHECK(paragraph->itemText(0) == QStringLiteral("The whole element"));
+    CHECK(paragraph->itemText(2) == QStringLiteral("Paragraph 2: \"- We turn back -...\""));
+    CHECK(paragraph->currentData().toInt() == 4);
+    CHECK(paragraph->currentText() ==
+          QStringLiteral("Paragraph 4: \"- And the water? -...\" \u2013 the quote is in it"));
+    CHECK(hint->text() == QStringLiteral("The quote is in paragraph 4."));
+    CHECK(dialog->linkOf(novel.chapterId) ==
+          core::ElementLink{novel.chapterId, core::LinkRoles::QUOTED, 4,
+                            core::LinkRoles::excerptOf(text.at(3)), {}, {}});
+
+    // The writer sets the role, the paragraph and the note
+    dialog->roleCombo()->setCurrentIndex(
+        dialog->roleCombo()->findData(QString::fromLatin1(core::LinkRoles::SOURCE)));
+    paragraph->setCurrentIndex(paragraph->findData(2));
+    type(dialog->noteEdit(), QStringLiteral("Tau's fear"));
+    const core::ElementLink set{novel.chapterId,
+                                core::LinkRoles::SOURCE,
+                                2,
+                                core::LinkRoles::excerptOf(text.at(1)),
+                                QStringLiteral("Tau's fear"),
+                                {}};
+    CHECK(dialog->linkOf(novel.chapterId) == set);
+
+    // Unchecked and checked again, or shown again, it keeps them
+    chapter->setCheckState(0, Qt::Unchecked);
+    CHECK_FALSE(dialog->roleCombo()->isEnabled());
+    chapter->setCheckState(0, Qt::Checked);
+    CHECK(dialog->linkOf(novel.chapterId) == set);
+    dialog->setCurrentLink(body);
+    dialog->setCurrentLink(novel.chapterId);
+    CHECK(paragraph->currentData().toInt() == 2);
+    CHECK(dialog->noteEdit()->text() == QStringLiteral("Tau's fear"));
+    REQUIRE(pm.setLinks(quote, QList<core::ElementLink>{dialog->linkOf(body),
+                                                        dialog->linkOf(novel.chapterId)}));
+    CHECK(gui::linkDetails(set) == QStringLiteral("source of information \u00B7 paragraph 2"));
+
+    // From the chapter: its materials, each link as it is; a paragraph that moved is found
+    QStringList moved = text;
+    moved.prepend(QStringLiteral("A new first paragraph."));
+    pm.setChapterContent(novel.chapterId, kmlOf(moved));
+    dialog = std::make_unique<gui::dialogs::LinkDialog>(gui::dialogs::LinkDialog::Mode::Materials,
+                                                        novel.chapterId);
+    REQUIRE(dialog->itemOf(quote) != nullptr);
+    CHECK(dialog->itemOf(quote)->checkState(0) == Qt::Checked);
+    dialog->setCurrentLink(quote);
+    CHECK(dialog->roleCombo()->currentText() == QStringLiteral("source of information"));
+    CHECK(dialog->paragraphCombo()->currentData().toInt() == 3);
+    CHECK(dialog->linkOf(quote).to == novel.chapterId);
+    CHECK(dialog->linkOf(quote).paragraph == 3);
+    CHECK(dialog->noteEdit()->text() == QStringLiteral("Tau's fear"));
+
+    // Without paragraphs, the place in the text is not shown, and is kept
+    ParagraphsSetting::set(false);
+    CHECK(gui::linkDetails(set) == QStringLiteral("source of information"));
+    dialog = std::make_unique<gui::dialogs::LinkDialog>(gui::dialogs::LinkDialog::Mode::Materials,
+                                                        novel.chapterId);
+    dialog->setCurrentLink(quote);
+    CHECK(dialog->paragraphCombo()->isHidden());
+    dialog->roleCombo()->setCurrentIndex(
+        dialog->roleCombo()->findData(QString::fromLatin1(core::LinkRoles::INSPIRATION)));
+    CHECK(dialog->linkOf(quote).role == core::LinkRoles::INSPIRATION);
+    CHECK(dialog->linkOf(quote).paragraph == 2);
+    CHECK(dialog->linkOf(quote).excerpt == set.excerpt);
+}
+
+TEST_CASE("Paperclips: the paragraphs of an open chapter that materials are linked with",
+          "[gui][materials][links]") {
+    gui::registerAllIcons();
+    test::OpenNovel novel(QStringLiteral("Rain"));
+    auto& pm = novel.pm;
+    const ParagraphsSetting setting(true);
+    const QStringList text{
+        QStringLiteral("The storm came from the west."),
+        QStringLiteral("- We turn back - said Tau."),
+        QStringLiteral("- And the water? - asked Nadia."),
+        QStringLiteral("Tau was silent for a long time.")};
+    pm.setChapterContent(novel.chapterId, kmlOf(text));
+    REQUIRE(pm.saveChapterContent(novel.chapterId));
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString source = writePicture(files.path(), QStringLiteral("map.png"), QSize(40, 20));
+    const QString map = addMaterial(pm, source, QStringLiteral("Map"));
+    const QString photo = addMaterial(pm, source, QStringLiteral("Photo"));
+    const QString whole = addMaterial(pm, source, QStringLiteral("Sky"));
+    const core::ElementLink second{novel.chapterId, core::LinkRoles::ILLUSTRATION, 2,
+                                   core::LinkRoles::excerptOf(text.at(1)), {}, {}};
+    REQUIRE(pm.setLinks(map, QList<core::ElementLink>{second}));
+    REQUIRE(pm.setLinks(photo, QList<core::ElementLink>{second}));
+    REQUIRE(pm.setLinks(whole, QStringList{novel.chapterId}));
+
+    test::Window window;
+    QStringList shown;
+    gui::ParagraphMarksCoordinator coordinator(
+        window.tabs, [&shown](const QString& id) { shown << id; });
+    const auto settle = []() {
+        for (int i = 0; i < 3; ++i) {
+            QCoreApplication::processEvents();
+        }
+    };
+
+    // The chapter opened: one paperclip at the paragraph, naming both materials; a link to
+    // the whole chapter has none
+    window.navigator.onElementSelected(novel.chapterId, QStringLiteral("The Storm"));
+    REQUIRE(window.tabs->count() == 1);
+    editor::BookEditor* editor = window.editor(0)->getBookEditor();
+    settle();
+    CHECK(editor->paragraphMarks() ==
+          QList<editor::ParagraphMark>{
+              {1, {map, photo}, {QStringLiteral("Map"), QStringLiteral("Photo")}}});
+    CHECK(gui::ParagraphMarksCoordinator::marksOf(QString(), *editor).isEmpty());
+
+    // A material chosen at the paperclip is shown
+    emit editor->paragraphMarkClicked(photo);
+    CHECK(shown == QStringList{photo});
+
+    // The paperclips follow the links
+    REQUIRE(pm.setLinks(photo, QStringList()));
+    settle();
+    CHECK(editor->paragraphMarks() ==
+          QList<editor::ParagraphMark>{{1, {map}, {QStringLiteral("Map")}}});
+
+    // A paragraph added before: the paperclip goes down with its paragraph at once, and stays
+    // there when the chapter is saved and the link follows it
+    editor->setCursorPosition({0, 0});
+    QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+    QCoreApplication::sendEvent(editor, &enter);
+    CHECK(editor->paragraphMarks().first().paragraph == 2);
+    pm.setChapterContent(novel.chapterId, editor->toKml());
+    REQUIRE(pm.saveChapterContent(novel.chapterId));
+    CHECK(pm.findElement(map)->linkTo(novel.chapterId)->paragraph == 3);
+    settle();
+    CHECK(editor->paragraphMarks().first().paragraph == 2);
+
+    // Links that name no paragraphs (the setting): no paperclips, until they name them again
+    ParagraphsSetting::set(false);
+    settle();
+    CHECK(editor->paragraphMarks().isEmpty());
+    ParagraphsSetting::set(true);
+    settle();
+    CHECK(editor->paragraphMarks().size() == 1);
+}
+
 TEST_CASE("Materials of an element: the chapter, the section and the part link them, in Link "
           "with the materials of the Workshop", "[gui][materials]") {
     gui::registerAllIcons();
@@ -760,8 +1013,13 @@ TEST_CASE("Materials of an element: the chapter, the section and the part link t
     gui::LinkedMaterialsBox* box = properties.chapterMaterials();
     CHECK(box->link() == novel.chapterId);
     REQUIRE(box->list()->count() == 1);
-    CHECK(box->list()->item(0)->text() == QStringLiteral("Map\nScale: 1 : 50 000"));
+    CHECK(box->list()->item(0)->text() == QStringLiteral("Map\nillustration"));
     CHECK(box->emptyLabel()->isHidden());
+
+    // A link without a role shows the first field of the material; the list follows the links
+    REQUIRE(pm.setLinks(map, QList<core::ElementLink>{{novel.chapterId, {}, 0, {}, {}, {}}}));
+    REQUIRE(box->list()->count() == 1);
+    CHECK(box->list()->item(0)->text() == QStringLiteral("Map\nScale: 1 : 50 000"));
 
     // Enter opens the material
     box->list()->setCurrentRow(0);
@@ -781,9 +1039,9 @@ TEST_CASE("Materials of an element: the chapter, the section and the part link t
                       dialog.itemOf(photo)->setCheckState(0, Qt::Checked);
                   }) == 1);
     CHECK(pm.findElement(map)->links.isEmpty());
-    CHECK(pm.findElement(photo)->links == QStringList{novel.chapterId});
+    CHECK(pm.findElement(photo)->linkTargets() == QStringList{novel.chapterId});
     REQUIRE(box->list()->count() == 1);
-    CHECK(box->list()->item(0)->text() == QStringLiteral("Photo"));
+    CHECK(box->list()->item(0)->text() == QStringLiteral("Photo\nillustration"));
 
     // Delete takes the link out of the material
     box->list()->setCurrentRow(0);
@@ -801,7 +1059,7 @@ TEST_CASE("Materials of an element: the chapter, the section and the part link t
     properties.showPartProperties(part);
     CHECK(properties.partMaterials()->link() == part);
     CHECK(properties.partMaterials()->list()->count() == 1);
-    REQUIRE(pm.setLinks(map, {}));
+    REQUIRE(pm.setLinks(map, QStringList()));
     properties.refresh();
     CHECK(properties.partMaterials()->emptyLabel()->text() ==
           QStringLiteral("This part has no linked materials."));

@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/database_types.h>
+#include <kalahari/core/link_roles.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/project_database.h>
 #include <kalahari/core/recent_books_manager.h>
@@ -1804,7 +1805,7 @@ TEST_CASE("ProjectManager keeps the description, own fields, links and turn of a
 
     // Links: only what the project has, not the element itself, each once
     REQUIRE(pm.setLinks(map, {first, body, "nothing", map, first, second}));
-    CHECK(pm.findElement(map)->links == QStringList{first, body, second});
+    CHECK(pm.findElement(map)->linkTargets() == QStringList{first, body, second});
     REQUIRE(pm.setLinks(photo, {second}));
     CHECK(pm.materialsLinkedTo(first) == QList<const ProjectElement*>{pm.findElement(map)});
     CHECK(pm.materialsLinkedTo(second) ==
@@ -1825,7 +1826,7 @@ TEST_CASE("ProjectManager keeps the description, own fields, links and turn of a
     REQUIRE(QDir().mkdir(manifest));
     CHECK_FALSE(pm.setDescription(map, "Changed"));
     CHECK_FALSE(pm.setFields(map, {}));
-    CHECK_FALSE(pm.setLinks(map, {}));
+    CHECK_FALSE(pm.setLinks(map, QStringList()));
     CHECK_FALSE(pm.setRotation(map, 180));
     CHECK_FALSE(pm.removeElement(second).has_value());
     CHECK(*pm.project() == unchanged);
@@ -1834,7 +1835,7 @@ TEST_CASE("ProjectManager keeps the description, own fields, links and turn of a
 
     // An element deleted from the book leaves the links
     REQUIRE(pm.removeElement(second).has_value());
-    CHECK(pm.findElement(map)->links == QStringList{first, body});
+    CHECK(pm.findElement(map)->linkTargets() == QStringList{first, body});
     CHECK(pm.findElement(photo)->links.isEmpty());
 
     // The .klh file has them all
@@ -1844,10 +1845,126 @@ TEST_CASE("ProjectManager keeps the description, own fields, links and turn of a
     REQUIRE(savedMap != nullptr);
     CHECK(savedMap->description == "The oasis and the road.");
     CHECK(savedMap->fields.at(0).name == "Scale");
-    CHECK(savedMap->links == QStringList{first, body});
+    CHECK(savedMap->linkTargets() == QStringList{first, body});
     CHECK(savedMap->rotation == 90);
     REQUIRE(pm.openProject(manifest));
     CHECK(pm.notes(map) == "The oasis and the road.");
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager keeps how a material is linked, and a link follows its paragraph",
+          "[project_manager][links]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Roles", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString chapter =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    const QString second =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 2", BookPlace::Main);
+    REQUIRE_FALSE(chapter.isEmpty());
+    REQUIRE_FALSE(second.isEmpty());
+    const QString body = pm.project()->sectionLink(BookPlace::Main);
+    const QString picture = QDir(dir.path()).filePath("map.png");
+    writeFile(picture, "a picture");
+    const QString map = pm.addMaterial(picture, kind("kalahari.base", "picture"), "Map");
+    REQUIRE_FALSE(map.isEmpty());
+
+    QObject context;
+    int changes = 0;
+    QObject::connect(&pm, &ProjectManager::linksChanged, &context, [&changes]() { ++changes; });
+
+    // A new link of a material has the role of its kind; of another element, none
+    CHECK(pm.newLink(map, chapter) == ElementLink{chapter, LinkRoles::ILLUSTRATION, 0, {}, {}, {}});
+    CHECK(pm.newLink(second, chapter) == ElementLink{chapter, {}, 0, {}, {}, {}});
+    NewMaterial words;
+    words.title = "Water";
+    words.links = {chapter, "nothing"};
+    const QString quote = pm.addMaterial(words, kind("kalahari.base", "quote"));
+    REQUIRE_FALSE(quote.isEmpty());
+    CHECK(pm.findElement(quote)->links ==
+          QList<ElementLink>{{chapter, LinkRoles::QUOTED, 0, {}, {}, {}}});
+    CHECK(changes == 1);
+
+    // The text of the chapter: its paragraphs, as the editor has them, before and after saving
+    const QStringList text{"The storm came from the west.", "- We turn back - said Tau.",
+                           "Tau was silent for a long time."};
+    const auto kmlOf = [](const QStringList& paragraphs) {
+        return "<kml><p>" + paragraphs.join("</p><p>") + "</p></kml>";
+    };
+    pm.setChapterContent(chapter, kmlOf(text));
+    CHECK(pm.paragraphsOf(chapter) == text);
+    REQUIRE(pm.saveChapterContent(chapter));
+    pm.discardChapterContent(chapter);
+    CHECK(pm.paragraphsOf(chapter) == text);
+    CHECK(pm.paragraphsOf(second).isEmpty());
+    CHECK(pm.paragraphsOf(map).isEmpty());
+    CHECK(pm.paragraphsOf("nothing").isEmpty());
+    CHECK(changes == 1);
+
+    // The links with their details, without the element itself and what the project does not
+    // have, each once: the first
+    const ElementLink inText{chapter, LinkRoles::INSPIRATION, 3, LinkRoles::excerptOf(text.at(2)),
+                             "His fear", {}};
+    REQUIRE(pm.setLinks(map, QList<ElementLink>{inText,
+                                                {map, {}, 0, {}, {}, {}},
+                                                {chapter, LinkRoles::SOURCE, 0, {}, {}, {}},
+                                                {"nothing", {}, 0, {}, {}, {}},
+                                                {second, {}, 0, {}, {}, {}}}));
+    CHECK(pm.findElement(map)->links ==
+          (QList<ElementLink>{inText, {second, {}, 0, {}, {}, {}}}));
+    CHECK(changes == 2);
+    const QList<ElementLink> same = pm.findElement(map)->links;
+    REQUIRE(pm.setLinks(map, same));
+    CHECK(changes == 2);
+
+    // Given by their ids, the links it has keep their details; a new one is new
+    REQUIRE(pm.setLinks(map, QStringList{second, chapter, body}));
+    CHECK(pm.findElement(map)->links ==
+          (QList<ElementLink>{{second, {}, 0, {}, {}, {}},
+                              inText,
+                              {body, LinkRoles::ILLUSTRATION, 0, {}, {}, {}}}));
+    CHECK(changes == 3);
+
+    // A paragraph moved: the link names it again when the text is saved, and the .klh file has
+    // it; a link to the whole chapter stays as it is
+    QStringList edited = text;
+    edited.prepend("A new first paragraph.");
+    pm.setChapterContent(chapter, kmlOf(edited));
+    CHECK(pm.findElement(map)->linkTo(chapter)->paragraph == 3);
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(pm.findElement(map)->linkTo(chapter)->paragraph == 4);
+    CHECK(pm.findElement(map)->linkTo(chapter)->excerpt == inText.excerpt);
+    CHECK(pm.findElement(map)->linkTo(chapter)->note == "His fear");
+    CHECK(pm.findElement(quote)->linkTo(chapter)->paragraph == 0);
+    CHECK(changes == 4);
+    CHECK(savedProject(manifest).findElement(map)->linkTo(chapter)->paragraph == 4);
+
+    // A saved text whose paragraphs stay changes no links
+    REQUIRE(pm.saveChapterContent(chapter));
+    pm.setChapterContent(chapter, kmlOf(edited));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(changes == 4);
+
+    // The beginning of the paragraph rewritten: the link keeps its number and the new
+    // beginning, by which it is found when the paragraph moves again
+    edited[3] = "Tau said nothing for a long time.";
+    pm.setChapterContent(chapter, kmlOf(edited));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(pm.findElement(map)->linkTo(chapter)->paragraph == 4);
+    CHECK(pm.findElement(map)->linkTo(chapter)->excerpt == "Tau said nothing for a long time.");
+    CHECK(changes == 5);
+    edited.removeFirst();
+    edited.removeFirst();
+    pm.setChapterContent(chapter, kmlOf(edited));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(pm.findElement(map)->linkTo(chapter)->paragraph == 2);
+    CHECK(changes == 6);
+
+    // An element deleted from the book takes its links out of the materials
+    REQUIRE(pm.removeElement(second).has_value());
+    CHECK(pm.findElement(map)->linkTargets() == (QStringList{chapter, body}));
+    CHECK(changes == 7);
     REQUIRE(pm.closeProject(false));
 }
 
@@ -1877,7 +1994,7 @@ TEST_CASE("ProjectManager adds a material with a web address, with a picture's d
     const ProjectElement* pageElement = pm.findElement(pageId);
     CHECK(pageElement->url == "https://pl.wikipedia.org/wiki/Kalahari");
     CHECK(pageElement->file.isEmpty());
-    CHECK(pageElement->links == QStringList{chapter, body});
+    CHECK(pageElement->linkTargets() == QStringList{chapter, body});
 
     // Neither a file nor an address: a paper book, a talk
     NewMaterial book;

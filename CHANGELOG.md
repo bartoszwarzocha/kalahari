@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Links of materials: the role, the paragraph and a note** - 2026-10-25. A link of a
+  material with an element of the book says how: quoted in the text, source of information,
+  inspiration, illustration or to check, or no role. A new link gets the role the kind of the
+  material suggests (a quote is quoted in the text, a picture an illustration, a web page, a
+  document and a publication sources of information), also a material dropped or pasted on
+  the Navigator. The Link window has, beside the tree, the link of the element chosen: its
+  role, its place in the text (the whole element or a paragraph of the chapter, listed with
+  its first words; the paragraph with the words of a quote is marked and chosen for a new
+  link of the quote) and a short note. The lists of the links on the card of a material and
+  of the materials of a chapter, a part or a section show the role and the paragraph under
+  the title, and the note in the tooltip. A link to a paragraph keeps its first words: when
+  the chapter is saved, a paragraph that moved (paragraphs added or taken out before it) is
+  found by them and the link follows it, and a paragraph whose beginning was rewritten keeps
+  its number and its new first words. The editor marks a paragraph that materials are linked
+  with by a paperclip in the left margin, in the color of the text, which stays with its
+  paragraph while the writer types; a click on it, or Linked Materials in the context menu of
+  the paragraph (also from the keyboard), shows the material in the Properties panel, with a
+  menu first when the paragraph has several. Settings > Navigator > "Links name paragraphs of
+  the text" (on by default) hides the paragraphs and the paperclips when it is off, and keeps
+  the paragraphs named. In the .klh file a link with any of these details is an object
+  (`{"to": "...", "role": "quoted", "paragraph": 4, "excerpt": "...", "note": "..."}`), a link
+  without them the id alone, as before; fields a later version adds to a link are kept.
+
 - **Workshop: kinds of materials, always in Materials** - 2026-10-25. A material is now a
   quote, a web page, a picture, a document, a publication, a recording or another file, each
   with its group, name and icon; all types of books have them in the Workshop. The Workshop

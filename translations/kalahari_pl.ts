@@ -3199,6 +3199,16 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>&amp;Ignore All</source>
         <translation>&amp;Pomijaj to słowo</translation>
     </message>
+    <message>
+        <source>Linked materials</source>
+        <extracomment>The tooltip of the paperclip beside a paragraph, over the titles of the materials. In Polish: Powiązane materiały</extracomment>
+        <translation>Powiązane materiały</translation>
+    </message>
+    <message>
+        <source>Linked Mate&amp;rials</source>
+        <extracomment>The submenu of the materials linked with the paragraph. In Polish: Powiązane mate&amp;riały</extracomment>
+        <translation>Powiązane mate&amp;riały</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -7024,6 +7034,16 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Applies to a file dragged from the file manager, an address dragged from the browser, and an address, a file or a picture pasted in the Navigator (Ctrl+V).</source>
         <extracomment>In Polish: Dotyczy pliku przeciągniętego z Eksploratora, adresu przeciągniętego z przeglądarki oraz adresu, pliku albo obrazu wklejonego w Nawigatorze (Ctrl+V).</extracomment>
         <translation>Dotyczy pliku przeciągniętego z Eksploratora plików, adresu przeciągniętego z przeglądarki oraz adresu, pliku albo obrazu wklejonego w Nawigatorze (Ctrl+V).</translation>
+    </message>
+    <message>
+        <source>Links name paragraphs of the text</source>
+        <extracomment>In Polish: Powiązania wskazują akapity tekstu</extracomment>
+        <translation>Powiązania wskazują akapity tekstu</translation>
+    </message>
+    <message>
+        <source>The Link window can name the paragraph of a chapter that a material is about, and the editor marks that paragraph with a paperclip in the margin. Turned off, the paragraphs and the paperclips are hidden; the paragraphs named are kept.</source>
+        <extracomment>In Polish: W oknie „Powiąż” można wskazać akapit rozdziału, którego dotyczy materiał, a edytor oznacza taki akapit spinaczem na marginesie. Po wyłączeniu akapity i spinacze znikają z widoku, ale wskazania zostają zapisane.</extracomment>
+        <translation>W oknie „Powiąż” można wskazać akapit rozdziału, którego dotyczy materiał, a edytor oznacza taki akapit spinaczem na marginesie. Po wyłączeniu akapity i spinacze znikają z widoku, ale wskazania zostają zapisane.</translation>
     </message>
 </context>
 <context>
@@ -12335,6 +12355,13 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <source>Failed to save changes.</source>
         <translation>Nie udało się zapisać zmian.</translation>
     </message>
+    <message>
+        <source>%1
+Note: %2</source>
+        <extracomment>The tooltip of a material with a note of its link: %1 its description, %2 the note. In Polish: %1\nNotatka: %2</extracomment>
+        <translation>%1
+Notatka: %2</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::MaterialFile</name>
@@ -12575,6 +12602,46 @@ In Polish: Otwórz podgląd</extracomment>
         <extracomment>%1: the address. In Polish: Skopiowano adres: %1</extracomment>
         <translation>Skopiowano adres: %1</translation>
     </message>
+    <message>
+        <source>%1
+Note: %2</source>
+        <extracomment>The tooltip of a link with a note: %1 the title and the role, %2 the note. In Polish: %1\nNotatka: %2</extracomment>
+        <translation>%1
+Notatka: %2</translation>
+    </message>
+</context>
+<context>
+    <name>LinkRoles</name>
+    <message>
+        <source>quoted in the text</source>
+        <extracomment>A role of a link: a material quoted in the text of a chapter. In Polish: cytowany w tekście</extracomment>
+        <translation>cytowany w tekście</translation>
+    </message>
+    <message>
+        <source>source of information</source>
+        <extracomment>A role of a link: a material the text draws facts from. In Polish: źródło informacji</extracomment>
+        <translation>źródło informacji</translation>
+    </message>
+    <message>
+        <source>inspiration</source>
+        <extracomment>A role of a link. In Polish: inspiracja</extracomment>
+        <translation>inspiracja</translation>
+    </message>
+    <message>
+        <source>illustration</source>
+        <extracomment>A role of a link: a picture of what the text tells. In Polish: ilustracja</extracomment>
+        <translation>ilustracja</translation>
+    </message>
+    <message>
+        <source>to check</source>
+        <extracomment>A role of a link: something the writer still has to check. In Polish: do sprawdzenia</extracomment>
+        <translation>do sprawdzenia</translation>
+    </message>
+    <message>
+        <source>paragraph %1</source>
+        <extracomment>The paragraph of a chapter a link names, after its role. In Polish: akapit %1</extracomment>
+        <translation>akapit %1</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::LinkDialog</name>
@@ -12584,9 +12651,9 @@ In Polish: Otwórz podgląd</extracomment>
         <translation>Powiąż materiał „%1”</translation>
     </message>
     <message>
-        <source>Check the elements the material is about.</source>
-        <extracomment>In Polish: Zaznacz elementy, których dotyczy materiał.</extracomment>
-        <translation>Zaznacz elementy, których dotyczy materiał.</translation>
+        <source>Check the elements the material is about, and say how.</source>
+        <extracomment>In Polish: Zaznacz elementy, których dotyczy materiał, i powiedz, w jaki sposób.</extracomment>
+        <translation>Zaznacz elementy, których dotyczy materiał, i powiedz, w jaki sposób.</translation>
     </message>
     <message>
         <source>&amp;Link</source>
@@ -12599,9 +12666,9 @@ In Polish: Otwórz podgląd</extracomment>
         <translation>Materiały „%1”</translation>
     </message>
     <message>
-        <source>Check the materials about it.</source>
-        <extracomment>In Polish: Zaznacz materiały, które go dotyczą.</extracomment>
-        <translation>Zaznacz materiały, które go dotyczą.</translation>
+        <source>Check the materials about it, and say how.</source>
+        <extracomment>In Polish: Zaznacz materiały, które go dotyczą, i powiedz, w jaki sposób.</extracomment>
+        <translation>Zaznacz materiały, które go dotyczą, i powiedz, w jaki sposób.</translation>
     </message>
     <message>
         <source>Filter...</source>
@@ -12617,6 +12684,66 @@ In Polish: Otwórz podgląd</extracomment>
         <source>Elements to link</source>
         <extracomment>In Polish: Elementy do powiązania</extracomment>
         <translation>Elementy do powiązania</translation>
+    </message>
+    <message>
+        <source>Link</source>
+        <extracomment>The role, the paragraph and the note of the link of the item chosen in the tree. In Polish: Powiązanie</extracomment>
+        <translation>Powiązanie</translation>
+    </message>
+    <message>
+        <source>No role</source>
+        <extracomment>The link says nothing of how. In Polish: Bez rodzaju</extracomment>
+        <translation>Bez rodzaju</translation>
+    </message>
+    <message>
+        <source>&amp;Role</source>
+        <extracomment>How the material is linked with the element. In Polish: &amp;Rodzaj powiązania</extracomment>
+        <translation>&amp;Rodzaj powiązania</translation>
+    </message>
+    <message>
+        <source>Place in the &amp;text</source>
+        <extracomment>The paragraph of the text the link names. In Polish: &amp;Miejsce w tekście</extracomment>
+        <translation>&amp;Miejsce w tekście</translation>
+    </message>
+    <message>
+        <source>A short note...</source>
+        <extracomment>In Polish: Krótka notatka...</extracomment>
+        <translation>Krótka notatka...</translation>
+    </message>
+    <message>
+        <source>&amp;Note</source>
+        <extracomment>In Polish: &amp;Notatka</extracomment>
+        <translation>&amp;Notatka</translation>
+    </message>
+    <message>
+        <source>Choose an element in the tree.</source>
+        <extracomment>In Polish: Wybierz element w drzewie.</extracomment>
+        <translation>Wybierz element w drzewie.</translation>
+    </message>
+    <message>
+        <source>Check the box of the element to set its link.</source>
+        <extracomment>In Polish: Zaznacz pole przy elemencie, żeby ustawić powiązanie.</extracomment>
+        <translation>Zaznacz pole przy elemencie, żeby ustawić powiązanie.</translation>
+    </message>
+    <message>
+        <source>The quote is in paragraph %1.</source>
+        <extracomment>In Polish: Ten cytat jest w akapicie %1.</extracomment>
+        <translation>Ten cytat jest w akapicie %1.</translation>
+    </message>
+    <message>
+        <source>The whole element</source>
+        <extracomment>The link names no paragraph of the text. In Polish: Cały element</extracomment>
+        <translation>Cały element</translation>
+    </message>
+    <message>
+        <source>Paragraph %1: &quot;%2...&quot;</source>
+        <extracomment>A paragraph of a text in the Link window: %1 its number, %2 its first words. In Polish: Akapit %1: „%2…”</extracomment>
+        <translation>Akapit %1: „%2…”</translation>
+    </message>
+    <message>
+        <source>%1 – the quote is in it</source>
+        <extracomment>A paragraph with the words of the quote being linked. In Polish: %1 – jest w nim ten cytat</extracomment>
+        <translation>%1 – jest w nim ten cytat</translation>
     </message>
 </context>
 <context>

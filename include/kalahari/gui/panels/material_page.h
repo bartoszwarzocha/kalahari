@@ -123,10 +123,12 @@ public slots:
     /// @brief Take out the current field, asking when it has a value
     void removeField();
 
-    /// @brief Open Link and link what is checked there
+    /// @brief Open Link on the current link and link what is checked there, as it is set
+    /// there
     void editLinks();
 
-    /// @brief Link @p links too, after the links it has
+    /// @brief Link the elements and sections @p links too, after the links it has; each new
+    /// one gets the role its kind suggests (core::ProjectManager::newLink())
     void addLinks(const QStringList& links);
 
     /// @brief Take out the current link
@@ -183,7 +185,7 @@ private:
     void saveFields();
 
     /// @brief Save @p links as the links of the material
-    void saveLinks(const QStringList& links);
+    void saveLinks(const QList<core::ElementLink>& links);
 
     /// @brief The fields that the table shows
     QList<core::ElementField> tableFields() const;

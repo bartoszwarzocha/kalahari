@@ -105,6 +105,29 @@ struct ElementField {
     bool operator==(const ElementField&) const = default;
 };
 
+/// @brief What an element is about, and how: a material quoted in a chapter, a picture of
+/// a place...
+///
+/// Saved as the id alone while it says nothing more (hasDetails()), as books of earlier
+/// versions have it; else as an object with "to" and the details.
+struct ElementLink {
+    QString to;         ///< Id of an element or of a section (BookProject::sectionLink())
+    QString role;       ///< How (LinkRoles): "quoted", "source"...; empty: not said
+    int paragraph = 0;  ///< Paragraph of the text of the element, from 1; 0: the whole element
+    QString excerpt;    ///< The first words of that paragraph, which find it when the
+                        ///< paragraphs before it change (LinkRoles::paragraphOf())
+    QString note;       ///< The writer's note; empty: none
+    QJsonObject extra;  ///< Fields this version does not know, saved back
+
+    /// @brief Whether it says more than what it links (saved as an object)
+    bool hasDetails() const {
+        return !role.isEmpty() || paragraph > 0 || !excerpt.isEmpty() || !note.isEmpty() ||
+               !extra.isEmpty();
+    }
+
+    bool operator==(const ElementLink&) const = default;
+};
+
 /// @brief Element of a book or of the Workshop: a chapter, a part, a character card...
 struct ProjectElement {
     QString id;                      ///< Unique in the project
@@ -119,8 +142,8 @@ struct ProjectElement {
     QString description;             ///< Description of an element of the Workshop without a
                                      ///< text of its own (a material); empty: none
     QList<ElementField> fields;      ///< The writer's own fields, in the writer's order
-    QStringList links;               ///< What it is about: ids of elements and of sections
-                                     ///< (BookProject::sectionLink()), in the order linked
+    QList<ElementLink> links;        ///< What it is about: elements and sections, each
+                                     ///< once, in the order linked
     int rotation = 0;                ///< Turn of its picture in the preview, clockwise: 0,
                                      ///< 90, 180 or 270 degrees
     QJsonObject viewExtra;           ///< Fields of its "view" this version does not know
@@ -129,6 +152,12 @@ struct ProjectElement {
     /// @brief Whether it has a kind: every element of a book and of the Workshop has one, a
     /// file of a book outside its text (ProjectBook::files) has none
     bool hasKind() const { return !kind.kindId.isEmpty(); }
+
+    /// @brief What it is linked with (ElementLink::to), in the order linked
+    QStringList linkTargets() const;
+
+    /// @brief Its link with @p target; nullptr when it has none
+    const ElementLink* linkTo(const QString& target) const;
 
     /// Not defaulted: a defaulted == would depend on the == of QList<ProjectElement>, which
     /// depends on it, so the compiler would delete it

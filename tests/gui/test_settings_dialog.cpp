@@ -9,6 +9,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/settings/settings_page.h"
+#include "kalahari/core/link_roles.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
@@ -512,6 +513,36 @@ TEST_CASE("Settings dialog: the Navigator page chooses how a material opens",
     CHECK(systemAgain->isChecked());
 
     settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, before);
+}
+
+TEST_CASE("Settings dialog: the Navigator page says whether links name paragraphs",
+          "[gui][settings][links]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const bool before = settings.get<bool>(kalahari::core::LinkRoles::PARAGRAPHS_SETTING, true);
+    settings.set<bool>(kalahari::core::LinkRoles::PARAGRAPHS_SETTING, true);
+
+    // They do, as usual
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    auto* paragraphs = dialog.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
+    REQUIRE(paragraphs != nullptr);
+    CHECK(paragraphs->isChecked());
+
+    // Turned off, the links name none
+    paragraphs->click();
+    CHECK(dialog.applyChanges() ==
+          QStringList{QString::fromLatin1(kalahari::core::LinkRoles::PARAGRAPHS_SETTING)});
+    CHECK_FALSE(kalahari::core::LinkRoles::paragraphsShown());
+
+    // Opened again, the page shows it
+    SettingsDialog again(nullptr);
+    openPage(again, QString(), QStringLiteral("Navigator"));
+    auto* paragraphsAgain =
+        again.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
+    REQUIRE(paragraphsAgain != nullptr);
+    CHECK_FALSE(paragraphsAgain->isChecked());
+
+    settings.set<bool>(kalahari::core::LinkRoles::PARAGRAPHS_SETTING, before);
 }
 
 TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a drop gives",

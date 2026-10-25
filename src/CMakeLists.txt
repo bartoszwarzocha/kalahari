@@ -34,6 +34,7 @@ set(KALAHARI_CORE_SOURCES
     core/book_type_registry.cpp # Book type packages loaded from folders
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
+    core/link_roles.cpp         # The roles of links, and the paragraph a link names
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
     core/unicode_paths.cpp      # Paths with any characters, as UTF-8 text, and their ZIP archives
@@ -175,6 +176,7 @@ set(KALAHARI_SOURCES
     gui/navigator_coordinator.cpp  # NavigatorCoordinator - Navigator handlers extracted from MainWindow (OpenSpec #00038 Phase 6)
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
+    gui/paragraph_marks_coordinator.cpp  # ParagraphMarksCoordinator - paperclips of linked paragraphs
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
     gui/auto_correct_coordinator.cpp  # AutoCorrectCoordinator - auto-correct turned on and off as a whole
     gui/toolbar_keys.cpp  # ToolbarKeys - a toolbar gives the keys back after a command
@@ -325,6 +327,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT (OpenSpec #00038 Phase 6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator with Q_OBJECT (OpenSpec #00038 Phase 7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/paragraph_marks_coordinator.h  # ParagraphMarksCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT

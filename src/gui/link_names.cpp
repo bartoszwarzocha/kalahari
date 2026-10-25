@@ -5,7 +5,10 @@
 
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/core/link_roles.h"
 #include "kalahari/core/project_manager.h"
+
+#include <QCoreApplication>
 
 namespace kalahari {
 namespace gui {
@@ -87,6 +90,46 @@ QString linkPlace(const QString& link) {
     }
     return project->books.isEmpty() ? QString()
                                     : project->books.first().sectionName(at->place);
+}
+
+QString linkRoleName(const QString& role) {
+    using core::LinkRoles;
+    if (role == QLatin1String(LinkRoles::QUOTED)) {
+        //: A role of a link: a material quoted in the text of a chapter. In Polish: cytowany w
+        //: tekście
+        return QCoreApplication::translate("LinkRoles", "quoted in the text");
+    }
+    if (role == QLatin1String(LinkRoles::SOURCE)) {
+        //: A role of a link: a material the text draws facts from. In Polish: źródło
+        //: informacji
+        return QCoreApplication::translate("LinkRoles", "source of information");
+    }
+    if (role == QLatin1String(LinkRoles::INSPIRATION)) {
+        //: A role of a link. In Polish: inspiracja
+        return QCoreApplication::translate("LinkRoles", "inspiration");
+    }
+    if (role == QLatin1String(LinkRoles::ILLUSTRATION)) {
+        //: A role of a link: a picture of what the text tells. In Polish: ilustracja
+        return QCoreApplication::translate("LinkRoles", "illustration");
+    }
+    if (role == QLatin1String(LinkRoles::TO_CHECK)) {
+        //: A role of a link: something the writer still has to check. In Polish: do
+        //: sprawdzenia
+        return QCoreApplication::translate("LinkRoles", "to check");
+    }
+    return role;
+}
+
+QString linkDetails(const core::ElementLink& link) {
+    QStringList parts;
+    if (!link.role.isEmpty()) {
+        parts << linkRoleName(link.role);
+    }
+    if (link.paragraph > 0 && core::LinkRoles::paragraphsShown()) {
+        //: The paragraph of a chapter a link names, after its role. In Polish: akapit %1
+        parts << QCoreApplication::translate("LinkRoles", "paragraph %1").arg(link.paragraph);
+    }
+    return parts.join(QStringLiteral(" · "));
 }
 
 } // namespace gui

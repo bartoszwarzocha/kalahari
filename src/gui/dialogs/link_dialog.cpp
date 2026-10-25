@@ -7,15 +7,23 @@
 #include "kalahari/gui/link_names.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/link_roles.h"
+#include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
 
 #include <QCollator>
+#include <QComboBox>
 #include <QCoreApplication>
+#include <QGroupBox>
+#include <QHBoxLayout>
 #include <QHeaderView>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
 #include <QPushButton>
+#include <QRegularExpression>
+#include <QScopedValueRollback>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
@@ -33,9 +41,42 @@ namespace {
 /// The link of an item that can be checked; empty for the book, the Workshop and its groups
 constexpr int LINK_ROLE = Qt::UserRole;
 
+/// The excerpt of a paragraph of the list of paragraphs (Qt::UserRole is its number)
+constexpr int EXCERPT_ROLE = Qt::UserRole + 1;
+
 /// Rows of the tree it asks for, and those it keeps on a small screen
 constexpr int TREE_ROWS = 14;
 constexpr int MINIMUM_TREE_ROWS = 4;
+
+/// Words of a paragraph in the list of paragraphs
+constexpr int SHOWN_WORDS = 5;
+
+/// Characters the list of paragraphs is wide enough for, and of a paragraph in its tooltip
+constexpr int PARAGRAPH_CHARACTERS = 24;
+constexpr int PARAGRAPH_TOOLTIP_CHARACTERS = 300;
+
+/// Characters of a quote it finds in a text at least: fewer are in nearly every text
+constexpr int MINIMUM_QUOTE = 8;
+
+/// The words of quote @p material as a text has them: its description without the quotation
+/// marks around it and with single spaces; empty for another material or a short quote
+QString quoteWords(const core::ProjectElement* material) {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::KindRef kind = material != nullptr ? pm.kindOf(*material) : core::KindRef();
+    if (!kind || kind.kind->id != QLatin1String(core::MaterialKinds::QUOTE)) {
+        return {};
+    }
+    static const QRegularExpression marks(
+        QStringLiteral("^[\\s\"'\u201E\u201C\u201D\u00AB\u00BB]+|"
+                       "[\\s\"'\u201E\u201C\u201D\u00AB\u00BB]+$"));
+    const QString words = material->description.simplified().remove(marks);
+    return words.size() < MINIMUM_QUOTE ? QString() : words;
+}
+
+/// Whether paragraph @p paragraph has @p words, a quote (quoteWords())
+bool hasQuote(const QString& paragraph, const QString& words) {
+    return !words.isEmpty() && paragraph.simplified().contains(words, Qt::CaseInsensitive);
+}
 
 /// The tree of the dialog: high enough for a book, and low on a small screen, where only it
 /// scrolls
@@ -167,16 +208,17 @@ LinkDialog::LinkDialog(Mode mode, const QString& link, QWidget* parent)
         //: The window that links a material with what it is about. In Polish: Powiąż
         //: materiał „%1”
         setHeading(tr("Link Material \"%1\"").arg(title),
-                   //: In Polish: Zaznacz elementy, których dotyczy materiał.
-                   tr("Check the elements the material is about."));
+                   //: In Polish: Zaznacz elementy, których dotyczy materiał, i powiedz, w jaki
+                   //: sposób.
+                   tr("Check the elements the material is about, and say how."));
         //: In Polish: &Powiąż
         setAcceptText(tr("&Link"));
     } else {
         //: The window that links materials with an element of the book or a section; %1: its
         //: title. In Polish: Materiały „%1”
         setHeading(tr("Materials of \"%1\"").arg(title),
-                   //: In Polish: Zaznacz materiały, które go dotyczą.
-                   tr("Check the materials about it."));
+                   //: In Polish: Zaznacz materiały, które go dotyczą, i powiedz, w jaki sposób.
+                   tr("Check the materials about it, and say how."));
         setAcceptText(tr("&Link"));
     }
     setHeadingIcon(QStringLiteral("common.link"));
@@ -189,7 +231,6 @@ LinkDialog::LinkDialog(Mode mode, const QString& link, QWidget* parent)
     m_filter->setClearButtonEnabled(true);
     //: In Polish: Filtr
     m_filter->setAccessibleName(tr("Filter"));
-    contentLayout()->addWidget(m_filter);
 
     m_tree = new LinkTree(this);
     m_tree->setObjectName(QStringLiteral("linkTree"));
@@ -198,7 +239,62 @@ LinkDialog::LinkDialog(Mode mode, const QString& link, QWidget* parent)
     m_tree->setUniformRowHeights(true);
     //: In Polish: Elementy do powiązania
     m_tree->setAccessibleName(tr("Elements to link"));
-    contentLayout()->addWidget(m_tree, 1);
+
+    // The link of the current item: its role, the paragraph and a note, each field with its
+    // label above it
+    //: The role, the paragraph and the note of the link of the item chosen in the tree. In
+    //: Polish: Powiązanie
+    m_linkGroup = new QGroupBox(tr("Link"), this);
+    m_linkGroup->setObjectName(QStringLiteral("linkDetails"));
+    auto* linkLayout = new QVBoxLayout(m_linkGroup);
+    linkLayout->setSpacing(4);
+    const auto addLinkField = [this, linkLayout](const QString& text, QWidget* field) {
+        auto* label = new QLabel(text, m_linkGroup);
+        label->setBuddy(field);
+        linkLayout->addWidget(label);
+        linkLayout->addWidget(field);
+        linkLayout->addSpacing(4);
+        return label;
+    };
+    m_role = new QComboBox(m_linkGroup);
+    m_role->setObjectName(QStringLiteral("linkRole"));
+    //: The link says nothing of how. In Polish: Bez rodzaju
+    m_role->addItem(tr("No role"), QString());
+    for (const QString& role : core::LinkRoles::all()) {
+        m_role->addItem(linkRoleName(role), role);
+    }
+    //: How the material is linked with the element. In Polish: &Rodzaj powiązania
+    addLinkField(tr("&Role"), m_role);
+    m_paragraph = new QComboBox(m_linkGroup);
+    m_paragraph->setObjectName(QStringLiteral("linkParagraph"));
+    m_paragraph->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    m_paragraph->setMinimumContentsLength(PARAGRAPH_CHARACTERS);
+    //: The paragraph of the text the link names. In Polish: &Miejsce w tekście
+    m_paragraphLabel = addLinkField(tr("Place in the &text"), m_paragraph);
+    m_note = new QLineEdit(m_linkGroup);
+    m_note->setObjectName(QStringLiteral("linkNote"));
+    //: In Polish: Krótka notatka...
+    m_note->setPlaceholderText(tr("A short note..."));
+    m_note->setClearButtonEnabled(true);
+    //: In Polish: &Notatka
+    addLinkField(tr("&Note"), m_note);
+    m_linkHint = new QLabel(m_linkGroup);
+    m_linkHint->setObjectName(QStringLiteral("linkHint"));
+    m_linkHint->setWordWrap(true);
+    m_linkHint->setForegroundRole(QPalette::PlaceholderText);
+    linkLayout->addWidget(m_linkHint);
+    linkLayout->addStretch(1);
+
+    // The tree with its filter at the left, the link at the right
+    auto* treeColumn = new QVBoxLayout();
+    treeColumn->setSpacing(6);
+    treeColumn->addWidget(m_filter);
+    treeColumn->addWidget(m_tree, 1);
+    auto* columns = new QHBoxLayout();
+    columns->setSpacing(11);
+    columns->addLayout(treeColumn, 3);
+    columns->addWidget(m_linkGroup, 2);
+    contentLayout()->addLayout(columns, 1);
 
     if (mode == Mode::Targets) {
         fillTargets(link);
@@ -208,6 +304,16 @@ LinkDialog::LinkDialog(Mode mode, const QString& link, QWidget* parent)
     m_initial = checkedLinks();
 
     connect(m_filter, &QLineEdit::textChanged, this, &LinkDialog::filter);
+    connect(m_tree, &QTreeWidget::itemChanged, this, [this](QTreeWidgetItem* item, int column) {
+        if (column == 0) {
+            itemChecked(item);
+        }
+    });
+    connect(m_tree, &QTreeWidget::currentItemChanged, this,
+            [this](QTreeWidgetItem* current) { showLink(current); });
+    connect(m_role, &QComboBox::currentIndexChanged, this, &LinkDialog::takeLink);
+    connect(m_paragraph, &QComboBox::currentIndexChanged, this, &LinkDialog::takeLink);
+    connect(m_note, &QLineEdit::textEdited, this, &LinkDialog::takeLink);
     m_tree->installEventFilter(this);
     m_filter->installEventFilter(this);
 
@@ -218,6 +324,7 @@ LinkDialog::LinkDialog(Mode mode, const QString& link, QWidget* parent)
             break;
         }
     }
+    showLink(m_tree->currentItem());
     m_tree->setFocus(Qt::OtherFocusReason);
 }
 
@@ -228,7 +335,12 @@ void LinkDialog::fillTargets(const QString& material) {
         return;
     }
     const core::ProjectElement* element = project->findElement(material);
-    const QStringList links = element ? element->links : QStringList();
+    const QStringList links = element ? element->linkTargets() : QStringList();
+    if (element != nullptr) {
+        for (const core::ElementLink& each : element->links) {
+            m_links.insert(each.to, each);
+        }
+    }
     auto& art = core::ArtProvider::getInstance();
 
     // The book: its sections and their elements, in reading order
@@ -282,7 +394,11 @@ void LinkDialog::fillMaterials(const QString& link) {
     for (const KindGroup& group : workshopGroups(*project, true, QString())) {
         QTreeWidgetItem* groupNode = groupItem(workshopItem, group.name, group.icon);
         for (const core::ProjectElement* each : group.elements) {
-            checkItem(groupNode, each->id, each->links.contains(link));
+            const core::ElementLink* linked = each->linkTo(link);
+            checkItem(groupNode, each->id, linked != nullptr);
+            if (linked != nullptr) {
+                m_links.insert(each->id, *linked);
+            }
         }
     }
     workshopItem->setExpanded(true);
@@ -296,6 +412,168 @@ QStringList LinkDialog::checkedLinks() const {
         }
     }
     return links;
+}
+
+core::ElementLink LinkDialog::linkOf(const QString& id) const {
+    core::ElementLink link = m_links.contains(id)
+                                 ? m_links.value(id)
+                                 : core::ProjectManager::getInstance().newLink(materialOf(id), id);
+    link.to = m_mode == Mode::Targets ? id : m_link;
+    return link;
+}
+
+void LinkDialog::setCurrentLink(const QString& id) {
+    if (QTreeWidgetItem* item = itemOf(id)) {
+        m_tree->setCurrentItem(item);
+        m_tree->scrollToItem(item);
+    }
+}
+
+QString LinkDialog::materialOf(const QString& id) const {
+    return m_mode == Mode::Targets ? m_link : id;
+}
+
+QString LinkDialog::textOf(const QString& id) const {
+    return m_mode == Mode::Targets ? id : m_link;
+}
+
+int LinkDialog::paragraphOfQuote(const QString& material, const QStringList& paragraphs) const {
+    const QString words = quoteWords(core::ProjectManager::getInstance().findElement(material));
+    for (qsizetype i = 0; i < paragraphs.size(); ++i) {
+        if (hasQuote(paragraphs.at(i), words)) {
+            return static_cast<int>(i) + 1;
+        }
+    }
+    return 0;
+}
+
+void LinkDialog::itemChecked(QTreeWidgetItem* item) {
+    if (item == nullptr || !(item->flags() & Qt::ItemIsUserCheckable)) {
+        return;
+    }
+    const QString id = item->data(0, LINK_ROLE).toString();
+    if (item->checkState(0) == Qt::Checked && !m_links.contains(id)) {
+        // A new link: the role its kind suggests, and a quote the paragraph with its words
+        const auto& pm = core::ProjectManager::getInstance();
+        core::ElementLink link =
+            pm.newLink(materialOf(id), m_mode == Mode::Targets ? id : m_link);
+        if (core::LinkRoles::paragraphsShown()) {
+            const QStringList paragraphs = pm.paragraphsOf(textOf(id));
+            link.paragraph = paragraphOfQuote(materialOf(id), paragraphs);
+            if (link.paragraph > 0) {
+                link.excerpt = core::LinkRoles::excerptOf(paragraphs.at(link.paragraph - 1));
+            }
+        }
+        m_links.insert(id, link);
+    }
+    if (item == m_tree->currentItem()) {
+        showLink(item);
+    }
+}
+
+void LinkDialog::showLink(QTreeWidgetItem* item) {
+    const QScopedValueRollback<bool> showing(m_showing, true);
+    const bool checkable = item != nullptr && (item->flags() & Qt::ItemIsUserCheckable);
+    const bool checked = checkable && item->checkState(0) == Qt::Checked;
+    const QString id = checked ? item->data(0, LINK_ROLE).toString() : QString();
+    m_shown = id;
+    const core::ElementLink link = checked ? linkOf(id) : core::ElementLink();
+
+    // A role of a later version: shown as it is, and kept, while its link is shown
+    const int known = static_cast<int>(core::LinkRoles::all().size()) + 1;
+    while (m_role->count() > known) {
+        m_role->removeItem(known);
+    }
+    int role = m_role->findData(link.role);
+    if (role < 0) {
+        m_role->addItem(link.role, link.role);
+        role = known;
+    }
+    m_role->setCurrentIndex(role);
+    fillParagraphs(id, link);
+    m_note->setText(link.note);
+
+    // The paragraph found by its excerpt, after paragraphs before it were added or taken out
+    const int paragraph = m_paragraph->currentData().toInt();
+    if (checked && link.paragraph > 0 && paragraph > 0 && paragraph != link.paragraph) {
+        m_links[id].paragraph = paragraph;
+        m_links[id].excerpt = m_paragraph->currentData(EXCERPT_ROLE).toString();
+    }
+
+    const bool places = core::LinkRoles::paragraphsShown();
+    m_paragraphLabel->setVisible(places);
+    m_paragraph->setVisible(places);
+    m_role->setEnabled(checked);
+    m_paragraph->setEnabled(checked && m_paragraph->count() > 1);
+    m_note->setEnabled(checked);
+
+    QString hint;
+    if (!checkable) {
+        //: In Polish: Wybierz element w drzewie.
+        hint = tr("Choose an element in the tree.");
+    } else if (!checked) {
+        //: In Polish: Zaznacz pole przy elemencie, żeby ustawić powiązanie.
+        hint = tr("Check the box of the element to set its link.");
+    } else if (places) {
+        const int quote = paragraphOfQuote(materialOf(id), m_paragraphs);
+        if (quote > 0) {
+            //: In Polish: Ten cytat jest w akapicie %1.
+            hint = tr("The quote is in paragraph %1.").arg(quote);
+        }
+    }
+    m_linkHint->setText(hint);
+    m_linkHint->setVisible(!hint.isEmpty());
+}
+
+void LinkDialog::fillParagraphs(const QString& id, const core::ElementLink& link) {
+    m_paragraph->clear();
+    m_paragraphs.clear();
+    //: The link names no paragraph of the text. In Polish: Cały element
+    m_paragraph->addItem(tr("The whole element"), 0);
+    if (id.isEmpty() || !core::LinkRoles::paragraphsShown()) {
+        m_paragraph->setCurrentIndex(0);
+        return;
+    }
+    const auto& pm = core::ProjectManager::getInstance();
+    m_paragraphs = pm.paragraphsOf(textOf(id));
+    const QString words = quoteWords(pm.findElement(materialOf(id)));
+    for (qsizetype i = 0; i < m_paragraphs.size(); ++i) {
+        const QString text = m_paragraphs.at(i).simplified();
+        if (text.isEmpty()) {
+            continue;  // An empty paragraph has nothing to link
+        }
+        const QString excerpt = core::LinkRoles::excerptOf(text);
+        //: A paragraph of a text in the Link window: %1 its number, %2 its first words. In
+        //: Polish: Akapit %1: „%2…”
+        QString label = tr("Paragraph %1: \"%2...\"")
+                            .arg(i + 1)
+                            .arg(excerpt.section(QLatin1Char(' '), 0, SHOWN_WORDS - 1));
+        if (hasQuote(text, words)) {
+            //: A paragraph with the words of the quote being linked. In Polish: %1 – jest w
+            //: nim ten cytat
+            label = tr("%1 – the quote is in it").arg(label);
+        }
+        m_paragraph->addItem(label, static_cast<int>(i) + 1);
+        m_paragraph->setItemData(m_paragraph->count() - 1, excerpt, EXCERPT_ROLE);
+        m_paragraph->setItemData(m_paragraph->count() - 1,
+                                 text.left(PARAGRAPH_TOOLTIP_CHARACTERS), Qt::ToolTipRole);
+    }
+    const int index = m_paragraph->findData(core::LinkRoles::paragraphOf(m_paragraphs, link));
+    m_paragraph->setCurrentIndex(std::max(index, 0));
+}
+
+void LinkDialog::takeLink() {
+    if (m_showing || m_shown.isEmpty()) {
+        return;
+    }
+    core::ElementLink link = linkOf(m_shown);
+    link.role = m_role->currentData().toString();
+    if (core::LinkRoles::paragraphsShown()) {
+        link.paragraph = m_paragraph->currentData().toInt();
+        link.excerpt = m_paragraph->currentData(EXCERPT_ROLE).toString();
+    }
+    link.note = m_note->text().trimmed();
+    m_links.insert(m_shown, link);
 }
 
 QTreeWidgetItem* LinkDialog::itemOf(const QString& link) const {

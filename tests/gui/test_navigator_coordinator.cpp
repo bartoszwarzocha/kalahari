@@ -2696,7 +2696,7 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
         const core::ProjectElement& map = lastMaterial();
         CHECK(map.title == QStringLiteral("map"));
         CHECK(map.kind.toString() == QStringLiteral("kalahari.base:picture"));
-        CHECK(map.links == QStringList{chapter});
+        CHECK(map.linkTargets() == QStringList{chapter});
         CHECK(QFileInfo(pm.filePathOf(map)).fileName() == QStringLiteral("map.png"));
         CHECK(QFileInfo::exists(pm.filePathOf(map)));
         CHECK(navigator.current() == map.id);
@@ -2730,7 +2730,7 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
 
         CHECK(titles(novel.savedProject().workshop.elements) == "map, notes");
         for (const core::ProjectElement& material : pm.project()->workshop.elements) {
-            CHECK(material.links == QStringList{chapter});
+            CHECK(material.linkTargets() == QStringList{chapter});
         }
         // Of two kinds, in the groups of their kinds
         CHECK(pm.project()->workshop.elements.at(0).kind.kindId == QStringLiteral("picture"));
@@ -2751,7 +2751,7 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
         CHECK(page.title == QStringLiteral("Kalahari"));
         CHECK(page.url == QStringLiteral("https://pl.wikipedia.org/wiki/Kalahari"));
         CHECK(page.file.isEmpty());
-        CHECK(page.links == QStringList{chapter});
+        CHECK(page.linkTargets() == QStringList{chapter});
         CHECK(page.kind.kindId == QStringLiteral("web_page"));
         CHECK(navigator.statusBar->currentMessage() ==
               QStringLiteral("Web page added: Kalahari – the address of a page, linked with "

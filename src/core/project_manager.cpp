@@ -4,6 +4,7 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/backup_manager.h>
 #include <kalahari/core/chapter_document.h>
+#include <kalahari/core/link_roles.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/material_kinds.h>
 #include <kalahari/core/old_book_conversion.h>
@@ -1550,9 +1551,10 @@ QString ProjectManager::addMaterial(const NewMaterial& material, const KindRef& 
     element.kind = KindReference{kind.package->id, kind.kind->id};
     element.title = material.title;
     element.url = material.url;
+    const QString role = LinkRoles::suggestedFor(kind.kind->id);
     for (const QString& link : material.links) {
-        if (!element.links.contains(link) && m_project->hasLinkTarget(link)) {
-            element.links << link;
+        if (element.linkTo(link) == nullptr && m_project->hasLinkTarget(link)) {
+            element.links << ElementLink{link, role, 0, {}, {}, {}};
         }
     }
     QString target;
@@ -1582,6 +1584,9 @@ QString ProjectManager::addMaterial(const NewMaterial& material, const KindRef& 
     logger.info("addMaterial: Added '{}' (file: {}, address: {}, id: {})",
                 material.title.toStdString(), element.file.toStdString(),
                 element.url.toStdString(), element.id.toStdString());
+    if (!element.links.isEmpty()) {
+        emit linksChanged();
+    }
     return element.id;
 }
 
@@ -1885,16 +1890,17 @@ std::optional<ProjectElement> ProjectManager::removeElement(const QString& eleme
     for (const ProjectElement* gone : removed) {
         removedIds.insert(gone->id);
     }
-    QList<std::pair<QString, QStringList>> unlinked;  // Elements and their links before
+    const auto removedLink = [&removedIds](const ElementLink& link) {
+        return removedIds.contains(link.to);
+    };
+    QList<std::pair<QString, QList<ElementLink>>> unlinked;  // Elements and their links before
     for (const ProjectElement* each : allElements(*m_project)) {
-        if (std::any_of(each->links.cbegin(), each->links.cend(),
-                        [&removedIds](const QString& link) { return removedIds.contains(link); })) {
+        if (std::any_of(each->links.cbegin(), each->links.cend(), removedLink)) {
             unlinked.append({each->id, each->links});
         }
     }
     for (const auto& [linkedId, links] : unlinked) {
-        m_project->findElement(linkedId)->links.removeIf(
-            [&removedIds](const QString& link) { return removedIds.contains(link); });
+        m_project->findElement(linkedId)->links.removeIf(removedLink);
     }
 
     if (!saveManifest()) {
@@ -1906,11 +1912,16 @@ std::optional<ProjectElement> ProjectManager::removeElement(const QString& eleme
     }
 
     // The program forgets the element and the elements inside it; their files stay
+    bool linksGone = !unlinked.isEmpty();
     for (const ProjectElement* gone : removed) {
         m_elementStates.remove(gone->id);
+        linksGone = linksGone || !gone->links.isEmpty();
     }
     Logger::getInstance().info("removeElement: Removed '{}' (id: {})",
                                element.title.toStdString(), elementId.toStdString());
+    if (linksGone) {
+        emit linksChanged();
+    }
     return element;
 }
 
@@ -2306,20 +2317,70 @@ bool ProjectManager::setFields(const QString& elementId, const QList<ElementFiel
                          [&fields](ProjectElement& element) { element.fields = fields; });
 }
 
-bool ProjectManager::setLinks(const QString& elementId, const QStringList& links) {
+bool ProjectManager::setLinks(const QString& elementId, const QList<ElementLink>& links) {
     if (!m_project) {
         Logger::getInstance().warn("setLinks: No project is open");
         return false;
     }
     // Only what the project has, without the element itself, each once
-    QStringList kept;
-    for (const QString& link : links) {
-        if (link != elementId && !kept.contains(link) && m_project->hasLinkTarget(link)) {
-            kept << link;
+    ProjectElement kept;
+    for (const ElementLink& link : links) {
+        if (link.to != elementId && kept.linkTo(link.to) == nullptr &&
+            m_project->hasLinkTarget(link.to)) {
+            kept.links << link;
         }
     }
-    return changeDetails("setLinks", elementId,
-                         [&kept](ProjectElement& element) { element.links = kept; });
+    const ProjectElement* element = findElement(elementId);
+    const bool changed = element != nullptr && element->links != kept.links;
+    const bool saved = changeDetails("setLinks", elementId, [&kept](ProjectElement& each) {
+        each.links = kept.links;
+    });
+    if (saved && changed) {
+        emit linksChanged();
+    }
+    return saved;
+}
+
+bool ProjectManager::setLinks(const QString& elementId, const QStringList& targets) {
+    const ProjectElement* element = findElement(elementId);
+    QList<ElementLink> links;
+    for (const QString& target : targets) {
+        const ElementLink* had = element != nullptr ? element->linkTo(target) : nullptr;
+        links << (had != nullptr ? *had : newLink(elementId, target));
+    }
+    return setLinks(elementId, links);
+}
+
+ElementLink ProjectManager::newLink(const QString& elementId, const QString& target) const {
+    ElementLink link;
+    link.to = target;
+    const ProjectElement* element = findElement(elementId);
+    if (element != nullptr && isMaterial(*element)) {
+        if (const KindRef kind = kindOf(*element)) {
+            link.role = LinkRoles::suggestedFor(kind.kind->id);
+        }
+    }
+    return link;
+}
+
+QStringList ProjectManager::paragraphsOf(const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (element == nullptr || element->file.isEmpty() || formOf(*element) != ElementForm::Text) {
+        return {};
+    }
+    const auto state = m_elementStates.constFind(elementId);
+    QString kml;
+    if (state != m_elementStates.cend() && state->loaded) {
+        kml = state->content;
+    } else {
+        const std::optional<ChapterDocument> chapter = ChapterDocument::load(filePathOf(*element));
+        if (!chapter) {
+            return {};
+        }
+        kml = chapter->kml();
+    }
+    const QString text = ChapterDocument::kmlToPlainText(kml);
+    return text.isEmpty() ? QStringList() : text.split(QLatin1Char('\n'));
 }
 
 bool ProjectManager::setRotation(const QString& elementId, int rotation) {
@@ -2339,7 +2400,7 @@ QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& li
     QList<const ProjectElement*> workshop;
     appendAll(m_project->workshop.elements, workshop);
     for (const ProjectElement* element : workshop) {
-        if (element->links.contains(link) && isMaterial(*element)) {
+        if (element->linkTo(link) != nullptr && isMaterial(*element)) {
             linked << element;
         }
     }
@@ -2467,10 +2528,53 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
         return false;
     }
     m_elementStates[elementId].dirty = false;
+    followLinkedParagraphs(elementId);
 
     Logger::getInstance().debug("Saved .kchapter for element: {} ({} words)",
                                 elementId.toStdString(), wordCount(elementId));
     return true;
+}
+
+void ProjectManager::followLinkedParagraphs(const QString& elementId) {
+    if (!m_project) {
+        return;
+    }
+    // A link to a paragraph names it again: by its number while it begins with the excerpt,
+    // else where the excerpt went; the excerpt follows a beginning the writer changed
+    const QStringList paragraphs = paragraphsOf(elementId);
+    const auto followed = [&paragraphs](ElementLink link) {
+        const int now = LinkRoles::paragraphOf(paragraphs, link);
+        if (link.paragraph > 0 && now > 0) {
+            link.paragraph = now;
+            link.excerpt = LinkRoles::excerptOf(paragraphs.at(now - 1));
+        }
+        return link;
+    };
+    // The elements whose links change, with the links they had
+    QList<std::pair<QString, QList<ElementLink>>> moved;
+    for (const ProjectElement* each : allElements(*m_project)) {
+        const ElementLink* link = each->linkTo(elementId);
+        if (link != nullptr && followed(*link) != *link) {
+            moved.append({each->id, each->links});
+        }
+    }
+    if (moved.isEmpty()) {
+        return;
+    }
+    for (const auto& [linkedId, links] : moved) {
+        for (ElementLink& link : m_project->findElement(linkedId)->links) {
+            if (link.to == elementId) {
+                link = followed(link);
+            }
+        }
+    }
+    if (!saveManifest()) {
+        for (const auto& [linkedId, links] : moved) {
+            m_project->findElement(linkedId)->links = links;
+        }
+        return;
+    }
+    emit linksChanged();
 }
 
 bool ProjectManager::saveChapterDetails(const QString& elementId) {

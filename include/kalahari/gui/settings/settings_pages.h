@@ -202,7 +202,8 @@ public:
 };
 
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,
-/// what the top of the Add Element window chooses from, and how a material opens
+/// what the top of the Add Element window chooses from, how a material opens, and whether its
+/// links name paragraphs
 class NavigatorPage : public SettingsPage {
     Q_OBJECT
 public:

@@ -129,7 +129,8 @@ struct NewMaterial {
                          ///< the clipboard; empty: none
     QString fileName;    ///< Name of the file with @c data: "picture.png"
     QString url;         ///< Web address of a page or of a picture; empty: none
-    QStringList links;   ///< What it is about (ProjectElement::links)
+    QStringList links;   ///< What it is about (ProjectElement::links); each link gets the
+                         ///< role of its kind (newLink())
 };
 
 /// @brief Singleton manager of the book project open in the program
@@ -687,10 +688,23 @@ public:
     ///
     /// A link names an element of the project or a section of its book
     /// (BookProject::sectionLink()); a link that names nothing of the project, or the element
-    /// itself, is left out, and each one is kept once.
+    /// itself, is left out, and each one is kept once (the first).
     /// @return false when the project has no such element or the file cannot be written; the
     ///         element keeps its links then
-    bool setLinks(const QString& elementId, const QStringList& links);
+    bool setLinks(const QString& elementId, const QList<ElementLink>& links);
+
+    /// @brief Link element @p elementId with the elements and sections @p targets, in this
+    /// order: a link it has keeps its role, paragraph and note, a new one is newLink()
+    bool setLinks(const QString& elementId, const QStringList& targets);
+
+    /// @brief A new link of element @p elementId with @p target: with the role that the kind
+    /// of a material suggests (LinkRoles::suggestedFor()), else without a role
+    ElementLink newLink(const QString& elementId, const QString& target) const;
+
+    /// @brief The paragraphs of the text of text element @p elementId, one per entry, as the
+    /// editor has them (ChapterDocument::kmlToPlainText()): the text kept with its changes
+    /// (setChapterContent()), else that of its chapter file; empty for another element
+    QStringList paragraphsOf(const QString& elementId) const;
 
     /// @brief Turn the picture of element @p elementId in its preview to @p rotation degrees
     /// clockwise (0, 90, 180 or 270) and save the .klh file
@@ -872,6 +886,11 @@ signals:
     /// @param dirty true if project has unsaved changes
     void dirtyStateChanged(bool dirty);
 
+    /// @brief Emitted when the links of elements change (ProjectElement::links): set, added
+    /// with a material, taken out with an element, or following the paragraphs of a text that
+    /// was saved
+    void linksChanged();
+
 private:
     /// @brief What the program keeps of a text element while it works, outside the .klh file
     struct ElementState {
@@ -908,6 +927,12 @@ private:
 
     /// @brief State of text element @p elementId; nullptr when it is not one
     ElementState* stateOf(const QString& elementId);
+
+    /// @brief The links that name paragraphs of text element @p elementId follow them after
+    /// its text is saved: a paragraph that moved, found by its excerpt
+    /// (LinkRoles::paragraphOf()), gives the link its new number, and the excerpt is the
+    /// beginning of the paragraph as it is now
+    void followLinkedParagraphs(const QString& elementId);
 
     /// @brief Change the details of element @p elementId with @p change (its description, fields,
     /// links or turn) and save the .klh file; @p what names the change in the log

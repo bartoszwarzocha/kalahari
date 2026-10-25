@@ -276,8 +276,14 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         return;
     }
 
-    // A click on an annotation's mark opens the annotation; the cursor stays
+    // A click on an annotation's mark opens the annotation, on the mark beside a paragraph
+    // chooses a material; the cursor stays
     if (!(event->modifiers() & Qt::ShiftModifier)) {
+        if (const std::optional<ParagraphMark> marked = paragraphMarkAt(event->position())) {
+            openParagraphMark(*marked, event->globalPosition().toPoint());
+            event->accept();
+            return;
+        }
         const QString markId = annotationMarkAt(event->position());
         if (!markId.isEmpty()) {
             emit annotationMarkClicked(markId);
@@ -384,10 +390,10 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
 
     const QPointF pos = event->position();
     if (!(event->buttons() & Qt::LeftButton)) {
-        // A hand over an annotation's mark, which opens it; an arrow over the selected text,
-        // which can be dragged; an I-beam elsewhere
+        // A hand over an annotation's mark, which opens it, and over the mark beside a
+        // paragraph; an arrow over the selected text, which can be dragged; an I-beam elsewhere
         Qt::CursorShape shape = Qt::IBeamCursor;
-        if (!annotationMarkAt(pos).isEmpty()) {
+        if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos)) {
             shape = Qt::PointingHandCursor;
         } else if (isOverSelectedText(pos)) {
             shape = Qt::ArrowCursor;
@@ -812,6 +818,19 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
             separated = true;
         }
         menu.addAction(action);
+    }
+
+    // The materials linked with the paragraph, whose mark is beside it: from the keyboard too
+    const QList<ParagraphMark> marks = paragraphMarks();
+    const auto marked =
+        std::find_if(marks.cbegin(), marks.cend(),
+                     [&pos](const ParagraphMark& mark) { return mark.paragraph == pos.paragraph; });
+    if (marked != marks.cend()) {
+        menu.addSeparator();
+        //: The submenu of the materials linked with the paragraph. In Polish: Powiązane
+        //: mate&riały
+        addParagraphMarkItems(*menu.addMenu(m_paragraphMarkIcon, tr("Linked Mate&rials")),
+                              *marked);
     }
 
     // Color mode toggle
