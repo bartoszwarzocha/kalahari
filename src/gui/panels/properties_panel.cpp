@@ -431,11 +431,12 @@ QWidget* PropertiesPanel::createChapterPage() {
     buttons->addWidget(m_versionHistoryButton);
     versionsLayout->addWidget(buttonRow);
     connect(m_saveVersionButton, &QPushButton::clicked, this,
-            [this]() { emit requestSaveVersion(m_currentChapterId); });
+            [this]() { emit requestSaveVersion(m_versionsElementId); });
     connect(m_versionHistoryButton, &QPushButton::clicked, this,
-            [this]() { emit requestVersionHistory(m_currentChapterId); });
+            [this]() { emit requestVersionHistory(m_versionsElementId); });
     m_chapterVersionsGroup->hide();
     layout->addWidget(m_chapterVersionsGroup);
+    m_chapterPageLayout = layout;
 
     // Add stretch at the bottom
     layout->addStretch(1);
@@ -645,6 +646,8 @@ QWidget* PropertiesPanel::createEditorPage() {
     statsLayout->addRow(tr("Reading time:"), m_editorReadingTimeLabel);
 
     layout->addWidget(statsGroup);
+    // Under the counts of a text of the book, the group of its versions (placeVersionsGroup())
+    m_editorPageLayout = layout;
 
     // Add stretch at the bottom
     layout->addStretch(1);
@@ -696,13 +699,14 @@ void PropertiesPanel::connectSignals() {
 
     // A version kept, renamed or deleted, and another theme, show in the group of the versions
     const auto versionsChanged = [this](const QString& elementId) {
-        if (currentPage() == Page::Chapter && elementId == m_currentChapterId) {
+        const Page page = currentPage();
+        if ((page == Page::Chapter || page == Page::Editor) && elementId == m_versionsElementId) {
             showVersions(elementId);
         }
     };
     connect(&pm, &core::ProjectManager::versionsChanged, this, versionsChanged);
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
-            [this, versionsChanged]() { versionsChanged(m_currentChapterId); });
+            [this, versionsChanged]() { versionsChanged(m_versionsElementId); });
 }
 
 void PropertiesPanel::showProjectProperties() {
@@ -732,6 +736,7 @@ void PropertiesPanel::showChapterProperties(const QString& elementId) {
     logger.debug("PropertiesPanel::showChapterProperties() - Element: {}", elementId.toStdString());
 
     m_currentChapterId = elementId;
+    placeVersionsGroup(m_chapterPageLayout);
     populateChapterFields(elementId);
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Chapter));
 }
@@ -776,7 +781,26 @@ void PropertiesPanel::showEditorProperties() {
     m_currentSectionType.clear();
     m_currentPartId.clear();
     updateEditorStatistics();
+    // A text of the book in front has its versions under its counts, as the Navigator's
+    // choice of it has them
+    placeVersionsGroup(m_editorPageLayout);
+    showVersions(m_activeEditorPanel != nullptr
+                     ? m_activeEditorPanel->property("elementId").toString()
+                     : QString());
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Editor));
+}
+
+void PropertiesPanel::placeVersionsGroup(QVBoxLayout* layout) {
+    if (layout == nullptr || layout->indexOf(m_chapterVersionsGroup) >= 0) {
+        return;
+    }
+    for (QVBoxLayout* other : {m_chapterPageLayout, m_editorPageLayout}) {
+        if (other != nullptr) {
+            other->removeWidget(m_chapterVersionsGroup);
+        }
+    }
+    // Over the stretch at the bottom of the page
+    layout->insertWidget(layout->count() - 1, m_chapterVersionsGroup);
 }
 
 void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
@@ -1315,6 +1339,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
 }
 
 void PropertiesPanel::showVersions(const QString& elementId) {
+    m_versionsElementId = elementId;
     auto& pm = core::ProjectManager::getInstance();
     const std::optional<core::ChapterVersions> versions = pm.versionsOf(elementId);
     const core::ProjectElement* element = pm.findElement(elementId);

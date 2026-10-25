@@ -23,6 +23,7 @@ class QLineEdit;
 class QComboBox;
 class QTextEdit;
 class QFormLayout;
+class QVBoxLayout;
 class QGroupBox;
 class QPushButton;
 class QTimer;
@@ -106,7 +107,8 @@ public slots:
 
     /// @brief Show editor statistics view
     ///
-    /// Switches to editor page showing text statistics.
+    /// Switches to editor page showing text statistics, and for a text of the book the
+    /// group of its versions under them.
     /// Called when user starts editing in BookEditor.
     void showEditorProperties();
 
@@ -238,6 +240,10 @@ private:
     /// @brief Update editor statistics from current BookEditor
     void updateEditorStatistics();
 
+    /// @brief Put the group of the versions on the page of @p layout (of the Chapter page or
+    ///        the Editor page): the one group follows the page shown
+    void placeVersionsGroup(QVBoxLayout* layout);
+
     /// @brief Populate project fields from current project
     void populateProjectFields();
 
@@ -318,6 +324,9 @@ private:
     QLabel* m_versionsLastLabel = nullptr;        ///< The description of the last one
     QPushButton* m_saveVersionButton = nullptr;
     QPushButton* m_versionHistoryButton = nullptr;
+    QString m_versionsElementId;  ///< The text whose versions the group shows
+    QVBoxLayout* m_chapterPageLayout = nullptr;  ///< The Chapter page, for the versions group
+    QVBoxLayout* m_editorPageLayout = nullptr;   ///< The Editor page, for the versions group
 
     // Section Page widgets
     QLabel* m_sectionTitleLabel;

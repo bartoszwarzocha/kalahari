@@ -30,6 +30,8 @@
 #include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
+#include <QDir>
+#include <QFile>
 #include <QGroupBox>
 #include <QKeyEvent>
 #include <QLabel>
@@ -37,9 +39,11 @@
 #include <QListWidget>
 #include <QMimeData>
 #include <QPushButton>
+#include <QScrollBar>
 #include <QShortcut>
 #include <QSpinBox>
 #include <QStatusBar>
+#include <QTemporaryDir>
 #include <QTimer>
 #include <QToolButton>
 #include <QTranslator>
@@ -475,6 +479,67 @@ TEST_CASE("Versions: the history fits a small screen with its buttons in view",
     window.dialog->hide();
 }
 
+TEST_CASE("Versions: the history never scrolls sideways, and shows the change in the preview",
+          "[gui][versions][dialogs]") {
+    // Regression: the page of the preview, as large as in the editor, was wider than the
+    // preview, which scrolled sideways, and a change could be outside the part in view; the
+    // rows of the list were cut, with a scroll bar under them
+    KeptVersionSettings settings;
+    OpenNovel novel(QStringLiteral("Rain"));
+    QStringList older;
+    QStringList current;
+    for (int i = 1; i <= 30; ++i) {
+        older << QStringLiteral("Paragraph %1 of the night over the dunes.").arg(i);
+        current << older.last();
+    }
+    current[25] = QStringLiteral("Paragraph 26 of the storm over the dunes.");
+    kept(novel.chapterId, older.join(QLatin1Char('\n')), core::VersionOrigin::Manual,
+         QStringLiteral("Before the storm came over the dunes and the caravan turned back"));
+    HistoryWindow window(novel, current.join(QLatin1Char('\n')));
+    window.dialog->setAttribute(Qt::WA_DontShowOnScreen);
+    window.dialog->show();
+    window.dialog->resize(880, 460);
+    QApplication::processEvents();
+    QApplication::processEvents();
+
+    const auto scrollsSideways = [](const QWidget& widget) {
+        for (const QScrollBar* bar : widget.findChildren<QScrollBar*>()) {
+            if (bar->orientation() == Qt::Horizontal && bar->isVisible()) {
+                return true;
+            }
+        }
+        return false;
+    };
+    // The rows wrap to the width of the list
+    const QListWidget* list = window.dialog->versionList();
+    CHECK_FALSE(scrollsSideways(*list));
+    const QRect row = list->visualItemRect(list->item(0));
+    CHECK(row.right() < list->viewport()->width());
+    CHECK(row.height() > 3 * list->fontMetrics().height());  // the description in two lines
+
+    // The page fills the width of the preview, at every width; the change is in view
+    editor::BookEditor* preview = window.dialog->preview();
+    CHECK(preview->keepsPageWidth());
+    CHECK_FALSE(scrollsSideways(*preview));
+    REQUIRE(window.dialog->currentChange() == 0);
+    CHECK(preview->cursorLineViewHeight() >= 0.0);
+    CHECK(preview->cursorLineViewHeight() < 1.0);
+    const double narrowZoom = preview->zoomFactor();
+    window.dialog->resize(1200, 600);
+    QApplication::processEvents();
+    QApplication::processEvents();
+    CHECK_FALSE(scrollsSideways(*preview));
+    CHECK(preview->zoomFactor() > narrowZoom);
+    CHECK(preview->cursorLineViewHeight() >= 0.0);
+    CHECK(preview->cursorLineViewHeight() < 1.0);
+
+    // The text of the version from its top, as in the editor
+    window.dialog->showChanges(false);
+    CHECK(preview->scrollOffset() == 0.0);
+    CHECK_FALSE(scrollsSideways(*preview));
+    window.dialog->hide();
+}
+
 // =============================================================================
 // Save Version, Version History and what they do in the text
 // =============================================================================
@@ -795,6 +860,51 @@ TEST_CASE("Versions: the Properties panel of a text shows its versions",
     panel->findChild<QPushButton*>(QStringLiteral("versionHistoryButton"))->click();
     CHECK(save == QStringList{w.novel.chapterId});
     CHECK(history == QStringList{w.novel.chapterId});
+}
+
+TEST_CASE("Versions: the Properties panel keeps the versions of the text in front",
+          "[gui][versions][properties]") {
+    // Regression: a tab that came to the front (Version History of a text chosen in the
+    // Navigator, a click on the tab) put the counts of the document in the panel, without
+    // the versions, and saving a version did not show there
+    VersionsWindow w;
+    gui::PropertiesPanel* panel = w.window.properties;
+    gui::EditorPanel* editor = w.chapter(QStringLiteral("Dark storm."));
+    auto* group = panel->findChild<QGroupBox*>(QStringLiteral("chapterVersionsGroup"));
+    auto* count = panel->findChild<QLabel*>(QStringLiteral("versionsCountLabel"));
+    REQUIRE(group != nullptr);
+    REQUIRE(count != nullptr);
+    REQUIRE(panel->currentPage() == gui::PropertiesPanel::Page::Chapter);
+    CHECK(group->isVisibleTo(panel));
+
+    // The tab in front, as the main window gives it to the panel: its counts and its versions
+    panel->setActiveEditor(editor);
+    REQUIRE(panel->currentPage() == gui::PropertiesPanel::Page::Editor);
+    CHECK(group->isVisibleTo(panel));
+    CHECK(count->text() == QStringLiteral("No versions yet"));
+    const core::ChapterVersion version = kept(w.novel.chapterId, QStringLiteral("Dark night."));
+    CHECK(count->text() == QStringLiteral("1 version(s), the last one: %1")
+                               .arg(gui::versionTime(version.created)));
+    QStringList save;
+    QObject::connect(panel, &gui::PropertiesPanel::requestSaveVersion,
+                     [&save](const QString& elementId) { save.append(elementId); });
+    panel->findChild<QPushButton*>(QStringLiteral("saveVersionButton"))->click();
+    CHECK(save == QStringList{w.novel.chapterId});
+
+    // Back in the Navigator's choice, and none for a file outside the book
+    panel->showChapterProperties(w.novel.chapterId);
+    CHECK(group->isVisibleTo(panel));
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString path = QDir(files.path()).filePath(QStringLiteral("notes.txt"));
+    QFile notes(path);
+    REQUIRE(notes.open(QIODevice::WriteOnly));
+    notes.write("Notes");
+    notes.close();
+    gui::EditorPanel* file = w.window.writeFile(path, QStringLiteral("Notes of the night."));
+    panel->setActiveEditor(file);
+    REQUIRE(panel->currentPage() == gui::PropertiesPanel::Page::Editor);
+    CHECK_FALSE(group->isVisibleTo(panel));
 }
 
 // =============================================================================

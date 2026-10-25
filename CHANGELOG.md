@@ -21,18 +21,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   replaced; and always before another version is restored. It keeps at most 20 of its own in
   each chapter (both in the Settings, with the minutes), and never deletes the writer's.
   File > Version History (Alt+Shift+H) lists the versions of the text from the newest, with
-  their descriptions or where they come from, their dates and words; a box hides the
-  program's own. The preview shows the text of a version, read-only, or its changes to the
+  their descriptions or where they come from, their dates and words, wrapped to the width of
+  the list; a box hides the program's own. The preview, its page at the width of the preview
+  in every size of the window, shows the text of a version, read-only, or its changes to the
   current text word by word, deleted words struck out and added ones underlined, in colors of
   each theme (Settings > Editor > Versions), from change to change with Alt+Down and Alt+Up
-  (Cmd+Option with the arrows on macOS).
+  (Cmd+Option with the arrows on macOS), each change at the same height in the preview.
   Restore This Version puts the version in place of the text as one step of Undo, after the
   text is kept as a version, and the bar under the text says so, with Undo; Insert Selected
   Fragment puts the selection of the preview at the cursor. Change Description (F2) and
   Delete (Delete, after a question) work in the list; in a book open read-only the window
   reads and compares only. The Navigator has Version History in the menu of a text
   (Alt+Shift+H in the tree), and the Properties panel of a text has the group Versions: how
-  many, the last one, Save Version and Version History. The versions of a file are in the
+  many, the last one, Save Version and Version History, also under the counts of the text in
+  front. The versions of a file are in the
   book's folder, under versions/ (a .kml file for each and index.json), go with the file to
   the Trash, and go into the book's archive unless its export leaves them out. Tools > Version
   History, which was always greyed out, is gone.

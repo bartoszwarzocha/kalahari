@@ -37,6 +37,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <limits>
 #include <utility>
 
 namespace kalahari {
@@ -54,13 +55,17 @@ constexpr int PREVIEW_MINIMUM_WIDTH = 320;
 constexpr int ROW_PADDING = 6;       ///< Around the text of a row of the list
 constexpr int ROW_LINE_GAP = 2;      ///< Between the two lines of a row
 constexpr int ROW_ICON_GAP = 8;      ///< Between the icon of a row and its text
+/// The height in the preview of the change shown (a part of the preview's height): the text
+/// before it is over it
+constexpr qreal CHANGE_HEIGHT = 0.3;
 
 constexpr int FILE_ROLE = Qt::UserRole;          ///< The .kml file of the version of a row
 constexpr int TITLE_ROLE = Qt::UserRole + 1;     ///< Its first line: description or origin
 constexpr int DETAILS_ROLE = Qt::UserRole + 2;   ///< Its second line: when, words
 constexpr int NAMED_ROLE = Qt::UserRole + 3;     ///< It has a description: bold first line
 
-/// @brief A row of the list in two lines, the first bold for a version with a description
+/// @brief A row of the list: its first line bold for a version with a description, both lines
+/// wrapped to the width of the list, so the list never scrolls sideways
 class VersionRowDelegate : public QStyledItemDelegate {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
@@ -91,10 +96,12 @@ public:
         const QRect area = option.rect.adjusted(ROW_PADDING, ROW_PADDING, -ROW_PADDING,
                                                 -ROW_PADDING);
         const int iconSize = option.decorationSize.width();
-        QFont titleFont = option.font;
-        titleFont.setBold(index.data(NAMED_ROLE).toBool());
+        const QFont titleFont = titleFontOf(option, index);
         const QFontMetrics titleMetrics(titleFont);
-        const QFontMetrics detailsMetrics(option.font);
+        const int left = area.left() + iconSize + ROW_ICON_GAP;
+        const int width = std::max(1, area.right() - left + 1);
+        const QString title = index.data(TITLE_ROLE).toString();
+        const int titleHeight = linesHeight(titleFont, title, width);
 
         painter->save();
         if (!icon.isNull()) {
@@ -103,34 +110,46 @@ public:
             icon.paint(painter, iconRect, Qt::AlignCenter,
                        selected ? QIcon::Selected : QIcon::Normal);
         }
-        const int left = area.left() + iconSize + ROW_ICON_GAP;
-        const int width = std::max(0, area.right() - left + 1);
         painter->setFont(titleFont);
         painter->setPen(text);
-        painter->drawText(QRect(left, area.top(), width, titleMetrics.height()),
-                          Qt::AlignLeft | Qt::AlignVCenter,
-                          titleMetrics.elidedText(index.data(TITLE_ROLE).toString(),
-                                                  Qt::ElideRight, width));
+        painter->drawText(QRect(left, area.top(), width, titleHeight), WRAPPED, title);
         painter->setFont(option.font);
         painter->setPen(details);
-        painter->drawText(QRect(left, area.top() + titleMetrics.height() + ROW_LINE_GAP, width,
-                                detailsMetrics.height()),
-                          Qt::AlignLeft | Qt::AlignVCenter,
-                          detailsMetrics.elidedText(index.data(DETAILS_ROLE).toString(),
-                                                    Qt::ElideRight, width));
+        const int detailsTop = area.top() + titleHeight + ROW_LINE_GAP;
+        painter->drawText(QRect(left, detailsTop, width, area.bottom() - detailsTop + 1), WRAPPED,
+                          index.data(DETAILS_ROLE).toString());
         painter->restore();
     }
 
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
-        QFont bold = option.font;
-        bold.setBold(true);
-        const QFontMetrics titleMetrics(bold);
-        const QFontMetrics detailsMetrics(option.font);
-        const int textWidth =
-            std::max(titleMetrics.horizontalAdvance(index.data(TITLE_ROLE).toString()),
-                     detailsMetrics.horizontalAdvance(index.data(DETAILS_ROLE).toString()));
-        return {2 * ROW_PADDING + option.decorationSize.width() + ROW_ICON_GAP + textWidth,
-                2 * ROW_PADDING + titleMetrics.height() + ROW_LINE_GAP + detailsMetrics.height()};
+        // As wide as the list, as high as the lines wrapped to it
+        const auto* view = qobject_cast<const QAbstractItemView*>(option.widget);
+        const int rowWidth = view != nullptr ? view->viewport()->width() : option.rect.width();
+        const int width = std::max(
+            1, rowWidth - 2 * ROW_PADDING - option.decorationSize.width() - ROW_ICON_GAP);
+        return {rowWidth,
+                2 * ROW_PADDING +
+                    linesHeight(titleFontOf(option, index), index.data(TITLE_ROLE).toString(),
+                                width) +
+                    ROW_LINE_GAP +
+                    linesHeight(option.font, index.data(DETAILS_ROLE).toString(), width)};
+    }
+
+private:
+    static constexpr int WRAPPED = Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap;
+
+    /// The font of the first line: bold for a version with a description
+    static QFont titleFontOf(const QStyleOptionViewItem& option, const QModelIndex& index) {
+        QFont font = option.font;
+        font.setBold(index.data(NAMED_ROLE).toBool());
+        return font;
+    }
+
+    /// The height of @p text in @p font wrapped to @p width
+    static int linesHeight(const QFont& font, const QString& text, int width) {
+        return QFontMetrics(font)
+            .boundingRect(QRect(0, 0, width, std::numeric_limits<int>::max() / 2), WRAPPED, text)
+            .height();
     }
 };
 
@@ -194,7 +213,9 @@ VersionHistoryDialog::VersionHistoryDialog(Text text, SaveVersion saveVersion, Q
     const int iconSize = art.getIconSize(core::IconContext::TreeView);
     m_list->setIconSize(QSize(iconSize, iconSize));
     m_list->setUniformItemSizes(false);
-    m_list->setTextElideMode(Qt::ElideRight);
+    // The rows wrap to the width of the list (VersionRowDelegate): it never scrolls sideways
+    m_list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_list->setResizeMode(QListView::Adjust);
     listLayout->addWidget(m_list, 1);
 
     //: In Polish: Pokaż wersje zapisane &samoczynnie
@@ -392,6 +413,14 @@ void VersionHistoryDialog::setUpPreview() {
     }
     m_preview->setWordCountRules(core::wordCountRules());
     m_preview->setReadOnly(true);
+    // The page fills the width of the preview, so all of a line is in view; the change shown
+    // stays in view at every new width
+    m_preview->setKeepsPageWidth(true);
+    connect(m_preview, &editor::BookEditor::zoomChanged, this, [this]() {
+        if (m_change >= 0) {
+            m_preview->scrollCursorLineTo(CHANGE_HEIGHT);
+        }
+    });
     //: In Polish: Podgląd wersji jest tylko do czytania
     m_preview->setReadOnlyReason(tr("The preview of a version can only be read"));
 
@@ -631,7 +660,8 @@ void VersionHistoryDialog::showChange(int index) {
     const editor::VersionComparison& comparison = *found;
     m_change = index;
 
-    // The cursor at the start of the change, in view, and the change marked in its paragraph
+    // The cursor at the start of the change, the change at the same height in the preview
+    // each time, and marked in its paragraph
     const editor::ComparisonRange range = comparison.changes.at(index);
     if (const QTextDocument* document = m_preview->textDocument()) {
         const QTextBlock block = document->findBlock(range.start);
@@ -640,7 +670,7 @@ void VersionHistoryDialog::showChange(int index) {
             0, std::min(range.end, block.position() + block.length() - 1) - range.start);
         m_preview->clearSelection();
         m_preview->setCursorPosition({block.blockNumber(), offset});
-        m_preview->ensureCursorVisible();
+        m_preview->scrollCursorLineTo(CHANGE_HEIGHT);
         m_preview->setSpokenWord(block.blockNumber(), offset, length);
     }
     //: %1: the change shown, %2: of how many, %3 and %4: the words deleted and added. In
