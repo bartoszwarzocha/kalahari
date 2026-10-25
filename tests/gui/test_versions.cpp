@@ -247,6 +247,8 @@ TEST_CASE("Versions: the history lists the versions, newest first, and hides the
     CHECK(window.dialog->cancelButton()->isDefault());
     CHECK(window.dialog->cancelButton()->text() == QStringLiteral("Close"));
     CHECK_FALSE(window.dialog->acceptButton()->isVisibleTo(window.dialog.get()));
+    // Nor Apply, which the buttons of the window would show again
+    CHECK_FALSE(window.dialog->applyButton()->isVisibleTo(window.dialog.get()));
 
     // The versions saved by the program can be hidden
     window.dialog->automaticBox()->setChecked(false);

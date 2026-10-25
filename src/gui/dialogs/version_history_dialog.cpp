@@ -322,7 +322,10 @@ VersionHistoryDialog::VersionHistoryDialog(Text text, SaveVersion saveVersion, Q
     for (QPushButton* button : {m_insertButton, m_restoreButton}) {
         button->setAutoDefault(false);
     }
+    // No OK, and no Apply: hidden after the buttons above are added, as adding a button lays
+    // out the box again and shows every button in it
     acceptButton()->hide();
+    applyButton()->hide();
     acceptButton()->setDefault(false);
     acceptButton()->setAutoDefault(false);
     cancelButton()->setText(tr("Close"));
