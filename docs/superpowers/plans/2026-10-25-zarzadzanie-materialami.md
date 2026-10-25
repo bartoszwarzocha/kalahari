@@ -3,7 +3,8 @@
 Data: 2026-10-25 · Makieta: [Zarządzanie materiałami](https://claude.ai/artifact/BpyCw6tLnX12k1dV2rc6hG)
 (wersja 3 przyjęta w całości 25.10; wersja 4 dokłada otwieranie, karty podglądu i Warsztat według typu
 książki; wersja 5 – karty typów, Nawigator w dwóch panelach, kolory ikon i wszystkie warianty jako
-ustawienia) · Stan kodu: gałąź materiałów `claude/project-thread-4fuix2` (PR #96, otwarty), commit `86bfedf`.
+ustawienia, przyjęta roboczo 25.10; wersja 6 – Książka i Warsztat jako dwa niezależne panele) · Stan kodu:
+gałąź materiałów `claude/project-thread-4fuix2` (PR #96, otwarty), commit `86bfedf`.
 
 ## Cel
 
@@ -135,6 +136,13 @@ związany i w jaki sposób. Wszystko działa z klawiatury, w obu motywach i we w
 
 - Ustawienie „Układ Nawigatora”: dwa panele, „Książka” i „Warsztat” (proponowane domyślne), albo jedno drzewo,
   jak dziś. Dane się nie zmieniają; inny jest tylko widok.
+- Dwa panele to dwa niezależne panele programu, jak Właściwości i Szukanie, a nie dwie części jednego panelu ani
+  karty jednego miejsca (uwaga z 25.10). Każdy ma własny pasek tytułu z ikoną, „Odepnij” i „Zamknij”
+  (`DockCoordinator::setupDockTitleBar`, `dock_coordinator.cpp:388–430`), własne polecenie z ikoną w menu Widok ›
+  Panele i własny przycisk na pasku „Panele” – jak panele po prawej. Pasek „Panele” jest dziś domyślnie ukryty
+  (`toolbar_manager.cpp:163–170`); na makiecie jest pionowy, przy lewej krawędzi okna. Program kładzie oba panele w
+  lewej kolumnie jeden nad drugim (`QMainWindow::splitDockWidget` z `Qt::Vertical`), także w „Przywróć układ paneli”;
+  zamknięty panel oddaje miejsce drugiemu, a wysokość dzieli uchwyt między panelami, zapisany z układem okna.
 - `NavigatorPanel` dostaje zakres: Książka, Warsztat albo całość. Drugi egzemplarz leży w osobnym panelu
   „Warsztat” z własną nazwą obiektu (zapis układu okna) i miejscem w „Przywróć układ paneli”. Położenie ustala
   tylko `DockCoordinator`; kod paneli go nie zakłada, bo układ jest tymczasowy.
