@@ -9,6 +9,11 @@
 /// Workshop, the whole book or the Workshop, or nothing (the kinds of the place the window
 /// was opened on only). The window reads the setting each time it opens.
 ///
+/// What the Materials of the Workshop show: their kinds, each with its number of materials,
+/// whose lists open on tabs; or the kinds with their materials under them. A kind clicked opens
+/// its list on a tab of its own, or the one tab of the lists shows it. The Navigator follows
+/// the first setting at once; the second applies to the next kind clicked.
+///
 /// How a material opens: its picture on a preview tab of the program, or in the program the
 /// system gives its file; a material with the address of a page in the browser or on its card.
 /// What a file, a web address or a picture dropped on the Navigator or pasted in it gives: a
@@ -19,6 +24,7 @@
 /// the editor (core::LinkRoles::PARAGRAPHS_SETTING). The paperclips follow the setting at once.
 
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/settings_manager.h"
@@ -48,6 +54,14 @@ constexpr const char* SINGLE = "single";
 constexpr const char* SECTIONS = "sections";
 constexpr const char* BOOK = "book";
 constexpr const char* PLACE = "place";
+
+/// The values of NavigatorPanel::MATERIALS_TREE_SETTING
+constexpr const char* TYPES = "types";
+constexpr const char* EXPAND = "expand";
+
+/// The values of MaterialList::TABS_SETTING
+constexpr const char* OWN = "own";
+constexpr const char* ONE = "one";
 
 /// The values of NavigatorPanel::OPEN_MATERIALS_SETTING
 constexpr const char* CARD = "card";
@@ -148,6 +162,93 @@ NavigatorPage::NavigatorPage(QWidget* parent)
     // How a material opens
     //: The group of the materials of the Workshop. In Polish: Materiały
     QFormLayout* materials = addGroup(tr("Materials"));
+
+    // What the Materials show: their kinds, whose lists open on tabs, or their materials too
+    //: In Polish: Typy z liczbą materiałów
+    m_treeTypes = new QRadioButton(tr("Kinds with their numbers of materials"));
+    m_treeTypes->setObjectName(QStringLiteral("navigatorMaterialsTypes"));
+    //: In Polish: Typy z listą do rozwinięcia
+    m_treeExpand = new QRadioButton(tr("Kinds with a list to expand"));
+    m_treeExpand->setObjectName(QStringLiteral("navigatorMaterialsExpand"));
+    auto* treeChoices = new QWidget();
+    auto* treeLayout = new QVBoxLayout(treeChoices);
+    treeLayout->setContentsMargins(0, 0, 0, 0);
+    treeLayout->addWidget(m_treeTypes);
+    //: In Polish: Lista typu otwiera się na karcie na środku okna: tabela z wyszukiwaniem,
+    //: filtrami i sortowaniem.
+    alignWithText(addNote(treeLayout, tr("The list of a kind opens on a tab in the middle of the "
+                                         "window: a table with a search, filters and sorting.")),
+                  m_treeTypes);
+    treeLayout->addWidget(m_treeExpand);
+    //: In Polish: Pod każdym typem są także jego materiały, na początku zwinięte; lista typu
+    //: otwiera się na karcie jak wyżej.
+    alignWithText(addNote(treeLayout, tr("Each kind also has its materials under it, collapsed "
+                                         "at first; its list opens on a tab as above.")),
+                  m_treeExpand);
+    //: In Polish: W Nawigatorze:
+    auto* treeLabel = new QLabel(tr("In the Navigator:"));
+    treeLabel->setBuddy(m_treeTypes);
+    materials->addRow(treeLabel, treeChoices);
+
+    Binding tree;
+    tree.key = []() { return std::string(NavigatorPanel::MATERIALS_TREE_SETTING); };
+    tree.stored = [&settings]() {
+        return json(settings.get<std::string>(NavigatorPanel::MATERIALS_TREE_SETTING, TYPES));
+    };
+    tree.shown = [this]() { return json(m_treeExpand->isChecked() ? EXPAND : TYPES); };
+    tree.show = [this](const json& value) {
+        const bool expand = value.is_string() && value.get<std::string>() == EXPAND;
+        (expand ? m_treeExpand : m_treeTypes)->setChecked(true);
+    };
+    tree.store = [&settings](const json& value) {
+        settings.set<std::string>(NavigatorPanel::MATERIALS_TREE_SETTING,
+                                  value.get<std::string>());
+    };
+    bindCustom(std::move(tree));
+
+    // Where the list of a kind clicked opens
+    //: In Polish: Otwiera własną kartę
+    m_tabsOwn = new QRadioButton(tr("Opens a tab of its own"));
+    m_tabsOwn->setObjectName(QStringLiteral("navigatorMaterialsOwnTabs"));
+    //: In Polish: Zmienia typ na jednej karcie
+    m_tabsOne = new QRadioButton(tr("Changes the kind on one tab"));
+    m_tabsOne->setObjectName(QStringLiteral("navigatorMaterialsOneTab"));
+    auto* tabsChoices = new QWidget();
+    auto* tabsLayout = new QVBoxLayout(tabsChoices);
+    tabsLayout->setContentsMargins(0, 0, 0, 0);
+    tabsLayout->addWidget(m_tabsOwn);
+    //: In Polish: Każdy typ ma swoją kartę, która pamięta zaznaczenie, wyszukiwanie i filtry.
+    //: Ponowne kliknięcie przenosi ją na wierzch.
+    alignWithText(addNote(tabsLayout, tr("Each kind has its tab, which keeps what is chosen, "
+                                         "the search and the filters. Clicked again, it brings "
+                                         "its tab to the front.")),
+                  m_tabsOwn);
+    tabsLayout->addWidget(m_tabsOne);
+    //: In Polish: Jedna karta list pokazuje typ kliknięty ostatnio i pamięta zaznaczenie,
+    //: wyszukiwanie i filtry każdego typu.
+    alignWithText(addNote(tabsLayout, tr("One tab of the lists shows the kind clicked last, and "
+                                         "keeps what is chosen, the search and the filters of "
+                                         "each kind.")),
+                  m_tabsOne);
+    //: In Polish: Typ kliknięty w Nawigatorze:
+    auto* tabsLabel = new QLabel(tr("A kind clicked in the Navigator:"));
+    tabsLabel->setBuddy(m_tabsOwn);
+    materials->addRow(tabsLabel, tabsChoices);
+
+    Binding tabs;
+    tabs.key = []() { return std::string(MaterialList::TABS_SETTING); };
+    tabs.stored = [&settings]() {
+        return json(settings.get<std::string>(MaterialList::TABS_SETTING, OWN));
+    };
+    tabs.shown = [this]() { return json(m_tabsOne->isChecked() ? ONE : OWN); };
+    tabs.show = [this](const json& value) {
+        const bool one = value.is_string() && value.get<std::string>() == ONE;
+        (one ? m_tabsOne : m_tabsOwn)->setChecked(true);
+    };
+    tabs.store = [&settings](const json& value) {
+        settings.set<std::string>(MaterialList::TABS_SETTING, value.get<std::string>());
+    };
+    bindCustom(std::move(tabs));
     //: In Polish: Na karcie w programie
     m_openCard = new QRadioButton(tr("On a tab of the program"));
     m_openCard->setObjectName(QStringLiteral("navigatorOpenMaterialsCard"));

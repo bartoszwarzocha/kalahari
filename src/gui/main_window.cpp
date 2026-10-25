@@ -10,6 +10,8 @@
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/paragraph_marks_coordinator.h"
+#include "kalahari/gui/material_list_coordinator.h"
+#include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/toolbar_keys.h"
@@ -365,6 +367,26 @@ MainWindow::MainWindow(QWidget* parent)
             }
         },
         this);
+
+    // The lists of the kinds of materials on their tabs: a kind of the Materials clicked in
+    // the Navigator, or Materials itself. A material chosen in a list shows in the Properties
+    // panel, brought to the front; Alt+Enter gives it the keys.
+    m_materialListCoordinator = new MaterialListCoordinator(
+        m_dockCoordinator->centralTabs(), m_navigatorCoordinator, statusBar(),
+        [this](bool keys) {
+            QDockWidget* dock = m_dockCoordinator->propertiesDock();
+            dock->show();
+            dock->raise();
+            if (keys) {
+                if (dock->isFloating()) {
+                    dock->activateWindow();
+                }
+                m_dockCoordinator->propertiesPanel()->focusFirstField();
+            }
+        },
+        this);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterialList,
+            m_materialListCoordinator, &MaterialListCoordinator::openList);
 
     // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
     // is done in the Annotations panel is undone in the text in front
@@ -774,6 +796,14 @@ void MainWindow::registerCommands() {
                    && editor->getBookEditor()->isReadOnly();
         });
 
+    // Find goes to the search of a list of materials too
+    if (Command* command = registry.getCommand("edit.find")) {
+        command->isEnabled = [this]() {
+            return hasDocumentInFront() || (m_materialListCoordinator != nullptr &&
+                                            m_materialListCoordinator->currentList() != nullptr);
+        };
+    }
+
     // The zoom works on the preview of a material too
     for (const char* id : {"view.zoomIn", "view.zoomOut", "view.resetZoom", "view.zoomPageWidth",
                            "view.zoomWholePage"}) {
@@ -991,6 +1021,13 @@ void MainWindow::onSelectAll() {
 void MainWindow::onFind() {
     core::Logger::getInstance().info("Action triggered: Find");
 
+    // A list of materials in front: its search
+    if (MaterialListPanel* list = m_materialListCoordinator != nullptr
+                                      ? m_materialListCoordinator->currentList()
+                                      : nullptr) {
+        list->focusSearch();
+        return;
+    }
     EditorPanel* editor = getCurrentEditor();
     if (editor && editor->getBookEditor()) {
         editor->getBookEditor()->showFind();

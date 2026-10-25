@@ -7045,6 +7045,56 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>In Polish: W oknie „Powiąż” można wskazać akapit rozdziału, którego dotyczy materiał, a edytor oznacza taki akapit spinaczem na marginesie. Po wyłączeniu akapity i spinacze znikają z widoku, ale wskazania zostają zapisane.</extracomment>
         <translation>W oknie „Powiąż” można wskazać akapit rozdziału, którego dotyczy materiał, a edytor oznacza taki akapit spinaczem na marginesie. Po wyłączeniu akapity i spinacze znikają z widoku, ale wskazania zostają zapisane.</translation>
     </message>
+    <message>
+        <source>Kinds with their numbers of materials</source>
+        <extracomment>In Polish: Typy z liczbą materiałów</extracomment>
+        <translation>Typy z liczbą materiałów</translation>
+    </message>
+    <message>
+        <source>Kinds with a list to expand</source>
+        <extracomment>In Polish: Typy z listą do rozwinięcia</extracomment>
+        <translation>Typy z listą do rozwinięcia</translation>
+    </message>
+    <message>
+        <source>The list of a kind opens on a tab in the middle of the window: a table with a search, filters and sorting.</source>
+        <extracomment>In Polish: Lista typu otwiera się na karcie na środku okna: tabela z wyszukiwaniem, filtrami i sortowaniem.</extracomment>
+        <translation>Lista typu otwiera się na karcie na środku okna: tabela z wyszukiwaniem, filtrami i sortowaniem.</translation>
+    </message>
+    <message>
+        <source>Each kind also has its materials under it, collapsed at first; its list opens on a tab as above.</source>
+        <extracomment>In Polish: Pod każdym typem są także jego materiały, na początku zwinięte; lista typu otwiera się na karcie jak wyżej.</extracomment>
+        <translation>Pod każdym typem są także jego materiały, na początku zwinięte; lista typu otwiera się na karcie jak wyżej.</translation>
+    </message>
+    <message>
+        <source>In the Navigator:</source>
+        <extracomment>In Polish: W Nawigatorze:</extracomment>
+        <translation>W Nawigatorze:</translation>
+    </message>
+    <message>
+        <source>Opens a tab of its own</source>
+        <extracomment>In Polish: Otwiera własną kartę</extracomment>
+        <translation>Otwiera własną kartę</translation>
+    </message>
+    <message>
+        <source>Changes the kind on one tab</source>
+        <extracomment>In Polish: Zmienia typ na jednej karcie</extracomment>
+        <translation>Zmienia typ na jednej karcie</translation>
+    </message>
+    <message>
+        <source>Each kind has its tab, which keeps what is chosen, the search and the filters. Clicked again, it brings its tab to the front.</source>
+        <extracomment>In Polish: Każdy typ ma swoją kartę, która pamięta zaznaczenie, wyszukiwanie i filtry. Ponowne kliknięcie przenosi ją na wierzch.</extracomment>
+        <translation>Każdy typ ma swoją kartę, która pamięta zaznaczenie, wyszukiwanie i filtry. Ponowne kliknięcie przenosi ją na wierzch.</translation>
+    </message>
+    <message>
+        <source>One tab of the lists shows the kind clicked last, and keeps what is chosen, the search and the filters of each kind.</source>
+        <extracomment>In Polish: Jedna karta list pokazuje typ kliknięty ostatnio i pamięta zaznaczenie, wyszukiwanie i filtry każdego typu.</extracomment>
+        <translation>Jedna karta list pokazuje typ kliknięty ostatnio i pamięta zaznaczenie, wyszukiwanie i filtry każdego typu.</translation>
+    </message>
+    <message>
+        <source>A kind clicked in the Navigator:</source>
+        <extracomment>In Polish: Typ kliknięty w Nawigatorze:</extracomment>
+        <translation>Typ kliknięty w Nawigatorze:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
@@ -7324,6 +7374,11 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Open &amp;Card</source>
         <extracomment>Opens the card of a material in the middle of the window. In Polish: Otwórz &amp;kartę</extracomment>
         <translation>Otwórz &amp;kartę</translation>
+    </message>
+    <message>
+        <source>&amp;Open List</source>
+        <extracomment>Shows the list of the materials of a kind on a tab in the middle of the window. In Polish: &amp;Otwórz listę</extracomment>
+        <translation>&amp;Otwórz listę</translation>
     </message>
 </context>
 <context>
@@ -12608,6 +12663,360 @@ Note: %2</source>
         <extracomment>The tooltip of a link with a note: %1 the title and the role, %2 the note. In Polish: %1\nNotatka: %2</extracomment>
         <translation>%1
 Notatka: %2</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::MaterialList</name>
+    <message>
+        <source>%1 – %2</source>
+        <extracomment>A link in the list of materials: %1 what it names, %2 its role. In Polish: %1 – %2</extracomment>
+        <translation>%1 – %2</translation>
+    </message>
+    <message>
+        <source>Words: %1</source>
+        <extracomment>The details of a working note in All Materials: %1 its number of words. In Polish: Słowa: %1</extracomment>
+        <translation>Słowa: %1</translation>
+    </message>
+    <message>
+        <source>%1 × %2</source>
+        <extracomment>The size of a picture in the list of materials: %1 the width, %2 the height. In Polish: %1 × %2</extracomment>
+        <translation>%1 × %2</translation>
+    </message>
+    <message>
+        <source>disk</source>
+        <extracomment>Where a picture comes from: a file from the disk. In Polish: dysk</extracomment>
+        <translation>dysk</translation>
+    </message>
+    <message>
+        <source>web, with a copy</source>
+        <extracomment>Where a picture comes from: the web, and the book has a copy of it. In Polish: sieć, z kopią</extracomment>
+        <translation>sieć, z kopią</translation>
+    </message>
+    <message>
+        <source>web, without a copy</source>
+        <extracomment>Where a picture comes from: the web, without a copy in the book. In Polish: sieć, bez kopii</extracomment>
+        <translation>sieć, bez kopii</translation>
+    </message>
+    <message>
+        <source>All Materials</source>
+        <extracomment>The list of all the materials of the Workshop, the working notes too, on a tab. In Polish: Wszystkie materiały</extracomment>
+        <translation>Wszystkie materiały</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <extracomment>A column of the list of materials. In Polish: Tytuł</extracomment>
+        <translation>Tytuł</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <extracomment>In Polish: Powiązania</extracomment>
+        <translation>Powiązania</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <extracomment>In Polish: Opis</extracomment>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <extracomment>In Polish: Plik</extracomment>
+        <translation>Plik</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <extracomment>In Polish: Format</extracomment>
+        <translation>Format</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <extracomment>The size of a file. In Polish: Rozmiar</extracomment>
+        <translation>Rozmiar</translation>
+    </message>
+    <message>
+        <source>Modified</source>
+        <extracomment>The time the file was changed. In Polish: Data zmiany</extracomment>
+        <translation>Data zmiany</translation>
+    </message>
+    <message>
+        <source>Address</source>
+        <extracomment>The web address. In Polish: Adres</extracomment>
+        <translation>Adres</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <extracomment>The kind of a material in All Materials. In Polish: Typ</extracomment>
+        <translation>Typ</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <extracomment>A summary of a material in All Materials. In Polish: Szczegóły</extracomment>
+        <translation>Szczegóły</translation>
+    </message>
+    <message>
+        <source>Words</source>
+        <extracomment>The words of a working note. In Polish: Słowa</extracomment>
+        <translation>Słowa</translation>
+    </message>
+    <message>
+        <source>Status</source>
+        <extracomment>The status of a working note: draft, revision, final. In Polish: Stan</extracomment>
+        <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Quote</source>
+        <extracomment>The words of a quote. In Polish: Cytat</extracomment>
+        <translation>Cytat</translation>
+    </message>
+    <message>
+        <source>Site</source>
+        <extracomment>The host of the address of a page. In Polish: Witryna</extracomment>
+        <translation>Witryna</translation>
+    </message>
+    <message>
+        <source>Dimensions</source>
+        <extracomment>The size of a picture in pixels. In Polish: Wymiary</extracomment>
+        <translation>Wymiary</translation>
+    </message>
+    <message>
+        <source>Origin</source>
+        <extracomment>Where a picture comes from: the disk, the web. In Polish: Pochodzenie</extracomment>
+        <translation>Pochodzenie</translation>
+    </message>
+    <message>
+        <source>Kind</source>
+        <extracomment>The kind of a document: PDF, text, spreadsheet... In Polish: Rodzaj</extracomment>
+        <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>text</source>
+        <extracomment>The kind of a document: Word, OpenDocument, RTF, plain text. In Polish: tekst</extracomment>
+        <translation>tekst</translation>
+    </message>
+    <message>
+        <source>spreadsheet</source>
+        <extracomment>The kind of a document. In Polish: arkusz</extracomment>
+        <translation>arkusz</translation>
+    </message>
+    <message>
+        <source>presentation</source>
+        <extracomment>The kind of a document. In Polish: prezentacja</extracomment>
+        <translation>prezentacja</translation>
+    </message>
+    <message>
+        <source>e-book</source>
+        <extracomment>The kind of a document. In Polish: e-book</extracomment>
+        <translation>e-book</translation>
+    </message>
+    <message>
+        <source>other</source>
+        <extracomment>The kind of a document of any other format. In Polish: inny</extracomment>
+        <translation>inny</translation>
+    </message>
+    <message>
+        <source>Sort by: %1</source>
+        <extracomment>The tooltip of the header of a column of the list of materials: %1 its name. In Polish: Sortuj według: %1</extracomment>
+        <translation>Sortuj według: %1</translation>
+    </message>
+    <message>
+        <source>filter</source>
+        <extracomment>The field under the header of a column that filters it. In Polish: filtr</extracomment>
+        <translation>filtr</translation>
+    </message>
+    <message>
+        <source>Filter of column %1</source>
+        <extracomment>%1: the name of the column. In Polish: Filtr kolumny %1</extracomment>
+        <translation>Filtr kolumny %1</translation>
+    </message>
+    <message>
+        <source>Search (%1)</source>
+        <extracomment>The search of a list of materials; %1: its keys. In Polish: Szukaj (%1)</extracomment>
+        <translation>Szukaj (%1)</translation>
+    </message>
+    <message>
+        <source>Search in the materials</source>
+        <extracomment>In Polish: Szukaj w materiałach</extracomment>
+        <translation>Szukaj w materiałach</translation>
+    </message>
+    <message>
+        <source>Linked with:</source>
+        <extracomment>The filter of a list of materials by what they are linked with. In Polish: Powiązane z:</extracomment>
+        <translation>Powiązane z:</translation>
+    </message>
+    <message>
+        <source>Without links</source>
+        <extracomment>The filter of a list of materials: those not linked with anything. In Polish: Bez powiązań</extracomment>
+        <translation>Bez powiązań</translation>
+    </message>
+    <message>
+        <source>Column Filters</source>
+        <extracomment>Shows a field under the header of each column that filters it. In Polish: Filtry kolumn</extracomment>
+        <translation>Filtry kolumn</translation>
+    </message>
+    <message>
+        <source>Clear Filters</source>
+        <extracomment>In Polish: Wyczyść filtry</extracomment>
+        <translation>Wyczyść filtry</translation>
+    </message>
+    <message>
+        <source>List of materials</source>
+        <extracomment>In Polish: Lista materiałów</extracomment>
+        <translation>Lista materiałów</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <extracomment>Edits the material chosen: its card in the middle of the window, or the editor of a working note. In Polish: Edytuj</extracomment>
+        <translation>Edytuj</translation>
+    </message>
+    <message>
+        <source>Edit the material on its card; a working note in the editor (%1)</source>
+        <extracomment>%1: the keys. In Polish: Edytuj materiał na jego karcie, a notatkę roboczą w edytorze (%1)</extracomment>
+        <translation>Edytuj materiał na jego karcie, a notatkę roboczą w edytorze (%1)</translation>
+    </message>
+    <message>
+        <source>Link...</source>
+        <extracomment>In Polish: Powiąż...</extracomment>
+        <translation>Powiąż...</translation>
+    </message>
+    <message>
+        <source>Copy (%1)</source>
+        <extracomment>%1: the keys. In Polish: Kopiuj (%1)</extracomment>
+        <translation>Kopiuj (%1)</translation>
+    </message>
+    <message>
+        <source>Delete (%1)</source>
+        <extracomment>%1: the keys. In Polish: Usuń (%1)</extracomment>
+        <translation>Usuń (%1)</translation>
+    </message>
+    <message>
+        <source>Table</source>
+        <extracomment>Shows the materials in a table. In Polish: Tabela</extracomment>
+        <translation>Tabela</translation>
+    </message>
+    <message>
+        <source>Tiles</source>
+        <extracomment>Shows the materials as tiles with their pictures. In Polish: Kafelki</extracomment>
+        <translation>Kafelki</translation>
+    </message>
+    <message>
+        <source>Columns...</source>
+        <extracomment>Chooses the columns of the table. In Polish: Kolumny...</extracomment>
+        <translation>Kolumny...</translation>
+    </message>
+    <message>
+        <source>&amp;Edit</source>
+        <extracomment>Edits a material: its card in the middle of the window, or the editor of a working note. In Polish: &amp;Edytuj</extracomment>
+        <translation>&amp;Edytuj</translation>
+    </message>
+    <message>
+        <source>&amp;Open</source>
+        <extracomment>Opens a material as the settings say (a double-click): its preview, the system program, the browser. In Polish: &amp;Otwórz</extracomment>
+        <translation>&amp;Otwórz</translation>
+    </message>
+    <message>
+        <source>Show in &amp;Folder</source>
+        <extracomment>In Polish: Pokaż w &amp;folderze</extracomment>
+        <translation>Pokaż w &amp;folderze</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <extracomment>In Polish: &amp;Kopiuj</extracomment>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>&amp;Link...</source>
+        <extracomment>In Polish: &amp;Powiąż...</extracomment>
+        <translation>&amp;Powiąż...</translation>
+    </message>
+    <message>
+        <source>Rena&amp;me...</source>
+        <extracomment>In Polish: Zmień &amp;nazwę...</extracomment>
+        <translation>Zmień &amp;nazwę...</translation>
+    </message>
+    <message>
+        <source>&amp;Delete...</source>
+        <extracomment>In Polish: &amp;Usuń...</extracomment>
+        <translation>&amp;Usuń...</translation>
+    </message>
+    <message>
+        <source>P&amp;roperties</source>
+        <extracomment>In Polish: Właś&amp;ciwości</extracomment>
+        <translation>Właś&amp;ciwości</translation>
+    </message>
+    <message>
+        <source>Copied: %1</source>
+        <extracomment>The status bar after Copy in a list of materials; %1: the title of the material. In Polish: Skopiowano: %1</extracomment>
+        <translation>Skopiowano: %1</translation>
+    </message>
+    <message>
+        <source>%1: nothing yet. Add (%2) adds one.</source>
+        <extracomment>A list of materials without any; %1: its name, &quot;Quotes&quot;; %2: the keys of Add. In Polish: %1: na razie pusto. „Dodaj” (%2) dodaje nowy materiał.</extracomment>
+        <translation>%1: na razie pusto. „Dodaj” (%2) dodaje nowy materiał.</translation>
+    </message>
+    <message>
+        <source>No material matches the filters.</source>
+        <extracomment>In Polish: Żaden materiał nie pasuje do filtrów.</extracomment>
+        <translation>Żaden materiał nie pasuje do filtrów.</translation>
+    </message>
+    <message>
+        <source>any element</source>
+        <extracomment>The filter &quot;Linked with:&quot; that lets every material through. In Polish: dowolnym elementem</extracomment>
+        <translation>dowolnym elementem</translation>
+    </message>
+    <message>
+        <source>Add...</source>
+        <extracomment>Adds a material in the Add Element window. In Polish: Dodaj...</extracomment>
+        <translation>Dodaj...</translation>
+    </message>
+    <message>
+        <source>Add {Kind}...</source>
+        <extracomment>Adds a material of the kind of the list: &quot;Add Quote...&quot;. In Polish: Dodaj {kind:accusative}...</extracomment>
+        <translation>Dodaj {kind:accusative}...</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;%1&lt;/b&gt;&amp;nbsp;&amp;nbsp;%2</source>
+        <extracomment>The name of a list of materials and their number. In Polish: &lt;b&gt;%1&lt;/b&gt;&amp;nbsp;&amp;nbsp;%2</extracomment>
+        <translation>&lt;b&gt;%1&lt;/b&gt;&amp;nbsp;&amp;nbsp;%2</translation>
+    </message>
+    <message>
+        <source>Shown: %1 of %2</source>
+        <extracomment>How many materials of a list are shown: %1 shown, %2 all. In Polish: Na liście: %1 z %2</extracomment>
+        <translation>Na liście: %1 z %2</translation>
+    </message>
+    <message>
+        <source>Sorted by %1, ascending</source>
+        <extracomment>How a list of materials is sorted; %1: the column. In Polish: Sortowanie: %1, rosnąco</extracomment>
+        <translation>Sortowanie: %1, rosnąco</translation>
+    </message>
+    <message>
+        <source>Sorted by %1, descending</source>
+        <extracomment>How a list of materials is sorted; %1: the column. In Polish: Sortowanie: %1, malejąco</extracomment>
+        <translation>Sortowanie: %1, malejąco</translation>
+    </message>
+    <message>
+        <source>To change the order, drag the header of a column.</source>
+        <extracomment>A note at the end of the menu of the columns. In Polish: Aby zmienić kolejność, przeciągnij nagłówek kolumny.</extracomment>
+        <translation>Aby zmienić kolejność, przeciągnij nagłówek kolumny.</translation>
+    </message>
+    <message>
+        <source>Links Not Saved</source>
+        <extracomment>In Polish: Nie zapisano powiązań</extracomment>
+        <translation>Nie zapisano powiązań</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Show in Folder</source>
+        <extracomment>In Polish: Pokaż w folderze</extracomment>
+        <translation>Pokaż w folderze</translation>
+    </message>
+    <message>
+        <source>The file manager of the system could not show:
+%1</source>
+        <extracomment>%1: the path of the file. In Polish: Menedżer plików nie mógł pokazać tego miejsca: %1</extracomment>
+        <translation>Menedżer plików nie mógł pokazać tego miejsca:
+%1</translation>
     </message>
 </context>
 <context>

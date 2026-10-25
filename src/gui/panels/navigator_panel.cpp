@@ -10,6 +10,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/material_list.h"
 #include "kalahari/gui/material_source.h"
 #include "kalahari/gui/paste_target.h"
 #include "kalahari/gui/read_only_book.h"
@@ -745,6 +746,11 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
                            elementType.toStdString(),
                            elementId.toStdString());
 
+                // Materials and its kinds show their lists on tabs
+                if (const std::optional<QString> list = materialListOf(item)) {
+                    emit requestOpenMaterialList(*list, false);
+                    return;
+                }
                 // The card of a material is in the Properties panel: it comes to the front
                 if (requestPropertiesOf(item) && isMaterialItem(item)) {
                     emit requestPropertiesPanel();
@@ -1349,9 +1355,14 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
         }
         item->setIcon(0, itemIcon(item, group.iconId));
         item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
-        addElementItems(item, group.elements, registry, true);
-        item->setExpanded(true);
-        if (item->parent() == materials) {
+        // The kinds of the Materials show their lists on tabs; their materials are under them
+        // only when the settings say so, collapsed at first
+        const bool material = item->parent() == materials;
+        if (!material || materialsExpandable()) {
+            addElementItems(item, group.elements, registry, true);
+        }
+        item->setExpanded(!material);
+        if (material) {
             setCount(item, group.elements.size());
         }
     }
@@ -2314,6 +2325,20 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         addExpandCollapseActions();
 
     } else if (elementType == "workshop_shelf" || elementType == "workshop_group") {
+        // Materials and its kinds show their lists on tabs
+        if (const std::optional<QString> list = materialListOf(item)) {
+            //: Shows the list of the materials of a kind on a tab in the middle of the window.
+            //: In Polish: &Otwórz listę
+            QAction* openAction = menu.addAction(
+                artProvider.getIcon("file.open", core::IconContext::Menu),
+                withKeys(tr("&Open List"), QKeyCombination(Qt::Key_Enter)));
+            QFont bold = openAction->font();
+            bold.setBold(true);
+            openAction->setFont(bold);
+            connect(openAction, &QAction::triggered, this,
+                    [this, list]() { emit requestOpenMaterialList(*list, true); });
+            menu.addSeparator();
+        }
         // A group of the Workshop is named after its kind, and is there as long as the kind
         addAddActions();
         menu.addSeparator();
@@ -2635,6 +2660,12 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
         return;
     }
 
+    // Materials and its kinds show their lists on tabs
+    if (const std::optional<QString> list = materialListOf(item)) {
+        emit requestOpenMaterialList(*list, true);
+        return;
+    }
+
     // A file that no element has shows its text; it opens in the editor once it is in the book
     if (elementType == "unassigned_file") {
         emit requestPreviewUnassigned(elementId);
@@ -2666,6 +2697,26 @@ QString NavigatorPanel::quickMaterials() {
     return value == QLatin1String("add") || value == QLatin1String("window")
                ? value
                : QStringLiteral("link");
+}
+
+bool NavigatorPanel::materialsExpandable() {
+    return core::SettingsManager::getInstance().get<std::string>(MATERIALS_TREE_SETTING,
+                                                                 "types") == "expand";
+}
+
+std::optional<QString> NavigatorPanel::materialListOf(const QTreeWidgetItem* item) {
+    if (item == nullptr) {
+        return std::nullopt;
+    }
+    const QString materials = WORKSHOP_ID_PREFIX + QStringLiteral("materials");
+    if (item->data(0, Qt::UserRole).toString() == materials) {
+        return QString::fromLatin1(MaterialList::ALL);
+    }
+    if (typeOf(item) == QLatin1String("workshop_group") && item->parent() != nullptr &&
+        item->parent()->data(0, Qt::UserRole).toString() == materials) {
+        return item->data(0, KIND_ROLE).toString();
+    }
+    return std::nullopt;
 }
 
 AddChooser NavigatorPanel::addChooser() {
@@ -3202,11 +3253,14 @@ void NavigatorPanel::setExpandedItemIds(const QStringList& ids) {
     expandItemsById(ids);
 
     // A list saved before the book and the Workshop had nodes of their own opens them, and
-    // the groups of the Workshop, as a new book shows them
+    // the groups of the Workshop, as a new book shows them: the kinds of the Materials stay
+    // collapsed
     if (!ids.contains(WORKSHOP_LAYOUT)) {
         const std::function<void(QTreeWidgetItem*)> open = [&open](QTreeWidgetItem* item) {
             const QString type = typeOf(item);
-            if (type == QLatin1String("book") || isWorkshopNode(type)) {
+            const std::optional<QString> list = materialListOf(item);
+            if (type == QLatin1String("book") ||
+                (isWorkshopNode(type) && (!list || list->isEmpty()))) {
                 item->setExpanded(true);
             }
             for (int i = 0; i < item->childCount(); ++i) {
@@ -3221,6 +3275,21 @@ void NavigatorPanel::setExpandedItemIds(const QStringList& ids) {
 
 void NavigatorPanel::revealElement(const QString& elementId) {
     QTreeWidgetItem* item = findItemByElementId(elementId);
+    // A material its kind does not show: its kind, and its card in the Properties panel
+    bool material = false;
+    if (!item) {
+        const auto& pm = core::ProjectManager::getInstance();
+        const core::ProjectElement* element = pm.findElement(elementId);
+        const core::KindRef kind = element ? pm.kindOf(*element) : core::KindRef{};
+        const QString list = kind ? kind.reference() : QString();
+        for (QTreeWidgetItemIterator it(m_treeWidget); *it && !list.isEmpty(); ++it) {
+            if (materialListOf(*it) == list) {
+                item = *it;
+                material = true;
+                break;
+            }
+        }
+    }
     if (!item) {
         return;
     }
@@ -3229,6 +3298,9 @@ void NavigatorPanel::revealElement(const QString& elementId) {
     }
     m_treeWidget->setCurrentItem(item);
     m_treeWidget->scrollToItem(item, QAbstractItemView::EnsureVisible);
+    if (material) {
+        emit requestProperties(elementId);
+    }
 }
 
 void NavigatorPanel::revealSection(core::BookPlace place) {

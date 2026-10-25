@@ -6,6 +6,7 @@
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/material_downloader.h"
+#include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/settings/settings_page.h"
@@ -543,6 +544,53 @@ TEST_CASE("Settings dialog: the Navigator page says whether links name paragraph
     CHECK_FALSE(paragraphsAgain->isChecked());
 
     settings.set<bool>(kalahari::core::LinkRoles::PARAGRAPHS_SETTING, before);
+}
+
+TEST_CASE("Settings dialog: the Navigator page chooses what the Materials show and where a "
+          "list of materials opens", "[gui][settings][materials]") {
+    using kalahari::gui::MaterialList;
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+
+    // The usual ones: the kinds with their numbers, each on a tab of its own
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    auto* types = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsTypes"));
+    auto* expand = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
+    auto* own = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOwnTabs"));
+    auto* one = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOneTab"));
+    REQUIRE(types != nullptr);
+    REQUIRE(expand != nullptr);
+    REQUIRE(own != nullptr);
+    REQUIRE(one != nullptr);
+    CHECK(types->isChecked());
+    CHECK(own->isChecked());
+    CHECK_FALSE(NavigatorPanel::materialsExpandable());
+    CHECK(MaterialList::ownTabs());
+
+    // Each row is a choice of its own
+    expand->click();
+    CHECK(expand->isChecked());
+    CHECK(own->isChecked());
+    one->click();
+    CHECK(expand->isChecked());
+    const QStringList written = dialog.applyChanges();
+    CHECK(written.size() == 2);
+    CHECK(written.contains(QString::fromLatin1(NavigatorPanel::MATERIALS_TREE_SETTING)));
+    CHECK(written.contains(QString::fromLatin1(MaterialList::TABS_SETTING)));
+    CHECK(settings.get<std::string>(NavigatorPanel::MATERIALS_TREE_SETTING) == "expand");
+    CHECK(settings.get<std::string>(MaterialList::TABS_SETTING) == "one");
+    CHECK(NavigatorPanel::materialsExpandable());
+    CHECK_FALSE(MaterialList::ownTabs());
+
+    // Opened again, the page shows the stored choices
+    SettingsDialog again(nullptr);
+    openPage(again, QString(), QStringLiteral("Navigator"));
+    auto* expandAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
+    auto* oneAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOneTab"));
+    REQUIRE(expandAgain != nullptr);
+    REQUIRE(oneAgain != nullptr);
+    CHECK(expandAgain->isChecked());
+    CHECK(oneAgain->isChecked());
 }
 
 TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a drop gives",

@@ -339,6 +339,10 @@ signals:
     /// @brief Emitted when navigator should be refreshed
     void refreshNavigatorRequested();
 
+    /// @brief Material @p elementId changed on one of its cards (onMaterialChanged()): the
+    /// lists of the materials show it
+    void materialChanged(const QString& elementId);
+
     /// @brief Emitted when chapter dirty state changes (OpenSpec #00042 Phase 7.5)
     /// @param elementId Element ID of the chapter
     /// @param isDirty True if chapter has unsaved changes

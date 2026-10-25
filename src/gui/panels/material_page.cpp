@@ -907,37 +907,12 @@ void MaterialPage::editLinks() {
     if (m_elementId.isEmpty() || core::ProjectManager::getInstance().isReadOnly()) {
         return;
     }
-    dialogs::LinkDialog dialog(dialogs::LinkDialog::Mode::Targets, m_elementId, window());
-    if (const QTreeWidgetItem* item = m_linksList->currentItem()) {
-        dialog.setCurrentLink(item->data(0, LINK_ROLE).toString());
+    const QTreeWidgetItem* item = m_linksList->currentItem();
+    if (const std::optional<QList<core::ElementLink>> links = dialogs::chooseLinks(
+            m_elementId, item != nullptr ? item->data(0, LINK_ROLE).toString() : QString(),
+            window())) {
+        saveLinks(*links);
     }
-    if (dialog.exec() != QDialog::Accepted) {
-        return;
-    }
-    // The links kept stay in their order, the new ones come after them; each as it is set in
-    // the window
-    const core::ProjectElement* element =
-        core::ProjectManager::getInstance().findElement(m_elementId);
-    if (element == nullptr) {
-        return;
-    }
-    const QStringList checked = dialog.checkedLinks();
-    QStringList targets;
-    for (const QString& target : element->linkTargets()) {
-        if (checked.contains(target)) {
-            targets << target;
-        }
-    }
-    for (const QString& target : checked) {
-        if (!targets.contains(target)) {
-            targets << target;
-        }
-    }
-    QList<core::ElementLink> links;
-    for (const QString& target : targets) {
-        links << dialog.linkOf(target);
-    }
-    saveLinks(links);
 }
 
 void MaterialPage::addLinks(const QStringList& links) {

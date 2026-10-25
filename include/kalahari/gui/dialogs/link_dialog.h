@@ -7,8 +7,11 @@
 #include "kalahari/core/book_project.h"
 
 #include <QHash>
+#include <QList>
 #include <QString>
 #include <QStringList>
+
+#include <optional>
 
 class QComboBox;
 class QGroupBox;
@@ -141,6 +144,15 @@ private:
     QLineEdit* m_note = nullptr;
     QLabel* m_linkHint = nullptr;
 };
+
+/// @brief Choose in the Link window what material @p elementId is linked with
+///
+/// The links kept stay in their order, the new ones come after them; each as it is set in the
+/// window.
+/// @param currentLink The link the window starts at; empty: its first item
+/// @return The links of the material the writer chose; none when the writer closed the window
+std::optional<QList<core::ElementLink>> chooseLinks(const QString& elementId,
+                                                    const QString& currentLink, QWidget* parent);
 
 } // namespace dialogs
 } // namespace gui

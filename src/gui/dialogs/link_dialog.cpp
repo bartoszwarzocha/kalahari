@@ -651,6 +651,39 @@ bool LinkDialog::eventFilter(QObject* watched, QEvent* event) {
     return KalahariDialog::eventFilter(watched, event);
 }
 
+std::optional<QList<core::ElementLink>> chooseLinks(const QString& elementId,
+                                                    const QString& currentLink, QWidget* parent) {
+    LinkDialog dialog(LinkDialog::Mode::Targets, elementId, parent);
+    if (!currentLink.isEmpty()) {
+        dialog.setCurrentLink(currentLink);
+    }
+    if (dialog.exec() != QDialog::Accepted) {
+        return std::nullopt;
+    }
+    const core::ProjectElement* element =
+        core::ProjectManager::getInstance().findElement(elementId);
+    if (element == nullptr) {
+        return std::nullopt;
+    }
+    const QStringList checked = dialog.checkedLinks();
+    QStringList targets;
+    for (const QString& target : element->linkTargets()) {
+        if (checked.contains(target)) {
+            targets << target;
+        }
+    }
+    for (const QString& target : checked) {
+        if (!targets.contains(target)) {
+            targets << target;
+        }
+    }
+    QList<core::ElementLink> links;
+    for (const QString& target : targets) {
+        links << dialog.linkOf(target);
+    }
+    return links;
+}
+
 } // namespace dialogs
 } // namespace gui
 } // namespace kalahari

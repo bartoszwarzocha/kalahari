@@ -183,6 +183,19 @@ public:
     /// @brief What QUICK_MATERIALS_SETTING says: "link", "add" or "window"
     static QString quickMaterials();
 
+    /// @brief The setting of what the Materials of the Workshop show: "types" (their kinds,
+    /// each with its number of materials, whose lists open on tabs; the usual one) or "expand"
+    /// (the kinds with their materials under them, collapsed at first)
+    static constexpr const char* MATERIALS_TREE_SETTING = "materials.navigatorTree";
+
+    /// @brief Whether the kinds of the Materials have their materials under them
+    /// (MATERIALS_TREE_SETTING)
+    static bool materialsExpandable();
+
+    /// @brief The list of materials that @p item opens (MaterialList): MaterialList::ALL for
+    /// Materials, the kind of a kind of the Materials; none for the other nodes
+    static std::optional<QString> materialListOf(const QTreeWidgetItem* item);
+
     /// @brief The name of the node of @p book: the writer's own, or "Book"
     static QString bookName(const core::ProjectBook& book);
 
@@ -299,6 +312,9 @@ public:
 
     /// @brief Show an element: expand the items above it, make it the current item and
     /// scroll to it
+    ///
+    /// A material that its kind does not show (MATERIALS_TREE_SETTING) shows its kind, and its
+    /// card shows in the Properties panel.
     /// @param elementId Element ID; nothing happens when the tree has no such element
     void revealElement(const QString& elementId);
 
@@ -366,6 +382,11 @@ signals:
 
     /// @brief Request to open the card of material @p elementId in the middle of the window
     void requestOpenMaterialCard(const QString& elementId);
+
+    /// @brief Request to show list @p list of the materials (MaterialList) on its tab: a click
+    /// on Materials or on one of its kinds, or Enter on it
+    /// @param keys The list gets the keys (Enter), else the Navigator keeps them (a click)
+    void requestOpenMaterialList(const QString& list, bool keys);
 
     /// @brief Request to add the materials @p incoming, dropped on the Navigator from outside
     /// the program or pasted in it; @p link: the node they are linked with (empty: none), as

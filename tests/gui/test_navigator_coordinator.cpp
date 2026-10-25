@@ -826,6 +826,9 @@ TEST_CASE("Navigator commands: Add Element adds parts, chapters and items of the
 TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes and materials, "
           "saved at once", "[gui][navigator]") {
     OpenNovel novel;
+    // The materials are in the Navigator, under their kinds
+    core::SettingsManager::getInstance().set<std::string>(
+        gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
     Navigator navigator;
     auto& pm = novel.pm;
     TestFileOpener opener;
@@ -2655,6 +2658,9 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
           "[gui][navigator][materials]") {
     KeptMaterialSettings kept;
     OpenNovel novel;
+    // The materials are in the Navigator, under their kinds
+    core::SettingsManager::getInstance().set<std::string>(
+        gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
     Navigator navigator;
     auto& pm = core::ProjectManager::getInstance();
     QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAddMaterials,
@@ -2945,6 +2951,9 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
           "[gui][navigator][materials]") {
     KeptMaterialSettings kept;
     OpenNovel novel;
+    // The materials are in the Navigator, under their kinds
+    core::SettingsManager::getInstance().set<std::string>(
+        gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
     Navigator navigator;
     TestBrowser browser;
     auto& pm = core::ProjectManager::getInstance();

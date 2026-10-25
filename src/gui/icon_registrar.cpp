@@ -353,6 +353,12 @@ void registerAllIcons() {
                               "Unassigned Files");
     iconRegistry.registerIcon("project.book", "resources/icons/twotone/auto_stories.svg", "Book Project");
 
+    // The views of a list of materials on its tab
+    iconRegistry.registerIcon("materials.table", "resources/icons/twotone/table_chart.svg", "Table");
+    iconRegistry.registerIcon("materials.tiles", "resources/icons/twotone/view_module.svg", "Tiles");
+    iconRegistry.registerIcon("materials.columns", "resources/icons/twotone/view_quilt.svg",
+                              "Columns");
+
     logger.debug("Registered {} icons with IconRegistry", 189);
 }
 

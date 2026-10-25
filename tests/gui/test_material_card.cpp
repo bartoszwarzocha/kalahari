@@ -620,6 +620,9 @@ TEST_CASE("Material card: links are added, dropped from the Navigator, opened an
           "[gui][materials]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Rain"));
+    // The materials are in the Navigator, under their kinds
+    core::SettingsManager::getInstance().set<std::string>(
+        gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
     auto& pm = novel.pm;
     QTemporaryDir files;
     REQUIRE(files.isValid());
@@ -1190,6 +1193,9 @@ TEST_CASE("Navigator: a material clicked shows its card, and Alt+Enter brings th
           "panel forward with the keys in it", "[gui][materials]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Rain"));
+    // The materials are in the Navigator, under their kinds
+    core::SettingsManager::getInstance().set<std::string>(
+        gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
     auto& pm = novel.pm;
     QTemporaryDir files;
     REQUIRE(files.isValid());

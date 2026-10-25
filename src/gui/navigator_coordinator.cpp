@@ -1483,6 +1483,7 @@ void NavigatorCoordinator::onMaterialChanged(const QString& elementId) {
     // Only what shows the material: a download ends while the writer types in the panel
     m_propertiesPanel->refreshMaterial(elementId);
     m_navigatorPanel->refreshItem(elementId);
+    emit materialChanged(elementId);
 }
 
 QList<MaterialCardPanel*> NavigatorCoordinator::materialCards() const {

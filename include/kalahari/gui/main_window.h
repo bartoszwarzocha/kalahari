@@ -55,6 +55,7 @@ class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
 class ParagraphMarksCoordinator;
+class MaterialListCoordinator;
 class EditCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
@@ -384,6 +385,8 @@ private:
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
     /// @brief The paperclips beside the paragraphs that materials are linked with
     ParagraphMarksCoordinator* m_paragraphMarksCoordinator{nullptr};
+    /// @brief The lists of the kinds of materials on their tabs
+    MaterialListCoordinator* m_materialListCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
     GrammarCoordinator* m_grammarCoordinator{nullptr};
 

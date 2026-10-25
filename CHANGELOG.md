@@ -11,6 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Lists of the kinds of materials on tabs** - 2026-10-25. A kind of the Materials clicked
+  in the Navigator (or Enter on it, or Open List in its menu) shows its materials on a tab in
+  the middle of the window; Materials itself shows All Materials, the working notes too. The
+  list is a table with the columns of the kind: the words and the links of the quotes, the
+  site of the web pages, a thumbnail, the format, the size in pixels and the origin of the
+  pictures, the kind, the format and the size of the documents, the words and the status of
+  the working notes; the writer's own fields are columns too. A click on a header sorts by its
+  column (a material without a value comes last); Columns... shows and hides the columns, and
+  dragging a header changes their order, kept for each kind. The search (Ctrl+F; Esc clears
+  it) finds the words of any column; the filters keep the materials linked with an element,
+  those without links, and, with Column Filters, those whose column has the words typed under
+  its header; Clear Filters shows them all. The pictures, the documents and the publications
+  can be shown as tiles, kept for each kind. Above the list: Add (with the kind's name), Edit,
+  Link..., Copy and Delete; the menu of a row (also the menu key and Shift+F10) has Edit, Open,
+  Show in Folder, Copy, Link..., Rename..., Delete... and Properties. The keys of the list:
+  Enter edits (the card of a material, the editor of a working note), a double-click opens,
+  Insert adds, F2 renames, Delete deletes, Ctrl+C copies (the words of a quote, the address,
+  the path of the file), Alt+Enter goes to the Properties panel. A material chosen shows in
+  the Properties panel. Each list keeps what is chosen, the search, the filters and the
+  sorting. Settings > Navigator > Materials: "In the Navigator" shows the kinds with their
+  numbers of materials (the usual) or the kinds with their materials under them, collapsed at
+  first; "A kind clicked in the Navigator" opens a tab of its own (the usual) or changes the
+  kind on one tab. A material shown in the Navigator while its kind has no materials under it
+  shows its kind, and its card in the Properties panel. The lists follow the book and close
+  with it.
+
 - **Links of materials: the role, the paragraph and a note** - 2026-10-25. A link of a
   material with an element of the book says how: quoted in the text, source of information,
   inspiration, illustration or to check, or no role. A new link gets the role the kind of the

@@ -202,8 +202,8 @@ public:
 };
 
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,
-/// what the top of the Add Element window chooses from, how a material opens, and whether its
-/// links name paragraphs
+/// what the top of the Add Element window chooses from, what the Materials show and where a
+/// list of materials opens, how a material opens, and whether its links name paragraphs
 class NavigatorPage : public SettingsPage {
     Q_OBJECT
 public:
@@ -215,6 +215,10 @@ private:
     QRadioButton* m_sections = nullptr;  ///< A section of the book or the Workshop at a time
     QRadioButton* m_book = nullptr;      ///< The whole book or the Workshop
     QRadioButton* m_place = nullptr;     ///< No choice: the kinds of the place only
+    QRadioButton* m_treeTypes = nullptr;   ///< The Materials show their kinds with numbers
+    QRadioButton* m_treeExpand = nullptr;  ///< The kinds have their materials under them
+    QRadioButton* m_tabsOwn = nullptr;     ///< A kind clicked opens its list on a tab of its own
+    QRadioButton* m_tabsOne = nullptr;     ///< The one tab of the lists shows the kind clicked
     QRadioButton* m_openCard = nullptr;    ///< A material opens on a tab of the program
     QRadioButton* m_openSystem = nullptr;  ///< A material opens in the system program
     QRadioButton* m_pagesBrowser = nullptr;  ///< A page opens in the browser
