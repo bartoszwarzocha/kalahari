@@ -89,12 +89,21 @@ qreal caretX(BookEditor& editor, const CursorPosition& position) {
     return caret(editor).left();
 }
 
-/// The red pixels of the numbers left of the cursor, on its line (also on the margin of a
-/// centred heading)
+/// The red pixels of the numbers on the cursor's line, left of its text (also on the margin of
+/// a centred heading). Not of the text: with subpixel antialiasing its edges are red too
 int numberInk(BookEditor& editor) {
+    // The text starts where the cursor before the line's first character stands
+    const CursorPosition position = editor.cursorPosition();
+    paint(editor);
+    const QTextBlock block = editor.textDocument()->findBlockByNumber(position.paragraph);
+    REQUIRE(block.isValid());
+    const QTextLine line = block.layout()->lineForTextPosition(position.offset);
+    REQUIRE(line.isValid());
+    editor.setCursorPosition({position.paragraph, line.textStart()});
     const QImage image = paint(editor);
     const QRectF at = caret(editor);
-    const int right = static_cast<int>(at.left()) - 3;
+    editor.setCursorPosition(position);
+    const int right = static_cast<int>(at.left()) - 2;
     const int left = 0;
     int ink = 0;
     for (int y = std::max(0, static_cast<int>(at.top())); y < std::min(image.height(), static_cast<int>(at.bottom())); ++y) {
