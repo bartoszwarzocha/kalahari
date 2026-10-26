@@ -135,6 +135,14 @@ public:
     /// @brief Set Numbering Value... of a list item: the window that asks for its number
     void showNumberingValue();
 
+    /// @brief Format > Font...: the window of the formatting of the selected text, or of the
+    ///        text typed next; OK gives the text what the writer changed
+    void showFontDialog();
+
+    /// @brief Format > Paragraph...: the window of the formatting of the paragraph at the
+    ///        cursor; OK gives the selected paragraphs what the writer changed
+    void showParagraphDialog();
+
 signals:
     /// @brief Emitted when editor content changes
     ///

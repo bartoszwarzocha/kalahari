@@ -3,7 +3,9 @@
 
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/dialogs/font_dialog.h"
 #include "kalahari/gui/dialogs/list_dialogs.h"
+#include "kalahari/gui/dialogs/paragraph_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
@@ -536,6 +538,36 @@ void EditorPanel::showBulletsAndNumbering() {
         window());
     if (dialog.exec() == QDialog::Accepted) {
         m_bookEditor->applyListDefinition(dialog.definition());
+    }
+}
+
+void EditorPanel::showFontDialog() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    dialogs::FontDialog dialog(m_bookEditor->shownCharacterFormat(), m_bookEditor->selectedText(),
+                               window());
+    if (dialog.exec() == QDialog::Accepted) {
+        const editor::CharacterFormat changes = dialog.changes();
+        if (changes != editor::CharacterFormat{}) {
+            m_bookEditor->applyCharacterFormat(changes);
+        }
+    }
+}
+
+void EditorPanel::showParagraphDialog() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    dialogs::ParagraphDialog dialog(m_bookEditor->shownParagraphFormat(),
+                                    m_bookEditor->currentAlignment(),
+                                    m_bookEditor->currentListItem().has_value(), window());
+    if (dialog.exec() == QDialog::Accepted) {
+        const editor::ParagraphFormat changes = dialog.changes();
+        const std::optional<Qt::Alignment> alignment = dialog.alignmentChange();
+        if (!changes.isEmpty() || alignment) {
+            m_bookEditor->applyParagraphFormat(changes, alignment);
+        }
     }
 }
 

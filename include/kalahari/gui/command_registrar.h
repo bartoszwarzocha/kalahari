@@ -15,6 +15,10 @@
 #include <functional>
 
 namespace kalahari {
+namespace editor {
+enum class CaseChange;  // editor/character_format.h
+}  // namespace editor
+
 namespace gui {
 
 /// @brief Callbacks for MainWindow actions triggered by commands.
@@ -91,14 +95,35 @@ struct CommandCallbacks {
     std::function<void()> onFormatBold;         ///< Format > Bold
     std::function<void()> onFormatItalic;       ///< Format > Italic
     std::function<void()> onFormatUnderline;    ///< Format > Underline
-    std::function<void()> onFormatStrikethrough; ///< Format > Strikethrough
+    std::function<void()> onFormatStrikethrough; ///< Format > Text Effects > Strikethrough
     std::function<void()> onClearFormatting;    ///< Format > Clear Formatting
 
+    // Format > Font... and Paragraph..., the windows of the selected text and paragraphs
+    std::function<void()> onFont;               ///< Format > Font...
+    std::function<void()> onParagraph;          ///< Format > Paragraph...
+
+    // Format > Text Effects
+    std::function<void()> onSuperscript;        ///< Format > Text Effects > Superscript
+    std::function<void()> onSubscript;          ///< Format > Text Effects > Subscript
+    std::function<void()> onSmallCaps;          ///< Format > Text Effects > Small Caps
+    std::function<void()> onAllCaps;            ///< Format > Text Effects > All Caps
+
+    /// Format > Change Case: the letters of the selection, or of the word with the cursor,
+    /// in this case
+    std::function<void(editor::CaseChange)> onChangeCase;
+
+    // The colors: the command gives the color chosen last in its submenu (a toolbar button)
+    std::function<void()> onFontColor;          ///< Format > Font Color
+    std::function<void()> onHighlightColor;     ///< Format > Highlight Color
+
+    std::function<void()> onCopyFormatting;     ///< Format > Copy Formatting
+    std::function<void()> onPasteFormatting;    ///< Format > Paste Formatting
+
     // Paragraph Alignment
-    std::function<void()> onAlignLeft;          ///< Format > Align Left
-    std::function<void()> onAlignCenter;        ///< Format > Align Center
-    std::function<void()> onAlignRight;         ///< Format > Align Right
-    std::function<void()> onAlignJustify;       ///< Format > Justify
+    std::function<void()> onAlignLeft;          ///< Format > Align Text > Align Left
+    std::function<void()> onAlignCenter;        ///< Format > Align Text > Align Center
+    std::function<void()> onAlignRight;         ///< Format > Align Text > Align Right
+    std::function<void()> onAlignJustify;       ///< Format > Align Text > Justify
 
     // Indents and lists
     std::function<void()> onIncreaseIndent;     ///< Format > Increase Indent

@@ -12,8 +12,10 @@
 #include <QApplication>
 #include <QMenuBar>
 #include <algorithm>
+#include <iterator>
 #include <map>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 namespace kalahari {
@@ -38,6 +40,9 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Import") return QObject::tr("&Import");
     if (technicalName == "Export") return QObject::tr("&Export");
     if (technicalName == "Text Style") return QObject::tr("Text &Style");
+    if (technicalName == "Text Effects") return QObject::tr("&Text Effects");
+    if (technicalName == "Change Case") return QObject::tr("&Change Case");
+    if (technicalName == "Align Text") return QObject::tr("A&lign Text");
     if (technicalName == "Formatting Character") return QObject::tr("Fo&rmatting Character");
     if (technicalName == "Statistics") return QObject::tr("&Statistics");
     if (technicalName == "Plugins") return QObject::tr("P&lugins");
@@ -72,6 +77,9 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Recent Books", QStringLiteral("menu.recentBooks")},
         {"Formatting Character", QStringLiteral("menu.formattingCharacter")},
         {"Text Style", QStringLiteral("menu.textStyle")},
+        {"Text Effects", QStringLiteral("menu.textEffects")},
+        {"Change Case", QStringLiteral("menu.changeCase")},
+        {"Align Text", QStringLiteral("menu.alignText")},
         {"Statistics", QStringLiteral("menu.statistics")},
         {"Plugins", QStringLiteral("menu.plugins")},
         {"Assistant Actions", QStringLiteral("menu.assistantActions")},
@@ -167,34 +175,53 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
             return a.menuOrder < b.menuOrder;
         });
 
-        // Add commands IN ORDER, creating submenus as needed
-        for (size_t i = 0; i < sortedCommands.size(); ++i) {
-            const Command& cmd = sortedCommands[i];
-
-            // Parse path: "FILE/Import/DOCX" → levels=["FILE", "Import", "DOCX"]
+        // The submenus of each command: "FILE/Import/DOCX" → ["Import"]
+        std::vector<std::vector<std::string>> submenus;
+        submenus.reserve(sortedCommands.size());
+        for (const Command& cmd : sortedCommands) {
             std::vector<std::string> levels;
             std::istringstream pathStream(cmd.menuPath);
             std::string level;
             while (std::getline(pathStream, level, '/')) {
                 levels.push_back(level);
             }
-
-            if (levels.empty()) {
-                continue;
+            // Skip first (top-level) and last (action)
+            std::vector<std::string> path;
+            if (levels.size() > 2) {
+                path.assign(std::next(levels.begin()), std::prev(levels.end()));
             }
+            submenus.push_back(std::move(path));
+        }
 
-            // Navigate/create submenu hierarchy (translated, with access keys)
-            QMenu* currentMenu = topMenu;
-            for (size_t j = 1; j < levels.size() - 1; ++j) {  // Skip first (top-level) and last (action)
-                currentMenu = getOrCreateSubmenu(currentMenu, levels[j]);
+        // The menu at the path of submenus under the top-level menu (translated, with access
+        // keys), made where it is not there yet
+        const auto menuAt = [this, topMenu](const std::vector<std::string>& path, size_t depth) {
+            QMenu* menu = topMenu;
+            for (size_t j = 0; j < depth && j < path.size(); ++j) {
+                menu = getOrCreateSubmenu(menu, path[j]);
             }
+            return menu;
+        };
+
+        // Add commands IN ORDER, creating submenus as needed
+        for (size_t i = 0; i < sortedCommands.size(); ++i) {
+            const Command& cmd = sortedCommands[i];
+            const std::vector<std::string>& path = submenus[i];
+            QMenu* currentMenu = menuAt(path, path.size());
 
             // Create action and add to menu
             createMenuAction(currentMenu, cmd, registry);
 
-            // Add separator if requested AND not last item
+            // Add separator if requested AND not last item. After the last item of a
+            // submenu the line goes after the submenu, in the menu the next item shares
             if (cmd.addSeparatorAfter && i < sortedCommands.size() - 1) {
-                currentMenu->addSeparator();
+                const std::vector<std::string>& next = submenus[i + 1];
+                size_t shared = 0;
+                while (shared < path.size() && shared < next.size() &&
+                       path[shared] == next[shared]) {
+                    ++shared;
+                }
+                menuAt(path, shared)->addSeparator();
             }
         }
     }

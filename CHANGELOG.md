@@ -11,6 +11,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Lists: Numbering and Bullets** - 2026-10-26. Format > Numbering (F12) and Bullets
+  (Shift+F12) make the selected paragraphs a list, change its kind or take them out of it; a
+  paragraph next to a list of the same kind joins it. Enter starts the next item, in an empty
+  item it goes a level up and then out of the list; Backspace at the start of an item takes
+  its number, then the item. Tab and Shift+Tab at the start of an item, and Format > Increase
+  Indent and Decrease Indent, change its level (nine levels); outside a list they move the
+  paragraph by 1.25 cm. The context menu of an item has Restart at 1, Continue Numbering, Set
+  Numbering Value... and Bullets and Numbering...: a window that gives each level its numbers
+  (1, a, A, i, I with "." or ")") or its bullet (any character of the Special Character
+  window), the place of the number and of the text, with a preview. The numbers go on over the
+  paragraphs between the parts of a list. Autocorrect makes "* ", "1. " and "1) " at the start
+  of a paragraph a list (Settings > Editor > Auto-correct can turn it off). Copied lists go to
+  Word, LibreOffice and browsers as their lists, and to plain text with each item's number or
+  bullet; their lists, and Word's, are pasted as lists. KML has `<ol>`, `<ul>` and `<li>`
+  (docs/kml_format.md).
+
+- **Format: the Font and Paragraph windows, the effects, the colors, Change Case** -
+  2026-10-26. Format > Font... (Ctrl+D) gives the selected text, or the text typed next, its
+  font, style and size, picked from their lists or typed, the colors of the letters and of the
+  highlight, the effects (underline, strikethrough, superscript, subscript, small caps, all
+  caps) and, on the Advanced tab, the letter spacing, with a preview; a part not the same in
+  all of the selection stays as it is unless it is changed. Format > Paragraph... gives the
+  selected paragraphs, over their style, the alignment, the left and right indents, a first
+  line or hanging indent, the space before and after, the line spacing (single, 1.5 lines,
+  double, at least, exactly, multiple) and, on the second tab, widow and orphan control, keep
+  with next, keep lines together and page break before, which the page view follows. The Format
+  menu has the submenus Text Effects (strikethrough, Superscript Ctrl+Shift+P, Subscript
+  Ctrl+Shift+B, Small Caps Ctrl+Shift+K, All Caps Ctrl+Shift+A), Change Case (Sentence case,
+  lowercase, UPPERCASE, Capitalize Each Word, tOGGLE cASE, the formatting of the letters kept)
+  and Align Text, and Font Color and Highlight Color: the color used last at a click, the
+  others in a submenu with the colors of the palette chosen in the color window, the colors
+  used recently, Automatic or No Color, and More Colors.... Copy Formatting and Paste
+  Formatting carry the formatting of the text and of its paragraph to other text, also in
+  another chapter. Clear Formatting also takes off the capitals, the letter spacing and the
+  paragraph's own formatting. On dark paper colored text is shown lighter and highlights
+  darker, so it stays readable; the book keeps the colors as they were chosen. KML has the
+  attributes of a paragraph's own formatting and `<span caps spacing>` (docs/kml_format.md).
+
 - **Paragraph styles, a horizontal line and the breaks, the formatting marks** - 2026-10-19.
   Format > Text Style puts the paragraphs of the cursor or the selection in a style of the
   book's type, as one step of Undo: Heading 1, 2 and 3 (Alt+1, Alt+2, Alt+3; on macOS

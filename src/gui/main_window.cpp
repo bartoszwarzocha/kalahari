@@ -40,6 +40,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
+#include "kalahari/gui/widgets/color_menu.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/utils/distraction_free_layout.h"
@@ -381,6 +382,31 @@ MainWindow::MainWindow(QWidget* parent)
         }
     }
 
+    // Format > Font Color and Highlight Color: their submenus of colors, the swatch of the
+    // color at the cursor framed (the window owns them)
+    const auto shownColor = [this](bool highlight) {
+        return [this, highlight]() {
+            EditorPanel* panel = getCurrentEditor();
+            if (panel == nullptr || panel->getBookEditor() == nullptr) {
+                return QColor();
+            }
+            const editor::CharacterFormat shown = panel->getBookEditor()->shownCharacterFormat();
+            return (highlight ? shown.highlight : shown.color).value_or(QColor());
+        };
+    };
+    m_fontColorMenu = new ColorMenu(ColorMenu::Kind::Text, shownColor(false), this);
+    m_highlightColorMenu = new ColorMenu(ColorMenu::Kind::Highlight, shownColor(true), this);
+    for (ColorMenu* menu : {m_fontColorMenu, m_highlightColorMenu}) {
+        const bool highlight = menu == m_highlightColorMenu;
+        if (QAction* command = CommandRegistry::getInstance().getAction(
+                highlight ? QStringLiteral("format.highlightColor")
+                          : QStringLiteral("format.fontColor"))) {
+            command->setMenu(menu);
+        }
+        connect(menu, &ColorMenu::colorChosen, this,
+                [this, highlight](const QColor& color) { applyColor(color, highlight); });
+    }
+
     // After a command given in a toolbar the keys go back where they were, in the text or a
     // field; a floating toolbar, a window of its own, takes them at a click (the window owns
     // the object)
@@ -687,6 +713,20 @@ void MainWindow::registerCommands() {
         updateEditorActionStates();  // bold and the alignments are off now
     };
 
+    // Format > Font... and Paragraph...: the windows of the editor in front
+    callbacks.onFont = [this]() {
+        if (EditorPanel* editor = getCurrentEditor()) {
+            editor->showFontDialog();
+        }
+        updateEditorActionStates();
+    };
+    callbacks.onParagraph = [this]() {
+        if (EditorPanel* editor = getCurrentEditor()) {
+            editor->showParagraphDialog();
+        }
+        updateEditorActionStates();
+    };
+
     // Alignment commands
     callbacks.onAlignLeft = [this]() { onAlignLeft(); };
     callbacks.onAlignCenter = [this]() { onAlignCenter(); };
@@ -712,6 +752,38 @@ void MainWindow::registerCommands() {
         [](editor::BookEditor& text) { text.toggleList(editor::ListKind::Bulleted); });
     callbacks.onNumbering = inDocument(
         [](editor::BookEditor& text) { text.toggleList(editor::ListKind::Numbered); });
+    // The effects, the cases, the colors and Copy and Paste Formatting, as the indents
+    callbacks.onSuperscript =
+        inDocument([](editor::BookEditor& text) { text.toggleSuperscript(); });
+    callbacks.onSubscript = inDocument([](editor::BookEditor& text) { text.toggleSubscript(); });
+    callbacks.onSmallCaps = inDocument([](editor::BookEditor& text) { text.toggleSmallCaps(); });
+    callbacks.onAllCaps = inDocument([](editor::BookEditor& text) { text.toggleAllCaps(); });
+    callbacks.onChangeCase = [inDocument](editor::CaseChange change) {
+        inDocument([change](editor::BookEditor& text) { text.changeCase(change); })();
+    };
+    callbacks.onFontColor = [this]() {
+        if (m_fontColorMenu != nullptr) {
+            applyColor(m_fontColorMenu->lastColor(), false);
+        }
+    };
+    callbacks.onHighlightColor = [this]() {
+        if (m_highlightColorMenu != nullptr) {
+            applyColor(m_highlightColorMenu->lastColor(), true);
+        }
+    };
+    callbacks.onCopyFormatting = inDocument([this](editor::BookEditor& text) {
+        text.copyFormatting();
+        statusBar()->showMessage(
+            tr("Formatting copied: select text and choose Format > Paste Formatting"), 4000);
+    });
+    callbacks.onPasteFormatting = inDocument([this](editor::BookEditor& text) {
+        if (!editor::BookEditor::hasCopiedFormatting()) {
+            statusBar()->showMessage(
+                tr("No formatting copied yet: choose Format > Copy Formatting first"), 4000);
+            return;
+        }
+        text.pasteFormatting();
+    });
     callbacks.onBulletsNumbering = [this]() {
         if (EditorPanel* editor = getCurrentEditor()) {
             editor->showBulletsAndNumbering();
@@ -1182,6 +1254,19 @@ void MainWindow::onFormatStrikethrough() {
     }
 }
 
+void MainWindow::applyColor(const QColor& color, bool highlight) {
+    core::Logger::getInstance().info("Action triggered: {} {}",
+                                     highlight ? "Highlight Color" : "Font Color",
+                                     color.isValid() ? color.name().toStdString() : "none");
+    EditorPanel* editor = getCurrentEditor();
+    if (editor && editor->getBookEditor()) {
+        editor::CharacterFormat changes;
+        (highlight ? changes.highlight : changes.color) = color;
+        editor->getBookEditor()->applyCharacterFormat(changes);
+    }
+    updateEditorActionStates();
+}
+
 void MainWindow::onAlignLeft() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Align Left");
@@ -1374,6 +1459,10 @@ void MainWindow::updateEditorActionStates() {
     setChecked("format.italic", bookEditor != nullptr && bookEditor->isItalic());
     setChecked("format.underline", bookEditor != nullptr && bookEditor->isUnderline());
     setChecked("format.strikethrough", bookEditor != nullptr && bookEditor->isStrikethrough());
+    setChecked("format.superscript", bookEditor != nullptr && bookEditor->isSuperscript());
+    setChecked("format.subscript", bookEditor != nullptr && bookEditor->isSubscript());
+    setChecked("format.smallCaps", bookEditor != nullptr && bookEditor->isSmallCaps());
+    setChecked("format.allCaps", bookEditor != nullptr && bookEditor->isAllCaps());
 
     // Update view mode checked states
     const auto inMode = [bookEditor](editor::ViewMode mode) {

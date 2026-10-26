@@ -15,6 +15,7 @@
 #include <QString>
 #include <QTimer>
 #include <QWidget>
+#include <QWidgetAction>
 
 #include <utility>
 
@@ -26,6 +27,7 @@ struct MenuItem {
     bool separator = false;
     bool enabled = true;
     QString toolTip;        ///< What it says under the mouse (its text when it says nothing more)
+    bool widget = false;    ///< A widget in the menu (the swatches of a color submenu), no text
     QList<MenuItem> items;  ///< The items of its submenu
     /// Its action, only to compare: one the menu made for itself is gone with the menu
     const QAction* action = nullptr;
@@ -38,6 +40,7 @@ inline QList<MenuItem> menuItems(const QList<QAction*>& actions) {
         MenuItem item;
         item.text = action->text();
         item.separator = action->isSeparator();
+        item.widget = qobject_cast<const QWidgetAction*>(action) != nullptr;
         item.enabled = action->isEnabled();
         item.toolTip = action->toolTip();
         item.action = action;

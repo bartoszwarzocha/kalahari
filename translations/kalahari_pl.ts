@@ -676,10 +676,6 @@
         <translation>&amp;Numerowanie</translation>
     </message>
     <message>
-        <source>C&amp;olor</source>
-        <translation>K&amp;olor</translation>
-    </message>
-    <message>
         <source>Clear For&amp;matting</source>
         <translation>Wyczyść &amp;formatowanie</translation>
     </message>
@@ -1010,6 +1006,58 @@
     <message>
         <source>Bullets and Numberin&amp;g...</source>
         <translation>Punk&amp;tory i numeracja...</translation>
+    </message>
+    <message>
+        <source>Su&amp;perscript</source>
+        <translation>Indeks &amp;górny</translation>
+    </message>
+    <message>
+        <source>Su&amp;bscript</source>
+        <translation>Indeks &amp;dolny</translation>
+    </message>
+    <message>
+        <source>S&amp;mall Caps</source>
+        <translation>&amp;Kapitaliki</translation>
+    </message>
+    <message>
+        <source>&amp;All Caps</source>
+        <translation>&amp;Wersaliki</translation>
+    </message>
+    <message>
+        <source>&amp;Sentence case</source>
+        <translation>&amp;Jak w zdaniu</translation>
+    </message>
+    <message>
+        <source>&amp;lowercase</source>
+        <translation>&amp;małe litery</translation>
+    </message>
+    <message>
+        <source>&amp;UPPERCASE</source>
+        <translation>&amp;WIELKIE LITERY</translation>
+    </message>
+    <message>
+        <source>&amp;Capitalize Each Word</source>
+        <translation>&amp;Każdy Wyraz Wielką Literą</translation>
+    </message>
+    <message>
+        <source>&amp;tOGGLE cASE</source>
+        <translation>&amp;zMIEŃ wIELKOŚĆ lITER</translation>
+    </message>
+    <message>
+        <source>F&amp;ont Color</source>
+        <translation>K&amp;olor czcionki</translation>
+    </message>
+    <message>
+        <source>&amp;Highlight Color</source>
+        <translation>Kolo&amp;r wyróżnienia tekstu</translation>
+    </message>
+    <message>
+        <source>Cop&amp;y Formatting</source>
+        <translation>Ko&amp;piuj formatowanie</translation>
+    </message>
+    <message>
+        <source>Paste Fo&amp;rmatting</source>
+        <translation>&amp;Wklej formatowanie</translation>
     </message>
 </context>
 <context>
@@ -2214,6 +2262,18 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>Fo&amp;rmatting Character</source>
         <translation>Znak &amp;formatujący</translation>
+    </message>
+    <message>
+        <source>&amp;Text Effects</source>
+        <translation>&amp;Efekty tekstu</translation>
+    </message>
+    <message>
+        <source>&amp;Change Case</source>
+        <translation>Zmień wielkość &amp;liter</translation>
+    </message>
+    <message>
+        <source>A&amp;lign Text</source>
+        <translation>W&amp;yrównanie</translation>
     </message>
 </context>
 <context>
@@ -3963,6 +4023,49 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>Click to select color</source>
         <translation>Kliknij, aby wybrać kolor</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ColorMenu</name>
+    <message>
+        <source>&amp;Automatic</source>
+        <translation>&amp;Automatyczny</translation>
+    </message>
+    <message>
+        <source>&amp;No Color</source>
+        <translation>&amp;Brak koloru</translation>
+    </message>
+    <message>
+        <source>Font colors</source>
+        <translation>Kolory czcionki</translation>
+    </message>
+    <message>
+        <source>Highlight colors</source>
+        <translation>Kolory wyróżnienia</translation>
+    </message>
+    <message>
+        <source>Recent colors</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>&amp;More Colors...</source>
+        <translation>&amp;Więcej kolorów...</translation>
+    </message>
+    <message>
+        <source>The color of the letters of the selected text.</source>
+        <translation>Kolor liter zaznaczonego tekstu.</translation>
+    </message>
+    <message>
+        <source>The color behind the selected text.</source>
+        <translation>Kolor tła zaznaczonego tekstu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ColorSwatches</name>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A swatch of a color submenu: the name of the color and its HEX, &quot;Red (#CC0000)&quot;</extracomment>
+        <translation>%1 (%2)</translation>
     </message>
 </context>
 <context>
@@ -6935,6 +7038,14 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>The program does not have an editor for the {kind} yet.</source>
         <extracomment>The tooltip of a greyed command of the Book menu that adds an element of a kind of the Workshop, e.g. New Character.... In Polish: Program nie ma jeszcze edytora {kind:genitive}.</extracomment>
         <translation>Program nie ma jeszcze edytora {kind:genitive}.</translation>
+    </message>
+    <message>
+        <source>Formatting copied: select text and choose Format &gt; Paste Formatting</source>
+        <translation>Skopiowano formatowanie: zaznacz tekst i wybierz Format &gt; Wklej formatowanie</translation>
+    </message>
+    <message>
+        <source>No formatting copied yet: choose Format &gt; Copy Formatting first</source>
+        <translation>Nie skopiowano jeszcze formatowania: najpierw wybierz Format &gt; Kopiuj formatowanie</translation>
     </message>
 </context>
 <context>
@@ -12482,6 +12593,141 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::FontDialog</name>
+    <message>
+        <source>Font</source>
+        <translation>Czcionka</translation>
+    </message>
+    <message>
+        <source>The look of the selected text; the paragraph style stays as it is.</source>
+        <translation>Wygląd zaznaczonego tekstu; styl akapitu się nie zmienia.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>The mist came down over the river</source>
+        <extracomment>The preview of Format &gt; Font when no text is selected. In Polish: Mgła zeszła nad rzekę</extracomment>
+        <translation>Mgła zeszła nad rzekę</translation>
+    </message>
+    <message>
+        <source>&amp;Font</source>
+        <translation>&amp;Czcionka</translation>
+    </message>
+    <message>
+        <source>Ad&amp;vanced</source>
+        <translation>&amp;Zaawansowane</translation>
+    </message>
+    <message>
+        <source>Fo&amp;nt</source>
+        <translation>Czcio&amp;nka</translation>
+    </message>
+    <message>
+        <source>St&amp;yle</source>
+        <translation>St&amp;yl</translation>
+    </message>
+    <message>
+        <source>&amp;Size</source>
+        <translation>&amp;Rozmiar</translation>
+    </message>
+    <message>
+        <source>Regular</source>
+        <translation>Normalny</translation>
+    </message>
+    <message>
+        <source>Italic</source>
+        <translation>Kursywa</translation>
+    </message>
+    <message>
+        <source>Bold</source>
+        <translation>Pogrubiony</translation>
+    </message>
+    <message>
+        <source>Bold Italic</source>
+        <translation>Pogrubiona kursywa</translation>
+    </message>
+    <message>
+        <source>Font &amp;color</source>
+        <translation>&amp;Kolor czcionki</translation>
+    </message>
+    <message>
+        <source>&amp;Highlight color</source>
+        <translation>Kolor &amp;wyróżnienia tekstu</translation>
+    </message>
+    <message>
+        <source>Effects</source>
+        <translation>Efekty</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>&amp;Underline</source>
+        <translation>&amp;Podkreślenie</translation>
+    </message>
+    <message>
+        <source>Stri&amp;kethrough</source>
+        <translation>Prz&amp;ekreślenie</translation>
+    </message>
+    <message>
+        <source>Su&amp;perscript</source>
+        <translation>Indeks &amp;górny</translation>
+    </message>
+    <message>
+        <source>Subscrip&amp;t</source>
+        <translation>Indeks &amp;dolny</translation>
+    </message>
+    <message>
+        <source>S&amp;mall caps</source>
+        <translation>Kap&amp;italiki</translation>
+    </message>
+    <message>
+        <source>&amp;All caps</source>
+        <translation>Wers&amp;aliki</translation>
+    </message>
+    <message>
+        <source>Character spacing</source>
+        <translation>Odstępy między znakami</translation>
+    </message>
+    <message>
+        <source>Normal</source>
+        <translation>Normalne</translation>
+    </message>
+    <message>
+        <source>Expanded</source>
+        <translation>Rozstrzelone</translation>
+    </message>
+    <message>
+        <source>Condensed</source>
+        <translation>Zagęszczone</translation>
+    </message>
+    <message>
+        <source>&amp;by</source>
+        <extracomment>Format &gt; Font, the letter spacing: Expanded &quot;by&quot; 1.5 pt. In Polish: o</extracomment>
+        <translation>&amp;o</translation>
+    </message>
+    <message>
+        <source> pt</source>
+        <extracomment>The unit of the letter spacing, points. In Polish: pt</extracomment>
+        <translation> pt</translation>
+    </message>
+    <message>
+        <source>Expanded spacing moves the letters of the selected text apart, condensed spacing brings them closer together.</source>
+        <translation>Rozstrzelenie oddala od siebie litery zaznaczonego tekstu, zagęszczenie je zbliża.</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <extracomment>The color of a text: the editor&apos;s, which follows its paper</extracomment>
+        <translation>Brak</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Automatyczny</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::GrammarSetupDialog</name>
     <message>
         <source>&amp;Cancel</source>
@@ -13347,6 +13593,169 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>Preview</source>
         <translation>Podgląd</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ParagraphDialog</name>
+    <message>
+        <source> pt</source>
+        <extracomment>The unit of the spacing of paragraphs, points. In Polish: pt</extracomment>
+        <translation> pt</translation>
+    </message>
+    <message>
+        <source>Paragraph</source>
+        <translation>Akapit</translation>
+    </message>
+    <message>
+        <source>Indents, spacing and breaks of the selected paragraphs; the paragraph style stays as it is.</source>
+        <translation>Wcięcia, odstępy i podziały zaznaczonych akapitów; styl akapitu się nie zmienia.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>&amp;Indents and Spacing</source>
+        <translation>&amp;Wcięcia i odstępy</translation>
+    </message>
+    <message>
+        <source>Line and Page &amp;Breaks</source>
+        <translation>Podziały wiersza i &amp;strony</translation>
+    </message>
+    <message>
+        <source>Ali&amp;gnment</source>
+        <translation>W&amp;yrównanie</translation>
+    </message>
+    <message>
+        <source>Align Left</source>
+        <translation>Wyrównaj do lewej</translation>
+    </message>
+    <message>
+        <source>Align Center</source>
+        <translation>Wyśrodkuj</translation>
+    </message>
+    <message>
+        <source>Align Right</source>
+        <translation>Wyrównaj do prawej</translation>
+    </message>
+    <message>
+        <source>Justify</source>
+        <translation>Wyjustuj</translation>
+    </message>
+    <message>
+        <source>Indentation</source>
+        <translation>Wcięcia</translation>
+    </message>
+    <message>
+        <source>(none)</source>
+        <extracomment>Format &gt; Paragraph, the special indent: none</extracomment>
+        <translation>(brak)</translation>
+    </message>
+    <message>
+        <source>First line</source>
+        <translation>Pierwszy wiersz</translation>
+    </message>
+    <message>
+        <source>Hanging</source>
+        <translation>Wysunięcie</translation>
+    </message>
+    <message>
+        <source>&amp;Left</source>
+        <translation>&amp;Lewe</translation>
+    </message>
+    <message>
+        <source>&amp;Right</source>
+        <translation>P&amp;rawe</translation>
+    </message>
+    <message>
+        <source>&amp;Special</source>
+        <translation>Specjal&amp;ne</translation>
+    </message>
+    <message>
+        <source>B&amp;y</source>
+        <extracomment>Format &gt; Paragraph: a special indent &quot;by&quot; 0.63 cm. In Polish: o</extracomment>
+        <translation>&amp;o</translation>
+    </message>
+    <message>
+        <source>A list item has the indents of its level: Format &gt; Bullets and Numbering...</source>
+        <translation>Punkt listy ma wcięcia swojego poziomu: Format &gt; Punktory i numeracja...</translation>
+    </message>
+    <message>
+        <source>Spacing</source>
+        <translation>Odstępy</translation>
+    </message>
+    <message>
+        <source>Single</source>
+        <translation>Pojedyncza</translation>
+    </message>
+    <message>
+        <source>1.5 lines</source>
+        <translation>1,5 wiersza</translation>
+    </message>
+    <message>
+        <source>Double</source>
+        <translation>Podwójna</translation>
+    </message>
+    <message>
+        <source>At least</source>
+        <translation>Co najmniej</translation>
+    </message>
+    <message>
+        <source>Exactly</source>
+        <translation>Dokładnie</translation>
+    </message>
+    <message>
+        <source>Multiple</source>
+        <translation>Wielokrotna</translation>
+    </message>
+    <message>
+        <source>Be&amp;fore</source>
+        <translation>Prz&amp;ed</translation>
+    </message>
+    <message>
+        <source>Aft&amp;er</source>
+        <translation>&amp;Po</translation>
+    </message>
+    <message>
+        <source>Li&amp;ne spacing</source>
+        <translation>&amp;Interlinia</translation>
+    </message>
+    <message>
+        <source>&amp;At</source>
+        <extracomment>Format &gt; Paragraph: line spacing At least &quot;at&quot; 12 pt. In Polish: co</extracomment>
+        <translation>&amp;co</translation>
+    </message>
+    <message>
+        <source>At least and Exactly are in points, Multiple in lines.</source>
+        <translation>Interlinia „Co najmniej” i „Dokładnie” jest w punktach, „Wielokrotna” – w wierszach.</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Pagination</source>
+        <translation>Podział na strony</translation>
+    </message>
+    <message>
+        <source>&amp;Widow/Orphan control</source>
+        <translation>&amp;Kontrola bękartów i wdów</translation>
+    </message>
+    <message>
+        <source>Keep with ne&amp;xt</source>
+        <translation>Ra&amp;zem z następnym</translation>
+    </message>
+    <message>
+        <source>&amp;Keep lines together</source>
+        <translation>Zachowaj wiersze r&amp;azem</translation>
+    </message>
+    <message>
+        <source>Page break bef&amp;ore</source>
+        <translation>Po&amp;dział strony przed</translation>
+    </message>
+    <message>
+        <source>Widow/Orphan control leaves no single line of the paragraph at the bottom or at the top of a page. The page view follows these settings; the headings keep with the next paragraph in their style.</source>
+        <translation>Kontrola bękartów i wdów nie zostawia pojedynczego wiersza akapitu na dole ani na górze strony. Widok strony uwzględnia te ustawienia; nagłówki mają w stylu włączone „Razem z następnym”.</translation>
     </message>
 </context>
 <context>

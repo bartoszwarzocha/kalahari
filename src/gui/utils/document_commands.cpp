@@ -72,8 +72,13 @@ private:
 const std::vector<std::string>& documentCommands() {
     static const std::vector<std::string> ids = {
         "edit.find",          "edit.findNext",      "edit.findPrevious",    "edit.findReplace",
+        "format.font",        "format.paragraph",
         "format.bold",        "format.italic",      "format.underline",     "format.strikethrough",
-        "format.clearFormatting",
+        "format.superscript", "format.subscript",   "format.smallCaps",     "format.allCaps",
+        "format.case.sentence", "format.case.lower", "format.case.upper",
+        "format.case.capitalize", "format.case.toggle",
+        "format.fontColor",   "format.highlightColor", "format.copyFormatting",
+        "format.pasteFormatting", "format.clearFormatting",
         "format.alignLeft",   "format.alignCenter", "format.alignRight",    "format.justify",
         "format.increaseIndent", "format.decreaseIndent", "format.bullets", "format.numbering",
         "format.bulletsNumbering",
@@ -86,8 +91,13 @@ const std::vector<std::string>& documentCommands() {
 
 const std::vector<std::string>& changingDocumentCommands() {
     static const std::vector<std::string> ids = {
-        "edit.findReplace", "format.bold",        "format.italic",     "format.underline",
-        "format.strikethrough", "format.clearFormatting", "format.alignLeft",
+        "edit.findReplace", "format.font",        "format.paragraph",
+        "format.bold",      "format.italic",      "format.underline",
+        "format.strikethrough", "format.superscript", "format.subscript",
+        "format.smallCaps", "format.allCaps",     "format.case.sentence", "format.case.lower",
+        "format.case.upper", "format.case.capitalize", "format.case.toggle",
+        "format.fontColor", "format.highlightColor", "format.pasteFormatting",
+        "format.clearFormatting", "format.alignLeft",
         "format.alignCenter", "format.alignRight",
         "format.justify",   "format.increaseIndent", "format.decreaseIndent",
         "format.bullets",   "format.numbering", "format.bulletsNumbering",
