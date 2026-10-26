@@ -21,7 +21,9 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/grammar_error.h>
+#include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
@@ -724,6 +726,73 @@ public:
     void insertTextObject(TextObject object);
 
     // =========================================================================
+    // Lists and the indents of paragraphs (text_lists.h, paragraph_format.h)
+    //
+    // Each change is one undo step that brings back the cursor and selection it was made
+    // with; the objects among the paragraphs stay as they are.
+    // =========================================================================
+
+    /// @brief Format > Numbering (F12) and Bullets (Shift+F12): make the paragraph at the
+    ///        cursor, or the selected ones, items of a list of the kind, or take them out of
+    ///        their lists
+    ///
+    /// When all of them are items of the kind with numbers or bullets, they leave their
+    /// lists. Otherwise they all become items: of the list of the kind one of them is in,
+    /// else of the list of the kind right before or after them, else of a new one. An item
+    /// keeps its level.
+    void toggleList(ListKind kind);
+
+    /// @brief The kind of the list item at the cursor; nothing outside a list and for an
+    ///        item without a number or bullet
+    std::optional<ListKind> currentListKind() const;
+
+    /// @brief The list item at the cursor (also one without a number); nothing outside a list
+    std::optional<ListItem> currentListItem() const;
+
+    /// @brief The number of the list item at the cursor; -1 outside a list and for an item
+    ///        without a number
+    int currentListNumber() const;
+
+    /// @brief Format > Increase Indent: the list items go one level down (Tab), the other
+    ///        paragraphs a step of the indent (1.25 cm) to the right
+    void increaseIndent();
+
+    /// @brief Format > Decrease Indent: the list items go one level up (Shift+Tab), the other
+    ///        paragraphs a step of the indent to the left (not past the edge of the text)
+    void decreaseIndent();
+
+    /// @brief Restart at 1: the item at the cursor gets the first number of its level, the
+    ///        next ones go on from it
+    void restartNumbering();
+
+    /// @brief Continue Numbering: the item at the cursor loses its own number; the first item
+    ///        of a list joins its list with the list of the kind before it
+    void continueNumbering();
+
+    /// @brief Whether Continue Numbering changes the item at the cursor
+    bool canContinueNumbering() const;
+
+    /// @brief Set Numbering Value: the item at the cursor gets the number, the next ones go
+    ///        on from it
+    void setNumberingValue(int value);
+
+    /// @brief Format > Bullets and Numbering: the lists of the selected paragraphs get the
+    ///        formats of the levels; a paragraph outside a list becomes an item of the first
+    ///        of them, or of a new list
+    void applyListDefinition(const ListDefinition& definition);
+
+    /// @brief The formatting the paragraph at the cursor is shown with, in points: its own
+    ///        over its style's (Format > Paragraph)
+    ParagraphFormat shownParagraphFormat() const;
+
+    /// @brief Format > Paragraph: give the parts of @p changes that have a value to the
+    ///        paragraph at the cursor, or the selected ones, and the alignment, if given
+    ///
+    /// A part equal to the one the paragraph's style gives it is not kept as its own.
+    void applyParagraphFormat(const ParagraphFormat& changes,
+                              std::optional<Qt::Alignment> alignment = std::nullopt);
+
+    // =========================================================================
     // Annotations: comments, TODOs and notes
     // =========================================================================
 
@@ -1220,6 +1289,14 @@ signals:
     ///        "Wielki"); Caps Lock is still on
     void capsLockCorrected();
 
+    /// @brief Set Numbering Value... of the context menu of a list item: the window that asks
+    ///        for the number (setNumberingValue())
+    void numberingValueAsked();
+
+    /// @brief Bullets and Numbering... of the context menu of a list item: the window of the
+    ///        formats of the list (applyListDefinition())
+    void bulletsAndNumberingAsked();
+
     /// @brief Emitted when the document content changes
     ///
     /// This signal is emitted whenever text is inserted, deleted, or modified.
@@ -1463,6 +1540,36 @@ private:
 
     /// @brief Align the paragraph at the cursor, or the selected ones, as one undo step
     void setParagraphAlignment(Qt::Alignment alignment);
+
+    /// @brief The paragraphs of text (not the objects) of the selection, or the one at the
+    ///        cursor
+    std::vector<QTextBlock> selectedTextBlocks() const;
+
+    /// @brief Give blocks new formats as one undo step that brings back the cursor and
+    ///        selection it was made with; nothing to change, no step
+    void setBlockFormats(const std::vector<std::pair<QTextBlock, QTextBlockFormat>>& formats);
+
+    /// @brief List items among the selected paragraphs go @p direction levels down (Tab) or
+    ///        up; with @p otherParagraphs the other paragraphs a step of the indent
+    void changeIndent(int direction, bool otherParagraphs);
+
+    /// @brief Whether Tab and Shift+Tab change the levels of list items here: at the start of
+    ///        an item, or with a selection of paragraphs that are all list items
+    bool tabChangesListLevel() const;
+
+    /// @brief Enter in an empty list item: the item goes one level up, or out of its list
+    /// @return false where Enter starts a new paragraph
+    bool endListAtEmptyItem();
+
+    /// @brief Backspace at the start of a list item: its number or bullet goes, then the item
+    ///        leaves its list
+    /// @return false where Backspace deletes
+    bool removeListMarkAtCursor();
+
+    /// @brief Autocorrect: "* " starting a paragraph makes it a bulleted item, "1. " or "1) "
+    ///        a numbered one
+    /// @return Whether the paragraph became an item
+    bool autoCorrectList(const QTextBlock& block);
 
     /// @brief Put back the cursor and selection the undo step just undone or redone
     /// recorded: the ones a step that changes no text (a paragraph format step, a step of

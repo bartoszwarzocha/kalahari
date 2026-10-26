@@ -283,6 +283,10 @@ std::map<std::string, json> buildDefaults() {
         {"editor.autoCorrect.capsLock", true},
         {"editor.autoCorrect.sceneBreak", true},
         {"editor.autoCorrect.horizontalRule", true},
+        // "* " and "1. " or "1) " starting a paragraph to an item of a bulleted and of a
+        // numbered list
+        {"editor.autoCorrect.bulletedLists", true},
+        {"editor.autoCorrect.numberedLists", true},
 
         // The replacement table: pairs of a word and its replacement, each one on or off
         // (the program's own pairs too; "Restore Defaults" brings back these)

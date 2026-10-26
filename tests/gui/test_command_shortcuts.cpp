@@ -127,6 +127,8 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"format.alignCenter", QStringLiteral("Ctrl+E")},
         {"format.alignRight", QStringLiteral("Ctrl+R")},
         {"format.justify", QStringLiteral("Ctrl+J")},
+        {"format.bullets", QStringLiteral("Shift+F12")},  // as in LibreOffice
+        {"format.numbering", QStringLiteral("F12")},
 #ifdef Q_OS_MACOS
         {"format.clearFormatting", QStringLiteral("Ctrl+\\")},  // Cmd+\: Cmd+Space is Spotlight
 #else

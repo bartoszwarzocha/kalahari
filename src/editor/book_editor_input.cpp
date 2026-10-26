@@ -783,6 +783,39 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         addGrammarActions(menu, *grammarError, pos.paragraph);
     }
 
+    // A list item: its numbering and its level, as in Word
+    if (const std::optional<ListItem> item = currentListItem()) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        if (!item->levelFormat().isBullet()) {
+            const ListLevel& level = item->levelFormat();
+            //: %1 is the first number of the level of the list item: 1, a, i
+            QAction* restart = menu.addAction(
+                tr("&Restart at %1").arg(listNumberText(level.start, level.format)), this,
+                &BookEditor::restartNumbering);
+            disableWhileReadOnly(restart);
+            restart->setEnabled(restart->isEnabled() &&
+                                (!item->numbered || currentListNumber() != level.start));
+            QAction* goOn =
+                menu.addAction(tr("Contin&ue Numbering"), this, &BookEditor::continueNumbering);
+            disableWhileReadOnly(goOn);
+            goOn->setEnabled(goOn->isEnabled() && canContinueNumbering());
+            disableWhileReadOnly(menu.addAction(tr("Set Numbering &Value..."), this,
+                                                &BookEditor::numberingValueAsked));
+            menu.addSeparator();
+        }
+        QAction* deeper = menu.addAction(tr("Incr&ease Indent"), this, &BookEditor::increaseIndent);
+        disableWhileReadOnly(deeper);
+        deeper->setEnabled(deeper->isEnabled() && item->level < LIST_LEVELS - 1);
+        QAction* higher = menu.addAction(tr("Decrea&se Indent"), this, &BookEditor::decreaseIndent);
+        disableWhileReadOnly(higher);
+        higher->setEnabled(higher->isEnabled() && item->level > 0);
+        disableWhileReadOnly(menu.addAction(tr("Bullets and Numberin&g..."), this,
+                                            &BookEditor::bulletsAndNumberingAsked));
+        menu.addSeparator();
+    }
+
     // The editing items: the Edit menu's commands with their icons and keys, where the
     // application gives them; else the editor's own, those that change the text greyed out in
     // a read-only text

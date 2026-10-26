@@ -223,6 +223,14 @@ public:
     /// @brief The alignment a block is shown with: its own, else the one of its style
     Qt::Alignment shownAlignment(const QTextBlock& block) const;
 
+    /// @brief The formatting the style of a block gives it, in points, every part with a
+    ///        value (Normal as the typography and the document font show it)
+    ParagraphFormat styleParagraphFormat(const QTextBlock& block) const;
+
+    /// @brief The formatting a block is shown with, in points: its own over its style's
+    ///        (the indents of a list item are those of its level)
+    ParagraphFormat shownParagraphFormat(const QTextBlock& block) const;
+
     /// @brief How the scene breaks look (a view setting: the text keeps the breaks)
     void setSceneBreakLook(SceneBreakLook look);
     SceneBreakLook sceneBreakLook() const { return m_sceneBreakLook; }

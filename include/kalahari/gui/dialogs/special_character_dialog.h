@@ -118,6 +118,10 @@ public:
     ///        again, after a change (a character inserted, keys given)
     void refresh();
 
+    /// @brief Choose a character for another window (the bullet of a list) instead of
+    ///        inserting one: Choose names it (insertRequested()) and closes the window
+    void setChoosing();
+
     /// @brief Insert the character selected, and close the window unless it stays open
     void accept() override;
 
@@ -195,6 +199,7 @@ private:
     QString m_gridGroup;              ///< The group of the grid
     QString m_listGroup;              ///< The group of the list ("all" at first)
     bool m_filling = false;           ///< Filling a view: its selection is not the writer's
+    bool m_choosing = false;          ///< Choosing a character for another window
 
     CharacterFonts m_fonts;           ///< Of the characters, from the font of the text
 

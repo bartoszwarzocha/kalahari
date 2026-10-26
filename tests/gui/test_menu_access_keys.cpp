@@ -502,6 +502,13 @@ void checkTextMenus(bool shown, QStringList& problems) {
     }
     editor.clearSelection();
 
+    // A list item: its numbering, its level and Bullets and Numbering on top of the usual menu
+    editor.fromKml(QStringLiteral("<kml><ol><li>") + sentence() + QStringLiteral("</li></ol></kml>"));
+    QList<test::MenuItem> listMenu = contextMenu(&editor, &editor, placeOf(editor, 1));
+    collectProblems(listMenu, QStringLiteral("List item"), {}, problems);
+    CHECK(itemCount(listMenu) == 6 + 6);
+    editor.fromKml(test::kmlOf({sentence()}));
+
     // The words for a misspelled one, from the dictionary, on top of the usual menu; the
     // editor checks its text as it shows
     editor::SpellCheckService spelling;

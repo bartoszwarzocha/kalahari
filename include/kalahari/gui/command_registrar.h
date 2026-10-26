@@ -100,6 +100,13 @@ struct CommandCallbacks {
     std::function<void()> onAlignRight;         ///< Format > Align Right
     std::function<void()> onAlignJustify;       ///< Format > Justify
 
+    // Indents and lists
+    std::function<void()> onIncreaseIndent;     ///< Format > Increase Indent
+    std::function<void()> onDecreaseIndent;     ///< Format > Decrease Indent
+    std::function<void()> onBullets;            ///< Format > Bullets
+    std::function<void()> onNumbering;          ///< Format > Numbering
+    std::function<void()> onBulletsNumbering;   ///< Format > Bullets and Numbering...
+
     /// Format > Text Style: puts the paragraphs of the cursor or the selection in the style
     /// of this id (editor/paragraph_styles.h)
     std::function<void(const QString&)> onParagraphStyle;

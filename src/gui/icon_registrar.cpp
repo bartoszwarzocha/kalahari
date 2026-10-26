@@ -136,6 +136,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.decreaseIndent", "resources/icons/twotone/format_indent_decrease.svg", "Decrease Indent");
     iconRegistry.registerIcon("format.bullets", "resources/icons/twotone/format_list_bulleted.svg", "Bullets");
     iconRegistry.registerIcon("format.numbering", "resources/icons/twotone/format_list_numbered.svg", "Numbering");
+    iconRegistry.registerIcon("format.bulletsNumbering", "resources/icons/twotone/format_list_numbered.svg", "Bullets and Numbering");
     iconRegistry.registerIcon("format.color", "resources/icons/twotone/format_color_text.svg", "Text Color");
     iconRegistry.registerIcon("format.clearFormatting", "resources/icons/twotone/format_clear.svg", "Clear Formatting");
     iconRegistry.registerIcon("format.paragraph", "resources/icons/twotone/notes.svg", "Paragraph");

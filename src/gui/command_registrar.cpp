@@ -481,7 +481,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // =========================================================================
 
     REG_CMD("format.font", QT_TRANSLATE_NOOP("CommandRegistrar", "&Font..."), "FORMAT/Font...", 10, false, 1);
-    REG_CMD("format.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "&Paragraph..."), "FORMAT/Paragraph...", 20, true, 1);
+    REG_CMD("format.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "&Paragraph..."), "FORMAT/Paragraph...", 20, false, 1);
+    // The formats of the levels of the list in the selected paragraphs (gui/dialogs/list_dialogs.h)
+    REG_CMD_CB("format.bulletsNumbering", QT_TRANSLATE_NOOP("CommandRegistrar", "Bullets and Numberin&g..."), "FORMAT/Bullets and Numbering...", 25, true, 0,
+               callbacks.onBulletsNumbering);
 
     // Text Style submenu: the paragraph styles every book has (the package "Base"), by the ids
     // of editor/paragraph_styles.h; the menu adds the other styles of the book after Code.
@@ -546,11 +549,26 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onAlignJustify);
 
-    REG_CMD("format.increaseIndent", QT_TRANSLATE_NOOP("CommandRegistrar", "Incre&ase Indent"), "FORMAT/Increase Indent", 180, false, 1);
-    REG_CMD("format.decreaseIndent", QT_TRANSLATE_NOOP("CommandRegistrar", "&Decrease Indent"), "FORMAT/Decrease Indent", 190, true, 1);
+    // A list item goes a level down or up (Tab and Shift+Tab at its start), another paragraph
+    // a step of the indent (editor/text_lists.h, editor/paragraph_format.h)
+    REG_CMD_TOOL_ICON("format.increaseIndent", QT_TRANSLATE_NOOP("CommandRegistrar", "Incre&ase Indent"), "FORMAT/Increase Indent", 180, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onIncreaseIndent);
+    REG_CMD_TOOL_ICON("format.decreaseIndent", QT_TRANSLATE_NOOP("CommandRegistrar", "&Decrease Indent"), "FORMAT/Decrease Indent", 190, true, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onDecreaseIndent);
 
-    REG_CMD("format.bullets", QT_TRANSLATE_NOOP("CommandRegistrar", "Bull&ets"), "FORMAT/Bullets", 200, false, 1);
-    REG_CMD("format.numbering", QT_TRANSLATE_NOOP("CommandRegistrar", "&Numbering"), "FORMAT/Numbering", 210, true, 1);
+    // As in LibreOffice: F12 and Shift+F12
+    REG_CMD_TOOL_ICON("format.bullets", QT_TRANSLATE_NOOP("CommandRegistrar", "Bull&ets"), "FORMAT/Bullets", 200, false, 0,
+                      KeyboardShortcut(Qt::Key_F12, Qt::ShiftModifier),
+                      IconSet(),
+                      callbacks.onBullets);
+    REG_CMD_TOOL_ICON("format.numbering", QT_TRANSLATE_NOOP("CommandRegistrar", "&Numbering"), "FORMAT/Numbering", 210, true, 0,
+                      KeyboardShortcut(Qt::Key_F12),
+                      IconSet(),
+                      callbacks.onNumbering);
 
     REG_CMD("format.color", QT_TRANSLATE_NOOP("CommandRegistrar", "C&olor"), "FORMAT/Color", 220, true, 1);
 

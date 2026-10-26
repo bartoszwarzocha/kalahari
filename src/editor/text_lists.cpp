@@ -272,6 +272,61 @@ QString listNumberText(int number, ListNumberFormat format) {
     return QString::number(number);
 }
 
+std::optional<int> listNumberFromText(const QString& text, ListNumberFormat format) {
+    const QString written = text.trimmed().toLower();
+    if (written.isEmpty()) {
+        return std::nullopt;
+    }
+    const auto inRange = [](qint64 number) -> std::optional<int> {
+        if (number < MIN_LIST_NUMBER || number > MAX_LIST_NUMBER) {
+            return std::nullopt;
+        }
+        return static_cast<int>(number);
+    };
+    bool digits = false;
+    const qint64 number = written.toLongLong(&digits);
+    if (digits) {
+        return inRange(number);
+    }
+    switch (format) {
+        case ListNumberFormat::LowerAlpha:
+        case ListNumberFormat::UpperAlpha: {
+            // a ... z, aa ... zz: the same letter again and again
+            const QChar letter = written.front();
+            if (letter < QLatin1Char('a') || letter > QLatin1Char('z') ||
+                written.count(letter) != written.size()) {
+                return std::nullopt;
+            }
+            return inRange(static_cast<qint64>(written.size() - 1) * ALPHABET_LETTERS +
+                           (letter.unicode() - u'a') + 1);
+        }
+        case ListNumberFormat::LowerRoman:
+        case ListNumberFormat::UpperRoman: {
+            // Read from the largest numerals down; only a number written as it is written
+            // back is one
+            qint64 value = 0;
+            qsizetype at = 0;
+            for (const RomanNumeral& numeral : ROMAN_NUMERALS) {
+                const QLatin1String part(numeral.lower);
+                while (written.mid(at).startsWith(part) && value <= MAX_LIST_NUMBER) {
+                    value += numeral.value;
+                    at += part.size();
+                }
+            }
+            if (at != written.size() || value < 1 ||
+                listNumberText(static_cast<int>(std::min<qint64>(value, MAX_LIST_NUMBER)),
+                               ListNumberFormat::LowerRoman) != written) {
+                return std::nullopt;
+            }
+            return inRange(value);
+        }
+        case ListNumberFormat::Decimal:
+        case ListNumberFormat::Bullet:
+            break;
+    }
+    return std::nullopt;
+}
+
 QString listMarkerText(const ListLevel& level, int number) {
     if (level.isBullet()) {
         return level.bullet;

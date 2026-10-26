@@ -142,6 +142,11 @@ QString listNumberText(int number, ListNumberFormat format);
 /// @brief The mark of an item of a level: its number with the suffix, or the bullet
 QString listMarkerText(const ListLevel& level, int number);
 
+/// @brief A number as written in a format ("3", "c", "iii", in either case) or in digits;
+///        nothing for a text that is not one, or a number past MIN_LIST_NUMBER to
+///        MAX_LIST_NUMBER
+std::optional<int> listNumberFromText(const QString& text, ListNumberFormat format);
+
 // =============================================================================
 // The items of a document
 // =============================================================================

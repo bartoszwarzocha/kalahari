@@ -337,14 +337,19 @@ QWidget* EditorAutoCorrectPage::createWhileTypingTab()
                         "chosen on the Spelling page goes before both. The hyphen becomes a dash "
                         "when a space is typed after it."));
 
-    // What is typed in a paragraph of its own and Enter makes an element of the text
+    // What is typed in a paragraph of its own and Enter makes an element of the text, and what
+    // is typed at the start of a paragraph and a space a list
     QFormLayout* elements = addTabGroup(layout, tr("Text Elements"));
     m_replacements.push_back(addCheckBox(elements, tr("“***” and Enter: a scene break"),
                                          "editor.autoCorrect.sceneBreak"));
     m_replacements.push_back(addCheckBox(elements, tr("“---” and Enter: a horizontal line"),
                                          "editor.autoCorrect.horizontalRule"));
-    addNote(elements, tr("Typed in an empty paragraph. “* ” and “1. ” at the start of a "
-                         "paragraph will come with the lists."));
+    m_replacements.push_back(addCheckBox(elements, tr("“*” and a space: a bulleted list"),
+                                         "editor.autoCorrect.bulletedLists"));
+    m_replacements.push_back(addCheckBox(elements, tr("“1.” or “1)” and a space: a numbered list"),
+                                         "editor.autoCorrect.numberedLists"));
+    addNote(elements, tr("“***” and “---” are typed in an empty paragraph, “*” and “1.” at "
+                         "the start of a paragraph; the list starts from the number typed."));
 
     addNote(layout, tr("Tools > Auto-correct as You Type, also a button on the Tools toolbar, "
                        "turns all the replacements on and off at once; the choices above "

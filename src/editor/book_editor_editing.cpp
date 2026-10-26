@@ -349,6 +349,9 @@ void BookEditor::autoCorrectTyped()
     if (!block.isValid() || !isCheckedParagraph(block)) {
         return;  // code, and other text whose spelling is not checked, stays as typed
     }
+    if (autoCorrectList(block)) {
+        return;  // "* " or "1. " starting the paragraph made it a list item
+    }
     const std::optional<AutoCorrection> change = autoCorrection(
         block.text().left(m_cursorPosition.offset), autoCorrectForText(),
         [this]() {
@@ -492,6 +495,9 @@ void BookEditor::insertNewline()
         return;
     }
     ensureDocument();
+    if (endListAtEmptyItem()) {
+        return;  // an empty list item goes a level up, or out of its list
+    }
 
     // Split the paragraph via a direct QTextCursor insertBlock() — recorded by
     // QTextDocument's native undo, together with the replaced selection as one step.
@@ -521,14 +527,25 @@ void BookEditor::insertNewline()
         }
     } else {
         // At the end of a paragraph the new one is in the style that follows its style (a
-        // heading is followed by the text); a paragraph split in two keeps its style
+        // heading is followed by the text); a paragraph split in two keeps its style. A list
+        // item is followed by the next item, which does not keep its number of its own; the
+        // new paragraph does not start a new page.
         const bool atParagraphEnd = cursor.atBlockEnd();
         const QString style = paragraphStyleOf(cursor.blockFormat());
+        std::optional<ListItem> item = listItemOf(cursor.blockFormat());
         insertParagraphKeepingAnnotations(cursor);
+        QTextBlockFormat format = cursor.blockFormat();
         if (const QString next = m_paragraphStyles.nextStyleOf(style);
             atParagraphEnd && next != style) {
-            QTextBlockFormat format = paragraphBlockFormat();
+            format = paragraphBlockFormat();
             setParagraphStyle(format, next);
+            if (item) {
+                setListItem(format, *item);
+            }
+        }
+        format.clearProperty(LIST_VALUE_PROPERTY);
+        format.clearProperty(PARAGRAPH_PAGE_BREAK_BEFORE_PROPERTY);
+        if (format != cursor.blockFormat()) {
             cursor.setBlockFormat(format);
         }
     }
@@ -613,6 +630,9 @@ void BookEditor::deleteBackward()
     if (hasSelection()) {
         deleteSelectedText();
         return;
+    }
+    if (removeListMarkAtCursor()) {
+        return;  // at the start of a list item its number goes, then the item leaves its list
     }
 
     // If at start of document, nothing to delete

@@ -163,6 +163,7 @@ set(KALAHARI_SOURCES
     gui/read_only_book.cpp # What the program says of a book open read-only
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
     gui/dialogs/special_character_dialog.cpp  # SpecialCharacterDialog - Insert > Special Character...
+    gui/dialogs/list_dialogs.cpp           # Bullets and Numbering, Set Numbering Value
     gui/widgets/character_grid.cpp  # CharacterGrid - characters in cells, in the font of the text
     gui/widgets/quick_character_palette.cpp  # QuickCharacterPalette - Insert > Quick Character
     gui/dialogs/character_dialogs.cpp  # The keys of a character, a replacement of auto-correct
@@ -268,6 +269,7 @@ set(KALAHARI_SOURCES
     editor/book_editor_cursor.cpp
     editor/book_editor_editing.cpp
     editor/book_editor_formatting.cpp
+    editor/book_editor_lists.cpp
     editor/book_editor_input.cpp
     editor/book_editor_search.cpp
     editor/book_editor_view.cpp
@@ -325,6 +327,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/special_character_dialog.h  # SpecialCharacterDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/list_dialogs.h  # the list windows with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h

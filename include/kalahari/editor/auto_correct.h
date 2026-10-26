@@ -96,6 +96,9 @@ struct AutoCorrectOptions {
     bool sceneBreak = true;      ///< "***" and Enter in a paragraph of its own to a scene
                                  ///< break
     bool horizontalRule = true;  ///< "---" and Enter in a paragraph of its own to a line
+    bool bulletedLists = true;   ///< "* " starting a paragraph to an item of a bulleted list
+    bool numberedLists = true;   ///< "1. " or "1) " starting a paragraph to an item of a
+                                 ///< numbered list from that number
 
     bool operator==(const AutoCorrectOptions&) const = default;
 };

@@ -1007,6 +1007,10 @@
         <source>&amp;Quick Character</source>
         <translation>Szybki &amp;wybór znaku</translation>
     </message>
+    <message>
+        <source>Bullets and Numberin&amp;g...</source>
+        <translation>Punk&amp;tory i numeracja...</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -3259,6 +3263,31 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>&amp;Ignore All</source>
         <translation>&amp;Pomijaj to słowo</translation>
     </message>
+    <message>
+        <source>&amp;Restart at %1</source>
+        <extracomment>%1 is the first number of the level of the list item: 1, a, i</extracomment>
+        <translation>Zacznij numerowanie &amp;od %1</translation>
+    </message>
+    <message>
+        <source>Contin&amp;ue Numbering</source>
+        <translation>Kont&amp;ynuuj numerowanie</translation>
+    </message>
+    <message>
+        <source>Set Numbering &amp;Value...</source>
+        <translation>Ust&amp;aw wartość numerowania...</translation>
+    </message>
+    <message>
+        <source>Incr&amp;ease Indent</source>
+        <translation>Zwiększ wc&amp;ięcie</translation>
+    </message>
+    <message>
+        <source>Decrea&amp;se Indent</source>
+        <translation>Zmni&amp;ejsz wcięcie</translation>
+    </message>
+    <message>
+        <source>Bullets and Numberin&amp;g...</source>
+        <translation>Punktory i nume&amp;racja...</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -5085,10 +5114,6 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <translation>„---” i Enter – linia pozioma</translation>
     </message>
     <message>
-        <source>Typed in an empty paragraph. “* ” and “1. ” at the start of a paragraph will come with the lists.</source>
-        <translation>Wpisane w pustym akapicie. „* ” i „1. ” na początku akapitu dojdą razem z listami.</translation>
-    </message>
-    <message>
         <source>Correct words typed with Caps Lock on</source>
         <translation>Poprawiaj wyrazy pisane z Caps Lock</translation>
     </message>
@@ -5108,6 +5133,18 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>Edit &gt; Undo right after a capital or a change of two capitals adds the abbreviation or the word to its list.</source>
         <translation>Edycja &gt; Cofnij zaraz po wielkiej literze albo poprawie dwóch wielkich liter dopisuje skrót albo wyraz do jego listy.</translation>
+    </message>
+    <message>
+        <source>“*” and a space: a bulleted list</source>
+        <translation>„*” i spacja – lista punktowana</translation>
+    </message>
+    <message>
+        <source>“1.” or “1)” and a space: a numbered list</source>
+        <translation>„1.” lub „1)” i spacja – lista numerowana</translation>
+    </message>
+    <message>
+        <source>“***” and “---” are typed in an empty paragraph, “*” and “1.” at the start of a paragraph; the list starts from the number typed.</source>
+        <translation>„***” i „---” wpisuje się w pustym akapicie, a „*” i „1.” na początku akapitu; lista zaczyna się od wpisanego numeru.</translation>
     </message>
 </context>
 <context>
@@ -11503,6 +11540,157 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::BulletsNumberingDialog</name>
+    <message>
+        <source>Disc</source>
+        <translation>Kropka</translation>
+    </message>
+    <message>
+        <source>Circle</source>
+        <translation>Kółko</translation>
+    </message>
+    <message>
+        <source>Square</source>
+        <translation>Kwadrat</translation>
+    </message>
+    <message>
+        <source>En dash</source>
+        <translation>Półpauza</translation>
+    </message>
+    <message>
+        <source>Check mark</source>
+        <translation>Ptaszek</translation>
+    </message>
+    <message>
+        <source>Arrow</source>
+        <translation>Strzałka</translation>
+    </message>
+    <message>
+        <source>The 6:40 train.</source>
+        <translation>Pociąg o 6:40.</translation>
+    </message>
+    <message>
+        <source>Change at Łapy:</source>
+        <translation>Przesiadka w Łapach:</translation>
+    </message>
+    <message>
+        <source>ask for Mr Hilary,</source>
+        <translation>zapytać o pana Hilarego,</translation>
+    </message>
+    <message>
+        <source>do not give the name.</source>
+        <translation>nie podawać nazwiska.</translation>
+    </message>
+    <message>
+        <source>The address on Mostowa Street.</source>
+        <translation>Adres przy ulicy Mostowej.</translation>
+    </message>
+    <message>
+        <source>a coat and a torch,</source>
+        <translation>płaszcz i latarka,</translation>
+    </message>
+    <message>
+        <source>the key to the locker:</source>
+        <translation>klucz do schowka:</translation>
+    </message>
+    <message>
+        <source>a spare one at aunt Helena&apos;s,</source>
+        <translation>zapasowy u cioci Heleny,</translation>
+    </message>
+    <message>
+        <source>another one in the drawer.</source>
+        <translation>drugi w szufladzie.</translation>
+    </message>
+    <message>
+        <source>a return ticket.</source>
+        <translation>bilet powrotny.</translation>
+    </message>
+    <message>
+        <source>Bullets and Numbering</source>
+        <translation>Punktory i numeracja</translation>
+    </message>
+    <message>
+        <source>The look of the list in the selected paragraphs; each level has its own format.</source>
+        <translation>Wygląd listy w zaznaczonych akapitach; każdy poziom ma własny format.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>&amp;Numbering</source>
+        <translation>&amp;Numerowanie</translation>
+    </message>
+    <message>
+        <source>&amp;Bullets</source>
+        <translation>&amp;Punktory</translation>
+    </message>
+    <message>
+        <source>&amp;Restore Defaults</source>
+        <translation>Przywróć &amp;domyślne</translation>
+    </message>
+    <message>
+        <source>&amp;Level</source>
+        <translation>Pozi&amp;om</translation>
+    </message>
+    <message>
+        <source>&amp;Format</source>
+        <translation>&amp;Format</translation>
+    </message>
+    <message>
+        <source>B&amp;ullet</source>
+        <translation>Pun&amp;ktor</translation>
+    </message>
+    <message>
+        <source>&amp;Start at</source>
+        <translation>&amp;Rozpocznij od</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <translation>Do lewej</translation>
+    </message>
+    <message>
+        <source>Center</source>
+        <translation>Do środka</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <translation>Do prawej</translation>
+    </message>
+    <message>
+        <source>Number &amp;alignment</source>
+        <translation>&amp;Wyrównanie numeru</translation>
+    </message>
+    <message>
+        <source>&amp;Character...</source>
+        <translation>&amp;Znak...</translation>
+    </message>
+    <message>
+        <source>any character of the Special Character window</source>
+        <translation>dowolny znak z okna Znak specjalny</translation>
+    </message>
+    <message>
+        <source>Number &amp;indent</source>
+        <translation>Wcięcie n&amp;umeru</translation>
+    </message>
+    <message>
+        <source>Bullet &amp;indent</source>
+        <translation>Wcięcie p&amp;unktora</translation>
+    </message>
+    <message>
+        <source>&amp;Text indent</source>
+        <translation>Wcięcie &amp;tekstu</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>The bullet: %1</source>
+        <translation>Punktor: %1</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::CharacterShortcutDialog</name>
     <message>
         <source>Shortcut for a Character</source>
@@ -13139,6 +13327,29 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::NumberingValueDialog</name>
+    <message>
+        <source>Set Numbering Value</source>
+        <translation>Ustaw wartość numerowania</translation>
+    </message>
+    <message>
+        <source>The number of the list item; the items after it go on from it.</source>
+        <translation>Numer pozycji listy; kolejne pozycje są numerowane dalej od niego.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Set &amp;value to</source>
+        <translation>Ustaw &amp;wartość na</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::RenameElementDialog</name>
     <message>
         <source>Rename</source>
@@ -13371,6 +13582,18 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>Not in the font %1: in the text another font shows it.</source>
         <translation>Nie ma go w czcionce %1: w tekście pokaże go inna czcionka.</translation>
+    </message>
+    <message>
+        <source>Enter chooses the character. Esc closes the window.</source>
+        <translation>Enter wybiera znak. Esc zamyka okno.</translation>
+    </message>
+    <message>
+        <source>&amp;Choose</source>
+        <translation>&amp;Wybierz</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Anuluj</translation>
     </message>
 </context>
 <context>

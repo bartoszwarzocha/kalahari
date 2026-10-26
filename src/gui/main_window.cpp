@@ -693,6 +693,32 @@ void MainWindow::registerCommands() {
     callbacks.onAlignRight = [this]() { onAlignRight(); };
     callbacks.onAlignJustify = [this]() { onAlignJustify(); };
 
+    // The indents and the lists, as the alignments: the paragraphs of the cursor or the
+    // selection in the document in front, the buttons checked as the paragraph at the cursor
+    const auto inDocument = [this](const std::function<void(editor::BookEditor&)>& action) {
+        return [this, action]() {
+            EditorPanel* editor = getCurrentEditor();
+            if (editor && editor->getBookEditor()) {
+                action(*editor->getBookEditor());
+            }
+            updateEditorActionStates();
+        };
+    };
+    callbacks.onIncreaseIndent =
+        inDocument([](editor::BookEditor& text) { text.increaseIndent(); });
+    callbacks.onDecreaseIndent =
+        inDocument([](editor::BookEditor& text) { text.decreaseIndent(); });
+    callbacks.onBullets = inDocument(
+        [](editor::BookEditor& text) { text.toggleList(editor::ListKind::Bulleted); });
+    callbacks.onNumbering = inDocument(
+        [](editor::BookEditor& text) { text.toggleList(editor::ListKind::Numbered); });
+    callbacks.onBulletsNumbering = [this]() {
+        if (EditorPanel* editor = getCurrentEditor()) {
+            editor->showBulletsAndNumbering();
+        }
+        updateEditorActionStates();
+    };
+
     // Format > Text Style, as the alignments: the paragraphs of the cursor or the selection
     // in the document in front
     callbacks.onParagraphStyle = [this](const QString& styleId) {
@@ -1364,6 +1390,12 @@ void MainWindow::updateEditorActionStates() {
     setChecked("format.alignCenter", alignment == Qt::AlignHCenter);
     setChecked("format.alignRight", alignment == Qt::AlignRight);
     setChecked("format.justify", alignment == Qt::AlignJustify);
+
+    // The kind of the list item at the cursor
+    const std::optional<editor::ListKind> listKind =
+        bookEditor != nullptr ? bookEditor->currentListKind() : std::nullopt;
+    setChecked("format.bullets", listKind == editor::ListKind::Bulleted);
+    setChecked("format.numbering", listKind == editor::ListKind::Numbered);
 
     // The style of the paragraph at the cursor; none on a line or a break
     const QString style = bookEditor != nullptr ? bookEditor->currentParagraphStyle() : QString();

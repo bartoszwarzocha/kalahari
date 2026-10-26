@@ -127,6 +127,14 @@ public:
     /// loop runs, after any change of an editor setting.
     void applySettings();
 
+    /// @brief Format > Bullets and Numbering...: the window of the formats of the list at the
+    ///        cursor (of a new numbered list outside a list); OK gives them to the lists of
+    ///        the selected paragraphs
+    void showBulletsAndNumbering();
+
+    /// @brief Set Numbering Value... of a list item: the window that asks for its number
+    void showNumberingValue();
+
 signals:
     /// @brief Emitted when editor content changes
     ///

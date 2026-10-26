@@ -511,6 +511,67 @@ Qt::Alignment KalahariTextDocumentLayout::shownAlignment(const QTextBlock& block
     return own ? own : blockMetrics(block).alignment;
 }
 
+ParagraphFormat KalahariTextDocumentLayout::styleParagraphFormat(const QTextBlock& block) const {
+    const ParagraphStyle& style = m_styles.shownStyle(paragraphStyleOf(block.blockFormat()));
+    auto it = m_styleMetrics.find(style.id);
+    if (it == m_styleMetrics.end()) {
+        it = m_styleMetrics.emplace(style.id, styleMetrics(style)).first;
+    }
+    const BlockMetrics& metrics = it->second;
+
+    // The pixels of the view back in points, to two decimals as KML writes them
+    const qreal pixels = packagePixels();
+    const auto points = [pixels](qreal length) {
+        return pixels > 0 ? std::round(length / pixels * 100.0) / 100.0 : 0.0;
+    };
+    ParagraphFormat format;
+    format.leftIndent = points(metrics.leftMargin);
+    format.rightIndent = points(metrics.rightMargin);
+    format.firstLineIndent = points(metrics.firstLineIndent);
+    format.spaceBefore = points(metrics.spaceBefore);
+    format.spaceAfter = points(metrics.spaceAfter);
+    // A multiple as a paragraph's own one is read (directMetrics())
+    const qreal normalLineHeight = numberOf(m_styles.normal().properties, "lineHeight", 1.0);
+    const qreal multiple = m_typography.lineSpacing > 0
+                               ? metrics.lineSpacing * (normalLineHeight > 0 ? normalLineHeight : 1.0) /
+                                     m_typography.lineSpacing
+                               : 1.0;
+    format.lineSpacing = LineSpacing{LineSpacingRule::Multiple, std::round(multiple * 100.0) / 100.0};
+    format.keepWithNext = metrics.keepWithNext;
+    format.keepTogether = metrics.keepTogether;
+    format.pageBreakBefore = metrics.pageBreakBefore;
+    format.widowControl = metrics.widowControl;
+    return format;
+}
+
+ParagraphFormat KalahariTextDocumentLayout::shownParagraphFormat(const QTextBlock& block) const {
+    ParagraphFormat format = styleParagraphFormat(block);
+    const QTextBlockFormat blockFormat = block.blockFormat();
+    const ParagraphFormat own = paragraphFormatOf(blockFormat);
+    const auto over = [](auto& shown, const auto& value) {
+        if (value) {
+            shown = value;
+        }
+    };
+    over(format.leftIndent, own.leftIndent);
+    over(format.rightIndent, own.rightIndent);
+    over(format.firstLineIndent, own.firstLineIndent);
+    over(format.spaceBefore, own.spaceBefore);
+    over(format.spaceAfter, own.spaceAfter);
+    over(format.lineSpacing, own.lineSpacing);
+    over(format.keepWithNext, own.keepWithNext);
+    over(format.keepTogether, own.keepTogether);
+    over(format.pageBreakBefore, own.pageBreakBefore);
+    over(format.widowControl, own.widowControl);
+    // A list item's lines start at the text of its level, its first line at the number
+    if (const std::optional<ListItem> item = listItemOf(blockFormat)) {
+        const ListLevel& level = item->levelFormat();
+        format.leftIndent = level.textIndent;
+        format.firstLineIndent = level.markerIndent - level.textIndent;
+    }
+    return format;
+}
+
 void KalahariTextDocumentLayout::setSceneBreakLook(SceneBreakLook look) {
     if (look == m_sceneBreakLook) {
         return;
