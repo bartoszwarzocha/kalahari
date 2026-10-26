@@ -227,10 +227,17 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
     auto* infoLayout = new QVBoxLayout(m_infoGroup);
     infoLayout->setContentsMargins(11, 11, 11, 11);
     infoLayout->setSpacing(6);
+    // A picture, not a button: no frame or background under the mouse or pressed; the keys
+    // open the preview with Preview
     m_thumbnail = new QToolButton(m_infoGroup);
     m_thumbnail->setObjectName(QStringLiteral("materialThumbnail"));
     m_thumbnail->setAutoRaise(true);
     m_thumbnail->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    m_thumbnail->setFocusPolicy(Qt::NoFocus);
+    m_thumbnail->setStyleSheet(QStringLiteral(
+        "QToolButton#materialThumbnail, QToolButton#materialThumbnail:hover, "
+        "QToolButton#materialThumbnail:pressed "
+        "{ border: none; background: transparent; padding: 0px; }"));
     m_thumbnail->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
     m_thumbnail->installEventFilter(this);
     connect(m_thumbnail, &QToolButton::clicked, this, [this]() {

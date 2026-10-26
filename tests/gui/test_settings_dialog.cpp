@@ -37,6 +37,7 @@
 #include <QTreeWidgetItemIterator>
 
 #include <optional>
+#include <utility>
 #include <vector>
 
 using namespace kalahari::gui;
@@ -591,6 +592,68 @@ TEST_CASE("Settings dialog: the Navigator page chooses what the Materials show a
     REQUIRE(oneAgain != nullptr);
     CHECK(expandAgain->isChecked());
     CHECK(oneAgain->isChecked());
+}
+
+TEST_CASE("Settings dialog: the settings of the Materials on the Navigator page keep apart",
+          "[gui][settings][materials]") {
+    // Regression: the notes of a setting ran into the next setting, with no more room between
+    // two settings than between the choices of one
+    ProgramStyle programStyle;
+    SettingsDialog dialog(nullptr);
+    dialog.resize(900, 700);
+    dialog.show();
+    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    settle();
+
+    auto* types = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsTypes"));
+    auto* expand = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
+    auto* own = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOwnTabs"));
+    auto* card = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
+    auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesBrowser"));
+    auto* link = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsLink"));
+    auto* paragraphs = dialog.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
+    REQUIRE(types != nullptr);
+    REQUIRE(expand != nullptr);
+    REQUIRE(own != nullptr);
+    REQUIRE(card != nullptr);
+    REQUIRE(browser != nullptr);
+    REQUIRE(link != nullptr);
+    REQUIRE(paragraphs != nullptr);
+
+    // The choices of a setting with their notes, in the group of the Materials
+    QWidget* const tree = types->parentWidget();
+    QWidget* const group = tree->parentWidget();
+    REQUIRE(qobject_cast<QGroupBox*>(group) != nullptr);
+    QLabel* dropNote = nullptr;
+    for (QLabel* label : group->findChildren<QLabel*>()) {
+        if (label->text().startsWith(QStringLiteral("Applies to a file dragged"))) {
+            dropNote = label;
+        }
+    }
+    REQUIRE(dropNote != nullptr);
+    auto* typesNote = qobject_cast<QLabel*>(tree->layout()->itemAt(1)->widget());
+    REQUIRE(typesNote != nullptr);
+
+    const auto top = [group](const QWidget* widget) { return widget->mapTo(group, QPoint()).y(); };
+    const auto gap = [group, &top](const QWidget* above, const QWidget* below) {
+        return top(below) - above->mapTo(group, QPoint(0, above->height())).y();
+    };
+    const int line = group->fontMetrics().height();
+    const int within = gap(typesNote, expand);
+    INFO("a line is " << line << " px; the choices of one setting are " << within
+                      << " px apart");
+
+    const std::vector<std::pair<const QWidget*, const QWidget*>> settings{
+        {tree, own->parentWidget()},
+        {own->parentWidget(), card->parentWidget()},
+        {card->parentWidget(), browser->parentWidget()},
+        {browser->parentWidget(), link->parentWidget()},
+        {dropNote, paragraphs}};
+    for (const auto& [above, below] : settings) {
+        INFO("two settings " << gap(above, below) << " px apart");
+        CHECK(gap(above, below) >= line);
+        CHECK(gap(above, below) > within);
+    }
 }
 
 TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a drop gives",

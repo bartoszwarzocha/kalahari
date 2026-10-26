@@ -27,6 +27,7 @@
 #include <QFileInfo>
 #include <QFocusEvent>
 #include <QGraphicsView>
+#include <QImage>
 #include <QImageReader>
 #include <QImageWriter>
 #include <QKeyEvent>
@@ -423,6 +424,17 @@ TEST_CASE("Material card: the picture, the file, the title and the description, 
     CHECK(page.fileLabel()->text().startsWith(QStringLiteral("map.png · PNG · 400 × 200 px · ")));
     CHECK(page.titleEdit()->text() == QStringLiteral("Map"));
     CHECK(page.pathLabel()->text() == pm.findElement(map)->file);
+
+    // The picture is no button: pressed or under the mouse it looks the same, and it takes
+    // no keys (Preview does)
+    CHECK(page.thumbnail()->focusPolicy() == Qt::NoFocus);
+    const QImage still = page.thumbnail()->grab().toImage();
+    page.thumbnail()->setDown(true);
+    CHECK(page.thumbnail()->grab().toImage() == still);
+    page.thumbnail()->setDown(false);
+    page.thumbnail()->setAttribute(Qt::WA_UnderMouse, true);
+    CHECK(page.thumbnail()->grab().toImage() == still);
+    page.thumbnail()->setAttribute(Qt::WA_UnderMouse, false);
 
     // The picture and Preview open the preview; System Program the system program
     page.thumbnail()->click();

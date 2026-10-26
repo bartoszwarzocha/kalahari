@@ -80,6 +80,9 @@ constexpr int WORKSHOP_ROLE = Qt::UserRole + 6;
 constexpr int COUNT_ROLE = Qt::UserRole + 7;
 /// Room between the name of a node and its number, in multiples of the width of a space
 constexpr int COUNT_GAP = 3;
+/// Room between the number of a node and the right edge of the tree, in multiples of the width
+/// of a space
+constexpr int COUNT_MARGIN = 2;
 /// Milliseconds before a collapsed group or section that a dragged element rests on opens
 constexpr int AUTO_EXPAND_DELAY = 700;
 /// The id of a group of the Workshop starts with it: "workshop:kalahari.base:work_note"
@@ -296,7 +299,8 @@ public:
         const QWidget* widget = option.widget;
         QStyle* style = widget ? widget->style() : QApplication::style();
         const QString number = QLocale().toString(count.toInt());
-        const int room = item.fontMetrics.horizontalAdvance(number) + gap(item.fontMetrics);
+        const int room = item.fontMetrics.horizontalAdvance(number) + gap(item.fontMetrics) +
+                         margin(item.fontMetrics);
         const QRect textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &item, widget);
         item.text = item.fontMetrics.elidedText(item.text, item.textElideMode,
                                                 std::max(0, textRect.width() - room));
@@ -313,7 +317,8 @@ public:
         painter->setFont(item.font);
         painter->setPen(option.palette.color(
             group, selected ? QPalette::HighlightedText : QPalette::PlaceholderText));
-        painter->drawText(textRect, Qt::AlignRight | Qt::AlignVCenter, number);
+        painter->drawText(textRect.adjusted(0, 0, -margin(item.fontMetrics), 0),
+                          Qt::AlignRight | Qt::AlignVCenter, number);
         painter->restore();
     }
 
@@ -322,7 +327,8 @@ public:
         const QVariant count = index.data(COUNT_ROLE);
         if (count.isValid()) {
             const QString number = QLocale().toString(count.toInt());
-            size.rwidth() += option.fontMetrics.horizontalAdvance(number) + gap(option.fontMetrics);
+            size.rwidth() += option.fontMetrics.horizontalAdvance(number) +
+                             gap(option.fontMetrics) + margin(option.fontMetrics);
         }
         return size;
     }
@@ -330,6 +336,10 @@ public:
 private:
     static int gap(const QFontMetrics& metrics) {
         return COUNT_GAP * metrics.horizontalAdvance(QLatin1Char(' '));
+    }
+
+    static int margin(const QFontMetrics& metrics) {
+        return COUNT_MARGIN * metrics.horizontalAdvance(QLatin1Char(' '));
     }
 };
 

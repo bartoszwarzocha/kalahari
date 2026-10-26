@@ -959,6 +959,42 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     CHECK(navigator.tabs->count() == 2);
 }
 
+TEST_CASE("Navigator: the numbers of the Materials keep off the right edge of the tree",
+          "[gui][navigator][materials]") {
+    OpenNovel novel;
+    Navigator navigator;
+    navigator.panel->resize(300, 600);
+    navigator.window.resize(300, 600);
+    navigator.window.show();
+    QApplication::processEvents();
+    auto* tree = navigator.panel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    QTreeWidgetItem* materials = navigator.item(QStringLiteral("workshop:materials"));
+    REQUIRE(materials != nullptr);
+    tree->scrollToItem(materials);
+    QApplication::processEvents();
+    const QRect row = tree->visualItemRect(materials);
+    REQUIRE(row.isValid());
+
+    // The last pixel of the number: the right end of the row has the color of the row
+    const QImage picture = tree->viewport()->grab().toImage();
+    const QRgb background = picture.pixel(row.right(), row.center().y());
+    int last = -1;
+    for (int x = row.right(); x >= row.left() && last < 0; --x) {
+        for (int y = row.top(); y <= row.bottom(); ++y) {
+            if (picture.pixel(x, y) != background) {
+                last = x;
+                break;
+            }
+        }
+    }
+    REQUIRE(last >= 0);
+    const int space = tree->fontMetrics().horizontalAdvance(QLatin1Char(' '));
+    INFO("the number ends " << row.right() - last << " pixels from the edge; a space is "
+                            << space);
+    CHECK(row.right() - last >= 2 * space);
+}
+
 TEST_CASE("Navigator commands: Add and New Chapter start from the element in the editor",
           "[gui][navigator]") {
     OpenNovel novel;

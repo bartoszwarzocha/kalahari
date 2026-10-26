@@ -33,6 +33,7 @@
 #include <QFormLayout>
 #include <QLabel>
 #include <QRadioButton>
+#include <QSpacerItem>
 #include <QVBoxLayout>
 
 #include <nlohmann/json.hpp>
@@ -74,6 +75,14 @@ constexpr const char* BROWSER = "browser";
 constexpr const char* LINK = "link";
 constexpr const char* ADD = "add";
 constexpr const char* WINDOW = "window";
+
+/// Room before the next setting of @p form, so that the notes of one setting do not run into
+/// the next one: half a line of text, with the room between two rows on each side of it about
+/// a line
+void addGap(QFormLayout* form) {
+    const int line = form->parentWidget()->fontMetrics().height();
+    form->addItem(new QSpacerItem(0, line / 2, QSizePolicy::Minimum, QSizePolicy::Fixed));
+}
 
 } // namespace
 
@@ -205,6 +214,7 @@ NavigatorPage::NavigatorPage(QWidget* parent)
                                   value.get<std::string>());
     };
     bindCustom(std::move(tree));
+    addGap(materials);
 
     // Where the list of a kind clicked opens
     //: In Polish: Otwiera własną kartę
@@ -249,6 +259,7 @@ NavigatorPage::NavigatorPage(QWidget* parent)
         settings.set<std::string>(MaterialList::TABS_SETTING, value.get<std::string>());
     };
     bindCustom(std::move(tabs));
+    addGap(materials);
     //: In Polish: Na karcie w programie
     m_openCard = new QRadioButton(tr("On a tab of the program"));
     m_openCard->setObjectName(QStringLiteral("navigatorOpenMaterialsCard"));
@@ -296,6 +307,7 @@ NavigatorPage::NavigatorPage(QWidget* parent)
                                   value.get<std::string>());
     };
     bindCustom(std::move(openMaterials));
+    addGap(materials);
 
     // A page, and a picture on the web without a copy: the program shows no web pages
     //: In Polish: W przeglądarce
@@ -341,6 +353,7 @@ NavigatorPage::NavigatorPage(QWidget* parent)
         settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, value.get<std::string>());
     };
     bindCustom(std::move(openPages));
+    addGap(materials);
 
     // Files, web addresses and pictures dropped on the Navigator or pasted in it
     //: In Polish: Od razu, z powiązaniem
@@ -401,6 +414,7 @@ NavigatorPage::NavigatorPage(QWidget* parent)
                                   value.get<std::string>());
     };
     bindCustom(std::move(quick));
+    addGap(materials);
 
     // Paragraphs of the links, with the paperclips beside them in the editor
     //: In Polish: Powiązania wskazują akapity tekstu
