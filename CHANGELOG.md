@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Editor: numbers on the margin, mirror margins, the tab width** - 2026-10-26. View >
+  Margin Numbering shows working numbers on the left margin of every editor, only on the
+  screen: No Numbering, Line Numbers or Paragraph Numbers, also as two buttons of the Views
+  toolbar (the numbering chosen again turns it off); a toolbar layout saved before gets the
+  two buttons too. The lines count every line, also of the headings, the empty paragraphs and
+  the breaks; the paragraphs only those with text, not the headings or the objects. View >
+  Margin Numbering > Numbering Settings... opens Settings > Editor > Pages and Margins at the
+  Margin Numbering group: a number every few lines or paragraphs (Interval), the lines counted
+  from 1 on every page of the page view (Restart on every page; the continuous view counts
+  through the whole chapter), the font, its size and one color for the light and the dark
+  paper, with a preview on both papers and Restore Defaults, which keeps the numbering chosen.
+  The same page has Mirror margins (for book binding): an inner margin at the binding and an
+  outer one at the edge of the page, with a preview of pages 2 and 3 side by side. The first
+  page of a chapter is a right page, unless the chapter starts on a left page (Properties >
+  Starts on a left page, kept in the book's file as `"firstPage": "left"`); the continuous view
+  has the margins of page 1. Tab types a tab character, also at the start of a paragraph.
+  Settings > Editor > General > Tab Size sets the tab stops as far apart as the first-line
+  indent of the paragraph's style (Paragraph Indent; a style without one, as a heading, takes
+  the indent of the Settings) or every few spaces of its font (Number of Spaces). The options
+  Show Line Numbers and Enable Word Wrap, which did nothing, are gone: the text always wraps.
+
 - **Paragraph styles, a horizontal line and the breaks, the formatting marks** - 2026-10-19.
   Format > Text Style puts the paragraphs of the cursor or the selection in a style of the
   book's type, as one step of Undo: Heading 1, 2 and 3 (Alt+1, Alt+2, Alt+3; on macOS

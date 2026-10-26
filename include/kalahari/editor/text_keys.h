@@ -63,6 +63,8 @@ enum class TextKeyAction {
     NewParagraph,
     NewLine,              ///< A line break in the paragraph (Shift+Enter)
     OpenLine,             ///< A paragraph break after the cursor (macOS: Control+O)
+    Tab,                  ///< A tab character (Tab), as in word processors: in the text
+                          ///< the key does not go to the next field
     Transpose,            ///< The characters around the cursor change places (Control+T)
     Yank,                 ///< The text the last Control+K took (macOS: Control+Y)
 

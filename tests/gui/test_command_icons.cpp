@@ -97,8 +97,8 @@ TEST_CASE("Menus: every submenu has an icon, in the icon colors after they chang
         collectSubmenus(menu->menu(), menu->text(), submenus);
     }
     // Recent Books, Import, Export, Text Style, Statistics, Plugins, Assistant Actions,
-    // View Mode, Zoom, Panels, Perspectives, Toolbars
-    CHECK(submenus.size() == 12);
+    // View Mode, Zoom, Margin Numbering, Panels, Perspectives, Toolbars
+    CHECK(submenus.size() == 13);
     for (const auto& [path, submenu] : submenus) {
         INFO(path.toStdString());
         CHECK_FALSE(submenu->icon().isNull());

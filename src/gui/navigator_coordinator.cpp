@@ -207,6 +207,20 @@ void NavigatorCoordinator::refreshTabTitle(const QString& elementId) {
     }
 }
 
+void NavigatorCoordinator::refreshFirstPage(const QString& elementId) {
+    const core::ProjectElement* element =
+        core::ProjectManager::getInstance().findElement(elementId);
+    if (!element) {
+        return;
+    }
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+        if (editor && editor->property("elementId").toString() == elementId) {
+            editor->setFirstPageLeft(element->firstPageLeft);
+        }
+    }
+}
+
 void NavigatorCoordinator::onElementSelected(const QString& elementId, const QString& elementTitle) {
     auto& logger = core::Logger::getInstance();
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -262,6 +276,8 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     // comes, as the commands follow the tab in front
     newEditor->getBookEditor()->setReadOnly(pm.isReadOnly());
     const core::ProjectElement* element = pm.findElement(elementId);
+    // The margins of its pages: its first page is a right one unless it says otherwise
+    newEditor->setFirstPageLeft(element != nullptr && element->firstPageLeft);
     // A kind the program does not have: its icon on the book's card of its package
     const core::PackageCard* card =
         element != nullptr && element->hasKind() && !pm.kindOf(*element)

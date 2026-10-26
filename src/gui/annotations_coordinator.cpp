@@ -774,7 +774,7 @@ void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& te
         if (m_writing && !m_writing->range.isNull()) {
             const QTextCursor& range = m_writing->range;
             placement.place = m_writing->editor->placeRect(range.selectionEnd(), range.hasSelection());
-            placement.column = m_writing->editor->textColumnRect();
+            placement.column = m_writing->editor->textColumnRect(placement.place.center().y());
         }
         return placement;
     });

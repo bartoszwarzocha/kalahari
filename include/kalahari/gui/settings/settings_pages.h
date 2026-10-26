@@ -185,6 +185,10 @@ class EditorPagesPage : public SettingsPage {
     Q_OBJECT
 public:
     explicit EditorPagesPage(QWidget* parent = nullptr);
+
+private:
+    /// @brief The group Margin Numbering: the working numbers on the left margin
+    void addMarginNumbersGroup();
 };
 
 /// @brief Editor > Auto-correct: what is changed in the text as it is typed

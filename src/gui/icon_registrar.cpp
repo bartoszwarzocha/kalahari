@@ -205,6 +205,10 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.typewriter", "resources/icons/twotone/keyboard_alt.svg", "Typewriter Scrolling");
     iconRegistry.registerIcon("view.darkPaper", "resources/icons/twotone/contrast_square.svg", "Dark Paper");
     iconRegistry.registerIcon("view.textFrameBorder", "resources/icons/twotone/text_frame.svg", "Text Frame Border");
+    iconRegistry.registerIcon("view.marginNumbers.none", "resources/icons/twotone/margin_numbers_off.svg", "No Numbering");
+    iconRegistry.registerIcon("view.marginNumbers.lines", "resources/icons/twotone/margin_line_numbers.svg", "Line Numbers");
+    iconRegistry.registerIcon("view.marginNumbers.paragraphs", "resources/icons/twotone/margin_paragraph_numbers.svg", "Paragraph Numbers");
+    iconRegistry.registerIcon("view.marginNumbers.settings", "resources/icons/twotone/tune.svg", "Numbering Settings");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
 
@@ -220,6 +224,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
     iconRegistry.registerIcon("menu.viewMode", "resources/icons/twotone/visibility.svg", "View Mode");
     iconRegistry.registerIcon("menu.zoom", "resources/icons/twotone/zoom_in.svg", "Zoom");
+    iconRegistry.registerIcon("menu.marginNumbers", "resources/icons/twotone/margin_line_numbers.svg", "Margin Numbering");
     iconRegistry.registerIcon("menu.panels", "resources/icons/twotone/view_sidebar.svg", "Panels");
     iconRegistry.registerIcon("menu.perspectives", "resources/icons/twotone/view_quilt.svg", "Perspectives");
     iconRegistry.registerIcon("menu.toolbars", "resources/icons/twotone/build.svg", "Toolbars");

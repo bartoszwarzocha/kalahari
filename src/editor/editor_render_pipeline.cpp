@@ -13,6 +13,7 @@
 #include <QTextBlock>
 #include <algorithm>
 #include <cmath>
+#include <map>
 
 namespace kalahari::editor {
 
@@ -20,6 +21,11 @@ namespace {
 
 /// Size of the page numbers relative to the text font
 constexpr double PAGE_NUMBER_FONT_SCALE = 0.8;
+
+/// The numbers on the margin: their right edge this far left of the text (or half the
+/// margin, when it is narrower than twice as much), and their size without a valid one
+constexpr double MARGIN_NUMBER_GAP_MM = 8.0;
+constexpr double DEFAULT_MARGIN_NUMBER_POINTS = 8.0;
 
 /// Shade of the desk around the pages, from the paper color (QColor::darker() for light
 /// paper, QColor::lighter() for dark paper)
@@ -413,14 +419,15 @@ void EditorRenderPipeline::setConfigViewportSize(const QSizeF& size) {
 }
 
 void EditorRenderPipeline::setConfigPageLayout(const QSizeF& pageSize, const QMarginsF& marginsMm,
-                                               double pageGap) {
+                                               double pageGap, bool mirrorMargins) {
     PageModeConfig& page = m_context.pageMode;
     if (page.pageSize == pageSize && page.marginsMm == marginsMm &&
-        std::abs(page.pageSpacing - pageGap) < 0.01) return;
+        std::abs(page.pageSpacing - pageGap) < 0.01 && page.mirrorMargins == mirrorMargins) return;
 
     page.pageSize = pageSize;
     page.marginsMm = marginsMm;
     page.pageSpacing = pageGap;
+    page.mirrorMargins = mirrorMargins;  // the text of every page is as wide: no relayout
 
     computePageLayout();
     computeMargins();
@@ -464,6 +471,25 @@ void EditorRenderPipeline::setConfigFormattingMarks(bool show) {
 
     m_context.showFormattingMarks = show;
     markRepaintOnly();
+}
+
+void EditorRenderPipeline::setConfigMarginNumbers(const MarginNumbers& numbers) {
+    if (m_context.marginNumbers == numbers) return;
+
+    m_context.marginNumbers = numbers;
+    markRepaintOnly();
+}
+
+bool EditorRenderPipeline::marginNumbersOutdated() const {
+    const MarginNumbering numbering = m_context.marginNumbers.numbering;
+    if (numbering == MarginNumbering::None || !m_textSource ||
+        m_paintedMarginFirst >= m_textSource->paragraphCount()) {
+        return false;
+    }
+    // Only the lines are estimated: the paragraphs with text are known without the layout
+    const MarginCounts counts = m_textSource->marginCountsBefore(m_paintedMarginFirst);
+    return numbering == MarginNumbering::Lines ? counts.lines != m_paintedMarginBase.lines
+                                               : counts.paragraphs != m_paintedMarginBase.paragraphs;
 }
 
 void EditorRenderPipeline::setConfigAnnotationMarkScale(double scale) {
@@ -671,10 +697,10 @@ QRectF EditorRenderPipeline::caretRect(const CursorPosition& position) const {
     QTextLayout* layout = m_textSource->layout(static_cast<size_t>(paraIndex));
     if (!layout || layout->lineCount() == 0) {
         // Fallback: return default cursor rect
-        double widgetY = paragraphWidgetY(static_cast<size_t>(paraIndex));
+        const double docY = m_textSource->paragraphY(static_cast<size_t>(paraIndex));
         QFontMetricsF fm(m_context.font);
-        return QRectF(m_context.computed.originX, widgetY,
-                      m_context.cursor.width, fm.height() * scale);
+        return QRectF(documentToWidget(QPointF(0.0, docY)),
+                      QSizeF(m_context.cursor.width, fm.height() * scale));
     }
 
     // Find line containing cursor - O(log n) using Qt's binary search
@@ -731,11 +757,8 @@ std::vector<EditorRenderPipeline::AnnotationMarkShape> EditorRenderPipeline::ann
     if (!layout || layout->lineCount() == 0) return shapes;
 
     const double scale = m_context.computed.viewScale;
-    const double originX = m_context.computed.originX;
+    const double paragraphY = m_textSource->paragraphY(paragraph);
     const double widgetY = paragraphWidgetY(paragraph);
-    const auto toWidget = [scale, originX, widgetY](double x, double y) {
-        return QPointF(originX + x * scale, widgetY + y * scale);
-    };
 
     int samePlace = 0;  // marks before this one on the same place: they stand side by side
     for (size_t i = 0; i < marks.size(); ++i) {
@@ -748,6 +771,11 @@ std::vector<EditorRenderPipeline::AnnotationMarkShape> EditorRenderPipeline::ann
         const double width = height * MARK_WIDTH_RATIO;
         const double x = line.cursorToX(mark.offset) + samePlace * width * MARK_SPACING;
         const double top = line.y() + line.ascent() + line.descent() * MARK_GAP_SHARE;
+        // On the page of its line
+        const double originX = documentToWidget(QPointF(0.0, paragraphY + line.y())).x();
+        const auto toWidget = [scale, originX, widgetY](double atX, double atY) {
+            return QPointF(originX + atX * scale, widgetY + atY * scale);
+        };
 
         AnnotationMarkShape shape;
         shape.mark = mark;
@@ -865,10 +893,22 @@ void EditorRenderPipeline::ensureVisibleLaidOut() {
     do {
         first = m_context.computed.firstVisibleParagraph;
         last = m_context.computed.lastVisibleParagraph;
-        m_textSource->ensureLayouted(first, last);
+        m_textSource->ensureLayouted(firstParagraphToLayOut(first), last);
         updateVisibleRange();
     } while (first != m_context.computed.firstVisibleParagraph ||
              last != m_context.computed.lastVisibleParagraph);
+}
+
+size_t EditorRenderPipeline::firstParagraphToLayOut(size_t first) const {
+    // The lines numbered from 1 on every page: the lines of the first page in view are
+    // counted from its top, which may be above the view
+    const MarginNumbers& numbers = m_context.marginNumbers;
+    if (numbers.numbering != MarginNumbering::Lines || !numbers.restartEachPage ||
+        m_context.viewMode != ViewMode::Page || first >= m_textSource->paragraphCount()) {
+        return first;
+    }
+    const int page = pageAtDocumentY(m_textSource->paragraphY(first));
+    return std::min(first, m_textSource->paragraphAtY(pageTextTop(page)));
 }
 
 void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
@@ -1012,7 +1052,7 @@ void EditorRenderPipeline::renderParagraphs(QPainter* painter, const QRect& clip
                 ? m_textSource->paragraphFormattingMarks(i)
                 : std::vector<FormattingMark>{};
             renderParagraph(painter, i, widgetY);
-            renderFormattingMarks(painter, marks, widgetY);
+            renderFormattingMarks(painter, i, marks, widgetY);
         }
     }
 }
@@ -1021,8 +1061,6 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
     QTextLayout* layout = m_textSource->layout(index);
     if (!layout) return;
 
-    QPointF drawPos(m_context.computed.originX, widgetY);
-
     // Focus dims every paragraph but the cursor's
     const bool isDimmed = m_context.focus &&
                           static_cast<int>(index) != m_cursorPosition.paragraph;
@@ -1030,38 +1068,60 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
     QColor textColor = isDimmed ? m_context.colors.inactiveText : m_context.colors.text;
     painter->setPen(textColor);
 
-    // Apply transform
-    painter->save();
-    painter->translate(drawPos);
-
-    // The zoom scales the painter
-    const double scale = m_context.computed.viewScale;
-    if (scale != 1.0) {
-        painter->scale(scale, scale);
+    // The pages of the paragraph's lines. With mirror margins a paragraph going on to a page
+    // with its text further right or left is drawn once for each page, cut to the page.
+    const double paragraphY = m_textSource->paragraphY(index);
+    int firstPage = 0;
+    int lastPage = 0;
+    if (m_context.pageMode.mirrorMargins && m_context.viewMode == ViewMode::Page &&
+        layout->lineCount() > 0) {
+        firstPage = pageAtDocumentY(paragraphY + layout->lineAt(0).y());
+        lastPage = pageAtDocumentY(paragraphY + layout->lineAt(layout->lineCount() - 1).y());
     }
 
-    // Draw the layout
-    layout->draw(painter, QPointF(0, 0));
+    const double scale = m_context.computed.viewScale;
+    for (int page = firstPage; page <= lastPage; ++page) {
+        painter->save();
+        if (firstPage != lastPage) {
+            // The page's sheet, with the gap below it (pageAtDocumentY())
+            const double sheetTop = pageTextTop(page) - m_context.computed.marginTop;
+            const double top = documentToWidget(QPointF(0.0, sheetTop)).y();
+            painter->setClipRect(QRectF(0.0, top, m_context.viewportSize.width(),
+                                        m_context.computed.pagePitch * scale),
+                                 Qt::IntersectClip);
+        }
+        painter->translate(m_context.computed.originX + pageShiftX(page) * scale, widgetY);
 
-    painter->restore();
+        // The zoom scales the painter
+        if (scale != 1.0) {
+            painter->scale(scale, scale);
+        }
+
+        // Draw the layout
+        layout->draw(painter, QPointF(0, 0));
+
+        painter->restore();
+    }
 }
 
-void EditorRenderPipeline::renderFormattingMarks(QPainter* painter,
+void EditorRenderPipeline::renderFormattingMarks(QPainter* painter, size_t index,
                                                  const std::vector<FormattingMark>& marks,
                                                  double widgetY) {
     if (marks.empty()) return;
 
-    // In the paragraph's coordinates, zoomed as its text
+    // In the paragraph's coordinates, zoomed as its text, each on the page of its line
+    const double paragraphY = m_textSource->paragraphY(index);
+    const double scale = m_context.computed.viewScale;
     painter->save();
     painter->translate(m_context.computed.originX, widgetY);
-    const double scale = m_context.computed.viewScale;
     if (scale != 1.0) {
         painter->scale(scale, scale);
     }
     painter->setPen(m_context.colors.formattingMarks);
     for (const FormattingMark& mark : marks) {
         painter->setFont(mark.font);
-        painter->drawText(mark.position, QString(mark.glyph));
+        const double shift = shiftAtY(paragraphY + mark.position.y());
+        painter->drawText(mark.position + QPointF(shift, 0.0), QString(mark.glyph));
     }
     painter->restore();
 }
@@ -1123,12 +1183,15 @@ void EditorRenderPipeline::fillTextRange(QPainter* painter, size_t paraIndex, in
                                          int endOffset, double widgetY, const QColor& color,
                                          bool lineBoxes) {
     const double scale = m_context.computed.viewScale;
+    const double paragraphY = m_textSource->paragraphY(paraIndex);
     for (const LinePiece& piece : linePieces(paraIndex, startOffset, endOffset)) {
         const QRectF band = lineBoxes ? lineBox(paraIndex, piece.line)
                                       : QRectF(piece.line.x(), piece.line.y(), piece.line.width(),
                                                piece.line.height());
-        const double x1 = m_context.computed.originX + piece.x1 * scale;
-        const double x2 = m_context.computed.originX + piece.x2 * scale;
+        // On the page of the line
+        const double originX = documentToWidget(QPointF(0.0, paragraphY + piece.line.y())).x();
+        const double x1 = originX + piece.x1 * scale;
+        const double x2 = originX + piece.x2 * scale;
         painter->fillRect(QRectF(x1, widgetY + band.y() * scale, x2 - x1, band.height() * scale),
                           color);
     }
@@ -1203,7 +1266,6 @@ void EditorRenderPipeline::renderHighlightMarks(
     QPainter* painter, const std::vector<ParagraphHighlight>& highlights) {
     const RenderColors& colors = m_context.colors;
     const double scale = m_context.computed.viewScale;
-    const double originX = m_context.computed.originX;
 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
@@ -1216,6 +1278,7 @@ void EditorRenderPipeline::renderHighlightMarks(
         if (pieces.empty()) continue;
 
         // A wave under the baseline
+        const double paragraphY = m_textSource->paragraphY(paragraph);
         const double widgetY = paragraphWidgetY(paragraph);
         const double amplitude = std::max(1.0, 1.5 * scale);
         const double step = 2.0 * amplitude;
@@ -1224,6 +1287,9 @@ void EditorRenderPipeline::renderHighlightMarks(
                              std::max(1.0, scale)));
         painter->setBrush(Qt::NoBrush);
         for (const LinePiece& piece : pieces) {
+            // On the page of the line
+            const double originX =
+                documentToWidget(QPointF(0.0, paragraphY + piece.line.y())).x();
             const double x1 = originX + piece.x1 * scale;
             const double x2 = originX + piece.x2 * scale;
             const double y =
@@ -1293,7 +1359,9 @@ void EditorRenderPipeline::renderCursor(QPainter* painter) {
     painter->save();
     painter->setClipRect(rect, Qt::IntersectClip);
     painter->setPen(m_context.colors.background);
-    painter->translate(m_context.computed.originX, paragraphWidgetY(paragraph));
+    // On the page of the line
+    const double lineY = m_textSource->paragraphY(paragraph) + line.y();
+    painter->translate(documentToWidget(QPointF(0.0, lineY)).x(), paragraphWidgetY(paragraph));
     if (m_context.computed.viewScale != 1.0) {
         painter->scale(m_context.computed.viewScale, m_context.computed.viewScale);
     }
@@ -1346,6 +1414,9 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     // Paragraph text (already viewport-culled internally)
     renderParagraphs(painter, clipRect);
 
+    // The numbers on the left margin
+    renderMarginNumbers(painter, clipRect);
+
     renderHighlightMarks(painter, highlights);
 
     // Cursor and drop caret (only if their paragraph is in visible range)
@@ -1361,6 +1432,101 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     if (m_dropCaret && isVisible(m_dropCaret->paragraph)) {
         painter->fillRect(caretRect(*m_dropCaret), m_context.colors.cursor);
     }
+}
+
+void EditorRenderPipeline::renderMarginNumbers(QPainter* painter, const QRect& clipRect) {
+    const MarginNumbers& numbers = m_context.marginNumbers;
+    const size_t count = m_textSource ? m_textSource->paragraphCount() : 0;
+    if (numbers.numbering == MarginNumbering::None || count == 0) return;
+    const size_t first = m_context.computed.firstVisibleParagraph;
+    const size_t last = std::min(m_context.computed.lastVisibleParagraph, count - 1);
+    if (first > last) return;
+
+    // The numbers go on from what is counted above the view
+    m_paintedMarginFirst = first;
+    m_paintedMarginBase = m_textSource->marginCountsBefore(first);
+
+    const auto& computed = m_context.computed;
+    const double scale = computed.viewScale;
+    const bool lines = numbers.numbering == MarginNumbering::Lines;
+    const bool restart = lines && numbers.restartEachPage && m_context.viewMode == ViewMode::Page;
+    const int interval = std::max(1, numbers.interval);
+
+    // In points, zoomed with the text by the painter
+    QFont font(numbers.fontFamily);
+    font.setPointSizeF(numbers.pointSize > 0.0 ? numbers.pointSize : DEFAULT_MARGIN_NUMBER_POINTS);
+    const QFontMetricsF metrics(font);
+    painter->save();
+    painter->setFont(font);
+    painter->setPen(numbers.color);
+
+    std::map<int, int> pageFirstLines;  // restart: the number of the first line of a page
+    const auto drawNumber = [&](int number, double paragraphY, const QTextLine& line) {
+        const double lineY = paragraphY + line.y();
+        const QPointF lineTop = documentToWidget(QPointF(0.0, lineY));
+        if (lineTop.y() > clipRect.bottom() + 1.0 || lineTop.y() + line.height() * scale < clipRect.top()) {
+            return;
+        }
+        // Right-aligned, left of the text of the line's page (mirror margins: its margin)
+        const int page = pageAtDocumentY(lineY);
+        const double margin = computed.marginLeft + pageShiftX(page);
+        const double gap = std::min(MARGIN_NUMBER_GAP_MM * computed.mmToPixels, margin / 2.0);
+        const QString text = QString::number(number);
+        painter->save();
+        painter->translate(lineTop);
+        painter->scale(scale, scale);
+        painter->drawText(QPointF(-gap - metrics.horizontalAdvance(text), line.ascent()), text);
+        painter->restore();
+    };
+
+    for (size_t paragraph = first; paragraph <= last; ++paragraph) {
+        QTextLayout* layout = m_textSource->layout(paragraph);
+        if (!layout || layout->lineCount() == 0) continue;
+        const double paragraphY = m_textSource->paragraphY(paragraph);
+        const MarginCounts before = m_textSource->marginCountsBefore(paragraph);
+        if (lines) {
+            for (int i = 0; i < layout->lineCount(); ++i) {
+                const QTextLine line = layout->lineAt(i);
+                int number = before.lines + i + 1;
+                if (restart) {
+                    const int page = pageAtDocumentY(paragraphY + line.y());
+                    auto it = pageFirstLines.find(page);
+                    if (it == pageFirstLines.end()) {
+                        it = pageFirstLines.emplace(page, firstLineOfPage(page)).first;
+                    }
+                    number -= it->second - 1;
+                }
+                if (number % interval == 0) {
+                    drawNumber(number, paragraphY, line);
+                }
+            }
+        } else if (m_textSource->isNumberedParagraph(paragraph)) {
+            // At the paragraph's first line
+            const int number = before.paragraphs + 1;
+            if (number % interval == 0) {
+                drawNumber(number, paragraphY, layout->lineAt(0));
+            }
+        }
+    }
+    painter->restore();
+}
+
+int EditorRenderPipeline::firstLineOfPage(int page) const {
+    // The first line whose top is in the page's text area: of the paragraph at its top, or
+    // of one after it (the paragraph at the top may end on the page before)
+    const double top = pageTextTop(page);
+    const size_t count = m_textSource->paragraphCount();
+    for (size_t paragraph = std::min(m_textSource->paragraphAtY(top), count - 1);
+         paragraph < count; ++paragraph) {
+        QTextLayout* layout = m_textSource->layout(paragraph);
+        const double paragraphY = m_textSource->paragraphY(paragraph);
+        for (int i = 0; layout && i < layout->lineCount(); ++i) {
+            if (paragraphY + layout->lineAt(i).y() >= top - 0.5) {
+                return m_textSource->marginCountsBefore(paragraph).lines + i + 1;
+            }
+        }
+    }
+    return m_textSource->marginCountsBefore(count).lines + 1;
 }
 
 void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect) {
@@ -1380,15 +1546,19 @@ void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect)
     numberFont.setPointSizeF(m_context.font.pointSizeF() * PAGE_NUMBER_FONT_SCALE);
 
     for (int page = firstPage; page <= lastPage; ++page) {
+        // The sheets are one below the other; with mirror margins the text of every other
+        // page is further right or left on its sheet (pageShiftX())
         const double sheetTop = pageTextTop(page) - computed.marginTop;
-        const QRectF sheet(documentToWidget(QPointF(-computed.marginLeft, sheetTop)),
+        const QRectF sheet(QPointF(computed.pageCenterOffset,
+                                   documentToWidget(QPointF(0.0, sheetTop)).y()),
                            QSizeF(computed.pageWidthPixels * scale,
                                   computed.pageHeightPixels * scale));
         renderSheet(painter, sheet);
 
         // Text frame border if enabled
         if (m_context.showTextFrameBorder) {
-            const QRectF textRect(documentToWidget(QPointF(0.0, pageTextTop(page))),
+            const QRectF textRect(QPointF(computed.originX + pageShiftX(page) * scale,
+                                          documentToWidget(QPointF(0.0, pageTextTop(page))).y()),
                                   QSizeF(computed.textWidth * scale,
                                          computed.textAreaHeight * scale));
             painter->save();
@@ -1512,15 +1682,33 @@ double EditorRenderPipeline::paragraphWidgetY(size_t index) const {
 QPointF EditorRenderPipeline::documentToWidget(const QPointF& point) const {
     const auto& computed = m_context.computed;
     const double scale = computed.viewScale;
-    return QPointF(computed.originX + point.x() * scale,
+    return QPointF(computed.originX + (point.x() + shiftAtY(point.y())) * scale,
                    computed.originY + (point.y() - m_context.scrollY) * scale);
 }
 
 QPointF EditorRenderPipeline::widgetToDocument(const QPointF& point) const {
     const auto& computed = m_context.computed;
     const double scale = computed.viewScale;
-    return QPointF((point.x() - computed.originX) / scale,
-                   (point.y() - computed.originY) / scale + m_context.scrollY);
+    const double y = (point.y() - computed.originY) / scale + m_context.scrollY;
+    return QPointF((point.x() - computed.originX) / scale - shiftAtY(y), y);
+}
+
+double EditorRenderPipeline::pageShiftX(int page) const {
+    // Page 1 has the margins as set (the first page of a chapter is a right page, unless the
+    // chapter starts on a left one: BookEditor::applyPageLayout()); the page facing it has
+    // them swapped
+    if (m_context.viewMode != ViewMode::Page || !m_context.pageMode.mirrorMargins ||
+        page % 2 == 0) {
+        return 0.0;
+    }
+    return m_context.computed.marginRight - m_context.computed.marginLeft;
+}
+
+double EditorRenderPipeline::shiftAtY(double y) const {
+    if (m_context.viewMode != ViewMode::Page || !m_context.pageMode.mirrorMargins) {
+        return 0.0;
+    }
+    return pageShiftX(pageAtDocumentY(y));
 }
 
 int EditorRenderPipeline::pageCount() const {

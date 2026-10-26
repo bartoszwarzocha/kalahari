@@ -230,6 +230,12 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.title = fields.string("title");
     element.file = readFile(fields, field, seen, false);
     element.status = fields.string("status");
+    const QString firstPage = fields.string("firstPage");
+    if (firstPage == QLatin1String("left")) {
+        element.firstPageLeft = true;
+    } else if (!firstPage.isEmpty() && firstPage != QLatin1String("right")) {
+        fields.problem("firstPage", QStringLiteral("must be \"left\" or \"right\""));
+    }
     element.elements = readElements(fields.array("elements"), fields.path("elements"), seen,
                                     problems);
     element.extra = fields.rest();
@@ -385,6 +391,8 @@ QJsonObject elementToJson(const ProjectElement& element) {
     json.insert(QLatin1String("title"), element.title);
     setOrRemove(json, "file", element.file);
     setOrRemove(json, "status", element.status);
+    // A right page needs no field: the first page of a text is one unless it says otherwise
+    setOrRemove(json, "firstPage", element.firstPageLeft ? QStringLiteral("left") : QString());
     if (element.elements.isEmpty()) {
         json.remove(QLatin1String("elements"));
     } else {
@@ -684,7 +692,8 @@ void ProjectBook::setSections(const BookSections& sections) {
 
 bool ProjectElement::operator==(const ProjectElement& other) const {
     return id == other.id && kind == other.kind && title == other.title &&
-           file == other.file && status == other.status && elements == other.elements &&
+           file == other.file && status == other.status &&
+           firstPageLeft == other.firstPageLeft && elements == other.elements &&
            extra == other.extra;
 }
 

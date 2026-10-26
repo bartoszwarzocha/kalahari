@@ -1214,6 +1214,9 @@ void BookEditor::performTextKey(TextKeyAction action, bool select)
         insertNewline();
         moveCursorLeft();
         return;
+    case Action::Tab:
+        typeText(QStringLiteral("\t"));
+        return;
     case Action::Transpose:
         transposeCharacters();
         return;

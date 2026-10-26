@@ -25,12 +25,15 @@ QString headingStyleId(int level) {
 }
 
 int headingLevelOf(const QString& styleId) {
-    for (int level = 1; level <= HEADING_LEVELS; ++level) {
-        if (styleId == headingStyleId(level)) {
-            return level;
-        }
+    // headingStyleId(): the prefix and the level, one digit. Read without building the ids,
+    // as the numbers on the margin ask it of every paragraph
+    static_assert(HEADING_LEVELS <= 9, "a heading level is one digit");
+    const QLatin1String prefix("heading_");
+    if (styleId.size() != prefix.size() + 1 || !styleId.startsWith(prefix)) {
+        return 0;
     }
-    return 0;
+    const int level = styleId.back().unicode() - u'0';
+    return level >= 1 && level <= HEADING_LEVELS ? level : 0;
 }
 
 int headingLevelOfElement(QStringView element) {

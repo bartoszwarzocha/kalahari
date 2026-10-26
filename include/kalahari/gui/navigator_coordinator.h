@@ -119,6 +119,10 @@ public:
     /// unsaved changes
     void refreshTabTitle(const QString& elementId);
 
+    /// @brief Give the open tab of element @p elementId whether the element starts on a left
+    /// page (the Properties panel changed it)
+    void refreshFirstPage(const QString& elementId);
+
     // =========================================================================
     // Statistics Integration (OpenSpec #00042 Task 7.7)
     // =========================================================================

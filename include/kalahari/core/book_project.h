@@ -88,6 +88,8 @@ struct ProjectElement {
     QString title;                   ///< Title
     QString file;                    ///< File, relative to the project folder; empty: none
     QString status;                  ///< "draft", "revision" or "final"; empty: none (groups)
+    bool firstPageLeft = false;      ///< Its text starts on a left page (mirror margins); in
+                                     ///< the file "firstPage": "left", without it a right page
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QJsonObject extra;               ///< Fields this version does not know, saved back
 

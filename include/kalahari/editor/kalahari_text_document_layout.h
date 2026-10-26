@@ -27,8 +27,8 @@ namespace kalahari::editor {
 /// spaces lines only as the view typography asks for.
 ///
 /// Key features:
-/// - Line spacing, paragraph spacing and first-line indent from LayoutTypography; the
-///   extra line spacing is split evenly above and below each line
+/// - Line spacing, paragraph spacing, first-line indent and tab stops from
+///   LayoutTypography; the extra line spacing is split evenly above and below each line
 /// - Paragraph styles (ParagraphStyleSet): Normal is shown as the typography and the
 ///   document font say, every other style in the proportions of its package (see
 ///   BlockMetrics); the fonts of a style go over the text as QTextLayout formats, so the
@@ -161,6 +161,7 @@ public:
         qreal emptyAscent = 0.0;      ///< Ascent and height of the line of an empty
         qreal emptyLineHeight = 0.0;  ///< paragraph in the style's font
         qreal estimatedLineHeight = 1.0;  ///< Line box height the estimates use
+        qreal tabStopDistance = 0.0;  ///< Between two tab stops (0: Qt's default)
     };
 
     /// @brief Set the styles of the book; every paragraph is shown in its style again
@@ -189,6 +190,20 @@ public:
 
     /// @brief Lay out every block now, also the ones already laid out
     void layoutAllBlocks();
+
+    // ==========================================================================
+    // The numbers on the margin
+    // ==========================================================================
+
+    /// @brief What the numbers on the margin count before a block: the lines of the blocks
+    ///        before it (estimated for the ones waiting for layout) and the paragraphs with
+    ///        text among them (isNumberedParagraph())
+    /// @param blockNumber A block number; the block count: the whole document
+    MarginCounts marginCountsBefore(int blockNumber) const;
+
+    /// @brief Whether a block is numbered as a paragraph: a paragraph with text, not a
+    ///        heading and not an object (a horizontal line, a scene or page break)
+    static bool isNumberedParagraph(const QTextBlock& block);
 
     // ==========================================================================
     // Layout on demand
@@ -324,6 +339,13 @@ private:
     /// @brief Height a block of the given text extent probably gets at the current settings
     qreal estimatedHeight(qreal extent, const BlockMetrics& metrics) const;
 
+    /// @brief Number of lines a block of the given text extent probably gets
+    qreal estimatedLines(qreal extent, const BlockMetrics& metrics) const;
+
+    /// @brief The numbers on the margin count the blocks from @p blockNumber on again (the
+    ///        blocks before it are as they were)
+    void recountMarginsFrom(int blockNumber);
+
     /// @brief Height of a line's box: the line, or for the line of an empty paragraph
     ///        (@p empty) the line of its style's font, with its share of the line spacing
     static qreal lineBoxHeight(const QTextLine& line, const BlockMetrics& metrics, bool empty);
@@ -453,6 +475,12 @@ private:
     // Metrics of the current font for the estimates
     qreal m_averageCharWidth = 1;
     qreal m_estimatedLineHeight = 1;
+
+    // What the numbers on the margin count before each block (marginCountsBefore()), one
+    // more entry for the whole document; from block m_marginCountsFrom on counted again
+    // after a change (recountMarginsFrom())
+    mutable std::vector<MarginCounts> m_marginCounts;
+    mutable int m_marginCountsFrom = 0;
 
     // Background pass: next block to look at, and the timer driving it
     int m_backgroundNext = 0;

@@ -16,6 +16,7 @@
 #include <QElapsedTimer>
 #include <QFont>
 #include <QLabel>
+#include <QRadioButton>
 #include <QScreen>
 #include <QScrollArea>
 #include <QSplitter>
@@ -113,7 +114,9 @@ void SettingsDialog::createNavigationTree() {
     addPage(editor, tr("General"), []() { return new EditorGeneralPage(); });
     addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
-    addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
+    m_pageItems[PAGES_PAGE] =
+        addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
+    m_pageItems[MARGIN_NUMBERING_PAGE] = m_pageItems[PAGES_PAGE];
     m_pageItems[SPELLING_PAGE] =
         addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
     addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_grammar); });
@@ -285,6 +288,28 @@ bool SettingsDialog::openPage(const QString& page) {
     if (page == QLatin1String(SHORTCUTS_PAGE)) {
         if (auto* shortcuts = m_pageStack->findChild<ShortcutsPage*>()) {
             shortcuts->setFocus(Qt::OtherFocusReason);
+        }
+    } else if (page == QLatin1String(MARGIN_NUMBERING_PAGE)) {
+        // The group far down the page in view, the cursor in its choice of the numbering
+        const auto built = m_builtPages.find(item->second);
+        auto* scrollArea =
+            built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;
+        auto* group = scrollArea != nullptr
+            ? scrollArea->findChild<QWidget*>(QStringLiteral("marginNumbersGroup"))
+            : nullptr;
+        if (group != nullptr) {
+            const QList<QRadioButton*> choices = group->findChildren<QRadioButton*>();
+            const auto checked = std::find_if(choices.begin(), choices.end(),
+                                              [](const QRadioButton* choice) {
+                                                  return choice->isChecked();
+                                              });
+            if (checked != choices.end()) {
+                (*checked)->setFocus(Qt::OtherFocusReason);
+            }
+            // Once the dialog shows: the page has its size then
+            QTimer::singleShot(0, scrollArea, [scrollArea, group]() {
+                scrollArea->ensureWidgetVisible(group);
+            });
         }
     }
     return true;

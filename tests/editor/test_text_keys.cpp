@@ -9,12 +9,15 @@
 #include <kalahari/editor/text_keys.h>
 #include "editor_test_utils.h"
 
+#include <QApplication>
 #include <QClipboard>
 #include <QCoreApplication>
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QKeySequence>
+#include <QLineEdit>
 #include <QSet>
+#include <QVBoxLayout>
 #include <QTextBlock>
 #include <QTextLayout>
 #include <cmath>
@@ -114,6 +117,11 @@ TEST_CASE("Text keys: Windows and Linux have the keys of Windows word processors
     // Shift+Enter breaks the line in the paragraph, as in Word
     CHECK(isKey(WINDOWS, Qt::Key_Return, SHIFT, Action::NewLine));
     CHECK(isKey(WINDOWS, Qt::Key_Enter, SHIFT | Qt::KeypadModifier, Action::NewLine));
+    // Tab types a tab character; Shift+Tab and Ctrl+Tab are the window's
+    CHECK(isKey(WINDOWS, Qt::Key_Tab, NONE, Action::Tab));
+    CHECK(isKey(WINDOWS, Qt::Key_Tab, SHIFT, Action::None));
+    CHECK(isKey(WINDOWS, Qt::Key_Backtab, SHIFT, Action::None));
+    CHECK(isKey(WINDOWS, Qt::Key_Tab, CTRL, Action::None));
 
     // The second keys of the commands, those of every Windows text field
     CHECK(isKey(WINDOWS, Qt::Key_Z, CTRL | SHIFT, Action::Redo));
@@ -602,6 +610,57 @@ TEST_CASE("Text keys: the keys of the program's system reach the editor", "[edit
     // Typing still types
     press(*editor, Qt::Key_X, NONE, QStringLiteral("x"));
     CHECK(textOf(*editor) == QStringLiteral("xAla  kota.\nKot."));
+}
+
+TEST_CASE("Text keys: Tab types a tab character, Shift+Tab goes to the field before",
+          "[editor][textkeys][tab]") {
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("needs an active window without a window on screen: run with "
+             "QT_QPA_PLATFORM=offscreen");
+    }
+    QWidget window;
+    auto* layout = new QVBoxLayout(&window);
+    auto* field = new QLineEdit();
+    auto* editor = new BookEditor();
+    layout->addWidget(field);
+    layout->addWidget(editor, 1);
+    window.resize(500, 300);
+    window.show();
+    window.activateWindow();
+    REQUIRE(waitUntil([&window] { return QApplication::activeWindow() == &window; }));
+    editor->fromKml(kmlOf({QStringLiteral("Ala ma kota.")}));
+    const auto focusEditor = [editor] {
+        editor->setFocus(Qt::OtherFocusReason);
+        REQUIRE(waitUntil([editor] { return editor->hasFocus(); }));
+    };
+    focusEditor();
+
+    // At the start of the paragraph as anywhere: a tab is a character as any other
+    editor->setCursorPosition({0, 0});
+    press(*editor, Qt::Key_Tab, NONE, QStringLiteral("\t"));
+    CHECK(textOf(*editor) == QStringLiteral("\tAla ma kota."));
+    CHECK(editor->hasFocus());
+    editor->setCursorPosition({0, 4});
+    press(*editor, Qt::Key_Tab, NONE, QStringLiteral("\t"));
+    CHECK(textOf(*editor) == QStringLiteral("\tAla\t ma kota."));
+    CHECK(editor->cursorPosition() == CursorPosition{0, 5});
+
+    // A selection gives way to the tab
+    editor->setSelection(SelectionRange{{0, 6}, {0, 8}});
+    press(*editor, Qt::Key_Tab, NONE, QStringLiteral("\t"));
+    CHECK(textOf(*editor) == QStringLiteral("\tAla\t \t kota."));
+
+    // Shift+Tab goes back to the field before
+    press(*editor, Qt::Key_Backtab, SHIFT);
+    CHECK(field->hasFocus());
+    CHECK(textOf(*editor) == QStringLiteral("\tAla\t \t kota."));
+
+    // A read-only text keeps no tab: Tab goes on to the next field, as in any field
+    focusEditor();
+    editor->setReadOnly(true);
+    press(*editor, Qt::Key_Tab, NONE, QStringLiteral("\t"));
+    CHECK(field->hasFocus());
+    CHECK(textOf(*editor) == QStringLiteral("\tAla\t \t kota."));
 }
 
 TEST_CASE("Text keys: Alt with a letter goes on to the menus, AltGr types in the text",

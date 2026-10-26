@@ -2265,6 +2265,35 @@ TEST_CASE("ProjectManager keeps the status in the .klh file and in the chapter f
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager keeps in the .klh file that a chapter starts on a left page",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Pages", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString id = pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter", BookPlace::Main);
+    const QString part = pm.addElement(pm.partKind(), "Part", BookPlace::Main);
+    REQUIRE_FALSE(id.isEmpty());
+    REQUIRE_FALSE(part.isEmpty());
+
+    // A right page unless the chapter says otherwise
+    CHECK_FALSE(pm.findElement(id)->firstPageLeft);
+    REQUIRE(pm.setFirstPageLeft(id, true));
+    CHECK(pm.findElement(id)->firstPageLeft);
+    CHECK_FALSE(pm.setFirstPageLeft(part, true));  // a group has no pages of its own
+    CHECK_FALSE(pm.findElement(part)->firstPageLeft);
+    REQUIRE(pm.closeProject(false));
+
+    // The .klh file keeps it
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.findElement(id)->firstPageLeft);
+    REQUIRE(pm.setFirstPageLeft(id, false));
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK_FALSE(pm.findElement(id)->firstPageLeft);
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("ProjectManager keeps the notes of a chapter in its chapter file", "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();

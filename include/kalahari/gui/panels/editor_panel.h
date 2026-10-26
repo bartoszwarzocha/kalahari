@@ -126,6 +126,10 @@ public:
     /// loop runs, after any change of an editor setting.
     void applySettings();
 
+    /// @brief Set whether the text starts on a left page: the chapter's own setting
+    ///        (ProjectElement::firstPageLeft), which the margins of its pages follow
+    void setFirstPageLeft(bool left);
+
 signals:
     /// @brief Emitted when editor content changes
     ///

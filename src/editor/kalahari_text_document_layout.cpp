@@ -15,6 +15,7 @@
 #include <QTimer>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace kalahari::editor {
 
@@ -29,6 +30,10 @@ constexpr qreal UNBOUNDED_EXTENT = 1000000000.0;
 /// Accepted range of the line spacing multiplier
 constexpr qreal MIN_LINE_SPACING = 0.5;
 constexpr qreal MAX_LINE_SPACING = 4.0;
+
+/// Accepted range of the spaces between two tab stops
+constexpr int MIN_TAB_SPACES = 1;
+constexpr int MAX_TAB_SPACES = 32;
 
 /// An edit touching at most this many blocks lays them out at once. A larger one (a
 /// load, a long paste or its undo) leaves them waiting for layout.
@@ -221,6 +226,8 @@ void KalahariTextDocumentLayout::setTypography(const LayoutTypography& typograph
     normalized.paragraphSpacing = std::max<qreal>(0, typography.paragraphSpacing);
     normalized.firstLineIndent = std::max<qreal>(0, typography.firstLineIndent);
     normalized.referencePointSize = std::max<qreal>(0, typography.referencePointSize);
+    normalized.tabIndent = std::max<qreal>(0, typography.tabIndent);
+    normalized.tabSpaces = std::clamp(typography.tabSpaces, MIN_TAB_SPACES, MAX_TAB_SPACES);
     if (normalized == m_typography) {
         return;
     }
@@ -249,6 +256,49 @@ qreal KalahariTextDocumentLayout::firstLineIndent() const {
 void KalahariTextDocumentLayout::layoutAllBlocks() {
     invalidateAll();
     layoutPendingBlocks();
+}
+
+// =============================================================================
+// The numbers on the margin
+// =============================================================================
+
+MarginCounts KalahariTextDocumentLayout::marginCountsBefore(int blockNumber) const {
+    // Counted again only when asked after a change (the numbers are shown): typing, a block
+    // laid out. The blocks before the first changed one keep their counts
+    const QTextDocument* doc = document();
+    const int blockCount = doc->blockCount();
+    if (m_marginCountsFrom < blockCount ||
+        m_marginCounts.size() != static_cast<size_t>(blockCount) + 1) {
+        const int from = std::clamp(m_marginCountsFrom, 0,
+                                    std::max(static_cast<int>(m_marginCounts.size()) - 1, 0));
+        m_marginCounts.resize(static_cast<size_t>(from) + 1);
+        m_marginCounts.reserve(static_cast<size_t>(blockCount) + 1);
+        auto index = static_cast<size_t>(from);
+        for (QTextBlock block = doc->findBlockByNumber(from); block.isValid();
+             block = block.next(), ++index) {
+            // Every block shows a line at least (an edited one has none for a moment)
+            const bool laidOut = index < m_blockPending.size() && m_blockPending[index] == 0;
+            const qreal extent =
+                index < m_blockExtents.size() ? m_blockExtents[index] : block.length();
+            const int lines =
+                laidOut && block.layout() != nullptr
+                    ? std::max(1, block.layout()->lineCount())
+                    : static_cast<int>(estimatedLines(extent, blockMetrics(block)));
+            MarginCounts next = m_marginCounts.back();
+            next.lines += lines;
+            next.paragraphs += isNumberedParagraph(block) ? 1 : 0;
+            m_marginCounts.push_back(next);
+        }
+        m_marginCountsFrom = std::numeric_limits<int>::max();
+    }
+    const auto last = static_cast<int>(m_marginCounts.size()) - 1;
+    return m_marginCounts[static_cast<size_t>(std::clamp(blockNumber, 0, last))];
+}
+
+bool KalahariTextDocumentLayout::isNumberedParagraph(const QTextBlock& block) {
+    return blockObject(block) == TextObject::None &&
+           headingLevelOf(paragraphStyleOf(block.blockFormat())) == 0 &&
+           !block.text().trimmed().isEmpty();
 }
 
 // =============================================================================
@@ -370,6 +420,17 @@ KalahariTextDocumentLayout::BlockMetrics KalahariTextDocumentLayout::styleMetric
     metrics.emptyLineHeight = std::ceil(styledMetrics.ascent() + styledMetrics.descent());
     metrics.estimatedLineHeight =
         metrics.emptyLineHeight + extraLeading(metrics.emptyLineHeight, metrics.lineSpacing);
+
+    // The tab stops: every first-line indent of the style (a style without one, as headings
+    // have, takes the indent of the settings), or every few spaces of its font
+    if (m_typography.tabStops == TabStops::Spaces) {
+        metrics.tabStopDistance =
+            m_typography.tabSpaces * styledMetrics.horizontalAdvance(QLatin1Char(' '));
+    } else {
+        metrics.tabStopDistance = metrics.firstLineIndent > 0
+                                      ? metrics.firstLineIndent
+                                      : m_typography.tabIndent * typographyScale();
+    }
     return metrics;
 }
 
@@ -607,6 +668,7 @@ void KalahariTextDocumentLayout::layoutStep() {
 void KalahariTextDocumentLayout::invalidateAll() {
     const QTextDocument* doc = document();
     updateEstimateMetrics();
+    recountMarginsFrom(0);
 
     const auto count = static_cast<size_t>(doc->blockCount());
     if (m_blockHeights.size() != count || m_blockExtents.size() != count) {
@@ -653,13 +715,21 @@ void KalahariTextDocumentLayout::updateEstimateMetrics() {
 }
 
 qreal KalahariTextDocumentLayout::estimatedHeight(qreal extent, const BlockMetrics& metrics) const {
+    return estimatedLines(extent, metrics) * metrics.estimatedLineHeight + metrics.spaceBefore +
+           metrics.spaceAfter;
+}
+
+qreal KalahariTextDocumentLayout::estimatedLines(qreal extent, const BlockMetrics& metrics) const {
     const qreal width = document()->textWidth();
     const qreal lineWidth =
         std::max<qreal>(1.0, (width > 0 ? width : UNWRAPPED_LINE_WIDTH) - metrics.leftMargin -
                                  metrics.rightMargin) *
         AVERAGE_LINE_FILL;
-    const qreal lines = std::max<qreal>(1.0, std::ceil(extent * m_averageCharWidth / lineWidth));
-    return lines * metrics.estimatedLineHeight + metrics.spaceBefore + metrics.spaceAfter;
+    return std::max<qreal>(1.0, std::ceil(extent * m_averageCharWidth / lineWidth));
+}
+
+void KalahariTextDocumentLayout::recountMarginsFrom(int blockNumber) {
+    m_marginCountsFrom = std::min(m_marginCountsFrom, std::max(blockNumber, 0));
 }
 
 void KalahariTextDocumentLayout::reportDocumentSize() {
@@ -725,6 +795,7 @@ void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int
 
     // Every block touching the change is laid out again. Blocks outside it are untouched.
     const auto [first, last] = changedBlocks(from, charsAdded);
+    recountMarginsFrom(first.blockNumber());  // the text, and so the lines, changed
 
     // The changed blocks lose their lines, as QTextDocumentLayout clears them (when the
     // document announced the change, they have lost them already): Qt keeps the lines of an
@@ -864,6 +935,7 @@ bool KalahariTextDocumentLayout::layOutBlock(int number, const QTextBlock& block
     qreal lead = 0.0;
     const qreal height = layoutBlock(block, &extent, false, &lead);
     const bool changed = height != m_blockHeights[index];
+    recountMarginsFrom(number);  // its lines, no longer estimated
     m_blockHeights[index] = height;
     m_blockExtents[index] = extent;
     m_blockFlowOffsets[index] = FLOW_UNPLACED;  // the new lines follow the block's top
@@ -913,6 +985,9 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
     // advances scale linearly, so lines break the same way and letters stay evenly
     // spaced at every zoom, in the pages and in the endless page alike
     textOption.setUseDesignMetrics(true);
+    if (metrics.tabStopDistance > 0) {
+        textOption.setTabStopDistance(metrics.tabStopDistance);
+    }
     layout->setTextOption(textOption);
 
     // Blocks laid out on demand keep only the line breaks: their glyphs are shaped again

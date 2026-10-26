@@ -72,6 +72,7 @@ std::vector<TextKey> windowsKeys() {
         // Ctrl+Enter is Insert > Page Break, a command of the window
         .enter({NONE}, Action::NewParagraph)
         .enter({SHIFT}, Action::NewLine)
+        .key(Qt::Key_Tab, NONE, Action::Tab)
         // The second keys of the commands, those of every Windows text field
         .key(Qt::Key_Z, CTRL | SHIFT, Action::Redo)
         .key(Qt::Key_Backspace, ALT, Action::Undo)
@@ -121,6 +122,7 @@ std::vector<TextKey> macKeys() {
         // Cmd+Return is Insert > Page Break, a command of the window
         .enter({NONE, ALT}, Action::NewParagraph)
         .enter({SHIFT}, Action::NewLine)
+        .key(Qt::Key_Tab, NONE, Action::Tab)
         .key(Qt::Key_Z, CTRL | SHIFT, Action::Redo)
         // The Control keys of the text fields of macOS
         .move(Qt::Key_A, META, Action::ParagraphStart)
