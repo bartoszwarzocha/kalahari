@@ -110,6 +110,18 @@ QIcon swatchIcon(const QColor& color, const QColor& border, int side)
     return QIcon(pixmap);
 }
 
+/// @brief Calls a function with each new state of a checkbox (Qt 6.7 renamed the signal)
+template <typename Function>
+void onCheckStateChanged(QCheckBox* box, QObject* context, Function function)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+    QObject::connect(box, &QCheckBox::checkStateChanged, context, function);
+#else
+    QObject::connect(box, &QCheckBox::stateChanged, context,
+                     [function](int state) { function(static_cast<Qt::CheckState>(state)); });
+#endif
+}
+
 }  // namespace
 
 // =============================================================================
@@ -434,13 +446,13 @@ QWidget* FontDialog::createFontTab()
     grid->addLayout(effects, 5, 0);
     grid->addWidget(m_preview, 5, 1, 1, 2);
 
-    connect(m_underline, &QCheckBox::stateChanged, this, [this](int state) {
+    onCheckStateChanged(m_underline, this, [this](Qt::CheckState state) {
         if (state != Qt::PartiallyChecked) {
             m_format.underline = state == Qt::Checked;
             updatePreviews();
         }
     });
-    connect(m_strikethrough, &QCheckBox::stateChanged, this, [this](int state) {
+    onCheckStateChanged(m_strikethrough, this, [this](Qt::CheckState state) {
         if (state != Qt::PartiallyChecked) {
             m_format.strikethrough = state == Qt::Checked;
             updatePreviews();
@@ -448,7 +460,7 @@ QWidget* FontDialog::createFontTab()
     });
     // An index takes the other off, as a kind of capitals does
     const auto exclusive = [this](QCheckBox* box, QCheckBox* other) {
-        connect(box, &QCheckBox::stateChanged, this, [this, other](int state) {
+        onCheckStateChanged(box, this, [this, other](Qt::CheckState state) {
             if (m_updating) {
                 return;
             }
