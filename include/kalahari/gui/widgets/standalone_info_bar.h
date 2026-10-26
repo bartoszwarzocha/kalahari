@@ -1,10 +1,11 @@
 /// @file standalone_info_bar.h
-/// @brief Info bar widget for standalone files (not part of the book), and for a book open
-/// read-only
+/// @brief Info bar widget for standalone files (not part of the book), for a book open
+/// read-only, and for a notice of what was just done to a text
 ///
 /// OpenSpec #00033 Phase F: StandaloneInfoBar widget displays an informational
 /// banner when editing a standalone file, with an option to add it to the open book. Over a
-/// book open read-only it says why, with the export of the book's archive.
+/// book open read-only it says why, with the export of the book's archive. Under a text it
+/// can say what was just done to it, with a button that undoes it (showNotice()).
 
 #pragma once
 
@@ -15,8 +16,8 @@
 namespace kalahari {
 namespace gui {
 
-/// @brief Info bar displayed for standalone files not part of the book, and for a book open
-/// read-only (showReadOnlyBook())
+/// @brief Info bar displayed for standalone files not part of the book, for a book open
+/// read-only (showReadOnlyBook()), and for a notice under a text (showNotice())
 ///
 /// Shows a themed banner with:
 /// - Info icon
@@ -77,6 +78,18 @@ public:
     /// something of a file
     bool showsReadOnlyBook() const { return m_readOnlyBook; }
 
+    /// @brief Say @p message of what was just done to the text in front, with a button
+    /// @p actionText (noticeActionClicked()), in place of a file; setFilePath() and
+    /// showReadOnlyBook() show what they show again
+    /// @param message The notice
+    /// @param actionText Its button, with a mnemonic; empty: none
+    /// @param actionToolTip The tooltip of its button
+    void showNotice(const QString& message, const QString& actionText,
+                    const QString& actionToolTip = QString());
+
+    /// @brief Whether it shows a notice (showNotice())
+    bool showsNotice() const { return m_notice; }
+
 signals:
     /// @brief Emitted when the "Add to Book" button is clicked
     void addToProjectClicked();
@@ -89,6 +102,9 @@ signals:
     /// clicked (setBookOpen())
     void saveAsClicked();
 
+    /// @brief Emitted when the button of a notice is clicked (showNotice())
+    void noticeActionClicked();
+
 private:
     /// Whether the button saves a new file that no book can take ("Save As...")
     bool savesAs() const;
@@ -98,6 +114,7 @@ private:
 
     QString m_filePath;         ///< Path to the standalone file
     bool m_readOnlyBook = false;  ///< It says that the open book is read-only
+    bool m_notice = false;        ///< It shows a notice (showNotice())
     bool m_bookOpen = true;       ///< A book is open (setBookOpen())
     bool m_bookReadOnly = false;  ///< The open book is read-only (setBookOpen())
 };

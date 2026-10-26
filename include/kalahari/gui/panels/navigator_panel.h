@@ -341,6 +341,10 @@ signals:
     /// @param elementId Element ID (empty for document properties)
     void requestProperties(const QString& elementId);
 
+    /// @brief Request to show the versions of the text of an element (Version History...)
+    /// @param elementId Element ID
+    void requestVersionHistory(const QString& elementId);
+
     /// @brief Request to show section properties (aggregate statistics)
     /// @param sectionType Section type ("section_frontmatter", "section_body", "section_backmatter")
     void requestSectionProperties(const QString& sectionType);
@@ -427,7 +431,8 @@ private slots:
     void onItemActivated(QTreeWidgetItem* item, int column);
 
 protected:
-    /// @brief The keys of the tree: Insert and Ctrl+Shift+Enter add, F2 renames, Delete deletes
+    /// @brief The keys of the tree: Insert and Ctrl+Shift+Enter add, F2 renames, Delete
+    /// deletes, Alt+Shift+H shows the versions of a text
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
@@ -442,6 +447,10 @@ private:
     /// @brief Delete @p item: an element, a file of the book or one that no element has;
     /// nothing for the other items
     void deleteItem(const QTreeWidgetItem* item);
+
+    /// @brief The element of @p item when its text has versions (a text of the book, or a
+    /// file of the book with a text); empty for the other items
+    QString versionsElementOf(const QTreeWidgetItem* item) const;
 
     /// @brief Why the command of @p item cannot change the book; empty when it can
     QString changeRefusal() const;

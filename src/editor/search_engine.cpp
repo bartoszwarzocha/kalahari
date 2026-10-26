@@ -296,6 +296,7 @@ int SearchEngine::replaceAll() {
     }
 
     const int count = static_cast<int>(m_matches.size());
+    emit aboutToReplaceAll(count);
 
     // Direct replacement — recorded by QTextDocument's native undo as ONE step
     // (beginEditBlock/endEditBlock). Process in reverse order to keep positions valid.

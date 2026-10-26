@@ -77,6 +77,11 @@ public:
     ///        nothing, and the menu closes)
     void chooseWith(QChar key) { m_key = key; }
 
+    /// @brief The next menu read: choose its item whose text begins with @p text, as with the
+    ///        mouse, instead of closing the menu (macOS has no access keys); a disabled item
+    ///        chooses nothing
+    void chooseItem(const QString& text) { m_item = text; }
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override {
         if (watched == m_owner && event->type() == QEvent::ChildPolished) {
@@ -98,11 +103,21 @@ private:
         m_items = menuItems(menu->actions());
         ++m_menusRead;
         // Closed once it is open, the menu ends its event loop; an item chosen closes it
-        QTimer::singleShot(0, menu, [menu, key = std::exchange(m_key, QChar())]() {
+        QTimer::singleShot(0, menu, [menu, key = std::exchange(m_key, QChar()),
+                                     text = std::exchange(m_item, QString())]() {
             if (!key.isNull()) {
                 QKeyEvent press(QEvent::KeyPress, key.toUpper().unicode(), Qt::NoModifier,
                                 QString(key));
                 QCoreApplication::sendEvent(menu, &press);
+            }
+            // As a click: the menu closes, then its item does what it does
+            const QList<QAction*> actions = text.isEmpty() ? QList<QAction*>() : menu->actions();
+            for (QAction* action : actions) {
+                if (action->isEnabled() && action->text().startsWith(text)) {
+                    menu->close();
+                    action->trigger();
+                    break;
+                }
             }
             if (menu->isVisible()) {
                 menu->close();
@@ -114,6 +129,7 @@ private:
     QList<MenuItem> m_items;
     int m_menusRead = 0;
     QChar m_key;  ///< The access key that chooses an item of the next menu (none: closes it)
+    QString m_item;  ///< The beginning of the text of the item to choose in the next menu
 };
 
 }  // namespace kalahari::test

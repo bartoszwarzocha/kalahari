@@ -958,6 +958,16 @@ public:
     /// changes only when asked for.
     void shrinkToPageWidthOnFirstShow();
 
+    /// @brief Keep the page at the width of the view, as zoomToPageWidth() zooms it, so the
+    ///        view never scrolls sideways (a preview)
+    ///
+    /// Each new size of the view, new text, appearance or paper scale zooms the page to the
+    /// width again; a zoom asked for stays until then.
+    void setKeepsPageWidth(bool keeps);
+
+    /// @brief Whether the page keeps the width of the view (setKeepsPageWidth())
+    bool keepsPageWidth() const;
+
     /// @brief Zoom in by one step (+10%)
     void zoomIn();
 
@@ -1197,6 +1207,12 @@ signals:
     /// @brief The writer tried to change a read-only text (isReadOnly()): typed or deleted in
     /// it, pasted, cut, undid, redid, formatted or aligned it; nothing changed
     void changeRefused();
+
+    /// @brief Replace All of the Find/Replace bar is about to replace @p count matches of
+    /// @p found with @p replacement; the text is still as it was (toKml())
+    ///
+    /// The book keeps the text as a version first (ChapterVersions).
+    void aboutToReplaceAll(const QString& found, const QString& replacement, int count);
 
     /// @brief Emitted when the document content changes
     ///
@@ -1482,8 +1498,9 @@ private:
     ///        of the scroll bar; 0 while the page has no size
     double pageWidthZoom() const;
 
-    /// @brief Apply shrinkToPageWidthOnFirstShow() while it waits for the first paint
-    void applyFirstShowShrink();
+    /// @brief Apply setKeepsPageWidth(), and shrinkToPageWidthOnFirstShow() while it waits
+    ///        for the first paint
+    void applyPageWidthZoom();
 
     /// @brief Put the cursor line at the height of scrollCursorLineTo() again while it waits
     ///        for the first paint
@@ -1795,6 +1812,7 @@ private:
     bool m_paintingWholeView = false;                       ///< A paint of the whole view runs
     bool m_shrinkOnFirstShow = false;                       ///< shrinkToPageWidthOnFirstShow() waits
                                                             ///< for the first paint
+    bool m_keepsPageWidth = false;                          ///< setKeepsPageWidth()
     qreal m_cursorLineHeightOnFirstShow = -1.0;             ///< scrollCursorLineTo() waits for the
                                                             ///< first paint (none below 0)
 

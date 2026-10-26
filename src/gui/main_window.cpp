@@ -11,6 +11,7 @@
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
+#include "kalahari/gui/versions_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/spelling_coordinator.h"
@@ -321,6 +322,43 @@ MainWindow::MainWindow(QWidget* parent)
         statusBar(),
         this);
     m_annotationsCoordinator->connectCommands();
+
+    // Save Version and Version History of the text in front; a text is opened as from the
+    // Navigator, and the bar under it says that a version was restored
+    m_versionsCoordinator = new VersionsCoordinator(
+        m_dockCoordinator->centralTabs(),
+        [this](const QString& elementId) {
+            if (const core::ProjectElement* element =
+                    core::ProjectManager::getInstance().findElement(elementId)) {
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
+            }
+        },
+        [this](EditorPanel* editor, const QString& message, const QString& actionText,
+               const QString& actionToolTip, std::function<void()> action) {
+            m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
+                                              std::move(action));
+        },
+        statusBar(), this, this);
+    m_versionsCoordinator->connectCommands();
+    // Version History... of a text in the Navigator, and the buttons of the group of the
+    // versions in the Properties panel: the text opens, if it is not open
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestVersionHistory,
+            m_versionsCoordinator,
+            [this](const QString& elementId) { m_versionsCoordinator->showHistory(elementId); });
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSaveVersion,
+            m_versionsCoordinator,
+            [this](const QString& elementId) { m_versionsCoordinator->saveVersion(elementId); });
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestVersionHistory,
+            m_versionsCoordinator,
+            [this](const QString& elementId) { m_versionsCoordinator->showHistory(elementId); });
+    // The gear of the group of the versions: their settings
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestVersionSettings, this,
+            [this]() {
+                if (m_settingsCoordinator) {
+                    m_settingsCoordinator->openSettingsPage(
+                        QString::fromLatin1(SettingsDialog::VERSIONS_PAGE));
+                }
+            });
 
     // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
     // is done in the Annotations panel is undone in the text in front
