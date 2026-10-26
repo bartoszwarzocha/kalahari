@@ -229,7 +229,7 @@ void ColorSwatches::keyPressEvent(QKeyEvent* event)
         return;
     }
     const int current = std::max(m_current, 0);
-    int next = current;
+    int next = 0;
     switch (event->key()) {
         case Qt::Key_Left:
             next = current % m_columns > 0 ? current - 1 : current;

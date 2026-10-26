@@ -326,7 +326,10 @@ void BookEditor::continueNumbering()
         return;
     }
     const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
-    std::optional<ListItem> item = textListItem(block);
+    const std::optional<ListItem> item = textListItem(block);
+    if (!item) {
+        return;
+    }
     std::vector<std::pair<QTextBlock, QTextBlockFormat>> formats;
 
     // The first item of a list: its list goes on from the list of the kind before it

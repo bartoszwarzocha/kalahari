@@ -1064,10 +1064,11 @@ bool BookEditor::hasCopiedFormatting()
 
 void BookEditor::pasteFormatting()
 {
-    if (refusesChange() || !m_textBuffer || !copiedFormatting()) {
+    const std::optional<CopiedFormatting> held = copiedFormatting();
+    if (refusesChange() || !m_textBuffer || !held) {
         return;
     }
-    const CopiedFormatting copied = *copiedFormatting();
+    const CopiedFormatting& copied = *held;
     const auto change = [&copied](QTextCharFormat& format) {
         format = withoutClearedFormatting(format);
         format.merge(copied.character);

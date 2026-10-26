@@ -541,7 +541,7 @@ void BulletsNumberingDialog::chooseCharacter()
     }
     if (const std::optional<QString> character = m_chooseCharacter();
         character && !character->isEmpty()) {
-        const QString bullet = *character;
+        const QString& bullet = *character;
         changeLevel([&bullet](ListLevel& shown) {
             shown.format = ListNumberFormat::Bullet;
             shown.bullet = bullet;

@@ -246,8 +246,8 @@ TEST_CASE("Lists in KML: read and written back", "[editor][lists][kml]") {
               "<kml><ul type=\"check\"><li>Check</li></ul></kml>",
               "<kml><ul type=\"★\"><li>Star</li></ul></kml>",
               "<kml><ol type=\"I\" start=\"4\"><li>Four</li></ol></kml>",
-              "<kml><ol type=\"A\" suffix=\")\" marker-indent=\"10\" text-indent=\"30\" "
-              "marker-align=\"right\"><li>A</li></ol></kml>",
+              "<kml><ol type=\"A\" suffix=\")\" marker-align=\"right\"><li>A</li></ol></kml>",
+              "<kml><ol marker-indent=\"10\" text-indent=\"30\"><li>One</li></ol></kml>",
               "<kml><ol><li>One<ul type=\"dash\"><li>Dash</li></ul></li></ol></kml>"}) {
             const QString kml = QString::fromUtf8(text);
             DYNAMIC_SECTION(text) {

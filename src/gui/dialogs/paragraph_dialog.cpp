@@ -562,10 +562,10 @@ ParagraphFormat ParagraphDialog::changes() const
     changedLength(shown.rightIndent, m_shown.rightIndent, changes.rightIndent);
     changedLength(shown.spaceBefore, m_shown.spaceBefore, changes.spaceBefore);
     changedLength(shown.spaceAfter, m_shown.spaceAfter, changes.spaceAfter);
+    const LineSpacing now = shown.lineSpacing.value_or(LineSpacing{});
     const LineSpacing before = m_shown.lineSpacing.value_or(LineSpacing{});
-    if (shown.lineSpacing->rule != before.rule ||
-        !sameLength(shown.lineSpacing->value, before.value)) {
-        changes.lineSpacing = shown.lineSpacing;
+    if (now.rule != before.rule || !sameLength(now.value, before.value)) {
+        changes.lineSpacing = now;
     }
     const auto changedFlag = [](const std::optional<bool>& now, std::optional<bool> before,
                                 bool usual, std::optional<bool>& change) {

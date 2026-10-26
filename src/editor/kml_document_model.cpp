@@ -448,10 +448,14 @@ void KmlDocumentModel::parseTopLevelList(QXmlStreamReader& reader)
 
     // The items read before the element of a deeper level take its format
     for (const auto& [index, known] : list.items) {
-        std::optional<ListItem>& item = m_paragraphs[index].list;
+        std::optional<ListItem>& listItem = m_paragraphs[index].list;
+        if (!listItem) {
+            continue;
+        }
+        ListItem& item = *listItem;
         for (int level = 0; level < LIST_LEVELS; ++level) {
             if ((known & (1U << level)) == 0) {
-                item->definition.levels[static_cast<size_t>(level)] =
+                item.definition.levels[static_cast<size_t>(level)] =
                     list.definition.levels[static_cast<size_t>(level)];
             }
         }

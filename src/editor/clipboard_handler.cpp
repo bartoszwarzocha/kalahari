@@ -621,9 +621,8 @@ public:
                 }
                 openListId = listItem.id;
                 kml += QStringLiteral("<li") + item.attributes;
-                if (listItem.value) {
-                    kml += QStringLiteral(" value=\"") + QString::number(*listItem.value) +
-                           QLatin1Char('"');
+                if (const std::optional<int> value = listItem.value) {
+                    kml += QStringLiteral(" value=\"") + QString::number(*value) + QLatin1Char('"');
                 }
                 kml += QLatin1Char('>') + serializer.blockToKml(block);
                 openLists.back().itemOpen = true;
