@@ -186,29 +186,30 @@ TEST_CASE("Paragraph layout: the page view keeps the breaks of a paragraph",
               Approx(layoutOf(*editor)->pageFlow().pitch + lineTop(*editor, 0, 0)).margin(0.5));
     }
 
-    // However many paragraphs come before a long one, it never leaves a single line alone on
-    // a page, nor is it split with its lines kept together; without widow control some count
-    // leaves one alone
+    // Wherever a long paragraph starts on a page, it never leaves a single line alone on a
+    // page, nor is it split with its lines kept together; without widow control some place
+    // leaves one alone. The space after the paragraph before it moves its start down the
+    // whole text area in steps shorter than a line, whatever the metrics of the font
     const auto lonelyLines = [](const QString& attributes) {
         int lonely = 0;
         int split = 0;
-        for (int count = 10; count < 50; ++count) {
-            QString content;
-            for (int i = 0; i < count; ++i) {
-                content += QStringLiteral("<p>Paragraph %1</p>").arg(i);
-            }
-            content += QStringLiteral("<p ") + attributes + QLatin1Char('>') + longText(70) +
-                       QStringLiteral("</p><p>After</p>");
-            auto editor = editorWith(content);
+        const auto probe = editorWith(QStringLiteral("<p>Before</p>"));
+        probe->setViewMode(ViewMode::Page);
+        const qreal areaPoints = layoutOf(*probe)->pageFlow().textHeight / pixelsOfPoint(*probe);
+        REQUIRE(areaPoints > 100.0);
+        for (int space = 0; space < areaPoints; space += 4) {
+            auto editor = editorWith(QStringLiteral("<p space-after=\"%1\">Before</p><p ").arg(space) +
+                                     attributes + QLatin1Char('>') + longText(70) +
+                                     QStringLiteral("</p><p>After</p>"));
             editor->setViewMode(ViewMode::Page);
             layoutOf(*editor)->layoutPendingBlocks();
-            const int lines = blockOf(*editor, count).layout()->lineCount();
+            const int lines = blockOf(*editor, 1).layout()->lineCount();
             REQUIRE(lines >= 4);
-            const int firstPage = pageOf(*editor, lineTop(*editor, count, 0));
-            const int lastPage = pageOf(*editor, lineTop(*editor, count, lines - 1));
+            const int firstPage = pageOf(*editor, lineTop(*editor, 1, 0));
+            const int lastPage = pageOf(*editor, lineTop(*editor, 1, lines - 1));
             split += firstPage != lastPage ? 1 : 0;
-            if (pageOf(*editor, lineTop(*editor, count, 1)) != firstPage ||
-                pageOf(*editor, lineTop(*editor, count, lines - 2)) != lastPage) {
+            if (pageOf(*editor, lineTop(*editor, 1, 1)) != firstPage ||
+                pageOf(*editor, lineTop(*editor, 1, lines - 2)) != lastPage) {
                 ++lonely;
             }
         }

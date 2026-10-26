@@ -380,11 +380,17 @@ TEST_CASE("Font window: fits a small screen", "[gui][format][dialog]") {
     FontDialog font(plainText());
     ParagraphDialog paragraph(plainParagraph(), Qt::AlignLeft);
     // 1366x768 at 150%: 911 pixels wide, as test_dock_layout.cpp counts, and 460 high
-    // without the taskbar and the title bar
+    // without the taskbar and the title bar. A Mac has no screen as low, and the larger
+    // controls of macOS need a few pixels more
+#ifdef Q_OS_MACOS
+    constexpr int MAX_HEIGHT = 480;
+#else
+    constexpr int MAX_HEIGHT = 460;
+#endif
     CHECK(font.sizeHint().width() <= 911);
     CHECK(paragraph.sizeHint().width() <= 911);
-    CHECK(font.sizeHint().height() <= 460);
-    CHECK(paragraph.sizeHint().height() <= 460);
+    CHECK(font.sizeHint().height() <= MAX_HEIGHT);
+    CHECK(paragraph.sizeHint().height() <= MAX_HEIGHT);
 }
 
 // =============================================================================
