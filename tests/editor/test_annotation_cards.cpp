@@ -489,6 +489,6 @@ TEST_CASE("Annotation cards: long texts cut short, and shown whole", "[editor][a
     CHECK(boxes[0].rect.height() > card.height());
 
     // In the editor: as the settings say
-    setCards(*editor, [](AnnotationCardSettings& settings) { settings.longLines = 3; });
+    setCards(*editor, [](AnnotationCardSettings& shown) { shown.longLines = 3; });
     CHECK(editor->annotationCardRect(QStringLiteral("c1")).height() < whole.height());
 }

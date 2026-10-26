@@ -56,6 +56,9 @@ constexpr qreal OUTLINE = 0.14;      ///< The outline of the card gone to...
 constexpr qreal OUTLINE_GAP = 0.07;  ///< ...this far outside it
 constexpr qreal SHADOW = 0.07;       ///< The shadow under a card
 
+/// @brief How much of the kind's color fills the icons of the kinds
+constexpr float ICON_FILL = 0.3F;
+
 /// @brief A collapsed one's line has less of the kind's color than a card
 constexpr double LINE_TINT = 0.6;
 
@@ -173,7 +176,7 @@ void paintCommentIcon(QPainter* painter, const QRectF& box, const QColor& color)
     tail.closeSubpath();
     bubble = bubble.united(tail);
     QColor fill = color;
-    fill.setAlphaF(0.3);
+    fill.setAlphaF(ICON_FILL);
     painter->fillPath(bubble, fill);
     painter->setPen(QPen(color, 0.09 * s, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter->setBrush(Qt::NoBrush);
@@ -197,7 +200,7 @@ void paintNoteIcon(QPainter* painter, const QRectF& box, const QColor& color) {
     path.lineTo(sheet.bottomLeft());
     path.closeSubpath();
     QColor fill = color;
-    fill.setAlphaF(0.3);
+    fill.setAlphaF(ICON_FILL);
     painter->fillPath(path, fill);
     painter->setPen(QPen(color, 0.09 * s, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter->setBrush(Qt::NoBrush);

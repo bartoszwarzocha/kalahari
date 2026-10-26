@@ -21,8 +21,8 @@ namespace {
 
 /// How much of the kind's color the fragment of the card under the mouse is filled with, on
 /// a light and on a dark paper (as in the mockup approved on 26.10.2026)
-constexpr double FRAGMENT_FILL_LIGHT = 0.24;
-constexpr double FRAGMENT_FILL_DARK = 0.34;
+constexpr float FRAGMENT_FILL_LIGHT = 0.24F;
+constexpr float FRAGMENT_FILL_DARK = 0.34F;
 
 /// The lightness under which the paper is dark
 constexpr int DARK_LIGHTNESS = 128;
