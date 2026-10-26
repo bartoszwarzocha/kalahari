@@ -40,9 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   menu has the submenus Text Effects (strikethrough, Superscript Ctrl+Shift+P, Subscript
   Ctrl+Shift+B, Small Caps Ctrl+Shift+K, All Caps Ctrl+Shift+A), Change Case (Sentence case,
   lowercase, UPPERCASE, Capitalize Each Word, tOGGLE cASE, the formatting of the letters kept)
-  and Align Text, and Font Color and Highlight Color: the color used last at a click, the
-  others in a submenu with the colors of the palette chosen in the color window, the colors
-  used recently, Automatic or No Color, and More Colors.... Copy Formatting and Paste
+  and Align Text, and Font Color and Highlight Color: a submenu with the colors of the palette
+  chosen in the color window, the colors used recently, Automatic or No Color, and More
+  Colors...; put on a toolbar, their button gives the color used last and its arrow the
+  submenu. Copy Formatting and Paste
   Formatting carry the formatting of the text and of its paragraph to other text, also in
   another chapter. Clear Formatting also takes off the capitals, the letter spacing and the
   paragraph's own formatting. On dark paper colored text is shown lighter and highlights

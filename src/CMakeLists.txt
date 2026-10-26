@@ -14,6 +14,7 @@ set(KALAHARI_CORE_SOURCES
     editor/paragraph_format.cpp  # A paragraph's own formatting: indents, spacing, breaks
     editor/character_format.cpp  # The character formatting of Format > Font, Change Case
     editor/text_lists.cpp        # Bulleted and numbered lists
+    editor/kml_document_model.cpp  # KML reader (the clipboard reads the lists of KML)
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
     core/database_schema_manager.cpp
@@ -295,7 +296,6 @@ set(KALAHARI_SOURCES
     editor/snapshot_manager.cpp          # Task 7.13: Snapshot (restore points) manager
     editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
-    editor/kml_document_model.cpp        # KML reader
     editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
     editor/formatting_marks.cpp               # The formatting marks of a paragraph (¶ · ° → ↵ ¬), drawn by the layout
     editor/text_source_adapter.cpp            # OpenSpec #00043 Phase 12.1: Text source adapters
