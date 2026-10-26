@@ -3,11 +3,15 @@
 
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/dialogs/font_dialog.h"
+#include "kalahari/gui/dialogs/list_dialogs.h"
+#include "kalahari/gui/dialogs/paragraph_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
+#include "kalahari/gui/utils/caps_lock.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
@@ -22,10 +26,15 @@
 #include "kalahari/editor/statistics_collector.h"
 #include <QEvent>
 #include <QGuiApplication>
+#include <QMainWindow>
 #include <QScreen>
+#include <QStatusBar>
 #include <QVBoxLayout>
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <nlohmann/json.hpp>
+#include <string>
 
 namespace kalahari {
 namespace gui {
@@ -35,6 +44,31 @@ namespace {
 /// @brief The smallest and the largest size of the annotations' marks (1 = 100%)
 constexpr double MIN_MARK_SCALE = 0.5;
 constexpr double MAX_MARK_SCALE = 3.0;
+
+/// @brief The languages with lists of abbreviations of their own in the settings
+/// (editor.autoCorrect.abbreviations.pl); another language has the English one
+constexpr std::array<const char*, 2> ABBREVIATION_LANGUAGES = {"pl", "en"};
+
+/// @brief The key of the abbreviations of a language
+std::string abbreviationsKey(const QString& language) {
+    return "editor.autoCorrect.abbreviations." + language.toStdString();
+}
+
+/// @brief The texts of a list of the settings
+QStringList textsOf(const nlohmann::json& list) {
+    QStringList texts;
+    if (list.is_array()) {
+        for (const nlohmann::json& item : list) {
+            if (item.is_string()) {
+                texts << QString::fromStdString(item.get<std::string>());
+            }
+        }
+    }
+    return texts;
+}
+
+/// @brief How long a message of autocorrect stays in the status bar (ms)
+constexpr int AUTO_CORRECT_MESSAGE_MS = 5000;
 
 }  // namespace
 
@@ -72,6 +106,27 @@ EditorPanel::EditorPanel(QWidget* parent)
     // typed: the book's language may change, and a chapter is told from a file outside the
     // book only after its tab is shown
     m_bookEditor->setTextLanguage([this]() { return textLanguage(); });
+
+    // A change of autocorrect undone right after it: as in Word, the exceptions keep the
+    // abbreviation or the word, unless the writer turned that off
+    connect(m_bookEditor, &editor::BookEditor::autoCorrectionUndone, this,
+            &EditorPanel::learnAutoCorrectException);
+
+    // A word typed with Caps Lock on by mistake: the key goes off, where the system lets the
+    // program do it, or the writer is told
+    connect(m_bookEditor, &editor::BookEditor::capsLockCorrected, this, [this]() {
+        showStatusMessage(turnCapsLockOff()
+                              ? tr("Caps Lock was on: the word typed with it is corrected, "
+                                   "and Caps Lock is off now.")
+                              : tr("Caps Lock is on: the word typed with it is corrected. "
+                                   "Turn Caps Lock off."));
+    });
+
+    // The windows of the lists, asked for by the context menu of a list item
+    connect(m_bookEditor, &editor::BookEditor::bulletsAndNumberingAsked, this,
+            &EditorPanel::showBulletsAndNumbering);
+    connect(m_bookEditor, &editor::BookEditor::numberingValueAsked, this,
+            &EditorPanel::showNumberingValue);
 
     // F7 in the menu of an issue goes on to the next one, as in the text
     m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
@@ -237,6 +292,60 @@ editor::ParagraphStyleSet EditorPanel::paragraphStyles() const {
     return editor::ParagraphStyleSet::fromPackage(styles, programLanguage());
 }
 
+void EditorPanel::learnAutoCorrectException(editor::LearnedException list,
+                                            const QString& exception) {
+    auto& settings = core::SettingsManager::getInstance();
+    if (exception.isEmpty() || !settings.get<bool>("editor.autoCorrect.learnExceptions")) {
+        return;
+    }
+    std::string key;
+    QString message;
+    switch (list) {
+        case editor::LearnedException::Abbreviation: {
+            // The list of the text's language, the one autocorrect looked at
+            const QString language = editor::abbreviationsLanguage(
+                textLanguage(), m_bookEditor->autoCorrect().languageAbbreviations);
+            if (language.isEmpty()) {
+                return;
+            }
+            key = abbreviationsKey(language);
+            //: %1 is an abbreviation with its period, as "godz."
+            message = tr("After “%1” auto-correct no longer starts a sentence with a capital: "
+                         "it is among the exceptions now.")
+                          .arg(exception);
+            break;
+        }
+        case editor::LearnedException::TwoCapitals:
+            key = "editor.autoCorrect.twoCapitalsExceptions";
+            //: %1 is a word with two capitals at its start, as "PCs"
+            message = tr("Auto-correct no longer changes “%1”: it is among the exceptions now.")
+                          .arg(exception);
+            break;
+        case editor::LearnedException::None:
+            return;
+    }
+    nlohmann::json words = settings.get<nlohmann::json>(key);
+    if (!words.is_array()) {
+        words = nlohmann::json::array();
+    }
+    const Qt::CaseSensitivity sensitivity = list == editor::LearnedException::Abbreviation
+                                                ? Qt::CaseInsensitive
+                                                : Qt::CaseSensitive;
+    if (textsOf(words).contains(exception, sensitivity)) {
+        return;
+    }
+    words.push_back(exception.toStdString());
+    settings.set<nlohmann::json>(key, words);
+    showStatusMessage(message);
+}
+
+void EditorPanel::showStatusMessage(const QString& message) {
+    // The status bar of the main window; a panel outside one (a test) shows nothing
+    if (auto* mainWindow = qobject_cast<QMainWindow*>(window())) {
+        mainWindow->statusBar()->showMessage(message, AUTO_CORRECT_MESSAGE_MS);
+    }
+}
+
 QString EditorPanel::textLanguage() const {
     // A chapter of the book, which NavigatorCoordinator tags with its element, or a file
     // outside the book
@@ -366,6 +475,46 @@ void EditorPanel::applySettings() {
                            ? editor::DialogueDash::En
                            : editor::DialogueDash::Em;
     autoCorrect.ellipsis = replaces("editor.autoCorrect.ellipsis");
+    autoCorrect.dashBetweenWords = replaces("editor.autoCorrect.dashBetweenWords");
+    autoCorrect.wordDash =
+        settings.get<std::string>("editor.autoCorrect.dashBetweenWordsType") == "emDash"
+            ? editor::DialogueDash::Em
+            : editor::DialogueDash::En;
+    autoCorrect.dialogueDashInDialogue = settings.get<bool>("editor.autoCorrect.dashInDialogue");
+    autoCorrect.doubleHyphen = replaces("editor.autoCorrect.doubleHyphen");
+    if (replaces("editor.autoCorrect.replacementTable")) {
+        // The pairs turned on; a pair without "enabled" is on
+        const auto pairs = settings.get<nlohmann::json>("editor.autoCorrect.replacements");
+        if (pairs.is_array()) {
+            for (const nlohmann::json& pair : pairs) {
+                if (!pair.is_object() || !pair.value("enabled", true) ||
+                    !pair.value("from", nlohmann::json()).is_string() ||
+                    !pair.value("to", nlohmann::json()).is_string()) {
+                    continue;
+                }
+                const QString from =
+                    QString::fromStdString(pair.at("from").get<std::string>()).trimmed();
+                if (!from.isEmpty()) {
+                    autoCorrect.replacements.push_back(
+                        {from, QString::fromStdString(pair.at("to").get<std::string>())});
+                }
+            }
+        }
+    }
+    autoCorrect.sentenceCapitals = replaces("editor.autoCorrect.sentenceCapitals");
+    for (const char* language : ABBREVIATION_LANGUAGES) {
+        const QString code = QString::fromLatin1(language);
+        autoCorrect.languageAbbreviations[code] =
+            textsOf(settings.get<nlohmann::json>(abbreviationsKey(code)));
+    }
+    autoCorrect.twoInitialCapitals = replaces("editor.autoCorrect.twoInitialCapitals");
+    autoCorrect.twoCapitalsExceptions =
+        textsOf(settings.get<nlohmann::json>("editor.autoCorrect.twoCapitalsExceptions"));
+    autoCorrect.capsLock = replaces("editor.autoCorrect.capsLock");
+    autoCorrect.sceneBreak = replaces("editor.autoCorrect.sceneBreak");
+    autoCorrect.horizontalRule = replaces("editor.autoCorrect.horizontalRule");
+    autoCorrect.bulletedLists = replaces("editor.autoCorrect.bulletedLists");
+    autoCorrect.numberedLists = replaces("editor.autoCorrect.numberedLists");
     m_bookEditor->setAutoCorrect(autoCorrect);
 
     // How text from other programs is pasted (Settings > Editor > General)
@@ -377,6 +526,63 @@ void EditorPanel::applySettings() {
     applyPaperScale();
 
     core::Logger::getInstance().debug("EditorPanel: editor settings applied");
+}
+
+void EditorPanel::showBulletsAndNumbering() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    const std::optional<editor::ListItem> item = m_bookEditor->currentListItem();
+    dialogs::BulletsNumberingDialog dialog(
+        item ? item->definition : editor::ListDefinition::numbered(), item ? item->level : 0,
+        window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->applyListDefinition(dialog.definition());
+    }
+}
+
+void EditorPanel::showFontDialog() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    dialogs::FontDialog dialog(m_bookEditor->shownCharacterFormat(), m_bookEditor->selectedText(),
+                               window());
+    if (dialog.exec() == QDialog::Accepted) {
+        const editor::CharacterFormat changes = dialog.changes();
+        if (changes != editor::CharacterFormat{}) {
+            m_bookEditor->applyCharacterFormat(changes);
+        }
+    }
+}
+
+void EditorPanel::showParagraphDialog() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    dialogs::ParagraphDialog dialog(m_bookEditor->shownParagraphFormat(),
+                                    m_bookEditor->currentAlignment(),
+                                    m_bookEditor->currentListItem().has_value(), window());
+    if (dialog.exec() == QDialog::Accepted) {
+        const editor::ParagraphFormat changes = dialog.changes();
+        const std::optional<Qt::Alignment> alignment = dialog.alignmentChange();
+        if (!changes.isEmpty() || alignment) {
+            m_bookEditor->applyParagraphFormat(changes, alignment);
+        }
+    }
+}
+
+void EditorPanel::showNumberingValue() {
+    const std::optional<editor::ListItem> item = m_bookEditor->currentListItem();
+    if (!item || m_bookEditor->isReadOnly()) {
+        return;
+    }
+    const int number = m_bookEditor->currentListNumber();
+    dialogs::NumberingValueDialog dialog(item->levelFormat(),
+                                         number >= 0 ? number : item->levelFormat().start,
+                                         window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->setNumberingValue(dialog.value());
+    }
 }
 
 void EditorPanel::scheduleSettings() {

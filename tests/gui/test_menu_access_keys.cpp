@@ -39,6 +39,7 @@
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/widget_keys.h"
+#include "kalahari/gui/widgets/color_menu.h"
 
 #include <QAction>
 #include <QApplication>
@@ -154,7 +155,7 @@ void collectProblems(const QList<test::MenuItem>& items, const QString& where,
     }
     QHash<QChar, QString> owners;
     for (const test::MenuItem& item : items) {
-        if (item.separator) {
+        if (item.separator || item.widget) {
             continue;
         }
         const QString name = where + QStringLiteral(" › ") + withoutAccessKey(item.text);
@@ -235,6 +236,15 @@ public:
         QMenu* fileMenu = m_builder.getMenu("FILE");
         auto* recentBooks = new RecentBooksMenu(fileMenu);
         recentBooks->insertInto(fileMenu);
+
+        // Format > Font Color and Highlight Color, with their submenus as the window gives
+        // them
+        for (const auto& [id, kind] :
+             {std::pair{"format.fontColor", ColorMenu::Kind::Text},
+              std::pair{"format.highlightColor", ColorMenu::Kind::Highlight}}) {
+            registry.getAction(QString::fromLatin1(id))
+                ->setMenu(new ColorMenu(kind, {}, &m_window));
+        }
 
         m_toolbars = std::make_unique<ToolbarManager>(&m_window);
         m_toolbars->createToolbars(registry);
@@ -501,6 +511,13 @@ void checkTextMenus(bool shown, QStringList& problems) {
         CHECK(itemCount(items) == 8);  // also Cut and Copy
     }
     editor.clearSelection();
+
+    // A list item: its numbering, its level and Bullets and Numbering on top of the usual menu
+    editor.fromKml(QStringLiteral("<kml><ol><li>") + sentence() + QStringLiteral("</li></ol></kml>"));
+    QList<test::MenuItem> listMenu = contextMenu(&editor, &editor, placeOf(editor, 1));
+    collectProblems(listMenu, QStringLiteral("List item"), {}, problems);
+    CHECK(itemCount(listMenu) == 6 + 6);
+    editor.fromKml(test::kmlOf({sentence()}));
 
     // The words for a misspelled one, from the dictionary, on top of the usual menu; the
     // editor checks its text as it shows

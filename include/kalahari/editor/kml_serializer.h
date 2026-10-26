@@ -106,7 +106,8 @@ private:
     // Internal Serialization Methods
     // =========================================================================
 
-    /// @brief Serialize paragraph-level attributes (alignment, style)
+    /// @brief Serialize paragraph-level attributes: the alignment and the paragraph's own
+    ///        formatting (indents, spacing, line spacing, breaks)
     /// @param block The text block
     /// @return Attribute string (e.g., " align=\"center\"")
     QString serializeBlockAttributes(const QTextBlock& block) const;

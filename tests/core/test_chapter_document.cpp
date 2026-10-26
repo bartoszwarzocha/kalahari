@@ -693,6 +693,20 @@ TEST_CASE("ChapterDocument migration helpers", "[core][chapter_document]") {
 
         CHECK(plain == "Niezwykle & tak\n\nKoniec");
     }
+
+    SECTION("kmlToPlainText counts the headings and the list items, as the editor does") {
+        // Regression: only <p> was read, so the words of the headings and of the lists were
+        // missing from the counts of a chapter not open in the editor
+        const QString plain = ChapterDocument::kmlToPlainText(
+            "<kml><h1>Rozdział</h1><p>Wstęp</p><scene-break/>"
+            "<ol>\n  <li>Woda\n    <ul><li>bukłaki</li></ul>\n  i reszta</li>\n"
+            "  <li><p>Sól</p></li>\n</ol><p>Koniec</p></kml>");
+
+        CHECK(plain == "Rozdział\nWstęp\nWoda\nbukłaki\ni reszta\nSól\nKoniec");
+        ChapterDocument doc;
+        doc.setKml("<kml><h2>Dwa słowa</h2><ul><li>trzy</li><li>cztery</li></ul></kml>");
+        CHECK(doc.wordCount() == 4);
+    }
 }
 
 // =============================================================================

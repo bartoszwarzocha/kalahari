@@ -12,12 +12,14 @@
 #include <QTextCharFormat>
 #include <QFont>
 #include <kalahari/editor/annotation.h>
+#include <kalahari/editor/character_format.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/formatting_marks.h>
 #include <kalahari/editor/text_highlight.h>
 #include <vector>
 #include <memory>
 
+class QPainter;
 class QTextDocument;
 
 namespace kalahari::editor {
@@ -79,6 +81,17 @@ public:
     virtual std::vector<FormattingMark> paragraphFormattingMarks(size_t /*index*/) const {
         return {};
     }
+
+    /// @brief The text of a paragraph with colors of its own (character_format.h)
+    /// @param index Paragraph index (0-based)
+    /// @note Sources without formats have none
+    virtual std::vector<ColoredText> paragraphColors(size_t /*index*/) const { return {}; }
+
+    /// @brief Draw the number or bullet of a list item in the paragraph's coordinates (its
+    ///        top left at the painter's origin), in the painter's pen unless it has a color
+    /// @param index Paragraph index (0-based)
+    /// @note Sources without lists draw nothing
+    virtual void drawListMarker(QPainter* /*painter*/, size_t /*index*/) const {}
 
     // =========================================================================
     // Layout Access
@@ -191,6 +204,8 @@ public:
     std::vector<TextHighlight> paragraphHighlights(size_t index) const override;
     std::vector<AnnotationMark> paragraphAnnotationMarks(size_t index) const override;
     std::vector<FormattingMark> paragraphFormattingMarks(size_t index) const override;
+    std::vector<ColoredText> paragraphColors(size_t index) const override;
+    void drawListMarker(QPainter* painter, size_t index) const override;
 
     QTextLayout* layout(size_t index) const override;
     bool hasLayout(size_t index) const override;

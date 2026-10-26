@@ -405,6 +405,21 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
 
 bool BookEditor::event(QEvent* event)
 {
+    // Tab and Shift+Tab at the start of a list item, or with a selection of items, take
+    // them a level down or up; elsewhere they go from field to field, as in every program
+    if (event->type() == QEvent::KeyPress) {
+        const auto* key = static_cast<QKeyEvent*>(event);
+        const bool tab = key->key() == Qt::Key_Tab || key->key() == Qt::Key_Backtab;
+        const Qt::KeyboardModifiers others =
+            key->modifiers() & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier);
+        if (tab && others == Qt::NoModifier && tabChangesListLevel()) {
+            const bool back = key->key() == Qt::Key_Backtab ||
+                              key->modifiers().testFlag(Qt::ShiftModifier);
+            changeIndent(back ? -1 : 1, false);
+            event->accept();
+            return true;
+        }
+    }
     // The keys of the text are the text's, before the shortcuts of the window: Edit > Delete
     // shows Delete, as word processors do, and the key deletes here as in any text
     if (event->type() == QEvent::ShortcutOverride) {
@@ -855,6 +870,7 @@ bool BookEditor::fromKml(const QString& kml)
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
     m_pendingFormat = QTextCharFormat();  // it was given for the old text
+    m_learnableChange.reset();            // a change of the old text
 
     // Unreadable KML gives the paragraphs read before the error
     KmlDocumentModel content;

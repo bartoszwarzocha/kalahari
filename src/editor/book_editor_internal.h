@@ -39,14 +39,16 @@ private:
 /// @brief Fill a document from a parsed KML model, starting at the cursor's (empty) block
 ///
 /// Each paragraph gets zero margins, its own alignment, if it has one (without one it is
-/// shown with the alignment of its style), its style, the annotations on its start as its
-/// own character format, and its text on a clean base format with the run formats on top.
-/// An object (a horizontal line, a break) is a block with its character. Shared by loading
-/// a chapter and pasting Kalahari content, so both read KML the same way.
+/// shown with the alignment of its style), its style, its own formatting, its place in a
+/// list, the annotations on its start as its own character format, and its text on a clean
+/// base format with the run formats on top. The lists get ids the document's lists do not
+/// have. An object (a horizontal line, a break) is a block with its character. Shared by
+/// loading a chapter and pasting Kalahari content, so both read KML the same way.
 inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model) {
     QTextBlockFormat zeroMarginFormat;
     zeroMarginFormat.setTopMargin(0);
     zeroMarginFormat.setBottomMargin(0);
+    const int listIdOffset = newListId(*cursor.document()) - 1;
 
     for (size_t i = 0; i < model.paragraphCount(); ++i) {
         QTextBlockFormat blockFormat = zeroMarginFormat;
@@ -54,6 +56,11 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
             blockFormat.setAlignment(alignment);
         }
         setParagraphStyle(blockFormat, model.paragraphStyle(i));
+        mergeParagraphFormat(blockFormat, model.paragraphOwnFormat(i));
+        if (std::optional<ListItem> item = model.paragraphList(i)) {
+            item->id += listIdOffset;
+            setListItem(blockFormat, *item);
+        }
         QTextCharFormat paragraphFormat;  // nothing of the previous paragraph's last run
         setAnnotations(paragraphFormat, model.paragraphStartAnnotations(i));
         if (i > 0) {

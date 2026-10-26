@@ -161,6 +161,7 @@ void insertAnnotatedDocument(QTextCursor& cursor, QTextDocument& content,
         putFormatUnder(content, under);
     }
     prepareForInsertion(content, document, fragments);
+    giveListsNewIds(content, document);
 
     // The annotations on the start of the first paragraph go on the place of the text
     const AnnotationList startPlaces = annotationsOf(content.firstBlock().charFormat());
@@ -326,29 +327,92 @@ void BookEditor::disableWhileReadOnly(QAction* action) const
     }
 }
 
+AutoCorrectOptions BookEditor::autoCorrectForText() const
+{
+    AutoCorrectOptions options = m_autoCorrect;
+    if (options.sentenceCapitals && !options.languageAbbreviations.empty()) {
+        const QString list = abbreviationsLanguage(
+            m_textLanguage ? m_textLanguage() : QString(), options.languageAbbreviations);
+        if (!list.isEmpty()) {
+            options.abbreviations = options.languageAbbreviations.at(list);
+        }
+    }
+    return options;
+}
+
 void BookEditor::autoCorrectTyped()
 {
     if (!m_textBuffer || hasSelection()) {
         return;
     }
     const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
-    if (!block.isValid()) {
-        return;
+    if (!block.isValid() || !isCheckedParagraph(block)) {
+        return;  // code, and other text whose spelling is not checked, stays as typed
+    }
+    if (autoCorrectList(block)) {
+        return;  // "* " or "1. " starting the paragraph made it a list item
     }
     const std::optional<AutoCorrection> change = autoCorrection(
-        block.text().left(m_cursorPosition.offset), m_autoCorrect, [this]() {
+        block.text().left(m_cursorPosition.offset), autoCorrectForText(),
+        [this]() {
             return QuoteMarks::forLanguage(m_textLanguage ? m_textLanguage() : QString());
-        });
-    if (!change) {
+        },
+        m_capsLockOn);
+    if (change) {
+        applyAutoCorrection(block, *change, m_cursorPosition);
+    }
+}
+
+void BookEditor::autoCorrectEndedParagraph(int paragraph, bool atEnd)
+{
+    if (!m_textBuffer || hasSelection()) {
         return;
     }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(paragraph);
+    if (!block.isValid() || !isCheckedParagraph(block)) {
+        return;
+    }
+    const QString text = block.text();
 
-    const int from = block.position() + change->start;
-    const int to = block.position() + change->end;
-    const int length = static_cast<int>(change->text.size());
-    const CursorPosition typed = m_cursorPosition;
-    const CursorPosition changed{typed.paragraph,
-                                 typed.offset + length - (change->end - change->start)};
+    // "***" or "---" alone in the paragraph: the object, in the paragraph's place, with the
+    // cursor in the new paragraph after it
+    const TextObject object = atEnd ? paragraphObjectShortcut(text, m_autoCorrect)
+                                    : TextObject::None;
+    if (object == TextObject::None) {
+        if (const std::optional<AutoCorrection> change =
+                autoCorrectionAtParagraphEnd(text, autoCorrectForText(), m_capsLockOn)) {
+            applyAutoCorrection(block, *change, m_cursorPosition);
+        }
+        return;
+    }
+    const CursorPosition cursorAt = m_cursorPosition;
+    QTextCursor cursor(block);
+    cursor.beginEditBlock();
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{cursorAt, {}}] { m_stepCursor = state; }));
+    cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+    removeKeepingAnnotations(cursor);
+    cursor.insertText(QString(QChar::ObjectReplacementCharacter), objectCharFormat(object));
+    cursor.setBlockFormat(objectBlockFormat());
+    cursor.setBlockCharFormat(QTextCharFormat());
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{cursorAt, {}}] { m_stepCursor = state; }));
+    cursor.endEditBlock();
+    m_learnableChange.reset();
+
+    finishEdit(createCursor(m_textBuffer.get(), cursorAt));
+}
+
+void BookEditor::applyAutoCorrection(const QTextBlock& block, const AutoCorrection& change,
+                                     const CursorPosition& typed)
+{
+    const int from = block.position() + change.start;
+    const int to = block.position() + change.end;
+    const int length = static_cast<int>(change.text.size());
+    CursorPosition changed = typed;
+    if (block.blockNumber() == typed.paragraph) {
+        changed.offset += length - (change.end - change.start);
+    }
 
     // The new characters take the format of the first one they replace, with the fragments
     // of annotations it is in; an annotation on a replaced character stays on its place
@@ -367,14 +431,24 @@ void BookEditor::autoCorrectTyped()
     cursor.beginEditBlock();
     m_textBuffer->appendUndoItem(new CallbackUndoItem(
         [this, state = StepCursor{typed, {}}] { m_stepCursor = state; }));
-    cursor.insertText(change->text, format);
+    cursor.insertText(change.text, format);
     cursor.setPosition(to + length, QTextCursor::KeepAnchor);
     removeKeepingAnnotations(cursor);
     m_textBuffer->appendUndoItem(new CallbackUndoItem(
         [this, state = StepCursor{changed, {}}] { m_stepCursor = state; }));
     cursor.endEditBlock();
 
+    // Undone right after, the change may give an exception list a word (undo())
+    m_learnableChange.reset();
+    if (change.learns != LearnedException::None) {
+        m_learnableChange = LearnableChange{change.learns, change.exception,
+                                            m_textBuffer->availableUndoSteps()};
+    }
+
     finishEdit(createCursor(m_textBuffer.get(), changed));
+    if (change.capsLock) {
+        emit capsLockCorrected();
+    }
 }
 
 bool BookEditor::deleteSelectedText()
@@ -421,6 +495,9 @@ void BookEditor::insertNewline()
         return;
     }
     ensureDocument();
+    if (endListAtEmptyItem()) {
+        return;  // an empty list item goes a level up, or out of its list
+    }
 
     // Split the paragraph via a direct QTextCursor insertBlock() — recorded by
     // QTextDocument's native undo, together with the replaced selection as one step.
@@ -428,6 +505,11 @@ void BookEditor::insertNewline()
     // it keeps the same layout.
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
+    // Autocorrect looks at the paragraph Enter ends, when it ends one typed in: not at an
+    // object, nor in the place of a selection
+    const bool corrects = !hasSelection() && !isAtObject(cursor);
+    const int ended = m_cursorPosition.paragraph;
+    const bool endedAtEnd = cursor.atBlockEnd();
     if (hasSelection()) {
         const SelectionRange sel = m_selection.normalized();
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
@@ -445,14 +527,25 @@ void BookEditor::insertNewline()
         }
     } else {
         // At the end of a paragraph the new one is in the style that follows its style (a
-        // heading is followed by the text); a paragraph split in two keeps its style
+        // heading is followed by the text); a paragraph split in two keeps its style. A list
+        // item is followed by the next item, which does not keep its number of its own; the
+        // new paragraph does not start a new page.
         const bool atParagraphEnd = cursor.atBlockEnd();
         const QString style = paragraphStyleOf(cursor.blockFormat());
+        std::optional<ListItem> item = listItemOf(cursor.blockFormat());
         insertParagraphKeepingAnnotations(cursor);
+        QTextBlockFormat format = cursor.blockFormat();
         if (const QString next = m_paragraphStyles.nextStyleOf(style);
             atParagraphEnd && next != style) {
-            QTextBlockFormat format = paragraphBlockFormat();
+            format = paragraphBlockFormat();
             setParagraphStyle(format, next);
+            if (item) {
+                setListItem(format, *item);
+            }
+        }
+        format.clearProperty(LIST_VALUE_PROPERTY);
+        format.clearProperty(PARAGRAPH_PAGE_BREAK_BEFORE_PROPERTY);
+        if (format != cursor.blockFormat()) {
             cursor.setBlockFormat(format);
         }
     }
@@ -460,15 +553,19 @@ void BookEditor::insertNewline()
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
-    if (!pending.isEmpty()) {
-        setPendingFormat(pending);  // the text typed in the new paragraph gets it
-    }
 
     ensureCursorVisible();
     syncPipelineCursor();
     update();
     emit contentChanged();
     emit paragraphInserted(m_cursorPosition.paragraph);
+
+    if (corrects) {
+        autoCorrectEndedParagraph(ended, endedAtEnd);
+    }
+    if (!pending.isEmpty()) {
+        setPendingFormat(pending);  // the text typed in the new paragraph gets it
+    }
 }
 
 void BookEditor::insertLineBreak()
@@ -498,6 +595,29 @@ void BookEditor::insertLineBreak()
     insertKeepingAnnotations(cursor, QString(QChar(QChar::LineSeparator)), pending);
     cursor.endEditBlock();
     finishEdit(cursor);
+    autoCorrectTyped();  // the break ends a word, as a space does
+}
+
+void BookEditor::insertCharacters(const QString& characters)
+{
+    if (refusesChange() || characters.isEmpty()) {
+        return;
+    }
+    ensureDocument();
+
+    // As typed text, in an edit block of its own, which parts it from the text typed before
+    // it in the undo history; autocorrect does not look at it
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    const QTextCharFormat pending = pendingFormat();
+    if (hasSelection()) {
+        const SelectionRange sel = m_selection.normalized();
+        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        clearSelection();
+    }
+    cursor.beginEditBlock();
+    insertKeepingAnnotations(cursor, characters, pending);
+    cursor.endEditBlock();
+    finishEdit(cursor);
 }
 
 void BookEditor::deleteBackward()
@@ -510,6 +630,9 @@ void BookEditor::deleteBackward()
     if (hasSelection()) {
         deleteSelectedText();
         return;
+    }
+    if (removeListMarkAtCursor()) {
+        return;  // at the start of a list item its number goes, then the item leaves its list
     }
 
     // If at start of document, nothing to delete
@@ -841,6 +964,16 @@ void BookEditor::undo()
     // QTextDocument's native undo is the single source of truth for BOTH text and
     // formatting. undo(&cursor) also positions the cursor at the change — mirror it
     // into the editor's own cursor model. A format given for the text typed next goes.
+    // A change of autocorrect undone right after it: nothing was done since (no new undo
+    // step, nothing undone before)
+    std::optional<LearnableChange> learned;
+    if (m_learnableChange &&
+        m_textBuffer->availableUndoSteps() == m_learnableChange->undoSteps &&
+        m_textBuffer->availableRedoSteps() == 0) {
+        learned = m_learnableChange;
+    }
+    m_learnableChange.reset();
+
     m_stepCursor.reset();
     m_pendingFormat = QTextCharFormat();
     QTextCursor cursor(m_textBuffer.get());
@@ -855,6 +988,9 @@ void BookEditor::undo()
     update();
     emit contentChanged();
     emit cursorPositionChanged(m_cursorPosition);
+    if (learned) {
+        emit autoCorrectionUndone(learned->list, learned->exception);
+    }
 }
 
 void BookEditor::redo()
@@ -902,6 +1038,7 @@ void BookEditor::clearUndoStack()
         // document already says so, hence the opposite first)
         const bool modified = isModified();
         m_textBuffer->clearUndoRedoStacks();
+        m_learnableChange.reset();  // no longer undone
         m_textBuffer->setModified(!modified);
         m_textBuffer->setModified(modified);
     }
@@ -969,10 +1106,29 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
     const QString kml =
         KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd());
 
+    // The list items with the numbers the editor shows: a part of a list goes on from the
+    // number of its first item
+    ListMarks marks;
+    const std::vector<QString> shownMarks = listMarkers(*m_textBuffer);
+    const std::vector<int> shownNumbers = listNumbers(*m_textBuffer);
+    const QTextBlock lastBlock = m_textBuffer->findBlock(range.selectionEnd());
+    for (QTextBlock block = m_textBuffer->findBlock(range.selectionStart()); block.isValid();
+         block = block.next()) {
+        if (blockObject(block) == TextObject::None && isListItem(block.blockFormat())) {
+            const auto index = static_cast<size_t>(block.blockNumber());
+            marks.marks.push_back(index < shownMarks.size() ? shownMarks[index] : QString());
+            marks.numbers.push_back(index < shownNumbers.size() ? shownNumbers[index] : -1);
+        }
+        if (block == lastBlock) {
+            break;
+        }
+    }
+
     // Plain text: the paragraphs and the line breaks in them end a line
     auto mimeData = std::make_unique<QMimeData>();
-    mimeData->setText(ClipboardHandler::kmlToText(kml));
-    mimeData->setHtml(ClipboardHandler::htmlDocument(ClipboardHandler::kmlToHtml(kml)));
+    mimeData->setText(ClipboardHandler::kmlToText(kml, QString(), &marks));
+    mimeData->setHtml(
+        ClipboardHandler::htmlDocument(ClipboardHandler::kmlToHtml(kml, QString(), &marks)));
     mimeData->setData(QString::fromLatin1(MIME_KML), kml.toUtf8());
     return mimeData;
 }

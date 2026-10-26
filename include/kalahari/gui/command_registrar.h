@@ -15,6 +15,10 @@
 #include <functional>
 
 namespace kalahari {
+namespace editor {
+enum class CaseChange;  // editor/character_format.h
+}  // namespace editor
+
 namespace gui {
 
 /// @brief Callbacks for MainWindow actions triggered by commands.
@@ -80,6 +84,10 @@ struct CommandCallbacks {
     std::function<void()> onInsertHorizontalLine;  ///< Insert > Horizontal Line
     std::function<void()> onInsertSceneBreak;   ///< Insert > Scene Break, Book > Scene Break
     std::function<void()> onInsertPageBreak;    ///< Insert > Page Break
+    std::function<void()> onSpecialCharacter;   ///< Insert > Special Character...
+    std::function<void()> onQuickCharacter;     ///< Insert > Quick Character (the palette)
+    /// Insert > Formatting Character: the characters into the text with the keys
+    std::function<void(const QString& characters)> onInsertCharacters;
 
     // =========================================================================
     // FORMAT COMMANDS (OpenSpec #00042 Phase 7.2)
@@ -87,14 +95,42 @@ struct CommandCallbacks {
     std::function<void()> onFormatBold;         ///< Format > Bold
     std::function<void()> onFormatItalic;       ///< Format > Italic
     std::function<void()> onFormatUnderline;    ///< Format > Underline
-    std::function<void()> onFormatStrikethrough; ///< Format > Strikethrough
+    std::function<void()> onFormatStrikethrough; ///< Format > Text Effects > Strikethrough
     std::function<void()> onClearFormatting;    ///< Format > Clear Formatting
 
+    // Format > Font... and Paragraph..., the windows of the selected text and paragraphs
+    std::function<void()> onFont;               ///< Format > Font...
+    std::function<void()> onParagraph;          ///< Format > Paragraph...
+
+    // Format > Text Effects
+    std::function<void()> onSuperscript;        ///< Format > Text Effects > Superscript
+    std::function<void()> onSubscript;          ///< Format > Text Effects > Subscript
+    std::function<void()> onSmallCaps;          ///< Format > Text Effects > Small Caps
+    std::function<void()> onAllCaps;            ///< Format > Text Effects > All Caps
+
+    /// Format > Change Case: the letters of the selection, or of the word with the cursor,
+    /// in this case
+    std::function<void(editor::CaseChange)> onChangeCase;
+
+    // The colors: the command gives the color chosen last in its submenu (a toolbar button)
+    std::function<void()> onFontColor;          ///< Format > Font Color
+    std::function<void()> onHighlightColor;     ///< Format > Highlight Color
+
+    std::function<void()> onCopyFormatting;     ///< Format > Copy Formatting
+    std::function<void()> onPasteFormatting;    ///< Format > Paste Formatting
+
     // Paragraph Alignment
-    std::function<void()> onAlignLeft;          ///< Format > Align Left
-    std::function<void()> onAlignCenter;        ///< Format > Align Center
-    std::function<void()> onAlignRight;         ///< Format > Align Right
-    std::function<void()> onAlignJustify;       ///< Format > Justify
+    std::function<void()> onAlignLeft;          ///< Format > Align Text > Align Left
+    std::function<void()> onAlignCenter;        ///< Format > Align Text > Align Center
+    std::function<void()> onAlignRight;         ///< Format > Align Text > Align Right
+    std::function<void()> onAlignJustify;       ///< Format > Align Text > Justify
+
+    // Indents and lists
+    std::function<void()> onIncreaseIndent;     ///< Format > Increase Indent
+    std::function<void()> onDecreaseIndent;     ///< Format > Decrease Indent
+    std::function<void()> onBullets;            ///< Format > Bullets
+    std::function<void()> onNumbering;          ///< Format > Numbering
+    std::function<void()> onBulletsNumbering;   ///< Format > Bullets and Numbering...
 
     /// Format > Text Style: puts the paragraphs of the cursor or the selection in the style
     /// of this id (editor/paragraph_styles.h)

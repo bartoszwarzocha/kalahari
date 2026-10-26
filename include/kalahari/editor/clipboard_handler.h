@@ -11,6 +11,7 @@
 #include <QString>
 #include <QMimeData>
 #include <memory>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -44,6 +45,18 @@ constexpr const char* PASTE_MODE_KEY = "editor.paste.mode";
 constexpr const char* PASTE_MODE_MERGE = "merge";
 constexpr const char* PASTE_MODE_SOURCE = "source";
 constexpr const char* PASTE_MODE_TEXT = "text";
+
+// =============================================================================
+// List items for other programs
+// =============================================================================
+
+/// @brief The marks and numbers of the list items of KML, in the order of their <li>
+///        elements: what ClipboardHandler::kmlToText() and kmlToHtml() write for them
+struct ListMarks {
+    std::vector<QString> marks;  ///< The number with its suffix, or the bullet; empty for an
+                                 ///< item without one
+    std::vector<int> numbers;    ///< The number (-1 for an item without one)
+};
 
 // =============================================================================
 // Clipboard Handler
@@ -103,11 +116,18 @@ public:
     /// paragraph of its look (a short hr for "line", an empty paragraph for "blank"), and a
     /// page break the CSS page-break-before of what follows it. Metadata tags keep only their
     /// text.
+    /// The lists are ol and ul with li: the type of their numbers or bullets, the number of
+    /// the first item (start) and of an item that does not go on from the one before it
+    /// (value); an item without a number has none shown.
     /// @param kml KML markup string
     /// @param sceneBreakStyle The look of the scene breaks, as sceneBreakStyle() gives it;
     ///        empty: the setting
+    /// @param marks The numbers of the list items, as the editor shows them (a part of a list
+    ///        copied goes on from the number of its first item); nullptr: as the KML counts
+    ///        them (listMarksOf())
     /// @return HTML string with equivalent formatting
-    static QString kmlToHtml(const QString& kml, const QString& sceneBreakStyle = QString());
+    static QString kmlToHtml(const QString& kml, const QString& sceneBreakStyle = QString(),
+                             const ListMarks* marks = nullptr);
 
     /// @brief HTML for the clipboard: a whole document in UTF-8 around @p fragment, with the
     ///        fragment marked in it
@@ -128,9 +148,11 @@ public:
     /// strikethrough, subscript, superscript); Merge also centered and right-aligned
     /// paragraphs, Source every alignment and the fonts, sizes and colors, also of the styles
     /// of Word's HTML (which Merge, as Word's Merge Formatting, leaves out). PasteMode::Text
-    /// keeps the paragraphs and line breaks only. Until the editor has them, a list item
-    /// starts with its number or bullet, a table row is a paragraph with its cells separated
-    /// by tabs, a link is its text and an image is left out.
+    /// keeps the paragraphs and line breaks only. Merge and Source make the lists (ol, ul and
+    /// Word's list paragraphs) lists of the editor, a list in an item a lower level of its
+    /// list; in Text a list item starts with its number or bullet. Until the editor has
+    /// them, a table row is a paragraph with its cells separated by tabs, a link is its text
+    /// and an image is left out.
     /// @param html HTML markup string
     /// @param mode What the KML keeps
     /// @return KML (<kml> with the paragraphs), empty without text, lines and page breaks
@@ -165,11 +187,19 @@ public:
     /// Each paragraph and heading is a line, and so is a line break in it. A horizontal
     /// line is a line of box-drawing characters, a scene break a line of its look (empty
     /// for "blank") and a page break a form feed on a line of its own.
+    /// A list item starts with its number or bullet and a space, after a tab for each level
+    /// below the first.
     /// @param kml KML markup string
     /// @param sceneBreakStyle The look of the scene breaks, as sceneBreakStyle() gives it;
     ///        empty: the setting
+    /// @param marks The marks of the list items, as the editor shows them; nullptr: as the
+    ///        KML counts them (listMarksOf())
     /// @return Plain text without any formatting
-    static QString kmlToText(const QString& kml, const QString& sceneBreakStyle = QString());
+    static QString kmlToText(const QString& kml, const QString& sceneBreakStyle = QString(),
+                             const ListMarks* marks = nullptr);
+
+    /// @brief The marks and numbers of the list items of KML as it counts them alone
+    static ListMarks listMarksOf(const QString& kml);
 };
 
 }  // namespace kalahari::editor

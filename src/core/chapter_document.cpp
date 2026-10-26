@@ -385,62 +385,181 @@ ChapterDocument ChapterDocument::fromKmlContent(const QString& content,
 
 namespace {
 
-/// Appends the text of the paragraph element the reader is on, up to its end tag
-void appendParagraphText(QXmlStreamReader& reader, QString& text)
+/// Whether an element is a paragraph of the text: <p>, <paragraph> or a heading
+bool isParagraphElement(QStringView name)
 {
-    int depth = 1;  // open elements, the paragraph included
-    while (depth > 0 && !reader.atEnd()) {
-        switch (reader.readNext()) {
-        case QXmlStreamReader::StartElement:
-            if (editor::KmlFormatRegistry::isInlineTextTag(reader.name().toString())) {
-                ++depth;
+    return name == u"p" || name == u"paragraph" || name == u"h1" || name == u"h2" || name == u"h3";
+}
+
+/// Whether an element is a list: <ol> or <ul>
+bool isListElement(QStringView name)
+{
+    return name == u"ol" || name == u"ul";
+}
+
+/// Remove white space with a line end at the start and the end of a part of a list item's
+/// text: the indentation of the KML before and after a list inside the item
+QString withoutIndentation(QString text)
+{
+    qsizetype end = text.size();
+    while (end > 0 && text.at(end - 1).isSpace()) {
+        --end;
+    }
+    if (text.mid(end).contains(QLatin1Char('\n'))) {
+        text.truncate(end);
+    }
+    qsizetype start = 0;
+    while (start < text.size() && text.at(start).isSpace()) {
+        ++start;
+    }
+    if (text.left(start).contains(QLatin1Char('\n'))) {
+        text.remove(0, start);
+    }
+    return text;
+}
+
+/// The texts of the paragraphs of KML, one per line, as the editor reads them
+class ParagraphTexts {
+public:
+    explicit ParagraphTexts(QString& result) : m_result(result) {}
+
+    /// Add a paragraph and its text
+    void add(const QString& text)
+    {
+        if (!m_first) {
+            m_result += QLatin1Char('\n');
+        }
+        m_first = false;
+        m_result += text;
+    }
+
+    /// Add the paragraph of the paragraph element the reader is on, up to its end tag
+    void addParagraph(QXmlStreamReader& reader)
+    {
+        QString text;
+        appendText(reader, text, false);
+        add(text);
+    }
+
+    /// Add the items of the list element the reader is on, and of the lists inside them
+    void addList(QXmlStreamReader& reader)
+    {
+        while (reader.readNextStartElement()) {
+            if (reader.name() == u"li") {
+                addItem(reader);
+            } else if (isListElement(reader.name())) {
+                addList(reader);
             } else {
-                if (reader.name() == u"br") {
-                    text += QChar(QChar::LineSeparator);  // a line break in the paragraph
-                }
-                reader.skipCurrentElement();  // with everything inside it
+                reader.skipCurrentElement();
             }
-            break;
-        case QXmlStreamReader::EndElement:
-            --depth;
-            break;
-        case QXmlStreamReader::Characters:
-            text += reader.text();
-            break;
-        default:
-            break;
         }
     }
-}
+
+private:
+    /// Add a list item: its own paragraph, the paragraphs and lists inside it, and a
+    /// paragraph for its text after them (KmlDocumentModel::parseListItem())
+    void addItem(QXmlStreamReader& reader)
+    {
+        bool first = true;
+        for (;;) {
+            QString text;
+            const bool ended = appendText(reader, text, true);
+            if (!first) {
+                text = withoutIndentation(text);
+            }
+            if (ended) {
+                if (first || !text.trimmed().isEmpty()) {
+                    add(text);
+                }
+                return;
+            }
+            if (isListElement(reader.name())) {
+                text = withoutIndentation(text);
+                if (first || !text.isEmpty()) {
+                    add(text);
+                }
+                addList(reader);
+            } else {
+                // A paragraph inside the item: the item's own text when it has none yet
+                if (!first || !text.trimmed().isEmpty()) {
+                    text = withoutIndentation(text);
+                    if (first || !text.isEmpty()) {
+                        add(text);
+                    }
+                }
+                addParagraph(reader);
+            }
+            first = false;
+        }
+    }
+
+    /// Append the text of the element the reader is on, up to its end tag
+    /// @param stopAtBlocks Stop at a paragraph or list element inside it (a list item),
+    ///        without reading it
+    /// @return false when it stopped at such an element, else true
+    static bool appendText(QXmlStreamReader& reader, QString& text, bool stopAtBlocks)
+    {
+        int depth = 1;  // open elements, the paragraph included
+        while (depth > 0 && !reader.atEnd()) {
+            switch (reader.readNext()) {
+            case QXmlStreamReader::StartElement:
+                if (stopAtBlocks && depth == 1 &&
+                    (isParagraphElement(reader.name()) || isListElement(reader.name()))) {
+                    return false;
+                }
+                if (editor::KmlFormatRegistry::isInlineTextTag(reader.name().toString())) {
+                    ++depth;
+                } else {
+                    if (reader.name() == u"br") {
+                        text += QChar(QChar::LineSeparator);  // a line break in the paragraph
+                    }
+                    reader.skipCurrentElement();  // with everything inside it
+                }
+                break;
+            case QXmlStreamReader::EndElement:
+                --depth;
+                break;
+            case QXmlStreamReader::Characters:
+                text += reader.text();
+                break;
+            default:
+                break;
+            }
+        }
+        return true;
+    }
+
+    QString& m_result;
+    bool m_first = true;
+};
 
 }  // anonymous namespace
 
 QString ChapterDocument::kmlToPlainText(const QString& kml)
 {
     // Collect the text of the paragraphs in a single streaming pass, by the editor's
-    // rules (KmlDocumentModel): a fragment gets the same root element, only <p> and
-    // <paragraph> children of the root are paragraphs, <br/> is a line break in the
-    // paragraph (QChar::LineSeparator, as in the editor's text), and elements other than
-    // formatting, metadata and text runs are skipped with everything inside them.
-    // Inline tags vanish without splitting words and entities are decoded - so the
-    // statistics match the editor's.
+    // rules (KmlDocumentModel): a fragment gets the same root element; the paragraphs are
+    // the <p>, <paragraph> and heading children of the root and the items of its lists, with
+    // the paragraphs inside them; <br/> is a line break in the paragraph
+    // (QChar::LineSeparator, as in the editor's text), and elements other than formatting,
+    // metadata and text runs - the horizontal line and the breaks too - are skipped with
+    // everything inside them. Inline tags vanish without splitting words and entities are
+    // decoded - so the statistics match the editor's.
     QString result;
     result.reserve(kml.size());
     QXmlStreamReader reader(editor::KmlFormatRegistry::withRootElement(kml));
     if (!reader.readNextStartElement()) {
         return result;  // no root element
     }
-    bool firstParagraph = true;
+    ParagraphTexts paragraphs(result);
     while (reader.readNextStartElement()) {
-        if (reader.name() != u"p" && reader.name() != u"paragraph") {
+        if (isParagraphElement(reader.name())) {
+            paragraphs.addParagraph(reader);
+        } else if (isListElement(reader.name())) {
+            paragraphs.addList(reader);
+        } else {
             reader.skipCurrentElement();
-            continue;
         }
-        if (!firstParagraph) {
-            result += QLatin1Char('\n');
-        }
-        firstParagraph = false;
-        appendParagraphText(reader, result);
     }
     return result;
 }

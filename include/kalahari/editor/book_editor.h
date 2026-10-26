@@ -16,12 +16,15 @@
 
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/auto_correct.h>
+#include <kalahari/editor/character_format.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/grammar_error.h>
+#include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
@@ -35,6 +38,7 @@
 #include <QTextDocument>
 #include <QElapsedTimer>
 #include <QList>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -450,7 +454,9 @@ public:
     /// @brief Insert a newline, splitting the paragraph at cursor position
     ///
     /// If there is an active selection, it is deleted first.
-    /// The cursor moves to the start of the new paragraph.
+    /// The cursor moves to the start of the new paragraph. Without a selection autocorrect
+    /// then changes the last word of the paragraph Enter ended, or the paragraph into a
+    /// scene break or a line ("***", "---"), as an undo step of its own (see typeText()).
     void insertNewline();
 
     /// @brief Start a new line in the paragraph (Shift+Enter), as Word's line break
@@ -458,16 +464,26 @@ public:
     /// The break is a QChar::LineSeparator in the paragraph's text (<br/> in KML), so the
     /// lines keep the paragraph's format and spacing. It replaces the selection, and the
     /// cursor goes to the start of the new line. The break and the text typed after it are
-    /// one undo step, apart from the text typed before it.
+    /// one undo step, apart from the text typed before it. Autocorrect sees the break as a
+    /// space that ends a word.
     void insertLineBreak();
+
+    /// @brief Insert characters chosen by a command or a window (Insert > Special Character...,
+    ///        Insert > Formatting Character), in place of the selection
+    ///
+    /// They are an undo step of their own, apart from the text typed before them, and
+    /// autocorrect does not change them: "--" inserted stays two hyphens. Next to an object
+    /// they get a paragraph of their own, as typed text does.
+    void insertCharacters(const QString& characters);
 
     /// @brief Type text at the cursor, as the keyboard and the input methods do: the text goes
     ///        in as insertText() puts it, and autocorrect changes what was typed
     ///
-    /// Each quotation mark, apostrophe, space and period goes in as typed alone, so
-    /// autocorrect sees it with the text before it (an input method can commit several
-    /// characters at once). A change of autocorrect is an undo step of its own: undoing it
-    /// right after brings back the typed characters, with the cursor after them.
+    /// Each quotation mark, apostrophe, space and punctuation mark that ends a word goes in
+    /// as typed alone, so autocorrect sees it with the text before it (an input method can
+    /// commit several characters at once). A change of autocorrect is an undo step of its
+    /// own: undoing it right after brings back the typed characters, with the cursor after
+    /// them. In a paragraph whose spelling is not checked (the style Code) nothing changes.
     void typeText(const QString& text);
 
     /// @brief What autocorrect changes in the text as it is typed (typeText()); everything,
@@ -657,6 +673,54 @@ public:
     int currentFontSize() const;
 
     // =========================================================================
+    // More of the character formatting (character_format.h): on the selection, the word
+    // with the cursor or the text typed next, each change as one undo step
+    // =========================================================================
+
+    /// @brief Format > Superscript (Ctrl+Shift+P) and Subscript (Ctrl+Shift+B), toggled as
+    ///        bold is; one takes the other off
+    void toggleSuperscript();
+    void toggleSubscript();
+
+    /// @brief Format > Small Caps (Ctrl+Shift+K) and All Caps (Ctrl+Shift+A), toggled as bold
+    ///        is: how the letters are shown, the text stays as typed; one takes the other off
+    void toggleSmallCaps();
+    void toggleAllCaps();
+
+    /// @brief Whether all of the selection has the format, or the text typed at the cursor
+    ///        would have it
+    bool isSuperscript() const;
+    bool isSubscript() const;
+    bool isSmallCaps() const;
+    bool isAllCaps() const;
+
+    /// @brief The character formatting of the selection, else of the text typed at the
+    ///        cursor (Format > Font): a part not the same in all of the selection has no
+    ///        value; the font and size are the editor's where the text has none of its own
+    CharacterFormat shownCharacterFormat() const;
+
+    /// @brief Format > Font and the color submenus: give the parts of @p changes that have a
+    ///        value to the selection, the word with the cursor or the text typed next
+    void applyCharacterFormat(const CharacterFormat& changes);
+
+    /// @brief Format > Change Case: the letters of the selection, else of the word with the
+    ///        cursor, in another case; their formats and annotations stay
+    void changeCase(CaseChange change);
+
+    /// @brief Format > Copy Formatting: remember the character formatting of the start of
+    ///        the selection, else of the text typed at the cursor, and the style, own
+    ///        formatting and alignment of its paragraph, for all the editors
+    void copyFormatting();
+
+    /// @brief Whether Copy Formatting has remembered formatting
+    static bool hasCopiedFormatting();
+
+    /// @brief Format > Paste Formatting: the selection, the word with the cursor or the text
+    ///        typed next gets the remembered character formatting in place of its own; the
+    ///        paragraphs the selection holds whole get the remembered paragraph formatting
+    void pasteFormatting();
+
+    // =========================================================================
     // Paragraph Alignment
     // =========================================================================
 
@@ -710,6 +774,73 @@ public:
     ///
     /// It gets a paragraph of its own; the cursor goes after it (see insertObject()).
     void insertTextObject(TextObject object);
+
+    // =========================================================================
+    // Lists and the indents of paragraphs (text_lists.h, paragraph_format.h)
+    //
+    // Each change is one undo step that brings back the cursor and selection it was made
+    // with; the objects among the paragraphs stay as they are.
+    // =========================================================================
+
+    /// @brief Format > Numbering (F12) and Bullets (Shift+F12): make the paragraph at the
+    ///        cursor, or the selected ones, items of a list of the kind, or take them out of
+    ///        their lists
+    ///
+    /// When all of them are items of the kind with numbers or bullets, they leave their
+    /// lists. Otherwise they all become items: of the list of the kind one of them is in,
+    /// else of the list of the kind right before or after them, else of a new one. An item
+    /// keeps its level.
+    void toggleList(ListKind kind);
+
+    /// @brief The kind of the list item at the cursor; nothing outside a list and for an
+    ///        item without a number or bullet
+    std::optional<ListKind> currentListKind() const;
+
+    /// @brief The list item at the cursor (also one without a number); nothing outside a list
+    std::optional<ListItem> currentListItem() const;
+
+    /// @brief The number of the list item at the cursor; -1 outside a list and for an item
+    ///        without a number
+    int currentListNumber() const;
+
+    /// @brief Format > Increase Indent: the list items go one level down (Tab), the other
+    ///        paragraphs a step of the indent (1.25 cm) to the right
+    void increaseIndent();
+
+    /// @brief Format > Decrease Indent: the list items go one level up (Shift+Tab), the other
+    ///        paragraphs a step of the indent to the left (not past the edge of the text)
+    void decreaseIndent();
+
+    /// @brief Restart at 1: the item at the cursor gets the first number of its level, the
+    ///        next ones go on from it
+    void restartNumbering();
+
+    /// @brief Continue Numbering: the item at the cursor loses its own number; the first item
+    ///        of a list joins its list with the list of the kind before it
+    void continueNumbering();
+
+    /// @brief Whether Continue Numbering changes the item at the cursor
+    bool canContinueNumbering() const;
+
+    /// @brief Set Numbering Value: the item at the cursor gets the number, the next ones go
+    ///        on from it
+    void setNumberingValue(int value);
+
+    /// @brief Format > Bullets and Numbering: the lists of the selected paragraphs get the
+    ///        formats of the levels; a paragraph outside a list becomes an item of the first
+    ///        of them, or of a new list
+    void applyListDefinition(const ListDefinition& definition);
+
+    /// @brief The formatting the paragraph at the cursor is shown with, in points: its own
+    ///        over its style's (Format > Paragraph)
+    ParagraphFormat shownParagraphFormat() const;
+
+    /// @brief Format > Paragraph: give the parts of @p changes that have a value to the
+    ///        paragraph at the cursor, or the selected ones, and the alignment, if given
+    ///
+    /// A part equal to the one the paragraph's style gives it is not kept as its own.
+    void applyParagraphFormat(const ParagraphFormat& changes,
+                              std::optional<Qt::Alignment> alignment = std::nullopt);
 
     // =========================================================================
     // Annotations: comments, TODOs and notes
@@ -1198,6 +1329,24 @@ signals:
     /// it, pasted, cut, undid, redid, formatted or aligned it; nothing changed
     void changeRefused();
 
+    /// @brief The writer undid a change of autocorrect right after it, one an exception list
+    ///        can keep from (AutoCorrection::learns): as in Word, the list may get it
+    /// @param list The list: the abbreviations, or the words with two capitals
+    /// @param exception What the list gets: "godz.", "PCs"
+    void autoCorrectionUndone(kalahari::editor::LearnedException list, const QString& exception);
+
+    /// @brief Autocorrect changed a word typed with Caps Lock on by mistake ("wIELKI" to
+    ///        "Wielki"); Caps Lock is still on
+    void capsLockCorrected();
+
+    /// @brief Set Numbering Value... of the context menu of a list item: the window that asks
+    ///        for the number (setNumberingValue())
+    void numberingValueAsked();
+
+    /// @brief Bullets and Numbering... of the context menu of a list item: the window of the
+    ///        formats of the list (applyListDefinition())
+    void bulletsAndNumberingAsked();
+
     /// @brief Emitted when the document content changes
     ///
     /// This signal is emitted whenever text is inserted, deleted, or modified.
@@ -1441,6 +1590,36 @@ private:
 
     /// @brief Align the paragraph at the cursor, or the selected ones, as one undo step
     void setParagraphAlignment(Qt::Alignment alignment);
+
+    /// @brief The paragraphs of text (not the objects) of the selection, or the one at the
+    ///        cursor
+    std::vector<QTextBlock> selectedTextBlocks() const;
+
+    /// @brief Give blocks new formats as one undo step that brings back the cursor and
+    ///        selection it was made with; nothing to change, no step
+    void setBlockFormats(const std::vector<std::pair<QTextBlock, QTextBlockFormat>>& formats);
+
+    /// @brief List items among the selected paragraphs go @p direction levels down (Tab) or
+    ///        up; with @p otherParagraphs the other paragraphs a step of the indent
+    void changeIndent(int direction, bool otherParagraphs);
+
+    /// @brief Whether Tab and Shift+Tab change the levels of list items here: at the start of
+    ///        an item, or with a selection of paragraphs that are all list items
+    bool tabChangesListLevel() const;
+
+    /// @brief Enter in an empty list item: the item goes one level up, or out of its list
+    /// @return false where Enter starts a new paragraph
+    bool endListAtEmptyItem();
+
+    /// @brief Backspace at the start of a list item: its number or bullet goes, then the item
+    ///        leaves its list
+    /// @return false where Backspace deletes
+    bool removeListMarkAtCursor();
+
+    /// @brief Autocorrect: "* " starting a paragraph makes it a bulleted item, "1. " or "1) "
+    ///        a numbered one
+    /// @return Whether the paragraph became an item
+    bool autoCorrectList(const QTextBlock& block);
 
     /// @brief Put back the cursor and selection the undo step just undone or redone
     /// recorded: the ones a step that changes no text (a paragraph format step, a step of
@@ -1731,8 +1910,17 @@ private:
     // Formatting Helpers (Phase 7.2)
     // =========================================================================
 
-    /// @brief Inline formatting the bold, italic, underline and strikethrough commands toggle
-    enum class InlineFormat { Bold, Italic, Underline, Strikethrough };
+    /// @brief Inline formatting the commands of the Format menu toggle
+    enum class InlineFormat {
+        Bold,
+        Italic,
+        Underline,
+        Strikethrough,
+        Superscript,
+        Subscript,
+        SmallCaps,
+        AllCaps
+    };
 
     /// @brief Toggle an inline format on the selection, the word with the cursor or the text
     ///        typed next
@@ -1780,6 +1968,39 @@ private:
 
     /// @brief The font size text with a format shows: its own, or the editor's
     int fontSizeOf(const QTextCharFormat& format) const;
+
+    /// @brief The font size text with a format shows, in points with their fraction
+    qreal fontPointSizeOf(const QTextCharFormat& format) const;
+
+    /// @brief The character formatting text with a format shows (shownCharacterFormat())
+    CharacterFormat characterFormatOf(const QTextCharFormat& format) const;
+
+    /// @brief A piece of text with the format it gets; of an empty paragraph, the format
+    ///        typed text gets there (its block's character format)
+    struct FormatPiece {
+        int from;
+        int to;
+        QTextCharFormat format;
+        bool emptyParagraph = false;
+    };
+
+    /// @brief The pieces of a range whose formats @p change changes, objects aside, with
+    ///        their changed formats; the empty paragraphs in it are pieces too
+    std::vector<FormatPiece> changedFormatPieces(
+        const SelectionRange& range, const std::function<void(QTextCharFormat&)>& change) const;
+
+    /// @brief Give pieces of text and blocks their formats as one undo step that brings back
+    ///        the cursor and selection it was made with; nothing to change, no step
+    void setFormats(const std::vector<FormatPiece>& pieces,
+                    const std::vector<std::pair<QTextBlock, QTextBlockFormat>>& blocks = {});
+
+    /// @brief Change the format of the selection or the word with the cursor (one undo
+    ///        step), else of the text typed next
+    void changeCharFormat(const std::function<void(QTextCharFormat&)>& change);
+
+    /// @brief The pending format with which the text typed at the cursor has @p wanted: the
+    ///        parts in which it differs from the place's
+    QTextCharFormat pendingFor(const QTextCharFormat& wanted) const;
 
     QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
     QScrollBar* m_horizontalScrollBar = nullptr;            ///< Horizontal scrollbar (zoomed pages)
@@ -1873,9 +2094,37 @@ private:
 
     PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted
 
+    /// @brief Whether the letters typed last showed Caps Lock on: a small one typed with
+    ///        Shift, or a capital without it (the program is not told the state of the key)
+    bool m_capsLockOn = false;
+
+    /// @brief A change of autocorrect an exception list can keep from, when it is undone
+    ///        right after it (autoCorrectionUndone())
+    struct LearnableChange {
+        LearnedException list = LearnedException::None;
+        QString exception;
+        int undoSteps = 0;  ///< The undo steps right after the change
+    };
+    std::optional<LearnableChange> m_learnableChange;
+
+    /// @brief What autocorrect changes, with the abbreviations of the text's language
+    AutoCorrectOptions autoCorrectForText() const;
+
     /// @brief Make the change autocorrect has for the character typed right before the
     ///        cursor, as an undo step of its own (see typeText())
     void autoCorrectTyped();
+
+    /// @brief Make the change autocorrect has for the end of a paragraph, as an undo step of
+    ///        its own, after Enter split it: in its last word, or the whole paragraph a scene
+    ///        break or a line ("***", "---")
+    /// @param paragraph The paragraph Enter ended, its text the text before the cursor
+    /// @param atEnd Whether Enter was pressed at the end of the paragraph
+    void autoCorrectEndedParagraph(int paragraph, bool atEnd);
+
+    /// @brief Make a change of autocorrect in a block, as an undo step of its own: undone, it
+    ///        brings back the typed text with the cursor at @p typed
+    void applyAutoCorrection(const QTextBlock& block, const AutoCorrection& change,
+                             const CursorPosition& typed);
 
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode

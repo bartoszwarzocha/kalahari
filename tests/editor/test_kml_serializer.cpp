@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <QDateTime>
 #include <QTextDocument>
@@ -1264,6 +1265,49 @@ TEST_CASE("KmlSerializer - Span wrapper for style-only text", "[editor][kml_seri
         REQUIRE(fmt2.fontFamilies().toStringList().contains("Arial"));
         REQUIRE(fmt2.fontPointSize() == 18);
         REQUIRE(fmt2.foreground().color() == QColor("#0000ff"));
+    }
+}
+
+TEST_CASE("KmlSerializer - Small and all capitals and the letter spacing of <span>",
+          "[editor][kml_serializer][roundtrip]") {
+    // Format > Font: Small Caps, All Caps and the letter spacing in points
+    KmlSerializer serializer;
+    QTextDocument doc;
+    QTextCursor cursor(&doc);
+    QTextCharFormat small;
+    small.setFontCapitalization(QFont::SmallCaps);
+    cursor.insertText("Small", small);
+    QTextCharFormat all;
+    all.setFontCapitalization(QFont::AllUppercase);
+    all.setProperty(KmlPropLetterSpacing, 1.5);
+    cursor.insertText("All", all);
+    QTextCharFormat condensed;
+    condensed.setFontWeight(QFont::Bold);
+    condensed.setProperty(KmlPropLetterSpacing, -0.75);
+    cursor.insertText("Tight", condensed);
+
+    const QString kml = serializer.toKml(&doc);
+    CHECK(kml.contains(QStringLiteral("<span caps=\"small\">Small</span>")));
+    CHECK(kml.contains(QStringLiteral("<span caps=\"all\" spacing=\"1.5\">All</span>")));
+    CHECK(kml.contains(QStringLiteral("<b spacing=\"-0.75\">Tight</b>")));
+
+    const LoadedKml loaded = loadKml(kml);
+    REQUIRE(loaded != nullptr);
+    CHECK(getFormatAt(loaded.get(), 0).fontCapitalization() == QFont::SmallCaps);
+    CHECK_FALSE(getFormatAt(loaded.get(), 0).hasProperty(KmlPropLetterSpacing));
+    CHECK(getFormatAt(loaded.get(), 5).fontCapitalization() == QFont::AllUppercase);
+    CHECK(getFormatAt(loaded.get(), 5).doubleProperty(KmlPropLetterSpacing) == 1.5);
+    CHECK(getFormatAt(loaded.get(), 8).doubleProperty(KmlPropLetterSpacing) == -0.75);
+    CHECK(getFormatAt(loaded.get(), 8).fontWeight() == QFont::Bold);
+
+    SECTION("A spacing out of its range is brought into it; an unknown caps is ignored") {
+        const LoadedKml odd = loadKml(QStringLiteral(
+            "<kml><p><span spacing=\"500\" caps=\"title\">Wide</span>"
+            "<span spacing=\"x\">Plain</span></p></kml>"));
+        REQUIRE(odd != nullptr);
+        CHECK(getFormatAt(odd.get(), 0).doubleProperty(KmlPropLetterSpacing) == MAX_LETTER_SPACING);
+        CHECK(getFormatAt(odd.get(), 0).fontCapitalization() == QFont::MixedCase);
+        CHECK_FALSE(getFormatAt(odd.get(), 4).hasProperty(KmlPropLetterSpacing));
     }
 }
 

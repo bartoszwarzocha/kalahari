@@ -26,6 +26,7 @@
 #include <QTextLayout>
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -149,8 +150,15 @@ TEST_CASE("Stage4 page flow: lines stay within the text areas of the pages",
     REQUIRE(boxes.size() > 40);
     const qreal spacing = d.layout->paragraphSpacing();
 
+    // The lines of each paragraph
+    std::map<int, int> linesOf;
+    for (const LineBox& box : boxes) {
+        ++linesOf[box.block];
+    }
+
     int pageBreaks = 0;
     int breaksWithinParagraph = 0;
+    int keptLines = 0;
     for (size_t i = 0; i < boxes.size(); ++i) {
         const LineBox& box = boxes[i];
         const qreal page = pageOf(box.top);
@@ -165,19 +173,30 @@ TEST_CASE("Stage4 page flow: lines stay within the text areas of the pages",
         CHECK(box.top >= previous.bottom - 0.01);  // in order, never overlapping
         if (pageOf(previous.top) != page) {
             // A line starting a page starts at the top of its text area, and only when
-            // it would not have fitted below the previous one
+            // it would not have fitted below the previous one - or when widow control keeps
+            // it with a line that would not have: the first line of a paragraph with its
+            // second, the line before the last with the last
             ++pageBreaks;
             breaksWithinParagraph += box.block == previous.block ? 1 : 0;
             CHECK(box.top == Approx(page * kPitch));
             const qreal roomLeft = kTextHeight - (previous.bottom - pageOf(previous.top) * kPitch);
             const qreal gapBefore = box.block == previous.block ? 0.0 : spacing;
-            CHECK(roomLeft < gapBefore + (box.bottom - box.top));
+            if (roomLeft >= gapBefore + (box.bottom - box.top)) {
+                ++keptLines;
+                CHECK((box.line == 0 || box.line == linesOf[box.block] - 2));
+            }
+            // No paragraph leaves a single line on a page
+            if (box.block == previous.block) {
+                CHECK(box.line >= 2);
+                CHECK(box.line <= linesOf[box.block] - 2);
+            }
         } else {
             CHECK(box.top - previous.bottom == Approx(box.block == previous.block ? 0.0 : spacing));
         }
     }
     CHECK(pageBreaks >= 3);
     CHECK(breaksWithinParagraph >= 1);  // a paragraph split between two pages
+    CHECK(keptLines >= 1);              // widow control moved lines
     CHECK(d.layout->pageCount() == static_cast<int>(pageOf(boxes.back().top)) + 1);
 }
 

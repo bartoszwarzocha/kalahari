@@ -72,9 +72,16 @@ private:
 const std::vector<std::string>& documentCommands() {
     static const std::vector<std::string> ids = {
         "edit.find",          "edit.findNext",      "edit.findPrevious",    "edit.findReplace",
+        "format.font",        "format.paragraph",
         "format.bold",        "format.italic",      "format.underline",     "format.strikethrough",
-        "format.clearFormatting",
+        "format.superscript", "format.subscript",   "format.smallCaps",     "format.allCaps",
+        "format.case.sentence", "format.case.lower", "format.case.upper",
+        "format.case.capitalize", "format.case.toggle",
+        "format.fontColor",   "format.highlightColor", "format.copyFormatting",
+        "format.pasteFormatting", "format.clearFormatting",
         "format.alignLeft",   "format.alignCenter", "format.alignRight",    "format.justify",
+        "format.increaseIndent", "format.decreaseIndent", "format.bullets", "format.numbering",
+        "format.bulletsNumbering",
         "format.style.heading1", "format.style.heading2", "format.style.heading3",
         "format.style.body",  "format.style.quote", "format.style.dialogue", "format.style.code",
         "view.mode.continuous", "view.mode.page",   "view.zoomIn",          "view.zoomOut",
@@ -84,10 +91,17 @@ const std::vector<std::string>& documentCommands() {
 
 const std::vector<std::string>& changingDocumentCommands() {
     static const std::vector<std::string> ids = {
-        "edit.findReplace", "format.bold",        "format.italic",     "format.underline",
-        "format.strikethrough", "format.clearFormatting", "format.alignLeft",
+        "edit.findReplace", "format.font",        "format.paragraph",
+        "format.bold",      "format.italic",      "format.underline",
+        "format.strikethrough", "format.superscript", "format.subscript",
+        "format.smallCaps", "format.allCaps",     "format.case.sentence", "format.case.lower",
+        "format.case.upper", "format.case.capitalize", "format.case.toggle",
+        "format.fontColor", "format.highlightColor", "format.pasteFormatting",
+        "format.clearFormatting", "format.alignLeft",
         "format.alignCenter", "format.alignRight",
-        "format.justify",   "format.style.heading1", "format.style.heading2",
+        "format.justify",   "format.increaseIndent", "format.decreaseIndent",
+        "format.bullets",   "format.numbering", "format.bulletsNumbering",
+        "format.style.heading1", "format.style.heading2",
         "format.style.heading3", "format.style.body", "format.style.quote",
         "format.style.dialogue", "format.style.code"};
     return ids;

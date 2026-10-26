@@ -64,10 +64,15 @@ set(TEST_SOURCES
     editor/test_text_keys.cpp                    # The keys of the text on each system
     editor/test_format_without_selection.cpp     # Formats given without a selection
     editor/test_clear_formatting.cpp             # Format > Clear Formatting
+    editor/test_character_formatting.cpp         # Superscript, capitals, Format > Font, colors, Change Case, Copy Formatting
     editor/test_line_breaks.cpp                  # Line breaks in a paragraph (Shift+Enter)
     editor/test_paragraph_styles.cpp             # Paragraph styles and the objects of the text
+    editor/test_text_lists.cpp                   # Lists: numbers, formats of the levels, KML
+    editor/test_list_editing.cpp                 # Lists: editing, indents, numbering, auto-correct
+    editor/test_paragraph_layout.cpp             # A paragraph's own formatting and lists in the layout
     editor/test_styles_view.cpp                  # How the editor shows styles, objects and formatting marks
     editor/test_auto_correct.cpp                 # Autocorrect: the changes of the text as it is typed
+    editor/test_insert_characters.cpp            # Characters inserted by a command or a window
     editor/test_read_only_text.cpp               # A read-only text: read, copied, searched, not changed
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
@@ -133,6 +138,12 @@ set(TEST_SOURCES
     gui/test_wrapping_labels.cpp                 # Labels that wrap on a narrow panel
     gui/test_panel_widths.cpp                    # Side panels fit a narrow dock, muted texts read
     gui/test_auto_correct_settings.cpp           # Settings > Editor > Auto-correct and the editors
+    gui/test_special_characters.cpp              # Special characters: groups, names, search
+    gui/test_special_character_dialog.cpp        # Insert > Special Character...: the window, keys, replacements
+    gui/test_list_dialogs.cpp                    # Format > Bullets and Numbering..., Set Numbering Value...
+    gui/test_format_dialogs.cpp                  # Format > Font..., Paragraph..., the color submenus
+    gui/test_quick_character_palette.cpp         # Insert > Quick Character: the palette at the cursor
+    gui/test_formatting_characters.cpp           # Insert > Formatting Character
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -180,6 +191,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     ${CMAKE_SOURCE_DIR}/src/editor/annotation.cpp  # Comments, TODOs and notes
     ${CMAKE_SOURCE_DIR}/src/editor/paragraph_styles.cpp  # Paragraph styles of a book, the objects of its text
+    ${CMAKE_SOURCE_DIR}/src/editor/paragraph_format.cpp  # A paragraph's own formatting: indents, spacing, breaks
+    ${CMAKE_SOURCE_DIR}/src/editor/character_format.cpp  # The character formatting of Format > Font, Change Case
+    ${CMAKE_SOURCE_DIR}/src/editor/text_lists.cpp        # Bulleted and numbered lists
     ${CMAKE_SOURCE_DIR}/src/editor/formatting_marks.cpp  # The formatting marks of a paragraph
     ${CMAKE_SOURCE_DIR}/src/editor/style_resolver.cpp    # Sub-Project C WS4.4: StyleResolver (Q_OBJECT)
     ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager
@@ -189,6 +203,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_cursor.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_editing.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_formatting.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_lists.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_view.cpp
@@ -233,6 +248,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/access_keys.cpp       # The access keys of menu texts
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/length_spin_box.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_menu.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/shortcut_recorder.cpp  # A field that records key presses
     ${CMAKE_SOURCE_DIR}/src/gui/utils/language_names.cpp    # Names of languages in the program's language
     ${CMAKE_SOURCE_DIR}/src/gui/utils/layout_utils.cpp      # clearLayout for SettingsDialog
@@ -244,6 +260,12 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/tab_focus.cpp         # The keys go to the page in front of the tabs
     ${CMAKE_SOURCE_DIR}/src/gui/utils/chapter_cursor.cpp    # A chapter opens where its cursor was
     ${CMAKE_SOURCE_DIR}/src/gui/panels/editor_panel.cpp     # Editor panel: settings to and from its editor
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/caps_lock.cpp         # Caps Lock turned off after autocorrect
+    ${CMAKE_SOURCE_DIR}/src/gui/special_characters.cpp      # Special characters: groups, names, search
+    ${CMAKE_SOURCE_DIR}/src/gui/special_character_choices.cpp  # The favorite characters and those inserted last
+    ${CMAKE_SOURCE_DIR}/src/gui/character_commands.cpp      # The commands of the characters given keys
+    ${CMAKE_SOURCE_DIR}/src/gui/auto_correct_replacements.cpp  # The replacement table of auto-correct
+    ${CMAKE_SOURCE_DIR}/src/gui/special_character_coordinator.cpp  # Insert > Special Character...
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_coordinator.cpp    # Spelling as you type: the editors' dictionary
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_coordinator.cpp     # Grammar as you type: the editors' LanguageTool server
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_panel_coordinator.cpp  # The Spelling and Grammar panel and the text in front
@@ -308,6 +330,13 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/file_location.cpp              # A file shown in the file manager
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp              # Items in more rows when narrow
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/special_character_dialog.cpp  # Insert > Special Character...
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/list_dialogs.cpp  # Bullets and Numbering, Set Numbering Value
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/font_dialog.cpp  # Format > Font...
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/paragraph_dialog.cpp  # Format > Paragraph...
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/character_grid.cpp           # Characters in cells, in the font of the text
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/quick_character_palette.cpp  # Insert > Quick Character
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/character_dialogs.cpp        # The keys of a character, a replacement
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_item_dialog.cpp          # New Book dialog: the folder of the book
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/sections_field.cpp           # Fields of the sections of a book
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/kind_palette.cpp             # Kinds of elements of all book types
@@ -348,6 +377,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/shortcuts_page.h  # ShortcutsPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_menu.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h  # ShortcutRecorder with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
@@ -370,6 +400,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/special_character_coordinator.h  # SpecialCharacterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator, Q_OBJECT
@@ -403,6 +434,12 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/special_character_dialog.h  # SpecialCharacterDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/list_dialogs.h  # the list windows with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/font_dialog.h  # Format > Font... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_dialog.h  # Format > Paragraph... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/sections_field.h  # SectionsComboBox, SectionNamesEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/kind_palette.h  # KindPalette with Q_OBJECT

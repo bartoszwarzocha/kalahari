@@ -4,6 +4,7 @@
 /// also after its keys
 
 #include <catch2/catch_test_macros.hpp>
+#include "kalahari/editor/character_format.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/utils/document_commands.h"
@@ -37,13 +38,19 @@ CommandCallbacks runningCallbacks() {
           &callbacks.onFormatBold, &callbacks.onFormatItalic, &callbacks.onFormatUnderline,
           &callbacks.onFormatStrikethrough, &callbacks.onClearFormatting,
           &callbacks.onAlignLeft, &callbacks.onAlignCenter,
-          &callbacks.onAlignRight, &callbacks.onAlignJustify, &callbacks.onViewModeContinuous,
+          &callbacks.onAlignRight, &callbacks.onAlignJustify, &callbacks.onIncreaseIndent,
+          &callbacks.onDecreaseIndent, &callbacks.onBullets, &callbacks.onNumbering,
+          &callbacks.onBulletsNumbering, &callbacks.onViewModeContinuous,
           &callbacks.onViewModePage, &callbacks.onDarkPaperToggle, &callbacks.onZoomIn,
           &callbacks.onZoomOut, &callbacks.onZoomReset, &callbacks.onZoomPageWidth,
-          &callbacks.onZoomWholePage}) {
+          &callbacks.onZoomWholePage, &callbacks.onFont, &callbacks.onParagraph,
+          &callbacks.onSuperscript, &callbacks.onSubscript, &callbacks.onSmallCaps,
+          &callbacks.onAllCaps, &callbacks.onFontColor, &callbacks.onHighlightColor,
+          &callbacks.onCopyFormatting, &callbacks.onPasteFormatting}) {
         *callback = none;
     }
     callbacks.onParagraphStyle = [](const QString&) {};
+    callbacks.onChangeCase = [](kalahari::editor::CaseChange) {};
     return callbacks;
 }
 
@@ -86,12 +93,20 @@ TEST_CASE("Document commands: greyed out without a document in front, with their
         CHECK(command->canExecute());
         REQUIRE(registry.getAction(id) != nullptr);
     }
-    // Find, the formats, the alignments, the styles, the view mode and the zoom, each with its
-    // keys
+    // Find, the windows and the formats, the alignments, the styles, the view mode and the
+    // zoom, each with its keys
     for (const char* id : {"edit.find", "edit.findNext", "edit.findPrevious", "edit.findReplace",
+                           "format.font", "format.paragraph",
                            "format.bold", "format.italic", "format.underline",
-                           "format.strikethrough", "format.clearFormatting", "format.alignLeft",
+                           "format.strikethrough", "format.superscript", "format.subscript",
+                           "format.smallCaps", "format.allCaps", "format.case.sentence",
+                           "format.case.lower", "format.case.upper", "format.case.capitalize",
+                           "format.case.toggle", "format.fontColor", "format.highlightColor",
+                           "format.copyFormatting", "format.pasteFormatting",
+                           "format.clearFormatting", "format.alignLeft",
                            "format.alignCenter", "format.alignRight", "format.justify",
+                           "format.increaseIndent", "format.decreaseIndent", "format.bullets",
+                           "format.numbering", "format.bulletsNumbering",
                            "format.style.heading1",
                            "format.style.heading2", "format.style.heading3", "format.style.body",
                            "format.style.quote", "format.style.dialogue", "format.style.code",
@@ -140,11 +155,20 @@ TEST_CASE("Document commands: over a read-only chapter those that change it are 
     registry.clear();
     registerAllCommands(runningCallbacks());
     CHECK(utils::changingDocumentCommands() ==
-          std::vector<std::string>{"edit.findReplace", "format.bold", "format.italic",
+          std::vector<std::string>{"edit.findReplace", "format.font", "format.paragraph",
+                                   "format.bold", "format.italic",
                                    "format.underline", "format.strikethrough",
+                                   "format.superscript", "format.subscript", "format.smallCaps",
+                                   "format.allCaps", "format.case.sentence", "format.case.lower",
+                                   "format.case.upper", "format.case.capitalize",
+                                   "format.case.toggle", "format.fontColor",
+                                   "format.highlightColor", "format.pasteFormatting",
                                    "format.clearFormatting", "format.alignLeft",
                                    "format.alignCenter",
                                    "format.alignRight", "format.justify",
+                                   "format.increaseIndent", "format.decreaseIndent",
+                                   "format.bullets", "format.numbering",
+                                   "format.bulletsNumbering",
                                    "format.style.heading1", "format.style.heading2",
                                    "format.style.heading3", "format.style.body",
                                    "format.style.quote", "format.style.dialogue",

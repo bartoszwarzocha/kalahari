@@ -20,6 +20,8 @@ class QLineEdit;
 class QListWidget;
 class QPushButton;
 class QRadioButton;
+class QTableWidget;
+class QTableWidgetItem;
 
 namespace kalahari {
 namespace core {
@@ -32,6 +34,7 @@ namespace gui {
 
 class ColorConfigWidget;
 class FolderField;
+struct ReplacementEntry;
 
 /// @brief General: startup
 class GeneralPage : public SettingsPage {
@@ -187,11 +190,82 @@ public:
     explicit EditorPagesPage(QWidget* parent = nullptr);
 };
 
-/// @brief Editor > Auto-correct: what is changed in the text as it is typed
+/// @brief Editor > Auto-correct: what is changed in the text as it is typed, on three tabs
+///
+/// While Typing has the replacements of the characters and the text elements typed,
+/// Capitals the changes of the capitals and their exceptions (the abbreviations of each
+/// language, the words with two capitals), Replacement Table all the pairs of a word and its
+/// replacement, the program's own ones and the writer's, each one on or off.
+/// Ctrl+Page Down and Ctrl+Page Up go to the next and the previous tab. In the table Space
+/// turns the pairs selected on and off, F2 changes a cell, Delete removes the pairs and
+/// Insert goes to the field of a new pair.
 class EditorAutoCorrectPage : public SettingsPage {
     Q_OBJECT
 public:
     explicit EditorAutoCorrectPage(QWidget* parent = nullptr);
+
+protected:
+    /// @brief The keys of the table and of the fields of a new pair
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
+private:
+    /// @brief The tab of the characters replaced as they are typed
+    QWidget* createWhileTypingTab();
+
+    /// @brief The tab of the capitals and their exceptions
+    QWidget* createCapitalsTab();
+
+    /// @brief The tab of the replacement table
+    QWidget* createTableTab();
+
+    /// @brief Fill the table with pairs
+    void showPairs(const std::vector<ReplacementEntry>& pairs);
+
+    /// @brief The pairs of the table, in its order
+    [[nodiscard]] std::vector<ReplacementEntry> shownPairs() const;
+
+    /// @brief Add a row of a pair at the end of the table
+    void appendPair(const ReplacementEntry& pair);
+
+    /// @brief The row of the pair of a word; -1: none
+    [[nodiscard]] int rowOfWord(const QString& word, int except = -1) const;
+
+    /// @brief Add the pair of the fields, or give the word of a pair the new replacement
+    void addPair();
+
+    /// @brief Remove the pairs selected
+    void removePairs();
+
+    /// @brief Turn the pairs selected on, or off when the current one is on
+    void togglePairs();
+
+    /// @brief Bring back the program's own pairs as they were; the writer's pairs stay
+    void restoreDefaultPairs();
+
+    /// @brief A cell changed: a word or a replacement that cannot be is put back, saying why
+    void pairEdited(QTableWidgetItem* item);
+
+    /// @brief Say "built-in" or "your own" in the last column of a row
+    void updateSource(int row);
+
+    /// @brief Enable the buttons of the table and, for a word typed, say what Add does
+    void updatePairButtons();
+
+    /// @brief Grey out the replacements while auto-correct is off, and the choice of a
+    ///        replacement (its dash) while the replacement is off
+    void syncReplacements();
+
+    QCheckBox* m_enabled = nullptr;              ///< Auto-correct as a whole
+    QCheckBox* m_useTable = nullptr;             ///< The replacements of the table
+    std::vector<QCheckBox*> m_replacements;      ///< Greyed out while auto-correct is off
+    std::vector<std::pair<QCheckBox*, QWidget*>> m_choices;  ///< A replacement, its choice
+    QTableWidget* m_pairs = nullptr;        ///< The replacement table
+    QLineEdit* m_newWord = nullptr;         ///< The word of a new pair
+    QLineEdit* m_newReplacement = nullptr;  ///< Its replacement
+    QPushButton* m_addPair = nullptr;
+    QPushButton* m_removePairs = nullptr;
+    QLabel* m_pairNote = nullptr;           ///< What Add does, or why an edit was put back
+    bool m_fillingPairs = false;            ///< The table is filled, not edited
 };
 
 /// @brief Annotations: who new comments, to-dos and notes are by, and their marks in the text

@@ -98,11 +98,19 @@ void registerAllIcons() {
     iconRegistry.registerIcon("insert.todo", "resources/icons/twotone/check_circle.svg", "Add To Do");
     iconRegistry.registerIcon("insert.note", "resources/icons/twotone/sticky_note_2.svg", "Add Note");
     iconRegistry.registerIcon("insert.specialChar", "resources/icons/twotone/emoji_symbols.svg", "Insert Special Character");
+    iconRegistry.registerIcon("insert.quickCharacter", "resources/icons/twotone/bolt.svg", "Quick Character");
     iconRegistry.registerIcon("insert.dateTime", "resources/icons/twotone/schedule.svg", "Insert Date/Time");
     iconRegistry.registerIcon("insert.field", "resources/icons/twotone/data_object.svg", "Insert Field");
     iconRegistry.registerIcon("insert.horizontalLine", "resources/icons/twotone/horizontal_rule.svg", "Insert Horizontal Line");
     iconRegistry.registerIcon("insert.sceneBreak", "resources/icons/twotone/more_horiz.svg", "Insert Scene Break");
     iconRegistry.registerIcon("insert.pageBreak", "resources/icons/twotone/horizontal_split.svg", "Insert Page Break");
+    // Material has no icons of the hyphen and the dashes: theirs are the program's own, of
+    // their lengths, the non-breaking hyphen with a tie under it
+    iconRegistry.registerIcon("insert.noBreakSpace", "resources/icons/twotone/space_bar.svg", "Insert Non-breaking Space");
+    iconRegistry.registerIcon("insert.nonBreakingHyphen", "resources/icons/twotone/non_breaking_hyphen.svg", "Insert Non-breaking Hyphen");
+    iconRegistry.registerIcon("insert.optionalHyphen", "resources/icons/twotone/wrap_text.svg", "Insert Optional Hyphen");
+    iconRegistry.registerIcon("insert.enDash", "resources/icons/twotone/en_dash.svg", "Insert En Dash");
+    iconRegistry.registerIcon("insert.emDash", "resources/icons/twotone/em_dash.svg", "Insert Em Dash");
 
     // -------------------------------------------------------------------------
     // FORMAT MENU ICONS
@@ -120,6 +128,15 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.italic", "resources/icons/twotone/format_italic.svg", "Italic");
     iconRegistry.registerIcon("format.underline", "resources/icons/twotone/format_underlined.svg", "Underline");
     iconRegistry.registerIcon("format.strikethrough", "resources/icons/twotone/strikethrough_s.svg", "Strikethrough");
+    iconRegistry.registerIcon("format.superscript", "resources/icons/twotone/superscript.svg", "Superscript");
+    iconRegistry.registerIcon("format.subscript", "resources/icons/twotone/subscript.svg", "Subscript");
+    iconRegistry.registerIcon("format.smallCaps", "resources/icons/twotone/text_fields.svg", "Small Caps");
+    iconRegistry.registerIcon("format.allCaps", "resources/icons/twotone/abc.svg", "All Caps");
+    iconRegistry.registerIcon("format.case.sentence", "resources/icons/twotone/short_text.svg", "Sentence case");
+    iconRegistry.registerIcon("format.case.lower", "resources/icons/twotone/text_decrease.svg", "lowercase");
+    iconRegistry.registerIcon("format.case.upper", "resources/icons/twotone/text_increase.svg", "UPPERCASE");
+    iconRegistry.registerIcon("format.case.capitalize", "resources/icons/twotone/title.svg", "Capitalize Each Word");
+    iconRegistry.registerIcon("format.case.toggle", "resources/icons/twotone/swap_vert.svg", "tOGGLE cASE");
     iconRegistry.registerIcon("format.alignLeft", "resources/icons/twotone/format_align_left.svg", "Align Left");
     iconRegistry.registerIcon("format.alignCenter", "resources/icons/twotone/format_align_center.svg", "Align Center");
     iconRegistry.registerIcon("format.alignRight", "resources/icons/twotone/format_align_right.svg", "Align Right");
@@ -128,7 +145,14 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.decreaseIndent", "resources/icons/twotone/format_indent_decrease.svg", "Decrease Indent");
     iconRegistry.registerIcon("format.bullets", "resources/icons/twotone/format_list_bulleted.svg", "Bullets");
     iconRegistry.registerIcon("format.numbering", "resources/icons/twotone/format_list_numbered.svg", "Numbering");
-    iconRegistry.registerIcon("format.color", "resources/icons/twotone/format_color_text.svg", "Text Color");
+    iconRegistry.registerIcon("format.bulletsNumbering", "resources/icons/twotone/format_list_numbered.svg", "Bullets and Numbering");
+    iconRegistry.registerIcon("format.fontColor", "resources/icons/twotone/format_color_text.svg", "Font Color");
+    iconRegistry.registerIcon("format.highlightColor", "resources/icons/twotone/border_color.svg", "Highlight Color");
+    iconRegistry.registerIcon("format.copyFormatting", "resources/icons/twotone/format_paint.svg", "Copy Formatting");
+    iconRegistry.registerIcon("format.pasteFormatting", "resources/icons/twotone/brush.svg", "Paste Formatting");
+    // The items of the color submenus (gui/widgets/color_menu.h)
+    iconRegistry.registerIcon("format.noColor", "resources/icons/twotone/format_color_reset.svg", "No Color");
+    iconRegistry.registerIcon("format.moreColors", "resources/icons/twotone/palette.svg", "More Colors");
     iconRegistry.registerIcon("format.clearFormatting", "resources/icons/twotone/format_clear.svg", "Clear Formatting");
     iconRegistry.registerIcon("format.paragraph", "resources/icons/twotone/notes.svg", "Paragraph");
 
@@ -214,7 +238,11 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.import", "resources/icons/twotone/input.svg", "Import");
     iconRegistry.registerIcon("menu.export", "resources/icons/twotone/share.svg", "Export");
     iconRegistry.registerIcon("menu.recentBooks", "resources/icons/twotone/history.svg", "Recent Books");
+    iconRegistry.registerIcon("menu.formattingCharacter", "resources/icons/twotone/format_paragraph.svg", "Formatting Character");
     iconRegistry.registerIcon("menu.textStyle", "resources/icons/twotone/format_shapes.svg", "Text Style");
+    iconRegistry.registerIcon("menu.textEffects", "resources/icons/twotone/format_strikethrough.svg", "Text Effects");
+    iconRegistry.registerIcon("menu.changeCase", "resources/icons/twotone/format_size.svg", "Change Case");
+    iconRegistry.registerIcon("menu.alignText", "resources/icons/twotone/format_align_left.svg", "Align Text");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
     iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
@@ -270,6 +298,9 @@ void registerAllIcons() {
     iconRegistry.registerIcon("common.arrowUpward", "resources/icons/twotone/arrow_upward.svg", "Arrow Up");
     iconRegistry.registerIcon("common.arrowDownward", "resources/icons/twotone/arrow_downward.svg", "Arrow Down");
     iconRegistry.registerIcon("common.delete", "resources/icons/twotone/delete.svg", "Delete");
+    // The views of a window: Insert > Special Character...
+    iconRegistry.registerIcon("common.gridView", "resources/icons/twotone/grid_view.svg", "Grid");
+    iconRegistry.registerIcon("common.listView", "resources/icons/twotone/view_list.svg", "List");
     // Aliases for dialog buttons (navigation.up, navigation.down, action.delete)
     iconRegistry.registerIcon("navigation.up", "resources/icons/twotone/arrow_upward.svg", "Move Up");
     iconRegistry.registerIcon("navigation.down", "resources/icons/twotone/arrow_downward.svg", "Move Down");

@@ -34,7 +34,15 @@ enum KmlPropertyId {
 
     /// @brief Location reference (link to Location entity)
     KmlPropLocRef = QTextFormat::UserProperty + 104,
+
+    /// @brief Letter spacing of the text (<span spacing>): points (double), more than 0
+    /// expanded, less condensed; the layout shows it as Qt's absolute letter spacing
+    KmlPropLetterSpacing = QTextFormat::UserProperty + 105,
 };
+
+/// @brief Accepted range of the letter spacing, in points
+inline constexpr qreal MIN_LETTER_SPACING = -20.0;
+inline constexpr qreal MAX_LETTER_SPACING = 100.0;
 
 /// @brief Metadata tag definition
 struct MetadataTagDef {
@@ -126,7 +134,11 @@ QString writeMetadataAttributes(const QString& tag, const QVariantMap& metadata)
 // Inline Style Attributes
 // =============================================================================
 
-/// @brief Apply inline style attributes (font, size, color, bg) from XML to format
+/// @brief Apply inline style attributes (font, size, color, bg, caps, spacing) from XML to
+///        format
+///
+/// caps is "small" (small capitals) or "all" (all capitals): how the letters are shown, the
+/// text stays as typed; spacing is the letter spacing in points (KmlPropLetterSpacing).
 /// @param attrs XML attributes from a formatting or span tag
 /// @param format Character format to update (modified in place)
 void applyInlineStyleAttributes(const QXmlStreamAttributes& attrs,

@@ -24,6 +24,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
 
+class QColor;
 class QDockWidget;
 class QCloseEvent;
 class QShowEvent;
@@ -54,9 +55,11 @@ class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
 class EditCoordinator;
+class SpecialCharacterCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
+class ColorMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
 }
@@ -260,6 +263,10 @@ private slots:
     void onFormatStrikethrough();
 
     /// @brief Slot for Format > Align Left action
+    /// @brief Format > Font Color or Highlight Color: give the selection in the editor in
+    ///        front, or the text typed next, a color (invalid: automatic, or no highlight)
+    void applyColor(const QColor& color, bool highlight);
+
     void onAlignLeft();
 
     /// @brief Slot for Format > Align Center action
@@ -380,6 +387,8 @@ private:
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
+    /// Insert > Special Character... and Insert > Quick Character
+    SpecialCharacterCoordinator* m_specialCharacterCoordinator{nullptr};
     GrammarCoordinator* m_grammarCoordinator{nullptr};
 
     /// @brief The Spelling and Grammar panel and when it shows
@@ -387,6 +396,10 @@ private:
 
     /// @brief Undo, Redo, Cut, Copy, Paste and Select All on the element with the keys
     EditCoordinator* m_editCoordinator{nullptr};
+
+    /// @brief The submenus of Format > Font Color and Highlight Color
+    ColorMenu* m_fontColorMenu{nullptr};
+    ColorMenu* m_highlightColorMenu{nullptr};
 
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen
