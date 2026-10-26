@@ -10,6 +10,8 @@
 #include <QPainter>
 #include <QStyle>
 #include <QStyleOptionFocusRect>
+#include <QStyleOptionTabBarBase>
+#include <QTabBar>
 #include <QToolTip>
 
 #include <algorithm>
@@ -134,6 +136,14 @@ void PanelTabBar::setTabs(const QList<Tab>& tabs, int current) {
     updateGeometry();
 }
 
+void PanelTabBar::setCurrentIndex(int index) {
+    if (index < 0 || index >= count() || index == m_current) {
+        return;
+    }
+    m_current = index;
+    update();
+}
+
 void PanelTabBar::setLook(Look look) {
     if (look == m_look) {
         return;
@@ -167,6 +177,103 @@ void PanelTabBar::setIconSize(int size) {
     m_iconSize = size;
     relayout();
     updateGeometry();
+}
+
+void PanelTabBar::setDrawing(Drawing drawing) {
+    if (drawing == m_drawing) {
+        return;
+    }
+    m_drawing = drawing;
+    relayout();
+    updateGeometry();
+}
+
+void PanelTabBar::setClosable(bool closable) {
+    if (closable == m_closable) {
+        return;
+    }
+    m_closable = closable;
+    m_hoverClose = -1;
+    m_pressedClose = -1;
+    relayout();
+    updateGeometry();
+}
+
+int PanelTabBar::marginX() const {
+    return m_drawing == Drawing::Own ? MARGIN_X : 0;
+}
+
+int PanelTabBar::marginY() const {
+    return m_drawing == Drawing::Own ? MARGIN_Y : 0;
+}
+
+int PanelTabBar::spacing() const {
+    return m_drawing == Drawing::Own ? SPACING : 0;
+}
+
+QSize PanelTabBar::closeSize() const {
+    return {style()->pixelMetric(QStyle::PM_TabCloseIndicatorWidth, nullptr, this),
+            style()->pixelMetric(QStyle::PM_TabCloseIndicatorHeight, nullptr, this)};
+}
+
+QStyleOptionTab PanelTabBar::styleOption(int index) const {
+    QStyleOptionTab option;
+    option.initFrom(this);
+    option.state &= ~(QStyle::State_HasFocus | QStyle::State_MouseOver);
+    option.shape = m_side == Side::Above ? QTabBar::RoundedNorth : QTabBar::RoundedSouth;
+    option.documentMode = true;
+    option.tabIndex = index;
+    option.text = m_tabs.at(index).name;
+    if (showsIcons()) {
+        option.icon = m_tabs.at(index).icon;
+        option.iconSize = QSize(m_iconSize, m_iconSize);
+    }
+    if (m_closable && m_drawing == Drawing::Style) {
+        option.rightButtonSize = closeSize();
+    }
+    return option;
+}
+
+QSize PanelTabBar::styleTabSize(int index, const QString& text) const {
+    QStyleOptionTab option = styleOption(index);
+    option.text = text;
+    const QFontMetrics metrics = fontMetrics();
+    const int hframe = style()->pixelMetric(QStyle::PM_TabBarTabHSpace, &option, this);
+    const int vframe = style()->pixelMetric(QStyle::PM_TabBarTabVSpace, &option, this);
+    const QSize icon = option.icon.isNull() ? QSize(0, 0) : option.iconSize;
+    const QSize button = option.rightButtonSize.isValid() ? option.rightButtonSize : QSize(0, 0);
+    // Four pixels beside the button and beside the icon, as QTabBar::tabSizeHint()
+    const int padding = (button.isEmpty() ? 0 : 4) + (icon.isEmpty() ? 0 : 4);
+    const QSize contents(metrics.size(Qt::TextShowMnemonic, text).width() + icon.width() +
+                             hframe + button.width() + padding,
+                         std::max({button.height(), metrics.height(), icon.height()}) + vframe);
+    return style()->sizeFromContents(QStyle::CT_TabBarTab, &option, contents, this);
+}
+
+QRect PanelTabBar::closeRect(int index) const {
+    if (!m_closable || m_drawing != Drawing::Style || index < 0 || index >= m_placed.size()) {
+        return {};
+    }
+    // Where Qt's tab bar puts the close button of the tab, at its own size
+    const QRect place = styleRect(QStyle::SE_TabBarTabRightButton, index, m_placed.at(index).rect);
+    return {place.topLeft(), closeSize()};
+}
+
+QRect PanelTabBar::styleRect(QStyle::SubElement element, int index, const QRect& rect) const {
+    // The style places the parts of a tab as in Qt's one row, at the top of the bar: the tab
+    // goes there, and its part back to its row
+    QStyleOptionTab option = styleOption(index);
+    option.rect = rect.translated(0, -rect.top());
+    return style()->subElementRect(element, &option, this).translated(0, rect.top());
+}
+
+int PanelTabBar::closeAt(const QPoint& pos) const {
+    for (int i = 0; i < m_placed.size(); ++i) {
+        if (closeRect(i).contains(pos)) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 QRect PanelTabBar::tabRect(int index) const {
@@ -205,6 +312,9 @@ int PanelTabBar::tabAt(const QPoint& pos) const {
 
 int PanelTabBar::naturalWidth(int index) const {
     const QString& name = m_tabs.at(index).name;
+    if (m_drawing == Drawing::Style) {
+        return styleTabSize(index, showsNames() ? name : QString()).width();
+    }
     int width = 2 * BORDER;
     if (showsIcons()) {
         width += m_iconSize;
@@ -221,6 +331,11 @@ int PanelTabBar::naturalWidth(int index) const {
 }
 
 int PanelTabBar::narrowestWidth(int index) const {
+    if (m_drawing == Drawing::Style) {
+        // Two letters of the name and the ellipsis, as Qt's tabs at their narrowest
+        return styleTabSize(index, showsNames() ? leastOf(m_tabs.at(index).name) : QString())
+            .width();
+    }
     int width = 2 * BORDER + 2 * NARROW_PADDING;
     if (showsIcons()) {
         width += m_iconSize;  // a name gives way to the icon
@@ -231,6 +346,13 @@ int PanelTabBar::narrowestWidth(int index) const {
 }
 
 int PanelTabBar::tabHeight() const {
+    if (m_drawing == Drawing::Style) {
+        int height = 0;
+        for (int i = 0; i < count(); ++i) {
+            height = std::max(height, styleTabSize(i, m_tabs.at(i).name).height());
+        }
+        return height;
+    }
     const int content = std::max(showsIcons() ? m_iconSize : 0,
                                  showsNames() ? fontMetrics().height() : 0);
     return 2 * BORDER + 2 * PADDING_Y + content;
@@ -243,7 +365,7 @@ QList<PanelTabBar::Placed> PanelTabBar::arrange(int width) const {
         return placed;
     }
 
-    const int room = std::max(0, width - 2 * MARGIN_X);
+    const int room = std::max(0, width - 2 * marginX());
     QList<int> widths(tabs);
     QList<int> narrowest(tabs);
     for (int i = 0; i < tabs; ++i) {
@@ -259,27 +381,28 @@ QList<PanelTabBar::Placed> PanelTabBar::arrange(int width) const {
         for (int i = 0; i < tabs; ++i) {
             // A tab wider than the bar alone shortens its name
             widths[i] = std::min(widths[i], room);
-            if (i > first && used + SPACING + widths[i] > room) {
+            if (i > first && used + spacing() + widths[i] > room) {
                 rows.append({first, i - 1});
                 first = i;
                 used = 0;
             }
-            used += (i > first ? SPACING : 0) + widths[i];
+            used += (i > first ? spacing() : 0) + widths[i];
         }
         rows.append({first, tabs - 1});
     } else {
         rows.append({0, tabs - 1});
-        const int spacing = SPACING * (tabs - 1);
-        const int total = std::accumulate(widths.cbegin(), widths.cend(), 0) + spacing;
+        const int gaps = spacing() * (tabs - 1);
+        const int total = std::accumulate(widths.cbegin(), widths.cend(), 0) + gaps;
         if (total > room) {
-            squeeze(widths, narrowest, room - spacing);
+            squeeze(widths, narrowest, room - gaps);
         }
     }
 
-    // Names fill their rows; icons alone keep their size
-    if (showsNames()) {
+    // Names fill their rows; icons alone keep their size, and the style's tabs theirs, as in
+    // Qt's tab bar
+    if (showsNames() && m_drawing == Drawing::Own) {
         for (const auto& [first, last] : rows) {
-            int used = SPACING * (last - first);
+            int used = spacing() * (last - first);
             for (int i = first; i <= last; ++i) {
                 used += widths[i];
             }
@@ -291,13 +414,22 @@ QList<PanelTabBar::Placed> PanelTabBar::arrange(int width) const {
     const QFontMetrics metrics = fontMetrics();
     for (int row = 0; row < rows.size(); ++row) {
         const auto [first, last] = rows.at(row);
-        int x = MARGIN_X;
-        const int y = MARGIN_Y + row * (height + SPACING);
+        int x = marginX();
+        const int y = marginY() + row * (height + spacing());
         for (int i = first; i <= last; ++i) {
             Placed& tab = placed[i];
             tab.rect = QRect(x, y, widths[i], height);
             tab.row = row;
-            if (showsNames()) {
+            if (showsNames() && m_drawing == Drawing::Style) {
+                // The room the style leaves the name, as Qt's tab bar shortens it
+                const QString& name = m_tabs.at(i).name;
+                tab.shown = name;
+                if (widths[i] < naturalWidth(i)) {
+                    const QRect text = styleRect(QStyle::SE_TabBarTabText, i, tab.rect);
+                    tab.shown = metrics.elidedText(name, Qt::ElideRight, text.width(),
+                                                   Qt::TextShowMnemonic);
+                }
+            } else if (showsNames()) {
                 const QString& name = m_tabs.at(i).name;
                 int nameRoom = widths[i] - 2 * BORDER - 2 * NARROW_PADDING;
                 if (showsIcons()) {
@@ -310,16 +442,16 @@ QList<PanelTabBar::Placed> PanelTabBar::arrange(int width) const {
                     tab.shown = metrics.elidedText(name, Qt::ElideRight, std::max(0, nameRoom));
                 }
             }
-            x += widths[i] + SPACING;
+            x += widths[i] + spacing();
         }
     }
     return placed;
 }
 
 int PanelTabBar::oneRowWidth() const {
-    int width = 2 * MARGIN_X;
+    int width = 2 * marginX();
     for (int i = 0; i < count(); ++i) {
-        width += naturalWidth(i) + (i > 0 ? SPACING : 0);
+        width += naturalWidth(i) + (i > 0 ? spacing() : 0);
     }
     return width;
 }
@@ -341,7 +473,7 @@ int PanelTabBar::heightForWidth(int width) const {
     }
     const QList<Placed> placed = arrange(width);
     const int rows = placed.constLast().row + 1;
-    return 2 * MARGIN_Y + rows * tabHeight() + (rows - 1) * SPACING;
+    return 2 * marginY() + rows * tabHeight() + (rows - 1) * spacing();
 }
 
 QSize PanelTabBar::sizeHint() const {
@@ -352,12 +484,12 @@ QSize PanelTabBar::minimumSizeHint() const {
     int width = 0;
     for (int i = 0; i < count(); ++i) {
         if (m_rows == Rows::Single) {
-            width += narrowestWidth(i) + (i > 0 ? SPACING : 0);
+            width += narrowestWidth(i) + (i > 0 ? spacing() : 0);
         } else {
             width = std::max(width, narrowestWidth(i));
         }
     }
-    return {2 * MARGIN_X + width, heightForWidth(placedWidth())};
+    return {2 * marginX() + width, heightForWidth(placedWidth())};
 }
 
 void PanelTabBar::relayout() {
@@ -385,6 +517,7 @@ void PanelTabBar::changeEvent(QEvent* event) {
         break;
     case QEvent::PaletteChange:
     case QEvent::EnabledChange:
+    case QEvent::ActivationChange:
         update();
         break;
     default:
@@ -396,6 +529,14 @@ bool PanelTabBar::event(QEvent* event) {
     if (event->type() == QEvent::ToolTip) {
         const auto* help = static_cast<QHelpEvent*>(event);
         const int index = m_dragging ? -1 : tabAt(help->pos());
+        const int close = m_dragging ? -1 : closeAt(help->pos());
+        if (close >= 0) {
+            // Qt's words for its close buttons, translated with Qt's texts
+            QToolTip::showText(help->globalPos(),
+                               QCoreApplication::translate("CloseButton", "Close Tab"), this,
+                               closeRect(close));
+            return true;
+        }
         const QString text = toolTipOf(index);
         if (text.isEmpty()) {
             QToolTip::hideText();
@@ -411,6 +552,10 @@ bool PanelTabBar::event(QEvent* event) {
 void PanelTabBar::paintEvent(QPaintEvent* /*event*/) {
     QPainter painter(this);
     const QPalette& colors = palette();
+    if (m_drawing == Drawing::Style) {
+        paintStyleTabs(painter);
+        return;
+    }
 
     // The line between the tabs and the panel
     painter.setPen(colors.color(QPalette::Mid));
@@ -483,16 +628,116 @@ void PanelTabBar::paintEvent(QPaintEvent* /*event*/) {
     }
 }
 
-void PanelTabBar::setHover(int index) {
-    if (index == m_hover) {
+void PanelTabBar::paintStyleTabs(QPainter& painter) {
+    // Under each row the line the tabs stand on, open under the tab in front
+    const int overlap = style()->pixelMetric(QStyle::PM_TabBarBaseOverlap, nullptr, this);
+    for (int row = 0; row < rowCount(); ++row) {
+        QStyleOptionTabBarBase base;
+        base.initFrom(this);
+        base.shape = m_side == Side::Above ? QTabBar::RoundedNorth : QTabBar::RoundedSouth;
+        base.documentMode = true;
+        for (int i = 0; i < m_placed.size(); ++i) {
+            if (m_placed.at(i).row == row) {
+                base.tabBarRect |= m_placed.at(i).rect;
+                if (i == m_current) {
+                    base.selectedTabRect = m_placed.at(i).rect;
+                }
+            }
+        }
+        base.rect = m_side == Side::Above
+                        ? QRect(0, base.tabBarRect.bottom() - overlap + 1, width(), overlap)
+                        : QRect(0, base.tabBarRect.top(), width(), overlap);
+        style()->drawPrimitive(QStyle::PE_FrameTabBarBase, &base, &painter, this);
+    }
+
+    // The tab in front last, over its neighbours, as Qt's tab bar draws them
+    QList<int> order(count());
+    std::iota(order.begin(), order.end(), 0);
+    if (m_current >= 0) {
+        order.move(m_current, count() - 1);
+    }
+    for (const int i : std::as_const(order)) {
+        const Placed& placed = m_placed.at(i);
+        // Each tab drawn at the top of the bar, as in Qt's one row, and moved to its row; the
+        // tab in front stays in its row, which the style would draw it beyond
+        const int top = placed.rect.top();
+        painter.save();
+        painter.translate(0, top);
+        painter.setClipRect(QRect(0, 0, width(), placed.rect.height()));
+        QStyleOptionTab option = styleOption(i);
+        option.rect = placed.rect.translated(0, -top);
+        option.text = placed.shown;
+        option.row = placed.row;
+        const bool first = i == 0 || m_placed.at(i - 1).row != placed.row;
+        const bool last = i == count() - 1 || m_placed.at(i + 1).row != placed.row;
+        if (first && last) {
+            option.position = QStyleOptionTab::OnlyOneTab;
+        } else if (first) {
+            option.position = QStyleOptionTab::Beginning;
+        } else if (last) {
+            option.position = QStyleOptionTab::End;
+        } else {
+            option.position = QStyleOptionTab::Middle;
+        }
+        if (!first && i - 1 == m_current) {
+            option.selectedPosition = QStyleOptionTab::PreviousIsSelected;
+        } else if (!last && i + 1 == m_current) {
+            option.selectedPosition = QStyleOptionTab::NextIsSelected;
+        }
+        if (i == m_current) {
+            option.state |= QStyle::State_Selected;
+            if (hasFocus()) {
+                option.state |= QStyle::State_HasFocus;
+            }
+        }
+        if (i == m_hover && !m_dragging) {
+            option.state |= QStyle::State_MouseOver;
+        }
+        if (i == m_pressed && !m_dragging) {
+            option.state |= QStyle::State_Sunken;
+        }
+        style()->drawControl(QStyle::CE_TabBarTab, &option, &painter, this);
+
+        if (m_closable) {
+            // The close button as Qt's tab bar draws it
+            QStyleOption button;
+            button.initFrom(this);
+            button.state &= ~(QStyle::State_HasFocus | QStyle::State_MouseOver);
+            button.state |= QStyle::State_AutoRaise;
+            button.rect = closeRect(i).translated(0, -top);
+            if (m_pressedClose == i) {
+                if (m_hoverClose == i) {
+                    button.state |= QStyle::State_Sunken;
+                }
+            } else if (m_hoverClose == i) {
+                button.state |= QStyle::State_Raised;
+            }
+            if (i == m_current) {
+                button.state |= QStyle::State_Selected;
+            }
+            style()->drawPrimitive(QStyle::PE_IndicatorTabClose, &button, &painter, this);
+        }
+        painter.restore();
+    }
+
+    // Where a dragged tab goes
+    if (m_dragging && m_dropLine.isValid()) {
+        painter.fillRect(m_dropLine, palette().color(QPalette::Highlight));
+    }
+}
+
+void PanelTabBar::setHover(int index, int close) {
+    if (index == m_hover && close == m_hoverClose) {
         return;
     }
     m_hover = index;
+    m_hoverClose = close;
     update();
 }
 
 void PanelTabBar::cancelDrag() {
     m_pressed = -1;
+    m_pressedClose = -1;
     m_pressedKey = nullptr;
     m_dragging = false;
     m_dropGap = -1;
@@ -508,9 +753,8 @@ void PanelTabBar::updateDrop(const QPoint& pos) {
     }
 
     // The row at the height of the mouse, the nearest one above or below the tabs
-    const int height = tabHeight();
-    const int row = std::clamp((pos.y() - MARGIN_Y + SPACING / 2) / (height + SPACING), 0,
-                               rowCount() - 1);
+    const int step = std::max(1, tabHeight() + spacing());
+    const int row = std::clamp((pos.y() - marginY() + spacing() / 2) / step, 0, rowCount() - 1);
     int gap = -1;
     int last = -1;
     for (int i = 0; i < m_placed.size(); ++i) {
@@ -528,10 +772,10 @@ void PanelTabBar::updateDrop(const QPoint& pos) {
     QRect line;
     if (gap >= 0) {
         const QRect tab = m_placed.at(gap).rect;
-        line = QRect(tab.left() - SPACING / 2 - 1, tab.top(), MARK, tab.height());
+        line = QRect(tab.left() - spacing() / 2 - 1, tab.top(), MARK, tab.height());
     } else {
         const QRect tab = m_placed.at(last).rect;
-        line = QRect(tab.right() + SPACING / 2, tab.top(), MARK, tab.height());
+        line = QRect(tab.right() + spacing() / 2, tab.top(), MARK, tab.height());
         gap = last + 1;
     }
 
@@ -551,6 +795,12 @@ void PanelTabBar::mousePressEvent(QMouseEvent* event) {
     }
     cancelDrag();
     m_pressPos = event->position().toPoint();
+    // A close button closes its tab when the button goes up over it, as Qt's
+    m_pressedClose = closeAt(m_pressPos);
+    if (m_pressedClose >= 0) {
+        update();
+        return;
+    }
     m_pressed = tabAt(m_pressPos);
     m_pressedKey = m_pressed >= 0 ? m_tabs.at(m_pressed).key : nullptr;
     update();
@@ -559,8 +809,12 @@ void PanelTabBar::mousePressEvent(QMouseEvent* event) {
 void PanelTabBar::mouseMoveEvent(QMouseEvent* event) {
     event->accept();
     const QPoint pos = event->position().toPoint();
+    if (m_pressedClose >= 0) {
+        setHover(tabAt(pos), closeAt(pos) == m_pressedClose ? m_pressedClose : -1);
+        return;
+    }
     if (m_pressed < 0 || !(event->buttons() & Qt::LeftButton)) {
-        setHover(tabAt(pos));
+        setHover(tabAt(pos), closeAt(pos));
         return;
     }
     if (!m_dragging && count() > 1 &&
@@ -578,12 +832,20 @@ void PanelTabBar::mouseReleaseEvent(QMouseEvent* event) {
     if (event->button() != Qt::LeftButton) {
         return;
     }
+    const QPoint pos = event->position().toPoint();
     const int pressed = m_pressed;
+    const int pressedClose = m_pressedClose;
     const bool dragged = m_dragging;
     const int gap = m_dropGap;
     cancelDrag();
-    setHover(tabAt(event->position().toPoint()));
+    setHover(tabAt(pos), closeAt(pos));
     update();
+    if (pressedClose >= 0) {
+        if (closeAt(pos) == pressedClose) {
+            emit tabCloseRequested(pressedClose);
+        }
+        return;
+    }
     if (pressed < 0) {
         return;
     }
@@ -593,8 +855,11 @@ void PanelTabBar::mouseReleaseEvent(QMouseEvent* event) {
         }
         return;
     }
-    if (tabAt(event->position().toPoint()) == pressed && pressed != m_current) {
-        emit tabChosen(pressed);
+    if (tabAt(pos) == pressed) {
+        if (pressed != m_current) {
+            emit tabChosen(pressed);
+        }
+        emit tabClicked(pressed);
     }
 }
 
@@ -605,7 +870,7 @@ void PanelTabBar::mouseDoubleClickEvent(QMouseEvent* event) {
 
 void PanelTabBar::leaveEvent(QEvent* event) {
     QWidget::leaveEvent(event);
-    setHover(-1);
+    setHover(-1, -1);
 }
 
 void PanelTabBar::keyPressEvent(QKeyEvent* event) {

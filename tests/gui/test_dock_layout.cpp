@@ -23,6 +23,7 @@
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/panel_tab_bar.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
@@ -725,6 +726,19 @@ TEST_CASE("Panels: the tabs of the panels on the right show their icons above th
     emit tabs->tabChosen(properties);
     QApplication::processEvents();
     CHECK(panels.onTop(panels.docks->propertiesDock()));
+}
+
+TEST_CASE("Panels: the tabs in the middle of the window keep one row of Qt's tabs by default",
+          "[gui][panels][centraltabs]") {
+    Panels panels;
+    auto* central = qobject_cast<CentralTabs*>(panels.docks->centralTabs());
+    REQUIRE(central != nullptr);
+    CHECK(central->tabsClosable());
+    CHECK(central->isMovable());
+    CHECK(central->documentMode());
+    CHECK(central->rows() == PanelTabBar::Rows::Single);
+    CHECK(central->tabRows() == nullptr);
+    CHECK(central->count() >= 1);  // the Dashboard
 }
 
 TEST_CASE("Reset Layout: the toolbars dock at the top again, in their rows, shown as by default, "

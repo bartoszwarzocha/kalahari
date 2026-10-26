@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keys, Home and End bring a panel to the front, and a tab dragged to another place moves its
   panel in the group; a click on the tabs never floats the panel. A floating panel, or one
   left alone, has no tabs.
+- **The tabs in the middle of the window in more rows** - 2026-10-26. Settings > Appearance >
+  General > Tabs in the middle of the window chooses what the tabs of the Dashboard, the
+  chapters, the lists and the materials do when they do not fit the width of the window:
+  they stay in one row that scrolls with the arrows (as before, the default), or wrap to the
+  next row, in as many rows as the width needs. In more rows they look as in one row, each
+  with its close button, a click brings a tab to the front and a tab dragged to another place
+  moves there, with a line showing where it goes.
 - **Versions of the texts: Save Version and Version History** - 2026-10-22. File > Save
   Version (Alt+Shift+S; on macOS Option+Shift+Cmd+S) keeps the text in front as it is in its
   editor, with its formatting, its annotations and the changes not saved yet, as a version:

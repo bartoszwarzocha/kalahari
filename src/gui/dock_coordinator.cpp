@@ -17,6 +17,7 @@
 #include "kalahari/gui/panels/spelling_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 #include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
@@ -213,11 +214,13 @@ void DockCoordinator::createCentralWidget() {
     connect(m_layoutNoticeBar, &InfoBar::actionClicked, this, &DockCoordinator::showRightPanels);
     connect(m_layoutNoticeBar, &InfoBar::dismissed, m_layoutNoticeBar, &QWidget::hide);
 
-    // Create central tabbed workspace
-    m_centralTabs = new QTabWidget(m_centralWrapper);
+    // Create central tabbed workspace: one row of tabs, or more as the settings say
+    auto* centralTabs = new CentralTabs(m_centralWrapper);
+    m_centralTabs = centralTabs;
     m_centralTabs->setTabsClosable(true);
     m_centralTabs->setMovable(true);
     m_centralTabs->setDocumentMode(true);
+    centralTabs->applySettings();
     centralLayout->addWidget(m_centralTabs, 1);  // Stretch factor 1 to fill space
 
     // Create standalone info bar at BOTTOM (hidden by default)

@@ -26,6 +26,9 @@ std::map<std::string, json> buildDefaults() {
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
         // The bar that says the panels on the right were hidden for a small screen was shown
         {"window.smallScreenNoticeShown", false},
+        // The tabs in the middle of the window (Settings > Appearance > General): in one row
+        // with arrows when they do not fit ("single") or in more rows ("wrap")
+        {"window.tabRows", "single"},
 
         // The Paragraph and Styles panel: a panel of its own ("panel") or the lower part of
         // the Properties panel ("properties"), folded there to its band or not, with the

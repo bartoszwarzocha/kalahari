@@ -6,6 +6,7 @@
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari/core/theme_manager.h"
 
 #include <QCheckBox>
@@ -104,6 +105,17 @@ AppearanceGeneralPage::AppearanceGeneralPage(QWidget* parent)
 
     addNote(panels, tr("With icons only, the name of a panel is in its tooltip. In one row, "
                        "names that do not fit are shortened."));
+
+    // The tabs in the middle of the window (CentralTabs)
+    QFormLayout* windowTabs = addGroup(tr("Tabs in the middle of the window"));
+    auto* windowTabRows = new QComboBox();
+    windowTabRows->addItem(tr("Keep one row, with arrows"),
+                           QString::fromLatin1(CentralTabs::ROWS_SINGLE));
+    windowTabRows->addItem(tr("Wrap to the next row"), QString::fromLatin1(CentralTabs::ROWS_WRAP));
+    windowTabRows->setToolTip(tr("The tabs of the Dashboard, the chapters, the lists and the "
+                                 "materials that do not fit the width of the window: in one row "
+                                 "that scrolls with the arrows, or in more rows"));
+    addField(windowTabs, tr("When tabs do not fit:"), windowTabRows, CentralTabs::ROWS_KEY);
 
     pageLayout()->addStretch();
 }

@@ -3885,6 +3885,18 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>With icons only, the name of a panel is in its tooltip. In one row, names that do not fit are shortened.</source>
         <translation>Przy samych ikonach nazwa panelu jest w podpowiedzi. W jednym wierszu za długie nazwy się skracają.</translation>
     </message>
+    <message>
+        <source>Tabs in the middle of the window</source>
+        <translation>Karty w środku okna</translation>
+    </message>
+    <message>
+        <source>Keep one row, with arrows</source>
+        <translation>Zostaw w jednym wierszu, ze strzałkami</translation>
+    </message>
+    <message>
+        <source>The tabs of the Dashboard, the chapters, the lists and the materials that do not fit the width of the window: in one row that scrolls with the arrows, or in more rows</source>
+        <translation>Karty Pulpitu, rozdziałów, list i materiałów, które nie mieszczą się w szerokości okna: w jednym wierszu przewijanym strzałkami albo w kilku wierszach</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AssistantPanel</name>
@@ -7244,6 +7256,13 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Version &amp;History...</source>
         <extracomment>The command of a text in the Navigator, as File &gt; Version History... In Polish: &amp;Historia wersji...</extracomment>
         <translation>&amp;Historia wersji...</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CentralTabs</name>
+    <message>
+        <source>Tabs</source>
+        <translation>Karty</translation>
     </message>
 </context>
 <context>
