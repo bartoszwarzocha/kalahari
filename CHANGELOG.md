@@ -920,6 +920,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The words of headings and lists in a closed chapter** - 2026-10-26. The words of a chapter
+  not open in the editor (the book, its sections and parts in the Properties panel, the
+  preview of a file) count the text of its headings and list items too, as the editor counts
+  them; before, only the other paragraphs were counted.
+
 - **The words of the book and the dialogue dashes** - 2026-10-19. Count standalone dashes as
   words (Settings > Editor > General > Word Count) counts them in the words of the book, its
   sections, parts and chapters in the Properties panel too, and in the preview of a file of
