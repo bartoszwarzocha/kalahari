@@ -1040,8 +1040,37 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
         painter->scale(scale, scale);
     }
 
-    // Draw the layout, and the number or bullet of a list item
-    layout->draw(painter, QPointF(0, 0));
+    // Draw the layout, and the number or bullet of a list item. On dark paper the text and
+    // highlights of colors of their own are lighter and darker, so the text stays readable;
+    // focus dims colored text as the rest. The saved colors stay as they are.
+    QList<QTextLayout::FormatRange> shownColors;
+    const QColor paper = m_context.colors.background;
+    const bool darkPaper = isDarkPaper(paper);
+    if (darkPaper || isDimmed) {
+        for (const ColoredText& run : m_textSource->paragraphColors(index)) {
+            QTextLayout::FormatRange range;
+            range.start = run.start;
+            range.length = run.length;
+            QColor under = paper;
+            if (run.highlight.isValid()) {
+                under = darkPaper ? darkenedForDarkPaper(run.highlight, m_context.colors.text)
+                                  : run.highlight;
+                if (under != run.highlight) {
+                    range.format.setBackground(under);
+                }
+            }
+            if (run.color.isValid()) {
+                const QColor shown = isDimmed ? textColor : lightenedForDarkPaper(run.color, under);
+                if (shown != run.color) {
+                    range.format.setForeground(shown);
+                }
+            }
+            if (range.format.propertyCount() > 0) {
+                shownColors.append(range);
+            }
+        }
+    }
+    layout->draw(painter, QPointF(0, 0), shownColors);
     m_textSource->drawListMarker(painter, index);
 
     painter->restore();

@@ -8,6 +8,7 @@
 #include "editor_test_utils.h"
 
 #include <QCoreApplication>
+#include <QImage>
 #include <QKeyEvent>
 #include <memory>
 
@@ -299,4 +300,54 @@ TEST_CASE("Character formatting: Clear Formatting takes off the capitals, the sp
         CHECK(kmlOf(*typed) ==
               kml(QStringLiteral("<p><span caps=\"all\" spacing=\"2\">Caps</span> low</p>")));
     }
+}
+
+// =============================================================================
+// Colors on dark paper
+// =============================================================================
+
+TEST_CASE("Character formatting: on dark paper colored text is lighter, highlights darker",
+          "[editor][format]") {
+    const QColor paper(35, 35, 40);
+    const QColor text(224, 224, 224);
+    CHECK(isDarkPaper(paper));
+    CHECK_FALSE(isDarkPaper(QColor(255, 255, 255)));
+    CHECK(contrastRatio(QColor(Qt::black), QColor(Qt::white)) > 20.9);
+
+    // Dark red stays red, light enough to read; a light color stays as it is
+    const QColor red = lightenedForDarkPaper(QColor(QStringLiteral("#8b1a1a")), paper);
+    CHECK(contrastRatio(red, paper) >= MIN_TEXT_CONTRAST);
+    CHECK(red.hslHue() == QColor(QStringLiteral("#8b1a1a")).hslHue());
+    CHECK(lightenedForDarkPaper(QColor(QStringLiteral("#ffd966")), paper) == QColor(QStringLiteral("#ffd966")));
+
+    // Yellow under light text is dark enough for it
+    const QColor yellow = darkenedForDarkPaper(QColor(QStringLiteral("#ffff00")), text);
+    CHECK(contrastRatio(text, yellow) >= MIN_TEXT_CONTRAST);
+}
+
+TEST_CASE("Character formatting: the editor draws colored text readable on dark paper",
+          "[editor][format][view]") {
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, QSize(600, 300));
+    EditorAppearance appearance;
+    appearance.colorMode = EditorColorMode::Dark;
+    appearance.cursor.blinking = false;
+    editor->setAppearance(appearance);
+    editor->fromKml(QStringLiteral("<kml><p><span color=\"#550000\" size=\"30\">"
+                                   "MMMMMMMMMM</span></p></kml>"));
+
+    QImage image(editor->size(), QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    editor->render(&image);
+
+    // The letters are drawn lighter than the saved color: some pixel is light and red
+    bool lightRed = false;
+    for (int y = 0; y < image.height() && !lightRed; ++y) {
+        for (int x = 0; x < image.width() && !lightRed; ++x) {
+            const QColor pixel = image.pixelColor(x, y);
+            lightRed = pixel.red() > 150 && pixel.red() > pixel.green() + 60;
+        }
+    }
+    CHECK(lightRed);
+    CHECK(editor->toKml().contains(QStringLiteral("color=\"#550000\"")));
 }

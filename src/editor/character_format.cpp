@@ -6,6 +6,7 @@
 #include <QBrush>
 #include <QTextBoundaryFinder>
 #include <algorithm>
+#include <cmath>
 
 namespace kalahari::editor {
 
@@ -94,6 +95,67 @@ QColor highlightColorOf(const QTextCharFormat& format)
     return background.style() != Qt::NoBrush && background.color().alpha() > 0
                ? background.color()
                : QColor();
+}
+
+namespace {
+
+/// @brief Relative luminance of a color (WCAG): 0 black, 1 white
+qreal relativeLuminance(const QColor& color)
+{
+    const auto channel = [](qreal value) {
+        return value <= 0.03928 ? value / 12.92 : std::pow((value + 0.055) / 1.055, 2.4);
+    };
+    const QColor rgb = color.toRgb();
+    return 0.2126 * channel(rgb.redF()) + 0.7152 * channel(rgb.greenF()) +
+           0.0722 * channel(rgb.blueF());
+}
+
+/// @brief Step of the lightness when a color is made lighter or darker
+constexpr float LIGHTNESS_STEP = 0.02f;
+
+/// @brief Below this luminance a paper is dark: halfway between black and white to the eye
+constexpr qreal DARK_PAPER_LUMINANCE = 0.18;
+
+/// @brief @p color made lighter (@p step above 0) or darker until it has the contrast of
+///        text with @p other, or can go no further
+QColor withContrast(const QColor& color, const QColor& other, float step)
+{
+    float hue = 0.0f;
+    float saturation = 0.0f;
+    float lightness = 0.0f;
+    float alpha = 1.0f;
+    color.toHsl().getHslF(&hue, &saturation, &lightness, &alpha);
+    QColor shown = color;
+    while (contrastRatio(shown, other) < MIN_TEXT_CONTRAST &&
+           (step > 0 ? lightness < 1.0f : lightness > 0.0f)) {
+        lightness = std::clamp(lightness + step, 0.0f, 1.0f);
+        shown = QColor::fromHslF(hue, saturation, lightness, alpha).toRgb();
+    }
+    return shown;
+}
+
+}  // namespace
+
+qreal contrastRatio(const QColor& first, const QColor& second)
+{
+    const qreal a = relativeLuminance(first);
+    const qreal b = relativeLuminance(second);
+    return (std::max(a, b) + 0.05) / (std::min(a, b) + 0.05);
+}
+
+bool isDarkPaper(const QColor& paper)
+{
+    return relativeLuminance(paper) < DARK_PAPER_LUMINANCE;
+}
+
+QColor lightenedForDarkPaper(const QColor& color, const QColor& under)
+{
+    return withContrast(color, under, LIGHTNESS_STEP);
+}
+
+QColor darkenedForDarkPaper(const QColor& highlight, const QColor& text)
+{
+    return withContrast(highlight, text, -LIGHTNESS_STEP);
 }
 
 QString changedCase(const QString& text, qsizetype from, qsizetype to, CaseChange change)

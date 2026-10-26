@@ -45,6 +45,38 @@ QColor textColorOf(const QTextCharFormat& format);
 /// @brief The highlight of text with a format: invalid for none
 QColor highlightColorOf(const QTextCharFormat& format);
 
+// =============================================================================
+// Colors on dark paper: lighter text and darker highlights, so the text stays readable; the
+// saved colors stay as they are
+// =============================================================================
+
+/// @brief Text of a paragraph with colors of its own
+struct ColoredText {
+    int start = 0;
+    int length = 0;
+    QColor color;      ///< Invalid: automatic
+    QColor highlight;  ///< Invalid: none
+
+    bool operator==(const ColoredText&) const = default;
+};
+
+/// @brief The contrast text should have with what is under it (WCAG, level AA)
+inline constexpr qreal MIN_TEXT_CONTRAST = 4.5;
+
+/// @brief Contrast ratio of two colors (WCAG): from 1 (the same) to 21 (black and white)
+qreal contrastRatio(const QColor& first, const QColor& second);
+
+/// @brief Whether a paper is dark (its text is light)
+bool isDarkPaper(const QColor& paper);
+
+/// @brief A color of text on dark paper: lighter, in the same hue, until it has the contrast
+///        of text with what is under it (the paper or a highlight)
+QColor lightenedForDarkPaper(const QColor& color, const QColor& under);
+
+/// @brief A highlight on dark paper: darker, in the same hue, until the text of the paper has
+///        the contrast of text with it
+QColor darkenedForDarkPaper(const QColor& highlight, const QColor& text);
+
 /// @brief Format > Change Case
 enum class CaseChange {
     Sentence,    ///< Sentence case: the first letter of each sentence capital, the others small
