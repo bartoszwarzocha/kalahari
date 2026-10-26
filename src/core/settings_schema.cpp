@@ -264,6 +264,23 @@ std::map<std::string, json> buildDefaults() {
         {"editor.autoCorrect.dialogueDash", true},
         {"editor.autoCorrect.dialogueDashType", "emDash"},
         {"editor.autoCorrect.ellipsis", true},
+
+        // Editor: versions of the texts (Settings > Editor > Versions, ChapterVersions). With
+        // enabled off no new version is kept, neither the writer's nor the program's (except
+        // the current text before another version is restored); those kept stay. Save
+        // Version asks for a description; the program keeps a version by itself when a chapter
+        // is saved, at most once in onSaveMinutes, and before Replace All in a chapter (and
+        // always before another version is restored), keeping at most keepAutomatic of them
+        // for each file. The writer's own versions stay until the writer deletes them. The
+        // buttons of Save Version and Version History are on a toolbar of their own, with
+        // Backup Now ("ownToolbar"), or on the Quick Actions toolbar ("quickActions")
+        {"editor.versions.enabled", true},
+        {"editor.versions.askName", true},
+        {"editor.versions.onSave", true},
+        {"editor.versions.onSaveMinutes", 60},
+        {"editor.versions.beforeReplaceAll", true},
+        {"editor.versions.keepAutomatic", 20},
+        {"editor.versions.buttons", "ownToolbar"},
     };
 }
 

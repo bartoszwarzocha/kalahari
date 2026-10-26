@@ -44,6 +44,9 @@ void BookEditor::setupFindReplace()
             this, [this]() { setFocus(); });
     connect(m_searchEngine.get(), &SearchEngine::matchesChanged,
             this, [this]() { update(); });  // Repaint on match change
+    connect(m_searchEngine.get(), &SearchEngine::aboutToReplaceAll, this, [this](int count) {
+        emit aboutToReplaceAll(m_searchEngine->searchText(), m_searchEngine->replaceText(), count);
+    });
 
     // Undoing a replacement brings back the cursor and selection it was made with, redoing
     // it the cursor at the end of the replaced text: after undoing Replace All QTextDocument

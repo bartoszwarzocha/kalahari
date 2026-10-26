@@ -23,8 +23,11 @@ class QLineEdit;
 class QComboBox;
 class QTextEdit;
 class QFormLayout;
+class QVBoxLayout;
 class QGroupBox;
+class QPushButton;
 class QTimer;
+class QToolButton;
 
 namespace kalahari::editor {
 class BookEditor;
@@ -105,7 +108,8 @@ public slots:
 
     /// @brief Show editor statistics view
     ///
-    /// Switches to editor page showing text statistics.
+    /// Switches to editor page showing text statistics, and for a text of the book the
+    /// group of its versions under them.
     /// Called when user starts editing in BookEditor.
     void showEditorProperties();
 
@@ -167,6 +171,9 @@ private slots:
     /// @brief Handle cursor position changed in BookEditor
     void onEditorCursorChanged();
 
+    /// @brief The group of the versions again, when the page with it is shown
+    void refreshVersions();
+
 protected:
     /// @brief Event filter for handling focus events
     /// @param obj Object that received the event
@@ -191,6 +198,17 @@ signals:
     /// @brief Emitted when the book's language is changed in the panel
     /// @param language Its code (pl, en...)
     void bookLanguageChanged(const QString& language);
+
+    /// @brief Save Version in the group of the versions: keep the text of element
+    /// @p elementId as a version
+    void requestSaveVersion(const QString& elementId);
+
+    /// @brief Version History... in the group of the versions: the versions of the text of
+    /// element @p elementId
+    void requestVersionHistory(const QString& elementId);
+
+    /// @brief The gear of the group of the versions: Settings > Editor > Versions
+    void requestVersionSettings();
 
 private:
     /// @brief Setup UI components
@@ -229,6 +247,10 @@ private:
     /// @brief Update editor statistics from current BookEditor
     void updateEditorStatistics();
 
+    /// @brief Put the group of the versions on the page of @p layout (of the Chapter page or
+    ///        the Editor page): the one group follows the page shown
+    void placeVersionsGroup(QVBoxLayout* layout);
+
     /// @brief Populate project fields from current project
     void populateProjectFields();
 
@@ -260,6 +282,17 @@ private:
 
     /// @brief Select @p status in the chapter's status combo; "draft" when it is not there
     void selectChapterStatus(const QString& status);
+
+    /// @brief The group of the versions of the text of element @p elementId: how many, the
+    /// last one and its description; hidden for an element whose text has none. While
+    /// versions are turned off it says so, and how many can be read in the history.
+    void showVersions(const QString& elementId);
+
+    /// @brief Put the gear of the group of the versions at the end of the line of its title
+    void placeVersionSettingsButton();
+
+    /// @brief The icons of the buttons of the group of the versions, in the icon colors
+    void updateVersionIcons();
 
     /// @brief Show the type of the open book @p project: its icon and its name, greyed out
     /// when the program does not have it, as the Dashboard shows it
@@ -300,6 +333,15 @@ private:
     QComboBox* m_chapterStatusCombo;
     QGroupBox* m_chapterNotesGroup;
     QTextEdit* m_chapterNotesEdit;
+    QGroupBox* m_chapterVersionsGroup = nullptr;  ///< The versions of the text (showVersions())
+    QLabel* m_versionsCountLabel = nullptr;       ///< How many, and when the last one was kept
+    QLabel* m_versionsLastLabel = nullptr;        ///< The description of the last one
+    QPushButton* m_saveVersionButton = nullptr;
+    QPushButton* m_versionHistoryButton = nullptr;
+    QToolButton* m_versionSettingsButton = nullptr;  ///< The gear at the end of the title
+    QString m_versionsElementId;  ///< The text whose versions the group shows
+    QVBoxLayout* m_chapterPageLayout = nullptr;  ///< The Chapter page, for the versions group
+    QVBoxLayout* m_editorPageLayout = nullptr;   ///< The Editor page, for the versions group
 
     // Section Page widgets
     QLabel* m_sectionTitleLabel;
@@ -340,7 +382,8 @@ private:
     // OpenSpec #00043: Debounce timer for cursor change updates
     QTimer* m_cursorDebounceTimer{nullptr};     ///< Debounce rapid cursor changes
 
-    int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting
+    int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting,
+                                ///< versions turned on or off
 };
 
 } // namespace gui

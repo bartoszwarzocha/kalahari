@@ -362,7 +362,7 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         applyTypewriter();
     }
     updatePageInfo();
-    applyFirstShowShrink();  // the page's new size, until the first paint
+    applyPageWidthZoom();  // the page's new size
     update();
 }
 
@@ -496,7 +496,7 @@ void BookEditor::resizeEvent(QResizeEvent* event)
     if (m_renderPipeline) {
         m_renderPipeline->setConfigViewportSize(QSizeF(size()));
     }
-    applyFirstShowShrink();  // the view's new width, until the first paint
+    applyPageWidthZoom();  // the view's new width
 
     updateScrollBarRange();
     applyFirstShowCursorLine();  // the view's new size, until the first paint
@@ -843,6 +843,10 @@ bool BookEditor::fromKml(const QString& kml)
     // so none is left dangling.
     m_cursorPosition = {0, 0};
     clearSelection();
+    stopScrollAnimation();  // it would take the new text to a place in the old one
+    if (m_renderPipeline) {
+        m_renderPipeline->setTextSource(nullptr);  // the cursor is drawn from it at once
+    }
     if (m_viewportManager) {
         m_viewportManager->setDocument(nullptr);
     }
@@ -865,7 +869,8 @@ bool BookEditor::fromKml(const QString& kml)
     }
     logElapsed("KML read");
 
-    // The new text starts at the top
+    // The new text starts at the top and at the left edge, in the view drawn too: nothing of
+    // the place shown in the old text stays (a zoom of the new text keeps the place in view)
     if (m_viewportManager) {
         m_viewportManager->setViewportSize(size());
         m_viewportManager->setScrollPosition(0.0);
@@ -873,6 +878,8 @@ bool BookEditor::fromKml(const QString& kml)
         m_viewportManager->setTopScrollPadding(topPadding);
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
+    updatePipelineScroll();
+    setHorizontalScrollOffset(0.0);
 
     if (m_renderPipeline) {
         m_renderPipeline->setCursorBlinkState(true);
@@ -883,6 +890,8 @@ bool BookEditor::fromKml(const QString& kml)
     createDocument(content);
     startFromSaved(kml);  // what isModified() compares the content with
     updateScrollBarRange();
+    updatePipelineScroll();
+    syncPipelineCursor();  // the cursor drawn at the start of the new text
     logElapsed("Document created");
 
     update();
@@ -1033,7 +1042,7 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     updateViewport();
 
     // The new text has the zoom of the settings (syncPipelineState())
-    applyFirstShowShrink();
+    applyPageWidthZoom();
 
     // Its spelling and grammar are checked from the paragraphs in view
     requestSpellCheck();

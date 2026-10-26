@@ -65,7 +65,7 @@ void giveFreeAccessKeys(QMenu* menu);
 ///        of a window, named after their titles), with an access key in each item
 ///
 /// The items of the copy are its own and choose the items of @p menu; the things keep their
-/// names elsewhere.
+/// names elsewhere. Hidden items of @p menu are left out.
 /// @param parent The parent of the copy
 [[nodiscard]] QMenu* menuWithAccessKeys(const QMenu& menu, QWidget* parent);
 

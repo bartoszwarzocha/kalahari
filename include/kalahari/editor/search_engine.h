@@ -203,7 +203,7 @@ public:
     /// @brief Replace all matches with replacement text
     ///
     /// The edit goes straight into the document as one undo step (see
-    /// replacementStepBegun()).
+    /// replacementStepBegun()), after aboutToReplaceAll().
     /// @return Number of replacements made
     int replaceAll();
 
@@ -243,6 +243,12 @@ signals:
     /// @brief Emitted when search text changes
     /// @param text The new search text
     void searchTextChanged(const QString& text);
+
+    /// @brief Emitted by replaceAll() before it changes the document, which still has the
+    /// text as it was: @p count matches are replaced
+    ///
+    /// A listener may keep the text (the version before Replace All, ChapterVersions).
+    void aboutToReplaceAll(int count);
 
     /// @brief Emitted when the undo step of a replacement has begun, before its edits
     ///

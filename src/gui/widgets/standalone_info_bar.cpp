@@ -16,7 +16,9 @@ StandaloneInfoBar::StandaloneInfoBar(QWidget* parent)
     setFilePath(QString());
     setBookOpen(true);
     connect(this, &InfoBar::actionClicked, this, [this]() {
-        if (m_readOnlyBook) {
+        if (m_notice) {
+            emit noticeActionClicked();
+        } else if (m_readOnlyBook) {
             emit exportArchiveClicked();
         } else if (savesAs()) {
             emit saveAsClicked();
@@ -29,19 +31,21 @@ StandaloneInfoBar::StandaloneInfoBar(QWidget* parent)
 void StandaloneInfoBar::setFilePath(const QString& path) {
     m_filePath = path;
     m_readOnlyBook = false;
+    m_notice = false;
     updateAction();
 }
 
 void StandaloneInfoBar::setBookOpen(bool open, bool readOnly) {
     m_bookOpen = open;
     m_bookReadOnly = readOnly;
-    if (!m_readOnlyBook) {
+    if (!m_readOnlyBook && !m_notice) {
         updateAction();
     }
 }
 
 bool StandaloneInfoBar::savesAs() const {
-    return !m_readOnlyBook && m_filePath.isEmpty() && (!m_bookOpen || m_bookReadOnly);
+    return !m_readOnlyBook && !m_notice && m_filePath.isEmpty() &&
+           (!m_bookOpen || m_bookReadOnly);
 }
 
 void StandaloneInfoBar::updateAction() {
@@ -71,6 +75,7 @@ void StandaloneInfoBar::updateAction() {
 void StandaloneInfoBar::showReadOnlyBook(const QString& message) {
     m_filePath.clear();
     m_readOnlyBook = true;
+    m_notice = false;
     setMessage(message);
     //: The button of the message at the bottom of the window over a book open read-only, as
     //: File > Export > Project Archive... In Polish: Eksportuj archiwum projektu...
@@ -80,6 +85,17 @@ void StandaloneInfoBar::showReadOnlyBook(const QString& message) {
     //: jej typ
     setActionToolTip(tr("Save the book in a project archive, which a program that has its type "
                         "can open"));
+}
+
+void StandaloneInfoBar::showNotice(const QString& message, const QString& actionText,
+                                   const QString& actionToolTip) {
+    m_filePath.clear();
+    m_readOnlyBook = false;
+    m_notice = true;
+    setMessage(message);
+    setActionText(actionText);
+    setActionEnabled(true);
+    setActionToolTip(actionToolTip);
 }
 
 } // namespace gui
