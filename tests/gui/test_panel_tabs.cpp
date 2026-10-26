@@ -310,6 +310,24 @@ TEST_CASE("Panel tabs: tabs that do not fit wrap into more rows, or keep one row
         CHECK(shortened);
     }
 
+    SECTION("one row too narrow for the names: the icons alone") {
+        // Regression: every tab kept two letters of its name, so one row of icons and names
+        // made the panels on the right wider than a small screen lets them be
+        bar.setRows(PanelTabBar::Rows::Single);
+        const int tab = bar.tabRect(0).height();  // about an icon with room around it
+        const int least = bar.minimumSizeHint().width();
+        CAPTURE(least, tab);
+        CHECK(least <= 2 * 4 + 5 * tab + 4 * 2);
+        bar.resize(least, bar.heightForWidth(least));
+        CHECK(bar.rowCount() == 1);
+        for (int i = 0; i < bar.count(); ++i) {
+            INFO(bar.tab(i).name.toStdString());
+            CHECK(bar.shownName(i).isEmpty());
+            CHECK(bar.toolTipOf(i) == bar.tab(i).name);
+            CHECK(bar.tabRect(i).right() < least);
+        }
+    }
+
     SECTION("icons alone wrap too") {
         bar.setLook(PanelTabBar::Look::Icons);
         const int iconsInRow = 3;

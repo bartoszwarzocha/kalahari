@@ -17,8 +17,8 @@ namespace gui {
 ///
 /// Qt gives such a group one row of names, which it shortens to a few letters when the
 /// panels are many. These tabs show the panels' icons, their names or both (Look), in one row
-/// whose names are shortened where they do not fit, or in as many rows as the width needs
-/// (Rows). The rows stay in place: the tab of the panel in front is only marked, with a line
+/// whose names are shortened where they do not fit (next to the icons, they give way to them
+/// where even two letters do not fit), or in as many rows as the width needs (Rows). The rows stay in place: the tab of the panel in front is only marked, with a line
 /// on its side toward the panel (Side).
 ///
 /// A click chooses a tab (tabChosen()). With the focus on the tabs (the Tab key), the arrow
@@ -82,8 +82,8 @@ public:
     /// @brief Where tab @p index is at the current width
     [[nodiscard]] QRect tabRect(int index) const;
 
-    /// @brief The name tab @p index shows: shortened with an ellipsis where it does not fit,
-    ///        empty with icons alone
+    /// @brief The name tab @p index shows: shortened with an ellipsis where it does not fit;
+    ///        empty with icons alone, and next to an icon without room for two letters
     [[nodiscard]] QString shownName(int index) const;
 
     /// @brief The tooltip of tab @p index: empty when the tab shows all of it
@@ -104,6 +104,7 @@ public:
     [[nodiscard]] QSize sizeHint() const override;
 
     /// @brief One row: every tab at its narrowest; more rows: the widest tab at its narrowest
+    ///        (narrowestWidth())
     [[nodiscard]] QSize minimumSizeHint() const override;
 
     /// @brief The height of the rows the tabs take at @p width
@@ -147,7 +148,8 @@ private:
     /// @brief Width of tab @p index with all its name and room around it
     [[nodiscard]] int naturalWidth(int index) const;
 
-    /// @brief Width of tab @p index at its narrowest: two letters of its name and an ellipsis
+    /// @brief Width of tab @p index at its narrowest: its icon alone, or without icons two
+    ///        letters of its name and an ellipsis
     [[nodiscard]] int narrowestWidth(int index) const;
 
     /// @brief Height of one tab

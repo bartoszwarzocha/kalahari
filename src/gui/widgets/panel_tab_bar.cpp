@@ -54,6 +54,11 @@ constexpr int MARK = 2;
 /// @brief The corners of a tab
 constexpr qreal RADIUS = 3.0;
 
+/// @brief The least of a name a tab shows: two letters and the ellipsis, as the panels' titles
+QString leastOf(const QString& name) {
+    return name.size() <= 3 ? name : name.left(2) + QChar(0x2026);
+}
+
 /// @brief Widen the tabs from @p first to @p last by @p extra pixels together
 void spread(QList<int>& widths, int first, int last, int extra) {
     const int tabs = last - first + 1;
@@ -218,17 +223,9 @@ int PanelTabBar::naturalWidth(int index) const {
 int PanelTabBar::narrowestWidth(int index) const {
     int width = 2 * BORDER + 2 * NARROW_PADDING;
     if (showsIcons()) {
-        width += m_iconSize;
-    }
-    if (showsNames()) {
-        const QString& name = m_tabs.at(index).name;
-        // Two letters and the ellipsis, as the panels' titles
-        const QString least =
-            name.size() <= 3 ? name : name.left(2) + QChar(0x2026);
-        width += fontMetrics().horizontalAdvance(least);
-        if (showsIcons()) {
-            width += ICON_GAP;
-        }
+        width += m_iconSize;  // a name gives way to the icon
+    } else {
+        width += fontMetrics().horizontalAdvance(leastOf(m_tabs.at(index).name));
     }
     return width;
 }
@@ -301,12 +298,17 @@ QList<PanelTabBar::Placed> PanelTabBar::arrange(int width) const {
             tab.rect = QRect(x, y, widths[i], height);
             tab.row = row;
             if (showsNames()) {
+                const QString& name = m_tabs.at(i).name;
                 int nameRoom = widths[i] - 2 * BORDER - 2 * NARROW_PADDING;
                 if (showsIcons()) {
                     nameRoom -= m_iconSize + ICON_GAP;
                 }
-                tab.shown = metrics.elidedText(m_tabs.at(i).name, Qt::ElideRight,
-                                               std::max(0, nameRoom));
+                // Next to an icon, a name without room for its least shows not at all
+                if (showsIcons() && nameRoom < metrics.horizontalAdvance(leastOf(name))) {
+                    tab.shown.clear();
+                } else {
+                    tab.shown = metrics.elidedText(name, Qt::ElideRight, std::max(0, nameRoom));
+                }
             }
             x += widths[i] + SPACING;
         }
@@ -444,10 +446,10 @@ void PanelTabBar::paintEvent(QPaintEvent* /*event*/) {
 
         // The icon and the name, together in the middle of the tab
         const QString& shown = m_placed.at(i).shown;
-        const int nameWidth = showsNames() ? metrics.horizontalAdvance(shown) : 0;
+        const bool named = !shown.isEmpty();
         int contentWidth = showsIcons() ? m_iconSize : 0;
-        if (showsNames()) {
-            contentWidth += nameWidth + (showsIcons() ? ICON_GAP : 0);
+        if (named) {
+            contentWidth += metrics.horizontalAdvance(shown) + (showsIcons() ? ICON_GAP : 0);
         }
         int x = rect.left() + std::max(BORDER + NARROW_PADDING, (rect.width() - contentWidth) / 2);
         if (showsIcons()) {
@@ -457,7 +459,7 @@ void PanelTabBar::paintEvent(QPaintEvent* /*event*/) {
                                     isEnabled() ? QIcon::Normal : QIcon::Disabled);
             x += m_iconSize + ICON_GAP;
         }
-        if (showsNames()) {
+        if (named) {
             painter.setPen(colors.color(isEnabled() ? QPalette::Active : QPalette::Disabled,
                                         QPalette::ButtonText));
             const QRect nameRect(x, rect.top(), rect.right() - BORDER - NARROW_PADDING - x + 1,
