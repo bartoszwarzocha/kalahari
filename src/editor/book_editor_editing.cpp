@@ -1106,10 +1106,29 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
     const QString kml =
         KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd());
 
+    // The list items with the numbers the editor shows: a part of a list goes on from the
+    // number of its first item
+    ListMarks marks;
+    const std::vector<QString> shownMarks = listMarkers(*m_textBuffer);
+    const std::vector<int> shownNumbers = listNumbers(*m_textBuffer);
+    const QTextBlock lastBlock = m_textBuffer->findBlock(range.selectionEnd());
+    for (QTextBlock block = m_textBuffer->findBlock(range.selectionStart()); block.isValid();
+         block = block.next()) {
+        if (blockObject(block) == TextObject::None && isListItem(block.blockFormat())) {
+            const auto index = static_cast<size_t>(block.blockNumber());
+            marks.marks.push_back(index < shownMarks.size() ? shownMarks[index] : QString());
+            marks.numbers.push_back(index < shownNumbers.size() ? shownNumbers[index] : -1);
+        }
+        if (block == lastBlock) {
+            break;
+        }
+    }
+
     // Plain text: the paragraphs and the line breaks in them end a line
     auto mimeData = std::make_unique<QMimeData>();
-    mimeData->setText(ClipboardHandler::kmlToText(kml));
-    mimeData->setHtml(ClipboardHandler::htmlDocument(ClipboardHandler::kmlToHtml(kml)));
+    mimeData->setText(ClipboardHandler::kmlToText(kml, QString(), &marks));
+    mimeData->setHtml(
+        ClipboardHandler::htmlDocument(ClipboardHandler::kmlToHtml(kml, QString(), &marks)));
     mimeData->setData(QString::fromLatin1(MIME_KML), kml.toUtf8());
     return mimeData;
 }
