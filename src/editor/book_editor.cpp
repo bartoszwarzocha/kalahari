@@ -80,6 +80,11 @@ LayoutTypography layoutTypography(const EditorTypography& typography) {
     result.lineSpacing = typography.lineHeight;
     result.paragraphSpacing = typography.paragraphSpacing;
     result.firstLineIndent = typography.firstLineIndent ? typography.indentSize : 0.0;
+    // A style without an indent has its tab stops as far apart as the indent of the
+    // settings, also when the first lines are not indented
+    result.tabStops = typography.tabStops;
+    result.tabIndent = typography.indentSize;
+    result.tabSpaces = typography.tabSpaces;
     return result;
 }
 
@@ -339,6 +344,7 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         m_renderPipeline->setConfigColors(renderColorsFor(m_appearance, m_appearance.colorMode));
         m_renderPipeline->setConfigFocus(m_appearance.focusMode.enabled);
         m_renderPipeline->setConfigFormattingMarks(m_appearance.showFormattingMarks);
+        m_renderPipeline->setConfigMarginNumbers(m_appearance.marginNumbers);
         m_renderPipeline->setConfigAnnotationMarkScale(m_appearance.annotationMarkScale);
         m_renderPipeline->setConfigTextFrameBorder(m_appearance.textFrameBorder.show,
                                                    m_appearance.textFrameBorder.color,
@@ -411,6 +417,16 @@ bool BookEditor::event(QEvent* event)
         const auto* key = static_cast<QKeyEvent*>(event);
         if (textKeyFor(key->key(), key->modifiers(), isMacOS()).action != TextKeyAction::None) {
             event->accept();
+            return true;
+        }
+    }
+    // Tab types a tab character, as in word processors: QWidget::event() would go to the next
+    // field. Shift+Tab still goes to the field before, and so does Tab in a read-only text, as
+    // in any field. A Tab a field of the editor's own bars left over is not the text's
+    if (event->type() == QEvent::KeyPress && hasFocus() && !m_readOnly) {
+        auto* key = static_cast<QKeyEvent*>(event);
+        if (textKeyFor(key->key(), key->modifiers(), isMacOS()).action == TextKeyAction::Tab) {
+            keyPressEvent(key);
             return true;
         }
     }
@@ -981,6 +997,15 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     m_textBuffer->setDocumentLayout(layout);
     layout->setParagraphStyles(m_paragraphStyles);  // the book's styles (setParagraphStyles())
     layout->setSceneBreakLook(m_appearance.sceneBreakLook);  // the view's setting
+
+    // The numbers on the margin go on from the lines above the view, estimated until the
+    // background pass lays them out: the view shows the exact numbers then. Laying out the
+    // blocks above leaves the view's text where it is, so nothing else repaints it.
+    connect(layout, &KalahariTextDocumentLayout::blocksLaidOut, this, [this]() {
+        if (m_renderPipeline && m_renderPipeline->marginNumbersOutdated()) {
+            update();
+        }
+    });
 
     // The render pipeline applies the font and the wrap width while the document is
     // still empty, so the content below is laid out exactly once.

@@ -43,6 +43,7 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Assistant Actions") return QObject::tr("Assistant A&ctions");
     if (technicalName == "View Mode") return QObject::tr("View &Mode");
     if (technicalName == "Zoom") return QObject::tr("&Zoom");
+    if (technicalName == "Margin Numbering") return QObject::tr("Margin &Numbering");
     if (technicalName == "Panels") return QObject::tr("&Panels");
     if (technicalName == "Perspectives") return QObject::tr("Pe&rspectives");
     if (technicalName == "Toolbars") return QObject::tr("&Toolbars");
@@ -75,6 +76,7 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Assistant Actions", QStringLiteral("menu.assistantActions")},
         {"View Mode", QStringLiteral("menu.viewMode")},
         {"Zoom", QStringLiteral("menu.zoom")},
+        {"Margin Numbering", QStringLiteral("menu.marginNumbers")},
         {"Panels", QStringLiteral("menu.panels")},
         {"Perspectives", QStringLiteral("menu.perspectives")},
         {"Toolbars", QStringLiteral("menu.toolbars")},
@@ -190,9 +192,21 @@ void MenuBuilder::buildMenuHierarchy(QMenuBar* menuBar,
             // Create action and add to menu
             createMenuAction(currentMenu, cmd, registry);
 
-            // Add separator if requested AND not last item
+            // Add separator if requested AND not last item: between the command and the next
+            // one, in the menu that has both (after the last command of a submenu, the
+            // submenu ends its group)
             if (cmd.addSeparatorAfter && i < sortedCommands.size() - 1) {
-                currentMenu->addSeparator();
+                std::vector<std::string> next;
+                std::istringstream nextStream(sortedCommands[i + 1].menuPath);
+                while (std::getline(nextStream, level, '/')) {
+                    next.push_back(level);
+                }
+                QMenu* separatorMenu = topMenu;
+                for (size_t j = 1; j + 1 < levels.size() && j + 1 < next.size() && levels[j] == next[j];
+                     ++j) {
+                    separatorMenu = getOrCreateSubmenu(separatorMenu, levels[j]);
+                }
+                separatorMenu->addSeparator();
             }
         }
     }

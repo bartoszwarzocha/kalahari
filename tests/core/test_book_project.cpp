@@ -85,7 +85,8 @@ const char* const NOVEL = R"({
         { "id": "e2", "kind": "kalahari.base:part", "title": "Part One",
           "elements": [
             { "id": "e3", "kind": "kalahari.base:chapter", "title": "Chapter 1",
-              "file": "book/chapter_001.kchapter", "status": "revision" }
+              "file": "book/chapter_001.kchapter", "status": "revision",
+              "firstPage": "left" }
           ] }
       ],
       "back": [
@@ -124,6 +125,7 @@ BookProject fullProject() {
     ProjectElement chapter = element("e3", "kalahari.base", "chapter", "Chapter 1");
     chapter.file = QStringLiteral("book/chapter_001.kchapter");
     chapter.status = QStringLiteral("revision");
+    chapter.firstPageLeft = true;
     chapter.extra.insert(QStringLiteral("pov"), QStringLiteral("Anna"));
     ProjectElement part = element("e4", "kalahari.base", "part", "Part One");
     part.elements = {motto, chapter};
@@ -250,6 +252,7 @@ TEST_CASE("Book project: a .klh file with every field", "[core][bookproject]") {
     CHECK(titlePage.title == QStringLiteral("Title page"));
     CHECK(titlePage.file == QStringLiteral("book/title_page_001.kchapter"));
     CHECK(titlePage.status == QStringLiteral("draft"));
+    CHECK_FALSE(titlePage.firstPageLeft);  // A right page: no field
     CHECK(titlePage.elements.isEmpty());
     CHECK(titlePage.extra.isEmpty());
 
@@ -261,6 +264,7 @@ TEST_CASE("Book project: a .klh file with every field", "[core][bookproject]") {
     REQUIRE(part.elements.size() == 1);
     CHECK(part.elements.at(0).id == QStringLiteral("e3"));
     CHECK(part.elements.at(0).status == QStringLiteral("revision"));
+    CHECK(part.elements.at(0).firstPageLeft);
 
     REQUIRE(book.backElements.size() == 1);
     CHECK(book.backElements.at(0).kind.toString() ==
@@ -298,6 +302,9 @@ TEST_CASE("Book project: a project is saved and read back unchanged", "[core][bo
     // A field that changes makes another project
     BookProject changed = project;
     changed.books[0].mainElements[0].elements[1].status = QStringLiteral("final");
+    CHECK_FALSE(changed == project);
+    changed = project;
+    changed.books[0].mainElements[0].elements[1].firstPageLeft = false;
     CHECK_FALSE(changed == project);
     changed = project;
     changed.books[0].sectionNames[1] = QStringLiteral("Historia");
@@ -1248,6 +1255,9 @@ TEST_CASE("Book project: a .klh file with problems", "[core][bookproject]") {
         {"a status that is not a text",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "status": 1 })"),
          "books[0].main[0].status: must be a text"},
+        {"a first page neither left nor right",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "firstPage": "top" })"),
+         "books[0].main[0].firstPage: must be \"left\" or \"right\""},
         {"elements inside that are not a list",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:part", "elements": {} })"),
          "books[0].main[0].elements: must be a list"},

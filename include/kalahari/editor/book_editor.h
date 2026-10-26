@@ -752,7 +752,9 @@ public:
 
     /// @brief The text column in the editor: from the text's left edge to its right edge,
     /// as tall as the editor
-    QRectF textColumnRect() const;
+    /// @param y A widget y: the column of the page there (mirror margins shift the text of
+    ///        every other page)
+    QRectF textColumnRect(double y) const;
 
     /// @brief The annotation whose mark is at a point of the editor
     /// @return Its id; empty when no mark is there

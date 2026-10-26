@@ -131,12 +131,19 @@ TEST_CASE("Shortcut rules: the keys of the system", "[gui][shortcuts][rules]") {
     CHECK(switching.brief == QStringLiteral("a key of the system"));
     CHECK(windowsRules.check(keys(META, Qt::Key_E), "file.close").brief ==
           QStringLiteral("the Windows key"));
-    // Tab works as in every program: a fixed key
-    const KeyCheck field = windowsRules.check(keys(NONE, Qt::Key_Tab), "file.close");
+    // Shift+Tab works as in every program: a fixed key; Tab types a tab character in the text
+    const KeyCheck field = windowsRules.check(keys(SHIFT, Qt::Key_Tab), "file.close");
     CHECK(field.reason ==
-          QStringLiteral("%1 goes to the next field. It is a fixed key: choose another shortcut.")
-              .arg(ShortcutRules::keysText(keys(NONE, Qt::Key_Tab))));
+          QStringLiteral(
+              "%1 goes back to the previous field. It is a fixed key: choose another shortcut.")
+              .arg(ShortcutRules::keysText(keys(SHIFT, Qt::Key_Tab))));
     CHECK(field.brief == QStringLiteral("a fixed key"));
+    const KeyCheck tab = windowsRules.check(keys(NONE, Qt::Key_Tab), "file.close");
+    CHECK(tab.reason ==
+          QStringLiteral(
+              "In the text %1 types a tab character. It is a fixed key: choose another shortcut.")
+              .arg(ShortcutRules::keysText(keys(NONE, Qt::Key_Tab))));
+    CHECK(tab.brief == QStringLiteral("a fixed key"));
 
     const ShortcutPlatform linux = ShortcutPlatform::Linux;
     CHECK(resultOf(linux, keys(ALT, Qt::Key_Tab)) == Result::Refused);

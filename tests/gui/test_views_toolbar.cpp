@@ -1,6 +1,6 @@
 /// @file test_views_toolbar.cpp
 /// @brief The Views toolbar: the view modes, the switches, the paper, the text frame border,
-///        the formatting marks and the zoom of the View menu
+///        the formatting marks, the margin numbering and the zoom of the View menu
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/icon_registry.h"
@@ -10,6 +10,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
+#include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/toolbar_manager.h"
 
 #include <QAction>
@@ -24,6 +25,7 @@
 #include <QListWidget>
 #include <QMainWindow>
 #include <QMenu>
+#include <QMenuBar>
 #include <QPainter>
 #include <QPushButton>
 #include <QSvgRenderer>
@@ -32,6 +34,7 @@
 #include <QTreeWidget>
 
 #include <cstdio>
+#include <vector>
 
 using namespace kalahari::gui;
 
@@ -110,7 +113,7 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, fo
 
     // The very actions of the View menu, so a button is checked with its menu item
     const QList<QAction*> actions = toolbar->actions();
-    REQUIRE(actions.size() == 15);
+    REQUIRE(actions.size() == 17);
     CHECK(actions[0] == registry.getAction(std::string("view.mode.continuous")));
     CHECK(actions[1] == registry.getAction(std::string("view.mode.page")));
     CHECK(actions[2]->isSeparator());
@@ -120,29 +123,41 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, fo
     CHECK(actions[6] == registry.getAction(std::string("view.darkPaper")));
     CHECK(actions[7] == registry.getAction(std::string("view.textFrameBorder")));
     CHECK(actions[8] == registry.getAction(std::string("view.showFormattingMarks")));
-    CHECK(actions[9]->isSeparator());
-    CHECK(actions[10] == registry.getAction(std::string("view.zoomOut")));
-    CHECK(actions[11] == registry.getAction(std::string("view.zoomIn")));
-    CHECK(actions[12] == registry.getAction(std::string("view.resetZoom")));
-    CHECK(actions[13] == registry.getAction(std::string("view.zoomPageWidth")));
-    CHECK(actions[14] == registry.getAction(std::string("view.zoomWholePage")));
+    CHECK(actions[9] == registry.getAction(std::string("view.marginNumbers.lines")));
+    CHECK(actions[10] == registry.getAction(std::string("view.marginNumbers.paragraphs")));
+    CHECK(actions[11]->isSeparator());
+    CHECK(actions[12] == registry.getAction(std::string("view.zoomOut")));
+    CHECK(actions[13] == registry.getAction(std::string("view.zoomIn")));
+    CHECK(actions[14] == registry.getAction(std::string("view.resetZoom")));
+    CHECK(actions[15] == registry.getAction(std::string("view.zoomPageWidth")));
+    CHECK(actions[16] == registry.getAction(std::string("view.zoomWholePage")));
 
-    // In the View menu the text frame border follows the paper, before the separator
+    // In the View menu the text frame border follows the paper and the margin numbering
+    // follows it, in a submenu, before the separator
     const Command* paper = registry.getCommand("view.darkPaper");
     const Command* frame = registry.getCommand("view.textFrameBorder");
+    const Command* noNumbers = registry.getCommand("view.marginNumbers.none");
+    const Command* numbersSettings = registry.getCommand("view.marginNumbers.settings");
     REQUIRE(paper != nullptr);
     REQUIRE(frame != nullptr);
+    REQUIRE(noNumbers != nullptr);
+    REQUIRE(numbersSettings != nullptr);
     CHECK(frame->menuPath == "VIEW/Text Frame Border");
     CHECK(frame->menuOrder == paper->menuOrder + 1);
+    CHECK(noNumbers->menuPath == "VIEW/Margin Numbering/No Numbering");
+    CHECK(noNumbers->menuOrder == frame->menuOrder + 1);
     CHECK_FALSE(paper->addSeparatorAfter);
-    CHECK(frame->addSeparatorAfter);
+    CHECK_FALSE(frame->addSeparatorAfter);
+    CHECK(numbersSettings->addSeparatorAfter);
 
     // Every button has an icon of the icon theme
     auto& icons = kalahari::core::IconRegistry::getInstance();
     for (const char* id : {"view.mode.continuous", "view.mode.page", "view.mode.distraction-free",
                            "view.focus", "view.typewriter", "view.darkPaper",
-                           "view.textFrameBorder", "view.showFormattingMarks", "view.zoomOut",
-                           "view.zoomIn",
+                           "view.textFrameBorder", "view.showFormattingMarks",
+                           "view.marginNumbers.none", "view.marginNumbers.lines",
+                           "view.marginNumbers.paragraphs", "view.marginNumbers.settings",
+                           "view.zoomOut", "view.zoomIn",
                            "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}) {
         INFO(id);
         CHECK(icons.hasIcon(QString::fromLatin1(id)));
@@ -270,9 +285,11 @@ TEST_CASE("Views toolbar: one customized before gets the formatting marks after 
     QMainWindow window;
     {
         ToolbarManager manager(&window);
+        // (and the numbering buttons after them, which came later)
         CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
               "view.mode.continuous | view.mode.page | view.textFrameBorder | "
-              "view.showFormattingMarks | view.zoomIn | view.darkPaper");
+              "view.showFormattingMarks | view.marginNumbers.lines | "
+              "view.marginNumbers.paragraphs | view.zoomIn | view.darkPaper");
 
         // Taken away by the writer after that, it stays away
         QStringList without = manager.getToolbarCommands(views);
@@ -282,6 +299,43 @@ TEST_CASE("Views toolbar: one customized before gets the formatting marks after 
     ToolbarManager next(&window);
     CHECK_FALSE(
         next.getToolbarCommands(views).contains(QStringLiteral("view.showFormattingMarks")));
+
+    settings.set<std::string>("toolbars.configurations", savedToolbars);
+    settings.set<int>("toolbars.addedCommands", savedVersion);
+}
+
+TEST_CASE("Views toolbar: one customized before gets the numbering buttons after the formatting "
+          "marks, once",
+          "[gui][toolbar]") {
+    registerAllCommands(CommandCallbacks{});
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
+    const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
+    const QString views = QStringLiteral("views");
+
+    // Customized before the buttons came: the formatting marks moved to the front
+    settings.set<std::string>(
+        "toolbars.configurations",
+        R"({"builtIn":{"views":["view.showFormattingMarks","view.mode.continuous",)"
+        R"("view.mode.page","view.zoomIn"]}})");
+    settings.set<int>("toolbars.addedCommands", 4);
+    QMainWindow window;
+    {
+        ToolbarManager manager(&window);
+        CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
+              "view.showFormattingMarks | view.marginNumbers.lines | "
+              "view.marginNumbers.paragraphs | view.mode.continuous | view.mode.page | "
+              "view.zoomIn");
+
+        // Taken away by the writer after that, they stay away
+        QStringList without = manager.getToolbarCommands(views);
+        without.removeAll(QStringLiteral("view.marginNumbers.lines"));
+        without.removeAll(QStringLiteral("view.marginNumbers.paragraphs"));
+        manager.setToolbarCommands(views, without);
+    }
+    ToolbarManager next(&window);
+    CHECK(next.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
+          "view.showFormattingMarks | view.mode.continuous | view.mode.page | view.zoomIn");
 
     settings.set<std::string>("toolbars.configurations", savedToolbars);
     settings.set<int>("toolbars.addedCommands", savedVersion);
@@ -552,4 +606,60 @@ TEST_CASE("Toolbar manager: Apply and OK save a changed toolbar, Reset to Defaul
     }
 
     manager.deleteUserToolbar(id);
+}
+
+TEST_CASE("View menu: Margin Numbering, a submenu after the text frame border, with the "
+          "separator after it",
+          "[gui][menu]") {
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    QMainWindow window;
+    MenuBuilder builder;
+    builder.buildMenuBar(registry, &window);
+    QMenu* view = builder.getMenu("VIEW");
+    REQUIRE(view != nullptr);
+
+    const QList<QAction*> items = view->actions();
+    const qsizetype frame = items.indexOf(registry.getAction(std::string("view.textFrameBorder")));
+    REQUIRE(frame >= 0);
+    REQUIRE(frame + 2 < items.size());
+    QMenu* numbering = items.at(frame + 1)->menu();
+    REQUIRE(numbering != nullptr);
+    CHECK(numbering->title() == QStringLiteral("Margin &Numbering"));
+    CHECK_FALSE(numbering->icon().isNull());
+    CHECK(items.at(frame + 2)->isSeparator());
+
+    // The three choices, a separator and the settings
+    const QList<QAction*> inside = numbering->actions();
+    REQUIRE(inside.size() == 5);
+    CHECK(inside[0] == registry.getAction(std::string("view.marginNumbers.none")));
+    CHECK(inside[1] == registry.getAction(std::string("view.marginNumbers.lines")));
+    CHECK(inside[2] == registry.getAction(std::string("view.marginNumbers.paragraphs")));
+    CHECK(inside[3]->isSeparator());
+    CHECK(inside[4] == registry.getAction(std::string("view.marginNumbers.settings")));
+
+    // A separator after the last command of a submenu follows the submenu: no menu starts or
+    // ends with one, or has two in a row
+    std::vector<QMenu*> menus;
+    for (QAction* top : window.menuBar()->actions()) {
+        if (top->menu() != nullptr) {
+            menus.push_back(top->menu());
+        }
+    }
+    for (std::size_t i = 0; i < menus.size(); ++i) {
+        const QList<QAction*> actions = menus[i]->actions();
+        INFO(menus[i]->title().toStdString());
+        REQUIRE_FALSE(actions.isEmpty());
+        CHECK_FALSE(actions.first()->isSeparator());
+        CHECK_FALSE(actions.last()->isSeparator());
+        for (qsizetype j = 0; j < actions.size(); ++j) {
+            if (j > 0) {
+                CHECK_FALSE((actions[j]->isSeparator() && actions[j - 1]->isSeparator()));
+            }
+            if (actions[j]->menu() != nullptr) {
+                menus.push_back(actions[j]->menu());
+            }
+        }
+    }
 }

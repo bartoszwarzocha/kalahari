@@ -265,6 +265,11 @@ void EditorPanel::applySettings() {
     appearance.typography.paragraphSpacing = settings.get<double>("editor.paragraphSpacing");
     appearance.typography.firstLineIndent = settings.get<bool>("editor.firstLineIndent");
     appearance.typography.indentSize = settings.get<double>("editor.indentSize");
+    appearance.typography.tabStops =
+        settings.get<std::string>("editor.tabStops") == editor::TAB_STOPS_SPACES
+            ? editor::TabStops::Spaces
+            : editor::TabStops::Indent;
+    appearance.typography.tabSpaces = settings.get<int>("editor.tabSize");
 
     // The paper (light or dark, independent from the application's theme) and its colors
     appearance.colorMode = settings.get<bool>("editor.darkMode")
@@ -292,6 +297,11 @@ void EditorPanel::applySettings() {
     appearance.pageMargins.bottom = settings.get<double>("editor.margins.pageBottom");
     appearance.pageMargins.left = settings.get<double>("editor.margins.pageLeft");
     appearance.pageMargins.right = settings.get<double>("editor.margins.pageRight");
+    // Mirror margins: the inner one at the binding (the chapter tells whether its first page
+    // is a left one: setFirstPageLeft())
+    appearance.pageMargins.mirrored = settings.get<bool>("editor.margins.mirrorEnabled");
+    appearance.pageMargins.inner = settings.get<double>("editor.margins.pageInner");
+    appearance.pageMargins.outer = settings.get<double>("editor.margins.pageOuter");
 
     // Page format (Page Layout view)
     appearance.pageLayout.pageSize = editor::PageLayout::pageSizeFromId(
@@ -311,6 +321,17 @@ void EditorPanel::applySettings() {
 
     // The formatting marks (View > Show Formatting Marks) and how the scene breaks look
     appearance.showFormattingMarks = settings.get<bool>("editor.showFormattingMarks");
+
+    // The numbers on the left margin (View > Margin Numbering)
+    editor::MarginNumbers& numbers = appearance.marginNumbers;
+    numbers.numbering = editor::marginNumberingFromName(
+        QString::fromStdString(settings.get<std::string>("editor.marginNumbers.mode")));
+    numbers.interval = settings.get<int>("editor.marginNumbers.interval");
+    numbers.restartEachPage = settings.get<bool>("editor.marginNumbers.restartEachPage");
+    numbers.fontFamily =
+        QString::fromStdString(settings.get<std::string>("editor.marginNumbers.font"));
+    numbers.pointSize = settings.get<double>("editor.marginNumbers.size");
+    numbers.color = color("editor.marginNumbers.color");
     appearance.sceneBreakLook = editor::sceneBreakLookFromName(
         QString::fromStdString(settings.get<std::string>("editor.sceneBreak.style")));
 
@@ -377,6 +398,16 @@ void EditorPanel::applySettings() {
     applyPaperScale();
 
     core::Logger::getInstance().debug("EditorPanel: editor settings applied");
+}
+
+void EditorPanel::setFirstPageLeft(bool left) {
+    // The editor's appearance keeps it: applySettings() starts from it
+    editor::EditorAppearance appearance = m_bookEditor->appearance();
+    if (appearance.pageMargins.firstPageLeft == left) {
+        return;
+    }
+    appearance.pageMargins.firstPageLeft = left;
+    m_bookEditor->setAppearance(appearance);
 }
 
 void EditorPanel::scheduleSettings() {

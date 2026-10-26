@@ -244,6 +244,10 @@ TEST_CASE("Settings dialog: every page fits the narrowest window, in English and
     // and Keyboard Shortcuts were wider than the window in Polish, Keyboard Shortcuts also in
     // English. In the program's style (Fusion) on every system
     ProgramStyle programStyle;
+    // With every row shown: the inner and the outer margin with their preview too
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const bool mirrored = settings.get<bool>("editor.margins.mirrorEnabled");
+    settings.set<bool>("editor.margins.mirrorEnabled", true);
 
     for (const bool inPolish : {false, true}) {
         INFO((inPolish ? "in Polish" : "in English"));
@@ -275,6 +279,7 @@ TEST_CASE("Settings dialog: every page fits the narrowest window, in English and
         }
         CHECK(pages > 20);
     }
+    settings.set<bool>("editor.margins.mirrorEnabled", mirrored);
 }
 
 TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][settings]") {

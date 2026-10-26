@@ -60,6 +60,7 @@ set(TEST_SOURCES
     editor/test_editor_stage2.cpp                # Editor Stage 2: typography, paste/undo, on-demand layout
     editor/test_editor_stage3.cpp                # Editor Stage 3: drag and drop, find and replace, cursor
     editor/test_editor_stage4.cpp                # Editor Stage 4: page mode, zoom, typewriter scrolling
+    editor/test_margin_options.cpp               # Editor: mirror margins, numbers of the lines and paragraphs on the margin
     editor/test_editor_stage5.cpp                # Editor Stage 5: highlight layer
     editor/test_text_keys.cpp                    # The keys of the text on each system
     editor/test_format_without_selection.cpp     # Formats given without a selection

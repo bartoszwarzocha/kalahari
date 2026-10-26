@@ -303,6 +303,11 @@ private slots:
     /// @brief Show or hide the formatting marks of every editor (remembered)
     void onFormattingMarksToggle();
 
+    /// @brief Number the lines or the paragraphs of every editor on the margin, or not
+    ///        (remembered); the numbering on chosen again turns it off
+    /// @param mode A name of the settings: editor::MARGIN_NUMBERING_NONE, ..._LINES, ..._PARAGRAPHS
+    void onMarginNumbering(const QString& mode);
+
     /// @brief Turn Distraction-Free writing on or off (the view mode stays)
     void onDistractionFreeToggle();
 

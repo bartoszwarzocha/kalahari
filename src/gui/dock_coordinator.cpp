@@ -344,6 +344,8 @@ void DockCoordinator::createPropertiesDock() {
     // Connect PropertiesPanel status change to coordinator
     connect(m_propertiesPanel, &PropertiesPanel::chapterStatusChanged,
             this, &DockCoordinator::chapterStatusChanged);
+    connect(m_propertiesPanel, &PropertiesPanel::chapterFirstPageChanged,
+            this, &DockCoordinator::chapterFirstPageChanged);
 
     logger.debug("DockCoordinator: Properties dock created");
 }

@@ -333,6 +333,10 @@ signals:
     /// @param elementId Chapter element ID
     void chapterStatusChanged(const QString& elementId);
 
+    /// @brief Emitted when whether a text element starts on a left page changes in the
+    ///        properties panel
+    void chapterFirstPageChanged(const QString& elementId);
+
     /// @brief Emitted when Log panel requests settings dialog
     void openSettingsRequested();
 
