@@ -1040,8 +1040,9 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
         painter->scale(scale, scale);
     }
 
-    // Draw the layout
+    // Draw the layout, and the number or bullet of a list item
     layout->draw(painter, QPointF(0, 0));
+    m_textSource->drawListMarker(painter, index);
 
     painter->restore();
 }

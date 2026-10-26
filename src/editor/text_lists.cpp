@@ -390,17 +390,30 @@ std::vector<int> listNumbers(const QTextDocument& document) {
     return numbers;
 }
 
-std::vector<QString> listMarkers(const QTextDocument& document) {
+std::vector<QString> listMarkers(const QTextDocument& document, bool* hasItems) {
     const std::vector<int> numbers = listNumbers(document);
     std::vector<QString> markers(numbers.size());
+    // The items of a list share their definition: read once
+    std::unordered_map<QString, ListDefinition> definitions;
+    bool items = false;
     QTextBlock block = document.begin();
     for (size_t i = 0; i < numbers.size() && block.isValid(); ++i, block = block.next()) {
         if (numbers[i] < 0) {
+            items = items || isListItem(block.blockFormat());
             continue;
         }
-        if (const std::optional<ListItem> item = listItemOf(block.blockFormat())) {
-            markers[i] = listMarkerText(item->levelFormat(), numbers[i]);
+        items = true;
+        const QTextBlockFormat format = block.blockFormat();
+        const QString text = format.stringProperty(LIST_DEFINITION_PROPERTY);
+        auto definition = definitions.find(text);
+        if (definition == definitions.end()) {
+            definition = definitions.emplace(text, ListDefinition::fromString(text)).first;
         }
+        const int level = std::clamp(format.intProperty(LIST_LEVEL_PROPERTY), 0, LIST_LEVELS - 1);
+        markers[i] = listMarkerText(definition->second.levels[static_cast<size_t>(level)], numbers[i]);
+    }
+    if (hasItems != nullptr) {
+        *hasItems = items;
     }
     return markers;
 }

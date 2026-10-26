@@ -185,7 +185,8 @@ void giveListsNewIds(QTextDocument& content, const QTextDocument& target);
 ///
 /// The numbers of a list go on over the paragraphs outside it. An item of a level starts
 /// its level's numbering again after an item of a lower level (1., a), b), 2., a)).
-std::vector<QString> listMarkers(const QTextDocument& document);
+/// @param hasItems Receives whether the document has a list item (also one without a number)
+std::vector<QString> listMarkers(const QTextDocument& document, bool* hasItems = nullptr);
 
 /// @brief The number of each item of a document, by block number, as listMarkers() counts
 ///        them: -1 outside a list and for an item without a number (a bulleted item counts

@@ -67,6 +67,7 @@ set(TEST_SOURCES
     editor/test_line_breaks.cpp                  # Line breaks in a paragraph (Shift+Enter)
     editor/test_paragraph_styles.cpp             # Paragraph styles and the objects of the text
     editor/test_text_lists.cpp                   # Lists: numbers, formats of the levels, KML
+    editor/test_paragraph_layout.cpp             # A paragraph's own formatting and lists in the layout
     editor/test_styles_view.cpp                  # How the editor shows styles, objects and formatting marks
     editor/test_auto_correct.cpp                 # Autocorrect: the changes of the text as it is typed
     editor/test_insert_characters.cpp            # Characters inserted by a command or a window
