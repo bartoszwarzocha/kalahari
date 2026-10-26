@@ -3863,8 +3863,12 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Od delikatnego do wyraźnego</translation>
     </message>
     <message>
-        <source>Highlight the fragment when pointing at a card</source>
-        <translation>Podświetlaj fragment po wskazaniu karty</translation>
+        <source>Highlight the fragment</source>
+        <translation>Podświetlaj fragment</translation>
+    </message>
+    <message>
+        <source>While the mouse is on a card, its fragment in the text is highlighted.</source>
+        <translation>Gdy wskaźnik myszy jest na karcie, jej fragment w tekście jest podświetlony.</translation>
     </message>
     <message>
         <source>show the cards</source>

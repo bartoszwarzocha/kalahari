@@ -224,10 +224,13 @@ void AnnotationsPage::addCardSettings()
     };
     bindCustom(std::move(tintBinding));
 
-    QCheckBox* highlight =
-        addCheckBox(cards, tr("Highlight the fragment when pointing at a card"),
-                    "editor.annotationCards.highlightFragment");
+    // A short text with a note under it, which wraps in a narrow window
+    QCheckBox* highlight = addCheckBox(cards, tr("Highlight the fragment"),
+                                       "editor.annotationCards.highlightFragment");
     highlight->setObjectName(QStringLiteral("annotationCardsHighlight"));
+    alignWithText(addNote(cards, tr("While the mouse is on a card, its fragment in the text is "
+                                    "highlighted.")),
+                  highlight);
 
     auto* distractionFree = new QComboBox();
     distractionFree->setObjectName(QStringLiteral("annotationCardsDistractionFree"));
