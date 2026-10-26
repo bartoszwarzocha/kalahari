@@ -16,6 +16,7 @@
 
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/auto_correct.h>
+#include <kalahari/editor/character_format.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
@@ -37,6 +38,7 @@
 #include <QTextDocument>
 #include <QElapsedTimer>
 #include <QList>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -669,6 +671,54 @@ public:
     /// @brief The font size of the text typed at the cursor
     /// @return Its own size in points, or the editor's
     int currentFontSize() const;
+
+    // =========================================================================
+    // More of the character formatting (character_format.h): on the selection, the word
+    // with the cursor or the text typed next, each change as one undo step
+    // =========================================================================
+
+    /// @brief Format > Superscript (Ctrl+Shift+P) and Subscript (Ctrl+Shift+B), toggled as
+    ///        bold is; one takes the other off
+    void toggleSuperscript();
+    void toggleSubscript();
+
+    /// @brief Format > Small Caps (Ctrl+Shift+K) and All Caps (Ctrl+Shift+A), toggled as bold
+    ///        is: how the letters are shown, the text stays as typed; one takes the other off
+    void toggleSmallCaps();
+    void toggleAllCaps();
+
+    /// @brief Whether all of the selection has the format, or the text typed at the cursor
+    ///        would have it
+    bool isSuperscript() const;
+    bool isSubscript() const;
+    bool isSmallCaps() const;
+    bool isAllCaps() const;
+
+    /// @brief The character formatting of the selection, else of the text typed at the
+    ///        cursor (Format > Font): a part not the same in all of the selection has no
+    ///        value; the font and size are the editor's where the text has none of its own
+    CharacterFormat shownCharacterFormat() const;
+
+    /// @brief Format > Font and the color submenus: give the parts of @p changes that have a
+    ///        value to the selection, the word with the cursor or the text typed next
+    void applyCharacterFormat(const CharacterFormat& changes);
+
+    /// @brief Format > Change Case: the letters of the selection, else of the word with the
+    ///        cursor, in another case; their formats and annotations stay
+    void changeCase(CaseChange change);
+
+    /// @brief Format > Copy Formatting: remember the character formatting of the start of
+    ///        the selection, else of the text typed at the cursor, and the style, own
+    ///        formatting and alignment of its paragraph, for all the editors
+    void copyFormatting();
+
+    /// @brief Whether Copy Formatting has remembered formatting
+    static bool hasCopiedFormatting();
+
+    /// @brief Format > Paste Formatting: the selection, the word with the cursor or the text
+    ///        typed next gets the remembered character formatting in place of its own; the
+    ///        paragraphs the selection holds whole get the remembered paragraph formatting
+    void pasteFormatting();
 
     // =========================================================================
     // Paragraph Alignment
@@ -1860,8 +1910,17 @@ private:
     // Formatting Helpers (Phase 7.2)
     // =========================================================================
 
-    /// @brief Inline formatting the bold, italic, underline and strikethrough commands toggle
-    enum class InlineFormat { Bold, Italic, Underline, Strikethrough };
+    /// @brief Inline formatting the commands of the Format menu toggle
+    enum class InlineFormat {
+        Bold,
+        Italic,
+        Underline,
+        Strikethrough,
+        Superscript,
+        Subscript,
+        SmallCaps,
+        AllCaps
+    };
 
     /// @brief Toggle an inline format on the selection, the word with the cursor or the text
     ///        typed next
@@ -1909,6 +1968,39 @@ private:
 
     /// @brief The font size text with a format shows: its own, or the editor's
     int fontSizeOf(const QTextCharFormat& format) const;
+
+    /// @brief The font size text with a format shows, in points with their fraction
+    qreal fontPointSizeOf(const QTextCharFormat& format) const;
+
+    /// @brief The character formatting text with a format shows (shownCharacterFormat())
+    CharacterFormat characterFormatOf(const QTextCharFormat& format) const;
+
+    /// @brief A piece of text with the format it gets; of an empty paragraph, the format
+    ///        typed text gets there (its block's character format)
+    struct FormatPiece {
+        int from;
+        int to;
+        QTextCharFormat format;
+        bool emptyParagraph = false;
+    };
+
+    /// @brief The pieces of a range whose formats @p change changes, objects aside, with
+    ///        their changed formats; the empty paragraphs in it are pieces too
+    std::vector<FormatPiece> changedFormatPieces(
+        const SelectionRange& range, const std::function<void(QTextCharFormat&)>& change) const;
+
+    /// @brief Give pieces of text and blocks their formats as one undo step that brings back
+    ///        the cursor and selection it was made with; nothing to change, no step
+    void setFormats(const std::vector<FormatPiece>& pieces,
+                    const std::vector<std::pair<QTextBlock, QTextBlockFormat>>& blocks = {});
+
+    /// @brief Change the format of the selection or the word with the cursor (one undo
+    ///        step), else of the text typed next
+    void changeCharFormat(const std::function<void(QTextCharFormat&)>& change);
+
+    /// @brief The pending format with which the text typed at the cursor has @p wanted: the
+    ///        parts in which it differs from the place's
+    QTextCharFormat pendingFor(const QTextCharFormat& wanted) const;
 
     QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
     QScrollBar* m_horizontalScrollBar = nullptr;            ///< Horizontal scrollbar (zoomed pages)

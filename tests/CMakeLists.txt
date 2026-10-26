@@ -64,6 +64,7 @@ set(TEST_SOURCES
     editor/test_text_keys.cpp                    # The keys of the text on each system
     editor/test_format_without_selection.cpp     # Formats given without a selection
     editor/test_clear_formatting.cpp             # Format > Clear Formatting
+    editor/test_character_formatting.cpp         # Superscript, capitals, Format > Font, colors, Change Case, Copy Formatting
     editor/test_line_breaks.cpp                  # Line breaks in a paragraph (Shift+Enter)
     editor/test_paragraph_styles.cpp             # Paragraph styles and the objects of the text
     editor/test_text_lists.cpp                   # Lists: numbers, formats of the levels, KML
@@ -190,6 +191,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/annotation.cpp  # Comments, TODOs and notes
     ${CMAKE_SOURCE_DIR}/src/editor/paragraph_styles.cpp  # Paragraph styles of a book, the objects of its text
     ${CMAKE_SOURCE_DIR}/src/editor/paragraph_format.cpp  # A paragraph's own formatting: indents, spacing, breaks
+    ${CMAKE_SOURCE_DIR}/src/editor/character_format.cpp  # The character formatting of Format > Font, Change Case
     ${CMAKE_SOURCE_DIR}/src/editor/text_lists.cpp        # Bulleted and numbered lists
     ${CMAKE_SOURCE_DIR}/src/editor/formatting_marks.cpp  # The formatting marks of a paragraph
     ${CMAKE_SOURCE_DIR}/src/editor/style_resolver.cpp    # Sub-Project C WS4.4: StyleResolver (Q_OBJECT)

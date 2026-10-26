@@ -303,3 +303,17 @@ TEST_CASE("Paragraph layout: the number of an item is drawn", "[editor][lists][l
     CHECK(inkOfNumber(QString()) > 0);
     CHECK(inkOfNumber(QStringLiteral("numbered=\"false\"")) == 0);
 }
+
+TEST_CASE("Paragraph layout: the letter spacing of text, in points", "[editor][format][layout]") {
+    auto editor = editorWith(QStringLiteral(
+        "<p>abcdef</p><p><span spacing=\"3\">abcdef</span></p><p><span spacing=\"-1\">abcdef</span></p>"));
+    const qreal normal = blockOf(*editor, 0).layout()->lineAt(0).naturalTextWidth();
+    const qreal expanded = blockOf(*editor, 1).layout()->lineAt(0).naturalTextWidth();
+    const qreal condensed = blockOf(*editor, 2).layout()->lineAt(0).naturalTextWidth();
+
+    // Each of the six letters takes 3 points more, or 1 less, in the pixels of the view; the
+    // text keeps its size (only the letter spacing is given)
+    const qreal pixelsPerPoint = QFontMetricsF(editor->textDocument()->defaultFont()).fontDpi() / 72.0;
+    CHECK(expanded - normal == Approx(6 * 3 * pixelsPerPoint).margin(1.0));
+    CHECK(normal - condensed == Approx(6 * 1 * pixelsPerPoint).margin(1.0));
+}

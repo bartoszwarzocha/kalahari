@@ -2,6 +2,7 @@
 /// @brief Custom QAbstractTextDocumentLayout implementation (OpenSpec #00043)
 
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/kml_format_registry.h>
 #include <QElapsedTimer>
 #include <QFontInfo>
 #include <QFontMetricsF>
@@ -587,35 +588,43 @@ void KalahariTextDocumentLayout::applyStyleFormats(const QTextBlock& block) cons
     }
 
     // The style's font goes over each fragment, but not over what the fragment sets itself
-    // (its own size, weight, family...): the document's formats stay as they are
+    // (its own size, weight, family...): the document's formats stay as they are. The letter
+    // spacing of the text, in points as in KML, goes over it in pixels, as its size does.
     QList<QTextLayout::FormatRange> ranges;
     const QTextCharFormat& styleFormat = blockMetrics(block).charFormat;
-    if (styleFormat.propertyCount() > 0) {
-        const QMap<int, QVariant> styleProperties = styleFormat.properties();
-        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
-            const QTextFragment fragment = it.fragment();
-            if (!fragment.isValid()) {
-                continue;
+    const QMap<int, QVariant> styleProperties = styleFormat.properties();
+    const qreal pixelsPerPoint = QFontMetricsF(document()->defaultFont()).fontDpi() / POINTS_PER_INCH;
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        if (!fragment.isValid()) {
+            continue;
+        }
+        const QTextCharFormat own = fragment.charFormat();
+        const qreal spacing = own.doubleProperty(KmlPropLetterSpacing);
+        if (styleProperties.isEmpty() && spacing == 0.0) {
+            continue;
+        }
+        QTextCharFormat format = styleFormat;
+        for (auto property = styleProperties.cbegin(); property != styleProperties.cend();
+             ++property) {
+            if (own.hasProperty(property.key())) {
+                format.clearProperty(property.key());
             }
-            const QTextCharFormat own = fragment.charFormat();
-            QTextCharFormat format = styleFormat;
-            for (auto property = styleProperties.cbegin(); property != styleProperties.cend();
-                 ++property) {
-                if (own.hasProperty(property.key())) {
-                    format.clearProperty(property.key());
-                }
-            }
-            if (own.hasProperty(QTextFormat::FontFamilies) || own.hasProperty(QTextFormat::FontFamily)) {
-                format.clearProperty(QTextFormat::FontFamilies);
-                format.clearProperty(QTextFormat::FontFamily);
-            }
-            if (format.propertyCount() > 0) {
-                QTextLayout::FormatRange range;
-                range.start = fragment.position() - block.position();
-                range.length = fragment.length();
-                range.format = format;
-                ranges.append(range);
-            }
+        }
+        if (own.hasProperty(QTextFormat::FontFamilies) || own.hasProperty(QTextFormat::FontFamily)) {
+            format.clearProperty(QTextFormat::FontFamilies);
+            format.clearProperty(QTextFormat::FontFamily);
+        }
+        if (spacing != 0.0) {
+            format.setFontLetterSpacingType(QFont::AbsoluteSpacing);
+            format.setFontLetterSpacing(spacing * pixelsPerPoint);
+        }
+        if (format.propertyCount() > 0) {
+            QTextLayout::FormatRange range;
+            range.start = fragment.position() - block.position();
+            range.length = fragment.length();
+            range.format = format;
+            ranges.append(range);
         }
     }
     // Setting formats announces a change of the block: only when they change

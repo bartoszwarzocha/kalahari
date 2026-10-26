@@ -800,3 +800,32 @@ TEST_CASE("Copy: a list for other programs, with the numbers the editor shows",
               QStringLiteral("<kml><ul type=\"check\"><li>a</li></ul></kml>"))) ==
           utf8(QStringLiteral("<ul style=\"list-style-type:'✓ '\"><li>a</li></ul>")));
 }
+
+TEST_CASE("Copy and paste: small and all capitals and the letter spacing", "[editor][paste]") {
+    SECTION("Copied as CSS of the span, the spacing in points") {
+        CHECK(utf8(ClipboardHandler::kmlToHtml(
+                  kml("<p><span caps=\"small\">a</span><span caps=\"all\" spacing=\"1.5\">b</span></p>"),
+                  QStringLiteral("asterisks"))) ==
+              "<p><span style=\"font-variant:small-caps\">a</span>"
+              "<span style=\"text-transform:uppercase;letter-spacing:1.5pt\">b</span></p>");
+    }
+
+    const char* const caps =
+        "<p><span style=\"font-variant: small-caps\">small</span> "
+        "<span style=\"text-transform: uppercase; letter-spacing: 2px\">all</span></p>";
+
+    SECTION("Merge Formatting keeps the capitals, as it keeps the emphasis") {
+        CHECK(pasted(caps, PasteMode::Merge) ==
+              utf8(kml("<p><span caps=\"small\">small</span> <span caps=\"all\">all</span></p>")));
+    }
+
+    SECTION("Keep Source Formatting also keeps the spacing, pixels as points") {
+        CHECK(pasted(caps, PasteMode::Source) ==
+              utf8(kml("<p><span caps=\"small\">small</span> "
+                       "<span caps=\"all\" spacing=\"1.5\">all</span></p>")));
+    }
+
+    SECTION("Keep Text Only") {
+        CHECK(pasted(caps, PasteMode::Text) == utf8(kml("<p>small all</p>")));
+    }
+}

@@ -451,6 +451,19 @@ QString KmlSerializer::buildInlineStyleAttributes(const QTextCharFormat& format)
         }
     }
 
+    // Small or all capitals
+    if (format.fontCapitalization() == QFont::SmallCaps) {
+        attrs += QStringLiteral(" caps=\"small\"");
+    } else if (format.fontCapitalization() == QFont::AllUppercase) {
+        attrs += QStringLiteral(" caps=\"all\"");
+    }
+
+    // Letter spacing in points
+    const qreal spacing = format.doubleProperty(KmlPropLetterSpacing);
+    if (spacing != 0.0) {
+        attrs += QStringLiteral(" spacing=\"") + kmlNumber(spacing) + QStringLiteral("\"");
+    }
+
     return attrs;
 }
 
@@ -488,7 +501,7 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
     }
     escapedText += textKml(text.mid(written));
 
-    // Build inline style attributes (font, size, color, bg)
+    // Build inline style attributes (font, size, color, bg, caps, spacing)
     QString inlineAttrs = buildInlineStyleAttributes(format);
 
     // Build the result with formatting tags

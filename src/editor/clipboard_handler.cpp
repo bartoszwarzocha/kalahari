@@ -35,7 +35,8 @@ namespace kalahari::editor {
 
 namespace {
 
-/// @brief CSS for the inline style attributes (font, size, color, bg) of a KML tag
+/// @brief CSS for the inline style attributes (font, size, color, bg, caps, spacing) of a KML
+///        tag
 QString inlineStyleCss(const QXmlStreamAttributes& attrs)
 {
     QStringList css;
@@ -63,6 +64,19 @@ QString inlineStyleCss(const QXmlStreamAttributes& attrs)
         const QColor color(attrs.value(QStringLiteral("bg")).toString());
         if (color.isValid()) {
             css << QStringLiteral("background-color:") + color.name();
+        }
+    }
+    const QStringView caps = attrs.value(QStringLiteral("caps"));
+    if (caps == u"small") {
+        css << QStringLiteral("font-variant:small-caps");
+    } else if (caps == u"all") {
+        css << QStringLiteral("text-transform:uppercase");
+    }
+    if (attrs.hasAttribute(QStringLiteral("spacing"))) {
+        bool ok = false;
+        const double spacing = attrs.value(QStringLiteral("spacing")).toDouble(&ok);
+        if (ok && spacing != 0.0) {
+            css << QStringLiteral("letter-spacing:%1pt").arg(spacing);
         }
     }
     return css.join(QLatin1Char(';'));
@@ -966,6 +980,10 @@ private:
             vertical == QTextCharFormat::AlignSuperScript) {
             format.setVerticalAlignment(vertical);
         }
+        if (source.fontCapitalization() == QFont::SmallCaps ||
+            source.fontCapitalization() == QFont::AllUppercase) {
+            format.setFontCapitalization(source.fontCapitalization());
+        }
         if (m_mode != PasteMode::Source) {
             return format;
         }
@@ -988,6 +1006,14 @@ private:
         }
         if (source.hasProperty(QTextFormat::BackgroundBrush)) {
             format.setBackground(source.background().color());
+        }
+        if (source.hasProperty(QTextFormat::FontLetterSpacing) &&
+            source.fontLetterSpacingType() == QFont::AbsoluteSpacing &&
+            source.fontLetterSpacing() != 0.0) {
+            // In CSS pixels, as the size above
+            format.setProperty(KmlPropLetterSpacing,
+                               std::clamp(source.fontLetterSpacing() * 0.75, MIN_LETTER_SPACING,
+                                          MAX_LETTER_SPACING));
         }
         return format;
     }
