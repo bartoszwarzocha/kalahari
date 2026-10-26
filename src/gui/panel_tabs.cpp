@@ -118,7 +118,8 @@ void PanelTabs::addPanel(QDockWidget* dock, const std::string& commandId) {
     panel.tabs->hide();  // until the panel is in a group
     panel.tabs->setLook(lookSetting());
     panel.tabs->setRows(rowsSetting());
-    panel.tabs->setIconSize(core::ArtProvider::getInstance().getIconSize(core::IconContext::TabBar));
+    panel.tabs->setIconSize(
+        core::ArtProvider::getInstance().getIconSize(core::IconContext::TabBar));
     placeTabs(panel, sideSetting());
 
     connect(panel.tabs, &PanelTabBar::tabChosen, this,

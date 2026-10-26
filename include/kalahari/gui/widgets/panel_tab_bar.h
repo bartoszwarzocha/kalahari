@@ -18,8 +18,9 @@ namespace gui {
 /// Qt gives such a group one row of names, which it shortens to a few letters when the
 /// panels are many. These tabs show the panels' icons, their names or both (Look), in one row
 /// whose names are shortened where they do not fit (next to the icons, they give way to them
-/// where even two letters do not fit), or in as many rows as the width needs (Rows). The rows stay in place: the tab of the panel in front is only marked, with a line
-/// on its side toward the panel (Side).
+/// where even two letters do not fit), or in as many rows as the width needs (Rows). The rows
+/// stay in place: the tab of the panel in front is only marked, with a line on its side toward
+/// the panel (Side).
 ///
 /// A click chooses a tab (tabChosen()). With the focus on the tabs (the Tab key), the arrow
 /// keys, Home and End choose one too. A tab dragged to another place asks to move there

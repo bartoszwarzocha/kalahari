@@ -99,8 +99,8 @@ int tabIndex(const QMainWindow& window, const QDockWidget* dock) {
 /// The icons of the buttons on the title bar of @p dock, in their order
 std::vector<std::string> titleBarButtons(const QDockWidget* dock) {
     std::vector<std::string> icons;
-    const auto* row =
-        dock->titleBarWidget()->findChild<QWidget*>(QString::fromLatin1(DockCoordinator::TITLE_ROW));
+    const auto* row = dock->titleBarWidget()->findChild<QWidget*>(
+        QString::fromLatin1(DockCoordinator::TITLE_ROW));
     REQUIRE(row != nullptr);
     const QLayout* layout = row->layout();
     for (int i = 0; i < layout->count(); ++i) {
@@ -714,12 +714,13 @@ TEST_CASE("Panels: the tabs of the panels on the right show their icons above th
     CHECK(tabs->count() >= 3);
     CHECK(tabs->tab(tabs->currentIndex()).name == annotations->windowTitle());
     const int index = static_cast<int>(names.indexOf(annotations->windowTitle()));
+    const QString keys = QKeySequence(Qt::Key_F9).toString(QKeySequence::NativeText);
     CHECK(tabs->toolTipOf(index) ==
-          QStringLiteral("%1 (%2)").arg(annotations->windowTitle(),
-                                        QKeySequence(Qt::Key_F9).toString(QKeySequence::NativeText)));
+          QStringLiteral("%1 (%2)").arg(annotations->windowTitle(), keys));
 
     // The tab of another panel brings it forward
-    const int properties = static_cast<int>(names.indexOf(panels.docks->propertiesDock()->windowTitle()));
+    const int properties =
+        static_cast<int>(names.indexOf(panels.docks->propertiesDock()->windowTitle()));
     REQUIRE(properties >= 0);
     emit tabs->tabChosen(properties);
     QApplication::processEvents();
