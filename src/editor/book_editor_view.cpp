@@ -159,6 +159,9 @@ void BookEditor::setViewMode(ViewMode mode)
 
         emit viewModeChanged(mode);
 
+        // The page view has the marks of the annotations only, no cards under the paragraphs
+        updateAnnotationCards();
+
         // Every view has the page's width, margins and zoom, so the line breaks stay: the
         // pipeline places the lines on the pages or one under another and lays the text out
         // again. Scroll anchoring keeps the text at the top of the view in place; the
@@ -210,6 +213,7 @@ void BookEditor::applyZoom(double factor, const QPointF& fixedPoint) {
     // Every view zooms the page as a whole: only the painter scale changes, the line breaks
     // stay
     m_renderPipeline->setConfigZoom(factor);
+    fitAnnotationCardWriting();  // the frame over a card keeps its height in pixels
     updateScrollBarRange();
 
     // The document point under fixedPoint stays there
@@ -897,6 +901,7 @@ void BookEditor::setDistractionFree(bool enabled)
         }
         m_uiOpacity = 0.0;
     }
+    updateAnnotationCards();  // shown in Distraction-Free as the settings say
     update();
     emit distractionFreeModeChanged(enabled);
 }

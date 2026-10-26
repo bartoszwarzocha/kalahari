@@ -251,7 +251,9 @@ set(KALAHARI_SOURCES
     gui/utils/core_texts.cpp  # The core library's texts for the translations
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
+    editor/annotation_cards.cpp  # The cards of the annotations under their paragraphs
     editor/book_editor_annotations.cpp
+    editor/book_editor_cards.cpp
     editor/book_editor_checking.cpp
     editor/book_editor_cursor.cpp
     editor/book_editor_editing.cpp

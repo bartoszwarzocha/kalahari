@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Annotations: cards under the paragraphs, a second way of showing them** - 2026-10-26.
+  View > Annotation Cards Under Paragraphs (also Settings > Annotations > Cards Under
+  Paragraphs) shows each comment, to-do and note not done as a card under the paragraph of
+  its mark, in the order of the marks and in the kind's color: the kind, the author and the
+  date above the text (or, in the compact look, the text alone with the author and the date
+  at its end). Without it the annotations work as before: a mark in the text, a click on it
+  opens the frame. The cards are in the continuous view and, as the Settings say, in
+  Distraction-Free; the page view keeps the marks only. A click on a card goes to its
+  fragment and selects it, a double click edits it, and the fragment is highlighted while
+  the mouse is on its card. A click on a mark collapses or expands its card: collapsed, the
+  annotation is its mark alone or, if chosen, a line with the start of its text; View >
+  Collapse All Annotations and Expand All Annotations do it for the chapter, and the Settings
+  say whether a chapter opens with them expanded or collapsed. The "..." button of a card
+  opens its menu (Edit, Collapse, Mark as Resolved or Mark as Done, Remove, Card Appearance
+  and Colors...), the box of a to-do marks it done, and a long text can be cut short to 3 or
+  6 lines with "Show all" under it. With the cards, an annotation is written in the frame
+  over its card, and a new one in the frame where its card will be. The menu of the text has
+  the annotation at the click on top: its kind and the start of its text, Edit, Mark as
+  Resolved or Done and Remove (also Collapse and Expand with the cards). The Settings also
+  give the kinds that have cards, the size of their text (90% of the chapter's by default)
+  and how strong their background is. The colors are those of the annotations (Settings >
+  Annotations > Colors).
+
 - **Paragraph styles, a horizontal line and the breaks, the formatting marks** - 2026-10-19.
   Format > Text Style puts the paragraphs of the cursor or the selection in a style of the
   book's type, as one step of Undo: Heading 1, 2 and 3 (Alt+1, Alt+2, Alt+3; on macOS

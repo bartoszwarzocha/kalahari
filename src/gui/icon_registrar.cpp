@@ -205,6 +205,9 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.typewriter", "resources/icons/twotone/keyboard_alt.svg", "Typewriter Scrolling");
     iconRegistry.registerIcon("view.darkPaper", "resources/icons/twotone/contrast_square.svg", "Dark Paper");
     iconRegistry.registerIcon("view.textFrameBorder", "resources/icons/twotone/text_frame.svg", "Text Frame Border");
+    iconRegistry.registerIcon("view.annotationCards", "resources/icons/twotone/annotation_cards.svg", "Annotation Cards Under Paragraphs");
+    iconRegistry.registerIcon("view.collapseAllAnnotations", "resources/icons/twotone/unfold_less.svg", "Collapse All Annotations");
+    iconRegistry.registerIcon("view.expandAllAnnotations", "resources/icons/twotone/unfold_more.svg", "Expand All Annotations");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
 

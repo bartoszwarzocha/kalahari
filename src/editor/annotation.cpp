@@ -348,8 +348,8 @@ std::vector<AnnotationMark> annotationMarksIn(const QTextBlock& block) {
         const auto it = markOf.constFind(annotation.id);
         if (it == markOf.cend()) {
             markOf.insert(annotation.id, marks.size());
-            marks.push_back(
-                {offset, annotation.kind, annotation.id, annotation.text, annotation.author});
+            marks.push_back({offset, annotation.kind, annotation.id, annotation.text,
+                             annotation.author, annotation.created});
         } else {
             marks[*it].offset = std::max(marks[*it].offset, offset);
         }

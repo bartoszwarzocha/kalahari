@@ -159,6 +159,17 @@ bool BookEditor::goToAnnotation(const QString& id)
         setSelection({start, end});
     }
     ensureCursorVisible();
+
+    // Its card under the paragraph is outlined, and comes into view, while the cursor is in
+    // its fragment
+    if (m_annotationCards.isShown()) {
+        m_annotationCards.setSelected(id);
+        m_selectedCard = QTextCursor(m_textBuffer.get());
+        m_selectedCard.setPosition(place->start);
+        m_selectedCard.setPosition(place->end, QTextCursor::KeepAnchor);
+        scrollToAnnotationCard(id);
+        update();
+    }
     return true;
 }
 
