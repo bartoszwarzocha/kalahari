@@ -12,8 +12,10 @@
 #include "kalahari/gui/material_file.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/link_roles.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/settings_manager.h"
 
 #include <QAbstractItemDelegate>
 #include <QClipboard>
@@ -35,6 +37,7 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QPlainTextEdit>
+#include <QPointer>
 #include <QPushButton>
 #include <QStyle>
 #include <QStyledItemDelegate>
@@ -483,9 +486,30 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
                     fillLinks(*element);
                 }
             });
+    // The paragraphs of the links shown or not (LinkRoles::PARAGRAPHS_SETTING): the setting
+    // may change on another thread, the list changes on this one
+    m_settingsListener = core::SettingsManager::getInstance().subscribe(
+        [page = QPointer<MaterialPage>(this)](const std::string& key) {
+            if (key != core::LinkRoles::PARAGRAPHS_SETTING || page == nullptr) {
+                return;
+            }
+            QMetaObject::invokeMethod(
+                page,
+                [page]() {
+                    if (page == nullptr) {
+                        return;
+                    }
+                    if (const core::ProjectElement* element =
+                            core::ProjectManager::getInstance().findElement(page->m_elementId)) {
+                        page->fillLinks(*element);
+                    }
+                },
+                Qt::QueuedConnection);
+        });
 }
 
 MaterialPage::~MaterialPage() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
     cutOffChildren(this);
 }
 
@@ -1086,9 +1110,26 @@ LinkedMaterialsBox::LinkedMaterialsBox(QWidget* parent) : QGroupBox(parent) {
                     refresh();
                 }
             });
+    // The paragraphs of the links shown or not (LinkRoles::PARAGRAPHS_SETTING): the setting
+    // may change on another thread, the list changes on this one
+    m_settingsListener = core::SettingsManager::getInstance().subscribe(
+        [box = QPointer<LinkedMaterialsBox>(this)](const std::string& key) {
+            if (key != core::LinkRoles::PARAGRAPHS_SETTING || box == nullptr) {
+                return;
+            }
+            QMetaObject::invokeMethod(
+                box,
+                [box]() {
+                    if (box != nullptr && !box->m_link.isEmpty()) {
+                        box->refresh();
+                    }
+                },
+                Qt::QueuedConnection);
+        });
 }
 
 LinkedMaterialsBox::~LinkedMaterialsBox() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
     cutOffChildren(this);
 }
 

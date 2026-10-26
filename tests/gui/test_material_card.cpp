@@ -21,6 +21,7 @@
 #include <QBuffer>
 #include <QComboBox>
 #include <QCompleter>
+#include <QCoreApplication>
 #include <QDir>
 #include <QDropEvent>
 #include <QFileInfo>
@@ -908,6 +909,55 @@ TEST_CASE("Link: each link has its role, its place in the text and a note",
     CHECK(dialog->linkOf(quote).role == core::LinkRoles::INSPIRATION);
     CHECK(dialog->linkOf(quote).paragraph == 2);
     CHECK(dialog->linkOf(quote).excerpt == set.excerpt);
+}
+
+TEST_CASE("Link: the card of a material and the materials of a chapter follow the setting of "
+          "paragraphs at once", "[gui][materials][links]") {
+    gui::registerAllIcons();
+    test::OpenNovel novel(QStringLiteral("Rain"));
+    auto& pm = novel.pm;
+    const ParagraphsSetting setting(true);
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString map = addMaterial(
+        pm, writePicture(files.path(), QStringLiteral("map.png"), QSize(40, 20)),
+        QStringLiteral("Map"));
+    const QStringList text{QStringLiteral("The storm came from the west."),
+                           QStringLiteral("Tau turned back.")};
+    pm.setChapterContent(novel.chapterId, kmlOf(text));
+    REQUIRE(pm.saveChapterContent(novel.chapterId));
+    REQUIRE(pm.setLinks(map, QList<core::ElementLink>{{novel.chapterId,
+                                                       core::LinkRoles::ILLUSTRATION, 2,
+                                                       core::LinkRoles::excerptOf(text.at(1)),
+                                                       {}, {}}}));
+
+    gui::MaterialPage page;
+    page.showMaterial(map);
+    gui::PropertiesPanel properties;
+    properties.showChapterProperties(novel.chapterId);
+    gui::LinkedMaterialsBox* box = properties.chapterMaterials();
+    REQUIRE(page.linksList()->topLevelItemCount() == 1);
+    REQUIRE(box->list()->count() == 1);
+    const QString withParagraph = QStringLiteral("illustration · paragraph 2");
+    CHECK(page.linksList()->topLevelItem(0)->text(0) ==
+          QStringLiteral("The Storm\n") + withParagraph);
+    CHECK(box->list()->item(0)->text() == QStringLiteral("Map\n") + withParagraph);
+
+    // Turned off, both show the role alone, without the card shown again; turned on, the
+    // paragraph is there again
+    ParagraphsSetting::set(false);
+    QCoreApplication::processEvents();
+    REQUIRE(page.linksList()->topLevelItemCount() == 1);
+    REQUIRE(box->list()->count() == 1);
+    CHECK(page.linksList()->topLevelItem(0)->text(0) == QStringLiteral("The Storm\nillustration"));
+    CHECK(box->list()->item(0)->text() == QStringLiteral("Map\nillustration"));
+    ParagraphsSetting::set(true);
+    QCoreApplication::processEvents();
+    REQUIRE(page.linksList()->topLevelItemCount() == 1);
+    CHECK(page.linksList()->topLevelItem(0)->text(0) ==
+          QStringLiteral("The Storm\n") + withParagraph);
+    REQUIRE(box->list()->count() == 1);
+    CHECK(box->list()->item(0)->text() == QStringLiteral("Map\n") + withParagraph);
 }
 
 TEST_CASE("Paperclips: the paragraphs of an open chapter that materials are linked with",

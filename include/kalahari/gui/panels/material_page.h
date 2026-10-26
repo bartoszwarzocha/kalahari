@@ -236,6 +236,7 @@ private:
     QLabel* m_noLinksLabel = nullptr;
     QToolButton* m_addLinkButton = nullptr;
     QToolButton* m_removeLinkButton = nullptr;
+    int m_settingsListener = 0;  ///< core::SettingsManager::subscribe() id
 };
 
 /// @brief The full card of a material on a tab beside the chapters (MaterialPage): the place to
@@ -319,6 +320,7 @@ private:
     QLabel* m_emptyLabel = nullptr;
     QToolButton* m_addButton = nullptr;
     QToolButton* m_removeButton = nullptr;
+    int m_settingsListener = 0;  ///< core::SettingsManager::subscribe() id
 };
 
 } // namespace gui
