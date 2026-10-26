@@ -46,8 +46,8 @@ namespace dialogs {
 
 namespace {
 
-constexpr int WINDOW_WIDTH = 1000;   ///< Width of the window where the screen allows
-constexpr int WINDOW_HEIGHT = 680;   ///< Height of the window where the screen allows
+constexpr int WINDOW_WIDTH = 1100;   ///< Width of the window where the screen allows
+constexpr int WINDOW_HEIGHT = 780;   ///< Height of the window where the screen allows
 constexpr double SCREEN_PART = 0.9;  ///< The part of the screen the window takes at most
 constexpr int LIST_WIDTH = 300;      ///< Width of the list at first
 constexpr int LIST_MINIMUM_WIDTH = 220;
