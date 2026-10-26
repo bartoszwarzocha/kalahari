@@ -20,6 +20,7 @@
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
+#include <kalahari/editor/annotation_cards.h>
 #include <kalahari/editor/grammar_error.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_issue.h>
@@ -785,6 +786,52 @@ public:
     /// It holds for content loaded later too. The annotations the text already has stay.
     void setAnnotationsAllowed(bool allowed);
 
+    // =========================================================================
+    // Annotations: the cards under the paragraphs
+    // =========================================================================
+
+    /// @brief Whether the annotations have cards under their paragraphs now
+    ///
+    /// As the settings say (EditorAppearance::annotationCards), in the continuous view, and in
+    /// Distraction-Free when the settings show them there. The page view shows the marks
+    /// only. Without cards a click on a mark opens the annotation's frame at its place; with
+    /// them it collapses or expands the card, and the frame lies over the card.
+    bool showsAnnotationCards() const;
+
+    /// @brief Whether an annotation of a kind has a card now (the kinds of the settings)
+    bool showsAnnotationCard(AnnotationKind kind) const;
+
+    /// @brief Whether an annotation's card is collapsed: its mark alone, or a line
+    bool isAnnotationCollapsed(const QString& id) const;
+
+    /// @brief Collapse or expand an annotation's card
+    void setAnnotationCollapsed(const QString& id, bool collapsed);
+
+    /// @brief Collapse or expand the cards of all the annotations, also those made later
+    void setAllAnnotationsCollapsed(bool collapsed);
+
+    /// @brief Where an annotation's card is in the editor
+    /// @param id The annotation; empty: the room of a new one written in the frame
+    /// @return Empty when it has no card shown (collapsed to its mark, or no cards)
+    QRectF annotationCardRect(const QString& id) const;
+
+    /// @brief An annotation is written in the frame over its card: the card makes room for
+    ///        the frame; a new one's room comes among the cards of the paragraph of its mark,
+    ///        in the order of its place. The room comes into view.
+    /// @param id The annotation; empty: a new one
+    /// @param kind Its kind
+    /// @param start Where its fragment starts (a position in the document)
+    /// @param end Where it ends: its mark
+    /// @param height The frame's height, in pixels of the editor
+    void setAnnotationCardWriting(const QString& id, AnnotationKind kind, int start, int end,
+                                  qreal height);
+
+    /// @brief The frame over the card is of another height (pixels of the editor)
+    void setAnnotationCardWritingHeight(qreal height);
+
+    /// @brief No annotation is written in the frame over its card any more
+    void clearAnnotationCardWriting();
+
     /// @brief Whether the text can only be read: a chapter of a book open read-only
     ///
     /// It is read, selected, copied and searched, but nothing changes it: typing, deleting,
@@ -1276,6 +1323,23 @@ signals:
     /// @param id The annotation's id
     void annotationMarkClicked(const QString& id);
 
+    /// @brief Emitted when the card of an annotation is clicked: its fragment is selected,
+    ///        or the cursor goes to its place
+    /// @param id The annotation's id
+    void annotationCardClicked(const QString& id);
+
+    /// @brief Emitted when the writer asks to edit the text of an annotation: a double click
+    ///        on its card, Edit Annotation in a menu
+    /// @param id The annotation's id
+    void annotationEditRequested(const QString& id);
+
+    /// @brief Emitted for Card Appearance and Colors... in the menu of a card
+    void annotationCardSettingsRequested();
+
+    /// @brief Emitted when the cards under the paragraphs come or go (showsAnnotationCards())
+    /// @param shown Whether they are shown now
+    void annotationCardsShownChanged(bool shown);
+
     /// @brief Emitted when a paragraph is modified (text inserted/deleted)
     /// @param paragraphIndex Index of the modified paragraph
     void paragraphModified(int paragraphIndex);
@@ -1366,6 +1430,9 @@ protected:
     /// Handles double-click to select word.
     void mouseDoubleClickEvent(QMouseEvent* event) override;
 
+    /// @brief The mouse left the editor: no card is under it
+    void leaveEvent(QEvent* event) override;
+
     /// @brief Accepts dragged content the editor can insert (Kalahari text or plain text)
     void dragEnterEvent(QDragEnterEvent* event) override;
 
@@ -1447,6 +1514,63 @@ private:
     /// annotations) was made with; for a replacement those before it when it is undone,
     /// the end of the replaced text when it is redone
     void restoreStepCursor();
+
+    // The cards of the annotations under the paragraphs (book_editor_cards.cpp)
+
+    /// @brief Install the room under the paragraphs and the drawing of the cards in the
+    ///        layout of a new document and in the render pipeline
+    void setUpAnnotationCards();
+
+    /// @brief The cards as the settings, the colors, the view and Distraction-Free say now;
+    ///        the room under the paragraphs follows
+    void updateAnnotationCards();
+
+    /// @brief The layout asks again for the room under paragraphs (all: @p first 0, @p last
+    ///        -1), and the view is painted again
+    void updateAnnotationCardRoom(int first = 0, int last = -1);
+
+    /// @brief Where the cards of a paragraph start, in its coordinates: under its text and
+    ///        its spacing (-1: it has no cards)
+    qreal annotationCardsTop(const QTextBlock& block) const;
+
+    /// @brief The room of the frame over a card follows its height in pixels at the zoom now
+    void fitAnnotationCardWriting();
+
+    /// @brief The paragraph whose cards an annotation's card is among (empty id: a new one
+    ///        written in the frame; invalid: none)
+    QTextBlock annotationCardBlock(const QString& id) const;
+
+    /// @brief The card at a point of the editor, and its part
+    std::optional<AnnotationCardHit> annotationCardAt(const QPointF& point) const;
+
+    /// @brief The mouse moved: the card under it shows its menu button, and its fragment is
+    ///        highlighted (as the settings say)
+    /// @return Whether it is over a card
+    bool hoverAnnotationCard(const QPointF& point);
+
+    /// @brief A press of the left button on a card: what its part does
+    /// @return Whether it was on a card
+    bool pressAnnotationCard(const QPointF& point);
+
+    /// @brief The tooltip of the part of a card at a point (empty: none)
+    QString annotationCardToolTip(const QPointF& point) const;
+
+    /// @brief Scroll a card into view (as much of it as the view shows; its top first)
+    void scrollToAnnotationCard(const QString& id);
+
+    /// @brief The annotation not done whose fragment or place is at a place of the text: the
+    ///        shortest one around it (empty: none)
+    QString annotationAt(const CursorPosition& position) const;
+
+    /// @brief The items of an annotation, in the text's menu or a card's
+    /// @param forCard The menu of its card: also Card Appearance and Colors...
+    void addAnnotationActions(QMenu& menu, const QString& id, bool forCard);
+
+    /// @brief Show the menu of an annotation's card
+    void showAnnotationCardMenu(const QString& id, const QPoint& globalPos);
+
+    /// @brief An annotation done or resolved, one undo step (Mark as Done, Mark as Resolved)
+    void markAnnotationDone(const QString& id);
 
     /// @brief Start an undo step of annotations, or join the last undo step
     ///
@@ -1850,6 +1974,11 @@ private:
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
     QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
+    AnnotationCards m_annotationCards;  ///< The cards of the annotations under the paragraphs
+    qreal m_cardWritingHeight = 0.0;    ///< The frame over a card: its height (editor pixels)
+    QString m_pressedCard;              ///< The card the last press went to (a double click edits it)
+    QTextCursor m_selectedCard;         ///< The fragment of the card gone to: its outline goes
+                                        ///< when the cursor leaves it
     bool m_readOnly = false;            ///< The text can only be read (isReadOnly())
     QString m_readOnlyReason;           ///< Why (setReadOnlyReason())
 

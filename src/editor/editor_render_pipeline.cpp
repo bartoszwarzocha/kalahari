@@ -44,6 +44,9 @@ constexpr double MARK_SPACING = 1.2;
 /// The marks of the paragraphs Focus dims are dimmed as much
 constexpr double DIMMED_MARK_OPACITY = 0.45;
 
+/// The line along the bottom of a fragment shown in a color, in pixels at zoom 100%
+constexpr double FRAGMENT_LINE_WIDTH = 2.0;
+
 /// The area around a mark a click or the mouse finds it in, in pixels of the screen
 constexpr double MARK_HIT_SIZE = 14.0;
 
@@ -848,6 +851,20 @@ void EditorRenderPipeline::setSpokenWord(int paragraph, int offset, int length) 
     }
 }
 
+void EditorRenderPipeline::setParagraphDecorator(ParagraphDecorator decorator) {
+    m_paragraphDecorator = std::move(decorator);
+    markAllDirty();
+}
+
+void EditorRenderPipeline::setFragmentHighlight(
+    const std::optional<FragmentHighlight>& highlight) {
+    if (m_fragmentHighlight == highlight) {
+        return;
+    }
+    m_fragmentHighlight = highlight;
+    markAllDirty();
+}
+
 // =============================================================================
 // Main Render Entry Point (Stage 3+4)
 // =============================================================================
@@ -1013,8 +1030,27 @@ void EditorRenderPipeline::renderParagraphs(QPainter* painter, const QRect& clip
                 : std::vector<FormattingMark>{};
             renderParagraph(painter, i, widgetY);
             renderFormattingMarks(painter, marks, widgetY);
+            renderParagraphDecoration(painter, i, widgetY);
         }
     }
+}
+
+void EditorRenderPipeline::renderParagraphDecoration(QPainter* painter, size_t index,
+                                                     double widgetY) {
+    if (!m_paragraphDecorator) return;
+
+    // In the paragraph's coordinates, zoomed as its text; faint as its marks when Focus
+    // dims it
+    painter->save();
+    painter->translate(m_context.computed.originX, widgetY);
+    const double scale = m_context.computed.viewScale;
+    if (scale != 1.0) {
+        painter->scale(scale, scale);
+    }
+    const bool dimmed = m_context.focus && static_cast<int>(index) != m_cursorPosition.paragraph;
+    painter->setOpacity(dimmed ? DIMMED_MARK_OPACITY : 1.0);
+    m_paragraphDecorator(painter, index);
+    painter->restore();
 }
 
 void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, double widgetY) {
@@ -1199,6 +1235,40 @@ void EditorRenderPipeline::renderHighlightBackgrounds(
     }
 }
 
+void EditorRenderPipeline::renderFragmentHighlight(QPainter* painter) {
+    if (!m_fragmentHighlight || !m_textSource) return;
+
+    const FragmentHighlight& fragment = *m_fragmentHighlight;
+    const size_t count = m_textSource->paragraphCount();
+    const int first = std::max(fragment.start.paragraph,
+                               static_cast<int>(m_context.computed.firstVisibleParagraph));
+    const int last = std::min(fragment.end.paragraph,
+                              static_cast<int>(m_context.computed.lastVisibleParagraph));
+    const double scale = m_context.computed.viewScale;
+    const double originX = m_context.computed.originX;
+    const double lineWidth = std::max(1.0, FRAGMENT_LINE_WIDTH * scale);
+
+    for (int paragraph = first; paragraph <= last && static_cast<size_t>(paragraph) < count;
+         ++paragraph) {
+        const auto index = static_cast<size_t>(paragraph);
+        const int length = static_cast<int>(m_textSource->paragraphText(index).length());
+        const int start = paragraph == fragment.start.paragraph ? fragment.start.offset : 0;
+        const int end = paragraph == fragment.end.paragraph ? std::min(fragment.end.offset, length)
+                                                            : length;
+        if (start >= end) continue;
+
+        // The text's height of each line, with the line along its bottom
+        const double widgetY = paragraphWidgetY(index);
+        for (const LinePiece& piece : linePieces(index, start, end)) {
+            const QRectF band(originX + piece.x1 * scale, widgetY + piece.line.y() * scale,
+                              (piece.x2 - piece.x1) * scale, piece.line.height() * scale);
+            painter->fillRect(band, fragment.fill);
+            painter->fillRect(QRectF(band.left(), band.bottom() - lineWidth, band.width(), lineWidth),
+                              fragment.line);
+        }
+    }
+}
+
 void EditorRenderPipeline::renderHighlightMarks(
     QPainter* painter, const std::vector<ParagraphHighlight>& highlights) {
     const RenderColors& colors = m_context.colors;
@@ -1339,6 +1409,9 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     // Highlights: the backgrounds under the text like the selection, the marks over it
     const std::vector<ParagraphHighlight> highlights = visibleHighlights(clipRect);
     renderHighlightBackgrounds(painter, highlights);
+
+    // The fragment of the annotation whose card the mouse is on, under the text too
+    renderFragmentHighlight(painter);
 
     // The annotations' marks, under the text: the letters stay readable
     renderAnnotationMarks(painter, clipRect);

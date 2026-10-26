@@ -53,7 +53,9 @@ QColor shownColor(const QColor& color, const QColor& background, bool optimize);
 /// @param kindColor The kind's color (from the theme)
 /// @param surface What the cards lie on: the panel's base, or the paper
 /// @param text The color of the text on that surface
+/// @param tint How much of the kind's color the card has, as a share of the usual (the cards
+///        under the paragraphs, Settings > Annotations); at most 0.6 of the color in all
 AnnotationCardColors annotationCardColors(const QColor& kindColor, const QColor& surface,
-                                          const QColor& text);
+                                          const QColor& text, double tint = 1.0);
 
 }  // namespace kalahari::gui

@@ -321,6 +321,11 @@ MainWindow::MainWindow(QWidget* parent)
         statusBar(),
         this);
     m_annotationsCoordinator->connectCommands();
+    // Card Appearance and Colors... in the menu of a card opens the Annotations page
+    connect(m_annotationsCoordinator, &AnnotationsCoordinator::settingsPageRequested, this,
+            [this](const QString& page) {
+                if (m_settingsCoordinator) m_settingsCoordinator->openSettingsPage(page);
+            });
 
     // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
     // is done in the Annotations panel is undone in the text in front
@@ -661,6 +666,7 @@ void MainWindow::registerCommands() {
     callbacks.onFocusToggle = [this]() { onFocusToggle(); };
     callbacks.onDarkPaperToggle = [this]() { onDarkPaperToggle(); };
     callbacks.onTextFrameBorderToggle = [this]() { onTextFrameBorderToggle(); };
+    callbacks.onAnnotationCardsToggle = [this]() { onAnnotationCardsToggle(); };
     callbacks.onDistractionFreeToggle = [this]() { onDistractionFreeToggle(); };
     callbacks.onFormattingMarksToggle = [this]() { onFormattingMarksToggle(); };
 
@@ -832,6 +838,8 @@ void MainWindow::registerCommands() {
     utils::followSetting(registry.getAction(std::string("view.darkPaper")), "editor.darkMode");
     utils::followSetting(registry.getAction(std::string("view.textFrameBorder")),
                          "editor.textFrameBorder.show");
+    utils::followSetting(registry.getAction(std::string("view.annotationCards")),
+                         "editor.annotationCards.show");
     utils::followSetting(registry.getAction(std::string("view.typewriter")),
                          "editor.typewriter.enabled");
     utils::followSetting(registry.getAction(std::string("view.focus")), "editor.focus.enabled");
@@ -1218,6 +1226,20 @@ void MainWindow::onTextFrameBorderToggle() {
     settings.set<bool>("editor.textFrameBorder.show", show);
     core::Logger::getInstance().info("Action triggered: Text Frame Border {}", show ? "on" : "off");
     statusBar()->showMessage(show ? tr("Text frame border: on") : tr("Text frame border: off"),
+                             2000);
+}
+
+void MainWindow::onAnnotationCardsToggle() {
+    auto& settings = core::SettingsManager::getInstance();
+
+    // A setting of all editors, kept between sessions, as in the Settings dialog: every
+    // editor follows it
+    const bool show = !settings.get<bool>("editor.annotationCards.show");
+    settings.set<bool>("editor.annotationCards.show", show);
+    core::Logger::getInstance().info("Action triggered: Annotation Cards Under Paragraphs {}",
+                                     show ? "on" : "off");
+    statusBar()->showMessage(show ? tr("Annotation cards under paragraphs: shown")
+                                  : tr("Annotation cards under paragraphs: hidden"),
                              2000);
 }
 

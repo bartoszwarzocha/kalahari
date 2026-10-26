@@ -669,6 +669,14 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_CB("view.textFrameBorder", QT_TRANSLATE_NOOP("CommandRegistrar", "Te&xt Frame Border"), "VIEW/Text Frame Border", 63, true, 0,
                callbacks.onTextFrameBorderToggle);
 
+    // The cards of the annotations under their paragraphs, a setting of every editor as in
+    // the Settings dialog; collapsing and expanding all of them in the editor in front
+    // (AnnotationsCoordinator)
+    REG_CMD_CB("view.annotationCards", QT_TRANSLATE_NOOP("CommandRegistrar", "Annotation &Cards Under Paragraphs"), "VIEW/Annotation Cards Under Paragraphs", 64, false, 0,
+               callbacks.onAnnotationCardsToggle);
+    REG_CMD("view.collapseAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "C&ollapse All Annotations"), "VIEW/Collapse All Annotations", 65, false, 0);
+    REG_CMD("view.expandAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "&Expand All Annotations"), "VIEW/Expand All Annotations", 66, true, 0);
+
     // Perspectives submenu
     REG_CMD("view.perspectives.writer", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writer"), "VIEW/Perspectives/Writer", 70, false, 1);
     REG_CMD("view.perspectives.editor", QT_TRANSLATE_NOOP("CommandRegistrar", "&Editor"), "VIEW/Perspectives/Editor", 80, false, 1);

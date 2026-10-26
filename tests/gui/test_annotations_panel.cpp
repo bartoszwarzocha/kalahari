@@ -886,7 +886,8 @@ TEST_CASE("Annotations frame: under its place within the text column, above it w
     QWidget editor;
     editor.resize(800, 600);
     auto* frame = new AnnotationFrame(&editor);
-    AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600)};
+    AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600),
+                                         QRectF()};
     frame->setPlacement([&placement]() { return placement; });
 
     // Two thirds of the column wide, a little left of the place
@@ -927,7 +928,8 @@ TEST_CASE("Annotations frame: who the annotation is by, on the right of its head
 
     frame->setAuthor(QStringLiteral(" Anna Nowak "));
     frame->setPlacement([]() {
-        return AnnotationFrame::Placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600)};
+        return AnnotationFrame::Placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600),
+                                         QRectF()};
     });
     frame->show();
     QApplication::processEvents();

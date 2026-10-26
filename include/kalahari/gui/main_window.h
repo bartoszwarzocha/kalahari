@@ -300,6 +300,10 @@ private slots:
     /// @brief Show or hide the border around the text of every editor (remembered)
     void onTextFrameBorderToggle();
 
+    /// @brief Show or hide the cards of the annotations under the paragraphs of every editor
+    ///        (remembered)
+    void onAnnotationCardsToggle();
+
     /// @brief Show or hide the formatting marks of every editor (remembered)
     void onFormattingMarksToggle();
 

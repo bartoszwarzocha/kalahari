@@ -36,6 +36,14 @@ namespace {
 constexpr double MIN_MARK_SCALE = 0.5;
 constexpr double MAX_MARK_SCALE = 3.0;
 
+/// The size of the text of the cards under the paragraphs, in percent of the chapter's text
+constexpr int MIN_CARD_FONT = 60;
+constexpr int MAX_CARD_FONT = 130;
+
+/// How much of the kind's color the cards have, in percent of the usual
+constexpr int MIN_CARD_TINT = 50;
+constexpr int MAX_CARD_TINT = 200;
+
 }  // namespace
 
 EditorPanel::EditorPanel(QWidget* parent)
@@ -349,6 +357,24 @@ void EditorPanel::applySettings() {
     appearance.annotationMarkScale =
         std::clamp(settings.get<int>("editor.annotationMarkSize") / 100.0, MIN_MARK_SCALE,
                    MAX_MARK_SCALE);
+
+    // The cards of the annotations under their paragraphs
+    const auto text = [&settings](const std::string& key) { return settings.get<std::string>(key); };
+    editor::AnnotationCardSettings& cards = appearance.annotationCards;
+    cards.show = settings.get<bool>("editor.annotationCards.show");
+    cards.comments = settings.get<bool>("editor.annotationCards.comments");
+    cards.todos = settings.get<bool>("editor.annotationCards.todos");
+    cards.notes = settings.get<bool>("editor.annotationCards.notes");
+    cards.compact = text("editor.annotationCards.look") == "compact";
+    cards.collapsedLine = text("editor.annotationCards.collapsedLook") == "line";
+    cards.startCollapsed = text("editor.annotationCards.afterOpening") == "collapsed";
+    cards.longLines = std::max(0, settings.get<int>("editor.annotationCards.longLines"));
+    cards.fontPercent = std::clamp(settings.get<int>("editor.annotationCards.fontSize"),
+                                   MIN_CARD_FONT, MAX_CARD_FONT);
+    cards.tintPercent = std::clamp(settings.get<int>("editor.annotationCards.tint"),
+                                   MIN_CARD_TINT, MAX_CARD_TINT);
+    cards.highlightFragment = settings.get<bool>("editor.annotationCards.highlightFragment");
+    cards.inDistractionFree = text("editor.annotationCards.distractionFree") != "hide";
 
     m_bookEditor->setAppearance(appearance);
 

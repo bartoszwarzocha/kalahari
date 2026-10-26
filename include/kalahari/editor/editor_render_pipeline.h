@@ -20,6 +20,7 @@
 #include <QObject>
 #include <QPolygonF>
 #include <QRect>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -333,6 +334,39 @@ public:
     void setSpokenWord(int paragraph, int offset, int length);
 
     // =========================================================================
+    // What the view adds to the text
+    // =========================================================================
+
+    /// @brief Draws what a paragraph has in the room under its text (the cards of its
+    ///        annotations)
+    ///
+    /// Called after the paragraph's text, with the painter in the paragraph's coordinates,
+    /// zoomed as its text, and as faint as Focus makes the marks of a dimmed paragraph.
+    using ParagraphDecorator = std::function<void(QPainter* painter, size_t paragraph)>;
+
+    /// @brief Set what draws the room under the paragraphs (an empty one: nothing)
+    void setParagraphDecorator(ParagraphDecorator decorator);
+
+    /// @brief A fragment of the text shown in a color: a fill under it, a line along its
+    ///        bottom (the fragment of the annotation whose card the mouse is on)
+    struct FragmentHighlight {
+        CursorPosition start;  ///< Where it starts
+        CursorPosition end;    ///< Where it ends
+        QColor fill;           ///< Under the text
+        QColor line;           ///< Along its bottom
+
+        bool operator==(const FragmentHighlight& other) const = default;
+    };
+
+    /// @brief Show a fragment of the text in a color (std::nullopt: none)
+    void setFragmentHighlight(const std::optional<FragmentHighlight>& highlight);
+
+    /// @brief The fragment shown in a color, if any
+    const std::optional<FragmentHighlight>& fragmentHighlight() const {
+        return m_fragmentHighlight;
+    }
+
+    // =========================================================================
     // Main Render Entry Point (Stage 3+4)
     // =========================================================================
 
@@ -498,6 +532,12 @@ private:
     /// @brief Draw the marks of the annotations (under the text, which stays readable)
     void renderAnnotationMarks(QPainter* painter, const QRect& clipRect);
 
+    /// @brief Draw the fragment shown in a color (under the text)
+    void renderFragmentHighlight(QPainter* painter);
+
+    /// @brief Draw what a paragraph has in the room under its text (the decorator)
+    void renderParagraphDecoration(QPainter* painter, size_t index, double widgetY);
+
     /// @brief Render cursor
     void renderCursor(QPainter* painter);
 
@@ -545,6 +585,8 @@ private:
     SelectionRange m_selection;                  ///< Current selection
     std::optional<CursorPosition> m_dropCaret;   ///< Drop point of dragged text
     std::optional<ParagraphHighlight> m_spokenWord;  ///< Word being read aloud
+    std::optional<FragmentHighlight> m_fragmentHighlight;  ///< Fragment shown in a color
+    ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
 
     // External components (not owned)
     ViewportManager* m_viewportManager = nullptr;
