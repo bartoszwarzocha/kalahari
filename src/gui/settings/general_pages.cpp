@@ -4,6 +4,7 @@
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
+#include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/core/theme_manager.h"
 
@@ -79,6 +80,30 @@ AppearanceGeneralPage::AppearanceGeneralPage(QWidget* parent)
                                   "show: a tab of its own next to Properties, or the lower part "
                                   "of the Properties panel, which folds"));
     addField(panels, tr("Paragraph and styles:"), paragraphPlace, DockCoordinator::PARAGRAPH_PLACE_KEY);
+
+    // The tabs of panels docked one over another (PanelTabs)
+    auto* tabLook = new QComboBox();
+    tabLook->addItem(tr("Icons only"), QString::fromLatin1(PanelTabs::LOOK_ICONS));
+    tabLook->addItem(tr("Icons and names"), QString::fromLatin1(PanelTabs::LOOK_ICONS_AND_NAMES));
+    tabLook->addItem(tr("Names only"), QString::fromLatin1(PanelTabs::LOOK_NAMES));
+    tabLook->setToolTip(tr("What the tabs of the panels show"));
+    addField(panels, tr("Panel tabs:"), tabLook, PanelTabs::LOOK_KEY);
+
+    auto* tabRows = new QComboBox();
+    tabRows->addItem(tr("Wrap to the next row"), QString::fromLatin1(PanelTabs::ROWS_WRAP));
+    tabRows->addItem(tr("Keep one row"), QString::fromLatin1(PanelTabs::ROWS_SINGLE));
+    tabRows->setToolTip(tr("Tabs that do not fit the width of the panel: in more rows, or in "
+                           "one row with shortened names"));
+    addField(panels, tr("When tabs do not fit:"), tabRows, PanelTabs::ROWS_KEY);
+
+    auto* tabSide = new QComboBox();
+    tabSide->addItem(tr("Above the panels"), QString::fromLatin1(PanelTabs::SIDE_ABOVE));
+    tabSide->addItem(tr("Below the panels"), QString::fromLatin1(PanelTabs::SIDE_BELOW));
+    tabSide->setToolTip(tr("Where the tabs are: above the panel in front, or under it"));
+    addField(panels, tr("Tab position:"), tabSide, PanelTabs::SIDE_KEY);
+
+    addNote(panels, tr("With icons only, the name of a panel is in its tooltip. In one row, "
+                       "names that do not fit are shortened."));
 
     pageLayout()->addStretch();
 }

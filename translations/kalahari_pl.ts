@@ -3828,6 +3828,62 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>Paragraph and styles:</source>
         <translation>Akapit i style:</translation>
     </message>
+    <message>
+        <source>Icons only</source>
+        <translation>Same ikony</translation>
+    </message>
+    <message>
+        <source>Icons and names</source>
+        <translation>Ikony i nazwy</translation>
+    </message>
+    <message>
+        <source>Names only</source>
+        <translation>Same nazwy</translation>
+    </message>
+    <message>
+        <source>What the tabs of the panels show</source>
+        <translation>Co pokazują zakładki paneli</translation>
+    </message>
+    <message>
+        <source>Panel tabs:</source>
+        <translation>Zakładki paneli:</translation>
+    </message>
+    <message>
+        <source>Wrap to the next row</source>
+        <translation>Przenoś do kolejnego wiersza</translation>
+    </message>
+    <message>
+        <source>Keep one row</source>
+        <translation>Zostaw w jednym wierszu</translation>
+    </message>
+    <message>
+        <source>Tabs that do not fit the width of the panel: in more rows, or in one row with shortened names</source>
+        <translation>Zakładki, które nie mieszczą się w szerokości panelu: w kolejnych wierszach albo w jednym wierszu ze skróconymi nazwami</translation>
+    </message>
+    <message>
+        <source>When tabs do not fit:</source>
+        <translation>Gdy się nie mieszczą:</translation>
+    </message>
+    <message>
+        <source>Above the panels</source>
+        <translation>Nad panelami</translation>
+    </message>
+    <message>
+        <source>Below the panels</source>
+        <translation>Pod panelami</translation>
+    </message>
+    <message>
+        <source>Where the tabs are: above the panel in front, or under it</source>
+        <translation>Gdzie są zakładki: nad panelem z przodu albo pod nim</translation>
+    </message>
+    <message>
+        <source>Tab position:</source>
+        <translation>Położenie zakładek:</translation>
+    </message>
+    <message>
+        <source>With icons only, the name of a panel is in its tooltip. In one row, names that do not fit are shortened.</source>
+        <translation>Przy samych ikonach nazwa panelu jest w podpowiedzi. W jednym wierszu za długie nazwy się skracają.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AssistantPanel</name>
@@ -7182,6 +7238,13 @@ Szczegóły są w dzienniku programu.</translation>
         <source>&amp;Grouping</source>
         <extracomment>Whether the Workshop has its cards in Libraries and its materials in Resources. In Polish: &amp;Grupowanie</extracomment>
         <translation>&amp;Grupowanie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PanelTabBar</name>
+    <message>
+        <source>Panel tabs</source>
+        <translation>Zakładki paneli</translation>
     </message>
 </context>
 <context>

@@ -38,6 +38,13 @@ std::map<std::string, json> buildDefaults() {
         // The Log button of the Panels toolbar, for those who read the log (Settings >
         // Advanced > Log); View > Panels > Log (F4) opens the panel anyway
         {"panels.showLogButton", false},
+        // The tabs of panels docked one over another (Settings > Appearance > General): icons
+        // alone ("icons"), icons and names ("iconsAndNames") or names alone ("names"); in more
+        // rows when they do not fit ("wrap") or in one row with shortened names ("single");
+        // above the panels ("above") or under them ("below")
+        {"panels.tabLook", "icons"},
+        {"panels.tabRows", "wrap"},
+        {"panels.tabSide", "above"},
         {"recent_files", json::array()},
 
         // Interface

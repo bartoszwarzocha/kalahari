@@ -128,6 +128,7 @@ set(TEST_SOURCES
     gui/test_editor_settings.cpp                 # Editors follow the editor settings
     gui/test_annotations_panel.cpp               # Annotations panel and its coordinator
     gui/test_dock_layout.cpp                     # The panels on the right: Annotations on top
+    gui/test_panel_tabs.cpp                      # The tabs of the panels: icons, names, rows, side
     gui/test_fitting_widgets.cpp                 # Widgets that fit a small screen
     gui/test_dashboard_panel.cpp                 # The Dashboard on a small screen
     gui/test_wrapping_labels.cpp                 # Labels that wrap on a narrow panel
@@ -263,6 +264,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/auto_correct_coordinator.cpp  # Auto-correct turned on and off as a whole
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_keys.cpp            # A toolbar gives the keys back after a command
     ${CMAKE_SOURCE_DIR}/src/gui/dock_coordinator.cpp        # The panels of the main window and their layout
+    ${CMAKE_SOURCE_DIR}/src/gui/panel_tabs.cpp              # The program's own tabs of the docked panels
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/panel_tab_bar.cpp   # The tabs of a group of panels
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # The Navigator's requests
     ${CMAKE_SOURCE_DIR}/src/gui/document_coordinator.cpp    # Save All and the document commands
     ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Panels of DockCoordinator
@@ -372,6 +375,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panel_tabs.h  # PanelTabs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/panel_tab_bar.h  # PanelTabBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator, Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # Panels of DockCoordinator with Q_OBJECT

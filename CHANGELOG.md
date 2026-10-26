@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The tabs of the panels: icons, names or both, in one row or more** - 2026-10-26.
+  Panels docked one over another have tabs of the program's own in place of Qt's, which
+  showed the names alone in one row and shortened them to a few letters. By default the tabs
+  show the panels' icons alone, above the title of the panel in front, with each panel's name
+  and keys in its tooltip. Settings > Appearance > General > Panels chooses what the tabs
+  show (icons only, icons and names, names only), what happens when they do not fit the
+  width of the panel (they wrap to the next row, or stay in one row with shortened names) and
+  where they are (above the panels or below them). The tab of the panel in front is marked
+  with a line on its side toward the panel, in the colors of the theme. A click or the arrow
+  keys, Home and End bring a panel to the front, and a tab dragged to another place moves its
+  panel in the group; a click on the tabs never floats the panel. A floating panel, or one
+  left alone, has no tabs.
+
 - **Paragraph styles, a horizontal line and the breaks, the formatting marks** - 2026-10-19.
   Format > Text Style puts the paragraphs of the cursor or the selection in a style of the
   book's type, as one step of Undo: Heading 1, 2 and 3 (Alt+1, Alt+2, Alt+3; on macOS
