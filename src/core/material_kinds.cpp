@@ -4,6 +4,7 @@
 
 #include "kalahari/core/material_kinds.h"
 
+#include <QFileInfo>
 #include <QMimeDatabase>
 #include <QMimeType>
 #include <QSet>
@@ -49,6 +50,19 @@ const QSet<QString>& documentTypes() {
     return types;
 }
 
+/// The suffixes of the documents of documentTypes(), in small letters: the database of the
+/// types that Qt brings on Windows and macOS does not take notes.md for Markdown
+const QSet<QString>& documentSuffixes() {
+    static const QSet<QString> suffixes{
+        QStringLiteral("pdf"),  QStringLiteral("txt"),      QStringLiteral("md"),
+        QStringLiteral("mkd"),  QStringLiteral("markdown"), QStringLiteral("csv"),
+        QStringLiteral("rtf"),  QStringLiteral("doc"),      QStringLiteral("docx"),
+        QStringLiteral("xls"),  QStringLiteral("xlsx"),     QStringLiteral("ppt"),
+        QStringLiteral("pptx"), QStringLiteral("odt"),      QStringLiteral("ods"),
+        QStringLiteral("odp"),  QStringLiteral("epub")};
+    return suffixes;
+}
+
 /// The last part of the path of @p url that is not empty, decoded
 QString lastPart(const QUrl& url) {
     const QStringList parts =
@@ -90,6 +104,9 @@ QString MaterialKinds::ofFile(const QString& path) {
         if (documents.contains(alias)) {
             return QString::fromLatin1(DOCUMENT);
         }
+    }
+    if (documentSuffixes().contains(suffixOf(QFileInfo(path).fileName()))) {
+        return QString::fromLatin1(DOCUMENT);
     }
     return QString::fromLatin1(OTHER_FILE);
 }
