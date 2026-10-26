@@ -161,6 +161,7 @@ void insertAnnotatedDocument(QTextCursor& cursor, QTextDocument& content,
         putFormatUnder(content, under);
     }
     prepareForInsertion(content, document, fragments);
+    giveListsNewIds(content, document);
 
     // The annotations on the start of the first paragraph go on the place of the text
     const AnnotationList startPlaces = annotationsOf(content.firstBlock().charFormat());
