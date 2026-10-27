@@ -52,7 +52,7 @@ constexpr int CARD_GAP = 4;       ///< Between the lines of the card and its but
 constexpr double CARD_RADIUS = 5.0;
 
 /// @brief How opaque the background of the repeated words of a card is
-constexpr double MARK_ALPHA = 0.35;
+constexpr float MARK_ALPHA = 0.35F;
 
 /// @brief The words of the list of the most frequent ones
 enum WordColumn { WORD_COLUMN = 0, COUNT_COLUMN = 1, SHARE_COLUMN = 2 };

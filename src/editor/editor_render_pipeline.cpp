@@ -49,8 +49,8 @@ constexpr double MARK_HIT_SIZE = 14.0;
 
 /// How opaque the background of a repeated word is, and of one chosen in the Repetitions
 /// panel: the text stays readable on a light and a dark paper
-constexpr double REPETITION_ALPHA = 0.3;
-constexpr double CURRENT_REPETITION_ALPHA = 0.45;
+constexpr float REPETITION_ALPHA = 0.3F;
+constexpr float CURRENT_REPETITION_ALPHA = 0.45F;
 
 /// The line a place is on: of the character before it for a place after text (the end of
 /// a wrapped line belongs to that line, not to the next one)
