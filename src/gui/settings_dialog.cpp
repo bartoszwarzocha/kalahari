@@ -96,7 +96,7 @@ void SettingsDialog::createNavigationTree() {
         item->setExpanded(true);
         return item;
     };
-    addPage(nullptr, tr("General"), [this]() {
+    m_pageItems[GENERAL_PAGE] = addPage(nullptr, tr("General"), [this]() {
         auto* generalPage = new GeneralPage();
         connect(generalPage, &GeneralPage::lengthUnitChanged, this,
                 [this](const QString& unit) { setLengthUnit(lengthUnitFromName(unit)); });

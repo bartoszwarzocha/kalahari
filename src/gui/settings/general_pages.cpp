@@ -4,6 +4,7 @@
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/core/theme_manager.h"
 
@@ -30,6 +31,36 @@ GeneralPage::GeneralPage(QWidget* parent)
     QCheckBox* autoLoad = addCheckBox(startup, tr("Open last book on startup"),
                                       "startup.autoLoadLastProject");
     autoLoad->setToolTip(tr("Automatically open the most recently used book when Kalahari starts"));
+
+    // The windows of their own of the tabs of the texts (DocumentWindows)
+    //: Settings > General: the group of the options of the windows. In Polish: Okna
+    QFormLayout* windows = addGroup(tr("Windows"));
+    auto* detachedLook = new QComboBox();
+    //: Settings > General > Windows: a tab moved to a window of its own shows the menus, the
+    //: toolbars and the status bar. In Polish: Pełne okno
+    detachedLook->addItem(tr("Full window"), QStringLiteral("full"));
+    //: The Format toolbar and the status bar. In Polish: Samo pisanie
+    detachedLook->addItem(tr("Writing only"), QStringLiteral("writing"));
+    //: In Polish: Pełne okno: menu, paski narzędzi i pasek stanu, jak w oknie książki. Samo
+    //: pisanie: pasek formatowania i pasek stanu.
+    detachedLook->setToolTip(tr("Full window: the menus, the toolbars and the status bar, as in "
+                                "the book window. Writing only: the Format toolbar and the "
+                                "status bar."));
+    //: In Polish: Wygląd oderwanego okna:
+    addField(windows, tr("Detached window:"), detachedLook, DocumentWindows::LOOK_KEY);
+    auto* detachedClose = new QComboBox();
+    //: In Polish: Karty wracają do okna książki
+    detachedClose->addItem(tr("Its tabs return to the book window"), QStringLiteral("return"));
+    //: In Polish: Teksty się zamykają
+    detachedClose->addItem(tr("Its texts close"), QStringLiteral("close"));
+    detachedClose->setToolTip(tr("What closing a window of its own of tabs does to its texts; "
+                                 "unsaved changes are asked about"));
+    //: In Polish: Zamknięcie oderwanego okna:
+    addField(windows, tr("Closing a detached window:"), detachedClose,
+             DocumentWindows::CLOSING_KEY);
+    //: In Polish: Kartę odrywa się, przeciągając ją poza pasek kart albo z menu Okno.
+    addNote(windows, tr("A tab goes to a window of its own when it is dragged off the bar of "
+                        "the tabs, or from the Window menu."));
 
     QFormLayout* units = addGroup(tr("Units"));
     auto* lengthUnit = new QComboBox();

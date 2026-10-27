@@ -27,6 +27,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/diagnostic_menus.h"
 #include "kalahari/gui/dock_coordinator.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/navigator_coordinator.h"
@@ -231,6 +232,8 @@ public:
 
         registerAllCommands(CommandCallbacks{});
         CommandRegistry& registry = CommandRegistry::getInstance();
+        // Window, as MainWindow registers it
+        DocumentWindows::registerCommands(registry, []() -> DocumentWindows* { return nullptr; });
         m_builder.buildMenuBar(registry, &m_window);
         QMenu* fileMenu = m_builder.getMenu("FILE");
         auto* recentBooks = new RecentBooksMenu(fileMenu);

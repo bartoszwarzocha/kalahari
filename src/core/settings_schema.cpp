@@ -92,6 +92,11 @@ std::map<std::string, json> buildDefaults() {
         // created or imported without opening is the first of the recent books but not this
         // one. Empty: the first of the recent books
         {"startup.lastBook", ""},
+        // A tab moved to a window of its own: the window shows the menus and the toolbars of the
+        // book window ("full") or the Format toolbar ("writing"); closing it takes its texts back
+        // to the book window ("return") or closes them ("close")
+        {"window.detached.look", "full"},
+        {"window.detached.close", "return"},
 
         // Annotations: the name new ones are made with. Empty: by no one named
         {"annotations.author", ""},

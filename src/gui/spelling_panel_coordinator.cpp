@@ -3,6 +3,7 @@
 ///        does with them, and when the panel shows
 
 #include "kalahari/gui/spelling_panel_coordinator.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
@@ -83,7 +84,7 @@ SpellingPanelCoordinator::SpellingPanelCoordinator(SpellingPanel* panel, QDockWi
     m_refreshTimer->setInterval(REFRESH_DELAY_MS);
     connect(m_refreshTimer, &QTimer::timeout, this, &SpellingPanelCoordinator::refresh);
 
-    connect(m_centralTabs, &QTabWidget::currentChanged, this,
+    connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
             &SpellingPanelCoordinator::onCurrentTabChanged);
 
     // What the writer does in the panel
@@ -164,7 +165,7 @@ SpellingPanelCoordinator::~SpellingPanelCoordinator() {
 // =============================================================================
 
 editor::BookEditor* SpellingPanelCoordinator::currentEditor() const {
-    auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->currentWidget());
+    auto* panel = qobject_cast<EditorPanel*>(DocumentWindows::of(*m_centralTabs).frontPage());
     return panel != nullptr ? panel->getBookEditor() : nullptr;
 }
 
@@ -235,7 +236,7 @@ void SpellingPanelCoordinator::refresh() {
     editor::BookEditor* editor = m_editor;
     std::optional<core::KindWords> inFront;
     if (editor != nullptr) {
-        auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->currentWidget());
+        auto* panel = qobject_cast<EditorPanel*>(DocumentWindows::of(*m_centralTabs).frontPage());
         const QString elementId =
             panel != nullptr ? panel->property("elementId").toString() : QString();
         const core::ProjectElement* element =
