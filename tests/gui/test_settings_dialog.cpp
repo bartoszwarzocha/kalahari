@@ -192,6 +192,14 @@ TEST_CASE("Settings dialog: the gears of the panels open it at their pages", "[g
     CHECK(tree->currentItem()->text(0) == QStringLiteral("Annotations"));
     CHECK(tree->currentItem()->parent() == nullptr);
 
+    // The gear of the Link dialog: Editor > Colors, where the color of links is
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::EDITOR_COLORS_PAGE)));
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Colors"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE)));
+
     // A page the dialog does not have leaves the page shown
     CHECK_FALSE(dialog.openPage(QStringLiteral("nowhere")));
     CHECK(tree->currentItem()->text(0) == QStringLiteral("Annotations"));

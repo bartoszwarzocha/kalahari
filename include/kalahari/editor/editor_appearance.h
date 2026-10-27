@@ -95,6 +95,17 @@ struct EditorColors {
         return mode == EditorColorMode::Light ? formattingMarks.light : formattingMarks.dark;
     }
 
+    /// @brief The text of links, unless it has a color of its own
+    struct LinkColors {
+        QColor light{5, 99, 193};                ///< On the light paper (as in Word)
+        QColor dark{138, 180, 248};              ///< On the dark paper
+    } links;
+
+    /// @brief The links' color on the paper of a mode
+    QColor linkColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? links.light : links.dark;
+    }
+
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on
     /// that paper; not valid: the text's color)
     struct AnnotationColors {

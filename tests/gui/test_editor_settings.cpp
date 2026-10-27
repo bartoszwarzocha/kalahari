@@ -433,6 +433,28 @@ TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the sce
     restore(before);
 }
 
+TEST_CASE("Editor settings: the color of links on each paper, and links made by autocorrect",
+          "[gui][editor][settings][links]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.colors.linkLight", "editor.colors.linkDark",
+                                  "editor.autoCorrect.links"});
+    gui::EditorPanel panel;
+    const editor::BookEditor* bookEditor = panel.getBookEditor();
+    CHECK(bookEditor->appearance().colors.links.light == QColor(QStringLiteral("#0563c1")));
+    CHECK(bookEditor->appearance().colors.links.dark == QColor(QStringLiteral("#8ab4f8")));
+    CHECK(bookEditor->autoCorrect().links);
+
+    settings.set<std::string>("editor.colors.linkLight", "#123456");
+    settings.set<std::string>("editor.colors.linkDark", "#abcdef");
+    settings.set<bool>("editor.autoCorrect.links", false);
+    QCoreApplication::processEvents();
+    CHECK(bookEditor->appearance().colors.links.light == QColor(QStringLiteral("#123456")));
+    CHECK(bookEditor->appearance().colors.links.dark == QColor(QStringLiteral("#abcdef")));
+    CHECK_FALSE(bookEditor->autoCorrect().links);
+
+    restore(before);
+}
+
 TEST_CASE("Settings dialog: the look of the scene breaks, with its preview, and the color of the "
           "formatting marks",
           "[gui][settings][marks]") {

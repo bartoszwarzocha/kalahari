@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Links** - 2026-10-27. Insert > Link... (Ctrl+K) makes the selected text, or a new text at
+  the cursor, a link to a web page or an e-mail address: a window with the text to display and
+  the address ("www.example.com" gets https://, "jan@example.com" mailto:). On a link the window
+  edits it and has Remove Link. A link is drawn underlined in the link color of the paper, which
+  Settings > Editor > Colors chooses (the gear of the window opens that page); its tooltip shows
+  the address, and Ctrl+click opens it in the browser. The context menu of a link has Edit
+  Hyperlink..., Open Hyperlink, Copy Hyperlink and Remove Hyperlink. Text typed after a link is
+  not a part of it. Kalahari opens only the addresses of web pages, file servers and e-mail
+  (http, https, ftp, mailto). Autocorrect makes an address typed with www., http:// or https://,
+  and an e-mail address, a link when a space or Enter follows it (Settings > Editor >
+  Auto-correct, "Internet addresses with links"; undone right after, it stays text). Copied
+  links go to Word, LibreOffice and browsers as their links; their links to pages and e-mail
+  addresses are pasted as links. KML has `<a href="...">` (docs/kml_format.md).
+
+- **Dialogs: the gear opens their settings** - 2026-10-27. A dialog with settings of its own in
+  the Settings window has a gear in its heading that opens the Settings window at their page;
+  the first is the Link window (Editor > Colors).
+
 - **Lists: Numbering and Bullets** - 2026-10-26. Format > Numbering (F12) and Bullets
   (Shift+F12) make the selected paragraphs a list, change its kind or take them out of it; a
   paragraph next to a list of the same kind joins it. Enter starts the next item, in an empty

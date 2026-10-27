@@ -7,6 +7,7 @@
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/text_lists.h>
+#include <kalahari/editor/text_link.h>
 #include "book_editor_internal.h"
 #include <QColor>
 #include <QFont>
@@ -983,6 +984,11 @@ private:
             source.fontCapitalization() == QFont::AllUppercase) {
             format.setFontCapitalization(source.fontCapitalization());
         }
+        // A link to a page or an e-mail address; not one to a place in the source page, nor
+        // a script
+        if (source.isAnchor() && isOpenableLinkAddress(source.anchorHref())) {
+            setLinkAddress(format, source.anchorHref().trimmed());
+        }
         if (m_mode != PasteMode::Source) {
             return format;
         }
@@ -1391,6 +1397,14 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                     element = {true, true};
                     emptyParagraph = true;
                     endsWithBreak = false;
+                } else if (tag == QStringLiteral("a")) {
+                    // A link the other program may open: to a page or an e-mail address
+                    const QString address = attrs.value(QStringLiteral("href")).toString().trimmed();
+                    if (isOpenableLinkAddress(address)) {
+                        writer.writeStartElement(QStringLiteral("a"));
+                        writer.writeAttribute(QStringLiteral("href"), address);
+                        element.written = true;
+                    }
                 } else if (KmlFormatRegistry::isFormattingTag(tag)) {
                     const QString name = KmlFormatRegistry::canonicalFormattingTag(tag);
                     const QString style = inlineStyleCss(attrs);

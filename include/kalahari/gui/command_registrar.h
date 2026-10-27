@@ -101,6 +101,7 @@ struct CommandCallbacks {
     // Format > Font... and Paragraph..., the windows of the selected text and paragraphs
     std::function<void()> onFont;               ///< Format > Font...
     std::function<void()> onParagraph;          ///< Format > Paragraph...
+    std::function<void()> onInsertLink;         ///< Insert > Link... (also edits a link)
 
     // Format > Text Effects
     std::function<void()> onSuperscript;        ///< Format > Text Effects > Superscript

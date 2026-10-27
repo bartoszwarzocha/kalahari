@@ -3348,6 +3348,27 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>Bullets and Numberin&amp;g...</source>
         <translation>Punktory i nume&amp;racja...</translation>
     </message>
+    <message>
+        <source>%1click to open the link</source>
+        <extracomment>%1 is the key held for the click: "Ctrl+" (on macOS "⌘")</extracomment>
+        <translation>%1kliknięcie otwiera łącze</translation>
+    </message>
+    <message>
+        <source>Edit &amp;Hyperlink...</source>
+        <translation>E&amp;dytuj łącze...</translation>
+    </message>
+    <message>
+        <source>&amp;Open Hyperlink</source>
+        <translation>&amp;Otwórz łącze</translation>
+    </message>
+    <message>
+        <source>Cop&amp;y Hyperlink</source>
+        <translation>Ko&amp;piuj łącze</translation>
+    </message>
+    <message>
+        <source>Remove Hyperl&amp;ink</source>
+        <translation>&amp;Usuń łącze</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -5249,6 +5270,14 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <source>“***” and “---” are typed in an empty paragraph, “*” and “1.” at the start of a paragraph; the list starts from the number typed.</source>
         <translation>„***” i „---” wpisuje się w pustym akapicie, a „*” i „1.” na początku akapitu; lista zaczyna się od wpisanego numeru.</translation>
     </message>
+    <message>
+        <source>Internet addresses with links</source>
+        <translation>Adres internetowy na łącze</translation>
+    </message>
+    <message>
+        <source>An address that starts with www., http:// or https://, and an e-mail address, becomes a link when a space or Enter is typed after it.</source>
+        <translation>Adres, który zaczyna się od www., http:// lub https://, oraz adres e-mail zmieniają się w łącze, gdy po nich wpisze się spację lub naciśnie Enter.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorColorsPage</name>
@@ -5289,6 +5318,10 @@ Tryb kolorów edytora nie zależy od motywu programu.</translation>
     <message>
         <source>Formatting marks</source>
         <translation>Znaki formatowania</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Łącza</translation>
     </message>
 </context>
 <context>
@@ -6179,6 +6212,14 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <source>Auto-correct no longer changes “%1”: it is among the exceptions now.</source>
         <extracomment>%1 is a word with two capitals at its start, as "PCs"</extracomment>
         <translation>Autokorekta nie zmienia już „%1”: to słowo jest teraz wśród wyjątków.</translation>
+    </message>
+    <message>
+        <source>Kalahari opens only the addresses of web pages and e-mail addresses: %1</source>
+        <translation>Kalahari otwiera tylko adresy stron internetowych i adresy e-mail: %1</translation>
+    </message>
+    <message>
+        <source>The address could not be opened: %1</source>
+        <translation>Nie udało się otworzyć adresu: %1</translation>
     </message>
 </context>
 <context>
@@ -13006,6 +13047,42 @@ Harmonogram projektu:
     <message>
         <source>Apply</source>
         <translation>Zastosuj</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::LinkDialog</name>
+    <message>
+        <source>Link</source>
+        <translation>Łącze</translation>
+    </message>
+    <message>
+        <source>The text of the link and the address of the web page.</source>
+        <translation>Tekst łącza i adres strony internetowej.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Link Color Settings</source>
+        <translation>Ustawienia koloru łączy</translation>
+    </message>
+    <message>
+        <source>&amp;Text to display</source>
+        <translation>&amp;Tekst do wyświetlenia</translation>
+    </message>
+    <message>
+        <source>&amp;Address</source>
+        <translation>&amp;Adres</translation>
+    </message>
+    <message>
+        <source>%1click on a link in the text opens its address in the browser.</source>
+        <extracomment>%1 is the key held for the click: "Ctrl+" (on macOS "⌘")</extracomment>
+        <translation>%1kliknięcie łącza w tekście otwiera jego adres w przeglądarce.</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Link</source>
+        <translation>&amp;Usuń łącze</translation>
     </message>
 </context>
 <context>

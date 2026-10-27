@@ -50,12 +50,14 @@ QColor highlightColorOf(const QTextCharFormat& format);
 // saved colors stay as they are
 // =============================================================================
 
-/// @brief Text of a paragraph with colors of its own
+/// @brief Text of a paragraph with colors of its own, or of a link (drawn in the link color
+///        unless it has a color of its own, and underlined)
 struct ColoredText {
     int start = 0;
     int length = 0;
     QColor color;      ///< Invalid: automatic
     QColor highlight;  ///< Invalid: none
+    bool link = false; ///< Text of a link (text_link.h)
 
     bool operator==(const ColoredText&) const = default;
 };

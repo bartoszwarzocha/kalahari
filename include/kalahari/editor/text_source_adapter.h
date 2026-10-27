@@ -82,7 +82,8 @@ public:
         return {};
     }
 
-    /// @brief The text of a paragraph with colors of its own (character_format.h)
+    /// @brief The text of a paragraph with colors of its own, and of its links
+    ///        (character_format.h)
     /// @param index Paragraph index (0-based)
     /// @note Sources without formats have none
     virtual std::vector<ColoredText> paragraphColors(size_t /*index*/) const { return {}; }

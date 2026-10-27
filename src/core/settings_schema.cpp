@@ -201,10 +201,12 @@ std::map<std::string, json> buildDefaults() {
         {"editor.colors.textLight", "#1e1e1e"},
         {"editor.colors.inactiveLight", "#aaaaaa"},
         {"editor.colors.formattingMarksLight", "#5b7fc0"},
+        {"editor.colors.linkLight", "#0563c1"},
         {"editor.colors.backgroundDark", "#232328"},
         {"editor.colors.textDark", "#e0e0e0"},
         {"editor.colors.inactiveDark", "#78787d"},
         {"editor.colors.formattingMarksDark", "#7a96d0"},
+        {"editor.colors.linkDark", "#8ab4f8"},
 
         // Editor: cursor
         {"editor.cursor.style", 0},
@@ -287,6 +289,9 @@ std::map<std::string, json> buildDefaults() {
         // numbered list
         {"editor.autoCorrect.bulletedLists", true},
         {"editor.autoCorrect.numberedLists", true},
+        // An Internet address typed in the text ("www.example.com", "https://...", an e-mail
+        // address) to a link, as a space or Enter ends it
+        {"editor.autoCorrect.links", true},
 
         // The replacement table: pairs of a word and its replacement, each one on or off
         // (the program's own pairs too; "Restore Defaults" brings back these)
