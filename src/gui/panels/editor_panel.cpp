@@ -4,6 +4,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/font_dialog.h"
+#include "kalahari/gui/dialogs/link_dialog.h"
 #include "kalahari/gui/dialogs/list_dialogs.h"
 #include "kalahari/gui/dialogs/paragraph_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -24,11 +25,14 @@
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/statistics_collector.h"
+#include "kalahari/editor/text_link.h"
+#include <QDesktopServices>
 #include <QEvent>
 #include <QGuiApplication>
 #include <QMainWindow>
 #include <QScreen>
 #include <QStatusBar>
+#include <QUrl>
 #include <QVBoxLayout>
 #include <algorithm>
 #include <array>
@@ -100,7 +104,8 @@ EditorPanel::EditorPanel(QWidget* parent)
         {registry.getAction(QStringLiteral("edit.cut")),
          registry.getAction(QStringLiteral("edit.copy")),
          registry.getAction(QStringLiteral("edit.paste")),
-         registry.getAction(QStringLiteral("edit.selectAll"))});
+         registry.getAction(QStringLiteral("edit.selectAll")),
+         registry.getAction(QStringLiteral("insert.link"))});
 
     // Autocorrect puts in the quotation marks of the text's language, asked when they are
     // typed: the book's language may change, and a chapter is told from a file outside the
@@ -127,6 +132,12 @@ EditorPanel::EditorPanel(QWidget* parent)
             &EditorPanel::showBulletsAndNumbering);
     connect(m_bookEditor, &editor::BookEditor::numberingValueAsked, this,
             &EditorPanel::showNumberingValue);
+
+    // The window of a link, and its address opened, asked for by its context menu or a
+    // Ctrl+click
+    connect(m_bookEditor, &editor::BookEditor::linkDialogAsked, this,
+            &EditorPanel::showLinkDialog);
+    connect(m_bookEditor, &editor::BookEditor::linkOpenAsked, this, &EditorPanel::openLink);
 
     // F7 in the menu of an issue goes on to the next one, as in the text
     m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
@@ -387,6 +398,8 @@ void EditorPanel::applySettings() {
     appearance.colors.focus.inactiveDark = color("editor.colors.inactiveDark");
     appearance.colors.formattingMarks.light = color("editor.colors.formattingMarksLight");
     appearance.colors.formattingMarks.dark = color("editor.colors.formattingMarksDark");
+    appearance.colors.links.light = color("editor.colors.linkLight");
+    appearance.colors.links.dark = color("editor.colors.linkDark");
 
     // Cursor
     appearance.cursor.style = static_cast<editor::CursorStyle>(settings.get<int>("editor.cursor.style"));
@@ -515,6 +528,7 @@ void EditorPanel::applySettings() {
     autoCorrect.horizontalRule = replaces("editor.autoCorrect.horizontalRule");
     autoCorrect.bulletedLists = replaces("editor.autoCorrect.bulletedLists");
     autoCorrect.numberedLists = replaces("editor.autoCorrect.numberedLists");
+    autoCorrect.links = replaces("editor.autoCorrect.links");
     m_bookEditor->setAutoCorrect(autoCorrect);
 
     // How text from other programs is pasted (Settings > Editor > General)
@@ -568,6 +582,37 @@ void EditorPanel::showParagraphDialog() {
         if (!changes.isEmpty() || alignment) {
             m_bookEditor->applyParagraphFormat(changes, alignment);
         }
+    }
+}
+
+void EditorPanel::showLinkDialog() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    const editor::LinkTarget target = m_bookEditor->linkTarget();
+    dialogs::LinkDialog dialog(window());
+    dialog.setLink(target.text, target.address, target.existing, target.textEditable);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    if (dialog.removeAsked()) {
+        m_bookEditor->removeLink(target);
+    } else {
+        m_bookEditor->setLink(target, dialog.text(), dialog.address());
+    }
+}
+
+void EditorPanel::openLink(const QString& address) {
+    // Only a page, a file server or a new e-mail: another address (file:, a script) could run
+    // a program on the computer
+    if (!editor::isOpenableLinkAddress(address)) {
+        showStatusMessage(
+            tr("Kalahari opens only the addresses of web pages and e-mail addresses: %1")
+                .arg(address));
+        return;
+    }
+    if (!QDesktopServices::openUrl(QUrl(address.trimmed()))) {
+        showStatusMessage(tr("The address could not be opened: %1").arg(address));
     }
 }
 

@@ -25,6 +25,7 @@
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/core/project_manager.h"
@@ -164,6 +165,12 @@ MainWindow::MainWindow(QWidget* parent)
             this, &MainWindow::enableDiagnosticMode);
     connect(m_settingsCoordinator, &SettingsCoordinator::disableDiagnosticModeRequested,
             this, &MainWindow::disableDiagnosticMode);
+    // The gear of a dialog opens the settings at the page of its settings, over the dialog
+    dialogs::KalahariDialog::setSettingsOpener([this](QWidget* dialog, const QString& page) {
+        if (m_settingsCoordinator) {
+            m_settingsCoordinator->openSettingsPage(page, dialog);
+        }
+    });
     logger.debug("MainWindow: SettingsCoordinator created");
 
     // Create NavigatorCoordinator after docks (needs DockCoordinator for panel/dock access)
@@ -526,6 +533,8 @@ MainWindow::~MainWindow() {
     disconnect(&core::ThemeManager::getInstance(), nullptr, this, nullptr);
     disconnect(&core::ArtProvider::getInstance(), nullptr, this, nullptr);
     disconnect(&core::ProjectManager::getInstance(), nullptr, this, nullptr);
+    // The dialogs' gears open the settings of this window: without it, none
+    dialogs::KalahariDialog::setSettingsOpener(nullptr);
 
     // Disconnect from coordinators (they may have timers or async operations)
     if (m_documentCoordinator) {
@@ -725,6 +734,12 @@ void MainWindow::registerCommands() {
             editor->showParagraphDialog();
         }
         updateEditorActionStates();
+    };
+    // Insert > Link...: the window of the link at the cursor, of the editor in front
+    callbacks.onInsertLink = [this]() {
+        if (EditorPanel* editor = getCurrentEditor()) {
+            editor->showLinkDialog();
+        }
     };
 
     // Alignment commands

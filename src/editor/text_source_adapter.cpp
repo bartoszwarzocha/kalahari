@@ -4,6 +4,7 @@
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_data.h>
+#include <kalahari/editor/text_link.h>
 #include <QPainter>
 #include <QTextDocument>
 #include <QTextBlock>
@@ -85,9 +86,10 @@ std::vector<ColoredText> QTextDocumentSource::paragraphColors(size_t index) cons
         const QTextFragment fragment = it.fragment();
         const QColor color = textColorOf(fragment.charFormat());
         const QColor highlight = highlightColorOf(fragment.charFormat());
-        if (color.isValid() || highlight.isValid()) {
+        const bool link = !linkAddressOf(fragment.charFormat()).isEmpty();
+        if (color.isValid() || highlight.isValid() || link) {
             colored.push_back({fragment.position() - block.position(), fragment.length(), color,
-                               highlight});
+                               highlight, link});
         }
     }
     return colored;

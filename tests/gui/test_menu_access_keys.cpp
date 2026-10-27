@@ -517,6 +517,13 @@ void checkTextMenus(bool shown, QStringList& problems) {
     QList<test::MenuItem> listMenu = contextMenu(&editor, &editor, placeOf(editor, 1));
     collectProblems(listMenu, QStringLiteral("List item"), {}, problems);
     CHECK(itemCount(listMenu) == 6 + 6);
+
+    // A link: Edit, Open, Copy and Remove Hyperlink on top of the usual menu
+    editor.fromKml(QStringLiteral("<kml><p><a href=\"https://example.com\">") + sentence() +
+                   QStringLiteral("</a></p></kml>"));
+    QList<test::MenuItem> linkMenu = contextMenu(&editor, &editor, placeOf(editor, 1));
+    collectProblems(linkMenu, QStringLiteral("Link"), {}, problems);
+    CHECK(itemCount(linkMenu) == 6 + 4);
     editor.fromKml(test::kmlOf({sentence()}));
 
     // The words for a misspelled one, from the dictionary, on top of the usual menu; the

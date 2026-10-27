@@ -158,8 +158,8 @@ QString withRootElement(const QString& kml);
 
 /// @brief Check if an element inside a paragraph contributes its text
 ///
-/// True for formatting tags, metadata tags, annotation anchors (<anchor>) and text runs
-/// (<t>, <text>). The editor skips any other element inside a paragraph together with
+/// True for formatting tags, metadata tags, annotation anchors (<anchor>), links (<a>) and
+/// text runs (<t>, <text>). The editor skips any other element inside a paragraph together with
 /// everything in it.
 /// @param tag The tag name
 /// @return true if the element's text belongs to the paragraph

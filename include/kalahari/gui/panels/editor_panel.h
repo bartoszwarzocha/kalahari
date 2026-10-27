@@ -143,6 +143,16 @@ public:
     ///        cursor; OK gives the selected paragraphs what the writer changed
     void showParagraphDialog();
 
+    /// @brief Insert > Link... (Ctrl+K), also Edit Hyperlink of a link's context menu: the
+    ///        window of the link at the cursor (BookEditor::linkTarget()); OK makes the link,
+    ///        Remove Link takes it off the text
+    void showLinkDialog();
+
+    /// @brief Open a link's address in the system's program (a Ctrl+click, Open Hyperlink):
+    ///        a page, a file server or a new e-mail; another address is refused with a
+    ///        message in the status bar (editor::isOpenableLinkAddress())
+    void openLink(const QString& address);
+
 signals:
     /// @brief Emitted when editor content changes
     ///

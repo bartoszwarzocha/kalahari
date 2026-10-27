@@ -74,6 +74,9 @@ struct RenderColors {
     /// @brief The formatting marks (¶ · ° → ↵ ¬)
     QColor formattingMarks{91, 127, 192};
 
+    /// @brief The text of links (underlined in it), unless it has a color of its own
+    QColor link{5, 99, 193};
+
     /// @brief Check if colors are equal
     bool operator==(const RenderColors& other) const {
         return text == other.text &&
@@ -91,7 +94,8 @@ struct RenderColors {
                annotationComment == other.annotationComment &&
                annotationTodo == other.annotationTodo &&
                annotationNote == other.annotationNote &&
-               formattingMarks == other.formattingMarks;
+               formattingMarks == other.formattingMarks &&
+               link == other.link;
     }
 
     bool operator!=(const RenderColors& other) const {

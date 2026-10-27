@@ -275,11 +275,13 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
     color(light, tr("Text"), "editor.colors.textLight");
     color(light, tr("Inactive (Focus mode)"), "editor.colors.inactiveLight");
     color(light, tr("Formatting marks"), "editor.colors.formattingMarksLight");
+    color(light, tr("Links"), "editor.colors.linkLight");
     QFormLayout* dark = addGroup(tr("Dark Mode Colors"));
     color(dark, tr("Background"), "editor.colors.backgroundDark");
     color(dark, tr("Text"), "editor.colors.textDark");
     color(dark, tr("Inactive (Focus mode)"), "editor.colors.inactiveDark");
     color(dark, tr("Formatting marks"), "editor.colors.formattingMarksDark");
+    color(dark, tr("Links"), "editor.colors.linkDark");
 
     pageLayout()->addStretch();
 }

@@ -114,8 +114,9 @@ public:
     /// Paragraphs in the style "quote" or "block_quote" go in a blockquote, the other
     /// styles are plain paragraphs. A horizontal line is an hr, a scene break a centered
     /// paragraph of its look (a short hr for "line", an empty paragraph for "blank"), and a
-    /// page break the CSS page-break-before of what follows it. Metadata tags keep only their
-    /// text.
+    /// page break the CSS page-break-before of what follows it. A link to a page or an
+    /// e-mail address (isOpenableLinkAddress()) is an a with its href, another link only its
+    /// text. Metadata tags keep only their text.
     /// The lists are ol and ul with li: the type of their numbers or bullets, the number of
     /// the first item (start) and of an item that does not go on from the one before it
     /// (value); an item without a number has none shown.
@@ -150,9 +151,10 @@ public:
     /// of Word's HTML (which Merge, as Word's Merge Formatting, leaves out). PasteMode::Text
     /// keeps the paragraphs and line breaks only. Merge and Source make the lists (ol, ul and
     /// Word's list paragraphs) lists of the editor, a list in an item a lower level of its
-    /// list; in Text a list item starts with its number or bullet. Until the editor has
-    /// them, a table row is a paragraph with its cells separated by tabs, a link is its text
-    /// and an image is left out.
+    /// list; in Text a list item starts with its number or bullet. Merge and Source keep the
+    /// links to pages and e-mail addresses (isOpenableLinkAddress()); a link to a place in the
+    /// page or a script, and any link in Text, is its text. Until the editor has them, a
+    /// table row is a paragraph with its cells separated by tabs and an image is left out.
     /// @param html HTML markup string
     /// @param mode What the KML keeps
     /// @return KML (<kml> with the paragraphs), empty without text, lines and page breaks

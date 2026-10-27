@@ -419,7 +419,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     REG_CMD("insert.image", QT_TRANSLATE_NOOP("CommandRegistrar", "&Image..."), "INSERT/Image...", 10, false, 1);
     REG_CMD("insert.table", QT_TRANSLATE_NOOP("CommandRegistrar", "Ta&ble..."), "INSERT/Table...", 20, false, 1);
-    REG_CMD("insert.link", QT_TRANSLATE_NOOP("CommandRegistrar", "&Link..."), "INSERT/Link...", 30, true, 1);
+    // A link: the window of its text and address, on a link of the text its editing (Ctrl+K,
+    // as in Word and LibreOffice)
+    REG_CMD_KEY_CB("insert.link", QT_TRANSLATE_NOOP("CommandRegistrar", "&Link..."), "INSERT/Link...", 30, true, 1,
+                   KeyboardShortcut(Qt::Key_K, Qt::ControlModifier), callbacks.onInsertLink);
 
     REG_CMD("insert.footnote", QT_TRANSLATE_NOOP("CommandRegistrar", "F&ootnote"), "INSERT/Footnote", 40, false, 1);
     REG_CMD("insert.endnote", QT_TRANSLATE_NOOP("CommandRegistrar", "&Endnote"), "INSERT/Endnote", 50, false, 1);

@@ -60,6 +60,7 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     colors.selection = appearance.colors.selection;
     colors.inactiveText = appearance.colors.focusInactiveColor(mode);
     colors.formattingMarks = appearance.colors.formattingMarksColor(mode);
+    colors.link = appearance.colors.linkColor(mode);
     const EditorColors::AnnotationColors& annotations = appearance.colors.annotations(mode);
     colors.annotationComment = annotations.comment;
     colors.annotationTodo = annotations.todo;
@@ -438,6 +439,20 @@ bool BookEditor::event(QEvent* event)
         QString text = mark && !mark->text.trimmed().isEmpty() ? mark->text : QString();
         const QString author = mark ? mark->author.trimmed() : QString();
         if (text.isEmpty() && author.isEmpty()) {
+            // A link: its address, and how to open it
+            if (const std::optional<TextLink> link = linkAt(QPointF(help->pos()))) {
+                QString address = link->address;
+                if (address.size() > MARK_TOOLTIP_LENGTH) {
+                    address = address.left(MARK_TOOLTIP_LENGTH) + QStringLiteral("...");
+                }
+                //: %1 is the key held for the click: "Ctrl+" (on macOS "⌘")
+                const QString open = tr("%1click to open the link").arg(linkClickKeys());
+                QToolTip::showText(help->globalPos(),
+                                   QStringLiteral("<p style='white-space:pre-wrap'>%1<br><b>%2</b></p>")
+                                       .arg(address.toHtmlEscaped(), open.toHtmlEscaped()),
+                                   this);
+                return true;
+            }
             QToolTip::hideText();
             event->ignore();
             return true;

@@ -46,7 +46,7 @@ CommandCallbacks runningCallbacks() {
           &callbacks.onZoomWholePage, &callbacks.onFont, &callbacks.onParagraph,
           &callbacks.onSuperscript, &callbacks.onSubscript, &callbacks.onSmallCaps,
           &callbacks.onAllCaps, &callbacks.onFontColor, &callbacks.onHighlightColor,
-          &callbacks.onCopyFormatting, &callbacks.onPasteFormatting}) {
+          &callbacks.onCopyFormatting, &callbacks.onPasteFormatting, &callbacks.onInsertLink}) {
         *callback = none;
     }
     callbacks.onParagraphStyle = [](const QString&) {};
@@ -96,7 +96,7 @@ TEST_CASE("Document commands: greyed out without a document in front, with their
     // Find, the windows and the formats, the alignments, the styles, the view mode and the
     // zoom, each with its keys
     for (const char* id : {"edit.find", "edit.findNext", "edit.findPrevious", "edit.findReplace",
-                           "format.font", "format.paragraph",
+                           "format.font", "format.paragraph", "insert.link",
                            "format.bold", "format.italic", "format.underline",
                            "format.strikethrough", "format.superscript", "format.subscript",
                            "format.smallCaps", "format.allCaps", "format.case.sentence",
@@ -156,7 +156,7 @@ TEST_CASE("Document commands: over a read-only chapter those that change it are 
     registerAllCommands(runningCallbacks());
     CHECK(utils::changingDocumentCommands() ==
           std::vector<std::string>{"edit.findReplace", "format.font", "format.paragraph",
-                                   "format.bold", "format.italic",
+                                   "insert.link", "format.bold", "format.italic",
                                    "format.underline", "format.strikethrough",
                                    "format.superscript", "format.subscript", "format.smallCaps",
                                    "format.allCaps", "format.case.sentence", "format.case.lower",

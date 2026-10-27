@@ -26,6 +26,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_issue.h>
+#include <kalahari/editor/text_link.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
 // KML → QTextDocument (with QTextCharFormat) → Render visible fragment
@@ -843,6 +844,37 @@ public:
                               std::optional<Qt::Alignment> alignment = std::nullopt);
 
     // =========================================================================
+    // Links (text_link.h)
+    // =========================================================================
+
+    /// @brief What Insert > Link (Ctrl+K) changes at the cursor
+    ///
+    /// The link the cursor is on (linkAtPosition()) or the one the selection lies in: the
+    /// dialog edits it. Else the selection, which becomes a link; its text can be changed
+    /// only within one paragraph and without objects. Without either, a new link goes in at
+    /// the cursor.
+    LinkTarget linkTarget() const;
+
+    /// @brief Make the text of a target a link to an address, as one undo step
+    ///
+    /// Text the target cannot change, or that stays as it is, keeps its place and formatting.
+    /// Else the new text takes the place of the target's, in the format of its first
+    /// character (at the cursor, of the text typed there); an empty one is the address as
+    /// written. The cursor goes after the link.
+    /// @param target What linkTarget() gave
+    /// @param text The text the link shows
+    /// @param address The address as written (normalizedLinkAddress() makes it the link's)
+    /// @return false for an empty address, or in a read-only text (changeRefused())
+    bool setLink(const LinkTarget& target, const QString& text, const QString& address);
+
+    /// @brief Take the links off the text of a target, as one undo step; the text stays
+    /// @return false when it has none, or in a read-only text (changeRefused())
+    bool removeLink(const LinkTarget& target);
+
+    /// @brief The link of the character under a point of the widget
+    std::optional<TextLink> linkAt(const QPointF& widgetPos) const;
+
+    // =========================================================================
     // Annotations: comments, TODOs and notes
     // =========================================================================
 
@@ -948,12 +980,14 @@ public:
     /// Null entries are left out.
     void setContextMenuActions(const QList<QAction*>& actions);
 
-    /// @brief The application's Cut, Copy, Paste and Select All (setContextMenuEditActions())
+    /// @brief The application's Cut, Copy, Paste and Select All, and its Insert > Link
+    ///        (setContextMenuEditActions())
     struct ContextMenuEditActions {
         QAction* cut = nullptr;
         QAction* copy = nullptr;
         QAction* paste = nullptr;
         QAction* selectAll = nullptr;
+        QAction* link = nullptr;  ///< Insert > Link, whose keys Edit Hyperlink of a link shows
     };
 
     /// @brief The commands of the Edit menu the text's context menu shows as its editing
@@ -1347,6 +1381,14 @@ signals:
     ///        formats of the list (applyListDefinition())
     void bulletsAndNumberingAsked();
 
+    /// @brief Edit Link... of the context menu of a link: the window of Insert > Link
+    ///        (linkTarget(), setLink())
+    void linkDialogAsked();
+
+    /// @brief A link was Ctrl+clicked, or Open Link chosen in its context menu
+    /// @param address The link's address; the program opens only some (isOpenableLinkAddress())
+    void linkOpenAsked(const QString& address);
+
     /// @brief Emitted when the document content changes
     ///
     /// This signal is emitted whenever text is inserted, deleted, or modified.
@@ -1487,6 +1529,9 @@ protected:
     /// characters. The shortcuts of the commands never come here: the window's actions take
     /// them first.
     void keyPressEvent(QKeyEvent* event) override;
+
+    /// @brief Ctrl let go: the pointer over a link is the I-beam again
+    void keyReleaseEvent(QKeyEvent* event) override;
 
     /// @brief Mouse press event handler (Phase 3.9/3.11)
     /// @param event The mouse event
@@ -1779,6 +1824,10 @@ private:
 
     /// @brief Whether a widget point is over the selected text (a press there may drag it)
     bool isOverSelectedText(const QPointF& widgetPos) const;
+
+    /// @brief The pointer's shape at a widget point, the mouse buttons up: a hand over an
+    ///        annotation's mark and, with Ctrl, over a link; an arrow over the selected text
+    void updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers modifiers);
 
     /// @brief Whether a position lies in the selection, its ends included
     bool isInSelection(const CursorPosition& position) const;
@@ -2125,6 +2174,11 @@ private:
     ///        brings back the typed text with the cursor at @p typed
     void applyAutoCorrection(const QTextBlock& block, const AutoCorrection& change,
                              const CursorPosition& typed);
+
+    /// @brief Make the Internet address that ends at @p end of a block a link, as an undo
+    ///        step of its own (autoLink()); text that is a link already stays as it is
+    /// @return Whether it made one
+    bool autoLinkTyped(const QTextBlock& block, int end);
 
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode

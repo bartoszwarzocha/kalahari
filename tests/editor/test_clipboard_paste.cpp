@@ -292,7 +292,8 @@ TEST_CASE("Paste: a browser's HTML in the three modes", "[editor][paste]") {
     SECTION("Merge Formatting: a heading's own weight, a link's look and pictures go") {
         CHECK(pasted(BROWSER_HTML, PasteMode::Merge) ==
               utf8(kml("<h1>A page</h1>"
-                       "<p>Text <b>strong</b> and <i>emphasized</i>, a link and code.</p>"
+                       "<p>Text <b>strong</b> and <i>emphasized</i>, "
+                       "<a href=\"https://example.com\">a link</a> and code.</p>"
                        "<p style=\"quote\">A quote</p>"
                        "<p style=\"quote\">Its second paragraph</p>"
                        "<hr/>"
@@ -310,9 +311,10 @@ TEST_CASE("Paste: a browser's HTML in the three modes", "[editor][paste]") {
         CHECK(kmlText.startsWith(QStringLiteral(
             "<kml><h1><span font=\"Segoe UI\" color=\"#1f2328\" bg=\"#ffffff\">A page</span></h1>"
             "<p><span font=\"Segoe UI\" size=\"12\" color=\"#1f2328\">Text </span>")));
-        // A link keeps its font, not its color; a generic family (monospace) is no font
-        CHECK(kmlText.contains(
-            QStringLiteral("<span font=\"Segoe UI\" size=\"12\">a link</span>")));
+        // A link keeps its address and font, not its color; a generic family (monospace) is
+        // no font
+        CHECK(kmlText.contains(QStringLiteral("<a href=\"https://example.com\"><span "
+                                              "font=\"Segoe UI\" size=\"12\">a link</span></a>")));
         CHECK(kmlText.contains(QStringLiteral("<span size=\"12\" color=\"#1f2328\">code</span>")));
         CHECK(kmlText.contains(
             QStringLiteral("<p style=\"quote\"><span color=\"#59636e\">A quote</span></p>")));
