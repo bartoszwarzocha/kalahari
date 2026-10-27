@@ -19,6 +19,7 @@
 
 class QTextLayout;
 class QTextLine;
+class QTextTable;
 class QTimer;
 
 namespace kalahari::editor {
@@ -59,6 +60,12 @@ namespace kalahari::editor {
 /// - Page flow (page mode): lines are placed only within the text areas of a stack of
 ///   pages; a line that would cross the end of a text area moves to the next one. After
 ///   an edit, only blocks whose place on their page changed are placed again.
+/// - Tables (text_tables.h): a table is as wide as the text, its columns as wide as its
+///   format says; the paragraphs of a cell are laid out on the cell's width and their lines
+///   placed in the cell. A row of a table is one unit of the vertical flow: every block of
+///   the row has the row's top as its top, the last one has the row's height and the others
+///   none, and in the page flow a row that does not fit in the rest of a page starts the
+///   next one. A table is laid out as a whole whenever one of its blocks is.
 /// - Full QTextCursor and undo/redo compatibility
 /// - The objects of the text (a horizontal line, the breaks): the layout is their handler.
 ///   Without a handler registered, Qt (6.5 and later) shapes U+FFFC as a plain character
@@ -278,9 +285,41 @@ public:
     ///        block waits for layout)
     qreal blockHeight(int blockNumber) const;
 
-    /// @brief Number of the block covering @p y (clamped to the first/last block)
+    /// @brief Number of the block covering @p y (clamped to the first/last block): in a
+    ///        row of a table, the last block of the row (it has the row's height)
     /// @return -1 for an empty height cache
     int blockNumberAtY(qreal y) const;
+
+    /// @brief Number of the block under a point (document coordinates): in a row of a
+    ///        table, the paragraph of the cell under it (laid out first)
+    /// @return -1 for an empty height cache
+    int blockNumberAt(const QPointF& point) const;
+
+    /// @brief Number of the first block of the row of a table holding the block; the block
+    ///        itself outside a table
+    int firstBlockOfRow(int blockNumber) const;
+
+    /// @brief Number of the last block of the row of a table holding the block; the block
+    ///        itself outside a table
+    int lastBlockOfRow(int blockNumber) const;
+
+    /// @brief The left edges of a table's columns and the right edge of the last one, at
+    ///        the current width of the text (whole pixels)
+    std::vector<qreal> tableColumnEdges(const QTextTable& table) const;
+
+    /// @brief A row of a table as the layout places it (document coordinates)
+    struct TableRow {
+        qreal top = 0.0;
+        qreal height = 0.0;
+    };
+
+    /// @brief The rows of a table, each at its place (in the page flow, a row may start
+    ///        the next page); a row covered whole by cells spanning from above has no
+    ///        height of its own: it goes with the row above
+    std::vector<TableRow> tableRows(const QTextTable& table) const;
+
+    /// @brief Space between the edges of a cell and its text (whole pixels)
+    qreal cellPadding() const;
 
     /// @brief Box of a laid out line: the line plus its share of the line spacing
     ///
@@ -361,16 +400,27 @@ private:
     /// @return true when its height changed
     bool layOutBlock(int number, const QTextBlock& block);
 
+    /// @brief Where the lines of a block of a table go: in its cell, below the paragraphs
+    ///        above it in the cell
+    struct CellPlacement {
+        qreal left = 0.0;   ///< Left of the cell's text (document coordinates)
+        qreal top = 0.0;    ///< Top of the block below the top of its row
+        qreal width = 0.0;  ///< Width of the cell's text
+    };
+
     /// @brief Break a single block into lines
     /// @param extent Receives the text length in average characters (for estimates)
     /// @param keepGlyphs Keep the shaped glyphs with the lines (blocks being edited)
     /// @param lead Receives the space above the block and the height of its first line box
+    /// @param cell The place of a block of a table in its cell: its lines are as wide as
+    ///        the cell's text, without a first-line indent, and placed in the cell
     /// @return Height of the block, including its spacing above and below
     qreal layoutBlock(const QTextBlock& block, qreal* extent, bool keepGlyphs,
-                      qreal* lead = nullptr) const;
+                      qreal* lead = nullptr, const CellPlacement* cell = nullptr) const;
 
     /// @brief Height a block of the given text extent probably gets at the current settings
-    qreal estimatedHeight(qreal extent, const BlockMetrics& metrics) const;
+    /// @param width The width its lines have; negative: the width of the text
+    qreal estimatedHeight(qreal extent, const BlockMetrics& metrics, qreal width = -1.0) const;
 
     /// @brief Height of a line's box: the line, or for the line of an empty paragraph
     ///        (@p empty) the line of its style's font, with its share of the line spacing
@@ -473,6 +523,32 @@ private:
 
     /// @brief The page flow entry of a block in a style, with @p lead
     static FlowEntry flowEntry(const BlockMetrics& metrics, qreal lead);
+
+    /// @brief What laying out a table gives each of its blocks
+    struct TableBlockLayout {
+        qreal height = 0.0;  ///< Its height in the vertical flow (0 but for a row's last)
+        qreal extent = 1.0;  ///< Its text length in average characters
+        FlowEntry flow;      ///< FLOW_TABLE, FLOW_ROW_START for a row's first block
+    };
+
+    /// @brief Lay out the blocks of a table in their cells, or estimate their heights
+    /// @param estimate Estimate the heights from the text lengths, without laying out
+    /// @param keepGlyphs Keep the shaped glyphs with the lines (a table being edited)
+    /// @return For each block of the table, in order from its first one
+    std::vector<TableBlockLayout> layoutTable(const QTextTable& table, bool estimate,
+                                              bool keepGlyphs) const;
+
+    /// @brief Lay out a table and store the cache entries of its blocks
+    /// @param heightChanged Set when a block's height changed
+    /// @return The numbers of its first and last block
+    std::pair<int, int> layOutTable(const QTextTable& table, bool* heightChanged);
+
+    /// @brief Height of the row of a table whose first block is @p first (the heights of
+    ///        the row's blocks together)
+    qreal rowHeight(size_t first) const;
+
+    /// @brief Left of the text of the cell holding a block of a table
+    qreal cellTextLeft(const QTextBlock& block) const;
 
     /// @brief Height a block waiting for layout probably takes in the page flow
     /// @param height Its estimated height without page breaks

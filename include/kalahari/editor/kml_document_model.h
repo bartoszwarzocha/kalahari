@@ -3,8 +3,9 @@
 ///
 /// KmlDocumentModel reads KML into paragraphs: plain text, format runs (formatting,
 /// metadata and annotations as QTextCharFormat), alignment, style, the paragraph's own
-/// formatting and its place in a list, and the objects between them (a horizontal line, the
-/// scene and page breaks). BookEditor builds its
+/// formatting, its place in a list and its cell in a table, the tables, and the objects
+/// between the paragraphs (a horizontal line, the scene and page breaks). BookEditor builds
+/// its
 /// QTextDocument from it, both when loading a chapter and when pasting Kalahari content.
 
 #pragma once
@@ -14,6 +15,7 @@
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_lists.h>
+#include <kalahari/editor/text_tables.h>
 
 #include <QHash>
 #include <QSet>
@@ -114,6 +116,27 @@ public:
     ///         format runs); none if index is out of range
     AnnotationList paragraphStartAnnotations(size_t index) const;
 
+    /// @brief The cell of a table the paragraph is in: a paragraph of <td> or <th>
+    /// @param index Paragraph index (0-based)
+    /// @return Its cell; nothing for a paragraph outside a table or if index is out of range
+    ///
+    /// The paragraphs of a table follow one another, row by row and each row from left to
+    /// right, as in the document. A cell without paragraphs (one under a cell spanning more
+    /// rows or columns) has none here.
+    std::optional<TableCellPlace> paragraphCell(size_t index) const;
+
+    // =========================================================================
+    // Tables
+    // =========================================================================
+
+    /// @brief The number of tables, in the order of the KML
+    size_t tableCount() const;
+
+    /// @brief The shape of a table: its rows, columns, their widths, header and spans
+    /// @param index Table index (0-based), as paragraphCell() gives it
+    /// @return Its shape; an empty one if index is out of range
+    TableShape table(size_t index) const;
+
     // =========================================================================
     // Annotations of a chapter
     // =========================================================================
@@ -137,6 +160,17 @@ private:
         TextObject object = TextObject::None;   ///< The object it is (None: text)
         ParagraphFormat format;                 ///< Its own formatting
         std::optional<ListItem> list;           ///< Its place in a list
+        std::optional<TableCellPlace> cell;     ///< Its cell in a table
+    };
+
+    /// @brief The table being read: its shape, its rows so far, and the columns taken in
+    ///        the next rows by cells spanning more than one row
+    struct TableReading {
+        int index = 0;
+        TableShape shape;
+        std::vector<int> takenUntil;  ///< For each column, the first row it is free in
+        std::vector<double> widths;   ///< The widths of its <col> elements, in any unit
+        bool knownWidths = true;      ///< Each of them with a width
     };
 
     /// @brief The list being read: its number, and the formats of its levels read so far
@@ -181,6 +215,28 @@ private:
     /// @brief Add a paragraph of a list's element
     void appendListParagraph(Paragraph&& para, ListReading& list);
 
+    /// @brief Parse a table: <table> with <col>, <tr>, and <th> and <td> cells
+    /// @param reader XML reader positioned at the table's start element; on return it is
+    ///               positioned after the matching end element
+    void parseTable(QXmlStreamReader& reader);
+
+    /// @brief Parse the rows of a table's element: <table>, or <thead>, <tbody> and
+    ///        <tfoot> in it (their rows are rows of the table)
+    void parseTableRows(QXmlStreamReader& reader, TableReading& table);
+
+    /// @brief Parse a row <tr> with its cells
+    void parseTableRow(QXmlStreamReader& reader, TableReading& table);
+
+    /// @brief Parse the content of a cell (<td>, <th>): its paragraphs and lists; text
+    ///        outside a paragraph is a paragraph of its own, and a table inside the cell
+    ///        gives its paragraphs to the cell
+    /// @param reader XML reader positioned at the cell's start element; on return it is
+    ///               positioned after the matching end element
+    void parseCellContent(QXmlStreamReader& reader, const TableCellPlace& place);
+
+    /// @brief Give the paragraphs of a table inside a cell to the cell
+    void flattenInnerTable(QXmlStreamReader& reader, const TableCellPlace& place);
+
     /// @brief Parse inline content recursively
     /// @param reader XML reader positioned at content
     /// @param para Output paragraph: its text and format runs (accumulated)
@@ -205,6 +261,7 @@ private:
     static void appendText(Paragraph& para, const QString& text, const QTextCharFormat& format);
 
     std::vector<Paragraph> m_paragraphs;    ///< All paragraphs
+    std::vector<TableShape> m_tables;       ///< The tables, in the order of the KML
     int m_lastListId = 0;                   ///< The number of the last list read
     ListDefinition m_lastListDefinition;    ///< The formats of its levels at its end
     QHash<QString, Annotation> m_annotations;  ///< The annotations of the section, by id

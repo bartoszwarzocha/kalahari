@@ -148,6 +148,10 @@ public:
     ///        Remove Link takes it off the text
     void showLinkDialog();
 
+    /// @brief Insert > Table...: the window of the new table's columns and rows; Insert puts
+    ///        the table at the cursor (BookEditor::insertTable())
+    void showInsertTableDialog();
+
     /// @brief Open a link's address in the system's program (a Ctrl+click, Open Hyperlink):
     ///        a page, a file server or a new e-mail; another address is refused with a
     ///        message in the status bar (editor::isOpenableLinkAddress())

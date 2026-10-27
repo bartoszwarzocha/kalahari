@@ -119,7 +119,9 @@ public:
     /// text. Metadata tags keep only their text.
     /// The lists are ol and ul with li: the type of their numbers or bullets, the number of
     /// the first item (start) and of an item that does not go on from the one before it
-    /// (value); an item without a number has none shown.
+    /// (value); an item without a number has none shown. A table is a table as wide as the
+    /// text with a thin grid, its header row in a thead of th cells, its merged cells (colspan,
+    /// rowspan) and the widths of its columns on the cells of its first row.
     /// @param kml KML markup string
     /// @param sceneBreakStyle The look of the scene breaks, as sceneBreakStyle() gives it;
     ///        empty: the setting
@@ -153,8 +155,10 @@ public:
     /// Word's list paragraphs) lists of the editor, a list in an item a lower level of its
     /// list; in Text a list item starts with its number or bullet. Merge and Source keep the
     /// links to pages and e-mail addresses (isOpenableLinkAddress()); a link to a place in the
-    /// page or a script, and any link in Text, is its text. Until the editor has them, a
-    /// table row is a paragraph with its cells separated by tabs and an image is left out.
+    /// page or a script, and any link in Text, is its text. Merge and Source make the tables
+    /// tables of the editor, with their merged cells, the widths of their columns and their
+    /// header row (a thead, or a first row of th cells); in Text, and in a cell of a table, a
+    /// row is a paragraph with its cells separated by tabs. An image is left out.
     /// @param html HTML markup string
     /// @param mode What the KML keeps
     /// @return KML (<kml> with the paragraphs), empty without text, lines and page breaks
@@ -190,7 +194,8 @@ public:
     /// line is a line of box-drawing characters, a scene break a line of its look (empty
     /// for "blank") and a page break a form feed on a line of its own.
     /// A list item starts with its number or bullet and a space, after a tab for each level
-    /// below the first.
+    /// below the first. Each row of a table is a line, with a tab before each of its cells but
+    /// those of the first column, and the paragraphs of a cell separated by spaces.
     /// @param kml KML markup string
     /// @param sceneBreakStyle The look of the scene breaks, as sceneBreakStyle() gives it;
     ///        empty: the setting

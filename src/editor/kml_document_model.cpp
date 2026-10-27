@@ -134,6 +134,8 @@ bool KmlDocumentModel::loadKml(const QString& kml)
                 reader.readNext();
             } else if (tag == QStringLiteral("ol") || tag == QStringLiteral("ul")) {
                 parseTopLevelList(reader);  // consumes </ol>
+            } else if (tag == QStringLiteral("table")) {
+                parseTable(reader);  // consumes </table>
             } else if (isBlockElement(tag)) {
                 // Parse the paragraph straight from the document reader (consumes </p>)
                 Paragraph para;
@@ -170,6 +172,7 @@ bool KmlDocumentModel::loadKml(const QString& kml)
 void KmlDocumentModel::clear()
 {
     m_paragraphs.clear();
+    m_tables.clear();
     m_annotations.clear();
     m_anchoredIds.clear();
     m_lastListId = 0;
@@ -295,6 +298,31 @@ AnnotationList KmlDocumentModel::paragraphStartAnnotations(size_t index) const
     return m_paragraphs[index].startAnnotations;
 }
 
+std::optional<TableCellPlace> KmlDocumentModel::paragraphCell(size_t index) const
+{
+    if (index >= m_paragraphs.size()) {
+        return std::nullopt;
+    }
+    return m_paragraphs[index].cell;
+}
+
+// =============================================================================
+// Tables
+// =============================================================================
+
+size_t KmlDocumentModel::tableCount() const
+{
+    return m_tables.size();
+}
+
+TableShape KmlDocumentModel::table(size_t index) const
+{
+    if (index >= m_tables.size()) {
+        return {};
+    }
+    return m_tables[index];
+}
+
 // =============================================================================
 // Private Methods
 // =============================================================================
@@ -302,7 +330,8 @@ AnnotationList KmlDocumentModel::paragraphStartAnnotations(size_t index) const
 bool KmlDocumentModel::isBlockElement(QStringView tag)
 {
     if (tag == QStringLiteral("p") || tag == QStringLiteral("paragraph") ||
-        tag == QStringLiteral("ol") || tag == QStringLiteral("ul")) {
+        tag == QStringLiteral("ol") || tag == QStringLiteral("ul") ||
+        tag == QStringLiteral("table")) {
         return true;
     }
     return headingLevelOfElement(tag) > 0 || textObjectOfElement(tag.toString()) != TextObject::None;
@@ -598,6 +627,13 @@ void KmlDocumentModel::parseListItem(QXmlStreamReader& reader, ListReading& list
                 appendListParagraph(std::move(current), list);
             }
             parseList(reader, list, std::min(level + 1, LIST_LEVELS - 1));
+        } else if (child == QStringLiteral("table")) {
+            // A table goes after the item's paragraph
+            trimIndentation(current.text, current.formats);
+            if (first || !current.text.isEmpty() || !current.startAnnotations.isEmpty()) {
+                appendListParagraph(std::move(current), list);
+            }
+            parseTable(reader);
         } else {
             // A paragraph inside the item: the item's own text when it has none yet
             const bool own = first && current.text.trimmed().isEmpty() && current.formats.empty();
@@ -630,6 +666,249 @@ void KmlDocumentModel::parseListItem(QXmlStreamReader& reader, ListReading& list
         current.list->definition = list.definition;
         current.list->value.reset();
         current.list->numbered = false;
+    }
+}
+
+namespace {
+
+/// @brief The width of a <col> element: the number before its unit ("40%", "120px");
+///        std::nullopt without a number greater than 0 ("auto")
+std::optional<double> columnWidthOf(const QString& written)
+{
+    const QString value = written.trimmed();
+    qsizetype digits = 0;
+    while (digits < value.size() &&
+           (value.at(digits).isDigit() || value.at(digits) == QLatin1Char('.'))) {
+        ++digits;
+    }
+    bool ok = false;
+    const double width = value.left(digits).toDouble(&ok);
+    if (!ok || width <= 0) {
+        return std::nullopt;
+    }
+    return width;
+}
+
+/// @brief The widths of a table's columns in percent, from those its <col> elements give
+///
+/// The widths, in percent or another unit, are taken in proportion to one another. A column
+/// without a <col> element gets the average width of the others; together the widths make
+/// a hundred percent.
+/// @return The widths; empty (equal columns) without <col> elements, or when one of them
+///         has no width
+std::vector<double> columnWidthsInPercent(std::vector<double> widths, bool known, int columns)
+{
+    if (!known || widths.empty() || columns <= 0) {
+        return {};
+    }
+    widths.resize(std::min(widths.size(), static_cast<size_t>(columns)));
+    double sum = 0;
+    for (const double width : widths) {
+        sum += width;
+    }
+    const double average = sum / static_cast<double>(widths.size());
+    while (widths.size() < static_cast<size_t>(columns)) {
+        widths.push_back(average);
+        sum += average;
+    }
+    for (double& width : widths) {
+        width = width * 100.0 / sum;
+    }
+    return widths;
+}
+
+}  // anonymous namespace
+
+void KmlDocumentModel::parseTable(QXmlStreamReader& reader)
+{
+    TableReading table;
+    table.index = static_cast<int>(m_tables.size());
+    parseTableRows(reader, table);
+
+    TableShape& shape = table.shape;
+    if (shape.rows == 0 || shape.columns == 0) {
+        return;  // without cells: no paragraphs either
+    }
+    // A cell spanning more rows than the table has spans those it has
+    for (TableSpan& span : shape.spans) {
+        span.rows = std::min(span.rows, shape.rows - span.row);
+    }
+    shape.spans.erase(std::remove_if(shape.spans.begin(), shape.spans.end(),
+                                     [](const TableSpan& span) {
+                                         return span.rows <= 1 && span.columns <= 1;
+                                     }),
+                      shape.spans.end());
+    shape.columnWidths = columnWidthsInPercent(table.widths, table.knownWidths, shape.columns);
+    m_tables.push_back(std::move(shape));
+}
+
+void KmlDocumentModel::parseTableRows(QXmlStreamReader& reader, TableReading& table)
+{
+    reader.readNext();
+    while (!reader.atEnd()) {
+        if (reader.isEndElement()) {
+            reader.readNext();  // the element's own: its children are read whole
+            return;
+        }
+        if (!reader.isStartElement()) {
+            reader.readNext();
+            continue;
+        }
+        const QString child = reader.name().toString();
+        if (child == QStringLiteral("tr")) {
+            parseTableRow(reader, table);
+        } else if (child == QStringLiteral("col")) {
+            const auto width = columnWidthOf(reader.attributes().value(QStringLiteral("width")).toString());
+            if (width) {
+                table.widths.push_back(*width);
+            } else {
+                table.knownWidths = false;
+            }
+            reader.skipCurrentElement();
+            reader.readNext();
+        } else if (child == QStringLiteral("colgroup") || child == QStringLiteral("thead") ||
+                   child == QStringLiteral("tbody") || child == QStringLiteral("tfoot")) {
+            parseTableRows(reader, table);
+        } else {
+            reader.skipCurrentElement();
+            reader.readNext();
+        }
+    }
+}
+
+void KmlDocumentModel::parseTableRow(QXmlStreamReader& reader, TableReading& table)
+{
+    const int row = table.shape.rows++;
+    int column = 0;
+    bool headerCells = false;
+    bool dataCells = false;
+    reader.readNext();
+    while (!reader.atEnd()) {
+        if (reader.isEndElement()) {
+            reader.readNext();  // the row's own: its cells are read whole
+            break;
+        }
+        if (!reader.isStartElement()) {
+            reader.readNext();
+            continue;
+        }
+        const QString child = reader.name().toString();
+        if (child != QStringLiteral("td") && child != QStringLiteral("th")) {
+            reader.skipCurrentElement();
+            reader.readNext();
+            continue;
+        }
+
+        // The cell goes in the first column the cells above do not span into, and spans
+        // the free columns after it it asks for
+        std::vector<int>& takenUntil = table.takenUntil;
+        while (static_cast<size_t>(column) < takenUntil.size() &&
+               takenUntil[static_cast<size_t>(column)] > row) {
+            ++column;
+        }
+        const QXmlStreamAttributes attrs = reader.attributes();
+        const auto spanOf = [&attrs](const QString& name) {
+            bool ok = false;
+            const int span = attrs.value(name).toString().trimmed().toInt(&ok);
+            return ok ? std::clamp(span, 1, MAX_TABLE_SPAN) : 1;
+        };
+        const int rows = spanOf(QStringLiteral("rowspan"));
+        int columns = spanOf(QStringLiteral("colspan"));
+        const size_t end = static_cast<size_t>(column) + static_cast<size_t>(columns);
+        if (takenUntil.size() < end) {
+            takenUntil.resize(end, 0);
+        }
+        for (int free = 1; free < columns; ++free) {
+            if (takenUntil[static_cast<size_t>(column) + static_cast<size_t>(free)] > row) {
+                columns = free;
+                break;
+            }
+        }
+        for (int taken = column; taken < column + columns; ++taken) {
+            takenUntil[static_cast<size_t>(taken)] = row + rows;
+        }
+        if (rows > 1 || columns > 1) {
+            table.shape.spans.push_back({row, column, rows, columns});
+        }
+        table.shape.columns = std::max(table.shape.columns, column + columns);
+        (child == QStringLiteral("th") ? headerCells : dataCells) = true;
+
+        // An empty cell has an empty paragraph
+        const size_t before = m_paragraphs.size();
+        const TableCellPlace place{table.index, row, column};
+        parseCellContent(reader, place);
+        if (m_paragraphs.size() == before) {
+            Paragraph empty;
+            empty.cell = place;
+            m_paragraphs.push_back(std::move(empty));
+        }
+        column += columns;
+    }
+
+    // A first row of header cells only is the table's header
+    if (row == 0 && headerCells && !dataCells) {
+        table.shape.headerRows = 1;
+    }
+}
+
+void KmlDocumentModel::parseCellContent(QXmlStreamReader& reader, const TableCellPlace& place)
+{
+    const QString tag = reader.name().toString();
+    reader.readNext();
+    for (;;) {
+        // Text outside a paragraph (between its paragraphs: the indentation of the KML)
+        Paragraph loose;
+        const bool ended = parseInlineContent(reader, loose, QTextCharFormat(), tag, true);
+        trimIndentation(loose.text, loose.formats);
+        trimLeadingIndentation(loose.text, loose.formats);
+        if (!loose.text.trimmed().isEmpty() || !loose.startAnnotations.isEmpty()) {
+            loose.cell = place;
+            m_paragraphs.push_back(std::move(loose));
+        }
+        if (ended) {
+            return;
+        }
+
+        const QString child = reader.name().toString();
+        const size_t first = m_paragraphs.size();
+        if (child == QStringLiteral("ol") || child == QStringLiteral("ul")) {
+            parseTopLevelList(reader);
+        } else if (child == QStringLiteral("table")) {
+            flattenInnerTable(reader, place);
+        } else {
+            Paragraph para;
+            parseParagraphElement(reader, para);
+            m_paragraphs.push_back(std::move(para));
+        }
+        for (size_t index = first; index < m_paragraphs.size(); ++index) {
+            m_paragraphs[index].cell = place;
+        }
+    }
+}
+
+void KmlDocumentModel::flattenInnerTable(QXmlStreamReader& reader, const TableCellPlace& place)
+{
+    reader.readNext();
+    while (!reader.atEnd()) {
+        if (reader.isEndElement()) {
+            reader.readNext();
+            return;
+        }
+        if (!reader.isStartElement()) {
+            reader.readNext();
+            continue;
+        }
+        const QString child = reader.name().toString();
+        if (child == QStringLiteral("td") || child == QStringLiteral("th")) {
+            parseCellContent(reader, place);
+        } else if (child == QStringLiteral("tr") || child == QStringLiteral("thead") ||
+                   child == QStringLiteral("tbody") || child == QStringLiteral("tfoot") ||
+                   child == QStringLiteral("table")) {
+            flattenInnerTable(reader, place);
+        } else {
+            reader.skipCurrentElement();
+            reader.readNext();
+        }
     }
 }
 

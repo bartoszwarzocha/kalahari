@@ -70,6 +70,7 @@ set(TEST_SOURCES
     editor/test_text_lists.cpp                   # Lists: numbers, formats of the levels, KML
     editor/test_list_editing.cpp                 # Lists: editing, indents, numbering, auto-correct
     editor/test_text_links.cpp                   # Links: KML, editing, the clipboard, auto-correct
+    editor/test_tables.cpp                       # Tables: the model, KML, the layout, the keys
     editor/test_paragraph_layout.cpp             # A paragraph's own formatting and lists in the layout
     editor/test_styles_view.cpp                  # How the editor shows styles, objects and formatting marks
     editor/test_auto_correct.cpp                 # Autocorrect: the changes of the text as it is typed
@@ -143,6 +144,7 @@ set(TEST_SOURCES
     gui/test_special_character_dialog.cpp        # Insert > Special Character...: the window, keys, replacements
     gui/test_list_dialogs.cpp                    # Format > Bullets and Numbering..., Set Numbering Value...
     gui/test_link_dialog.cpp                     # Insert > Link...
+    gui/test_insert_table_dialog.cpp             # Insert > Table...
     gui/test_format_dialogs.cpp                  # Format > Font..., Paragraph..., the color submenus
     gui/test_quick_character_palette.cpp         # Insert > Quick Character: the palette at the cursor
     gui/test_formatting_characters.cpp           # Insert > Formatting Character
@@ -197,6 +199,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/paragraph_format.cpp  # A paragraph's own formatting: indents, spacing, breaks
     ${CMAKE_SOURCE_DIR}/src/editor/character_format.cpp  # The character formatting of Format > Font, Change Case
     ${CMAKE_SOURCE_DIR}/src/editor/text_lists.cpp        # Bulleted and numbered lists
+    ${CMAKE_SOURCE_DIR}/src/editor/text_tables.cpp       # Tables of the text
     ${CMAKE_SOURCE_DIR}/src/editor/formatting_marks.cpp  # The formatting marks of a paragraph
     ${CMAKE_SOURCE_DIR}/src/editor/style_resolver.cpp    # Sub-Project C WS4.4: StyleResolver (Q_OBJECT)
     ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager
@@ -210,6 +213,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_links.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_tables.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_view.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/find_replace_bar.cpp       # Find/Replace bar of the editor
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_accessible.cpp  # Task 7.16: Accessibility
@@ -339,6 +343,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/font_dialog.cpp  # Format > Font...
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/paragraph_dialog.cpp  # Format > Paragraph...
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/link_dialog.cpp  # Insert > Link...
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/insert_table_dialog.cpp  # Insert > Table...
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/character_grid.cpp           # Characters in cells, in the font of the text
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/quick_character_palette.cpp  # Insert > Quick Character
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/character_dialogs.cpp        # The keys of a character, a replacement
@@ -444,6 +449,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/font_dialog.h  # Format > Font... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_dialog.h  # Format > Paragraph... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # Insert > Link... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/insert_table_dialog.h  # Insert > Table... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT

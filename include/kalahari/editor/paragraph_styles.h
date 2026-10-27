@@ -183,8 +183,11 @@ void insertObject(QTextCursor& cursor, TextObject object, const QTextBlockFormat
 ///        an empty paragraph next to one
 ///
 /// The block after it takes its place with its own formats; the last block goes with the
-/// break before it, the only one becomes an empty paragraph. The annotations on its start
-/// stay on the place. The cursor ends where the block was.
+/// break before it, the only one becomes an empty paragraph. A break at a table stays
+/// (isTableBreakAt()): the block goes with the other break, and the only paragraph of a
+/// cell or between a table and the start or end of the text, or another table, becomes an
+/// empty paragraph. The annotations on its start stay on the place. The cursor ends where
+/// the block was.
 void removeBlock(QTextCursor& cursor, const QTextBlock& block);
 
 // =============================================================================

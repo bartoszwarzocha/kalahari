@@ -5,9 +5,11 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_data.h>
 #include <kalahari/editor/text_link.h>
+#include <kalahari/editor/text_tables.h>
 #include <QPainter>
 #include <QTextDocument>
 #include <QTextBlock>
+#include <QTextTable>
 #include <QAbstractTextDocumentLayout>
 #include <algorithm>
 
@@ -188,6 +190,61 @@ double QTextDocumentSource::totalHeight() const {
         block = block.next();
     }
     return total;
+}
+
+size_t QTextDocumentSource::firstParagraphAtY(double y) const {
+    const size_t paragraph = paragraphAtY(y);
+    if (const auto* layout = kalahariLayout()) {
+        return static_cast<size_t>(std::max(0, layout->firstBlockOfRow(static_cast<int>(paragraph))));
+    }
+    return paragraph;
+}
+
+size_t QTextDocumentSource::paragraphAt(const QPointF& point) const {
+    if (const auto* layout = kalahariLayout(); layout && m_document && point.y() >= 0) {
+        return static_cast<size_t>(std::max(0, layout->blockNumberAt(point)));
+    }
+    return paragraphAtY(point.y());
+}
+
+std::vector<TableGrid> QTextDocumentSource::tablesIn(size_t first, size_t last) const {
+    std::vector<TableGrid> grids;
+    const auto* layout = kalahariLayout();
+    if (!layout || !m_document) {
+        return grids;
+    }
+    QTextBlock block = blockAt(first);
+    for (size_t index = first; index <= last && block.isValid();) {
+        const QTextTable* table = tableOf(block);
+        if (!table) {
+            ++index;
+            block = block.next();
+            continue;
+        }
+        TableGrid grid;
+        for (const qreal edge : layout->tableColumnEdges(*table)) {
+            grid.columnEdges.push_back(edge);
+        }
+        for (const KalahariTextDocumentLayout::TableRow& row : layout->tableRows(*table)) {
+            grid.rowTops.push_back(row.top);
+            grid.rowHeights.push_back(row.height);
+        }
+        for (int row = 0; row < table->rows(); ++row) {
+            for (int column = 0; column < table->columns(); ++column) {
+                const QTextTableCell cell = table->cellAt(row, column);
+                if (cell.row() == row && cell.column() == column) {
+                    grid.cells.push_back({row, column, cell.rowSpan(), cell.columnSpan()});
+                }
+            }
+        }
+        grid.headerRows = table->format().headerRowCount();
+        grids.push_back(std::move(grid));
+
+        // On after the table
+        block = m_document->findBlock(table->lastPosition()).next();
+        index = block.isValid() ? static_cast<size_t>(block.blockNumber()) : last + 1;
+    }
+    return grids;
 }
 
 size_t QTextDocumentSource::paragraphAtY(double y) const {

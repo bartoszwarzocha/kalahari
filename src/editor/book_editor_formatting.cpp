@@ -494,15 +494,14 @@ void BookEditor::insertTextObject(TextObject object)
     if (refusesChange()) {
         return;
     }
-    if (object == TextObject::None) {
+    if (object == TextObject::None || isInTable()) {
         return;
     }
     ensureDocument();
 
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     if (hasSelection()) {
-        const SelectionRange selection = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), selection.start, selection.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
 

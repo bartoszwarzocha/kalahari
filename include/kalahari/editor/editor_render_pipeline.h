@@ -437,6 +437,10 @@ private:
     /// @brief Render visible paragraphs
     void renderParagraphs(QPainter* painter, const QRect& clipRect);
 
+    /// @brief Render the grids of the visible tables: the background of their header rows
+    ///        and the edges of their cells, thin lines in a shade of the text
+    void renderTables(QPainter* painter);
+
     /// @brief Render single paragraph
     void renderParagraph(QPainter* painter, size_t index, double widgetY);
 

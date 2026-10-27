@@ -418,7 +418,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // =========================================================================
 
     REG_CMD("insert.image", QT_TRANSLATE_NOOP("CommandRegistrar", "&Image..."), "INSERT/Image...", 10, false, 1);
-    REG_CMD("insert.table", QT_TRANSLATE_NOOP("CommandRegistrar", "Ta&ble..."), "INSERT/Table...", 20, false, 1);
+    // A table: the window of its columns and rows (no keys: Ctrl+F12 of LibreOffice switches
+    // the workspaces of Xfce)
+    REG_CMD_CB("insert.table", QT_TRANSLATE_NOOP("CommandRegistrar", "Ta&ble..."), "INSERT/Table...", 20, false, 1,
+               callbacks.onInsertTable);
     // A link: the window of its text and address, on a link of the text its editing (Ctrl+K,
     // as in Word and LibreOffice)
     REG_CMD_KEY_CB("insert.link", QT_TRANSLATE_NOOP("CommandRegistrar", "&Link..."), "INSERT/Link...", 30, true, 1,

@@ -65,12 +65,127 @@ QString pastedPlainText(const QString& text) {
     return result;
 }
 
+/// @brief Insert the fragments of a block at the cursor, each with its character format
+/// @param objects With the objects (lines, breaks); without them, an object's paragraph is
+///        empty
+void insertFragments(QTextCursor& cursor, const QTextBlock& block, bool objects = true) {
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        if (objects || textObjectOf(fragment.charFormat()) == TextObject::None) {
+            cursor.insertText(fragment.text(), fragment.charFormat());
+        }
+    }
+}
+
+/// @brief Insert a copy of a table of another document at the cursor, splitting its
+///        paragraph as insertTable() does: its shape, and the paragraphs of its cells with
+///        their formats
+/// @return The copy; the cursor ends at the start of the paragraph after it
+QTextTable* insertTableCopy(QTextCursor& cursor, const QTextTable& source) {
+    TableShape shape = tableShapeOf(source);
+    const std::vector<TableSpan> spans = std::move(shape.spans);
+    shape.spans.clear();
+    QTextTable* copy = insertTable(cursor, shape);
+    const QTextDocument& document = *source.document();
+    for (int row = 0; row < shape.rows; ++row) {
+        for (int column = 0; column < shape.columns; ++column) {
+            const QTextTableCell cell = source.cellAt(row, column);
+            if (cell.row() != row || cell.column() != column) {
+                continue;  // a part of a merged cell: empty, as merging needs it
+            }
+            cursor.setPosition(copy->cellAt(row, column).firstPosition());
+            const QTextBlock last = document.findBlock(cell.lastPosition());
+            for (QTextBlock block = document.findBlock(cell.firstPosition()); block.isValid();
+                 block = block.next()) {
+                if (block.position() == cell.firstPosition()) {
+                    cursor.setBlockFormat(block.blockFormat());
+                    cursor.setBlockCharFormat(paragraphCharFormat(block));
+                } else {
+                    cursor.insertBlock(block.blockFormat(), block.charFormat());
+                }
+                insertFragments(cursor, block);
+                if (block == last) {
+                    break;
+                }
+            }
+        }
+    }
+    spanCells(*copy, spans);
+    cursor.setPosition(copy->lastPosition() + 1);
+    return copy;
+}
+
+/// @brief The text of a document as a cell of a table holds it: each row of a table a
+///        paragraph, its cells separated by tabs and the paragraphs of a cell by line breaks,
+///        and the paragraph of an object (a line, a break) empty
+///
+/// The empty paragraph Qt keeps before a table at the start of the document and after one
+/// at its end stays out. @p target is empty.
+void copyAsCellText(const QTextDocument& source, QTextDocument& target) {
+    QTextCursor cursor(&target);
+    bool first = true;
+    const auto startParagraph = [&](const QTextBlock& block) {
+        if (first) {
+            cursor.setBlockFormat(block.blockFormat());
+            cursor.setBlockCharFormat(paragraphCharFormat(block));
+            first = false;
+        } else {
+            cursor.insertBlock(block.blockFormat(), paragraphCharFormat(block));
+        }
+    };
+
+    for (QTextBlock block = source.begin(); block.isValid(); block = block.next()) {
+        if (const QTextTable* table = tableOf(block)) {
+            for (int row = 0; row < table->rows(); ++row) {
+                bool rowStarted = false;
+                for (int column = 0; column < table->columns(); ++column) {
+                    const QTextTableCell cell = table->cellAt(row, column);
+                    if (cell.row() != row || cell.column() != column) {
+                        continue;  // a part of a merged cell
+                    }
+                    const QTextBlock last = source.findBlock(cell.lastPosition());
+                    for (QTextBlock part = source.findBlock(cell.firstPosition()); part.isValid();
+                         part = part.next()) {
+                        const bool cellStart = part.position() == cell.firstPosition();
+                        if (!rowStarted) {
+                            startParagraph(part);
+                            rowStarted = true;
+                        } else if (!cellStart) {
+                            cursor.insertText(QString(QChar(QChar::LineSeparator)));
+                        }
+                        if (cellStart && column > 0) {
+                            cursor.insertText(QStringLiteral("\t"));
+                        }
+                        insertFragments(cursor, part, false);
+                        if (part == last) {
+                            break;
+                        }
+                    }
+                }
+            }
+            block = source.findBlock(table->lastPosition());  // its last paragraph
+            continue;
+        }
+        const bool aroundTable =
+            block.length() == 1 &&
+            ((block == source.firstBlock() && tableOf(block.next()) != nullptr) ||
+             (block == source.lastBlock() && tableOf(block.previous()) != nullptr));
+        if (!aroundTable) {
+            startParagraph(block);
+            insertFragments(cursor, block, false);
+        }
+    }
+}
+
 /// @brief Insert a document at the cursor, replacing its selection, as one edit block
 ///
 /// Each fragment keeps its character format. Paragraphs inserted whole keep their block
 /// format; the paragraph the document goes into keeps its own, also on the text after the
-/// insertion point. The cursor ends after the inserted text.
+/// insertion point. A table goes in as a table, splitting the paragraph; at the start or end
+/// of the document it leaves no empty paragraph next to it that it does not need, as Insert >
+/// Table. The cursor ends after the inserted text.
 void insertDocument(QTextCursor& cursor, const QTextDocument& source) {
+    QTextDocument& document = *cursor.document();
     cursor.beginEditBlock();
     cursor.removeSelectedText();
 
@@ -80,29 +195,61 @@ void insertDocument(QTextCursor& cursor, const QTextDocument& source) {
     const int insertionStart = cursor.position();
     const QTextBlock firstBlock = source.firstBlock();
     const QTextBlock lastBlock = source.lastBlock();
+    QTextTable* firstTable = nullptr;
+    QTextTable* lastTable = nullptr;
+    bool afterTable = false;  // the cursor is at the start of the paragraph after a table
 
     for (QTextBlock block = firstBlock; block.isValid(); block = block.next()) {
+        if (const QTextTable* table = tableOf(block)) {
+            lastTable = insertTableCopy(cursor, *table);
+            if (!firstTable) {
+                firstTable = lastTable;
+            }
+            afterTable = true;
+            block = source.findBlock(table->lastPosition());  // its last paragraph
+            continue;
+        }
         if (block != firstBlock) {
             // The last inserted paragraph also holds the text after the insertion point,
             // unless there is none
             const bool whole = block != lastBlock || (atParagraphEnd && block.length() > 1);
-            cursor.insertBlock(whole ? block.blockFormat() : targetFormat, block.charFormat());
+            const QTextBlockFormat format = whole ? block.blockFormat() : targetFormat;
+            if (afterTable) {
+                cursor.setBlockFormat(format);  // the paragraph the table split off
+                cursor.setBlockCharFormat(paragraphCharFormat(block));
+            } else {
+                cursor.insertBlock(format, paragraphCharFormat(block));
+            }
         }
-        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
-            const QTextFragment fragment = it.fragment();
-            cursor.insertText(fragment.text(), fragment.charFormat());
-        }
+        afterTable = false;
+        insertFragments(cursor, block);
     }
 
     // The first inserted paragraph is whole when it starts a paragraph and more follow
     if (firstBlock != lastBlock && atParagraphStart && firstBlock.length() > 1) {
-        QTextCursor first(cursor.document());
+        QTextCursor first(&document);
         first.setPosition(insertionStart);
         first.setBlockFormat(firstBlock.blockFormat());
     }
 
     // An object that went into a paragraph gets a block of its own
     separateObjects(cursor, insertionStart, cursor.position());
+
+    // The empty paragraph before a table the document starts with, and after one it ends
+    // with, goes when the table does not need it
+    QTextCursor remover(&document);
+    if (lastTable && lastBlock.length() == 1 && tableOf(lastBlock.previous())) {
+        const QTextBlock after = document.findBlock(lastTable->lastPosition() + 1);
+        if (after.length() == 1 && canRemoveBlock(after)) {
+            removeBlock(remover, after);
+        }
+    }
+    if (firstTable && firstBlock.length() == 1 && tableOf(firstBlock.next())) {
+        const QTextBlock before = document.findBlock(firstTable->firstPosition() - 1);
+        if (before.length() == 1 && canRemoveBlock(before)) {
+            removeBlock(remover, before);
+        }
+    }
     cursor.endEditBlock();
 }
 
@@ -171,7 +318,8 @@ void insertAnnotatedDocument(QTextCursor& cursor, QTextDocument& content,
     cursor.endEditBlock();
 }
 
-/// @brief Insert KML at the cursor as insertAnnotatedDocument() does
+/// @brief Insert KML at the cursor as insertAnnotatedDocument() does; in a cell of a table
+///        only its text (copyAsCellText())
 /// @return false when the KML has no paragraph the editor can read: nothing changed
 bool insertKml(QTextCursor& cursor, const QString& kml, bool placeFormat = false,
                const QTextCharFormat& typed = QTextCharFormat()) {
@@ -183,6 +331,14 @@ bool insertKml(QTextCursor& cursor, const QString& kml, bool placeFormat = false
     content.setUndoRedoEnabled(false);
     QTextCursor contentCursor(&content);
     appendParagraphs(contentCursor, model);
+    if (tableAt(*cursor.document(), cursor.selectionStart()) != nullptr) {
+        // A cell holds only text: no table in a table, no line or break
+        QTextDocument text;
+        text.setUndoRedoEnabled(false);
+        copyAsCellText(content, text);
+        insertAnnotatedDocument(cursor, text, placeFormat, typed);
+        return true;
+    }
     insertAnnotatedDocument(cursor, content, placeFormat, typed);
     return true;
 }
@@ -247,8 +403,7 @@ void BookEditor::insertText(const QString& text)
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
-        const SelectionRange sel = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     insertKeepingAnnotations(cursor, text, pending);
@@ -378,9 +533,10 @@ void BookEditor::autoCorrectEndedParagraph(int paragraph, bool atEnd)
     const QString text = block.text();
 
     // "***" or "---" alone in the paragraph: the object, in the paragraph's place, with the
-    // cursor in the new paragraph after it
-    const TextObject object = atEnd ? paragraphObjectShortcut(text, m_autoCorrect)
-                                    : TextObject::None;
+    // cursor in the new paragraph after it (not in a cell, which holds only text)
+    const TextObject object = atEnd && !tableOf(block)
+                                  ? paragraphObjectShortcut(text, m_autoCorrect)
+                                  : TextObject::None;
     if (object == TextObject::None) {
         if (const std::optional<AutoCorrection> change =
                 autoCorrectionAtParagraphEnd(text, autoCorrectForText(), m_capsLockOn)) {
@@ -474,13 +630,11 @@ bool BookEditor::removeSelection(bool keepAnnotations)
 
     SelectionRange sel = m_selection.normalized();
 
-    // Direct QTextCursor delete — recorded by QTextDocument's native undo.
-    QTextCursor cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
-    if (keepAnnotations) {
-        removeKeepingAnnotations(cursor);
-    } else {
-        removeSelectionKeepingObjects(cursor);
-    }
+    // Direct QTextCursor delete — recorded by QTextDocument's native undo. Of a table it goes
+    // into or out of only the text goes.
+    QTextCursor cursor(m_textBuffer.get());
+    removeKeepingTables(cursor, calculateAbsolutePosition(sel.start),
+                        calculateAbsolutePosition(sel.end), keepAnnotations);
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
@@ -516,8 +670,7 @@ void BookEditor::insertNewline()
     const int ended = m_cursorPosition.paragraph;
     const bool endedAtEnd = cursor.atBlockEnd();
     if (hasSelection()) {
-        const SelectionRange sel = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     cursor.beginEditBlock();
@@ -592,8 +745,7 @@ void BookEditor::insertLineBreak()
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
-        const SelectionRange sel = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     cursor.beginEditBlock();
@@ -615,8 +767,7 @@ void BookEditor::insertCharacters(const QString& characters)
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
-        const SelectionRange sel = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     cursor.beginEditBlock();
@@ -644,7 +795,7 @@ void BookEditor::deleteBackward()
     if (m_cursorPosition.paragraph == 0 && m_cursorPosition.offset == 0) {
         return;
     }
-    if (deleteAtObject(true)) {
+    if (deleteAtTableEdge(true) || deleteAtObject(true)) {
         return;
     }
 
@@ -682,7 +833,7 @@ void BookEditor::deleteForward()
         return;
     }
 
-    if (deleteAtObject(false)) {
+    if (deleteAtTableEdge(false) || deleteAtObject(false)) {
         return;
     }
 
@@ -774,11 +925,11 @@ void BookEditor::deleteTo(const CursorPosition& position)
         return;
     }
 
-    // One step of QTextDocument's native undo
+    // One step of QTextDocument's native undo; at a table only the text of cells goes
     const int paragraphs = m_textBuffer->blockCount();
-    QTextCursor cursor = createCursor(m_textBuffer.get(), std::min(target, m_cursorPosition),
-                                      std::max(target, m_cursorPosition));
-    removeKeepingAnnotations(cursor);
+    QTextCursor cursor(m_textBuffer.get());
+    removeKeepingTables(cursor, calculateAbsolutePosition(std::min(target, m_cursorPosition)),
+                        calculateAbsolutePosition(std::max(target, m_cursorPosition)));
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
@@ -883,8 +1034,7 @@ void BookEditor::yank()
 
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     if (hasSelection()) {
-        const SelectionRange selection = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), selection.start, selection.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     cursor.beginEditBlock();  // One undo step, apart from the typing before it
@@ -1106,18 +1256,19 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
         return nullptr;
     }
 
+    // The selection as it is: Qt's cursor would take a whole table the selection goes into
     const SelectionRange sel = m_selection.normalized();
-    const QTextCursor range = createCursor(m_textBuffer.get(), sel.start, sel.end);
-    const QString kml =
-        KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd());
+    const int from = calculateAbsolutePosition(sel.start);
+    const int to = calculateAbsolutePosition(sel.end);
+    const QString kml = KmlSerializer().toKml(m_textBuffer.get(), from, to);
 
     // The list items with the numbers the editor shows: a part of a list goes on from the
     // number of its first item
     ListMarks marks;
     const std::vector<QString> shownMarks = listMarkers(*m_textBuffer);
     const std::vector<int> shownNumbers = listNumbers(*m_textBuffer);
-    const QTextBlock lastBlock = m_textBuffer->findBlock(range.selectionEnd());
-    for (QTextBlock block = m_textBuffer->findBlock(range.selectionStart()); block.isValid();
+    const QTextBlock lastBlock = m_textBuffer->findBlock(to);
+    for (QTextBlock block = m_textBuffer->findBlock(from); block.isValid();
          block = block.next()) {
         if (blockObject(block) == TextObject::None && isListItem(block.blockFormat())) {
             const auto index = static_cast<size_t>(block.blockNumber());
@@ -1167,8 +1318,7 @@ void BookEditor::insertMimeDataAs(const QMimeData* source, PasteMode mode)
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
-        const SelectionRange sel = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     insertMimeData(cursor, *source, mode, pending);
@@ -1203,8 +1353,9 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     QTextCursor oldPlace;
     cursor.beginEditBlock();
     if (moveSelection) {
-        oldPlace = createCursor(m_textBuffer.get(), moved.start, moved.end);
-        removeSelectionKeepingObjects(oldPlace);
+        oldPlace = QTextCursor(m_textBuffer.get());
+        removeKeepingTables(oldPlace, calculateAbsolutePosition(moved.start),
+                            calculateAbsolutePosition(moved.end), false);
     }
     const int insertionStart = cursor.position();
     insertMimeData(cursor, *source, m_pasteMode);

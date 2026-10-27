@@ -27,6 +27,25 @@ namespace kalahari::editor {
 // Forward declarations
 class KalahariTextDocumentLayout;
 
+/// @brief A cell of a table's grid: its row and column, and the rows and columns it spans
+struct TableGridCell {
+    int row = 0;
+    int column = 0;
+    int rows = 1;
+    int columns = 1;
+};
+
+/// @brief A table as its grid is drawn (document coordinates)
+struct TableGrid {
+    std::vector<double> columnEdges;   ///< Left edges of the columns, then the right one of
+                                       ///< the last
+    std::vector<double> rowTops;       ///< Top of each row (in the page flow a row may start
+                                       ///< the next page)
+    std::vector<double> rowHeights;    ///< Height of each row
+    std::vector<TableGridCell> cells;  ///< Its cells, row by row
+    int headerRows = 0;                ///< The rows of header cells at its top
+};
+
 /// @brief Abstract interface for the text source of the render pipeline
 ///
 /// The pipeline reads the paragraphs, their layouts and positions only through this
@@ -133,8 +152,19 @@ public:
 
     /// @brief Find paragraph at Y position
     /// @param y Y coordinate in document coordinates
-    /// @return Paragraph index, or paragraphCount() if beyond end
+    /// @return Paragraph index, or paragraphCount() if beyond end; in a row of a table, its
+    ///         last paragraph (it has the row's height)
     virtual size_t paragraphAtY(double y) const = 0;
+
+    /// @brief The first paragraph at Y position: in a row of a table, its first paragraph
+    virtual size_t firstParagraphAtY(double y) const { return paragraphAtY(y); }
+
+    /// @brief Paragraph under a point (document coordinates): in a row of a table, the
+    ///        paragraph of the cell under it
+    virtual size_t paragraphAt(const QPointF& point) const { return paragraphAtY(point.y()); }
+
+    /// @brief The tables with a paragraph among [first, last], as their grids are drawn
+    virtual std::vector<TableGrid> tablesIn(size_t /*first*/, size_t /*last*/) const { return {}; }
 
     // =========================================================================
     // Configuration
@@ -216,6 +246,9 @@ public:
     double paragraphHeight(size_t index) const override;
     double totalHeight() const override;
     size_t paragraphAtY(double y) const override;
+    size_t firstParagraphAtY(double y) const override;
+    size_t paragraphAt(const QPointF& point) const override;
+    std::vector<TableGrid> tablesIn(size_t first, size_t last) const override;
 
     void setTextWidth(double width) override;
     double textWidth() const override;

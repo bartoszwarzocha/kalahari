@@ -4,12 +4,14 @@
 #pragma once
 
 #include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/text_tables.h>
 #include <functional>
 #include <utility>
 #include <QAbstractUndoItem>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QTextTable>
 
 namespace kalahari::editor {
 
@@ -42,13 +44,31 @@ private:
 /// shown with the alignment of its style), its style, its own formatting, its place in a
 /// list, the annotations on its start as its own character format, and its text on a clean
 /// base format with the run formats on top. The lists get ids the document's lists do not
-/// have. An object (a horizontal line, a break) is a block with its character. Shared by
-/// loading a chapter and pasting Kalahari content, so both read KML the same way.
+/// have. An object (a horizontal line, a break) is a block with its character. A table is
+/// built with its first paragraph, its paragraphs going into their cells; the paragraph
+/// after it (an empty one when the table ends the KML) is the block Qt keeps after a table.
+/// Shared by loading a chapter and pasting Kalahari content, so both read KML the same way.
 inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model) {
     QTextBlockFormat zeroMarginFormat;
     zeroMarginFormat.setTopMargin(0);
     zeroMarginFormat.setBottomMargin(0);
     const int listIdOffset = newListId(*cursor.document()) - 1;
+
+    QTextTable* table = nullptr;       // the table being filled
+    int tableIndex = -1;               // its index in the model
+    std::optional<TableCellPlace> lastCell;  // the cell of the previous paragraph
+    bool emptyBlock = true;            // the cursor's block is a new one, without text
+    const auto leaveTable = [&]() {
+        // Its cells span their rows and columns once their paragraphs have their formats
+        spanCells(*table, model.table(static_cast<size_t>(tableIndex)).spans);
+        cursor.setPosition(table->lastPosition() + 1);  // the block after it
+        cursor.setBlockFormat(zeroMarginFormat);
+        cursor.setBlockCharFormat(QTextCharFormat());
+        table = nullptr;
+        tableIndex = -1;
+        lastCell.reset();
+        emptyBlock = true;
+    };
 
     for (size_t i = 0; i < model.paragraphCount(); ++i) {
         QTextBlockFormat blockFormat = zeroMarginFormat;
@@ -63,11 +83,33 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
         }
         QTextCharFormat paragraphFormat;  // nothing of the previous paragraph's last run
         setAnnotations(paragraphFormat, model.paragraphStartAnnotations(i));
-        if (i > 0) {
-            cursor.insertBlock(blockFormat, paragraphFormat);
-        } else {
+
+        // A paragraph of a table goes into its cell: the first one of a cell into its
+        // (empty) block, the next ones after it
+        const std::optional<TableCellPlace> cell = model.paragraphCell(i);
+        if (table && (!cell || cell->table != tableIndex)) {
+            leaveTable();
+        }
+        if (cell && !table) {
+            if (emptyBlock) {
+                cursor.setBlockFormat(zeroMarginFormat);
+                cursor.setBlockCharFormat(QTextCharFormat());
+            }
+            table = insertTable(cursor, model.table(static_cast<size_t>(cell->table)));
+            tableIndex = cell->table;
+        }
+        if (cell && table && lastCell != cell) {
+            cursor.setPosition(table->cellAt(cell->row, cell->column).firstPosition());
+            emptyBlock = true;
+        }
+        lastCell = cell;
+
+        if (emptyBlock) {
             cursor.setBlockFormat(blockFormat);
             cursor.setBlockCharFormat(paragraphFormat);
+            emptyBlock = false;
+        } else {
+            cursor.insertBlock(blockFormat, paragraphFormat);
         }
 
         if (const TextObject object = model.paragraphObject(i); object != TextObject::None) {
@@ -86,6 +128,9 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
             cursor.mergeCharFormat(run.format);
         }
         cursor.movePosition(QTextCursor::EndOfBlock);
+    }
+    if (table) {
+        leaveTable();  // the KML ends with the table: the empty paragraph after it
     }
 }
 
