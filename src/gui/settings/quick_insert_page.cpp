@@ -129,9 +129,9 @@ void EditorQuickInsertPage::createSources() {
                                                    quick_insert_keys::HASH_SOURCES};
     for (int column = 0; column < 2; ++column) {
         const std::array<QCheckBox*, 3> columnBoxes = boxes.at(column);
-        const std::string key = sourceKeys.at(column);
+        const char* key = sourceKeys.at(column);
         Binding sources;
-        sources.key = [key]() { return key; };
+        sources.key = [key]() { return std::string(key); };
         sources.stored = [key]() {
             return sourcesValue(core::SettingsManager::getInstance().get<json>(key));
         };

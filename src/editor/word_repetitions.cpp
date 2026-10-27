@@ -87,7 +87,7 @@ int sharedStart(const QString& a, const QString& b) {
 }  // namespace
 
 QString chooseBaseForm(const QString& word, const QStringList& stems, const QString& language) {
-    const QString lower = word.toLower();
+    QString lower = word.toLower();
     QStringList candidates;
     for (const QString& stem : stems) {
         const QString base = stem.toLower();
