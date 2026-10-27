@@ -530,7 +530,11 @@ void DocumentWindows::showTabMenu(QTabWidget& tabs, int index, const QPoint& glo
     //: The menu of a tab: closes it, as its cross does. In Polish: &Zamknij kartę
     QAction* close = menu.addAction(tr("&Close Tab"));
 
-    QAction* chosen = menu.exec(globalPos);
+    // The item chosen with the mouse, its access key or a trigger() of its own, which exec()
+    // does not return
+    QAction* chosen = nullptr;
+    connect(&menu, &QMenu::triggered, &menu, [&chosen](QAction* action) { chosen = action; });
+    menu.exec(globalPos);
     disconnect(watching);
     if (chosen == nullptr || gone) {
         return;

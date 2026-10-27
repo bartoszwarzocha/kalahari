@@ -111,18 +111,26 @@ struct BookWindow {
     [[nodiscard]] DocumentWindows& owner() const { return DocumentWindows::of(*tabs); }
 };
 
+/// How tabMenu() chooses its item
+enum class Choose {
+    Key,   ///< With its access key (as with the mouse on macOS, which has none)
+    Mouse  ///< As with the mouse
+};
+
 /// The menu of the tab at @p index of @p tabs, opened with the menu key: its items, the item
-/// @p item chosen with its access key
-QList<test::MenuItem> tabMenu(QTabWidget& tabs, int index, const QString& item = QString()) {
+/// @p item chosen as @p choose says
+QList<test::MenuItem> tabMenu(QTabWidget& tabs, int index, const QString& item = QString(),
+                              Choose choose = Choose::Key) {
     QTabBar* bar = tabs.tabBar();
     bar->setCurrentIndex(index);
     test::ContextMenuReader reader(bar);
-    if (!item.isEmpty()) {
 #ifdef Q_OS_MACOS
-        reader.chooseItem(item);  // macOS has no access keys
-#else
-        reader.chooseWith(item.at(item.indexOf(QLatin1Char('&')) + 1));
+    choose = Choose::Mouse;  // macOS has no access keys
 #endif
+    if (!item.isEmpty() && choose == Choose::Mouse) {
+        reader.chooseItem(item);
+    } else if (!item.isEmpty()) {
+        reader.chooseWith(item.at(item.indexOf(QLatin1Char('&')) + 1));
     }
     QContextMenuEvent event(QContextMenuEvent::Keyboard, bar->tabRect(index).center(),
                             bar->mapToGlobal(bar->tabRect(index).center()));
@@ -433,8 +441,8 @@ TEST_CASE("Windows: the menu of a tab and the Window menu move the texts", "[gui
     gear->click();
     CHECK(settings == 2);
 
-    // The menu of a tab closes it, as its cross
-    tabMenu(window->tabs(), 0, DocumentWindows::tr("&Close Tab"));
+    // The menu of a tab closes it, as its cross; chosen with the mouse
+    tabMenu(window->tabs(), 0, DocumentWindows::tr("&Close Tab"), Choose::Mouse);
     deleteClosed();
     CHECK(owner.pages() == QList<QWidget*>{book.texts.at(1)});
     CHECK(owner.windows().isEmpty());
