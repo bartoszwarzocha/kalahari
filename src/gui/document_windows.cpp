@@ -110,8 +110,16 @@ DocumentWindows::Closing DocumentWindows::closing() {
     return closing == "close" ? Closing::Close : Closing::Return;
 }
 
+bool DocumentWindows::isWhole() const {
+    // Being destroyed, they are no longer a QTabWidget: their members must not be called
+    return qobject_cast<const QTabWidget*>(m_bookTabs) != nullptr;
+}
+
 QList<QTabWidget*> DocumentWindows::allTabs() const {
-    QList<QTabWidget*> tabs{m_bookTabs};
+    QList<QTabWidget*> tabs;
+    if (isWhole()) {
+        tabs.append(m_bookTabs);
+    }
     for (DetachedWindow* window : windows()) {
         tabs.append(&window->tabs());
     }
@@ -149,7 +157,7 @@ QTabWidget* DocumentWindows::frontTabs() const {
 }
 
 QWidget* DocumentWindows::frontPage() const {
-    return frontTabs()->currentWidget();
+    return isWhole() ? frontTabs()->currentWidget() : nullptr;
 }
 
 bool DocumentWindows::isDetached(const QWidget* page) const {
@@ -231,6 +239,9 @@ void DocumentWindows::setFrontTabs(QTabWidget* tabs) {
 }
 
 void DocumentWindows::updateFront() {
+    if (!isWhole()) {
+        return;  // the book window is being destroyed
+    }
     QWidget* page = frontPage();
     if (m_frontSaid && page == m_frontPage) {
         return;
@@ -247,7 +258,7 @@ void DocumentWindows::updateFront() {
 }
 
 void DocumentWindows::onFocusChanged(QWidget* now) {
-    if (now == nullptr) {
+    if (now == nullptr || !isWhole()) {
         return;
     }
     for (QTabWidget* tabs : allTabs()) {
@@ -373,15 +384,10 @@ void DocumentWindows::activateNextWindow(int step) {
 // ----------------------------------------------------------------------------
 
 bool DocumentWindows::eventFilter(QObject* watched, QEvent* event) {
+    // The bar of tabs of the book; none while the bar or its tabs are being destroyed
     auto* bar = qobject_cast<QTabBar*>(watched);
-    QTabWidget* tabs = nullptr;
-    for (QTabWidget* candidate : allTabs()) {
-        if (candidate->tabBar() == bar) {
-            tabs = candidate;
-            break;
-        }
-    }
-    if (bar == nullptr || tabs == nullptr) {
+    auto* tabs = bar != nullptr ? qobject_cast<QTabWidget*>(bar->parentWidget()) : nullptr;
+    if (tabs == nullptr || !allTabs().contains(tabs)) {
         return QObject::eventFilter(watched, event);
     }
 
@@ -759,6 +765,11 @@ DetachedWindow::DetachedWindow(DocumentWindows& owner, QMainWindow& bookWindow)
 
 DetachedWindow::~DetachedWindow() {
     m_closing = true;  // no longer one of the windows of the book, nor its tabs in front
+    // Its tabs and its editors are destroyed after it is no longer a DetachedWindow
+    m_tabs->disconnect(this);
+    for (const QMetaObject::Connection& connection : std::as_const(m_followConnections)) {
+        disconnect(connection);
+    }
     if (m_settingsListener >= 0) {
         core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
     }

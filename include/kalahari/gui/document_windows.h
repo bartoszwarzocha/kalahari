@@ -169,7 +169,12 @@ protected:
 private:
     explicit DocumentWindows(QTabWidget& bookTabs);
 
-    /// @brief The tabs of the book window and those of the windows of their own
+    /// @brief Whether the tabs of the book window are whole: their window, destroyed, destroys
+    /// their pages and their bar after they are no longer a QTabWidget
+    bool isWhole() const;
+
+    /// @brief The tabs of the book window (while they are whole) and those of the windows of
+    /// their own
     QList<QTabWidget*> allTabs() const;
 
     /// @brief Watch the bar of @p tabs: dragging off, drops, its menu, the page in front
