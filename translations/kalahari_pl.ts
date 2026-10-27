@@ -12743,8 +12743,8 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <translation>Szybkie wstawianie</translation>
     </message>
     <message>
-        <source>Open the list after @ or # at the start of a word</source>
-        <translation>Otwieraj listę po @ albo # na początku słowa</translation>
+        <source>Open the list after @ or #</source>
+        <translation>Otwieraj listę po @ albo #</translation>
     </message>
     <message>
         <source>Names from the cards of the Workshop</source>

@@ -84,8 +84,9 @@ EditorQuickInsertPage::EditorQuickInsertPage(QWidget* parent)
 
 void EditorQuickInsertPage::createSources() {
     QFormLayout* form = addGroup(tr("Quick Insert"));
-    QCheckBox* enabled = addCheckBox(form, tr("Open the list after @ or # at the start of a word"),
-                                     quick_insert_keys::ENABLED);
+    // Short, so the page fits a narrow window: the note below says where in a word
+    QCheckBox* enabled =
+        addCheckBox(form, tr("Open the list after @ or #"), quick_insert_keys::ENABLED);
     enabled->setObjectName(QStringLiteral("quickInsertEnabled"));
 
     // What each character opens: a column each, a row for each source
