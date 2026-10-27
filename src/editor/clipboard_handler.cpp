@@ -1880,7 +1880,7 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
                         }
                         const QXmlStreamAttributes attrs = reader.attributes();
                         const int columns = spanOf(attrs, QStringLiteral("colspan"));
-                        const auto end = static_cast<size_t>(column + columns);
+                        const size_t end = static_cast<size_t>(column) + static_cast<size_t>(columns);
                         if (takenUntil.size() < end) {
                             takenUntil.resize(end, 0);
                         }

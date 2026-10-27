@@ -814,11 +814,12 @@ void KmlDocumentModel::parseTableRow(QXmlStreamReader& reader, TableReading& tab
         };
         const int rows = spanOf(QStringLiteral("rowspan"));
         int columns = spanOf(QStringLiteral("colspan"));
-        if (takenUntil.size() < static_cast<size_t>(column + columns)) {
-            takenUntil.resize(static_cast<size_t>(column + columns), 0);
+        const size_t end = static_cast<size_t>(column) + static_cast<size_t>(columns);
+        if (takenUntil.size() < end) {
+            takenUntil.resize(end, 0);
         }
         for (int free = 1; free < columns; ++free) {
-            if (takenUntil[static_cast<size_t>(column + free)] > row) {
+            if (takenUntil[static_cast<size_t>(column) + static_cast<size_t>(free)] > row) {
                 columns = free;
                 break;
             }
