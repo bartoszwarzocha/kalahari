@@ -2072,6 +2072,11 @@ Uruchomić ponownie teraz?</translation>
         <translation>&amp;Widok</translation>
     </message>
     <message>
+        <source>&amp;Window</source>
+        <extracomment>The menu of the windows of the program, before Help. In Polish: &amp;Okno</extracomment>
+        <translation>&amp;Okno</translation>
+    </message>
+    <message>
         <source>&amp;Help</source>
         <translation>Pomo&amp;c</translation>
     </message>
@@ -4017,6 +4022,23 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::DetachedWindow</name>
+    <message>
+        <source>Window Settings</source>
+        <extracomment>The gear at the end of the tabs of a window of its own: Settings &gt; General, the options of the windows. In Polish: Ustawienia okien</extracomment>
+        <translation>Ustawienia okien</translation>
+    </message>
+    <message>
+        <source>Page %1 of %2</source>
+        <extracomment>The status bar of a window of its own, as that of the book window. In Polish: Strona %1 z %2</extracomment>
+        <translation>Strona %1 z %2</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::DiagnosticController</name>
     <message>
         <source>This benchmark will temporarily modify the editor content.
@@ -4791,6 +4813,49 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <source>The book &quot;%1&quot; cannot be created: the book type &quot;%2&quot; is not installed.</source>
         <extracomment>%1: the title of the new book; %2: its type, e.g. Novel. In Polish: Nie można utworzyć książki „%1”: typ książki „%2” nie jest zainstalowany.</extracomment>
         <translation>Nie można utworzyć książki „%1”: typ książki „%2” nie jest zainstalowany.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::DocumentWindows</name>
+    <message>
+        <source>&amp;Move to New Window</source>
+        <extracomment>The menu of a tab of a text: it goes to a window of its own. In Polish: &amp;Przenieś do nowego okna</extracomment>
+        <translation>&amp;Przenieś do nowego okna</translation>
+    </message>
+    <message>
+        <source>&amp;Return to Book Window</source>
+        <extracomment>The menu of a tab in a window of its own: the text goes back to the book window. In Polish: Przy&amp;wróć do okna książki</extracomment>
+        <translation>Przy&amp;wróć do okna książki</translation>
+    </message>
+    <message>
+        <source>&amp;Close Tab</source>
+        <extracomment>The menu of a tab: closes it, as its cross does. In Polish: &amp;Zamknij kartę</extracomment>
+        <translation>&amp;Zamknij kartę</translation>
+    </message>
+    <message>
+        <source>&amp;Move Tab to New Window</source>
+        <extracomment>Window menu: the text in front goes to a window of its own. In Polish: &amp;Przenieś kartę do nowego okna</extracomment>
+        <translation>&amp;Przenieś kartę do nowego okna</translation>
+    </message>
+    <message>
+        <source>&amp;Return Tab to Book Window</source>
+        <extracomment>Window menu: the text in front, in a window of its own, goes back to the book window. In Polish: Przy&amp;wróć kartę do okna książki</extracomment>
+        <translation>Przy&amp;wróć kartę do okna książki</translation>
+    </message>
+    <message>
+        <source>&amp;Next Window</source>
+        <extracomment>Window menu: the next window of the program comes to the front. In Polish: &amp;Następne okno</extracomment>
+        <translation>&amp;Następne okno</translation>
+    </message>
+    <message>
+        <source>&amp;Previous Window</source>
+        <extracomment>Window menu: the previous window of the program comes to the front. In Polish: Popr&amp;zednie okno</extracomment>
+        <translation>Popr&amp;zednie okno</translation>
+    </message>
+    <message>
+        <source>Window &amp;Settings...</source>
+        <extracomment>Window menu: Settings &gt; General at the options of the windows. In Polish: &amp;Ustawienia okien...</extracomment>
+        <translation>&amp;Ustawienia okien...</translation>
     </message>
 </context>
 <context>
@@ -6076,6 +6141,55 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Automatically open the most recently used book when Kalahari starts</source>
         <translation>Po uruchomieniu Kalahari otwiera ostatnio używaną książkę</translation>
+    </message>
+    <message>
+        <source>Windows</source>
+        <extracomment>Settings &gt; General: the group of the options of the windows. In Polish: Okna</extracomment>
+        <translation>Okna</translation>
+    </message>
+    <message>
+        <source>Full window</source>
+        <extracomment>Settings &gt; General &gt; Windows: a tab moved to a window of its own shows the menus, the toolbars and the status bar. In Polish: Pełne okno</extracomment>
+        <translation>Pełne okno</translation>
+    </message>
+    <message>
+        <source>Writing only</source>
+        <extracomment>The Format toolbar and the status bar. In Polish: Samo pisanie</extracomment>
+        <translation>Samo pisanie</translation>
+    </message>
+    <message>
+        <source>Full window: the menus, the toolbars and the status bar, as in the book window. Writing only: the Format toolbar and the status bar.</source>
+        <extracomment>In Polish: Pełne okno: menu, paski narzędzi i pasek stanu, jak w oknie książki. Samo pisanie: pasek formatowania i pasek stanu.</extracomment>
+        <translation>Pełne okno: menu, paski narzędzi i pasek stanu, jak w oknie książki. Samo pisanie: pasek formatowania i pasek stanu.</translation>
+    </message>
+    <message>
+        <source>Detached window:</source>
+        <extracomment>In Polish: Wygląd oderwanego okna:</extracomment>
+        <translation>Wygląd oderwanego okna:</translation>
+    </message>
+    <message>
+        <source>Its tabs return to the book window</source>
+        <extracomment>In Polish: Karty wracają do okna książki</extracomment>
+        <translation>Karty wracają do okna książki</translation>
+    </message>
+    <message>
+        <source>Its texts close</source>
+        <extracomment>In Polish: Teksty się zamykają</extracomment>
+        <translation>Teksty się zamykają</translation>
+    </message>
+    <message>
+        <source>What closing a window of its own of tabs does to its texts; unsaved changes are asked about</source>
+        <translation>Co dzieje się z tekstami po zamknięciu oderwanego okna; o niezapisane zmiany program pyta</translation>
+    </message>
+    <message>
+        <source>Closing a detached window:</source>
+        <extracomment>In Polish: Zamknięcie oderwanego okna:</extracomment>
+        <translation>Zamknięcie oderwanego okna:</translation>
+    </message>
+    <message>
+        <source>A tab goes to a window of its own when it is dragged off the bar of the tabs, or from the Window menu.</source>
+        <extracomment>In Polish: Kartę odrywa się, przeciągając ją poza pasek kart albo z menu Okno.</extracomment>
+        <translation>Kartę odrywa się do osobnego okna, przeciągając ją poza pasek kart albo z menu Okno.</translation>
     </message>
 </context>
 <context>

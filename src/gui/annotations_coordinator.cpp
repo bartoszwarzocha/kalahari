@@ -14,6 +14,7 @@
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/panels/annotation_frame.h"
@@ -112,7 +113,7 @@ AnnotationsCoordinator::AnnotationsCoordinator(AnnotationsPanel* panel, QDockWid
     m_refreshTimer->setInterval(REFRESH_DELAY_MS);
     connect(m_refreshTimer, &QTimer::timeout, this, &AnnotationsCoordinator::refresh);
 
-    connect(m_centralTabs, &QTabWidget::currentChanged, this,
+    connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
             &AnnotationsCoordinator::onCurrentTabChanged);
 
     // Another book: other chapters, other files
@@ -490,7 +491,7 @@ void AnnotationsCoordinator::refresh() {
 // =============================================================================
 
 EditorPanel* AnnotationsCoordinator::currentEditorPanel() const {
-    return qobject_cast<EditorPanel*>(m_centralTabs->currentWidget());
+    return qobject_cast<EditorPanel*>(DocumentWindows::of(*m_centralTabs).frontPage());
 }
 
 editor::BookEditor* AnnotationsCoordinator::currentEditor() const {
@@ -528,7 +529,7 @@ QString AnnotationsCoordinator::titleOf(const EditorPanel* panel) const {
     }
 
     // A document outside the book: its tab's text, without the mark of changes
-    QString title = m_centralTabs->tabText(m_centralTabs->indexOf(panel));
+    QString title = DocumentWindows::tabText(panel);
     if (title.startsWith(QLatin1Char('*'))) {
         title.remove(0, 1);
     }
@@ -539,8 +540,8 @@ EditorPanel* AnnotationsCoordinator::openPanel(const QString& elementId) const {
     if (elementId.isEmpty()) {
         return currentEditorPanel();
     }
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* panel = qobject_cast<EditorPanel*>(page);
         if (panel != nullptr && elementIdOf(panel) == elementId) {
             return panel;
         }
@@ -556,7 +557,7 @@ editor::BookEditor* AnnotationsCoordinator::openEditor(const QString& elementId)
 editor::BookEditor* AnnotationsCoordinator::editorFor(const QString& elementId) {
     if (EditorPanel* panel = openPanel(elementId)) {
         // Its tab in front: what is done there is seen, and Ctrl+Z undoes it there
-        m_centralTabs->setCurrentWidget(panel);
+        DocumentWindows::of(*m_centralTabs).showPage(panel);
         return panel->getBookEditor();
     }
     if (elementId.isEmpty() || !m_openChapter) {

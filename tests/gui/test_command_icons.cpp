@@ -6,6 +6,7 @@
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/recent_books_menu.h"
@@ -59,6 +60,9 @@ TEST_CASE("Menus: every command in a menu has an icon", "[gui][icons]") {
     // Regression: a menu item without an icon among items with icons, and a warning in the
     // log for each one when the menus were built
     registerAllCommands(CommandCallbacks{});
+    // Window, as MainWindow registers it
+    DocumentWindows::registerCommands(CommandRegistry::getInstance(),
+                                      []() -> DocumentWindows* { return nullptr; });
     registerAllIcons();
     const auto& icons = kalahari::core::IconRegistry::getInstance();
 

@@ -4,6 +4,7 @@
 /// OpenSpec #00038 - Phase 6: Extract Navigator Handlers from MainWindow
 
 #include "kalahari/gui/navigator_coordinator.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/delete_dialogs.h"
 #include "kalahari/gui/dialogs/file_preview_dialog.h"
@@ -176,8 +177,8 @@ void NavigatorCoordinator::countWords() {
     if (!pm.isProjectOpen() || changed.isEmpty()) {
         return;
     }
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         if (!editor) {
             continue;
         }
@@ -199,8 +200,8 @@ EditorPanel* NavigatorCoordinator::getCurrentEditor() const {
     if (!m_centralTabs) {
         return nullptr;
     }
-    QWidget* currentWidget = m_centralTabs->currentWidget();
-    return qobject_cast<EditorPanel*>(currentWidget);
+    // The text in front, in the book window or in a window of its own
+    return qobject_cast<EditorPanel*>(DocumentWindows::of(*m_centralTabs).frontPage());
 }
 
 void NavigatorCoordinator::refreshNavigator() {
@@ -225,10 +226,9 @@ void NavigatorCoordinator::refreshTabTitle(const QString& elementId) {
     // The "*" dirty indicator stays
     const QString title =
         m_dirtyChapters.value(elementId, false) ? "*" + element->title : element->title;
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        QWidget* widget = m_centralTabs->widget(i);
-        if (widget && widget->property("elementId").toString() == elementId) {
-            m_centralTabs->setTabText(i, title);
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        if (page->property("elementId").toString() == elementId) {
+            DocumentWindows::setTabText(page, title);
         }
     }
 }
@@ -255,11 +255,11 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     }
 
     // Check if this chapter is already open in a tab - if so, switch to it
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        QWidget* widget = m_centralTabs->widget(i);
-        if (widget && widget->property("elementId").toString() == elementId) {
-            logger.debug("Chapter already open in tab {} - switching to it", i);
-            m_centralTabs->setCurrentIndex(i);
+    DocumentWindows& texts = DocumentWindows::of(*m_centralTabs);
+    for (QWidget* page : texts.pages()) {
+        if (page->property("elementId").toString() == elementId) {
+            logger.debug("Chapter already open in a tab - switching to it");
+            texts.showPage(page);
             m_currentElementId = elementId;
             return;
         }
@@ -520,10 +520,11 @@ QList<const core::ProjectElement*> NavigatorCoordinator::saveTextsOf(
     // text
     if (pm.formOf(element) == core::ElementForm::Text && !element.file.isEmpty()) {
         EditorPanel* editor = nullptr;
-        for (int i = 0; i < m_centralTabs->count() && !editor; ++i) {
-            auto* tab = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+        for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+            auto* tab = qobject_cast<EditorPanel*>(page);
             if (tab && tab->property("elementId").toString() == element.id) {
                 editor = tab;
+                break;
             }
         }
         const bool changed = editor && editor->isModified();  // than the saved text
@@ -537,9 +538,9 @@ QList<const core::ProjectElement*> NavigatorCoordinator::saveTextsOf(
             m_dirtyChapters[element.id] = false;
             emit chapterDirtyStateChanged(element.id, false);
             editor->setUnmodified();
-            const int tab = m_centralTabs->indexOf(editor);
-            if (m_centralTabs->tabText(tab).startsWith(QLatin1Char('*'))) {
-                m_centralTabs->setTabText(tab, m_centralTabs->tabText(tab).mid(1));
+            const QString tabText = DocumentWindows::tabText(editor);
+            if (tabText.startsWith(QLatin1Char('*'))) {
+                DocumentWindows::setTabText(editor, tabText.mid(1));
             }
         }
         // The file goes back to the book with its title, status and notes: a book made before
@@ -791,10 +792,11 @@ void NavigatorCoordinator::deleteUnassigned(const QList<core::UnassignedFile>& f
 }
 
 void NavigatorCoordinator::closeTabsOf(const core::ProjectElement& element) {
-    for (int i = m_centralTabs->count() - 1; i >= 0; --i) {
-        QWidget* widget = m_centralTabs->widget(i);
-        if (widget && widget->property("elementId").toString() == element.id) {
-            m_centralTabs->removeTab(i);
+    const QList<QWidget*> pages = DocumentWindows::of(*m_centralTabs).pages();
+    for (auto it = pages.crbegin(); it != pages.crend(); ++it) {
+        QWidget* widget = *it;
+        if (widget->property("elementId").toString() == element.id) {
+            DocumentWindows::removePage(widget);
             widget->deleteLater();
         }
     }
@@ -818,14 +820,14 @@ void NavigatorCoordinator::showChapterModified(const QString& elementId, EditorP
         || modified == m_dirtyChapters.value(elementId, false)) {
         return;  // shown already, e.g. by the save that made the text the saved text
     }
-    const int index = m_centralTabs->indexOf(editor);
-    const QString tabText = index >= 0 ? m_centralTabs->tabText(index) : QString();
+    const bool inTabs = DocumentWindows::tabsOf(editor) != nullptr;
+    const QString tabText = DocumentWindows::tabText(editor);
     if (modified) {
         // Only the text of the chapter changed, not the book (.klh): its structure and data are
         // saved at once
         m_dirtyChapters[elementId] = true;
-        if (index >= 0 && !tabText.startsWith(QLatin1Char('*'))) {
-            m_centralTabs->setTabText(index, QLatin1Char('*') + tabText);
+        if (inTabs && !tabText.startsWith(QLatin1Char('*'))) {
+            DocumentWindows::setTabText(editor, QLatin1Char('*') + tabText);
         }
         emit chapterDirtyStateChanged(elementId, true);
         emit documentModified();
@@ -833,7 +835,7 @@ void NavigatorCoordinator::showChapterModified(const QString& elementId, EditorP
         // Back to the saved text: nothing to save, and the words are those of its file
         discardChapterChanges(elementId);
         if (tabText.startsWith(QLatin1Char('*'))) {
-            m_centralTabs->setTabText(index, tabText.mid(1));
+            DocumentWindows::setTabText(editor, tabText.mid(1));
         }
     }
 }

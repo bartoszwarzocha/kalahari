@@ -92,6 +92,7 @@ set(TEST_SOURCES
     gui/test_program_instance.cpp                # A later start hands its request to the program that runs
     gui/test_recent_book_cards.cpp               # Dashboard: the data of the recent books
     gui/test_save_all.cpp                        # Save All: the book and the files outside it
+    gui/test_document_windows.cpp                # The tabs of the texts in windows of their own
     gui/test_new_book.cpp                        # New Book: the kinds of a user project, without opening
     gui/test_new_file.cpp                        # New File: an element of the book, or a file outside one
     gui/test_book_tabs.cpp                       # The tabs of a book: one file in one tab, Close Book, words
@@ -273,6 +274,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dock_coordinator.cpp        # The panels of the main window and their layout
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # The Navigator's requests
     ${CMAKE_SOURCE_DIR}/src/gui/document_coordinator.cpp    # Save All and the document commands
+    ${CMAKE_SOURCE_DIR}/src/gui/document_windows.cpp        # The texts in the tabs and in windows of their own
     ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Panels of DockCoordinator
     ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_layouts.cpp  # The Dashboard on a narrow panel
@@ -385,6 +387,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator, Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_windows.h  # DocumentWindows, DetachedWindow, Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # Panels of DockCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h

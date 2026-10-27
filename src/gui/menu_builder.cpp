@@ -31,6 +31,8 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "TOOLS") return QObject::tr("&Tools");
     if (technicalName == "ASSISTANT") return QObject::tr("&Assistant");
     if (technicalName == "VIEW") return QObject::tr("&View");
+    //: The menu of the windows of the program, before Help. In Polish: &Okno
+    if (technicalName == "WINDOW") return QObject::tr("&Window");
     if (technicalName == "HELP") return QObject::tr("&Help");
 
     // Submenus
@@ -58,7 +60,7 @@ QString MenuBuilder::menuTitle(const std::string& technicalName) {
 
 const std::vector<std::string>& MenuBuilder::topLevelMenus() {
     static const std::vector<std::string> menus = {
-        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TOOLS", "ASSISTANT", "VIEW", "HELP"
+        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TOOLS", "ASSISTANT", "VIEW", "WINDOW", "HELP"
     };
     return menus;
 }

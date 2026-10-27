@@ -11,6 +11,7 @@
 #include "kalahari/editor/grammar_check_service.h"
 #include "kalahari/editor/spell_check_service.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/utils/language_names.h"
 #include "kalahari/gui/utils/setting_toggle.h"
@@ -105,7 +106,8 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
     m_editorsTimer->setInterval(0);
     connect(m_editorsTimer, &QTimer::timeout, this, &SpellingCoordinator::updateEditors);
     if (m_centralTabs != nullptr) {
-        connect(m_centralTabs, &QTabWidget::currentChanged, this, [this]() {
+        connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
+                [this]() {
             m_editorsTimer->start();
             CommandRegistry::getInstance().updateActionState(NEXT_COMMAND_ID);
         });
@@ -317,8 +319,8 @@ void SpellingCoordinator::updateEditors() {
     m_editorsTimer->stop();
     bool otherDocuments = false;
     if (m_centralTabs != nullptr) {
-        for (int index = 0; index < m_centralTabs->count(); ++index) {
-            auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(index));
+        for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+            auto* panel = qobject_cast<EditorPanel*>(page);
             if (panel == nullptr || panel->getBookEditor() == nullptr) {
                 continue;
             }
@@ -364,7 +366,7 @@ void SpellingCoordinator::useDictionary(editor::SpellCheckService& service,
 
 editor::BookEditor* SpellingCoordinator::currentEditor() const {
     auto* panel = m_centralTabs != nullptr
-                      ? qobject_cast<EditorPanel*>(m_centralTabs->currentWidget())
+                      ? qobject_cast<EditorPanel*>(DocumentWindows::of(*m_centralTabs).frontPage())
                       : nullptr;
     return panel != nullptr ? panel->getBookEditor() : nullptr;
 }

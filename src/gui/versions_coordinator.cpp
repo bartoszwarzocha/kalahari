@@ -8,6 +8,7 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/version_history_dialog.h"
 #include "kalahari/gui/dialogs/version_name_dialog.h"
@@ -69,7 +70,7 @@ VersionsCoordinator::VersionsCoordinator(QTabWidget* centralTabs, ChapterOpener 
     , m_window(window)
 {
     // The commands follow the text in front and the open book
-    connect(m_centralTabs, &QTabWidget::currentChanged, this,
+    connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
             &VersionsCoordinator::updateCommandStates);
     auto& projects = core::ProjectManager::getInstance();
     connect(&projects, &core::ProjectManager::projectOpened, this,
@@ -319,7 +320,7 @@ bool VersionsCoordinator::insertFragment(EditorPanel* editor, const core::Chapte
 // =============================================================================
 
 EditorPanel* VersionsCoordinator::currentPanel() const {
-    auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->currentWidget());
+    auto* panel = qobject_cast<EditorPanel*>(DocumentWindows::of(*m_centralTabs).frontPage());
     return panel != nullptr && panel->getBookEditor() != nullptr ? panel : nullptr;
 }
 
@@ -327,8 +328,8 @@ EditorPanel* VersionsCoordinator::openPanel(const QString& elementId) const {
     if (elementId.isEmpty()) {
         return currentPanel();
     }
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* panel = qobject_cast<EditorPanel*>(page);
         if (panel != nullptr && panel->getBookEditor() != nullptr &&
             elementIdOf(panel) == elementId) {
             return panel;
@@ -339,7 +340,7 @@ EditorPanel* VersionsCoordinator::openPanel(const QString& elementId) const {
 
 EditorPanel* VersionsCoordinator::panelFor(const QString& elementId) {
     if (EditorPanel* panel = openPanel(elementId)) {
-        m_centralTabs->setCurrentWidget(panel);
+        DocumentWindows::of(*m_centralTabs).showPage(panel);
         return panel;
     }
     if (elementId.isEmpty() || !m_openChapter) {

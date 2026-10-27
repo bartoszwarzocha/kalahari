@@ -216,6 +216,15 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
 
     // -------------------------------------------------------------------------
+    // WINDOW MENU ICONS (DocumentWindows)
+    // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("window.moveTabToNewWindow", "resources/icons/twotone/move_to_end.svg", "Move Tab to New Window");
+    iconRegistry.registerIcon("window.returnTab", "resources/icons/twotone/move_to_start.svg", "Return Tab to Book Window");
+    iconRegistry.registerIcon("window.next", "resources/icons/twotone/navigate_next.svg", "Next Window");
+    iconRegistry.registerIcon("window.previous", "resources/icons/twotone/navigate_before.svg", "Previous Window");
+    iconRegistry.registerIcon("window.settings", "resources/icons/twotone/settings.svg", "Window Settings");
+
+    // -------------------------------------------------------------------------
     // SUBMENU ICONS (MenuBuilder::submenuIconId)
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("menu.import", "resources/icons/twotone/input.svg", "Import");
