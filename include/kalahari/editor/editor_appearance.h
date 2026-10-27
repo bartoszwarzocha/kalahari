@@ -36,22 +36,67 @@ enum class EditorColorMode {
 };
 
 // =============================================================================
+// The Theme's Editor Colors
+// =============================================================================
+
+/// @brief The names of the colors of one paper in the theme files' "editor" sections, kept for
+/// each theme (core::ThemeManager::editorColor())
+struct PaperColorKeys {
+    const char* paper;            ///< The paper
+    const char* text;             ///< The text on it
+    const char* focusDimmed;      ///< The paragraphs Focus dims
+    const char* formattingMarks;  ///< The formatting marks
+    const char* desk;             ///< Around the paper: beside and between the sheets
+};
+
+/// @brief The names of the light paper's colors
+inline constexpr PaperColorKeys LIGHT_PAPER_COLOR_KEYS{
+    "paperLight", "textLight", "focusDimmedLight", "formattingMarksLight", "deskLight"};
+
+/// @brief The names of the dark paper's colors
+inline constexpr PaperColorKeys DARK_PAPER_COLOR_KEYS{
+    "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "deskDark"};
+
+/// @brief The names of the colors drawn under the text on both papers
+inline constexpr const char* SELECTION_COLOR_KEY = "selection";
+inline constexpr const char* SEARCH_MATCH_COLOR_KEY = "searchMatch";
+inline constexpr const char* CURRENT_SEARCH_MATCH_COLOR_KEY = "currentSearchMatch";
+
+/// @brief How opaque the selection and the search hits are drawn under the text (0-255): their
+/// colors tint the light and the dark paper alike, and the text stays readable on them
+inline constexpr int SELECTION_OPACITY = 80;
+inline constexpr int SEARCH_MATCH_OPACITY = 96;
+inline constexpr int CURRENT_SEARCH_MATCH_OPACITY = 140;
+
+/// @brief A color as it is drawn under the text: with an opacity of the ones above
+inline QColor underTextColor(QColor color, int opacity) {
+    color.setAlpha(opacity);
+    return color;
+}
+
+// =============================================================================
 // Color Palette
 // =============================================================================
 
 /// @brief Colors of the editor, for the light and the dark paper
+///
+/// The defaults are those of the themes' files: EditorPanel sets the colors of the theme in use.
 struct EditorColors {
-    QColor selection{66, 133, 244, 80};        ///< Selection highlight
+    QColor selection{66, 133, 244, SELECTION_OPACITY};             ///< Selection highlight
+    QColor searchMatch{255, 214, 0, SEARCH_MATCH_OPACITY};         ///< The search's hits
+    QColor currentSearchMatch{255, 140, 0, CURRENT_SEARCH_MATCH_OPACITY};  ///< The current hit
     QColor pageShadow{0, 0, 0, 60};            ///< Shade of the view's sides in Distraction-Free
 
-    /// @brief The paper and its text
+    /// @brief The paper, its text and the desk around it
     struct ContinuousColors {
         // Light mode
         QColor backgroundLight{255, 255, 255};   ///< Background - light mode
         QColor textLight{30, 30, 30};            ///< Text - light mode
+        QColor deskLight{216, 216, 216};         ///< Around the paper - light mode
         // Dark mode
         QColor backgroundDark{35, 35, 40};       ///< Background - dark mode
         QColor textDark{224, 224, 224};          ///< Text - dark mode
+        QColor deskDark{56, 56, 64};             ///< Around the paper - dark mode
     } continuous;
 
     /// @brief The paragraphs Focus dims
@@ -75,6 +120,11 @@ struct EditorColors {
         return mode == EditorColorMode::Light
             ? continuous.textLight
             : continuous.textDark;
+    }
+
+    /// @brief The color around the paper of a mode
+    QColor desk(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? continuous.deskLight : continuous.deskDark;
     }
 
     /// @brief Get inactive text color for Focus mode

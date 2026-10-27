@@ -421,6 +421,25 @@ QPushButton* buttonOf(FindReplaceBar& bar, const QString& text) {
 
 }  // anonymous namespace
 
+TEST_CASE("Stage3 find: the gear of the bar asks for the colors of the hits",
+          "[editor][stage3][search][colors]") {
+    auto editor = editorWith(kWords);
+    editor->showFind();
+    auto* bar = findBar(*editor);
+    REQUIRE(isShown(bar));
+    auto* gear = bar->findChild<QToolButton*>(QStringLiteral("findColorSettings"));
+    REQUIRE(gear != nullptr);
+    CHECK(isShown(gear));
+    CHECK(gear->toolTip() == QStringLiteral("Colors of the Search Hits"));
+
+    int requested = 0;
+    QObject::connect(editor.get(), &BookEditor::searchColorsRequested,
+                     [&requested]() { ++requested; });
+    gear->click();
+    CHECK(requested == 1);
+    CHECK(isShown(bar));  // the bar stays: the Settings open over it
+}
+
 TEST_CASE("Stage3 find: Find opens the bar with the selected text and finds it",
           "[editor][stage3][search]") {
     auto editor = editorWith(kWords);
@@ -1096,6 +1115,7 @@ TEST_CASE("Stage3 find: Tab goes from the search text to the replacement",
                                QStringLiteral("Aa"), QStringLiteral("W"), QStringLiteral(".*"),
                                QStringLiteral("Previous Match (Shift+Enter)"),
                                QStringLiteral("Next Match (Enter)"),
+                               QStringLiteral("Colors of the Search Hits"),
                                QStringLiteral("Close (Escape)")});
 }
 

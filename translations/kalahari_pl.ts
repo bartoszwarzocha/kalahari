@@ -3258,6 +3258,11 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
 <context>
     <name>kalahari::editor::FindReplaceBar</name>
     <message>
+        <source>Colors of the Search Hits</source>
+        <extracomment>The gear of the find bar: Settings &gt; Editor &gt; Colors, with the colors of the hits</extracomment>
+        <translation>Kolory znalezionych wystąpień</translation>
+    </message>
+    <message>
         <source>Find...</source>
         <translation>Znajdź...</translation>
     </message>
@@ -4852,42 +4857,64 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
 <context>
     <name>kalahari::gui::EditorColorsPage</name>
     <message>
-        <source>Configure editor colors for light and dark mode.
-Editor color mode is independent from the application theme.</source>
-        <translation>Ustaw kolory edytora w trybie jasnym i ciemnym.
-Tryb kolorów edytora nie zależy od motywu programu.</translation>
+        <source>The colors of the paper and of the text on it, of the desk around the paper and of what is shown under the text. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolory papieru i tekstu na nim, tła wokół kartki oraz tego, co widać pod tekstem. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
     </message>
     <message>
-        <source>Use dark mode for editor</source>
-        <translation>Ciemny tryb edytora</translation>
+        <source>Dark paper</source>
+        <translation>Ciemny papier</translation>
     </message>
     <message>
-        <source>Toggle between light and dark editor colors</source>
-        <translation>Przełącza między jasnymi a ciemnymi kolorami edytora</translation>
+        <source>Write on the dark paper, whatever the theme. View &gt; Dark Paper switches it as well.</source>
+        <translation>Piszesz na ciemnym papierze, niezależnie od motywu. To samo przełącza polecenie Widok &gt; Ciemny papier.</translation>
     </message>
     <message>
-        <source>Light Mode Colors</source>
-        <translation>Kolory trybu jasnego</translation>
-    </message>
-    <message>
-        <source>Background</source>
-        <translation>Tło</translation>
+        <source>Paper</source>
+        <translation>Papier</translation>
     </message>
     <message>
         <source>Text</source>
         <translation>Tekst</translation>
     </message>
     <message>
-        <source>Inactive (Focus mode)</source>
-        <translation>Nieaktywny tekst (tryb skupienia)</translation>
-    </message>
-    <message>
-        <source>Dark Mode Colors</source>
-        <translation>Kolory trybu ciemnego</translation>
+        <source>Dimmed text (Focus)</source>
+        <translation>Przygaszony tekst (Skupienie)</translation>
     </message>
     <message>
         <source>Formatting marks</source>
         <translation>Znaki formatowania</translation>
+    </message>
+    <message>
+        <source>Around the paper</source>
+        <translation>Tło wokół kartki</translation>
+    </message>
+    <message>
+        <source>Light Paper</source>
+        <translation>Jasny papier</translation>
+    </message>
+    <message>
+        <source>Dark Paper</source>
+        <translation>Ciemny papier</translation>
+    </message>
+    <message>
+        <source>On Both Papers</source>
+        <translation>Na obu papierach</translation>
+    </message>
+    <message>
+        <source>Shown translucent under the text, so the text stays readable on either paper.</source>
+        <translation>Te kolory są półprzezroczyste i leżą pod tekstem, więc tekst pozostaje czytelny na obu papierach.</translation>
+    </message>
+    <message>
+        <source>Selection</source>
+        <translation>Zaznaczenie</translation>
+    </message>
+    <message>
+        <source>Search hits</source>
+        <translation>Znalezione wystąpienia</translation>
+    </message>
+    <message>
+        <source>Current search hit</source>
+        <translation>Bieżące wystąpienie</translation>
     </message>
 </context>
 <context>

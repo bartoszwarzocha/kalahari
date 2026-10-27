@@ -21,8 +21,8 @@ namespace {
 /// Size of the page numbers relative to the text font
 constexpr double PAGE_NUMBER_FONT_SCALE = 0.8;
 
-/// Shade of the desk around the pages, from the paper color (QColor::darker() for light
-/// paper, QColor::lighter() for dark paper)
+/// Shade of the desk around the pages, from the paper color, where the desk has no color of its
+/// own (QColor::darker() for light paper, QColor::lighter() for dark paper)
 constexpr int DESK_DARKER_FACTOR = 118;
 constexpr int DESK_LIGHTER_FACTOR = 160;
 
@@ -953,8 +953,12 @@ void EditorRenderPipeline::clearDirtyRegion() {
 // =============================================================================
 
 void EditorRenderPipeline::renderBackground(QPainter* painter, const QRect& clipRect) {
-    // The desk around the page: a shade of the paper, darker for light paper and lighter
-    // for dark paper, so the sheets stand out in both color modes
+    // The desk around the page: the theme's color, otherwise a shade of the paper, darker for
+    // light paper and lighter for dark paper, so the sheets stand out in both color modes
+    if (m_context.colors.desk.isValid()) {
+        painter->fillRect(clipRect, m_context.colors.desk);
+        return;
+    }
     const QColor& paper = m_context.colors.background;
     painter->fillRect(clipRect, paper.lightness() > 127 ? paper.darker(DESK_DARKER_FACTOR)
                                                         : paper.lighter(DESK_LIGHTER_FACTOR));

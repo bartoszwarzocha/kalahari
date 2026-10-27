@@ -965,6 +965,52 @@ TEST_CASE("Stage5 continuous view: a page wider than the view scrolls sideways t
 }
 
 // =============================================================================
+// The theme's colors of the papers
+// =============================================================================
+
+TEST_CASE("Stage5 colors: the desk and the search's hits in the colors of the appearance",
+          "[editor][stage5][render][colors]") {
+    // The whole page width in the view: the desk on both sides of the paper
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, QSize(1000, 500));
+    editor->fromKml(kmlOf({QStringLiteral("one word two word three")}));
+    const int row = static_cast<int>(caretAt(*editor, {0, 0}).center().y());
+
+    EditorAppearance appearance = editor->appearance();
+    appearance.colorMode = EditorColorMode::Light;
+    appearance.colors.continuous.deskLight = QColor(QStringLiteral("#3a5f8a"));
+    appearance.colors.continuous.deskDark = QColor(QStringLiteral("#5a2e2e"));
+    editor->setAppearance(appearance);
+
+    SECTION("the desk: the color of the paper's mode, in both views") {
+        for (const ViewMode mode : {ViewMode::Page, ViewMode::Continuous}) {
+            editor->setViewMode(mode);
+            CHECK(editorImage(*editor).pixel(3, row) == QColor(QStringLiteral("#3a5f8a")).rgb());
+        }
+        appearance.colorMode = EditorColorMode::Dark;
+        editor->setAppearance(appearance);
+        CHECK(editorImage(*editor).pixel(3, row) == QColor(QStringLiteral("#5a2e2e")).rgb());
+    }
+
+    SECTION("the search's hits: translucent in the color of the appearance") {
+        editor->setSelection({{0, 4}, {0, 8}});  // the first "word", the current hit
+        editor->showFind();
+        REQUIRE(editor->searchEngine()->totalMatchCount() == 2);
+        // Where the text is with the bar shown (the areas leave no selection)
+        const QRect secondWord = rangeArea(*editor, 0, 13, 17);
+        const QRect two = rangeArea(*editor, 0, 9, 12);
+        const QImage before = editorImage(*editor);
+
+        appearance.colors.searchMatch =
+            underTextColor(QColor(QStringLiteral("#00c000")), SEARCH_MATCH_OPACITY);
+        editor->setAppearance(appearance);
+        const QImage after = editorImage(*editor);
+        CHECK(differingPixels(before, after, secondWord) > 0);
+        CHECK(differingPixels(before, after, two) == 0);
+    }
+}
+
+// =============================================================================
 // Distraction-Free
 // =============================================================================
 

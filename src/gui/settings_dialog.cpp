@@ -111,7 +111,8 @@ void SettingsDialog::createNavigationTree() {
 
     QTreeWidgetItem* editor = category(tr("Editor"));
     addPage(editor, tr("General"), []() { return new EditorGeneralPage(); });
-    addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
+    m_pageItems[EDITOR_COLORS_PAGE] =
+        addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
     addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
     m_pageItems[SPELLING_PAGE] =

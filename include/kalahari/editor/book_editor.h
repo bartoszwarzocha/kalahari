@@ -1208,6 +1208,10 @@ signals:
     /// it, pasted, cut, undid, redid, formatted or aligned it; nothing changed
     void changeRefused();
 
+    /// @brief The gear of the find bar asks for the colors of the hits (Settings > Editor >
+    /// Colors)
+    void searchColorsRequested();
+
     /// @brief Replace All of the Find/Replace bar is about to replace @p count matches of
     /// @p found with @p replacement; the text is still as it was (toKml())
     ///

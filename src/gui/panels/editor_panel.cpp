@@ -266,18 +266,40 @@ void EditorPanel::applySettings() {
     appearance.typography.firstLineIndent = settings.get<bool>("editor.firstLineIndent");
     appearance.typography.indentSize = settings.get<double>("editor.indentSize");
 
-    // The paper (light or dark, independent from the application's theme) and its colors
+    // The paper (light or dark, independent from the application's theme) and the colors of
+    // both papers: the theme's (the editor's own where the theme has none)
     appearance.colorMode = settings.get<bool>("editor.darkMode")
         ? editor::EditorColorMode::Dark
         : editor::EditorColorMode::Light;
-    appearance.colors.continuous.backgroundLight = color("editor.colors.backgroundLight");
-    appearance.colors.continuous.textLight = color("editor.colors.textLight");
-    appearance.colors.focus.inactiveLight = color("editor.colors.inactiveLight");
-    appearance.colors.continuous.backgroundDark = color("editor.colors.backgroundDark");
-    appearance.colors.continuous.textDark = color("editor.colors.textDark");
-    appearance.colors.focus.inactiveDark = color("editor.colors.inactiveDark");
-    appearance.colors.formattingMarks.light = color("editor.colors.formattingMarksLight");
-    appearance.colors.formattingMarks.dark = color("editor.colors.formattingMarksDark");
+    const auto& themes = core::ThemeManager::getInstance();
+    const editor::EditorColors defaults;
+    const editor::PaperColorKeys& light = editor::LIGHT_PAPER_COLOR_KEYS;
+    const editor::PaperColorKeys& dark = editor::DARK_PAPER_COLOR_KEYS;
+    auto& papers = appearance.colors.continuous;
+    papers.backgroundLight = themes.editorColor(light.paper, defaults.continuous.backgroundLight);
+    papers.textLight = themes.editorColor(light.text, defaults.continuous.textLight);
+    papers.deskLight = themes.editorColor(light.desk, defaults.continuous.deskLight);
+    papers.backgroundDark = themes.editorColor(dark.paper, defaults.continuous.backgroundDark);
+    papers.textDark = themes.editorColor(dark.text, defaults.continuous.textDark);
+    papers.deskDark = themes.editorColor(dark.desk, defaults.continuous.deskDark);
+    appearance.colors.focus.inactiveLight =
+        themes.editorColor(light.focusDimmed, defaults.focus.inactiveLight);
+    appearance.colors.focus.inactiveDark =
+        themes.editorColor(dark.focusDimmed, defaults.focus.inactiveDark);
+    appearance.colors.formattingMarks.light =
+        themes.editorColor(light.formattingMarks, defaults.formattingMarks.light);
+    appearance.colors.formattingMarks.dark =
+        themes.editorColor(dark.formattingMarks, defaults.formattingMarks.dark);
+    // Under the text on both papers: translucent, so the text stays readable
+    appearance.colors.selection =
+        editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),
+                               editor::SELECTION_OPACITY);
+    appearance.colors.searchMatch = editor::underTextColor(
+        themes.editorColor(editor::SEARCH_MATCH_COLOR_KEY, defaults.searchMatch),
+        editor::SEARCH_MATCH_OPACITY);
+    appearance.colors.currentSearchMatch = editor::underTextColor(
+        themes.editorColor(editor::CURRENT_SEARCH_MATCH_COLOR_KEY, defaults.currentSearchMatch),
+        editor::CURRENT_SEARCH_MATCH_OPACITY);
 
     // Cursor
     appearance.cursor.style = static_cast<editor::CursorStyle>(settings.get<int>("editor.cursor.style"));
@@ -322,7 +344,6 @@ void EditorPanel::applySettings() {
     // The annotations' marks (at the size of the setting) and the waves under the misspelled
     // words and the grammar issues: the theme's colors, on each paper as "Optimize colors in
     // themes" shows them
-    const auto& themes = core::ThemeManager::getInstance();
     const bool optimize = themes.optimizesEditorColors();
     const auto onPaper = [&themes, optimize](const std::string& key, const QColor& paper) {
         return shownColor(themes.editorColor(key, QColor()), paper, optimize);
