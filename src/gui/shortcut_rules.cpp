@@ -391,6 +391,22 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
         {tr("Back to the text"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
     groups.push_back(std::move(annotations));
 
+    // The list of quick insert (editor/quick_insert_controller.h) takes its keys only while
+    // it is open at the cursor; the text has them again when it closes
+    FixedKeyGroup quickInsert;
+    quickInsert.title = tr("Fixed: the quick insert list");
+    quickInsert.local = true;
+    quickInsert.rows.push_back({tr("Choose an item"),
+                                {keyWith(NONE, Qt::Key_Up), keyWith(NONE, Qt::Key_Down),
+                                 keyWith(NONE, Qt::Key_PageUp), keyWith(NONE, Qt::Key_PageDown)},
+                                NONE, {}, {}, {}});
+    QList<QKeyCombination> insertKeys = enterKeys(NONE);
+    insertKeys.append(keyWith(NONE, Qt::Key_Tab));
+    quickInsert.rows.push_back({tr("Insert the item"), insertKeys, NONE, {}, {}, {}});
+    quickInsert.rows.push_back(
+        {tr("Close the list"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
+    groups.push_back(std::move(quickInsert));
+
     // The tree of the Navigator takes its keys only while it has the keys: F2 elsewhere shows
     // the Navigator, and Ctrl+Shift+Enter elsewhere is Book > Add... for what is in front
     FixedKeyGroup navigator;

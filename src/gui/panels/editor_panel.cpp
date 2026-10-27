@@ -6,6 +6,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
+#include "kalahari/gui/quick_insert_items.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/core/logger.h"
@@ -19,6 +20,7 @@
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/paragraph_styles.h"
+#include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QEvent>
 #include <QGuiApplication>
@@ -72,6 +74,11 @@ EditorPanel::EditorPanel(QWidget* parent)
     // typed: the book's language may change, and a chapter is told from a file outside the
     // book only after its tab is shown
     m_bookEditor->setTextLanguage([this]() { return textLanguage(); });
+
+    // Quick insert: the cards of the book, the fragments and the characters at the cursor;
+    // the editor owns it, Insert > Quick Insert... finds it there
+    m_quickInsert = new editor::QuickInsertController(
+        m_bookEditor, [](QChar trigger) { return quickInsertItems(trigger); }, m_bookEditor);
 
     // F7 in the menu of an issue goes on to the next one, as in the text
     m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
@@ -367,6 +374,9 @@ void EditorPanel::applySettings() {
                            : editor::DialogueDash::Em;
     autoCorrect.ellipsis = replaces("editor.autoCorrect.ellipsis");
     m_bookEditor->setAutoCorrect(autoCorrect);
+
+    // The characters that open quick insert (Settings > Editor > Quick Insert)
+    m_quickInsert->setTriggers(quickInsertTriggers());
 
     // How text from other programs is pasted (Settings > Editor > General)
     m_bookEditor->setPasteMode(editor::ClipboardHandler::pasteModeFromId(

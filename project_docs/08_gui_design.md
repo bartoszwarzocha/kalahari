@@ -1562,6 +1562,7 @@ Rules for a new shortcut:
 | Edit > Previous To Do | Alt+Up |
 | Book > Add... | Ctrl+Shift+Enter |
 | Insert > Add Annotation... | Ctrl+Shift+M |
+| Insert > Quick Insert... | Ctrl+Shift+W |
 | Format > Bold | Ctrl+B |
 | Format > Italic | Ctrl+I |
 | Format > Underline | Ctrl+U |
@@ -1571,6 +1572,7 @@ Rules for a new shortcut:
 | Format > Justify | Ctrl+J |
 | Tools > Check Spelling as You Type | Shift+F7 |
 | Tools > Next Misspelling | F7 |
+| Tools > Next Repetition | Ctrl+Shift+F7 |
 | View > Panels > Navigator | F2 |
 | View > Panels > Log | F4 |
 | View > Panels > Search | F5 |
@@ -1609,6 +1611,9 @@ may have them too.
   field – replace, Esc – close, Alt+C – match case, Alt+W – whole words, Alt+R – regular
   expression (in the bar and in the text under it, before the menus with these letters).
 - **Annotation frame:** Ctrl+Enter – keep the text, Esc – drop it.
+- **Quick insert list** (open at the cursor after @ or # at the start of a word, or Insert >
+  Quick Insert...): Up and Down, Page Up and Page Down – choose an item, Enter or Tab –
+  insert it in place of what was typed, Esc – close the list and keep the text.
 - **Navigator:** Insert or Ctrl+Shift+Enter – Add... on the node, Enter – open the element,
   F2 – rename the node, Delete – delete the element, Alt+Shift+H – the version history of
   the selected text (in the tree only, before the commands with these keys).

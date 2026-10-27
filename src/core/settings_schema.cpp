@@ -258,6 +258,17 @@ std::map<std::string, json> buildDefaults() {
         {"editor.autoCorrect.dialogueDashType", "emDash"},
         {"editor.autoCorrect.ellipsis", true},
 
+        // Editor: quick insert (Settings > Editor > Quick Insert, gui/quick_insert_items.h).
+        // @ or # typed at the start of a word opens a list of the sources chosen for it:
+        // "cards" (the names of the cards of the Workshop), "fragments" (the writer's text
+        // fragments), "characters" (the typographic characters). The fragments and the
+        // characters: [{"name", "text", "kind": "fragment" | "character"}]; null: the
+        // characters the program has at first
+        {"editor.quickInsert.enabled", true},
+        {"editor.quickInsert.at", json::array({"cards"})},
+        {"editor.quickInsert.hash", json::array({"fragments", "characters"})},
+        {"editor.quickInsert.items", nullptr},
+
         // Editor: versions of the texts (Settings > Editor > Versions, ChapterVersions). With
         // enabled off no new version is kept, neither the writer's nor the program's (except
         // the current text before another version is restored); those kept stay. Save

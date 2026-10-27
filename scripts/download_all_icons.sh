@@ -44,6 +44,7 @@ ICONS=(
     "delete"            # edit.delete
     "select_all"        # edit.selectAll
     "highlight_alt"     # edit.selectWord
+    "repeat"            # view.repetitionMarks, tools.repetitions
     "segment"           # edit.selectParagraph
     "search"            # edit.find, view.search
     "navigate_next"     # edit.findNext

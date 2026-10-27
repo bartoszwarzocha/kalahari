@@ -108,6 +108,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"book.addElement", QStringLiteral("Ctrl+Shift+Return")},
         {"insert.annotation", QStringLiteral("Ctrl+Shift+M")},
         {"insert.pageBreak", QStringLiteral("Ctrl+Return")},  // and Ctrl with the keypad's Enter
+        {"insert.quickInsert", QStringLiteral("Ctrl+Shift+W")},
 #ifdef Q_OS_MACOS
         // Option+Cmd: Option with a digit types a character
         {"format.style.heading1", QStringLiteral("Ctrl+Alt+1")},
@@ -134,6 +135,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
 #endif
         {"tools.spellcheck", QStringLiteral("Shift+F7")},
         {"tools.nextMisspelling", QStringLiteral("F7")},
+        {"tools.nextRepetition", QStringLiteral("Ctrl+Shift+F7")},
         {"view.navigator", QStringLiteral("F2")},
         {"view.log", QStringLiteral("F4")},
         {"view.search", QStringLiteral("F5")},

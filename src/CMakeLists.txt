@@ -160,11 +160,13 @@ set(KALAHARI_SOURCES
     gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
+    gui/quick_insert_items.cpp  # What the list of quick insert offers: cards, fragments, characters
     gui/read_only_book.cpp # What the program says of a book open read-only
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
     gui/version_texts.cpp  # What the program says of a version of a text
     gui/versions_coordinator.cpp  # VersionsCoordinator - Save Version and Version History
     gui/dialogs/version_name_dialog.cpp  # VersionNameDialog - the description of a version
+    gui/dialogs/quick_insert_item_dialog.cpp  # QuickInsertItemDialog - a fragment or a character of quick insert
     gui/dialogs/version_history_dialog.cpp  # VersionHistoryDialog - the versions of a text
     gui/kalahari_syntax_highlighter.cpp
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)
@@ -198,6 +200,7 @@ set(KALAHARI_SOURCES
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
     gui/settings/auto_correct_page.cpp  # Settings > Editor > Auto-correct
+    gui/settings/quick_insert_page.cpp  # Settings > Editor > Quick Insert
     gui/settings/versions_page.cpp  # Settings > Editor > Versions
     gui/settings/annotations_page.cpp
     gui/settings/navigator_page.cpp  # Settings > Navigator
@@ -320,6 +323,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/versions_coordinator.h  # VersionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h

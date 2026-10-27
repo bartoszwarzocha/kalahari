@@ -35,6 +35,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/paragraph_styles.h"
+#include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/view_modes.h"
 #include "kalahari/editor/editor_types.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -377,7 +378,8 @@ MainWindow::MainWindow(QWidget* parent)
     m_editCoordinator->addTextCommands({"edit.selectWord", "edit.selectParagraph"},
                                        [](const editor::BookEditor&) { return true; });
     const std::vector<std::string> objectCommands = {"insert.horizontalLine", "insert.sceneBreak",
-                                                     "insert.pageBreak", "book.sceneBreak"};
+                                                     "insert.pageBreak", "book.sceneBreak",
+                                                     "insert.quickInsert"};
     m_editCoordinator->addTextCommands(
         objectCommands, [](const editor::BookEditor& text) { return !text.isReadOnly(); });
     // The pastes in each mode: with something on the clipboard, as Paste
@@ -626,6 +628,13 @@ void MainWindow::registerCommands() {
     callbacks.onInsertHorizontalLine = insert(editor::TextObject::HorizontalRule);
     callbacks.onInsertSceneBreak = insert(editor::TextObject::SceneBreak);
     callbacks.onInsertPageBreak = insert(editor::TextObject::PageBreak);
+    // The list of quick insert of the text (EditorPanel), with all its items
+    callbacks.onQuickInsert = inText([](editor::BookEditor& text) {
+        if (auto* quick = text.findChild<editor::QuickInsertController*>(
+                QString(), Qt::FindDirectChildrenOnly)) {
+            quick->openAtCursor();
+        }
+    });
     const auto pasteAs = [this, &inText](editor::PasteMode mode) {
         return inText([this, mode](editor::BookEditor& text) {
             text.pasteAs(mode);
