@@ -141,7 +141,11 @@ QList<QWidget*> DocumentWindows::pages() const {
 }
 
 QTabWidget* DocumentWindows::frontTabs() const {
-    return m_frontTabs ? m_frontTabs.data() : m_bookTabs;
+    // The tabs of a window of its own while it is open
+    if (m_frontTabs == m_bookTabs || !allTabs().contains(m_frontTabs)) {
+        return m_bookTabs;
+    }
+    return m_frontTabs;
 }
 
 QWidget* DocumentWindows::frontPage() const {
@@ -228,7 +232,7 @@ void DocumentWindows::setFrontTabs(QTabWidget* tabs) {
 
 void DocumentWindows::updateFront() {
     QWidget* page = frontPage();
-    if (m_frontSaid && page == m_frontPage.data()) {
+    if (m_frontSaid && page == m_frontPage) {
         return;
     }
     m_frontPage = page;
@@ -457,8 +461,15 @@ bool DocumentWindows::eventFilter(QObject* watched, QEvent* event) {
 }
 
 void DocumentWindows::dragTab(QTabWidget& tabs, int index) {
-    QPointer<QWidget> page = tabs.widget(index);
+    QWidget* page = tabs.widget(index);
     QTabBar* bar = tabs.tabBar();
+    // Closed while it is dragged: nothing moves
+    bool gone = false;
+    const QMetaObject::Connection watching =
+        connect(page, &QObject::destroyed, this, [this, &gone]() {
+            gone = true;
+            m_draggedPage = nullptr;
+        });
 
     // The bar stops moving the tab among its tabs, as if the button was released where it was
     // pressed
@@ -481,7 +492,8 @@ void DocumentWindows::dragTab(QTabWidget& tabs, int index) {
     m_dropped = false;
     drag->exec(Qt::MoveAction);
     m_draggedPage = nullptr;
-    if (m_dropped || page.isNull()) {
+    disconnect(watching);
+    if (m_dropped || gone) {
         return;  // on a bar of tabs: moved there
     }
 
@@ -500,7 +512,11 @@ void DocumentWindows::dragTab(QTabWidget& tabs, int index) {
 }
 
 void DocumentWindows::showTabMenu(QTabWidget& tabs, int index, const QPoint& globalPos) {
-    QPointer<QWidget> page = tabs.widget(index);
+    QWidget* page = tabs.widget(index);
+    // Closed while its menu is open: the menu does nothing
+    bool gone = false;
+    const QMetaObject::Connection watching =
+        connect(page, &QObject::destroyed, this, [&gone]() { gone = true; });
     QMenu menu(tabs.tabBar());
     //: The menu of a tab of a text: it goes to a window of its own. In Polish: &Przenieś do
     //: nowego okna
@@ -515,7 +531,8 @@ void DocumentWindows::showTabMenu(QTabWidget& tabs, int index, const QPoint& glo
     QAction* close = menu.addAction(tr("&Close Tab"));
 
     QAction* chosen = menu.exec(globalPos);
-    if (chosen == nullptr || page.isNull()) {
+    disconnect(watching);
+    if (chosen == nullptr || gone) {
         return;
     }
     if (chosen == toWindow) {
@@ -534,7 +551,7 @@ void DocumentWindows::showTabMenu(QTabWidget& tabs, int index, const QPoint& glo
 // ----------------------------------------------------------------------------
 
 int DocumentWindows::registerCommands(CommandRegistry& registry,
-                                      std::function<DocumentWindows*()> windows) {
+                                      const std::function<DocumentWindows*()>& windows) {
     int count = 0;
     const auto add = [&](const char* id, const char* menuText, int order, bool separatorAfter,
                          KeyboardShortcut shortcut, std::function<void()> execute,
@@ -609,21 +626,17 @@ int DocumentWindows::registerCommands(CommandRegistry& registry,
 }
 
 void DocumentWindows::listWindowsIn(QMenu* windowMenu) {
-    m_windowMenu = windowMenu;
     if (windowMenu == nullptr) {
         return;
     }
-    connect(windowMenu, &QMenu::aboutToShow, this, [this]() {
-        if (!m_windowMenu) {
-            return;
-        }
+    connect(windowMenu, &QMenu::aboutToShow, this, [this, windowMenu]() {
         qDeleteAll(m_windowActions);
         m_windowActions.clear();
 
         // Before Window Settings...: the book window, then its windows of their own
         QAction* settings =
             CommandRegistry::getInstance().getAction(QString::fromLatin1(SETTINGS_COMMAND));
-        QAction* before = m_windowMenu->actions().contains(settings) ? settings : nullptr;
+        QAction* before = windowMenu->actions().contains(settings) ? settings : nullptr;
         QWidget* active = QApplication::activeWindow();
         const QList<QWidget*> list = bookWindows();
         for (qsizetype i = 0; i < list.size(); ++i) {
@@ -636,21 +649,20 @@ void DocumentWindows::listWindowsIn(QMenu* windowMenu) {
             // An open window in the Window menu: its number, its access key, and its title
             const QString text = i < 9 ? QStringLiteral("&%1 %2").arg(i + 1).arg(title)
                                        : QStringLiteral("%1 %2").arg(i + 1).arg(title);
-            auto* action = new QAction(text, m_windowMenu);
+            auto* action = new QAction(text, windowMenu);
             action->setCheckable(true);
             action->setChecked(window == active);
-            QPointer<QWidget> target = window;
-            connect(action, &QAction::triggered, this, [this, target]() {
-                if (!target) return;
-                auto* detached = qobject_cast<DetachedWindow*>(target.data());
-                bringToFront(target, detached ? detached->tabs() : *m_bookTabs);
+            // Gone with the window
+            connect(action, &QAction::triggered, window, [this, window]() {
+                auto* detached = qobject_cast<DetachedWindow*>(window);
+                bringToFront(window, detached ? detached->tabs() : *m_bookTabs);
             });
-            m_windowMenu->insertAction(before, action);
+            windowMenu->insertAction(before, action);
             m_windowActions.append(action);
         }
-        QAction* separator = new QAction(m_windowMenu);
+        QAction* separator = new QAction(windowMenu);
         separator->setSeparator(true);
-        m_windowMenu->insertAction(before, separator);
+        windowMenu->insertAction(before, separator);
         m_windowActions.append(separator);
     });
 }
@@ -733,15 +745,16 @@ DetachedWindow::DetachedWindow(DocumentWindows& owner, QMainWindow& bookWindow)
     connect(&m_bookWindow, &QWidget::windowTitleChanged, this, &DetachedWindow::followFront);
     applyLook();
     m_settingsListener = core::SettingsManager::getInstance().subscribe(
-        [window = QPointer<DetachedWindow>(this)](const std::string& key) {
-            if (key == DocumentWindows::LOOK_KEY && window) {
-                QMetaObject::invokeMethod(window, &DetachedWindow::applyLook,
-                                          Qt::QueuedConnection);
+        [this](const std::string& key) {
+            // Unsubscribed by the destructor; the settings may change on another thread
+            if (key == DocumentWindows::LOOK_KEY) {
+                QMetaObject::invokeMethod(this, "applyLook", Qt::QueuedConnection);
             }
         });
 }
 
 DetachedWindow::~DetachedWindow() {
+    m_closing = true;  // no longer one of the windows of the book, nor its tabs in front
     if (m_settingsListener >= 0) {
         core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
     }
@@ -822,20 +835,22 @@ void DetachedWindow::followFront() {
     auto* editor = qobject_cast<EditorPanel*>(page);
     editor::BookEditor* bookEditor = editor ? editor->getBookEditor() : nullptr;
     if (m_followed != page) {
-        auto* old = qobject_cast<EditorPanel*>(m_followed.data());
-        if (old != nullptr && old->getBookEditor() != nullptr) {
-            disconnect(old->getBookEditor(), nullptr, this, nullptr);
+        // Its connections go, also when the editor followed is gone
+        for (const QMetaObject::Connection& connection : std::as_const(m_followConnections)) {
+            disconnect(connection);
         }
+        m_followConnections.clear();
         m_followed = page;
         if (bookEditor != nullptr) {
-            connect(bookEditor, &editor::BookEditor::currentPageChanged, this,
-                    [this](int) { updatePageStatus(); });
-            connect(bookEditor, &editor::BookEditor::totalPagesChanged, this,
-                    [this](int) { updatePageStatus(); });
-            connect(bookEditor, &editor::BookEditor::zoomChanged, this,
-                    [this](double) { updatePageStatus(); });
-            connect(bookEditor, &editor::BookEditor::viewModeChanged, this,
-                    [this](editor::ViewMode) { updatePageStatus(); });
+            m_followConnections = {
+                connect(bookEditor, &editor::BookEditor::currentPageChanged, this,
+                        [this](int) { updatePageStatus(); }),
+                connect(bookEditor, &editor::BookEditor::totalPagesChanged, this,
+                        [this](int) { updatePageStatus(); }),
+                connect(bookEditor, &editor::BookEditor::zoomChanged, this,
+                        [this](double) { updatePageStatus(); }),
+                connect(bookEditor, &editor::BookEditor::viewModeChanged, this,
+                        [this](editor::ViewMode) { updatePageStatus(); })};
         }
         m_statistics->setEditor(bookEditor);
     }

@@ -8,7 +8,6 @@
 #include <QMainWindow>
 #include <QObject>
 #include <QPoint>
-#include <QPointer>
 #include <QString>
 
 #include <functional>
@@ -143,7 +142,7 @@ public:
     /// @p windows gives when they run (none: they do nothing)
     /// @return The number of commands registered
     static int registerCommands(CommandRegistry& registry,
-                                std::function<DocumentWindows*()> windows);
+                                const std::function<DocumentWindows*()>& windows);
 
     /// @brief List the windows of the book in @p windowMenu each time it opens, before Window
     /// Settings...
@@ -195,19 +194,18 @@ private:
     QList<QWidget*> bookWindows() const;
 
     QTabWidget* m_bookTabs;
-    QPointer<QTabWidget> m_frontTabs;
-    QPointer<QWidget> m_frontPage;   ///< The page frontChanged() named last
-    bool m_frontSaid = false;        ///< frontChanged() was emitted
+    QTabWidget* m_frontTabs;               ///< Its window may be gone: see frontTabs()
+    const QWidget* m_frontPage = nullptr;  ///< The page frontChanged() named last, to compare
+    bool m_frontSaid = false;              ///< frontChanged() was emitted
 
     // A tab pressed on a bar: dragging it off the bar takes it to a window of its own
-    QPointer<QTabBar> m_pressedBar;
+    const QTabBar* m_pressedBar = nullptr;  ///< To compare
     int m_pressedIndex = -1;
     QPoint m_pressPos;
-    QPointer<QWidget> m_draggedPage;  ///< The page of the tab being dragged
-    bool m_dropped = false;           ///< The tab being dragged was dropped on a bar of tabs
+    QWidget* m_draggedPage = nullptr;  ///< The page of the tab being dragged
+    bool m_dropped = false;            ///< The tab being dragged was dropped on a bar of tabs
 
-    QPointer<QMenu> m_windowMenu;      ///< Window
-    QList<QAction*> m_windowActions;   ///< The windows listed in it
+    QList<QAction*> m_windowActions;  ///< The windows listed in the Window menu
 };
 
 /// @brief A window of its own of tabs of the book window
@@ -229,9 +227,6 @@ public:
     /// @brief Its tabs
     QTabWidget& tabs() const { return *m_tabs; }
 
-    /// @brief Show the menus and the toolbars of the look in the settings
-    void applyLook();
-
     /// @brief The title, the status bar and the counts follow the text in front
     void followFront();
 
@@ -240,6 +235,10 @@ public:
 
     /// @brief None: its toolbars are those of the book window, whose menu shows them
     QMenu* createPopupMenu() override;
+
+public slots:
+    /// @brief Show the menus and the toolbars of the look in the settings
+    void applyLook();
 
 protected:
     /// @brief The texts go back to the book window, or close (DocumentWindows::closing())
@@ -256,7 +255,8 @@ private:
     QLabel* m_pageLabel;
     QLabel* m_zoomLabel;
     StatusBarStatistics* m_statistics;
-    QPointer<QWidget> m_followed;  ///< The page whose editor the status bar follows
+    const QWidget* m_followed = nullptr;  ///< The page whose editor the status bar follows
+    QList<QMetaObject::Connection> m_followConnections;  ///< To its editor
     int m_settingsListener = -1;
     bool m_closing = false;        ///< It is closing: its texts went back or closed
     bool m_closingTexts = false;   ///< Its texts are being closed by its closing
