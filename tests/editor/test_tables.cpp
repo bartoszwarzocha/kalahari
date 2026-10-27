@@ -7,6 +7,8 @@
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <kalahari/editor/search_engine.h>
+#include <kalahari/editor/spell_check_service.h>
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/text_tables.h>
 #include "editor_test_utils.h"
@@ -1009,4 +1011,57 @@ TEST_CASE("Tables: a table pasted in the text, and in a cell as its text",
                                "<p></p>"));
         CHECK(editor->toKml().toStdString() == expected.toStdString());
     }
+}
+
+// =============================================================================
+// The tools of the text in cells
+// =============================================================================
+
+TEST_CASE("Tables: search and Replace All find the text of the cells", "[editor][tables][search]") {
+    auto editor = editorWith(TABLE_KML);
+    SearchEngine engine;
+    engine.setDocument(editor->textDocument());
+    engine.setSearchText(QStringLiteral("o"));
+    // Before, Who, Role, Narrator, Second, Both: each paragraph its own matches
+    std::vector<int> paragraphs;
+    for (const SearchMatch& match : engine.findAll()) {
+        paragraphs.push_back(match.paragraph);
+    }
+    CHECK(paragraphs == std::vector<int>{0, 1, 2, 4, 5, 6});
+
+    engine.setSearchText(QStringLiteral("Second"));
+    engine.setReplaceText(QStringLiteral("Third"));
+    CHECK(engine.replaceAll() == 1);
+    CHECK(textOf(*editor) ==
+          "Before|0,0:Who|0,1:Role|1,0:Anna|1,1:Narrator|1,1:Third|2,0:Both|After");
+    editor->undo();
+    CHECK(textOf(*editor) == TABLE_TEXT);
+}
+
+TEST_CASE("Tables: the words of the cells count", "[editor][tables][statistics]") {
+    auto editor = editorWith(TABLE_KML);
+    CHECK(editor->wordCount() == 8);
+    CHECK(editor->textCounts().paragraphs == 8);
+}
+
+TEST_CASE("Tables: a misspelled word in a cell gets its wave", "[editor][tables][spelling]") {
+    auto spelling = std::make_unique<SpellCheckService>();
+    REQUIRE(spelling->loadDictionary(QStringLiteral("en_US")));
+    auto editor = editorWith(QStringLiteral(
+        "<kml><p>Before</p><table><tr><td><p>Anna</p></td><td><p>The narator</p></td></tr>"
+        "</table><p>After</p></kml>"));
+    editor->setSpellCheckService(spelling.get());
+    editor->show();
+    REQUIRE(waitUntil([&editor]() { return !editor->isSpellCheckPending(); }, DICTIONARY_WAIT_MS));
+
+    // The highlights of the paragraph of the second cell
+    QStringList wavy;
+    const QString text = editor->textDocument()->findBlockByNumber(2).text();
+    for (const TextHighlight& highlight :
+         QTextDocumentSource(editor->textDocument()).paragraphHighlights(2)) {
+        if (highlight.kind == HighlightKind::Spelling) {
+            wavy.append(text.mid(highlight.start, highlight.length));
+        }
+    }
+    CHECK(wavy == QStringList{QStringLiteral("narator")});
 }
