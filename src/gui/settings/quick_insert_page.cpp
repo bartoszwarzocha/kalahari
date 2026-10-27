@@ -61,7 +61,9 @@ QString shownText(const QString& text) {
     if (text.trimmed().isEmpty()) {
         QStringList codes;
         for (const QChar ch : text) {
-            codes << QStringLiteral("U+%1").arg(ch.unicode(), 4, 16, QLatin1Char('0')).toUpper();
+            codes << QStringLiteral("U+%1")
+                         .arg(static_cast<unsigned>(ch.unicode()), 4, 16, QLatin1Char('0'))
+                         .toUpper();
         }
         return codes.join(QLatin1Char(' '));
     }
@@ -122,11 +124,11 @@ void EditorQuickInsertPage::createSources() {
     layout->setColumnStretch(0, 1);
     form->addRow(grid);
 
-    const std::array<const char*, 2> keys = {quick_insert_keys::AT_SOURCES,
-                                             quick_insert_keys::HASH_SOURCES};
+    const std::array<const char*, 2> sourceKeys = {quick_insert_keys::AT_SOURCES,
+                                                   quick_insert_keys::HASH_SOURCES};
     for (int column = 0; column < 2; ++column) {
         const std::array<QCheckBox*, 3> columnBoxes = boxes.at(column);
-        const std::string key = keys.at(column);
+        const std::string key = sourceKeys.at(column);
         Binding sources;
         sources.key = [key]() { return key; };
         sources.stored = [key]() {
@@ -317,7 +319,8 @@ void EditorQuickInsertPage::removeItems() {
         return;
     }
     // The keys stay in the list, on the row after the last one removed
-    const int next = m_items->indexOfTopLevelItem(selected.last()) + 1 - selected.size();
+    const int next =
+        m_items->indexOfTopLevelItem(selected.last()) + 1 - static_cast<int>(selected.size());
     qDeleteAll(selected);
     if (m_items->topLevelItemCount() > 0) {
         m_items->setCurrentItem(

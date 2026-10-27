@@ -58,10 +58,10 @@ QWidget* numberRow(QSpinBox* spin, std::function<QString(int)> text) {
     layout->addWidget(spin);
     layout->addWidget(unit);
     layout->addStretch();
-    const auto update = [spin, unit, text = std::move(text)](int value) {
+    const auto update = [spin, unit, shownFor = std::move(text)](int value) {
         const QString number = QString::number(value);
-        const QString shown = text(value);
-        const int at = shown.indexOf(number);
+        const QString shown = shownFor(value);
+        const qsizetype at = shown.indexOf(number);
         unit->setText(at < 0 ? shown : shown.mid(at + number.size()).trimmed());
         spin->setAccessibleDescription(shown);
     };
