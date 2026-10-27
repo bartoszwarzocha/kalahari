@@ -137,7 +137,7 @@ public:
     explicit EditorGeneralPage(QWidget* parent = nullptr);
 };
 
-/// @brief Editor > Colors: light and dark paper
+/// @brief Editor > Colors: the light and the dark paper, kept for each theme
 class EditorColorsPage : public SettingsPage {
     Q_OBJECT
 public:

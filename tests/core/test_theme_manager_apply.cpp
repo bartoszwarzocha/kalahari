@@ -1,13 +1,14 @@
 /// @file test_theme_manager_apply.cpp
 /// @brief ThemeManager::reloadTheme applies a theme with the user's stored colors
 /// and extra overrides in one pass (one themeChanged, colors visible in the palette);
-/// the editor colors of a theme (the writer's own ones are kept for each theme), and the colors
-/// its palette gives disabled widgets.
+/// the editor colors of a theme (the writer's own ones are kept for each theme, also the colors of
+/// the papers, which moved into the themes), and the colors its palette gives disabled widgets.
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/theme_manager.h>
+#include <kalahari/editor/editor_appearance.h>
 
 #include <QApplication>
 #include <QColor>
@@ -18,9 +19,11 @@
 
 #include <map>
 #include <string>
+#include <utility>
 
 using kalahari::core::Theme;
 using kalahari::core::ThemeManager;
+using namespace kalahari::editor;
 
 TEST_CASE("ThemeManager applies a theme with overrides in one pass",
           "[core][theme]") {
@@ -204,11 +207,102 @@ TEST_CASE("The writer's editor colors are kept for each theme and reach the them
 
     // A setting that changes no color of the theme changes nothing
     before = colorsChangedCount;
-    settings.set<std::string>("editor.colors.backgroundLight", "#fafafa");
+    const std::string frame = "editor.textFrameBorder.color";
+    const std::string frameColor = settings.get<std::string>(frame);
+    settings.set<std::string>(frame, "#fafafa");
     QCoreApplication::processEvents();
     CHECK(colorsChangedCount == before);
-    settings.removeKey("editor.colors.backgroundLight");
+    settings.set<std::string>(frame, frameColor);
     QCoreApplication::processEvents();
+}
+
+TEST_CASE("Both themes give the colors of both papers as the editor had them",
+          "[core][theme][colors]") {
+    // The theme in use is not changed: the files are read as they are
+    const EditorColors own;
+    const std::pair<std::string, QColor> colors[] = {
+        {LIGHT_PAPER_COLOR_KEYS.paper, own.continuous.backgroundLight},
+        {LIGHT_PAPER_COLOR_KEYS.text, own.continuous.textLight},
+        {LIGHT_PAPER_COLOR_KEYS.focusDimmed, own.focus.inactiveLight},
+        {LIGHT_PAPER_COLOR_KEYS.formattingMarks, own.formattingMarks.light},
+        {LIGHT_PAPER_COLOR_KEYS.desk, own.continuous.deskLight},
+        {DARK_PAPER_COLOR_KEYS.paper, own.continuous.backgroundDark},
+        {DARK_PAPER_COLOR_KEYS.text, own.continuous.textDark},
+        {DARK_PAPER_COLOR_KEYS.focusDimmed, own.focus.inactiveDark},
+        {DARK_PAPER_COLOR_KEYS.formattingMarks, own.formattingMarks.dark},
+        {DARK_PAPER_COLOR_KEYS.desk, own.continuous.deskDark},
+        {SELECTION_COLOR_KEY, underTextColor(own.selection, 255)},
+        {SEARCH_MATCH_COLOR_KEY, underTextColor(own.searchMatch, 255)},
+        {CURRENT_SEARCH_MATCH_COLOR_KEY, underTextColor(own.currentSearchMatch, 255)},
+    };
+    for (const char* name : {"Light", "Dark"}) {
+        const Theme theme = ThemeManager::getInstance().loadTheme(QString::fromLatin1(name));
+        for (const auto& [key, color] : colors) {
+            INFO(name << " " << key);
+            REQUIRE(theme.editor.count(key) == 1);
+            CHECK(theme.editor.at(key) == color);
+        }
+    }
+
+    // The desk is the shade the editor gave each paper before it had a color of its own
+    CHECK(own.continuous.deskLight.rgb() == own.continuous.backgroundLight.darker(118).rgb());
+    CHECK(own.continuous.deskDark.rgb() == own.continuous.backgroundDark.lighter(160).rgb());
+    // Drawn under the text as before: translucent
+    CHECK(own.selection == QColor(66, 133, 244, 80));
+    CHECK(own.searchMatch == QColor(255, 214, 0, 96));
+    CHECK(own.currentSearchMatch == QColor(255, 140, 0, 140));
+}
+
+TEST_CASE("The colors of the papers kept outside the themes move into each theme",
+          "[core][theme][colors]") {
+    auto& themeManager = ThemeManager::getInstance();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const auto setting = [](const char* theme, const char* key) {
+        return ThemeManager::editorColorSetting(theme, key);
+    };
+    const std::string keptInDark = setting("Dark", LIGHT_PAPER_COLOR_KEYS.paper);
+    const std::string added[] = {
+        setting("Light", LIGHT_PAPER_COLOR_KEYS.paper),
+        setting("Light", DARK_PAPER_COLOR_KEYS.text),
+        setting("Dark", DARK_PAPER_COLOR_KEYS.text),
+        setting("Light", LIGHT_PAPER_COLOR_KEYS.formattingMarks),
+        setting("Dark", LIGHT_PAPER_COLOR_KEYS.formattingMarks),
+    };
+    const auto clear = [&]() {
+        settings.removeKey(keptInDark);
+        for (const std::string& key : added) {
+            settings.removeKey(key);
+        }
+    };
+    clear();
+
+    // A cream paper of the writer's, the dark paper's text as the themes have it, a broken
+    // color; the dark theme has its own light paper already
+    settings.set<std::string>("editor.colors.backgroundLight", "#f5ecd7");
+    settings.set<std::string>("editor.colors.textDark", "#e0e0e0");
+    settings.set<std::string>("editor.colors.formattingMarksLight", "not a color");
+    settings.set<std::string>(keptInDark, "#101010");
+
+    themeManager.moveFormerPaperColors();
+    for (const char* former : {"editor.colors.backgroundLight", "editor.colors.textDark",
+                               "editor.colors.formattingMarksLight"}) {
+        INFO(former);
+        CHECK_FALSE(settings.hasKey(former));
+    }
+    CHECK(settings.get<std::string>(added[0], std::string()) == "#f5ecd7");
+    CHECK(settings.get<std::string>(keptInDark, std::string()) == "#101010");
+    for (const std::string& key : {added[1], added[2], added[3], added[4]}) {
+        INFO(key);
+        CHECK_FALSE(settings.hasKey(key));
+    }
+
+    // Once moved, nothing more to move
+    settings.removeKey(added[0]);
+    themeManager.moveFormerPaperColors();
+    CHECK_FALSE(settings.hasKey(added[0]));
+
+    clear();
+    QCoreApplication::processEvents();  // the theme follows the settings
 }
 
 TEST_CASE("Optimize colors in themes is on by default and its change reaches the editors",

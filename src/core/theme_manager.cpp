@@ -12,6 +12,8 @@
 #include <QApplication>
 #include <QToolTip>
 #include <fstream>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
 
 using namespace kalahari::core;
@@ -22,6 +24,19 @@ namespace {
 ///        name, EDITOR_PART and the color's name (editorColorSetting())
 constexpr const char* THEMES_PREFIX = "themes.";
 constexpr const char* EDITOR_PART = ".editor.";
+
+/// @brief The colors of the papers the settings kept outside the themes, and their names in the
+///        themes' "editor" sections (ThemeManager::moveFormerPaperColors())
+constexpr std::pair<const char*, const char*> FORMER_PAPER_COLORS[] = {
+    {"editor.colors.backgroundLight", "paperLight"},
+    {"editor.colors.textLight", "textLight"},
+    {"editor.colors.inactiveLight", "focusDimmedLight"},
+    {"editor.colors.formattingMarksLight", "formattingMarksLight"},
+    {"editor.colors.backgroundDark", "paperDark"},
+    {"editor.colors.textDark", "textDark"},
+    {"editor.colors.inactiveDark", "focusDimmedDark"},
+    {"editor.colors.formattingMarksDark", "formattingMarksDark"},
+};
 
 /// @brief Whether a setting changes how the editor colors are shown: a user's editor color of a
 ///        theme or "Optimize colors in themes"
@@ -80,6 +95,7 @@ ThemeManager::ThemeManager() {
     }
 
     // Load user's custom per-theme colors, so icons and widgets have them at startup
+    moveFormerPaperColors();
     m_baseTheme = m_currentTheme;
     applyStoredColors();
     m_optimizesEditorColors = optimizesEditorColors();
@@ -187,6 +203,49 @@ std::string ThemeManager::editorColorSetting(const std::string& themeName,
 
 bool ThemeManager::optimizesEditorColors() const {
     return SettingsManager::getInstance().get<bool>(OPTIMIZE_COLORS_SETTING, true);
+}
+
+void ThemeManager::moveFormerPaperColors() {
+    auto& settings = SettingsManager::getInstance();
+    std::vector<std::pair<std::string, QColor>> chosen;
+    for (const auto& [former, key] : FORMER_PAPER_COLORS) {
+        if (!settings.hasKey(former)) {
+            continue;
+        }
+        const QColor color(QString::fromStdString(settings.get<std::string>(former, std::string())));
+        settings.removeKey(former);
+        if (color.isValid()) {
+            chosen.emplace_back(key, color);
+        }
+    }
+    if (chosen.empty()) {
+        return;
+    }
+
+    // A color as the theme's file gives it is not kept: the theme decides it, as in Settings
+    int moved = 0;
+    for (const QString& themeName : getAvailableThemes()) {
+        Theme theme;
+        try {
+            theme = loadTheme(themeName);
+        } catch (const std::exception& e) {
+            Logger::getInstance().error("ThemeManager: The colors of the papers not moved into "
+                                        "theme '{}': {}",
+                                        themeName.toStdString(), e.what());
+            continue;
+        }
+        for (const auto& [key, color] : chosen) {
+            const std::string setting = editorColorSetting(theme.name, key);
+            const auto own = theme.editor.find(key);
+            if (settings.hasKey(setting) || (own != theme.editor.end() && own->second == color)) {
+                continue;
+            }
+            settings.set<std::string>(setting, color.name().toStdString());
+            ++moved;
+        }
+    }
+    Logger::getInstance().info("ThemeManager: {} colors of the papers moved into the themes",
+                               moved);
 }
 
 QStringList ThemeManager::getAvailableThemes() const {

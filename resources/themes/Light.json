@@ -51,6 +51,19 @@
     "spelling": "#FF0000",
     "grammar": "#0064FF",
     "versionDeleted": "#C62828",
-    "versionAdded": "#2E7D32"
+    "versionAdded": "#2E7D32",
+    "paperLight": "#FFFFFF",
+    "textLight": "#1E1E1E",
+    "focusDimmedLight": "#AAAAAA",
+    "formattingMarksLight": "#5B7FC0",
+    "deskLight": "#D8D8D8",
+    "paperDark": "#232328",
+    "textDark": "#E0E0E0",
+    "focusDimmedDark": "#78787D",
+    "formattingMarksDark": "#7A96D0",
+    "deskDark": "#383840",
+    "selection": "#4285F4",
+    "searchMatch": "#FFD600",
+    "currentSearchMatch": "#FF8C00"
   }
 }

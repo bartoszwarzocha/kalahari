@@ -42,6 +42,8 @@ void BookEditor::setupFindReplace()
             this, &BookEditor::hideFindReplace);
     connect(m_findReplaceBar, &FindReplaceBar::textFocusRequested,
             this, [this]() { setFocus(); });
+    connect(m_findReplaceBar, &FindReplaceBar::colorSettingsRequested,
+            this, &BookEditor::searchColorsRequested);
     connect(m_searchEngine.get(), &SearchEngine::matchesChanged,
             this, [this]() { update(); });  // Repaint on match change
     connect(m_searchEngine.get(), &SearchEngine::aboutToReplaceAll, this, [this](int count) {

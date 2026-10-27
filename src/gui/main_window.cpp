@@ -1541,6 +1541,7 @@ void MainWindow::createDocks() {
                 disconnect(bookEditor, &editor::BookEditor::zoomChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::contentChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::changeRefused, this, nullptr);
+                disconnect(bookEditor, &editor::BookEditor::searchColorsRequested, this, nullptr);
 
                 // Connect to update action states when selection/cursor/viewMode changes
                 connect(bookEditor, &editor::BookEditor::selectionChanged,
@@ -1569,6 +1570,14 @@ void MainWindow::createDocks() {
                 // the status bar says why nothing happened
                 connect(bookEditor, &editor::BookEditor::changeRefused, this, [this]() {
                     statusBar()->showMessage(readOnlyReason(), READ_ONLY_MESSAGE_MS);
+                });
+
+                // The gear of the find bar: the colors of the hits
+                connect(bookEditor, &editor::BookEditor::searchColorsRequested, this, [this]() {
+                    if (m_settingsCoordinator) {
+                        m_settingsCoordinator->openSettingsPage(
+                            QString::fromLatin1(SettingsDialog::EDITOR_COLORS_PAGE));
+                    }
                 });
 
                 // Page of the cursor and zoom in the status bar

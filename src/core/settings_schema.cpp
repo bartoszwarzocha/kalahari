@@ -179,22 +179,16 @@ std::map<std::string, json> buildDefaults() {
         {"spellingPanel.nextIssue", "panel"},
         {"spellingPanel.grammarScope", "whole"},
 
-        // Editor: colors. The user's values of the theme's editor colors (the underlines of
-        // the misspelled words and grammar issues, the annotations) are kept for each theme,
-        // themes.<theme>.editor.<name in the theme's "editor" section>, without a default here:
-        // the theme file gives it (ThemeManager::editorColorSetting()). "Optimize colors in
-        // themes" shows them darker on a light background and lighter on a dark one where they
+        // Editor: the paper, light or dark whatever the theme, and the colors. The user's values
+        // of the theme's editor colors (both papers and their text, the desk around them, the
+        // selection, the search's hits, the underlines of the misspelled words and grammar
+        // issues, the annotations) are kept for each theme, themes.<theme>.editor.<name in the
+        // theme's "editor" section>, without a default here: the theme file gives it
+        // (ThemeManager::editorColorSetting()). "Optimize colors in themes" shows the underlines
+        // and the annotations darker on a light background and lighter on a dark one where they
         // are hard to see there
         {"editor.darkMode", true},
         {"editor.colors.optimize", true},
-        {"editor.colors.backgroundLight", "#ffffff"},
-        {"editor.colors.textLight", "#1e1e1e"},
-        {"editor.colors.inactiveLight", "#aaaaaa"},
-        {"editor.colors.formattingMarksLight", "#5b7fc0"},
-        {"editor.colors.backgroundDark", "#232328"},
-        {"editor.colors.textDark", "#e0e0e0"},
-        {"editor.colors.inactiveDark", "#78787d"},
-        {"editor.colors.formattingMarksDark", "#7a96d0"},
 
         // Editor: cursor
         {"editor.cursor.style", 0},
@@ -229,7 +223,7 @@ std::map<std::string, json> buildDefaults() {
         {"editor.focus.enabled", false},
 
         // Editor: the formatting marks (View > Show Formatting Marks: ¶ · ° → ↵ ¬), in the
-        // colors editor.colors.formattingMarksLight/Dark
+        // theme's colors of the papers
         {"editor.showFormattingMarks", false},
 
         // Editor: how the scene breaks look: "asterisks" (* * *), "asterism" (⁂), "fleuron"

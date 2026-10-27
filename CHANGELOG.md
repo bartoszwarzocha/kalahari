@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Settings: the colors of the papers in each theme, and a gear in the find bar** -
+  2026-10-27. Settings > Editor > Colors has a group for the light paper and one for the dark
+  paper, each with the colors of the paper, of the text, of the text Focus dims, of the
+  formatting marks and of the desk around the paper (beside the endless page and around the
+  pages), and the group On Both Papers with the colors of the selection, of the search's hits
+  and of the current hit, drawn translucent under the text as before. Like the colors of the
+  annotations, they are the theme's until changed, each theme keeps its own, and each group has
+  Restore Default Colors; the check box Dark paper (as View > Dark Paper) still chooses the paper
+  whatever the theme. The themes' colors are those the editor had: nothing looks different
+  until a color is changed. The colors of the papers changed before, kept for all themes alike,
+  move at the first start into each theme. The find bar has a gear before its Close button
+  ("Colors of the Search Hits"), which opens Settings > Editor > Colors.
+
 - **Versions of the texts: Save Version and Version History** - 2026-10-22. File > Save
   Version (Alt+Shift+S; on macOS Option+Shift+Cmd+S) keeps the text in front as it is in its
   editor, with its formatting, its annotations and the changes not saved yet, as a version:

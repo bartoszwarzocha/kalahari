@@ -192,6 +192,13 @@ TEST_CASE("Settings dialog: the gears of the panels open it at their pages", "[g
     CHECK(tree->currentItem()->text(0) == QStringLiteral("Annotations"));
     CHECK(tree->currentItem()->parent() == nullptr);
 
+    // The gear of the find bar: Editor > Colors, with the colors of the hits
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::EDITOR_COLORS_PAGE)));
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Colors"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
+
     // The gear of the group of the versions in the Properties panel: Editor > Versions
     CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::VERSIONS_PAGE)));
     REQUIRE(tree->currentItem() != nullptr);

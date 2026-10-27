@@ -126,6 +126,9 @@ signals:
     /// the next element of the window, the font box of the toolbar.
     void textFocusRequested();
 
+    /// @brief Emitted when the gear asks for the colors of the hits (Settings > Editor > Colors)
+    void colorSettingsRequested();
+
 protected:
     /// @brief Keep the keys typed in the bar away from the editor under it
     /// @param event Key event
@@ -215,6 +218,7 @@ private:
 
     QToolButton* m_prevBtn = nullptr;         ///< Previous match button
     QToolButton* m_nextBtn = nullptr;         ///< Next match button
+    QToolButton* m_settingsBtn = nullptr;     ///< The gear: the colors of the hits
     QToolButton* m_closeBtn = nullptr;        ///< Close bar button
 
     // =========================================================================

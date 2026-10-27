@@ -257,29 +257,38 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
 EditorColorsPage::EditorColorsPage(QWidget* parent)
     : SettingsPage(parent)
 {
-    addNote(pageLayout(), tr("Configure editor colors for light and dark mode.\n"
-                             "Editor color mode is independent from the application theme."));
+    addNote(pageLayout(), tr("The colors of the paper and of the text on it, of the desk around "
+                             "the paper and of what is shown under the text. Each theme has its "
+                             "own colors: these are the colors of the current theme."));
 
-    auto* darkMode = new QCheckBox(tr("Use dark mode for editor"));
-    darkMode->setToolTip(tr("Toggle between light and dark editor colors"));
+    // The paper is light or dark whatever the theme (View > Dark Paper)
+    auto* darkMode = new QCheckBox(tr("Dark paper"));
+    darkMode->setObjectName(QStringLiteral("editorDarkPaper"));
+    darkMode->setToolTip(tr("Write on the dark paper, whatever the theme. View > Dark Paper "
+                            "switches it as well."));
     pageLayout()->addWidget(darkMode);
     bind(darkMode, "editor.darkMode");
 
-    const auto color = [this](QFormLayout* form, const QString& label, const char* key) {
-        auto* widget = new ColorConfigWidget(label);
-        form->addRow(widget);
-        bind(widget, key);
+    // Each paper with its own colors, kept for each theme
+    const auto paper = [this](const QString& title, const editor::PaperColorKeys& keys) {
+        QFormLayout* form = addGroup(title);
+        addThemeColor(form, tr("Paper"), keys.paper);
+        addThemeColor(form, tr("Text"), keys.text);
+        addThemeColor(form, tr("Dimmed text (Focus)"), keys.focusDimmed);
+        addThemeColor(form, tr("Formatting marks"), keys.formattingMarks);
+        addThemeColor(form, tr("Around the paper"), keys.desk);
+        addRestoreColorsButton(form);
     };
-    QFormLayout* light = addGroup(tr("Light Mode Colors"));
-    color(light, tr("Background"), "editor.colors.backgroundLight");
-    color(light, tr("Text"), "editor.colors.textLight");
-    color(light, tr("Inactive (Focus mode)"), "editor.colors.inactiveLight");
-    color(light, tr("Formatting marks"), "editor.colors.formattingMarksLight");
-    QFormLayout* dark = addGroup(tr("Dark Mode Colors"));
-    color(dark, tr("Background"), "editor.colors.backgroundDark");
-    color(dark, tr("Text"), "editor.colors.textDark");
-    color(dark, tr("Inactive (Focus mode)"), "editor.colors.inactiveDark");
-    color(dark, tr("Formatting marks"), "editor.colors.formattingMarksDark");
+    paper(tr("Light Paper"), editor::LIGHT_PAPER_COLOR_KEYS);
+    paper(tr("Dark Paper"), editor::DARK_PAPER_COLOR_KEYS);
+
+    QFormLayout* both = addGroup(tr("On Both Papers"));
+    addNote(both, tr("Shown translucent under the text, so the text stays readable on either "
+                     "paper."));
+    addThemeColor(both, tr("Selection"), editor::SELECTION_COLOR_KEY);
+    addThemeColor(both, tr("Search hits"), editor::SEARCH_MATCH_COLOR_KEY);
+    addThemeColor(both, tr("Current search hit"), editor::CURRENT_SEARCH_MATCH_COLOR_KEY);
+    addRestoreColorsButton(both);
 
     pageLayout()->addStretch();
 }

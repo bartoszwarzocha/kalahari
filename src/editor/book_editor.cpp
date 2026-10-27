@@ -55,9 +55,12 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     RenderColors colors;
     colors.text = appearance.colors.textColor(mode);
     colors.background = appearance.colors.background(mode);
+    colors.desk = appearance.colors.desk(mode);
     colors.cursor = appearance.cursor.useCustomColor ? appearance.cursor.customColor
                                                      : appearance.colors.textColor(mode);
     colors.selection = appearance.colors.selection;
+    colors.searchHighlight = appearance.colors.searchMatch;
+    colors.currentMatch = appearance.colors.currentSearchMatch;
     colors.inactiveText = appearance.colors.focusInactiveColor(mode);
     colors.formattingMarks = appearance.colors.formattingMarksColor(mode);
     const EditorColors::AnnotationColors& annotations = appearance.colors.annotations(mode);
@@ -229,12 +232,7 @@ BookEditor::BookEditor(QWidget* parent)
     // Configure initial pipeline context
     RenderContext ctx;
     ctx.font = m_appearance.typography.textFont;
-    ctx.colors.text = m_appearance.colors.textColor(m_appearance.colorMode);
-    ctx.colors.background = m_appearance.colors.background(m_appearance.colorMode);
-    ctx.colors.cursor = m_appearance.cursor.useCustomColor
-        ? m_appearance.cursor.customColor
-        : m_appearance.colors.textColor(m_appearance.colorMode);
-    ctx.colors.selection = m_appearance.colors.selection;
+    ctx.colors = renderColorsFor(m_appearance, m_appearance.colorMode);
     ctx.viewMode = m_viewMode;
     // Set initial DPI (will be updated in showEvent when screen is available)
     ctx.screenDpi = DEFAULT_DPI;
