@@ -1466,7 +1466,13 @@ TEST_CASE("Add Element: More Kinds... gives the tiles of the kinds checked in Pr
              poem.box->click();
              later(properties.acceptButton());
          }},
-        {is<NewFileDialog>, [&](QDialog& dialog) {
+        // The window is active again as Project Properties closes, before it gets the new
+        // tiles: the step waits for the tiles, and the window is rejected when they never come
+        {[](const QDialog& dialog) {
+             const auto* add = qobject_cast<const NewFileDialog*>(&dialog);
+             return add && tileNamesOf(*add).contains(QStringLiteral("Poem"));
+         },
+         [&](QDialog& dialog) {
              auto& add = static_cast<NewFileDialog&>(dialog);
              after = tileNamesOf(add);
              title = add.titleEdit()->text();
