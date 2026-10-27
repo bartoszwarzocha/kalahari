@@ -177,6 +177,19 @@ void removeKeepingTables(QTextCursor& cursor, int from, int to, bool keepAnnotat
     cursor.endEditBlock();
 }
 
+QTextCharFormat paragraphCharFormat(const QTextBlock& block)
+{
+    QTextCharFormat format = block.charFormat();
+    if (format.objectType() == QTextFormat::TableCellObject) {
+        format.clearProperty(QTextFormat::ObjectType);
+    }
+    for (int property = QTextFormat::TableCellRowSpan;
+         property <= QTextFormat::TableCellRightBorderBrush; ++property) {
+        format.clearProperty(property);
+    }
+    return format;
+}
+
 void spanCells(QTextTable& table, const std::vector<TableSpan>& spans)
 {
     for (const TableSpan& span : spans) {

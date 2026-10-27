@@ -1,8 +1,9 @@
 /// @file test_tables.cpp
-/// @brief Tables in the text: the model, KML, the layout of the cells, the keys
+/// @brief Tables in the text: the model, KML, the layout of the cells, the keys, the clipboard
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/kml_serializer.h>
@@ -13,6 +14,7 @@
 #include <QCoreApplication>
 #include <QImage>
 #include <QKeyEvent>
+#include <QMimeData>
 #include <QMouseEvent>
 #include <QTextBlock>
 #include <QTextCursor>
@@ -834,5 +836,172 @@ TEST_CASE("Tables: Insert > Table puts a table at the cursor, one undo step", "[
         editor->setCursorPosition({0, 1});
         editor->insertTable(2, 2, false);
         CHECK(textOf(*editor) == TABLE_TEXT);
+    }
+}
+
+// =============================================================================
+// The clipboard
+// =============================================================================
+
+namespace {
+
+/// The KML Kalahari puts on the clipboard
+std::string kmlOf(const QMimeData& data) {
+    return QString::fromUtf8(data.data(QString::fromLatin1(MIME_KML))).toStdString();
+}
+
+/// Kalahari's own content of the clipboard
+std::unique_ptr<QMimeData> kmlData(const QString& kml) {
+    auto data = std::make_unique<QMimeData>();
+    data->setData(QString::fromLatin1(MIME_KML), kml.toUtf8());
+    return data;
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Tables: copied, a part of a table is the rows from the start's cell to the end's",
+          "[editor][tables][clipboard]") {
+    auto editor = editorWith(TABLE_KML);
+    const auto copied = [&editor](CursorPosition from, CursorPosition to) {
+        select(*editor, from, to);
+        std::unique_ptr<QMimeData> data = editor->createMimeDataFromSelection();
+        REQUIRE(data);
+        return data;
+    };
+
+    SECTION("from cell to cell: the selected text, the other cells of its rows empty") {
+        const std::unique_ptr<QMimeData> data = copied({4, 2}, {6, 2});
+        CHECK(kmlOf(*data) == "<kml><table><col width=\"40%\"/><col width=\"60%\"/>"
+                              "<tr><td><p></p></td><td><p>rrator</p><p>Second</p></td></tr>"
+                              "<tr><td colspan=\"2\"><p>Bo</p></td></tr></table></kml>");
+        CHECK(data->text().toStdString() == "\trrator Second\nBo");
+    }
+
+    SECTION("from the text before it into a cell") {
+        const std::unique_ptr<QMimeData> data = copied({0, 3}, {3, 2});
+        CHECK(kmlOf(*data) == "<kml><p>ore</p><table><col width=\"40%\"/><col width=\"60%\"/>"
+                              "<tr><th><p>Who</p></th><th><p>Role</p></th></tr>"
+                              "<tr><td><p>An</p></td><td><p></p></td></tr></table></kml>");
+        CHECK(data->text().toStdString() == "ore\nWho\tRole\nAn\t");
+    }
+
+    SECTION("inside one cell: its text") {
+        const std::unique_ptr<QMimeData> data = copied({4, 2}, {5, 3});
+        CHECK(kmlOf(*data) == "<kml><p>rrator</p><p>Sec</p></kml>");
+        CHECK(data->text().toStdString() == "rrator\nSec");
+    }
+}
+
+TEST_CASE("Tables: other programs get a table of HTML and its text with tabs",
+          "[editor][tables][clipboard]") {
+    auto editor = editorWith(TABLE_KML);
+    editor->selectAll();
+    const std::unique_ptr<QMimeData> data = editor->createMimeDataFromSelection();
+    REQUIRE(data);
+    // The cells of a row separated by tabs, the paragraphs of a cell by spaces
+    CHECK(data->text().toStdString() == "Before\nWho\tRole\nAnna\tNarrator Second\nBoth\nAfter");
+    // As wide as the text with a thin grid, the header row in a thead, the widths on the
+    // cells of the first row
+    CHECK(data->html().toStdString() ==
+          ClipboardHandler::htmlDocument(QStringLiteral(
+              "<p>Before</p>"
+              "<table style=\"border-collapse:collapse\" border=\"1\" cellspacing=\"0\" "
+              "cellpadding=\"4\" width=\"100%\">"
+              "<thead><tr><th width=\"40%\" valign=\"top\"><p>Who</p></th>"
+              "<th width=\"60%\" valign=\"top\"><p>Role</p></th></tr></thead>"
+              "<tr><td valign=\"top\"><p>Anna</p></td>"
+              "<td valign=\"top\"><p>Narrator</p><p>Second</p></td></tr>"
+              "<tr><td colspan=\"2\" valign=\"top\"><p>Both</p></td></tr></table>"
+              "<p>After</p>")).toStdString());
+    // Pasted back from the HTML alone, as from another program: the same table
+    CHECK(ClipboardHandler::htmlToKml(data->html()).toStdString() == TABLE_KML.toStdString());
+
+    // A row under a cell spanning rows keeps its columns: a tab for the cell above
+    CHECK(ClipboardHandler::kmlToText(QStringLiteral(
+                                          "<kml><table><tr><td rowspan=\"2\"><p>a</p></td>"
+                                          "<td><p>b</p></td></tr><tr><td><p>c</p></td></tr>"
+                                          "</table></kml>"))
+              .toStdString() == "a\tb\n\tc");
+}
+
+TEST_CASE("Tables: a table pasted in the text, and in a cell as its text",
+          "[editor][tables][clipboard]") {
+    const QString table = QStringLiteral(
+        "<table><tr><th><p>a</p></th><th><p>b</p></th></tr>"
+        "<tr><td colspan=\"2\"><p>c</p></td></tr></table>");
+    const auto kml = [](const QString& content) {
+        return QStringLiteral("<kml>") + content + QStringLiteral("</kml>");
+    };
+
+    SECTION("in the middle of a paragraph it splits it, both parts in its style; one undo step") {
+        const QString text = kml(QStringLiteral("<h2>Ab</h2>"));
+        auto editor = editorWith(text);
+        editor->setCursorPosition({0, 1});
+        editor->insertFromMimeData(kmlData(kml(table)).get());
+        const QString expected =
+            kml(QStringLiteral("<h2>A</h2>") + table + QStringLiteral("<h2>b</h2>"));
+        CHECK(editor->toKml().toStdString() == expected.toStdString());
+        CHECK(editor->cursorPosition() == CursorPosition{4, 0});
+        editor->undo();
+        CHECK(editor->toKml().toStdString() == text.toStdString());
+    }
+
+    SECTION("in an empty paragraph it takes its place") {
+        auto editor = editorWith(kml(QStringLiteral("<p>One</p><p></p><p>Two</p>")));
+        editor->setCursorPosition({1, 0});
+        editor->insertFromMimeData(kmlData(kml(table)).get());
+        const QString expected =
+            kml(QStringLiteral("<p>One</p>") + table + QStringLiteral("<p>Two</p>"));
+        CHECK(editor->toKml().toStdString() == expected.toStdString());
+        CHECK(editor->cursorPosition() == CursorPosition{4, 0});
+    }
+
+    SECTION("a part of a table copied: a smaller table") {
+        auto editor = editorWith(TABLE_KML);
+        select(*editor, {4, 2}, {6, 2});
+        const std::unique_ptr<QMimeData> copied = editor->createMimeDataFromSelection();
+        REQUIRE(copied);
+        editor->clearSelection();
+        editor->setCursorPosition({7, 5});
+        editor->insertFromMimeData(copied.get());
+        CHECK(textOf(*editor) == TABLE_TEXT + "|0,0:|0,1:rrator|0,1:Second|1,0:Bo|");
+    }
+
+    SECTION("in a cell: a table is its rows of text, a line an empty paragraph") {
+        auto editor = editorWith(TABLE_KML);
+        editor->setCursorPosition({3, 4});
+        const QString pasted =
+            kml(QStringLiteral("<p>x</p>") + table + QStringLiteral("<hr/><p>y</p>"));
+        editor->insertFromMimeData(kmlData(pasted).get());
+        CHECK(textOf(*editor) == "Before|0,0:Who|0,1:Role|1,0:Annax|1,0:a\tb|1,0:c|1,0:|1,0:y|"
+                                 "1,1:Narrator|1,1:Second|2,0:Both|After");
+        editor->undo();
+        CHECK(textOf(*editor) == TABLE_TEXT);
+    }
+
+    SECTION("in a cell: a row under a cell spanning rows keeps its columns") {
+        auto editor = editorWith(TABLE_KML);
+        editor->setCursorPosition({6, 4});
+        editor->insertFromMimeData(
+            kmlData(kml(QStringLiteral("<table><tr><td rowspan=\"2\"><p>a</p></td>"
+                                       "<td><p>b</p></td></tr><tr><td><p>c</p></td></tr></table>")))
+                .get());
+        CHECK(textOf(*editor) == "Before|0,0:Who|0,1:Role|1,0:Anna|1,1:Narrator|1,1:Second|"
+                                 "2,0:Botha\tb|2,0:\tc|After");
+    }
+
+    SECTION("HTML of another program: a table of the editor, its merged cells kept") {
+        auto editor = editorWith(kml(QStringLiteral("<p>One</p>")));
+        editor->setCursorPosition({0, 3});
+        QMimeData pasted;
+        pasted.setText(QStringLiteral("a\nb\tc"));
+        pasted.setHtml(QStringLiteral("<table><tr><td colspan=\"2\">a</td></tr>"
+                                      "<tr><td>b</td><td><i>c</i></td></tr></table>"));
+        editor->insertFromMimeData(&pasted);
+        const QString expected =
+            kml(QStringLiteral("<p>One</p><table><tr><td colspan=\"2\"><p>a</p></td></tr>"
+                               "<tr><td><p>b</p></td><td><p><i>c</i></p></td></tr></table>"
+                               "<p></p>"));
+        CHECK(editor->toKml().toStdString() == expected.toStdString());
     }
 }

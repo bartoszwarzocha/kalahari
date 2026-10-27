@@ -20,6 +20,7 @@
 #include <vector>
 
 class QTextBlock;
+class QTextCharFormat;
 class QTextCursor;
 class QTextDocument;
 class QTextTable;
@@ -106,6 +107,13 @@ std::vector<std::pair<int, int>> partsAtTables(const QTextDocument& document, in
 /// covers whole goes. One edit block; the cursor ends at @p from (as the removal leaves it:
 /// after an object, at the text after it), without a selection.
 void removeKeepingTables(QTextCursor& cursor, int from, int to, bool keepAnnotations = true);
+
+/// @brief The character format of a paragraph, without that of the cell of a table it starts
+///
+/// Qt keeps the format of a cell, with its span, in the character format of the cell's first
+/// paragraph (QTextBlock::charFormat()): given to a paragraph of another cell, it would make
+/// that cell span without its table knowing.
+QTextCharFormat paragraphCharFormat(const QTextBlock& block);
 
 /// @brief Make the cells of the spans span their rows and columns
 ///

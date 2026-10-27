@@ -8,6 +8,7 @@
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
+#include <kalahari/editor/text_tables.h>
 #include "book_editor_internal.h"
 #include <QColor>
 #include <QFont>
@@ -27,6 +28,7 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 #include <algorithm>
+#include <cmath>
 #include <map>
 #include <optional>
 #include <string>
@@ -81,6 +83,14 @@ QString inlineStyleCss(const QXmlStreamAttributes& attrs)
         }
     }
     return css.join(QLatin1Char(';'));
+}
+
+/// @brief The rows or columns a cell of KML spans (its rowspan or colspan attribute)
+int spanOf(const QXmlStreamAttributes& attrs, const QString& name)
+{
+    bool ok = false;
+    const int span = attrs.value(name).toString().trimmed().toInt(&ok);
+    return ok ? std::clamp(span, 1, MAX_TABLE_SPAN) : 1;
 }
 
 /// @brief A document that loads nothing an HTML text refers to: a style sheet or an image
@@ -529,40 +539,47 @@ bool holdable(QChar ch)
            code != 0xFDD0 && code != 0xFDD1 && code != 0xFFFE && code != 0xFFFF;
 }
 
-/// @brief The KML of HTML that Qt has read into a document: its paragraphs, as a paste mode
-///        keeps them
+/// @brief The KML of HTML that Qt has read into a document: its paragraphs and tables, as a
+///        paste mode keeps them
 class PastedKml {
 public:
-    explicit PastedKml(PasteMode mode)
+    /// @param inCell The KML of a cell of a table: only its text, without lines, page breaks
+    ///        and tables (a table in it is its rows of text)
+    explicit PastedKml(PasteMode mode, bool inCell = false)
         : m_mode(mode)
+        , m_inCell(inCell)
         , m_cursor(&m_paragraphs)
     {
     }
 
     /// @brief Add the paragraphs and tables of a frame
-    void addFrame(const QTextFrame& frame)
+    void addFrame(const QTextFrame& frame) { addContent(frame.begin()); }
+
+    /// @brief Add the paragraphs of a cell of a table
+    /// @param header The cell is in the table's header row, which is bold in the editor
+    void addCell(const QTextTableCell& cell, bool header)
     {
-        for (QTextFrame::iterator it = frame.begin(); !it.atEnd(); ++it) {
-            if (QTextFrame* child = it.currentFrame()) {
-                if (auto* table = qobject_cast<QTextTable*>(child)) {
-                    addTable(*table);
-                } else {
-                    addFrame(*child);
-                }
-            } else if (it.currentBlock().isValid()) {
-                addBlock(it.currentBlock());
-            }
-        }
+        m_headerCell = header;
+        addContent(cell.begin());
     }
 
-    /// @brief The KML; empty without paragraphs
+    /// @brief The KML; empty without paragraphs and tables
     QString kml() const
+    {
+        const QString elements = body();
+        return elements.isEmpty() ? QString()
+                                  : QStringLiteral("<kml>") + elements + QStringLiteral("</kml>");
+    }
+
+    /// @brief The elements of the KML, without its root element; empty without paragraphs
+    ///        and tables
+    QString body() const
     {
         if (m_items.empty()) {
             return QString();
         }
         const KmlSerializer serializer;
-        QString kml = QStringLiteral("<kml>");
+        QString kml;
         QTextBlock block = m_paragraphs.begin();
 
         // The list elements open, from the first level, as KmlSerializer writes them
@@ -592,7 +609,9 @@ public:
                 closeLists();
             }
             if (!item.paragraph) {
-                kml += QLatin1Char('<') + item.element + QStringLiteral("/>");
+                kml += item.content.isEmpty()
+                           ? QLatin1Char('<') + item.element + QStringLiteral("/>")
+                           : item.content;
                 continue;
             }
             if (item.list) {
@@ -635,20 +654,37 @@ public:
             block = block.next();
         }
         closeLists();
-        return kml + QStringLiteral("</kml>");
+        return kml;
     }
 
 private:
     /// @brief An element of the KML: a paragraph, whose text is the next block of
-    ///        m_paragraphs, or an empty element (a line, a page break)
+    ///        m_paragraphs, an empty element (a line, a page break), or a table
     struct Item {
         QString element;
         QString attributes;
         bool paragraph = false;
         std::optional<ListItem> list;  ///< A list item: its list, level and number
+        QString content;               ///< The KML of a table, written whole
     };
 
     bool keepsStructure() const { return m_mode != PasteMode::Text; }
+
+    /// @brief Add the paragraphs and tables from an iterator of a frame or a cell
+    void addContent(QTextFrame::iterator it)
+    {
+        for (; !it.atEnd(); ++it) {
+            if (QTextFrame* child = it.currentFrame()) {
+                if (auto* table = qobject_cast<QTextTable*>(child)) {
+                    addTable(*table);
+                } else {
+                    addFrame(*child);
+                }
+            } else if (it.currentBlock().isValid()) {
+                addBlock(it.currentBlock());
+            }
+        }
+    }
 
     void addBlock(const QTextBlock& block)
     {
@@ -657,8 +693,9 @@ private:
             addPageBreak();
         }
         if (format.hasProperty(QTextFormat::BlockTrailingHorizontalRulerWidth)) {
-            if (keepsStructure()) {
-                m_items.push_back({QStringLiteral("hr"), QString(), false, std::nullopt});
+            if (keepsStructure() && !m_inCell) {
+                m_items.push_back(
+                    {QStringLiteral("hr"), QString(), false, std::nullopt, QString()});
             }
         } else {
             const int level = keepsStructure() ? std::min(format.headingLevel(), 3) : 0;
@@ -672,7 +709,7 @@ private:
             attributes += alignmentAttribute(format);
 
             // Word's page breaks end a paragraph, which goes on after them
-            const PastedText text = textOf(block, level > 0);
+            const PastedText text = textOf(block, level > 0 || m_headerCell);
             const bool preformatted = format.nonBreakableLines();
             std::optional<ListItem> list = keepsStructure() ? listItemOf(block, text) : std::nullopt;
             if (list) {
@@ -697,9 +734,97 @@ private:
         }
     }
 
-    /// @brief Add a table: each row a paragraph, its cells separated by tabs (until the editor
-    ///        has tables), the paragraphs of a cell by line breaks
+    /// @brief Add a table: in PasteMode::Merge and PasteMode::Source a table of KML with its
+    ///        columns, their widths, its header row and its merged cells, each cell with its
+    ///        paragraphs as the mode keeps them; in PasteMode::Text, and in a cell, its rows
+    ///        of text (addTableRows())
     void addTable(const QTextTable& table)
+    {
+        if (!keepsStructure() || m_inCell) {
+            addTableRows(table);
+            return;
+        }
+        const int headerRows = firstRowIsHeader(table) ? 1 : 0;
+        QString kml = QStringLiteral("<table>");
+        for (const double width : columnWidthsOf(table)) {
+            kml += QStringLiteral("<col width=\"%1%\"/>")
+                       .arg(QString::number(std::round(width * 100.0) / 100.0, 'g', 6));
+        }
+        for (int row = 0; row < table.rows(); ++row) {
+            kml += QStringLiteral("<tr>");
+            for (int column = 0; column < table.columns(); ++column) {
+                const QTextTableCell cell = table.cellAt(row, column);
+                if (cell.row() != row || cell.column() != column) {
+                    continue;  // a part of a merged cell
+                }
+                const QString element =
+                    row < headerRows ? QStringLiteral("th") : QStringLiteral("td");
+                kml += QLatin1Char('<') + element;
+                if (cell.columnSpan() > 1) {
+                    kml += QStringLiteral(" colspan=\"%1\"").arg(cell.columnSpan());
+                }
+                if (cell.rowSpan() > 1) {
+                    kml += QStringLiteral(" rowspan=\"%1\"").arg(cell.rowSpan());
+                }
+                PastedKml content(m_mode, true);
+                content.addCell(cell, row < headerRows);
+                const QString paragraphs = content.body();
+                kml += QLatin1Char('>') +
+                       (paragraphs.isEmpty() ? QStringLiteral("<p></p>") : paragraphs) +
+                       QStringLiteral("</") + element + QLatin1Char('>');
+            }
+            kml += QStringLiteral("</tr>");
+        }
+        kml += QStringLiteral("</table>");
+        m_items.push_back({QStringLiteral("table"), QString(), false, std::nullopt, kml});
+    }
+
+    /// @brief Whether the first row of a table is its header: in a thead, or of th cells,
+    ///        whose paragraphs Qt centers both ways (Qt::AlignCenter), as no paragraph of a
+    ///        page is
+    static bool firstRowIsHeader(const QTextTable& table)
+    {
+        if (table.format().headerRowCount() > 0) {
+            return true;
+        }
+        for (int column = 0; column < table.columns(); ++column) {
+            const QTextTableCell cell = table.cellAt(0, column);
+            const Qt::Alignment alignment =
+                cell.firstCursorPosition().block().blockFormat().alignment();
+            if ((alignment & Qt::AlignCenter) != Qt::AlignCenter) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// @brief The widths of a table's columns in percent, from those of the HTML: all of them
+    ///        in percent or all in pixels; empty (equal columns) when one is not known
+    static std::vector<double> columnWidthsOf(const QTextTable& table)
+    {
+        const QList<QTextLength> lengths = table.format().columnWidthConstraints();
+        if (lengths.isEmpty() || lengths.size() != table.columns()) {
+            return {};
+        }
+        const QTextLength::Type type = lengths.front().type();
+        double sum = 0.0;
+        for (const QTextLength& length : lengths) {
+            if (length.type() != type || type == QTextLength::VariableLength ||
+                length.rawValue() <= 0.0) {
+                return {};
+            }
+            sum += length.rawValue();
+        }
+        std::vector<double> widths;
+        for (const QTextLength& length : lengths) {
+            widths.push_back(length.rawValue() * 100.0 / sum);
+        }
+        return widths;
+    }
+
+    /// @brief Add the rows of a table as text: each row a paragraph, its cells separated by
+    ///        tabs, the paragraphs of a cell by line breaks
+    void addTableRows(const QTextTable& table)
     {
         for (int row = 0; row < table.rows(); ++row) {
             PastedText text;
@@ -736,9 +861,10 @@ private:
     void addPageBreak()
     {
         // Two in a row (a paragraph's break after it, the next one's before it) are one
-        if (keepsStructure() && (m_items.empty() || m_items.back().paragraph ||
+        if (keepsStructure() && !m_inCell && (m_items.empty() || m_items.back().paragraph ||
                                  m_items.back().element != QStringLiteral("page-break"))) {
-            m_items.push_back({QStringLiteral("page-break"), QString(), false, std::nullopt});
+            m_items.push_back(
+                {QStringLiteral("page-break"), QString(), false, std::nullopt, QString()});
         }
     }
 
@@ -866,7 +992,7 @@ private:
             }
         }
         ++m_paragraphCount;
-        m_items.push_back({element, attributes, true, list});
+        m_items.push_back({element, attributes, true, list, QString()});
     }
 
     /// @brief The text of a block with the formats the mode keeps; a list item starts with
@@ -1024,11 +1150,16 @@ private:
     }
 
     /// @brief The align attribute the mode keeps: Merge only center and right, as the book's
-    ///        paragraphs are justified (left in the last line)
+    ///        paragraphs are justified (left in the last line), but not the centering of a th
+    ///        cell of the header row (Qt::AlignCenter), which is its look, as its bold
     QString alignmentAttribute(const QTextBlockFormat& format) const
     {
         const Qt::Alignment own = ownAlignment(format);
         if (!keepsStructure()) {
+            return QString();
+        }
+        if (m_headerCell && m_mode == PasteMode::Merge &&
+            (format.alignment() & Qt::AlignCenter) == Qt::AlignCenter) {
             return QString();
         }
         if (own & Qt::AlignHCenter) {
@@ -1056,6 +1187,8 @@ private:
     };
 
     PasteMode m_mode;
+    bool m_inCell = false;       ///< The KML of a cell of a table
+    bool m_headerCell = false;   ///< Of a cell of the header row
     QTextDocument m_paragraphs;  ///< The text of the paragraphs, a block for each
     QTextCursor m_cursor;
     int m_paragraphCount = 0;
@@ -1207,6 +1340,9 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
         bool list = false;       ///< The element is a list (ol or ul)
         bool numbered = false;   ///< A list of numbers
         int nextNumber = -1;     ///< The number its next item has without a value of its own
+        bool row = false;        ///< A row of a table (its tr is written with its first cell)
+        bool cell = false;       ///< A cell of a table
+        bool table = false;      ///< A table
     };
     std::vector<OpenElement> open;
     bool emptyParagraph = false;
@@ -1215,13 +1351,24 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
     bool pageBreak = false;      ///< A page break comes before the next element
     QString breakStyle = sceneBreakStyle;
 
+    // The table written: the widths of its columns (in percent), its rows so far, the column
+    // of the next cell of its first row, and whether its header (thead) is open
+    struct OpenTable {
+        std::vector<double> widths;
+        int rows = 0;
+        int column = 0;
+        bool head = false;
+    };
+    std::optional<OpenTable> table;
+
     QString html;
     QXmlStreamWriter writer(&html);
     QXmlStreamReader reader(KmlFormatRegistry::withRootElement(kml));
 
     // The start of an element of the text's level: in a blockquote for a quote, after the
     // page break before it
-    const auto startElement = [&](const QString& name, bool quote, const QString& align) {
+    const auto startElement = [&](const QString& name, bool quote, const QString& align,
+                                  const QString& style = QString()) {
         if (inQuote && !quote) {
             writer.writeEndElement();  // blockquote
             inQuote = false;
@@ -1232,6 +1379,9 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
         }
         writer.writeStartElement(name);
         QStringList css;
+        if (!style.isEmpty()) {
+            css << style;
+        }
         if (pageBreak) {
             css << QStringLiteral("page-break-before:always");
             pageBreak = false;
@@ -1305,6 +1455,89 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                     }
                 }
                 OpenElement element;
+                if (tag == QStringLiteral("table")) {
+                    if (table) {
+                        reader.skipCurrentElement();  // a table holds none
+                        break;
+                    }
+                    // As wide as the text, with a thin grid: Word, LibreOffice and the
+                    // browsers show it as the editor does
+                    startElement(QStringLiteral("table"), false, QString(),
+                                 QStringLiteral("border-collapse:collapse"));
+                    writer.writeAttribute(QStringLiteral("border"), QStringLiteral("1"));
+                    writer.writeAttribute(QStringLiteral("cellspacing"), QStringLiteral("0"));
+                    writer.writeAttribute(QStringLiteral("cellpadding"), QStringLiteral("4"));
+                    writer.writeAttribute(QStringLiteral("width"), QStringLiteral("100%"));
+                    table = OpenTable{};
+                    element.written = true;
+                    element.table = true;
+                    open.push_back(element);
+                    break;
+                }
+                if (table && tag == QStringLiteral("col")) {
+                    const QString width = attrs.value(QStringLiteral("width")).toString().trimmed();
+                    bool ok = false;
+                    const double percent =
+                        width.endsWith(QLatin1Char('%')) ? width.chopped(1).toDouble(&ok) : 0.0;
+                    table->widths.push_back(ok && percent > 0.0 ? percent : 0.0);
+                    reader.skipCurrentElement();
+                    break;
+                }
+                if (table && tag == QStringLiteral("tr")) {
+                    ++table->rows;
+                    table->column = 0;
+                    element.row = true;
+                    open.push_back(element);
+                    break;
+                }
+                if (table && (tag == QStringLiteral("th") || tag == QStringLiteral("td")) &&
+                    open.back().row) {
+                    // The row starts with its first cell: the header rows at the top are the
+                    // table's thead
+                    const bool header = tag == QStringLiteral("th");
+                    if (!open.back().written) {
+                        if (header && table->rows == 1) {
+                            writer.writeStartElement(QStringLiteral("thead"));
+                            table->head = true;
+                        } else if (!header && table->head) {
+                            writer.writeEndElement();  // thead
+                            table->head = false;
+                        }
+                        writer.writeStartElement(QStringLiteral("tr"));
+                        open.back().written = true;
+                    }
+                    writer.writeStartElement(tag);
+                    const int columns = spanOf(attrs, QStringLiteral("colspan"));
+                    const int rows = spanOf(attrs, QStringLiteral("rowspan"));
+                    if (columns > 1) {
+                        writer.writeAttribute(QStringLiteral("colspan"), QString::number(columns));
+                    }
+                    if (rows > 1) {
+                        writer.writeAttribute(QStringLiteral("rowspan"), QString::number(rows));
+                    }
+                    // The widths of the columns on the cells of the first row, where all the
+                    // programs read them
+                    const auto first = static_cast<size_t>(table->column);
+                    const size_t end = first + static_cast<size_t>(columns);
+                    if (table->rows == 1 && end <= table->widths.size()) {
+                        double width = 0.0;
+                        for (size_t column = first; column < end; ++column) {
+                            width += table->widths[column];
+                        }
+                        if (width > 0.0) {
+                            writer.writeAttribute(
+                                QStringLiteral("width"),
+                                QString::number(std::round(width * 100.0) / 100.0, 'g', 6) +
+                                    QLatin1Char('%'));
+                        }
+                    }
+                    writer.writeAttribute(QStringLiteral("valign"), QStringLiteral("top"));
+                    table->column += columns;
+                    element.written = true;
+                    element.cell = true;
+                    open.push_back(element);
+                    break;
+                }
                 const int level = headingLevelOfTag(tag);
                 if (tag == QStringLiteral("ol") || tag == QStringLiteral("ul")) {
                     // A list: of the text's level, or of a lower level in an item
@@ -1429,8 +1662,18 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                         // line break at a paragraph's end - a no-break space keeps the line
                         writer.writeCharacters(QString(QChar(QChar::Nbsp)));
                     }
+                    if (element.cell && inQuote) {
+                        writer.writeEndElement();  // the blockquote of the cell's last paragraph
+                        inQuote = false;
+                    }
+                    if (element.table && table && table->head) {
+                        writer.writeEndElement();  // thead: a table of header rows only
+                    }
                     if (element.written) {
                         writer.writeEndElement();
+                    }
+                    if (element.table) {
+                        table.reset();
                     }
                     if (open.empty()) {
                         // The end of the text
@@ -1597,6 +1840,14 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
         }
         firstLine = false;
     };
+    // A table: a tab before each cell but those of the first column, its rows on lines of
+    // their own, the paragraphs of a cell separated by spaces (a line end would end the row)
+    int tableDepth = 0;          // of the table read; 0 outside tables
+    int cellDepth = 0;           // of its cell read; 0 outside cells
+    int row = -1;                // of the row read
+    int column = 0;              // of the next cell of the row
+    std::vector<int> takenUntil;  // for each column, the row a cell above spans until
+    bool firstInCell = true;     // no paragraph of the cell written yet
 
     while (!reader.atEnd() && !reader.hasError()) {
         reader.readNext();
@@ -1609,9 +1860,51 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
                     reader.skipCurrentElement();  // Not part of the text
                     --depth;
                 } else if (tagName == QStringLiteral("br")) {
-                    text += QLatin1Char('\n');
+                    text += tableDepth > 0 ? QLatin1Char(' ') : QLatin1Char('\n');
                 } else if (tagName == QStringLiteral("ol") || tagName == QStringLiteral("ul")) {
                     ++listLevel;
+                } else if (tableDepth > 0) {
+                    if (tagName == QStringLiteral("tr")) {
+                        if (++row > 0) {
+                            text += QLatin1Char('\n');
+                        }
+                        column = 0;
+                    } else if (tagName == QStringLiteral("th") || tagName == QStringLiteral("td")) {
+                        // In the first column the cells above do not span into
+                        while (static_cast<size_t>(column) < takenUntil.size() &&
+                               takenUntil[static_cast<size_t>(column)] > row) {
+                            ++column;
+                        }
+                        if (column > 0) {
+                            text += QLatin1Char('\t');
+                        }
+                        const QXmlStreamAttributes attrs = reader.attributes();
+                        const int columns = spanOf(attrs, QStringLiteral("colspan"));
+                        const auto end = static_cast<size_t>(column + columns);
+                        if (takenUntil.size() < end) {
+                            takenUntil.resize(end, 0);
+                        }
+                        for (size_t taken = static_cast<size_t>(column); taken < end; ++taken) {
+                            takenUntil[taken] = row + spanOf(attrs, QStringLiteral("rowspan"));
+                        }
+                        column += columns;
+                        firstInCell = true;
+                        cellDepth = depth;
+                    } else if (cellDepth > 0 &&
+                               (depth == cellDepth + 1 || tagName == QStringLiteral("li"))) {
+                        // A paragraph or a list item of the cell
+                        if (!firstInCell) {
+                            text += QLatin1Char(' ');
+                        }
+                        firstInCell = false;
+                        if (tagName == QStringLiteral("li")) {
+                            if (itemIndex < items.marks.size() &&
+                                !items.marks[itemIndex].isEmpty()) {
+                                text += items.marks[itemIndex] + QLatin1Char(' ');
+                            }
+                            ++itemIndex;
+                        }
+                    }
                 } else if (tagName == QStringLiteral("li")) {
                     // A list item: its number or bullet, after a tab for each lower level
                     startLine();
@@ -1632,6 +1925,10 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
                         text += sceneBreakText(breakStyle);
                     } else if (tagName == QStringLiteral("page-break")) {
                         text += QLatin1Char('\f');  // the page break of plain text
+                    } else if (tagName == QStringLiteral("table")) {
+                        tableDepth = depth;
+                        row = -1;
+                        takenUntil.clear();
                     }
                 }
                 break;
@@ -1642,11 +1939,21 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
                 if (reader.name() == QStringLiteral("ol") || reader.name() == QStringLiteral("ul")) {
                     --listLevel;
                 }
+                if (depth < cellDepth) {
+                    cellDepth = 0;
+                }
+                if (depth < tableDepth) {
+                    tableDepth = 0;
+                }
                 break;
 
             case QXmlStreamReader::Characters: {
-                // Whitespace between paragraphs is only their indentation
-                if (depth >= 2) {
+                // Whitespace between paragraphs is only their indentation, and so is any
+                // text of a table outside its cells' paragraphs
+                const bool inTable = tableDepth > 0;
+                const bool inCellText =
+                    cellDepth > 0 && (depth > cellDepth || !reader.isWhitespace());
+                if (depth >= 2 && (!inTable || inCellText)) {
                     text += reader.text().toString();
                 }
                 break;
