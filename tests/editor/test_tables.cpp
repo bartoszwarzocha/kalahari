@@ -505,7 +505,7 @@ TEST_CASE("Tables: the grid of a table as the view draws it", "[editor][tables][
     CHECK_FALSE(image.isNull());
 }
 
-TEST_CASE("Tables: the end of a cell has ¤ for a formatting mark", "[editor][tables][view]") {
+TEST_CASE("Tables: the end of a cell has its own formatting mark", "[editor][tables][view]") {
     auto editor = editorWith(TABLE_KML);
     const QTextDocument& document = *editor->textDocument();
     const auto lastMark = [&document](int number) {
