@@ -6,6 +6,8 @@
 #include <QDialog>
 #include <QString>
 
+#include <functional>
+
 class QDialogButtonBox;
 class QFrame;
 class QHBoxLayout;
@@ -14,6 +16,7 @@ class QPushButton;
 class QMargins;
 class QShowEvent;
 class QSize;
+class QToolButton;
 class QVBoxLayout;
 
 namespace kalahari {
@@ -34,7 +37,9 @@ namespace dialogs {
 ///   with its label above it; the content gets the room of a resized dialog;
 /// - the buttons at the bottom: the one that does the dialog's job, named after it
 ///   ("Add", "Rename"), Cancel and, when the dialog shows it, Apply. Enter presses the
-///   first one, Esc the second; Apply does the job without closing the dialog.
+///   first one, Esc the second; Apply does the job without closing the dialog;
+/// - a dialog whose job has settings of its own in the Settings window has a gear at the
+///   right of the heading, which opens them (addSettingsButton()).
 ///
 /// The colors are roles of the palette of the current theme and the icon comes from
 /// ArtProvider, so an open dialog follows a change of theme or icons.
@@ -42,9 +47,19 @@ class KalahariDialog : public QDialog {
     Q_OBJECT
 
 public:
+    /// @brief Opens the Settings window over @p window at @p page (SettingsDialog's page ids)
+    using SettingsOpener = std::function<void(QWidget* window, const QString& page)>;
+
     /// @brief Create the dialog with an empty heading and content
     /// @param parent Parent widget
     explicit KalahariDialog(QWidget* parent = nullptr);
+
+    /// @brief Open the Settings window with @p opener, for the gears of all the dialogs; the
+    /// main window sets it, and without it the dialogs have no gear
+    static void setSettingsOpener(SettingsOpener opener);
+
+    /// @brief The gear of the heading (addSettingsButton()); nullptr when the dialog has none
+    QToolButton* settingsButton() const { return m_settingsButton; }
 
     /// @brief Set the heading
     /// @param title Title of the dialog, also its window title
@@ -119,9 +134,20 @@ protected:
     /// @return The button; it does not close the dialog
     QPushButton* addSideButton(const QString& text);
 
+    /// @brief Put a gear at the right of the heading, which opens the Settings window at
+    ///        @p page, over the dialog: the settings of what the dialog does
+    /// @param page The page, one of SettingsDialog's page ids
+    /// @param tooltip Names the settings ("Folder Settings"); also the gear's name for screen
+    ///        readers
+    /// @return The gear; nullptr without an opener (setSettingsOpener())
+    QToolButton* addSettingsButton(const QString& page, const QString& tooltip);
+
 signals:
     /// @brief Apply was pressed: do the dialog's job and keep it open
     void applyClicked();
+
+    /// @brief The Settings window that the gear opened was closed: the settings may be new
+    void settingsClosed();
 
 private:
     /// @brief Set the heading's margins, title size and icon for its style
@@ -129,6 +155,9 @@ private:
 
     /// @brief Draw the heading's icon at the size and in the colors of the current icons
     void updateHeadingIcon();
+
+    /// @brief Draw the gear in the colors of the current icons
+    void updateSettingsIcon();
 
     QFrame* m_heading = nullptr;
     QHBoxLayout* m_headingLayout = nullptr;
@@ -142,6 +171,7 @@ private:
     QPushButton* m_acceptButton = nullptr;
     QPushButton* m_cancelButton = nullptr;
     QPushButton* m_applyButton = nullptr;
+    QToolButton* m_settingsButton = nullptr;
     QString m_iconId;
     bool m_compactHeading = false;
 };

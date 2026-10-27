@@ -60,6 +60,7 @@
 #include "kalahari/gui/widgets/status_bar_statistics.h"
 #include <QActionGroup>
 #include <QMenuBar>
+#include <QPointer>
 #include <QToolBar>
 #include <QStatusBar>
 #include <QApplication>
@@ -164,6 +165,14 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_settingsCoordinator, &SettingsCoordinator::disableDiagnosticModeRequested,
             this, &MainWindow::disableDiagnosticMode);
     logger.debug("MainWindow: SettingsCoordinator created");
+    // The gear of a dialog opens the settings of what it does over it
+    dialogs::KalahariDialog::setSettingsOpener(
+        [coordinator = QPointer<SettingsCoordinator>(m_settingsCoordinator)](
+            QWidget* window, const QString& page) {
+            if (coordinator) {
+                coordinator->openSettingsPage(page, window);
+            }
+        });
 
     // Create NavigatorCoordinator after docks (needs DockCoordinator for panel/dock access)
     // OpenSpec #00038 Phase 6 - Navigator handlers extracted from MainWindow
@@ -208,6 +217,9 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestRenameNode);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestWorkshopGrouped,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestWorkshopGrouped);
+    // The type of the book and the kinds of elements it can have
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestProjectProperties,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestProjectProperties);
     // A material of the Workshop opens in the program the system gives its file
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterial,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenMaterial);

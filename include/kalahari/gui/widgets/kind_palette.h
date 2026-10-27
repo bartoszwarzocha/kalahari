@@ -8,6 +8,7 @@
 
 #include <QHash>
 #include <QList>
+#include <QSet>
 #include <QString>
 #include <QWidget>
 
@@ -40,6 +41,10 @@ class KindTile;
 /// element in the part of its tile, also in the Workshop. Kinds that open in a window the
 /// program does not have yet cannot be created now, and neither can materials, which are copies
 /// of files chosen when they are added.
+///
+/// The palette of a book that is already there (Project Properties) has no "Create now": its
+/// tiles show how many elements of their kinds the book has, and the kinds of the book's type
+/// are checked for good.
 class KindPalette : public QWidget {
     Q_OBJECT
 
@@ -55,8 +60,8 @@ public:
     /// @brief The name of the group of @p place
     QString groupName(core::BookPlace place) const;
 
-    /// @brief Check the kinds of @p choice and only them, with "Create now" on the tiles of its
-    ///        elements
+    /// @brief Check the kinds of @p choice and only them, and the locked kinds, with "Create
+    ///        now" on the tiles of its elements
     void setChoice(const core::PaletteChoice& choice);
 
     /// @brief The checked kinds, in the order of the palette, and the elements of the tiles with
@@ -66,12 +71,29 @@ public:
     /// @brief Check every kind; "Create now" stays as it was
     void checkAll();
 
-    /// @brief Check the kinds of package @p packageId and only them; the other kinds lose
-    ///        "Create now"
+    /// @brief Check the kinds of package @p packageId and only them, and the locked kinds; the
+    ///        other kinds lose "Create now"
     void checkOnly(const QString& packageId);
 
-    /// @brief Uncheck every kind, also "Create now"
+    /// @brief Uncheck every kind but the locked ones, also "Create now"
     void uncheckAll();
+
+    /// @brief Never show "Create now": the palette of a book that is already there
+    void hideCreateNow();
+
+    /// @brief Check @p kinds for good: the writer cannot uncheck them (the kinds of the book's
+    ///        type); @p tooltip, on their tiles, says why. The kinds locked before can be
+    ///        unchecked again, and stay checked.
+    void setLocked(const QList<core::KindRef>& kinds, const QString& tooltip);
+
+    /// @brief Whether @p kind is checked for good
+    bool isLocked(const core::ElementKind* kind) const;
+
+    /// @brief Show on each tile the number of the book's elements of its kind; none for 0
+    void setElementCounts(const QHash<const core::ElementKind*, int>& counts);
+
+    /// @brief Whether @p kind is checked
+    bool isChecked(const core::ElementKind* kind) const;
 
     /// @brief The number of checked kinds
     int checkedCount() const;
@@ -109,6 +131,8 @@ private:
     QList<Group> m_groups;                            ///< Front, Main, Back, Workshop
     QList<core::KindRef> m_kinds;                     ///< The kinds of the tiles, in order
     QHash<const core::ElementKind*, bool> m_checked;  ///< Kind -> checked
+    QSet<const core::ElementKind*> m_locked;          ///< Kinds checked for good
+    bool m_createNowShown = true;                     ///< "Create now" is on the tiles
 };
 
 } // namespace gui

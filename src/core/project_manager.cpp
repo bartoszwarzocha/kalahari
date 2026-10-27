@@ -387,6 +387,28 @@ zip_t* openZip(const QString& path, int flags, ZipFailure* failure) {
     return archive;
 }
 
+/// Whether type @p typeId offers @p kind in one of the parts of the book or in the Workshop:
+/// the kind is one of the type's own kinds of the project
+bool offersKind(const BookTypeRegistry& registry, const QString& typeId, const KindRef& kind) {
+    for (const BookPlace place : {BookPlace::Front, BookPlace::Main, BookPlace::Back,
+                                  BookPlace::Workshop}) {
+        const QList<KindRef> offered = registry.kindsIn(typeId, place);
+        if (std::any_of(offered.cbegin(), offered.cend(),
+                        [&kind](const KindRef& other) { return other.kind == kind.kind; })) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// Append the reference of @p kind to @p kinds, unless they have it
+void appendKind(QList<KindReference>& kinds, const KindRef& kind) {
+    const KindReference reference{kind.package->id, kind.kind->id};
+    if (!kinds.contains(reference)) {
+        kinds.append(reference);
+    }
+}
+
 }  // namespace
 
 // =============================================================================
@@ -518,6 +540,12 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
     project.modified = project.created;
     if (type) {
         project.type = ProjectType{type->id, type->version, {}};
+        // The kinds it takes from other types, those of the type left out
+        for (const KindRef& kind : request.takenKinds) {
+            if (!offersKind(installed, type->id, kind)) {
+                appendKind(project.kinds, kind);
+            }
+        }
     } else if (request.palette) {
         // A user project has the kinds the writer chose in the palette
         for (const KindRef& kind : request.palette->kinds) {
@@ -683,6 +711,13 @@ QStringList ProjectManager::newProjectProblems(const NewProject& project) const 
         if (project.palette) {
             problems.append(QStringLiteral("a book of a type takes no palette"));
         }
+        for (const KindRef& kind : project.takenKinds) {
+            if (!kind || !kind.package) {
+                problems.append(QStringLiteral("a kind taken from another type is not installed"));
+            }
+        }
+    } else if (!project.takenKinds.isEmpty()) {
+        problems.append(QStringLiteral("a user project takes its kinds from the palette"));
     } else if (project.palette) {
         // The kinds of the palette, and its elements of these kinds, each in a place the kind
         // allows
@@ -1787,6 +1822,59 @@ bool ProjectManager::setWorkshopName(const QString& name) {
         m_project->workshop.name = previous;
         return false;
     }
+    return true;
+}
+
+bool ProjectManager::setProjectKinds(const QList<KindRef>& kinds) {
+    auto& logger = Logger::getInstance();
+    if (!m_project) {
+        logger.warn("setProjectKinds: No project is open");
+        return false;
+    }
+    if (refusesChange("setProjectKinds")) {
+        return false;
+    }
+    const BookTypeRegistry& installed = installedBookTypes();
+    const std::optional<ProjectType>& projectType = m_project->type;
+    const QString typeId = projectType ? projectType->id : QString();
+    QList<KindReference> references;
+    for (const KindRef& kind : kinds) {
+        if (!kind || !kind.package || installed.package(kind.package->id) != kind.package) {
+            logger.warn("setProjectKinds: A kind is not installed");
+            return false;
+        }
+        // A book of a type has the kinds of its type in any case
+        if (!typeId.isEmpty() && offersKind(installed, typeId, kind)) {
+            continue;
+        }
+        appendKind(references, kind);
+    }
+    if (m_project->isUserProject() && references.isEmpty()) {
+        logger.warn("setProjectKinds: A user project needs a kind");
+        return false;
+    }
+    if (references == m_project->kinds) {
+        return true;
+    }
+
+    const QList<KindReference> previous = m_project->kinds;
+    m_project->kinds = references;
+    if (!saveManifest()) {
+        m_project->kinds = previous;
+        return false;
+    }
+
+    // The cards of the packages of new kinds, for a computer without them; a card that cannot
+    // be written leaves the book working here, and the next opening tries again
+    const QString projectDir = getProjectPath();
+    const PackageCardsUpdate cards = PackageCards::update(projectDir, *m_project, installed);
+    for (const QString& problem : cards.problems) {
+        logger.warn("setProjectKinds: {}", problem.toStdString());
+    }
+    m_packageCards = PackageCards::readAll(projectDir, *m_project);
+    logger.info("setProjectKinds: The project has {} kinds of its own",
+                m_project->kinds.size());
+    emit projectKindsChanged();
     return true;
 }
 

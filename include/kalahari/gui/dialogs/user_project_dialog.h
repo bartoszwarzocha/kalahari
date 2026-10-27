@@ -34,7 +34,7 @@ namespace dialogs {
 /// | +------------------------------------------------------------------------+ |
 /// | (i) Tools of the Types                                                      |
 /// |     No type has tools yet. ...                                              |
-/// | [< Back]                                 [Skip] [Create Book] [Cancel]     |
+/// | [< Back] [Save as Type...]               [Skip] [Create Book] [Cancel]     |
 /// +----------------------------------------------------------------------------+
 ///
 /// The palette (KindPalette) shows the kinds of all book types, under the names of the
@@ -43,7 +43,9 @@ namespace dialogs {
 /// of "Create now"; Skip makes it as the palette was at first, whatever the writer changed;
 /// Back returns to the New Book window, which keeps what the writer typed; Cancel creates
 /// nothing. When a book is open, Create Book and Skip first ask whether the new book takes
-/// its place, and Cancel of the question returns to this window.
+/// its place, and Cancel of the question returns to this window. Save as Type... saves the
+/// checked kinds and the elements of "Create now" as a type of the writer's own
+/// (SaveTypeDialog), which the New Book window offers after Back.
 class UserProjectDialog : public KalahariDialog {
     Q_OBJECT
 
@@ -92,6 +94,13 @@ public:
     /// @brief The button that returns to the New Book window
     QPushButton* backButton() const { return m_backButton; }
 
+    /// @brief The button that saves the checked kinds as a type of the writer's own
+    QPushButton* saveTypeButton() const { return m_saveTypeButton; }
+
+    /// @brief Save as Type... saves to @p folder instead of the folder of the writer's own
+    /// types, for tests
+    void setTypesFolder(const QString& folder);
+
 public slots:
     /// @brief Create Book or Skip: asks about the open book, then closes the window; Cancel
     /// of the question keeps it open
@@ -106,6 +115,8 @@ private:
     QLabel* m_countLabel = nullptr;
     QPushButton* m_skipButton = nullptr;
     QPushButton* m_backButton = nullptr;
+    QPushButton* m_saveTypeButton = nullptr;
+    QString m_typesFolder;              ///< Where Save as Type... saves
     NewBookQuestion m_openingQuestion;
     QString m_title;                    ///< Title of the book, for the question
     core::PaletteChoice m_firstChoice;  ///< What the palette starts with

@@ -115,6 +115,11 @@ public:
     /// @brief Refresh navigator with the open project, keeping its expanded items
     void refreshNavigator();
 
+    /// @brief Project Properties over @p window (the main window when nullptr): the type of
+    /// the open book and its kinds; new kinds refresh the Navigator
+    /// @return Whether the book got new kinds
+    bool openProjectProperties(QWidget* window = nullptr);
+
     /// @brief Show the title of element @p elementId on its open tab, with the "*" of its
     /// unsaved changes
     void refreshTabTitle(const QString& elementId);
@@ -249,6 +254,9 @@ public slots:
 
     /// @brief Group the Workshop (Libraries and Resources) or not; saves the .klh file
     void onRequestWorkshopGrouped(bool grouped);
+
+    /// @brief Project Properties... on the project's node of the Navigator
+    void onRequestProjectProperties();
 
     /// @brief Open material @p elementId of the Workshop in the program the system gives its
     /// file; the writer is told when it cannot be opened

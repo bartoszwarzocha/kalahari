@@ -358,6 +358,10 @@ signals:
     ///       element only fills the panel, so the tab on top of its group stays there.
     void requestPropertiesPanel();
 
+    /// @brief Project Properties... on the project's node: the window of the book's type and
+    /// kinds
+    void requestProjectProperties();
+
     /// @brief Emitted when a file of the "Other Files" section is opened
     /// @param filePath Absolute file path
     void standaloneFileSelected(const QString& filePath);

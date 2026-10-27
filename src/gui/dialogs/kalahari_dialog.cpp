@@ -14,6 +14,7 @@
 #include <QScreen>
 #include <QShowEvent>
 #include <QStyle>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWindow>
 
@@ -33,6 +34,13 @@ constexpr int LINE_HEIGHT = 1;            ///< Of the line under the heading
 constexpr int MINIMUM_WIDTH = 460;        ///< Room for a title in a field
 constexpr qreal TITLE_SCALE = 1.3;        ///< Size of the heading's title against the dialog's font
 constexpr qreal COMPACT_TITLE_SCALE = 1.1;
+
+/// Opens the Settings window for the gears of the dialogs; empty: no gears
+KalahariDialog::SettingsOpener& settingsOpener()
+{
+    static KalahariDialog::SettingsOpener opener;
+    return opener;
+}
 
 } // anonymous namespace
 
@@ -115,6 +123,40 @@ KalahariDialog::KalahariDialog(QWidget* parent)
     // New icon colors or sizes (a change of theme or icon settings) redraw the icon
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
             this, &KalahariDialog::updateHeadingIcon);
+}
+
+void KalahariDialog::setSettingsOpener(SettingsOpener opener)
+{
+    settingsOpener() = std::move(opener);
+}
+
+QToolButton* KalahariDialog::addSettingsButton(const QString& page, const QString& tooltip)
+{
+    if (!settingsOpener()) {
+        return nullptr;
+    }
+    if (!m_settingsButton) {
+        m_settingsButton = new QToolButton(m_heading);
+        m_settingsButton->setObjectName(QStringLiteral("kalahariDialogSettings"));
+        m_settingsButton->setAutoRaise(true);
+        // With Tab, as the other controls of the dialog
+        m_settingsButton->setFocusPolicy(Qt::StrongFocus);
+        m_headingLayout->addWidget(m_settingsButton, 0, Qt::AlignTop);
+        updateSettingsIcon();
+        connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
+                &KalahariDialog::updateSettingsIcon);
+    }
+    m_settingsButton->setToolTip(tooltip);
+    m_settingsButton->setAccessibleName(tooltip);
+    m_settingsButton->disconnect(this);
+    connect(m_settingsButton, &QToolButton::clicked, this, [this, page]() {
+        // The opener may be gone with the main window
+        if (const SettingsOpener& opener = settingsOpener()) {
+            opener(this, page);
+            emit settingsClosed();
+        }
+    });
+    return m_settingsButton;
 }
 
 void KalahariDialog::setHeading(const QString& title, const QString& description)
@@ -283,6 +325,19 @@ void KalahariDialog::updateHeadingIcon()
     // registered at startup)
     m_iconLabel->setPixmap(icon.pixmap(QSize(size, size), devicePixelRatioF()));
     m_iconLabel->setVisible(!icon.isNull());
+}
+
+void KalahariDialog::updateSettingsIcon()
+{
+    if (!m_settingsButton) {
+        return;
+    }
+    auto& artProvider = core::ArtProvider::getInstance();
+    // As big as the icons of the captions of the panels, whose gears it repeats
+    const int size = artProvider.getIconSize(core::IconContext::Panel);
+    m_settingsButton->setIconSize(QSize(size, size));
+    m_settingsButton->setIcon(
+        artProvider.getIcon(QStringLiteral("dock.settings"), core::IconContext::Panel));
 }
 
 } // namespace dialogs

@@ -309,9 +309,13 @@ void DocumentCoordinator::onNewProject() {
         request.author = result.author;
         request.language = result.language;
         request.createSubfolder = result.createSubfolder;
-        request.typeId =
-            dialogs::TemplateRegistry::getInstance().getTemplate(result.templateId).typeId;
+        request.typeId = result.typeId;
         request.sections = result.sections;
+        // A type of the writer's own: its type and the kinds it takes, or the kinds and the
+        // elements of a user project; its book has no window of kinds
+        if (result.customType) {
+            result.customType->applyTo(request, pm.installedBookTypes());
+        }
         if (!dialogs::NewItemDialog::isUserProject(result.templateId)) {
             open = result.open;
             break;
@@ -343,9 +347,7 @@ void DocumentCoordinator::onNewProject() {
             //: utworzyć książki „%1”: typ książki „%2” nie jest zainstalowany.
             text = tr("The book \"%1\" cannot be created: the book type \"%2\" is not "
                       "installed.")
-                       .arg(result.title, dialogs::TemplateRegistry::getInstance()
-                                              .getTemplate(result.templateId)
-                                              .name);
+                       .arg(result.title, request.typeId);
         }
         dialogs::MessageDialog::error(m_mainWindow, tr("New Book"), text, detailsOf(problems));
     };

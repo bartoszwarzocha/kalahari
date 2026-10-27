@@ -44,6 +44,12 @@ QString typeNameOf(const core::BookTypeRegistry& registry, const core::BookProje
 /// @brief Forms of the name of @p kind in the program's language; none without a kind
 core::KindWords wordsOf(const core::KindRef& kind);
 
+/// @brief The titles that a new book gives @p elements, the elements it starts with, in
+/// @p language: each in quotes, the groups first, as the book makes them ("\"Part 1\",
+/// \"Chapter 1\""); the elements of kinds that open in a window of their own are left out,
+/// as the book does not make them yet; empty without elements
+QString startTitles(const QList<core::StartElement>& elements, const QString& language);
+
 /// @brief @p words for the text of a menu command: each '&' of a form doubled, so that the menu
 /// shows it and does not take it for the mark of an access key; the command's own text keeps
 /// its mark ("&New {Kind}...")

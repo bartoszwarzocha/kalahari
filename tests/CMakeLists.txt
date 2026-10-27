@@ -23,6 +23,7 @@ set(TEST_SOURCES
     core/test_book_project.cpp        # Book project and its .klh file
     core/test_old_book_conversion.cpp # Books of the first .klh format, converted to this version
     core/test_package_cards.cpp       # Cards of the packages a book uses; a book read-only without them
+    core/test_custom_book_types.cpp   # The writer's own book types; kinds taken from other types
     core/test_unicode_paths.cpp       # Paths with characters outside the code page of the system
     core/test_project_manager.cpp
     core/test_logger.cpp
@@ -171,6 +172,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_project.cpp
     ${CMAKE_SOURCE_DIR}/src/core/old_book_conversion.cpp
     ${CMAKE_SOURCE_DIR}/src/core/package_card.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/custom_book_type.cpp
     ${CMAKE_SOURCE_DIR}/src/core/unicode_paths.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp
@@ -324,6 +326,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/sections_field.cpp           # Fields of the sections of a book
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/kind_palette.cpp             # Kinds of elements of all book types
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/user_project_dialog.cpp      # The kinds of a user project
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/project_properties_dialog.cpp  # The kinds of the open book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/save_type_dialog.cpp         # A type of the writer's own
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/folder_field.cpp             # Field of a folder of the program
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/item_templates.cpp           # Templates of the New Book dialog
     ${CMAKE_SOURCE_DIR}/src/gui/icon_registrar.cpp          # Icons of the application's commands
@@ -422,6 +426,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/sections_field.h  # SectionsComboBox, SectionNamesEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/kind_palette.h  # KindPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/project_properties_dialog.h  # ProjectPropertiesDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/save_type_dialog.h  # SaveTypeDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/folder_field.h  # FolderField with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     # GUI dependency headers for MOC

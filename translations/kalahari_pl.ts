@@ -1014,6 +1014,16 @@
         <source>Copy what the window says to the clipboard</source>
         <translation>Kopiuj treść okna do schowka</translation>
     </message>
+    <message>
+        <source>Tools of the Types</source>
+        <extracomment>The tools that book types will have, e.g. a plot board. In Polish: Narzędzia typów</extracomment>
+        <translation>Narzędzia typów</translation>
+    </message>
+    <message>
+        <source>No type has tools yet. When they come (e.g. a plot board and a book dictionary), you will choose them here.</source>
+        <extracomment>In Polish: Żaden typ nie ma jeszcze narzędzi. Gdy powstaną (np. tablica fabuły i słownik książki), wybierzesz je tutaj.</extracomment>
+        <translation>Żaden typ nie ma jeszcze narzędzi. Gdy powstaną (np. tablica fabuły i słownik książki), wybierzesz je tutaj.</translation>
+    </message>
 </context>
 <context>
     <name>DocumentCommands</name>
@@ -1160,6 +1170,11 @@
         <extracomment>The grammatical gender of the word &quot;file&quot; in the translation, for the words that agree with it: one of the English words masculine, feminine, neuter or plural, not translated. In Polish: masculine</extracomment>
         <translation>masculine</translation>
     </message>
+    <message>
+        <source>&quot;%1&quot;</source>
+        <extracomment>A title of an element a new book starts with, in a sentence. In Polish: „%1”</extracomment>
+        <translation>„%1”</translation>
+    </message>
 </context>
 <context>
     <name>KindPalette</name>
@@ -1177,6 +1192,11 @@
         <source>A material is a copy of a file chosen when it is added.</source>
         <extracomment>The tooltip of &quot;Create now&quot; on a material of the Workshop, e.g. a picture. In Polish: Materiał to kopia pliku wybranego przy dodawaniu.</extracomment>
         <translation>Materiał to kopia pliku wybranego przy dodawaniu.</translation>
+    </message>
+    <message>
+        <source>In the book: %1</source>
+        <extracomment>Under a kind in the palette of a book: the number of its elements in the book. In Polish: W książce: %1</extracomment>
+        <translation>W książce: %1</translation>
     </message>
 </context>
 <context>
@@ -2016,10 +2036,6 @@ Czy mimo to go usunąć?</translation>
         <translation>Przywrócić domyślną konfigurację wszystkich pasków narzędzi?</translation>
     </message>
     <message>
-        <source>Toolbar Manager</source>
-        <translation>Menedżer pasków narzędzi</translation>
-    </message>
-    <message>
         <source>Language Changed</source>
         <translation>Zmiana języka</translation>
     </message>
@@ -2746,100 +2762,8 @@ Uruchomić ponownie teraz?</translation>
 <context>
     <name>TemplateRegistry</name>
     <message>
-        <source>Novel</source>
-        <translation>Powieść</translation>
-    </message>
-    <message>
-        <source>Part/Chapter structure</source>
-        <translation>Układ części i rozdziałów</translation>
-    </message>
-    <message>
         <source>Word count tracking</source>
         <translation>Liczenie słów</translation>
-    </message>
-    <message>
-        <source>Character &amp; location banks</source>
-        <translation>Bank postaci i miejsc</translation>
-    </message>
-    <message>
-        <source>Short Story Collection</source>
-        <translation>Zbiór opowiadań</translation>
-    </message>
-    <message>
-        <source>Independent stories</source>
-        <translation>Niezależne opowiadania</translation>
-    </message>
-    <message>
-        <source>Per-story statistics</source>
-        <translation>Statystyki każdego opowiadania</translation>
-    </message>
-    <message>
-        <source>Easy reordering</source>
-        <translation>Łatwa zmiana kolejności</translation>
-    </message>
-    <message>
-        <source>Export individual stories</source>
-        <translation>Eksport pojedynczych opowiadań</translation>
-    </message>
-    <message>
-        <source>Non-fiction</source>
-        <translation>Literatura faktu</translation>
-    </message>
-    <message>
-        <source>Bibliography support</source>
-        <translation>Bibliografia</translation>
-    </message>
-    <message>
-        <source>Index generation</source>
-        <translation>Tworzenie indeksu</translation>
-    </message>
-    <message>
-        <source>Footnotes &amp; citations</source>
-        <translation>Przypisy i cytowania</translation>
-    </message>
-    <message>
-        <source>Research notes section</source>
-        <translation>Notatki z researchu</translation>
-    </message>
-    <message>
-        <source>Screenplay</source>
-        <translation>Scenariusz</translation>
-    </message>
-    <message>
-        <source>Screenplay formatting</source>
-        <translation>Formatowanie scenariusza</translation>
-    </message>
-    <message>
-        <source>Character list</source>
-        <translation>Lista postaci</translation>
-    </message>
-    <message>
-        <source>Scene descriptions</source>
-        <translation>Opisy scen</translation>
-    </message>
-    <message>
-        <source>Dialogue formatting</source>
-        <translation>Formatowanie dialogów</translation>
-    </message>
-    <message>
-        <source>Poetry Collection</source>
-        <translation>Tomik wierszy</translation>
-    </message>
-    <message>
-        <source>Thematic grouping</source>
-        <translation>Grupowanie tematyczne</translation>
-    </message>
-    <message>
-        <source>Verse formatting</source>
-        <translation>Formatowanie wersów</translation>
-    </message>
-    <message>
-        <source>Line count tracking</source>
-        <translation>Liczenie wersów</translation>
-    </message>
-    <message>
-        <source>Stanza support</source>
-        <translation>Strofy</translation>
     </message>
     <message>
         <source>Chapter</source>
@@ -3001,96 +2925,81 @@ Opisz miejsca opowieści: opis, mapy i powiązane sceny.</translation>
         <source>Hierarchy support</source>
         <translation>Hierarchia miejsc</translation>
     </message>
+</context>
+<context>
+    <name>VersionTexts</name>
     <message>
-        <source>User Project</source>
-        <translation>Projekt użytkownika</translation>
+        <source>HH:mm</source>
+        <extracomment>The time of a version. In Polish: H:mm</extracomment>
+        <translation>H:mm</translation>
     </message>
     <message>
-        <source>No book type</source>
-        <translation>Bez typu książki</translation>
+        <source>today, %1</source>
+        <extracomment>When a version was kept: %1 is the time. In Polish: dziś, %1</extracomment>
+        <translation>dziś, %1</translation>
     </message>
     <message>
-        <source>Structure built in the Navigator</source>
-        <translation>Układ budowany w Nawigatorze</translation>
+        <source>yesterday, %1</source>
+        <extracomment>When a version was kept: %1 is the time. In Polish: wczoraj, %1</extracomment>
+        <translation>wczoraj, %1</translation>
     </message>
     <message>
-        <source>Prologue and epilogue</source>
-        <translation>Prolog i epilog</translation>
+        <source>dd.MM.yyyy</source>
+        <extracomment>The day of a version. In Polish: dd.MM.yyyy</extracomment>
+        <translation>dd.MM.yyyy</translation>
     </message>
     <message>
-        <source>A traditional novel structure with parts and chapters.
-
-A title page and a dedication at the beginning, a prologue and an epilogue in the text, and an afterword and acknowledgments at the end.</source>
-        <translation>Tradycyjny układ powieści z częściami i rozdziałami.
-
-Na początku strona tytułowa i dedykacja, w tekście prolog i epilog, a na końcu posłowie i podziękowania.</translation>
+        <source>%1, %2</source>
+        <extracomment>When a version was kept: %1 is the day, %2 the time</extracomment>
+        <translation>%1, %2</translation>
     </message>
     <message>
-        <source>Title page and dedication at the beginning</source>
-        <translation>Strona tytułowa i dedykacja na początku</translation>
+        <source>Saved by you</source>
+        <extracomment>A version the writer saved. In Polish: Zapisana przez Ciebie</extracomment>
+        <translation>Zapisana przez Ciebie</translation>
     </message>
     <message>
-        <source>Afterword and acknowledgments at the end</source>
-        <translation>Posłowie i podziękowania na końcu</translation>
+        <source>When the {kind} was saved</source>
+        <extracomment>A version the program kept when the text was saved. In Polish: Przy zapisie {kind:genitive}</extracomment>
+        <translation>Przy zapisie {kind:genitive}</translation>
+    </message>
+    <message numerus="yes">
+        <source>Before Replace All: &quot;%1&quot; → &quot;%2&quot;, %Ln replacement(s)</source>
+        <extracomment>A version the program kept before Replace All: %1 was replaced with %2. In Polish: Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamiana / zamiany / zamian</extracomment>
+        <translation>
+            <numerusform>Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamiana</numerusform>
+            <numerusform>Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamiany</numerusform>
+            <numerusform>Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamian</numerusform>
+        </translation>
     </message>
     <message>
-        <source>A collection of poems that can be grouped into cycles.
-
-Flexible structure for grouping poems into thematic cycles. Supports various poetry formats and styles.</source>
-        <translation>Zbiór wierszy, które można łączyć w cykle.
-
-Elastyczny układ do grupowania wierszy w cykle tematyczne. Obsługuje różne formy i style poezji.</translation>
+        <source>Before the version of %1 was restored</source>
+        <extracomment>A version the program kept before another one was brought back: %1 is when that one was kept (today, 14:52). In Polish: Przed przywróceniem wersji z %1</extracomment>
+        <translation>Przed przywróceniem wersji z %1</translation>
     </message>
     <message>
-        <source>Cycle/Poem structure</source>
-        <translation>Układ cykli i wierszy</translation>
+        <source>&quot;%1&quot;</source>
+        <extracomment>A version&apos;s description in quotes. In Polish: „%1”</extracomment>
+        <translation>„%1”</translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln word(s)</source>
+        <extracomment>In Polish: %Ln słowo / słowa / słów</extracomment>
+        <translation>
+            <numerusform>%Ln słowo</numerusform>
+            <numerusform>%Ln słowa</numerusform>
+            <numerusform>%Ln słów</numerusform>
+        </translation>
     </message>
     <message>
-        <source>A collection of short stories that can be grouped into divisions.
-
-Each story stands alone, and a division gathers stories with a common theme. Great for anthologies, collections, or episodic content.</source>
-        <translation>Zbiór opowiadań, które można łączyć w działy.
-
-Każde opowiadanie jest osobną całością, a dział zbiera opowiadania o wspólnym temacie. Dobry do antologii, zbiorów i tekstów w odcinkach.</translation>
+        <source>File &gt; Save Version</source>
+        <extracomment>Save Version without keys. In Polish: Plik &gt; Zapisz wersję</extracomment>
+        <translation>Plik &gt; Zapisz wersję</translation>
     </message>
     <message>
-        <source>Division/Story structure</source>
-        <translation>Układ działów i opowiadań</translation>
-    </message>
-    <message>
-        <source>A non-fiction book with chapters, which can be grouped into parts.
-
-Designed for essays, guides, memoirs, and technical writing. Includes bibliography and index support.</source>
-        <translation>Książka popularnonaukowa lub faktograficzna z rozdziałami, które można łączyć w części.
-
-Do esejów, poradników, wspomnień i tekstów technicznych. Obsługuje bibliografię i indeks.</translation>
-    </message>
-    <message>
-        <source>A screenplay or stage play structure.
-
-Acts, which can be grouped into episodes, with proper screenplay formatting. Suitable for film, TV, or theater scripts.</source>
-        <translation>Układ scenariusza filmowego lub sztuki teatralnej.
-
-Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scenariuszy filmowych, telewizyjnych i teatralnych.</translation>
-    </message>
-    <message>
-        <source>Episode/Act structure</source>
-        <translation>Układ odcinków i aktów</translation>
-    </message>
-    <message>
-        <source>A book without a type: in the next step you choose the kinds of its elements from all book types, and the elements it is created with.</source>
-        <extracomment>In Polish: Książka bez typu: w następnym kroku wybierzesz rodzaje jej elementów spośród wszystkich typów książek oraz elementy, z którymi powstanie.</extracomment>
-        <translation>Książka bez typu: w następnym kroku wybierzesz rodzaje jej elementów spośród wszystkich typów książek oraz elementy, z którymi powstanie.</translation>
-    </message>
-    <message>
-        <source>Kinds of elements from all book types</source>
-        <extracomment>In Polish: Rodzaje elementów ze wszystkich typów książek</extracomment>
-        <translation>Rodzaje elementów ze wszystkich typów książek</translation>
-    </message>
-    <message>
-        <source>Elements created with the book</source>
-        <extracomment>In Polish: Elementy tworzone razem z książką</extracomment>
-        <translation>Elementy tworzone razem z książką</translation>
+        <source>Creating versions is turned off (Settings &gt; Editor &gt; Versions)</source>
+        <extracomment>Why Save Version is greyed out (the menu, the toolbar, the Properties panel, the window of the versions). In Polish: Tworzenie wersji jest wyłączone (Ustawienia &gt; Edytor &gt; Wersje)</extracomment>
+        <translation>Tworzenie wersji jest wyłączone (Ustawienia &gt; Edytor &gt; Wersje)</translation>
     </message>
 </context>
 <context>
@@ -3881,12 +3790,12 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
     <message>
         <source>Active replacements: %1</source>
-        <extracomment>%1 is the list of the replacements, as "typographic quotes, ellipsis …"</extracomment>
+        <extracomment>%1 is the list of the replacements, as &quot;typographic quotes, ellipsis …&quot;</extracomment>
         <translation>Aktywne zamiany: %1</translation>
     </message>
     <message>
         <source>Off. When turned on: %1</source>
-        <extracomment>%1 is the list of the replacements, as "typographic quotes, ellipsis …"</extracomment>
+        <extracomment>%1 is the list of the replacements, as &quot;typographic quotes, ellipsis …&quot;</extracomment>
         <translation>Wyłączona. Po włączeniu: %1</translation>
     </message>
     <message>
@@ -5867,6 +5776,155 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
 </context>
 <context>
+    <name>kalahari::gui::EditorVersionsPage</name>
+    <message>
+        <source>Saving</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Versions with Save Version. In Polish: Zapisywanie</extracomment>
+        <translation>Zapisywanie</translation>
+    </message>
+    <message>
+        <source>Ask for a description when a version is saved</source>
+        <extracomment>In Polish: Pytaj o opis przy zapisie wersji</extracomment>
+        <translation>Pytaj o opis przy zapisie wersji</translation>
+    </message>
+    <message>
+        <source>%1 opens a small window with a field for the description; Enter saves also without one.</source>
+        <translation>%1 otwiera małe okno z polem opisu; Enter zapisuje także bez opisu.</translation>
+    </message>
+    <message>
+        <source>%1 saves at once, and the status bar says so. The description can be added later.</source>
+        <translation>%1 zapisuje od razu, a pasek stanu to potwierdza. Opis można dodać później.</translation>
+    </message>
+    <message>
+        <source>Versions Saved by the Program</source>
+        <extracomment>In Polish: Wersje zapisywane samoczynnie</extracomment>
+        <translation>Wersje zapisywane samoczynnie</translation>
+    </message>
+    <message>
+        <source>When a chapter is saved, at most once in</source>
+        <extracomment>Followed by a number of minutes. In Polish: Przy zapisie rozdziału, najwyżej raz na</extracomment>
+        <translation>Przy zapisie rozdziału, najwyżej raz na</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n minute(s)</source>
+        <extracomment>In Polish: %n minutę / minuty / minut</extracomment>
+        <translation>
+            <numerusform>%n minutę</numerusform>
+            <numerusform>%n minuty</numerusform>
+            <numerusform>%n minut</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Minutes between the versions saved with the chapter</source>
+        <extracomment>In Polish: Co ile minut najwyżej wersja przy zapisie rozdziału</extracomment>
+        <translation>Co ile minut najwyżej powstaje wersja przy zapisie rozdziału</translation>
+    </message>
+    <message>
+        <source>Before Replace All in a chapter</source>
+        <extracomment>In Polish: Przed „Zamień wszystkie” w rozdziale</extracomment>
+        <translation>Przed „Zamień wszystkie” w rozdziale</translation>
+    </message>
+    <message>
+        <source>The description says what was replaced with what, and how many times.</source>
+        <extracomment>In Polish: Opis podaje, co zamieniono na co i ile razy.</extracomment>
+        <translation>Opis podaje, co zamieniono na co i ile razy.</translation>
+    </message>
+    <message>
+        <source>Before another version is restored, the program always keeps the current text, so that it can be brought back.</source>
+        <extracomment>In Polish: Przed przywróceniem innej wersji program zawsze zapisuje bieżący tekst, żeby można było do niego wrócić.</extracomment>
+        <translation>Przed przywróceniem innej wersji program zawsze zapisuje bieżący tekst, żeby można było do niego wrócić.</translation>
+    </message>
+    <message>
+        <source>Keep in each chapter at most</source>
+        <extracomment>Followed by a number. In Polish: Zachowuj w każdym rozdziale najwyżej</extracomment>
+        <translation>Zachowuj w każdym rozdziale najwyżej</translation>
+    </message>
+    <message>
+        <source>versions saved by the program</source>
+        <extracomment>After a number. In Polish: wersji zapisanych samoczynnie</extracomment>
+        <translation>wersji zapisanych samoczynnie</translation>
+    </message>
+    <message>
+        <source>The program deletes the older ones. The versions you save stay until you delete them.</source>
+        <extracomment>In Polish: Starsze usuwa program. Wersje zapisane przez Ciebie zostają, dopóki ich nie usuniesz.</extracomment>
+        <translation>Starsze program usuwa. Wersje zapisane przez Ciebie zostają, dopóki ich nie usuniesz.</translation>
+    </message>
+    <message>
+        <source>Colors of the Comparison</source>
+        <extracomment>In Polish: Kolory porównania</extracomment>
+        <translation>Kolory porównania</translation>
+    </message>
+    <message>
+        <source>The colors of the text in the mode &quot;Changes to the Current Text&quot; of the window &quot;Version History&quot;. Each theme has its own colors: these are the colors of the current theme.</source>
+        <extracomment>In Polish: Kolory tekstu w trybie „Zmiany do bieżącego tekstu” w oknie „Historia wersji”. Każdy motyw ma swoje kolory: to kolory bieżącego motywu.</extracomment>
+        <translation>Kolory tekstu w trybie „Zmiany do bieżącego tekstu” w oknie „Historia wersji”. Każdy motyw ma swoje kolory: to kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Deleted text</source>
+        <extracomment>Struck out: in the version, not in the current text. In Polish: Usunięty tekst</extracomment>
+        <translation>Usunięty tekst</translation>
+    </message>
+    <message>
+        <source>Added text</source>
+        <extracomment>Underlined: written later. In Polish: Dopisany tekst</extracomment>
+        <translation>Dopisany tekst</translation>
+    </message>
+    <message>
+        <source>Versions of the Texts</source>
+        <extracomment>The first group of Settings &gt; Editor &gt; Versions. In Polish: Wersje tekstów</extracomment>
+        <translation>Wersje tekstów</translation>
+    </message>
+    <message>
+        <source>Create versions of the texts</source>
+        <extracomment>In Polish: Twórz wersje tekstów</extracomment>
+        <translation>Twórz wersje tekstów</translation>
+    </message>
+    <message>
+        <source>When the text differs from the last version saved in the chapter. A version is the whole text of the chapter: about 40 KB for 5,000 words.</source>
+        <extracomment>In Polish: Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale. Wersja to cały tekst rozdziału: przy 5000 słów około 40 KB.</extracomment>
+        <translation>Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale. Wersja to cały tekst rozdziału: przy 5000 słów około 40 KB.</translation>
+    </message>
+    <message>
+        <source>A version keeps the whole text of a chapter, so that it can be brought back.</source>
+        <extracomment>In Polish: Wersja zachowuje cały tekst rozdziału, żeby można było do niego wrócić.</extracomment>
+        <translation>Wersja zachowuje cały tekst rozdziału, żeby można było do niego wrócić.</translation>
+    </message>
+    <message>
+        <source>Off: the program keeps no new versions, neither yours nor its own.</source>
+        <extracomment>In Polish: Wyłączone: program nie zapisuje nowych wersji – ani Twoich, ani samoczynnych.</extracomment>
+        <translation>Wyłączone: program nie zapisuje nowych wersji – ani Twoich, ani samoczynnych.</translation>
+    </message>
+    <message>
+        <source>The program keeps no new versions now. Those saved can still be read, compared and restored in the history; before a restore the program keeps the current text.</source>
+        <translation>Program nie zapisuje teraz nowych wersji. Zapisane można dalej czytać, porównywać i przywracać w historii; przed przywróceniem program zachowuje bieżący tekst.</translation>
+    </message>
+    <message>
+        <source>Toolbar</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Versions with the place of the buttons. In Polish: Pasek narzędzi</extracomment>
+        <translation>Pasek narzędzi</translation>
+    </message>
+    <message>
+        <source>On a toolbar of their own, &quot;Versions and Backups&quot;</source>
+        <extracomment>The toolbar View &gt; Toolbars &gt; Versions and Backups. In Polish: Na osobnym pasku „Wersje i kopie”</extracomment>
+        <translation>Na osobnym pasku „Wersje i kopie”</translation>
+    </message>
+    <message>
+        <source>On the toolbar &quot;Quick Actions&quot;</source>
+        <extracomment>In Polish: Na pasku „Szybki dostęp”</extracomment>
+        <translation>Na pasku „Szybki dostęp”</translation>
+    </message>
+    <message>
+        <source>Version buttons:</source>
+        <extracomment>In Polish: Przyciski wersji:</extracomment>
+        <translation>Przyciski wersji:</translation>
+    </message>
+    <message>
+        <source>&quot;Save Version&quot; and &quot;Version History&quot;. The toolbar of their own can be moved, or hidden in the menu View &gt; Toolbars.</source>
+        <extracomment>In Polish: „Zapisz wersję” i „Historia wersji”. Osobny pasek można przesunąć albo ukryć w menu Widok &gt; Paski narzędzi.</extracomment>
+        <translation>„Zapisz wersję” i „Historia wersji”. Osobny pasek można przesunąć albo ukryć w menu Widok &gt; Paski narzędzi.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::ElementPlacePicker</name>
     <message>
         <source>Place</source>
@@ -6079,6 +6137,109 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
 </context>
 <context>
+    <name>kalahari::gui::GrammarCoordinator</name>
+    <message>
+        <source>Starting LanguageTool...</source>
+        <translation>Uruchamianie LanguageTool...</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked: LanguageTool stopped answering. The program starts it again.</source>
+        <translation>Gramatyka nie jest sprawdzana: LanguageTool przestał odpowiadać. Program uruchamia go ponownie.</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked: LanguageTool did not start. Details: Edit &gt; Settings..., Editor &gt; Grammar.</source>
+        <translation>Gramatyka nie jest sprawdzana: LanguageTool się nie uruchomił. Szczegóły: Edycja &gt; Ustawienia..., Edytor &gt; Gramatyka.</translation>
+    </message>
+    <message>
+        <source>The server refused the request because the limit was exceeded. The program will try again in a moment.</source>
+        <translation>Serwer odrzucił zapytanie, bo przekroczono limit. Program spróbuje ponownie za chwilę.</translation>
+    </message>
+    <message>
+        <source>The LanguageTool server at %1 did not check the text: %2</source>
+        <translation>Serwer LanguageTool pod adresem %1 nie sprawdził tekstu: %2</translation>
+    </message>
+    <message>
+        <source>LanguageTool on this computer did not check the text: %1</source>
+        <translation>LanguageTool na tym komputerze nie sprawdził tekstu: %1</translation>
+    </message>
+    <message>
+        <source>Grammar as you type: on</source>
+        <translation>Sprawdzanie gramatyki podczas pisania: włączone</translation>
+    </message>
+    <message>
+        <source>Grammar as you type: off</source>
+        <translation>Sprawdzanie gramatyki podczas pisania: wyłączone</translation>
+    </message>
+    <message>
+        <source>The components grammar checking needs were not found: the files of LanguageTool or Java were removed or moved. The program can download and prepare them again - about %1 to download.</source>
+        <translation>Nie znaleziono składników potrzebnych do sprawdzania gramatyki: pliki LanguageTool lub Javy zostały usunięte albo przeniesione. Program może je ponownie pobrać i przygotować – do pobrania jest około %1.</translation>
+    </message>
+    <message>
+        <source>Grammar checking is not prepared yet. It needs two free components: LanguageTool and Java. The program downloads and prepares them itself - about %1 to download.</source>
+        <translation>Sprawdzanie gramatyki nie jest jeszcze przygotowane. Potrzebne są do niego dwa bezpłatne składniki: LanguageTool i Java. Program sam je pobierze i przygotuje – do pobrania jest około %1.</translation>
+    </message>
+    <message>
+        <source>Prepare grammar checking?</source>
+        <translation>Przygotować sprawdzanie gramatyki?</translation>
+    </message>
+    <message>
+        <source>Checking on a server in the internet can be chosen in the settings: Edit &gt; Settings..., group Editor &gt; Grammar.</source>
+        <translation>Sprawdzanie na serwerze w internecie można wybrać w ustawieniach: Edycja &gt; Ustawienia..., grupa Edytor &gt; Gramatyka.</translation>
+    </message>
+    <message>
+        <source>Grammar</source>
+        <translation>Gramatyka</translation>
+    </message>
+    <message>
+        <source>&amp;Prepare Now</source>
+        <translation>&amp;Przygotuj teraz</translation>
+    </message>
+    <message>
+        <source>&amp;Not Now</source>
+        <translation>&amp;Nie teraz</translation>
+    </message>
+    <message>
+        <source>downloading Java</source>
+        <translation>pobieranie Javy</translation>
+    </message>
+    <message>
+        <source>downloading LanguageTool</source>
+        <translation>pobieranie LanguageTool</translation>
+    </message>
+    <message>
+        <source>preparing</source>
+        <translation>przygotowanie</translation>
+    </message>
+    <message>
+        <source>Grammar: %1 - %2%</source>
+        <translation>Gramatyka: %1 – %2%</translation>
+    </message>
+    <message>
+        <source>Grammar checking could not be prepared - click to see the details</source>
+        <translation>Nie udało się przygotować sprawdzania gramatyki – kliknij, aby zobaczyć szczegóły</translation>
+    </message>
+    <message>
+        <source>Grammar checking is ready</source>
+        <translation>Sprawdzanie gramatyki jest gotowe</translation>
+    </message>
+    <message>
+        <source>Show the preparation of grammar checking</source>
+        <translation>Pokaż przygotowanie sprawdzania gramatyki</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked yet: the program prepares LanguageTool.</source>
+        <translation>Gramatyka nie jest jeszcze sprawdzana: program przygotowuje LanguageTool.</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked: it is not prepared yet. Tools &gt; Check Grammar as You Type prepares it.</source>
+        <translation>Gramatyka nie jest sprawdzana: jej sprawdzanie nie jest jeszcze przygotowane. Przygotowuje je polecenie Narzędzia &gt; Sprawdzaj gramatykę podczas pisania.</translation>
+    </message>
+    <message>
+        <source>Grammar is not checked: the components it needs were not found. Tools &gt; Check Grammar as You Type prepares them again.</source>
+        <translation>Gramatyka nie jest sprawdzana: nie znaleziono potrzebnych składników. Polecenie Narzędzia &gt; Sprawdzaj gramatykę podczas pisania przygotuje je ponownie.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::IconDownloaderDialog</name>
     <message>
         <source>Preview</source>
@@ -6208,109 +6369,6 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <source>Downloads an SVG icon from its URL and saves it with the icons of a theme.</source>
         <extracomment>The heading of the icon downloader, a tool of the developers. In Polish: Pobiera ikonę SVG z podanego adresu i zapisuje ją wśród ikon wybranego stylu.</extracomment>
         <translation>Pobiera ikonę SVG z podanego adresu i zapisuje ją wśród ikon wybranego stylu.</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::GrammarCoordinator</name>
-    <message>
-        <source>Starting LanguageTool...</source>
-        <translation>Uruchamianie LanguageTool...</translation>
-    </message>
-    <message>
-        <source>Grammar is not checked: LanguageTool stopped answering. The program starts it again.</source>
-        <translation>Gramatyka nie jest sprawdzana: LanguageTool przestał odpowiadać. Program uruchamia go ponownie.</translation>
-    </message>
-    <message>
-        <source>Grammar is not checked: LanguageTool did not start. Details: Edit &gt; Settings..., Editor &gt; Grammar.</source>
-        <translation>Gramatyka nie jest sprawdzana: LanguageTool się nie uruchomił. Szczegóły: Edycja &gt; Ustawienia..., Edytor &gt; Gramatyka.</translation>
-    </message>
-    <message>
-        <source>The server refused the request because the limit was exceeded. The program will try again in a moment.</source>
-        <translation>Serwer odrzucił zapytanie, bo przekroczono limit. Program spróbuje ponownie za chwilę.</translation>
-    </message>
-    <message>
-        <source>The LanguageTool server at %1 did not check the text: %2</source>
-        <translation>Serwer LanguageTool pod adresem %1 nie sprawdził tekstu: %2</translation>
-    </message>
-    <message>
-        <source>LanguageTool on this computer did not check the text: %1</source>
-        <translation>LanguageTool na tym komputerze nie sprawdził tekstu: %1</translation>
-    </message>
-    <message>
-        <source>Grammar as you type: on</source>
-        <translation>Sprawdzanie gramatyki podczas pisania: włączone</translation>
-    </message>
-    <message>
-        <source>Grammar as you type: off</source>
-        <translation>Sprawdzanie gramatyki podczas pisania: wyłączone</translation>
-    </message>
-    <message>
-        <source>The components grammar checking needs were not found: the files of LanguageTool or Java were removed or moved. The program can download and prepare them again - about %1 to download.</source>
-        <translation>Nie znaleziono składników potrzebnych do sprawdzania gramatyki: pliki LanguageTool lub Javy zostały usunięte albo przeniesione. Program może je ponownie pobrać i przygotować – do pobrania jest około %1.</translation>
-    </message>
-    <message>
-        <source>Grammar checking is not prepared yet. It needs two free components: LanguageTool and Java. The program downloads and prepares them itself - about %1 to download.</source>
-        <translation>Sprawdzanie gramatyki nie jest jeszcze przygotowane. Potrzebne są do niego dwa bezpłatne składniki: LanguageTool i Java. Program sam je pobierze i przygotuje – do pobrania jest około %1.</translation>
-    </message>
-    <message>
-        <source>Prepare grammar checking?</source>
-        <translation>Przygotować sprawdzanie gramatyki?</translation>
-    </message>
-    <message>
-        <source>Checking on a server in the internet can be chosen in the settings: Edit &gt; Settings..., group Editor &gt; Grammar.</source>
-        <translation>Sprawdzanie na serwerze w internecie można wybrać w ustawieniach: Edycja &gt; Ustawienia..., grupa Edytor &gt; Gramatyka.</translation>
-    </message>
-    <message>
-        <source>Grammar</source>
-        <translation>Gramatyka</translation>
-    </message>
-    <message>
-        <source>&amp;Prepare Now</source>
-        <translation>&amp;Przygotuj teraz</translation>
-    </message>
-    <message>
-        <source>&amp;Not Now</source>
-        <translation>&amp;Nie teraz</translation>
-    </message>
-    <message>
-        <source>downloading Java</source>
-        <translation>pobieranie Javy</translation>
-    </message>
-    <message>
-        <source>downloading LanguageTool</source>
-        <translation>pobieranie LanguageTool</translation>
-    </message>
-    <message>
-        <source>preparing</source>
-        <translation>przygotowanie</translation>
-    </message>
-    <message>
-        <source>Grammar: %1 - %2%</source>
-        <translation>Gramatyka: %1 – %2%</translation>
-    </message>
-    <message>
-        <source>Grammar checking could not be prepared - click to see the details</source>
-        <translation>Nie udało się przygotować sprawdzania gramatyki – kliknij, aby zobaczyć szczegóły</translation>
-    </message>
-    <message>
-        <source>Grammar checking is ready</source>
-        <translation>Sprawdzanie gramatyki jest gotowe</translation>
-    </message>
-    <message>
-        <source>Show the preparation of grammar checking</source>
-        <translation>Pokaż przygotowanie sprawdzania gramatyki</translation>
-    </message>
-    <message>
-        <source>Grammar is not checked yet: the program prepares LanguageTool.</source>
-        <translation>Gramatyka nie jest jeszcze sprawdzana: program przygotowuje LanguageTool.</translation>
-    </message>
-    <message>
-        <source>Grammar is not checked: it is not prepared yet. Tools &gt; Check Grammar as You Type prepares it.</source>
-        <translation>Gramatyka nie jest sprawdzana: jej sprawdzanie nie jest jeszcze przygotowane. Przygotowuje je polecenie Narzędzia &gt; Sprawdzaj gramatykę podczas pisania.</translation>
-    </message>
-    <message>
-        <source>Grammar is not checked: the components it needs were not found. Tools &gt; Check Grammar as You Type prepares them again.</source>
-        <translation>Gramatyka nie jest sprawdzana: nie znaleziono potrzebnych składników. Polecenie Narzędzia &gt; Sprawdzaj gramatykę podczas pisania przygotuje je ponownie.</translation>
     </message>
 </context>
 <context>
@@ -6884,6 +6942,11 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>System nie otworzył pliku:
 %1</translation>
     </message>
+    <message>
+        <source>Kinds of elements of the book saved</source>
+        <extracomment>In Polish: Zapisano rodzaje elementów książki</extracomment>
+        <translation>Zapisano rodzaje elementów książki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPage</name>
@@ -7173,11 +7236,6 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Project P&amp;roperties...</source>
         <extracomment>The command of the project&apos;s node in the Navigator. In Polish: Właściwości &amp;projektu...</extracomment>
         <translation>Właściwości &amp;projektu...</translation>
-    </message>
-    <message>
-        <source>Project Properties (in preparation)</source>
-        <extracomment>Why Project Properties... is grey. In Polish: Właściwości projektu (w przygotowaniu)</extracomment>
-        <translation>Właściwości projektu (w przygotowaniu)</translation>
     </message>
     <message>
         <source>&amp;Grouping</source>
@@ -7659,6 +7717,7 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
     <message>
         <source>Keep the text of the {kind} as it is in the editor now as a version</source>
+        <extracomment>In Polish: Zachowaj tekst {kind:genitive} taki, jak teraz w edytorze, jako wersję</extracomment>
         <translation>Zachowaj jako wersję tekst {kind:genitive} taki, jak teraz w edytorze</translation>
     </message>
     <message>
@@ -9047,6 +9106,7 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>paragraph %1</source>
+        <extracomment>The place of a misspelled word or a grammar issue on its card: the paragraph&apos;s number among those with text. In Polish: akapit %1</extracomment>
         <translation>akapit %1</translation>
     </message>
     <message>
@@ -9102,14 +9162,17 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>Spelling %1</source>
+        <extracomment>%1 is the number of the misspelled words, or – when the spelling is not checked</extracomment>
         <translation>Pisownia %1</translation>
     </message>
     <message>
         <source>Grammar %1</source>
+        <extracomment>%1 is the number of the grammar issues, or – when the grammar is not checked</extracomment>
         <translation>Gramatyka %1</translation>
     </message>
     <message>
         <source>Open {kind:indefinite} or a file to see its spelling and grammar issues.</source>
+        <extracomment>In Polish: Otwórz {kind:accusative} albo plik, aby zobaczyć jego błędy pisowni i gramatyki.</extracomment>
         <translation>Otwórz {kind:accusative} albo plik, aby zobaczyć błędy pisowni i gramatyki.</translation>
     </message>
     <message>
@@ -9138,14 +9201,17 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>No spelling or grammar issues in {kind:s=this|p=these} {kind}.</source>
+        <extracomment>In Polish: Brak błędów pisowni i gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</extracomment>
         <translation>Brak błędów pisowni i gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
     </message>
     <message>
         <source>No misspelled words in {kind:s=this|p=these} {kind}.</source>
+        <extracomment>In Polish: Brak błędów pisowni w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</extracomment>
         <translation>Brak błędów pisowni w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
     </message>
     <message>
         <source>No grammar issues in {kind:s=this|p=these} {kind}.</source>
+        <extracomment>In Polish: Brak błędów gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</extracomment>
         <translation>Brak błędów gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
     </message>
     <message>
@@ -9158,10 +9224,12 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>%1 – next issue (the keys go to the panel)</source>
+        <extracomment>%1 is the key of Tools &gt; Next Spelling or Grammar Issue, for example F7</extracomment>
         <translation>%1 – następny błąd (klawisze przechodzą do panelu)</translation>
     </message>
     <message>
         <source>%1 – next issue, with its menu at the word</source>
+        <extracomment>%1 is the key of Tools &gt; Next Spelling or Grammar Issue</extracomment>
         <translation>%1 – następny błąd z menu przy słowie</translation>
     </message>
 </context>
@@ -9173,14 +9241,17 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>Checking the spelling: paragraph %1 of %2...</source>
+        <extracomment>%1 is the number of the paragraph, %2 of all the paragraphs with text</extracomment>
         <translation>Sprawdzanie pisowni: akapit %1 z %2...</translation>
     </message>
     <message>
         <source>Checking the grammar: paragraph %1 of %2...</source>
+        <extracomment>%1 is the number of the paragraph, %2 of all the paragraphs with text</extracomment>
         <translation>Sprawdzanie gramatyki: akapit %1 z %2...</translation>
     </message>
     <message>
         <source>The spelling of the whole {kind} is checked, the grammar only around the part in view.</source>
+        <extracomment>In Polish: Sprawdzono pisownię w {kind:m=całym|f=całej|n=całym|p=całych} {kind:locative}, a gramatykę tylko wokół widocznego fragmentu.</extracomment>
         <translation>Sprawdzono pisownię w {kind:m=całym|f=całej|n=całym|p=całych} {kind:locative}, a gramatykę tylko wokół widocznego fragmentu.</translation>
     </message>
     <message>
@@ -9189,6 +9260,7 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>The whole {kind} is checked.</source>
+        <extracomment>In Polish: Sprawdzono {kind:m=cały|f=całą|n=całe|p=całe} {kind:accusative}.</extracomment>
         <translation>Sprawdzono {kind:m=cały|f=całą|n=całe|p=całe} {kind:accusative}.</translation>
     </message>
     <message>
@@ -9632,6 +9704,83 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Reset all colors to the default values for the selected theme</source>
         <translation>Przywraca wszystkie kolory do domyślnych wartości wybranego motywu</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::VersionsCoordinator</name>
+    <message>
+        <source>Version Not Saved</source>
+        <extracomment>In Polish: Nie zapisano wersji</extracomment>
+        <translation>Nie zapisano wersji</translation>
+    </message>
+    <message>
+        <source>The version cannot be written on the disk.</source>
+        <extracomment>In Polish: Nie można zapisać wersji na dysku.</extracomment>
+        <translation>Nie można zapisać wersji na dysku.</translation>
+    </message>
+    <message>
+        <source>Saved a version of the {kind} &quot;%1&quot; (%2).</source>
+        <extracomment>%1: the title of the text, %2: when the version was kept (today, 15:10). In Polish: Zapisano wersję {kind:genitive} „%1” (%2).</extracomment>
+        <translation>Zapisano wersję {kind:genitive} „%1” (%2).</translation>
+    </message>
+    <message>
+        <source>The description can be added in the version history (F2).</source>
+        <extracomment>After &quot;Saved a version...&quot;, when no window asked for its description. In Polish: Opis można dodać w historii wersji (F2).</extracomment>
+        <translation>Opis można dodać w historii wersji (F2).</translation>
+    </message>
+    <message>
+        <source>Version Not Restored</source>
+        <extracomment>In Polish: Nie przywrócono wersji</extracomment>
+        <translation>Nie przywrócono wersji</translation>
+    </message>
+    <message>
+        <source>The current text cannot be kept as a version, so the version is not restored.</source>
+        <extracomment>In Polish: Nie można zapisać bieżącego tekstu jako wersji, więc wersja nie została przywrócona.</extracomment>
+        <translation>Nie można zapisać bieżącego tekstu jako wersji, więc wersja nie została przywrócona.</translation>
+    </message>
+    <message>
+        <source>Restored the version of %1. Ctrl+Z undoes the restoring.</source>
+        <extracomment>%1: when the version was kept (today, 14:52); the text before it was empty. In Polish: Przywrócono wersję z %1. Ctrl+Z cofa przywrócenie.</extracomment>
+        <translation>Przywrócono wersję z %1. Ctrl+Z cofa przywrócenie.</translation>
+    </message>
+    <message>
+        <source>Restored the version of %1. The text from before the restoring is kept as a version, and Ctrl+Z undoes the restoring.</source>
+        <extracomment>%1: when the version was kept (today, 14:52). In Polish: Przywrócono wersję z %1. Tekst sprzed przywrócenia jest zapisany jako wersja, a Ctrl+Z cofa przywrócenie.</extracomment>
+        <translation>Przywrócono wersję z %1. Tekst sprzed przywrócenia jest zapisany jako wersja, a Ctrl+Z cofa przywrócenie.</translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <extracomment>The button of the bar after a version was restored. In Polish: &amp;Cofnij</extracomment>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>Undo the restoring, as Ctrl+Z does</source>
+        <extracomment>In Polish: Cofnij przywrócenie, jak Ctrl+Z</extracomment>
+        <translation>Cofnij przywrócenie, jak Ctrl+Z</translation>
+    </message>
+    <message>
+        <source>Inserted a fragment of the version of %1. Ctrl+Z undoes the inserting.</source>
+        <extracomment>%1: when the version was kept (today, 14:52). In Polish: Wstawiono fragment wersji z %1. Ctrl+Z cofa wstawienie.</extracomment>
+        <translation>Wstawiono fragment wersji z %1. Ctrl+Z cofa wstawienie.</translation>
+    </message>
+    <message>
+        <source>No text of the book is in front</source>
+        <extracomment>Why Save Version and Version History are greyed out. In Polish: Na wierzchu nie ma tekstu książki</extracomment>
+        <translation>Na wierzchu nie ma tekstu książki</translation>
+    </message>
+    <message>
+        <source>Only the texts of a book have versions, and this file is not part of the open book</source>
+        <extracomment>In Polish: Wersje mają tylko teksty książki, a ten plik nie należy do otwartej książki</extracomment>
+        <translation>Wersje mają tylko teksty książki, a ten plik nie należy do otwartej książki</translation>
+    </message>
+    <message>
+        <source>Only the texts of a book have versions, and this file is not part of a book</source>
+        <translation>Wersje mają tylko teksty książki, a ten plik nie należy do żadnej książki</translation>
+    </message>
+    <message>
+        <source>This text has no file in the folder of the book, so it has no versions</source>
+        <extracomment>In Polish: Ten tekst nie ma pliku w folderze książki, więc nie ma wersji</extracomment>
+        <translation>Ten tekst nie ma pliku w folderze książki, więc nie ma wersji</translation>
     </message>
 </context>
 <context>
@@ -10674,241 +10823,6 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
-    <name>kalahari::gui::dialogs::ImportArchiveDialog</name>
-    <message>
-        <source>Import Project Archive</source>
-        <extracomment>The title of the window. In Polish: Importuj archiwum projektu</extracomment>
-        <translation>Importuj archiwum projektu</translation>
-    </message>
-    <message>
-        <source>The book from the archive goes to a new folder and opens in the program.</source>
-        <extracomment>In Polish: Książka z archiwum trafi do nowego folderu i otworzy się w programie.</extracomment>
-        <translation>Książka z archiwum trafi do nowego folderu i otworzy się w programie.</translation>
-    </message>
-    <message>
-        <source>Archive</source>
-        <translation>Archiwum</translation>
-    </message>
-    <message>
-        <source>File:</source>
-        <extracomment>In Polish: Plik:</extracomment>
-        <translation>Plik:</translation>
-    </message>
-    <message>
-        <source>Choose the archive with Browse...</source>
-        <extracomment>In the empty field of the archive. In Polish: Wybierz archiwum przyciskiem Przeglądaj...</extracomment>
-        <translation>Wybierz archiwum przyciskiem „Przeglądaj...”</translation>
-    </message>
-    <message>
-        <source>Choose the archive in the system window</source>
-        <translation>Wybierz archiwum w oknie systemowym</translation>
-    </message>
-    <message>
-        <source>Title:</source>
-        <extracomment>A row of the book of the archive. In Polish: Tytuł:</extracomment>
-        <translation>Tytuł:</translation>
-    </message>
-    <message>
-        <source>Author:</source>
-        <extracomment>In Polish: Autor:</extracomment>
-        <translation>Autor:</translation>
-    </message>
-    <message>
-        <source>Type:</source>
-        <extracomment>In Polish: Typ:</extracomment>
-        <translation>Typ:</translation>
-    </message>
-    <message>
-        <source>Contents:</source>
-        <extracomment>The elements of the book: &quot;8 elements: 5 chapters, a prologue...&quot;. In Polish: Zawartość:</extracomment>
-        <translation>Zawartość:</translation>
-    </message>
-    <message>
-        <source>Workshop:</source>
-        <extracomment>The elements of the Workshop of the book. In Polish: Warsztat:</extracomment>
-        <translation>Warsztat:</translation>
-    </message>
-    <message>
-        <source>Place</source>
-        <extracomment>A group of the window: where the imported book goes. In Polish: Miejsce</extracomment>
-        <translation>Miejsce</translation>
-    </message>
-    <message>
-        <source>Folder:</source>
-        <translation>Folder:</translation>
-    </message>
-    <message>
-        <source>Choose the folder in the system window</source>
-        <translation>Wybierz folder w oknie systemowym</translation>
-    </message>
-    <message>
-        <source>The progress of the import will show here. When something goes wrong, the description of the error stays in this window, and Copy puts it on the clipboard.</source>
-        <extracomment>In Polish: Postęp importu pokaże się tutaj. Gdy coś się nie uda, opis błędu zostanie w tym oknie i skopiujesz go przyciskiem „Kopiuj”.</extracomment>
-        <translation>Postęp importu pokaże się tutaj. Gdy coś się nie uda, opis błędu zostanie w tym oknie i skopiujesz go przyciskiem „Kopiuj”.</translation>
-    </message>
-    <message>
-        <source>Import</source>
-        <extracomment>The button that imports the archive. In Polish: Importuj</extracomment>
-        <translation>Importuj</translation>
-    </message>
-    <message>
-        <source>no elements</source>
-        <extracomment>The contents of a book without elements. In Polish: brak elementów</extracomment>
-        <translation>brak elementów</translation>
-    </message>
-    <message>
-        <source>1 {kind}</source>
-        <extracomment>The one element of a book: &quot;1 chapter&quot;. In Polish: 1 {kind}</extracomment>
-        <translation>1 {kind}</translation>
-    </message>
-    <message>
-        <source>{kind:indefinite}</source>
-        <extracomment>One element among the elements of other kinds: &quot;a prologue&quot;. In Polish: {kind}</extracomment>
-        <translation>{kind}</translation>
-    </message>
-    <message>
-        <source>Imported &quot;%1&quot; to the folder %2. The book is open.</source>
-        <extracomment>%1: the title of the book; %2: its folder. In Polish: Zaimportowano „%1” do folderu %2. Książka jest już otwarta.</extracomment>
-        <translation>Zaimportowano „%1” do folderu %2. Książka jest już otwarta.</translation>
-    </message>
-    <message>
-        <source>Imported &quot;%1&quot; to the folder %2. The book is on the Dashboard and in File &gt; Recent Books.</source>
-        <extracomment>%1: the title of the book; %2: its folder. In Polish: Zaimportowano „%1” do folderu %2. Książkę znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</extracomment>
-        <translation>Zaimportowano „%1” do folderu %2. Książkę znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</translation>
-    </message>
-    <message>
-        <source>The archive could not be imported.</source>
-        <extracomment>In Polish: Nie udało się zaimportować archiwum.</extracomment>
-        <translation>Nie udało się zaimportować archiwum.</translation>
-    </message>
-    <message>
-        <source>Choose the Archive</source>
-        <extracomment>The title of the system window that chooses the archive. In Polish: Wybierz archiwum</extracomment>
-        <translation>Wybierz archiwum</translation>
-    </message>
-    <message>
-        <source>Kalahari Archive (*.klh.zip)</source>
-        <translation>Archiwum Kalahari (*.klh.zip)</translation>
-    </message>
-    <message>
-        <source>Place of the Book</source>
-        <extracomment>The title of the system window that chooses where the imported book goes. In Polish: Miejsce książki</extracomment>
-        <translation>Miejsce książki</translation>
-    </message>
-    <message>
-        <source>This book was saved in a newer version of Kalahari. Update the program to import it.</source>
-        <extracomment>Under an archive with a book of a newer version of the program. In Polish: Tę książkę zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją zaimportować.</extracomment>
-        <translation>Tę książkę zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją zaimportować.</translation>
-    </message>
-    <message>
-        <source>Kalahari cannot read the book of this archive.</source>
-        <extracomment>Under an archive whose book cannot be read. In Polish: Kalahari nie może odczytać książki z tego archiwum.</extracomment>
-        <translation>Kalahari nie może odczytać książki z tego archiwum.</translation>
-    </message>
-    <message>
-        <source>The folder &quot;%1&quot; is already here. Choose another place for the book.</source>
-        <extracomment>%1: the name of the folder of the book. In Polish: W tym miejscu jest już folder „%1”. Wybierz dla książki inne miejsce.</extracomment>
-        <translation>W tym miejscu jest już folder „%1”. Wybierz dla książki inne miejsce.</translation>
-    </message>
-    <message>
-        <source>The book goes to the folder &quot;%1&quot;.</source>
-        <extracomment>%1: the name of the folder of the book. In Polish: Książka powstanie w folderze „%1”.</extracomment>
-        <translation>Książka powstanie w folderze „%1”.</translation>
-    </message>
-    <message numerus="yes">
-        <source>%n {kind:plural}</source>
-        <extracomment>How many elements of a kind: &quot;5 chapters&quot;. In Polish: %n {kind} | %n {kind:plural} | %n {kind:genitivePlural}</extracomment>
-        <translation>
-            <numerusform>%n {kind}</numerusform>
-            <numerusform>%n {kind:plural}</numerusform>
-            <numerusform>%n {kind:genitivePlural}</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <source>%n elements: %1</source>
-        <extracomment>%1: the elements of each kind, &quot;5 chapters, a prologue and an epilogue&quot;. In Polish: %n element: %1 | %n elementy: %1 | %n elementów: %1</extracomment>
-        <translation>
-            <numerusform>%n element: %1</numerusform>
-            <numerusform>%n elementy: %1</numerusform>
-            <numerusform>%n elementów: %1</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>Backups:</source>
-        <extracomment>The backups of the database in the archive. In Polish: Kopie zapasowe:</extracomment>
-        <translation>Kopie zapasowe:</translation>
-    </message>
-    <message>
-        <source>1 database backup</source>
-        <extracomment>The one backup of the database in the archive. In Polish: 1 kopia bazy</extracomment>
-        <translation>1 kopia bazy</translation>
-    </message>
-    <message>
-        <source>After the import the backups are where Kalahari keeps backups (Settings &gt; Files &gt; Folders).</source>
-        <extracomment>In Polish: Po imporcie kopie trafią tam, gdzie program trzyma kopie zapasowe (Ustawienia &gt; Pliki &gt; Foldery).</extracomment>
-        <translation>Po imporcie kopie trafią tam, gdzie program trzyma kopie zapasowe (Ustawienia &gt; Pliki &gt; Foldery).</translation>
-    </message>
-    <message numerus="yes">
-        <source>%n database backups</source>
-        <extracomment>How many backups of the database the archive has. In Polish: %n kopia bazy | %n kopie bazy | %n kopii bazy</extracomment>
-        <translation>
-            <numerusform>%n kopia bazy</numerusform>
-            <numerusform>%n kopie bazy</numerusform>
-            <numerusform>%n kopii bazy</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>This file no longer exists.</source>
-        <extracomment>Under an archive, or why it could not be imported. In Polish: Ten plik już nie istnieje.</extracomment>
-        <translation>Ten plik już nie istnieje.</translation>
-    </message>
-    <message>
-        <source>Kalahari cannot read this file. Check that you have access to it.</source>
-        <extracomment>In Polish: Kalahari nie może odczytać tego pliku. Sprawdź, czy masz do niego dostęp.</extracomment>
-        <translation>Kalahari nie może odczytać tego pliku. Sprawdź, czy masz do niego dostęp.</translation>
-    </message>
-    <message>
-        <source>This file is not a ZIP archive, or it is damaged.</source>
-        <extracomment>In Polish: Ten plik nie jest archiwum ZIP albo jest uszkodzony.</extracomment>
-        <translation>Ten plik nie jest archiwum ZIP albo jest uszkodzony.</translation>
-    </message>
-    <message>
-        <source>This archive is damaged.</source>
-        <extracomment>In Polish: To archiwum jest uszkodzone.</extracomment>
-        <translation>To archiwum jest uszkodzone.</translation>
-    </message>
-    <message>
-        <source>This archive is encrypted or packed in a way that Kalahari does not support.</source>
-        <extracomment>In Polish: To archiwum jest zaszyfrowane albo spakowane w sposób, którego Kalahari nie obsługuje.</extracomment>
-        <translation>To archiwum jest zaszyfrowane albo spakowane w sposób, którego Kalahari nie obsługuje.</translation>
-    </message>
-    <message>
-        <source>This archive has no Kalahari book.</source>
-        <extracomment>In Polish: W tym archiwum nie ma książki programu Kalahari.</extracomment>
-        <translation>W tym archiwum nie ma książki programu Kalahari.</translation>
-    </message>
-    <message>
-        <source>The book file in this archive is damaged.</source>
-        <extracomment>In Polish: Plik książki w tym archiwum jest uszkodzony.</extracomment>
-        <translation>Plik książki w tym archiwum jest uszkodzony.</translation>
-    </message>
-    <message>
-        <source>Kalahari cannot save files in the folder %1. Choose another place for the book.</source>
-        <extracomment>%1: the folder in which the folder of the book is made. In Polish: Kalahari nie może zapisywać plików w folderze %1. Wybierz dla książki inne miejsce.</extracomment>
-        <translation>Kalahari nie może zapisywać plików w folderze %1. Wybierz dla książki inne miejsce.</translation>
-    </message>
-    <message>
-        <source>There is no room left on the disk. Free some space or choose another place for the book.</source>
-        <extracomment>In Polish: Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz dla książki inne miejsce.</extracomment>
-        <translation>Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz dla książki inne miejsce.</translation>
-    </message>
-    <message>
-        <source>Kalahari cannot open the book of this archive.</source>
-        <extracomment>In Polish: Kalahari nie może otworzyć książki z tego archiwum.</extracomment>
-        <translation>Kalahari nie może otworzyć książki z tego archiwum.</translation>
-    </message>
-</context>
-<context>
     <name>kalahari::gui::dialogs::GrammarSetupDialog</name>
     <message>
         <source>&amp;Cancel</source>
@@ -11175,6 +11089,241 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::ImportArchiveDialog</name>
+    <message>
+        <source>Import Project Archive</source>
+        <extracomment>The title of the window. In Polish: Importuj archiwum projektu</extracomment>
+        <translation>Importuj archiwum projektu</translation>
+    </message>
+    <message>
+        <source>The book from the archive goes to a new folder and opens in the program.</source>
+        <extracomment>In Polish: Książka z archiwum trafi do nowego folderu i otworzy się w programie.</extracomment>
+        <translation>Książka z archiwum trafi do nowego folderu i otworzy się w programie.</translation>
+    </message>
+    <message>
+        <source>Archive</source>
+        <translation>Archiwum</translation>
+    </message>
+    <message>
+        <source>File:</source>
+        <extracomment>In Polish: Plik:</extracomment>
+        <translation>Plik:</translation>
+    </message>
+    <message>
+        <source>Choose the archive with Browse...</source>
+        <extracomment>In the empty field of the archive. In Polish: Wybierz archiwum przyciskiem Przeglądaj...</extracomment>
+        <translation>Wybierz archiwum przyciskiem „Przeglądaj...”</translation>
+    </message>
+    <message>
+        <source>Choose the archive in the system window</source>
+        <translation>Wybierz archiwum w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>Title:</source>
+        <extracomment>A row of the book of the archive. In Polish: Tytuł:</extracomment>
+        <translation>Tytuł:</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <extracomment>In Polish: Autor:</extracomment>
+        <translation>Autor:</translation>
+    </message>
+    <message>
+        <source>Type:</source>
+        <extracomment>In Polish: Typ:</extracomment>
+        <translation>Typ:</translation>
+    </message>
+    <message>
+        <source>Contents:</source>
+        <extracomment>The elements of the book: &quot;8 elements: 5 chapters, a prologue...&quot;. In Polish: Zawartość:</extracomment>
+        <translation>Zawartość:</translation>
+    </message>
+    <message>
+        <source>Workshop:</source>
+        <extracomment>The elements of the Workshop of the book. In Polish: Warsztat:</extracomment>
+        <translation>Warsztat:</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <extracomment>A group of the window: where the imported book goes. In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Folder:</source>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>The progress of the import will show here. When something goes wrong, the description of the error stays in this window, and Copy puts it on the clipboard.</source>
+        <extracomment>In Polish: Postęp importu pokaże się tutaj. Gdy coś się nie uda, opis błędu zostanie w tym oknie i skopiujesz go przyciskiem „Kopiuj”.</extracomment>
+        <translation>Postęp importu pokaże się tutaj. Gdy coś się nie uda, opis błędu zostanie w tym oknie i skopiujesz go przyciskiem „Kopiuj”.</translation>
+    </message>
+    <message>
+        <source>Import</source>
+        <extracomment>The button that imports the archive. In Polish: Importuj</extracomment>
+        <translation>Importuj</translation>
+    </message>
+    <message>
+        <source>no elements</source>
+        <extracomment>The contents of a book without elements. In Polish: brak elementów</extracomment>
+        <translation>brak elementów</translation>
+    </message>
+    <message>
+        <source>1 {kind}</source>
+        <extracomment>The one element of a book: &quot;1 chapter&quot;. In Polish: 1 {kind}</extracomment>
+        <translation>1 {kind}</translation>
+    </message>
+    <message>
+        <source>{kind:indefinite}</source>
+        <extracomment>One element among the elements of other kinds: &quot;a prologue&quot;. In Polish: {kind}</extracomment>
+        <translation>{kind}</translation>
+    </message>
+    <message>
+        <source>Imported &quot;%1&quot; to the folder %2. The book is open.</source>
+        <extracomment>%1: the title of the book; %2: its folder. In Polish: Zaimportowano „%1” do folderu %2. Książka jest już otwarta.</extracomment>
+        <translation>Zaimportowano „%1” do folderu %2. Książka jest już otwarta.</translation>
+    </message>
+    <message>
+        <source>Imported &quot;%1&quot; to the folder %2. The book is on the Dashboard and in File &gt; Recent Books.</source>
+        <extracomment>%1: the title of the book; %2: its folder. In Polish: Zaimportowano „%1” do folderu %2. Książkę znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</extracomment>
+        <translation>Zaimportowano „%1” do folderu %2. Książkę znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</translation>
+    </message>
+    <message>
+        <source>The archive could not be imported.</source>
+        <extracomment>In Polish: Nie udało się zaimportować archiwum.</extracomment>
+        <translation>Nie udało się zaimportować archiwum.</translation>
+    </message>
+    <message>
+        <source>Choose the Archive</source>
+        <extracomment>The title of the system window that chooses the archive. In Polish: Wybierz archiwum</extracomment>
+        <translation>Wybierz archiwum</translation>
+    </message>
+    <message>
+        <source>Kalahari Archive (*.klh.zip)</source>
+        <translation>Archiwum Kalahari (*.klh.zip)</translation>
+    </message>
+    <message>
+        <source>Place of the Book</source>
+        <extracomment>The title of the system window that chooses where the imported book goes. In Polish: Miejsce książki</extracomment>
+        <translation>Miejsce książki</translation>
+    </message>
+    <message>
+        <source>This book was saved in a newer version of Kalahari. Update the program to import it.</source>
+        <extracomment>Under an archive with a book of a newer version of the program. In Polish: Tę książkę zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją zaimportować.</extracomment>
+        <translation>Tę książkę zapisano w nowszej wersji programu Kalahari. Zaktualizuj program, aby ją zaimportować.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot read the book of this archive.</source>
+        <extracomment>Under an archive whose book cannot be read. In Polish: Kalahari nie może odczytać książki z tego archiwum.</extracomment>
+        <translation>Kalahari nie może odczytać książki z tego archiwum.</translation>
+    </message>
+    <message>
+        <source>The folder &quot;%1&quot; is already here. Choose another place for the book.</source>
+        <extracomment>%1: the name of the folder of the book. In Polish: W tym miejscu jest już folder „%1”. Wybierz dla książki inne miejsce.</extracomment>
+        <translation>W tym miejscu jest już folder „%1”. Wybierz dla książki inne miejsce.</translation>
+    </message>
+    <message>
+        <source>The book goes to the folder &quot;%1&quot;.</source>
+        <extracomment>%1: the name of the folder of the book. In Polish: Książka powstanie w folderze „%1”.</extracomment>
+        <translation>Książka powstanie w folderze „%1”.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n {kind:plural}</source>
+        <extracomment>How many elements of a kind: &quot;5 chapters&quot;. In Polish: %n {kind} | %n {kind:plural} | %n {kind:genitivePlural}</extracomment>
+        <translation>
+            <numerusform>%n {kind}</numerusform>
+            <numerusform>%n {kind:plural}</numerusform>
+            <numerusform>%n {kind:genitivePlural}</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n elements: %1</source>
+        <extracomment>%1: the elements of each kind, &quot;5 chapters, a prologue and an epilogue&quot;. In Polish: %n element: %1 | %n elementy: %1 | %n elementów: %1</extracomment>
+        <translation>
+            <numerusform>%n element: %1</numerusform>
+            <numerusform>%n elementy: %1</numerusform>
+            <numerusform>%n elementów: %1</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Backups:</source>
+        <extracomment>The backups of the database in the archive. In Polish: Kopie zapasowe:</extracomment>
+        <translation>Kopie zapasowe:</translation>
+    </message>
+    <message>
+        <source>1 database backup</source>
+        <extracomment>The one backup of the database in the archive. In Polish: 1 kopia bazy</extracomment>
+        <translation>1 kopia bazy</translation>
+    </message>
+    <message>
+        <source>After the import the backups are where Kalahari keeps backups (Settings &gt; Files &gt; Folders).</source>
+        <extracomment>In Polish: Po imporcie kopie trafią tam, gdzie program trzyma kopie zapasowe (Ustawienia &gt; Pliki &gt; Foldery).</extracomment>
+        <translation>Po imporcie kopie trafią tam, gdzie program trzyma kopie zapasowe (Ustawienia &gt; Pliki &gt; Foldery).</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n database backups</source>
+        <extracomment>How many backups of the database the archive has. In Polish: %n kopia bazy | %n kopie bazy | %n kopii bazy</extracomment>
+        <translation>
+            <numerusform>%n kopia bazy</numerusform>
+            <numerusform>%n kopie bazy</numerusform>
+            <numerusform>%n kopii bazy</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This file no longer exists.</source>
+        <extracomment>Under an archive, or why it could not be imported. In Polish: Ten plik już nie istnieje.</extracomment>
+        <translation>Ten plik już nie istnieje.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot read this file. Check that you have access to it.</source>
+        <extracomment>In Polish: Kalahari nie może odczytać tego pliku. Sprawdź, czy masz do niego dostęp.</extracomment>
+        <translation>Kalahari nie może odczytać tego pliku. Sprawdź, czy masz do niego dostęp.</translation>
+    </message>
+    <message>
+        <source>This file is not a ZIP archive, or it is damaged.</source>
+        <extracomment>In Polish: Ten plik nie jest archiwum ZIP albo jest uszkodzony.</extracomment>
+        <translation>Ten plik nie jest archiwum ZIP albo jest uszkodzony.</translation>
+    </message>
+    <message>
+        <source>This archive is damaged.</source>
+        <extracomment>In Polish: To archiwum jest uszkodzone.</extracomment>
+        <translation>To archiwum jest uszkodzone.</translation>
+    </message>
+    <message>
+        <source>This archive is encrypted or packed in a way that Kalahari does not support.</source>
+        <extracomment>In Polish: To archiwum jest zaszyfrowane albo spakowane w sposób, którego Kalahari nie obsługuje.</extracomment>
+        <translation>To archiwum jest zaszyfrowane albo spakowane w sposób, którego Kalahari nie obsługuje.</translation>
+    </message>
+    <message>
+        <source>This archive has no Kalahari book.</source>
+        <extracomment>In Polish: W tym archiwum nie ma książki programu Kalahari.</extracomment>
+        <translation>W tym archiwum nie ma książki programu Kalahari.</translation>
+    </message>
+    <message>
+        <source>The book file in this archive is damaged.</source>
+        <extracomment>In Polish: Plik książki w tym archiwum jest uszkodzony.</extracomment>
+        <translation>Plik książki w tym archiwum jest uszkodzony.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot save files in the folder %1. Choose another place for the book.</source>
+        <extracomment>%1: the folder in which the folder of the book is made. In Polish: Kalahari nie może zapisywać plików w folderze %1. Wybierz dla książki inne miejsce.</extracomment>
+        <translation>Kalahari nie może zapisywać plików w folderze %1. Wybierz dla książki inne miejsce.</translation>
+    </message>
+    <message>
+        <source>There is no room left on the disk. Free some space or choose another place for the book.</source>
+        <extracomment>In Polish: Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz dla książki inne miejsce.</extracomment>
+        <translation>Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz dla książki inne miejsce.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot open the book of this archive.</source>
+        <extracomment>In Polish: Kalahari nie może otworzyć książki z tego archiwum.</extracomment>
+        <translation>Kalahari nie może otworzyć książki z tego archiwum.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::KalahariDialog</name>
     <message>
         <source>OK</source>
@@ -11332,7 +11481,6 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     </message>
     <message>
         <source>Create</source>
-        <extracomment>The button that makes the new element. In Polish: Utwórz</extracomment>
         <translation>Utwórz</translation>
     </message>
     <message>
@@ -11571,6 +11719,21 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <extracomment>The file of a new material before the writer chooses one. In Polish: nie wybrano pliku</extracomment>
         <translation>nie wybrano pliku</translation>
     </message>
+    <message>
+        <source>Navigator Settings</source>
+        <extracomment>The gear of the Add Element window: Settings &gt; Navigator, whose menus have the commands that add elements. In Polish: Ustawienia Nawigatora</extracomment>
+        <translation>Ustawienia Nawigatora</translation>
+    </message>
+    <message>
+        <source>&amp;More Kinds...</source>
+        <extracomment>The button of the Add Element window that opens Project Properties, where kinds of other types are checked for the book. In Polish: Więcej rodzajów...</extracomment>
+        <translation>&amp;Więcej rodzajów...</translation>
+    </message>
+    <message>
+        <source>Kinds of other types that can be added to this book</source>
+        <extracomment>In Polish: Rodzaje innych typów, które można dodawać do tej książki</extracomment>
+        <translation>Rodzaje innych typów, które można dodawać do tej książki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::NewItemDialog</name>
@@ -11748,9 +11911,197 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <translation>Dalej</translation>
     </message>
     <message>
-        <source>Choose a template, then the title, author, language and folder of the book.</source>
-        <extracomment>The heading of the New Book window. In Polish: Wybierz szablon, a potem tytuł, autora, język i folder książki.</extracomment>
-        <translation>Wybierz szablon, a potem tytuł, autora, język i folder książki.</translation>
+        <source>Choose a book type, then the title, author, language and folder of the book.</source>
+        <extracomment>The heading of the New Book window. In Polish: Wybierz typ książki, a potem tytuł, autora, język i folder książki.</extracomment>
+        <translation>Wybierz typ książki, a potem tytuł, autora, język i folder książki.</translation>
+    </message>
+    <message>
+        <source>Folder Settings</source>
+        <extracomment>The gear of the New Book window: Settings &gt; Files &gt; Folders, with the folder of the books. In Polish: Ustawienia folderów</extracomment>
+        <translation>Ustawienia folderów</translation>
+    </message>
+    <message>
+        <source>Book Types</source>
+        <extracomment>The group of the list of the New Book window: the book types. In Polish: Typy książek</extracomment>
+        <translation>Typy książek</translation>
+    </message>
+    <message>
+        <source>User Project</source>
+        <extracomment>The last item of the New Book window: a book without a type. In Polish: Projekt użytkownika</extracomment>
+        <translation>Projekt użytkownika</translation>
+    </message>
+    <message>
+        <source>A book without a type, with the kinds you choose.</source>
+        <extracomment>The tooltip of the user project in the New Book window. In Polish: Książka bez typu, z rodzajami, które wybierzesz.</extracomment>
+        <translation>Książka bez typu, z rodzajami, które wybierzesz.</translation>
+    </message>
+    <message>
+        <source>Workshop</source>
+        <extracomment>The Workshop of a book in the description of a book type. In Polish: Warsztat</extracomment>
+        <translation>Warsztat</translation>
+    </message>
+    <message>
+        <source>A book without a type. In the next window you choose its kinds of elements from the kinds of all types, and Skip creates the book with the kinds of &quot;Base&quot;.</source>
+        <extracomment>The description of a user project in the New Book window. In Polish: Książka bez typu. W następnym oknie wybierzesz rodzaje elementów spośród rodzajów wszystkich typów, a przycisk „Pomiń” utworzy książkę z rodzajami „Podstawy”.</extracomment>
+        <translation>Książka bez typu. W następnym oknie wybierzesz rodzaje elementów spośród rodzajów wszystkich typów, a przycisk „Pomiń” utworzy książkę z rodzajami „Podstawy”.</translation>
+    </message>
+    <message>
+        <source>You can change the kinds of elements later in Project Properties.</source>
+        <extracomment>In Polish: Rodzaje elementów zmienisz później we „Właściwościach projektu”.</extracomment>
+        <translation>Rodzaje elementów zmienisz później we „Właściwościach projektu”.</translation>
+    </message>
+    <message>
+        <source>Your own type, based on the type &quot;%1&quot;.</source>
+        <extracomment>%1: the book type a type of the writer&apos;s own is based on, e.g. Novel. In Polish: Własny typ na podstawie typu „%1”.</extracomment>
+        <translation>Własny typ na podstawie typu „%1”.</translation>
+    </message>
+    <message>
+        <source>Your own type without a book type: a user project with the kinds you chose.</source>
+        <extracomment>In Polish: Własny typ bez typu książki: projekt użytkownika z wybranymi rodzajami.</extracomment>
+        <translation>Własny typ bez typu książki: projekt użytkownika z wybranymi rodzajami.</translation>
+    </message>
+    <message>
+        <source>To start with:</source>
+        <extracomment>What a new book of the type starts with. In Polish: Na start:</extracomment>
+        <translation>Na start:</translation>
+    </message>
+    <message>
+        <source>an empty book</source>
+        <extracomment>A new book that starts without elements. In Polish: pusta książka</extracomment>
+        <translation>pusta książka</translation>
+    </message>
+    <message>
+        <source>not available yet: %1</source>
+        <extracomment>The kinds of a section that the program cannot make yet, under those it can. In Polish: jeszcze niedostępne: %1</extracomment>
+        <translation>jeszcze niedostępne: %1</translation>
+    </message>
+    <message>
+        <source>The type of a book cannot be changed later. You can take the kinds of other types in Project Properties.</source>
+        <extracomment>In Polish: Typu książki nie można później zmienić. Rodzaje innych typów dodasz we „Właściwościach projektu”.</extracomment>
+        <translation>Typu książki nie można później zmienić. Rodzaje innych typów dodasz we „Właściwościach projektu”.</translation>
+    </message>
+    <message>
+        <source>Delete This Type...</source>
+        <extracomment>The link under the description of a type of the writer&apos;s own. In Polish: Usuń ten typ...</extracomment>
+        <translation>Usuń ten typ...</translation>
+    </message>
+    <message>
+        <source>Delete Type</source>
+        <extracomment>The title of the question and of the message about deleting a type of the writer&apos;s own. In Polish: Usuń typ</extracomment>
+        <translation>Usuń typ</translation>
+    </message>
+    <message>
+        <source>Delete the type &quot;%1&quot;? The books created of it stay as they are.</source>
+        <extracomment>%1: the name of a type of the writer&apos;s own. In Polish: Usunąć typ „%1”? Książki utworzone z tego typu zostają bez zmian.</extracomment>
+        <translation>Usunąć typ „%1”? Książki utworzone z tego typu zostają bez zmian.</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>The type &quot;%1&quot; could not be deleted. The program&apos;s log has the details.</source>
+        <extracomment>In Polish: Nie udało się usunąć typu „%1”. Szczegóły są w dzienniku programu.</extracomment>
+        <translation>Nie udało się usunąć typu „%1”. Szczegóły są w dzienniku programu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ProjectPropertiesDialog</name>
+    <message>
+        <source>Project Properties &quot;%1&quot;</source>
+        <extracomment>The heading of the window of the project&apos;s properties; %1: the title of the book. In Polish: Właściwości projektu „%1”</extracomment>
+        <translation>Właściwości projektu „%1”</translation>
+    </message>
+    <message>
+        <source>The book type and the kinds of elements that can be added to the book.</source>
+        <extracomment>In Polish: Typ książki i rodzaje elementów, które można do niej dodawać.</extracomment>
+        <translation>Typ książki i rodzaje elementów, które można do niej dodawać.</translation>
+    </message>
+    <message>
+        <source>Book type: %1</source>
+        <extracomment>%1: the type of the book, e.g. Novel. In Polish: Typ książki: %1</extracomment>
+        <translation>Typ książki: %1</translation>
+    </message>
+    <message>
+        <source>The type cannot be changed. The kinds of the type are checked for good; check the kinds of other types you want to add to this book.</source>
+        <extracomment>In Polish: Typu nie można zmienić. Rodzaje typu są zaznaczone na stałe; zaznacz rodzaje innych typów, które chcesz dodawać do tej książki.</extracomment>
+        <translation>Typu nie można zmienić. Rodzaje typu są zaznaczone na stałe; zaznacz rodzaje innych typów, które chcesz dodawać do tej książki.</translation>
+    </message>
+    <message>
+        <source>User project – without a type</source>
+        <extracomment>In Polish: Projekt użytkownika – bez typu</extracomment>
+        <translation>Projekt użytkownika – bez typu</translation>
+    </message>
+    <message>
+        <source>Check the kinds you want to add to the book. Unchecking a kind does not delete its elements.</source>
+        <extracomment>In Polish: Zaznacz rodzaje, które chcesz dodawać do książki. Odznaczenie rodzaju nie usuwa jego elementów.</extracomment>
+        <translation>Zaznacz rodzaje, które chcesz dodawać do książki. Odznaczenie rodzaju nie usuwa jego elementów.</translation>
+    </message>
+    <message>
+        <source>Uncheck Kinds of Other Types</source>
+        <extracomment>A link over the palette of a book of a type. In Polish: Odznacz rodzaje innych typów</extracomment>
+        <translation>Odznacz rodzaje innych typów</translation>
+    </message>
+    <message>
+        <source>Check All</source>
+        <extracomment>In Polish: Zaznacz wszystkie</extracomment>
+        <translation>Zaznacz wszystkie</translation>
+    </message>
+    <message>
+        <source>Only &quot;Base&quot;</source>
+        <extracomment>The kinds of the package &quot;Base&quot; and only them. In Polish: Tylko „Podstawa”</extracomment>
+        <translation>Tylko „Podstawa”</translation>
+    </message>
+    <message>
+        <source>Uncheck All</source>
+        <extracomment>In Polish: Odznacz wszystkie</extracomment>
+        <translation>Odznacz wszystkie</translation>
+    </message>
+    <message>
+        <source>Palette of Kinds</source>
+        <extracomment>The list of the kinds of elements of the book. In Polish: Paleta rodzajów</extracomment>
+        <translation>Paleta rodzajów</translation>
+    </message>
+    <message>
+        <source>Workshop</source>
+        <extracomment>The group of the kinds of the Workshop in the palette. In Polish: Warsztat</extracomment>
+        <translation>Warsztat</translation>
+    </message>
+    <message>
+        <source>A kind of the type &quot;%1&quot;: always in the book</source>
+        <extracomment>The tooltip of a kind of the book&apos;s type in the palette; %1: the type, e.g. Novel. In Polish: Rodzaj typu „%1” – zawsze w książce</extracomment>
+        <translation>Rodzaj typu „%1” – zawsze w książce</translation>
+    </message>
+    <message>
+        <source>Save as &amp;Type...</source>
+        <extracomment>The button that saves the kinds of the book as a type of the writer&apos;s own. In Polish: Zapisz jako typ...</extracomment>
+        <translation>Zapisz jako &amp;typ...</translation>
+    </message>
+    <message>
+        <source>Kinds of the type: %1 · from other types: %2</source>
+        <extracomment>Over the palette of a book of a type. In Polish: Rodzaje typu: %1 · z innych typów: %2</extracomment>
+        <translation>Rodzaje typu: %1 · z innych typów: %2</translation>
+    </message>
+    <message>
+        <source>Checked kinds: %1</source>
+        <extracomment>Over the palette of a user project. In Polish: Zaznaczone rodzaje: %1</extracomment>
+        <translation>Zaznaczone rodzaje: %1</translation>
+    </message>
+    <message>
+        <source>Unchecked kinds have elements in the book: %1. Those elements stay and work, but no new ones can be added.</source>
+        <extracomment>%1: the unchecked kinds with the numbers of their elements, e.g. Poem (5). In Polish: Odznaczone rodzaje mają elementy w książce: %1. Te elementy zostają i działają, ale nowych nie dodasz.</extracomment>
+        <translation>Odznaczone rodzaje mają elementy w książce: %1. Te elementy zostają i działają, ale nowych nie dodasz.</translation>
+    </message>
+    <message>
+        <source>Check at least one kind.</source>
+        <extracomment>The tooltip of OK when no kind is checked. In Polish: Zaznacz co najmniej jeden rodzaj.</extracomment>
+        <translation>Zaznacz co najmniej jeden rodzaj.</translation>
+    </message>
+    <message>
+        <source>The kinds of elements of the book could not be saved. The program&apos;s log has the details.</source>
+        <extracomment>In Polish: Nie udało się zapisać rodzajów elementów książki. Szczegóły są w dzienniku programu.</extracomment>
+        <translation>Nie udało się zapisać rodzajów elementów książki. Szczegóły są w dzienniku programu.</translation>
     </message>
 </context>
 <context>
@@ -11766,6 +12117,84 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>New name</source>
         <translation>Nowa nazwa</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::SaveTypeDialog</name>
+    <message>
+        <source>Save as Type</source>
+        <extracomment>The window that saves the kinds of a book as a type of the writer&apos;s own. In Polish: Zapisz jako typ</extracomment>
+        <translation>Zapisz jako typ</translation>
+    </message>
+    <message>
+        <source>The type will be in the New Book window.</source>
+        <extracomment>In Polish: Typ pojawi się w oknie „Nowa książka”.</extracomment>
+        <translation>Typ pojawi się w oknie „Nowa książka”.</translation>
+    </message>
+    <message>
+        <source>e.g. Historical novel</source>
+        <extracomment>An example of a name of a type of the writer&apos;s own. In Polish: np. Powieść historyczna</extracomment>
+        <translation>np. Powieść historyczna</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Description (optional)</source>
+        <extracomment>In Polish: Opis (nieobowiązkowy)</extracomment>
+        <translation>Opis (nieobowiązkowy)</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>The button that saves a type of the writer&apos;s own. In Polish: Zapisz</extracomment>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>Type:</source>
+        <extracomment>The book type of a type of the writer&apos;s own. In Polish: Typ:</extracomment>
+        <translation>Typ:</translation>
+    </message>
+    <message>
+        <source>%1, without the kinds of other types.</source>
+        <extracomment>%1: the book type, e.g. Novel. In Polish: %1, bez rodzajów innych typów.</extracomment>
+        <translation>%1, bez rodzajów innych typów.</translation>
+    </message>
+    <message>
+        <source>%1, with the kinds of other types: %2.</source>
+        <extracomment>%1: the book type; %2: the kinds it takes from other types. In Polish: %1, z rodzajami innych typów: %2.</extracomment>
+        <translation>%1, z rodzajami innych typów: %2.</translation>
+    </message>
+    <message>
+        <source>Without a book type (a user project), kinds: %1.</source>
+        <extracomment>A type of the writer&apos;s own without a book type; %1: the number of its kinds. In Polish: Bez typu książki (projekt użytkownika), rodzaje: %1.</extracomment>
+        <translation>Bez typu książki (projekt użytkownika), rodzaje: %1.</translation>
+    </message>
+    <message>
+        <source>To start with:</source>
+        <extracomment>What a new book of the type starts with. In Polish: Na start:</extracomment>
+        <translation>Na start:</translation>
+    </message>
+    <message>
+        <source>an empty book</source>
+        <extracomment>A new book that starts without elements. In Polish: pusta książka</extracomment>
+        <translation>pusta książka</translation>
+    </message>
+    <message>
+        <source>The type &quot;%1&quot; is already there. Replace it?</source>
+        <extracomment>%1: the name of a type of the writer&apos;s own. In Polish: Typ „%1” już jest. Zastąpić go?</extracomment>
+        <translation>Typ „%1” już jest. Zastąpić go?</translation>
+    </message>
+    <message>
+        <source>&amp;Replace</source>
+        <extracomment>In Polish: &amp;Zastąp</extracomment>
+        <translation>&amp;Zastąp</translation>
+    </message>
+    <message>
+        <source>The type &quot;%1&quot; could not be saved.</source>
+        <extracomment>%1: the name of the type. In Polish: Nie udało się zapisać typu „%1”.</extracomment>
+        <translation>Nie udało się zapisać typu „%1”.</translation>
     </message>
 </context>
 <context>
@@ -11975,16 +12404,6 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <translation>Paleta rodzajów</translation>
     </message>
     <message>
-        <source>Tools of the Types</source>
-        <extracomment>The tools that book types will have, e.g. a plot board. In Polish: Narzędzia typów</extracomment>
-        <translation>Narzędzia typów</translation>
-    </message>
-    <message>
-        <source>No type has tools yet. When they come (e.g. a plot board and a book dictionary), you will choose them here.</source>
-        <extracomment>In Polish: Żaden typ nie ma jeszcze narzędzi. Gdy powstaną (np. tablica fabuły i słownik książki), wybierzesz je tutaj.</extracomment>
-        <translation>Żaden typ nie ma jeszcze narzędzi. Gdy powstaną (np. tablica fabuły i słownik książki), wybierzesz je tutaj.</translation>
-    </message>
-    <message>
         <source>&lt; Back</source>
         <extracomment>The button that returns to the first step of a new book. In Polish: &lt; Wstecz</extracomment>
         <translation>&lt; Wstecz</translation>
@@ -12034,225 +12453,10 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <extracomment>The tooltip of Create Book when no kind is checked. In Polish: Zaznacz co najmniej jeden rodzaj.</extracomment>
         <translation>Zaznacz co najmniej jeden rodzaj.</translation>
     </message>
-</context>
-<context>
-    <name>kalahari::gui::utils::ReadingTime</name>
     <message>
-        <source>%1 min</source>
-        <translation>%1 min</translation>
-    </message>
-    <message>
-        <source>%1 h</source>
-        <translation>%1 godz.</translation>
-    </message>
-    <message>
-        <source>%1 h %2 min</source>
-        <translation>%1 godz. %2 min</translation>
-    </message>
-</context>
-<context>
-    <name>main</name>
-    <message>
-        <source>Writer&apos;s IDE for book authors</source>
-        <translation>Środowisko do pisania książek</translation>
-    </message>
-    <message>
-        <source>Run in CLI mode (no GUI)</source>
-        <translation>Uruchom w trybie wiersza poleceń (bez okien)</translation>
-    </message>
-    <message>
-        <source>Enable diagnostic mode (show Diagnostics menu)</source>
-        <translation>Włącz tryb diagnostyczny (menu Diagnostyka)</translation>
-    </message>
-    <message>
-        <source>Enable developer tools (Dev Tools menu + CLI features)</source>
-        <translation>Włącz narzędzia deweloperskie (menu Narzędzia deweloperskie i funkcje wiersza poleceń)</translation>
-    </message>
-    <message>
-        <source>Run performance benchmark and exit</source>
-        <translation>Wykonaj test wydajności i zakończ</translation>
-    </message>
-    <message>
-        <source>Open project from path (for --benchmark)</source>
-        <translation>Otwórz projekt ze ścieżki (dla --benchmark)</translation>
-    </message>
-    <message>
-        <source>Open specific chapter by title (for --benchmark)</source>
-        <translation>Otwórz rozdział o podanym tytule (dla --benchmark)</translation>
-    </message>
-    <message>
-        <source>Download icon from URL (requires --cli)</source>
-        <translation>Pobierz ikonę z adresu URL (wymaga --cli)</translation>
-    </message>
-    <message>
-        <source>Output icon name (required with --get-icon)</source>
-        <translation>Nazwa pobranej ikony (wymagana z --get-icon)</translation>
-    </message>
-    <message>
-        <source>Target theme: twotone, rounded, outlined (default: twotone)</source>
-        <translation>Styl ikon: twotone, rounded, outlined (domyślnie twotone)</translation>
-    </message>
-    <message>
-        <source>Command Line</source>
-        <translation>Wiersz poleceń</translation>
-    </message>
-    <message>
-        <source>The command line could not be read.</source>
-        <translation>Nie udało się odczytać wiersza poleceń.</translation>
-    </message>
-    <message>
-        <source>A book (.klh file) or another file to open; when the program runs already, its window opens it</source>
-        <extracomment>The argument of the command line without a name. In Polish: Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</extracomment>
-        <translation>Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::EditorVersionsPage</name>
-    <message>
-        <source>Saving</source>
-        <extracomment>The group of Settings &gt; Editor &gt; Versions with Save Version. In Polish: Zapisywanie</extracomment>
-        <translation>Zapisywanie</translation>
-    </message>
-    <message>
-        <source>Ask for a description when a version is saved</source>
-        <extracomment>In Polish: Pytaj o opis przy zapisie wersji</extracomment>
-        <translation>Pytaj o opis przy zapisie wersji</translation>
-    </message>
-    <message>
-        <source>%1 opens a small window with a field for the description; Enter saves also without one.</source>
-        <translation>%1 otwiera małe okno z polem opisu; Enter zapisuje także bez opisu.</translation>
-    </message>
-    <message>
-        <source>%1 saves at once, and the status bar says so. The description can be added later.</source>
-        <translation>%1 zapisuje od razu, a pasek stanu to potwierdza. Opis można dodać później.</translation>
-    </message>
-    <message>
-        <source>Versions Saved by the Program</source>
-        <extracomment>In Polish: Wersje zapisywane samoczynnie</extracomment>
-        <translation>Wersje zapisywane samoczynnie</translation>
-    </message>
-    <message>
-        <source>When a chapter is saved, at most once in</source>
-        <extracomment>Followed by a number of minutes. In Polish: Przy zapisie rozdziału, najwyżej raz na</extracomment>
-        <translation>Przy zapisie rozdziału, najwyżej raz na</translation>
-    </message>
-    <message numerus="yes">
-        <source>%n minute(s)</source>
-        <extracomment>In Polish: %n minutę / minuty / minut</extracomment>
-        <translation>
-            <numerusform>%n minutę</numerusform>
-            <numerusform>%n minuty</numerusform>
-            <numerusform>%n minut</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>Minutes between the versions saved with the chapter</source>
-        <extracomment>In Polish: Co ile minut najwyżej wersja przy zapisie rozdziału</extracomment>
-        <translation>Co ile minut najwyżej powstaje wersja przy zapisie rozdziału</translation>
-    </message>
-    <message>
-        <source>Before Replace All in a chapter</source>
-        <extracomment>In Polish: Przed „Zamień wszystkie” w rozdziale</extracomment>
-        <translation>Przed „Zamień wszystkie” w rozdziale</translation>
-    </message>
-    <message>
-        <source>The description says what was replaced with what, and how many times.</source>
-        <extracomment>In Polish: Opis podaje, co zamieniono na co i ile razy.</extracomment>
-        <translation>Opis podaje, co zamieniono na co i ile razy.</translation>
-    </message>
-    <message>
-        <source>Before another version is restored, the program always keeps the current text, so that it can be brought back.</source>
-        <extracomment>In Polish: Przed przywróceniem innej wersji program zawsze zapisuje bieżący tekst, żeby można było do niego wrócić.</extracomment>
-        <translation>Przed przywróceniem innej wersji program zawsze zapisuje bieżący tekst, żeby można było do niego wrócić.</translation>
-    </message>
-    <message>
-        <source>Keep in each chapter at most</source>
-        <extracomment>Followed by a number. In Polish: Zachowuj w każdym rozdziale najwyżej</extracomment>
-        <translation>Zachowuj w każdym rozdziale najwyżej</translation>
-    </message>
-    <message>
-        <source>versions saved by the program</source>
-        <extracomment>After a number. In Polish: wersji zapisanych samoczynnie</extracomment>
-        <translation>wersji zapisanych samoczynnie</translation>
-    </message>
-    <message>
-        <source>The program deletes the older ones. The versions you save stay until you delete them.</source>
-        <extracomment>In Polish: Starsze usuwa program. Wersje zapisane przez Ciebie zostają, dopóki ich nie usuniesz.</extracomment>
-        <translation>Starsze program usuwa. Wersje zapisane przez Ciebie zostają, dopóki ich nie usuniesz.</translation>
-    </message>
-    <message>
-        <source>Colors of the Comparison</source>
-        <extracomment>In Polish: Kolory porównania</extracomment>
-        <translation>Kolory porównania</translation>
-    </message>
-    <message>
-        <source>The colors of the text in the mode &quot;Changes to the Current Text&quot; of the window &quot;Version History&quot;. Each theme has its own colors: these are the colors of the current theme.</source>
-        <extracomment>In Polish: Kolory tekstu w trybie „Zmiany do bieżącego tekstu” w oknie „Historia wersji”. Każdy motyw ma swoje kolory: to kolory bieżącego motywu.</extracomment>
-        <translation>Kolory tekstu w trybie „Zmiany do bieżącego tekstu” w oknie „Historia wersji”. Każdy motyw ma swoje kolory: to kolory bieżącego motywu.</translation>
-    </message>
-    <message>
-        <source>Deleted text</source>
-        <extracomment>Struck out: in the version, not in the current text. In Polish: Usunięty tekst</extracomment>
-        <translation>Usunięty tekst</translation>
-    </message>
-    <message>
-        <source>Added text</source>
-        <extracomment>Underlined: written later. In Polish: Dopisany tekst</extracomment>
-        <translation>Dopisany tekst</translation>
-    </message>
-    <message>
-        <source>Versions of the Texts</source>
-        <extracomment>The first group of Settings &gt; Editor &gt; Versions. In Polish: Wersje tekstów</extracomment>
-        <translation>Wersje tekstów</translation>
-    </message>
-    <message>
-        <source>Create versions of the texts</source>
-        <extracomment>In Polish: Twórz wersje tekstów</extracomment>
-        <translation>Twórz wersje tekstów</translation>
-    </message>
-    <message>
-        <source>When the text differs from the last version saved in the chapter. A version is the whole text of the chapter: about 40 KB for 5,000 words.</source>
-        <extracomment>In Polish: Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale. Wersja to cały tekst rozdziału: przy 5000 słów około 40 KB.</extracomment>
-        <translation>Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale. Wersja to cały tekst rozdziału: przy 5000 słów około 40 KB.</translation>
-    </message>
-    <message>
-        <source>A version keeps the whole text of a chapter, so that it can be brought back.</source>
-        <extracomment>In Polish: Wersja zachowuje cały tekst rozdziału, żeby można było do niego wrócić.</extracomment>
-        <translation>Wersja zachowuje cały tekst rozdziału, żeby można było do niego wrócić.</translation>
-    </message>
-    <message>
-        <source>Off: the program keeps no new versions, neither yours nor its own.</source>
-        <extracomment>In Polish: Wyłączone: program nie zapisuje nowych wersji – ani Twoich, ani samoczynnych.</extracomment>
-        <translation>Wyłączone: program nie zapisuje nowych wersji – ani Twoich, ani samoczynnych.</translation>
-    </message>
-    <message>
-        <source>The program keeps no new versions now. Those saved can still be read, compared and restored in the history; before a restore the program keeps the current text.</source>
-        <translation>Program nie zapisuje teraz nowych wersji. Zapisane można dalej czytać, porównywać i przywracać w historii; przed przywróceniem program zachowuje bieżący tekst.</translation>
-    </message>
-    <message>
-        <source>Toolbar</source>
-        <extracomment>The group of Settings &gt; Editor &gt; Versions with the place of the buttons. In Polish: Pasek narzędzi</extracomment>
-        <translation>Pasek narzędzi</translation>
-    </message>
-    <message>
-        <source>On a toolbar of their own, &quot;Versions and Backups&quot;</source>
-        <extracomment>The toolbar View &gt; Toolbars &gt; Versions and Backups. In Polish: Na osobnym pasku „Wersje i kopie”</extracomment>
-        <translation>Na osobnym pasku „Wersje i kopie”</translation>
-    </message>
-    <message>
-        <source>On the toolbar &quot;Quick Actions&quot;</source>
-        <extracomment>In Polish: Na pasku „Szybki dostęp”</extracomment>
-        <translation>Na pasku „Szybki dostęp”</translation>
-    </message>
-    <message>
-        <source>Version buttons:</source>
-        <extracomment>In Polish: Przyciski wersji:</extracomment>
-        <translation>Przyciski wersji:</translation>
-    </message>
-    <message>
-        <source>&quot;Save Version&quot; and &quot;Version History&quot;. The toolbar of their own can be moved, or hidden in the menu View &gt; Toolbars.</source>
-        <extracomment>In Polish: „Zapisz wersję” i „Historia wersji”. Osobny pasek można przesunąć albo ukryć w menu Widok &gt; Paski narzędzi.</extracomment>
-        <translation>„Zapisz wersję” i „Historia wersji”. Osobny pasek można przesunąć albo ukryć w menu Widok &gt; Paski narzędzi.</translation>
+        <source>Save as &amp;Type...</source>
+        <extracomment>The button that saves the checked kinds, with the elements of &quot;Create now&quot;, as a type of the writer&apos;s own. In Polish: Zapisz jako typ...</extracomment>
+        <translation>Zapisz jako &amp;typ...</translation>
     </message>
 </context>
 <context>
@@ -12498,156 +12702,74 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     </message>
 </context>
 <context>
-    <name>VersionTexts</name>
+    <name>kalahari::gui::utils::ReadingTime</name>
     <message>
-        <source>HH:mm</source>
-        <extracomment>The time of a version. In Polish: H:mm</extracomment>
-        <translation>H:mm</translation>
-    </message>
-    <message>
-        <source>today, %1</source>
-        <extracomment>When a version was kept: %1 is the time. In Polish: dziś, %1</extracomment>
-        <translation>dziś, %1</translation>
+        <source>%1 min</source>
+        <translation>%1 min</translation>
     </message>
     <message>
-        <source>yesterday, %1</source>
-        <extracomment>When a version was kept: %1 is the time. In Polish: wczoraj, %1</extracomment>
-        <translation>wczoraj, %1</translation>
+        <source>%1 h</source>
+        <translation>%1 godz.</translation>
     </message>
     <message>
-        <source>dd.MM.yyyy</source>
-        <extracomment>The day of a version. In Polish: dd.MM.yyyy</extracomment>
-        <translation>dd.MM.yyyy</translation>
-    </message>
-    <message>
-        <source>%1, %2</source>
-        <extracomment>When a version was kept: %1 is the day, %2 the time</extracomment>
-        <translation>%1, %2</translation>
-    </message>
-    <message>
-        <source>Saved by you</source>
-        <extracomment>A version the writer saved. In Polish: Zapisana przez Ciebie</extracomment>
-        <translation>Zapisana przez Ciebie</translation>
-    </message>
-    <message>
-        <source>When the {kind} was saved</source>
-        <extracomment>A version the program kept when the text was saved. In Polish: Przy zapisie {kind:genitive}</extracomment>
-        <translation>Przy zapisie {kind:genitive}</translation>
-    </message>
-    <message numerus="yes">
-        <source>Before Replace All: &quot;%1&quot; → &quot;%2&quot;, %Ln replacement(s)</source>
-        <extracomment>A version the program kept before Replace All: %1 was replaced with %2. In Polish: Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamiana / zamiany / zamian</extracomment>
-        <translation>
-            <numerusform>Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamiana</numerusform>
-            <numerusform>Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamiany</numerusform>
-            <numerusform>Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamian</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>Before the version of %1 was restored</source>
-        <extracomment>A version the program kept before another one was brought back: %1 is when that one was kept (today, 14:52). In Polish: Przed przywróceniem wersji z %1</extracomment>
-        <translation>Przed przywróceniem wersji z %1</translation>
-    </message>
-    <message>
-        <source>&quot;%1&quot;</source>
-        <extracomment>A version&apos;s description in quotes. In Polish: „%1”</extracomment>
-        <translation>„%1”</translation>
-    </message>
-    <message numerus="yes">
-        <source>%Ln word(s)</source>
-        <extracomment>In Polish: %Ln słowo / słowa / słów</extracomment>
-        <translation>
-            <numerusform>%Ln słowo</numerusform>
-            <numerusform>%Ln słowa</numerusform>
-            <numerusform>%Ln słów</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>File &gt; Save Version</source>
-        <extracomment>Save Version without keys. In Polish: Plik &gt; Zapisz wersję</extracomment>
-        <translation>Plik &gt; Zapisz wersję</translation>
-    </message>
-    <message>
-        <source>Creating versions is turned off (Settings &gt; Editor &gt; Versions)</source>
-        <extracomment>Why Save Version is greyed out (the menu, the toolbar, the Properties panel, the window of the versions). In Polish: Tworzenie wersji jest wyłączone (Ustawienia &gt; Edytor &gt; Wersje)</extracomment>
-        <translation>Tworzenie wersji jest wyłączone (Ustawienia &gt; Edytor &gt; Wersje)</translation>
+        <source>%1 h %2 min</source>
+        <translation>%1 godz. %2 min</translation>
     </message>
 </context>
 <context>
-    <name>kalahari::gui::VersionsCoordinator</name>
+    <name>main</name>
     <message>
-        <source>Version Not Saved</source>
-        <extracomment>In Polish: Nie zapisano wersji</extracomment>
-        <translation>Nie zapisano wersji</translation>
+        <source>Writer&apos;s IDE for book authors</source>
+        <translation>Środowisko do pisania książek</translation>
     </message>
     <message>
-        <source>The version cannot be written on the disk.</source>
-        <extracomment>In Polish: Nie można zapisać wersji na dysku.</extracomment>
-        <translation>Nie można zapisać wersji na dysku.</translation>
+        <source>Run in CLI mode (no GUI)</source>
+        <translation>Uruchom w trybie wiersza poleceń (bez okien)</translation>
     </message>
     <message>
-        <source>Saved a version of the {kind} &quot;%1&quot; (%2).</source>
-        <extracomment>%1: the title of the text, %2: when the version was kept (today, 15:10). In Polish: Zapisano wersję {kind:genitive} „%1” (%2).</extracomment>
-        <translation>Zapisano wersję {kind:genitive} „%1” (%2).</translation>
+        <source>Enable diagnostic mode (show Diagnostics menu)</source>
+        <translation>Włącz tryb diagnostyczny (menu Diagnostyka)</translation>
     </message>
     <message>
-        <source>The description can be added in the version history (F2).</source>
-        <extracomment>After &quot;Saved a version...&quot;, when no window asked for its description. In Polish: Opis można dodać w historii wersji (F2).</extracomment>
-        <translation>Opis można dodać w historii wersji (F2).</translation>
+        <source>Enable developer tools (Dev Tools menu + CLI features)</source>
+        <translation>Włącz narzędzia deweloperskie (menu Narzędzia deweloperskie i funkcje wiersza poleceń)</translation>
     </message>
     <message>
-        <source>Version Not Restored</source>
-        <extracomment>In Polish: Nie przywrócono wersji</extracomment>
-        <translation>Nie przywrócono wersji</translation>
+        <source>Run performance benchmark and exit</source>
+        <translation>Wykonaj test wydajności i zakończ</translation>
     </message>
     <message>
-        <source>The current text cannot be kept as a version, so the version is not restored.</source>
-        <extracomment>In Polish: Nie można zapisać bieżącego tekstu jako wersji, więc wersja nie została przywrócona.</extracomment>
-        <translation>Nie można zapisać bieżącego tekstu jako wersji, więc wersja nie została przywrócona.</translation>
+        <source>Open project from path (for --benchmark)</source>
+        <translation>Otwórz projekt ze ścieżki (dla --benchmark)</translation>
     </message>
     <message>
-        <source>Restored the version of %1. Ctrl+Z undoes the restoring.</source>
-        <extracomment>%1: when the version was kept (today, 14:52); the text before it was empty. In Polish: Przywrócono wersję z %1. Ctrl+Z cofa przywrócenie.</extracomment>
-        <translation>Przywrócono wersję z %1. Ctrl+Z cofa przywrócenie.</translation>
+        <source>Open specific chapter by title (for --benchmark)</source>
+        <translation>Otwórz rozdział o podanym tytule (dla --benchmark)</translation>
     </message>
     <message>
-        <source>Restored the version of %1. The text from before the restoring is kept as a version, and Ctrl+Z undoes the restoring.</source>
-        <extracomment>%1: when the version was kept (today, 14:52). In Polish: Przywrócono wersję z %1. Tekst sprzed przywrócenia jest zapisany jako wersja, a Ctrl+Z cofa przywrócenie.</extracomment>
-        <translation>Przywrócono wersję z %1. Tekst sprzed przywrócenia jest zapisany jako wersja, a Ctrl+Z cofa przywrócenie.</translation>
+        <source>Download icon from URL (requires --cli)</source>
+        <translation>Pobierz ikonę z adresu URL (wymaga --cli)</translation>
     </message>
     <message>
-        <source>&amp;Undo</source>
-        <extracomment>The button of the bar after a version was restored. In Polish: &amp;Cofnij</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <source>Output icon name (required with --get-icon)</source>
+        <translation>Nazwa pobranej ikony (wymagana z --get-icon)</translation>
     </message>
     <message>
-        <source>Undo the restoring, as Ctrl+Z does</source>
-        <extracomment>In Polish: Cofnij przywrócenie, jak Ctrl+Z</extracomment>
-        <translation>Cofnij przywrócenie, jak Ctrl+Z</translation>
+        <source>Target theme: twotone, rounded, outlined (default: twotone)</source>
+        <translation>Styl ikon: twotone, rounded, outlined (domyślnie twotone)</translation>
     </message>
     <message>
-        <source>Inserted a fragment of the version of %1. Ctrl+Z undoes the inserting.</source>
-        <extracomment>%1: when the version was kept (today, 14:52). In Polish: Wstawiono fragment wersji z %1. Ctrl+Z cofa wstawienie.</extracomment>
-        <translation>Wstawiono fragment wersji z %1. Ctrl+Z cofa wstawienie.</translation>
+        <source>Command Line</source>
+        <translation>Wiersz poleceń</translation>
     </message>
     <message>
-        <source>No text of the book is in front</source>
-        <extracomment>Why Save Version and Version History are greyed out. In Polish: Na wierzchu nie ma tekstu książki</extracomment>
-        <translation>Na wierzchu nie ma tekstu książki</translation>
+        <source>The command line could not be read.</source>
+        <translation>Nie udało się odczytać wiersza poleceń.</translation>
     </message>
     <message>
-        <source>Only the texts of a book have versions, and this file is not part of the open book</source>
-        <extracomment>In Polish: Wersje mają tylko teksty książki, a ten plik nie należy do otwartej książki</extracomment>
-        <translation>Wersje mają tylko teksty książki, a ten plik nie należy do otwartej książki</translation>
-    </message>
-    <message>
-        <source>Only the texts of a book have versions, and this file is not part of a book</source>
-        <translation>Wersje mają tylko teksty książki, a ten plik nie należy do żadnej książki</translation>
-    </message>
-    <message>
-        <source>This text has no file in the folder of the book, so it has no versions</source>
-        <extracomment>In Polish: Ten tekst nie ma pliku w folderze książki, więc nie ma wersji</extracomment>
-        <translation>Ten tekst nie ma pliku w folderze książki, więc nie ma wersji</translation>
+        <source>A book (.klh file) or another file to open; when the program runs already, its window opens it</source>
+        <extracomment>The argument of the command line without a name. In Polish: Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</extracomment>
+        <translation>Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</translation>
     </message>
 </context>
 </TS>

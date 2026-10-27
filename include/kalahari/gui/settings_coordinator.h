@@ -61,8 +61,10 @@ public:
     void openKeyboardShortcuts();
 
     /// @brief Open the settings dialog at a page (SettingsDialog::openPage()): the gear on the
-    ///        title bar of a panel
-    void openSettingsPage(const QString& page);
+    ///        title bar of a panel, or of a dialog
+    /// @param over The dialog whose gear it is, which the settings dialog goes over; nullptr:
+    ///        the main window
+    void openSettingsPage(const QString& page, QWidget* over = nullptr);
 
     /// @brief Set callback for checking diagnostic mode
     /// @param callback Function returning current diagnostic mode state
@@ -100,7 +102,8 @@ private:
 
     /// @brief Show the settings dialog until it is closed
     /// @param page The page it opens at (SettingsDialog::openPage()); empty: the first one
-    void runSettingsDialog(const QString& page);
+    /// @param over The window it goes over; nullptr: the main window
+    void runSettingsDialog(const QString& page, QWidget* over = nullptr);
 };
 
 } // namespace gui

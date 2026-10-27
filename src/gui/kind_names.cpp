@@ -7,6 +7,8 @@
 #include "kalahari/core/project_manager.h"
 
 #include <QCoreApplication>
+#include <QHash>
+#include <QStringList>
 
 namespace kalahari {
 namespace gui {
@@ -48,6 +50,22 @@ QString typeNameOf(const core::BookTypeRegistry& registry, const core::BookProje
 
 core::KindWords wordsOf(const core::KindRef& kind) {
     return kind ? kind.kind->wordsIn(programLanguage()) : core::KindWords{};
+}
+
+QString startTitles(const QList<core::StartElement>& elements, const QString& language) {
+    QStringList titles;
+    QHash<const core::ElementKind*, int> numbers;
+    for (const auto form : {core::ElementForm::Group, core::ElementForm::Text}) {
+        for (const core::StartElement& element : elements) {
+            if (element.kind && element.kind.kind->form == form) {
+                //: A title of an element a new book starts with, in a sentence. In Polish: „%1”
+                titles << QCoreApplication::translate("KindNames", "\"%1\"")
+                              .arg(element.kind.kind->defaultTitle(
+                                  language, ++numbers[element.kind.kind]));
+            }
+        }
+    }
+    return titles.join(QStringLiteral(", "));
 }
 
 core::KindWords menuWords(core::KindWords words) {

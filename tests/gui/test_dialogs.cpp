@@ -436,7 +436,7 @@ struct NewBook {
         REQUIRE(language != nullptr);
     }
 
-    /// Choose the template @p id ("template.novel")
+    /// Choose the template @p id ("kalahari.novel")
     void choose(const char* id) const {
         auto* templates = dialog->findChild<QListWidget*>();
         REQUIRE(templates != nullptr);
@@ -531,7 +531,7 @@ TEST_CASE("New Book: the sections of the book, in its language", "[gui][dialogs]
 
     NewBook book;
     book.speak("en");
-    book.choose("template.novel");
+    book.choose("kalahari.novel");
 
     // The sets of names in the language of the book, own names and no sections
     CHECK(book.items() ==
@@ -551,11 +551,11 @@ TEST_CASE("New Book: the sections of the book, in its language", "[gui][dialogs]
 
     // A user project and a screenplay start without sections; the novel keeps the choice
     book.chooseSections("matter");
-    book.choose("template.empty");
+    book.choose("user-project");
     CHECK(book.sections->currentData().toString() == QStringLiteral("none"));
-    book.choose("template.screenplay");
+    book.choose("kalahari.screenplay");
     CHECK(book.sections->currentData().toString() == QStringLiteral("none"));
-    book.choose("template.shortStories");
+    book.choose("kalahari.short_stories");
     CHECK(book.sections->currentData().toString() == QStringLiteral("matter"));
 
     SECTION("Own names start as the names of the set chosen before") {
@@ -586,17 +586,17 @@ TEST_CASE("New Book: the sections of the book, in its language", "[gui][dialogs]
               std::vector<std::string>{"Front Matter", "Story", ""});
 
         NewBook next;
-        next.choose("template.novel");
+        next.choose("kalahari.novel");
         CHECK(next.sections->currentData().toString() == custom);
         CHECK(next.namesOf() == "Front Matter, Story, ");
         next.speak("en");
         CHECK(next.namesOf() == "Front Matter, Story, ");  // the writer's names stay
-        next.choose("template.empty");
+        next.choose("user-project");
         CHECK(next.sections->currentData().toString() == QStringLiteral("none"));
     }
 
     SECTION("A book without sections keeps the names of the first set") {
-        book.choose("template.novel");
+        book.choose("kalahari.novel");
         book.chooseSections("none");
         const NewItemResult result = book.create(dir);
         REQUIRE(result.sections.has_value());
@@ -604,12 +604,12 @@ TEST_CASE("New Book: the sections of the book, in its language", "[gui][dialogs]
         CHECK(settings.get<std::string>("project.sectionSet") == "none");
 
         NewBook next;
-        next.choose("template.poetry");
+        next.choose("kalahari.poetry");
         CHECK(next.sections->currentData().toString() == QStringLiteral("none"));
     }
 
     SECTION("The choice for a type without sections is not remembered") {
-        book.choose("template.screenplay");
+        book.choose("kalahari.screenplay");
         book.chooseSections("arc");
         const NewItemResult result = book.create(dir);
         REQUIRE(result.sections.has_value());
@@ -617,7 +617,7 @@ TEST_CASE("New Book: the sections of the book, in its language", "[gui][dialogs]
         CHECK(settings.get<std::string>("project.sectionSet") == "sections");
 
         NewBook next;
-        next.choose("template.novel");
+        next.choose("kalahari.novel");
         CHECK(next.sections->currentData().toString() == QStringLiteral("sections"));
     }
 }
@@ -631,7 +631,7 @@ TEST_CASE("New Book: the book is at first in the language of the program", "[gui
     SECTION("The language of the program, with the names of the sections in it") {
         const ProgramLanguage polish(QStringLiteral("pl"));
         NewBook book;
-        book.choose("template.novel");
+        book.choose("kalahari.novel");
         CHECK(book.language->currentData().toString() == QStringLiteral("pl"));
         CHECK(book.sections->currentText().toStdString() ==
               "Sekcja początkowa \u00B7 Sekcja główna \u00B7 Sekcja końcowa");
@@ -685,7 +685,7 @@ TEST_CASE("New Book: a book of a type asks about the open book; a user project g
     book.dialog->show();
 
     SECTION("A book of a type") {
-        book.choose("template.novel");
+        book.choose("kalahari.novel");
         CHECK(create->text() == QStringLiteral("Create Book"));
 
         // Cancel of the question: the window stays, with the data
@@ -702,11 +702,11 @@ TEST_CASE("New Book: a book of a type asks about the open book; a user project g
     }
 
     SECTION("A user project") {
-        book.choose("template.empty");
+        book.choose("user-project");
         CHECK(create->text() == QStringLiteral("Next"));
-        book.choose("template.poetry");
+        book.choose("kalahari.poetry");
         CHECK(create->text() == QStringLiteral("Create Book"));
-        book.choose("template.empty");
+        book.choose("user-project");
 
         // The question comes in the window of its kinds
         create->click();

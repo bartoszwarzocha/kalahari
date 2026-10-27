@@ -129,12 +129,13 @@ void SettingsDialog::createNavigationTree() {
 
     m_pageItems[ANNOTATIONS_PAGE] =
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
-    addPage(nullptr, tr("Navigator"), []() { return new NavigatorPage(); });
+    m_pageItems[NAVIGATOR_PAGE] =
+        addPage(nullptr, tr("Navigator"), []() { return new NavigatorPage(); });
     m_pageItems[SHORTCUTS_PAGE] =
         addPage(nullptr, tr("Keyboard Shortcuts"), []() { return new ShortcutsPage(); });
 
     QTreeWidgetItem* files = category(tr("Files"));
-    addPage(files, tr("Folders"), []() { return new FoldersPage(); });
+    m_pageItems[FOLDERS_PAGE] = addPage(files, tr("Folders"), []() { return new FoldersPage(); });
     addPlannedPage(files, tr("Backup"),
                    tr("Planned features:\n"
                       "- Automatic backup frequency\n"

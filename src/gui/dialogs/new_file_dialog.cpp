@@ -10,6 +10,7 @@
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/section_words.h"
+#include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/utils/program_folders.h"
 
@@ -39,6 +40,7 @@
 #include <QRadioButton>
 #include <QScrollBar>
 #include <QShowEvent>
+#include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QStyle>
 #include <QStyledItemDelegate>
@@ -660,6 +662,10 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     if (m_book.adding) {
         // The heading says what the writer chooses for the chosen tile (updateHeading())
         setHeadingIcon(QStringLiteral("book.addElement"));
+        //: The gear of the Add Element window: Settings > Navigator, whose menus have the
+        //: commands that add elements. In Polish: Ustawienia Nawigatora
+        addSettingsButton(QString::fromLatin1(SettingsDialog::NAVIGATOR_PAGE),
+                          tr("Navigator Settings"));
     } else {
         //: The window of a new element of the open book. In Polish: Nowy plik
         setHeading(tr("New File"),
@@ -761,6 +767,66 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     // Typing replaces the title
     m_titleEdit->selectAll();
     m_titleEdit->setFocus();
+}
+
+void NewFileDialog::setMoreKinds(MoreKinds more)
+{
+    m_moreKinds = std::move(more);
+    if (!m_moreKindsButton) {
+        //: The button of the Add Element window that opens Project Properties, where kinds of
+        //: other types are checked for the book. In Polish: Więcej rodzajów...
+        m_moreKindsButton = addSideButton(tr("&More Kinds..."));
+        m_moreKindsButton->setToolTip(
+            //: In Polish: Rodzaje innych typów, które można dodawać do tej książki
+            tr("Kinds of other types that can be added to this book"));
+        connect(m_moreKindsButton, &QPushButton::clicked, this, [this]() {
+            if (!m_moreKinds) {
+                return;
+            }
+            if (const std::optional<Book> book = m_moreKinds(this)) {
+                replaceBook(*book);
+            }
+        });
+    }
+}
+
+void NewFileDialog::replaceBook(const Book& book)
+{
+    // What the writer chose: the tile and its part of the book, and the place in the list
+    const NewFileKind* entry = chosen();
+    const core::ElementKind* kind = entry ? entry->kind.kind : nullptr;
+    const core::BookPlace section = entry ? entry->section : core::BookPlace::Main;
+    const bool emptyFile = emptyFileChosen();
+    const core::ElementPlace place = m_picker->place();
+
+    m_book = book;
+    QListWidgetItem* again = nullptr;
+    {
+        const QSignalBlocker blocker(m_kindList);
+        fillKinds();
+        for (int row = 0; row < m_kindList->count() && !again; ++row) {
+            QListWidgetItem* item = m_kindList->item(row);
+            if (emptyFile ? item->data(EMPTY_FILE_ROLE).toBool()
+                          : item->data(KIND_ROLE).isValid() &&
+                                m_book.kinds.at(item->data(KIND_ROLE).toInt()).kind.kind == kind &&
+                                m_book.kinds.at(item->data(KIND_ROLE).toInt()).section == section) {
+                again = item;
+            }
+        }
+        // The kind is gone: the kind the window starts with
+        for (int row = 0; row < m_kindList->count() && !again; ++row) {
+            QListWidgetItem* item = m_kindList->item(row);
+            if (item->data(KIND_ROLE).isValid() &&
+                item->data(KIND_ROLE).toInt() == m_book.current) {
+                again = item;
+            }
+        }
+        m_kindList->setCurrentItem(again);
+    }
+    onKindChanged();
+    if (again && !emptyFile && kind && chosen() && chosen()->kind.kind == kind) {
+        m_picker->setPlace(place);
+    }
 }
 
 core::KindRef NewFileDialog::kind() const

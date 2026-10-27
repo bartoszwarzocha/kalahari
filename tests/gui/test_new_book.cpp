@@ -1,15 +1,25 @@
 /// @file test_new_book.cpp
-/// @brief A new book: the palette of the kinds of a user project, the window of its kinds, and
-/// a new book created without opening while another book is open
+/// @brief A new book: the palette of the kinds of a user project, the window of its kinds, a
+/// new book created without opening while another book is open, the descriptions and the
+/// writer's own types of the New Book window; and the kinds of an open book: Project
+/// Properties, Save as Type and More Kinds... of the Add Element window
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_registry.h>
+#include <kalahari/core/custom_book_type.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/recent_books_manager.h>
+#include <kalahari/core/settings_manager.h>
 #include <kalahari/gui/dialogs/message_dialog.h>
+#include <kalahari/gui/dialogs/new_file_dialog.h>
 #include <kalahari/gui/dialogs/new_item_dialog.h>
+#include <kalahari/gui/dialogs/project_properties_dialog.h>
+#include <kalahari/gui/dialogs/save_type_dialog.h>
 #include <kalahari/gui/dialogs/user_project_dialog.h>
+#include <kalahari/gui/section_words.h>
+#include <kalahari/gui/settings_dialog.h>
+#include <kalahari/gui/utils/program_folders.h>
 #include <kalahari/gui/widgets/kind_palette.h>
 
 #include "document_window.h"
@@ -25,12 +35,16 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMouseEvent>
+#include <QPlainTextEdit>
 #include <QPushButton>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QToolButton>
+#include <QTextDocument>
 #include <QTranslator>
 
 #include <algorithm>
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
@@ -42,7 +56,10 @@ using core::PaletteChoice;
 using gui::KindPalette;
 using gui::dialogs::MessageDialog;
 using gui::dialogs::NewBookOpening;
+using gui::dialogs::NewFileDialog;
 using gui::dialogs::NewItemDialog;
+using gui::dialogs::ProjectPropertiesDialog;
+using gui::dialogs::SaveTypeDialog;
 using gui::dialogs::UserProjectDialog;
 
 namespace {
@@ -313,6 +330,115 @@ core::BookProject savedProject(const QString& manifest) {
     INFO(problems.join(QStringLiteral("; ")).toStdString());
     REQUIRE(project.has_value());
     return *project;
+}
+
+/// @brief The ids of the templates of the New Book window, in its order
+QStringList templatesOf(const QDialog& dialog) {
+    QStringList ids;
+    const auto* list = dialog.findChild<QListWidget*>();
+    REQUIRE(list != nullptr);
+    for (int i = 0; i < list->count(); ++i) {
+        ids << list->item(i)->data(Qt::UserRole).toString();
+    }
+    return ids;
+}
+
+/// @brief Choose template @p id in the New Book window
+void chooseTemplate(const QDialog& dialog, const QString& id) {
+    auto* list = dialog.findChild<QListWidget*>();
+    REQUIRE(list != nullptr);
+    for (int i = 0; i < list->count(); ++i) {
+        if (list->item(i)->data(Qt::UserRole).toString() == id) {
+            list->setCurrentRow(i);
+            return;
+        }
+    }
+    FAIL("No template " << id.toStdString());
+}
+
+/// @brief The description of the template chosen in the New Book window, as plain text
+QString descriptionOf(const NewItemDialog& dialog) {
+    QTextDocument document;
+    document.setHtml(dialog.descriptionLabel()->text());
+    return document.toPlainText();
+}
+
+/// @brief The writer's own types in a folder of the test, beside a settings file of its own,
+/// until the test ends
+struct OwnTypes {
+    QTemporaryDir dir;
+    std::filesystem::path previous;
+
+    OwnTypes() {
+        REQUIRE(dir.isValid());
+        previous = core::SettingsManager::getInstance().setSettingsFilePathForTests(
+            dir.filePath(QStringLiteral("settings.json")).toStdU16String());
+        REQUIRE(QFileInfo(core::CustomBookTypes::folder()).absolutePath() ==
+                QFileInfo(dir.path()).absoluteFilePath());
+    }
+    ~OwnTypes() { core::SettingsManager::getInstance().setSettingsFilePathForTests(previous); }
+    OwnTypes(const OwnTypes&) = delete;
+    OwnTypes& operator=(const OwnTypes&) = delete;
+
+    /// Save the type @p name: a book type with kinds of other types, or a user project
+    core::CustomBookType save(const QString& name, const QString& typeId,
+                              const QList<core::KindReference>& kinds,
+                              const QList<core::CustomStartElement>& start = {}) const {
+        core::CustomBookType type;
+        type.name = name;
+        type.typeId = typeId;
+        type.kinds = kinds;
+        type.start = start;
+        REQUIRE(core::CustomBookTypes::save(type));
+        return type;
+    }
+};
+
+/// @brief The packages of the program, and no book open, at the start and at the end of a test
+struct NoBookOpen {
+    NoBookOpen() { reset(); }
+    ~NoBookOpen() { reset(); }
+    NoBookOpen(const NoBookOpen&) = delete;
+    NoBookOpen& operator=(const NoBookOpen&) = delete;
+
+    static void reset() {
+        auto& pm = core::ProjectManager::getInstance();
+        if (pm.isProjectOpen()) {
+            pm.closeProject(false);
+        }
+        pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    }
+};
+
+/// @brief The kind @p kindId of package @p packageId that the program has
+KindRef installedKind(const char* packageId, const char* kindId) {
+    const KindRef kind = core::ProjectManager::getInstance().installedBookTypes().findKind(
+        QString::fromLatin1(packageId), QString::fromLatin1(kindId));
+    REQUIRE(kind);
+    return kind;
+}
+
+/// @brief The texts of the labels of @p tile: its name, its type, how many elements it has
+QStringList labelsOf(const Tile& tile) {
+    QStringList texts;
+    for (const QLabel* label : tile.tile->findChildren<QLabel*>()) {
+        if (label->isVisibleTo(tile.tile) && !label->text().isEmpty()) {
+            texts << label->text();
+        }
+    }
+    return texts;
+}
+
+/// @brief The names of the tiles of the Add Element window
+QStringList tileNamesOf(const NewFileDialog& dialog) {
+    QStringList names;
+    for (int row = 0; row < dialog.kindList()->count(); ++row) {
+        const QListWidgetItem* item = dialog.kindList()->item(row);
+        if (item->flags() != Qt::NoItemFlags || !item->toolTip().isEmpty()) {
+            names << item->text();
+        }
+    }
+    return names;
 }
 
 /// @brief "Create now" in Polish, longer than in English
@@ -717,7 +843,7 @@ TEST_CASE("New Book: with a book open, the new book is created without opening i
     test::Window window;
     QStringList unexpected;
     const auto newNovel = [&folder](QDialog& dialog) {
-        fillNewBook(dialog, "template.novel", QStringLiteral("Second"), folder.path());
+        fillNewBook(dialog, "kalahari.novel", QStringLiteral("Second"), folder.path());
         CHECK(buttonText(createButton(dialog)) == QStringLiteral("Create Book"));
         later(createButton(dialog));
     };
@@ -808,8 +934,8 @@ TEST_CASE("New Book: a book type that the program does not have is not on the li
 
     // Every type of the program, and the user project
     const QStringList all = templatesOf(NewItemDialog(gui::dialogs::NewItemMode::Project));
-    CHECK(all == QStringList{"template.novel", "template.shortStories", "template.nonfiction",
-                             "template.screenplay", "template.poetry", "template.empty"});
+    CHECK(all == QStringList{"kalahari.novel", "kalahari.short_stories", "kalahari.nonfiction",
+                             "kalahari.screenplay", "kalahari.poetry", "user-project"});
 
     // The program has no novel (nor the collection of stories, which uses it)
     QTemporaryDir installed;
@@ -834,11 +960,11 @@ TEST_CASE("New Book: a book type that the program does not have is not on the li
     // Neither is on the list, not even greyed out; the first type is chosen
     {
         const NewItemDialog dialog(gui::dialogs::NewItemMode::Project);
-        CHECK(templatesOf(dialog) == QStringList{"template.nonfiction", "template.screenplay",
-                                                 "template.poetry", "template.empty"});
+        CHECK(templatesOf(dialog) == QStringList{"kalahari.nonfiction", "kalahari.screenplay",
+                                                 "kalahari.poetry", "user-project"});
         const auto* list = dialog.findChild<QListWidget*>();
         REQUIRE(list->currentItem() != nullptr);
-        CHECK(list->currentItem()->data(Qt::UserRole).toString() == "template.nonfiction");
+        CHECK(list->currentItem()->data(Qt::UserRole).toString() == "kalahari.nonfiction");
         for (int i = 0; i < list->count(); ++i) {
             CHECK(list->item(i)->flags().testFlag(Qt::ItemIsEnabled));
         }
@@ -866,7 +992,7 @@ TEST_CASE("New Book: a user project gets the kinds and the elements chosen in th
     const QList<Step> steps{
         {is<NewItemDialog>,
          [&folder](QDialog& dialog) {
-             fillNewBook(dialog, "template.empty", QStringLiteral("Desert"), folder.path());
+             fillNewBook(dialog, "user-project", QStringLiteral("Desert"), folder.path());
              CHECK(buttonText(createButton(dialog)) == QStringLiteral("Next"));
              later(createButton(dialog));
          }},
@@ -937,7 +1063,7 @@ TEST_CASE("New Book: with a book open, the window of the kinds of a user project
     const QList<Step> steps{
         {is<NewItemDialog>,
          [&folder](QDialog& dialog) {
-             fillNewBook(dialog, "template.empty", QStringLiteral("Desert"), folder.path());
+             fillNewBook(dialog, "user-project", QStringLiteral("Desert"), folder.path());
              later(createButton(dialog));
          }},
         {is<UserProjectDialog>,
@@ -973,4 +1099,440 @@ TEST_CASE("New Book: with a book open, the window of the kinds of a user project
     CHECK(saved.isUserProject());
     CHECK(saved.kinds.size() == 20);
     CHECK(titlesOf(saved.books.first().mainElements) == "Chapter 1");
+}
+
+// ============================================================================
+// The descriptions and the writer's own types of the New Book window
+// ============================================================================
+
+TEST_CASE("New Book: the description says what a book of the type starts with and what it can "
+          "have",
+          "[gui][newbook][booktypes]") {
+    const NoBookOpen noBook;
+    const OwnTypes own;
+    NewItemDialog dialog(gui::dialogs::NewItemMode::Project);
+
+    // A novel: its title page and its first chapter, the kinds of each section with those the
+    // program cannot make yet in a line of their own, and what cannot change
+    chooseTemplate(dialog, QStringLiteral("kalahari.novel"));
+    QString text = descriptionOf(dialog);
+    INFO(text.toStdString());
+    CHECK(text.contains(QStringLiteral("To start with: \"Title page\", \"Chapter 1\"")));
+    CHECK(text.contains(QStringLiteral("Workshop: ")));
+    CHECK(text.contains(QStringLiteral("not available yet: ")));
+    CHECK(text.contains(QStringLiteral("character")));
+    CHECK(text.contains(QStringLiteral("The type of a book cannot be changed later.")));
+
+    // The sections are named as the Sections field names them
+    auto* sections = dialog.findChild<QComboBox*>(QStringLiteral("newBookSectionsCombo"));
+    REQUIRE(sections != nullptr);
+    sections->setCurrentIndex(
+        sections->findData(QString::fromLatin1(gui::SectionsComboBox::NO_SECTIONS)));
+    text = descriptionOf(dialog);
+    CHECK(text.contains(gui::SectionWords::groupName(BookPlace::Main) + QStringLiteral(": ")));
+
+    // A collection of poems starts with a poem
+    chooseTemplate(dialog, QStringLiteral("kalahari.poetry"));
+    CHECK(descriptionOf(dialog).contains(QStringLiteral("\"Title page\", \"Poem 1\"")));
+
+    // A user project goes on to its kinds
+    chooseTemplate(dialog, QString::fromLatin1(NewItemDialog::USER_PROJECT));
+    CHECK(descriptionOf(dialog).contains(QStringLiteral("Skip")));
+}
+
+TEST_CASE("New Book: the writer's own types come after the book types, and a book is made of "
+          "one",
+          "[gui][newbook][booktypes]") {
+    const NoBookOpen noBook;
+    const test::RecentBooks recent;
+    const OwnTypes own;
+    auto& pm = core::ProjectManager::getInstance();
+    const core::CustomBookType historical = own.save(
+        QStringLiteral("Historical Novel"), QStringLiteral("kalahari.novel"),
+        {{QStringLiteral("kalahari.nonfiction"), QStringLiteral("bibliography")},
+         {QStringLiteral("kalahari.poetry"), QStringLiteral("poem")}});
+    const core::CustomBookType notebook = own.save(
+        QStringLiteral("Notebook"), QString(),
+        {{QStringLiteral("kalahari.base"), QStringLiteral("chapter")},
+         {QStringLiteral("kalahari.poetry"), QStringLiteral("poem")}},
+        {{{QStringLiteral("kalahari.poetry"), QStringLiteral("poem")}, BookPlace::Main}});
+    // Of a type the program does not have: not on the list
+    own.save(QStringLiteral("Elsewhere"), QStringLiteral("kalahari.elsewhere"), {});
+    const QString historicalId = QLatin1String(NewItemDialog::CUSTOM_PREFIX) + historical.id;
+    const QString notebookId = QLatin1String(NewItemDialog::CUSTOM_PREFIX) + notebook.id;
+
+    {
+        NewItemDialog dialog(gui::dialogs::NewItemMode::Project);
+        CHECK(templatesOf(dialog) ==
+              QStringList{"kalahari.novel", "kalahari.short_stories", "kalahari.nonfiction",
+                          "kalahari.screenplay", "kalahari.poetry", historicalId, notebookId,
+                          "user-project"});
+
+        // The description says what the type is based on and names the kinds it takes
+        chooseTemplate(dialog, historicalId);
+        const QString text = descriptionOf(dialog);
+        INFO(text.toStdString());
+        CHECK(text.contains(QStringLiteral("Your own type, based on the type \"Novel\".")));
+        CHECK(text.contains(QStringLiteral("poem (Poetry Collection)")));
+        CHECK(text.contains(QStringLiteral("bibliography (Non-fiction)")));
+        CHECK(text.contains(QStringLiteral("Delete This Type...")));
+        CHECK(buttonText(createButton(dialog)) == QStringLiteral("Create Book"));
+
+        chooseTemplate(dialog, notebookId);
+        CHECK(descriptionOf(dialog).contains(QStringLiteral("To start with: \"Poem 1\"")));
+    }
+
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    test::Window window;
+    QStringList unexpected;
+
+    SECTION("Based on a book type: a book of the type with the kinds of other types") {
+        const QList<Step> steps{{is<NewItemDialog>, [&](QDialog& dialog) {
+                                     fillNewBook(dialog, historicalId.toLatin1().constData(),
+                                                 QStringLiteral("Desert"), folder.path());
+                                     later(createButton(dialog));
+                                 }}};
+        CHECK(doing([&window] { window.documents.onNewProject(); }, steps, unexpected) ==
+              steps.size());
+        INFO(unexpected.join(QLatin1Char('\n')).toStdString());
+        CHECK(unexpected.isEmpty());
+        REQUIRE(pm.project() != nullptr);
+        REQUIRE(pm.project()->type.has_value());
+        CHECK(pm.project()->type->id == QStringLiteral("kalahari.novel"));
+        CHECK(pm.project()->kinds == historical.kinds);
+        CHECK(titlesOf(pm.book()->mainElements) == "Chapter 1");
+    }
+
+    SECTION("Without a book type: a user project with its kinds and elements, without the "
+            "window of the kinds") {
+        const QList<Step> steps{{is<NewItemDialog>, [&](QDialog& dialog) {
+                                     fillNewBook(dialog, notebookId.toLatin1().constData(),
+                                                 QStringLiteral("Notes"), folder.path());
+                                     CHECK(buttonText(createButton(dialog)) ==
+                                           QStringLiteral("Create Book"));
+                                     later(createButton(dialog));
+                                 }}};
+        CHECK(doing([&window] { window.documents.onNewProject(); }, steps, unexpected) ==
+              steps.size());
+        INFO(unexpected.join(QLatin1Char('\n')).toStdString());
+        CHECK(unexpected.isEmpty());
+        REQUIRE(pm.project() != nullptr);
+        CHECK(pm.project()->isUserProject());
+        CHECK(pm.project()->kinds == notebook.kinds);
+        CHECK(titlesOf(pm.book()->mainElements) == "Poem 1");
+    }
+}
+
+TEST_CASE("New Book: Delete This Type... asks, and the type is gone", "[gui][newbook][booktypes]") {
+    const NoBookOpen noBook;
+    const OwnTypes own;
+    const core::CustomBookType type = own.save(
+        QStringLiteral("Historical Novel"), QStringLiteral("kalahari.novel"),
+        {{QStringLiteral("kalahari.nonfiction"), QStringLiteral("bibliography")}});
+    const QString id = QLatin1String(NewItemDialog::CUSTOM_PREFIX) + type.id;
+    NewItemDialog dialog(gui::dialogs::NewItemMode::Project);
+    QStringList unexpected;
+    QStringList asked;
+
+    // Cancel keeps it; Delete deletes its file, and the first type is chosen
+    for (const bool remove : {false, true}) {
+        chooseTemplate(dialog, id);
+        const QList<Step> steps{{is<MessageDialog>, [&](QDialog& question) {
+                                     asked << test::textsOf(question);
+                                     auto& message = static_cast<MessageDialog&>(question);
+                                     later(remove ? message.acceptButton()
+                                                  : message.cancelButton());
+                                 }}};
+        CHECK(doing([&dialog] {
+                  emit dialog.descriptionLabel()->linkActivated(QStringLiteral("delete-type"));
+              },
+                    steps, unexpected) == steps.size());
+        CHECK(QFileInfo::exists(type.file) == !remove);
+    }
+    INFO(unexpected.join(QLatin1Char('\n')).toStdString());
+    CHECK(unexpected.isEmpty());
+    REQUIRE(asked.size() == 2);
+    CHECK(asked.first().contains(
+        QStringLiteral("Delete the type \"Historical Novel\"? The books created of it stay as "
+                       "they are.")));
+    CHECK_FALSE(templatesOf(dialog).contains(id));
+    const auto* list = dialog.findChild<QListWidget*>();
+    REQUIRE(list->currentItem() != nullptr);
+    CHECK(list->currentItem()->data(Qt::UserRole).toString() == "kalahari.novel");
+}
+
+// ============================================================================
+// The kinds of an open book
+// ============================================================================
+
+TEST_CASE("Project Properties: the kinds of the type for good, the kinds of other types to "
+          "check, and the elements of each",
+          "[gui][booktypes]") {
+    const NoBookOpen noBook;
+    test::OpenNovel novel(QStringLiteral("Desert"));
+    auto& pm = novel.pm;
+    const KindRef poem = installedKind("kalahari.poetry", "poem");
+    REQUIRE(pm.setProjectKinds({poem}));
+    REQUIRE_FALSE(pm.addElement(poem, QStringLiteral("Dune"), BookPlace::Main).isEmpty());
+
+    ProjectPropertiesDialog dialog;
+    CHECK(dialog.windowTitle() == QStringLiteral("Project Properties \"Desert\""));
+    CHECK(dialog.typeLabel()->text() == QStringLiteral("Book type: Novel"));
+
+    // A kind of the type is checked for good, and the book has two chapters
+    const Tile chapter = tilesOf(*dialog.palette(), QStringLiteral("Chapter")).first();
+    CHECK(chapter.box->isChecked());
+    CHECK_FALSE(chapter.box->isEnabled());
+    CHECK((chapter.now == nullptr || !chapter.now->isVisibleTo(&dialog)));
+    CHECK(labelsOf(chapter).contains(QStringLiteral("In the book: 2")));
+    CHECK(chapter.tile->toolTip() ==
+          QStringLiteral("A kind of the type \"Novel\": always in the book"));
+
+    // The poem, taken from poetry, can be unchecked: its element stays, and the note says so
+    const Tile poemTile = tileOf(*dialog.palette(), QStringLiteral("Poem"));
+    REQUIRE(poemTile.box != nullptr);
+    CHECK(poemTile.box->isChecked());
+    CHECK(poemTile.box->isEnabled());
+    CHECK(labelsOf(poemTile).contains(QStringLiteral("In the book: 1")));
+    CHECK(dialog.countLabel()->text().endsWith(QStringLiteral("from other types: 1")));
+    CHECK_FALSE(dialog.noteLabel()->isVisibleTo(&dialog));
+    poemTile.box->click();
+    CHECK(dialog.countLabel()->text().endsWith(QStringLiteral("from other types: 0")));
+    CHECK(dialog.noteLabel()->isVisibleTo(&dialog));
+    CHECK(dialog.noteLabel()->text() ==
+          QStringLiteral("Unchecked kinds have elements in the book: Poem (1). Those elements "
+                         "stay and work, but no new ones can be added."));
+
+    // The link unchecks the kinds of other types only
+    poemTile.box->click();
+    clickLink(dialog, QStringLiteral("Uncheck Kinds of Other Types"));
+    CHECK_FALSE(poemTile.box->isChecked());
+    CHECK(chapter.box->isChecked());
+
+    // A click on the tile of the bibliography checks it; OK gives the book its kinds
+    clickName(tileOf(*dialog.palette(), QStringLiteral("Bibliography")));
+    dialog.acceptButton()->click();
+    CHECK(dialog.result() == QDialog::Accepted);
+    CHECK(dialog.changedKinds());
+    CHECK(pm.project()->kinds == QList<core::KindReference>{{QStringLiteral("kalahari.nonfiction"),
+                                                             QStringLiteral("bibliography")}});
+    // The poem stays in the book
+    CHECK(titlesOf(pm.book()->mainElements).find("Dune") != std::string::npos);
+}
+
+TEST_CASE("Project Properties: a user project keeps one kind at least", "[gui][booktypes]") {
+    const NoBookOpen noBook;
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    auto& pm = core::ProjectManager::getInstance();
+    REQUIRE(pm.createProject(folder.path(), QStringLiteral("Notes"), QStringLiteral("Anna"),
+                             QStringLiteral("en"), true));
+    REQUIRE_FALSE(pm.addElement(installedKind("kalahari.base", "chapter"), QStringLiteral("One"),
+                                BookPlace::Main)
+                      .isEmpty());
+
+    ProjectPropertiesDialog dialog;
+    CHECK(dialog.typeLabel()->text() == QStringLiteral("User project – without a type"));
+    CHECK(dialog.acceptButton()->isEnabled());
+    clickLink(dialog, QStringLiteral("Uncheck All"));
+    CHECK(dialog.countLabel()->text() == QStringLiteral("Checked kinds: 0"));
+    CHECK_FALSE(dialog.acceptButton()->isEnabled());
+    CHECK(dialog.noteLabel()->isVisibleTo(&dialog));  // the chapter of the book
+    clickLink(dialog, QStringLiteral("Only \"Base\""));
+    CHECK(dialog.acceptButton()->isEnabled());
+    dialog.acceptButton()->click();
+    CHECK_FALSE(dialog.changedKinds());
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("Save as Type: the type of the book and the kinds checked now, under a name of the "
+          "writer's own",
+          "[gui][booktypes]") {
+    const NoBookOpen noBook;
+    const OwnTypes own;
+    test::OpenNovel novel(QStringLiteral("Desert"));
+    ProjectPropertiesDialog properties;
+    QStringList unexpected;
+    QStringList asked;
+
+    // The poem is checked, not saved in the book yet; the first type of the name is saved,
+    // the second one replaces it when the writer agrees
+    const Tile poem = tileOf(*properties.palette(), QStringLiteral("Poem"));
+    REQUIRE(poem.box != nullptr);
+    poem.box->click();
+    QString summary;
+    const auto saveAs = [&](const QString& name, bool replace) {
+        QList<Step> steps{{is<SaveTypeDialog>, [&summary, name](QDialog& dialog) {
+                               auto& save = static_cast<SaveTypeDialog&>(dialog);
+                               CHECK_FALSE(save.acceptButton()->isEnabled());
+                               save.nameEdit()->setText(name);
+                               save.descriptionEdit()->setPlainText(QStringLiteral("With poems."));
+                               CHECK(save.acceptButton()->isEnabled());
+                               QTextDocument document;
+                               document.setHtml(save.summaryLabel()->text());
+                               summary = document.toPlainText();
+                               later(save.acceptButton());
+                           }}};
+        if (replace) {
+            steps.append({is<MessageDialog>, [&asked](QDialog& dialog) {
+                              asked << test::textsOf(dialog);
+                              later(static_cast<MessageDialog&>(dialog).acceptButton());
+                          }});
+        }
+        CHECK(doing([&properties] { properties.saveTypeButton()->click(); }, steps,
+                    unexpected) == steps.size());
+    };
+    saveAs(QStringLiteral("Novel with Poems"), false);
+    saveAs(QStringLiteral(" novel WITH poems "), true);
+    INFO(unexpected.join(QLatin1Char('\n')).toStdString());
+    CHECK(unexpected.isEmpty());
+
+    INFO(summary.toStdString());
+    CHECK(summary == QStringLiteral("Type: Novel, with the kinds of other types: poem (Poetry "
+                                    "Collection).\n"
+                                    "To start with: \"Title page\", \"Chapter 1\""));
+    REQUIRE(asked.size() == 1);
+    CHECK(asked.first().contains(
+        QStringLiteral("The type \"Novel with Poems\" is already there. Replace it?")));
+    const QList<core::CustomBookType> types = core::CustomBookTypes::load();
+    REQUIRE(types.size() == 1);
+    CHECK(types.first().name == QStringLiteral("novel WITH poems"));
+    CHECK(types.first().description == QStringLiteral("With poems."));
+    CHECK(types.first().typeId == QStringLiteral("kalahari.novel"));
+    CHECK(types.first().kinds ==
+          QList<core::KindReference>{{QStringLiteral("kalahari.poetry"), QStringLiteral("poem")}});
+    // The book has its kinds as they were
+    CHECK(novel.pm.project()->kinds.isEmpty());
+}
+
+TEST_CASE("Save as Type: the window of the kinds of a user project saves its palette",
+          "[gui][booktypes]") {
+    const NoBookOpen noBook;
+    const OwnTypes own;
+    UserProjectDialog dialog(core::ProjectManager::getInstance().installedBookTypes());
+    QStringList unexpected;
+    const QList<Step> steps{{is<SaveTypeDialog>, [](QDialog& window) {
+                                 auto& save = static_cast<SaveTypeDialog&>(window);
+                                 save.nameEdit()->setText(QStringLiteral("Base"));
+                                 later(save.acceptButton());
+                             }}};
+    CHECK(doing([&dialog] { dialog.saveTypeButton()->click(); }, steps, unexpected) ==
+          steps.size());
+    INFO(unexpected.join(QLatin1Char('\n')).toStdString());
+    CHECK(unexpected.isEmpty());
+
+    // A user project with the kinds of "Base" and its chapter
+    const QList<core::CustomBookType> types = core::CustomBookTypes::load();
+    REQUIRE(types.size() == 1);
+    CHECK(types.first().isUserProject());
+    CHECK(types.first().kinds.size() == 20);
+    REQUIRE(types.first().start.size() == 1);
+    CHECK(types.first().start.first().kind.toString() == QStringLiteral("kalahari.base:chapter"));
+
+    // With no kind checked there is nothing to save
+    clickLink(dialog, QStringLiteral("Uncheck All"));
+    CHECK_FALSE(dialog.saveTypeButton()->isEnabled());
+}
+
+TEST_CASE("Add Element: More Kinds... gives the tiles of the kinds checked in Project Properties",
+          "[gui][booktypes]") {
+    const NoBookOpen noBook;
+    test::OpenNovel novel(QStringLiteral("Desert"));
+    test::Window window;
+    QStringList unexpected;
+    QStringList before;
+    QStringList after;
+    QString title;
+
+    gui::AddTarget target;
+    target.scope = gui::AddTarget::Scope::Section;
+    target.place = BookPlace::Main;
+    const QList<Step> steps{
+        {is<NewFileDialog>,
+         [&before](QDialog& dialog) {
+             auto& add = static_cast<NewFileDialog&>(dialog);
+             before = tileNamesOf(add);
+             add.titleEdit()->setText(QStringLiteral("Dune"));
+             emit add.titleEdit()->textEdited(QStringLiteral("Dune"));
+             REQUIRE(add.moreKindsButton() != nullptr);
+             later(add.moreKindsButton());
+         }},
+        {is<ProjectPropertiesDialog>,
+         [](QDialog& dialog) {
+             auto& properties = static_cast<ProjectPropertiesDialog&>(dialog);
+             const Tile poem = tileOf(*properties.palette(), QStringLiteral("Poem"));
+             REQUIRE(poem.box != nullptr);
+             poem.box->click();
+             later(properties.acceptButton());
+         }},
+        {is<NewFileDialog>, [&](QDialog& dialog) {
+             auto& add = static_cast<NewFileDialog&>(dialog);
+             after = tileNamesOf(add);
+             title = add.titleEdit()->text();
+             CHECK(add.kind().kind->id == QStringLiteral("chapter"));
+             later(add.cancelButton());
+         }}};
+    CHECK(doing([&] { window.navigator.onRequestAdd(target); }, steps, unexpected) ==
+          steps.size());
+    INFO(unexpected.join(QLatin1Char('\n')).toStdString());
+    CHECK(unexpected.isEmpty());
+    CHECK_FALSE(before.contains(QStringLiteral("Poem")));
+    CHECK(after.contains(QStringLiteral("Poem")));
+    CHECK(title == QStringLiteral("Dune"));
+    CHECK(novel.pm.project()->kinds ==
+          QList<core::KindReference>{{QStringLiteral("kalahari.poetry"), QStringLiteral("poem")}});
+    CHECK(window.statusBar.currentMessage() == QStringLiteral("Kinds of elements of the book saved"));
+}
+
+TEST_CASE("Dialogs: the gear opens the settings of what the window does", "[gui][booktypes]") {
+    const NoBookOpen noBook;
+    const OwnTypes own;
+    QString page;
+    QWidget* over = nullptr;
+    const QString books = QDir(own.dir.path()).filePath(QStringLiteral("Books"));
+    gui::dialogs::KalahariDialog::setSettingsOpener([&](QWidget* window, const QString& opened) {
+        page = opened;
+        over = window;
+        // The writer gives the books a new folder
+        core::SettingsManager::getInstance().set<std::string>(
+            gui::ProgramFolders::BOOKS_SETTING, books.toStdString());
+        gui::ProgramFolders::forgetFolders(gui::ProgramFolders::BOOKS_SETTING);
+    });
+
+    {
+        NewItemDialog dialog(gui::dialogs::NewItemMode::Project);
+        REQUIRE(dialog.settingsButton() != nullptr);
+        CHECK(dialog.settingsButton()->toolTip() == QStringLiteral("Folder Settings"));
+        CHECK(dialog.settingsButton()->focusPolicy() == Qt::StrongFocus);
+        dialog.settingsButton()->click();
+        CHECK(page == QString::fromLatin1(gui::SettingsDialog::FOLDERS_PAGE));
+        CHECK(over == &dialog);
+        // The location the window suggested follows the new folder of the books
+        QLineEdit* location = nullptr;
+        for (QLineEdit* field : dialog.findChildren<QLineEdit*>()) {
+            if (field->placeholderText() == QStringLiteral("Select book folder...")) {
+                location = field;
+            }
+        }
+        CHECK(fieldText(location) == QDir::toNativeSeparators(books));
+    }
+    {
+        test::OpenNovel novel(QStringLiteral("Desert"));
+        gui::AddTarget target;
+        NewFileDialog add(NewFileDialog::forAdding(target),
+                          novel.pm.installedBookTypes());
+        REQUIRE(add.settingsButton() != nullptr);
+        add.settingsButton()->click();
+        CHECK(page == QString::fromLatin1(gui::SettingsDialog::NAVIGATOR_PAGE));
+        // New File has none
+        NewFileDialog newFile(NewFileDialog::openBook(QStringLiteral("Untitled")),
+                              novel.pm.installedBookTypes());
+        CHECK(newFile.settingsButton() == nullptr);
+    }
+
+    // Without the main window there are no gears
+    gui::dialogs::KalahariDialog::setSettingsOpener({});
+    NewItemDialog dialog(gui::dialogs::NewItemMode::Project);
+    CHECK(dialog.settingsButton() == nullptr);
 }

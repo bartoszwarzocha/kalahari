@@ -135,6 +135,7 @@ set(KALAHARI_SOURCES
     core/recent_books_manager.cpp # RecentBooksManager - Recent files management (OpenSpec #00030)
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
     core/package_card.cpp   # Cards of the packages a book uses: names and icons (IconRegistry)
+    core/custom_book_type.cpp  # The writer's own book types: a type or none, with kinds of other types
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
     gui/command.cpp
@@ -158,6 +159,8 @@ set(KALAHARI_SOURCES
     gui/dialogs/archive_dialogs.cpp  # ExportArchiveDialog, ImportArchiveDialog - one window each
     gui/dialogs/file_preview_dialog.cpp  # FilePreviewDialog - the text of a file no element has
     gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
+    gui/dialogs/project_properties_dialog.cpp  # ProjectPropertiesDialog - the type and the kinds of the open book
+    gui/dialogs/save_type_dialog.cpp  # SaveTypeDialog - the kinds of a book saved as a type of the writer's own
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
     gui/read_only_book.cpp # What the program says of a book open read-only
@@ -318,6 +321,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/project_properties_dialog.h  # ProjectPropertiesDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/save_type_dialog.h  # SaveTypeDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT

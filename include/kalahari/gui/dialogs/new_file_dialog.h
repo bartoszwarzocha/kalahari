@@ -16,6 +16,7 @@
 #include <QStringList>
 
 #include <functional>
+#include <optional>
 
 class QCheckBox;
 class QComboBox;
@@ -91,6 +92,11 @@ struct NewFileKind {
 /// alphabetical order, so a note says where a new one goes in place of the list. A material
 /// is a copy of a file the writer chooses: choosing its tile opens the system's window of
 /// files, and its title starts as the name of the file.
+///
+/// More Kinds... (setMoreKinds()), at the left of the buttons, opens Project Properties: a
+/// kind checked there has its tile at once, in the group of its section, and the window keeps
+/// the chosen kind, its title and its place. The gear of the heading of Add Element opens the
+/// settings of the Navigator, whose menus open the window.
 class NewFileDialog : public KalahariDialog {
     Q_OBJECT
 
@@ -134,12 +140,23 @@ public:
     /// the file, or an empty path for Cancel; an empty function gives the system's window back
     static void setFileChooserForTests(std::function<QString(const QString& folder)> chooser);
 
+    /// @brief Gives the window the kinds it offers after More Kinds...: opens Project
+    /// Properties over @p window and returns the window's kinds then, or nullopt when the book
+    /// got no new kinds
+    using MoreKinds = std::function<std::optional<Book>(QWidget* window)>;
+
     /// @brief Create the dialog
     /// @param book The kinds and the parts of the book
     /// @param registry Kinds of the elements; it must outlive the dialog
     /// @param parent Parent widget
     NewFileDialog(const Book& book, const core::BookTypeRegistry& registry,
                   QWidget* parent = nullptr);
+
+    /// @brief Show More Kinds... at the left of the buttons, which calls @p more
+    void setMoreKinds(MoreKinds more);
+
+    /// @brief The button More Kinds...; nullptr until setMoreKinds()
+    QPushButton* moreKindsButton() const { return m_moreKindsButton; }
 
     /// @brief The kind of the new element; none when no tile is chosen and for an empty text
     /// file
@@ -320,11 +337,17 @@ private:
     /// @brief The dialog can be accepted only with a kind, a title and a place
     void updateCreateButton();
 
+    /// @brief Offer the kinds of @p book from now on; the chosen kind, or an empty text file,
+    /// stays chosen with its title and its place
+    void replaceBook(const Book& book);
+
     Book m_book;
     const core::BookTypeRegistry* m_registry = nullptr;
     bool m_titleChanged = false;  ///< The writer typed the title: it stays as it is
     QString m_materialFile;       ///< The file of a new material; empty: none chosen yet
     bool m_choosingFile = false;  ///< The system's window of files is open
+    MoreKinds m_moreKinds;        ///< Opens Project Properties for More Kinds...
+    QPushButton* m_moreKindsButton = nullptr;
 
     QLabel* m_iconLabel = nullptr;
     QLabel* m_nameLabel = nullptr;
