@@ -47,6 +47,18 @@ constexpr double DIMMED_MARK_OPACITY = 0.45;
 /// The area around a mark a click or the mouse finds it in, in pixels of the screen
 constexpr double MARK_HIT_SIZE = 14.0;
 
+/// The edges of the cells of a table, and the background of its header rows: the text's
+/// color over the paper's in these shares
+constexpr double TABLE_LINE_SHARE = 0.45;
+constexpr double TABLE_HEADER_SHARE = 0.06;
+
+/// A color between two: @p share of @p over on @p under
+QColor blended(const QColor& over, const QColor& under, double share) {
+    return QColor::fromRgbF(static_cast<float>(under.redF() + (over.redF() - under.redF()) * share),
+                            static_cast<float>(under.greenF() + (over.greenF() - under.greenF()) * share),
+                            static_cast<float>(under.blueF() + (over.blueF() - under.blueF()) * share));
+}
+
 /// The line a place is on: of the character before it for a place after text (the end of
 /// a wrapped line belongs to that line, not to the next one)
 QTextLine placeLine(const QTextLayout& layout, int offset, bool afterText) {
@@ -1017,6 +1029,64 @@ void EditorRenderPipeline::renderParagraphs(QPainter* painter, const QRect& clip
     }
 }
 
+void EditorRenderPipeline::renderTables(QPainter* painter) {
+    if (!m_textSource) return;
+    const std::vector<TableGrid> tables = m_textSource->tablesIn(
+        m_context.computed.firstVisibleParagraph, m_context.computed.lastVisibleParagraph);
+    if (tables.empty()) return;
+
+    // Opaque shades, so the edge two cells share looks as the others
+    const QColor paper = m_context.colors.background;
+    const QColor lineColor = blended(m_context.colors.text, paper, TABLE_LINE_SHARE);
+    const QColor headerColor = blended(m_context.colors.text, paper, TABLE_HEADER_SHARE);
+    const auto widgetX = [this](double x) { return std::round(documentToWidget(QPointF(x, 0.0)).x()); };
+    const auto widgetY = [this](double y) { return std::round(documentToWidget(QPointF(0.0, y)).y()); };
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, false);
+    for (const TableGrid& grid : tables) {
+        const auto columns = static_cast<int>(grid.columnEdges.size()) - 1;
+        const auto rows = static_cast<int>(grid.rowTops.size());
+        if (columns < 1 || rows < 1) {
+            continue;
+        }
+        // Each cell row by row: in the page view the rows it spans may be on two pages
+        for (const bool lines : {false, true}) {
+            painter->setPen(lines ? QPen(lineColor, 0) : Qt::NoPen);
+            for (const TableGridCell& cell : grid.cells) {
+                const int lastColumn = std::min(cell.column + cell.columns, columns);
+                const int lastRow = std::min(cell.row + cell.rows, rows) - 1;
+                const double left = widgetX(grid.columnEdges[static_cast<size_t>(cell.column)]);
+                const double right = widgetX(grid.columnEdges[static_cast<size_t>(lastColumn)]);
+                for (int row = cell.row; row <= lastRow; ++row) {
+                    const double top = widgetY(grid.rowTops[static_cast<size_t>(row)]);
+                    const double bottom = widgetY(grid.rowTops[static_cast<size_t>(row)] +
+                                                  grid.rowHeights[static_cast<size_t>(row)]);
+                    if (bottom <= top) {
+                        continue;
+                    }
+                    if (!lines) {
+                        if (cell.row < grid.headerRows) {
+                            painter->fillRect(QRectF(left, top, right - left, bottom - top),
+                                              headerColor);
+                        }
+                        continue;
+                    }
+                    painter->drawLine(QPointF(left, top), QPointF(left, bottom));
+                    painter->drawLine(QPointF(right, top), QPointF(right, bottom));
+                    if (row == cell.row) {
+                        painter->drawLine(QPointF(left, top), QPointF(right, top));
+                    }
+                    if (row == lastRow) {
+                        painter->drawLine(QPointF(left, bottom), QPointF(right, bottom));
+                    }
+                }
+            }
+        }
+    }
+    painter->restore();
+}
+
 void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, double widgetY) {
     QTextLayout* layout = m_textSource->layout(index);
     if (!layout) return;
@@ -1349,6 +1419,9 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     // Only the visible paragraphs (firstVisibleParagraph..lastVisibleParagraph): O(visible)
     // instead of O(n) -- ~30 draw calls vs ~3000.
 
+    // The grids of the tables, under the selection and the text
+    renderTables(painter);
+
     // Selection highlights (only visible paragraphs)
     if (hasSelection() && m_textSource) {
         SelectionRange sel = m_selection.normalized();
@@ -1525,7 +1598,7 @@ void EditorRenderPipeline::updateVisibleRange() {
     const double viewTop = widgetToDocument(QPointF(0.0, 0.0)).y();
     const double viewBottom = widgetToDocument(QPointF(0.0, m_context.viewportSize.height())).y();
 
-    m_context.computed.firstVisibleParagraph = m_textSource->paragraphAtY(viewTop);
+    m_context.computed.firstVisibleParagraph = m_textSource->firstParagraphAtY(viewTop);
     m_context.computed.lastVisibleParagraph = m_textSource->paragraphAtY(viewBottom);
 
     // Clamp to valid range
@@ -1596,9 +1669,9 @@ CursorPosition EditorRenderPipeline::positionFromPoint(const QPointF& point) con
     }
 
     // The document position under the point; the layout has the lines where they are
-    // shown, on their pages too
+    // shown, on their pages too, and in a row of a table the cell under the point
     const QPointF docPoint = widgetToDocument(point);
-    size_t paraIndex = m_textSource->paragraphAtY(docPoint.y());
+    size_t paraIndex = m_textSource->paragraphAt(docPoint);
     if (paraIndex >= m_textSource->paragraphCount()) {
         paraIndex = m_textSource->paragraphCount() - 1;
     }

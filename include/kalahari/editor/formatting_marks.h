@@ -1,5 +1,5 @@
 /// @file formatting_marks.h
-/// @brief The formatting marks of a paragraph (View > Show Formatting Marks): ¶ · ° → ↵ ¬
+/// @brief The formatting marks of a paragraph (View > Show Formatting Marks): ¶ ¤ · ° → ↵ ¬
 ///
 /// The view draws the marks over the text, in a color of their own; they take no room, so
 /// the lines break as without them, as on paper. Print and export never show them.
@@ -18,6 +18,9 @@ namespace kalahari::editor {
 
 /// @brief The end of a paragraph (Enter): ¶
 inline constexpr char16_t PARAGRAPH_MARK = u'¶';
+
+/// @brief The end of a cell of a table, after its last paragraph: ¤
+inline constexpr char16_t CELL_MARK = u'¤';
 
 /// @brief A space: ·
 inline constexpr char16_t SPACE_MARK = u'·';
@@ -48,7 +51,8 @@ struct FormattingMark {
 /// @brief The formatting marks of a paragraph, at its laid out lines
 ///
 /// ¶ after the end of a paragraph, also of a heading, an empty paragraph and a scene break
-/// (a horizontal line and a page break are as wide as the text: none), · in the middle of a
+/// (a horizontal line and a page break are as wide as the text: none), ¤ instead after the
+/// last paragraph of a cell of a table, · in the middle of a
 /// space, ° of a no-break space, → of a tab, ↵ after a line break, ¬ after the hyphen of an
 /// optional hyphen at the end of a line and small above the text where it is inside a line.
 /// @return Nothing for a block without lines

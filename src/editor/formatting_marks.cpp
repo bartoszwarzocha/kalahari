@@ -2,6 +2,7 @@
 /// @brief Implementation of the formatting marks of a paragraph
 
 #include "kalahari/editor/formatting_marks.h"
+#include "kalahari/editor/text_tables.h"
 
 #include "kalahari/editor/kalahari_text_document_layout.h"
 #include "kalahari/editor/paragraph_styles.h"
@@ -12,6 +13,7 @@
 #include <QTextDocument>
 #include <QTextFormat>
 #include <QTextLayout>
+#include <QTextTable>
 
 #include <algorithm>
 #include <cmath>
@@ -178,9 +180,13 @@ std::vector<FormattingMark> formattingMarksOf(const QTextBlock& block) {
         }
     }
 
-    // ¶ after the last character, in its font (an empty paragraph: in its style's font)
+    // ¶ after the last character, in its font (an empty paragraph: in its style's font); ¤
+    // after the last paragraph of a cell
     const QTextLine last = layout->lineAt(layout->lineCount() - 1);
-    marks.push_back({QChar(PARAGRAPH_MARK),
+    const QTextTable* table = tableOf(block);
+    const bool cellEnd = table && table->cellAt(block.position()).lastPosition() ==
+                                      block.position() + block.length() - 1;
+    marks.push_back({QChar(cellEnd ? CELL_MARK : PARAGRAPH_MARK),
                      QPointF(last.cursorToX(block.length() - 1), baselineOf(last)), lastFont});
     return marks;
 }
