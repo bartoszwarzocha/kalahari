@@ -258,6 +258,32 @@ std::map<std::string, json> buildDefaults() {
         {"editor.autoCorrect.dialogueDashType", "emDash"},
         {"editor.autoCorrect.ellipsis", true},
 
+        // Editor: quick insert (Settings > Editor > Quick Insert, gui/quick_insert_items.h).
+        // @ or # typed at the start of a word opens a list of the sources chosen for it:
+        // "cards" (the names of the cards of the Workshop), "fragments" (the writer's text
+        // fragments), "characters" (the typographic characters). The fragments and the
+        // characters: [{"name", "text", "kind": "fragment" | "character"}]; null: the
+        // characters the program has at first
+        {"editor.quickInsert.enabled", true},
+        {"editor.quickInsert.at", json::array({"cards"})},
+        {"editor.quickInsert.hash", json::array({"fragments", "characters"})},
+        {"editor.quickInsert.items", nullptr},
+
+        // Editor: repetitions of words (Settings > Editor > Repetitions, RepetitionsCoordinator).
+        // A word repeats when it comes back within distance words; shorter words than
+        // minLength do not count. mergeForms: the forms of a word count as one (by the
+        // spelling dictionary); skipCommon: the very common words of the language do not
+        // count; skipped: the writer's words that do not count, in lower case. highlight: the
+        // words too close are marked in the text while the panel shows, with a "background" or
+        // a "wave"
+        {"editor.repetitions.distance", 30},
+        {"editor.repetitions.minLength", 3},
+        {"editor.repetitions.mergeForms", true},
+        {"editor.repetitions.skipCommon", true},
+        {"editor.repetitions.skipped", json::array()},
+        {"editor.repetitions.highlight", true},
+        {"editor.repetitions.style", "background"},
+
         // Editor: versions of the texts (Settings > Editor > Versions, ChapterVersions). With
         // enabled off no new version is kept, neither the writer's nor the program's (except
         // the current text before another version is restored); those kept stay. Save

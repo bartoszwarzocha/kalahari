@@ -1137,6 +1137,22 @@ public:
     void setSpokenWord(int paragraph, int offset, int length);
 
     // =========================================================================
+    // Repeated Words
+    // =========================================================================
+
+    /// @brief Mark the repeated words in the text, as the Repetitions panel finds them
+    /// @param marks The words; none clears the marks
+    /// @param style A background under each word or a wave under it; the words of the
+    ///        repetition chosen in the panel are framed as well
+    void setRepetitionMarks(const std::vector<RepetitionMark>& marks,
+                            RepetitionMarkStyle style = RepetitionMarkStyle::Background);
+
+    /// @brief The repeated words marked in the text (setRepetitionMarks())
+    [[nodiscard]] const std::vector<RepetitionMark>& repetitionMarks() const {
+        return m_repetitionMarks;
+    }
+
+    // =========================================================================
     // Find/Replace (Phase 9.4-9.6)
     // =========================================================================
 
@@ -2148,6 +2164,9 @@ private:
 
     /// @brief Render pipeline: draws the view in every view mode
     std::unique_ptr<EditorRenderPipeline> m_renderPipeline;
+
+    /// @brief The repeated words marked in the text (setRepetitionMarks())
+    std::vector<RepetitionMark> m_repetitionMarks;
 
     /// @brief Calculate absolute character position from cursor position
     /// @param pos Cursor position (paragraph + offset)

@@ -47,6 +47,7 @@ class SettingsDialog : public dialogs::KalahariDialog {
 public:
     /// @brief The pages the dialog can be opened at (openPage())
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
+    static constexpr const char* REPETITIONS_PAGE = "editor.repetitions";  ///< Editor > Repetitions
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
@@ -79,7 +80,7 @@ public:
     void showShortcutsPage();
 
     /// @brief Open a page: SPELLING_PAGE (the gear of the Spelling and Grammar panel),
-    /// ANNOTATIONS_PAGE (the gear of the Annotations panel) or SHORTCUTS_PAGE (as
+    /// REPETITIONS_PAGE (the gear of the Repetitions panel), ANNOTATIONS_PAGE (the gear of the Annotations panel) or SHORTCUTS_PAGE (as
     /// showShortcutsPage())
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);

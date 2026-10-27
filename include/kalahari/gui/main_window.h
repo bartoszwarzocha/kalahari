@@ -58,6 +58,7 @@ class VersionsCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
+class RepetitionsCoordinator;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
 }
@@ -385,6 +386,9 @@ private:
 
     /// @brief The Spelling and Grammar panel and when it shows
     SpellingPanelCoordinator* m_spellingPanelCoordinator{nullptr};
+
+    /// @brief The Repetitions panel, the marks of the repeated words and Next Repetition
+    RepetitionsCoordinator* m_repetitionsCoordinator{nullptr};
 
     /// @brief Undo, Redo, Cut, Copy, Paste and Select All on the element with the keys
     EditCoordinator* m_editCoordinator{nullptr};

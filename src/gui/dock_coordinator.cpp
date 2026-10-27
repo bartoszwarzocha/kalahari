@@ -14,6 +14,7 @@
 #include "kalahari/gui/panels/assistant_panel.h"
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/spelling_panel.h"
+#include "kalahari/gui/panels/repetitions_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
@@ -141,6 +142,7 @@ void DockCoordinator::createDocks() {
     createAssistantDock();
     createAnnotationsDock();
     createSpellingDock();
+    createRepetitionsDock();
 
     // Tab right-side docks: Paragraph and Styles next to Properties
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
@@ -148,10 +150,13 @@ void DockCoordinator::createDocks() {
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
     m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
+    m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
 
     // The Spelling and Grammar panel is closed until opened (View > Panels, Next Spelling or
-    // Grammar Issue); then its tab is next to the Annotations tab, which is on top by default
+    // Grammar Issue); then its tab is next to the Annotations tab, which is on top by default.
+    // The Repetitions panel likewise (View > Panels, Tools > Word Repetitions), after them
     m_spellingDock->hide();
+    m_repetitionsDock->hide();
     m_annotationsDock->raise();
 
     // A panel on the right shown again: the bar that says they were hidden has done its job
@@ -511,6 +516,24 @@ void DockCoordinator::createSpellingDock() {
     logger.debug("DockCoordinator: Spelling dock created");
 }
 
+void DockCoordinator::createRepetitionsDock() {
+    auto& logger = core::Logger::getInstance();
+
+    m_repetitionsPanel = new RepetitionsPanel(m_mainWindow);
+    //: The panel of the words that come back too close. In Polish: Powtórzenia
+    m_repetitionsDock = new QDockWidget(tr("Repetitions"), m_mainWindow);
+    m_repetitionsDock->setWidget(scrollingPanel(m_repetitionsPanel, m_repetitionsDock));
+    m_repetitionsDock->setObjectName("RepetitionsDock");
+    setupDockTitleBar(m_repetitionsDock, "view.repetitionsPanel", tr("Repetitions"));
+    // What counts as a repetition, the skipped words and the marks are on the Repetitions page
+    //: The tooltip of the gear of the Repetitions panel. In Polish: Ustawienia powtórzeń
+    addSettingsButton(m_repetitionsDock, QString::fromLatin1(SettingsDialog::REPETITIONS_PAGE),
+                      tr("Repetition Settings"));
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_repetitionsDock);
+
+    logger.debug("DockCoordinator: Repetitions dock created");
+}
+
 QToolButton* DockCoordinator::addTitleBarButton(QDockWidget* dock, const QString& iconId,
                                                 const QString& toolTip) {
     QWidget* titleBar = dock->titleBarWidget();
@@ -668,6 +691,7 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.assistant", m_assistantDock);
     connectPanelCommand("view.annotations", m_annotationsDock);
     connectPanelCommand("view.spelling", m_spellingDock);
+    connectPanelCommand("view.repetitionsPanel", m_repetitionsDock);
 
     // Paragraph and Styles: a panel of its own or the lower part of Properties
     auto& registry = CommandRegistry::getInstance();
@@ -686,6 +710,7 @@ void DockCoordinator::setupViewMenuActions() {
     m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock);
     m_viewAnnotationsAction = createPanelAction("view.annotations", m_annotationsDock);
     m_viewSpellingAction = createPanelAction("view.spelling", m_spellingDock);
+    m_viewRepetitionsAction = createPanelAction("view.repetitionsPanel", m_repetitionsDock);
     m_viewParagraphAction = registry.getAction(std::string("view.paragraph"));
     if (m_viewParagraphAction != nullptr) {
         m_viewParagraphAction->setCheckable(true);
@@ -747,6 +772,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->removeDockWidget(m_assistantDock);
     m_mainWindow->removeDockWidget(m_annotationsDock);
     m_mainWindow->removeDockWidget(m_spellingDock);
+    m_mainWindow->removeDockWidget(m_repetitionsDock);
     m_mainWindow->removeDockWidget(m_paragraphDock);
 
     // Re-add in default layout
@@ -758,6 +784,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_assistantDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_annotationsDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_spellingDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_repetitionsDock);
 
     // Tab right-side docks
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
@@ -765,9 +792,10 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
     m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
+    m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
 
-    // Show docks (LogDock only in diagnostic/dev mode; the Spelling and Grammar panel only
-    // when opened; Paragraph and Styles unfolded where the settings put it)
+    // Show docks (LogDock only in diagnostic/dev mode; the Spelling and Grammar panel and the
+    // Repetitions panel only when opened; Paragraph and Styles unfolded where the settings put it)
     m_navigatorDock->show();
     m_propertiesDock->show();
     m_paragraphDock->setVisible(!paragraphInProperties());
@@ -778,6 +806,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_assistantDock->show();
     m_annotationsDock->show();
     m_spellingDock->hide();
+    m_repetitionsDock->hide();
 
     // The Annotations tab is on top, as at the first start
     m_annotationsDock->raise();

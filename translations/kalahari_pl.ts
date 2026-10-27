@@ -987,6 +987,26 @@
         <source>Version &amp;History...</source>
         <translation>&amp;Historia wersji...</translation>
     </message>
+    <message>
+        <source>Q&amp;uick Insert...</source>
+        <translation>Szybkie &amp;wstawianie...</translation>
+    </message>
+    <message>
+        <source>Word R&amp;epetitions</source>
+        <translation>Powtó&amp;rzenia słów</translation>
+    </message>
+    <message>
+        <source>Ne&amp;xt Repetition</source>
+        <translation>Nas&amp;tępne powtórzenie</translation>
+    </message>
+    <message>
+        <source>R&amp;epetitions</source>
+        <translation>Powtó&amp;rzenia</translation>
+    </message>
+    <message>
+        <source>Repetiti&amp;ons in Text</source>
+        <translation>P&amp;owtórzenia w tekście</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -4300,6 +4320,16 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     <message>
         <source>Paragraph and Styles</source>
         <translation>Akapit i style</translation>
+    </message>
+    <message>
+        <source>Repetitions</source>
+        <extracomment>The panel of the words that come back too close. In Polish: Powtórzenia</extracomment>
+        <translation>Powtórzenia</translation>
+    </message>
+    <message>
+        <source>Repetition Settings</source>
+        <extracomment>The tooltip of the gear of the Repetitions panel. In Polish: Ustawienia powtórzeń</extracomment>
+        <translation>Ustawienia powtórzeń</translation>
     </message>
 </context>
 <context>
@@ -7936,6 +7966,16 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <extracomment>Settings &gt; Editor &gt; Versions: the versions of the texts. In Polish: Wersje</extracomment>
         <translation>Wersje</translation>
     </message>
+    <message>
+        <source>Quick Insert</source>
+        <extracomment>Settings &gt; Editor &gt; Quick Insert: @ and # in the text. In Polish: Szybkie wstawianie</extracomment>
+        <translation>Szybkie wstawianie</translation>
+    </message>
+    <message>
+        <source>Repetitions</source>
+        <extracomment>Settings &gt; Editor &gt; Repetitions: the words that come back too close. In Polish: Powtórzenia</extracomment>
+        <translation>Powtórzenia</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SettingsPage</name>
@@ -8677,6 +8717,52 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Delete the element</source>
         <translation>Usuń element</translation>
+    </message>
+    <message>
+        <source>Fixed: the quick insert list</source>
+        <translation>Stałe: lista szybkiego wstawiania</translation>
+    </message>
+    <message>
+        <source>Choose an item</source>
+        <translation>Wybierz pozycję</translation>
+    </message>
+    <message>
+        <source>Insert the item</source>
+        <translation>Wstaw pozycję</translation>
+    </message>
+    <message>
+        <source>Close the list</source>
+        <translation>Zamknij listę</translation>
+    </message>
+    <message>
+        <source>Fixed: the Repetitions panel</source>
+        <extracomment>In Polish: Stałe: panel „Powtórzenia”</extracomment>
+        <translation>Stałe: panel „Powtórzenia”</translation>
+    </message>
+    <message>
+        <source>Choose a card or a word</source>
+        <extracomment>In Polish: Wybierz kartę albo słowo</extracomment>
+        <translation>Wybierz kartę albo słowo</translation>
+    </message>
+    <message>
+        <source>Go to the words in the text</source>
+        <extracomment>In Polish: Przejdź do słów w tekście</extracomment>
+        <translation>Przejdź do słów w tekście</translation>
+    </message>
+    <message>
+        <source>Skip the word of the card</source>
+        <extracomment>In Polish: Pomijaj słowo karty</extracomment>
+        <translation>Pomijaj słowo karty</translation>
+    </message>
+    <message>
+        <source>The card&apos;s menu</source>
+        <extracomment>In Polish: Menu karty</extracomment>
+        <translation>Menu karty</translation>
+    </message>
+    <message>
+        <source>Switch the pages Close Together and Most Frequent</source>
+        <extracomment>In Polish: Przełącz karty „Blisko siebie” i „Najczęstsze”</extracomment>
+        <translation>Przełącz karty „Blisko siebie” i „Najczęstsze”</translation>
     </message>
 </context>
 <context>
@@ -12648,6 +12734,520 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <source>This text has no file in the folder of the book, so it has no versions</source>
         <extracomment>In Polish: Ten tekst nie ma pliku w folderze książki, więc nie ma wersji</extracomment>
         <translation>Ten tekst nie ma pliku w folderze książki, więc nie ma wersji</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorQuickInsertPage</name>
+    <message>
+        <source>Quick Insert</source>
+        <translation>Szybkie wstawianie</translation>
+    </message>
+    <message>
+        <source>Open the list after @ or #</source>
+        <translation>Otwieraj listę po @ albo #</translation>
+    </message>
+    <message>
+        <source>Names from the cards of the Workshop</source>
+        <translation>Imiona i nazwy z kart Warsztatu</translation>
+    </message>
+    <message>
+        <source>Text fragments</source>
+        <translation>Fragmenty tekstu</translation>
+    </message>
+    <message>
+        <source>Typographic characters</source>
+        <translation>Znaki typograficzne</translation>
+    </message>
+    <message>
+        <source>%1 after %2</source>
+        <extracomment>The check box of a source in the column of @ or #: &quot;Text fragments after #&quot;</extracomment>
+        <translation>%1 po %2</translation>
+    </message>
+    <message>
+        <source>@ or # in the middle of a word, as in an e-mail address or in C#, stays a character. The letters typed after it narrow the list; Esc closes it and keeps what was typed.</source>
+        <translation>@ albo # w środku słowa, jak w adresie e-mail albo w C#, zostaje zwykłym znakiem. Litery wpisane po nim zawężają listę; Esc ją zamyka i zostawia to, co wpisano.</translation>
+    </message>
+    <message>
+        <source>Insert &gt; Quick Insert... (%1) opens the list at the cursor with all of them, also when the list does not open after @ or #.</source>
+        <extracomment>%1 is the keys of Insert &gt; Quick Insert..., as Ctrl+Shift+W</extracomment>
+        <translation>Wstaw &gt; Szybkie wstawianie... (%1) otwiera przy kursorze listę ze wszystkim, także gdy lista nie otwiera się po @ ani #.</translation>
+    </message>
+    <message>
+        <source>Insert &gt; Quick Insert... opens the list at the cursor with all of them, also when the list does not open after @ or #.</source>
+        <translation>Wstaw &gt; Szybkie wstawianie... otwiera przy kursorze listę ze wszystkim, także gdy lista nie otwiera się po @ ani #.</translation>
+    </message>
+    <message>
+        <source>Text Fragments and Characters</source>
+        <translation>Fragmenty tekstu i znaki</translation>
+    </message>
+    <message>
+        <source>Text fragments and characters</source>
+        <translation>Fragmenty tekstu i znaki</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Inserts</source>
+        <translation>Wstawia</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Grupa</translation>
+    </message>
+    <message>
+        <source>&amp;Add...</source>
+        <translation>&amp;Dodaj...</translation>
+    </message>
+    <message>
+        <source>&amp;Edit...</source>
+        <translation>&amp;Zmień...</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Restore &amp;Default Characters</source>
+        <translation>Przywróć domyślne &amp;znaki</translation>
+    </message>
+    <message>
+        <source>Type # and the first letters of a name at the start of a word to insert its text. The names of the cards are those of the book open; they need no list here.</source>
+        <translation>Wpisz # i pierwsze litery nazwy na początku słowa, żeby wstawić jej tekst. Imiona i nazwy z kart pochodzą z otwartej książki; nie trzeba ich tu dopisywać.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorRepetitionsPage</name>
+    <message>
+        <source>Tools &gt; Next Repetition</source>
+        <extracomment>Next Repetition without keys. In Polish: Narzędzia &gt; Następne powtórzenie</extracomment>
+        <translation>Narzędzia &gt; Następne powtórzenie</translation>
+    </message>
+    <message>
+        <source>What Is a Repetition</source>
+        <extracomment>In Polish: Co jest powtórzeniem</extracomment>
+        <translation>Co jest powtórzeniem</translation>
+    </message>
+    <message>
+        <source>A word comes back within</source>
+        <extracomment>In Polish: Słowo wraca w odstępie do</extracomment>
+        <translation>Słowo wraca w odstępie do</translation>
+    </message>
+    <message>
+        <source>A word comes back within:</source>
+        <extracomment>In Polish: Słowo wraca w odstępie do:</extracomment>
+        <translation>Słowo wraca w odstępie do:</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n word(s)</source>
+        <extracomment>After the distance of Settings &gt; Editor &gt; Repetitions. In Polish: %n słowo / słowa / słów</extracomment>
+        <translation>
+            <numerusform>%n słowa</numerusform>
+            <numerusform>%n słów</numerusform>
+            <numerusform>%n słów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Counted words have at least</source>
+        <extracomment>In Polish: Liczone słowa mają co najmniej</extracomment>
+        <translation>Liczone słowa mają co najmniej</translation>
+    </message>
+    <message>
+        <source>Counted words have at least:</source>
+        <extracomment>In Polish: Liczone słowa mają co najmniej:</extracomment>
+        <translation>Liczone słowa mają co najmniej:</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n letter(s)</source>
+        <extracomment>After the length of the words counted. In Polish: %n literę / litery / liter</extracomment>
+        <translation>
+            <numerusform>%n literę</numerusform>
+            <numerusform>%n litery</numerusform>
+            <numerusform>%n liter</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Merge the forms of a word</source>
+        <extracomment>In Polish: Łącz odmiany jednego słowa</extracomment>
+        <translation>Łącz odmiany jednego słowa</translation>
+    </message>
+    <message>
+        <source>&quot;said&quot; and &quot;says&quot; are one word, by the spelling dictionary of the language of the text.</source>
+        <extracomment>In Polish: „mówił” i „mówiła” to jedno słowo, według słownika pisowni języka tekstu.</extracomment>
+        <translation>„mówił” i „mówiła” to jedno słowo, według słownika pisowni języka tekstu.</translation>
+    </message>
+    <message>
+        <source>Skip very common words</source>
+        <extracomment>In Polish: Pomijaj bardzo częste słowa</extracomment>
+        <translation>Pomijaj bardzo częste słowa</translation>
+    </message>
+    <message>
+        <source>Such as and, the, of, to, it.</source>
+        <extracomment>The very common words of the language. In Polish: Takie jak i, w, się, że, nie.</extracomment>
+        <translation>Takie jak i, w, się, że, nie.</translation>
+    </message>
+    <message>
+        <source>So count the Repetitions panel (Tools &gt; Word Repetitions) and %1, which goes to the next repetition.</source>
+        <extracomment>%1: the keys of Tools &gt; Next Repetition (Ctrl+Shift+F7). In Polish: Tak liczą panel „Powtórzenia” (Narzędzia &gt; Powtórzenia słów) i %1, które przechodzi do następnego powtórzenia.</extracomment>
+        <translation>Tak liczą panel „Powtórzenia” (Narzędzia &gt; Powtórzenia słów) i %1, które przechodzi do następnego powtórzenia.</translation>
+    </message>
+    <message>
+        <source>Skipped Words</source>
+        <extracomment>In Polish: Pomijane słowa</extracomment>
+        <translation>Pomijane słowa</translation>
+    </message>
+    <message>
+        <source>Skipped words</source>
+        <translation>Pomijane słowa</translation>
+    </message>
+    <message>
+        <source>A word to skip</source>
+        <extracomment>In Polish: Słowo do pominięcia</extracomment>
+        <translation>Słowo do pominięcia</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>These words are not counted in any form. &quot;Skip This Word&quot; on a card of the Repetitions panel (or Delete) adds the word of the card here.</source>
+        <extracomment>In Polish: Te słowa nie są liczone w żadnej odmianie. „Pomijaj to słowo” na karcie panelu „Powtórzenia” (albo Delete) dopisuje tu słowo karty.</extracomment>
+        <translation>Te słowa nie są liczone w żadnej odmianie. „Pomijaj to słowo” na karcie panelu „Powtórzenia” (albo Delete) dopisuje tu słowo karty.</translation>
+    </message>
+    <message>
+        <source>In the Text</source>
+        <extracomment>In Polish: W tekście</extracomment>
+        <translation>W tekście</translation>
+    </message>
+    <message>
+        <source>Mark the repetitions in the text</source>
+        <extracomment>In Polish: Zaznaczaj powtórzenia w tekście</extracomment>
+        <translation>Zaznaczaj powtórzenia w tekście</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <extracomment>How the repeated words are marked. In Polish: Tło</extracomment>
+        <translation>Tło</translation>
+    </message>
+    <message>
+        <source>Wavy line</source>
+        <extracomment>How the repeated words are marked. In Polish: Falista linia</extracomment>
+        <translation>Falista linia</translation>
+    </message>
+    <message>
+        <source>Marked with:</source>
+        <extracomment>In Polish: Sposób zaznaczenia:</extracomment>
+        <translation>Sposób zaznaczenia:</translation>
+    </message>
+    <message>
+        <source>The words are marked while the Repetitions panel is shown; the words of the card chosen are framed. View &gt; Repetitions in Text turns it on and off too. Each theme has its own color: this is the color of the current theme.</source>
+        <extracomment>In Polish: Słowa są zaznaczone, gdy panel „Powtórzenia” jest widoczny; słowa wybranej karty mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza. Każdy motyw ma swój kolor: to kolor bieżącego motywu.</extracomment>
+        <translation>Słowa są zaznaczone, gdy panel „Powtórzenia” jest widoczny; słowa wybranej karty mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza. Każdy motyw ma swój kolor: to kolor bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Mark</source>
+        <extracomment>The color of the repeated words in the text. In Polish: Kolor zaznaczenia</extracomment>
+        <translation>Kolor zaznaczenia</translation>
+    </message>
+</context>
+<context>
+    <name>QuickInsert</name>
+    <message>
+        <source>Typographic Characters</source>
+        <translation>Znaki typograficzne</translation>
+    </message>
+    <message>
+        <source>Text Fragments</source>
+        <translation>Fragmenty tekstu</translation>
+    </message>
+    <message>
+        <source>en dash</source>
+        <extracomment>Quick insert: the name of a typographic character, typed after # to find it</extracomment>
+        <translation>półpauza</translation>
+    </message>
+    <message>
+        <source>em dash</source>
+        <translation>pauza</translation>
+    </message>
+    <message>
+        <source>ellipsis</source>
+        <translation>wielokropek</translation>
+    </message>
+    <message>
+        <source>quotation marks</source>
+        <translation>cudzysłów</translation>
+    </message>
+    <message>
+        <source>inner quotation marks</source>
+        <translation>cudzysłów wewnętrzny</translation>
+    </message>
+    <message>
+        <source>no-break space</source>
+        <translation>spacja nierozdzielająca</translation>
+    </message>
+    <message>
+        <source>non-breaking hyphen</source>
+        <translation>łącznik nierozdzielający</translation>
+    </message>
+    <message>
+        <source>section sign</source>
+        <translation>paragraf</translation>
+    </message>
+    <message>
+        <source>degree sign</source>
+        <translation>stopień</translation>
+    </message>
+    <message>
+        <source>multiplication sign</source>
+        <translation>znak mnożenia</translation>
+    </message>
+    <message>
+        <source>arrow</source>
+        <translation>strzałka</translation>
+    </message>
+    <message>
+        <source>copyright sign</source>
+        <translation>znak praw autorskich</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::QuickInsertItemDialog</name>
+    <message>
+        <source>Add to Quick Insert</source>
+        <extracomment>The window of Add... on the page Settings &gt; Editor &gt; Quick Insert. In Polish: Dodaj do szybkiego wstawiania</extracomment>
+        <translation>Dodaj do szybkiego wstawiania</translation>
+    </message>
+    <message>
+        <source>Edit Quick Insert Item</source>
+        <translation>Zmień pozycję szybkiego wstawiania</translation>
+    </message>
+    <message>
+        <source>Type # and the first letters of the name at the start of a word: the list at the cursor offers the text.</source>
+        <translation>Wpisz # i pierwsze litery nazwy na początku słowa: lista przy kursorze podsunie ten tekst.</translation>
+    </message>
+    <message>
+        <source>e.g. scene</source>
+        <extracomment>In Polish: np. scena</extracomment>
+        <translation>np. scena</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Inserted text</source>
+        <translation>Wstawiany tekst</translation>
+    </message>
+    <message>
+        <source>Text fragment</source>
+        <translation>Fragment tekstu</translation>
+    </message>
+    <message>
+        <source>Typographic character</source>
+        <translation>Znak typograficzny</translation>
+    </message>
+    <message>
+        <source>Group in the list</source>
+        <translation>Grupa na liście</translation>
+    </message>
+    <message>
+        <source>A text in several lines inserts them as paragraphs. A pair of marks, such as „” or (), leaves the cursor between them.</source>
+        <translation>Tekst w kilku wierszach wstawia je jako akapity. Para znaków, taka jak „” albo (), zostawia kursor między nimi.</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj / Zapisz</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Zapisz</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::RepetitionsPanel</name>
+    <message>
+        <source>Chapter</source>
+        <translation>Rozdział</translation>
+    </message>
+    <message>
+        <source>Whole Book</source>
+        <translation>Cała książka</translation>
+    </message>
+    <message>
+        <source>Recount</source>
+        <extracomment>Counts the repetitions of the whole book again. In Polish: Przelicz</extracomment>
+        <translation>Przelicz</translation>
+    </message>
+    <message>
+        <source>Words close together</source>
+        <translation>Słowa blisko siebie</translation>
+    </message>
+    <message>
+        <source>Go To</source>
+        <extracomment>The button of a card of the panel Repetitions: the cursor to its words. In Polish: Przejdź
+----------
+The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
+        <translation>Przejdź</translation>
+    </message>
+    <message>
+        <source>Skip This Word</source>
+        <extracomment>The button of a card of the panel Repetitions: the word is not counted any more. In Polish: Pomijaj to słowo</extracomment>
+        <translation>Pomijaj to słowo</translation>
+    </message>
+    <message>
+        <source>Close Together</source>
+        <extracomment>The page of the panel Repetitions with the words that come back too close. In Polish: Blisko siebie</extracomment>
+        <translation>Blisko siebie</translation>
+    </message>
+    <message>
+        <source>Most frequent words</source>
+        <translation>Najczęstsze słowa</translation>
+    </message>
+    <message>
+        <source>Word</source>
+        <extracomment>The columns of the most frequent words: the word, how many times, times in a thousand words. In Polish: Słowo, Razy, Na 1000</extracomment>
+        <translation>Słowo</translation>
+    </message>
+    <message>
+        <source>Times</source>
+        <translation>Razy</translation>
+    </message>
+    <message>
+        <source>Per 1000</source>
+        <translation>Na 1000</translation>
+    </message>
+    <message>
+        <source>Most Frequent</source>
+        <extracomment>The page of the panel Repetitions with the words used most often. In Polish: Najczęstsze</extracomment>
+        <translation>Najczęstsze</translation>
+    </message>
+    <message>
+        <source>No book is open.</source>
+        <translation>Nie ma otwartej książki.</translation>
+    </message>
+    <message>
+        <source>No word comes back too close.</source>
+        <translation>Żadne słowo nie wraca zbyt blisko.</translation>
+    </message>
+    <message>
+        <source>No words are counted.</source>
+        <translation>Nie policzono żadnych słów.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::editor::QuickInsertList</name>
+    <message>
+        <source>Nothing matches “%1”. The next character closes the list.</source>
+        <extracomment>Quick insert: the list after the letters typed in the text (%1, &quot;@xyz&quot;) found nothing</extracomment>
+        <translation>Nic nie pasuje do „%1”. Następny znak zamknie listę.</translation>
+    </message>
+    <message>
+        <source>↑↓ choose · Enter, Tab insert · Esc leaves “%1”</source>
+        <extracomment>Quick insert: the keys of the list; %1 is what was typed in the text (&quot;@an&quot;)</extracomment>
+        <translation>↑↓ wybór · Enter, Tab wstawia · Esc zostawia „%1”</translation>
+    </message>
+    <message>
+        <source>Inserts: %1</source>
+        <extracomment>Quick insert: what the chosen item puts in the text</extracomment>
+        <translation>Wstawia: %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::RepetitionsCoordinator</name>
+    <message>
+        <source>No text is in front</source>
+        <extracomment>Why Next Repetition is greyed out. In Polish: Na wierzchu nie ma tekstu</extracomment>
+        <translation>Na wierzchu nie ma tekstu</translation>
+    </message>
+    <message>
+        <source>No word comes back too close here</source>
+        <extracomment>Next Repetition found none. In Polish: Żadne słowo nie wraca tu zbyt blisko</extracomment>
+        <translation>Żadne słowo nie wraca tu zbyt blisko</translation>
+    </message>
+    <message numerus="yes">
+        <source>Repetition: “%1”, %n time(s) in %2 words</source>
+        <extracomment>Next Repetition: the word it found, how many times and in how many words. In Polish: Powtórzenie: „%1”, %n razy w %2 słowach</extracomment>
+        <translation>
+            <numerusform>Powtórzenie: „%1”, %n raz w %2 słowach</numerusform>
+            <numerusform>Powtórzenie: „%1”, %n razy w %2 słowach</numerusform>
+            <numerusform>Powtórzenie: „%1”, %n razy w %2 słowach</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>No text is in front. Open a chapter to see the words that come back too close.</source>
+        <extracomment>The panel Repetitions without a text in front. In Polish: Na wierzchu nie ma tekstu. Otwórz rozdział, żeby zobaczyć słowa, które wracają zbyt blisko.</extracomment>
+        <translation>Na wierzchu nie ma tekstu. Otwórz rozdział, żeby zobaczyć słowa, które wracają zbyt blisko.</translation>
+    </message>
+    <message>
+        <source>The book has no text yet.</source>
+        <extracomment>The panel Repetitions, the whole book, without texts. In Polish: Książka nie ma jeszcze tekstu.</extracomment>
+        <translation>Książka nie ma jeszcze tekstu.</translation>
+    </message>
+    <message>
+        <source>No book is open.</source>
+        <translation>Nie ma otwartej książki.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n time(s) in %1 words</source>
+        <extracomment>How many times a word comes back, and in how many words: &quot;3 times in 19 words&quot;. In Polish: %n razy w %1 słowach</extracomment>
+        <translation>
+            <numerusform>%n raz w %1 słowach</numerusform>
+            <numerusform>%n razy w %1 słowach</numerusform>
+            <numerusform>%n razy w %1 słowach</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Whole book</source>
+        <extracomment>The panel Repetitions: what is counted, the whole book. In Polish: Cała książka</extracomment>
+        <translation>Cała książka</translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln word(s)</source>
+        <extracomment>The words counted. In Polish: %Ln słów (słowo, słowa)</extracomment>
+        <translation>
+            <numerusform>%Ln słowo</numerusform>
+            <numerusform>%Ln słowa</numerusform>
+            <numerusform>%Ln słów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln repetition(s) close together</source>
+        <extracomment>In Polish: %Ln powtórzeń blisko siebie (powtórzenie, powtórzenia)</extracomment>
+        <translation>
+            <numerusform>%Ln powtórzenie blisko siebie</numerusform>
+            <numerusform>%Ln powtórzenia blisko siebie</numerusform>
+            <numerusform>%Ln powtórzeń blisko siebie</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln different</source>
+        <extracomment>The words counted that are not the same. In Polish: %Ln różnych (różne, różnych)</extracomment>
+        <translation>
+            <numerusform>%Ln różne</numerusform>
+            <numerusform>%Ln różne</numerusform>
+            <numerusform>%Ln różnych</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The text changed after it was counted: click Recount.</source>
+        <extracomment>The whole book was counted before a chapter changed. In Polish: Tekst zmienił się po przeliczeniu – kliknij „Przelicz”.</extracomment>
+        <translation>Tekst zmienił się po przeliczeniu – kliknij „Przelicz”.</translation>
+    </message>
+    <message>
+        <source>The text changed: the repetitions are counted again</source>
+        <extracomment>The words of a card are not where they were counted. In Polish: Tekst zmienił się: powtórzenia są liczone od nowa</extracomment>
+        <translation>Tekst zmienił się: powtórzenia są liczone od nowa</translation>
+    </message>
+    <message>
+        <source>“%1” is not counted any more. The skipped words are in Settings &gt; Editor &gt; Repetitions</source>
+        <extracomment>Skip This Word on a card of the panel Repetitions. In Polish: „%1” nie jest już liczone. Pomijane słowa są w Ustawieniach &gt; Edytor &gt; Powtórzenia</extracomment>
+        <translation>„%1” nie jest już liczone. Pomijane słowa są w Ustawieniach &gt; Edytor &gt; Powtórzenia</translation>
     </message>
 </context>
 </TS>

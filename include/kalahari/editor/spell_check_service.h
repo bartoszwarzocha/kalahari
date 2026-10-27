@@ -141,6 +141,11 @@ public:
     /// writer wants them.
     QStringList suggestions(const QString& word, int maxSuggestions = 5) const;
 
+    /// @brief The base forms of a word as the dictionary gives them ("powiedziała" ->
+    ///        "powiedzieć"; "była" -> "była", "były", "być"), for the repetitions of words
+    ///        (chooseBaseForm()); empty without a dictionary or for a word it does not know
+    QStringList stems(const QString& word) const;
+
     /// @brief The misspelled words of a text (one paragraph), in their order
     QList<SpellErrorInfo> checkParagraph(const QString& text) const;
 

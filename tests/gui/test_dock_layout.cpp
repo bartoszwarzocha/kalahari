@@ -241,6 +241,49 @@ TEST_CASE("Panels: the Spelling and Grammar panel opens as the tab after the Ann
     CHECK(tabIndex(panels.window, spelling) == tabIndex(panels.window, annotations) + 1);
 }
 
+TEST_CASE("Panels: the Repetitions panel opens as a tab after the Annotations tab",
+          "[gui][panels][repetitions]") {
+    // The layout of a window saved before the panel existed, which does not know the panel
+    QByteArray oldLayout;
+    {
+        Panels old;
+        old.window.removeDockWidget(old.docks->repetitionsDock());
+        oldLayout = old.window.saveState();
+    }
+    Panels panels;
+    QDockWidget* repetitions = panels.docks->repetitionsDock();
+    QDockWidget* annotations = panels.docks->annotationsDock();
+    REQUIRE(repetitions != nullptr);
+
+    SECTION("in the default layout") {
+    }
+    SECTION("in a layout saved before the panel existed") {
+        REQUIRE(panels.window.restoreState(oldLayout));
+        QApplication::processEvents();
+    }
+    SECTION("after Reset Layout") {
+        CommandRegistry::getInstance().executeCommand("view.repetitionsPanel");
+        QApplication::processEvents();
+        panels.docks->resetLayout(false, false);
+        panels.docks->showRightPanels();  // hidden by Reset Layout on a small screen
+        QApplication::processEvents();
+    }
+
+    // Closed until opened
+    CHECK(repetitions->isHidden());
+    CHECK_FALSE(panels.docks->viewRepetitionsAction()->isChecked());
+    CHECK(panels.onTop(annotations));
+
+    // View > Panels > Repetitions
+    CommandRegistry::getInstance().executeCommand("view.repetitionsPanel");
+    QApplication::processEvents();
+    CHECK(repetitions->isVisible());
+    CHECK(panels.docks->viewRepetitionsAction()->isChecked());
+    CHECK(panels.onTop(repetitions));
+    REQUIRE(tabIndex(panels.window, annotations) >= 0);
+    CHECK(tabIndex(panels.window, repetitions) > tabIndex(panels.window, annotations));
+}
+
 TEST_CASE("Panels: the Paragraph and Styles panel is the tab after Properties",
           "[gui][panels][styles]") {
     Panels panels;
@@ -453,6 +496,17 @@ TEST_CASE("Panels: the gear on the title bar of a panel asks for the panel's set
         CHECK(gear->toolTip() == QStringLiteral("Annotation Settings"));
         gear->click();
         CHECK(asked == QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE));
+    }
+
+    SECTION("The Repetitions panel: the gear, then Float and Close") {
+        QDockWidget* repetitions = panels.docks->repetitionsDock();
+        CHECK(titleBarButtons(repetitions) ==
+              std::vector<std::string>{"dock.settings", "dock.float", "dock.close"});
+        QToolButton* gear = titleBarButton(repetitions, QStringLiteral("dock.settings"));
+        REQUIRE(gear != nullptr);
+        CHECK(gear->toolTip() == QStringLiteral("Repetition Settings"));
+        gear->click();
+        CHECK(asked == QString::fromLatin1(SettingsDialog::REPETITIONS_PAGE));
     }
 }
 

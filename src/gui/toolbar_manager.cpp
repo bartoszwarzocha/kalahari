@@ -265,7 +265,7 @@ void ToolbarManager::initializeConfigs() {
         true,  // visible by default (Row 2)
         {"view.mode.continuous", "view.mode.page", SEPARATOR_ID,
          "view.mode.distraction-free", "view.focus", "view.typewriter", "view.darkPaper",
-         "view.textFrameBorder", "view.showFormattingMarks", SEPARATOR_ID,
+         "view.textFrameBorder", "view.showFormattingMarks", "view.repetitionMarks", SEPARATOR_ID,
          "view.zoomOut", "view.zoomIn", "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}
     };
 

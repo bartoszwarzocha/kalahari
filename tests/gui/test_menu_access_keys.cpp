@@ -666,11 +666,13 @@ void checkNavigatorMenus(QStringList& problems) {
 }
 
 /// A main window with the program's panels and toolbars, and a toolbar the user made (the
-/// commands registered)
+/// commands registered); the user's toolbar goes with the window, so the next window does not
+/// read it from the settings and have it twice
 struct WindowPanels {
     QMainWindow window;
     DockCoordinator* docks = nullptr;  // owned by the window, as in MainWindow
     std::unique_ptr<ToolbarManager> toolbars;
+    QString userToolbar;
 
     WindowPanels() {
         window.setAttribute(Qt::WA_DontShowOnScreen);
@@ -678,11 +680,14 @@ struct WindowPanels {
         docks->createDocks();
         toolbars = std::make_unique<ToolbarManager>(&window);
         toolbars->createToolbars(CommandRegistry::getInstance());
-        toolbars->createUserToolbar(QStringLiteral("Tom & Jerry"));
+        userToolbar = toolbars->createUserToolbar(QStringLiteral("Tom & Jerry"));
         window.resize(1200, 800);
         window.show();
         QCoreApplication::processEvents();
     }
+    ~WindowPanels() { toolbars->deleteUserToolbar(userToolbar); }
+    WindowPanels(const WindowPanels&) = delete;
+    WindowPanels& operator=(const WindowPanels&) = delete;
 };
 
 /// The menu of the menu bar and of the panels' titles: Qt's, as MainWindow gives it the keys

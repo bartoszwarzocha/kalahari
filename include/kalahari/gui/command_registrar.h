@@ -80,6 +80,7 @@ struct CommandCallbacks {
     std::function<void()> onInsertHorizontalLine;  ///< Insert > Horizontal Line
     std::function<void()> onInsertSceneBreak;   ///< Insert > Scene Break, Book > Scene Break
     std::function<void()> onInsertPageBreak;    ///< Insert > Page Break
+    std::function<void()> onQuickInsert;        ///< Insert > Quick Insert...
 
     // =========================================================================
     // FORMAT COMMANDS (OpenSpec #00042 Phase 7.2)
