@@ -106,7 +106,7 @@ TEST_CASE("Link dialog: the text, the address and OK only with an address",
         CHECK_FALSE(dialog.acceptButton()->isEnabled());
         address->setText(QStringLiteral("www.example.com"));
         CHECK(dialog.acceptButton()->isEnabled());
-        CHECK(QApplication::focusWidget() == address);
+        CHECK(dialog.focusWidget() == address);  // also where the window is not active (macOS)
         dialog.acceptButton()->click();
         CHECK(dialog.result() == QDialog::Accepted);
         CHECK_FALSE(dialog.removeAsked());
