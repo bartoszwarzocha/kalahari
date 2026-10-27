@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tables** - 2026-10-27. Insert > Table... puts a table at the cursor: a window with its
+  columns (up to 20) and rows (up to 100), whether its first row is a header row, and a picture
+  of its grid. A table is as wide as the text; its cells side by side in both views, drawn with
+  a thin grid, the header row in bold on a shaded background, a row as high as its highest
+  cell, and in the page view a row that does not fit goes to the next page. A cell holds
+  paragraphs, with their styles, formatting, lists and links; Enter starts a paragraph in it.
+  Tab goes to the next cell (in the last one it adds a row), Shift+Tab to the one before, Up and
+  Down to the cell above and below; Backspace and Delete do not join cells, and a selection
+  going into a table takes the text of its cells, not the cells. A horizontal line, a break or
+  a table cannot go into a cell (the Insert menu greys them out there). Copied tables go to
+  Word, LibreOffice and browsers as their tables, and to plain text with the cells of a row
+  separated by tabs; a part of a table is copied as the rows it goes through. Their tables are
+  pasted as tables, with merged cells, column widths and the header row; pasted in a cell, a
+  table is its rows of text. KML has `<table>`, `<col>`, `<tr>`, `<th>` and `<td>`
+  (docs/kml_format.md).
+
 - **Links** - 2026-10-27. Insert > Link... (Ctrl+K) makes the selected text, or a new text at
   the cursor, a link to a web page or an e-mail address: a window with the text to display and
   the address ("www.example.com" gets https://, "jan@example.com" mailto:). On a link the window

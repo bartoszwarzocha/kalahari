@@ -7088,6 +7088,11 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>No formatting copied yet: choose Format &gt; Copy Formatting first</source>
         <translation>Nie skopiowano jeszcze formatowania: najpierw wybierz Format &gt; Kopiuj formatowanie</translation>
     </message>
+    <message>
+        <source>A cell of a table holds only text</source>
+        <extracomment>Why Insert &gt; Horizontal Line, Scene Break, Page Break and Table are greyed out with the cursor in a table. In Polish: Komórka tabeli może zawierać tylko tekst</extracomment>
+        <translation>Komórka tabeli może zawierać tylko tekst</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
@@ -13032,6 +13037,62 @@ Harmonogram projektu:
     <message>
         <source>Downloaded %1 of %2 MB.</source>
         <translation>Pobrano %1 z %2 MB.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::InsertTableDialog</name>
+    <message>
+        <source>Insert Table</source>
+        <translation>Wstaw tabelę</translation>
+    </message>
+    <message>
+        <source>The table is as wide as the text, its columns equal.</source>
+        <translation>Tabela ma szerokość tekstu i równe kolumny.</translation>
+    </message>
+    <message>
+        <source>Insert</source>
+        <translation>Wstaw</translation>
+    </message>
+    <message>
+        <source>&amp;Columns</source>
+        <translation>&amp;Kolumny</translation>
+    </message>
+    <message>
+        <source>&amp;Rows</source>
+        <translation>&amp;Wiersze</translation>
+    </message>
+    <message>
+        <source>&amp;Header row</source>
+        <translation>Wiersz &amp;nagłówka</translation>
+    </message>
+    <message>
+        <source>Preview of the table</source>
+        <translation>Podgląd tabeli</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n columns</source>
+        <translation>
+            <numerusform>%n kolumna</numerusform>
+            <numerusform>%n kolumny</numerusform>
+            <numerusform>%n kolumn</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n rows</source>
+        <translation>
+            <numerusform>%n wiersz</numerusform>
+            <numerusform>%n wiersze</numerusform>
+            <numerusform>%n wierszy</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1 and %2, with a header row</source>
+        <extracomment>%1 is the columns (&quot;3 columns&quot;), %2 the rows (&quot;3 rows&quot;)</extracomment>
+        <translation>%1 i %2, z wierszem nagłówka</translation>
+    </message>
+    <message>
+        <source>%1 and %2</source>
+        <translation>%1 i %2</translation>
     </message>
 </context>
 <context>

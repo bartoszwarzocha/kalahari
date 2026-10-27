@@ -190,6 +190,11 @@ TEST_CASE("Tables: text outside paragraphs in a cell, a table inside a cell", "[
               .toStdString() ==
           "<kml><p>A</p><table><tr><td><p>loose <b>text</b></p><p>p</p></td>"
           "<td><p>in1</p><p>in2</p></td></tr></table><p>Z</p></kml>");
+    // A cell holds no line or break
+    CHECK(roundTrip(QStringLiteral("<kml><p>A</p><table><tr><td><p>x</p><hr/><scene-break/>"
+                                   "<page-break/><p>y</p></td></tr></table><p>Z</p></kml>"))
+              .toStdString() ==
+          "<kml><p>A</p><table><tr><td><p>x</p><p>y</p></td></tr></table><p>Z</p></kml>");
 }
 
 TEST_CASE("Tables: KML of a part of the text with a table", "[editor][tables][kml]") {
