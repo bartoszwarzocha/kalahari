@@ -22,6 +22,7 @@
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/statistics_collector.h"
+#include "kalahari/editor/word_repetitions.h"
 #include <QEvent>
 #include <QGuiApplication>
 #include <QScreen>
@@ -326,9 +327,9 @@ void EditorPanel::applySettings() {
     appearance.textFrameBorder.color = color("editor.textFrameBorder.color");
     appearance.textFrameBorder.width = settings.get<int>("editor.textFrameBorder.width");
 
-    // The annotations' marks (at the size of the setting) and the waves under the misspelled
-    // words and the grammar issues: the theme's colors, on each paper as "Optimize colors in
-    // themes" shows them
+    // The annotations' marks (at the size of the setting), the waves under the misspelled
+    // words and the grammar issues, and the marks of the repeated words: the theme's colors,
+    // on each paper as "Optimize colors in themes" shows them
     const auto& themes = core::ThemeManager::getInstance();
     const bool optimize = themes.optimizesEditorColors();
     const auto onPaper = [&themes, optimize](const std::string& key, const QColor& paper) {
@@ -345,6 +346,7 @@ void EditorPanel::applySettings() {
         editor::EditorColors::IssueColors colors;
         colors.spelling = onPaper(editor::issueColorKey(editor::TextIssueKind::Spelling), paper);
         colors.grammar = onPaper(editor::issueColorKey(editor::TextIssueKind::Grammar), paper);
+        colors.repetition = onPaper(editor::REPETITION_COLOR_KEY, paper);
         return colors;
     };
     const QColor lightPaper = appearance.colors.continuous.backgroundLight;

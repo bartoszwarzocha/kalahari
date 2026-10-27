@@ -1355,4 +1355,14 @@ void BookEditor::setSpokenWord(int paragraph, int offset, int length)
     }
 }
 
+void BookEditor::setRepetitionMarks(const std::vector<RepetitionMark>& marks,
+                                    RepetitionMarkStyle style)
+{
+    m_repetitionMarks = marks;
+    if (m_renderPipeline) {
+        m_renderPipeline->setRepetitionMarks(marks, style);
+    }
+    update();
+}
+
 }  // namespace kalahari::editor

@@ -65,6 +65,10 @@ struct RenderColors {
     /// @brief Word being read aloud (background)
     QColor spokenWord{0, 190, 170, 96};
 
+    /// @brief Repeated words (the Repetitions panel): their wave and the frame of the chosen
+    /// ones; their background is this color made translucent
+    QColor repetition{230, 130, 40};
+
     /// @brief The marks of the annotations, by kind (the theme's colors for the paper; not
     /// valid: the text color)
     QColor annotationComment;
@@ -88,6 +92,7 @@ struct RenderColors {
                spellError == other.spellError &&
                grammarWarning == other.grammarWarning &&
                spokenWord == other.spokenWord &&
+               repetition == other.repetition &&
                annotationComment == other.annotationComment &&
                annotationTodo == other.annotationTodo &&
                annotationNote == other.annotationNote &&

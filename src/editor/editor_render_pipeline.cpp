@@ -47,6 +47,11 @@ constexpr double DIMMED_MARK_OPACITY = 0.45;
 /// The area around a mark a click or the mouse finds it in, in pixels of the screen
 constexpr double MARK_HIT_SIZE = 14.0;
 
+/// How opaque the background of a repeated word is, and of one chosen in the Repetitions
+/// panel: the text stays readable on a light and a dark paper
+constexpr double REPETITION_ALPHA = 0.3;
+constexpr double CURRENT_REPETITION_ALPHA = 0.45;
+
 /// The line a place is on: of the character before it for a place after text (the end of
 /// a wrapped line belongs to that line, not to the next one)
 QTextLine placeLine(const QTextLayout& layout, int offset, bool afterText) {
@@ -848,6 +853,32 @@ void EditorRenderPipeline::setSpokenWord(int paragraph, int offset, int length) 
     }
 }
 
+void EditorRenderPipeline::setRepetitionMarks(const std::vector<RepetitionMark>& marks,
+                                              RepetitionMarkStyle style) {
+    std::vector<ParagraphHighlight> repetitions;
+    repetitions.reserve(marks.size());
+    for (const RepetitionMark& mark : marks) {
+        if (mark.paragraph >= 0 && mark.length > 0) {
+            repetitions.emplace_back(
+                static_cast<size_t>(mark.paragraph),
+                TextHighlight{mark.start, mark.length,
+                              mark.current ? HighlightKind::CurrentRepetition
+                                           : HighlightKind::Repetition});
+        }
+    }
+    // By paragraph: the ones in view are found by binary search
+    std::stable_sort(repetitions.begin(), repetitions.end(),
+                     [](const ParagraphHighlight& a, const ParagraphHighlight& b) {
+                         return a.first < b.first;
+                     });
+    if (repetitions == m_repetitions && style == m_repetitionStyle) {
+        return;
+    }
+    m_repetitions = std::move(repetitions);
+    m_repetitionStyle = style;
+    markRepaintOnly();
+}
+
 // =============================================================================
 // Main Render Entry Point (Stage 3+4)
 // =============================================================================
@@ -1178,6 +1209,16 @@ std::vector<EditorRenderPipeline::ParagraphHighlight> EditorRenderPipeline::visi
         m_spokenWord->first < count) {
         highlights.push_back(*m_spokenWord);
     }
+
+    // The repeated words, sorted by paragraph
+    const auto firstRepetition = std::lower_bound(
+        m_repetitions.begin(), m_repetitions.end(), first,
+        [](const ParagraphHighlight& mark, size_t paragraph) { return mark.first < paragraph; });
+    for (auto it = firstRepetition; it != m_repetitions.end() && it->first <= last; ++it) {
+        if (it->first < count) {
+            highlights.push_back(*it);
+        }
+    }
     return highlights;
 }
 
@@ -1190,6 +1231,17 @@ void EditorRenderPipeline::renderHighlightBackgrounds(
             case HighlightKind::SearchMatch: color = colors.searchHighlight; break;
             case HighlightKind::CurrentSearchMatch: color = colors.currentMatch; break;
             case HighlightKind::SpokenWord: color = colors.spokenWord; break;
+            case HighlightKind::Repetition:
+            case HighlightKind::CurrentRepetition:
+                if (m_repetitionStyle != RepetitionMarkStyle::Background) {
+                    continue;  // a wave
+                }
+                // Translucent, as the search matches: the text stays readable on any paper
+                color = colors.repetition;
+                color.setAlphaF(highlight.kind == HighlightKind::CurrentRepetition
+                                    ? CURRENT_REPETITION_ALPHA
+                                    : REPETITION_ALPHA);
+                break;
             // Drawn as marks only
             case HighlightKind::Spelling:
             case HighlightKind::Grammar: continue;
@@ -1208,36 +1260,70 @@ void EditorRenderPipeline::renderHighlightMarks(
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
     for (const auto& [paragraph, highlight] : highlights) {
-        if (highlight.kind != HighlightKind::Spelling && highlight.kind != HighlightKind::Grammar) {
-            continue;  // backgrounds only
-        }
-        const auto pieces =
-            linePieces(paragraph, highlight.start, highlight.start + highlight.length);
-        if (pieces.empty()) continue;
-
-        // A wave under the baseline
-        const double widgetY = paragraphWidgetY(paragraph);
-        const double amplitude = std::max(1.0, 1.5 * scale);
-        const double step = 2.0 * amplitude;
-        painter->setPen(QPen(highlight.kind == HighlightKind::Spelling ? colors.spellError
-                                                                       : colors.grammarWarning,
-                             std::max(1.0, scale)));
-        painter->setBrush(Qt::NoBrush);
-        for (const LinePiece& piece : pieces) {
-            const double x1 = originX + piece.x1 * scale;
-            const double x2 = originX + piece.x2 * scale;
-            const double y =
-                widgetY + (piece.line.y() + piece.line.ascent()) * scale + amplitude + 1.0;
-            QPainterPath wave(QPointF(x1, y));
-            const int steps = static_cast<int>(std::ceil((x2 - x1) / step));
-            for (int i = 1; i <= steps; ++i) {
-                wave.lineTo(QPointF(std::min(x1 + i * step, x2),
-                                    i % 2 == 1 ? y - amplitude : y + amplitude));
+        switch (highlight.kind) {
+            case HighlightKind::Spelling:
+                drawWave(painter, paragraph, highlight, colors.spellError);
+                break;
+            case HighlightKind::Grammar:
+                drawWave(painter, paragraph, highlight, colors.grammarWarning);
+                break;
+            case HighlightKind::Repetition:
+            case HighlightKind::CurrentRepetition: {
+                if (m_repetitionStyle == RepetitionMarkStyle::Wave) {
+                    drawWave(painter, paragraph, highlight, colors.repetition);
+                }
+                if (highlight.kind != HighlightKind::CurrentRepetition) {
+                    break;
+                }
+                // The words of the repetition chosen in the panel: framed, line by line
+                const double widgetY = paragraphWidgetY(paragraph);
+                painter->setPen(QPen(colors.repetition, std::max(1.5, 2.0 * scale)));
+                painter->setBrush(Qt::NoBrush);
+                for (const LinePiece& piece : linePieces(paragraph, highlight.start,
+                                                         highlight.start + highlight.length)) {
+                    const double x1 = originX + piece.x1 * scale;
+                    const double x2 = originX + piece.x2 * scale;
+                    painter->drawRoundedRect(
+                        QRectF(x1, widgetY + piece.line.y() * scale, x2 - x1,
+                               piece.line.height() * scale),
+                        2.0 * scale, 2.0 * scale);
+                }
+                break;
             }
-            painter->drawPath(wave);
+            // Backgrounds only
+            case HighlightKind::SearchMatch:
+            case HighlightKind::CurrentSearchMatch:
+            case HighlightKind::SpokenWord: break;
         }
     }
     painter->restore();
+}
+
+void EditorRenderPipeline::drawWave(QPainter* painter, size_t paragraph,
+                                    const TextHighlight& range, const QColor& color) {
+    const auto pieces = linePieces(paragraph, range.start, range.start + range.length);
+    if (pieces.empty()) return;
+
+    // A wave under the baseline
+    const double scale = m_context.computed.viewScale;
+    const double originX = m_context.computed.originX;
+    const double widgetY = paragraphWidgetY(paragraph);
+    const double amplitude = std::max(1.0, 1.5 * scale);
+    const double step = 2.0 * amplitude;
+    painter->setPen(QPen(color, std::max(1.0, scale)));
+    painter->setBrush(Qt::NoBrush);
+    for (const LinePiece& piece : pieces) {
+        const double x1 = originX + piece.x1 * scale;
+        const double x2 = originX + piece.x2 * scale;
+        const double y = widgetY + (piece.line.y() + piece.line.ascent()) * scale + amplitude + 1.0;
+        QPainterPath wave(QPointF(x1, y));
+        const int steps = static_cast<int>(std::ceil((x2 - x1) / step));
+        for (int i = 1; i <= steps; ++i) {
+            wave.lineTo(QPointF(std::min(x1 + i * step, x2),
+                                i % 2 == 1 ? y - amplitude : y + amplitude));
+        }
+        painter->drawPath(wave);
+    }
 }
 
 QRectF EditorRenderPipeline::cursorPaintRect() const {

@@ -4,6 +4,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/word_repetitions.h>
 
+#include <algorithm>
+
 using namespace kalahari::editor;
 
 namespace {
@@ -171,4 +173,53 @@ TEST_CASE("Repetitions: the common words of Polish and English", "[editor][repet
     CHECK(commonWords(QStringLiteral("pl")).contains(QStringLiteral("już")));
     CHECK(commonWords(QStringLiteral("en_GB")).contains(QStringLiteral("the")));
     CHECK(commonWords(QStringLiteral("de")).isEmpty());
+}
+
+TEST_CASE("Repetitions: the text of a card, its words marked", "[editor][repetitions]") {
+    const QStringList chapter = {
+        QStringLiteral("Anna weszła do kuchni i spojrzała na stół. Spojrzała na kopertę jeszcze "
+                       "raz, potem spojrzała w okno."),
+        QStringLiteral("Za oknem padał deszcz.")};
+    const RepetitionAnalysis analysis = analyzeRepetitions({chapter}, polish());
+    REQUIRE(analysis.clusters.size() == 1);
+    QList<TextWord> words;
+    for (const int i : analysis.clusters.first().words) {
+        words.append(analysis.words.at(i));
+    }
+    const RepetitionContext context = repetitionContext(chapter, words);
+    // The whole paragraph: the words are close, and the text around them short
+    CHECK(context.text == chapter.first());
+    REQUIRE(context.marks.size() == 3);
+    for (const auto& [start, length] : context.marks) {
+        CHECK(context.text.mid(start, length).toLower() == QStringLiteral("spojrzała"));
+    }
+
+    // Far apart, and in another paragraph: shortened
+    const QString filler = QStringLiteral(
+        "potem długo nic się nie działo, a wieczór ciągnął się bez końca i bez słowa ");
+    const QStringList far = {QStringLiteral("Na początku był deszcz, ") + filler + filler +
+                                 QStringLiteral("i znów deszcz nad miastem."),
+                             QStringLiteral("Rano deszcz.")};
+    RepetitionOptions options = polish();
+    options.distance = 100;
+    const RepetitionAnalysis farAnalysis = analyzeRepetitions({far}, options);
+    // The words of the filler repeat too
+    const auto rain = std::find_if(
+        farAnalysis.clusters.cbegin(), farAnalysis.clusters.cend(),
+        [](const RepetitionCluster& cluster) { return cluster.key == QStringLiteral("deszcz"); });
+    REQUIRE(rain != farAnalysis.clusters.cend());
+    QList<TextWord> farWords;
+    for (const int i : rain->words) {
+        farWords.append(farAnalysis.words.at(i));
+    }
+    const RepetitionContext shortened = repetitionContext(far, farWords);
+    REQUIRE(shortened.marks.size() == 3);
+    for (const auto& [start, length] : shortened.marks) {
+        CHECK(shortened.text.mid(start, length) == QStringLiteral("deszcz"));
+    }
+    CHECK(shortened.text.contains(QStringLiteral("… …")));
+    CHECK(shortened.text.contains(QStringLiteral("i znów deszcz nad miastem. Rano deszcz.")));
+    CHECK(shortened.text.startsWith(QStringLiteral("Na początku był deszcz, potem")));
+    CHECK(shortened.text.endsWith(QStringLiteral(" Rano deszcz.")));
+    CHECK(shortened.text.size() < far.first().size());
 }

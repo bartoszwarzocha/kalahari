@@ -14,6 +14,33 @@ namespace {
 /// @brief How many letters a stem must share with the start of its word to be its base form
 constexpr int SHARED_START = 3;
 
+/// @brief About how many characters of the text a card of a repetition shows before its first
+///        word and after its last one (whole words)
+constexpr int CONTEXT_CHARS = 30;
+
+/// @brief The text between two words of a repetition in one paragraph that a card shows whole;
+///        a longer one is shortened to "…"
+constexpr int MAX_GAP_CHARS = 80;
+
+/// @brief The start of the word at or after @p place, going back to a space: the context does
+///        not start in the middle of a word
+int contextStart(const QString& text, int place) {
+    if (place <= 0) {
+        return 0;
+    }
+    const qsizetype space = text.lastIndexOf(QLatin1Char(' '), place);
+    return space < 0 ? 0 : static_cast<int>(space) + 1;
+}
+
+/// @brief The end of the word at @p place, going on to a space
+int contextEnd(const QString& text, int place) {
+    if (place >= text.size()) {
+        return static_cast<int>(text.size());
+    }
+    const qsizetype space = text.indexOf(QLatin1Char(' '), place);
+    return space < 0 ? static_cast<int>(text.size()) : static_cast<int>(space);
+}
+
 /// @brief Whether the character at @p i of @p text joins two letters into one word: an
 ///        apostrophe or a hyphen with a letter on each side
 bool joinsLetters(const QString& text, qsizetype i) {
@@ -92,6 +119,58 @@ QString chooseBaseForm(const QString& word, const QStringList& stems, const QStr
         }
     }
     return chosen.isEmpty() ? lower : chosen;
+}
+
+RepetitionContext repetitionContext(const QStringList& paragraphs, const QList<TextWord>& words) {
+    // The pieces of the paragraphs shown, each with the words in it
+    struct Piece {
+        int paragraph = 0;
+        int from = 0;
+        int to = 0;
+        QList<std::pair<int, int>> words;  // in the paragraph
+    };
+    QList<Piece> pieces;
+    const auto paragraphText = [&paragraphs](int paragraph) {
+        return paragraph >= 0 && paragraph < paragraphs.size() ? paragraphs.at(paragraph)
+                                                               : QString();
+    };
+    for (const TextWord& word : words) {
+        const QString text = paragraphText(word.paragraph);
+        const int end = word.start + word.length;
+        if (!pieces.isEmpty() && pieces.last().paragraph == word.paragraph &&
+            word.start - pieces.last().to <= MAX_GAP_CHARS) {
+            pieces.last().to = end;
+        } else {
+            pieces.append({word.paragraph, contextStart(text, word.start - CONTEXT_CHARS), end, {}});
+        }
+        pieces.last().words.append({word.start, word.length});
+    }
+
+    RepetitionContext context;
+    const QString ellipsis(QChar(0x2026));
+    for (int i = 0; i < pieces.size(); ++i) {
+        const Piece& piece = pieces.at(i);
+        QString text = paragraphText(piece.paragraph);
+        text.replace(QChar::LineSeparator, QLatin1Char(' '));
+        // To the end of a word: two pieces of one paragraph are farther apart than the text
+        // around them
+        const int to = contextEnd(text, piece.to + CONTEXT_CHARS);
+        if (i > 0) {
+            context.text += QLatin1Char(' ');
+        }
+        if (piece.from > 0) {
+            context.text += ellipsis;
+        }
+        const int offset = static_cast<int>(context.text.size()) - piece.from;
+        context.text += text.mid(piece.from, to - piece.from);
+        if (to < text.size()) {
+            context.text += ellipsis;
+        }
+        for (const auto& [start, length] : piece.words) {
+            context.marks.append({offset + start, length});
+        }
+    }
+    return context;
 }
 
 const QSet<QString>& commonWords(const QString& language) {

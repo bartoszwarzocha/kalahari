@@ -407,6 +407,37 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
         {tr("Close the list"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
     groups.push_back(std::move(quickInsert));
 
+    // The lists of the Repetitions panel (panels/repetitions_panel.h) take their keys only
+    // while they have the keys
+    FixedKeyGroup repetitions;
+    //: In Polish: Stałe: panel „Powtórzenia”
+    repetitions.title = tr("Fixed: the Repetitions panel");
+    repetitions.local = true;
+    //: In Polish: Wybierz kartę albo słowo
+    repetitions.rows.push_back({tr("Choose a card or a word"),
+                                {keyWith(NONE, Qt::Key_Up), keyWith(NONE, Qt::Key_Down),
+                                 keyWith(NONE, Qt::Key_Home), keyWith(NONE, Qt::Key_End)},
+                                NONE, {}, {}, {}});
+    //: In Polish: Przejdź do słów w tekście
+    repetitions.rows.push_back(
+        {tr("Go to the words in the text"), enterKeys(NONE), NONE, {}, {}, {}});
+    //: In Polish: Pomijaj słowo karty
+    repetitions.rows.push_back(
+        {tr("Skip the word of the card"), {keyWith(NONE, Qt::Key_Delete)}, NONE, {}, {}, {}});
+    //: In Polish: Menu karty
+    repetitions.rows.push_back({tr("The card's menu"),
+                                {keyWith(NONE, Qt::Key_Menu), keyWith(SHIFT, Qt::Key_F10)},
+                                NONE, {}, {}, {}});
+    if (!mac) {
+        //: In Polish: Przełącz karty „Blisko siebie” i „Najczęstsze”
+        repetitions.rows.push_back(
+            {tr("Switch the pages Close Together and Most Frequent"),
+             {keyWith(CTRL, Qt::Key_Tab), keyWith(CTRL | SHIFT, Qt::Key_Tab)}, NONE, {}, {}, {}});
+    }
+    repetitions.rows.push_back(
+        {tr("Back to the text"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
+    groups.push_back(std::move(repetitions));
+
     // The tree of the Navigator takes its keys only while it has the keys: F2 elsewhere shows
     // the Navigator, and Ctrl+Shift+Enter elsewhere is Book > Add... for what is in front
     FixedKeyGroup navigator;

@@ -17,6 +17,7 @@
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
+#include "kalahari/gui/repetitions_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -450,6 +451,20 @@ MainWindow::MainWindow(QWidget* parent)
         m_dockCoordinator->spellingPanel(), m_dockCoordinator->spellingDock(),
         m_dockCoordinator->centralTabs(), m_spellingCoordinator, m_grammarCoordinator, this);
 
+    // The Repetitions panel, the marks of the repeated words and Next Repetition; a chapter
+    // is opened as from the Navigator
+    m_repetitionsCoordinator = new RepetitionsCoordinator(
+        m_dockCoordinator->repetitionsPanel(), m_dockCoordinator->repetitionsDock(),
+        m_dockCoordinator->centralTabs(), m_spellingCoordinator,
+        [this](const QString& elementId) {
+            if (const core::ProjectElement* element =
+                    core::ProjectManager::getInstance().findElement(elementId)) {
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
+            }
+        },
+        statusBar(), this);
+    m_repetitionsCoordinator->connectCommands();
+
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
     // No m_editorPanel at startup - Dashboard is default first tab
 
@@ -528,6 +543,9 @@ MainWindow::~MainWindow() {
     // The Spelling and Grammar panel stops following the text and the checking before they go
     delete m_spellingPanelCoordinator;
     m_spellingPanelCoordinator = nullptr;
+    // The Repetitions panel too: it follows the texts and marks them
+    delete m_repetitionsCoordinator;
+    m_repetitionsCoordinator = nullptr;
     if (m_spellingCoordinator) {
         disconnect(m_spellingCoordinator, nullptr, this, nullptr);
     }

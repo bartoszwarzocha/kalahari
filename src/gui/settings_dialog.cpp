@@ -120,6 +120,9 @@ void SettingsDialog::createNavigationTree() {
     addPage(editor, tr("Auto-correct"), []() { return new EditorAutoCorrectPage(); });
     //: Settings > Editor > Quick Insert: @ and # in the text. In Polish: Szybkie wstawianie
     addPage(editor, tr("Quick Insert"), []() { return new EditorQuickInsertPage(); });
+    //: Settings > Editor > Repetitions: the words that come back too close. In Polish: Powtórzenia
+    m_pageItems[REPETITIONS_PAGE] =
+        addPage(editor, tr("Repetitions"), []() { return new EditorRepetitionsPage(); });
     //: Settings > Editor > Versions: the versions of the texts. In Polish: Wersje
     m_pageItems[VERSIONS_PAGE] =
         addPage(editor, tr("Versions"), []() { return new EditorVersionsPage(); });

@@ -1620,6 +1620,10 @@ may have them too.
 - **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –
   edit, Space – done or resolved, Delete – delete, the Menu key or Shift+F10 – its menu,
   Esc – back to the text.
+- **Repetitions panel** (Tools > Word Repetitions): Up and Down, Home and End – choose a
+  card or a word (the text shows its words), Enter – the cursor to the words in the text,
+  Delete – skip the word of the card from now on, the Menu key or Shift+F10 – the card's
+  menu, Ctrl+Tab – the pages Close Together and Most Frequent, Esc – back to the text.
 - **Version History window:** F2 – change the description, Delete – delete the version (in
   the list); Alt+Down and Alt+Up – the next and the previous change (macOS: Cmd+Option with
   the arrows); Ctrl+C and Ctrl+A in the preview.

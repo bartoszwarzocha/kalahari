@@ -95,8 +95,8 @@ QByteArray layoutWithoutViewsToolbar() {
 
 }  // namespace
 
-TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, formatting marks "
-          "and zoom of the View menu",
+TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, formatting marks, "
+          "repetitions and zoom of the View menu",
           "[gui][toolbar]") {
     registerAllCommands(CommandCallbacks{});
     registerAllIcons();
@@ -113,7 +113,7 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, fo
 
     // The very actions of the View menu, so a button is checked with its menu item
     const QList<QAction*> actions = toolbar->actions();
-    REQUIRE(actions.size() == 15);
+    REQUIRE(actions.size() == 16);
     CHECK(actions[0] == registry.getAction(std::string("view.mode.continuous")));
     CHECK(actions[1] == registry.getAction(std::string("view.mode.page")));
     CHECK(actions[2]->isSeparator());
@@ -123,12 +123,13 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, fo
     CHECK(actions[6] == registry.getAction(std::string("view.darkPaper")));
     CHECK(actions[7] == registry.getAction(std::string("view.textFrameBorder")));
     CHECK(actions[8] == registry.getAction(std::string("view.showFormattingMarks")));
-    CHECK(actions[9]->isSeparator());
-    CHECK(actions[10] == registry.getAction(std::string("view.zoomOut")));
-    CHECK(actions[11] == registry.getAction(std::string("view.zoomIn")));
-    CHECK(actions[12] == registry.getAction(std::string("view.resetZoom")));
-    CHECK(actions[13] == registry.getAction(std::string("view.zoomPageWidth")));
-    CHECK(actions[14] == registry.getAction(std::string("view.zoomWholePage")));
+    CHECK(actions[9] == registry.getAction(std::string("view.repetitionMarks")));
+    CHECK(actions[10]->isSeparator());
+    CHECK(actions[11] == registry.getAction(std::string("view.zoomOut")));
+    CHECK(actions[12] == registry.getAction(std::string("view.zoomIn")));
+    CHECK(actions[13] == registry.getAction(std::string("view.resetZoom")));
+    CHECK(actions[14] == registry.getAction(std::string("view.zoomPageWidth")));
+    CHECK(actions[15] == registry.getAction(std::string("view.zoomWholePage")));
 
     // In the View menu the text frame border follows the paper, before the separator
     const Command* paper = registry.getCommand("view.darkPaper");
@@ -144,8 +145,8 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, fo
     auto& icons = kalahari::core::IconRegistry::getInstance();
     for (const char* id : {"view.mode.continuous", "view.mode.page", "view.mode.distraction-free",
                            "view.focus", "view.typewriter", "view.darkPaper",
-                           "view.textFrameBorder", "view.showFormattingMarks", "view.zoomOut",
-                           "view.zoomIn",
+                           "view.textFrameBorder", "view.showFormattingMarks",
+                           "view.repetitionMarks", "view.zoomOut", "view.zoomIn",
                            "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}) {
         INFO(id);
         CHECK(icons.hasIcon(QString::fromLatin1(id)));

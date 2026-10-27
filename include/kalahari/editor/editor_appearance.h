@@ -113,8 +113,9 @@ struct EditorColors {
     /// @brief The waves under the misspelled words and the grammar issues on one paper (the
     /// theme's colors, as shown on that paper; not valid: those of RenderColors)
     struct IssueColors {
-        QColor spelling;  ///< Misspelled words
-        QColor grammar;   ///< Grammar, style and punctuation
+        QColor spelling;    ///< Misspelled words
+        QColor grammar;     ///< Grammar, style and punctuation
+        QColor repetition;  ///< Words repeated too close (the Repetitions panel)
     };
     IssueColors issuesLight;  ///< On the light paper
     IssueColors issuesDark;   ///< On the dark paper

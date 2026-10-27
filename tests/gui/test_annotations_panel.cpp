@@ -363,13 +363,13 @@ TEST_CASE("Colors: a kind's color as Optimize colors in themes shows it", "[gui]
     CHECK(shownColor(deep, white, true) == deep);
     CHECK_FALSE(shownColor(QColor(), white, true).isValid());
 
-    // The marks' colors of both themes (the kinds of annotations, spelling, grammar and the
-    // changes of a version), on both papers and on the panels of both themes
+    // The marks' colors of both themes (the kinds of annotations, spelling, grammar, the
+    // changes of a version and the repetitions), on both papers and on the panels of both themes
     const QColor lightBase = themeNamed(QStringLiteral("Light")).palette.base;
     const QColor darkBase = themeNamed(QStringLiteral("Dark")).palette.base;
     for (const QString& name : {QStringLiteral("Light"), QStringLiteral("Dark")}) {
         const core::Theme theme = themeNamed(name);
-        CHECK(theme.editor.size() == 7);
+        CHECK(theme.editor.size() == 8);
         for (const auto& [key, color] : theme.editor) {
             for (const QColor& background : {white, darkPaper, lightBase, darkBase}) {
                 INFO(name.toStdString() << " " << key << " on " << background.name().toStdString());

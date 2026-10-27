@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Quick insert: @ and # in the text** - 2026-10-27. @ or # typed at the start of a word
+  opens a list at the cursor: by default @ the names of the cards of the Workshop (characters,
+  locations, items) and # the writer's text fragments and the typographic characters (en dash,
+  ellipsis, quotation marks, no-break space...). The letters typed after it narrow the list;
+  Up and Down, Page Up and Page Down choose, Enter or Tab insert the item in place of what was
+  typed, Esc closes the list and keeps the text; @ or # in the middle of a word stays a
+  character. Insert > Quick Insert... (Ctrl+Shift+W) opens the list with all of them.
+  Settings > Editor > Quick Insert turns it off, chooses what @ and # open, and adds, changes
+  and removes the fragments and characters (a fragment in several lines inserts paragraphs; a
+  pair of marks leaves the cursor between them). The program does not make cards yet, so @
+  lists the cards of a book that has them.
+- **Word repetitions** - 2026-10-27. Tools > Word Repetitions opens the Repetitions panel with
+  the keys in it. Close Together has a card for each word that comes back within 30 words, in
+  the order of the text: the word, how many times in how many words, and the text around it
+  with its words marked; Most Frequent lists the words used most often, with their counts in a
+  thousand words and their forms. The scope is the chapter in front (counted again a moment
+  after the writing stops) or the whole book (Recount; a card of a chapter not open opens it).
+  While the panel shows, the repeated words are marked in the text with a background or a
+  wavy line, and those of the card chosen are framed (View > Repetitions in Text turns the
+  marks on and off). Up and Down choose a card, Enter goes to its words, Delete skips the word
+  from now on, Ctrl+Tab switches the pages, Esc goes back to the text; Tools > Next Repetition
+  (Ctrl+Shift+F7) selects the next one in the text, with the panel closed too. The forms of a
+  word count as one by the spelling dictionary, and very common words do not count.
+  Settings > Editor > Repetitions (also the gear of the panel) sets the distance, the length
+  of the words counted, the skipped words, the marks and their color in each theme.
 - **Versions of the texts: Save Version and Version History** - 2026-10-22. File > Save
   Version (Alt+Shift+S; on macOS Option+Shift+Cmd+S) keeps the text in front as it is in its
   editor, with its formatting, its annotations and the changes not saved yet, as a version:

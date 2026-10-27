@@ -227,6 +227,28 @@ private:
     QPushButton* m_restore = nullptr;
 };
 
+/// @brief Editor > Repetitions: what counts as a word that comes back too close, the words the
+/// writer skips, and how the words are marked in the text (with the color of each theme)
+class EditorRepetitionsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorRepetitionsPage(QWidget* parent = nullptr);
+
+protected:
+    /// @brief Enter in the field of a new word adds it, and does not close the dialog
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
+private:
+    void addWord();
+    void removeWords();
+    void updateButtons();
+
+    QListWidget* m_words = nullptr;   ///< The words skipped
+    QLineEdit* m_newWord = nullptr;   ///< A word to skip
+    QPushButton* m_add = nullptr;
+    QPushButton* m_remove = nullptr;
+};
+
 /// @brief Editor > Versions: whether Save Version asks for a description, the versions the
 /// program keeps by itself and how many, and the colors of the comparison of a version
 class EditorVersionsPage : public SettingsPage {

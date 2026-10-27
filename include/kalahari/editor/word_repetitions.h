@@ -19,6 +19,10 @@
 
 namespace kalahari::editor {
 
+/// @brief The theme's color of the repeated words in the text (the "editor" part of a theme;
+///        Settings > Editor > Repetitions)
+constexpr const char* REPETITION_COLOR_KEY = "repetition";
+
 /// @brief What counts as a repetition (Settings > Editor > Repetitions)
 struct RepetitionOptions {
     int distance = 30;        ///< A word that comes back within so many words repeats
@@ -92,6 +96,21 @@ RepetitionAnalysis analyzeRepetitions(const QList<QStringList>& texts,
 /// with at least the first three letters of the word ("walking" -> "walk", "Anny" -> "anna"),
 /// so that a stem of another word ("idzie" -> "id") does not join words that are not one.
 QString chooseBaseForm(const QString& word, const QStringList& stems, const QString& language);
+
+/// @brief The text a card of a repetition shows: its words with some text around them
+struct RepetitionContext {
+    QString text;                       ///< The text, with "…" where it is shortened
+    QList<std::pair<int, int>> marks;   ///< Where the words are in it: start, length
+
+    bool operator==(const RepetitionContext&) const = default;
+};
+
+/// @brief The text around some words of one text, for the card of their repetition: a few
+///        words before the first and after the last; the text between two words far apart, or
+///        in different paragraphs, is shortened to "…"
+/// @param paragraphs The paragraphs of the text
+/// @param words The words, in the order of the text
+RepetitionContext repetitionContext(const QStringList& paragraphs, const QList<TextWord>& words);
 
 /// @brief The very common words of a language ("pl", "en", "pl_PL"...), in lower case; empty
 ///        for a language without a list

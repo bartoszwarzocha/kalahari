@@ -109,6 +109,7 @@ set(TEST_SOURCES
     gui/test_program_folders.cpp                 # Folders of the program and the Folders page
     gui/test_spelling_coordinator.cpp            # Spelling as you type: dictionary, command, settings page
     gui/test_spelling_panel.cpp                  # Spelling and Grammar panel: cards, counts, keys, the text in front, F7
+    gui/test_repetitions_panel.cpp               # Repetitions panel: cards, words, keys, marks, Next Repetition, settings page
     gui/test_grammar_coordinator.cpp             # Grammar as you type: where it is checked, command, settings page
     gui/test_grammar_components.cpp              # Java and LanguageTool: versions, downloads, folders
     gui/test_language_tool_server.cpp            # LanguageTool server: started with Java or outside, restarts
@@ -232,6 +233,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/editor_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/auto_correct_page.cpp  # Settings > Editor > Auto-correct
     ${CMAKE_SOURCE_DIR}/src/gui/settings/quick_insert_page.cpp  # Settings > Editor > Quick Insert
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/repetitions_page.cpp  # Settings > Editor > Repetitions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/versions_page.cpp  # Settings > Editor > Versions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/navigator_page.cpp  # Settings > Navigator
@@ -258,6 +260,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_coordinator.cpp    # Spelling as you type: the editors' dictionary
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_coordinator.cpp     # Grammar as you type: the editors' LanguageTool server
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_panel_coordinator.cpp  # The Spelling and Grammar panel and the text in front
+    ${CMAKE_SOURCE_DIR}/src/gui/repetitions_coordinator.cpp  # The Repetitions panel and the texts
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_components.cpp      # Grammar: Java and LanguageTool on this computer
     ${CMAKE_SOURCE_DIR}/src/gui/language_tool_server.cpp    # Grammar: the LanguageTool server the program starts
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_setup.cpp           # Grammar: Java and LanguageTool downloaded and prepared
@@ -268,6 +271,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotations_panel.cpp # Annotations panel
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_panel.cpp  # Spelling and Grammar panel
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/repetitions_panel.cpp  # Repetitions panel
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_style_menu.cpp    # Format > Text Style: the text's styles
@@ -379,6 +383,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_panel_coordinator.h  # SpellingPanelCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/repetitions_coordinator.h  # RepetitionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/language_tool_server.h  # LanguageToolServer with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_setup.h  # GrammarSetup with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h  # AnnotationCard with Q_OBJECT
@@ -386,6 +391,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h  # AnnotationsPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_panel.h  # SpellingPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/repetitions_panel.h  # RepetitionsPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT

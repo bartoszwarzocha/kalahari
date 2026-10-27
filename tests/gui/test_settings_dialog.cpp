@@ -186,6 +186,13 @@ TEST_CASE("Settings dialog: the gears of the panels open it at their pages", "[g
     REQUIRE(tree->currentItem()->parent() != nullptr);
     CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
 
+    // The gear of the Repetitions panel: Editor > Repetitions
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::REPETITIONS_PAGE)));
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Repetitions"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
+
     // The gear of the Annotations panel: Annotations
     CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE)));
     REQUIRE(tree->currentItem() != nullptr);
