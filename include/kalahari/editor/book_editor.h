@@ -964,6 +964,22 @@ public:
     ///        menu and tables are not inserted there.
     bool isInTable() const;
 
+    /// @brief The most columns and rows of a table Insert > Table makes
+    static constexpr int MAX_INSERTED_TABLE_COLUMNS = 20;
+    static constexpr int MAX_INSERTED_TABLE_ROWS = 100;
+
+    /// @brief Insert > Table: a table as wide as the text, with equal columns and empty cells,
+    ///        in place of the selection or at the cursor, as one undo step
+    ///
+    /// In the middle of a paragraph the table splits it in two; an empty paragraph it would
+    /// leave next to it goes (where the table does not need it, at the start or the end of
+    /// the text), so in an empty paragraph the table takes its place. The cursor goes to the
+    /// first cell. Nothing happens in a read-only text or in a table (isInTable()).
+    /// @param columns 1 to MAX_INSERTED_TABLE_COLUMNS
+    /// @param rows 1 to MAX_INSERTED_TABLE_ROWS
+    /// @param headerRow The first row is a header row
+    void insertTable(int columns, int rows, bool headerRow);
+
     /// @brief Let the text be changed or not (see isReadOnly())
     void setReadOnly(bool readOnly);
 

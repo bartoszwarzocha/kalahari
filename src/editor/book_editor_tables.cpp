@@ -23,6 +23,50 @@ bool BookEditor::isInTable() const
     return tableOf(m_textBuffer->findBlockByNumber(place.paragraph)) != nullptr;
 }
 
+void BookEditor::insertTable(int columns, int rows, bool headerRow)
+{
+    if (refusesChange() || isInTable()) {
+        return;
+    }
+    ensureDocument();
+
+    QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
+    if (hasSelection()) {
+        cursor = selectionToReplace();
+        clearSelection();
+    }
+    TableShape shape;
+    shape.columns = std::clamp(columns, 1, MAX_INSERTED_TABLE_COLUMNS);
+    shape.rows = std::clamp(rows, 1, MAX_INSERTED_TABLE_ROWS);
+    shape.headerRows = headerRow ? 1 : 0;
+
+    // One undo step: the replaced selection, the table with its cells in the format of the
+    // text, and the empty paragraphs it leaves next to it
+    cursor.beginEditBlock();
+    removeKeepingAnnotations(cursor);
+    QTextTable* table = editor::insertTable(cursor, shape);
+    QTextCursor cells(m_textBuffer.get());
+    for (int row = 0; row < shape.rows; ++row) {
+        for (int column = 0; column < shape.columns; ++column) {
+            cells.setPosition(table->cellAt(row, column).firstPosition());
+            cells.setBlockFormat(paragraphBlockFormat());
+            cells.setBlockCharFormat(QTextCharFormat());
+        }
+    }
+    const QTextBlock after = m_textBuffer->findBlock(table->lastPosition() + 1);
+    if (after.length() == 1 && canRemoveBlock(after)) {
+        removeBlock(cells, after);
+    }
+    const QTextBlock before = m_textBuffer->findBlock(table->firstPosition() - 1);
+    if (before.length() == 1 && canRemoveBlock(before)) {
+        removeBlock(cells, before);
+    }
+    cursor.endEditBlock();
+
+    cursor.setPosition(table->cellAt(0, 0).firstPosition());
+    finishEdit(cursor);
+}
+
 bool BookEditor::moveToCell(bool back)
 {
     if (!m_textBuffer) {
@@ -137,11 +181,7 @@ bool BookEditor::deleteAtTableEdge(bool backward)
 
     // Next to a table: an empty paragraph goes (unless the table needs it, at the start or
     // end of the text or before another table), and the cursor goes into the table
-    const QTextBlock other = backward ? block.next() : block.previous();
-    const bool removable =
-        block.length() == 1 && other.isValid() &&
-        !isTableBreakAt(*m_textBuffer, backward ? block.position() + block.length() - 1
-                                                : block.position() - 1);
+    const bool removable = block.length() == 1 && canRemoveBlock(block);
     const int cellPosition =
         backward ? neighbour.position() + neighbour.length() - 1 : neighbour.position();
     QTextCursor cursor(m_textBuffer.get());

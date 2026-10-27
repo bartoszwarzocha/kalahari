@@ -88,6 +88,11 @@ QTextTable* insertTable(QTextCursor& cursor, const TableShape& shape);
 ///        its cells (the first one's is the end of the paragraph before the table) or its end
 bool isTableBreakAt(const QTextDocument& document, int position);
 
+/// @brief Whether removeBlock() takes the block whole: one of its paragraph breaks is not a
+///        break at a table (the only paragraph of a cell, or between a table and the start or
+///        end of the text or another table, stays)
+bool canRemoveBlock(const QTextBlock& block);
+
 /// @brief The parts of positions [from, to) of the document, in its order, that do not cross
 ///        a break at a table: the text of each cell the range goes into, and the text outside
 ///        tables, with a table the range covers whole

@@ -776,3 +776,63 @@ TEST_CASE("Tables: a cell holds only text; Enter starts a paragraph in it", "[ed
           "Before|0,0:Who|0,1:Role|1,0:An|1,0:na|1,1:Narrator|1,1:Second|2,0:Both|After");
     CHECK(editor->cursorPosition() == CursorPosition{4, 0});
 }
+
+// =============================================================================
+// Insert > Table
+// =============================================================================
+
+TEST_CASE("Tables: Insert > Table puts a table at the cursor, one undo step", "[editor][tables][insert]") {
+    const auto kml = [](const QString& content) {
+        return QStringLiteral("<kml>") + content + QStringLiteral("</kml>");
+    };
+    const QString row = QStringLiteral("<tr><td><p></p></td><td><p></p></td></tr>");
+
+    SECTION("in an empty paragraph it takes its place") {
+        const QString text = kml(QStringLiteral("<p>One</p><p></p><p>Two</p>"));
+        auto editor = editorWith(text);
+        editor->setCursorPosition({1, 0});
+        editor->insertTable(2, 2, false);
+        CHECK(textOf(*editor) == "One|0,0:|0,1:|1,0:|1,1:|Two");
+        CHECK(editor->cursorPosition() == CursorPosition{1, 0});
+        CHECK(editor->isModified());
+        editor->undo();
+        CHECK(editor->toKml().toStdString() == text.toStdString());
+    }
+
+    SECTION("in the middle of a paragraph it splits it, both parts in its style") {
+        auto editor = editorWith(kml(QStringLiteral("<h2>Ab</h2>")));
+        editor->setCursorPosition({0, 1});
+        editor->insertTable(2, 1, false);
+        CHECK(editor->toKml().toStdString() ==
+              kml(QStringLiteral("<h2>A</h2><table>") + row + QStringLiteral("</table><h2>b</h2>"))
+                  .toStdString());
+    }
+
+    SECTION("at the end of the text an empty paragraph stays after it") {
+        auto editor = editorWith(kml(QStringLiteral("<p>One</p>")));
+        editor->setCursorPosition({0, 3});
+        editor->insertTable(2, 1, true);
+        CHECK(textOf(*editor) == "One|0,0:|0,1:|");
+        const QTextTable* table = tableOf(editor->textDocument()->findBlockByNumber(1));
+        REQUIRE(table != nullptr);
+        CHECK(table->format().headerRowCount() == 1);
+    }
+
+    SECTION("in place of the selection") {
+        auto editor = editorWith(kml(QStringLiteral("<p>One two</p>")));
+        select(*editor, {0, 3}, {0, 7});
+        editor->insertTable(2, 1, false);
+        CHECK(textOf(*editor) == "One|0,0:|0,1:|");
+    }
+
+    SECTION("not in a table, not in a read-only text") {
+        auto editor = editorWith(TABLE_KML);
+        editor->setCursorPosition({3, 1});
+        editor->insertTable(2, 2, false);
+        CHECK(textOf(*editor) == TABLE_TEXT);
+        editor->setReadOnly(true);
+        editor->setCursorPosition({0, 1});
+        editor->insertTable(2, 2, false);
+        CHECK(textOf(*editor) == TABLE_TEXT);
+    }
+}

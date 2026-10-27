@@ -489,7 +489,6 @@ void EditCoordinator::follow(QWidget* element) {
     }
     if (auto* book = qobject_cast<editor::BookEditor*>(text)) {
         add(connect(book, &editor::BookEditor::selectionChanged, this, update));
-        add(connect(book, &editor::BookEditor::cursorPositionChanged, this, update));
         add(connect(book, &editor::BookEditor::contentChanged, this, update));
         add(connect(book, &editor::BookEditor::documentChanged, this, update));
     }

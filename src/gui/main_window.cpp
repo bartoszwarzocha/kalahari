@@ -762,6 +762,12 @@ void MainWindow::registerCommands() {
             editor->showLinkDialog();
         }
     };
+    // Insert > Table...: the window of the new table, of the editor in front
+    callbacks.onInsertTable = [this]() {
+        if (EditorPanel* editor = getCurrentEditor()) {
+            editor->showInsertTableDialog();
+        }
+    };
 
     // Alignment commands
     callbacks.onAlignLeft = [this]() { onAlignLeft(); };
@@ -1004,6 +1010,21 @@ void MainWindow::registerCommands() {
             return editor != nullptr && editor->getBookEditor() != nullptr
                    && editor->getBookEditor()->isReadOnly();
         });
+    // Insert > Table... also not in a cell of a table, which holds only text
+    if (Command* table = registry.getCommand("insert.table")) {
+        const auto inTable = [this]() {
+            const EditorPanel* editor = m_dockCoordinator != nullptr ? getCurrentEditor() : nullptr;
+            return editor != nullptr && editor->getBookEditor() != nullptr
+                   && editor->getBookEditor()->isInTable();
+        };
+        table->isEnabled = [inTable, enabled = table->isEnabled]() {
+            return (!enabled || enabled()) && !inTable();
+        };
+        table->disabledReason = [inTable, reason = table->disabledReason]() {
+            const QString readOnly = reason ? reason() : QString();
+            return readOnly.isEmpty() && inTable() ? inTableReason() : readOnly;
+        };
+    }
 
     // Close Book and the export of the book's archive work on the open book: without one
     // they are greyed out, as the Book menu (updateBookCommands())

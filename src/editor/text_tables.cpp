@@ -117,6 +117,14 @@ bool isTableBreakAt(const QTextDocument& document, int position)
     return character == QChar(CELL_START) || character == QChar(TABLE_END);
 }
 
+bool canRemoveBlock(const QTextBlock& block)
+{
+    const QTextDocument& document = *block.document();
+    return (block.next().isValid() &&
+            !isTableBreakAt(document, block.position() + block.length() - 1)) ||
+           (block.previous().isValid() && !isTableBreakAt(document, block.position() - 1));
+}
+
 std::vector<std::pair<int, int>> partsAtTables(const QTextDocument& document, int from, int to)
 {
     // The cell of a block (the position of its start), or -1 outside tables and in a table
