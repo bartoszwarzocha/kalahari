@@ -27,7 +27,7 @@ jobs:
 
     strategy:
       matrix:
-        build_type: [Debug, Release]
+        build_type: [Release]
       fail-fast: false  # Don't cancel other jobs if one fails
 
     steps:
@@ -121,18 +121,16 @@ jobs:
         key: macos-clang-vcpkg-binary-v1-${{ hashFiles('vcpkg.json') }}-${{ github.run_id }}
 
     - name: Build
-      run: cmake --build build --config ${{ matrix.build_type }} --parallel
+      run: cmake --build build --config ${{ matrix.build_type }} --parallel --target kalahari-tests
 
-    - name: Run tests
+    - name: Diagnostics
       run: |
         cd build
-        ctest --output-on-failure --build-config ${{ matrix.build_type }}
-
-    - name: Upload binaries (Release only)
-      if: matrix.build_type == 'Release'
-      uses: actions/upload-artifact@v4
-      with:
-        name: kalahari-macos-${{ matrix.build_type }}
-        path: |
-          build/bin/kalahari*
-        retention-days: 7
+        for i in 1 2 3 4 5 6 7 8; do
+          echo "=== Diag run $i"
+          QT_LOGGING_RULES="qt.qpa.screen.debug=true;qt.qpa.screen.info=true" ./bin/kalahari-tests "[diag]" 2>&1 | grep -E "DIAG|qpa|Updat|Received|QCocoaScreen|NSScreen|test cases" || true
+        done
+        for i in 1 2 3 4 5 6 7 8; do
+          echo "=== Test run $i"
+          ./bin/kalahari-tests "Own windows: a window that got the heading is higher by it" 2>&1 | grep -E "with expansion|==|room for|test cases" || true
+        done

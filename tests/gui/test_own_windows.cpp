@@ -328,3 +328,58 @@ TEST_CASE("Own windows: a window that got the heading is higher by it", "[gui][d
     IconDownloaderDialog iconDownloader;
     check(iconDownloader, QSize(600, 650));
 }
+
+// ---- Temporary diagnostics (macOS CI): the screen's room and the first window ----
+#include <QElapsedTimer>
+#include <QGuiApplication>
+#include <QThread>
+#include <cstdio>
+
+TEST_CASE("Diag: the screen and the first window", "[diag]") {
+    using namespace kalahari;
+    QElapsedTimer clock;
+    clock.start();
+    const auto print = [&clock](const char* when, const QWidget* w) {
+        const QScreen* s = QGuiApplication::primaryScreen();
+        const QRect g = s->geometry();
+        const QRect a = s->availableGeometry();
+        std::fprintf(stderr, "DIAG %5lld ms %-26s screens %lld geometry %d,%d %dx%d available %d,%d %dx%d",
+                     static_cast<long long>(clock.elapsed()), when,
+                     static_cast<long long>(QGuiApplication::screens().size()), g.x(), g.y(),
+                     g.width(), g.height(), a.x(), a.y(), a.width(), a.height());
+        if (w) {
+            const QRect f = w->frameGeometry();
+            const QRect ws = w->screen()->availableGeometry();
+            std::fprintf(stderr, " | window %d,%d %dx%d frame %d,%d %dx%d its screen %dx%d",
+                         w->x(), w->y(), w->width(), w->height(), f.x(), f.y(), f.width(),
+                         f.height(), ws.width(), ws.height());
+        }
+        std::fprintf(stderr, "\n");
+    };
+    print("start", nullptr);
+    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::registerAllIcons();
+    test::OpenNovel book(QStringLiteral("Rain"));
+    QMainWindow window;
+    gui::ToolbarManager toolbars(&window);
+    toolbars.createToolbars(gui::CommandRegistry::getInstance());
+    print("after setup", nullptr);
+
+    gui::dialogs::NewItemDialog newBook(gui::dialogs::NewItemMode::Project);
+    print("New Book constructed", &newBook);
+    newBook.show();
+    print("New Book shown", &newBook);
+    QApplication::processEvents();
+    print("after processEvents", &newBook);
+    for (int i = 0; i < 20; ++i) {
+        QApplication::processEvents(QEventLoop::AllEvents, 50);
+        QThread::msleep(50);
+    }
+    print("after 1 s of events", &newBook);
+
+    gui::dialogs::NewItemDialog second(gui::dialogs::NewItemMode::Project);
+    print("second constructed", &second);
+    second.show();
+    QApplication::processEvents();
+    print("second shown", &second);
+}
