@@ -44,7 +44,8 @@ set(TEST_SOURCES
     editor/test_clipboard_paste.cpp         # Text of other programs pasted, and given to them
     editor/test_view_modes.cpp              # EditorAppearance and BookEditor view modes
     editor/test_statistics_collector.cpp    # Phase 6/Task 7.17: StatisticsCollector tests
-    editor/test_word_frequency_analyzer.cpp # Phase 6/Task 7.17: WordFrequencyAnalyzer tests
+    editor/test_word_repetitions.cpp        # The repetitions of words
+    editor/test_quick_insert.cpp            # Quick insert: the items, the list at the cursor
     editor/test_spell_check_service.cpp     # Phase 6.4-6.9: SpellCheckService tests
     editor/test_grammar_check_service.cpp   # Grammar: texts checked on a LanguageTool server
     editor/test_grammar.cpp                 # Grammar as you type in the editor
@@ -336,14 +337,16 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/clipboard_handler.cpp     # Phase 4.13-4.16: Clipboard
     ${CMAKE_SOURCE_DIR}/src/editor/editor_appearance.cpp    # Phase 5: Editor appearance
     ${CMAKE_SOURCE_DIR}/src/editor/statistics_collector.cpp   # Phase 6/Task 7.17: Statistics
-    ${CMAKE_SOURCE_DIR}/src/editor/word_frequency_analyzer.cpp # Phase 6/Task 7.17: Word frequency
+    ${CMAKE_SOURCE_DIR}/src/editor/word_repetitions.cpp        # The repetitions of words
+    ${CMAKE_SOURCE_DIR}/src/editor/quick_insert.cpp            # Quick insert: the items
+    ${CMAKE_SOURCE_DIR}/src/editor/quick_insert_controller.cpp # Quick insert: the list at the cursor
     ${CMAKE_SOURCE_DIR}/src/editor/spell_check_service.cpp     # Phase 6.4-6.9: Spell check service
     ${CMAKE_SOURCE_DIR}/src/editor/grammar_check_service.cpp  # Phase 6.14-6.17: Grammar check service
     ${CMAKE_SOURCE_DIR}/src/editor/tag_detector.cpp           # Task 7.10: TODO and other tags
     # MOC headers for Q_OBJECT classes
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/statistics_collector.h
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/quick_insert_controller.h  # QuickInsertList, QuickInsertController with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/tag_detector.h  # TagDetector with Q_OBJECT

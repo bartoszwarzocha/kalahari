@@ -277,11 +277,11 @@ set(KALAHARI_SOURCES
     editor/style_resolver.cpp        # Phase 6.1-6.3: Style resolver with inheritance
     editor/spell_check_service.cpp   # Phase 6.4-6.9: Spell check service with Hunspell
     editor/grammar_check_service.cpp # Phase 6.14-6.17: Grammar check service with LanguageTool
-    editor/word_frequency_analyzer.cpp  # Phase 6.18-6.20: Word frequency analyzer
+    editor/word_repetitions.cpp  # The repetitions of words: too close and most frequent
     editor/text_to_speech_service.cpp   # Phase 6.21-6.24: Text-to-speech service (optional Qt Speech)
     editor/tag_detector.cpp              # Task 7.10: Tag detector service
-    editor/quick_insert_handler.cpp      # Tasks 7.11-7.12: Quick insert @ and # triggers
-    editor/quick_insert_popup.cpp        # Tasks 7.11-7.12: Quick insert autocomplete popup
+    editor/quick_insert.cpp              # Quick insert: the items the typed letters find
+    editor/quick_insert_controller.cpp   # Quick insert: the list at the cursor of an editor
     editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
     editor/kml_document_model.cpp        # KML reader
@@ -379,11 +379,9 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/style_resolver.h  # StyleResolver with Q_OBJECT (OpenSpec #00042 Phase 6.1-6.3)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT (OpenSpec #00042 Phase 6.4-6.9)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT (OpenSpec #00042 Phase 6.14-6.17)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h  # WordFrequencyAnalyzer with Q_OBJECT (OpenSpec #00042 Phase 6.18-6.20)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/text_to_speech_service.h  # TextToSpeechService with Q_OBJECT (OpenSpec #00042 Phase 6.21-6.24)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/tag_detector.h  # TagDetector with Q_OBJECT (OpenSpec #00042 Task 7.10)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/quick_insert_handler.h  # QuickInsertHandler with Q_OBJECT (OpenSpec #00042 Tasks 7.11-7.12)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/quick_insert_popup.h    # QuickInsertPopup with Q_OBJECT (OpenSpec #00042 Tasks 7.11-7.12)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/quick_insert_controller.h  # QuickInsertList, QuickInsertController with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h     # ViewportManager with Q_OBJECT (OpenSpec #00043 Phase 4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h       # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kalahari_text_document_layout.h  # KalahariTextDocumentLayout with Q_OBJECT (OpenSpec #00043 Phase 11.11)
