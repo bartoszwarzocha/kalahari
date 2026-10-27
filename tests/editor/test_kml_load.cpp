@@ -353,8 +353,7 @@ TEST_CASE("KML load: unsupported elements are not kept", "[editor][kml][load][un
     SECTION("Elements other than paragraphs, with their content") {
         BookEditor editor;
         editor.fromKml(QStringLiteral(
-            "<kml><p>A</p><table><tr><td>Cell</td></tr></table>"
-            "<img src=\"map.png\"/><p>B</p></kml>"));
+            "<kml><p>A</p><img src=\"map.png\"/><figure><p>Caption</p></figure><p>B</p></kml>"));
         REQUIRE(editor.plainText() == QStringLiteral("A\nB"));
         REQUIRE(editor.toKml() == QStringLiteral("<kml><p>A</p><p>B</p></kml>"));
     }

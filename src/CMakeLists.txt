@@ -15,6 +15,7 @@ set(KALAHARI_CORE_SOURCES
     editor/paragraph_format.cpp  # A paragraph's own formatting: indents, spacing, breaks
     editor/character_format.cpp  # The character formatting of Format > Font, Change Case
     editor/text_lists.cpp        # Bulleted and numbered lists
+    editor/text_tables.cpp       # Tables: a table of the document, its cells of paragraphs
     editor/kml_document_model.cpp  # KML reader (the clipboard reads the lists of KML)
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
