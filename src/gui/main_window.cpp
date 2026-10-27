@@ -110,6 +110,13 @@ core::KindRef workshopKind(const QString& kindId) {
         QString::fromLatin1(core::ProjectManager::BASE_PACKAGE), kindId);
 }
 
+/// Why the objects of the Insert menu and tables are greyed out in a cell of a table
+QString inTableReason() {
+    //: Why Insert > Horizontal Line, Scene Break, Page Break and Table are greyed out with the
+    //: cursor in a table. In Polish: Komórka tabeli może zawierać tylko tekst
+    return MainWindow::tr("A cell of a table holds only text");
+}
+
 } // namespace
 
 MainWindow::MainWindow(QWidget* parent)
@@ -348,12 +355,20 @@ MainWindow::MainWindow(QWidget* parent)
     // pastes are greyed out, saying why
     m_editCoordinator->addTextCommands({"edit.selectWord", "edit.selectParagraph"},
                                        [](const editor::BookEditor&) { return true; });
-    const std::vector<std::string> insertCommands = {
-        "insert.horizontalLine", "insert.sceneBreak", "insert.pageBreak", "book.sceneBreak",
+    // The objects not in a cell of a table, which holds only text
+    const std::vector<std::string> objectCommands = {
+        "insert.horizontalLine", "insert.sceneBreak", "insert.pageBreak", "book.sceneBreak"};
+    const std::vector<std::string> characterCommands = {
         "insert.specialChar", "insert.quickCharacter", "insert.noBreakSpace",
         "insert.nonBreakingHyphen", "insert.optionalHyphen", "insert.enDash", "insert.emDash"};
+    m_editCoordinator->addTextCommands(objectCommands, [](const editor::BookEditor& text) {
+        return !text.isReadOnly() && !text.isInTable();
+    });
     m_editCoordinator->addTextCommands(
-        insertCommands, [](const editor::BookEditor& text) { return !text.isReadOnly(); });
+        characterCommands, [](const editor::BookEditor& text) { return !text.isReadOnly(); });
+    std::vector<std::string> insertCommands = objectCommands;
+    insertCommands.insert(insertCommands.end(), characterCommands.begin(),
+                          characterCommands.end());
     // The pastes in each mode: with something on the clipboard, as Paste
     const std::vector<std::string> pasteCommands = {
         "edit.pasteSourceFormatting", "edit.pasteMergeFormatting", "edit.pasteTextOnly"};
@@ -363,9 +378,15 @@ MainWindow::MainWindow(QWidget* parent)
     changingCommands.insert(changingCommands.end(), pasteCommands.begin(), pasteCommands.end());
     for (const std::string& id : changingCommands) {
         if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
-            command->disabledReason = [this]() {
+            const bool object =
+                std::find(objectCommands.begin(), objectCommands.end(), id) != objectCommands.end();
+            command->disabledReason = [this, object]() {
                 const editor::BookEditor* text = m_editCoordinator->textWithKeys();
-                return text != nullptr && text->isReadOnly() ? readOnlyReason() : QString();
+                if (text != nullptr && text->isReadOnly()) {
+                    return readOnlyReason();
+                }
+                return text != nullptr && object && text->isInTable() ? inTableReason()
+                                                                       : QString();
             };
         }
     }

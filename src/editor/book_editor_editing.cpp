@@ -247,8 +247,7 @@ void BookEditor::insertText(const QString& text)
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
-        const SelectionRange sel = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     insertKeepingAnnotations(cursor, text, pending);
@@ -378,9 +377,10 @@ void BookEditor::autoCorrectEndedParagraph(int paragraph, bool atEnd)
     const QString text = block.text();
 
     // "***" or "---" alone in the paragraph: the object, in the paragraph's place, with the
-    // cursor in the new paragraph after it
-    const TextObject object = atEnd ? paragraphObjectShortcut(text, m_autoCorrect)
-                                    : TextObject::None;
+    // cursor in the new paragraph after it (not in a cell, which holds only text)
+    const TextObject object = atEnd && !tableOf(block)
+                                  ? paragraphObjectShortcut(text, m_autoCorrect)
+                                  : TextObject::None;
     if (object == TextObject::None) {
         if (const std::optional<AutoCorrection> change =
                 autoCorrectionAtParagraphEnd(text, autoCorrectForText(), m_capsLockOn)) {
@@ -474,13 +474,11 @@ bool BookEditor::removeSelection(bool keepAnnotations)
 
     SelectionRange sel = m_selection.normalized();
 
-    // Direct QTextCursor delete — recorded by QTextDocument's native undo.
-    QTextCursor cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
-    if (keepAnnotations) {
-        removeKeepingAnnotations(cursor);
-    } else {
-        removeSelectionKeepingObjects(cursor);
-    }
+    // Direct QTextCursor delete — recorded by QTextDocument's native undo. Of a table it goes
+    // into or out of only the text goes.
+    QTextCursor cursor(m_textBuffer.get());
+    removeKeepingTables(cursor, calculateAbsolutePosition(sel.start),
+                        calculateAbsolutePosition(sel.end), keepAnnotations);
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
@@ -516,8 +514,7 @@ void BookEditor::insertNewline()
     const int ended = m_cursorPosition.paragraph;
     const bool endedAtEnd = cursor.atBlockEnd();
     if (hasSelection()) {
-        const SelectionRange sel = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     cursor.beginEditBlock();
@@ -592,8 +589,7 @@ void BookEditor::insertLineBreak()
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
-        const SelectionRange sel = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     cursor.beginEditBlock();
@@ -615,8 +611,7 @@ void BookEditor::insertCharacters(const QString& characters)
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
-        const SelectionRange sel = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     cursor.beginEditBlock();
@@ -644,7 +639,7 @@ void BookEditor::deleteBackward()
     if (m_cursorPosition.paragraph == 0 && m_cursorPosition.offset == 0) {
         return;
     }
-    if (deleteAtObject(true)) {
+    if (deleteAtTableEdge(true) || deleteAtObject(true)) {
         return;
     }
 
@@ -682,7 +677,7 @@ void BookEditor::deleteForward()
         return;
     }
 
-    if (deleteAtObject(false)) {
+    if (deleteAtTableEdge(false) || deleteAtObject(false)) {
         return;
     }
 
@@ -774,11 +769,11 @@ void BookEditor::deleteTo(const CursorPosition& position)
         return;
     }
 
-    // One step of QTextDocument's native undo
+    // One step of QTextDocument's native undo; at a table only the text of cells goes
     const int paragraphs = m_textBuffer->blockCount();
-    QTextCursor cursor = createCursor(m_textBuffer.get(), std::min(target, m_cursorPosition),
-                                      std::max(target, m_cursorPosition));
-    removeKeepingAnnotations(cursor);
+    QTextCursor cursor(m_textBuffer.get());
+    removeKeepingTables(cursor, calculateAbsolutePosition(std::min(target, m_cursorPosition)),
+                        calculateAbsolutePosition(std::max(target, m_cursorPosition)));
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
@@ -883,8 +878,7 @@ void BookEditor::yank()
 
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     if (hasSelection()) {
-        const SelectionRange selection = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), selection.start, selection.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     cursor.beginEditBlock();  // One undo step, apart from the typing before it
@@ -1167,8 +1161,7 @@ void BookEditor::insertMimeDataAs(const QMimeData* source, PasteMode mode)
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
-        const SelectionRange sel = m_selection.normalized();
-        cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
+        cursor = selectionToReplace();
         clearSelection();
     }
     insertMimeData(cursor, *source, mode, pending);
@@ -1203,8 +1196,9 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     QTextCursor oldPlace;
     cursor.beginEditBlock();
     if (moveSelection) {
-        oldPlace = createCursor(m_textBuffer.get(), moved.start, moved.end);
-        removeSelectionKeepingObjects(oldPlace);
+        oldPlace = QTextCursor(m_textBuffer.get());
+        removeKeepingTables(oldPlace, calculateAbsolutePosition(moved.start),
+                            calculateAbsolutePosition(moved.end), false);
     }
     const int insertionStart = cursor.position();
     insertMimeData(cursor, *source, m_pasteMode);

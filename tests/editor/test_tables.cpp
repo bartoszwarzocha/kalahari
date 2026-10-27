@@ -12,6 +12,7 @@
 
 #include <QCoreApplication>
 #include <QImage>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QTextBlock>
 #include <QTextCursor>
@@ -509,4 +510,269 @@ TEST_CASE("Tables: the end of a cell has ¤ for a formatting mark", "[editor][ta
     CHECK(lastMark(4) == QChar(PARAGRAPH_MARK));  // "Narrator", a second paragraph follows
     CHECK(lastMark(5) == QChar(CELL_MARK));
     CHECK(lastMark(7) == QChar(PARAGRAPH_MARK));
+}
+
+
+// =============================================================================
+// Keys: Tab, the arrows, Backspace and Delete, selections over a table
+// =============================================================================
+
+namespace {
+
+void press(BookEditor& editor, int key, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
+    QKeyEvent event(QEvent::KeyPress, key, modifiers);
+    QCoreApplication::sendEvent(&editor, &event);
+}
+
+/// Type the text as the keyboard does, a character at a time
+void type(BookEditor& editor, const QString& text) {
+    for (const QChar ch : text) {
+        QKeyEvent event(QEvent::KeyPress, 0, Qt::NoModifier, QString(ch));
+        QCoreApplication::sendEvent(&editor, &event);
+    }
+}
+
+/// Select from @p from to @p to, the cursor at @p to
+void select(BookEditor& editor, CursorPosition from, CursorPosition to) {
+    editor.setCursorPosition(to);
+    editor.setSelection({from, to});
+}
+
+/// The paragraphs of the editor's text, as paragraphsOf() gives them, in one line
+std::string textOf(const BookEditor& editor) {
+    return paragraphsOf(*editor.textDocument()).join(QLatin1Char('|')).toStdString();
+}
+
+const std::string TABLE_TEXT = "Before|0,0:Who|0,1:Role|1,0:Anna|1,1:Narrator|1,1:Second|2,0:Both|After";
+
+}  // anonymous namespace
+
+TEST_CASE("Tables: Tab and Shift+Tab go from cell to cell", "[editor][tables][keys]") {
+    auto editor = editorWith(TABLE_KML);
+    editor->setCursorPosition({1, 2});
+    press(*editor, Qt::Key_Tab);
+    CHECK(editor->cursorPosition() == CursorPosition{2, 0});
+    press(*editor, Qt::Key_Tab);
+    CHECK(editor->cursorPosition() == CursorPosition{3, 0});
+    editor->setCursorPosition({5, 3});  // the second paragraph of a cell
+    press(*editor, Qt::Key_Tab);
+    CHECK(editor->cursorPosition() == CursorPosition{6, 0});
+
+    // Back: to the start of the cell's first paragraph
+    press(*editor, Qt::Key_Backtab, Qt::ShiftModifier);
+    CHECK(editor->cursorPosition() == CursorPosition{4, 0});
+    editor->setCursorPosition({1, 2});
+    press(*editor, Qt::Key_Backtab, Qt::ShiftModifier);
+    CHECK(editor->cursorPosition() == CursorPosition{1, 2});  // the first cell has none before
+
+    // A selection goes with the cursor
+    select(*editor, {3, 0}, {3, 2});
+    press(*editor, Qt::Key_Tab);
+    CHECK_FALSE(editor->hasSelection());
+    CHECK(editor->cursorPosition() == CursorPosition{4, 0});
+    CHECK(textOf(*editor) == TABLE_TEXT);
+}
+
+TEST_CASE("Tables: Tab in the last cell adds a row, one undo step", "[editor][tables][keys]") {
+    auto editor = editorWith(TABLE_KML);
+    const QTextTable* table = tableOf(editor->textDocument()->findBlockByNumber(1));
+    REQUIRE(table != nullptr);
+    editor->setCursorPosition({6, 4});
+    press(*editor, Qt::Key_Tab);
+    CHECK(table->rows() == 4);
+    CHECK(textOf(*editor) == TABLE_TEXT.substr(0, TABLE_TEXT.size() - 6) + "|3,0:|3,1:|After");
+    CHECK(editor->cursorPosition() == CursorPosition{7, 0});
+    type(*editor, QStringLiteral("x"));
+    CHECK(textOf(*editor).find("3,0:x|3,1:|After") != std::string::npos);
+
+    editor->undo();  // the typing
+    editor->undo();  // the row
+    CHECK(table->rows() == 3);
+    CHECK(editor->toKml().toStdString() == TABLE_KML.toStdString());
+
+    SECTION("not in a read-only text") {
+        editor->setReadOnly(true);
+        editor->setCursorPosition({6, 4});
+        press(*editor, Qt::Key_Tab);
+        CHECK(table->rows() == 3);
+        CHECK(editor->cursorPosition() == CursorPosition{6, 4});
+    }
+}
+
+TEST_CASE("Tables: Up and Down go to the cell above and below", "[editor][tables][keys]") {
+    auto editor = editorWith(TABLE_KML);
+    editor->setCursorPosition({0, 0});
+    const auto down = [&editor] {
+        editor->moveCursorDown();
+        return editor->cursorPosition().paragraph;
+    };
+    const auto up = [&editor] {
+        editor->moveCursorUp();
+        return editor->cursorPosition().paragraph;
+    };
+    CHECK(down() == 1);  // Who
+    CHECK(down() == 3);  // Anna, not Role beside it
+    CHECK(down() == 6);  // Both, spanning both columns
+    CHECK(down() == 7);  // After
+    CHECK(up() == 6);
+    CHECK(up() == 3);
+    CHECK(up() == 1);
+    CHECK(up() == 0);
+
+    // In the second column, the place across the rows kept
+    editor->setCursorPosition({2, 0});
+    CHECK(down() == 4);  // Narrator
+    CHECK(down() == 5);  // Second, in the same cell
+    CHECK(down() == 6);
+    CHECK(down() == 7);
+    CHECK(up() == 6);
+    CHECK(up() == 5);  // the last paragraph of the cell in the column of the place
+    CHECK(up() == 4);
+    CHECK(up() == 2);
+}
+
+TEST_CASE("Tables: Backspace and Delete at the edges of cells", "[editor][tables][keys]") {
+    auto editor = editorWith(TABLE_KML);
+    const auto check = [&editor](CursorPosition at, int key, CursorPosition after) {
+        editor->setCursorPosition(at);
+        press(*editor, key);
+        CHECK(editor->cursorPosition() == after);
+        CHECK(textOf(*editor) == TABLE_TEXT);
+    };
+    // Cells do not join
+    check({1, 0}, Qt::Key_Backspace, {1, 0});
+    check({1, 3}, Qt::Key_Delete, {1, 3});
+    check({2, 0}, Qt::Key_Backspace, {2, 0});
+    check({6, 4}, Qt::Key_Delete, {6, 4});
+    // The paragraphs next to the table do not join it: the cursor goes into the table
+    check({0, 6}, Qt::Key_Delete, {1, 0});
+    check({7, 0}, Qt::Key_Backspace, {6, 4});
+    CHECK_FALSE(editor->textDocument()->isUndoAvailable());
+
+    // Ctrl+Backspace and Ctrl+Delete take words, not the table
+    editor->setCursorPosition({7, 0});
+    press(*editor, Qt::Key_Backspace, Qt::ControlModifier);
+    CHECK(textOf(*editor) == TABLE_TEXT);
+    editor->setCursorPosition({0, 6});
+    press(*editor, Qt::Key_Delete, Qt::ControlModifier);
+    CHECK(textOf(*editor) == TABLE_TEXT);
+
+    // Paragraphs in a cell join as anywhere
+    editor->setCursorPosition({5, 0});
+    press(*editor, Qt::Key_Backspace);
+    CHECK(editor->cursorPosition() == CursorPosition{4, 8});
+    CHECK(textOf(*editor) == "Before|0,0:Who|0,1:Role|1,0:Anna|1,1:NarratorSecond|2,0:Both|After");
+}
+
+TEST_CASE("Tables: an empty paragraph next to a table", "[editor][tables][keys]") {
+    const QString table = QStringLiteral("<table><tr><td><p>a</p></td><td><p>b</p></td></tr></table>");
+    const auto kml = [](const QString& content) {
+        return QStringLiteral("<kml>") + content + QStringLiteral("</kml>");
+    };
+
+    SECTION("after it, Backspace takes it; the paragraph after it keeps its style") {
+        auto editor = editorWith(kml(table + QStringLiteral("<p></p><h2>After</h2>")));
+        editor->setCursorPosition({3, 0});
+        press(*editor, Qt::Key_Backspace);
+        CHECK(editor->toKml().toStdString() == kml(QStringLiteral("<p></p>") + table +
+                                                   QStringLiteral("<h2>After</h2>")).toStdString());
+        CHECK(editor->cursorPosition() == CursorPosition{2, 1});
+        editor->undo();
+        CHECK(textOf(*editor) == "|0,0:a|0,1:b||After");
+    }
+
+    SECTION("before it, Delete takes it") {
+        auto editor = editorWith(kml(QStringLiteral("<p>Before</p><p></p>") + table));
+        editor->setCursorPosition({1, 0});
+        press(*editor, Qt::Key_Delete);
+        CHECK(editor->toKml().toStdString() ==
+              kml(QStringLiteral("<p>Before</p>") + table + QStringLiteral("<p></p>")).toStdString());
+        CHECK(editor->cursorPosition() == CursorPosition{1, 0});
+    }
+
+    SECTION("the table needs it at the start and the end of the text, and between tables") {
+        auto editor = editorWith(kml(table + table));
+        const std::string text = textOf(*editor);
+        CHECK(text == "|0,0:a|0,1:b||0,0:a|0,1:b|");
+        editor->setCursorPosition({0, 0});
+        press(*editor, Qt::Key_Delete);
+        CHECK(editor->cursorPosition() == CursorPosition{1, 0});
+        editor->setCursorPosition({3, 0});
+        press(*editor, Qt::Key_Backspace);
+        CHECK(editor->cursorPosition() == CursorPosition{2, 1});
+        editor->setCursorPosition({3, 0});
+        press(*editor, Qt::Key_Delete);
+        CHECK(editor->cursorPosition() == CursorPosition{4, 0});
+        editor->setCursorPosition({6, 0});
+        press(*editor, Qt::Key_Backspace);
+        CHECK(editor->cursorPosition() == CursorPosition{5, 1});
+        CHECK(textOf(*editor) == text);
+    }
+
+    SECTION("an object before a table goes, the table stays") {
+        auto editor = editorWith(kml(QStringLiteral("<p>x</p><hr/>") + table));
+        editor->setCursorPosition({1, 1});
+        press(*editor, Qt::Key_Backspace);
+        CHECK(editor->toKml().toStdString() ==
+              kml(QStringLiteral("<p>x</p>") + table + QStringLiteral("<p></p>")).toStdString());
+    }
+}
+
+TEST_CASE("Tables: a selection going into or out of a table", "[editor][tables][keys]") {
+    auto editor = editorWith(TABLE_KML);
+
+    SECTION("from the text before it: the text goes, the cells lose their text") {
+        select(*editor, {0, 2}, {3, 2});
+        press(*editor, Qt::Key_Delete);
+        CHECK(textOf(*editor) == "Be|0,0:|0,1:|1,0:na|1,1:Narrator|1,1:Second|2,0:Both|After");
+        CHECK(editor->cursorPosition() == CursorPosition{0, 2});
+        editor->undo();
+        CHECK(editor->toKml().toStdString() == TABLE_KML.toStdString());
+    }
+
+    SECTION("into the text after it") {
+        select(*editor, {4, 2}, {7, 2});
+        press(*editor, Qt::Key_Backspace);
+        CHECK(textOf(*editor) == "Before|0,0:Who|0,1:Role|1,0:Anna|1,1:Na|2,0:|ter");
+        CHECK(editor->cursorPosition() == CursorPosition{4, 2});
+    }
+
+    SECTION("from cell to cell") {
+        select(*editor, {3, 2}, {4, 2});
+        press(*editor, Qt::Key_Delete);
+        CHECK(textOf(*editor) == "Before|0,0:Who|0,1:Role|1,0:An|1,1:rrator|1,1:Second|2,0:Both|After");
+    }
+
+    SECTION("text typed in its place goes at its start") {
+        select(*editor, {0, 2}, {3, 2});
+        type(*editor, QStringLiteral("x"));
+        CHECK(textOf(*editor) == "Bex|0,0:|0,1:|1,0:na|1,1:Narrator|1,1:Second|2,0:Both|After");
+        CHECK(editor->cursorPosition() == CursorPosition{0, 3});
+    }
+
+    SECTION("over the whole table: the table goes with it") {
+        select(*editor, {0, 2}, {7, 2});
+        press(*editor, Qt::Key_Delete);
+        CHECK(textOf(*editor) == "Beter");
+    }
+}
+
+TEST_CASE("Tables: a cell holds only text; Enter starts a paragraph in it", "[editor][tables][keys]") {
+    auto editor = editorWith(TABLE_KML);
+    editor->setCursorPosition({0, 1});
+    CHECK_FALSE(editor->isInTable());
+    editor->setCursorPosition({3, 2});
+    CHECK(editor->isInTable());
+    select(*editor, {0, 1}, {3, 2});
+    CHECK_FALSE(editor->isInTable());  // inserted, it goes at the start of the selection
+
+    editor->clearSelection();
+    editor->setCursorPosition({3, 2});
+    editor->insertTextObject(TextObject::HorizontalRule);
+    CHECK(textOf(*editor) == TABLE_TEXT);
+
+    press(*editor, Qt::Key_Return);
+    CHECK(textOf(*editor) ==
+          "Before|0,0:Who|0,1:Role|1,0:An|1,0:na|1,1:Narrator|1,1:Second|2,0:Both|After");
+    CHECK(editor->cursorPosition() == CursorPosition{4, 0});
 }

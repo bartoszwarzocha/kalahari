@@ -281,6 +281,7 @@ set(KALAHARI_SOURCES
     editor/book_editor_links.cpp
     editor/book_editor_input.cpp
     editor/book_editor_search.cpp
+    editor/book_editor_tables.cpp
     editor/book_editor_view.cpp
     editor/find_replace_bar.cpp  # Find/Replace bar of the editor
     editor/book_editor_accessible.cpp  # Task 7.16: Accessibility interface

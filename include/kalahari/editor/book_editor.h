@@ -57,6 +57,7 @@ class QVariantAnimation;
 class QScreen;
 class QShowEvent;
 class QTextBlock;
+class QTextTable;
 class QScrollBar;
 class QTimer;
 class QMenu;
@@ -957,6 +958,11 @@ public:
     /// not moved. A change the writer asks for says that it was refused (changeRefused()).
     /// Content loaded with fromKml() shows as it is.
     bool isReadOnly() const { return m_readOnly; }
+
+    /// @brief Whether what is inserted goes into a cell of a table: the cursor, or the start
+    ///        of the selection, is in one. A cell holds only text: the objects of the Insert
+    ///        menu and tables are not inserted there.
+    bool isInTable() const;
 
     /// @brief Let the text be changed or not (see isReadOnly())
     void setReadOnly(bool readOnly);
@@ -1873,6 +1879,36 @@ private:
     ///        goes over the paragraph break between an object and text
     /// @return false when the cursor is not next to an object: the key deletes as in text
     bool deleteAtObject(bool backward);
+
+    // --- Tables (book_editor_tables.cpp) ---
+
+    /// @brief Tab and Shift+Tab in a table: the cursor goes to the start of the next or the
+    ///        previous cell; Tab in the last cell adds a row first (not in a read-only text)
+    /// @return false outside a table
+    bool moveToCell(bool back);
+
+    /// @brief Add a row to the end of a table, as one undo step
+    void appendTableRow(QTextTable& table);
+
+    /// @brief The paragraph Up or Down goes to from the first or the last line of @p block
+    ///        where a table is next to it: the cell above or below in the column under
+    ///        @p x (layout coordinates), or the paragraph before or after the table
+    /// @return std::nullopt where it goes to the paragraph before or after @p block
+    std::optional<int> verticalNeighbourInTable(const QTextBlock& block, bool up,
+                                                qreal x) const;
+
+    /// @brief Backspace or Delete at a break at a table: cells do not join, nor a cell and
+    ///        the paragraph next to the table; an empty paragraph next to a table goes
+    ///        (where the table does not need it), and the cursor goes into the table
+    /// @return false where the break next to the cursor is not at a table
+    bool deleteAtTableEdge(bool backward);
+
+    /// @brief The selection as a cursor for an edit that removes or replaces it
+    ///
+    /// A selection going into, out of or across a table loses its text first, the cells
+    /// staying (removeKeepingTables(), an undo step of its own): the cursor is at its
+    /// start then, without a selection.
+    QTextCursor selectionToReplace();
 
     /// @brief Select word at cursor position (Phase 3.11)
     void selectWordAtCursor();

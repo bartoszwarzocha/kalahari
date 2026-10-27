@@ -212,6 +212,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_links.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_tables.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_view.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/find_replace_bar.cpp       # Find/Replace bar of the editor
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_accessible.cpp  # Task 7.16: Accessibility

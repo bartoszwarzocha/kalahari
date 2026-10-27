@@ -419,8 +419,10 @@ void BookEditor::moveCursorUp()
         QTextLine prevLine = layout->lineAt(currentLine - 1);
         newPos.offset = prevLine.xToCursor(m_preferredCursorX);
     } else if (newPos.paragraph > 0) {
-        // Move to last line of previous paragraph
-        --newPos.paragraph;
+        // Move to last line of previous paragraph; in a table and at its edges the paragraph
+        // above, in the cell above
+        newPos.paragraph = verticalNeighbourInTable(block, true, m_preferredCursorX)
+                               .value_or(newPos.paragraph - 1);
         QTextLayout* prevLayout = KalahariTextDocumentLayout::blockLayout(
             m_textBuffer->findBlockByNumber(newPos.paragraph));
         if (prevLayout && prevLayout->lineCount() > 0) {
@@ -470,8 +472,10 @@ void BookEditor::moveCursorDown()
         QTextLine nextLine = layout->lineAt(currentLine + 1);
         newPos.offset = nextLine.xToCursor(m_preferredCursorX);
     } else if (newPos.paragraph + 1 < m_textBuffer->blockCount()) {
-        // Move to first line of next paragraph
-        ++newPos.paragraph;
+        // Move to first line of next paragraph; in a table and at its edges the paragraph
+        // below, in the cell below
+        newPos.paragraph = verticalNeighbourInTable(block, false, m_preferredCursorX)
+                               .value_or(newPos.paragraph + 1);
         QTextLayout* nextLayout = KalahariTextDocumentLayout::blockLayout(
             m_textBuffer->findBlockByNumber(newPos.paragraph));
         if (nextLayout && nextLayout->lineCount() > 0) {

@@ -406,16 +406,21 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
 
 bool BookEditor::event(QEvent* event)
 {
-    // Tab and Shift+Tab at the start of a list item, or with a selection of items, take
-    // them a level down or up; elsewhere they go from field to field, as in every program
+    // Tab and Shift+Tab in a table go to the next or the previous cell; at the start of a
+    // list item, or with a selection of items, they take them a level down or up; elsewhere
+    // they go from field to field, as in every program
     if (event->type() == QEvent::KeyPress) {
         const auto* key = static_cast<QKeyEvent*>(event);
         const bool tab = key->key() == Qt::Key_Tab || key->key() == Qt::Key_Backtab;
         const Qt::KeyboardModifiers others =
             key->modifiers() & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier);
+        const bool back =
+            key->key() == Qt::Key_Backtab || key->modifiers().testFlag(Qt::ShiftModifier);
+        if (tab && others == Qt::NoModifier && moveToCell(back)) {
+            event->accept();
+            return true;
+        }
         if (tab && others == Qt::NoModifier && tabChangesListLevel()) {
-            const bool back = key->key() == Qt::Key_Backtab ||
-                              key->modifiers().testFlag(Qt::ShiftModifier);
             changeIndent(back ? -1 : 1, false);
             event->accept();
             return true;

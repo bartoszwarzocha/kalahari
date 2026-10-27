@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <utility>
 #include <vector>
 
 class QTextBlock;
@@ -82,6 +83,24 @@ TableShape tableShapeOf(const QTextTable& table);
 /// cell.
 /// @return The table; nullptr for a shape without rows or columns
 QTextTable* insertTable(QTextCursor& cursor, const TableShape& shape);
+
+/// @brief Whether the character at the position is a break at a table: the start of one of
+///        its cells (the first one's is the end of the paragraph before the table) or its end
+bool isTableBreakAt(const QTextDocument& document, int position);
+
+/// @brief The parts of positions [from, to) of the document, in its order, that do not cross
+///        a break at a table: the text of each cell the range goes into, and the text outside
+///        tables, with a table the range covers whole
+std::vector<std::pair<int, int>> partsAtTables(const QTextDocument& document, int from, int to);
+
+/// @brief Remove positions [from, to) of the document as removeKeepingAnnotations() does
+///        (with @p keepAnnotations false: removeSelectionKeepingObjects()), but not the
+///        structure of a table the range goes into or out of
+///
+/// Of a cell the range goes into its text in the range goes, the cell stays; a table it
+/// covers whole goes. One edit block; the cursor ends at @p from (as the removal leaves it:
+/// after an object, at the text after it), without a selection.
+void removeKeepingTables(QTextCursor& cursor, int from, int to, bool keepAnnotations = true);
 
 /// @brief Make the cells of the spans span their rows and columns
 ///

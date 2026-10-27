@@ -3,6 +3,7 @@
 
 #include "kalahari/editor/text_tables.h"
 #include "kalahari/editor/annotation.h"
+#include "kalahari/editor/paragraph_styles.h"
 
 #include <QTextBlock>
 #include <QTextCursor>
@@ -10,6 +11,15 @@
 #include <QTextTable>
 
 namespace kalahari::editor {
+
+namespace {
+
+// The characters QTextDocument keeps at the breaks of a table (not in Qt's public headers):
+// the start of each cell, and the end of the table
+constexpr char16_t CELL_START = 0xFDD0;
+constexpr char16_t TABLE_END = 0xFDD1;
+
+}  // anonymous namespace
 
 QTextTable* tableOf(const QTextBlock& block)
 {
@@ -99,6 +109,64 @@ QTextTable* insertTable(QTextCursor& cursor, const TableShape& shape)
 
     cursor.setPosition(table->cellAt(0, 0).firstPosition());
     return table;
+}
+
+bool isTableBreakAt(const QTextDocument& document, int position)
+{
+    const QChar character = document.characterAt(position);
+    return character == QChar(CELL_START) || character == QChar(TABLE_END);
+}
+
+std::vector<std::pair<int, int>> partsAtTables(const QTextDocument& document, int from, int to)
+{
+    // The cell of a block (the position of its start), or -1 outside tables and in a table
+    // the range covers whole
+    const auto cellOf = [&document, from, to](const QTextBlock& block) {
+        const QTextTable* table = tableAt(document, block.position());
+        if (!table || (from < table->firstPosition() && to > table->lastPosition())) {
+            return -1;
+        }
+        return table->cellAt(block.position()).firstPosition();
+    };
+
+    std::vector<std::pair<int, int>> parts;
+    int start = from;
+    QTextBlock block = document.findBlock(from);
+    int cell = cellOf(block);
+    for (QTextBlock next = block.next(); next.isValid() && next.position() <= to;
+         next = next.next()) {
+        const int nextCell = cellOf(next);
+        if (nextCell != cell) {
+            parts.emplace_back(start, next.position() - 1);  // to the end of the block before
+            start = next.position();
+            cell = nextCell;
+        }
+    }
+    parts.emplace_back(start, to);
+    return parts;
+}
+
+void removeKeepingTables(QTextCursor& cursor, int from, int to, bool keepAnnotations)
+{
+    QTextDocument& document = *cursor.document();
+    const std::vector<std::pair<int, int>> parts = partsAtTables(document, from, to);
+
+    // From the last part: the positions of the parts before it stay. The cursor ends where
+    // removing the first part puts it (after an object: at the text after it).
+    cursor.beginEditBlock();
+    for (auto part = parts.rbegin(); part != parts.rend(); ++part) {
+        cursor.setPosition(part->first);
+        if (part->first >= part->second) {
+            continue;
+        }
+        cursor.setPosition(part->second, QTextCursor::KeepAnchor);
+        if (keepAnnotations) {
+            removeKeepingAnnotations(cursor);
+        } else {
+            removeSelectionKeepingObjects(cursor);
+        }
+    }
+    cursor.endEditBlock();
 }
 
 void spanCells(QTextTable& table, const std::vector<TableSpan>& spans)
