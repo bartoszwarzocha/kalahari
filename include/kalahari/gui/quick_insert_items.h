@@ -15,7 +15,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 namespace kalahari::core {
-class BookProject;
+struct BookProject;
 class BookTypeRegistry;
 }  // namespace kalahari::core
 
