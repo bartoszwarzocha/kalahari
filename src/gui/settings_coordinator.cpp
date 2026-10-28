@@ -9,9 +9,11 @@
 #include "kalahari/gui/shortcut_settings.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
+#include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include <QApplication>
@@ -175,6 +177,17 @@ void SettingsCoordinator::onApplySettings(const QStringList& changedKeys) {
     // The Paragraph and Styles panel moved to its other place: it shows there, in front
     if (changed(QString::fromLatin1(DockCoordinator::PARAGRAPH_PLACE_KEY))) {
         m_dockCoordinator->placeParagraphPanel(true);
+    }
+
+    // The tabs of the panels: what they show, their rows, their side
+    if (changed(QStringLiteral("panels.tab")) && m_dockCoordinator->panelTabs() != nullptr) {
+        m_dockCoordinator->panelTabs()->applySettings();
+    }
+
+    // The tabs in the middle of the window: one row or more
+    auto* centralTabs = qobject_cast<CentralTabs*>(m_dockCoordinator->centralTabs());
+    if (changed(QString::fromLatin1(CentralTabs::ROWS_KEY)) && centralTabs != nullptr) {
+        centralTabs->applySettings();
     }
 
     // The editors follow the editor settings by themselves (EditorPanel)

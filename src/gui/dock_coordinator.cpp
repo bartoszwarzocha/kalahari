@@ -5,6 +5,7 @@
 
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/utils/panel_toggle.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -16,6 +17,7 @@
 #include "kalahari/gui/panels/spelling_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 #include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
@@ -170,6 +172,19 @@ void DockCoordinator::createDocks() {
     // Setup VIEW menu panel actions
     setupViewMenuActions();
 
+    // The tabs of the panels docked one over another: the program's own, with the icons of
+    // View > Panels, as the settings say
+    m_panelTabs = new PanelTabs(m_mainWindow, this);
+    m_panelTabs->addPanel(m_navigatorDock, "view.navigator");
+    m_panelTabs->addPanel(m_propertiesDock, "view.properties");
+    m_panelTabs->addPanel(m_paragraphDock, "view.paragraph");
+    m_panelTabs->addPanel(m_logDock, "view.log");
+    m_panelTabs->addPanel(m_searchDock, "view.search");
+    m_panelTabs->addPanel(m_assistantDock, "view.assistant");
+    m_panelTabs->addPanel(m_annotationsDock, "view.annotations");
+    m_panelTabs->addPanel(m_spellingDock, "view.spelling");
+    m_panelTabs->applySettings();
+
     // The Paragraph and Styles panel where the settings say
     placeParagraphPanel(false);
 
@@ -199,11 +214,13 @@ void DockCoordinator::createCentralWidget() {
     connect(m_layoutNoticeBar, &InfoBar::actionClicked, this, &DockCoordinator::showRightPanels);
     connect(m_layoutNoticeBar, &InfoBar::dismissed, m_layoutNoticeBar, &QWidget::hide);
 
-    // Create central tabbed workspace
-    m_centralTabs = new QTabWidget(m_centralWrapper);
+    // Create central tabbed workspace: one row of tabs, or more as the settings say
+    auto* centralTabs = new CentralTabs(m_centralWrapper);
+    m_centralTabs = centralTabs;
     m_centralTabs->setTabsClosable(true);
     m_centralTabs->setMovable(true);
     m_centralTabs->setDocumentMode(true);
+    centralTabs->applySettings();
     centralLayout->addWidget(m_centralTabs, 1);  // Stretch factor 1 to fill space
 
     // Create standalone info bar at BOTTOM (hidden by default)
@@ -517,10 +534,10 @@ void DockCoordinator::createSpellingDock() {
 
 QToolButton* DockCoordinator::addTitleBarButton(QDockWidget* dock, const QString& iconId,
                                                 const QString& toolTip) {
-    QWidget* titleBar = dock->titleBarWidget();
-    auto* layout = qobject_cast<QHBoxLayout*>(titleBar->layout());
+    auto* row = dock->titleBarWidget()->findChild<QWidget*>(QString::fromLatin1(TITLE_ROW));
+    auto* layout = qobject_cast<QHBoxLayout*>(row->layout());
 
-    auto* button = new QToolButton(titleBar);
+    auto* button = new QToolButton(row);
     button->setAutoRaise(true);
     button->setIcon(core::ArtProvider::getInstance().getIcon(iconId));
     button->setToolTip(toolTip);
@@ -552,14 +569,21 @@ void DockCoordinator::addSettingsButton(QDockWidget* dock, const QString& page,
 void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId, const QString& title) {
     auto& artProvider = core::ArtProvider::getInstance();
 
-    // Create custom title bar widget
+    // Create custom title bar widget: its row, with room above it for the tabs of the panel's
+    // group when the settings put them there (PanelTabs)
     QWidget* titleBar = new QWidget(dock);
-    QHBoxLayout* layout = new QHBoxLayout(titleBar);
+    auto* titleLayout = new QVBoxLayout(titleBar);
+    titleLayout->setContentsMargins(0, 0, 0, 0);
+    titleLayout->setSpacing(0);
+    QWidget* row = new QWidget(titleBar);
+    row->setObjectName(QString::fromLatin1(TITLE_ROW));
+    titleLayout->addWidget(row);
+    QHBoxLayout* layout = new QHBoxLayout(row);
     layout->setContentsMargins(6, 2, 6, 2);
     layout->setSpacing(4);
 
     // Icon label (16x16 for title bar)
-    QLabel* iconLabel = new QLabel(titleBar);
+    QLabel* iconLabel = new QLabel(row);
     QIcon icon = artProvider.getIcon(iconId);
     iconLabel->setPixmap(icon.pixmap(16, 16));
     iconLabel->setFixedSize(16, 16);
@@ -570,7 +594,7 @@ void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId
     m_dockIconLabels.append(iconLabel);
 
     // Title label
-    QLabel* titleLabel = new PanelTitleLabel(title, titleBar);
+    QLabel* titleLabel = new PanelTitleLabel(title, row);
     titleLabel->setStyleSheet("font-weight: bold;");
     layout->addWidget(titleLabel);
 
@@ -580,7 +604,7 @@ void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId
     // Float button (if dock is floatable)
     QDockWidget::DockWidgetFeatures features = dock->features();
     if (features & QDockWidget::DockWidgetFloatable) {
-        QToolButton* floatButton = new QToolButton(titleBar);
+        QToolButton* floatButton = new QToolButton(row);
         floatButton->setAutoRaise(true);
         floatButton->setIcon(artProvider.getIcon("dock.float"));
         floatButton->setToolTip(QObject::tr("Float"));
@@ -595,7 +619,7 @@ void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId
 
     // Close button (if dock is closable)
     if (features & QDockWidget::DockWidgetClosable) {
-        QToolButton* closeButton = new QToolButton(titleBar);
+        QToolButton* closeButton = new QToolButton(row);
         closeButton->setAutoRaise(true);
         closeButton->setIcon(artProvider.getIcon("dock.close"));
         closeButton->setToolTip(QObject::tr("Close"));

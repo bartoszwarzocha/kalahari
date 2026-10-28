@@ -78,6 +78,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an address becomes a working note whose text is its description, and the book is saved so;
   "Material" stays in the packages, retired (`"retired": true`), so that such books are read,
   but it is offered nowhere.
+
+- **The tabs of the panels: icons, names or both, in one row or more** - 2026-10-26.
+  Panels docked one over another have tabs of the program's own in place of Qt's, which
+  showed the names alone in one row and shortened them to a few letters. By default the tabs
+  show the panels' icons alone, above the title of the panel in front, with each panel's name
+  and keys in its tooltip. Settings > Appearance > General > Panels chooses what the tabs
+  show (icons only, icons and names, names only), what happens when they do not fit the
+  width of the panel (they wrap to the next row, or stay in one row with shortened names) and
+  where they are (above the panels or below them). The tab of the panel in front is marked
+  with a line on its side toward the panel, in the colors of the theme. A click or the arrow
+  keys, Home and End bring a panel to the front, and a tab dragged to another place moves its
+  panel in the group; a click on the tabs never floats the panel. A floating panel, or one
+  left alone, has no tabs.
+- **The tabs in the middle of the window in more rows** - 2026-10-26. Settings > Appearance >
+  General > Tabs in the middle of the window chooses what the tabs of the Dashboard, the
+  chapters, the lists and the materials do when they do not fit the width of the window:
+  they stay in one row that scrolls with the arrows (as before, the default), or wrap to the
+  next row, in as many rows as the width needs. In more rows they look as in one row, each
+  with its close button, a click brings a tab to the front and a tab dragged to another place
+  moves there, with a line showing where it goes. A button to the right of the tabs (Tabs in
+  More Rows) switches between one row and more rows at once and keeps the choice in the
+  setting; it hides with the tabs in Distraction-Free.
 - **Versions of the texts: Save Version and Version History** - 2026-10-22. File > Save
   Version (Alt+Shift+S; on macOS Option+Shift+Cmd+S) keeps the text in front as it is in its
   editor, with its formatting, its annotations and the changes not saved yet, as a version:

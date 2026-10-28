@@ -180,6 +180,7 @@ set(KALAHARI_SOURCES
     gui/diagnostic_controller.cpp  # DiagnosticController - Diagnostic/dev mode extracted from MainWindow (OpenSpec #00038)
     gui/diagnostic_menus.cpp  # The items of the Diagnostics and Dev Tools menus
     gui/dock_coordinator.cpp  # DockCoordinator - Dock/panel management extracted from MainWindow (OpenSpec #00038 Phase 4)
+    gui/panel_tabs.cpp  # The program's own tabs of the panels docked one over another
     gui/settings_coordinator.cpp  # SettingsCoordinator - Settings management extracted from MainWindow (OpenSpec #00038 Phase 5)
     gui/navigator_coordinator.cpp  # NavigatorCoordinator - Navigator handlers extracted from MainWindow (OpenSpec #00038 Phase 6)
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
@@ -227,6 +228,8 @@ set(KALAHARI_SOURCES
     gui/widgets/height_for_width_scroll_area.cpp  # Rows that wrap, and scroll in a low panel
     gui/widgets/shortcut_recorder.cpp  # A field that records key presses
     gui/widgets/tool_button_columns.cpp  # Panel buttons that wrap into columns
+    gui/widgets/panel_tab_bar.cpp  # The tabs of a group of panels: icons, names, rows
+    gui/widgets/central_tabs.cpp  # The tabs in the middle of the window: one row or more
     gui/widgets/fitting_scroll_area.cpp  # Content that scrolls only on a small screen
     gui/widgets/standalone_info_bar.cpp  # StandaloneInfoBar widget (OpenSpec #00033 Phase F)
     gui/widgets/element_place_picker.cpp  # ElementPlacePicker - the place of an element in the book
@@ -316,6 +319,9 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/program_instance.h  # ProgramInstance with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT (OpenSpec #00038 Phase 4)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panel_tabs.h  # PanelTabs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/panel_tab_bar.h  # PanelTabBar with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/central_tabs.h  # CentralTabs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT (OpenSpec #00031)

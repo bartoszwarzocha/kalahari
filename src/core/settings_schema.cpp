@@ -26,6 +26,9 @@ std::map<std::string, json> buildDefaults() {
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
         // The bar that says the panels on the right were hidden for a small screen was shown
         {"window.smallScreenNoticeShown", false},
+        // The tabs in the middle of the window (Settings > Appearance > General): in one row
+        // with arrows when they do not fit ("single") or in more rows ("wrap")
+        {"window.tabRows", "single"},
 
         // The Paragraph and Styles panel: a panel of its own ("panel") or the lower part of
         // the Properties panel ("properties"), folded there to its band or not, with the
@@ -38,6 +41,13 @@ std::map<std::string, json> buildDefaults() {
         // The Log button of the Panels toolbar, for those who read the log (Settings >
         // Advanced > Log); View > Panels > Log (F4) opens the panel anyway
         {"panels.showLogButton", false},
+        // The tabs of panels docked one over another (Settings > Appearance > General): icons
+        // alone ("icons"), icons and names ("iconsAndNames") or names alone ("names"); in more
+        // rows when they do not fit ("wrap") or in one row with shortened names ("single");
+        // above the panels ("above") or under them ("below")
+        {"panels.tabLook", "icons"},
+        {"panels.tabRows", "wrap"},
+        {"panels.tabSide", "above"},
         {"recent_files", json::array()},
 
         // Interface
