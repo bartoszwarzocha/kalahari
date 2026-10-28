@@ -82,7 +82,7 @@ constexpr int COUNT_ROLE = Qt::UserRole + 7;
 constexpr int COUNT_GAP = 3;
 /// Room between the number of a node and the right edge of the tree, in multiples of the width
 /// of a space
-constexpr int COUNT_MARGIN = 2;
+constexpr int COUNT_MARGIN = 4;
 /// Milliseconds before a collapsed group or section that a dragged element rests on opens
 constexpr int AUTO_EXPAND_DELAY = 700;
 /// The id of a group of the Workshop starts with it: "workshop:kalahari.base:work_note"

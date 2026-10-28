@@ -992,7 +992,7 @@ TEST_CASE("Navigator: the numbers of the Materials keep off the right edge of th
     const int space = tree->fontMetrics().horizontalAdvance(QLatin1Char(' '));
     INFO("the number ends " << row.right() - last << " pixels from the edge; a space is "
                             << space);
-    CHECK(row.right() - last >= 2 * space);
+    CHECK(row.right() - last >= 4 * space);
 }
 
 TEST_CASE("Navigator commands: Add and New Chapter start from the element in the editor",
