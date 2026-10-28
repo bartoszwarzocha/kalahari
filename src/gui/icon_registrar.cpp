@@ -308,6 +308,9 @@ void registerAllIcons() {
     // The settings of a panel
     iconRegistry.registerIcon("dock.settings", "resources/icons/twotone/settings.svg",
                               "Panel Settings");
+    // The button that puts the tabs in the middle of the window in more rows
+    iconRegistry.registerIcon("tabs.rows", "resources/icons/twotone/view_agenda.svg",
+                              "Tabs in More Rows");
 
     // -------------------------------------------------------------------------
     // NEW ITEM DIALOG ICONS (OpenSpec #00033)
