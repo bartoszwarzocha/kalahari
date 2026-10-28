@@ -65,6 +65,7 @@
 #include <QTextBrowser>
 #include <QTextEdit>
 #include <QTimer>
+#include <QtMath>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
@@ -982,12 +983,17 @@ TEST_CASE("Navigator: the numbers of the Materials keep off the right edge of th
     const QRect row = tree->visualItemRect(materials);
     REQUIRE(row.isValid());
 
-    // The last pixel of the number: the right end of the row has the color of the row
+    // The last pixel of the number: the right end of the row has the color of the row. The
+    // picture has the pixels of the screen, more than those of the widget at a scaling over 100%
     const QImage picture = tree->viewport()->grab().toImage();
-    const QRgb background = picture.pixel(row.right(), row.center().y());
+    const qreal ratio = picture.devicePixelRatio();
+    const QRect pixels(QPoint(qCeil(row.left() * ratio), qCeil(row.top() * ratio)),
+                       QPoint(qFloor((row.right() + 1) * ratio) - 1,
+                              qFloor((row.bottom() + 1) * ratio) - 1));
+    const QRgb background = picture.pixel(pixels.right(), pixels.center().y());
     int last = -1;
-    for (int x = row.right(); x >= row.left() && last < 0; --x) {
-        for (int y = row.top(); y <= row.bottom(); ++y) {
+    for (int x = pixels.right(); x >= pixels.left() && last < 0; --x) {
+        for (int y = pixels.top(); y <= pixels.bottom(); ++y) {
             if (picture.pixel(x, y) != background) {
                 last = x;
                 break;
@@ -995,10 +1001,12 @@ TEST_CASE("Navigator: the numbers of the Materials keep off the right edge of th
         }
     }
     REQUIRE(last >= 0);
+    const qreal margin = (pixels.right() - last) / ratio;
     const int space = tree->fontMetrics().horizontalAdvance(QLatin1Char(' '));
-    INFO("the number ends " << row.right() - last << " pixels from the edge; a space is "
-                            << space);
-    CHECK(row.right() - last >= 4 * space);
+    INFO("the number ends " << margin << " pixels from the edge at a scaling of " << ratio
+                            << "; a space is " << space);
+    // Within a pixel: the edge of a letter is smoothed over a pixel at a scaling of 125%
+    CHECK(margin > 4 * space - 1);
 }
 
 TEST_CASE("Navigator commands: Add and New Chapter start from the element in the editor",
