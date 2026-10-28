@@ -131,6 +131,16 @@ QKeyCombination propertiesKeys() {
     return QKeyCombination(Qt::AltModifier, Qt::Key_Return);
 }
 
+/// The keys of Version History... on a text of the Navigator, as of the command in the File
+/// menu: Alt+Shift+H (Cmd+Option+Shift+H on macOS)
+QKeyCombination versionHistoryKeys() {
+#ifdef Q_OS_MACOS
+    return QKeyCombination(Qt::ControlModifier | Qt::AltModifier | Qt::ShiftModifier, Qt::Key_H);
+#else
+    return QKeyCombination(Qt::AltModifier | Qt::ShiftModifier, Qt::Key_H);
+#endif
+}
+
 /// Whether an item of @p type is "Unassigned Files" or one of its files, which are grey
 bool isUnassignedType(const QString& type) {
     return type == QLatin1String("unassigned_files") || type == QLatin1String("unassigned_file");
@@ -2117,6 +2127,22 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 &NavigatorPanel::onContextMenuProperties);
     };
 
+    // Version History... of a text with versions, followed by a separator
+    const auto addVersionHistoryAction = [&]() {
+        const QString textId = versionsElementOf(item);
+        if (textId.isEmpty()) {
+            return;
+        }
+        QAction* historyAction = menu.addAction(
+            artProvider.getIcon("file.versionHistory", core::IconContext::Menu),
+            //: The command of a text in the Navigator, as File > Version History... In Polish:
+            //: &Historia wersji...
+            withKeys(tr("Version &History..."), versionHistoryKeys()));
+        connect(historyAction, &QAction::triggered, this,
+                [this, textId]() { emit requestVersionHistory(textId); });
+        menu.addSeparator();
+    };
+
     // The icons of the panel's Expand All and Collapse All buttons
     const auto addExpandCollapseActions = [&]() {
         QAction* expandAllAction = menu.addAction(
@@ -2139,6 +2165,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
         addRenameDeleteActions();
         menu.addSeparator();
+        addVersionHistoryAction();
         addPropertiesAction();
 
     } else if (elementType == "window_element" && isWorkshopItem(item)) {
@@ -2222,6 +2249,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 this, &NavigatorPanel::onContextMenuSetStatus);
 
         menu.addSeparator();
+        addVersionHistoryAction();
         addPropertiesAction();
 
     } else if (elementType == "book_file") {
@@ -2230,6 +2258,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
         addRenameDeleteActions();
         menu.addSeparator();
+        addVersionHistoryAction();
         addPropertiesAction();
 
     } else if (elementType == "group_element") {
@@ -2967,14 +2996,17 @@ bool NavigatorPanel::eventFilter(QObject* watched, QEvent* event) {
     const bool rename = keys.key() == Qt::Key_F2 && modifiers == Qt::NoModifier;
     const bool remove = keys.key() == Qt::Key_Delete && modifiers == Qt::NoModifier;
     const bool properties = enter && modifiers == Qt::AltModifier;
-    if (!add && !rename && !remove && !properties) {
+    // The versions of the text of the node; of the text in front (File > Version History...)
+    // on any other node
+    QTreeWidgetItem* item = m_treeWidget->currentItem();
+    const bool history = keys == versionHistoryKeys() && !versionsElementOf(item).isEmpty();
+    if (!add && !rename && !remove && !properties && !history) {
         return QWidget::eventFilter(watched, event);
     }
     if (event->type() == QEvent::ShortcutOverride) {
         key->accept();
         return true;
     }
-    QTreeWidgetItem* item = m_treeWidget->currentItem();
     if (properties) {
         if (requestPropertiesOf(item)) {
             emit requestPropertiesPanel();
@@ -2984,10 +3016,24 @@ bool NavigatorPanel::eventFilter(QObject* watched, QEvent* event) {
         addOn(item);
     } else if (rename) {
         renameItem(item);
+    } else if (history) {
+        emit requestVersionHistory(versionsElementOf(item));
     } else {
         deleteItem(item);
     }
     return true;
+}
+
+QString NavigatorPanel::versionsElementOf(const QTreeWidgetItem* item) const {
+    if (item == nullptr) {
+        return QString();
+    }
+    const QString type = typeOf(item);
+    if (type != QLatin1String("text_element") && type != QLatin1String("book_file")) {
+        return QString();
+    }
+    const QString elementId = item->data(0, Qt::UserRole).toString();
+    return core::ProjectManager::getInstance().versionsOf(elementId) ? elementId : QString();
 }
 
 // =============================================================================

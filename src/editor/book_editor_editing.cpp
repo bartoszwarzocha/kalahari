@@ -10,6 +10,7 @@
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <kalahari/editor/paragraph_styles.h>
 #include <QAction>
 #include <QClipboard>
 #include <QGuiApplication>
@@ -99,7 +100,43 @@ void insertDocument(QTextCursor& cursor, const QTextDocument& source) {
         first.setPosition(insertionStart);
         first.setBlockFormat(firstBlock.blockFormat());
     }
+
+    // An object that went into a paragraph gets a block of its own
+    separateObjects(cursor, insertionStart, cursor.position());
     cursor.endEditBlock();
+}
+
+/// @brief Put a format under the text of a document: each character takes it, with its own
+///        format on top, and so does each paragraph's own format
+void putFormatUnder(QTextDocument& content, const QTextCharFormat& under) {
+    struct Piece {
+        int from = 0;
+        int to = -1;  ///< -1: the paragraph's own format at @c from
+        QTextCharFormat format;
+    };
+    std::vector<Piece> pieces;
+    for (QTextBlock block = content.begin(); block.isValid(); block = block.next()) {
+        QTextCharFormat paragraph = under;
+        paragraph.merge(block.charFormat());
+        pieces.push_back({block.position(), -1, paragraph});
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            QTextCharFormat format = under;
+            format.merge(fragment.charFormat());
+            pieces.push_back(
+                {fragment.position(), fragment.position() + fragment.length(), format});
+        }
+    }
+    QTextCursor cursor(&content);
+    for (const Piece& piece : pieces) {
+        cursor.setPosition(piece.from);
+        if (piece.to < 0) {
+            cursor.setBlockCharFormat(piece.format);
+        } else {
+            cursor.setPosition(piece.to, QTextCursor::KeepAnchor);
+            cursor.setCharFormat(piece.format);
+        }
+    }
 }
 
 /// @brief Insert text with annotations at the cursor, replacing its selection, as one edit
@@ -107,10 +144,23 @@ void insertDocument(QTextCursor& cursor, const QTextDocument& source) {
 ///
 /// The annotations of the replaced selection stay on its place, and the text joins the
 /// fragments of the place; its annotations the document already has come in as copies.
-void insertAnnotatedDocument(QTextCursor& cursor, QTextDocument& content) {
+/// @param placeFormat The text takes the format of the place (insertionFormat()), with
+///        @p typed on top and then its own format, as text of another program pasted in
+///        PasteMode::Merge
+/// @param typed A format given for the text typed next
+void insertAnnotatedDocument(QTextCursor& cursor, QTextDocument& content,
+                             bool placeFormat = false,
+                             const QTextCharFormat& typed = QTextCharFormat()) {
     QTextDocument& document = *cursor.document();
     cursor.beginEditBlock();
-    prepareForInsertion(content, document, removeForReplacement(cursor));
+    const AnnotationList fragments = removeForReplacement(cursor);
+    if (placeFormat) {
+        QTextCharFormat under = insertionFormat(cursor);
+        setAnnotations(under, {});  // the text joins the place's fragments below
+        under.merge(typed);
+        putFormatUnder(content, under);
+    }
+    prepareForInsertion(content, document, fragments);
 
     // The annotations on the start of the first paragraph go on the place of the text
     const AnnotationList startPlaces = annotationsOf(content.firstBlock().charFormat());
@@ -120,28 +170,45 @@ void insertAnnotatedDocument(QTextCursor& cursor, QTextDocument& content) {
     cursor.endEditBlock();
 }
 
+/// @brief Insert KML at the cursor as insertAnnotatedDocument() does
+/// @return false when the KML has no paragraph the editor can read: nothing changed
+bool insertKml(QTextCursor& cursor, const QString& kml, bool placeFormat = false,
+               const QTextCharFormat& typed = QTextCharFormat()) {
+    KmlDocumentModel model;
+    if (kml.isEmpty() || !model.loadKml(kml) || model.paragraphCount() == 0) {
+        return false;
+    }
+    QTextDocument content;
+    content.setUndoRedoEnabled(false);
+    QTextCursor contentCursor(&content);
+    appendParagraphs(contentCursor, model);
+    insertAnnotatedDocument(cursor, content, placeFormat, typed);
+    return true;
+}
+
 /// @brief Insert MIME data at the cursor, replacing its selection, as one edit block
 ///
 /// Kalahari content (KML) is parsed like a chapter file, so formatting, alignment and
-/// annotations survive; text from other programs takes the formatting of the insertion
-/// point, with @p typed on top (a format given for the text typed next), and its HTML
-/// tells its line breaks from its paragraph ends. Only the document changes: the editor's
-/// cursor and view follow once the outermost edit block has ended. The cursor ends after
-/// the inserted text.
-void insertMimeData(QTextCursor& cursor, const QMimeData& source,
+/// annotations survive. Text from other programs comes as @p mode reads its HTML; in
+/// PasteMode::Merge it takes the formatting of the insertion point with @p typed on top (a
+/// format given for the text typed next), and then its own emphasis. Without HTML, or in
+/// PasteMode::Text, the plain text takes the formatting of the insertion point and @p
+/// typed, and its HTML tells its line breaks from its paragraph ends. Only the document
+/// changes: the editor's cursor and view follow once the outermost edit block has ended.
+/// The cursor ends after the inserted text.
+void insertMimeData(QTextCursor& cursor, const QMimeData& source, PasteMode mode,
                     const QTextCharFormat& typed = QTextCharFormat()) {
     if (source.hasFormat(QString::fromLatin1(MIME_KML))) {
-        KmlDocumentModel model;
-        if (model.loadKml(QString::fromUtf8(source.data(QString::fromLatin1(MIME_KML)))) &&
-            model.paragraphCount() > 0) {
-            QTextDocument content;
-            content.setUndoRedoEnabled(false);
-            QTextCursor contentCursor(&content);
-            appendParagraphs(contentCursor, model);
-            insertAnnotatedDocument(cursor, content);
+        if (insertKml(cursor, QString::fromUtf8(source.data(QString::fromLatin1(MIME_KML))))) {
             return;
         }
         core::Logger::getInstance().warn("BookEditor: unreadable KML, inserting the text");
+    }
+
+    if (mode != PasteMode::Text && source.hasHtml() &&
+        insertKml(cursor, ClipboardHandler::htmlToKml(source.html(), mode),
+                  mode == PasteMode::Merge, typed)) {
+        return;
     }
 
     const QString text = ClipboardHandler::withLineEndsOf(source.text(), source.html());
@@ -333,7 +400,7 @@ bool BookEditor::removeSelection(bool keepAnnotations)
     if (keepAnnotations) {
         removeKeepingAnnotations(cursor);
     } else {
-        cursor.removeSelectedText();
+        removeSelectionKeepingObjects(cursor);
     }
 
     m_cursorPosition.paragraph = cursor.blockNumber();
@@ -366,7 +433,30 @@ void BookEditor::insertNewline()
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
         clearSelection();
     }
-    insertParagraphKeepingAnnotations(cursor);
+    cursor.beginEditBlock();
+    removeKeepingAnnotations(cursor);
+    if (isAtObject(cursor)) {
+        // Before an object an empty paragraph goes before it, and the cursor stays at the
+        // object; after one a new paragraph follows it
+        const bool beforeObject = cursor.atBlockStart();
+        leaveObject(cursor);
+        if (beforeObject) {
+            cursor.movePosition(QTextCursor::NextBlock);
+        }
+    } else {
+        // At the end of a paragraph the new one is in the style that follows its style (a
+        // heading is followed by the text); a paragraph split in two keeps its style
+        const bool atParagraphEnd = cursor.atBlockEnd();
+        const QString style = paragraphStyleOf(cursor.blockFormat());
+        insertParagraphKeepingAnnotations(cursor);
+        if (const QString next = m_paragraphStyles.nextStyleOf(style);
+            atParagraphEnd && next != style) {
+            QTextBlockFormat format = paragraphBlockFormat();
+            setParagraphStyle(format, next);
+            cursor.setBlockFormat(format);
+        }
+    }
+    cursor.endEditBlock();
 
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
@@ -387,6 +477,12 @@ void BookEditor::insertLineBreak()
         return;
     }
     ensureDocument();
+
+    // Next to an object there is no paragraph to break: a new one starts, as with Enter
+    if (!hasSelection() && isAtObject(createCursor(m_textBuffer.get(), m_cursorPosition))) {
+        insertNewline();
+        return;
+    }
 
     // A character of the paragraph, typed as text: it takes the format of the place and
     // the one given for the text typed next, which the text after it keeps. Its own edit
@@ -418,6 +514,9 @@ void BookEditor::deleteBackward()
 
     // If at start of document, nothing to delete
     if (m_cursorPosition.paragraph == 0 && m_cursorPosition.offset == 0) {
+        return;
+    }
+    if (deleteAtObject(true)) {
         return;
     }
 
@@ -455,6 +554,10 @@ void BookEditor::deleteForward()
         return;
     }
 
+    if (deleteAtObject(false)) {
+        return;
+    }
+
     const int paraLen = paragraphText(m_textBuffer.get(), m_cursorPosition.paragraph).length();
     const bool atBlockEnd = (m_cursorPosition.offset >= paraLen);
     const bool hasNextBlock = (m_cursorPosition.paragraph + 1 < m_textBuffer->blockCount());
@@ -477,6 +580,53 @@ void BookEditor::deleteForward()
             emit paragraphModified(m_cursorPosition.paragraph);
         }
     }
+}
+
+bool BookEditor::deleteAtObject(bool backward)
+{
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!block.isValid()) {
+        return false;
+    }
+    const bool inObject = blockObject(block) != TextObject::None;
+    const bool emptyParagraph = !inObject && block.length() == 1;
+    // The paragraph break is next to the cursor in the key's direction
+    const bool atBreak = backward ? m_cursorPosition.offset == 0
+                                  : m_cursorPosition.offset >= block.length() - 1;
+    const QTextBlock neighbour = backward ? block.previous() : block.next();
+    const bool besideObject = atBreak && blockObject(neighbour) != TextObject::None;
+
+    QTextBlock removed;
+    if ((emptyParagraph && besideObject) || (inObject && !atBreak)) {
+        removed = block;  // the empty paragraph (not the object next to it), or the object
+    } else if (besideObject) {
+        removed = neighbour;  // the object next to the cursor
+    } else if (inObject && atBreak && neighbour.isValid()) {
+        if (neighbour.length() > 1) {
+            // An object and text do not join: the cursor goes over the break to the text
+            setCursorPosition({neighbour.blockNumber(), backward ? neighbour.length() - 1 : 0});
+            return true;
+        }
+        removed = neighbour;  // an empty paragraph
+    } else {
+        return false;
+    }
+
+    // One undo step; the cursor stays at the text on its side of the removed block
+    const int position = block.position() + m_cursorPosition.offset;
+    const int removedNumber = removed.blockNumber();
+    const bool removedAfter = removed.position() > block.position();
+    const bool removedOwnParagraph = removed == block && emptyParagraph;
+    QTextCursor cursor(m_textBuffer.get());
+    removeBlock(cursor, removed);
+    if (removedAfter) {
+        cursor.setPosition(position);
+    } else if (removedOwnParagraph && backward) {
+        cursor.setPosition(position - 1);  // after the object before it
+    }
+    finishEdit(cursor);
+    emit paragraphRemoved(removedNumber);
+    return true;
 }
 
 void BookEditor::deleteTo(const CursorPosition& position)
@@ -790,6 +940,24 @@ void BookEditor::paste()
     insertFromMimeData(QGuiApplication::clipboard()->mimeData());
 }
 
+void BookEditor::pasteAs(PasteMode mode)
+{
+    const QMimeData* clipboard = QGuiApplication::clipboard()->mimeData();
+    if (mode != PasteMode::Text || clipboard == nullptr ||
+        !clipboard->hasFormat(QString::fromLatin1(MIME_KML))) {
+        insertMimeDataAs(clipboard, mode);
+        return;
+    }
+    // Kalahari's own text without its formatting: its plain text, with the HTML that tells
+    // its line breaks from its paragraph ends
+    QMimeData plain;
+    plain.setText(clipboard->text());
+    if (clipboard->hasHtml()) {
+        plain.setHtml(clipboard->html());
+    }
+    insertMimeDataAs(&plain, mode);
+}
+
 std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
 {
     if (!hasSelection() || !m_textBuffer) {
@@ -798,19 +966,8 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
 
     const SelectionRange sel = m_selection.normalized();
     const QTextCursor range = createCursor(m_textBuffer.get(), sel.start, sel.end);
-    const QString kml =
-        KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd());
-
-    // Lines: the paragraphs and the line breaks in them end one
-    QString text = range.selectedText();
-    text.replace(QChar::ParagraphSeparator, QLatin1Char('\n'));
-    text.replace(QChar::LineSeparator, QLatin1Char('\n'));
-
-    auto mimeData = std::make_unique<QMimeData>();
-    mimeData->setText(text);
-    mimeData->setHtml(ClipboardHandler::kmlToHtml(kml));
-    mimeData->setData(QString::fromLatin1(MIME_KML), kml.toUtf8());
-    return mimeData;
+    return ClipboardHandler::mimeDataOf(
+        KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd()));
 }
 
 bool BookEditor::canInsertFromMimeData(const QMimeData* source)
@@ -820,6 +977,11 @@ bool BookEditor::canInsertFromMimeData(const QMimeData* source)
 }
 
 void BookEditor::insertFromMimeData(const QMimeData* source)
+{
+    insertMimeDataAs(source, m_pasteMode);
+}
+
+void BookEditor::insertMimeDataAs(const QMimeData* source, PasteMode mode)
 {
     if (refusesChange()) {
         return;
@@ -841,8 +1003,13 @@ void BookEditor::insertFromMimeData(const QMimeData* source)
         cursor = createCursor(m_textBuffer.get(), sel.start, sel.end);
         clearSelection();
     }
-    insertMimeData(cursor, *source, pending);
+    insertMimeData(cursor, *source, mode, pending);
     finishEdit(cursor);
+}
+
+void BookEditor::setPasteMode(PasteMode mode)
+{
+    m_pasteMode = mode;
 }
 
 bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& position,
@@ -869,10 +1036,10 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     cursor.beginEditBlock();
     if (moveSelection) {
         oldPlace = createCursor(m_textBuffer.get(), moved.start, moved.end);
-        oldPlace.removeSelectedText();
+        removeSelectionKeepingObjects(oldPlace);
     }
     const int insertionStart = cursor.position();
-    insertMimeData(cursor, *source);
+    insertMimeData(cursor, *source, m_pasteMode);
     cursor.endEditBlock();
 
     // The dropped text is selected, with the cursor at its end

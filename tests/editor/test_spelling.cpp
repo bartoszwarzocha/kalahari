@@ -4,6 +4,7 @@
 ///        words as they were, none under the word being typed
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book_type_package.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/spell_check_service.h>
 #include <kalahari/editor/text_keys.h>
@@ -120,6 +121,35 @@ TEST_CASE("Spelling: the misspelled words of a shown editor get waves", "[editor
         editor->fromKml(kmlOf({QStringLiteral("Fresh txet")}));
         REQUIRE(checked(*editor));
         CHECK(wavyWords(*editor, 0) == QStringList{"txet"});
+    }
+}
+
+TEST_CASE("Spelling: a paragraph in Code is not checked", "[editor][spelling][styles]") {
+    auto spelling = englishService();
+    auto editor = std::make_unique<BookEditor>();
+    editor->resize(600, 400);
+    kalahari::core::PackageParagraphStyle normal;
+    normal.id = QStringLiteral("normal");
+    kalahari::core::PackageParagraphStyle code;
+    code.id = QStringLiteral("code");
+    code.properties.insert(QStringLiteral("spellCheck"), false);
+    editor->setParagraphStyles(ParagraphStyleSet::fromPackage({normal, code}, QStringLiteral("en")));
+    editor->fromKml(QStringLiteral(
+        "<kml><p style=\"code\">int speling = 0;</p><p>The speling is bad.</p></kml>"));
+    editor->setSpellCheckService(spelling.get());
+    editor->show();
+    REQUIRE(checked(*editor));
+    CHECK(wavyWords(*editor, 0).isEmpty());
+    CHECK(wavyWords(*editor, 1) == QStringList{"speling"});
+
+    SECTION("put in Normal, it gets its waves; in Code again, they go") {
+        editor->setCursorPosition({0, 0});
+        editor->applyParagraphStyle(QStringLiteral("normal"));
+        REQUIRE(checked(*editor));
+        CHECK(wavyWords(*editor, 0) == QStringList{"speling"});
+        editor->applyParagraphStyle(QStringLiteral("code"));
+        REQUIRE(checked(*editor));
+        CHECK(wavyWords(*editor, 0).isEmpty());
     }
 }
 

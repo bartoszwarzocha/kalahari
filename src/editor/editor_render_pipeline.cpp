@@ -470,6 +470,13 @@ void EditorRenderPipeline::setConfigFocus(bool enabled) {
     markRepaintOnly();
 }
 
+void EditorRenderPipeline::setConfigFormattingMarks(bool show) {
+    if (m_context.showFormattingMarks == show) return;
+
+    m_context.showFormattingMarks = show;
+    markRepaintOnly();
+}
+
 void EditorRenderPipeline::setConfigAnnotationMarkScale(double scale) {
     if (m_context.annotationMarkScale == scale) return;
 
@@ -1077,7 +1084,13 @@ void EditorRenderPipeline::renderParagraphs(QPainter* painter, const QRect& clip
         // Check if paragraph intersects clip rect
         QRectF paraRect(0, widgetY, m_context.viewportSize.width(), height);
         if (paraRect.intersects(clipRect)) {
+            // Finding the marks shapes the paragraph's glyphs, which drawing it then uses (a
+            // paragraph laid out on demand keeps no glyphs once drawn)
+            const std::vector<FormattingMark> marks = m_context.showFormattingMarks
+                ? m_textSource->paragraphFormattingMarks(i)
+                : std::vector<FormattingMark>{};
             renderParagraph(painter, i, widgetY);
+            renderFormattingMarks(painter, marks, widgetY);
         }
     }
 }
@@ -1108,6 +1121,26 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
     // Draw the layout
     layout->draw(painter, QPointF(0, 0));
 
+    painter->restore();
+}
+
+void EditorRenderPipeline::renderFormattingMarks(QPainter* painter,
+                                                 const std::vector<FormattingMark>& marks,
+                                                 double widgetY) {
+    if (marks.empty()) return;
+
+    // In the paragraph's coordinates, zoomed as its text
+    painter->save();
+    painter->translate(m_context.computed.originX, widgetY);
+    const double scale = m_context.computed.viewScale;
+    if (scale != 1.0) {
+        painter->scale(scale, scale);
+    }
+    painter->setPen(m_context.colors.formattingMarks);
+    for (const FormattingMark& mark : marks) {
+        painter->setFont(mark.font);
+        painter->drawText(mark.position, QString(mark.glyph));
+    }
     painter->restore();
 }
 
@@ -1169,7 +1202,7 @@ void EditorRenderPipeline::fillTextRange(QPainter* painter, size_t paraIndex, in
                                          bool lineBoxes) {
     const double scale = m_context.computed.viewScale;
     for (const LinePiece& piece : linePieces(paraIndex, startOffset, endOffset)) {
-        const QRectF band = lineBoxes ? lineBox(piece.line)
+        const QRectF band = lineBoxes ? lineBox(paraIndex, piece.line)
                                       : QRectF(piece.line.x(), piece.line.y(), piece.line.width(),
                                                piece.line.height());
         const double x1 = m_context.computed.originX + piece.x1 * scale;
@@ -1542,9 +1575,9 @@ void EditorRenderPipeline::updateVisibleRange() {
     }
 }
 
-QRectF EditorRenderPipeline::lineBox(const QTextLine& line) const {
-    return KalahariTextDocumentLayout::lineBox(line,
-                                               m_textSource ? m_textSource->lineSpacing() : 1.0);
+QRectF EditorRenderPipeline::lineBox(size_t paraIndex, const QTextLine& line) const {
+    return m_textSource ? m_textSource->lineBox(paraIndex, line)
+                        : QRectF(line.x(), line.y(), line.width(), line.height());
 }
 
 double EditorRenderPipeline::paragraphWidgetY(size_t index) const {
@@ -1617,8 +1650,10 @@ CursorPosition EditorRenderPipeline::positionFromPoint(const QPointF& point) con
 
     // Line whose box covers the point (the nearest one above or below the lines)
     const double localY = docPoint.y() - m_textSource->paragraphY(paraIndex);
-    const QTextLine line = layout->lineAt(
-        KalahariTextDocumentLayout::lineIndexAt(*layout, localY, m_textSource->lineSpacing()));
+    const QTextLine line = layout->lineAt(KalahariTextDocumentLayout::lineIndexAt(
+        *layout, localY, [this, paraIndex](const QTextLine& candidate) {
+            return lineBox(paraIndex, candidate);
+        }));
     const int offset = line.xToCursor(docPoint.x(), QTextLine::CursorBetweenCharacters);
 
     return CursorPosition{static_cast<int>(paraIndex), offset};

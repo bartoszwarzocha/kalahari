@@ -7,6 +7,7 @@
 #include "context_menu_reader.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/find_replace_bar.h"
+#include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/edit_coordinator.h"
@@ -46,17 +47,19 @@ using Edit = EditCoordinator::Edit;
 namespace {
 
 /// The commands, in the order of the Edit menu, with their names and ids
-constexpr std::array<std::pair<Edit, const char*>, 6> NAMES = {{
+constexpr std::array<std::pair<Edit, const char*>, 7> NAMES = {{
     {Edit::Undo, "Undo"},
     {Edit::Redo, "Redo"},
     {Edit::Cut, "Cut"},
     {Edit::Copy, "Copy"},
     {Edit::Paste, "Paste"},
+    {Edit::Delete, "Delete"},
     {Edit::SelectAll, "SelectAll"},
 }};
 
-constexpr std::array<const char*, 6> IDS = {"edit.undo",  "edit.redo",  "edit.cut",
-                                            "edit.copy",  "edit.paste", "edit.selectAll"};
+constexpr std::array<const char*, 7> IDS = {"edit.undo",  "edit.redo",   "edit.cut",
+                                            "edit.copy",  "edit.paste",  "edit.delete",
+                                            "edit.selectAll"};
 
 /// The commands that can do something on an element, in the order of the Edit menu
 std::string possibleOn(const EditCoordinator& coordinator, QWidget* element) {
@@ -130,6 +133,7 @@ CommandCallbacks callbacksOf(EditCoordinator& coordinator) {
     callbacks.onCut = [&coordinator] { coordinator.execute(Edit::Cut); };
     callbacks.onCopy = [&coordinator] { coordinator.execute(Edit::Copy); };
     callbacks.onPaste = [&coordinator] { coordinator.execute(Edit::Paste); };
+    callbacks.onDelete = [&coordinator] { coordinator.execute(Edit::Delete); };
     callbacks.onSelectAll = [&coordinator] { coordinator.execute(Edit::SelectAll); };
     return callbacks;
 }
@@ -229,7 +233,7 @@ TEST_CASE("Edit commands: a field one types into does them all", "[gui][edit][cl
         CHECK(possibleOn(coordinator, &line) == "Paste");
         line.insert(QStringLiteral("abc"));
         line.selectAll();
-        CHECK(possibleOn(coordinator, &line) == "Undo Cut Copy Paste SelectAll");
+        CHECK(possibleOn(coordinator, &line) == "Undo Cut Copy Paste Delete SelectAll");
 
         CHECK(coordinator.execute(Edit::Cut, &line));
         CHECK(line.text().isEmpty());
@@ -247,7 +251,7 @@ TEST_CASE("Edit commands: a field one types into does them all", "[gui][edit][cl
         QTextEdit text;
         text.insertPlainText(QStringLiteral("abc"));
         text.selectAll();
-        CHECK(possibleOn(coordinator, &text) == "Undo Cut Copy Paste SelectAll");
+        CHECK(possibleOn(coordinator, &text) == "Undo Cut Copy Paste Delete SelectAll");
         CHECK(coordinator.execute(Edit::Cut, &text));
         CHECK(text.toPlainText().isEmpty());
         CHECK(coordinator.execute(Edit::Undo, &text));
@@ -269,9 +273,56 @@ TEST_CASE("Edit commands: a field one types into does them all", "[gui][edit][cl
         QLineEdit password(QStringLiteral("secret"));
         password.setEchoMode(QLineEdit::Password);
         password.selectAll();
-        CHECK(possibleOn(coordinator, &password) == "Paste SelectAll");
+        CHECK(possibleOn(coordinator, &password) == "Paste Delete SelectAll");
         CHECK_FALSE(coordinator.execute(Edit::Copy, &password));
         CHECK(clipboardText() == "Pasted");
+    }
+}
+
+TEST_CASE("Edit commands: Delete removes the selection, as one step of the undo history",
+          "[gui][edit]") {
+    EditCoordinator coordinator(noBook);
+
+    SECTION("a field of one line") {
+        QLineEdit line(QStringLiteral("one two"));
+        line.setSelection(0, 4);
+        CHECK(coordinator.execute(Edit::Delete, &line));
+        CHECK(line.text() == QStringLiteral("two"));
+        CHECK_FALSE(coordinator.canDo(Edit::Delete, &line));  // no selection left
+        CHECK(coordinator.execute(Edit::Undo, &line));
+        CHECK(line.text() == QStringLiteral("one two"));
+    }
+
+    SECTION("a text") {
+        QPlainTextEdit text(QStringLiteral("one two"));
+        QTextCursor cursor = text.textCursor();
+        cursor.setPosition(3);
+        cursor.setPosition(7, QTextCursor::KeepAnchor);
+        text.setTextCursor(cursor);
+        CHECK(coordinator.execute(Edit::Delete, &text));
+        CHECK(text.toPlainText() == QStringLiteral("one"));
+        CHECK(coordinator.execute(Edit::Undo, &text));
+        CHECK(text.toPlainText() == QStringLiteral("one two"));
+    }
+
+    SECTION("a field that only shows deletes nothing") {
+        QLineEdit line(QStringLiteral("Shown"));
+        line.setReadOnly(true);
+        line.selectAll();
+        CHECK_FALSE(coordinator.execute(Edit::Delete, &line));
+        CHECK(line.text() == QStringLiteral("Shown"));
+    }
+
+    SECTION("the book's text") {
+        editor::BookEditor book;
+        test::resizeWidget(book, QSize(600, 400));
+        book.fromKml(test::kmlOf({QStringLiteral("One two")}));
+        CHECK_FALSE(coordinator.canDo(Edit::Delete, &book));
+        book.setSelection({{0, 3}, {0, 7}});
+        CHECK(coordinator.execute(Edit::Delete, &book));
+        CHECK(book.plainText() == QStringLiteral("One"));
+        CHECK(coordinator.execute(Edit::Undo, &book));
+        CHECK(book.plainText() == QStringLiteral("One two"));
     }
 }
 
@@ -285,7 +336,7 @@ TEST_CASE("Edit commands: the field of a spin box and of a combo box one types i
         spin.setValue(12);
         CHECK(possibleOn(coordinator, &spin) == "Paste SelectAll");
         CHECK(coordinator.execute(Edit::SelectAll, &spin));
-        CHECK(possibleOn(coordinator, &spin) == "Cut Copy Paste SelectAll");
+        CHECK(possibleOn(coordinator, &spin) == "Cut Copy Paste Delete SelectAll");
         CHECK(coordinator.execute(Edit::Paste, &spin));
         CHECK(spin.text() == QStringLiteral("24"));
     }
@@ -316,7 +367,7 @@ TEST_CASE("Edit commands: the book's text", "[gui][edit][clipboard]") {
     CHECK(possibleOn(coordinator, &book) == "Paste SelectAll");
 
     book.setSelection({{0, 0}, {0, 3}});
-    CHECK(possibleOn(coordinator, &book) == "Cut Copy Paste SelectAll");
+    CHECK(possibleOn(coordinator, &book) == "Cut Copy Paste Delete SelectAll");
     CHECK(coordinator.execute(Edit::Cut, &book));
     CHECK(book.plainText() == QStringLiteral(" two"));
     CHECK(clipboardText() == "One");
@@ -544,6 +595,89 @@ TEST_CASE("Edit commands: the keys work on the element with the cursor", "[gui][
     // An empty clipboard: nothing to paste
     QGuiApplication::clipboard()->clear();
     CHECK(enabledCommands() == "Redo SelectAll");
+}
+
+TEST_CASE("Edit commands: the commands of the book's text work only with the keys in it",
+          "[gui][edit]") {
+    if (!canActivateWindows()) {
+        SKIP(NEEDS_OFFSCREEN);
+    }
+    QMainWindow window;
+    auto* central = new QWidget();
+    auto* layout = new QVBoxLayout(central);
+    auto* field = new QLineEdit(QStringLiteral("Field"));  // as the find bar's
+    auto* book = new editor::BookEditor();
+    layout->addWidget(field);
+    layout->addWidget(book, 1);
+    window.setCentralWidget(central);
+    window.resize(600, 400);
+    book->fromKml(test::kmlOf({QStringLiteral("One two")}));
+
+    // As the window gives them
+    EditCoordinator coordinator(noBook);
+    CommandCallbacks callbacks = callbacksOf(coordinator);
+    callbacks.onSelectWord = [&coordinator] {
+        if (editor::BookEditor* text = coordinator.textWithKeys()) {
+            text->selectWord();
+        }
+    };
+    callbacks.onInsertPageBreak = [&coordinator] {
+        if (editor::BookEditor* text = coordinator.textWithKeys()) {
+            text->insertTextObject(editor::TextObject::PageBreak);
+        }
+    };
+    int deletes = 0;
+    callbacks.onDelete = [&coordinator, &deletes] {
+        ++deletes;
+        coordinator.execute(Edit::Delete);
+    };
+    registerAllCommands(callbacks);
+    auto& registry = CommandRegistry::getInstance();
+    QAction* selectWord = registry.getAction(QStringLiteral("edit.selectWord"));
+    QAction* pageBreak = registry.getAction(QStringLiteral("insert.pageBreak"));
+    QAction* deleting = registry.getAction(QStringLiteral("edit.delete"));
+    window.addAction(selectWord);
+    window.addAction(pageBreak);
+    window.addAction(deleting);
+    coordinator.connectCommands();
+    coordinator.addTextCommands({"edit.selectWord"},
+                                [](const editor::BookEditor&) { return true; });
+    coordinator.addTextCommands({"insert.pageBreak"}, [](const editor::BookEditor& text) {
+        return !text.isReadOnly();
+    });
+    activate(window);
+
+    // In a field they are greyed out: Ctrl+Enter stays with it, the book's text stays
+    REQUIRE(takesKeys(field));
+    CHECK(coordinator.textWithKeys() == nullptr);
+    CHECK_FALSE(selectWord->isEnabled());
+    CHECK_FALSE(pageBreak->isEnabled());
+    press(field, Qt::Key_Return, Qt::ControlModifier);
+    CHECK(book->toKml() == test::kmlOf({QStringLiteral("One two")}));
+
+    // In the text: Ctrl+Enter puts a page break at the cursor, both Enter keys
+    REQUIRE(takesKeys(book));
+    CHECK(coordinator.textWithKeys() == book);
+    CHECK(selectWord->isEnabled());
+    CHECK(pageBreak->isEnabled());
+    book->setCursorPosition({0, 3});
+    press(book, Qt::Key_Return, Qt::ControlModifier);
+    CHECK(book->toKml().contains(QStringLiteral("<p>One</p><page-break/><p> two</p>")));
+    press(book, Qt::Key_Enter, Qt::ControlModifier | Qt::KeypadModifier);
+    CHECK(book->toKml().count(QStringLiteral("<page-break/>")) == 2);
+
+    // Delete is the text's key, also while Edit > Delete can delete the selection
+    book->setSelection({{0, 0}, {0, 2}});
+    REQUIRE(deleting->isEnabled());
+    press(book, Qt::Key_Delete);
+    CHECK(deletes == 0);
+    CHECK(book->toKml().startsWith(QStringLiteral("<kml><p>e</p>")));
+
+    // A text that is only read selects words, and gets no breaks
+    book->setReadOnly(true);
+    coordinator.updateStates();
+    CHECK(selectWord->isEnabled());
+    CHECK_FALSE(pageBreak->isEnabled());
 }
 
 TEST_CASE("Edit commands: the text's context menu gives them to its text with their keys",

@@ -55,6 +55,31 @@ namespace {
 /// book: often enough to follow the writing, not at each key
 constexpr int WORD_COUNT_DELAY_MS = 500;
 
+/// Before Replace All in chapter @p elementId, the book keeps the text of @p editor as it is
+/// as a version, if the settings say so: @p count matches of @p found are replaced with
+/// @p replacement
+void keepVersionBeforeReplaceAll(const QString& elementId, const editor::BookEditor& editor,
+                                 const QString& found, const QString& replacement, int count) {
+    auto& pm = core::ProjectManager::getInstance();
+    const auto& settings = core::SettingsManager::getInstance();
+    if (!pm.isProjectOpen() || pm.isReadOnly() ||
+        !settings.get<bool>(core::ChapterVersions::ENABLED_SETTING) ||
+        !settings.get<bool>(core::ChapterVersions::BEFORE_REPLACE_ALL_SETTING)) {
+        return;
+    }
+    const core::ProjectManager::VersionKept kept =
+        pm.keepVersion(elementId, editor.toKml(),
+                       {.origin = core::VersionOrigin::ReplaceAll,
+                        .found = found,
+                        .replacement = replacement,
+                        .replaced = count});
+    if (kept == core::ProjectManager::VersionKept::Failed) {
+        core::Logger::getInstance().warn(
+            "NavigatorCoordinator: No version of {} was kept before Replace All",
+            elementId.toStdString());
+    }
+}
+
 /// A section of the book as the Navigator names its item, with its icon
 struct SectionItem {
     const char* type;     ///< Type of the Navigator's item, e.g. "section_body"
@@ -348,6 +373,14 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
             m_wordCountTimer->start();
         }
     });
+    // Replace All can be undone in the editor only until the chapter is closed: the book
+    // keeps the text before it as a version
+    const editor::BookEditor* bookEditor = newEditor->getBookEditor();
+    connect(bookEditor, &editor::BookEditor::aboutToReplaceAll, this,
+            [elementId, bookEditor](const QString& found, const QString& replacement,
+                                    int count) {
+                keepVersionBeforeReplaceAll(elementId, *bookEditor, found, replacement, count);
+            });
 
     // Connect to statistics collector if available (OpenSpec #00042 Task 7.7)
     if (m_statisticsCollector) {
@@ -577,13 +610,18 @@ QStringList NavigatorCoordinator::deleteFiles(const QStringList& files, bool tra
     bool gone = false;
     QStringList refused;
     QStringList failed;
+    QStringList trashed;
+    QStringList deletedForGood;
     for (const QString& file : files) {
         if (trash) {
-            if (!core::moveToTrash(file)) {
+            if (core::moveToTrash(file)) {
+                trashed << file;
+            } else {
                 refused << file;
             }
         } else if (QFile::remove(file)) {
             gone = true;
+            deletedForGood << file;
         } else {
             failed << file;
         }
@@ -613,6 +651,7 @@ QStringList NavigatorCoordinator::deleteFiles(const QStringList& files, bool tra
             for (const QString& file : std::as_const(refused)) {
                 if (QFile::remove(file)) {
                     gone = true;
+                    deletedForGood << file;
                 } else {
                     failed << file;
                 }
@@ -620,6 +659,15 @@ QStringList NavigatorCoordinator::deleteFiles(const QStringList& files, bool tra
         } else {
             kept << refused;
         }
+    }
+
+    // The versions of the texts go as their files went; those of a file that stays stay
+    auto& pm = core::ProjectManager::getInstance();
+    const QStringList versionsStay =
+        pm.deleteVersionsOf(trashed, true) + pm.deleteVersionsOf(deletedForGood, false);
+    if (!versionsStay.isEmpty()) {
+        logger.warn("NavigatorCoordinator: The versions of {} deleted file(s) stay",
+                    versionsStay.size());
     }
 
     if (!failed.isEmpty()) {

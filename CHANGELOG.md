@@ -78,6 +78,110 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an address becomes a working note whose text is its description, and the book is saved so;
   "Material" stays in the packages, retired (`"retired": true`), so that such books are read,
   but it is offered nowhere.
+- **Versions of the texts: Save Version and Version History** - 2026-10-22. File > Save
+  Version (Alt+Shift+S; on macOS Option+Shift+Cmd+S) keeps the text in front as it is in its
+  editor, with its formatting, its annotations and the changes not saved yet, as a version:
+  after a small window with an optional description (Enter saves also without one), or at
+  once when Settings > Editor > Versions says so; the status bar says it is kept. The program
+  keeps versions by itself too: when a chapter is saved, at most once an hour and only when
+  its text differs from the last version (a version is the whole text: about 40 KB for 5,000
+  words); before Replace All in a chapter, with what was replaced; and always before another
+  version is restored. It keeps at most 20 of its own in each chapter (both in the Settings,
+  with the minutes), and never deletes the writer's. Settings > Editor > Versions > Create
+  Versions of the Texts (on by default) turns them off: no new versions, neither the
+  writer's nor the program's, Save Version is greyed out everywhere, saying why, and the
+  history still reads, compares and restores the versions kept, keeping the current text
+  first.
+  File > Version History (Alt+Shift+H) lists the versions of the text from the newest, with
+  their descriptions or where they come from, their dates and words, wrapped to the width of
+  the list; a box hides the program's own. The preview, its page at the width of the preview
+  in every size of the window, shows the text of a version, read-only, or its changes to the
+  current text word by word, deleted words struck out and added ones underlined, in colors of
+  each theme (Settings > Editor > Versions), from change to change with Alt+Down and Alt+Up
+  (Cmd+Option with the arrows on macOS), each change at the same height in the preview.
+  Restore This Version puts the version in place of the text as one step of Undo, after the
+  text is kept as a version, and the bar under the text says so, with Undo; Insert Selected
+  Fragment puts the selection of the preview at the cursor. Change Description (F2) and
+  Delete (Delete, after a question) work in the list; in a book open read-only the window
+  reads and compares only. The Navigator has Version History in the menu of a text
+  (Alt+Shift+H in the tree), and the Properties panel of a text has the group Versions: how
+  many, the last one, Save Version and Version History, also under the counts of the text in
+  front, and a gear that opens Settings > Editor > Versions. Save Version and Version History
+  are on the toolbar Versions and Backups, with Backup Now (moved from Quick Actions), in
+  the first row after Quick Actions; it can be moved or hidden like any toolbar, and
+  Settings > Editor > Versions > Version Buttons puts the two on Quick Actions, next to
+  Backup Now, instead. The notes of a greyed-out group in the Settings are greyed out with
+  it. The versions of a file are in the
+  book's folder, under versions/ (a .kml file for each and index.json), go with the file to
+  the Trash, and go into the book's archive unless its export leaves them out. Tools > Version
+  History, which was always greyed out, is gone.
+
+- **Paragraph styles, a horizontal line and the breaks, the formatting marks** - 2026-10-19.
+  Format > Text Style puts the paragraphs of the cursor or the selection in a style of the
+  book's type, as one step of Undo: Heading 1, 2 and 3 (Alt+1, Alt+2, Alt+3; on macOS
+  Option+Cmd with the digit), Normal (Alt+0), Quote, Dialogue and Code, then the other styles
+  of the book; Manage Styles... is greyed out. The style of the paragraph at the cursor is
+  checked in the menu and on the Styles toolbar and selected in the palette of the Paragraph
+  and Styles panel, which gives it too (greyed out in a book open read-only, saying why).
+  The styles look as the pack of the book's type says, in their proportions to Normal, which
+  keeps the font, the line height and the spacing of the Settings. Enter at the end of a
+  heading starts a paragraph in the style that follows it (Normal), Enter in its middle splits
+  it into two headings, and in the page view a heading never stays alone at the bottom of a
+  page. The spelling of Code is not checked. Insert > Horizontal Line, Insert > Scene Break
+  (also in the Book menu) and Insert > Page Break (Ctrl+Enter) put an object in a paragraph
+  of its own: the cursor passes it with one key press, Backspace and Delete take it whole, and
+  it adds nothing to the word count. A scene break looks as
+  Settings > Editor > General > Scene Break Look says, with a preview: three asterisks, an
+  asterism, a fleuron, a short line or a blank line; the file keeps the break whatever its
+  look. A page break shows as a dashed line with the words "Page Break" in every view, with
+  the formatting marks or without them, and in the page view the text after it starts a new
+  page. View > Show Formatting Marks (Ctrl+Shift+8) shows ¶ at
+  the end of the paragraphs, · in the spaces, ° in the no-break spaces, → for the tabs, ↵ for
+  the line breaks and ¬ for the optional hyphens, in a color of their own (Settings > Editor >
+  Colors > Formatting marks); the lines do not move and the choice is kept between sessions.
+  Edit > Select Word, Select Paragraph and
+  Delete (Del) work. KML has the headings `<h1>`-`<h3>`, the paragraph attribute `style` and
+  the elements `<hr/>`, `<scene-break/>` and `<page-break/>` (docs/kml_format.md); a style the
+  book's type does not have is kept.
+
+- **Pasting from other programs, in three modes** - 2026-10-19. Text pasted or dropped from
+  Word, LibreOffice or a browser keeps its headings, quotes, horizontal lines, page breaks,
+  line breaks and emphasis (bold, italic, underline, strikethrough, subscript, superscript),
+  and its centered and right-aligned paragraphs, and takes the look of the text it goes to
+  (it came as plain text). Edit > Paste (Ctrl+V) pastes as Settings > Editor > General >
+  Paste Command says: Merge Formatting (the default), Keep Source Formatting (also the fonts,
+  sizes, colors and every alignment of the other program) or Keep Text Only. The Edit menu
+  has a paste for each of them too, whatever Paste does: Paste with Source Formatting
+  (Alt+Shift+V), Paste and Merge Formatting (Alt+Shift+M) and Paste Text Only (Ctrl+Shift+V,
+  which leaves the formatting of text copied in Kalahari too); on macOS with Option+Shift+Cmd.
+  Text copied in Kalahari gives Word and
+  LibreOffice its headings, quotes, horizontal lines, scene breaks and page breaks, and a
+  plain text program a line for each of them.
+
+- **The Paragraph and Styles panel, Clear Formatting, the buttons of the panels** -
+  2026-10-20. The Paragraph and Styles panel (View > Panels, and a button on the Panels
+  toolbar) is the tab after Properties in the group of panels on the right. A band names the
+  paragraph at the cursor ("paragraph 3 of 12") or the selected paragraphs ("4 of 12"); under
+  it are the buttons of bold, italic and underline, then Clear Formatting, and of the four
+  alignments, the commands of the Format menu, and the palette of the book's styles, by their
+  names or in their look (Names, Preview), with the style of the paragraphs selected. A click
+  on a style gives it to the paragraphs, as one step of Undo, and the keys back to the text.
+  Without a text in front the panel says so; on a line or a break it names its kind and greys
+  the palette out; in a book open read-only the palette is greyed out, saying why. Settings >
+  Appearance > General > Paragraph and styles can put the panel at the bottom of the
+  Properties panel instead, where it folds to its band; the border of the parts and the
+  folding are kept. The Properties panel no longer has the Paragraph Style group. Format >
+  Clear Formatting (Ctrl+Space; Cmd+\ on macOS, where Cmd+Space opens Spotlight) takes off the
+  formatting given by hand to the selected text, or to the word with the cursor (bold, italic,
+  underline, strikethrough, subscript and superscript, the font, the size and the colors) and
+  the alignment given to their paragraphs, as one step of Undo; the styles, the annotations
+  and the objects stay. Outside a word the text typed next is plain. A button of the Panels
+  toolbar shows a closed panel on top, brings an open panel under another tab on top, and
+  closes the panel on top, which unchecks it; a floating panel closes at once. The Panels
+  toolbar stands at the right edge of the window, next to the panels on the right, shown; a
+  toolbar layout saved before stays as it was until View > Reset Layout. Its Log button is
+  hidden unless Settings > Advanced > Log > Show the Log button on the Panels toolbar is on;
+  View > Panels > Log (F4) opens the log panel either way.
 
 - **Navigator: the book and the Workshop, and one window that adds** - 2026-10-20. The
   Navigator shows the project, named after the title of its book, with two nodes: the book,

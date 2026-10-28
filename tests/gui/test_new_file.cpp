@@ -409,9 +409,10 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
             R"({"builtIn":{"quickActions":["file.new","file.open","file.save","edit.find"],)"
             R"("file":["file.new","file.open","file.save","file.close"]}})");
         gui::ToolbarManager manager(&window);
+        // With the buttons of the versions of a later version, after Find too
         CHECK(joined(manager.getToolbarCommands(quickActions)) ==
               "file.new | file.open.file | file.open | file.save | file.saveAs | file.close | "
-              "edit.find");
+              "edit.find | file.saveVersion | file.versionHistory");
         CHECK(joined(manager.getToolbarCommands(QStringLiteral("file"))) ==
               "file.new | file.open.file | file.open | file.save | file.saveAll | file.close");
 
@@ -431,7 +432,8 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
         // After the nearest command before it in the default toolbar that the toolbar has
         // (Save As after New Book), at the start when it has none (Open File)
         CHECK(joined(manager.getToolbarCommands(quickActions)) ==
-              "file.open.file | edit.find | file.new.project | file.saveAs | file.close");
+              "file.open.file | edit.find | file.saveVersion | file.versionHistory | "
+              "file.new.project | file.saveAs | file.close");
     }
 
     SECTION("the file commands in the order of the File menu, in the places they had") {
@@ -443,7 +445,8 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
         settings.set<int>("toolbars.addedCommands", 1);
         gui::ToolbarManager manager(&window);
         CHECK(joined(manager.getToolbarCommands(quickActions)) ==
-              "file.new | file.open.file | file.new.project | file.open | edit.find");
+              "file.new | file.open.file | file.new.project | file.open | edit.find | "
+              "file.saveVersion | file.versionHistory");
         CHECK(joined(manager.getToolbarCommands(QStringLiteral("file"))) ==
               "file.open.file | file.save | file.open");
 

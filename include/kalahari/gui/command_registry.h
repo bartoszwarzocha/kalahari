@@ -300,7 +300,7 @@ private:
     QAction* createActionForCommand(const QString& commandId, const Command& cmd);
 
     /// @brief An action whose keys changed, and its new keys
-    using ShortcutChange = std::pair<QAction*, QKeySequence>;
+    using ShortcutChange = std::pair<QAction*, QList<QKeySequence>>;
 
     /// @brief Give the commands the keys resolveShortcuts() finds (with m_mutex held)
     /// @param skipId A command whose change is not reported (the one being registered)

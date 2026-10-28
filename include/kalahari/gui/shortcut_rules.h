@@ -113,8 +113,10 @@ public:
 
     /// @brief The keys of a key press as the shortcuts are written
     ///
-    /// The keypad makes no difference; Shift+Tab is Tab with Shift; a key that already is
-    /// the character Shift types (! for Shift+1) is without Shift, as Qt matches it.
+    /// The keypad makes no difference; Shift+Tab is Tab with Shift. A key of the row of
+    /// digits with Shift is the digit with Shift (Ctrl+Shift+8, though the key comes as "*");
+    /// any other key that already is the character Shift types (_ for Shift+-) is without
+    /// Shift, as Qt matches it.
     /// @return The keys, or Qt::Key_unknown for a modifier pressed alone
     [[nodiscard]] static QKeyCombination keysOf(const QKeyEvent* event);
 

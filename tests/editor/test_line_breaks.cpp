@@ -108,8 +108,9 @@ TEST_CASE("Line breaks: Enter still starts a new paragraph", "[editor][linebreak
     editor->setCursorPosition({0, 3});
     press(*editor, Qt::Key_Return);
     CHECK(editor->paragraphCount() == 2);
+    // Ctrl+Enter is Insert > Page Break, a command of the window: the text does nothing
     press(*editor, Qt::Key_Return, Qt::ControlModifier);
-    CHECK(editor->paragraphCount() == 3);
+    CHECK(editor->paragraphCount() == 2);
 }
 
 TEST_CASE("Line breaks: a break at the end of a paragraph starts an empty line",
@@ -355,8 +356,9 @@ TEST_CASE("Line breaks: copied, they are line ends for other programs and <br> i
     CHECK(kmlData(*mimeData) == kml);
     // The empty line after a break at a paragraph's end keeps a no-break space, as an
     // empty paragraph does: most programs would drop it
-    CHECK(mimeData->html() == QStringLiteral("<p>Roses are red,<br/>violets are blue.</p>"
-                                             "<p>Next<br/> </p>"));
+    CHECK(mimeData->html() ==
+          ClipboardHandler::htmlDocument(QStringLiteral("<p>Roses are red,<br/>violets are blue.</p>"
+                                                        "<p>Next<br/> </p>")));
 
     SECTION("Pasted in the editor, they are line breaks again") {
         auto other = editorWith(kmlOf({QString()}));

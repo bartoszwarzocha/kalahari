@@ -73,7 +73,10 @@ const std::vector<std::string>& documentCommands() {
     static const std::vector<std::string> ids = {
         "edit.find",          "edit.findNext",      "edit.findPrevious",    "edit.findReplace",
         "format.bold",        "format.italic",      "format.underline",     "format.strikethrough",
+        "format.clearFormatting",
         "format.alignLeft",   "format.alignCenter", "format.alignRight",    "format.justify",
+        "format.style.heading1", "format.style.heading2", "format.style.heading3",
+        "format.style.body",  "format.style.quote", "format.style.dialogue", "format.style.code",
         "view.mode.continuous", "view.mode.page",   "view.zoomIn",          "view.zoomOut",
         "view.resetZoom",     "view.zoomPageWidth", "view.zoomWholePage"};
     return ids;
@@ -82,8 +85,11 @@ const std::vector<std::string>& documentCommands() {
 const std::vector<std::string>& changingDocumentCommands() {
     static const std::vector<std::string> ids = {
         "edit.findReplace", "format.bold",        "format.italic",     "format.underline",
-        "format.strikethrough", "format.alignLeft", "format.alignCenter", "format.alignRight",
-        "format.justify"};
+        "format.strikethrough", "format.clearFormatting", "format.alignLeft",
+        "format.alignCenter", "format.alignRight",
+        "format.justify",   "format.style.heading1", "format.style.heading2",
+        "format.style.heading3", "format.style.body", "format.style.quote",
+        "format.style.dialogue", "format.style.code"};
     return ids;
 }
 
@@ -164,7 +170,8 @@ void updateSaveCommands(CommandRegistry& registry) {
 
 void explainGreyedKeys(CommandRegistry& registry, QWidget* window, QStatusBar* statusBar) {
     std::vector<std::string> ids = openBookCommands();
-    ids.insert(ids.end(), {"file.save", "file.saveAs", "file.saveAll", "book.newChapter",
+    ids.insert(ids.end(), {"file.save", "file.saveAs", "file.saveAll", "file.saveVersion",
+                           "file.versionHistory", "book.newChapter",
                            "book.properties", "insert.annotation", "insert.comment",
                            "insert.todo", "insert.note"});
     ids.insert(ids.end(), changingDocumentCommands().begin(), changingDocumentCommands().end());

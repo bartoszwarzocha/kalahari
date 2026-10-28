@@ -23,12 +23,14 @@ class QLineEdit;
 class QComboBox;
 class QTextEdit;
 class QFormLayout;
+class QVBoxLayout;
 class QGroupBox;
+class QPushButton;
 class QTimer;
+class QToolButton;
 
 namespace kalahari::editor {
 class BookEditor;
-class StyleResolver;
 }
 
 namespace kalahari {
@@ -47,7 +49,8 @@ class SectionsComboBox;
 /// - Project: Project metadata (title, author, language, genre, sections, statistics)
 /// - Chapter: Chapter properties (title, word count, status, notes, linked materials)
 /// - Material: The short card of a material (MaterialPage)
-/// - Editor: Text selection statistics (word/char count, paragraph style)
+/// - Editor: Text selection statistics (word/char count); the paragraph at the cursor is
+///   the Paragraph and Styles panel's (ParagraphPanel)
 ///
 /// Connects to ProjectManager signals for automatic updates.
 /// Connects to BookEditor for real-time selection statistics.
@@ -125,7 +128,8 @@ public slots:
 
     /// @brief Show editor statistics view
     ///
-    /// Switches to editor page showing text statistics.
+    /// Switches to editor page showing text statistics, and for a text of the book the
+    /// group of its versions under them.
     /// Called when user starts editing in BookEditor.
     void showEditorProperties();
 
@@ -136,13 +140,6 @@ public slots:
     /// updates of selection statistics. Without an editor (another tab in front, or none),
     /// the page of the editor gives way to the page of the book, or to the page without one.
     void setActiveEditor(EditorPanel* editorPanel);
-
-    /// @brief Set the style resolver for style operations
-    /// @param resolver StyleResolver to use for style resolution (nullptr to disconnect)
-    ///
-    /// When set, the properties panel can resolve style IDs to display names
-    /// and update styles via the database. Connected to project's StyleResolver.
-    void setStyleResolver(editor::StyleResolver* resolver);
 
     /// @brief Refresh current view with latest data
     ///
@@ -198,8 +195,8 @@ private slots:
     /// @brief Handle cursor position changed in BookEditor
     void onEditorCursorChanged();
 
-    /// @brief Handle paragraph style changed from combo box
-    void onEditorStyleChanged(int index);
+    /// @brief The group of the versions again, when the page with it is shown
+    void refreshVersions();
 
 protected:
     /// @brief Event filter for handling focus events
@@ -250,6 +247,16 @@ signals:
 
     /// @brief Something to say on the status bar: "Address copied: ..."
     void message(const QString& text);
+    /// @brief Save Version in the group of the versions: keep the text of element
+    /// @p elementId as a version
+    void requestSaveVersion(const QString& elementId);
+
+    /// @brief Version History... in the group of the versions: the versions of the text of
+    /// element @p elementId
+    void requestVersionHistory(const QString& elementId);
+
+    /// @brief The gear of the group of the versions: Settings > Editor > Versions
+    void requestVersionSettings();
 
 private:
     /// @brief Setup UI components
@@ -302,6 +309,10 @@ private:
     /// @brief Update editor statistics from current BookEditor
     void updateEditorStatistics();
 
+    /// @brief Put the group of the versions on the page of @p layout (of the Chapter page or
+    ///        the Editor page): the one group follows the page shown
+    void placeVersionsGroup(QVBoxLayout* layout);
+
     /// @brief Populate project fields from current project
     void populateProjectFields();
 
@@ -333,6 +344,17 @@ private:
 
     /// @brief Select @p status in the chapter's status combo; "draft" when it is not there
     void selectChapterStatus(const QString& status);
+
+    /// @brief The group of the versions of the text of element @p elementId: how many, the
+    /// last one and its description; hidden for an element whose text has none. While
+    /// versions are turned off it says so, and how many can be read in the history.
+    void showVersions(const QString& elementId);
+
+    /// @brief Put the gear of the group of the versions at the end of the line of its title
+    void placeVersionSettingsButton();
+
+    /// @brief The icons of the buttons of the group of the versions, in the icon colors
+    void updateVersionIcons();
 
     /// @brief Show the type of the open book @p project: its icon and its name, greyed out
     /// when the program does not have it, as the Dashboard shows it
@@ -374,6 +396,15 @@ private:
     QGroupBox* m_chapterNotesGroup;
     QTextEdit* m_chapterNotesEdit;
     LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element
+    QGroupBox* m_chapterVersionsGroup = nullptr;  ///< The versions of the text (showVersions())
+    QLabel* m_versionsCountLabel = nullptr;       ///< How many, and when the last one was kept
+    QLabel* m_versionsLastLabel = nullptr;        ///< The description of the last one
+    QPushButton* m_saveVersionButton = nullptr;
+    QPushButton* m_versionHistoryButton = nullptr;
+    QToolButton* m_versionSettingsButton = nullptr;  ///< The gear at the end of the title
+    QString m_versionsElementId;  ///< The text whose versions the group shows
+    QVBoxLayout* m_chapterPageLayout = nullptr;  ///< The Chapter page, for the versions group
+    QVBoxLayout* m_editorPageLayout = nullptr;   ///< The Editor page, for the versions group
 
     // Section Page widgets
     QLabel* m_sectionTitleLabel;
@@ -405,8 +436,6 @@ private:
     QLabel* m_editorCharNoSpaceLabel;     ///< Character count (without spaces)
     QLabel* m_editorParagraphCountLabel;  ///< Paragraph count
     QLabel* m_editorReadingTimeLabel;     ///< Estimated reading time
-    QComboBox* m_editorStyleCombo;        ///< Paragraph style selector
-    QLabel* m_editorStyleLabel;           ///< Current style display
 
     // State tracking
     QString m_currentChapterId;    ///< Currently displayed chapter ID
@@ -420,19 +449,8 @@ private:
     // OpenSpec #00043: Debounce timer for cursor change updates
     QTimer* m_cursorDebounceTimer{nullptr};     ///< Debounce rapid cursor changes
 
-    int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting
-
-    // Style resolver (OpenSpec #00042 Task 7.6)
-    editor::StyleResolver* m_styleResolver{nullptr};  ///< Style resolver for the project
-
-    /// @brief Populate style combo with styles from StyleResolver
-    void populateStyleComboFromResolver();
-
-    /// @brief Add default built-in styles to combo (fallback when no database)
-    void addDefaultStylesToCombo();
-
-    /// @brief Handle style combo selection to update style from resolver
-    void applyStyleFromCombo();
+    int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting,
+                                ///< versions turned on or off
 };
 
 } // namespace gui

@@ -305,15 +305,19 @@ TEST_CASE("Own windows: a window that got the heading is higher by it", "[gui][d
     toolbars.createToolbars(gui::CommandRegistry::getInstance());
 
     // The default size the window had before its heading, higher by the heading and the line
-    // under it at that width; a smaller screen gets a lower window
+    // under it at that width; a smaller screen gets a lower window.
+    // The room is the one the window was made with, read before the event loop runs: Qt learns
+    // of a change of the screen only there, and on the macOS runner the screen known at the
+    // start is a few pixels lower (681 or 683 of 684) until the system tells of the change, so
+    // the first window got less room than the screen has once it is shown
     const auto check = [](KalahariDialog& dialog, const QSize& before) {
+        const QSize room = dialog.screen()->availableGeometry().size() * 0.9;
         dialog.show();
         QApplication::processEvents();
         const auto* heading = dialog.findChild<QFrame*>(QStringLiteral("kalahariDialogHeading"));
         REQUIRE(heading != nullptr);
         const int higher = before.height() + heading->heightForWidth(before.width()) + 1;
-        const QSize room = dialog.screen()->availableGeometry().size() * 0.9;
-        INFO(dialog.windowTitle().toStdString() << ": the screen has room for "
+        INFO(dialog.windowTitle().toStdString() << ": the screen had room for "
              << room.height() << " pixels");
         CHECK(dialog.height() == std::min(higher, room.height()));
     };

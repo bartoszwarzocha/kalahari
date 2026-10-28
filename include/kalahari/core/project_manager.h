@@ -43,6 +43,7 @@
 #include "kalahari/core/archive_problem.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/chapter_versions.h"
 #include "kalahari/core/package_card.h"
 // OpenSpec #00041: SQLite Project Database
 #include "kalahari/core/project_database.h"
@@ -748,6 +749,11 @@ public:
     void discardChapterContent(const QString& elementId);
 
     /// @brief Write the unsaved text of a text element to its chapter file
+    ///
+    /// The text written is kept as a version of the file too (VersionOrigin::Save), when the
+    /// settings editor.versions.enabled and editor.versions.onSave say so and no version kept
+    /// on saving is newer than editor.versions.onSaveMinutes; keepVersion() says when it is
+    /// not kept.
     /// @return true when it is written or there is nothing to write
     bool saveChapterContent(const QString& elementId);
 
@@ -758,6 +764,62 @@ public:
     /// stays when the element leaves the book takes the element's own.
     /// @return true when they are written, the file has them or the element has no file
     bool saveChapterDetails(const QString& elementId);
+
+    // =========================================================================
+    // Versions of the Texts
+    // =========================================================================
+
+    /// @brief What keepVersion() did
+    enum class VersionKept {
+        Added,   ///< A new version has the text
+        Same,    ///< The newest version has the text already, so there is no new one
+        NoText,  ///< The text has no characters other than whitespace: no version
+        Failed   ///< No version: the book is read-only, the element has no text file in the
+                 ///< folder of the book, or the version cannot be written
+    };
+
+    /// @brief The versions of the text of element @p elementId: those of its file
+    /// @return nullopt when the element is not a text element whose file is in the folder of
+    ///         the book
+    std::optional<ChapterVersions> versionsOf(const QString& elementId) const;
+
+    /// @brief Keep @p kml, the text of element @p elementId, as a version of its file
+    ///
+    /// The writer's own version (VersionOrigin::Manual) is always kept. A version that the
+    /// program keeps by itself is not kept when the text has no characters other than
+    /// whitespace (NoText) or when the newest version has the same text (Same); after a new
+    /// one, the oldest of them beyond the setting editor.versions.keepAutomatic go.
+    /// @param about Why it is kept and what is said about it (ChapterVersions::add())
+    /// @param version Gets the version that has the text: the new one, or the newest one when
+    ///        it has the same text; may be nullptr
+    VersionKept keepVersion(const QString& elementId, const QString& kml,
+                            const ChapterVersion& about, ChapterVersion* version = nullptr);
+
+    /// @brief Give the version of the text of element @p elementId kept in .kml file
+    /// @p versionFile the writer's description @p name (empty: none)
+    /// @return false when the book is read-only, there is no such version or it cannot be
+    ///         written (ChapterVersions::rename())
+    bool renameVersion(const QString& elementId, const QString& versionFile, const QString& name);
+
+    /// @brief Delete the version of the text of element @p elementId kept in .kml file
+    /// @p versionFile
+    /// @return false when the book is read-only, there is no such version or the list of the
+    ///         versions cannot be written (ChapterVersions::remove())
+    bool removeVersion(const QString& elementId, const QString& versionFile);
+
+    /// @brief Number of the versions of all the texts of the book, which its archive takes
+    /// (ChapterVersions::countAll()); 0 without a book
+    int versionCount() const;
+
+    /// @brief Folders of the versions of @p files (absolute paths of files of the book, as
+    /// filesOf() gives them) that are on the disk, so that they go with the files
+    QStringList versionFoldersOf(const QStringList& files) const;
+
+    /// @brief Delete the versions of @p files, which are deleted (absolute paths of files of
+    /// the book): to the Trash of the system when @p trash, as the files went, else for good
+    /// (ChapterVersions::removeFolder())
+    /// @return The folders of the versions that stay on the disk
+    QStringList deleteVersionsOf(const QStringList& files, bool trash);
 
     /// @brief Get all dirty elements
     /// @return IDs of the text elements whose text is not saved
@@ -791,15 +853,18 @@ public:
     /// out (a log that cannot be written to the database goes with it), and so does the lock
     /// of the open project, which serves the project only here. The backups of the database
     /// go only when @p withBackups says so, to the .backups folder of the archive, wherever
-    /// they are kept (databaseBackups()).
+    /// they are kept (databaseBackups()). The versions of the texts (ChapterVersions, the
+    /// folder versions/) go unless @p withVersions says no.
     /// @param outputPath Path of the .klh.zip file
     /// @param progressCallback Optional callback for progress (0-100)
     /// @param problem Gets what went wrong; may be nullptr
     /// @param withBackups Whether the backups of the database go to the archive
+    /// @param withVersions Whether the versions of the texts go to the archive
     /// @return true if the archive was written
     bool exportArchive(const QString& outputPath,
                        const std::function<void(int)>& progressCallback = nullptr,
-                       ArchiveProblem* problem = nullptr, bool withBackups = false);
+                       ArchiveProblem* problem = nullptr, bool withBackups = false,
+                       bool withVersions = true);
 
     /// @brief Read the project of a .klh.zip archive without unpacking it: its .klh file, the
     /// one unpackArchive() finds at the top of the project
@@ -890,6 +955,9 @@ signals:
     /// with a material, taken out with an element, or following the paragraphs of a text that
     /// was saved
     void linksChanged();
+    /// @brief The versions of the text of element @p elementId changed: one was kept (and the
+    /// oldest that the program kept by itself may have gone), renamed or deleted
+    void versionsChanged(const QString& elementId);
 
 private:
     /// @brief What the program keeps of a text element while it works, outside the .klh file
@@ -947,6 +1015,10 @@ private:
     /// @brief Write the title, status and notes of @p element to its chapter file, and
     /// @p kml when given; the file keeps its other data
     bool writeChapterFile(const ProjectElement& element, const std::optional<QString>& kml);
+
+    /// @brief Keep @p kml, the text of element @p elementId just saved, as a version
+    /// (VersionOrigin::Save) when the settings say so (saveChapterContent())
+    void keepVersionOnSave(const QString& elementId, const QString& kml);
 
     /// @brief Folders of the files of unassignedFiles(): of the book and of the Workshop, as
     /// absolute paths

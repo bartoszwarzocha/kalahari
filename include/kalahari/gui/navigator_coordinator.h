@@ -370,7 +370,8 @@ private:
     /// @brief Delete @p files: to the system's Trash when @p trash, else for good
     ///
     /// When the Trash does not take a file, the writer chooses whether it goes for good; the
-    /// writer is told about the files that could not be deleted.
+    /// writer is told about the files that could not be deleted. The versions of the texts of
+    /// the files deleted go as the files went (ProjectManager::deleteVersionsOf()).
     /// @param forGood Set to whether a file was deleted for good; nullptr: not wanted
     /// @return The files that are still on the disk
     QStringList deleteFiles(const QStringList& files, bool trash, bool* forGood = nullptr);

@@ -179,8 +179,8 @@ QString TestDocumentGenerator::generateKml()
         bool isShort = (!isHeading && roll < m_config.headingRatio + m_config.shortParagraphRatio);
         bool isFormatted = (!isHeading && dist(m_rng) < m_config.formattedRatio);
 
-        // Generate paragraph
-        int paragraphLength = getRandomParagraphLength(isShort);
+        // Generate paragraph (a heading as short as dialog)
+        int paragraphLength = getRandomParagraphLength(isShort || isHeading);
 
         // Don't overshoot target word count too much
         if (currentWordCount + paragraphLength > m_config.targetWordCount + 100) {
@@ -188,16 +188,21 @@ QString TestDocumentGenerator::generateKml()
             if (paragraphLength <= 0) break;
         }
 
+        // A heading of the second level; dialog in the style Dialogue
+        const QString start = isShort ? QStringLiteral("<p style=\"dialogue\">") : QStringLiteral("<p>");
         QString paragraph;
         if (isHeading) {
             paragraph = generateParagraph(paragraphLength, true);
-            paragraph = QString("<h>%1</h>").arg(paragraph);
+            paragraph = QString("<h2>%1</h2>").arg(paragraph);
         } else if (isFormatted) {
             paragraph = generateFormattedParagraph(paragraphLength);
-            paragraph = QString("<p>%1</p>").arg(paragraph);
+            paragraph = start + paragraph + QStringLiteral("</p>");
         } else {
             paragraph = generateParagraph(paragraphLength, false);
-            paragraph = QString("<p>%1</p>").arg(paragraph);
+            paragraph = start + paragraph + QStringLiteral("</p>");
+        }
+        if (!isHeading && dist(m_rng) < m_config.sceneBreakRatio) {
+            paragraph += QStringLiteral("\n<scene-break/>");
         }
 
         // Add paragraph separator

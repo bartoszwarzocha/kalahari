@@ -146,22 +146,31 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // (Close is Ctrl+F4 on Windows and Ctrl+W on Linux; Find & Replace is Ctrl+H, Ctrl+R or
     // none). No shortcut uses Ctrl+Alt on Windows and Linux: Windows takes it for AltGr,
     // which types letters (ą, ć, ę...).
-    // macOS shows Ctrl as Cmd (Qt::MetaModifier is its Control key), and five commands
+    // macOS shows Ctrl as Cmd (Qt::MetaModifier is its Control key), and some commands
     // have the keys of macOS there: programs quit with Cmd+Q (Alt+F4 does nothing), Cmd+H
-    // hides the program, F11 shows the desktop, and Option+Up and Option+Down move the
-    // cursor by paragraphs in the text (editor/text_keys.h).
+    // hides the program, F11 shows the desktop, Option+Up and Option+Down move the cursor by
+    // paragraphs in the text (editor/text_keys.h), and Option with a digit types a character,
+    // so the paragraph styles have Option+Cmd with it (and the pastes Option+Shift+Cmd with a
+    // letter).
 #ifdef Q_OS_MACOS
     const KeyboardShortcut exitShortcut(Qt::Key_Q, Qt::ControlModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_F, Qt::ControlModifier | Qt::AltModifier);
     const KeyboardShortcut fullScreenShortcut(Qt::Key_F, Qt::ControlModifier | Qt::MetaModifier);
     const KeyboardShortcut nextTodoShortcut(Qt::Key_Down, Qt::ControlModifier | Qt::AltModifier);
     const KeyboardShortcut previousTodoShortcut(Qt::Key_Up, Qt::ControlModifier | Qt::AltModifier);
+    const Qt::KeyboardModifiers styleModifiers = Qt::ControlModifier | Qt::AltModifier;
+    const Qt::KeyboardModifiers pasteModifiers =
+        Qt::ControlModifier | Qt::AltModifier | Qt::ShiftModifier;
+    const KeyboardShortcut clearFormattingShortcut(Qt::Key_Backslash, Qt::ControlModifier);
 #else
     const KeyboardShortcut exitShortcut(Qt::Key_F4, Qt::AltModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_H, Qt::ControlModifier);
     const KeyboardShortcut fullScreenShortcut(Qt::Key_F11, Qt::NoModifier);
     const KeyboardShortcut nextTodoShortcut(Qt::Key_Down, Qt::AltModifier);
     const KeyboardShortcut previousTodoShortcut(Qt::Key_Up, Qt::AltModifier);
+    const Qt::KeyboardModifiers styleModifiers = Qt::AltModifier;
+    const Qt::KeyboardModifiers pasteModifiers = Qt::AltModifier | Qt::ShiftModifier;
+    const KeyboardShortcut clearFormattingShortcut(Qt::Key_Space, Qt::ControlModifier);
 #endif
 
     // =========================================================================
@@ -216,10 +225,24 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     // The book and every open file outside it; no shortcut of its own
     REG_CMD_TOOL_ICON("file.saveAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Save A&ll"),
-                      "FILE/Save All", 70, true, 0,
+                      "FILE/Save All", 70, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onSaveAll);
+
+    // The versions of the text in front (VersionsCoordinator): Alt+Shift with the letter, as
+    // the pastes (Cmd+Option+Shift on macOS, where Option with a letter types a character)
+    REG_CMD_TOOL_ICON("file.saveVersion", QT_TRANSLATE_NOOP("CommandRegistrar", "Save &Version..."),
+                      "FILE/Save Version...", 72, false, 0,
+                      KeyboardShortcut(Qt::Key_S, pasteModifiers),
+                      IconSet(),
+                      nullptr);
+    REG_CMD_TOOL_ICON("file.versionHistory",
+                      QT_TRANSLATE_NOOP("CommandRegistrar", "Version &History..."),
+                      "FILE/Version History...", 74, true, 0,
+                      KeyboardShortcut(Qt::Key_H, pasteModifiers),
+                      IconSet(),
+                      nullptr);
 
     // Import submenu
     REG_CMD("file.import.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX Document..."), "FILE/Import/DOCX Document...", 80, false, 1);
@@ -287,16 +310,31 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onPaste);
 
+    // Text of other programs in each of the paste modes, whatever Paste does (Settings >
+    // Editor > General): without formatting with Ctrl+Shift+V, as in LibreOffice and the
+    // browsers, the others with Alt+Shift (Option+Shift+Cmd on macOS); Ctrl+Alt is AltGr
+    REG_CMD_KEY_CB("edit.pasteSourceFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste with Source Formatt&ing"), "EDIT/Paste with Source Formatting", 52, false, 0,
+                   KeyboardShortcut(Qt::Key_V, pasteModifiers), callbacks.onPasteSourceFormatting);
+    REG_CMD_KEY_CB("edit.pasteMergeFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste and &Merge Formatting"), "EDIT/Paste and Merge Formatting", 54, false, 0,
+                   KeyboardShortcut(Qt::Key_M, pasteModifiers), callbacks.onPasteMergeFormatting);
+    REG_CMD_KEY_CB("edit.pasteTextOnly", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste Text Onl&y"), "EDIT/Paste Text Only", 56, false, 0,
+                   KeyboardShortcut(Qt::Key_V, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onPasteTextOnly);
+
     REG_CMD("edit.pasteSpecial", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste &Special..."), "EDIT/Paste Special...", 60, false, 1);
-    REG_CMD("edit.delete", QT_TRANSLATE_NOOP("CommandRegistrar", "&Delete"), "EDIT/Delete", 70, true, 1);
+    // Delete: in the text and the fields the key deletes the selection itself (and the
+    // character after the cursor without one); the command takes it elsewhere, greyed out
+    REG_CMD_KEY_CB("edit.delete", QT_TRANSLATE_NOOP("CommandRegistrar", "&Delete"), "EDIT/Delete", 70, true, 0,
+                   KeyboardShortcut(Qt::Key_Delete, Qt::NoModifier), callbacks.onDelete);
 
     REG_CMD_TOOL_ICON("edit.selectAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Select &All"), "EDIT/Select All", 80, false, 0,
                       KeyboardShortcut(Qt::Key_A, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onSelectAll);
 
-    REG_CMD("edit.selectWord", QT_TRANSLATE_NOOP("CommandRegistrar", "Select &Word"), "EDIT/Select Word", 90, false, 1);
-    REG_CMD("edit.selectParagraph", QT_TRANSLATE_NOOP("CommandRegistrar", "Select Paragrap&h"), "EDIT/Select Paragraph", 100, true, 1);
+    REG_CMD_CB("edit.selectWord", QT_TRANSLATE_NOOP("CommandRegistrar", "Select &Word"), "EDIT/Select Word", 90, false, 0,
+               callbacks.onSelectWord);
+    REG_CMD_CB("edit.selectParagraph", QT_TRANSLATE_NOOP("CommandRegistrar", "Select Paragrap&h"), "EDIT/Select Paragraph", 100, true, 0,
+               callbacks.onSelectParagraph);
 
     // OpenSpec #00030: Added keyboard shortcuts for Find operations
     REG_CMD_KEY_CB("edit.find", QT_TRANSLATE_NOOP("CommandRegistrar", "&Find..."), "EDIT/Find...", 110, false, 1,
@@ -374,7 +412,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_CB("book.newTimeline", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Timeline..."), "BOOK/New Timeline...", 70, true, 1,
                newInWorkshop("timeline"));
 
-    REG_CMD("book.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Sc&ene Break"), "BOOK/Scene Break", 90, true, 1);
+    // The same as Insert > Scene Break
+    REG_CMD_CB("book.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Sc&ene Break"), "BOOK/Scene Break", 90, true, 0,
+               callbacks.onInsertSceneBreak);
 
     REG_CMD_TOOL_ICON("book.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Properties..."), "BOOK/Book Properties...", 100, false, 1,
                       KeyboardShortcut(),
@@ -405,7 +445,16 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     REG_CMD("insert.specialChar", QT_TRANSLATE_NOOP("CommandRegistrar", "&Special Character..."), "INSERT/Special Character...", 80, false, 1);
     REG_CMD("insert.dateTime", QT_TRANSLATE_NOOP("CommandRegistrar", "Date && &Time"), "INSERT/Date & Time", 90, false, 1);
-    REG_CMD("insert.field", QT_TRANSLATE_NOOP("CommandRegistrar", "&Field..."), "INSERT/Field...", 100, false, 1);
+    REG_CMD("insert.field", QT_TRANSLATE_NOOP("CommandRegistrar", "&Field..."), "INSERT/Field...", 100, true, 1);
+
+    // The objects of the text (editor/paragraph_styles.h): each a block of its own. Ctrl+Enter
+    // as in Word and LibreOffice; the annotation frame keeps it for its text
+    REG_CMD_CB("insert.horizontalLine", QT_TRANSLATE_NOOP("CommandRegistrar", "&Horizontal Line"), "INSERT/Horizontal Line", 110, false, 0,
+               callbacks.onInsertHorizontalLine);
+    REG_CMD_CB("insert.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "S&cene Break"), "INSERT/Scene Break", 120, false, 0,
+               callbacks.onInsertSceneBreak);
+    REG_CMD_KEY_CB("insert.pageBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "&Page Break"), "INSERT/Page Break", 130, false, 0,
+                   KeyboardShortcut(Qt::Key_Return, Qt::ControlModifier), callbacks.onInsertPageBreak);
 
     // =========================================================================
     // FORMAT MENU
@@ -414,13 +463,31 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("format.font", QT_TRANSLATE_NOOP("CommandRegistrar", "&Font..."), "FORMAT/Font...", 10, false, 1);
     REG_CMD("format.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "&Paragraph..."), "FORMAT/Paragraph...", 20, true, 1);
 
-    // Text Style submenu
-    REG_CMD("format.style.heading1", QT_TRANSLATE_NOOP("CommandRegistrar", "Heading &1"), "FORMAT/Text Style/Heading 1", 30, false, 1);
-    REG_CMD("format.style.heading2", QT_TRANSLATE_NOOP("CommandRegistrar", "Heading &2"), "FORMAT/Text Style/Heading 2", 40, false, 1);
-    REG_CMD("format.style.heading3", QT_TRANSLATE_NOOP("CommandRegistrar", "Heading &3"), "FORMAT/Text Style/Heading 3", 50, false, 1);
-    REG_CMD("format.style.body", QT_TRANSLATE_NOOP("CommandRegistrar", "&Body Text"), "FORMAT/Text Style/Body Text", 60, false, 1);
-    REG_CMD("format.style.quote", QT_TRANSLATE_NOOP("CommandRegistrar", "&Quote"), "FORMAT/Text Style/Quote", 70, false, 1);
-    REG_CMD("format.style.code", QT_TRANSLATE_NOOP("CommandRegistrar", "&Code"), "FORMAT/Text Style/Code", 80, true, 1);
+    // Text Style submenu: the paragraph styles every book has (the package "Base"), by the ids
+    // of editor/paragraph_styles.h; the menu adds the other styles of the book after Code.
+    // Alt with a digit (Option+Cmd on macOS): Alt with a letter opens the menus
+    const auto toStyle = [&callbacks](const char* styleId) -> std::function<void()> {
+        if (!callbacks.onParagraphStyle) {
+            return {};
+        }
+        return [onStyle = callbacks.onParagraphStyle, id = QString::fromLatin1(styleId)]() {
+            onStyle(id);
+        };
+    };
+    REG_CMD_KEY_CB("format.style.heading1", QT_TRANSLATE_NOOP("CommandRegistrar", "Heading &1"), "FORMAT/Text Style/Heading 1", 30, false, 0,
+                   KeyboardShortcut(Qt::Key_1, styleModifiers), toStyle("heading_1"));
+    REG_CMD_KEY_CB("format.style.heading2", QT_TRANSLATE_NOOP("CommandRegistrar", "Heading &2"), "FORMAT/Text Style/Heading 2", 40, false, 0,
+                   KeyboardShortcut(Qt::Key_2, styleModifiers), toStyle("heading_2"));
+    REG_CMD_KEY_CB("format.style.heading3", QT_TRANSLATE_NOOP("CommandRegistrar", "Heading &3"), "FORMAT/Text Style/Heading 3", 50, false, 0,
+                   KeyboardShortcut(Qt::Key_3, styleModifiers), toStyle("heading_3"));
+    REG_CMD_KEY_CB("format.style.body", QT_TRANSLATE_NOOP("CommandRegistrar", "&Normal"), "FORMAT/Text Style/Normal", 60, false, 0,
+                   KeyboardShortcut(Qt::Key_0, styleModifiers), toStyle("normal"));
+    REG_CMD_CB("format.style.quote", QT_TRANSLATE_NOOP("CommandRegistrar", "&Quote"), "FORMAT/Text Style/Quote", 70, false, 0,
+               toStyle("quote"));
+    REG_CMD_CB("format.style.dialogue", QT_TRANSLATE_NOOP("CommandRegistrar", "&Dialogue"), "FORMAT/Text Style/Dialogue", 75, false, 0,
+               toStyle("dialogue"));
+    REG_CMD_CB("format.style.code", QT_TRANSLATE_NOOP("CommandRegistrar", "&Code"), "FORMAT/Text Style/Code", 80, true, 0,
+               toStyle("code"));
     REG_CMD("format.style.manage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Manage Styles..."), "FORMAT/Text Style/Manage Styles...", 90, false, 1);
 
     // OpenSpec #00030: Added standard formatting shortcuts (Ctrl+B/I/U)
@@ -467,7 +534,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     REG_CMD("format.color", QT_TRANSLATE_NOOP("CommandRegistrar", "C&olor"), "FORMAT/Color", 220, true, 1);
 
-    REG_CMD("format.clearFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Clear For&matting"), "FORMAT/Clear Formatting", 230, false, 1);
+    // As in Word: Ctrl+Space, and Cmd+\ on macOS, where Cmd+Space opens Spotlight
+    REG_CMD_KEY_CB("format.clearFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Clear For&matting"), "FORMAT/Clear Formatting", 230, false, 0,
+                   clearFormattingShortcut, callbacks.onClearFormatting);
 
     // =========================================================================
     // TOOLS MENU
@@ -509,8 +578,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("tools.readability", QT_TRANSLATE_NOOP("CommandRegistrar", "&Readability Score"), "TOOLS/Readability Score", 60, true, 2);
 
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Backup Now"), "TOOLS/Backup Now", 100, false, 2);
-    REG_CMD("tools.autoSaveSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "&Auto-Save Settings..."), "TOOLS/Auto-Save Settings...", 110, false, 1);
-    REG_CMD("tools.versionHistory", QT_TRANSLATE_NOOP("CommandRegistrar", "&Version History..."), "TOOLS/Version History...", 120, true, 2);
+    REG_CMD("tools.autoSaveSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "&Auto-Save Settings..."), "TOOLS/Auto-Save Settings...", 110, true, 1);
 
     // Plugins submenu
     REG_CMD("tools.plugins.manager", QT_TRANSLATE_NOOP("CommandRegistrar", "Plugin &Manager..."), "TOOLS/Plugins/Plugin Manager...", 130, false, 2);
@@ -559,6 +627,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // F8, not F3: F3 is Find Next (edit.findNext)
     REG_CMD_KEY("view.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "&Properties"), "VIEW/Panels/Properties", 20, false, 0,
                 KeyboardShortcut(Qt::Key_F8, Qt::NoModifier));
+
+    // A panel of its own, or the lower part of Properties (Settings > Appearance > General)
+    REG_CMD("view.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "Pa&ragraph and Styles"), "VIEW/Panels/Paragraph and Styles", 25, false, 0);
 
     REG_CMD_KEY("view.log", QT_TRANSLATE_NOOP("CommandRegistrar", "&Log"), "VIEW/Panels/Log", 30, false, 0,
                 KeyboardShortcut(Qt::Key_F4, Qt::NoModifier));
@@ -625,7 +696,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     REG_CMD("view.showStatusBar", QT_TRANSLATE_NOOP("CommandRegistrar", "Show &Status Bar"), "VIEW/Show Status Bar", 180, false, 0);
     REG_CMD("view.showStatsBar", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Statistics &Bar"), "VIEW/Show Statistics Bar", 190, false, 1);
-    REG_CMD("view.showFormattingMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Formattin&g Marks"), "VIEW/Show Formatting Marks", 210, true, 1);
+    // Ctrl+Shift+8 (Shift+Cmd+8 on macOS), as in Word: written with the key, not with the "*"
+    // it types on some keyboards, on every system; Qt matches the key on every keyboard
+    REG_CMD_KEY_CB("view.showFormattingMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Formattin&g Marks"), "VIEW/Show Formatting Marks", 210, true, 0,
+                   KeyboardShortcut(Qt::Key_8, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onFormattingMarksToggle);
 
     REG_CMD_KEY_CB("view.zoomIn", QT_TRANSLATE_NOOP("CommandRegistrar", "Zoom &In"), "VIEW/Zoom/Zoom In", 220, false, 0,
                    KeyboardShortcut(Qt::Key_Plus, Qt::ControlModifier), callbacks.onZoomIn);

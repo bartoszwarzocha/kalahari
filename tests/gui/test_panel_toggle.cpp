@@ -1,5 +1,6 @@
 /// @file test_panel_toggle.cpp
-/// @brief The show/hide toggles of the dock panels
+/// @brief The toggles of the dock panels: a click shows a closed panel on top, brings an open
+/// one under another tab on top and closes the one on top
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/utils/panel_toggle.h"
@@ -75,7 +76,16 @@ TEST_CASE("Panel toggles: checked while the panel is open, also under another ta
         }
     }
 
-    SECTION("the toggle closes a panel under another tab and opens it on top") {
+    SECTION("a click brings a panel under another tab on top, closes it on top, opens it closed") {
+        // The writer's cycle: show, bring forward, hide
+        toggles[2]->trigger();
+        QApplication::processEvents();
+        CHECK(isPanelOpen(docks[2]));
+        CHECK(isPanelOnTop(docks[2]));
+        CHECK_FALSE(isPanelOnTop(docks[0]));
+        CHECK(toggles[2]->isChecked());
+        CHECK(raisedTab(window, docks[2]) == names[2]);
+
         toggles[2]->trigger();
         QApplication::processEvents();
         CHECK_FALSE(isPanelOpen(docks[2]));
@@ -89,6 +99,36 @@ TEST_CASE("Panel toggles: checked while the panel is open, also under another ta
         CHECK(toggles[2]->isChecked());
         CHECK(raisedTab(window, docks[2]) == names[2]);
         CHECK(toggles[0]->isChecked());
+    }
+
+    SECTION("a floating panel is on top: a click closes it, the next one opens it floating") {
+        docks[1]->setFloating(true);
+        docks[1]->show();
+        QApplication::processEvents();
+        REQUIRE(docks[1]->isFloating());
+        CHECK(isPanelOnTop(docks[1]));
+
+        toggles[1]->trigger();
+        QApplication::processEvents();
+        CHECK_FALSE(isPanelOpen(docks[1]));
+        CHECK_FALSE(toggles[1]->isChecked());
+
+        toggles[1]->trigger();
+        QApplication::processEvents();
+        CHECK(isPanelOnTop(docks[1]));
+        CHECK(docks[1]->isFloating());
+        CHECK(toggles[1]->isChecked());
+    }
+
+    SECTION("a panel alone in its place is on top while open") {
+        window.removeDockWidget(docks[2]);
+        window.addDockWidget(Qt::LeftDockWidgetArea, docks[2]);
+        docks[2]->show();
+        QApplication::processEvents();
+        CHECK(isPanelOnTop(docks[2]));
+        toggles[2]->trigger();
+        QApplication::processEvents();
+        CHECK_FALSE(isPanelOpen(docks[2]));
     }
 
     SECTION("closing a panel with its own button unchecks its toggle") {

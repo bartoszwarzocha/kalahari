@@ -7,15 +7,20 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/kalahari_text_document_layout.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/utils/setting_toggle.h"
+#include "kalahari/gui/widgets/color_config_widget.h"
 
 #include <QAction>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QCoreApplication>
 #include <QDoubleSpinBox>
+#include <QImage>
+#include <QLabel>
 #include <QPushButton>
 #include <QSize>
 #include <QSpinBox>
@@ -67,6 +72,21 @@ QDoubleSpinBox* marginOf(const gui::SettingsDialog& dialog, const QString& toolT
         }
     }
     return nullptr;
+}
+
+/// The dialog with every page built (pages are built when first opened)
+void openEveryPage(gui::SettingsDialog& dialog) {
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+        tree->setCurrentItem(*it);
+    }
+}
+
+/// The text layout of a panel's editor
+editor::KalahariTextDocumentLayout* layoutOf(gui::EditorPanel& panel) {
+    return qobject_cast<editor::KalahariTextDocumentLayout*>(
+        panel.getBookEditor()->textDocument()->documentLayout());
 }
 
 }  // anonymous namespace
@@ -356,6 +376,114 @@ TEST_CASE("Settings dialog: the dialogue dashes counted as words, in the open ed
     dialog.applyButton()->click();
     QCoreApplication::processEvents();
     CHECK(bookEditor->wordCount() == 2);
+
+    restore(before);
+}
+
+TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the scene breaks reach "
+          "every editor",
+          "[gui][editor][settings][marks]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.showFormattingMarks", "editor.sceneBreak.style",
+                                  "editor.colors.formattingMarksLight",
+                                  "editor.colors.formattingMarksDark"});
+    settings.set<bool>("editor.showFormattingMarks", false);
+    settings.set<std::string>("editor.sceneBreak.style", "asterisks");
+
+    // The toggle of the View menu, as the main window makes it
+    QAction toggle(QStringLiteral("Show Formatting Marks"));
+    gui::utils::followSetting(&toggle, "editor.showFormattingMarks");
+    gui::EditorPanel first;
+    gui::EditorPanel second;
+    for (gui::EditorPanel* panel : {&first, &second}) {
+        panel->getBookEditor()->fromKml(QStringLiteral("<kml><p>a</p><scene-break/></kml>"));
+    }
+    CHECK_FALSE(toggle.isChecked());
+    CHECK_FALSE(first.getBookEditor()->appearance().showFormattingMarks);
+
+    // The marks, in every editor; the setting keeps them after a restart
+    settings.set<bool>("editor.showFormattingMarks", true);
+    QCoreApplication::processEvents();
+    CHECK(toggle.isChecked());
+    for (gui::EditorPanel* panel : {&first, &second}) {
+        CHECK(panel->getBookEditor()->appearance().showFormattingMarks);
+    }
+
+    // Their color on each paper
+    settings.set<std::string>("editor.colors.formattingMarksLight", "#123456");
+    settings.set<std::string>("editor.colors.formattingMarksDark", "#abcdef");
+    QCoreApplication::processEvents();
+    CHECK(first.getBookEditor()->appearance().colors.formattingMarks.light ==
+          QColor(QStringLiteral("#123456")));
+    CHECK(first.getBookEditor()->appearance().colors.formattingMarks.dark ==
+          QColor(QStringLiteral("#abcdef")));
+
+    // How the scene breaks look; a name the program does not know: three asterisks
+    settings.set<std::string>("editor.sceneBreak.style", "fleuron");
+    QCoreApplication::processEvents();
+    CHECK(first.getBookEditor()->appearance().sceneBreakLook == editor::SceneBreakLook::Fleuron);
+    CHECK(layoutOf(second)->sceneBreakLook() == editor::SceneBreakLook::Fleuron);
+    settings.set<std::string>("editor.sceneBreak.style", "stars");
+    QCoreApplication::processEvents();
+    CHECK(layoutOf(first)->sceneBreakLook() == editor::SceneBreakLook::Asterisks);
+
+    // The file keeps the break
+    CHECK(first.getBookEditor()->toKml() == QStringLiteral("<kml><p>a</p><scene-break/></kml>"));
+
+    restore(before);
+}
+
+TEST_CASE("Settings dialog: the look of the scene breaks, with its preview, and the color of the "
+          "formatting marks",
+          "[gui][settings][marks]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.sceneBreak.style"});
+    settings.set<std::string>("editor.sceneBreak.style", "asterisks");
+    gui::EditorPanel panel;
+    gui::SettingsDialog dialog(nullptr);
+    openEveryPage(dialog);
+
+    // Editor > General > Typography: the five looks, three asterisks chosen
+    QComboBox* looks = nullptr;
+    for (const QLabel* label : dialog.findChildren<QLabel*>()) {
+        if (label->text() == QStringLiteral("Scene Break Look:")) {
+            looks = qobject_cast<QComboBox*>(label->buddy());
+        }
+    }
+    REQUIRE(looks != nullptr);
+    QStringList names;
+    for (int index = 0; index < looks->count(); ++index) {
+        names << looks->itemData(index).toString();
+    }
+    CHECK(names == QStringList{QStringLiteral("asterisks"), QStringLiteral("asterism"),
+                               QStringLiteral("fleuron"), QStringLiteral("line"),
+                               QStringLiteral("blank")});
+    CHECK(looks->currentData().toString() == QStringLiteral("asterisks"));
+
+    // The preview shows the look chosen
+    auto* preview = dialog.findChild<QWidget*>(QStringLiteral("sceneBreakPreview"));
+    REQUIRE(preview != nullptr);
+    preview->resize(preview->sizeHint());
+    const QImage asterisks = preview->grab().toImage();
+    looks->setCurrentIndex(looks->findData(QStringLiteral("line")));
+    CHECK(preview->grab().toImage() != asterisks);
+
+    // Apply: the setting and the open editors
+    dialog.applyButton()->click();
+    QCoreApplication::processEvents();
+    CHECK(settings.get<std::string>("editor.sceneBreak.style") == "line");
+    CHECK(panel.getBookEditor()->appearance().sceneBreakLook == editor::SceneBreakLook::Line);
+
+    // Editor > Colors: the formatting marks on the light and on the dark paper
+    int markColors = 0;
+    for (const gui::ColorConfigWidget* widget : dialog.findChildren<gui::ColorConfigWidget*>()) {
+        for (const QLabel* label : widget->findChildren<QLabel*>()) {
+            if (label->text().startsWith(QStringLiteral("Formatting marks"))) {
+                ++markColors;
+            }
+        }
+    }
+    CHECK(markColors == 2);
 
     restore(before);
 }

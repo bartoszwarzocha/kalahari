@@ -709,6 +709,49 @@ TEST_CASE("Stage1 cursor: blinks only while the editor has focus, repainting jus
     }
 }
 
+TEST_CASE("Stage1 cursor: a new text in an editor that showed another starts at its top",
+          "[editor][stage1][cursor]") {
+    // Regression: the preview of Version History closed the program when it got the text
+    // of a version while its cursor blinked off. The new document came while the render
+    // pipeline still read the old one, destroyed, for the cursor; and the view kept the
+    // place of the old text, so the new one was drawn scrolled down.
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("needs window focus without a window on screen: run with QT_QPA_PLATFORM=offscreen");
+    }
+
+    const QString shortText = kmlOf({QStringLiteral("The first paragraph."),
+                                     QStringLiteral("The second one.")});
+    BookEditor fresh;  // the new text in an editor that showed nothing before
+    fresh.resize(500, 300);
+    fresh.fromKml(shortText);
+    fresh.show();
+
+    BookEditor editor;
+    editor.resize(500, 300);
+    editor.fromKml(kmlOf(longParagraphs(30)));
+    editor.setCursorBlinkInterval(100);
+    editor.show();
+    editor.activateWindow();
+    editor.setFocus();
+    if (!waitUntil([&editor] { return editor.hasFocus(); })) {
+        SKIP("the platform did not give the editor focus");
+    }
+    // At the end of the old text, the cursor blinking off
+    editor.setCursorPosition({29, 5});
+    editor.ensureCursorVisible();
+    runEventLoop(150);
+    REQUIRE(editor.scrollOffset() > 0.0);
+    REQUIRE(waitUntil([&editor] { return !editor.isCursorVisible(); }));
+
+    editor.fromKml(shortText);
+    CHECK(editor.scrollOffset() == 0.0);
+    CHECK(editor.cursorPosition() == CursorPosition{0, 0});
+    // Drawn as in the editor that showed nothing before (both without focus: no cursor)
+    editor.clearFocus();
+    runEventLoop(50);
+    CHECK(editor.grab().toImage() == fresh.grab().toImage());
+}
+
 // =============================================================================
 // DPI: the logical DPI Qt uses for fonts, for pages and margins too
 // =============================================================================

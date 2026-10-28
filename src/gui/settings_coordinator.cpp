@@ -172,6 +172,11 @@ void SettingsCoordinator::onApplySettings(const QStringList& changedKeys) {
         navigatorPanel->onSettingsChanged();
     }
 
+    // The Paragraph and Styles panel moved to its other place: it shows there, in front
+    if (changed(QString::fromLatin1(DockCoordinator::PARAGRAPH_PLACE_KEY))) {
+        m_dockCoordinator->placeParagraphPanel(true);
+    }
+
     // The editors follow the editor settings by themselves (EditorPanel)
 }
 

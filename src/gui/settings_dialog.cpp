@@ -118,6 +118,9 @@ void SettingsDialog::createNavigationTree() {
         addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
     addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_grammar); });
     addPage(editor, tr("Auto-correct"), []() { return new EditorAutoCorrectPage(); });
+    //: Settings > Editor > Versions: the versions of the texts. In Polish: Wersje
+    m_pageItems[VERSIONS_PAGE] =
+        addPage(editor, tr("Versions"), []() { return new EditorVersionsPage(); });
     addPlannedPage(editor, tr("Completion"),
                    tr("Planned features:\n"
                       "- Word completion suggestions\n"

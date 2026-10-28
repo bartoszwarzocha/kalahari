@@ -18,7 +18,12 @@ namespace utils {
 /// window is shown.
 bool isPanelOpen(const QDockWidget* dock);
 
-/// @brief Close an open panel, or open a closed one with its tab on top
+/// @brief True while a panel can be seen: open, and floating or with its tab on top of its
+/// group
+bool isPanelOnTop(const QDockWidget* dock);
+
+/// @brief The click of a panel toggle: a closed panel opens with its tab on top, an open one
+/// under another tab comes on top, and a panel on top closes
 void togglePanel(QDockWidget* dock);
 
 /// @brief Keep a panel toggle checked while its panel is open

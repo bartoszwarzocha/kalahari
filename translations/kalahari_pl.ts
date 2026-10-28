@@ -456,6 +456,18 @@
         <translation>Wk&amp;lej</translation>
     </message>
     <message>
+        <source>Paste with Source Formatt&amp;ing</source>
+        <translation>Wkle&amp;j z formatowaniem źródła</translation>
+    </message>
+    <message>
+        <source>Paste and &amp;Merge Formatting</source>
+        <translation>Wklej ze scalon&amp;ym formatowaniem</translation>
+    </message>
+    <message>
+        <source>Paste Text Onl&amp;y</source>
+        <translation>Wklej &amp;bez formatowania</translation>
+    </message>
+    <message>
         <source>Paste &amp;Special...</source>
         <translation>Wklej &amp;specjalnie...</translation>
     </message>
@@ -604,10 +616,6 @@
         <translation>Nagłówek &amp;3</translation>
     </message>
     <message>
-        <source>&amp;Body Text</source>
-        <translation>&amp;Tekst podstawowy</translation>
-    </message>
-    <message>
         <source>&amp;Quote</source>
         <translation>&amp;Cytat</translation>
     </message>
@@ -702,10 +710,6 @@
     <message>
         <source>&amp;Auto-Save Settings...</source>
         <translation>Ustawienia &amp;autozapisu...</translation>
-    </message>
-    <message>
-        <source>&amp;Version History...</source>
-        <translation>&amp;Historia wersji...</translation>
     </message>
     <message>
         <source>Plugin &amp;Manager...</source>
@@ -948,8 +952,40 @@
         <translation>&amp;Pisownia i gramatyka</translation>
     </message>
     <message>
+        <source>&amp;Horizontal Line</source>
+        <translation>&amp;Linia pozioma</translation>
+    </message>
+    <message>
+        <source>S&amp;cene Break</source>
+        <translation>Podział sc&amp;eny</translation>
+    </message>
+    <message>
+        <source>&amp;Page Break</source>
+        <translation>Podział st&amp;rony</translation>
+    </message>
+    <message>
+        <source>&amp;Normal</source>
+        <translation>&amp;Normalny</translation>
+    </message>
+    <message>
+        <source>&amp;Dialogue</source>
+        <translation>&amp;Dialog</translation>
+    </message>
+    <message>
         <source>&amp;Add...</source>
         <translation>&amp;Dodaj...</translation>
+    </message>
+    <message>
+        <source>Pa&amp;ragraph and Styles</source>
+        <translation>A&amp;kapit i style</translation>
+    </message>
+    <message>
+        <source>Save &amp;Version...</source>
+        <translation>Z&amp;apisz wersję...</translation>
+    </message>
+    <message>
+        <source>Version &amp;History...</source>
+        <translation>&amp;Historia wersji...</translation>
     </message>
 </context>
 <context>
@@ -2151,6 +2187,10 @@ Uruchomić ponownie teraz?</translation>
         <source>&amp;Reset to Default</source>
         <translation>P&amp;rzywróć domyślne</translation>
     </message>
+    <message>
+        <source>Versions &amp;and Backups Toolbar</source>
+        <translation>Wers&amp;je i kopie</translation>
+    </message>
 </context>
 <context>
     <name>QPlatformTheme</name>
@@ -3305,17 +3345,17 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     </message>
 </context>
 <context>
+    <name>kalahari::editor::KalahariTextDocumentLayout</name>
+    <message>
+        <source>Page Break</source>
+        <translation>Podział strony</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::editor::QuickInsertPopup</name>
     <message>
         <source>No matches</source>
         <translation>Brak dopasowań</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::editor::SnapshotManager</name>
-    <message>
-        <source>Auto-save %1</source>
-        <translation>Automatyczny zapis %1</translation>
     </message>
 </context>
 <context>
@@ -3419,6 +3459,14 @@ Menu zostaje tylko do końca tej sesji.</translation>
     <message>
         <source>Maximum number of log entries to keep in memory</source>
         <translation>Największa liczba wpisów dziennika przechowywanych w pamięci</translation>
+    </message>
+    <message>
+        <source>Show the Log button on the Panels toolbar</source>
+        <translation>Pokazuj przycisk dziennika na pasku paneli</translation>
+    </message>
+    <message>
+        <source>With the button hidden, View &gt; Panels &gt; Log (F4) opens the log panel</source>
+        <translation>Gdy przycisk jest ukryty, panel dziennika otwiera polecenie Widok &gt; Panele &gt; Dziennik (F4)</translation>
     </message>
     <message>
         <source>The log panel displays application messages in real-time.
@@ -3770,6 +3818,26 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>UI Font Size:</source>
         <translation>Rozmiar czcionki interfejsu:</translation>
+    </message>
+    <message>
+        <source>Panels</source>
+        <translation>Panele</translation>
+    </message>
+    <message>
+        <source>In a panel of its own</source>
+        <translation>W osobnym panelu</translation>
+    </message>
+    <message>
+        <source>At the bottom of the Properties panel</source>
+        <translation>W dolnej części panelu Właściwości</translation>
+    </message>
+    <message>
+        <source>Where the paragraph at the cursor and the styles of the book show: a tab of its own next to Properties, or the lower part of the Properties panel, which folds</source>
+        <translation>Gdzie widać akapit z kursorem i style książki: na osobnej karcie obok Właściwości albo w dolnej, zwijanej części panelu Właściwości</translation>
+    </message>
+    <message>
+        <source>Paragraph and styles:</source>
+        <translation>Akapit i style:</translation>
     </message>
 </context>
 <context>
@@ -4238,6 +4306,10 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     <message>
         <source>Spelling and Grammar Settings</source>
         <translation>Ustawienia pisowni i gramatyki</translation>
+    </message>
+    <message>
+        <source>Paragraph and Styles</source>
+        <translation>Akapit i style</translation>
     </message>
 </context>
 <context>
@@ -4823,6 +4895,10 @@ Tryb kolorów edytora nie zależy od motywu programu.</translation>
         <source>Dark Mode Colors</source>
         <translation>Kolory trybu ciemnego</translation>
     </message>
+    <message>
+        <source>Formatting marks</source>
+        <translation>Znaki formatowania</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
@@ -4934,6 +5010,22 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Działanie edytora</translation>
     </message>
     <message>
+        <source>Paste Command:</source>
+        <translation>Polecenie Wklej:</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Paste pastes text of other programs this way.</source>
+        <translation>Edycja &gt; Wklej wkleja w ten sposób tekst z innych programów.</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Paste (%1) pastes text of other programs this way.</source>
+        <translation>Edycja &gt; Wklej (%1) wkleja w ten sposób tekst z innych programów.</translation>
+    </message>
+    <message>
+        <source>The Edit menu has a paste for each way too. Merge Formatting keeps the headings, quotes, emphasis and lines, and gives the text the look of the place it is pasted to. Text copied in Kalahari keeps all its formatting, except with Paste Text Only.</source>
+        <translation>Menu Edycja ma też osobne polecenie dla każdego sposobu wklejania. Scal formatowanie zachowuje nagłówki, cytaty, wyróżnienia i linie, a wygląd tekstu dopasowuje do miejsca wklejenia. Tekst skopiowany w Kalahari zachowuje całe formatowanie, chyba że zostanie wklejony poleceniem „Wklej bez formatowania”.</translation>
+    </message>
+    <message>
         <source>Where You Last Edited</source>
         <translation>W miejscu ostatniej edycji</translation>
     </message>
@@ -5028,6 +5120,46 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>View &gt; Typewriter Scrolling (%1) keeps the line you write at one height of the view, in the Continuous and the Page Layout view.</source>
         <translation>Widok &gt; Przewijanie jak w maszynie do pisania (%1) utrzymuje pisany wiersz na jednej wysokości widoku – w widoku „Ciągły” i „Układ strony”.</translation>
+    </message>
+    <message>
+        <source>* * * (three asterisks)</source>
+        <translation>* * * (trzy gwiazdki)</translation>
+    </message>
+    <message>
+        <source>%1 (asterism)</source>
+        <translation>%1 (asteryzm)</translation>
+    </message>
+    <message>
+        <source>%1 (fleuron)</source>
+        <translation>%1 (ozdobnik)</translation>
+    </message>
+    <message>
+        <source>Short line</source>
+        <translation>Krótka linia</translation>
+    </message>
+    <message>
+        <source>Blank line</source>
+        <translation>Pusty wiersz</translation>
+    </message>
+    <message>
+        <source>Scene Break Look:</source>
+        <translation>Wygląd podziału sceny:</translation>
+    </message>
+    <message>
+        <source>Choose from: * * *, %1, %2, a short line, a blank line. Changes only the look: the file keeps the scene break.</source>
+        <translation>Do wyboru: * * *, %1, %2, krótka linia, pusty wiersz. Zmienia tylko wygląd – w pliku zostaje podział sceny.</translation>
+    </message>
+    <message>
+        <source>Merge Formatting</source>
+        <translation>Scal formatowanie</translation>
+    </message>
+    <message>
+        <source>Keep Source Formatting</source>
+        <translation>Zachowaj formatowanie źródła</translation>
+    </message>
+    <message>
+        <source>Keep Text Only</source>
+        <translation>Tylko tekst</translation>
     </message>
 </context>
 <context>
@@ -6486,6 +6618,14 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>[tylko do odczytu]</translation>
     </message>
     <message>
+        <source>Formatting marks: shown</source>
+        <translation>Znaki formatowania: widoczne</translation>
+    </message>
+    <message>
+        <source>Formatting marks: hidden</source>
+        <translation>Znaki formatowania: ukryte</translation>
+    </message>
+    <message>
         <source>The program does not have an editor for the {kind} yet.</source>
         <extracomment>The tooltip of a greyed command of the Book menu that adds an element of a kind of the Workshop, e.g. New Character.... In Polish: Program nie ma jeszcze edytora {kind:genitive}.</extracomment>
         <translation>Program nie ma jeszcze edytora {kind:genitive}.</translation>
@@ -6885,10 +7025,6 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>Menu węzłów</translation>
     </message>
     <message>
-        <source>&quot;Add...&quot; and a command for each kind</source>
-        <translation>„Dodaj...” i polecenia z nazwą rodzaju</translation>
-    </message>
-    <message>
         <source>Only &quot;Add...&quot;</source>
         <translation>Tylko „Dodaj...”</translation>
     </message>
@@ -6907,6 +7043,10 @@ Szczegóły są w dzienniku programu.</translation>
     <message>
         <source>Applies to the menu the right mouse button opens on a node of the Navigator. The Book menu, the &quot;+&quot; button and the keys work the same in both variants.</source>
         <translation>Dotyczy menu, które otwiera prawy przycisk myszy na węźle Nawigatora. Menu „Książka”, przycisk „+” i klawisze działają tak samo w obu wariantach.</translation>
+    </message>
+    <message>
+        <source>&quot;Add...&quot; and a command for each kind</source>
+        <translation>„Dodaj...” i polecenia z nazwą rodzaju</translation>
     </message>
     <message>
         <source>Add Element Window</source>
@@ -7331,16 +7471,6 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>Biblioteki</translation>
     </message>
     <message>
-        <source>Materials</source>
-        <extracomment>The node of the Workshop with the working notes and the materials (quotes, web pages, pictures...), in groups of their kinds. In Polish: Materiały</extracomment>
-        <translation>Materiały</translation>
-    </message>
-    <message>
-        <source>%1 (%2)</source>
-        <extracomment>A node of the Navigator with its number of elements, as a screen reader reads it: %1 the name, %2 the number. In Polish: %1 (%2)</extracomment>
-        <translation>%1 (%2)</translation>
-    </message>
-    <message>
         <source>Book</source>
         <extracomment>The node of the book in the Navigator, unless the writer names it. In Polish: Książka</extracomment>
         <translation>Książka</translation>
@@ -7367,8 +7497,23 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
     <message>
         <source>&amp;Grouping</source>
-        <extracomment>Whether the Workshop has its cards (characters, locations, items) in Libraries. In Polish: &amp;Grupowanie</extracomment>
+        <extracomment>Whether the Workshop has its cards in Libraries and its materials in Resources. In Polish: &amp;Grupowanie</extracomment>
         <translation>&amp;Grupowanie</translation>
+    </message>
+    <message>
+        <source>Version &amp;History...</source>
+        <extracomment>The command of a text in the Navigator, as File &gt; Version History... In Polish: &amp;Historia wersji...</extracomment>
+        <translation>&amp;Historia wersji...</translation>
+    </message>
+    <message>
+        <source>Materials</source>
+        <extracomment>The node of the Workshop with the working notes and the materials (quotes, web pages, pictures...), in groups of their kinds. In Polish: Materiały</extracomment>
+        <translation>Materiały</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A node of the Navigator with its number of elements, as a screen reader reads it: %1 the name, %2 the number. In Polish: %1 (%2)</extracomment>
+        <translation>%1 (%2)</translation>
     </message>
     <message>
         <source>Open &amp;Card</source>
@@ -7379,6 +7524,93 @@ Szczegóły są w dzienniku programu.</translation>
         <source>&amp;Open List</source>
         <extracomment>Shows the list of the materials of a kind on a tab in the middle of the window. In Polish: &amp;Otwórz listę</extracomment>
         <translation>&amp;Otwórz listę</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ParagraphPanel</name>
+    <message>
+        <source>No text with a cursor is in front. Click in the text of a chapter.</source>
+        <translation>Na wierzchu nie ma tekstu z kursorem. Kliknij w tekst rozdziału.</translation>
+    </message>
+    <message>
+        <source>Fold</source>
+        <translation>Zwiń</translation>
+    </message>
+    <message>
+        <source>Current Paragraph</source>
+        <translation>Bieżący akapit</translation>
+    </message>
+    <message>
+        <source>Kind:</source>
+        <translation>Rodzaj:</translation>
+    </message>
+    <message>
+        <source>Formatting:</source>
+        <translation>Formatowanie:</translation>
+    </message>
+    <message>
+        <source>Alignment:</source>
+        <translation>Wyrównanie:</translation>
+    </message>
+    <message>
+        <source>The look of the scene breaks: Edit &gt; Settings..., group Editor &gt; General.</source>
+        <translation>Wygląd podziałów sceny: Edycja &gt; Ustawienia..., grupa Edytor &gt; Ogólne.</translation>
+    </message>
+    <message>
+        <source>Styles</source>
+        <translation>Style</translation>
+    </message>
+    <message>
+        <source>Names</source>
+        <translation>Nazwy</translation>
+    </message>
+    <message>
+        <source>The styles by their names</source>
+        <translation>Same nazwy stylów</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>The styles in their look</source>
+        <translation>Nazwy stylów w ich wyglądzie</translation>
+    </message>
+    <message>
+        <source>Unfold</source>
+        <translation>Rozwiń</translation>
+    </message>
+    <message>
+        <source>Selected Paragraphs</source>
+        <translation>Zaznaczone akapity</translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <translation>%1 z %2</translation>
+    </message>
+    <message>
+        <source>paragraph %1 of %2</source>
+        <translation>akapit %1 z %2</translation>
+    </message>
+    <message>
+        <source>Horizontal Line</source>
+        <translation>Linia pozioma</translation>
+    </message>
+    <message>
+        <source>Scene Break</source>
+        <translation>Podział sceny</translation>
+    </message>
+    <message>
+        <source>Page Break</source>
+        <translation>Podział strony</translation>
+    </message>
+    <message>
+        <source>Click in the text of a paragraph to give it a style</source>
+        <translation>Kliknij w tekst akapitu, żeby nadać mu styl</translation>
+    </message>
+    <message>
+        <source>A click on a style gives it to the paragraph at the cursor or to the selected paragraphs</source>
+        <translation>Kliknięcie stylu nadaje go akapitowi z kursorem albo zaznaczonym akapitom</translation>
     </message>
 </context>
 <context>
@@ -7568,50 +7800,6 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>Czas czytania:</translation>
     </message>
     <message>
-        <source>Paragraph Style</source>
-        <translation>Styl akapitu</translation>
-    </message>
-    <message>
-        <source>Current paragraph style at cursor position</source>
-        <translation>Styl akapitu w miejscu kursora</translation>
-    </message>
-    <message>
-        <source>Current:</source>
-        <translation>Bieżący:</translation>
-    </message>
-    <message>
-        <source>Change paragraph style</source>
-        <translation>Zmień styl akapitu</translation>
-    </message>
-    <message>
-        <source>Normal</source>
-        <translation>Zwykły</translation>
-    </message>
-    <message>
-        <source>Heading 1</source>
-        <translation>Nagłówek 1</translation>
-    </message>
-    <message>
-        <source>Heading 2</source>
-        <translation>Nagłówek 2</translation>
-    </message>
-    <message>
-        <source>Heading 3</source>
-        <translation>Nagłówek 3</translation>
-    </message>
-    <message>
-        <source>Block Quote</source>
-        <translation>Cytat blokowy</translation>
-    </message>
-    <message>
-        <source>Preformatted</source>
-        <translation>Tekst preformatowany</translation>
-    </message>
-    <message>
-        <source>Apply:</source>
-        <translation>Zastosuj:</translation>
-    </message>
-    <message>
         <source>-</source>
         <translation>-</translation>
     </message>
@@ -7770,6 +7958,71 @@ Szczegóły są w dzienniku programu.</translation>
         <source>The type of the book: the kinds of its elements come from it</source>
         <extracomment>The tooltip of the type of the book in the Properties panel. In Polish: Typ książki: z niego pochodzą rodzaje jej elementów</extracomment>
         <translation>Typ książki: z niego pochodzą rodzaje jej elementów</translation>
+    </message>
+    <message>
+        <source>Versions</source>
+        <extracomment>The group of the Properties panel with the versions of a text. In Polish: Wersje</extracomment>
+        <translation>Wersje</translation>
+    </message>
+    <message>
+        <source>Save Version</source>
+        <extracomment>The button of the group of the versions, as File &gt; Save Version... In Polish: Zapisz wersję</extracomment>
+        <translation>Zapisz wersję</translation>
+    </message>
+    <message>
+        <source>Version History...</source>
+        <extracomment>The button of the group of the versions, as File &gt; Version History... In Polish: Historia wersji...</extracomment>
+        <translation>Historia wersji...</translation>
+    </message>
+    <message>
+        <source>No versions yet</source>
+        <extracomment>In Polish: Jeszcze nie ma wersji</extracomment>
+        <translation>Nie ma jeszcze wersji</translation>
+    </message>
+    <message>
+        <source>A version keeps the text of the {kind} as it is in the editor now.</source>
+        <extracomment>In Polish: Wersja zachowa tekst {kind:genitive} taki, jak teraz w edytorze.</extracomment>
+        <translation>Wersja zachowa tekst {kind:genitive} taki, jak teraz w edytorze.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln version(s), the last one: %1</source>
+        <extracomment>%Ln: how many versions, %1: when the last one was kept (today, 14:52). In Polish: %Ln wersja / wersje / wersji, ostatnia: %1</extracomment>
+        <translation>
+            <numerusform>%Ln wersja, ostatnia: %1</numerusform>
+            <numerusform>%Ln wersje, ostatnia: %1</numerusform>
+            <numerusform>%Ln wersji, ostatnia: %1</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Keep the text of the {kind} as it is in the editor now as a version</source>
+        <translation>Zachowaj jako wersję tekst {kind:genitive} taki, jak teraz w edytorze</translation>
+    </message>
+    <message>
+        <source>Read, compare or restore the versions of the {kind}</source>
+        <extracomment>In Polish: Przeczytaj, porównaj albo przywróć wersje {kind:genitive}</extracomment>
+        <translation>Przeczytaj, porównaj albo przywróć wersje {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>Version Settings</source>
+        <extracomment>The gear at the title of the group of the versions in the Properties panel: Settings &gt; Editor &gt; Versions. In Polish: Ustawienia wersji</extracomment>
+        <translation>Ustawienia wersji</translation>
+    </message>
+    <message>
+        <source>Creating versions is turned off</source>
+        <extracomment>The group of the versions while Settings &gt; Editor &gt; Versions &gt; Create Versions of the Texts is off. In Polish: Tworzenie wersji jest wyłączone</extracomment>
+        <translation>Tworzenie wersji jest wyłączone</translation>
+    </message>
+    <message>
+        <source>There are no saved versions.</source>
+        <translation>Nie ma zapisanych wersji.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n saved version(s) can be read and restored in the history.</source>
+        <translation>
+            <numerusform>%n zapisaną wersję można czytać i przywracać w historii.</numerusform>
+            <numerusform>%n zapisane wersje można czytać i przywracać w historii.</numerusform>
+            <numerusform>%n zapisanych wersji można czytać i przywracać w historii.</numerusform>
+        </translation>
     </message>
     <message>
         <source>{Kind:s=This|p=These} {kind} {kind:s=has|p=have} no linked materials.</source>
@@ -8025,6 +8278,11 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>Nawigator</translation>
     </message>
     <message>
+        <source>Versions</source>
+        <extracomment>Settings &gt; Editor &gt; Versions: the versions of the texts. In Polish: Wersje</extracomment>
+        <translation>Wersje</translation>
+    </message>
+    <message>
         <source>Materials</source>
         <extracomment>The page of the downloads for the materials with a web address. In Polish: Materiały</extracomment>
         <translation>Materiały</translation>
@@ -8053,8 +8311,8 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>Optymalizuj kolory w motywach</translation>
     </message>
     <message>
-        <source>On: a color too light for a light background is shown darker, and one too dark for a dark background lighter (on the paper and in the panels). Off: the colors exactly as set. One setting for the spelling, the grammar and the annotations.</source>
-        <translation>Włączone: kolor zbyt jasny na jasnym tle jest pokazywany ciemniej, a zbyt ciemny na ciemnym tle – jaśniej (na papierze i w panelach). Wyłączone: kolory dokładnie takie, jak ustawione. Jedno ustawienie dla pisowni, gramatyki i uwag.</translation>
+        <source>On: a color too light for a light background is shown darker, and one too dark for a dark background lighter (on the paper and in the panels). Off: the colors exactly as set. One setting for the spelling, the grammar, the annotations and the comparison of the versions.</source>
+        <translation>Włączone: kolor zbyt jasny na jasnym tle jest pokazywany ciemniej, a zbyt ciemny na ciemnym tle – jaśniej (na papierze i w panelach). Wyłączone: kolory dokładnie takie, jak ustawione. Jedno ustawienie dla pisowni, gramatyki, uwag i porównania wersji.</translation>
     </message>
 </context>
 <context>
@@ -10713,6 +10971,21 @@ Harmonogram projektu:
         <extracomment>In Polish: Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz inny folder.</extracomment>
         <translation>Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz inny folder.</translation>
     </message>
+    <message>
+        <source>Include the versions of the chapters (%1)</source>
+        <extracomment>A check box of the window; %1: how many versions the texts of the book have. In Polish: Dołącz wersje rozdziałów (%1)</extracomment>
+        <translation>Dołącz wersje rozdziałów (%1)</translation>
+    </message>
+    <message>
+        <source>The archive takes the versions of the texts, so after an import on another computer the version history is the same.</source>
+        <extracomment>Under the check box of the versions. In Polish: Archiwum zabierze zapisane wersje tekstów, więc po imporcie na innym komputerze historia wersji jest taka sama.</extracomment>
+        <translation>Archiwum zabierze zapisane wersje tekstów, więc po imporcie na innym komputerze historia wersji jest taka sama.</translation>
+    </message>
+    <message>
+        <source>The texts of the book have no versions yet.</source>
+        <extracomment>Under the check box of the versions, which cannot be checked. In Polish: Teksty książki nie mają jeszcze wersji.</extracomment>
+        <translation>Teksty książki nie mają jeszcze wersji.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::FilePreviewDialog</name>
@@ -12302,6 +12575,550 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <source>A book (.klh file) or another file to open; when the program runs already, its window opens it</source>
         <extracomment>The argument of the command line without a name. In Polish: Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</extracomment>
         <translation>Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorVersionsPage</name>
+    <message>
+        <source>Saving</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Versions with Save Version. In Polish: Zapisywanie</extracomment>
+        <translation>Zapisywanie</translation>
+    </message>
+    <message>
+        <source>Ask for a description when a version is saved</source>
+        <extracomment>In Polish: Pytaj o opis przy zapisie wersji</extracomment>
+        <translation>Pytaj o opis przy zapisie wersji</translation>
+    </message>
+    <message>
+        <source>%1 opens a small window with a field for the description; Enter saves also without one.</source>
+        <translation>%1 otwiera małe okno z polem opisu; Enter zapisuje także bez opisu.</translation>
+    </message>
+    <message>
+        <source>%1 saves at once, and the status bar says so. The description can be added later.</source>
+        <translation>%1 zapisuje od razu, a pasek stanu to potwierdza. Opis można dodać później.</translation>
+    </message>
+    <message>
+        <source>Versions Saved by the Program</source>
+        <extracomment>In Polish: Wersje zapisywane samoczynnie</extracomment>
+        <translation>Wersje zapisywane samoczynnie</translation>
+    </message>
+    <message>
+        <source>When a chapter is saved, at most once in</source>
+        <extracomment>Followed by a number of minutes. In Polish: Przy zapisie rozdziału, najwyżej raz na</extracomment>
+        <translation>Przy zapisie rozdziału, najwyżej raz na</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n minute(s)</source>
+        <extracomment>In Polish: %n minutę / minuty / minut</extracomment>
+        <translation>
+            <numerusform>%n minutę</numerusform>
+            <numerusform>%n minuty</numerusform>
+            <numerusform>%n minut</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Minutes between the versions saved with the chapter</source>
+        <extracomment>In Polish: Co ile minut najwyżej wersja przy zapisie rozdziału</extracomment>
+        <translation>Co ile minut najwyżej powstaje wersja przy zapisie rozdziału</translation>
+    </message>
+    <message>
+        <source>Before Replace All in a chapter</source>
+        <extracomment>In Polish: Przed „Zamień wszystkie” w rozdziale</extracomment>
+        <translation>Przed „Zamień wszystkie” w rozdziale</translation>
+    </message>
+    <message>
+        <source>The description says what was replaced with what, and how many times.</source>
+        <extracomment>In Polish: Opis podaje, co zamieniono na co i ile razy.</extracomment>
+        <translation>Opis podaje, co zamieniono na co i ile razy.</translation>
+    </message>
+    <message>
+        <source>Before another version is restored, the program always keeps the current text, so that it can be brought back.</source>
+        <extracomment>In Polish: Przed przywróceniem innej wersji program zawsze zapisuje bieżący tekst, żeby można było do niego wrócić.</extracomment>
+        <translation>Przed przywróceniem innej wersji program zawsze zapisuje bieżący tekst, żeby można było do niego wrócić.</translation>
+    </message>
+    <message>
+        <source>Keep in each chapter at most</source>
+        <extracomment>Followed by a number. In Polish: Zachowuj w każdym rozdziale najwyżej</extracomment>
+        <translation>Zachowuj w każdym rozdziale najwyżej</translation>
+    </message>
+    <message>
+        <source>versions saved by the program</source>
+        <extracomment>After a number. In Polish: wersji zapisanych samoczynnie</extracomment>
+        <translation>wersji zapisanych samoczynnie</translation>
+    </message>
+    <message>
+        <source>The program deletes the older ones. The versions you save stay until you delete them.</source>
+        <extracomment>In Polish: Starsze usuwa program. Wersje zapisane przez Ciebie zostają, dopóki ich nie usuniesz.</extracomment>
+        <translation>Starsze program usuwa. Wersje zapisane przez Ciebie zostają, dopóki ich nie usuniesz.</translation>
+    </message>
+    <message>
+        <source>Colors of the Comparison</source>
+        <extracomment>In Polish: Kolory porównania</extracomment>
+        <translation>Kolory porównania</translation>
+    </message>
+    <message>
+        <source>The colors of the text in the mode &quot;Changes to the Current Text&quot; of the window &quot;Version History&quot;. Each theme has its own colors: these are the colors of the current theme.</source>
+        <extracomment>In Polish: Kolory tekstu w trybie „Zmiany do bieżącego tekstu” w oknie „Historia wersji”. Każdy motyw ma swoje kolory: to kolory bieżącego motywu.</extracomment>
+        <translation>Kolory tekstu w trybie „Zmiany do bieżącego tekstu” w oknie „Historia wersji”. Każdy motyw ma swoje kolory: to kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Deleted text</source>
+        <extracomment>Struck out: in the version, not in the current text. In Polish: Usunięty tekst</extracomment>
+        <translation>Usunięty tekst</translation>
+    </message>
+    <message>
+        <source>Added text</source>
+        <extracomment>Underlined: written later. In Polish: Dopisany tekst</extracomment>
+        <translation>Dopisany tekst</translation>
+    </message>
+    <message>
+        <source>Versions of the Texts</source>
+        <extracomment>The first group of Settings &gt; Editor &gt; Versions. In Polish: Wersje tekstów</extracomment>
+        <translation>Wersje tekstów</translation>
+    </message>
+    <message>
+        <source>Create versions of the texts</source>
+        <extracomment>In Polish: Twórz wersje tekstów</extracomment>
+        <translation>Twórz wersje tekstów</translation>
+    </message>
+    <message>
+        <source>When the text differs from the last version saved in the chapter. A version is the whole text of the chapter: about 40 KB for 5,000 words.</source>
+        <extracomment>In Polish: Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale. Wersja to cały tekst rozdziału: przy 5000 słów około 40 KB.</extracomment>
+        <translation>Gdy tekst różni się od ostatniej wersji zapisanej w tym rozdziale. Wersja to cały tekst rozdziału: przy 5000 słów około 40 KB.</translation>
+    </message>
+    <message>
+        <source>A version keeps the whole text of a chapter, so that it can be brought back.</source>
+        <extracomment>In Polish: Wersja zachowuje cały tekst rozdziału, żeby można było do niego wrócić.</extracomment>
+        <translation>Wersja zachowuje cały tekst rozdziału, żeby można było do niego wrócić.</translation>
+    </message>
+    <message>
+        <source>Off: the program keeps no new versions, neither yours nor its own.</source>
+        <extracomment>In Polish: Wyłączone: program nie zapisuje nowych wersji – ani Twoich, ani samoczynnych.</extracomment>
+        <translation>Wyłączone: program nie zapisuje nowych wersji – ani Twoich, ani samoczynnych.</translation>
+    </message>
+    <message>
+        <source>The program keeps no new versions now. Those saved can still be read, compared and restored in the history; before a restore the program keeps the current text.</source>
+        <translation>Program nie zapisuje teraz nowych wersji. Zapisane można dalej czytać, porównywać i przywracać w historii; przed przywróceniem program zachowuje bieżący tekst.</translation>
+    </message>
+    <message>
+        <source>Toolbar</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Versions with the place of the buttons. In Polish: Pasek narzędzi</extracomment>
+        <translation>Pasek narzędzi</translation>
+    </message>
+    <message>
+        <source>On a toolbar of their own, &quot;Versions and Backups&quot;</source>
+        <extracomment>The toolbar View &gt; Toolbars &gt; Versions and Backups. In Polish: Na osobnym pasku „Wersje i kopie”</extracomment>
+        <translation>Na osobnym pasku „Wersje i kopie”</translation>
+    </message>
+    <message>
+        <source>On the toolbar &quot;Quick Actions&quot;</source>
+        <extracomment>In Polish: Na pasku „Szybki dostęp”</extracomment>
+        <translation>Na pasku „Szybki dostęp”</translation>
+    </message>
+    <message>
+        <source>Version buttons:</source>
+        <extracomment>In Polish: Przyciski wersji:</extracomment>
+        <translation>Przyciski wersji:</translation>
+    </message>
+    <message>
+        <source>&quot;Save Version&quot; and &quot;Version History&quot;. The toolbar of their own can be moved, or hidden in the menu View &gt; Toolbars.</source>
+        <extracomment>In Polish: „Zapisz wersję” i „Historia wersji”. Osobny pasek można przesunąć albo ukryć w menu Widok &gt; Paski narzędzi.</extracomment>
+        <translation>„Zapisz wersję” i „Historia wersji”. Osobny pasek można przesunąć albo ukryć w menu Widok &gt; Paski narzędzi.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::VersionHistoryDialog</name>
+    <message>
+        <source>Version History</source>
+        <extracomment>The window of File &gt; Version History... In Polish: Historia wersji</extracomment>
+        <translation>Historia wersji</translation>
+    </message>
+    <message>
+        <source>%1 from the book &quot;%2&quot;, from the newest version. Choose a version to read it, compare it, restore it or take a fragment of it.</source>
+        <extracomment>%1: the title of the text, %2: the title of its book. In Polish: %1 z książki „%2”, od najnowszej wersji. Wybierz wersję, żeby ją przeczytać, porównać, przywrócić albo wziąć z niej fragment.</extracomment>
+        <translation>%1 z książki „%2”, od najnowszej wersji. Wybierz wersję, żeby ją przeczytać, porównać, przywrócić albo wziąć z niej fragment.</translation>
+    </message>
+    <message>
+        <source>Versions</source>
+        <extracomment>In Polish: Wersje</extracomment>
+        <translation>Wersje</translation>
+    </message>
+    <message>
+        <source>Show the versions saved by the &amp;program</source>
+        <extracomment>In Polish: Pokaż wersje zapisane &amp;samoczynnie</extracomment>
+        <translation>Pokaż wersje zapisane &amp;samoczynnie</translation>
+    </message>
+    <message>
+        <source>&amp;Save the Current Text as a Version...</source>
+        <extracomment>In Polish: Zapisz &amp;bieżący tekst jako wersję...</extracomment>
+        <translation>Zapisz &amp;bieżący tekst jako wersję...</translation>
+    </message>
+    <message>
+        <source>Version &amp;Text</source>
+        <extracomment>In Polish: &amp;Tekst wersji</extracomment>
+        <translation>&amp;Tekst wersji</translation>
+    </message>
+    <message>
+        <source>&amp;Changes to the Current Text</source>
+        <extracomment>In Polish: &amp;Zmiany do bieżącego tekstu</extracomment>
+        <translation>&amp;Zmiany do bieżącego tekstu</translation>
+    </message>
+    <message>
+        <source>Previous Change (%1)</source>
+        <extracomment>%1: its keys. In Polish: Poprzednia zmiana (%1)</extracomment>
+        <translation>Poprzednia zmiana (%1)</translation>
+    </message>
+    <message>
+        <source>Previous Change</source>
+        <translation>Poprzednia zmiana</translation>
+    </message>
+    <message>
+        <source>Next Change (%1)</source>
+        <extracomment>%1: its keys. In Polish: Następna zmiana (%1)</extracomment>
+        <translation>Następna zmiana (%1)</translation>
+    </message>
+    <message>
+        <source>Next Change</source>
+        <translation>Następna zmiana</translation>
+    </message>
+    <message>
+        <source>Preview of the text of the version, read-only</source>
+        <extracomment>In Polish: Podgląd tekstu wersji, tylko do czytania</extracomment>
+        <translation>Podgląd tekstu wersji, tylko do czytania</translation>
+    </message>
+    <message>
+        <source>Change D&amp;escription...</source>
+        <extracomment>In Polish: Zmień &amp;opis...</extracomment>
+        <translation>Zmień &amp;opis...</translation>
+    </message>
+    <message>
+        <source>&amp;Delete...</source>
+        <extracomment>In Polish: &amp;Usuń...</extracomment>
+        <translation>&amp;Usuń...</translation>
+    </message>
+    <message>
+        <source>&amp;Insert Selected Fragment</source>
+        <extracomment>In Polish: &amp;Wstaw zaznaczony fragment</extracomment>
+        <translation>&amp;Wstaw zaznaczony fragment</translation>
+    </message>
+    <message>
+        <source>&amp;Restore This Version</source>
+        <extracomment>In Polish: &amp;Przywróć tę wersję</extracomment>
+        <translation>&amp;Przywróć tę wersję</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>The preview of a version can only be read</source>
+        <extracomment>In Polish: Podgląd wersji jest tylko do czytania</extracomment>
+        <translation>Podgląd wersji jest tylko do czytania</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>Select &amp;All</source>
+        <translation>Zaznacz &amp;wszystko</translation>
+    </message>
+    <message>
+        <source>The {kind} {kind:s=has|p=have} no versions yet. Save the current text as a version with the button under the list, or with %1 in the editor.</source>
+        <extracomment>%1: the keys of File &gt; Save Version (Alt+Shift+S). In Polish: {Kind} {kind:s=nie ma|p=nie mają} jeszcze wersji. Zapisz bieżący tekst jako wersję przyciskiem pod listą albo %1 w edytorze.</extracomment>
+        <translation>{Kind} {kind:s=nie ma|p=nie mają} jeszcze wersji. Zapisz bieżący tekst jako wersję przyciskiem pod listą albo %1 w edytorze.</translation>
+    </message>
+    <message>
+        <source>No versions saved by you. The versions saved by the program are hidden.</source>
+        <extracomment>In Polish: Brak wersji zapisanych przez Ciebie. Wersje zapisane samoczynnie są ukryte.</extracomment>
+        <translation>Brak wersji zapisanych przez Ciebie. Wersje zapisane samoczynnie są ukryte.</translation>
+    </message>
+    <message>
+        <source>The file of this version cannot be read.</source>
+        <extracomment>In Polish: Nie można odczytać pliku tej wersji.</extracomment>
+        <translation>Nie można odczytać pliku tej wersji.</translation>
+    </message>
+    <message>
+        <source>Version text: %1 · current text: %2</source>
+        <extracomment>%1: the words of the version, %2: of the text as it is now. In Polish: Tekst wersji: %1 · bieżący tekst: %2</extracomment>
+        <translation>Tekst wersji: %1 · bieżący tekst: %2</translation>
+    </message>
+    <message>
+        <source>%1 – in this version, not in the current text</source>
+        <extracomment>The legend of the changes: %1 is &quot;struck out&quot; in its look. In Polish: %1 – jest w tej wersji, nie ma w bieżącym tekście</extracomment>
+        <translation>%1 – jest w tej wersji, nie ma w bieżącym tekście</translation>
+    </message>
+    <message>
+        <source>struck out</source>
+        <translation>przekreślone</translation>
+    </message>
+    <message>
+        <source>%1 – written later</source>
+        <extracomment>The legend of the changes: %1 is &quot;underlined&quot; in its look. In Polish: %1 – dopisane później</extracomment>
+        <translation>%1 – dopisane później</translation>
+    </message>
+    <message>
+        <source>underlined</source>
+        <translation>podkreślone</translation>
+    </message>
+    <message>
+        <source>The current text is the same as the text of this version.</source>
+        <extracomment>In Polish: Bieżący tekst jest taki sam jak tekst tej wersji.</extracomment>
+        <translation>Bieżący tekst jest taki sam jak tekst tej wersji.</translation>
+    </message>
+    <message>
+        <source>Change %1 of %2 · deleted words: %3 · added: %4</source>
+        <extracomment>%1: the change shown, %2: of how many, %3 and %4: the words deleted and added. In Polish: Zmiana %1 z %2 · usunięte słowa: %3 · dopisane: %4</extracomment>
+        <translation>Zmiana %1 z %2 · usunięte słowa: %3 · dopisane: %4</translation>
+    </message>
+    <message>
+        <source>The text of the version takes the place of the current text. The program keeps the current text as a version first, and Ctrl+Z in the editor undoes the restoring.</source>
+        <extracomment>In Polish: Tekst wersji zastąpi bieżący tekst. Bieżący tekst program najpierw zapisze jako wersję, a Ctrl+Z w edytorze cofnie przywrócenie.</extracomment>
+        <translation>Tekst wersji zastąpi bieżący tekst. Bieżący tekst program najpierw zapisze jako wersję, a Ctrl+Z w edytorze cofnie przywrócenie.</translation>
+    </message>
+    <message>
+        <source>Insert the selected fragment at the cursor in the {kind}</source>
+        <extracomment>In Polish: Wstaw zaznaczony fragment w miejscu kursora w {kind:locative}</extracomment>
+        <translation>Wstaw zaznaczony fragment w miejscu kursora w {kind:locative}</translation>
+    </message>
+    <message>
+        <source>Select a fragment in the preview</source>
+        <translation>Zaznacz fragment w podglądzie</translation>
+    </message>
+    <message>
+        <source>Description Not Changed</source>
+        <extracomment>In Polish: Nie można zmienić opisu</extracomment>
+        <translation>Nie zmieniono opisu</translation>
+    </message>
+    <message>
+        <source>The new description of the version cannot be written on the disk.</source>
+        <extracomment>In Polish: Nie można zapisać nowego opisu wersji na dysku.</extracomment>
+        <translation>Nie można zapisać nowego opisu wersji na dysku.</translation>
+    </message>
+    <message>
+        <source>Delete the version of %1?</source>
+        <extracomment>%1: when the version was kept (today, 14:52). In Polish: Usunąć wersję z %1?</extracomment>
+        <translation>Usunąć wersję z %1?</translation>
+    </message>
+    <message>
+        <source>%1. Deleting it cannot be undone.</source>
+        <extracomment>%1: the version&apos;s description or where it comes from. In Polish: %1. Usunięcia nie można cofnąć.</extracomment>
+        <translation>%1. Usunięcia nie można cofnąć.</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Version Not Deleted</source>
+        <extracomment>In Polish: Nie usunięto wersji</extracomment>
+        <translation>Nie usunięto wersji</translation>
+    </message>
+    <message>
+        <source>The list of the versions cannot be written on the disk.</source>
+        <extracomment>In Polish: Nie można zapisać listy wersji na dysku.</extracomment>
+        <translation>Nie można zapisać listy wersji na dysku.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::VersionNameDialog</name>
+    <message>
+        <source>Save Version</source>
+        <extracomment>The window of File &gt; Save Version... In Polish: Zapisz wersję</extracomment>
+        <translation>Zapisz wersję</translation>
+    </message>
+    <message>
+        <source>The version keeps the text of the {kind} &quot;%1&quot; as it is in the editor now: with its formatting and annotations, also the changes not saved yet.</source>
+        <extracomment>%1: the title of the text. In Polish: Wersja zachowa tekst {kind:genitive} „%1” taki, jak teraz w edytorze: z formatowaniem i uwagami, także niezapisane zmiany.</extracomment>
+        <translation>Wersja zachowa tekst {kind:genitive} „%1” taki, jak teraz w edytorze: z formatowaniem i uwagami, także niezapisane zmiany.</translation>
+    </message>
+    <message>
+        <source>Without a description the version has only its date and time. The description can be changed later (F2 in the window &quot;Version History&quot;).</source>
+        <extracomment>In Polish: Bez opisu wersja ma tylko datę i godzinę. Opis można zmienić później (F2 w oknie „Historia wersji”).</extracomment>
+        <translation>Bez opisu wersja ma tylko datę i godzinę. Opis można zmienić później (F2 w oknie „Historia wersji”).</translation>
+    </message>
+    <message>
+        <source>Change Description of the Version</source>
+        <extracomment>The window of Change Description... in the window of the versions. In Polish: Zmień opis wersji</extracomment>
+        <translation>Zmień opis wersji</translation>
+    </message>
+    <message>
+        <source>The version of %1. %2.</source>
+        <extracomment>%1: when the version was kept (today, 14:52), %2: where it comes from (Saved by you). In Polish: Wersja z %1. %2.</extracomment>
+        <translation>Wersja z %1. %2.</translation>
+    </message>
+    <message>
+        <source>Without a description the version has only its date and time.</source>
+        <extracomment>In Polish: Bez opisu wersja ma tylko datę i godzinę.</extracomment>
+        <translation>Bez opisu wersja ma tylko datę i godzinę.</translation>
+    </message>
+    <message>
+        <source>Change Description</source>
+        <extracomment>In Polish: Zmień opis</extracomment>
+        <translation>Zmień opis</translation>
+    </message>
+    <message>
+        <source>e.g. Before the ending was changed</source>
+        <extracomment>In Polish: np. Przed zmianą zakończenia</extracomment>
+        <translation>np. Przed zmianą zakończenia</translation>
+    </message>
+    <message>
+        <source>Description (optional)</source>
+        <extracomment>In Polish: Opis (nieobowiązkowy)</extracomment>
+        <translation>Opis (nieobowiązkowy)</translation>
+    </message>
+</context>
+<context>
+    <name>VersionTexts</name>
+    <message>
+        <source>HH:mm</source>
+        <extracomment>The time of a version. In Polish: H:mm</extracomment>
+        <translation>H:mm</translation>
+    </message>
+    <message>
+        <source>today, %1</source>
+        <extracomment>When a version was kept: %1 is the time. In Polish: dziś, %1</extracomment>
+        <translation>dziś, %1</translation>
+    </message>
+    <message>
+        <source>yesterday, %1</source>
+        <extracomment>When a version was kept: %1 is the time. In Polish: wczoraj, %1</extracomment>
+        <translation>wczoraj, %1</translation>
+    </message>
+    <message>
+        <source>dd.MM.yyyy</source>
+        <extracomment>The day of a version. In Polish: dd.MM.yyyy</extracomment>
+        <translation>dd.MM.yyyy</translation>
+    </message>
+    <message>
+        <source>%1, %2</source>
+        <extracomment>When a version was kept: %1 is the day, %2 the time</extracomment>
+        <translation>%1, %2</translation>
+    </message>
+    <message>
+        <source>Saved by you</source>
+        <extracomment>A version the writer saved. In Polish: Zapisana przez Ciebie</extracomment>
+        <translation>Zapisana przez Ciebie</translation>
+    </message>
+    <message>
+        <source>When the {kind} was saved</source>
+        <extracomment>A version the program kept when the text was saved. In Polish: Przy zapisie {kind:genitive}</extracomment>
+        <translation>Przy zapisie {kind:genitive}</translation>
+    </message>
+    <message numerus="yes">
+        <source>Before Replace All: &quot;%1&quot; → &quot;%2&quot;, %Ln replacement(s)</source>
+        <extracomment>A version the program kept before Replace All: %1 was replaced with %2. In Polish: Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamiana / zamiany / zamian</extracomment>
+        <translation>
+            <numerusform>Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamiana</numerusform>
+            <numerusform>Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamiany</numerusform>
+            <numerusform>Przed „Zamień wszystkie”: „%1” → „%2”, %Ln zamian</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Before the version of %1 was restored</source>
+        <extracomment>A version the program kept before another one was brought back: %1 is when that one was kept (today, 14:52). In Polish: Przed przywróceniem wersji z %1</extracomment>
+        <translation>Przed przywróceniem wersji z %1</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot;</source>
+        <extracomment>A version&apos;s description in quotes. In Polish: „%1”</extracomment>
+        <translation>„%1”</translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln word(s)</source>
+        <extracomment>In Polish: %Ln słowo / słowa / słów</extracomment>
+        <translation>
+            <numerusform>%Ln słowo</numerusform>
+            <numerusform>%Ln słowa</numerusform>
+            <numerusform>%Ln słów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>File &gt; Save Version</source>
+        <extracomment>Save Version without keys. In Polish: Plik &gt; Zapisz wersję</extracomment>
+        <translation>Plik &gt; Zapisz wersję</translation>
+    </message>
+    <message>
+        <source>Creating versions is turned off (Settings &gt; Editor &gt; Versions)</source>
+        <extracomment>Why Save Version is greyed out (the menu, the toolbar, the Properties panel, the window of the versions). In Polish: Tworzenie wersji jest wyłączone (Ustawienia &gt; Edytor &gt; Wersje)</extracomment>
+        <translation>Tworzenie wersji jest wyłączone (Ustawienia &gt; Edytor &gt; Wersje)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::VersionsCoordinator</name>
+    <message>
+        <source>Version Not Saved</source>
+        <extracomment>In Polish: Nie zapisano wersji</extracomment>
+        <translation>Nie zapisano wersji</translation>
+    </message>
+    <message>
+        <source>The version cannot be written on the disk.</source>
+        <extracomment>In Polish: Nie można zapisać wersji na dysku.</extracomment>
+        <translation>Nie można zapisać wersji na dysku.</translation>
+    </message>
+    <message>
+        <source>Saved a version of the {kind} &quot;%1&quot; (%2).</source>
+        <extracomment>%1: the title of the text, %2: when the version was kept (today, 15:10). In Polish: Zapisano wersję {kind:genitive} „%1” (%2).</extracomment>
+        <translation>Zapisano wersję {kind:genitive} „%1” (%2).</translation>
+    </message>
+    <message>
+        <source>The description can be added in the version history (F2).</source>
+        <extracomment>After &quot;Saved a version...&quot;, when no window asked for its description. In Polish: Opis można dodać w historii wersji (F2).</extracomment>
+        <translation>Opis można dodać w historii wersji (F2).</translation>
+    </message>
+    <message>
+        <source>Version Not Restored</source>
+        <extracomment>In Polish: Nie przywrócono wersji</extracomment>
+        <translation>Nie przywrócono wersji</translation>
+    </message>
+    <message>
+        <source>The current text cannot be kept as a version, so the version is not restored.</source>
+        <extracomment>In Polish: Nie można zapisać bieżącego tekstu jako wersji, więc wersja nie została przywrócona.</extracomment>
+        <translation>Nie można zapisać bieżącego tekstu jako wersji, więc wersja nie została przywrócona.</translation>
+    </message>
+    <message>
+        <source>Restored the version of %1. Ctrl+Z undoes the restoring.</source>
+        <extracomment>%1: when the version was kept (today, 14:52); the text before it was empty. In Polish: Przywrócono wersję z %1. Ctrl+Z cofa przywrócenie.</extracomment>
+        <translation>Przywrócono wersję z %1. Ctrl+Z cofa przywrócenie.</translation>
+    </message>
+    <message>
+        <source>Restored the version of %1. The text from before the restoring is kept as a version, and Ctrl+Z undoes the restoring.</source>
+        <extracomment>%1: when the version was kept (today, 14:52). In Polish: Przywrócono wersję z %1. Tekst sprzed przywrócenia jest zapisany jako wersja, a Ctrl+Z cofa przywrócenie.</extracomment>
+        <translation>Przywrócono wersję z %1. Tekst sprzed przywrócenia jest zapisany jako wersja, a Ctrl+Z cofa przywrócenie.</translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <extracomment>The button of the bar after a version was restored. In Polish: &amp;Cofnij</extracomment>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>Undo the restoring, as Ctrl+Z does</source>
+        <extracomment>In Polish: Cofnij przywrócenie, jak Ctrl+Z</extracomment>
+        <translation>Cofnij przywrócenie, jak Ctrl+Z</translation>
+    </message>
+    <message>
+        <source>Inserted a fragment of the version of %1. Ctrl+Z undoes the inserting.</source>
+        <extracomment>%1: when the version was kept (today, 14:52). In Polish: Wstawiono fragment wersji z %1. Ctrl+Z cofa wstawienie.</extracomment>
+        <translation>Wstawiono fragment wersji z %1. Ctrl+Z cofa wstawienie.</translation>
+    </message>
+    <message>
+        <source>No text of the book is in front</source>
+        <extracomment>Why Save Version and Version History are greyed out. In Polish: Na wierzchu nie ma tekstu książki</extracomment>
+        <translation>Na wierzchu nie ma tekstu książki</translation>
+    </message>
+    <message>
+        <source>Only the texts of a book have versions, and this file is not part of the open book</source>
+        <extracomment>In Polish: Wersje mają tylko teksty książki, a ten plik nie należy do otwartej książki</extracomment>
+        <translation>Wersje mają tylko teksty książki, a ten plik nie należy do otwartej książki</translation>
+    </message>
+    <message>
+        <source>Only the texts of a book have versions, and this file is not part of a book</source>
+        <translation>Wersje mają tylko teksty książki, a ten plik nie należy do żadnej książki</translation>
+    </message>
+    <message>
+        <source>This text has no file in the folder of the book, so it has no versions</source>
+        <extracomment>In Polish: Ten tekst nie ma pliku w folderze książki, więc nie ma wersji</extracomment>
+        <translation>Ten tekst nie ma pliku w folderze książki, więc nie ma wersji</translation>
     </message>
 </context>
 <context>
