@@ -114,7 +114,8 @@ AppearanceGeneralPage::AppearanceGeneralPage(QWidget* parent)
     windowTabRows->addItem(tr("Wrap to the next row"), QString::fromLatin1(CentralTabs::ROWS_WRAP));
     windowTabRows->setToolTip(tr("The tabs of the Dashboard, the chapters, the lists and the "
                                  "materials that do not fit the width of the window: in one row "
-                                 "that scrolls with the arrows, or in more rows"));
+                                 "that scrolls with the arrows, or in more rows. The button to "
+                                 "the right of the tabs switches it too"));
     addField(windowTabs, tr("When tabs do not fit:"), windowTabRows, CentralTabs::ROWS_KEY);
 
     pageLayout()->addStretch();

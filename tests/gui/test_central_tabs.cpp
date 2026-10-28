@@ -1,10 +1,12 @@
 /// @file test_central_tabs.cpp
 /// @brief The tabs in the middle of the window: Qt's one row by default; in more rows the
 /// tabs of Qt's tab bar wrapped to the width, following its changes, and a click, a close
-/// button and a drag acting on it; back in one row Qt's close buttons and arrows again
+/// button and a drag acting on it; back in one row Qt's close buttons and arrows again; the
+/// button in the corner that switches the rows and keeps the setting
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari/gui/widgets/panel_tab_bar.h"
 
@@ -14,6 +16,7 @@
 #include <QMouseEvent>
 #include <QPixmap>
 #include <QTabBar>
+#include <QToolButton>
 
 #include <cstdio>
 #include <string>
@@ -115,10 +118,23 @@ struct Workspace {
 } // anonymous namespace
 
 TEST_CASE("Central tabs: one row of Qt's tabs by default", "[gui][centraltabs]") {
+    registerAllIcons();  // the icon of the button of the rows
     Workspace space;
     CHECK(space.tabs.rows() == PanelTabBar::Rows::Single);
     CHECK(space.tabs.tabRows() == nullptr);
     CHECK(shownCloseButtons(*space.tabs.tabBar()) == 6);
+
+    // The button of the rows in the right corner, up, with an icon as big as the tabs' icons
+    QToolButton* button = space.tabs.rowsButton();
+    REQUIRE(button != nullptr);
+    CHECK(space.tabs.cornerWidget(Qt::TopRightCorner) == button);
+    CHECK(button->isVisible());
+    CHECK(button->isCheckable());
+    CHECK_FALSE(button->isChecked());
+    CHECK_FALSE(button->icon().isNull());
+    CHECK_FALSE(button->toolTip().isEmpty());
+    CHECK(button->iconSize() == space.tabs.tabBar()->iconSize());
+    CHECK(space.tabs.tabBar()->geometry().right() < button->geometry().left());
 }
 
 TEST_CASE("Central tabs in rows: Qt's tabs wrapped to the width, the pages under them",
@@ -141,10 +157,18 @@ TEST_CASE("Central tabs in rows: Qt's tabs wrapped to the width, the pages under
         CHECK(rows->tabRect(i).right() < space.tabs.width());
     }
     QTabBar* bar = space.tabs.tabBar();
-    CHECK(bar->height() == rows->heightForWidth(space.tabs.width()));
+    CHECK(bar->height() == rows->heightForWidth(bar->width()));
     CHECK(rows->geometry() == bar->rect());
     const QWidget* page = space.tabs.currentWidget();
     CHECK(page->mapTo(&space.tabs, QPoint(0, 0)).y() >= bar->geometry().bottom());
+
+    // The button of the rows down, after the rows, by the last of them
+    const QToolButton* button = space.tabs.rowsButton();
+    CHECK(button->isChecked());
+    CHECK(button->isVisible());
+    CHECK(bar->geometry().right() < button->geometry().left());
+    CHECK(button->geometry().top() >= bar->geometry().top());
+    CHECK(button->geometry().bottom() <= bar->geometry().bottom());
 
     // Qt's close buttons and arrows do not show through
     CHECK(shownCloseButtons(*bar) == 0);
@@ -156,7 +180,7 @@ TEST_CASE("Central tabs in rows: Qt's tabs wrapped to the width, the pages under
     settle();
     CHECK(rows->rowCount() == 1);
     CHECK(bar->height() < twoRows);
-    CHECK(bar->height() == rows->heightForWidth(2000));
+    CHECK(bar->height() == rows->heightForWidth(bar->width()));
 }
 
 TEST_CASE("Central tabs in rows: they follow Qt's tabs", "[gui][centraltabs]") {
@@ -261,5 +285,55 @@ TEST_CASE("Central tabs: back in one row, Qt's close buttons and arrows again, a
     settings.set<std::string>(CentralTabs::ROWS_KEY, CentralTabs::ROWS_SINGLE);
     space.tabs.applySettings();
     CHECK(space.tabs.tabRows() == nullptr);
+    settings.set<std::string>(CentralTabs::ROWS_KEY, saved);
+}
+
+TEST_CASE("Central tabs: the button switches the rows at once and keeps the setting",
+          "[gui][centraltabs]") {
+    Workspace space;
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string saved = settings.get<std::string>(CentralTabs::ROWS_KEY, std::string());
+    settings.set<std::string>(CentralTabs::ROWS_KEY, CentralTabs::ROWS_SINGLE);
+    QToolButton* button = space.tabs.rowsButton();
+    REQUIRE(button != nullptr);
+
+    // Clicked: more rows, and the setting says so
+    button->click();
+    settle();
+    CHECK(space.tabs.rows() == PanelTabBar::Rows::Wrap);
+    CHECK(space.tabs.tabRows() != nullptr);
+    CHECK(button->isChecked());
+    CHECK(settings.get<std::string>(CentralTabs::ROWS_KEY, std::string()) ==
+          CentralTabs::ROWS_WRAP);
+    CHECK(CentralTabs::rowsSetting() == PanelTabBar::Rows::Wrap);
+
+    // Clicked again: one row with Qt's close buttons, and the setting
+    button->click();
+    settle();
+    CHECK(space.tabs.rows() == PanelTabBar::Rows::Single);
+    CHECK_FALSE(button->isChecked());
+    CHECK(shownCloseButtons(*space.tabs.tabBar()) == 6);
+    CHECK(settings.get<std::string>(CentralTabs::ROWS_KEY, std::string()) ==
+          CentralTabs::ROWS_SINGLE);
+
+    // The rows set by the program or by the Settings dialog move the button, not the setting
+    space.tabs.setRows(PanelTabBar::Rows::Wrap);
+    CHECK(button->isChecked());
+    CHECK(settings.get<std::string>(CentralTabs::ROWS_KEY, std::string()) ==
+          CentralTabs::ROWS_SINGLE);
+    settings.set<std::string>(CentralTabs::ROWS_KEY, CentralTabs::ROWS_SINGLE);
+    space.tabs.applySettings();
+    CHECK_FALSE(button->isChecked());
+
+    // Hidden with the tabs (Distraction-Free), it leaves the page the whole width
+    space.tabs.tabBar()->hide();
+    button->hide();
+    settle();
+    CHECK(space.tabs.currentWidget()->width() == space.tabs.width());
+    space.tabs.tabBar()->show();
+    button->show();
+    settle();
+    CHECK(space.tabs.tabBar()->geometry().right() < button->geometry().left());
+
     settings.set<std::string>(CentralTabs::ROWS_KEY, saved);
 }

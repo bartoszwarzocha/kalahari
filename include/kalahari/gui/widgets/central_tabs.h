@@ -7,6 +7,9 @@
 
 #include <QTabWidget>
 
+class QAction;
+class QToolButton;
+
 namespace kalahari {
 namespace gui {
 
@@ -22,6 +25,9 @@ class CentralTabBar;
 /// signals: it only asks for the height of the rows and paints nothing, its close buttons and
 /// arrows hidden. A click, the keys, a drag and a close button of the rows act on it as on its
 /// own tabs (tabBarClicked(), tabMoved(), tabCloseRequested()).
+///
+/// A button in the right corner, after the tabs, switches between one row and more rows at
+/// once and keeps the choice in the setting (rowsButton()).
 class CentralTabs : public QTabWidget {
     Q_OBJECT
 
@@ -43,6 +49,10 @@ public:
     /// @brief The tabs in more rows, nullptr in one row
     [[nodiscard]] PanelTabBar* tabRows() const;
 
+    /// @brief The button in the right corner: down in more rows, up in one row; clicked, it
+    ///        switches the rows and keeps the choice in the setting (ROWS_KEY)
+    [[nodiscard]] QToolButton* rowsButton() const;
+
     /// @brief Show the tabs in the rows the settings say
     void applySettings();
 
@@ -51,6 +61,8 @@ public:
 
 private:
     CentralTabBar* m_bar;
+    QAction* m_rowsAction;  ///< Of rowsButton(), checked in more rows
+    QToolButton* m_rowsButton;
 };
 
 } // namespace gui

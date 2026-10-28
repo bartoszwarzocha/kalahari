@@ -3,11 +3,14 @@
 
 #include "kalahari/gui/widgets/central_tabs.h"
 
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/settings_manager.h"
 
 #include <QAbstractButton>
+#include <QAction>
 #include <QEvent>
 #include <QTabBar>
+#include <QToolButton>
 
 #include <string>
 
@@ -89,9 +92,15 @@ public:
         if (m_rows == nullptr) {
             return QTabBar::sizeHint();
         }
-        // The bar spans the tab widget: the rows its width needs
-        const int width = m_tabs->width();
-        return {width, m_rows->heightForWidth(width)};
+        // The bar spans the tab widget but its corners, as QTabWidget lays it out (the style's
+        // SE_TabWidgetTabBar): the rows that width needs
+        int width = m_tabs->width();
+        for (const Qt::Corner corner : {Qt::TopLeftCorner, Qt::TopRightCorner}) {
+            if (const QWidget* widget = m_tabs->cornerWidget(corner); widget != nullptr) {
+                width -= widget->sizeHint().width();
+            }
+        }
+        return {m_tabs->width(), m_rows->heightForWidth(width)};
     }
 
     [[nodiscard]] QSize minimumSizeHint() const override {
@@ -192,14 +201,37 @@ private:
 };
 
 CentralTabs::CentralTabs(QWidget* parent)
-    : QTabWidget(parent), m_bar(new CentralTabBar(this))
+    : QTabWidget(parent),
+      m_bar(new CentralTabBar(this)),
+      m_rowsAction(core::ArtProvider::getInstance().createAction(
+          QStringLiteral("tabs.rows"), tr("Tabs in More Rows"), this,
+          core::IconContext::TabBar)),
+      m_rowsButton(new QToolButton(this))
 {
     setObjectName(QStringLiteral("centralTabs"));
     setTabBar(m_bar);
+
+    // The button after the tabs, with an icon as big as theirs
+    m_rowsAction->setCheckable(true);
+    m_rowsButton->setObjectName(QStringLiteral("centralTabRowsButton"));
+    m_rowsButton->setDefaultAction(m_rowsAction);
+    m_rowsButton->setAutoRaise(true);
+    m_rowsButton->setIconSize(tabBar()->iconSize());
+    setCornerWidget(m_rowsButton, Qt::TopRightCorner);
+    connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
+            m_rowsButton, [this]() { m_rowsButton->setIconSize(tabBar()->iconSize()); });
+
+    // Clicked (not set by the program): the rows at once, and the setting
+    connect(m_rowsAction, &QAction::triggered, this, [this](bool wrap) {
+        setRows(wrap ? PanelTabBar::Rows::Wrap : PanelTabBar::Rows::Single);
+        core::SettingsManager::getInstance().set<std::string>(ROWS_KEY,
+                                                              wrap ? ROWS_WRAP : ROWS_SINGLE);
+    });
 }
 
 void CentralTabs::setRows(PanelTabBar::Rows rows) {
     m_bar->setRows(rows);
+    m_rowsAction->setChecked(rows == PanelTabBar::Rows::Wrap);
 }
 
 PanelTabBar::Rows CentralTabs::rows() const {
@@ -208,6 +240,10 @@ PanelTabBar::Rows CentralTabs::rows() const {
 
 PanelTabBar* CentralTabs::tabRows() const {
     return m_bar->tabRows();
+}
+
+QToolButton* CentralTabs::rowsButton() const {
+    return m_rowsButton;
 }
 
 void CentralTabs::applySettings() {

@@ -29,7 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they stay in one row that scrolls with the arrows (as before, the default), or wrap to the
   next row, in as many rows as the width needs. In more rows they look as in one row, each
   with its close button, a click brings a tab to the front and a tab dragged to another place
-  moves there, with a line showing where it goes.
+  moves there, with a line showing where it goes. A button to the right of the tabs (Tabs in
+  More Rows) switches between one row and more rows at once and keeps the choice in the
+  setting; it hides with the tabs in Distraction-Free.
 - **Versions of the texts: Save Version and Version History** - 2026-10-22. File > Save
   Version (Alt+Shift+S; on macOS Option+Shift+Cmd+S) keeps the text in front as it is in its
   editor, with its formatting, its annotations and the changes not saved yet, as a version:

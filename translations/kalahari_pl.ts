@@ -3894,8 +3894,8 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Zostaw w jednym wierszu, ze strzałkami</translation>
     </message>
     <message>
-        <source>The tabs of the Dashboard, the chapters, the lists and the materials that do not fit the width of the window: in one row that scrolls with the arrows, or in more rows</source>
-        <translation>Karty Pulpitu, rozdziałów, list i materiałów, które nie mieszczą się w szerokości okna: w jednym wierszu przewijanym strzałkami albo w kilku wierszach</translation>
+        <source>The tabs of the Dashboard, the chapters, the lists and the materials that do not fit the width of the window: in one row that scrolls with the arrows, or in more rows. The button to the right of the tabs switches it too</source>
+        <translation>Karty Pulpitu, rozdziałów, list i materiałów, które nie mieszczą się w szerokości okna: w jednym wierszu przewijanym strzałkami albo w kilku wierszach. Można to też przełączać przyciskiem na prawo od kart</translation>
     </message>
 </context>
 <context>
@@ -7263,6 +7263,10 @@ Szczegóły są w dzienniku programu.</translation>
     <message>
         <source>Tabs</source>
         <translation>Karty</translation>
+    </message>
+    <message>
+        <source>Tabs in More Rows</source>
+        <translation>Karty w kilku wierszach</translation>
     </message>
 </context>
 <context>

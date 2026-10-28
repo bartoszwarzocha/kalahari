@@ -1280,11 +1280,14 @@ void MainWindow::onDistractionFreeToggle() {
     const bool enabled = !isDistractionFree();
     logger.info("Action triggered: Distraction-Free {}", enabled ? "on" : "off");
 
-    // The chapter tabs hide with the window's bars and panels
+    // The chapter tabs, and the button by them, hide with the window's bars and panels
     QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
     QList<QWidget*> alsoHidden;
     if (centralTabs) {
         alsoHidden.append(centralTabs->tabBar());
+        if (QWidget* corner = centralTabs->cornerWidget(Qt::TopRightCorner)) {
+            alsoHidden.append(corner);
+        }
     }
     m_distractionFreeLayout->setActive(enabled, alsoHidden);
 }
