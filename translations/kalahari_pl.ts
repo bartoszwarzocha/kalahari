@@ -3738,6 +3738,74 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>Paragraph and styles:</source>
         <translation>Akapit i style:</translation>
     </message>
+    <message>
+        <source>Icons only</source>
+        <translation>Same ikony</translation>
+    </message>
+    <message>
+        <source>Icons and names</source>
+        <translation>Ikony i nazwy</translation>
+    </message>
+    <message>
+        <source>Names only</source>
+        <translation>Same nazwy</translation>
+    </message>
+    <message>
+        <source>What the tabs of the panels show</source>
+        <translation>Co pokazują zakładki paneli</translation>
+    </message>
+    <message>
+        <source>Panel tabs:</source>
+        <translation>Zakładki paneli:</translation>
+    </message>
+    <message>
+        <source>Wrap to the next row</source>
+        <translation>Przenoś do kolejnego wiersza</translation>
+    </message>
+    <message>
+        <source>Keep one row</source>
+        <translation>Zostaw w jednym wierszu</translation>
+    </message>
+    <message>
+        <source>Tabs that do not fit the width of the panel: in more rows, or in one row with shortened names</source>
+        <translation>Zakładki, które nie mieszczą się w szerokości panelu: w kolejnych wierszach albo w jednym wierszu ze skróconymi nazwami</translation>
+    </message>
+    <message>
+        <source>When tabs do not fit:</source>
+        <translation>Gdy się nie mieszczą:</translation>
+    </message>
+    <message>
+        <source>Above the panels</source>
+        <translation>Nad panelami</translation>
+    </message>
+    <message>
+        <source>Below the panels</source>
+        <translation>Pod panelami</translation>
+    </message>
+    <message>
+        <source>Where the tabs are: above the panel in front, or under it</source>
+        <translation>Gdzie są zakładki: nad panelem z przodu albo pod nim</translation>
+    </message>
+    <message>
+        <source>Tab position:</source>
+        <translation>Położenie zakładek:</translation>
+    </message>
+    <message>
+        <source>With icons only, the name of a panel is in its tooltip. In one row, names that do not fit are shortened.</source>
+        <translation>Przy samych ikonach nazwa panelu jest w podpowiedzi. W jednym wierszu za długie nazwy się skracają.</translation>
+    </message>
+    <message>
+        <source>Tabs in the middle of the window</source>
+        <translation>Karty w środku okna</translation>
+    </message>
+    <message>
+        <source>Keep one row, with arrows</source>
+        <translation>Zostaw w jednym wierszu, ze strzałkami</translation>
+    </message>
+    <message>
+        <source>The tabs of the Dashboard, the chapters, the lists and the materials that do not fit the width of the window: in one row that scrolls with the arrows, or in more rows. The button to the right of the tabs switches it too</source>
+        <translation>Karty Pulpitu, rozdziałów, list i materiałów, które nie mieszczą się w szerokości okna: w jednym wierszu przewijanym strzałkami albo w kilku wierszach. Można to też przełączać przyciskiem na prawo od kart</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AssistantPanel</name>
@@ -7246,6 +7314,24 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Version &amp;History...</source>
         <extracomment>The command of a text in the Navigator, as File &gt; Version History... In Polish: &amp;Historia wersji...</extracomment>
         <translation>&amp;Historia wersji...</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CentralTabs</name>
+    <message>
+        <source>Tabs</source>
+        <translation>Karty</translation>
+    </message>
+    <message>
+        <source>Tabs in More Rows</source>
+        <translation>Karty w kilku wierszach</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PanelTabBar</name>
+    <message>
+        <source>Panel tabs</source>
+        <translation>Zakładki paneli</translation>
     </message>
 </context>
 <context>
