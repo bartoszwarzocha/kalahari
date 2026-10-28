@@ -114,6 +114,17 @@ public:
         }
         m_now->hide();
         layout->addWidget(m_now, 0, Qt::AlignHCenter);
+
+        // The number of the book's elements of the kind, in the palette of a book; its room
+        // stays, so the tiles do not move
+        m_count = new QLabel(this);
+        m_count->setTextFormat(Qt::PlainText);
+        m_count->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
+        QSizePolicy countPolicy = m_count->sizePolicy();
+        countPolicy.setRetainSizeWhenHidden(true);
+        m_count->setSizePolicy(countPolicy);
+        m_count->hide();
+        layout->addWidget(m_count);
         layout->addStretch(1);
 
         updateIcon();
@@ -123,12 +134,13 @@ public:
     core::BookPlace place() const { return m_place; }
     QCheckBox* checkBox() const { return m_check; }
     QCheckBox* nowBox() const { return m_now; }
+    QLabel* countLabel() const { return m_count; }
 
     /// @brief Show the kind checked or not: the box, the background and "Create now", which
     ///        an unchecked kind loses
     void showChecked(bool checked) {
         m_check->setChecked(checked);
-        m_now->setVisible(checked);
+        m_now->setVisible(checked && m_nowShown);
         if (!checked) {
             m_now->setChecked(false);
         }
@@ -141,7 +153,33 @@ public:
     }
 
     /// @brief Set "Create now", where the kind can be created now
-    void setCreatesNow(bool now) { m_now->setChecked(now && m_now->isEnabled()); }
+    void setCreatesNow(bool now) { m_now->setChecked(now && m_now->isEnabled() && m_nowShown); }
+
+    /// @brief Never show "Create now", nor keep its room
+    void hideCreateNow() {
+        m_nowShown = false;
+        m_now->setChecked(false);
+        m_now->hide();
+        QSizePolicy policy = m_now->sizePolicy();
+        policy.setRetainSizeWhenHidden(false);
+        m_now->setSizePolicy(policy);
+    }
+
+    /// @brief Check the kind for good, or let the writer uncheck it again; @p tooltip says why
+    ///        it cannot be unchecked
+    void setLocked(bool locked, const QString& tooltip) {
+        m_check->setEnabled(!locked);
+        setToolTip(locked ? tooltip : QString());
+    }
+
+    /// @brief Show the number of the book's elements of the kind, none for 0
+    void setCount(int count) {
+        //: Under a kind in the palette of a book: the number of its elements in the book. In
+        //: Polish: W książce: %1
+        m_count->setText(QCoreApplication::translate("KindPalette", "In the book: %1")
+                             .arg(count));
+        m_count->setVisible(count > 0);
+    }
 
     /// @brief The fonts of the texts under the name, smaller than @p font
     void setSmallFonts(const QFont& font) {
@@ -153,6 +191,7 @@ public:
         }
         m_type->setFont(small);
         m_now->setFont(small);
+        m_count->setFont(small);
     }
 
     /// @brief Draw the icon at the size and in the colors of the current icons
@@ -209,6 +248,8 @@ private:
     QLabel* m_name = nullptr;
     QLabel* m_type = nullptr;
     QCheckBox* m_now = nullptr;
+    QLabel* m_count = nullptr;
+    bool m_nowShown = true;  ///< "Create now" is on the tiles of checked kinds
 };
 
 KindPalette::KindPalette(const core::BookTypeRegistry& registry, QWidget* parent)
@@ -315,6 +356,7 @@ void KindPalette::setChoice(const core::PaletteChoice& choice)
     for (auto it = m_checked.begin(); it != m_checked.end(); ++it) {
         const core::ElementKind* kind = it.key();
         it.value() =
+            m_locked.contains(kind) ||
             std::any_of(choice.kinds.cbegin(), choice.kinds.cend(),
                         [kind](const core::KindRef& chosen) { return chosen.kind == kind; });
     }
@@ -377,6 +419,51 @@ void KindPalette::uncheckAll()
     setChoice(core::PaletteChoice{});
 }
 
+void KindPalette::hideCreateNow()
+{
+    for (const Group& group : m_groups) {
+        for (KindTile* tile : group.tiles) {
+            tile->hideCreateNow();
+        }
+    }
+    m_createNowShown = false;
+    sizeTiles();
+}
+
+void KindPalette::setLocked(const QList<core::KindRef>& kinds, const QString& tooltip)
+{
+    m_locked.clear();
+    for (const core::KindRef& kind : kinds) {
+        m_locked.insert(kind.kind);
+    }
+    for (const Group& group : m_groups) {
+        for (KindTile* tile : group.tiles) {
+            tile->setLocked(m_locked.contains(tile->kind().kind), tooltip);
+        }
+    }
+    setChoice(choice());
+}
+
+bool KindPalette::isLocked(const core::ElementKind* kind) const
+{
+    return m_locked.contains(kind);
+}
+
+void KindPalette::setElementCounts(const QHash<const core::ElementKind*, int>& counts)
+{
+    for (const Group& group : m_groups) {
+        for (KindTile* tile : group.tiles) {
+            tile->setCount(counts.value(tile->kind().kind));
+        }
+    }
+    sizeTiles();
+}
+
+bool KindPalette::isChecked(const core::ElementKind* kind) const
+{
+    return m_checked.value(kind);
+}
+
 int KindPalette::checkedCount() const
 {
     return static_cast<int>(
@@ -412,6 +499,9 @@ void KindPalette::changeEvent(QEvent* event)
 
 void KindPalette::setChecked(const core::ElementKind* kind, bool checked)
 {
+    if (m_locked.contains(kind)) {
+        checked = true;
+    }
     m_checked[kind] = checked;
     for (const Group& group : m_groups) {
         for (KindTile* tile : group.tiles) {
@@ -432,7 +522,9 @@ void KindPalette::sizeTiles()
     for (const Group& group : m_groups) {
         for (KindTile* tile : group.tiles) {
             tile->setSmallFonts(font());
-            width = std::max(width, tile->nowBox()->sizeHint().width() + 2 * TILE_MARGIN);
+            if (m_createNowShown) {
+                width = std::max(width, tile->nowBox()->sizeHint().width() + 2 * TILE_MARGIN);
+            }
         }
     }
     int height = qRound(TILE_HEIGHT_EMS * QFontInfo(font()).pixelSize());

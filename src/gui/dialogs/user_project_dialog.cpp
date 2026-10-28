@@ -2,23 +2,20 @@
 /// @brief The second step of a new user project: the kinds of elements of the book
 
 #include "kalahari/gui/dialogs/user_project_dialog.h"
-#include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/custom_book_type.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
-#include "kalahari/gui/panels/annotation_colors.h"
+#include "kalahari/gui/dialogs/save_type_dialog.h"
 #include "kalahari/gui/section_words.h"
 #include "kalahari/gui/widgets/kind_palette.h"
 
 #include <QAbstractButton>
 #include <QDialogButtonBox>
-#include <QFont>
 #include <QFontInfo>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPainter>
 #include <QPushButton>
 #include <QScrollArea>
-#include <QVBoxLayout>
 
 #include <array>
 
@@ -32,42 +29,10 @@ constexpr qreal WIDTH_EMS = 80.0;         ///< Eight tiles in a row, as in the m
 constexpr qreal HEIGHT_EMS = 61.0;        ///< As high as the mockup
 constexpr int MINIMUM_PALETTE_LINES = 8;  ///< Of the palette on a small screen
 constexpr int BAR_SPACING = 12;           ///< Between the texts of the bar over the palette
-constexpr int TOOLS_MARGIN_X = 12;        ///< At the sides of the box of the tools
-constexpr int TOOLS_MARGIN_Y = 8;         ///< Above and below the texts of the box
-constexpr int TOOLS_SPACING = 8;          ///< Between the icon and the texts of the box
-constexpr int TOOLS_LINE_SPACING = 2;     ///< Between the title and the sentence of the box
-constexpr qreal TOOLS_FILL = 0.04;        ///< Mid in the background of the box
-constexpr qreal TOOLS_BORDER = 0.3;       ///< Mid in the border of the box
 
 /// The parts of the book, whose groups have the names of the book's sections
 constexpr std::array<core::BookPlace, 3> BOOK_PLACES{core::BookPlace::Front, core::BookPlace::Main,
                                                     core::BookPlace::Back};
-
-/// @brief The box of the tools of the types: a little darker than the window, with a border
-class ToolsBox : public QWidget {
-public:
-    using QWidget::QWidget;
-
-protected:
-    void paintEvent(QPaintEvent* event) override {
-        QWidget::paintEvent(event);
-        QPainter painter(this);
-        const QColor window = palette().color(QPalette::Window);
-        const QColor mid = palette().color(QPalette::Mid);
-        painter.setPen(QPen(mixedColor(window, mid, TOOLS_BORDER), 1));
-        painter.setBrush(mixedColor(window, mid, TOOLS_FILL));
-        painter.drawRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5));
-    }
-};
-
-/// @brief A link of the bar over the palette
-QLabel* newLink(const QString& text, QWidget* parent) {
-    auto* link = new QLabel(parent);
-    link->setTextFormat(Qt::RichText);
-    link->setText(QStringLiteral("<a href=\"#\">%1</a>").arg(text.toHtmlEscaped()));
-    link->setTextInteractionFlags(Qt::LinksAccessibleByMouse | Qt::LinksAccessibleByKeyboard);
-    return link;
-}
 
 /// @brief The kinds of the base package of @p registry, with an element of its main text kind
 /// in the main section, so that the writer can start writing at once
@@ -93,6 +58,7 @@ core::PaletteChoice baseChoice(const core::BookTypeRegistry& registry) {
 UserProjectDialog::UserProjectDialog(const core::BookTypeRegistry& registry, QWidget* parent)
     : KalahariDialog(parent)
     , m_registry(registry)
+    , m_typesFolder(core::CustomBookTypes::folder())
 {
     setHeadingIcon(QStringLiteral("template.empty"));
 
@@ -127,38 +93,21 @@ UserProjectDialog::UserProjectDialog(const core::BookTypeRegistry& registry, QWi
     contentLayout()->addWidget(area, 1);
 
     // The tools of the types, which no type has yet
-    auto* tools = new ToolsBox(this);
-    auto* toolsLayout = new QHBoxLayout(tools);
-    toolsLayout->setContentsMargins(TOOLS_MARGIN_X, TOOLS_MARGIN_Y, TOOLS_MARGIN_X,
-                                    TOOLS_MARGIN_Y);
-    toolsLayout->setSpacing(TOOLS_SPACING);
-    auto* toolsIcon = new QLabel(tools);
-    toolsIcon->setAlignment(Qt::AlignTop);
-    setNoteIcon(toolsIcon, QStringLiteral("help.about"));
-    toolsLayout->addWidget(toolsIcon);
-    auto* toolsTexts = new QVBoxLayout();
-    toolsTexts->setSpacing(TOOLS_LINE_SPACING);
-    //: The tools that book types will have, e.g. a plot board. In Polish: Narzędzia typów
-    auto* toolsTitle = new QLabel(tr("Tools of the Types"), tools);
-    QFont bold;  // only the weight: the rest follows the font of the window
-    bold.setWeight(QFont::Bold);
-    toolsTitle->setFont(bold);
-    toolsTexts->addWidget(toolsTitle);
-    //: In Polish: Żaden typ nie ma jeszcze narzędzi. Gdy powstaną (np. tablica fabuły
-    //: i słownik książki), wybierzesz je tutaj.
-    auto* toolsText = new QLabel(tr("No type has tools yet. When they come (e.g. a plot board "
-                                    "and a book dictionary), you will choose them here."),
-                                 tools);
-    toolsText->setWordWrap(true);
-    toolsText->setForegroundRole(QPalette::PlaceholderText);
-    toolsTexts->addWidget(toolsText);
-    toolsLayout->addLayout(toolsTexts, 1);
+    QWidget* tools = newToolsBox(this);
     contentLayout()->addWidget(tools);
 
     // Back at the left; Skip, Create Book and Cancel at the right
     //: The button that returns to the first step of a new book. In Polish: < Wstecz
     m_backButton = addSideButton(tr("< Back"));
     connect(m_backButton, &QPushButton::clicked, this, [this]() { done(BACK); });
+    //: The button that saves the checked kinds, with the elements of "Create now", as a type
+    //: of the writer's own. In Polish: Zapisz jako typ...
+    m_saveTypeButton = addSideButton(tr("Save as &Type..."));
+    connect(m_saveTypeButton, &QPushButton::clicked, this, [this]() {
+        SaveTypeDialog dialog(core::CustomBookType::of(m_palette->choice()), m_registry, this);
+        dialog.setFolder(m_typesFolder);
+        dialog.exec();
+    });
     //: The button that creates the book without the changes made in the palette. In Polish:
     //: Pomiń
     m_skipButton = buttonBox()->addButton(tr("Skip"), QDialogButtonBox::YesRole);
@@ -194,10 +143,6 @@ UserProjectDialog::UserProjectDialog(const core::BookTypeRegistry& registry, QWi
     //: The group of the kinds of the Workshop in the palette. In Polish: Warsztat
     m_palette->setGroupName(core::BookPlace::Workshop, tr("Workshop"));
 
-    // New icon colors or sizes (a change of theme or icon settings) redraw the icon of the box
-    connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, toolsIcon,
-            [toolsIcon]() { setNoteIcon(toolsIcon, QStringLiteral("help.about")); });
-
     // The size of the mockup at the font of the window; on a smaller screen the window is
     // smaller and the palette scrolls
     const int em = QFontInfo(font()).pixelSize();
@@ -231,6 +176,11 @@ void UserProjectDialog::setBook(const QString& title, const QString& language,
                                            ? book.sectionName(place)
                                            : SectionWords::groupName(place));
     }
+}
+
+void UserProjectDialog::setTypesFolder(const QString& folder)
+{
+    m_typesFolder = folder;
 }
 
 void UserProjectDialog::setOpeningQuestion(NewBookQuestion question)
@@ -268,6 +218,7 @@ void UserProjectDialog::updateCount()
     //: Over the palette of a new user project. In Polish: Zaznaczone rodzaje: %1
     m_countLabel->setText(tr("Checked kinds: %1").arg(count));
     acceptButton()->setEnabled(count > 0);
+    m_saveTypeButton->setEnabled(count > 0);
     //: The tooltip of Create Book when no kind is checked. In Polish: Zaznacz co najmniej
     //: jeden rodzaj.
     acceptButton()->setToolTip(count > 0 ? QString() : tr("Check at least one kind."));

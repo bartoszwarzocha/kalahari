@@ -1,9 +1,10 @@
 /// @file item_templates.h
-/// @brief Template registry for NewItemDialog - project and file templates
+/// @brief Template registry for NewItemDialog - file templates
 ///
 /// TemplateRegistry provides a centralized, extensible system for managing
-/// templates used in the New Item dialog. Designed for future Python plugin
-/// extensibility.
+/// templates used in the New File window. Designed for future Python plugin
+/// extensibility. The New Book window lists the book types of the installed packages
+/// (BookTypeRegistry), not templates.
 ///
 /// OpenSpec #00033: Project File System - Phase C
 
@@ -25,19 +26,17 @@ namespace dialogs {
 /// @brief Metadata structure for template display in NewItemDialog
 ///
 /// Contains all information needed to display and describe a template
-/// to the user in the New Project/New File dialogs.
+/// to the user in the New File dialog.
 ///
 /// @note Future: Python plugins will be able to register custom templates
 /// using this structure via the TemplateRegistry API.
 struct TemplateInfo {
-    QString id;              ///< Unique identifier (e.g., "template.novel", "template.chapter")
-    QString name;            ///< Display name (e.g., "Novel", "Chapter")
+    QString id;              ///< Unique identifier (e.g., "template.chapter")
+    QString name;            ///< Display name (e.g., "Chapter")
     QString description;     ///< Multi-line description for preview area
-    QString iconId;          ///< Icon command ID for ArtProvider (e.g., "template.novel")
+    QString iconId;          ///< Icon command ID for ArtProvider (e.g., "template.chapter")
     QStringList features;    ///< Feature bullet points for preview
-    QString fileExtension;   ///< Output file extension (for file templates, e.g., ".rtf")
-    QString typeId;          ///< Package of the book type a project template makes, e.g.
-                             ///< "kalahari.novel"; empty: a user project, without a type
+    QString fileExtension;   ///< Output file extension (e.g., ".rtf")
     bool isBuiltin = true;   ///< True for built-in templates, false for plugin-added
 
     /// @brief Check if template info is valid
@@ -49,26 +48,26 @@ struct TemplateInfo {
 // TemplateRegistry - Singleton template manager
 // ============================================================================
 
-/// @brief Central registry for project and file templates
+/// @brief Central registry for file templates
 ///
-/// TemplateRegistry manages all available templates for creating new projects
-/// and files. It follows the singleton pattern like ArtProvider and provides
-/// a plugin-friendly API for future extensibility.
+/// TemplateRegistry manages all available templates for creating new files. It follows the
+/// singleton pattern like ArtProvider and provides a plugin-friendly API for future
+/// extensibility.
 ///
 /// Usage:
 /// @code
-/// // Get available project templates
-/// auto projectTemplates = TemplateRegistry::getInstance().getProjectTemplates();
+/// // Get available file templates
+/// auto fileTemplates = TemplateRegistry::getInstance().getFileTemplates();
 ///
 /// // Get specific template
-/// auto novelTemplate = TemplateRegistry::getInstance().getTemplate("template.novel");
+/// auto chapterTemplate = TemplateRegistry::getInstance().getTemplate("template.chapter");
 ///
 /// // Plugin registration (future)
 /// TemplateInfo customTemplate;
-/// customTemplate.id = "plugin.custom_novel";
-/// customTemplate.name = "Custom Novel";
+/// customTemplate.id = "plugin.custom_note";
+/// customTemplate.name = "Custom Note";
 /// // ... set other fields
-/// TemplateRegistry::getInstance().registerProjectTemplate(customTemplate);
+/// TemplateRegistry::getInstance().registerFileTemplate(customTemplate);
 /// @endcode
 ///
 /// @see TemplateInfo
@@ -82,12 +81,6 @@ public:
     // Plugin-friendly registration API
     // ========================================================================
 
-    /// @brief Register a new project template
-    /// @param info Template metadata
-    /// @note If template with same ID exists, it will be replaced
-    /// @note Emits no signals - caller should refresh UI if needed
-    void registerProjectTemplate(const TemplateInfo& info);
-
     /// @brief Register a new file template
     /// @param info Template metadata
     /// @note If template with same ID exists, it will be replaced
@@ -97,17 +90,11 @@ public:
     /// @brief Unregister a template by ID
     /// @param id Template ID to remove
     /// @return True if template was found and removed
-    /// @note Works for both project and file templates
     bool unregisterTemplate(const QString& id);
 
     // ========================================================================
     // Query API
     // ========================================================================
-
-    /// @brief Get all registered project templates
-    /// @return Vector of TemplateInfo for project templates
-    /// @note Templates are returned in registration order (builtin first)
-    std::vector<TemplateInfo> getProjectTemplates() const;
 
     /// @brief Get all registered file templates
     /// @return Vector of TemplateInfo for file templates
@@ -129,10 +116,6 @@ public:
     // Utility
     // ========================================================================
 
-    /// @brief Get count of registered project templates
-    /// @return Number of project templates
-    size_t projectTemplateCount() const { return m_projectTemplates.size(); }
-
     /// @brief Get count of registered file templates
     /// @return Number of file templates
     size_t fileTemplateCount() const { return m_fileTemplates.size(); }
@@ -150,23 +133,14 @@ private:
     /// @brief Deleted assignment operator
     TemplateRegistry& operator=(const TemplateRegistry&) = delete;
 
-    /// @brief Load built-in project and file templates
+    /// @brief Load built-in file templates
     void loadBuiltinTemplates();
-
-    /// @brief Load built-in project templates
-    void loadBuiltinProjectTemplates();
 
     /// @brief Load built-in file templates
     void loadBuiltinFileTemplates();
 
-    /// @brief Project templates storage (id -> info)
-    std::map<QString, TemplateInfo> m_projectTemplates;
-
     /// @brief File templates storage (id -> info)
     std::map<QString, TemplateInfo> m_fileTemplates;
-
-    /// @brief Order of project template IDs (for consistent iteration)
-    std::vector<QString> m_projectTemplateOrder;
 
     /// @brief Order of file template IDs (for consistent iteration)
     std::vector<QString> m_fileTemplateOrder;

@@ -321,6 +321,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("template.screenplay", "resources/icons/twotone/theaters.svg", "Screenplay");
     iconRegistry.registerIcon("template.poetry", "resources/icons/twotone/edit_note.svg", "Poetry");
     iconRegistry.registerIcon("template.empty", "resources/icons/twotone/folder_open.svg", "User Project");
+    // A book type of the writer's own
+    iconRegistry.registerIcon("template.custom", "resources/icons/twotone/style.svg", "Own Book Type");
     iconRegistry.registerIcon("template.chapter", "resources/icons/twotone/article.svg", "Chapter");
     iconRegistry.registerIcon("template.mindmap", "resources/icons/twotone/account_tree.svg", "Mind Map");
     iconRegistry.registerIcon("template.timeline", "resources/icons/twotone/timeline.svg", "Timeline");

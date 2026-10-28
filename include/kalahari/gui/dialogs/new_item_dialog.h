@@ -10,6 +10,7 @@
 #pragma once
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/custom_book_type.h"
 #include "kalahari/gui/dialogs/item_templates.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/widgets/sections_field.h"
@@ -49,7 +50,15 @@ enum class NewItemMode {
 /// For File mode, author/language/location fields are empty.
 struct NewItemResult {
     NewItemMode mode;        ///< Dialog mode (Project or File)
-    QString templateId;      ///< Selected template ID (e.g., "template.novel")
+    /// Selected template: in project mode the package of a book type ("kalahari.novel"), a
+    /// type of the writer's own (NewItemDialog::CUSTOM_PREFIX and its id) or
+    /// NewItemDialog::USER_PROJECT; in file mode a file template ("template.chapter")
+    QString templateId;
+    /// Package of the book type of the new book (project mode only); empty: a user project
+    QString typeId;
+    /// The writer's own type the book is made of (project mode only); none: a book type or a
+    /// user project
+    std::optional<kalahari::core::CustomBookType> customType;
     QString title;           ///< Project title or file name
     QString author;          ///< Author (project mode only)
     QString language;        ///< Language code (project mode only, e.g., "en")
@@ -126,13 +135,28 @@ public:
     /// (UserProjectDialog).
     void setOpeningQuestion(NewBookQuestion question);
 
+    /// @brief Template of a user project, the last one in project mode
+    static constexpr const char* USER_PROJECT = "user-project";
+
+    /// @brief Start of the templates of the writer's own types: "custom:<id of the type>"
+    static constexpr const char* CUSTOM_PREFIX = "custom:";
+
     /// @brief Whether template @p templateId makes a user project: a book without a type,
     /// whose kinds the writer chooses in the next window
     static bool isUserProject(const QString& templateId);
 
+    /// @brief The description of the chosen template, at the left: in project mode what a
+    /// book of it starts with and what can be added to each section and to the Workshop
+    QLabel* descriptionLabel() const { return m_descriptionLabel; }
+
     /// @brief Create Book: the result, and for a book of a type the question about the open
     /// book; the window closes unless the question is cancelled
     void accept() override;
+
+protected:
+    /// @brief Shown again (Back from the window of the kinds of a user project): the list
+    /// has the types saved in the meantime
+    void showEvent(QShowEvent* event) override;
 
 private slots:
     /// @brief Handle template selection change
@@ -149,6 +173,10 @@ private slots:
 
     /// @brief Refresh icons when theme changes
     void onThemeChanged();
+
+    /// @brief The Settings window of the gear was closed: a new folder of the books is
+    /// suggested, unless the writer typed another
+    void onSettingsClosed();
 
 private:
     // ========================================================================
@@ -173,8 +201,34 @@ private:
     /// @brief Create connections between signals and slots
     void createConnections();
 
-    /// @brief Populate template list from TemplateRegistry
+    /// @brief Populate the template list: in project mode the book types of the installed
+    /// packages, the writer's own types and the user project; in file mode the file templates
+    /// of TemplateRegistry. The chosen template stays chosen.
     void populateTemplates();
+
+    /// @brief Add the template @p id to the list, with @p name, its tooltip and its icon
+    void addTemplate(const QString& id, const QString& name, const QString& tooltip,
+                     const QString& iconId);
+
+    /// @brief The writer's own type of template @p templateId, or nullptr
+    const kalahari::core::CustomBookType* customTypeOf(const QString& templateId) const;
+
+    /// @brief Package of the book type of template @p templateId: the type itself, or the
+    /// type a type of the writer's own is based on; empty for a user project
+    QString typeIdOf(const QString& templateId) const;
+
+    /// @brief The description of a book of template @p templateId, as rich text: the type's
+    /// sentence, what the book starts with, the kinds of each section and of the Workshop
+    /// (those the program cannot make yet in a line of their own) and what cannot change
+    QString describe(const QString& templateId) const;
+
+    /// @brief Name of @p place in the description: the name of its section that the Sections
+    /// field gives, its place in a book without sections ("Content"), or the Workshop
+    QString placeName(kalahari::core::BookPlace place) const;
+
+    /// @brief Ask whether to delete the writer's own type of the chosen template, and delete
+    /// its file
+    void removeChosenCustomType();
 
     /// @brief Update description panel for selected template
     /// @param templateId Template ID to display
@@ -195,7 +249,7 @@ private:
 
     /// @brief Whether a book of template @p templateId shows its sections when the writer does
     /// not choose otherwise: the template has a type, and the type shows them
-    static bool showsSections(const QString& templateId);
+    bool showsSections(const QString& templateId) const;
 
     /// @brief Show the choice of the selected template's group in the Sections field: the
     /// writer's last choice for a template that shows sections, no sections for the others
@@ -243,6 +297,15 @@ private:
 
     /// @brief Asks about the open book before a book of a type is created
     NewBookQuestion m_openingQuestion;
+
+    /// @brief The writer's own types, as the list shows them
+    QList<kalahari::core::CustomBookType> m_customTypes;
+
+    /// @brief The folder the Location field suggested (native separators)
+    QString m_suggestedLocation;
+
+    /// @brief The window was shown before
+    bool m_shown = false;
 
     // ========================================================================
     // Description Panel Widgets (LEFT)

@@ -61,17 +61,17 @@ void SettingsCoordinator::openKeyboardShortcuts() {
     runSettingsDialog(QString::fromLatin1(SettingsDialog::SHORTCUTS_PAGE));
 }
 
-void SettingsCoordinator::openSettingsPage(const QString& page) {
+void SettingsCoordinator::openSettingsPage(const QString& page, QWidget* over) {
     core::Logger::getInstance().info("Action triggered: Settings at the page {}",
                                      page.toStdString());
-    runSettingsDialog(page);
+    runSettingsDialog(page, over);
 }
 
-void SettingsCoordinator::runSettingsDialog(const QString& page) {
+void SettingsCoordinator::runSettingsDialog(const QString& page, QWidget* over) {
     auto& logger = core::Logger::getInstance();
 
-    SettingsDialog dialog(m_mainWindow, m_diagnosticModeGetter(), m_spellCheckService,
-                          m_grammarCoordinator);
+    SettingsDialog dialog(over ? over : m_mainWindow, m_diagnosticModeGetter(),
+                          m_spellCheckService, m_grammarCoordinator);
     if (!page.isEmpty()) {
         dialog.openPage(page);
     }

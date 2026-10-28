@@ -119,6 +119,9 @@ struct NewProject {
     /// A user project's kinds and the elements it starts with; none: the kinds of the base
     /// package, and no elements
     std::optional<PaletteChoice> palette;
+    /// Kinds a book of a type takes from other types (a book of the writer's own type based
+    /// on a type); a user project has its kinds in the palette
+    QList<KindRef> takenKinds;
 };
 
 /// @brief Singleton manager of the book project open in the program
@@ -523,6 +526,19 @@ public:
     ///         its sections then
     bool setSections(const BookSections& sections);
 
+    /// @brief The kinds the open project takes from other types or, in a user project, all
+    /// its kinds (BookProject::kinds), and save the .klh file
+    ///
+    /// In a book of a type, the kinds of the type are its kinds whatever @p kinds says, so
+    /// only the other kinds are saved. A kind the project no longer has keeps its elements:
+    /// they open and change as before, but no new ones can be added. The book's folder gets
+    /// the cards of the packages of new kinds (package_card.h).
+    /// @param kinds The kinds, in the order the program offers them, each once
+    /// @return false when no project is open, it is open read-only, a kind is not installed, a
+    ///         user project would have no kind, or the .klh file cannot be written; the
+    ///         project does not change then
+    bool setProjectKinds(const QList<KindRef>& kinds);
+
     /// @brief Name the node of the book in the Navigator (ProjectBook::name) and save the .klh
     /// file; the name loses the spaces at its ends, and an empty one gives the node its
     /// default name back ("Book" in the user's language)
@@ -854,6 +870,10 @@ signals:
 
     /// @brief Emitted when a project is closed
     void projectClosed();
+
+    /// @brief The kinds of the open project changed (setProjectKinds()): what the Navigator
+    /// and the windows offer to add
+    void projectKindsChanged();
 
     /// @brief Emitted when work mode changes
     /// @param mode New work mode

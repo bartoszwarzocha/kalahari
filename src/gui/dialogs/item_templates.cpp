@@ -1,5 +1,5 @@
 /// @file item_templates.cpp
-/// @brief Implementation of TemplateRegistry for NewItemDialog
+/// @brief Implementation of TemplateRegistry for NewItemDialog: the file templates
 ///
 /// OpenSpec #00033: Project File System - Phase C
 
@@ -25,21 +25,6 @@ TemplateRegistry::TemplateRegistry() {
 // Registration API
 // ============================================================================
 
-void TemplateRegistry::registerProjectTemplate(const TemplateInfo& info) {
-    if (!info.isValid()) {
-        return;
-    }
-
-    // Check if already exists - if so, just update
-    bool exists = m_projectTemplates.find(info.id) != m_projectTemplates.end();
-    m_projectTemplates[info.id] = info;
-
-    // Add to order list if new
-    if (!exists) {
-        m_projectTemplateOrder.push_back(info.id);
-    }
-}
-
 void TemplateRegistry::registerFileTemplate(const TemplateInfo& info) {
     if (!info.isValid()) {
         return;
@@ -56,19 +41,6 @@ void TemplateRegistry::registerFileTemplate(const TemplateInfo& info) {
 }
 
 bool TemplateRegistry::unregisterTemplate(const QString& id) {
-    // Try project templates first
-    auto projectIt = m_projectTemplates.find(id);
-    if (projectIt != m_projectTemplates.end()) {
-        m_projectTemplates.erase(projectIt);
-        // Remove from order list
-        auto orderIt = std::find(m_projectTemplateOrder.begin(),
-                                  m_projectTemplateOrder.end(), id);
-        if (orderIt != m_projectTemplateOrder.end()) {
-            m_projectTemplateOrder.erase(orderIt);
-        }
-        return true;
-    }
-
     // Try file templates
     auto fileIt = m_fileTemplates.find(id);
     if (fileIt != m_fileTemplates.end()) {
@@ -89,20 +61,6 @@ bool TemplateRegistry::unregisterTemplate(const QString& id) {
 // Query API
 // ============================================================================
 
-std::vector<TemplateInfo> TemplateRegistry::getProjectTemplates() const {
-    std::vector<TemplateInfo> result;
-    result.reserve(m_projectTemplateOrder.size());
-
-    for (const auto& id : m_projectTemplateOrder) {
-        auto it = m_projectTemplates.find(id);
-        if (it != m_projectTemplates.end()) {
-            result.push_back(it->second);
-        }
-    }
-
-    return result;
-}
-
 std::vector<TemplateInfo> TemplateRegistry::getFileTemplates() const {
     std::vector<TemplateInfo> result;
     result.reserve(m_fileTemplateOrder.size());
@@ -118,13 +76,6 @@ std::vector<TemplateInfo> TemplateRegistry::getFileTemplates() const {
 }
 
 TemplateInfo TemplateRegistry::getTemplate(const QString& id) const {
-    // Try project templates first
-    auto projectIt = m_projectTemplates.find(id);
-    if (projectIt != m_projectTemplates.end()) {
-        return projectIt->second;
-    }
-
-    // Try file templates
     auto fileIt = m_fileTemplates.find(id);
     if (fileIt != m_fileTemplates.end()) {
         return fileIt->second;
@@ -135,8 +86,7 @@ TemplateInfo TemplateRegistry::getTemplate(const QString& id) const {
 }
 
 bool TemplateRegistry::hasTemplate(const QString& id) const {
-    return m_projectTemplates.find(id) != m_projectTemplates.end() ||
-           m_fileTemplates.find(id) != m_fileTemplates.end();
+    return m_fileTemplates.find(id) != m_fileTemplates.end();
 }
 
 // ============================================================================
@@ -144,165 +94,7 @@ bool TemplateRegistry::hasTemplate(const QString& id) const {
 // ============================================================================
 
 void TemplateRegistry::loadBuiltinTemplates() {
-    loadBuiltinProjectTemplates();
     loadBuiltinFileTemplates();
-}
-
-void TemplateRegistry::loadBuiltinProjectTemplates() {
-    // ========================================================================
-    // Novel Template (default)
-    // ========================================================================
-    {
-        TemplateInfo info;
-        info.id = QStringLiteral("template.novel");
-        info.typeId = QStringLiteral("kalahari.novel");
-        info.name = QCoreApplication::translate("TemplateRegistry", "Novel");
-        info.description = QCoreApplication::translate("TemplateRegistry",
-            "A traditional novel structure with parts and chapters.\n\n"
-            "A title page and a dedication at the beginning, a prologue and an epilogue in "
-            "the text, and an afterword and acknowledgments at the end.");
-        info.iconId = QStringLiteral("template.novel");
-        info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Part/Chapter structure"),
-            QCoreApplication::translate("TemplateRegistry",
-                                        "Title page and dedication at the beginning"),
-            QCoreApplication::translate("TemplateRegistry", "Prologue and epilogue"),
-            QCoreApplication::translate("TemplateRegistry",
-                                        "Afterword and acknowledgments at the end"),
-            QCoreApplication::translate("TemplateRegistry", "Word count tracking"),
-            QCoreApplication::translate("TemplateRegistry", "Character & location banks")
-        };
-        info.fileExtension = QString(); // Projects don't have extensions
-        info.isBuiltin = true;
-        registerProjectTemplate(info);
-    }
-
-    // ========================================================================
-    // Short Story Collection Template
-    // ========================================================================
-    {
-        TemplateInfo info;
-        info.id = QStringLiteral("template.shortStories");
-        info.typeId = QStringLiteral("kalahari.short_stories");
-        info.name = QCoreApplication::translate("TemplateRegistry", "Short Story Collection");
-        info.description = QCoreApplication::translate("TemplateRegistry",
-            "A collection of short stories that can be grouped into divisions.\n\n"
-            "Each story stands alone, and a division gathers stories with a common theme. "
-            "Great for anthologies, collections, or episodic content.");
-        info.iconId = QStringLiteral("template.shortStories");
-        info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Division/Story structure"),
-            QCoreApplication::translate("TemplateRegistry", "Independent stories"),
-            QCoreApplication::translate("TemplateRegistry", "Per-story statistics"),
-            QCoreApplication::translate("TemplateRegistry", "Easy reordering"),
-            QCoreApplication::translate("TemplateRegistry", "Export individual stories")
-        };
-        info.fileExtension = QString();
-        info.isBuiltin = true;
-        registerProjectTemplate(info);
-    }
-
-    // ========================================================================
-    // Non-fiction Template
-    // ========================================================================
-    {
-        TemplateInfo info;
-        info.id = QStringLiteral("template.nonfiction");
-        info.typeId = QStringLiteral("kalahari.nonfiction");
-        info.name = QCoreApplication::translate("TemplateRegistry", "Non-fiction");
-        info.description = QCoreApplication::translate("TemplateRegistry",
-            "A non-fiction book with chapters, which can be grouped into parts.\n\n"
-            "Designed for essays, guides, memoirs, and technical writing. "
-            "Includes bibliography and index support.");
-        info.iconId = QStringLiteral("template.nonfiction");
-        info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Part/Chapter structure"),
-            QCoreApplication::translate("TemplateRegistry", "Bibliography support"),
-            QCoreApplication::translate("TemplateRegistry", "Index generation"),
-            QCoreApplication::translate("TemplateRegistry", "Footnotes & citations"),
-            QCoreApplication::translate("TemplateRegistry", "Research notes section")
-        };
-        info.fileExtension = QString();
-        info.isBuiltin = true;
-        registerProjectTemplate(info);
-    }
-
-    // ========================================================================
-    // Screenplay Template
-    // ========================================================================
-    {
-        TemplateInfo info;
-        info.id = QStringLiteral("template.screenplay");
-        info.typeId = QStringLiteral("kalahari.screenplay");
-        info.name = QCoreApplication::translate("TemplateRegistry", "Screenplay");
-        info.description = QCoreApplication::translate("TemplateRegistry",
-            "A screenplay or stage play structure.\n\n"
-            "Acts, which can be grouped into episodes, with proper screenplay formatting. "
-            "Suitable for film, TV, or theater scripts.");
-        info.iconId = QStringLiteral("template.screenplay");
-        info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Episode/Act structure"),
-            QCoreApplication::translate("TemplateRegistry", "Screenplay formatting"),
-            QCoreApplication::translate("TemplateRegistry", "Character list"),
-            QCoreApplication::translate("TemplateRegistry", "Scene descriptions"),
-            QCoreApplication::translate("TemplateRegistry", "Dialogue formatting")
-        };
-        info.fileExtension = QString();
-        info.isBuiltin = true;
-        registerProjectTemplate(info);
-    }
-
-    // ========================================================================
-    // Poetry Collection Template
-    // ========================================================================
-    {
-        TemplateInfo info;
-        info.id = QStringLiteral("template.poetry");
-        info.typeId = QStringLiteral("kalahari.poetry");
-        info.name = QCoreApplication::translate("TemplateRegistry", "Poetry Collection");
-        info.description = QCoreApplication::translate("TemplateRegistry",
-            "A collection of poems that can be grouped into cycles.\n\n"
-            "Flexible structure for grouping poems into thematic cycles. "
-            "Supports various poetry formats and styles.");
-        info.iconId = QStringLiteral("template.poetry");
-        info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "Cycle/Poem structure"),
-            QCoreApplication::translate("TemplateRegistry", "Thematic grouping"),
-            QCoreApplication::translate("TemplateRegistry", "Verse formatting"),
-            QCoreApplication::translate("TemplateRegistry", "Line count tracking"),
-            QCoreApplication::translate("TemplateRegistry", "Stanza support")
-        };
-        info.fileExtension = QString();
-        info.isBuiltin = true;
-        registerProjectTemplate(info);
-    }
-
-    // ========================================================================
-    // User Project: a book without a type
-    // ========================================================================
-    {
-        TemplateInfo info;
-        info.id = QStringLiteral("template.empty");
-        info.name = QCoreApplication::translate("TemplateRegistry", "User Project");
-        //: In Polish: Książka bez typu: w następnym kroku wybierzesz rodzaje jej elementów
-        //: spośród wszystkich typów książek oraz elementy, z którymi powstanie.
-        info.description = QCoreApplication::translate("TemplateRegistry",
-            "A book without a type: in the next step you choose the kinds of its elements "
-            "from all book types, and the elements it is created with.");
-        info.iconId = QStringLiteral("template.empty");
-        info.features = QStringList{
-            QCoreApplication::translate("TemplateRegistry", "No book type"),
-            //: In Polish: Rodzaje elementów ze wszystkich typów książek
-            QCoreApplication::translate("TemplateRegistry",
-                                        "Kinds of elements from all book types"),
-            //: In Polish: Elementy tworzone razem z książką
-            QCoreApplication::translate("TemplateRegistry", "Elements created with the book"),
-            QCoreApplication::translate("TemplateRegistry", "Structure built in the Navigator")
-        };
-        info.fileExtension = QString();
-        info.isBuiltin = true;
-        registerProjectTemplate(info);
-    }
 }
 
 void TemplateRegistry::loadBuiltinFileTemplates() {

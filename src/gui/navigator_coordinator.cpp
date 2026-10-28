@@ -10,6 +10,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/move_element_dialog.h"
 #include "kalahari/gui/dialogs/new_file_dialog.h"
+#include "kalahari/gui/dialogs/project_properties_dialog.h"
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
@@ -1024,6 +1025,14 @@ void NavigatorCoordinator::onRequestAdd(const AddTarget& target) {
         return;
     }
     dialogs::NewFileDialog dialog(book, pm.bookTypes(), window);
+    // More Kinds...: the kinds checked in Project Properties have their tiles at once
+    dialog.setMoreKinds(
+        [this, target](QWidget* over) -> std::optional<dialogs::NewFileDialog::Book> {
+            if (!openProjectProperties(over)) {
+                return std::nullopt;
+            }
+            return dialogs::NewFileDialog::forAdding(target);
+        });
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
@@ -1189,6 +1198,31 @@ void NavigatorCoordinator::onRequestRenameNode(const QString& itemType) {
     emit documentModified();
 }
 
+bool NavigatorCoordinator::openProjectProperties(QWidget* window) {
+    auto& pm = core::ProjectManager::getInstance();
+    if (!pm.isProjectOpen()) {
+        core::Logger::getInstance().warn(
+            "NavigatorCoordinator: Project properties requested but no project open");
+        return false;
+    }
+    dialogs::ProjectPropertiesDialog dialog(window ? window : qobject_cast<QWidget*>(parent()));
+    if (dialog.exec() != QDialog::Accepted || !dialog.changedKinds()) {
+        return false;
+    }
+    core::Logger::getInstance().info("NavigatorCoordinator: The book has new kinds");
+
+    // The Workshop has a group of each of its kinds
+    refreshNavigator();
+    //: In Polish: Zapisano rodzaje elementów książki
+    m_statusBar->showMessage(tr("Kinds of elements of the book saved"), 2000);
+    emit documentModified();
+    return true;
+}
+
+void NavigatorCoordinator::onRequestProjectProperties() {
+    openProjectProperties();
+}
+
 void NavigatorCoordinator::onRequestWorkshopGrouped(bool grouped) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
@@ -1259,6 +1293,16 @@ NavigatorCoordinator::NewFile NavigatorCoordinator::onRequestNewFile(const QStri
     // The writer chooses the kind, the title and the place, or an empty text file
     dialogs::NewFileDialog dialog(dialogs::NewFileDialog::openBook(untitled), pm.bookTypes(),
                                   window);
+    // More Kinds...: the kinds checked in Project Properties have their tiles at once
+    if (!pm.isReadOnly()) {
+        dialog.setMoreKinds(
+            [this, untitled](QWidget* over) -> std::optional<dialogs::NewFileDialog::Book> {
+                if (!openProjectProperties(over)) {
+                    return std::nullopt;
+                }
+                return dialogs::NewFileDialog::openBook(untitled);
+            });
+    }
     if (dialog.exec() != QDialog::Accepted) {
         return {};
     }

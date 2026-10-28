@@ -2002,18 +2002,15 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         addExpandCollapseActions();
 
     } else if (elementType == "document") {
-        // The project: its window comes with the types of books (stage 4); a click on the node
-        // shows the properties of the book
+        // The project: its type and the kinds of elements it can have; a book open read-only
+        // shows them without changing them
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("common.properties", core::IconContext::Menu),
             //: The command of the project's node in the Navigator. In Polish: Właściwości
             //: &projektu...
             tr("Project P&roperties..."));
-        propertiesAction->setEnabled(false);
-        //: Why Project Properties... is grey. In Polish: Właściwości projektu (w przygotowaniu)
-        const QString why = tr("Project Properties (in preparation)");
-        propertiesAction->setToolTip(why);
-        propertiesAction->setStatusTip(why);
+        connect(propertiesAction, &QAction::triggered, this,
+                &NavigatorPanel::requestProjectProperties);
         menu.addSeparator();
         addExpandCollapseActions();
 

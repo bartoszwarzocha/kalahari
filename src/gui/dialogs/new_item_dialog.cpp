@@ -7,7 +7,10 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/section_words.h"
+#include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/utils/program_folders.h"
 
@@ -18,8 +21,10 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QFont>
+#include <QPalette>
 #include <QPixmap>
 #include <QScrollArea>
+#include <QShowEvent>
 #include <QSignalBlocker>
 #include <QSize>
 
@@ -40,6 +45,34 @@ constexpr const char* SECTIONS_SETTING = "project.sectionSet";
 
 /// The writer's own names of the sections, when the last choice was own names
 constexpr const char* SECTION_NAMES_SETTING = "project.sectionNames";
+
+/// The book types of the program, in the order the New Book window lists them; the types of
+/// other packages follow by name
+constexpr const char* TYPE_ORDER[] = {"kalahari.novel", "kalahari.short_stories",
+                                      "kalahari.nonfiction", "kalahari.screenplay",
+                                      "kalahari.poetry"};
+
+/// The places of a book and its Workshop, in the order the description names them
+constexpr kalahari::core::BookPlace DESCRIBED_PLACES[] = {
+    kalahari::core::BookPlace::Front, kalahari::core::BookPlace::Main,
+    kalahari::core::BookPlace::Back, kalahari::core::BookPlace::Workshop};
+
+/// Icon of the writer's own types
+constexpr const char* CUSTOM_TYPE_ICON = "template.custom";
+
+/// Icon of a user project
+constexpr const char* USER_PROJECT_ICON = "template.empty";
+
+/// Link of the description that deletes the writer's own type
+constexpr const char* DELETE_TYPE_LINK = "delete-type";
+
+/// Whether @p kinds has @p kind
+bool hasKind(const QList<kalahari::core::KindRef>& kinds, const kalahari::core::KindRef& kind) {
+    return std::any_of(kinds.cbegin(), kinds.cend(),
+                       [&kind](const kalahari::core::KindRef& other) {
+                           return other.kind == kind.kind;
+                       });
+}
 
 /// Set of names @p id, or the first set when the program has no such set
 const kalahari::core::SectionNameSet& sectionNameSet(const QString& id) {
@@ -81,11 +114,15 @@ NewItemDialog::NewItemDialog(NewItemMode mode, QWidget* parent)
     // The heading: the title of the window and what it makes
     if (m_mode == NewItemMode::Project) {
         setHeading(tr("New Book"),
-                   //: The heading of the New Book window. In Polish: Wybierz szablon, a potem
-                   //: tytuł, autora, język i folder książki.
-                   tr("Choose a template, then the title, author, language and folder of the "
+                   //: The heading of the New Book window. In Polish: Wybierz typ książki, a
+                   //: potem tytuł, autora, język i folder książki.
+                   tr("Choose a book type, then the title, author, language and folder of the "
                       "book."));
         setHeadingIcon(QStringLiteral("file.new.project"));
+        //: The gear of the New Book window: Settings > Files > Folders, with the folder of the
+        //: books. In Polish: Ustawienia folderów
+        addSettingsButton(QString::fromLatin1(kalahari::gui::SettingsDialog::FOLDERS_PAGE),
+                          tr("Folder Settings"));
     } else {
         setHeading(tr("New File"));
         setHeadingIcon(QStringLiteral("file.new"));
@@ -130,12 +167,7 @@ void NewItemDialog::setOpeningQuestion(NewBookQuestion question) {
 }
 
 bool NewItemDialog::isUserProject(const QString& templateId) {
-    const std::vector<TemplateInfo> templates =
-        TemplateRegistry::getInstance().getProjectTemplates();
-    return std::any_of(templates.cbegin(), templates.cend(),
-                       [&templateId](const TemplateInfo& info) {
-                           return info.id == templateId && info.typeId.isEmpty();
-                       });
+    return templateId == QLatin1String(USER_PROJECT);
 }
 
 // ============================================================================
@@ -209,6 +241,15 @@ QWidget* NewItemDialog::createDescriptionPanel() {
     m_descriptionLabel->setWordWrap(true);
     m_descriptionLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
     m_descriptionLabel->setTextFormat(Qt::RichText);
+    m_descriptionLabel->setObjectName(QStringLiteral("newBookDescription"));
+    // The link that deletes the writer's own type, with the mouse or with Tab and Enter
+    m_descriptionLabel->setTextInteractionFlags(Qt::LinksAccessibleByMouse |
+                                                Qt::LinksAccessibleByKeyboard);
+    connect(m_descriptionLabel, &QLabel::linkActivated, this, [this](const QString& link) {
+        if (link == QLatin1String(DELETE_TYPE_LINK)) {
+            removeChosenCustomType();
+        }
+    });
     QScrollArea* descriptionScroll = new QScrollArea(panel);
     descriptionScroll->setFrameShape(QFrame::NoFrame);
     descriptionScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -226,7 +267,10 @@ QWidget* NewItemDialog::createTemplateGrid() {
     layout->setContentsMargins(0, 0, 0, 0);
 
     // Group box
-    QGroupBox* group = new QGroupBox(tr("Templates"), panel);
+    //: The group of the list of the New Book window: the book types. In Polish: Typy książek
+    QGroupBox* group = new QGroupBox(m_mode == NewItemMode::Project ? tr("Book Types")
+                                                                    : tr("Templates"),
+                                     panel);
     QVBoxLayout* groupLayout = new QVBoxLayout(group);
 
     // Search filter (for future use)
@@ -394,11 +438,24 @@ void NewItemDialog::createConnections() {
         // The names of the sets are in the language of the book
         connect(m_languageCombo, &QComboBox::currentIndexChanged,
                 this, [this](int) { populateSections(); });
+        // The description names the kinds in the language of the book, and the sections as
+        // the Sections field names them
+        const auto describeAgain = [this]() {
+            if (const QListWidgetItem* current = m_templateList->currentItem()) {
+                updateDescription(current->data(Qt::UserRole).toString());
+            }
+        };
+        connect(m_languageCombo, &QComboBox::currentIndexChanged, this, describeAgain);
+        connect(m_sectionsCombo, &QComboBox::currentIndexChanged, this, describeAgain);
+        connect(m_sectionNames, &SectionNamesEdit::edited, this, describeAgain);
         connect(m_sectionsCombo, &QComboBox::currentIndexChanged,
                 this, [this](int) { onSectionsChosen(); });
         connect(m_sectionNames, &SectionNamesEdit::edited,
                 this, [this]() { m_sectionNamesTyped = true; });
     }
+
+    // The settings that the gear opened
+    connect(this, &KalahariDialog::settingsClosed, this, &NewItemDialog::onSettingsClosed);
 
     // Theme changes
     connect(&kalahari::core::ArtProvider::getInstance(),
@@ -407,39 +464,314 @@ void NewItemDialog::createConnections() {
 }
 
 void NewItemDialog::populateTemplates() {
-    m_templateList->clear();
+    const QString chosen =
+        m_templateList->currentItem()
+            ? m_templateList->currentItem()->data(Qt::UserRole).toString()
+            : QString();
+    {
+        const QSignalBlocker blocker(m_templateList);
+        m_templateList->clear();
 
-    auto& registry = TemplateRegistry::getInstance();
-    auto& art = kalahari::core::ArtProvider::getInstance();
+        if (m_mode == NewItemMode::Project) {
+            // The book types of the installed packages: the program's in its order, the
+            // others by name. A type the program does not have is not offered at all.
+            const kalahari::core::BookTypeRegistry& installed =
+                kalahari::core::ProjectManager::getInstance().installedBookTypes();
+            const QString language = kalahari::gui::programLanguage();
+            QList<const kalahari::core::BookTypePackage*> types = installed.bookTypes();
+            const auto rank = [](const kalahari::core::BookTypePackage* type) {
+                const auto* found = std::find_if(
+                    std::begin(TYPE_ORDER), std::end(TYPE_ORDER),
+                    [type](const char* id) { return type->id == QLatin1String(id); });
+                return static_cast<int>(found - std::begin(TYPE_ORDER));
+            };
+            std::stable_sort(types.begin(), types.end(),
+                             [&rank, &language](const kalahari::core::BookTypePackage* one,
+                                                const kalahari::core::BookTypePackage* other) {
+                                 if (rank(one) != rank(other)) {
+                                     return rank(one) < rank(other);
+                                 }
+                                 return QString::localeAwareCompare(one->name.text(language),
+                                                                    other->name.text(language)) <
+                                        0;
+                             });
+            for (const kalahari::core::BookTypePackage* type : types) {
+                addTemplate(type->id, type->name.text(language),
+                            type->description.text(language), type->icon);
+            }
 
-    // Get templates based on mode
-    std::vector<TemplateInfo> templates;
-    if (m_mode == NewItemMode::Project) {
-        templates = registry.getProjectTemplates();
-    } else {
-        templates = registry.getFileTemplates();
+            // The writer's own types, by name; one of a type the program does not have is
+            // not offered
+            m_customTypes = kalahari::core::CustomBookTypes::load();
+            for (const kalahari::core::CustomBookType& custom : std::as_const(m_customTypes)) {
+                if (!custom.isUserProject() && !installed.package(custom.typeId)) {
+                    continue;
+                }
+                addTemplate(QLatin1String(CUSTOM_PREFIX) + custom.id, custom.name,
+                            custom.description, QString::fromLatin1(CUSTOM_TYPE_ICON));
+            }
+
+            //: The last item of the New Book window: a book without a type. In Polish: Projekt
+            //: użytkownika
+            addTemplate(QString::fromLatin1(USER_PROJECT), tr("User Project"),
+                        //: The tooltip of the user project in the New Book window. In Polish:
+                        //: Książka bez typu, z rodzajami, które wybierzesz.
+                        tr("A book without a type, with the kinds you choose."),
+                        QString::fromLatin1(USER_PROJECT_ICON));
+        } else {
+            for (const TemplateInfo& tmpl : TemplateRegistry::getInstance().getFileTemplates()) {
+                addTemplate(tmpl.id, tmpl.name, tmpl.description, tmpl.iconId);
+            }
+        }
     }
 
-    // Add templates to list: a book type the program does not have is not offered at all
+    // The template chosen before, if it is still there
+    for (int row = 0; row < m_templateList->count(); ++row) {
+        if (m_templateList->item(row)->data(Qt::UserRole).toString() == chosen) {
+            m_templateList->setCurrentRow(row);
+            return;
+        }
+    }
+    if (!chosen.isEmpty() && m_templateList->count() > 0) {
+        m_templateList->setCurrentRow(0);
+    }
+}
+
+void NewItemDialog::addTemplate(const QString& id, const QString& name, const QString& tooltip,
+                                const QString& iconId) {
+    auto* item = new QListWidgetItem(m_templateList);
+    item->setText(name);
+    item->setData(Qt::UserRole, id);
+    item->setToolTip(tooltip);
+    // 48x48 for the grid
+    const QIcon icon =
+        kalahari::core::ArtProvider::getInstance().getIcon(iconId,
+                                                            kalahari::core::IconContext::Dialog);
+    if (!icon.isNull()) {
+        item->setIcon(icon);
+    }
+    item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
+    item->setFlags(item->flags() | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+}
+
+const kalahari::core::CustomBookType* NewItemDialog::customTypeOf(
+    const QString& templateId) const {
+    if (!templateId.startsWith(QLatin1String(CUSTOM_PREFIX))) {
+        return nullptr;
+    }
+    const QString id = templateId.mid(qsizetype(qstrlen(CUSTOM_PREFIX)));
+    for (const kalahari::core::CustomBookType& custom : m_customTypes) {
+        if (custom.id == id) {
+            return &custom;
+        }
+    }
+    return nullptr;
+}
+
+QString NewItemDialog::typeIdOf(const QString& templateId) const {
+    if (isUserProject(templateId)) {
+        return QString();
+    }
+    if (templateId.startsWith(QLatin1String(CUSTOM_PREFIX))) {
+        const kalahari::core::CustomBookType* custom = customTypeOf(templateId);
+        return custom ? custom->typeId : QString();
+    }
+    return templateId;
+}
+
+QString NewItemDialog::placeName(kalahari::core::BookPlace place) const {
+    if (place == kalahari::core::BookPlace::Workshop) {
+        //: The Workshop of a book in the description of a book type. In Polish: Warsztat
+        return tr("Workshop");
+    }
+    const kalahari::core::BookSections sections = chosenSections();
+    if (!sections.shown) {
+        return SectionWords::groupName(place);
+    }
+    kalahari::core::ProjectBook book;
+    book.language = m_languageCombo->currentData().toString();
+    book.setSections(sections);
+    return book.sectionName(place);
+}
+
+QString NewItemDialog::describe(const QString& templateId) const {
+    using kalahari::core::BookPlace;
+    using kalahari::core::KindRef;
     const kalahari::core::BookTypeRegistry& installed =
         kalahari::core::ProjectManager::getInstance().installedBookTypes();
-    for (const auto& tmpl : templates) {
-        if (!tmpl.typeId.isEmpty() && installed.package(tmpl.typeId) == nullptr) {
+    const QString programLanguage = kalahari::gui::programLanguage();
+    const QString language = m_languageCombo->currentData().toString();
+    const QString grey = palette().color(QPalette::PlaceholderText).name();
+    const auto paragraph = [](const QString& text) {
+        return QStringLiteral("<p>") + text + QStringLiteral("</p>");
+    };
+    const auto note = [&grey](const QString& text) {
+        return QStringLiteral("<p style=\"color:%1\">%2</p>").arg(grey, text);
+    };
+
+    if (isUserProject(templateId)) {
+        //: The description of a user project in the New Book window. In Polish: Książka bez
+        //: typu. W następnym oknie wybierzesz rodzaje elementów spośród rodzajów wszystkich
+        //: typów, a przycisk „Pomiń” utworzy książkę z rodzajami „Podstawy”.
+        return paragraph(tr("A book without a type. In the next window you choose its kinds of "
+                            "elements from the kinds of all types, and Skip creates the book "
+                            "with the kinds of \"Base\".")
+                             .toHtmlEscaped()) +
+               //: In Polish: Rodzaje elementów zmienisz później we „Właściwościach
+               //: projektu”.
+               note(tr("You can change the kinds of elements later in Project Properties.")
+                        .toHtmlEscaped());
+    }
+
+    const kalahari::core::CustomBookType* custom = customTypeOf(templateId);
+    const QString typeId = typeIdOf(templateId);
+    const kalahari::core::BookTypePackage* type =
+        typeId.isEmpty() ? nullptr : installed.package(typeId);
+    if (!custom && !type) {
+        return QString();
+    }
+
+    QString html;
+    // The sentence of the type, or the writer's own and what their type is based on
+    if (custom) {
+        if (!custom->description.trimmed().isEmpty()) {
+            html += paragraph(custom->description.toHtmlEscaped());
+        }
+        if (type) {
+            //: %1: the book type a type of the writer's own is based on, e.g. Novel. In
+            //: Polish: Własny typ na podstawie typu „%1”.
+            html += paragraph(tr("Your own type, based on the type \"%1\".")
+                                  .arg(type->name.text(programLanguage))
+                                  .toHtmlEscaped());
+        } else {
+            //: In Polish: Własny typ bez typu książki: projekt użytkownika z wybranymi
+            //: rodzajami.
+            html += paragraph(tr("Your own type without a book type: a user project with the "
+                                 "kinds you chose.")
+                                  .toHtmlEscaped());
+        }
+    } else {
+        html += paragraph(type->description.text(programLanguage).toHtmlEscaped());
+    }
+
+    // The kinds that a type of the writer's own takes from other types, and all the kinds of
+    // one without a type
+    const QList<KindRef> customKinds = custom ? custom->kindsIn(installed) : QList<KindRef>{};
+
+    // What the book starts with, titled in the language of the book
+    kalahari::core::CustomBookType made;
+    if (custom) {
+        made = *custom;
+    } else {
+        made.typeId = type->id;
+    }
+    const QString titles =
+        kalahari::gui::startTitles(made.startElementsIn(installed), language);
+    //: What a new book of the type starts with. In Polish: Na start:
+    const QString startLabel = tr("To start with:");
+    //: A new book that starts without elements. In Polish: pusta książka
+    const QString start = titles.isEmpty() ? tr("an empty book") : titles;
+    html += paragraph(QStringLiteral("<b>%1</b> %2").arg(startLabel.toHtmlEscaped(),
+                                                         start.toHtmlEscaped()));
+
+    // The kinds of each section and of the Workshop: those the program can make, and in a line
+    // of their own those it cannot make yet; a kind taken from another type names it
+    for (const BookPlace place : DESCRIBED_PLACES) {
+        QList<KindRef> kinds = type ? installed.kindsIn(type->id, place) : QList<KindRef>{};
+        QList<KindRef> taken;
+        for (const KindRef& kind : customKinds) {
+            if (kind.offeredIn(place) && !hasKind(kinds, kind)) {
+                kinds.append(kind);
+                if (type) {
+                    taken.append(kind);
+                }
+            }
+        }
+        if (kinds.isEmpty()) {
             continue;
         }
-        QListWidgetItem* item = new QListWidgetItem(m_templateList);
-        item->setText(tmpl.name);
-        item->setData(Qt::UserRole, tmpl.id);
-        item->setToolTip(tmpl.description);
-
-        // Get icon (48x48 for grid)
-        QIcon icon = art.getIcon(tmpl.iconId, kalahari::core::IconContext::Dialog);
-        if (!icon.isNull()) {
-            item->setIcon(icon);
+        QStringList ready;
+        QStringList notYet;
+        for (const KindRef& kind : kinds) {
+            QString word = kind.kind->wordsIn(language).form(QStringLiteral("singular"));
+            if (hasKind(taken, kind)) {
+                word += QStringLiteral(" (%1)").arg(kind.package->name.text(programLanguage));
+            }
+            (kalahari::core::ProjectManager::canAdd(kind) ? ready : notYet) << word;
         }
+        QString row = QStringLiteral("<b>%1:</b> %2").arg(
+            placeName(place).toHtmlEscaped(),
+            ready.isEmpty() ? QStringLiteral("—")
+                            : ready.join(QStringLiteral(", ")).toHtmlEscaped());
+        if (!notYet.isEmpty()) {
+            //: The kinds of a section that the program cannot make yet, under those it can.
+            //: In Polish: jeszcze niedostępne: %1
+            row += QStringLiteral("<br/><i style=\"color:%1\">%2</i>")
+                       .arg(grey, tr("not available yet: %1")
+                                      .arg(notYet.join(QStringLiteral(", ")))
+                                      .toHtmlEscaped());
+        }
+        html += paragraph(row);
+    }
 
-        item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
-        item->setFlags(item->flags() | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+    if (type) {
+        //: In Polish: Typu książki nie można później zmienić. Rodzaje innych typów dodasz we
+        //: „Właściwościach projektu”.
+        html += note(tr("The type of a book cannot be changed later. You can take the kinds of "
+                        "other types in Project Properties.")
+                         .toHtmlEscaped());
+    } else {
+        html += note(tr("You can change the kinds of elements later in Project Properties.")
+                         .toHtmlEscaped());
+    }
+    if (custom) {
+        //: The link under the description of a type of the writer's own. In Polish: Usuń ten
+        //: typ...
+        html += QStringLiteral("<p><a href=\"%1\">%2</a></p>")
+                    .arg(QLatin1String(DELETE_TYPE_LINK),
+                         tr("Delete This Type...").toHtmlEscaped());
+    }
+    return html;
+}
+
+void NewItemDialog::removeChosenCustomType() {
+    const QListWidgetItem* current = m_templateList->currentItem();
+    const kalahari::core::CustomBookType* custom =
+        current ? customTypeOf(current->data(Qt::UserRole).toString()) : nullptr;
+    if (!custom) {
+        return;
+    }
+    const QString name = custom->name;
+    //: The title of the question and of the message about deleting a type of the writer's
+    //: own. In Polish: Usuń typ
+    const QString title = tr("Delete Type");
+    if (!MessageDialog::confirm(this, title,
+                                //: %1: the name of a type of the writer's own. In Polish: Usunąć
+                                //: typ „%1”? Książki utworzone z tego typu zostają bez zmian.
+                                tr("Delete the type \"%1\"? The books created of it stay as "
+                                   "they are.")
+                                    .arg(name),
+                                //: In Polish: &Usuń
+                                tr("&Delete"), MessageDialog::Kind::Warning)) {
+        return;
+    }
+    if (!kalahari::core::CustomBookTypes::remove(*custom)) {
+        MessageDialog::error(this, title,
+                             //: In Polish: Nie udało się usunąć typu „%1”. Szczegóły są w
+                             //: dzienniku programu.
+                             tr("The type \"%1\" could not be deleted. The program's log has "
+                                "the details.")
+                                 .arg(name));
+        return;
+    }
+    // The list without it; the first template is chosen
+    {
+        const QSignalBlocker blocker(m_templateList);
+        m_templateList->setCurrentRow(-1);
+    }
+    populateTemplates();
+    if (m_templateList->count() > 0) {
+        m_templateList->setCurrentRow(0);
     }
 }
 
@@ -451,38 +783,57 @@ void NewItemDialog::updateDescription(const QString& templateId) {
         return;
     }
 
-    auto& registry = TemplateRegistry::getInstance();
-    TemplateInfo info = registry.getTemplate(templateId);
-
-    if (!info.isValid()) {
-        return;
+    QString iconId;
+    QString name;
+    QString html;
+    if (m_mode == NewItemMode::Project) {
+        // The type's package, the writer's own type or the user project
+        const kalahari::core::CustomBookType* custom = customTypeOf(templateId);
+        const kalahari::core::BookTypePackage* type =
+            custom || isUserProject(templateId)
+                ? nullptr
+                : kalahari::core::ProjectManager::getInstance().installedBookTypes().package(
+                      templateId);
+        if (custom) {
+            iconId = QString::fromLatin1(CUSTOM_TYPE_ICON);
+            name = custom->name;
+        } else if (type) {
+            iconId = type->icon;
+            name = type->name.text(kalahari::gui::programLanguage());
+        } else if (isUserProject(templateId)) {
+            iconId = QString::fromLatin1(USER_PROJECT_ICON);
+            name = tr("User Project");
+        } else {
+            return;
+        }
+        html = describe(templateId);
+    } else {
+        const TemplateInfo info = TemplateRegistry::getInstance().getTemplate(templateId);
+        if (!info.isValid()) {
+            return;
+        }
+        iconId = info.iconId;
+        name = info.name;
+        html += "<p>" +
+                info.description.toHtmlEscaped().replace("\n\n", "</p><p>").replace("\n", "<br/>") +
+                "</p>";
+        if (!info.features.isEmpty()) {
+            html += "<p><b>" + tr("Features:") + "</b></p><ul>";
+            for (const QString& feature : info.features) {
+                html += "<li>" + feature.toHtmlEscaped() + "</li>";
+            }
+            html += "</ul>";
+        }
     }
 
     // Update icon (64x64) using getThemedIcon for auto-refresh support
-    auto& art = kalahari::core::ArtProvider::getInstance();
-    QIcon icon = art.getThemedIcon(info.iconId);
+    QIcon icon = kalahari::core::ArtProvider::getInstance().getThemedIcon(iconId);
     if (!icon.isNull()) {
         m_iconLabel->setPixmap(icon.pixmap(64, 64));
     } else {
         m_iconLabel->clear();
     }
-
-    // Update title
-    m_titleLabel->setText(info.name);
-
-    // Build rich description
-    QString html;
-    html += "<p>" + info.description.toHtmlEscaped().replace("\n\n", "</p><p>").replace("\n", "<br/>") + "</p>";
-
-    // Add features list
-    if (!info.features.isEmpty()) {
-        html += "<p><b>" + tr("Features:") + "</b></p><ul>";
-        for (const QString& feature : info.features) {
-            html += "<li>" + feature.toHtmlEscaped() + "</li>";
-        }
-        html += "</ul>";
-    }
-
+    m_titleLabel->setText(name);
     m_descriptionLabel->setText(html);
 }
 
@@ -563,8 +914,9 @@ void NewItemDialog::loadDefaults() {
         }
 
         // The folder of the last new book, at first the folder of the books from the settings
-        m_locationEdit->setText(QDir::toNativeSeparators(
-            ProgramFolders::startFolder(ProgramFolders::Operation::NewBook)));
+        m_suggestedLocation = QDir::toNativeSeparators(
+            ProgramFolders::startFolder(ProgramFolders::Operation::NewBook));
+        m_locationEdit->setText(m_suggestedLocation);
 
         // Sections: the writer's last choice for a template that shows them, none for the
         // others
@@ -599,10 +951,10 @@ void NewItemDialog::populateSections() {
     fillSectionNames();
 }
 
-bool NewItemDialog::showsSections(const QString& templateId) {
-    const QString typeId = TemplateRegistry::getInstance().getTemplate(templateId).typeId;
+bool NewItemDialog::showsSections(const QString& templateId) const {
+    const QString typeId = typeIdOf(templateId);
     if (typeId.isEmpty()) {
-        return false;  // a user project
+        return false;  // a user project, or a file template
     }
     const kalahari::core::BookTypePackage* type =
         kalahari::core::ProjectManager::getInstance().installedBookTypes().package(typeId);
@@ -759,6 +1111,12 @@ void NewItemDialog::accept() {
 
     // Project-specific fields
     if (m_mode == NewItemMode::Project) {
+        m_result.typeId = typeIdOf(m_result.templateId);
+        if (const kalahari::core::CustomBookType* custom = customTypeOf(m_result.templateId)) {
+            m_result.customType = *custom;
+        } else {
+            m_result.customType.reset();
+        }
         m_result.author = m_authorEdit->text().trimmed();
         m_result.language = m_languageCombo->currentData().toString();
         m_result.location = m_locationEdit->text().trimmed();
@@ -784,6 +1142,31 @@ void NewItemDialog::accept() {
     }
 
     KalahariDialog::accept();
+}
+
+void NewItemDialog::showEvent(QShowEvent* event) {
+    KalahariDialog::showEvent(event);
+    // Back from the window of the kinds of a user project: the types the writer saved there
+    // are on the list too
+    if (m_mode == NewItemMode::Project && m_shown && !event->spontaneous()) {
+        populateTemplates();
+    }
+    m_shown = true;
+}
+
+void NewItemDialog::onSettingsClosed() {
+    if (m_mode != NewItemMode::Project) {
+        return;
+    }
+    // A new folder of the books takes the place of the one the field suggested, unless the
+    // writer typed another
+    const QString suggested = QDir::toNativeSeparators(
+        ProgramFolders::startFolder(ProgramFolders::Operation::NewBook));
+    if (m_locationEdit->text().trimmed() == m_suggestedLocation &&
+        suggested != m_suggestedLocation) {
+        m_locationEdit->setText(suggested);
+    }
+    m_suggestedLocation = suggested;
 }
 
 void NewItemDialog::onThemeChanged() {

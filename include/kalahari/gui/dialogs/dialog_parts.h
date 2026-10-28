@@ -1,6 +1,6 @@
 /// @file dialog_parts.h
 /// @brief Parts that the program's own dialogs share: a list as high as its rows, a note with
-/// an icon, and the Copy button
+/// an icon, a link, the box of the tools of the types, and the Copy button
 
 #pragma once
 
@@ -60,6 +60,14 @@ QWidget* newNote(QWidget* parent, QLabel** icon, QLabel** text);
 /// @param icon The label of the icon that newNote() gave
 /// @param iconId ArtProvider id (e.g. "common.warning")
 void setNoteIcon(QLabel* icon, const QString& iconId);
+
+/// @brief A link of a dialog, e.g. over a palette: a click on it, or Tab and Enter, gives
+/// QLabel::linkActivated
+QLabel* newLink(const QString& text, QWidget* parent);
+
+/// @brief The box of the tools of the book types, which no type has yet: an icon, a title and
+/// a sentence, a little darker than the window, with a border
+QWidget* newToolsBox(QWidget* parent);
 
 /// @brief Make @p button the Copy button of a dialog: it puts @p text() on the clipboard and
 /// says so for a while
