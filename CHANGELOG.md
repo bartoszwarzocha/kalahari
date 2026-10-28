@@ -179,7 +179,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   toolbar shows a closed panel on top, brings an open panel under another tab on top, and
   closes the panel on top, which unchecks it; a floating panel closes at once. The Panels
   toolbar stands at the right edge of the window, next to the panels on the right, shown; a
-  toolbar layout saved before stays as it was until View > Reset Layout. Its Log button is
+  toolbar layout saved while it was hidden at the top gets it there once, shown, with the
+  other toolbars where they were, and after that the writer's own place for it is kept (View >
+  Reset Layout puts it back by the right edge). Its Log button is
   hidden unless Settings > Advanced > Log > Show the Log button on the Panels toolbar is on;
   View > Panels > Log (F4) opens the log panel either way.
 

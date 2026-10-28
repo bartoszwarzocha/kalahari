@@ -524,6 +524,55 @@ TEST_CASE("Versions and Backups toolbar: after Quick Actions in a layout saved b
           nextManager.getToolbar("book")->y());
 }
 
+TEST_CASE("Panels toolbar: by the right edge, shown, in a layout saved while it was hidden at "
+          "the top",
+          "[gui][toolbar]") {
+    // The layout of an earlier version has the Panels toolbar hidden at the top, as its
+    // default was then
+    const QByteArray savedLayout = layoutWithoutViewsToolbar();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.set<bool>("toolbars.visible.quickActions", true);
+    settings.set<bool>("toolbars.visible.view", false);
+    settings.removeKey("toolbars.panelsByRightEdge");
+
+    registerAllCommands(CommandCallbacks{});
+    QMainWindow window;
+    window.setCentralWidget(new QLabel(QStringLiteral("text")));
+    ToolbarManager manager(&window);
+    manager.createToolbars(CommandRegistry::getInstance());
+    REQUIRE(window.restoreState(savedLayout));
+    manager.restoreState();
+    window.resize(1600, 900);
+    window.show();
+    QApplication::processEvents();
+
+    QToolBar* panels = manager.getToolbar("view");
+    REQUIRE(panels != nullptr);
+    CHECK(window.toolBarArea(panels) == Qt::RightToolBarArea);
+    CHECK(panels->orientation() == Qt::Vertical);
+    CHECK(panels->isVisible());
+    // The other toolbars keep their places
+    CHECK(window.toolBarArea(manager.getToolbar("edit")) == Qt::TopToolBarArea);
+    CHECK(manager.getToolbar("book")->y() > manager.getToolbar("edit")->y());
+
+    // Once: the writer's own choice is kept after, a hidden toolbar at the top too
+    window.addToolBar(Qt::TopToolBarArea, panels);
+    panels->hide();
+    manager.saveState();
+    const QByteArray moved = window.saveState();
+    QMainWindow next;
+    next.setCentralWidget(new QLabel(QStringLiteral("text")));
+    ToolbarManager nextManager(&next);
+    nextManager.createToolbars(CommandRegistry::getInstance());
+    REQUIRE(next.restoreState(moved));
+    nextManager.restoreState();
+    next.resize(1600, 900);
+    next.show();
+    QApplication::processEvents();
+    CHECK(next.toolBarArea(nextManager.getToolbar("view")) == Qt::TopToolBarArea);
+    CHECK(nextManager.getToolbar("view")->isHidden());
+}
+
 TEST_CASE("Versions and Backups toolbar: Quick Actions customized before gets the buttons of "
           "the versions after Backup Now",
           "[gui][toolbar][versions]") {
