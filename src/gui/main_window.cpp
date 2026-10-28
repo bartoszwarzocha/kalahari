@@ -9,6 +9,9 @@
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/annotations_coordinator.h"
+#include "kalahari/gui/paragraph_marks_coordinator.h"
+#include "kalahari/gui/material_list_coordinator.h"
+#include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/versions_coordinator.h"
@@ -33,6 +36,7 @@
 #include "kalahari/gui/recent_books_menu.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/image_preview_panel.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/view_modes.h"
@@ -208,9 +212,38 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestRenameNode);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestWorkshopGrouped,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestWorkshopGrouped);
-    // A material of the Workshop opens in the program the system gives its file
+    // A material of the Workshop opens as the settings say: on its preview tab or in the
+    // program the system gives its file. Its card in the Properties panel opens it both ways
+    // and opens the elements it is about; the page of an element opens its materials.
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterial,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenMaterial);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenMaterial,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenMaterial);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestPreview,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestPreview);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenWithSystem,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenWithSystem);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenLink,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenLink);
+    // A material with an address: its page in the browser, the copy of its picture; a change
+    // on one card of a material shows on the others
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenInBrowser,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenInBrowser);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSaveCopy,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestSaveCopy);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::materialChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::onMaterialChanged);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::message, this,
+            [this](const QString& text) { statusBar()->showMessage(text, 2000); });
+    // The card of a material in the middle of the window; files, web addresses and pictures
+    // dropped on the Navigator or pasted in it are new materials
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterialCard,
+            m_navigatorCoordinator,
+            [this](const QString& elementId) {
+                m_navigatorCoordinator->onRequestOpenMaterialCard(elementId);
+            });
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestAddMaterials,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddMaterials);
     // The sections of the book: shown or not, and their names
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowSections,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestShowSections);
@@ -323,6 +356,40 @@ MainWindow::MainWindow(QWidget* parent)
         this);
     m_annotationsCoordinator->connectCommands();
 
+    // The paperclips beside the paragraphs that materials are linked with: one chosen shows
+    // its material in the Properties panel, brought to the front
+    m_paragraphMarksCoordinator = new ParagraphMarksCoordinator(
+        m_dockCoordinator->centralTabs(),
+        [this](const QString& materialId) {
+            m_dockCoordinator->propertiesPanel()->showMaterialProperties(materialId);
+            QDockWidget* dock = m_dockCoordinator->propertiesDock();
+            dock->show();
+            dock->raise();
+            if (dock->isFloating()) {
+                dock->activateWindow();
+            }
+        },
+        this);
+
+    // The lists of the kinds of materials on their tabs: a kind of the Materials clicked in
+    // the Navigator, or Materials itself. A material chosen in a list shows in the Properties
+    // panel, brought to the front; Alt+Enter gives it the keys.
+    m_materialListCoordinator = new MaterialListCoordinator(
+        m_dockCoordinator->centralTabs(), m_navigatorCoordinator, statusBar(),
+        [this](bool keys) {
+            QDockWidget* dock = m_dockCoordinator->propertiesDock();
+            dock->show();
+            dock->raise();
+            if (keys) {
+                if (dock->isFloating()) {
+                    dock->activateWindow();
+                }
+                m_dockCoordinator->propertiesPanel()->focusFirstField();
+            }
+        },
+        this);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterialList,
+            m_materialListCoordinator, &MaterialListCoordinator::openList);
     // Save Version and Version History of the text in front; a text is opened as from the
     // Navigator, and the bar under it says that a version was restored
     m_versionsCoordinator = new VersionsCoordinator(
@@ -702,20 +769,29 @@ void MainWindow::registerCommands() {
     callbacks.onDistractionFreeToggle = [this]() { onDistractionFreeToggle(); };
     callbacks.onFormattingMarksToggle = [this]() { onFormattingMarksToggle(); };
 
-    // Zoom commands act on the editor in front
-    const auto onEditor = [this](void (editor::BookEditor::*action)()) {
-        return [this, action]() {
+    // Zoom commands act on the editor in front, or on the preview of a material, which fits
+    // its picture to the window for the width of the page and the whole page
+    const auto onEditor = [this](void (editor::BookEditor::*action)(),
+                                 void (ImagePreviewPanel::*previewAction)()) {
+        return [this, action, previewAction]() {
+            if (ImagePreviewPanel* preview = currentPreview()) {
+                (preview->*previewAction)();
+                return;
+            }
             EditorPanel* editor = getCurrentEditor();
             if (editor && editor->getBookEditor()) {
                 (editor->getBookEditor()->*action)();
             }
         };
     };
-    callbacks.onZoomIn = onEditor(&editor::BookEditor::zoomIn);
-    callbacks.onZoomOut = onEditor(&editor::BookEditor::zoomOut);
-    callbacks.onZoomReset = onEditor(&editor::BookEditor::zoomReset);
-    callbacks.onZoomPageWidth = onEditor(&editor::BookEditor::zoomToPageWidth);
-    callbacks.onZoomWholePage = onEditor(&editor::BookEditor::zoomToWholePage);
+    callbacks.onZoomIn = onEditor(&editor::BookEditor::zoomIn, &ImagePreviewPanel::zoomIn);
+    callbacks.onZoomOut = onEditor(&editor::BookEditor::zoomOut, &ImagePreviewPanel::zoomOut);
+    callbacks.onZoomReset =
+        onEditor(&editor::BookEditor::zoomReset, &ImagePreviewPanel::zoomReset);
+    callbacks.onZoomPageWidth =
+        onEditor(&editor::BookEditor::zoomToPageWidth, &ImagePreviewPanel::zoomToFit);
+    callbacks.onZoomWholePage =
+        onEditor(&editor::BookEditor::zoomToWholePage, &ImagePreviewPanel::zoomToFit);
 
     // View commands
     callbacks.onDashboard = [this]() {
@@ -857,6 +933,25 @@ void MainWindow::registerCommands() {
             return editor != nullptr && editor->getBookEditor() != nullptr
                    && editor->getBookEditor()->isReadOnly();
         });
+
+    // Find goes to the search of a list of materials too
+    if (Command* command = registry.getCommand("edit.find")) {
+        command->isEnabled = [this]() {
+            return hasDocumentInFront() || (m_materialListCoordinator != nullptr &&
+                                            m_materialListCoordinator->currentList() != nullptr);
+        };
+    }
+
+    // The zoom works on the preview of a material too
+    for (const char* id : {"view.zoomIn", "view.zoomOut", "view.resetZoom", "view.zoomPageWidth",
+                           "view.zoomWholePage"}) {
+        if (Command* command = registry.getCommand(id)) {
+            command->isEnabled = [this]() {
+                return hasDocumentInFront() ||
+                       (m_dockCoordinator != nullptr && currentPreview() != nullptr);
+            };
+        }
+    }
 
     // Close Book and the export of the book's archive work on the open book: without one
     // they are greyed out, as the Book menu (updateBookCommands())
@@ -1066,6 +1161,13 @@ void MainWindow::onSelectAll() {
 void MainWindow::onFind() {
     core::Logger::getInstance().info("Action triggered: Find");
 
+    // A list of materials in front: its search
+    if (MaterialListPanel* list = m_materialListCoordinator != nullptr
+                                      ? m_materialListCoordinator->currentList()
+                                      : nullptr) {
+        list->focusSearch();
+        return;
+    }
     EditorPanel* editor = getCurrentEditor();
     if (editor && editor->getBookEditor()) {
         editor->getBookEditor()->showFind();
@@ -1498,6 +1600,11 @@ void MainWindow::createDocks() {
         // (none over the Dashboard or without a tab)
         EditorPanel* front = getCurrentEditor();
         m_statusBarStatistics->setEditor(front ? front->getBookEditor() : nullptr);
+        // The zoom of the preview of a material follows it
+        if (ImagePreviewPanel* preview = currentPreview()) {
+            connect(preview, &ImagePreviewPanel::zoomChanged, this,
+                    &MainWindow::updatePageStatus, Qt::UniqueConnection);
+        }
         updatePageStatus();
 
         // Distraction-Free needs a document in front: it goes off over the Dashboard or
@@ -1900,6 +2007,12 @@ EditorPanel* MainWindow::getCurrentEditor() {
     return qobject_cast<EditorPanel*>(currentWidget);  // nullptr if not EditorPanel
 }
 
+ImagePreviewPanel* MainWindow::currentPreview() {
+    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    return centralTabs != nullptr ? qobject_cast<ImagePreviewPanel*>(centralTabs->currentWidget())
+                                  : nullptr;
+}
+
 // =============================================================================
 // Project Manager Slots - MOVED to DocumentCoordinator (OpenSpec #00038 Phase 7)
 // onProjectOpened, onProjectClosed are now in document_coordinator.cpp
@@ -2144,6 +2257,14 @@ void MainWindow::showEvent(QShowEvent* event) {
 
 void MainWindow::updatePageStatus() {
     if (!m_pageLabel || !m_zoomLabel) {
+        return;
+    }
+
+    // The zoom of the preview of a material
+    if (ImagePreviewPanel* preview = currentPreview()) {
+        m_pageLabel->hide();
+        m_zoomLabel->setText(tr("%1%").arg(qRound(preview->zoom() * 100.0)));
+        m_zoomLabel->show();
         return;
     }
 

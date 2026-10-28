@@ -12,6 +12,7 @@
 #include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
+#include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
@@ -165,6 +166,12 @@ void SettingsCoordinator::onApplySettings(const QStringList& changedKeys) {
     DashboardPanel* dashboardPanel = m_dockCoordinator->dashboardPanel();
     if (dashboardPanel && changed(QStringLiteral("dashboard."))) {
         dashboardPanel->onSettingsChanged();
+    }
+
+    // Navigator: the "+" button on the project's node follows the Add Element window
+    NavigatorPanel* navigatorPanel = m_dockCoordinator->navigatorPanel();
+    if (navigatorPanel && changed(QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING))) {
+        navigatorPanel->onSettingsChanged();
     }
 
     // The Paragraph and Styles panel moved to its other place: it shows there, in front

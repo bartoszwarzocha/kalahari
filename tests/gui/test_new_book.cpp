@@ -351,8 +351,9 @@ TEST_CASE("Palette: the kinds of all book types, each in the parts of the book i
           "bibliography, index, illustrations, explanatory_notes, first_lines, publisher_note, "
           "contributors, first_publications");
     CHECK(idsOf(palette.kindsIn(BookPlace::Workshop)) ==
-          "work_note, mindmap, timeline, character, location, item, material, source, draft, "
-          "logline, synopsis, treatment, step_outline");
+          "mindmap, timeline, character, location, item, work_note, quote, web_page, picture, "
+          "document, publication, recording, other_file, source, draft, logline, synopsis, "
+          "treatment, step_outline");
 
     // A tile shows the name of its kind and the type the kind comes from
     const Tile prologue = tileOf(palette, QStringLiteral("Prologue"));
@@ -427,9 +428,9 @@ TEST_CASE("Palette: \"Create now\" makes an element of a checked kind in the par
     CHECK(elementsOf(palette.choice()) == "chapter in main, work_note in workshop");
     CHECK(idsOf(palette.choice().kinds) == "chapter, work_note");
 
-    // A material is a copy of a file chosen when it is added; a kind that opens in a window
-    // of its own has no editor yet
-    const Tile material = tileOf(palette, QStringLiteral("Material"));
+    // A material is added later, with its source; a kind that opens in a window of its own
+    // has no editor yet
+    const Tile material = tileOf(palette, QStringLiteral("Picture"));
     const Tile mindMap = tileOf(palette, QStringLiteral("Mind map"));
     REQUIRE(material.now != nullptr);
     REQUIRE(mindMap.now != nullptr);
@@ -437,7 +438,7 @@ TEST_CASE("Palette: \"Create now\" makes an element of a checked kind in the par
     mindMap.box->click();
     CHECK_FALSE(material.now->isEnabled());
     CHECK(material.now->toolTip() ==
-          QStringLiteral("A material is a copy of a file chosen when it is added."));
+          QStringLiteral("A material is added later, in the Workshop."));
     CHECK_FALSE(mindMap.now->isEnabled());
     CHECK(mindMap.now->toolTip() ==
           QStringLiteral("The program does not have an editor of this kind yet."));
@@ -466,7 +467,7 @@ TEST_CASE("Palette: all kinds, only the kinds of \"Base\", or none at once", "[g
 
     // The prologue of the novel goes, with its element; the chapter of "Base" stays
     palette.checkOnly(QStringLiteral("kalahari.base"));
-    CHECK(palette.checkedCount() == 20);
+    CHECK(palette.checkedCount() == 26);
     CHECK(packagesOf(palette.choice().kinds) == "kalahari.base");
     CHECK(elementsOf(palette.choice()) == "chapter in main");
 
@@ -541,7 +542,7 @@ TEST_CASE("User project: the window starts with the kinds of \"Base\" and a chap
 
     CHECK(dialog.windowTitle() == QStringLiteral("New Book – User Project"));
     CHECK(showsText(dialog, QStringLiteral("Kinds of Elements of the Book \"Desert\"")));
-    CHECK(showsText(dialog, QStringLiteral("Checked kinds: 20")));
+    CHECK(showsText(dialog, QStringLiteral("Checked kinds: 26")));
     CHECK(dialog.acceptButton()->text() == QStringLiteral("Create Book"));
     CHECK(dialog.acceptButton()->isEnabled());
 
@@ -556,7 +557,7 @@ TEST_CASE("User project: the window starts with the kinds of \"Base\" and a chap
     dialog.hide();
 
     const PaletteChoice first = dialog.palette()->choice();
-    CHECK(first.kinds.size() == 20);
+    CHECK(first.kinds.size() == 26);
     CHECK(packagesOf(first.kinds) == "kalahari.base");
     CHECK(elementsOf(first) == "chapter in main");
     CHECK(idsOf(dialog.firstChoice().kinds) == idsOf(first.kinds));
@@ -625,7 +626,7 @@ TEST_CASE("User project: the links over the palette, and Create Book with no kin
 
     clickLink(dialog, QStringLiteral("Only \"Base\""));
     CHECK(packagesOf(dialog.palette()->choice().kinds) == "kalahari.base");
-    CHECK(showsText(dialog, QStringLiteral("Checked kinds: 20")));
+    CHECK(showsText(dialog, QStringLiteral("Checked kinds: 26")));
 }
 
 TEST_CASE("User project: Create Book takes the palette as it is, Skip as it was at first",
@@ -655,7 +656,7 @@ TEST_CASE("User project: Create Book takes the palette as it is, Skip as it was 
         CHECK(dialog.skipButton()->text() == QStringLiteral("Skip"));
         dialog.skipButton()->click();
         CHECK(dialog.result() == QDialog::Accepted);
-        CHECK(dialog.choice().kinds.size() == 20);
+        CHECK(dialog.choice().kinds.size() == 26);
         CHECK(packagesOf(dialog.choice().kinds) == "kalahari.base");
         CHECK(elementsOf(dialog.choice()) == "chapter in main");
         CHECK(dialog.opens());
@@ -971,6 +972,6 @@ TEST_CASE("New Book: with a book open, the window of the kinds of a user project
     CHECK(hasCard(window, created));
     const core::BookProject saved = savedProject(created);
     CHECK(saved.isUserProject());
-    CHECK(saved.kinds.size() == 20);
+    CHECK(saved.kinds.size() == 26);
     CHECK(titlesOf(saved.books.first().mainElements) == "Chapter 1");
 }

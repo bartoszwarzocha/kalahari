@@ -418,6 +418,21 @@ bool BookEditor::event(QEvent* event)
     // as it is written
     if (event->type() == QEvent::ToolTip && m_renderPipeline) {
         const auto* help = static_cast<QHelpEvent*>(event);
+        // The mark beside a paragraph: the titles of the materials linked with it
+        if (const std::optional<ParagraphMark> marked = paragraphMarkAt(QPointF(help->pos()))) {
+            //: The tooltip of the paperclip beside a paragraph, over the titles of the
+            //: materials. In Polish: Powiązane materiały
+            QStringList lines{
+                QStringLiteral("<b>%1</b>").arg(tr("Linked materials").toHtmlEscaped())};
+            for (const QString& title : marked->titles) {
+                lines << title.toHtmlEscaped();
+            }
+            QToolTip::showText(help->globalPos(),
+                               QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
+                                   .arg(lines.join(QStringLiteral("<br>"))),
+                               this);
+            return true;
+        }
         const std::optional<AnnotationMark> mark =
             m_renderPipeline->annotationMarkDetailsAt(QPointF(help->pos()));
         QString text = mark && !mark->text.trimmed().isEmpty() ? mark->text : QString();
@@ -918,6 +933,8 @@ void BookEditor::replaceWithKml(const QString& kml)
     // The whole text in one undo step. Undoing or redoing it brings back the cursor and
     // selection it was made with: QTextDocument would put the cursor at the end of the
     // text it put back.
+    // The marks beside the paragraphs stay at the paragraphs of their numbers
+    const QList<ParagraphMark> marks = paragraphMarks();
     QTextCursor cursor(m_textBuffer.get());
     cursor.beginEditBlock();
     m_textBuffer->appendUndoItem(new CallbackUndoItem(
@@ -927,6 +944,8 @@ void BookEditor::replaceWithKml(const QString& kml)
     cursor.setBlockCharFormat(QTextCharFormat());  // nothing left of the old first paragraph
     appendParagraphs(cursor, content);
     cursor.endEditBlock();
+    anchorParagraphMarks(marks);
+    syncParagraphMarks();
 
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
@@ -1004,6 +1023,12 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     // and their spelling is checked again (the waves of the words left as they were stay)
     connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
             &BookEditor::adjustSpellingToEdit);
+
+    // The marks beside the paragraphs stay with them; a new text has none
+    m_paragraphMarks.clear();
+    syncParagraphMarks(true);
+    connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
+            [this]() { syncParagraphMarks(); });
 
     // The content goes in in a single edit block: Qt then reports one change and the
     // layout runs once, at endEditBlock().

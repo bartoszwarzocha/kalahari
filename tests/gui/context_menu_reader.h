@@ -8,6 +8,7 @@
 #include <QChildEvent>
 #include <QCoreApplication>
 #include <QEvent>
+#include <QIcon>
 #include <QKeyEvent>
 #include <QList>
 #include <QMenu>
@@ -26,6 +27,7 @@ struct MenuItem {
     bool separator = false;
     bool enabled = true;
     QString toolTip;        ///< What it says under the mouse (its text when it says nothing more)
+    QIcon icon;             ///< Its icon (null: none)
     QList<MenuItem> items;  ///< The items of its submenu
     /// Its action, only to compare: one the menu made for itself is gone with the menu
     const QAction* action = nullptr;
@@ -40,6 +42,7 @@ inline QList<MenuItem> menuItems(const QList<QAction*>& actions) {
         item.separator = action->isSeparator();
         item.enabled = action->isEnabled();
         item.toolTip = action->toolTip();
+        item.icon = action->icon();
         item.action = action;
         if (const QMenu* submenu = action->menu()) {
             item.items = menuItems(submenu->actions());

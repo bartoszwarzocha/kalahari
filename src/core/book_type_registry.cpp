@@ -95,7 +95,7 @@ QString KindRef::reference() const {
 }
 
 bool KindRef::offeredIn(BookPlace place) const {
-    if (!package || !kind || !kind->allows(place)) {
+    if (!package || !kind || kind->retired || !kind->allows(place)) {
         return false;
     }
     const QString own = KindReference{package->id, kind->id}.toString();
@@ -496,7 +496,10 @@ QList<KindRef> BookTypeRegistry::kindsIn(const QString& packageId, BookPlace pla
     QList<KindRef> kinds;
     if (const BookTypePackage* found = package(packageId)) {
         for (const QString& kindId : found->kindsIn(place)) {
-            kinds.append(findKind(*found, kindId));
+            const KindRef ref = findKind(*found, kindId);
+            if (!ref || !ref.kind->retired) {
+                kinds.append(ref);
+            }
         }
     }
     return kinds;
@@ -546,7 +549,9 @@ QList<KindRef> BookTypeRegistry::allKinds() const {
             }
         }
         for (const ElementKind* kind : order) {
-            kinds.append({package.get(), kind});
+            if (!kind->retired) {
+                kinds.append({package.get(), kind});
+            }
         }
     }
     return kinds;

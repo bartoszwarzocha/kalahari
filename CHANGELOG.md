@@ -11,6 +11,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Lists of the kinds of materials on tabs** - 2026-10-25. A kind of the Materials clicked
+  in the Navigator (or Enter on it, or Open List in its menu) shows its materials on a tab in
+  the middle of the window; Materials itself shows All Materials, the working notes too. The
+  list is a table with the columns of the kind: the words and the links of the quotes, the
+  site of the web pages, a thumbnail, the format, the size in pixels and the origin of the
+  pictures, the kind, the format and the size of the documents, the words and the status of
+  the working notes; the writer's own fields are columns too. A click on a header sorts by its
+  column (a material without a value comes last); Columns... shows and hides the columns, and
+  dragging a header changes their order, kept for each kind. The search (Ctrl+F; Esc clears
+  it) finds the words of any column; the filters keep the materials linked with an element,
+  those without links, and, with Column Filters, those whose column has the words typed under
+  its header; Clear Filters shows them all. The pictures, the documents and the publications
+  can be shown as tiles, kept for each kind. Above the list: Add (with the kind's name), Edit,
+  Link..., Copy and Delete; the menu of a row (also the menu key and Shift+F10) has Edit, Open,
+  Show in Folder, Copy, Link..., Rename..., Delete... and Properties. The keys of the list:
+  Enter edits (the card of a material, the editor of a working note), a double-click opens,
+  Insert adds, F2 renames, Delete deletes, Ctrl+C copies (the words of a quote, the address,
+  the path of the file), Alt+Enter goes to the Properties panel. A material chosen shows in
+  the Properties panel. Each list keeps what is chosen, the search, the filters and the
+  sorting. Settings > Navigator > Materials: "In the Navigator" shows the kinds with their
+  numbers of materials (the usual) or the kinds with their materials under them, collapsed at
+  first; "A kind clicked in the Navigator" opens a tab of its own (the usual) or changes the
+  kind on one tab. A material shown in the Navigator while its kind has no materials under it
+  shows its kind, and its card in the Properties panel. The lists follow the book and close
+  with it.
+
+- **Links of materials: the role, the paragraph and a note** - 2026-10-25. A link of a
+  material with an element of the book says how: quoted in the text, source of information,
+  inspiration, illustration or to check, or no role. A new link gets the role the kind of the
+  material suggests (a quote is quoted in the text, a picture an illustration, a web page, a
+  document and a publication sources of information), also a material dropped or pasted on
+  the Navigator. The Link window has, beside the tree, the link of the element chosen: its
+  role, its place in the text (the whole element or a paragraph of the chapter, listed with
+  its first words; the paragraph with the words of a quote is marked and chosen for a new
+  link of the quote) and a short note. The lists of the links on the card of a material and
+  of the materials of a chapter, a part or a section show the role and the paragraph under
+  the title, and the note in the tooltip. A link to a paragraph keeps its first words: when
+  the chapter is saved, a paragraph that moved (paragraphs added or taken out before it) is
+  found by them and the link follows it, and a paragraph whose beginning was rewritten keeps
+  its number and its new first words. The editor marks a paragraph that materials are linked
+  with by a paperclip in the left margin, in the color of the text, which stays with its
+  paragraph while the writer types; a click on it, or Linked Materials in the context menu of
+  the paragraph (also from the keyboard), shows the material in the Properties panel, with a
+  menu first when the paragraph has several. Settings > Navigator > "Links name paragraphs of
+  the text" (on by default) hides the paragraphs and the paperclips when it is off, and keeps
+  the paragraphs named. In the .klh file a link with any of these details is an object
+  (`{"to": "...", "role": "quoted", "paragraph": 4, "excerpt": "...", "note": "..."}`), a link
+  without them the id alone, as before; fields a later version adds to a link are kept.
+
+- **Workshop: kinds of materials, always in Materials** - 2026-10-25. A material is now a
+  quote, a web page, a picture, a document, a publication, a recording or another file, each
+  with its group, name and icon; all types of books have them in the Workshop. The Workshop
+  of the Navigator has the node Materials, always, also when the Workshop is grouped: the
+  working notes and the groups of the kinds of materials, also empty, each with its number of
+  elements at the right, and Materials with the number of all of them (a screen reader reads
+  the numbers with the names). Resources is gone; Grouping puts only the cards in Libraries.
+  A file, an address or a picture dropped on the Navigator or pasted gets the kind of its
+  source: a picture, on the disk or on the web, is a picture; the address of a page a web
+  page; a sound or a film a recording; a PDF, Word, OpenDocument, RTF, text, Markdown file, a
+  spreadsheet, a presentation or an e-book a document; any other file another file. In the
+  Add Element window the source follows the kind: a web page starts with its address, a quote
+  with neither a file nor an address, the other kinds with a file, until the writer chooses
+  another one. A book saved before has its materials of the one kind "Material": when it
+  opens, they get the kinds of their sources by the same rule, a material without a file and
+  an address becomes a working note whose text is its description, and the book is saved so;
+  "Material" stays in the packages, retired (`"retired": true`), so that such books are read,
+  but it is offered nowhere.
+
 - **The tabs of the panels: icons, names or both, in one row or more** - 2026-10-26.
   Panels docked one over another have tabs of the program's own in place of Qt's, which
   showed the names alone in one row and shortened them to a few letters. By default the tabs
@@ -133,7 +201,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   toolbar shows a closed panel on top, brings an open panel under another tab on top, and
   closes the panel on top, which unchecks it; a floating panel closes at once. The Panels
   toolbar stands at the right edge of the window, next to the panels on the right, shown; a
-  toolbar layout saved before stays as it was until View > Reset Layout. Its Log button is
+  toolbar layout saved while it was hidden at the top gets it there once, shown, with the
+  other toolbars where they were, and after that the writer's own place for it is kept (View >
+  Reset Layout puts it back by the right edge). Its Log button is
   hidden unless Settings > Advanced > Log > Show the Log button on the Panels toolbar is on;
   View > Panels > Log (F4) opens the log panel either way.
 

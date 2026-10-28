@@ -6,6 +6,7 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/find_replace_bar.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/paste_target.h"
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/spelling_panel.h"
 
@@ -231,11 +232,16 @@ QString currentItemText(const QAbstractItemView& list) {
 }
 
 /// A list copies the text of its current item, as Qt's lists do with Ctrl+C, and selects all
-/// its items where it can select more than one
+/// its items where it can select more than one; one with Paste of its own (the Navigator)
+/// pastes
 bool listCan(const QAbstractItemView& list, Edit edit) {
     switch (edit) {
     case Edit::Copy:
         return !currentItemText(list).isEmpty();
+    case Edit::Paste: {
+        const auto* target = dynamic_cast<const PasteTarget*>(&list);
+        return target != nullptr && target->canPasteHere();
+    }
     case Edit::SelectAll: {
         const QAbstractItemView::SelectionMode mode = list.selectionMode();
         const bool many = mode == QAbstractItemView::MultiSelection ||
@@ -430,6 +436,8 @@ bool EditCoordinator::execute(Edit edit, QWidget* element) {
     } else if (target.list != nullptr) {
         if (edit == Edit::Copy) {
             QGuiApplication::clipboard()->setText(currentItemText(*target.list));
+        } else if (edit == Edit::Paste) {
+            dynamic_cast<PasteTarget&>(*target.list).pasteHere();  // canDo() asked it
         } else {
             target.list->selectAll();
         }

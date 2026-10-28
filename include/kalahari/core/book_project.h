@@ -41,7 +41,13 @@
 ///     "grouped": false,
 ///     "elements": [
 ///       { "id": "e4", "kind": "kalahari.base:character", "title": "Anna",
-///         "file": "workshop/character_001.json" }
+///         "file": "workshop/character_001.json" },
+///       { "id": "e7", "kind": "kalahari.base:material", "title": "mapa",
+///         "file": "workshop/mapa.png", "description": "Mapa okolic oazy.",
+///         "fields": [{ "name": "Skala", "value": "1 : 50 000" }],
+///         "links": ["e3", "c2a1/main"], "view": { "rotation": 90 } },
+///       { "id": "e8", "kind": "kalahari.base:material", "title": "Pustynia Kalahari",
+///         "url": "https://pl.wikipedia.org/wiki/Kalahari" }
 ///     ]
 ///   }
 /// }
@@ -63,6 +69,15 @@
 ///   project folder (if it has one), a status ("draft", "revision" or "final"; groups have
 ///   none) and the elements inside it (groups). The order and nesting of elements are saved
 ///   only here, not in folders.
+/// - An element of the Workshop can have a description ("description"), the writer's own fields
+///   ("fields": a name and a value each, in the writer's order) and what it is about ("links":
+///   the ids of elements, and of sections as "<book id>/front", "/main" or "/back"). A link is
+///   saved once, with the element that has it; an element deleted from the project leaves the
+///   links. "view" has how its picture is shown: "rotation", 0, 90, 180 or 270 degrees
+///   clockwise. None of these: the element has none.
+/// - A material is a copy of a file in the Workshop's folder ("file"), a web address ("url":
+///   a page, or a picture on the web, whose copy in the book is then its file), or neither of
+///   them: a paper book, a talk or a quotation that its description and fields tell of.
 /// - A file of a book outside its text, such as notes or a text pasted from elsewhere, has an
 ///   id unique in the project, a title and a chapter file, but no kind and no status; the
 ///   finished book does not have it. A book without such files has no "files".
@@ -81,19 +96,68 @@
 
 namespace kalahari::core {
 
+/// @brief A field of an element that the writer names and fills: "Scale": "1 : 50 000"
+struct ElementField {
+    QString name;       ///< Name of the field
+    QString value;      ///< Its value; may be empty
+    QJsonObject extra;  ///< Fields this version does not know, saved back
+
+    bool operator==(const ElementField&) const = default;
+};
+
+/// @brief What an element is about, and how: a material quoted in a chapter, a picture of
+/// a place...
+///
+/// Saved as the id alone while it says nothing more (hasDetails()), as books of earlier
+/// versions have it; else as an object with "to" and the details.
+struct ElementLink {
+    QString to;         ///< Id of an element or of a section (BookProject::sectionLink())
+    QString role;       ///< How (LinkRoles): "quoted", "source"...; empty: not said
+    int paragraph = 0;  ///< Paragraph of the text of the element, from 1; 0: the whole element
+    QString excerpt;    ///< The first words of that paragraph, which find it when the
+                        ///< paragraphs before it change (LinkRoles::paragraphOf())
+    QString note;       ///< The writer's note; empty: none
+    QJsonObject extra;  ///< Fields this version does not know, saved back
+
+    /// @brief Whether it says more than what it links (saved as an object)
+    bool hasDetails() const {
+        return !role.isEmpty() || paragraph > 0 || !excerpt.isEmpty() || !note.isEmpty() ||
+               !extra.isEmpty();
+    }
+
+    bool operator==(const ElementLink&) const = default;
+};
+
 /// @brief Element of a book or of the Workshop: a chapter, a part, a character card...
 struct ProjectElement {
     QString id;                      ///< Unique in the project
     KindReference kind;              ///< Kind, with the package that defines it
     QString title;                   ///< Title
     QString file;                    ///< File, relative to the project folder; empty: none
+    QString url;                     ///< Web address of a material: a page, or a picture
+                                     ///< whose copy in the book is its file when it has one;
+                                     ///< empty: none
     QString status;                  ///< "draft", "revision" or "final"; empty: none (groups)
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
+    QString description;             ///< Description of an element of the Workshop without a
+                                     ///< text of its own (a material); empty: none
+    QList<ElementField> fields;      ///< The writer's own fields, in the writer's order
+    QList<ElementLink> links;        ///< What it is about: elements and sections, each
+                                     ///< once, in the order linked
+    int rotation = 0;                ///< Turn of its picture in the preview, clockwise: 0,
+                                     ///< 90, 180 or 270 degrees
+    QJsonObject viewExtra;           ///< Fields of its "view" this version does not know
     QJsonObject extra;               ///< Fields this version does not know, saved back
 
     /// @brief Whether it has a kind: every element of a book and of the Workshop has one, a
     /// file of a book outside its text (ProjectBook::files) has none
     bool hasKind() const { return !kind.kindId.isEmpty(); }
+
+    /// @brief What it is linked with (ElementLink::to), in the order linked
+    QStringList linkTargets() const;
+
+    /// @brief Its link with @p target; nullptr when it has none
+    const ElementLink* linkTo(const QString& target) const;
 
     /// Not defaulted: a defaulted == would depend on the == of QList<ProjectElement>, which
     /// depends on it, so the compiler would delete it
@@ -187,7 +251,7 @@ struct ProjectBook {
 /// @brief Workshop of a project: files that go with its books but not into them
 struct ProjectWorkshop {
     QString name;                    ///< Name of the Workshop's node; empty: "Workshop"
-    bool grouped = false;            ///< Whether cards go to Libraries and materials to Resources
+    bool grouped = false;            ///< Whether cards go to Libraries
     QList<ProjectElement> elements;  ///< Elements, in the order they were added
     QJsonObject extra;               ///< Fields this version does not know, saved back
 
@@ -244,6 +308,18 @@ struct BookProject {
 
     /// @brief Whether @p elementId is a file of a book outside its text (ProjectBook::files)
     bool isBookFile(const QString& elementId) const;
+
+    /// @brief Id of section @p place (Front, Main or Back) of book @p book in the links of an
+    /// element (ProjectElement::links): "c2a1/main"; empty for the Workshop or a book the
+    /// project does not have
+    QString sectionLink(BookPlace place, qsizetype book = 0) const;
+
+    /// @brief Section of book @p book that link @p link names (sectionLink()); nullopt when it
+    /// names none of them
+    std::optional<BookPlace> linkedSection(const QString& link, qsizetype book = 0) const;
+
+    /// @brief Whether link @p link names an element of the project or a section of its book
+    bool hasLinkTarget(const QString& link) const;
 
     /// @brief List that holds element @p elementId: a part of a book, a group, the Workshop or
     /// the files of a book outside its text

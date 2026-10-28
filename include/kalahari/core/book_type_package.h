@@ -32,7 +32,7 @@
 ///   "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface"],
 ///   "main":     ["prologue", "part", "chapter", "epilogue"],
 ///   "back":     ["afterword", "acknowledgments", "glossary", "about_author", "toc"],
-///   "workshop": ["work_note", "mindmap", "timeline", "character", "location", "item", "material"],
+///   "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "quote"],
 ///   "primary":  "chapter",
 ///   "start":    ["title_page", "chapter"],
 ///   "styles":   "styles.json"
@@ -67,7 +67,9 @@
 /// a prologue, "end" for one that closes it, like an epilogue), "first" (true for a kind that
 /// opens its section, like the title page: nothing is moved or added before its element),
 /// "editor", "generated" and "settings" (window kinds), "workshopGroup" (kinds of the
-/// Workshop: "libraries" or "resources", the group they go to when the Workshop is grouped).
+/// Workshop: "libraries", the group they go to when the Workshop is grouped, or "resources",
+/// the Materials of the Workshop, where they always are), "retired" (true for a kind of earlier
+/// versions: the elements of books saved with it are read, but it is offered nowhere).
 ///
 /// styles.json has the fields of the paragraph_styles and character_styles tables of
 /// project.db, with names in several languages and the style of the next paragraph:
@@ -143,11 +145,12 @@ enum class KindPosition {
     End     ///< At the end, after the other elements: an epilogue
 };
 
-/// @brief Group of the Workshop that a kind goes to when the Workshop is grouped
+/// @brief Group of the Workshop that a kind goes to: Libraries when the Workshop is grouped,
+/// Resources always
 enum class WorkshopGroup {
-    None,       ///< First level of the Workshop: working notes, mind maps, timelines...
+    None,       ///< First level of the Workshop: mind maps, timelines, drafts...
     Libraries,  ///< Cards: characters, locations, items, sources
-    Resources   ///< Materials
+    Resources   ///< Materials, with the working notes: the node "Materials" of the Workshop
 };
 
 /// @brief Name of @p group in packages: "libraries" or "resources"; empty for None
@@ -193,7 +196,8 @@ struct ElementKind {
     QString editor;                      ///< Window kinds: id of the window that opens the element
     bool generated = false;              ///< Window kinds: content made by a tool of the type
     QJsonObject settings;                ///< Window kinds: settings of the window
-    WorkshopGroup workshopGroup = WorkshopGroup::None;  ///< Workshop kinds: group when grouped
+    WorkshopGroup workshopGroup = WorkshopGroup::None;  ///< Workshop kinds: their group
+    bool retired = false;                ///< A kind of earlier versions, offered nowhere
 
     /// @brief Whether its elements are materials: a window kind with MATERIAL_EDITOR
     bool isMaterial() const {

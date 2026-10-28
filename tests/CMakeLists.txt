@@ -20,6 +20,8 @@ set(TEST_SOURCES
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     core/test_book_type_registry.cpp  # Book type packages and their registry
     core/test_kind_words.cpp          # Names of kinds in sentences, and the markers of translations
+    core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
+    core/test_link_roles.cpp          # The roles of links, and the paragraph a link names
     core/test_book_project.cpp        # Book project and its .klh file
     core/test_old_book_conversion.cpp # Books of the first .klh format, converted to this version
     core/test_package_cards.cpp       # Cards of the packages a book uses; a book read-only without them
@@ -63,6 +65,7 @@ set(TEST_SOURCES
     editor/test_editor_stage3.cpp                # Editor Stage 3: drag and drop, find and replace, cursor
     editor/test_editor_stage4.cpp                # Editor Stage 4: page mode, zoom, typewriter scrolling
     editor/test_editor_stage5.cpp                # Editor Stage 5: highlight layer
+    editor/test_paragraph_marks.cpp              # The paperclips beside the paragraphs
     editor/test_text_keys.cpp                    # The keys of the text on each system
     editor/test_format_without_selection.cpp     # Formats given without a selection
     editor/test_clear_formatting.cpp             # Format > Clear Formatting
@@ -124,6 +127,9 @@ set(TEST_SOURCES
     gui/test_status_bar_statistics.cpp           # Counts of the document in front in the status bar
     gui/test_reading_time.cpp                    # The reading time of a text as the program shows it
     gui/test_properties_panel.cpp                # Properties panel: the counts of the editor in front
+    gui/test_material_card.cpp                   # The card of a material, its preview and Link
+    gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
+    gui/test_material_source.cpp                 # Where a material comes from, its downloads
     gui/test_versions.cpp                        # Versions of the texts: save, history, restore, insert
     gui/test_paragraph_panel.cpp                 # Paragraph and Styles panel, palette of styles
     gui/test_views_toolbar.cpp                   # Views toolbar: view modes and switches
@@ -170,6 +176,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_type_package.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/link_roles.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_project.cpp
     ${CMAKE_SOURCE_DIR}/src/core/old_book_conversion.cpp
     ${CMAKE_SOURCE_DIR}/src/core/package_card.cpp
@@ -234,6 +242,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/versions_page.cpp  # Settings > Editor > Versions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/navigator_page.cpp  # Settings > Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/network_page.cpp  # Settings > Network > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/folders_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_rules.cpp          # Which keys a command can have
@@ -268,6 +277,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_panel.cpp  # Spelling and Grammar panel
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
+    ${CMAKE_SOURCE_DIR}/src/gui/paragraph_marks_coordinator.cpp  # Paperclips of linked paragraphs
+    ${CMAKE_SOURCE_DIR}/src/gui/material_list_coordinator.cpp  # The lists of the materials on tabs
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_style_menu.cpp    # Format > Text Style: the text's styles
     ${CMAKE_SOURCE_DIR}/src/gui/auto_correct_coordinator.cpp  # Auto-correct turned on and off as a whole
@@ -321,6 +332,15 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/file_location.cpp              # A file shown in the file manager
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp              # Items in more rows when narrow
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/link_dialog.cpp              # What a material is about
+    ${CMAKE_SOURCE_DIR}/src/gui/material_file.cpp                    # The file of a material and its picture
+    ${CMAKE_SOURCE_DIR}/src/gui/material_source.cpp                  # Where a material comes from
+    ${CMAKE_SOURCE_DIR}/src/gui/material_downloader.cpp              # The title of a page, the copy of a picture
+    ${CMAKE_SOURCE_DIR}/src/gui/link_names.cpp                       # The links of a material in lists
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/material_page.cpp             # The card of a material in Properties
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/image_preview_panel.cpp       # The preview of a material's picture
+    ${CMAKE_SOURCE_DIR}/src/gui/material_list.cpp                    # The lists of the materials
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel.cpp       # The list of a kind of materials
     ${CMAKE_SOURCE_DIR}/src/gui/version_texts.cpp                    # What the program says of a version
     ${CMAKE_SOURCE_DIR}/src/gui/versions_coordinator.cpp             # Save Version and Version History
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_name_dialog.cpp      # The description of a version
@@ -385,6 +405,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_panel.h  # SpellingPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/paragraph_marks_coordinator.h  # ParagraphMarksCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
@@ -423,6 +445,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/versions_coordinator.h  # VersionsCoordinator with Q_OBJECT

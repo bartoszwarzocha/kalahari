@@ -176,6 +176,7 @@
     },
     "work_note": {
       "form": "text", "places": ["workshop"], "icon": "template.note",
+      "workshopGroup": "resources",
       "name": { "pl": "Notatka robocza", "en": "Working note" },
       "plural": { "pl": "Notatki robocze", "en": "Working notes" },
       "words": {
@@ -256,7 +257,7 @@
     },
     "material": {
       "form": "window", "editor": "material", "places": ["workshop"], "icon": "common.attachFile",
-      "workshopGroup": "resources",
+      "workshopGroup": "resources", "retired": true,
       "name": { "pl": "Materiał", "en": "Material" },
       "plural": { "pl": "Materiały", "en": "Materials" },
       "words": {
@@ -266,12 +267,97 @@
                 "genitivePlural": "materiałów" },
         "en": { "singular": "material", "plural": "materials", "indefinite": "a material" }
       }
+    },
+    "quote": {
+      "form": "window", "editor": "material", "places": ["workshop"], "icon": "format.style.quote",
+      "workshopGroup": "resources",
+      "name": { "pl": "Cytat", "en": "Quote" },
+      "plural": { "pl": "Cytaty", "en": "Quotes" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "cytat", "plural": "cytaty",
+                "genitive": "cytatu", "dative": "cytatowi", "accusative": "cytat",
+                "instrumental": "cytatem", "locative": "cytacie", "genitivePlural": "cytatów" },
+        "en": { "singular": "quote", "plural": "quotes", "indefinite": "a quote" }
+      }
+    },
+    "web_page": {
+      "form": "window", "editor": "material", "places": ["workshop"], "icon": "material.page",
+      "workshopGroup": "resources",
+      "name": { "pl": "Strona internetowa", "en": "Web page" },
+      "plural": { "pl": "Strony internetowe", "en": "Web pages" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "strona internetowa", "plural": "strony internetowe",
+                "genitive": "strony internetowej", "dative": "stronie internetowej", "accusative": "stronę internetową",
+                "instrumental": "stroną internetową", "locative": "stronie internetowej", "genitivePlural": "stron internetowych" },
+        "en": { "singular": "web page", "plural": "web pages", "indefinite": "a web page" }
+      }
+    },
+    "picture": {
+      "form": "window", "editor": "material", "places": ["workshop"], "icon": "common.image",
+      "workshopGroup": "resources",
+      "name": { "pl": "Obraz", "en": "Picture" },
+      "plural": { "pl": "Obrazy", "en": "Pictures" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "obraz", "plural": "obrazy",
+                "genitive": "obrazu", "dative": "obrazowi", "accusative": "obraz",
+                "instrumental": "obrazem", "locative": "obrazie", "genitivePlural": "obrazów" },
+        "en": { "singular": "picture", "plural": "pictures", "indefinite": "a picture" }
+      }
+    },
+    "document": {
+      "form": "window", "editor": "material", "places": ["workshop"], "icon": "common.file",
+      "workshopGroup": "resources",
+      "name": { "pl": "Dokument", "en": "Document" },
+      "plural": { "pl": "Dokumenty", "en": "Documents" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "dokument", "plural": "dokumenty",
+                "genitive": "dokumentu", "dative": "dokumentowi", "accusative": "dokument",
+                "instrumental": "dokumentem", "locative": "dokumencie", "genitivePlural": "dokumentów" },
+        "en": { "singular": "document", "plural": "documents", "indefinite": "a document" }
+      }
+    },
+    "publication": {
+      "form": "window", "editor": "material", "places": ["workshop"], "icon": "material.publication",
+      "workshopGroup": "resources",
+      "name": { "pl": "Publikacja", "en": "Publication" },
+      "plural": { "pl": "Publikacje", "en": "Publications" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "publikacja", "plural": "publikacje",
+                "genitive": "publikacji", "dative": "publikacji", "accusative": "publikację",
+                "instrumental": "publikacją", "locative": "publikacji", "genitivePlural": "publikacji" },
+        "en": { "singular": "publication", "plural": "publications", "indefinite": "a publication" }
+      }
+    },
+    "recording": {
+      "form": "window", "editor": "material", "places": ["workshop"], "icon": "material.recording",
+      "workshopGroup": "resources",
+      "name": { "pl": "Nagranie", "en": "Recording" },
+      "plural": { "pl": "Nagrania", "en": "Recordings" },
+      "words": {
+        "pl": { "gender": "neuter", "singular": "nagranie", "plural": "nagrania",
+                "genitive": "nagrania", "dative": "nagraniu", "accusative": "nagranie",
+                "instrumental": "nagraniem", "locative": "nagraniu", "genitivePlural": "nagrań" },
+        "en": { "singular": "recording", "plural": "recordings", "indefinite": "a recording" }
+      }
+    },
+    "other_file": {
+      "form": "window", "editor": "material", "places": ["workshop"], "icon": "common.filePresent",
+      "workshopGroup": "resources",
+      "name": { "pl": "Inny plik", "en": "Other file" },
+      "plural": { "pl": "Inne pliki", "en": "Other files" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "inny plik", "plural": "inne pliki",
+                "genitive": "innego pliku", "dative": "innemu plikowi", "accusative": "inny plik",
+                "instrumental": "innym plikiem", "locative": "innym pliku", "genitivePlural": "innych plików" },
+        "en": { "singular": "other file", "plural": "other files", "indefinite": "another file" }
+      }
     }
   },
   "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface", "introduction"],
   "main":     ["chapter", "part"],
   "back":     ["afterword", "acknowledgments", "glossary", "about_author", "toc"],
-  "workshop": ["work_note", "mindmap", "timeline", "character", "location", "item", "material"],
+  "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "quote",
+               "web_page", "picture", "document", "publication", "recording", "other_file"],
   "primary":  "chapter",
   "styles":   "styles.json"
 }
