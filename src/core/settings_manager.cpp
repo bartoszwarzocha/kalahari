@@ -2,6 +2,7 @@
 /// @brief Implementation of SettingsManager
 
 #include <kalahari/core/settings_manager.h>
+#include <kalahari/core/data_folders.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/unicode_paths.h>
 #include <algorithm>
@@ -42,7 +43,12 @@ SettingsManager& SettingsManager::getInstance() {
 // =============================================================================
 
 SettingsManager::SettingsManager() {
-    m_filePath = getSettingsDirectoryPath() / "settings.json";
+    // No folder: the copy of the program has a data folder of its own that cannot be used,
+    // and does not start (DataFolders); its settings are neither read nor saved meanwhile
+    const std::filesystem::path folder = getSettingsDirectoryPath();
+    if (!folder.empty()) {
+        m_filePath = folder / "settings.json";
+    }
     createDefaults();
 
     m_saveTimer.setSingleShot(true);
@@ -68,6 +74,11 @@ SettingsManager::~SettingsManager() {
 bool SettingsManager::load() {
     std::lock_guard<std::mutex> lock(m_mutex);
 
+    if (m_filePath.empty()) {
+        Logger::getInstance().warn("SettingsManager: no settings file, using defaults");
+        createDefaults();
+        return true;
+    }
     if (!std::filesystem::exists(m_filePath)) {
         Logger::getInstance().info("Settings file not found, using defaults: {}", pathText(m_filePath));
         createDefaults();  // Reset to defaults when file doesn't exist
@@ -112,6 +123,10 @@ bool SettingsManager::load() {
 bool SettingsManager::save() {
     std::lock_guard<std::mutex> lock(m_mutex);
 
+    if (m_filePath.empty()) {
+        m_savePending = false;
+        return false;  // no settings file (the constructor): nothing is written anywhere
+    }
     try {
         // Create directory if it doesn't exist
         std::filesystem::path dir = m_filePath.parent_path();
@@ -150,7 +165,7 @@ void SettingsManager::resetToDefaults() {
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // Delete settings file if exists
-    if (std::filesystem::exists(m_filePath)) {
+    if (!m_filePath.empty() && std::filesystem::exists(m_filePath)) {
         try {
             std::filesystem::remove(m_filePath);
             Logger::getInstance().info("Deleted settings file: {}", pathText(m_filePath));
@@ -456,6 +471,16 @@ std::filesystem::path SettingsManager::getSettingsDirectoryPath() const {
     // This prevents tests from polluting real user settings
     if (isTestMode()) {
         return std::filesystem::temp_directory_path() / "kalahari_test";
+    }
+
+    // A copy of the program with a data folder of its own keeps its settings there, and never
+    // in the folder of the system; with a folder it cannot use, nowhere (it does not start)
+    const DataFolders& dataFolders = DataFolders::current();
+    if (dataFolders.hasOwnFolder()) {
+        return dataFolders.folder();
+    }
+    if (dataFolders.kind() == DataFolders::Kind::Broken) {
+        return {};
     }
 
 #ifdef _WIN32

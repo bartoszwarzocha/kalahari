@@ -3,6 +3,7 @@
 ///        program puts them and what the ones found are
 
 #include "kalahari/gui/grammar_components.h"
+#include "kalahari/core/data_folders.h"
 
 #include <QDir>
 #include <QDirIterator>
@@ -112,6 +113,11 @@ QString jarVersion(const QString& jar) {
 }  // namespace
 
 QString GrammarComponents::downloadFolder() {
+    // A copy of the program with a data folder of its own downloads into that folder
+    const core::DataFolders& dataFolders = core::DataFolders::current();
+    if (dataFolders.hasOwnFolder()) {
+        return dataFolders.ownFolder(QStringLiteral("grammar"));
+    }
     return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) +
            QStringLiteral("/Kalahari/grammar");
 }

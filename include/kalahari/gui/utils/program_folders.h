@@ -42,7 +42,9 @@ public:
 
     /// @brief The Documents folder of the user; the home folder when the system has none
     ///
-    /// The tests (KALAHARI_TEST_MODE) get a Documents folder in their temporary folder.
+    /// The tests (KALAHARI_TEST_MODE) get a Documents folder in their temporary folder, and a
+    /// copy of the program with a data folder of its own a Documents folder in that folder
+    /// (DataFolders).
     static QString documentsFolder();
 
     /// @brief The default folder of the books: Kalahari in the Documents folder

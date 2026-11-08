@@ -62,7 +62,8 @@ public:
     };
 
     /// @brief The folder the program downloads Java and LanguageTool into, its own on this
-    ///        computer (on Windows %LOCALAPPDATA%\\Kalahari\\grammar)
+    ///        computer (on Windows %LOCALAPPDATA%\\Kalahari\\grammar); for a copy of the
+    ///        program with a data folder of its own, grammar in that folder (DataFolders)
     static QString downloadFolder();
 
     /// @brief The folder of the downloads the program works with (downloadFolder(), or

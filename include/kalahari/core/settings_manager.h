@@ -44,6 +44,10 @@ namespace core {
 /// - Linux:   ~/.config/kalahari/settings.json
 /// - macOS:   ~/Library/Application Support/Kalahari/settings.json
 ///
+/// A copy of the program with a data folder of its own (kalahari-data.json next to its
+/// executable, DataFolders) keeps settings.json in that folder instead; a copy whose file
+/// cannot be used has no settings file: it neither reads nor saves settings, and does not start.
+///
 /// Features:
 /// - Type-safe get/set API; defaults come from settings_schema
 /// - Change notification (subscribe())

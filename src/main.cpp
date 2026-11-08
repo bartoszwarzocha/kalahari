@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QLocale>
 #include <QProcess>
 #include <QEventLoop>
 #include <QTimer>
@@ -19,7 +20,9 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
+#include "kalahari/core/data_folders.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/unicode_paths.h"
 #include "kalahari/version.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/widget_wheel.h"
@@ -41,6 +44,57 @@ namespace {
 
 /// The log file of the program, in its working folder
 constexpr const char* LOG_FILE = "kalahari.log";
+
+/// Path @p path for a message: as the system writes it
+QString nativePath(const std::filesystem::path& path) {
+    return QDir::toNativeSeparators(QString::fromStdU16String(path.u16string()));
+}
+
+/// Why the copy of the program cannot start with the data folder of its file, and what to do
+QString dataFolderProblem(const kalahari::core::DataFolders& dataFolders) {
+    using Problem = kalahari::core::DataFolders::Problem;
+    const QString file = nativePath(dataFolders.file());
+    const QString folder = nativePath(dataFolders.namedFolder());
+    QString reason;
+    switch (dataFolders.problem()) {
+    case Problem::None:
+    case Problem::Unreadable:
+        reason = QCoreApplication::translate("main", "The file %1 cannot be read.").arg(file);
+        break;
+    case Problem::NotJson:
+        reason = QCoreApplication::translate("main", "The file %1 is not in the JSON format.")
+                     .arg(file);
+        break;
+    case Problem::NoFolder:
+        reason = QCoreApplication::translate("main", "The file %1 names no folder (\"folder\").")
+                     .arg(file);
+        break;
+    case Problem::NameNotText:
+        reason = QCoreApplication::translate(
+                     "main", "The name of the copy (\"name\") in the file %1 is not text.")
+                     .arg(file);
+        break;
+    case Problem::FolderNotMade:
+        reason = QCoreApplication::translate(
+                     "main", "The folder %1, named in the file %2, does not exist and cannot "
+                             "be created.")
+                     .arg(folder, file);
+        break;
+    case Problem::FolderNotWritable:
+        reason = QCoreApplication::translate(
+                     "main", "Kalahari cannot save files in the folder %1, named in the file "
+                             "%2.")
+                     .arg(folder, file);
+        break;
+    }
+    return reason + QStringLiteral("\n\n") +
+           QCoreApplication::translate(
+               "main", "This copy of Kalahari keeps its settings and its other data in a folder "
+                       "of its own, named in the file %1 next to the program. It does not start, "
+                       "so as not to use the usual folders of the program instead. Correct the "
+                       "file, or delete it to have the copy use the usual folders.")
+               .arg(QString::fromLatin1(kalahari::core::DataFolders::FILE_NAME));
+}
 
 } // anonymous namespace
 
@@ -95,9 +149,22 @@ int main(int argc, char *argv[]) {
     auto& logger = kalahari::core::Logger::getInstance();
     logger.initWithoutFile();
 
+    // A copy of the program with the file kalahari-data.json next to it keeps the settings and
+    // the writer's other data in the folder of that file, and never in the folders of the
+    // system. A copy whose file cannot be used does not start (below, once its windows can say
+    // why); its settings are neither read nor saved meanwhile.
+    const auto& dataFolders = kalahari::core::DataFolders::current();
+
     auto& settings = kalahari::core::SettingsManager::getInstance();
     settings.load();
     logger.info("Kalahari {} starting", app.applicationVersion().toStdString());
+    if (dataFolders.hasOwnFolder()) {
+        logger.info("Data folder of this copy: {} (the file {})",
+                    kalahari::core::pathText(dataFolders.folder()),
+                    kalahari::core::pathText(dataFolders.file()));
+    } else if (dataFolders.kind() == kalahari::core::DataFolders::Kind::Broken) {
+        logger.error("This copy does not start: {}", dataFolders.problemText());
+    }
 
     // Set KalahariStyle (wraps Fusion) for dynamic icon sizing
     // Must be set BEFORE ThemeManager applies QPalette
@@ -116,7 +183,12 @@ int main(int argc, char *argv[]) {
     // UI language: English is the source language, other languages come from
     // the .qm files embedded under :/i18n. A change takes effect after restart.
     QTranslator translator;
-    const QString language = QString::fromStdString(settings.getLanguage());
+    // Without its settings (a data folder that cannot be used) a copy speaks the language of
+    // the system
+    const QString language =
+        dataFolders.kind() == kalahari::core::DataFolders::Kind::Broken
+            ? QLocale::system().name().section(QLatin1Char('_'), 0, 0)
+            : QString::fromStdString(settings.getLanguage());
     if (language != "en") {
         if (translator.load("kalahari_" + language, ":/i18n")) {
             app.installTranslator(&translator);
@@ -125,6 +197,15 @@ int main(int argc, char *argv[]) {
         } else {
             logger.warn("No translation for UI language '{}', using English", language.toStdString());
         }
+    }
+
+    if (dataFolders.kind() == kalahari::core::DataFolders::Kind::Broken) {
+        // The window shows its icons: the main window registers them only later
+        kalahari::gui::registerAllIcons();
+        kalahari::gui::dialogs::MessageDialog::error(
+            nullptr, QCoreApplication::translate("main", "Data Folder"),
+            dataFolderProblem(dataFolders), QString::fromStdString(dataFolders.problemText()));
+        return 1;
     }
 
     // Parse command line arguments

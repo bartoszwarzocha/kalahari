@@ -12662,6 +12662,38 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <extracomment>The argument of the command line without a name. In Polish: Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</extracomment>
         <translation>Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</translation>
     </message>
+    <message>
+        <source>The file %1 cannot be read.</source>
+        <translation>Nie można odczytać pliku %1.</translation>
+    </message>
+    <message>
+        <source>The file %1 is not in the JSON format.</source>
+        <translation>Plik %1 nie jest w formacie JSON.</translation>
+    </message>
+    <message>
+        <source>The file %1 names no folder (&quot;folder&quot;).</source>
+        <translation>Plik %1 nie podaje folderu („folder”).</translation>
+    </message>
+    <message>
+        <source>The name of the copy (&quot;name&quot;) in the file %1 is not text.</source>
+        <translation>Nazwa kopii („name”) w pliku %1 nie jest tekstem.</translation>
+    </message>
+    <message>
+        <source>The folder %1, named in the file %2, does not exist and cannot be created.</source>
+        <translation>Folder %1 podany w pliku %2 nie istnieje i nie można go utworzyć.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot save files in the folder %1, named in the file %2.</source>
+        <translation>Kalahari nie może zapisywać plików w folderze %1 podanym w pliku %2.</translation>
+    </message>
+    <message>
+        <source>This copy of Kalahari keeps its settings and its other data in a folder of its own, named in the file %1 next to the program. It does not start, so as not to use the usual folders of the program instead. Correct the file, or delete it to have the copy use the usual folders.</source>
+        <translation>Ta kopia Kalahari trzyma ustawienia i pozostałe dane we własnym folderze, podanym w pliku %1 obok programu. Nie uruchamia się, żeby nie użyć w zamian zwykłych folderów programu. Popraw ten plik albo usuń go, a kopia będzie używać zwykłych folderów.</translation>
+    </message>
+    <message>
+        <source>Data Folder</source>
+        <translation>Folder danych</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorVersionsPage</name>

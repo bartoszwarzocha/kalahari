@@ -23,6 +23,7 @@
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/core/chapter_document.h"
+#include "kalahari/core/data_folders.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_database.h"
@@ -2107,8 +2108,9 @@ void DocumentCoordinator::onProjectClosed() {
     m_readOnlyBarDismissed = false;
     relistStandaloneFiles();  // they stay open without the book
 
-    // Reset window title
-    emit windowTitleChanged("Kalahari");
+    // Reset window title: the name of the program alone (with the name of a copy that has a
+    // data folder of its own), as MainWindow::updateWindowTitle() without a book
+    emit windowTitleChanged(core::DataFolders::current().programName());
 
     // Clear chapter editing state via NavigatorCoordinator
     if (m_navigatorCoordinator) {

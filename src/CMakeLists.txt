@@ -4,6 +4,7 @@
 set(KALAHARI_CORE_SOURCES
     core/logger.cpp
     core/settings_manager.cpp
+    core/data_folders.cpp            # The writer's data: the system's folders, or a copy's own
     core/settings_schema.cpp         # Default values of all settings
     # OpenSpec #00042: Custom Text Editor
     editor/editor_types.cpp

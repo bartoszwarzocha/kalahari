@@ -5,6 +5,7 @@ set(TEST_SOURCES
     test_main.cpp
     test_support/reset_singletons.cpp  # Sub-Project C WS4.1: singleton reset hook
     core/test_settings_manager.cpp
+    core/test_data_folders.cpp        # A copy of the program with a data folder of its own
     core/test_cmd_line_parser.cpp
     core/test_svg_converter.cpp
     core/test_extension_points.cpp
@@ -156,6 +157,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     # Source files under test (needed for linking)
     ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
     ${CMAKE_SOURCE_DIR}/src/core/settings_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/data_folders.cpp
     ${CMAKE_SOURCE_DIR}/src/core/settings_schema.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cmd_line_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/extension_points.cpp
