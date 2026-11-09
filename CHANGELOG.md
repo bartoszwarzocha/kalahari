@@ -39,7 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `border-width` and `border-color` of `<table>`, `height` and `split` of `<tr>`, and `valign`
   and `background` of `<td>` and `<th>` (docs/kml_format.md). A long table no longer slows
   typing: a change lays out again only its rows (with the rows its cells span and the header
-  rows), and the view draws only the rows it shows.
+  rows), and the view draws only the rows it shows. The colors of the table borders, of the
+  header rows and of the gridlines of a table without borders are set per paper in Settings >
+  Editor > Colors; on dark paper a cell's own background is shown darker, so its text stays
+  readable.
 
 - **Tables** - 2026-10-27. Insert > Table... puts a table at the cursor: a window with its
   columns (up to 20) and rows (up to 100), whether its first row is a header row, and a picture

@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/clipboard_handler.h>
+#include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/kml_serializer.h>
@@ -541,6 +542,47 @@ TEST_CASE("Tables: of a long table the view draws the cells of the rows it shows
     grids = source.tablesIn(0, static_cast<size_t>(editor->textDocument()->blockCount() - 1));
     REQUIRE(grids.size() == 1);
     CHECK(grids.front().cells.size() == 79);
+}
+
+TEST_CASE("Tables: on the dark paper a cell's own background is drawn darker", "[editor][tables][view]") {
+    const QColor saved(QStringLiteral("#ffee88"));
+    const auto backgroundPixels = [&saved](EditorColorMode mode) {
+        auto editor = std::make_unique<BookEditor>();
+        resizeWidget(*editor, QSize(600, 300));
+        EditorAppearance appearance;
+        appearance.colorMode = mode;
+        appearance.cursor.blinking = false;
+        editor->setAppearance(appearance);
+        editor->fromKml(QStringLiteral("<kml><table><tr><td background=\"#ffee88\"><p>Tall</p><p></p>"
+                                       "<p></p></td><td><p>b</p></td></tr></table></kml>"));
+        QImage image(editor->size(), QImage::Format_ARGB32_Premultiplied);
+        image.fill(Qt::transparent);
+        editor->render(&image);
+        // The pixels of the cell's background: as saved, or of its hue and darker
+        int asSaved = 0;
+        int darker = 0;
+        for (int y = 0; y < image.height(); ++y) {
+            for (int x = 0; x < image.width(); ++x) {
+                const QColor pixel = image.pixelColor(x, y);
+                if (pixel == saved) {
+                    ++asSaved;
+                } else if (pixel.lightness() < saved.lightness() - 60 && pixel.red() > pixel.blue() + 40 &&
+                           pixel.green() > pixel.blue() + 40) {
+                    ++darker;
+                }
+            }
+        }
+        CHECK(editor->toKml().contains(QStringLiteral("background=\"#ffee88\"")));
+        return std::pair{asSaved, darker};
+    };
+
+    const auto [lightSaved, lightDarker] = backgroundPixels(EditorColorMode::Light);
+    // On the light paper as saved (only the edges of the letters over it are darker)
+    CHECK(lightSaved > 1000);
+    CHECK(lightDarker * 10 < lightSaved);
+    const auto [darkSaved, darkDarker] = backgroundPixels(EditorColorMode::Dark);
+    CHECK(darkSaved == 0);
+    CHECK(darkDarker > 1000);
 }
 
 TEST_CASE("Tables: the end of a cell has its own formatting mark", "[editor][tables][view]") {

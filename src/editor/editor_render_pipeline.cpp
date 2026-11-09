@@ -1238,6 +1238,7 @@ void EditorRenderPipeline::renderTableGrid(QPainter* painter, const TableGrid& g
                                                               : Qt::SolidLine);
     const double gap = doubled ? std::max(1.0, width) : 0.0;  // between the lines of a double one
     QPen gridPen(m_context.colors.tableGridlines, 0, Qt::DotLine);
+    const bool darkPaper = isDarkPaper(m_context.colors.background);
 
     // A line of an edge: a border when the table has its kind of lines, else a faint one
     const auto drawEdge = [&](bool border, const QPointF& from, const QPointF& to) {
@@ -1292,8 +1293,11 @@ void EditorRenderPipeline::renderTableGrid(QPainter* painter, const TableGrid& g
             continue;
         }
 
-        // Its background: its own, else the shade of the header; the selection over it
-        const QColor background = cell.background.isValid() ? cell.background
+        // Its background: its own (on the dark paper darker, as a highlight of the text, so
+        // the text stays readable), else the shade of the header; the selection over it
+        const QColor background = cell.background.isValid()
+                                      ? (darkPaper ? darkenedForDarkPaper(cell.background, m_context.colors.text)
+                                                   : cell.background)
                                   : cell.row < grid.headerRows ? m_context.colors.tableHeader
                                                                : QColor();
         const bool isSelected = selected && cell.row >= selected->firstRow &&
