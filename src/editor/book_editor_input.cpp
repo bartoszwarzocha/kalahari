@@ -22,6 +22,7 @@
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QScopedValueRollback>
+#include <QTextTable>
 #include <QTimer>
 #include <algorithm>
 #include <optional>
@@ -626,8 +627,21 @@ void BookEditor::startTextDrag()
     const bool movedAway = !m_readOnly && action == Qt::MoveAction && target != this &&
                            (target == nullptr || !isAncestorOf(target));
     if (movedAway && dragged.position() < draggedEnd.position()) {
+        // Selected cells are cleared, the cells staying
+        const std::optional<TableCellRange> cells =
+            selectedCells(*m_textBuffer, dragged.position(), draggedEnd.position());
         clearSelection();
-        removeKeepingTables(dragged, dragged.position(), draggedEnd.position(), false);
+        if (cells) {
+            dragged.beginEditBlock();
+            const std::vector<QTextTableCell> cleared = startingCellsOf(*cells);
+            for (auto cell = cleared.rbegin(); cell != cleared.rend(); ++cell) {
+                clearCell(dragged, *cell);
+            }
+            dragged.endEditBlock();
+            dragged.setPosition(cells->table->cellAt(cells->firstRow, cells->firstColumn).firstPosition());
+        } else {
+            removeKeepingTables(dragged, dragged.position(), draggedEnd.position(), false);
+        }
         finishEdit(dragged);
     }
 }

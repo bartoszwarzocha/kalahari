@@ -59,8 +59,9 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
     std::optional<TableCellPlace> lastCell;  // the cell of the previous paragraph
     bool emptyBlock = true;            // the cursor's block is a new one, without text
     const auto leaveTable = [&]() {
-        // Its cells span their rows and columns once their paragraphs have their formats
-        spanCells(*table, model.table(static_cast<size_t>(tableIndex)).spans);
+        // Its cells span their rows and columns, and get their properties and those of
+        // their rows, once their paragraphs have their formats
+        finishTableCells(*table, model.table(static_cast<size_t>(tableIndex)));
         cursor.setPosition(table->lastPosition() + 1);  // the block after it
         cursor.setBlockFormat(zeroMarginFormat);
         cursor.setBlockCharFormat(QTextCharFormat());

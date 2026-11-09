@@ -330,6 +330,15 @@ public:
     ///        it is
     QPointF fromRepeatedHeader(const QPointF& point) const;
 
+    /// @brief The heights of a table's rows as laid out, without the pages: a row covered
+    ///        whole by cells spanning from above has none (0), its height goes with the row
+    ///        above
+    std::vector<qreal> tableRowHeights(const QTextTable& table) const;
+
+    /// @brief Pixels of a point of the text's lengths: the widths, heights and indents of
+    ///        tables are shown at it, as the style's points are
+    qreal pixelsPerPoint() const { return packagePixels(); }
+
     /// @brief Space between the edges of a cell and its text (whole pixels)
     qreal cellPadding() const;
 

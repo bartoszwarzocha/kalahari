@@ -27,6 +27,27 @@ namespace kalahari::editor {
 /// @brief The most cells Table > Split Cells makes of one, in each direction
 inline constexpr int MAX_SPLIT_CELLS = 20;
 
+/// @brief The narrowest column the editor makes, in points (half a centimetre)
+inline constexpr double MIN_COLUMN_WIDTH = 72.0 / 2.54 / 2.0;
+
+/// @brief What Table > Table Properties... shows and changes: the properties of a table, of
+///        its rows and columns, and of the cells it was opened for
+struct TablePropertiesData {
+    TableProperties table;
+    double textWidth = 0.0;                  ///< Points: the widest a table is
+    std::vector<double> columnWidths;        ///< Points, a column each, the table's width
+                                             ///< together
+    std::vector<TableRowProperties> rows;    ///< A row each
+    int headerRows = 0;
+    int row = 0;                             ///< The row shown first: the cursor's, or the
+                                             ///< first selected one
+    int column = 0;                          ///< The column shown first, as the row
+    TableCellProperties cell;                ///< Of the cursor's cell, or the first selected
+    bool cellChanged = false;                ///< The cells get @c cell (set by the window)
+
+    bool operator==(const TablePropertiesData&) const = default;
+};
+
 // =============================================================================
 // Paragraphs copied with their formats
 // =============================================================================
@@ -62,11 +83,16 @@ void insertParagraphs(QTextCursor& cursor, const std::vector<CopiedParagraph>& p
 /// @brief The paragraphs of a cell
 std::vector<CopiedParagraph> cellParagraphs(const QTextTableCell& cell);
 
+/// @brief The cells starting in a rectangle of cells, row by row (in the order of the text)
+std::vector<QTextTableCell> startingCellsOf(const TableCellRange& range);
+
 /// @brief Whether a cell has no text: one empty paragraph
 bool isCellEmpty(const QTextTableCell& cell);
 
 /// @brief Remove the text of a cell: one empty paragraph in the format of its first stays
-void clearCell(QTextCursor& cursor, const QTextTableCell& cell);
+/// @param keepAnnotations The annotations of the text stay on its place (Delete); false:
+///        they go with it (to the clipboard, or into another cell)
+void clearCell(QTextCursor& cursor, const QTextTableCell& cell, bool keepAnnotations = false);
 
 /// @brief Give a cell the paragraphs in place of its own (none: the cell is emptied)
 void setCellParagraphs(QTextCursor& cursor, const QTextTableCell& cell,

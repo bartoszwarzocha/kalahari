@@ -200,6 +200,10 @@ bool BookEditor::deleteAtTableEdge(bool backward)
 
 QTextCursor BookEditor::selectionToReplace()
 {
+    // Selected cells lose their text first, the cursor going to the first of them
+    if (clearSelectedCells(true)) {
+        return createCursor(m_textBuffer.get(), m_cursorPosition);
+    }
     const SelectionRange sel = m_selection.normalized();
     const int from = calculateAbsolutePosition(sel.start);
     const int to = calculateAbsolutePosition(sel.end);

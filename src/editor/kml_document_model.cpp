@@ -723,6 +723,7 @@ void KmlDocumentModel::parseTable(QXmlStreamReader& reader)
 {
     TableReading table;
     table.index = static_cast<int>(m_tables.size());
+    table.shape.properties = tablePropertiesOfKml(reader.attributes());
     parseTableRows(reader, table);
 
     TableShape& shape = table.shape;
@@ -779,6 +780,10 @@ void KmlDocumentModel::parseTableRows(QXmlStreamReader& reader, TableReading& ta
 void KmlDocumentModel::parseTableRow(QXmlStreamReader& reader, TableReading& table)
 {
     const int row = table.shape.rows++;
+    if (const TableRowProperties properties = rowPropertiesOfKml(reader.attributes());
+        properties != TableRowProperties()) {
+        table.shape.rowFormats.push_back({row, properties});
+    }
     int column = 0;
     bool headerCells = false;
     bool dataCells = false;
@@ -832,6 +837,10 @@ void KmlDocumentModel::parseTableRow(QXmlStreamReader& reader, TableReading& tab
         }
         table.shape.columns = std::max(table.shape.columns, column + columns);
         (child == QStringLiteral("th") ? headerCells : dataCells) = true;
+        if (const TableCellProperties properties = cellPropertiesOfKml(attrs);
+            properties != TableCellProperties()) {
+            table.shape.cellFormats.push_back({row, column, properties});
+        }
 
         // An empty cell has an empty paragraph
         const size_t before = m_paragraphs.size();
@@ -845,9 +854,10 @@ void KmlDocumentModel::parseTableRow(QXmlStreamReader& reader, TableReading& tab
         column += columns;
     }
 
-    // A first row of header cells only is the table's header
-    if (row == 0 && headerCells && !dataCells) {
-        table.shape.headerRows = 1;
+    // The first rows of header cells only are the table's header, with a row the cells of
+    // the header span whole
+    if (row == table.shape.headerRows && !dataCells && (headerCells || row > 0)) {
+        table.shape.headerRows = row + 1;
     }
 }
 

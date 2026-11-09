@@ -5,12 +5,15 @@
 #include "kalahari/editor/annotation.h"
 #include "kalahari/editor/paragraph_styles.h"
 
+#include <QStringList>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextTable>
+#include <QXmlStreamAttributes>
 
 #include <algorithm>
+#include <cmath>
 
 namespace kalahari::editor {
 
@@ -420,6 +423,227 @@ std::optional<TableCellRange> selectedCells(const QTextDocument& document, int a
     range.lastRow = std::max(from.row() + from.rowSpan(), to.row() + to.rowSpan()) - 1;
     range.lastColumn = std::max(from.column() + from.columnSpan(), to.column() + to.columnSpan()) - 1;
     return wholeCells(range);
+}
+
+// =============================================================================
+// The properties in KML
+// =============================================================================
+
+namespace {
+
+/// The names of the lines of the borders in KML, in the order they are written
+constexpr std::pair<int, const char*> BORDER_LINE_NAMES[] = {
+    {BORDER_TOP, "top"},   {BORDER_BOTTOM, "bottom"}, {BORDER_LEFT, "left"},
+    {BORDER_RIGHT, "right"}, {BORDER_ROWS, "rows"},   {BORDER_COLUMNS, "columns"},
+};
+
+/// The value of an attribute, trimmed and in lower case
+QString attributeValue(const QXmlStreamAttributes& attributes, const char* name)
+{
+    return attributes.value(QLatin1String(name)).toString().trimmed().toLower();
+}
+
+/// A color of KML: "#rrggbb"; not valid for anything else
+QColor kmlColor(const QXmlStreamAttributes& attributes, const char* name)
+{
+    const QString value = attributeValue(attributes, name);
+    const QColor color(value);
+    return value.isEmpty() || !color.isValid() ? QColor() : color;
+}
+
+}  // anonymous namespace
+
+QString kmlLength(double points)
+{
+    return QString::number(std::round(points * 100.0) / 100.0, 'g', 8) + QStringLiteral("pt");
+}
+
+std::optional<double> pointsOfKmlLength(const QString& length)
+{
+    const QString value = length.trimmed().toLower();
+    qsizetype digits = 0;
+    while (digits < value.size() &&
+           (value.at(digits).isDigit() || value.at(digits) == QLatin1Char('.'))) {
+        ++digits;
+    }
+    bool ok = false;
+    const double number = value.left(digits).toDouble(&ok);
+    if (!ok || number < 0.0) {
+        return std::nullopt;
+    }
+    const QString unit = value.mid(digits).trimmed();
+    if (unit.isEmpty() || unit == QStringLiteral("pt")) {
+        return number;
+    }
+    constexpr std::pair<const char*, double> UNITS[] = {
+        {"cm", 72.0 / 2.54}, {"mm", 72.0 / 25.4}, {"in", 72.0}, {"px", 0.75}, {"pc", 12.0},
+    };
+    for (const auto& [name, points] : UNITS) {
+        if (unit == QLatin1String(name)) {
+            return number * points;
+        }
+    }
+    return std::nullopt;
+}
+
+std::vector<KmlAttribute> tableKmlAttributes(const TableProperties& properties)
+{
+    std::vector<KmlAttribute> attributes;
+    if (properties.width) {
+        attributes.emplace_back(QStringLiteral("width"), kmlLength(*properties.width));
+    }
+    if (properties.alignment == TableAlignment::Center) {
+        attributes.emplace_back(QStringLiteral("align"), QStringLiteral("center"));
+    } else if (properties.alignment == TableAlignment::Right) {
+        attributes.emplace_back(QStringLiteral("align"), QStringLiteral("right"));
+    } else if (properties.indent > 0.0) {
+        attributes.emplace_back(QStringLiteral("indent"), kmlLength(properties.indent));
+    }
+
+    const TableBorders& borders = properties.borders;
+    if (borders.lines != BORDER_GRID) {
+        QString lines;
+        if (borders.lines == BORDER_NONE) {
+            lines = QStringLiteral("none");
+        } else if (borders.lines == BORDER_BOX) {
+            lines = QStringLiteral("box");
+        } else {
+            QStringList names;
+            for (const auto& [line, name] : BORDER_LINE_NAMES) {
+                if ((borders.lines & line) != 0) {
+                    names << QLatin1String(name);
+                }
+            }
+            lines = names.join(QLatin1Char(' '));
+        }
+        attributes.emplace_back(QStringLiteral("borders"), lines);
+    }
+    if (borders.lines != BORDER_NONE) {
+        constexpr std::pair<BorderStyle, const char*> STYLES[] = {
+            {BorderStyle::Dashed, "dashed"}, {BorderStyle::Dotted, "dotted"},
+            {BorderStyle::Double, "double"}};
+        for (const auto& [style, name] : STYLES) {
+            if (borders.style == style) {
+                attributes.emplace_back(QStringLiteral("border-style"), QLatin1String(name));
+            }
+        }
+        if (std::abs(borders.width - DEFAULT_BORDER_WIDTH) > 0.001) {
+            attributes.emplace_back(QStringLiteral("border-width"), kmlLength(borders.width));
+        }
+        if (borders.color.isValid()) {
+            attributes.emplace_back(QStringLiteral("border-color"), borders.color.name());
+        }
+    }
+    return attributes;
+}
+
+TableProperties tablePropertiesOfKml(const QXmlStreamAttributes& attributes)
+{
+    TableProperties properties;
+    const QString width = attributeValue(attributes, "width");
+    if (!width.endsWith(QLatin1Char('%'))) {
+        if (const std::optional<double> points = pointsOfKmlLength(width); points && *points > 0) {
+            properties.width = *points;
+        }
+    }
+    const QString align = attributeValue(attributes, "align");
+    if (align == QStringLiteral("center")) {
+        properties.alignment = TableAlignment::Center;
+    } else if (align == QStringLiteral("right")) {
+        properties.alignment = TableAlignment::Right;
+    } else if (const std::optional<double> indent =
+                   pointsOfKmlLength(attributeValue(attributes, "indent"))) {
+        properties.indent = *indent;
+    }
+
+    TableBorders& borders = properties.borders;
+    const QString lines = attributeValue(attributes, "borders");
+    if (lines == QStringLiteral("none")) {
+        borders.lines = BORDER_NONE;
+    } else if (lines == QStringLiteral("box")) {
+        borders.lines = BORDER_BOX;
+    } else if (lines == QStringLiteral("grid")) {
+        borders.lines = BORDER_GRID;
+    } else if (!lines.isEmpty()) {
+        int known = BORDER_NONE;
+        bool unknown = false;
+        for (const QString& name : lines.split(QLatin1Char(' '), Qt::SkipEmptyParts)) {
+            const auto line = std::find_if(
+                std::begin(BORDER_LINE_NAMES), std::end(BORDER_LINE_NAMES),
+                [&name](const auto& entry) { return name == QLatin1String(entry.second); });
+            if (line == std::end(BORDER_LINE_NAMES)) {
+                unknown = true;
+            } else {
+                known |= line->first;
+            }
+        }
+        borders.lines = unknown && known == BORDER_NONE ? BORDER_GRID : known;
+    }
+    const QString style = attributeValue(attributes, "border-style");
+    if (style == QStringLiteral("dashed")) {
+        borders.style = BorderStyle::Dashed;
+    } else if (style == QStringLiteral("dotted")) {
+        borders.style = BorderStyle::Dotted;
+    } else if (style == QStringLiteral("double")) {
+        borders.style = BorderStyle::Double;
+    }
+    if (const std::optional<double> lineWidth =
+            pointsOfKmlLength(attributeValue(attributes, "border-width"));
+        lineWidth && *lineWidth > 0.0) {
+        borders.width = std::min(*lineWidth, MAX_BORDER_WIDTH);
+    }
+    borders.color = kmlColor(attributes, "border-color");
+    return properties;
+}
+
+std::vector<KmlAttribute> rowKmlAttributes(const TableRowProperties& properties)
+{
+    std::vector<KmlAttribute> attributes;
+    if (properties.minHeight > 0.0) {
+        attributes.emplace_back(QStringLiteral("height"), kmlLength(properties.minHeight));
+    }
+    if (properties.allowSplit) {
+        attributes.emplace_back(QStringLiteral("split"), QStringLiteral("true"));
+    }
+    return attributes;
+}
+
+TableRowProperties rowPropertiesOfKml(const QXmlStreamAttributes& attributes)
+{
+    TableRowProperties properties;
+    if (const std::optional<double> height =
+            pointsOfKmlLength(attributeValue(attributes, "height"))) {
+        properties.minHeight = std::min(*height, MAX_ROW_HEIGHT);
+    }
+    properties.allowSplit = attributeValue(attributes, "split") == QStringLiteral("true");
+    return properties;
+}
+
+std::vector<KmlAttribute> cellKmlAttributes(const TableCellProperties& properties)
+{
+    std::vector<KmlAttribute> attributes;
+    if (properties.alignment == CellAlignment::Middle) {
+        attributes.emplace_back(QStringLiteral("valign"), QStringLiteral("middle"));
+    } else if (properties.alignment == CellAlignment::Bottom) {
+        attributes.emplace_back(QStringLiteral("valign"), QStringLiteral("bottom"));
+    }
+    if (properties.background.isValid()) {
+        attributes.emplace_back(QStringLiteral("background"), properties.background.name());
+    }
+    return attributes;
+}
+
+TableCellProperties cellPropertiesOfKml(const QXmlStreamAttributes& attributes)
+{
+    TableCellProperties properties;
+    const QString align = attributeValue(attributes, "valign");
+    if (align == QStringLiteral("middle") || align == QStringLiteral("center")) {
+        properties.alignment = CellAlignment::Middle;
+    } else if (align == QStringLiteral("bottom")) {
+        properties.alignment = CellAlignment::Bottom;
+    }
+    properties.background = kmlColor(attributes, "background");
+    return properties;
 }
 
 }  // namespace kalahari::editor

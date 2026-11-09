@@ -1748,6 +1748,24 @@ std::vector<KalahariTextDocumentLayout::TableRow> KalahariTextDocumentLayout::ta
     return rows;
 }
 
+std::vector<qreal> KalahariTextDocumentLayout::tableRowHeights(const QTextTable& table) const {
+    std::vector<qreal> heights(static_cast<size_t>(std::max(0, table.rows())), 0.0);
+    for (int row = 0; row < table.rows(); ++row) {
+        for (int column = 0; column < table.columns(); ++column) {
+            const QTextTableCell cell = table.cellAt(row, column);
+            if (cell.row() != row || cell.column() != column) {
+                continue;
+            }
+            const int first = document()->findBlock(cell.firstPosition()).blockNumber();
+            if (first >= 0 && static_cast<size_t>(first) < m_blockHeights.size()) {
+                heights[static_cast<size_t>(row)] = rowHeight(static_cast<size_t>(first));
+            }
+            break;
+        }
+    }
+    return heights;
+}
+
 std::vector<qreal> KalahariTextDocumentLayout::headerRepeats(const QTextTable& table) const {
     updateBlockPositions();
     std::vector<qreal> tops;

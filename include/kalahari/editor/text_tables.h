@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QColor>
+#include <QString>
 #include <QTextFormat>
 
 #include <optional>
@@ -38,6 +39,7 @@ class QTextDocument;
 class QTextTable;
 class QTextTableCell;
 class QTextTableFormat;
+class QXmlStreamAttributes;
 
 namespace kalahari::editor {
 
@@ -86,6 +88,12 @@ inline constexpr int CELL_BACKGROUND_PROPERTY = QTextFormat::UserProperty + 168;
 
 /// @brief The width of the borders' lines of a new table, in points
 inline constexpr double DEFAULT_BORDER_WIDTH = 0.5;
+
+/// @brief The widest lines of the borders, in points
+inline constexpr double MAX_BORDER_WIDTH = 6.0;
+
+/// @brief The greatest least height of a row, in points (22 inches)
+inline constexpr double MAX_ROW_HEIGHT = 1584.0;
 
 /// @brief Where a table is between the edges of the text
 enum class TableAlignment { Left, Center, Right };
@@ -190,6 +198,42 @@ struct TableShape {
 
     bool operator==(const TableShape&) const = default;
 };
+
+// =============================================================================
+// The properties in KML
+// =============================================================================
+
+/// @brief An attribute of KML: its name and its value
+using KmlAttribute = std::pair<QString, QString>;
+
+/// @brief A length of KML in points: "12.5pt" (the number rounded to two decimals)
+QString kmlLength(double points);
+
+/// @brief The points of a length of KML: a number with a unit, pt, cm, mm, in, px (a 96th of
+///        an inch) or pc, or without one (points); std::nullopt for anything else, or below 0
+std::optional<double> pointsOfKmlLength(const QString& length);
+
+/// @brief The attributes of <table> for its properties, the default ones left out: width,
+///        align, indent, borders ("none", "box", or the lines: "top bottom left right rows
+///        columns"), border-style, border-width and border-color
+std::vector<KmlAttribute> tableKmlAttributes(const TableProperties& properties);
+
+/// @brief The properties of a table from the attributes of its <table> (the default ones
+///        for those it has not, or that are not known)
+TableProperties tablePropertiesOfKml(const QXmlStreamAttributes& attributes);
+
+/// @brief The attributes of <tr> for the properties of a row: height and split="true"
+std::vector<KmlAttribute> rowKmlAttributes(const TableRowProperties& properties);
+
+/// @brief The properties of a row from the attributes of its <tr>
+TableRowProperties rowPropertiesOfKml(const QXmlStreamAttributes& attributes);
+
+/// @brief The attributes of <td> or <th> for the properties of a cell: valign ("middle",
+///        "bottom") and background
+std::vector<KmlAttribute> cellKmlAttributes(const TableCellProperties& properties);
+
+/// @brief The properties of a cell from the attributes of its <td> or <th>
+TableCellProperties cellPropertiesOfKml(const QXmlStreamAttributes& attributes);
 
 /// @brief The cell a paragraph of KML is in: its table (the tables numbered from 0 in the
 ///        order of the KML), its row and its column

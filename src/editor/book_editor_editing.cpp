@@ -78,13 +78,11 @@ void insertFragments(QTextCursor& cursor, const QTextBlock& block, bool objects 
 }
 
 /// @brief Insert a copy of a table of another document at the cursor, splitting its
-///        paragraph as insertTable() does: its shape, and the paragraphs of its cells with
-///        their formats
+///        paragraph as insertTable() does: its shape and properties, and the paragraphs of
+///        its cells with their formats
 /// @return The copy; the cursor ends at the start of the paragraph after it
 QTextTable* insertTableCopy(QTextCursor& cursor, const QTextTable& source) {
-    TableShape shape = tableShapeOf(source);
-    const std::vector<TableSpan> spans = std::move(shape.spans);
-    shape.spans.clear();
+    const TableShape shape = tableShapeOf(source);
     QTextTable* copy = insertTable(cursor, shape);
     const QTextDocument& document = *source.document();
     for (int row = 0; row < shape.rows; ++row) {
@@ -110,7 +108,7 @@ QTextTable* insertTableCopy(QTextCursor& cursor, const QTextTable& source) {
             }
         }
     }
-    spanCells(*copy, spans);
+    finishTableCells(*copy, shape);
     cursor.setPosition(copy->lastPosition() + 1);
     return copy;
 }
@@ -627,6 +625,9 @@ bool BookEditor::removeSelection(bool keepAnnotations)
     }
 
     ensureDocument();
+    if (clearSelectedCells(keepAnnotations)) {
+        return true;  // selected cells lose their text, the cells staying
+    }
 
     SelectionRange sel = m_selection.normalized();
 
@@ -1256,27 +1257,40 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
         return nullptr;
     }
 
-    // The selection as it is: Qt's cursor would take a whole table the selection goes into
+    // The selection as it is: Qt's cursor would take a whole table the selection goes into.
+    // Selected cells are a table of them.
     const SelectionRange sel = m_selection.normalized();
     const int from = calculateAbsolutePosition(sel.start);
     const int to = calculateAbsolutePosition(sel.end);
-    const QString kml = KmlSerializer().toKml(m_textBuffer.get(), from, to);
+    const std::optional<TableCellRange> cells = selectedCellRange();
+    const QString kml = cells ? KmlSerializer().toKml(*cells)
+                              : KmlSerializer().toKml(m_textBuffer.get(), from, to);
+    std::vector<std::pair<int, int>> ranges;  // what the KML holds, in its order
+    if (cells) {
+        for (const QTextTableCell& cell : startingCellsOf(*cells)) {
+            ranges.emplace_back(cell.firstPosition(), cell.lastPosition());
+        }
+    } else {
+        ranges.emplace_back(from, to);
+    }
 
     // The list items with the numbers the editor shows: a part of a list goes on from the
     // number of its first item
     ListMarks marks;
     const std::vector<QString> shownMarks = listMarkers(*m_textBuffer);
     const std::vector<int> shownNumbers = listNumbers(*m_textBuffer);
-    const QTextBlock lastBlock = m_textBuffer->findBlock(to);
-    for (QTextBlock block = m_textBuffer->findBlock(from); block.isValid();
-         block = block.next()) {
-        if (blockObject(block) == TextObject::None && isListItem(block.blockFormat())) {
-            const auto index = static_cast<size_t>(block.blockNumber());
-            marks.marks.push_back(index < shownMarks.size() ? shownMarks[index] : QString());
-            marks.numbers.push_back(index < shownNumbers.size() ? shownNumbers[index] : -1);
-        }
-        if (block == lastBlock) {
-            break;
+    for (const auto& [rangeFrom, rangeTo] : ranges) {
+        const QTextBlock lastBlock = m_textBuffer->findBlock(rangeTo);
+        for (QTextBlock block = m_textBuffer->findBlock(rangeFrom); block.isValid();
+             block = block.next()) {
+            if (blockObject(block) == TextObject::None && isListItem(block.blockFormat())) {
+                const auto index = static_cast<size_t>(block.blockNumber());
+                marks.marks.push_back(index < shownMarks.size() ? shownMarks[index] : QString());
+                marks.numbers.push_back(index < shownNumbers.size() ? shownNumbers[index] : -1);
+            }
+            if (block == lastBlock) {
+                break;
+            }
         }
     }
 
@@ -1345,6 +1359,8 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     }
 
     const SelectionRange moved = m_selection.normalized();
+    const std::optional<TableCellRange> movedCells =
+        moveSelection ? selectedCellRange() : std::nullopt;
     clearSelection();
 
     // One undo step: moved text leaves its place, with its annotations, and lands at the
@@ -1352,7 +1368,14 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     QTextCursor cursor = createCursor(m_textBuffer.get(), validateCursorPosition(position));
     QTextCursor oldPlace;
     cursor.beginEditBlock();
-    if (moveSelection) {
+    if (moveSelection && movedCells) {
+        // Moved cells leave their text, the cells staying
+        oldPlace = QTextCursor(m_textBuffer.get());
+        const std::vector<QTextTableCell> cleared = startingCellsOf(*movedCells);
+        for (auto cell = cleared.rbegin(); cell != cleared.rend(); ++cell) {
+            clearCell(oldPlace, *cell);
+        }
+    } else if (moveSelection) {
         oldPlace = QTextCursor(m_textBuffer.get());
         removeKeepingTables(oldPlace, calculateAbsolutePosition(moved.start),
                             calculateAbsolutePosition(moved.end), false);

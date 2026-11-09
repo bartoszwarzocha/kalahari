@@ -3,6 +3,7 @@
 ///        and turning text into a table and back
 
 #include "kalahari/editor/table_editing.h"
+#include "kalahari/editor/annotation.h"
 #include "kalahari/editor/paragraph_styles.h"
 
 #include <QTextBlock>
@@ -191,12 +192,29 @@ std::vector<CopiedParagraph> cellParagraphs(const QTextTableCell& cell)
     return copyParagraphs(*start.document(), cell.firstPosition(), cell.lastPosition());
 }
 
+std::vector<QTextTableCell> startingCellsOf(const TableCellRange& range)
+{
+    std::vector<QTextTableCell> cells;
+    if (!range.table) {
+        return cells;
+    }
+    for (int row = range.firstRow; row <= range.lastRow; ++row) {
+        for (int column = range.firstColumn; column <= range.lastColumn; ++column) {
+            const QTextTableCell cell = range.table->cellAt(row, column);
+            if (startsAt(cell, row, column)) {
+                cells.push_back(cell);
+            }
+        }
+    }
+    return cells;
+}
+
 bool isCellEmpty(const QTextTableCell& cell)
 {
     return cell.firstPosition() == cell.lastPosition();
 }
 
-void clearCell(QTextCursor& cursor, const QTextTableCell& cell)
+void clearCell(QTextCursor& cursor, const QTextTableCell& cell, bool keepAnnotations)
 {
     if (isCellEmpty(cell)) {
         return;
@@ -205,7 +223,11 @@ void clearCell(QTextCursor& cursor, const QTextTableCell& cell)
     const QTextBlockFormat format = first.blockFormat();
     cursor.setPosition(cell.firstPosition());
     cursor.setPosition(cell.lastPosition(), QTextCursor::KeepAnchor);
-    removeSelectionKeepingObjects(cursor);
+    if (keepAnnotations) {
+        removeKeepingAnnotations(cursor);
+    } else {
+        removeSelectionKeepingObjects(cursor);
+    }
     cursor.setBlockFormat(format);
 }
 

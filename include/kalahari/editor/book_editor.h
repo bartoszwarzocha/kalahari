@@ -24,7 +24,9 @@
 #include <kalahari/editor/grammar_error.h>
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/table_editing.h>
 #include <kalahari/editor/text_lists.h>
+#include <kalahari/editor/text_sorting.h>
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/view_modes.h>
@@ -980,6 +982,149 @@ public:
     /// @param headerRow The first row is a header row
     void insertTable(int columns, int rows, bool headerRow);
 
+    // =========================================================================
+    // The Table menu (book_editor_table_commands.cpp)
+    // =========================================================================
+    // Each change is one undo step: undone, it brings back the cursor and the selection it
+    // was made with. Nothing changes in a read-only text (isReadOnly()).
+
+    /// @brief The cells the selection selects: its ends in two cells of one table, the
+    ///        rectangle between them with every merged cell in it whole; std::nullopt for a
+    ///        selection of text (in one cell, or not in one table)
+    ///
+    /// Such a selection is shown as its cells; Delete and Backspace clear them, typing and
+    /// pasting clear them and go into the first one, and copying copies them as a table.
+    std::optional<TableCellRange> selectedCellRange() const;
+
+    /// @brief The cells the Table menu changes: the selected ones (selectedCellRange()), else
+    ///        the cell of the cursor (of the start of the selection); std::nullopt outside a
+    ///        table
+    std::optional<TableCellRange> tableCells() const;
+
+    /// @brief Table > Insert > Rows Above, Rows Below: as many rows as the cells are high,
+    ///        of the cells of the first or the last of their rows; the cursor stays
+    void insertTableRows(bool below);
+
+    /// @brief Table > Insert > Columns to the Left, to the Right: as many columns as the cells
+    ///        are wide, as wide as the first or the last of their columns (the others get
+    ///        narrower: the table keeps its width)
+    void insertTableColumns(bool right);
+
+    /// @brief Table > Delete > Rows: the rows of the cells; all of them, the table
+    void deleteTableRows();
+
+    /// @brief Table > Delete > Columns: the columns of the cells; all of them, the table
+    void deleteTableColumns();
+
+    /// @brief Table > Delete > Table: the table of the cursor; the cursor goes to the
+    ///        paragraph after it
+    void deleteTable();
+
+    /// @brief What Table > Select selects
+    enum class TablePart { Cell, Row, Column, Table };
+
+    /// @brief Table > Select > Cell, Row, Column, Table: the text of the cursor's cell, or
+    ///        the cells of the rows or the columns of the cells, or of the whole table
+    void selectTablePart(TablePart part);
+
+    /// @brief Whether Table > Merge Cells merges: more than one cell is selected
+    bool canMergeTableCells() const;
+
+    /// @brief Table > Merge Cells: the selected cells become one, with their paragraphs
+    void mergeTableCells();
+
+    /// @brief Whether Table > Split Cells... splits: in a table, a selection of cells to
+    ///        merge first or the cursor's cell
+    bool canSplitTableCells() const;
+
+    /// @brief The paragraphs of the cell Table > Split Cells... splits, which can go into
+    ///        the new cells: of the cursor's cell, or (@p mergeFirst) of the selected cells
+    ///        merged, an empty cell adding none
+    int splitCellParagraphs(bool mergeFirst) const;
+
+    /// @brief Table > Split Cells...: the cursor's cell into @p columns by @p rows cells
+    ///        (1 to MAX_SPLIT_CELLS); with @p mergeFirst the selected cells merged first
+    /// @param distribute The paragraphs of the cell go into the new cells in turn
+    void splitTableCells(int columns, int rows, bool mergeFirst, bool distribute);
+
+    /// @brief Table > Distribute Rows Evenly: the rows of a selection of cells, else all of
+    ///        the table, get the least height of the highest of them
+    void distributeTableRows();
+
+    /// @brief Table > Distribute Columns Evenly: the columns of a selection of cells, else
+    ///        all of the table, get equal widths, together as wide as before
+    void distributeTableColumns();
+
+    /// @brief Whether Table > Repeat Header Rows is checked: the rows of the cells are header
+    ///        rows, repeated at the top of each page the table goes on to
+    bool isTableHeader() const;
+
+    /// @brief Whether Table > Repeat Header Rows can change: the first row of the cells is a
+    ///        header row or the first row after them (header rows are the first rows)
+    bool canChangeTableHeader() const;
+
+    /// @brief Table > Repeat Header Rows: the rows of the cells, and those above them, become
+    ///        header rows (@p header), or they and the rows below them stop being
+    void setTableHeader(bool header);
+
+    /// @brief What Table > Sort... sorts
+    struct SortSubject {
+        bool tableRows = false;   ///< The rows of a table; else paragraphs
+        QStringList columns;      ///< The names of the columns: the texts of the last
+                                  ///< header row, empty for a table without a header
+        int count = 0;            ///< The rows or paragraphs sorted
+    };
+
+    /// @brief What Table > Sort... sorts: in a table, the selected rows (of more than one),
+    ///        else the rows under its header; outside a table, the selected paragraphs, else
+    ///        the items of the cursor's list
+    /// @return std::nullopt when there is nothing to sort (see sortRefusal())
+    std::optional<SortSubject> sortSubject() const;
+
+    /// @brief Why Table > Sort... is greyed out; empty when it is not
+    QString sortRefusal() const;
+
+    /// @brief Table > Sort...: sort what sortSubject() names, by the options; the language
+    ///        is the text's (setTextLanguage()) when the options have none
+    void sortSelection(SortOptions options);
+
+    /// @brief Move the rows of the cells, or the paragraphs of the selection or the cursor's
+    ///        paragraph outside a table, one place up or down (Alt+Shift+Up, Alt+Shift+Down);
+    ///        the selection moves with them
+    /// @return false when they stay: at the start or the end of the table or the text, a
+    ///         header row next to a row under the header, or rows with cells spanning rows
+    bool moveParagraphsOrRows(bool down);
+
+    /// @brief The texts of the paragraphs Table > Convert > Text to Table... turns into a
+    ///        table: the selected ones, else the cursor's; empty in a table, or with an
+    ///        object among them
+    QStringList paragraphsForTable() const;
+
+    /// @brief Table > Convert > Text to Table...: the paragraphs of paragraphsForTable()
+    ///        become a table (textToTable()); the cursor goes to its first cell
+    void convertTextToTable(QChar separator, int columns, bool headerRow);
+
+    /// @brief The texts of the cells of the cursor's table by row, a cell's paragraphs
+    ///        separated by line breaks (QChar::LineSeparator), for Table to Text...
+    std::vector<QStringList> tableTexts() const;
+
+    /// @brief Table > Convert > Table to Text...: the cursor's table becomes paragraphs
+    ///        (tableToText()); the cursor goes to the first of them
+    void convertTableToText(QChar separator);
+
+    /// @brief What Table > Table Properties... shows: the cursor's table, its rows, columns
+    ///        and the cells (tableCells()); std::nullopt outside a table
+    std::optional<TablePropertiesData> tablePropertiesData() const;
+
+    /// @brief Table > Table Properties...: give the table, its rows and columns the
+    ///        properties, and the cells their own when they changed (cellChanged)
+    void setTablePropertiesData(const TablePropertiesData& data);
+
+    /// @brief Set the left edge of a column by dragging it: @p column (1 to the columns - 1)
+    ///        and the one before it divide their width at @p x (layout coordinates), each
+    ///        at least MIN_COLUMN_WIDTH wide
+    void setColumnEdge(QTextTable& table, int column, qreal x);
+
     /// @brief Let the text be changed or not (see isReadOnly())
     void setReadOnly(bool readOnly);
 
@@ -1925,6 +2070,33 @@ private:
     /// staying (removeKeepingTables(), an undo step of its own): the cursor is at its
     /// start then, without a selection.
     QTextCursor selectionToReplace();
+
+    // --- The Table menu (book_editor_table_commands.cpp) ---
+
+    /// @brief Start an undo step of a change of a table: undone, it brings back the cursor
+    ///        and the selection it was made with
+    void beginTableStep(QTextCursor& cursor);
+
+    /// @brief End the step: redone, it brings back the cursor at @p position with the
+    ///        selection from @p anchor (none: the same place), which the editor gets now
+    void endTableStep(QTextCursor& cursor, int position, int anchor = -1);
+
+    /// @brief Clear the selected cells (one undo step); the cursor goes to the first one
+    /// @return false without a selection of cells
+    bool clearSelectedCells(bool keepAnnotations);
+
+    /// @brief The blocks of the paragraphs the selection covers (a selection ending at the
+    ///        start of a paragraph does not cover it), or the cursor's: the first and the last
+    std::pair<int, int> selectedBlockRange() const;
+
+    /// @brief The paragraphs outside tables Table > Sort... sorts: the selected ones (more
+    ///        than one), else the items of the cursor's list; std::nullopt for none, or with
+    ///        an object or a table among them
+    std::optional<std::pair<int, int>> sortedParagraphs() const;
+
+    /// @brief The rows of a table Table > Sort... sorts, all its columns (see sortSubject());
+    ///        std::nullopt for fewer than two, or rows with cells spanning rows
+    std::optional<TableCellRange> sortedRows() const;
 
     /// @brief Select word at cursor position (Phase 3.11)
     void selectWordAtCursor();
