@@ -19,6 +19,8 @@ class QLabel;
 class QLineEdit;
 class QListView;
 class QMenu;
+class QPushButton;
+class QScrollArea;
 class QSortFilterProxyModel;
 class QStackedWidget;
 class QTableView;
@@ -30,6 +32,7 @@ namespace gui {
 class MaterialListModel;
 class MaterialListFilter;
 class FilterHeader;
+class CoverPlan;
 
 /// @brief The list of a kind of materials of the open book (MaterialList), on a tab in the
 /// middle of the window
@@ -46,6 +49,13 @@ class FilterHeader;
 ///
 /// The list keeps for each kind it showed what is chosen, the search, the filters and the
 /// sorting, also when it shows another kind (setList()).
+///
+/// The list of the cover has its materials in groups by what they are (a description, a
+/// tagline, an opinion...), each under a row with its name, as long as Group by Kind is down;
+/// the filter Kind shows one of them. Besides the table and the tiles it has the plan of the
+/// cover (CoverPlan), and the menu of a row chooses a material for the cover or rejects it.
+/// A kind hidden in the Navigator (MaterialList::HIDDEN_SETTING) shows a page that says so,
+/// with a button that shows it again. The gear opens the settings of the materials.
 class MaterialListPanel : public QWidget {
     Q_OBJECT
 
@@ -54,6 +64,9 @@ public:
     static constexpr int SORT_ROLE = Qt::UserRole + 2;   ///< What the column sorts by
     static constexpr int DETAIL_ROLE = Qt::UserRole + 3; ///< A tile's line under the title
     static constexpr int TILE_ROLE = Qt::UserRole + 4;   ///< A tile's picture or icon (QPixmap)
+    /// The name and the number of the group of a row that names one; none for a material
+    static constexpr int HEADING_ROLE = Qt::UserRole + 5;
+    static constexpr int STATE_ROLE = Qt::UserRole + 6;  ///< The state of a material of the cover
 
     /// @brief The list @p list (MaterialList::kinds(), MaterialList::ALL)
     explicit MaterialListPanel(const QString& list, QWidget* parent = nullptr);
@@ -94,6 +107,27 @@ public:
     /// @brief The tiles
     QListView* tiles() const { return m_tiles; }
 
+    /// @brief The plan of the cover
+    CoverPlan* plan() const { return m_plan; }
+
+    /// @brief The button of the plan of the cover; hidden in the other lists
+    QToolButton* planButton() const { return m_planButton; }
+
+    /// @brief Group by Kind of the list of the cover; hidden in the other lists
+    QToolButton* groupsButton() const { return m_groupsButton; }
+
+    /// @brief The filter Kind of the list of the cover; hidden in the other lists
+    QComboBox* partBox() const { return m_partBox; }
+
+    /// @brief Add of the list
+    QToolButton* addButton() const { return m_addButton; }
+
+    /// @brief The gear: the settings of the materials
+    QToolButton* settingsButton() const { return m_settingsButton; }
+
+    /// @brief The page of a kind hidden in the Navigator; shown in place of the list
+    QWidget* hiddenPage() const { return m_hiddenPage; }
+
     /// @brief The search
     QLineEdit* searchField() const { return m_search; }
 
@@ -108,6 +142,18 @@ public:
 
     /// @brief Show the tiles of a list that has them, or its table; kept for the list
     void showTiles(bool tiles);
+
+    /// @brief Show the plan of the cover of the list of the cover, or its table or tiles as
+    /// before; kept for the list
+    void showPlan(bool plan);
+
+    /// @brief Show the materials of the list of the cover in groups by what they are, or in
+    /// one table; kept for the list
+    void showGroups(bool groups);
+
+    /// @brief Show only the materials of the cover of @p part (core::CoverMaterial::BLURB...);
+    /// empty: all
+    void setPartFilter(const QString& part);
 
     /// @brief Show the fields that filter the columns under their headers, or hide them
     void showColumnFilters(bool shown);
@@ -153,6 +199,19 @@ signals:
     /// @brief Add a material to list @p list (Insert)
     void requestAdd(const QString& list);
 
+    /// @brief Add a material of the cover of @p part to list @p list (the menu of Add)
+    void requestAddCover(const QString& list, const QString& part);
+
+    /// @brief Give material @p elementId of the cover the state @p state: chosen for the
+    /// cover, rejected, or a draft (empty)
+    void requestCoverState(const QString& elementId, const QString& state);
+
+    /// @brief Open the settings of the materials (the gear)
+    void requestSettings();
+
+    /// @brief Show list @p list, a kind hidden in the Navigator, again
+    void requestShowKind(const QString& list);
+
     /// @brief Bring the Properties panel to the front with the keys in it (Alt+Enter)
     void requestProperties(const QString& elementId);
 
@@ -172,6 +231,7 @@ private:
         QHash<QString, QString> columnFilter;  ///< Column -> its filter
         QString current;                       ///< The material chosen
         QString sortColumn;                    ///< Empty: MaterialList::firstSortOf()
+        QString part;                          ///< The filter Kind of the cover; empty: all
         Qt::SortOrder sortOrder = Qt::AscendingOrder;
         bool kept = false;  ///< false: the list never showed the kind
     };
@@ -199,6 +259,17 @@ private:
     bool handleKey(QAbstractItemView* view, QKeyEvent* key);
     QString idAt(const QModelIndex& index) const;
     int columnOf(const QString& columnId) const;
+    /// @brief The plan of the cover from the rows shown
+    void updatePlan();
+    /// @brief The page of a kind hidden in the Navigator, or the list
+    void updateHidden();
+    /// @brief Whether the rows that name the groups of the cover are shown: the table of the
+    /// list of the cover with Group by Kind down
+    bool groupsApply() const;
+    /// @brief The materials shown, without the rows that name groups
+    int shownMaterials() const;
+    /// @brief The choices of Kind and the menu of Add of the list of the cover
+    void fillCoverChoices();
 
     QString m_list;
     QHash<QString, State> m_states;
@@ -216,6 +287,19 @@ private:
     QToolButton* m_tableButton = nullptr;
     QToolButton* m_tilesButton = nullptr;
     QToolButton* m_columnsButton = nullptr;
+    QToolButton* m_planButton = nullptr;
+    QToolButton* m_groupsButton = nullptr;
+    QToolButton* m_settingsButton = nullptr;
+    QMenu* m_addMenu = nullptr;           ///< Add of the cover: the kind of the material
+    QLabel* m_partLabel = nullptr;
+    QComboBox* m_partBox = nullptr;
+    QStackedWidget* m_pages = nullptr;    ///< The list, or the page of a kind hidden
+    QWidget* m_hiddenPage = nullptr;
+    QLabel* m_hiddenIcon = nullptr;
+    QLabel* m_hiddenText = nullptr;
+    QPushButton* m_showKindButton = nullptr;
+    QScrollArea* m_planArea = nullptr;
+    CoverPlan* m_plan = nullptr;
     QLineEdit* m_search = nullptr;
     QAction* m_searchIcon = nullptr;  ///< The icon at the start of the search
     QComboBox* m_linkedWith = nullptr;

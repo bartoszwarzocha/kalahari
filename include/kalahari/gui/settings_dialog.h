@@ -56,6 +56,7 @@ public:
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
+    static constexpr const char* NAVIGATOR_PAGE = "navigator";       ///< Navigator
 
     /// @brief Constructor
     /// @param parent Parent widget (usually MainWindow)
@@ -87,7 +88,8 @@ public:
     /// @brief Open a page: EDITOR_COLORS_PAGE (the gears of Insert > Link and of the find bar),
     /// PAGES_PAGE, MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...),
     /// SPELLING_PAGE (the gear of the Spelling and Grammar panel), REPETITIONS_PAGE (the gear of
-    /// the Repetitions panel), ANNOTATIONS_PAGE (the gear of the Annotations panel) or
+    /// the Repetitions panel), VERSIONS_PAGE (the gear of the versions), ANNOTATIONS_PAGE (the
+    /// gear of the Annotations panel), NAVIGATOR_PAGE (the gear of a list of materials) or
     /// SHORTCUTS_PAGE (as showShortcutsPage())
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);

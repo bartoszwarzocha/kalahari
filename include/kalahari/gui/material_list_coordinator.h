@@ -69,10 +69,25 @@ public slots:
     /// when they come to the front
     void refresh();
 
+    /// @brief Hide kind @p list (MaterialList) in the Navigator of every book; its materials
+    /// stay in the book
+    void hideKind(const QString& list);
+
+    /// @brief Show kind @p list in the Navigator again
+    void showKind(const QString& list);
+
+signals:
+    /// @brief A list asked for the settings of the materials (Settings > Navigator)
+    void settingsRequested();
+
 private slots:
     /// @brief What the Materials of the Navigator show changed (NavigatorPanel::
     /// MATERIALS_TREE_SETTING): the Navigator is built again
     void onTreeSettingChanged();
+
+    /// @brief The kinds hidden (MaterialList::HIDDEN_SETTING) changed: the Navigator and the
+    /// lists are built again
+    void onHiddenSettingChanged();
 
 private:
     void refreshNow();
@@ -84,7 +99,10 @@ private:
     void open(const QString& elementId);
     void rename(const QString& elementId);
     void link(const QString& elementId);
-    void add(MaterialListPanel* panel, const QString& list);
+    /// @param coverPart A material of the cover: the part chosen at the start
+    void add(MaterialListPanel* panel, const QString& list, const QString& coverPart = {});
+    /// @brief Give material @p elementId of the cover the state @p state
+    void setCoverState(const QString& elementId, const QString& state);
     void showInFolder(const QString& elementId);
     QWidget* window() const;
 
