@@ -57,6 +57,7 @@ class AnnotationsCoordinator;
 class ParagraphMarksCoordinator;
 class MaterialListCoordinator;
 class EditCoordinator;
+class SpecialCharacterCoordinator;
 class VersionsCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
@@ -308,6 +309,10 @@ private slots:
     /// @brief Show or hide the border around the text of every editor (remembered)
     void onTextFrameBorderToggle();
 
+    /// @brief Show or hide the cards of the annotations under the paragraphs of every editor
+    ///        (remembered)
+    void onAnnotationCardsToggle();
+
     /// @brief Show or hide the formatting marks of every editor (remembered)
     void onFormattingMarksToggle();
 
@@ -397,6 +402,8 @@ private:
     /// @brief The lists of the kinds of materials on their tabs
     MaterialListCoordinator* m_materialListCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
+    /// Insert > Special Character... and Insert > Quick Character
+    SpecialCharacterCoordinator* m_specialCharacterCoordinator{nullptr};
     GrammarCoordinator* m_grammarCoordinator{nullptr};
 
     /// @brief The Spelling and Grammar panel and when it shows

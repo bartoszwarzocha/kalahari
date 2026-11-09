@@ -89,6 +89,16 @@ std::map<std::string, json> buildDefaults() {
         // none); the other commands have the program's (Settings > Keyboard Shortcuts)
         {"keyboard.shortcuts", json::object()},
 
+        // Insert > Special Character...: the writer's favorite characters (at first those a
+        // writer of fiction uses most), the ones inserted last (the last first), whether
+        // the window stays open after Insert, and the view it opens in: the one shown last
+        // ("grid" or "list")
+        {"specialCharacters.favorites",
+         json::array({"—", "–", "…", "„", "”", "⁂", "❦", "→", "°", "§"})},
+        {"specialCharacters.recent", json::array()},
+        {"specialCharacters.keepOpen", true},
+        {"specialCharacters.view", "grid"},
+
         // Log panel
         {"log.bufferSize", 500},
 
@@ -276,6 +286,28 @@ std::map<std::string, json> buildDefaults() {
         // the text's font gives them
         {"editor.annotationMarkSize", 100},
 
+        // Editor: the cards of the annotations under their paragraphs, in the continuous view
+        // (View > Annotation Cards Under Paragraphs, Settings > Annotations): shown or not, and
+        // for which kinds; "full" (the kind, the author and the date over the text) or
+        // "compact" (the text alone, the author and the date at its end); a collapsed one
+        // "mark" (its mark alone) or "line" (a line with the start of its text); "expanded" or
+        // "collapsed" after a chapter opens; a long text cut short after so many lines (0:
+        // whole); the size of their text in percent of the chapter's; how much of the kind's
+        // color they have, in percent of the usual; the fragment of the card the mouse is on
+        // highlighted; "show" or "hide" them in Distraction-Free
+        {"editor.annotationCards.show", false},
+        {"editor.annotationCards.comments", true},
+        {"editor.annotationCards.todos", true},
+        {"editor.annotationCards.notes", true},
+        {"editor.annotationCards.look", "full"},
+        {"editor.annotationCards.collapsedLook", "mark"},
+        {"editor.annotationCards.afterOpening", "expanded"},
+        {"editor.annotationCards.longLines", 0},
+        {"editor.annotationCards.fontSize", 90},
+        {"editor.annotationCards.tint", 100},
+        {"editor.annotationCards.highlightFragment", true},
+        {"editor.annotationCards.distractionFree", "show"},
+
         // Word count in the whole program: a dash standing alone (a dialogue dash) is a word
         {"editor.wordCount.dashesAsWords", false},
 
@@ -288,6 +320,57 @@ std::map<std::string, json> buildDefaults() {
         {"editor.autoCorrect.dialogueDash", true},
         {"editor.autoCorrect.dialogueDashType", "emDash"},
         {"editor.autoCorrect.ellipsis", true},
+
+        // Autocorrect of the words, as a space, a punctuation mark or Enter ends them: a
+        // hyphen between words to a dash ("enDash" or "emDash"; in a line of dialogue the
+        // dash it starts with), two hyphens to an en dash, the replacement table, capitals
+        // (the first letter of a sentence, "TWo", a word typed with Caps Lock on), "***" and
+        // "---" with Enter to a scene break and a line
+        {"editor.autoCorrect.dashBetweenWords", true},
+        {"editor.autoCorrect.dashBetweenWordsType", "enDash"},
+        {"editor.autoCorrect.dashInDialogue", true},
+        {"editor.autoCorrect.doubleHyphen", true},
+        {"editor.autoCorrect.replacementTable", true},
+        {"editor.autoCorrect.sentenceCapitals", true},
+        {"editor.autoCorrect.twoInitialCapitals", true},
+        {"editor.autoCorrect.capsLock", true},
+        {"editor.autoCorrect.sceneBreak", true},
+        {"editor.autoCorrect.horizontalRule", true},
+
+        // The replacement table: pairs of a word and its replacement, each one on or off
+        // (the program's own pairs too; "Restore Defaults" brings back these)
+        {"editor.autoCorrect.replacements",
+         json::array({json{{"from", "(c)"}, {"to", "©"}, {"enabled", true}},
+                      json{{"from", "(r)"}, {"to", "®"}, {"enabled", true}},
+                      json{{"from", "(tm)"}, {"to", "™"}, {"enabled", true}},
+                      json{{"from", "1/2"}, {"to", "½"}, {"enabled", true}},
+                      json{{"from", "1/4"}, {"to", "¼"}, {"enabled", true}},
+                      json{{"from", "3/4"}, {"to", "¾"}, {"enabled", true}},
+                      json{{"from", "->"}, {"to", "→"}, {"enabled", true}},
+                      json{{"from", "<-"}, {"to", "←"}, {"enabled", true}},
+                      json{{"from", "<->"}, {"to", "↔"}, {"enabled", true}},
+                      json{{"from", "=>"}, {"to", "⇒"}, {"enabled", true}},
+                      json{{"from", "+-"}, {"to", "±"}, {"enabled", true}}})},
+
+        // The exceptions of the capitals: the abbreviations after which a period does not
+        // end a sentence, a list for each language (another language has the English one;
+        // abbreviations often at the end of a sentence, as "itd." and "etc.", are not in
+        // them), the words that keep two capitals at their start, and whether undoing a
+        // capital right after it adds the word to them, as in Word
+        {"editor.autoCorrect.abbreviations.pl",
+         json::array({"al.", "ang.", "art.", "bm.", "cz.", "dn.", "dot.", "dr", "gen.",
+                      "godz.", "im.", "inż.", "jw.", "kpt.", "ks.", "m.in.", "mgr", "mjr",
+                      "np.", "nr", "nt.", "ob.", "ok.", "pkt.", "pl.", "płd.", "płk", "płn.",
+                      "por.", "prof.", "przyp.", "rozdz.", "ryc.", "rys.", "św.", "tab.",
+                      "tel.", "tj.", "tys.", "tzn.", "tzw.", "ul.", "ust.", "wg", "wsch.",
+                      "wyd.", "zach.", "zob."})},
+        {"editor.autoCorrect.abbreviations.en",
+         json::array({"approx.", "Ave.", "Blvd.", "ca.", "Capt.", "cf.", "Col.", "Dr.",
+                      "e.g.", "fig.", "Fr.", "Gen.", "Gov.", "i.e.", "Jr.", "Lt.", "Mr.",
+                      "Mrs.", "Ms.", "Mt.", "pp.", "Prof.", "Rev.", "Sen.", "Sgt.", "Sr.",
+                      "St.", "vol.", "vs."})},
+        {"editor.autoCorrect.twoCapitalsExceptions", json::array({"IDs", "PCs"})},
+        {"editor.autoCorrect.learnExceptions", true},
 
         // Editor: versions of the texts (Settings > Editor > Versions, ChapterVersions). With
         // enabled off no new version is kept, neither the writer's nor the program's (except

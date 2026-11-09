@@ -251,6 +251,9 @@ BookEditor::BookEditor(QWidget* parent)
         update(region.boundingRect());
     });
 
+    // The cards of the annotations under the paragraphs are drawn with them
+    setUpAnnotationCards();
+
     // Connect ViewportManager signals
     connect(m_viewportManager.get(), &ViewportManager::viewportChanged,
             this, [this]() {
@@ -317,6 +320,8 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         std::abs(appearance.typewriter.focusPosition - m_appearance.typewriter.focusPosition) >=
             TYPEWRITER_HEIGHT_EPSILON;
     m_appearance = appearance;
+    // The cards are sized after the text's font: before the text is laid out with it
+    m_annotationCards.setTextFont(m_appearance.typography.textFont);
 
     // The render pipeline owns the document font: it applies the font of the settings as
     // the document's default font (one relayout, only when it changes; the zoom scales the
@@ -361,6 +366,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         layout->setSceneBreakLook(m_appearance.sceneBreakLook);
     }
 
+    // The cards of the annotations under the paragraphs: shown or not, their looks and colors
+    updateAnnotationCards();
+
     // The page's margins set the scroll range (the pipeline gives the viewport the scroll
     // padding)
     updateScrollBarRange();
@@ -400,6 +408,7 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
         if (m_renderPipeline) {
             m_renderPipeline->setConfigColors(renderColorsFor(m_appearance, mode));
         }
+        updateAnnotationCards();  // in the colors of the paper
 
         update();
     }
@@ -431,9 +440,13 @@ bool BookEditor::event(QEvent* event)
         }
     }
     // The tooltip of an annotation's mark: who made the annotation, in bold, and its text,
-    // as it is written
+    // as it is written; on a card, what its button does
     if (event->type() == QEvent::ToolTip && m_renderPipeline) {
         const auto* help = static_cast<QHelpEvent*>(event);
+        if (const QString tip = annotationCardToolTip(QPointF(help->pos())); !tip.isEmpty()) {
+            QToolTip::showText(help->globalPos(), tip, this);
+            return true;
+        }
         // The mark beside a paragraph: the titles of the materials linked with it
         if (const std::optional<ParagraphMark> marked = paragraphMarkAt(QPointF(help->pos()))) {
             //: The tooltip of the paperclip beside a paragraph, over the titles of the
@@ -890,6 +903,7 @@ bool BookEditor::fromKml(const QString& kml)
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
     m_pendingFormat = QTextCharFormat();  // it was given for the old text
+    m_learnableChange.reset();            // a change of the old text
 
     // Unreadable KML gives the paragraphs read before the error
     KmlDocumentModel content;
@@ -1034,6 +1048,16 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
             update();
         }
     });
+
+    // The cards of its annotations: collapsed or expanded as the settings say, with room
+    // under their paragraphs
+    m_annotationCards.startText();
+    m_pressedCard.clear();
+    m_selectedCard = QTextCursor();
+    if (m_renderPipeline) {
+        m_renderPipeline->setFragmentHighlight(std::nullopt);
+    }
+    setUpAnnotationCards();
 
     // The render pipeline applies the font and the wrap width while the document is
     // still empty, so the content below is laid out exactly once.

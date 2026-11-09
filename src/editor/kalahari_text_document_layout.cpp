@@ -683,11 +683,13 @@ void KalahariTextDocumentLayout::invalidateAll() {
         m_blockHeights.resize(count);
     }
     m_blockFlowEntries.assign(count, FlowEntry());
+    m_blockSpaceBelow.assign(count, 0.0);
 
     QTextBlock block = doc->begin();
     for (size_t i = 0; i < count && block.isValid(); ++i, block = block.next()) {
         const BlockMetrics& metrics = blockMetrics(block);
         m_blockHeights[i] = estimatedHeight(m_blockExtents[i], metrics);
+        m_blockSpaceBelow[i] = askSpaceBelow(block);
         storeFlowEntries(static_cast<int>(i), block,
                          metrics.spaceBefore + metrics.estimatedLineHeight);
     }
@@ -730,6 +732,54 @@ qreal KalahariTextDocumentLayout::estimatedLines(qreal extent, const BlockMetric
 
 void KalahariTextDocumentLayout::recountMarginsFrom(int blockNumber) {
     m_marginCountsFrom = std::min(m_marginCountsFrom, std::max(blockNumber, 0));
+}
+
+qreal KalahariTextDocumentLayout::askSpaceBelow(const QTextBlock& block) const {
+    if (!m_spaceBelowProvider || m_pageFlow.enabled) {
+        return 0.0;
+    }
+    return std::ceil(std::max<qreal>(0.0, m_spaceBelowProvider(block)));
+}
+
+void KalahariTextDocumentLayout::setSpaceBelowProvider(SpaceBelowProvider provider) {
+    if (!provider && !m_spaceBelowProvider) {
+        return;
+    }
+    m_spaceBelowProvider = std::move(provider);
+    updateSpaceBelow(0);
+}
+
+void KalahariTextDocumentLayout::updateSpaceBelow(int first, int last) {
+    // Asked in the middle of a change, the cache is out of step with the blocks: the change
+    // asks every block it touched by itself
+    const auto count = static_cast<int>(m_blockSpaceBelow.size());
+    if (document()->blockCount() != count) {
+        return;
+    }
+    first = std::max(first, 0);
+    last = last < 0 ? count - 1 : std::min(last, count - 1);
+    bool changed = false;
+    QTextBlock block = document()->findBlockByNumber(first);
+    for (int number = first; number <= last && block.isValid(); ++number, block = block.next()) {
+        const qreal space = askSpaceBelow(block);
+        qreal& stored = m_blockSpaceBelow[static_cast<size_t>(number)];
+        if (space != stored) {
+            stored = space;
+            changed = true;
+        }
+    }
+    if (!changed) {
+        return;
+    }
+    // The blocks below move; their lines stay
+    m_positionsDirty = true;
+    emit blockGeometryChanged(first);
+    notifyGeometryChanged(first, UNBOUNDED_EXTENT);
+}
+
+qreal KalahariTextDocumentLayout::spaceBelow(int blockNumber) const {
+    const auto index = static_cast<size_t>(blockNumber);
+    return blockNumber >= 0 && index < m_blockSpaceBelow.size() ? m_blockSpaceBelow[index] : 0.0;
 }
 
 void KalahariTextDocumentLayout::reportDocumentSize() {
@@ -858,9 +908,11 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
     const bool layOutNow = rangeSize <= IMMEDIATE_LAYOUT_LIMIT;
     std::vector<qreal> heights;
     std::vector<qreal> extents;
+    std::vector<qreal> spaces;
     std::vector<FlowEntry> flowEntries;
     heights.reserve(static_cast<size_t>(rangeSize));
     extents.reserve(static_cast<size_t>(rangeSize));
+    spaces.reserve(static_cast<size_t>(rangeSize));
     flowEntries.reserve(static_cast<size_t>(rangeSize));
     QTextBlock block = doc->findBlockByNumber(first);
     for (int number = first; number <= last && block.isValid(); ++number) {
@@ -870,6 +922,7 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         heights.push_back(layOutNow ? layoutBlock(block, &extent, true, &lead)
                                     : estimatedHeight(extent, metrics));
         extents.push_back(extent);
+        spaces.push_back(askSpaceBelow(block));
         flowEntries.push_back(flowEntry(metrics, lead));
         block = block.next();
     }
@@ -888,9 +941,12 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
     m_pendingCount += layOutNow ? 0 : static_cast<int>(pending.size());
     bool geometryChanged = true;
     if (static_cast<std::ptrdiff_t>(heights.size()) == oldEnd - begin) {
-        geometryChanged = !std::equal(heights.begin(), heights.end(), m_blockHeights.begin() + begin);
+        geometryChanged =
+            !std::equal(heights.begin(), heights.end(), m_blockHeights.begin() + begin) ||
+            !std::equal(spaces.begin(), spaces.end(), m_blockSpaceBelow.begin() + begin);
         std::copy(heights.begin(), heights.end(), m_blockHeights.begin() + begin);
         std::copy(extents.begin(), extents.end(), m_blockExtents.begin() + begin);
+        std::copy(spaces.begin(), spaces.end(), m_blockSpaceBelow.begin() + begin);
         std::copy(pending.begin(), pending.end(), m_blockPending.begin() + begin);
         std::copy(unplaced.begin(), unplaced.end(), m_blockFlowOffsets.begin() + begin);
         std::copy(noFlowHeights.begin(), noFlowHeights.end(), m_blockFlowHeights.begin() + begin);
@@ -902,6 +958,7 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         };
         replace(m_blockHeights, heights);
         replace(m_blockExtents, extents);
+        replace(m_blockSpaceBelow, spaces);
         replace(m_blockPending, pending);
         replace(m_blockFlowOffsets, unplaced);
         replace(m_blockFlowHeights, noFlowHeights);
@@ -1107,7 +1164,7 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
     if (!m_pageFlow.enabled) {
         for (size_t i = 0; i < count; ++i) {
             m_blockYPositions[i] = y;
-            y += m_blockHeights[i];
+            y += m_blockHeights[i] + m_blockSpaceBelow[i];
         }
         m_cachedDocumentHeight = y;
         m_contentBottom = y;
@@ -1269,7 +1326,7 @@ qreal KalahariTextDocumentLayout::blockHeight(int blockNumber) const {
         return 0;
     }
     if (!m_pageFlow.enabled) {
-        return m_blockHeights[index];
+        return m_blockHeights[index] + m_blockSpaceBelow[index];
     }
     // Page flow: from the block's top to the next block's (page breaks included)
     updateBlockPositions();

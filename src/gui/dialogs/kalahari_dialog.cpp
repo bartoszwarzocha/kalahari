@@ -5,6 +5,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 
+#include <QCoreApplication>
 #include <QDialogButtonBox>
 #include <QFont>
 #include <QFrame>
@@ -14,6 +15,7 @@
 #include <QScreen>
 #include <QShowEvent>
 #include <QStyle>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWindow>
 
@@ -202,6 +204,16 @@ void KalahariDialog::fitToScreen(const QSize& wanted)
     m_contentArea->updateGeometry();
     layout()->activate();
     resizeOnScreen(wanted);
+}
+
+void KalahariDialog::growForContent()
+{
+    QTimer::singleShot(0, this, [this]() {
+        if (isVisible()) {
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+            fitToScreen(sizeHint().expandedTo(size()));
+        }
+    });
 }
 
 void KalahariDialog::resizeOnScreen(const QSize& wanted)

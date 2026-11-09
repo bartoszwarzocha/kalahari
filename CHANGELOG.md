@@ -32,6 +32,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the indent of the Settings) or every few spaces of its font (Number of Spaces). The options
   Show Line Numbers and Enable Word Wrap, which did nothing, are gone: the text always wraps.
 
+- **Annotations: cards under the paragraphs, a second way of showing them** - 2026-10-26.
+  View > Annotation Cards Under Paragraphs (also Settings > Annotations > Cards Under
+  Paragraphs) shows each comment, to-do and note not done as a card under the paragraph of
+  its mark, in the order of the marks and in the kind's color: the kind, the author and the
+  date above the text (or, in the compact look, the text alone with the author and the date
+  at its end). Without it the annotations work as before: a mark in the text, a click on it
+  opens the frame. The cards are in the continuous view and, as the Settings say, in
+  Distraction-Free; the page view keeps the marks only. A click on a card goes to its
+  fragment and selects it, a double click edits it, and the fragment is highlighted while
+  the mouse is on its card. A click on a mark collapses or expands its card: collapsed, the
+  annotation is its mark alone or, if chosen, a line with the start of its text; View >
+  Collapse All Annotations and Expand All Annotations do it for the chapter, and the Settings
+  say whether a chapter opens with them expanded or collapsed. The "..." button of a card
+  opens its menu (Edit, Collapse, Mark as Resolved or Mark as Done, Remove, Card Appearance
+  and Colors...), the box of a to-do marks it done, and a long text can be cut short to 3 or
+  6 lines with "Show all" under it. With the cards, an annotation is written in the frame
+  over its card, and a new one in the frame where its card will be. The menu of the text has
+  the annotation at the click on top: its kind and the start of its text, Edit, Mark as
+  Resolved or Done and Remove (also Collapse and Expand with the cards). The Settings also
+  give the kinds that have cards, the size of their text (90% of the chapter's by default)
+  and how strong their background is. The colors are those of the annotations (Settings >
+  Annotations > Colors).
+
 - **Lists of the kinds of materials on tabs** - 2026-10-25. A kind of the Materials clicked
   in the Navigator (or Enter on it, or Open List in its menu) shows its materials on a tab in
   the middle of the window; Materials itself shows All Materials, the working notes too. The
@@ -257,6 +280,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deletes the element; the menus show these keys, and Settings > Keyboard Shortcuts lists them
   (Fixed: the Navigator). In the New Book palette a working note can be created with the
   book, in the Workshop.
+
+- **Editor: autocorrect of words, the replacement table, scene breaks typed** - 2026-10-21.
+  A space, a punctuation mark, Shift+Enter or Enter after a word can change it, as in Word:
+  a pair of the replacement table takes the place of the whole word, also in quotation marks
+  or brackets, with its capital ((c) ©, (r) ®, (tm) ™, 1/2 ½, 1/4 ¼, 3/4 ¾, -> →, <- ←,
+  <-> ↔, => ⇒, +- ±); two hyphens alone or between two words (1939--1945) become an en dash;
+  a hyphen between two spaces after a word becomes a dash (an en dash, in a line of dialogue
+  the dash that starts it); the first letter of a sentence becomes a capital: at the start of
+  the paragraph, after the dialogue dash that starts it, after . ? or !, not after an
+  abbreviation of the text's language (Polish and English lists), a number (5. pułk), an
+  initial (J. Kowalski) or an ellipsis, and not in a word with a capital in it (iPhone); "TWo
+  INitial CApitals" lose the second one, except the exceptions (IDs, PCs); a word typed with
+  Caps Lock on by mistake ("wIELKI") becomes "Wielki", and Caps Lock goes off (on Windows and
+  X11; elsewhere the status bar asks to turn it off). "***" or "---" alone in a paragraph
+  becomes a scene break or a horizontal line with Enter. Each change is an undo step of its
+  own; undoing a capital after a word with a period, or the change of "TWo", right after it
+  adds the word to its exceptions, and the status bar says so. The paragraphs in Code are
+  not changed. Every change has its own setting, on at first, and the lists are in the
+  settings (editor.autoCorrect), on the Auto-correct page of the Settings.
+
+- **Settings > Editor > Auto-correct: three tabs** - 2026-10-21. While Typing has every
+  replacement of the characters with its check box: the quotation marks, the apostrophe, the
+  dialogue dash and the dash between words with the dash beside each (and in a line of
+  dialogue its dash), "--", the ellipsis, the replacement table as a whole, and the text
+  elements typed ("***" and "---" with Enter). Capitals has the first letter of a sentence,
+  "TWo INitial CApitals" and Caps Lock, and the exceptions: the abbreviations after which a
+  sentence does not end, for a text in Polish and for one in English and the other languages,
+  and the words with two capitals, each list with a field to add a word (Enter) and Delete to
+  remove it, and the choice to add an exception when a change is undone right after it.
+  Replacement Table lists all the pairs, the built-in ones and the writer's own, each with its
+  check box: a new pair is typed in two fields over the table (Add, or Enter; a word of the
+  table gets the new replacement, as the note over the table says first), Space turns the
+  pairs selected on and off, F2 changes a cell (a word that cannot be, as one with a space or
+  one of another pair, is put back, saying why), Delete removes the pairs, Insert goes to the
+  field of a new pair, and Restore Defaults brings back the built-in pairs as they were, the
+  writer's own staying. Ctrl+Page Down and Ctrl+Page Up go to the next and the previous tab.
+
+- **Editor: Insert > Formatting Character** - 2026-10-21. The characters of typesetting a
+  keyboard does not have, with the keys of Word: a non-breaking space (Ctrl+Shift+Space), a
+  non-breaking hyphen (Ctrl+_), an optional hyphen, an en dash (Alt+-) and an em dash
+  (Alt+_; on macOS without a key, since Option with the minus types them). Each goes in at
+  the cursor or in place of the selection as an undo step of its own, and autocorrect does
+  not change it; in a book open read-only the items are greyed out, saying why.
+
+- **Editor: Insert > Special Character...** - 2026-10-21. A window of the characters a
+  keyboard does not have, in two views switched by the buttons Grid and List beside the
+  search (Alt+G, Alt+L); it opens in the view shown last, the grid at first. The search finds
+  a character by its name, in the language of the program or in English and without the
+  accents, or by its code (U+2014, 2014; also a character of no group). The grid has the
+  groups at the left (Favorites, Recently Used and nine groups of characters), the characters
+  of the group, the one selected large with its name, code, keys and auto-correct, and under
+  them the 16 characters inserted last (a click inserts one). The list shows each character
+  with its name, code, keys and auto-correct, the groups as buttons over it, and a star that
+  makes a character a favorite. The characters are shown in the font of the text at the
+  cursor: one the font has not is greyed out, and its details say that another font shows it.
+  Enter, Insert or a double click puts the character in at the cursor as an undo step of its
+  own, and the status bar says which; the window stays open after it, as "Keep the window open
+  after inserting" says. The menu of a character (the right button, the Menu key or
+  Shift+F10) has Insert, Add to Favorites, Assign Shortcut... and Add Replacement....
+  Assign Shortcut... records keys that insert the character: keys the program keeps are
+  refused, saying why, and keys of another command take them from it, as the window says
+  before; the character is then in the group Characters of Settings > Keyboard Shortcuts.
+  Add Replacement... adds a word auto-correct replaces with the character to the replacement
+  table. With no chapter open or in a book open read-only Insert is greyed out, saying why.
+  The favorites, the characters inserted last, the view and the choice to keep the window
+  open are in the settings (specialCharacters).
+
+- **Editor: Insert > Quick Character (Ctrl+Shift+I)** - 2026-10-21. A small window under the
+  cursor of the text (over it at the bottom of the screen) with a row of the favorite
+  characters and a row of those inserted last. Typing finds the characters by a name or a
+  code, as the window Insert > Special Character... does, showing the first three rows of
+  them; a name finds first the characters whose names have words starting so ("arrow": the
+  arrows before the characters with "narrow" in their names). The arrows choose a character,
+  Enter or a click inserts it at the cursor as an undo step of its own and closes the window,
+  Esc closes it, and All Characters... (Ctrl+Enter) opens Insert > Special Character....
+  Under the rows the character chosen with its name, code, keys and auto-correct. The keys
+  can be changed in Settings > Keyboard Shortcuts; in a book open read-only the status bar
+  says why it does not open.
 
 - **Dashboard: an X on the card of a recent book** - 2026-10-19. A small X in the top right
   corner of each card takes the book off the recent books ("Remove from the recent books (the

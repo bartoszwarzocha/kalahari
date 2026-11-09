@@ -80,6 +80,10 @@ struct CommandCallbacks {
     std::function<void()> onInsertHorizontalLine;  ///< Insert > Horizontal Line
     std::function<void()> onInsertSceneBreak;   ///< Insert > Scene Break, Book > Scene Break
     std::function<void()> onInsertPageBreak;    ///< Insert > Page Break
+    std::function<void()> onSpecialCharacter;   ///< Insert > Special Character...
+    std::function<void()> onQuickCharacter;     ///< Insert > Quick Character (the palette)
+    /// Insert > Formatting Character: the characters into the text with the keys
+    std::function<void(const QString& characters)> onInsertCharacters;
 
     // =========================================================================
     // FORMAT COMMANDS (OpenSpec #00042 Phase 7.2)
@@ -113,6 +117,7 @@ struct CommandCallbacks {
     std::function<void()> onFocusToggle;        ///< View > Focus
     std::function<void()> onDarkPaperToggle;    ///< View > Dark Paper
     std::function<void()> onTextFrameBorderToggle;  ///< View > Text Frame Border
+    std::function<void()> onAnnotationCardsToggle;  ///< View > Annotation Cards Under Paragraphs
     std::function<void()> onDistractionFreeToggle;  ///< View > Distraction-Free
     std::function<void()> onFormattingMarksToggle;  ///< View > Show Formatting Marks
 
