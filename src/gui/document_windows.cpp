@@ -12,10 +12,12 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/utils/tab_focus.h"
+#include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari/gui/widgets/status_bar_statistics.h"
 
 #include <QAction>
 #include <QApplication>
+#include <QChildEvent>
 #include <QCloseEvent>
 #include <QContextMenuEvent>
 #include <QCursor>
@@ -45,6 +47,22 @@ namespace {
 
 /// The data of a tab being dragged between the bars of tabs of the windows of a book
 constexpr const char* TAB_MIME = "application/x-kalahari-tab";
+
+/// The tabs in more rows over the bar of @p tabs (CentralTabs), which get the mouse there;
+/// nullptr in one row
+PanelTabBar* rowsOf(const QTabWidget& tabs) {
+    const auto* central = qobject_cast<const CentralTabs*>(&tabs);
+    return central != nullptr ? central->tabRows() : nullptr;
+}
+
+/// The tab of @p tabs at @p pos on their bar, in one row or in more rows; -1 for none
+int tabAt(const QTabWidget& tabs, const QPoint& pos) {
+    const QTabBar* bar = tabs.tabBar();
+    if (const PanelTabBar* rows = rowsOf(tabs)) {
+        return rows->tabAt(rows->mapFrom(bar, pos));
+    }
+    return bar->tabAt(pos);
+}
 
 /// The window title of the book window without the name of the program: "Rain"
 QString withoutProgramName(QString title) {
@@ -229,6 +247,11 @@ void DocumentWindows::watch(QTabWidget& tabs) {
     QTabBar* bar = tabs.tabBar();
     bar->installEventFilter(this);
     bar->setAcceptDrops(true);
+    // The tabs in more rows over the bar get the mouse there: those shown now, and those the
+    // setting makes later (QEvent::ChildPolished). A drop goes to the bar under them
+    if (PanelTabBar* rows = rowsOf(tabs)) {
+        rows->installEventFilter(this);
+    }
     connect(&tabs, &QTabWidget::currentChanged, this,
             [this, tabs = &tabs](int /*index*/) { setFrontTabs(tabs); });
 }
@@ -384,37 +407,59 @@ void DocumentWindows::activateNextWindow(int step) {
 // ----------------------------------------------------------------------------
 
 bool DocumentWindows::eventFilter(QObject* watched, QEvent* event) {
-    // The bar of tabs of the book; none while the bar or its tabs are being destroyed
-    auto* bar = qobject_cast<QTabBar*>(watched);
+    // The bar of tabs of the book, or its tabs in more rows; none while the bar or its tabs are
+    // being destroyed, nor the rows going away
+    auto* rows = qobject_cast<PanelTabBar*>(watched);
+    auto* bar = rows != nullptr ? qobject_cast<QTabBar*>(rows->parentWidget())
+                                : qobject_cast<QTabBar*>(watched);
     auto* tabs = bar != nullptr ? qobject_cast<QTabWidget*>(bar->parentWidget()) : nullptr;
-    if (tabs == nullptr || !allTabs().contains(tabs)) {
+    if (tabs == nullptr || !allTabs().contains(tabs) ||
+        (rows != nullptr && rows != rowsOf(*tabs))) {
         return QObject::eventFilter(watched, event);
     }
+    // The widget under the mouse, and a place on it as a place on the bar
+    QWidget* shown = rows != nullptr ? static_cast<QWidget*>(rows) : bar;
+    const auto onBar = [shown, bar](const QPoint& pos) { return shown->mapTo(bar, pos); };
 
     switch (event->type()) {
+    case QEvent::ChildPolished: {
+        // The tabs in more rows, made when the setting changes: polished before they show and
+        // get the mouse
+        QObject* child = static_cast<QChildEvent*>(event)->child();
+        if (rows == nullptr && qobject_cast<PanelTabBar*>(child) != nullptr) {
+            child->installEventFilter(this);
+        }
+        break;
+    }
     case QEvent::MouseButtonPress: {
         auto* mouse = static_cast<QMouseEvent*>(event);
         if (mouse->button() == Qt::LeftButton) {
+            const QPoint pos = mouse->position().toPoint();
+            const int index = tabAt(*tabs, onBar(pos));
+            // Not the close button of a tab in the rows (Qt's are buttons of their own)
+            const bool closing =
+                rows != nullptr && index >= 0 && rows->closeRect(index).contains(pos);
             m_pressedBar = bar;
-            m_pressedIndex = bar->tabAt(mouse->position().toPoint());
-            m_pressPos = mouse->position().toPoint();
+            m_pressedPage = index >= 0 && !closing ? tabs->widget(index) : nullptr;
+            m_pressPos = pos;
         }
         break;
     }
     case QEvent::MouseMove: {
         auto* mouse = static_cast<QMouseEvent*>(event);
-        if (m_pressedBar != bar || m_pressedIndex < 0 || !(mouse->buttons() & Qt::LeftButton)) {
+        QWidget* page = m_pressedPage;
+        if (m_pressedBar != bar || page == nullptr || !(mouse->buttons() & Qt::LeftButton)) {
             break;
         }
-        // Off the bar, further than a tab is high: the tab leaves it
+        // Off the tabs, further than a tab is high: the tab leaves them
+        const int index = tabs->indexOf(page);
+        if (index < 0 || !canDetach(page)) {
+            break;
+        }
         const QPoint pos = mouse->position().toPoint();
-        const int margin = std::max(QApplication::startDragDistance() * 2, bar->height());
-        if (bar->rect().adjusted(-margin, -margin, margin, margin).contains(pos)) {
-            break;
-        }
-        // The tab pressed is the one in front, wherever the bar moved it
-        const int index = tabs->currentIndex();
-        if (!canDetach(tabs->widget(index))) {
+        const int tabHeight = rows != nullptr ? rows->tabRect(index).height() : bar->height();
+        const int margin = std::max(QApplication::startDragDistance() * 2, tabHeight);
+        if (shown->rect().adjusted(-margin, -margin, margin, margin).contains(pos)) {
             break;
         }
         dragTab(*tabs, index);
@@ -422,7 +467,7 @@ bool DocumentWindows::eventFilter(QObject* watched, QEvent* event) {
     }
     case QEvent::MouseButtonRelease:
         m_pressedBar = nullptr;
-        m_pressedIndex = -1;
+        m_pressedPage = nullptr;
         break;
     case QEvent::DragEnter:
     case QEvent::DragMove: {
@@ -444,16 +489,16 @@ bool DocumentWindows::eventFilter(QObject* watched, QEvent* event) {
         drop->setDropAction(Qt::MoveAction);
         drop->accept();
         // Where it was dropped among the tabs; after the last one past them
-        moveTo(page, *tabs, bar->tabAt(drop->position().toPoint()));
+        moveTo(page, *tabs, tabAt(*tabs, onBar(drop->position().toPoint())));
         bringToFront(tabs->window(), *tabs);
         return true;
     }
     case QEvent::ContextMenu: {
         auto* menu = static_cast<QContextMenuEvent*>(event);
-        int index = bar->tabAt(menu->pos());
-        if (index < 0 && menu->reason() == QContextMenuEvent::Keyboard) {
-            index = bar->currentIndex();
-        }
+        // With the menu key, of the tab in front; with the mouse, of the tab under it
+        const int index = menu->reason() == QContextMenuEvent::Keyboard
+                              ? tabs->currentIndex()
+                              : tabAt(*tabs, onBar(menu->pos()));
         if (index >= 0) {
             showTabMenu(*tabs, index, menu->globalPos());
             return true;
@@ -478,13 +523,25 @@ void DocumentWindows::dragTab(QTabWidget& tabs, int index) {
         });
 
     // The bar stops moving the tab among its tabs, as if the button was released where it was
-    // pressed
+    // pressed; the tabs in more rows stop showing where it goes, as if the mouse left them and
+    // the button was released there
     const QPoint pressPos = m_pressPos;
     m_pressedBar = nullptr;
-    m_pressedIndex = -1;
-    QMouseEvent release(QEvent::MouseButtonRelease, pressPos, bar->mapToGlobal(pressPos),
-                        Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
-    QCoreApplication::sendEvent(bar, &release);
+    m_pressedPage = nullptr;
+    PanelTabBar* rows = rowsOf(tabs);
+    if (rows != nullptr) {
+        const QPoint away(-1, -1);
+        QMouseEvent leave(QEvent::MouseMove, away, rows->mapToGlobal(away), Qt::NoButton,
+                          Qt::LeftButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(rows, &leave);
+        QMouseEvent release(QEvent::MouseButtonRelease, away, rows->mapToGlobal(away),
+                            Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(rows, &release);
+    } else {
+        QMouseEvent release(QEvent::MouseButtonRelease, pressPos, bar->mapToGlobal(pressPos),
+                            Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(bar, &release);
+    }
 
     auto* drag = new QDrag(bar);
     auto* data = new QMimeData;
@@ -492,7 +549,8 @@ void DocumentWindows::dragTab(QTabWidget& tabs, int index) {
     drag->setMimeData(data);
     const int at = tabs.indexOf(page);
     if (at >= 0) {
-        drag->setPixmap(bar->grab(bar->tabRect(at)));
+        drag->setPixmap(rows != nullptr ? rows->grab(rows->tabRect(at))
+                                        : bar->grab(bar->tabRect(at)));
     }
     m_draggedPage = page;
     m_dropped = false;

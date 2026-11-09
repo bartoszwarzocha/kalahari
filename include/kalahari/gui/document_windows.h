@@ -8,6 +8,7 @@
 #include <QMainWindow>
 #include <QObject>
 #include <QPoint>
+#include <QPointer>
 #include <QString>
 
 #include <functional>
@@ -163,7 +164,8 @@ signals:
     void windowsChanged();
 
 protected:
-    /// @brief The mouse on a bar of tabs: a tab dragged off it, a drop on it, its menu
+    /// @brief The mouse on a bar of tabs, or on its tabs in more rows (CentralTabs): a tab
+    ///        dragged off it, a drop on it, its menu
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
@@ -177,7 +179,8 @@ private:
     /// their own
     QList<QTabWidget*> allTabs() const;
 
-    /// @brief Watch the bar of @p tabs: dragging off, drops, its menu, the page in front
+    /// @brief Watch the bar of @p tabs and its tabs in more rows: dragging off, drops, its menu,
+    ///        the page in front
     void watch(QTabWidget& tabs);
 
     /// @brief @p tabs became the ones in front: say so when the page in front changed
@@ -205,8 +208,8 @@ private:
 
     // A tab pressed on a bar: dragging it off the bar takes it to a window of its own
     const QTabBar* m_pressedBar = nullptr;  ///< To compare
-    int m_pressedIndex = -1;
-    QPoint m_pressPos;
+    QPointer<QWidget> m_pressedPage;        ///< Of the tab pressed, wherever the bar moves it
+    QPoint m_pressPos;                      ///< On the bar or on its tabs in more rows
     QWidget* m_draggedPage = nullptr;  ///< The page of the tab being dragged
     bool m_dropped = false;            ///< The tab being dragged was dropped on a bar of tabs
 
