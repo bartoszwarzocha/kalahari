@@ -893,9 +893,14 @@ QRectF EditorRenderPipeline::paragraphMarkRect(size_t paragraph) const {
     const double scale = m_context.computed.viewScale;
     const double size =
         std::max(PARAGRAPH_MARK_MINIMUM, line.height() * scale * PARAGRAPH_MARK_SHARE);
-    const double textLeft =
-        documentToWidget(QPointF(0.0, m_textSource->paragraphY(paragraph) + line.y())).x();
-    const double x = textLeft - size * (1.0 + PARAGRAPH_MARK_GAP_SHARE);
+    const double lineY = m_textSource->paragraphY(paragraph) + line.y();
+    const double textLeft = documentToWidget(QPointF(0.0, lineY)).x();
+    // The numbers on the margin are next to the text: the mark goes left of their column, so
+    // that a large first line (a heading) does not cover them
+    const double besides = m_context.marginNumbers.numbering == MarginNumbering::None
+                               ? textLeft
+                               : marginNumbersLeft(lineY);
+    const double x = besides - size * (1.0 + PARAGRAPH_MARK_GAP_SHARE);
     const double middle = paragraphWidgetY(paragraph) + (line.y() + line.height() / 2.0) * scale;
     return QRectF(x, middle - size / 2.0, size, size);
 }
@@ -1644,9 +1649,7 @@ void EditorRenderPipeline::renderMarginNumbers(QPainter* painter, const QRect& c
     const bool restart = lines && numbers.restartEachPage && m_context.viewMode == ViewMode::Page;
     const int interval = std::max(1, numbers.interval);
 
-    // In points, zoomed with the text by the painter
-    QFont font(numbers.fontFamily);
-    font.setPointSizeF(numbers.pointSize > 0.0 ? numbers.pointSize : DEFAULT_MARGIN_NUMBER_POINTS);
+    const QFont font = marginNumberFont();
     const QFontMetricsF metrics(font);
     painter->save();
     painter->setFont(font);
@@ -1660,9 +1663,7 @@ void EditorRenderPipeline::renderMarginNumbers(QPainter* painter, const QRect& c
             return;
         }
         // Right-aligned, left of the text of the line's page (mirror margins: its margin)
-        const int page = pageAtDocumentY(lineY);
-        const double margin = computed.marginLeft + pageShiftX(page);
-        const double gap = std::min(MARGIN_NUMBER_GAP_MM * computed.mmToPixels, margin / 2.0);
+        const double gap = marginNumberGap(pageAtDocumentY(lineY));
         const QString text = QString::number(number);
         painter->save();
         painter->translate(lineTop);
@@ -1701,6 +1702,31 @@ void EditorRenderPipeline::renderMarginNumbers(QPainter* painter, const QRect& c
         }
     }
     painter->restore();
+}
+
+QFont EditorRenderPipeline::marginNumberFont() const {
+    const MarginNumbers& numbers = m_context.marginNumbers;
+    QFont font(numbers.fontFamily);
+    font.setPointSizeF(numbers.pointSize > 0.0 ? numbers.pointSize : DEFAULT_MARGIN_NUMBER_POINTS);
+    return font;
+}
+
+double EditorRenderPipeline::marginNumberGap(int page) const {
+    const auto& computed = m_context.computed;
+    const double margin = computed.marginLeft + pageShiftX(page);
+    return std::min(MARGIN_NUMBER_GAP_MM * computed.mmToPixels, margin / 2.0);
+}
+
+double EditorRenderPipeline::marginNumbersLeft(double documentY) const {
+    const double textLeft = documentToWidget(QPointF(0.0, documentY)).x();
+    const size_t count = m_textSource ? m_textSource->paragraphCount() : 0;
+    const MarginCounts all = count > 0 ? m_textSource->marginCountsBefore(count) : MarginCounts{};
+    const int largest =
+        std::max(1, m_context.marginNumbers.numbering == MarginNumbering::Lines ? all.lines
+                                                                                : all.paragraphs);
+    const double width = QFontMetricsF(marginNumberFont()).horizontalAdvance(QString::number(largest));
+    return textLeft -
+           (marginNumberGap(pageAtDocumentY(documentY)) + width) * m_context.computed.viewScale;
 }
 
 int EditorRenderPipeline::firstLineOfPage(int page) const {
