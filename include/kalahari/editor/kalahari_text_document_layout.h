@@ -31,8 +31,8 @@ namespace kalahari::editor {
 /// spaces lines only as the view typography asks for.
 ///
 /// Key features:
-/// - Line spacing, paragraph spacing and first-line indent from LayoutTypography; the
-///   extra line spacing is split evenly above and below each line
+/// - Line spacing, paragraph spacing, first-line indent and tab stops from
+///   LayoutTypography; the extra line spacing is split evenly above and below each line
 /// - Paragraph styles (ParagraphStyleSet): Normal is shown as the typography and the
 ///   document font say, every other style in the proportions of its package (see
 ///   BlockMetrics); the fonts of a style go over the text as QTextLayout formats, so the
@@ -188,6 +188,7 @@ public:
         qreal emptyAscent = 0.0;      ///< Ascent and height of the line of an empty
         qreal emptyLineHeight = 0.0;  ///< paragraph in the style's font
         qreal estimatedLineHeight = 1.0;  ///< Line box height the estimates use
+        qreal tabStopDistance = 0.0;  ///< Between two tab stops (0: Qt's default)
     };
 
     /// @brief Set the styles of the book; every paragraph is shown in its style again
@@ -246,6 +247,21 @@ public:
     void layoutAllBlocks();
 
     // ==========================================================================
+    // The numbers on the margin
+    // ==========================================================================
+
+    /// @brief What the numbers on the margin count before a block: the lines of the blocks
+    ///        before it (estimated for the ones waiting for layout; none of the cells of a
+    ///        table) and the paragraphs with text among them (isNumberedParagraph())
+    /// @param blockNumber A block number; the block count: the whole document
+    MarginCounts marginCountsBefore(int blockNumber) const;
+
+    /// @brief Whether a block is numbered as a paragraph: a paragraph with text, not a
+    ///        heading, not an object (a horizontal line, a scene or page break) and not in a
+    ///        cell of a table
+    static bool isNumberedParagraph(const QTextBlock& block);
+
+    // ==========================================================================
     // Layout on demand
     // ==========================================================================
 
@@ -275,14 +291,38 @@ public:
     static QTextLayout* blockLayout(const QTextBlock& block);
 
     // ==========================================================================
+    // Room under the blocks
+    // ==========================================================================
+
+    /// @brief Gives the room the view needs under a block's text (the cards of its
+    ///        annotations), in document units; 0: none
+    using SpaceBelowProvider = std::function<qreal(const QTextBlock& block)>;
+
+    /// @brief Set what gives the room under the blocks (none: no block has any); every
+    ///        block is asked again
+    ///
+    /// Without page flow only: the pages keep their lines as they are printed. The room is
+    /// part of the block's height (blockHeight(), blockBoundingRect()), under its spacing;
+    /// its lines stay where they are. Whole pixels.
+    void setSpaceBelowProvider(SpaceBelowProvider provider);
+
+    /// @brief Ask the blocks [first, last] for their room again: what it depends on changed
+    ///        while their text stayed (an edited text asks by itself)
+    /// @param last -1: to the end of the document
+    void updateSpaceBelow(int first, int last = -1);
+
+    /// @brief The room under a block's text (0 with page flow)
+    qreal spaceBelow(int blockNumber) const;
+
+    // ==========================================================================
     // Geometry
     // ==========================================================================
 
     /// @brief Top of a block in document coordinates (document height past the end)
     qreal blockY(int blockNumber) const;
 
-    /// @brief Height of a block, including its paragraph spacing (estimated while the
-    ///        block waits for layout)
+    /// @brief Height of a block, including its paragraph spacing and the room under it
+    ///        (estimated while the block waits for layout)
     qreal blockHeight(int blockNumber) const;
 
     /// @brief Number of the block covering @p y (clamped to the first/last block): in a
@@ -421,6 +461,17 @@ private:
     /// @brief Height a block of the given text extent probably gets at the current settings
     /// @param width The width its lines have; negative: the width of the text
     qreal estimatedHeight(qreal extent, const BlockMetrics& metrics, qreal width = -1.0) const;
+
+    /// @brief Number of lines a block of the given text extent probably gets
+    /// @param width The width its lines have; negative: the width of the text
+    qreal estimatedLines(qreal extent, const BlockMetrics& metrics, qreal width = -1.0) const;
+
+    /// @brief The numbers on the margin count the blocks from @p blockNumber on again (the
+    ///        blocks before it are as they were)
+    void recountMarginsFrom(int blockNumber);
+
+    /// @brief The room the provider gives a block (0 without a provider or with page flow)
+    qreal askSpaceBelow(const QTextBlock& block) const;
 
     /// @brief Height of a line's box: the line, or for the line of an empty paragraph
     ///        (@p empty) the line of its style's font, with its share of the line spacing
@@ -609,6 +660,11 @@ private:
     std::vector<char> m_blockPending;
     int m_pendingCount = 0;
 
+    // The room under each block's text (setSpaceBelowProvider()), kept in step with the
+    // document; not part of m_blockHeights, so a new room places no line again
+    SpaceBelowProvider m_spaceBelowProvider;
+    std::vector<qreal> m_blockSpaceBelow;
+
     // Width and font the laid out blocks follow; a change makes every block wait
     qreal m_layoutWidth = -1;
     QFont m_layoutFont;
@@ -616,6 +672,12 @@ private:
     // Metrics of the current font for the estimates
     qreal m_averageCharWidth = 1;
     qreal m_estimatedLineHeight = 1;
+
+    // What the numbers on the margin count before each block (marginCountsBefore()), one
+    // more entry for the whole document; from block m_marginCountsFrom on counted again
+    // after a change (recountMarginsFrom())
+    mutable std::vector<MarginCounts> m_marginCounts;
+    mutable int m_marginCountsFrom = 0;
 
     // Background pass: next block to look at, and the timer driving it
     int m_backgroundNext = 0;

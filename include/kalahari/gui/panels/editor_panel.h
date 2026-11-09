@@ -18,6 +18,7 @@ struct KindWords;
 namespace kalahari::editor {
 class BookEditor;
 class ParagraphStyleSet;
+class QuickInsertController;
 class StatisticsCollector;
 enum class LearnedException;
 }
@@ -103,6 +104,10 @@ public:
     /// @return Const pointer to BookEditor widget
     const editor::BookEditor* getBookEditor() const { return m_bookEditor; }
 
+    /// @brief Quick insert in the text: the list that @ and # typed at the start of a word open,
+    ///        and Insert > Quick Insert...
+    editor::QuickInsertController* quickInsert() const { return m_quickInsert; }
+
     // =========================================================================
     // Statistics Integration (OpenSpec #00042 Task 7.7)
     // =========================================================================
@@ -146,7 +151,7 @@ public:
     /// @brief Insert > Link... (Ctrl+K), also Edit Hyperlink of a link's context menu: the
     ///        window of the link at the cursor (BookEditor::linkTarget()); OK makes the link,
     ///        Remove Link takes it off the text
-    void showLinkDialog();
+    void showHyperlinkDialog();
 
     /// @brief Insert > Table...: the window of the new table's columns and rows; Insert puts
     ///        the table at the cursor (BookEditor::insertTable())
@@ -156,6 +161,10 @@ public:
     ///        a page, a file server or a new e-mail; another address is refused with a
     ///        message in the status bar (editor::isOpenableLinkAddress())
     void openLink(const QString& address);
+
+    /// @brief Set whether the text starts on a left page: the chapter's own setting
+    ///        (ProjectElement::firstPageLeft), which the margins of its pages follow
+    void setFirstPageLeft(bool left);
 
 signals:
     /// @brief Emitted when editor content changes
@@ -201,6 +210,7 @@ private:
     void scheduleSettings();
 
     editor::BookEditor* m_bookEditor;                     ///< The BookEditor widget
+    editor::QuickInsertController* m_quickInsert{nullptr};  ///< Quick insert in the text
     int m_settingsListener{0};                            ///< SettingsManager::subscribe() id
     std::atomic<bool> m_settingsPending{false};           ///< scheduleSettings() waits for the
                                                           ///< event loop

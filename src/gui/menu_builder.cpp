@@ -33,6 +33,8 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "TOOLS") return QObject::tr("&Tools");
     if (technicalName == "ASSISTANT") return QObject::tr("&Assistant");
     if (technicalName == "VIEW") return QObject::tr("&View");
+    //: The menu of the windows of the program, before Help. In Polish: &Okno
+    if (technicalName == "WINDOW") return QObject::tr("&Window");
     if (technicalName == "HELP") return QObject::tr("&Help");
 
     // Submenus
@@ -49,6 +51,7 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Assistant Actions") return QObject::tr("Assistant A&ctions");
     if (technicalName == "View Mode") return QObject::tr("View &Mode");
     if (technicalName == "Zoom") return QObject::tr("&Zoom");
+    if (technicalName == "Margin Numbering") return QObject::tr("Margin &Numbering");
     if (technicalName == "Panels") return QObject::tr("&Panels");
     if (technicalName == "Perspectives") return QObject::tr("Pe&rspectives");
     if (technicalName == "Toolbars") return QObject::tr("&Toolbars");
@@ -64,7 +67,7 @@ QString MenuBuilder::menuTitle(const std::string& technicalName) {
 
 const std::vector<std::string>& MenuBuilder::topLevelMenus() {
     static const std::vector<std::string> menus = {
-        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TOOLS", "ASSISTANT", "VIEW", "HELP"
+        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TOOLS", "ASSISTANT", "VIEW", "WINDOW", "HELP"
     };
     return menus;
 }
@@ -85,6 +88,7 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Assistant Actions", QStringLiteral("menu.assistantActions")},
         {"View Mode", QStringLiteral("menu.viewMode")},
         {"Zoom", QStringLiteral("menu.zoom")},
+        {"Margin Numbering", QStringLiteral("menu.marginNumbers")},
         {"Panels", QStringLiteral("menu.panels")},
         {"Perspectives", QStringLiteral("menu.perspectives")},
         {"Toolbars", QStringLiteral("menu.toolbars")},

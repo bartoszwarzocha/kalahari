@@ -22,6 +22,8 @@ class QPushButton;
 class QRadioButton;
 class QTableWidget;
 class QTableWidgetItem;
+class QTreeWidget;
+class QTreeWidgetItem;
 
 namespace kalahari {
 namespace core {
@@ -29,6 +31,7 @@ struct Theme;
 }
 namespace editor {
 class SpellCheckService;
+struct QuickInsertItem;
 }
 namespace gui {
 
@@ -140,7 +143,7 @@ public:
     explicit EditorGeneralPage(QWidget* parent = nullptr);
 };
 
-/// @brief Editor > Colors: light and dark paper
+/// @brief Editor > Colors: the light and the dark paper, kept for each theme
 class EditorColorsPage : public SettingsPage {
     Q_OBJECT
 public:
@@ -188,6 +191,10 @@ class EditorPagesPage : public SettingsPage {
     Q_OBJECT
 public:
     explicit EditorPagesPage(QWidget* parent = nullptr);
+
+private:
+    /// @brief The group Margin Numbering: the working numbers on the left margin
+    void addMarginNumbersGroup();
 };
 
 /// @brief Editor > Auto-correct: what is changed in the text as it is typed, on three tabs
@@ -268,14 +275,81 @@ private:
     bool m_fillingPairs = false;            ///< The table is filled, not edited
 };
 
-/// @brief Annotations: who new comments, to-dos and notes are by, and their marks in the text
+/// @brief Editor > Quick Insert: what @ and # typed at the start of a word open (the names of
+/// the cards, the text fragments, the typographic characters), and the writer's fragments and
+/// characters
+class EditorQuickInsertPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorQuickInsertPage(QWidget* parent = nullptr);
+
+private:
+    void createSources();
+    void createItems();
+
+    /// @brief The fragments and characters as the list has them
+    [[nodiscard]] QList<editor::QuickInsertItem> listedItems() const;
+    void showItems(const QList<editor::QuickInsertItem>& items);
+    void setRow(QTreeWidgetItem* row, const editor::QuickInsertItem& item);
+
+    // The buttons of the list
+    void addItem();
+    void editItem();
+    void removeItems();
+    void restoreCharacters();
+    void updateItemButtons();
+
+    QTreeWidget* m_items = nullptr;
+    QPushButton* m_edit = nullptr;
+    QPushButton* m_remove = nullptr;
+    QPushButton* m_restore = nullptr;
+};
+
+/// @brief Editor > Repetitions: what counts as a word that comes back too close, the words the
+/// writer skips, and how the words are marked in the text (with the color of each theme)
+class EditorRepetitionsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorRepetitionsPage(QWidget* parent = nullptr);
+
+protected:
+    /// @brief Enter in the field of a new word adds it, and does not close the dialog
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
+private:
+    void addWord();
+    void removeWords();
+    void updateButtons();
+
+    QListWidget* m_words = nullptr;   ///< The words skipped
+    QLineEdit* m_newWord = nullptr;   ///< A word to skip
+    QPushButton* m_add = nullptr;
+    QPushButton* m_remove = nullptr;
+};
+
+/// @brief Editor > Versions: whether Save Version asks for a description, the versions the
+/// program keeps by itself and how many, and the colors of the comparison of a version
+class EditorVersionsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorVersionsPage(QWidget* parent = nullptr);
+};
+
+/// @brief Annotations: who new comments, to-dos and notes are by, their marks in the text, their
+/// cards under the paragraphs and their colors
 class AnnotationsPage : public SettingsPage {
     Q_OBJECT
 public:
     explicit AnnotationsPage(QWidget* parent = nullptr);
+
+private:
+    /// @brief The group of the cards under the paragraphs
+    void addCardSettings();
 };
 
-/// @brief Navigator: the commands that the menu of a node of the Navigator has for adding
+/// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,
+/// what the top of the Add Element window chooses from, what the Materials show and where a
+/// list of materials opens, how a material opens, and whether its links name paragraphs
 class NavigatorPage : public SettingsPage {
     Q_OBJECT
 public:
@@ -284,6 +358,34 @@ public:
 private:
     QRadioButton* m_named = nullptr;   ///< "Add..." and the commands named after kinds
     QRadioButton* m_single = nullptr;  ///< "Add..." only
+    QRadioButton* m_sections = nullptr;  ///< A section of the book or the Workshop at a time
+    QRadioButton* m_book = nullptr;      ///< The whole book or the Workshop
+    QRadioButton* m_place = nullptr;     ///< No choice: the kinds of the place only
+    QRadioButton* m_treeTypes = nullptr;   ///< The Materials show their kinds with numbers
+    QRadioButton* m_treeExpand = nullptr;  ///< The kinds have their materials under them
+    QRadioButton* m_tabsOwn = nullptr;     ///< A kind clicked opens its list on a tab of its own
+    QRadioButton* m_tabsOne = nullptr;     ///< The one tab of the lists shows the kind clicked
+    QRadioButton* m_openCard = nullptr;    ///< A material opens on a tab of the program
+    QRadioButton* m_openSystem = nullptr;  ///< A material opens in the system program
+    QRadioButton* m_pagesBrowser = nullptr;  ///< A page opens in the browser
+    QRadioButton* m_pagesCard = nullptr;     ///< A page opens on the card of its material
+    QRadioButton* m_quickLink = nullptr;    ///< Dropped or pasted: at once, linked with the node
+    QRadioButton* m_quickAdd = nullptr;     ///< At once, without links
+    QRadioButton* m_quickWindow = nullptr;  ///< In the Add Element window
+};
+
+/// @brief Network > Materials: whether the program downloads the title of the page or the copy
+/// of the picture of a material with a web address (MaterialDownloader::SETTING): when the box
+/// of the Add Element window asks for it (the usual one), always, or never
+class NetworkMaterialsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit NetworkMaterialsPage(QWidget* parent = nullptr);
+
+private:
+    QRadioButton* m_ask = nullptr;     ///< The box of the Add Element window, empty each time
+    QRadioButton* m_always = nullptr;  ///< Every new material with an address
+    QRadioButton* m_never = nullptr;   ///< The program does not connect to the addresses
 };
 
 /// @brief Files > Folders: the folders of the books and of the archives, and where and how

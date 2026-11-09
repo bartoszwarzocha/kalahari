@@ -300,11 +300,30 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         return;
     }
 
-    // A click on an annotation's mark opens the annotation; the cursor stays
+    // A click on an annotation's card does what its part does; one on an annotation's mark
+    // collapses or expands its card, or opens the annotation without cards; one on the mark
+    // beside a paragraph chooses a material. The cursor stays.
     if (!(event->modifiers() & Qt::ShiftModifier)) {
-        const QString markId = annotationMarkAt(event->position());
-        if (!markId.isEmpty()) {
-            emit annotationMarkClicked(markId);
+        if (pressAnnotationCard(event->position())) {
+            event->accept();
+            return;
+        }
+        if (const std::optional<ParagraphMark> marked = paragraphMarkAt(event->position())) {
+            openParagraphMark(*marked, event->globalPosition().toPoint());
+            event->accept();
+            return;
+        }
+        const std::optional<AnnotationMark> mark =
+            m_renderPipeline ? m_renderPipeline->annotationMarkDetailsAt(event->position())
+                             : std::nullopt;
+        if (mark) {
+            // In a cell of a table an annotation has no card (AnnotationCards)
+            if (m_annotationCards.hasCard(mark->kind) &&
+                tableOf(annotationCardBlock(mark->id)) == nullptr) {
+                setAnnotationCollapsed(mark->id, !m_annotationCards.isCollapsed(mark->id));
+            } else {
+                emit annotationMarkClicked(mark->id);
+            }
             event->accept();
             return;
         }
@@ -446,12 +465,16 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
 
 void BookEditor::updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers modifiers)
 {
-    // A hand over an annotation's mark, which opens it, and with Ctrl over a link, which
-    // Ctrl+click opens; an arrow over the selected text, which can be dragged; an I-beam
-    // elsewhere
+    // A hand over an annotation's mark, which opens it, over the mark beside a paragraph, over
+    // the buttons of a card and with Ctrl over a link, which Ctrl+click opens; an arrow over a
+    // card and over the selected text, which can be dragged; an I-beam elsewhere
     Qt::CursorShape shape = Qt::IBeamCursor;
-    if (!annotationMarkAt(pos).isEmpty() ||
-        ((modifiers & Qt::ControlModifier) && linkAt(pos).has_value())) {
+    if (hoverAnnotationCard(pos)) {
+        shape = m_annotationCards.hoveredPart() == AnnotationCardPart::Card
+                    ? Qt::ArrowCursor
+                    : Qt::PointingHandCursor;
+    } else if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos) ||
+               ((modifiers & Qt::ControlModifier) && linkAt(pos).has_value())) {
         shape = Qt::PointingHandCursor;
     } else if (isOverSelectedText(pos)) {
         shape = Qt::ArrowCursor;
@@ -491,6 +514,17 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
 
     if (event->button() != Qt::LeftButton) {
         QWidget::mouseDoubleClickEvent(event);
+        return;
+    }
+
+    // A double click on a card edits its annotation; on its buttons it does no more than
+    // the first click
+    if (const std::optional<AnnotationCardHit> card = annotationCardAt(event->position())) {
+        if (card->part == AnnotationCardPart::Card && card->id == m_pressedCard) {
+            emit annotationEditRequested(card->id);
+        }
+        m_pressedCard.clear();
+        event->accept();
         return;
     }
 
@@ -749,6 +783,14 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         return;
     }
 
+    // On an annotation's card: the menu of its annotation
+    if (event->reason() == QContextMenuEvent::Mouse) {
+        if (const std::optional<AnnotationCardHit> card = annotationCardAt(event->pos())) {
+            showAnnotationCardMenu(card->id, event->globalPos());
+            return;
+        }
+    }
+
     const CursorPosition pos = positionFromPoint(event->pos());
     if (pos.paragraph < 0) {
         QWidget::contextMenuEvent(event);
@@ -847,9 +889,16 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         menu.addSeparator();
     }
 
+    // The annotation whose fragment or place is there: what can be done with it
+    if (const QString annotation = annotationAt(pos); !annotation.isEmpty()) {
+        addAnnotationActions(menu, annotation, false);
+        menu.addSeparator();
+    }
+
     // A list item: its numbering and its level, as in Word
     if (const std::optional<ListItem> item = currentListItem()) {
-        if (!menu.isEmpty()) {
+        // (after the annotation's items, which end with a line)
+        if (!menu.isEmpty() && !menu.actions().constLast()->isSeparator()) {
             menu.addSeparator();
         }
         if (!item->levelFormat().isBullet()) {
@@ -915,6 +964,19 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
             separated = true;
         }
         menu.addAction(action);
+    }
+
+    // The materials linked with the paragraph, whose mark is beside it: from the keyboard too
+    const QList<ParagraphMark> marks = paragraphMarks();
+    const auto marked =
+        std::find_if(marks.cbegin(), marks.cend(),
+                     [&pos](const ParagraphMark& mark) { return mark.paragraph == pos.paragraph; });
+    if (marked != marks.cend()) {
+        menu.addSeparator();
+        //: The submenu of the materials linked with the paragraph. In Polish: Powiązane
+        //: mate&riały
+        addParagraphMarkItems(*menu.addMenu(m_paragraphMarkIcon, tr("Linked Mate&rials")),
+                              *marked);
     }
 
     // Color mode toggle

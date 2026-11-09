@@ -4,8 +4,8 @@
 /// Styles panel is the tab after Properties or the lower part of it, the button of a panel
 /// shows it, brings it on top and closes it, the Spelling and Grammar panel opens as the tab
 /// after Annotations, the gears of the panels ask for their settings, on
-/// a small screen the panels on the right make room for the text, and Reset Layout docks the
-/// toolbars again
+/// a small screen the panels on the right make room for the text, the tabs of the panels show
+/// their icons above the titles, and Reset Layout docks the toolbars again
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/project_manager.h"
@@ -17,18 +17,22 @@
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/navigator_coordinator.h"
+#include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari/gui/widgets/info_bar.h"
+#include "kalahari/gui/widgets/panel_tab_bar.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 
 #include <QAction>
 #include <QApplication>
 #include <QByteArray>
 #include <QDockWidget>
+#include <QKeySequence>
 #include <QLabel>
 #include <QLayout>
 #include <QMainWindow>
@@ -96,7 +100,10 @@ int tabIndex(const QMainWindow& window, const QDockWidget* dock) {
 /// The icons of the buttons on the title bar of @p dock, in their order
 std::vector<std::string> titleBarButtons(const QDockWidget* dock) {
     std::vector<std::string> icons;
-    const QLayout* layout = dock->titleBarWidget()->layout();
+    const auto* row = dock->titleBarWidget()->findChild<QWidget*>(
+        QString::fromLatin1(DockCoordinator::TITLE_ROW));
+    REQUIRE(row != nullptr);
+    const QLayout* layout = row->layout();
     for (int i = 0; i < layout->count(); ++i) {
         if (const auto* button = qobject_cast<const QToolButton*>(layout->itemAt(i)->widget())) {
             icons.push_back(button->property("iconId").toString().toStdString());
@@ -239,6 +246,49 @@ TEST_CASE("Panels: the Spelling and Grammar panel opens as the tab after the Ann
     CHECK(panels.onTop(spelling));
     REQUIRE(tabIndex(panels.window, annotations) >= 0);
     CHECK(tabIndex(panels.window, spelling) == tabIndex(panels.window, annotations) + 1);
+}
+
+TEST_CASE("Panels: the Repetitions panel opens as a tab after the Annotations tab",
+          "[gui][panels][repetitions]") {
+    // The layout of a window saved before the panel existed, which does not know the panel
+    QByteArray oldLayout;
+    {
+        Panels old;
+        old.window.removeDockWidget(old.docks->repetitionsDock());
+        oldLayout = old.window.saveState();
+    }
+    Panels panels;
+    QDockWidget* repetitions = panels.docks->repetitionsDock();
+    QDockWidget* annotations = panels.docks->annotationsDock();
+    REQUIRE(repetitions != nullptr);
+
+    SECTION("in the default layout") {
+    }
+    SECTION("in a layout saved before the panel existed") {
+        REQUIRE(panels.window.restoreState(oldLayout));
+        QApplication::processEvents();
+    }
+    SECTION("after Reset Layout") {
+        CommandRegistry::getInstance().executeCommand("view.repetitionsPanel");
+        QApplication::processEvents();
+        panels.docks->resetLayout(false, false);
+        panels.docks->showRightPanels();  // hidden by Reset Layout on a small screen
+        QApplication::processEvents();
+    }
+
+    // Closed until opened
+    CHECK(repetitions->isHidden());
+    CHECK_FALSE(panels.docks->viewRepetitionsAction()->isChecked());
+    CHECK(panels.onTop(annotations));
+
+    // View > Panels > Repetitions
+    CommandRegistry::getInstance().executeCommand("view.repetitionsPanel");
+    QApplication::processEvents();
+    CHECK(repetitions->isVisible());
+    CHECK(panels.docks->viewRepetitionsAction()->isChecked());
+    CHECK(panels.onTop(repetitions));
+    REQUIRE(tabIndex(panels.window, annotations) >= 0);
+    CHECK(tabIndex(panels.window, repetitions) > tabIndex(panels.window, annotations));
 }
 
 TEST_CASE("Panels: the Paragraph and Styles panel is the tab after Properties",
@@ -453,6 +503,17 @@ TEST_CASE("Panels: the gear on the title bar of a panel asks for the panel's set
         CHECK(gear->toolTip() == QStringLiteral("Annotation Settings"));
         gear->click();
         CHECK(asked == QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE));
+    }
+
+    SECTION("The Repetitions panel: the gear, then Float and Close") {
+        QDockWidget* repetitions = panels.docks->repetitionsDock();
+        CHECK(titleBarButtons(repetitions) ==
+              std::vector<std::string>{"dock.settings", "dock.float", "dock.close"});
+        QToolButton* gear = titleBarButton(repetitions, QStringLiteral("dock.settings"));
+        REQUIRE(gear != nullptr);
+        CHECK(gear->toolTip() == QStringLiteral("Repetition Settings"));
+        gear->click();
+        CHECK(asked == QString::fromLatin1(SettingsDialog::REPETITIONS_PAGE));
     }
 }
 
@@ -680,6 +741,58 @@ TEST_CASE("Panels: the panels on the right can be made narrow", "[gui][panels]")
         widest = std::max(widest, dock->minimumSizeHint().width());
     }
     CHECK(annotations->width() <= widest);
+}
+
+TEST_CASE("Panels: the tabs of the panels on the right show their icons above the titles, "
+          "with the names and keys of the panels in the tooltips",
+          "[gui][panels][paneltabs]") {
+    registerAllIcons();
+    Panels panels;
+    QApplication::processEvents();
+    QDockWidget* annotations = panels.docks->annotationsDock();
+    REQUIRE(panels.onTop(annotations));
+    REQUIRE(panels.docks->panelTabs() != nullptr);
+    PanelTabBar* tabs = panels.docks->panelTabs()->tabBar(annotations);
+    REQUIRE(tabs != nullptr);
+    CHECK(tabs->isVisible());
+    CHECK(tabs->look() == PanelTabBar::Look::Icons);
+    CHECK(tabs->side() == PanelTabBar::Side::Above);
+    CHECK(annotations->titleBarWidget()->layout()->indexOf(tabs) == 0);
+
+    // A tab for every panel on the right that is open, in front the Annotations panel
+    QStringList names;
+    for (int i = 0; i < tabs->count(); ++i) {
+        names.append(tabs->tab(i).name);
+        CHECK_FALSE(tabs->tab(i).icon.isNull());
+    }
+    CAPTURE(names.join(QStringLiteral(", ")).toStdString());
+    CHECK(tabs->count() >= 3);
+    CHECK(tabs->tab(tabs->currentIndex()).name == annotations->windowTitle());
+    const int index = static_cast<int>(names.indexOf(annotations->windowTitle()));
+    const QString keys = QKeySequence(Qt::Key_F9).toString(QKeySequence::NativeText);
+    CHECK(tabs->toolTipOf(index) ==
+          QStringLiteral("%1 (%2)").arg(annotations->windowTitle(), keys));
+
+    // The tab of another panel brings it forward
+    const int properties =
+        static_cast<int>(names.indexOf(panels.docks->propertiesDock()->windowTitle()));
+    REQUIRE(properties >= 0);
+    emit tabs->tabChosen(properties);
+    QApplication::processEvents();
+    CHECK(panels.onTop(panels.docks->propertiesDock()));
+}
+
+TEST_CASE("Panels: the tabs in the middle of the window keep one row of Qt's tabs by default",
+          "[gui][panels][centraltabs]") {
+    Panels panels;
+    auto* central = qobject_cast<CentralTabs*>(panels.docks->centralTabs());
+    REQUIRE(central != nullptr);
+    CHECK(central->tabsClosable());
+    CHECK(central->isMovable());
+    CHECK(central->documentMode());
+    CHECK(central->rows() == PanelTabBar::Rows::Single);
+    CHECK(central->tabRows() == nullptr);
+    CHECK(central->count() >= 1);  // the Dashboard
 }
 
 TEST_CASE("Reset Layout: the toolbars dock at the top again, in their rows, shown as by default, "

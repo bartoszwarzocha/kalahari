@@ -46,8 +46,14 @@ class SettingsDialog : public dialogs::KalahariDialog {
 
 public:
     /// @brief The pages the dialog can be opened at (openPage())
+    static constexpr const char* GENERAL_PAGE = "general";           ///< General
     static constexpr const char* EDITOR_COLORS_PAGE = "editor.colors";  ///< Editor > Colors
+    static constexpr const char* PAGES_PAGE = "editor.pages";        ///< Editor > Pages and Margins
+    /// Editor > Pages and Margins, scrolled to its group Margin Numbering, the cursor in it
+    static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
+    static constexpr const char* REPETITIONS_PAGE = "editor.repetitions";  ///< Editor > Repetitions
+    static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
 
@@ -78,9 +84,11 @@ public:
     /// search
     void showShortcutsPage();
 
-    /// @brief Open a page: EDITOR_COLORS_PAGE (the gear of Insert > Link), SPELLING_PAGE (the
-    /// gear of the Spelling and Grammar panel), ANNOTATIONS_PAGE (the gear of the Annotations
-    /// panel) or SHORTCUTS_PAGE (as showShortcutsPage())
+    /// @brief Open a page: EDITOR_COLORS_PAGE (the gears of Insert > Link and of the find bar),
+    /// PAGES_PAGE, MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...),
+    /// SPELLING_PAGE (the gear of the Spelling and Grammar panel), REPETITIONS_PAGE (the gear of
+    /// the Repetitions panel), ANNOTATIONS_PAGE (the gear of the Annotations panel) or
+    /// SHORTCUTS_PAGE (as showShortcutsPage())
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);
 

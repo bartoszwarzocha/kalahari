@@ -294,6 +294,7 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
     row(keysFor(tr("New paragraph"), {A::NewParagraph}));
     row(keysFor(tr("New line in the paragraph"), {A::NewLine}));
     row(keysFor(tr("New paragraph after the cursor"), {A::OpenLine}));
+    row(keysFor(tr("Tab character"), {A::Tab}));
     row(keysFor(tr("Undo (second shortcut)"), {A::Undo}));
     row(keysFor(tr("Redo (second shortcut)"), {A::Redo}));
     row(keysFor(tr("Cut, copy, paste (second shortcuts)"), {A::Cut, A::Copy, A::Paste}));
@@ -391,6 +392,53 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
         {tr("Back to the text"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
     groups.push_back(std::move(annotations));
 
+    // The list of quick insert (editor/quick_insert_controller.h) takes its keys only while
+    // it is open at the cursor; the text has them again when it closes
+    FixedKeyGroup quickInsert;
+    quickInsert.title = tr("Fixed: the quick insert list");
+    quickInsert.local = true;
+    quickInsert.rows.push_back({tr("Choose an item"),
+                                {keyWith(NONE, Qt::Key_Up), keyWith(NONE, Qt::Key_Down),
+                                 keyWith(NONE, Qt::Key_PageUp), keyWith(NONE, Qt::Key_PageDown)},
+                                NONE, {}, {}, {}});
+    QList<QKeyCombination> insertKeys = enterKeys(NONE);
+    insertKeys.append(keyWith(NONE, Qt::Key_Tab));
+    quickInsert.rows.push_back({tr("Insert the item"), insertKeys, NONE, {}, {}, {}});
+    quickInsert.rows.push_back(
+        {tr("Close the list"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
+    groups.push_back(std::move(quickInsert));
+
+    // The lists of the Repetitions panel (panels/repetitions_panel.h) take their keys only
+    // while they have the keys
+    FixedKeyGroup repetitions;
+    //: In Polish: Stałe: panel „Powtórzenia”
+    repetitions.title = tr("Fixed: the Repetitions panel");
+    repetitions.local = true;
+    //: In Polish: Wybierz kartę albo słowo
+    repetitions.rows.push_back({tr("Choose a card or a word"),
+                                {keyWith(NONE, Qt::Key_Up), keyWith(NONE, Qt::Key_Down),
+                                 keyWith(NONE, Qt::Key_Home), keyWith(NONE, Qt::Key_End)},
+                                NONE, {}, {}, {}});
+    //: In Polish: Przejdź do słów w tekście
+    repetitions.rows.push_back(
+        {tr("Go to the words in the text"), enterKeys(NONE), NONE, {}, {}, {}});
+    //: In Polish: Pomijaj słowo karty
+    repetitions.rows.push_back(
+        {tr("Skip the word of the card"), {keyWith(NONE, Qt::Key_Delete)}, NONE, {}, {}, {}});
+    //: In Polish: Menu karty
+    repetitions.rows.push_back({tr("The card's menu"),
+                                {keyWith(NONE, Qt::Key_Menu), keyWith(SHIFT, Qt::Key_F10)},
+                                NONE, {}, {}, {}});
+    if (!mac) {
+        //: In Polish: Przełącz karty „Blisko siebie” i „Najczęstsze”
+        repetitions.rows.push_back(
+            {tr("Switch the pages Close Together and Most Frequent"),
+             {keyWith(CTRL, Qt::Key_Tab), keyWith(CTRL | SHIFT, Qt::Key_Tab)}, NONE, {}, {}, {}});
+    }
+    repetitions.rows.push_back(
+        {tr("Back to the text"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
+    groups.push_back(std::move(repetitions));
+
     // The tree of the Navigator takes its keys only while it has the keys: F2 elsewhere shows
     // the Navigator, and Ctrl+Shift+Enter elsewhere is Book > Add... for what is in front
     FixedKeyGroup navigator;
@@ -439,12 +487,14 @@ FixedKeyGroup ShortcutRules::systemGroup() const {
     const QString switchReason =
         tr("%1 switches the windows of the system: it does not reach the program.");
 
-    // Tab and Shift+Tab work as in every program: fixed keys rather than the system's
+    // Tab and Shift+Tab work as in every program: fixed keys rather than the system's. In the
+    // text Tab types a tab character (the keys of the text, textGroups())
     const QKeyCombination nextField = keyWith(NONE, Qt::Key_Tab);
     const QKeyCombination previousField = keyWith(SHIFT, Qt::Key_Tab);
     FixedKeys fields{tr("Field by field"), {nextField, previousField}, NONE, {}, {}, {}};
     fields.keyReasons = {
-        fixedKeyReason(tr("%1 goes to the next field.").arg(keysText(nextField))),
+        fixedKeyReason(tr("%1 goes to the next field; in the text it types a tab character.")
+                           .arg(keysText(nextField))),
         fixedKeyReason(tr("%1 goes back to the previous field.").arg(keysText(previousField)))};
     fields.brief = tr("a fixed key");
 
@@ -678,6 +728,9 @@ QString ShortcutRules::textKeyReason(QKeyCombination keys, TextKeyAction action,
         break;
     case TextKeyAction::OpenLine:
         does = tr("starts a new paragraph after the cursor");
+        break;
+    case TextKeyAction::Tab:
+        does = tr("types a tab character");
         break;
     case TextKeyAction::Transpose:
         does = tr("swaps the characters around the cursor");

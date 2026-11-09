@@ -69,6 +69,17 @@ void BookEditor::setCursorPosition(const CursorPosition& position)
         ensureCursorVisible();
         emit cursorPositionChanged(m_cursorPosition);
 
+        // The card gone to keeps its outline while the cursor is in its fragment
+        if (!m_annotationCards.selected().isEmpty()) {
+            const int at = calculateAbsolutePosition(m_cursorPosition);
+            if (m_selectedCard.isNull() || at < m_selectedCard.selectionStart() ||
+                at > m_selectedCard.selectionEnd()) {
+                m_annotationCards.setSelected(QString());
+                m_selectedCard = QTextCursor();
+                update();
+            }
+        }
+
         // Phase 11.11: Optimized cursor sync - only update cursor, not full state
         syncPipelineCursor();
 
@@ -1217,6 +1228,9 @@ void BookEditor::performTextKey(TextKeyAction action, bool select)
         // The paragraph break goes after the cursor
         insertNewline();
         moveCursorLeft();
+        return;
+    case Action::Tab:
+        typeText(QStringLiteral("\t"));
         return;
     case Action::Transpose:
         transposeCharacters();

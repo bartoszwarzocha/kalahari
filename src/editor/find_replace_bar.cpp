@@ -152,6 +152,17 @@ void FindReplaceBar::setupUi()
 
     findItems->addWidget(navigation);
 
+    // The gear: the colors the hits are shown in, in the Settings
+    m_settingsBtn = new QToolButton(this);
+    m_settingsBtn->setObjectName(QStringLiteral("findColorSettings"));
+    m_settingsBtn->setIcon(art.getIcon("dock.settings", core::IconContext::Button));
+    //: The gear of the find bar: Settings > Editor > Colors, with the colors of the hits
+    m_settingsBtn->setToolTip(tr("Colors of the Search Hits"));
+    m_settingsBtn->setAccessibleName(m_settingsBtn->toolTip());
+    m_settingsBtn->setFixedSize(24, 24);
+    m_settingsBtn->setAutoRaise(true);
+    findRow->addWidget(m_settingsBtn, 0, Qt::AlignTop);
+
     // Close button
     m_closeBtn = new QToolButton(this);
     m_closeBtn->setIcon(art.getIcon("dock.close", core::IconContext::Button));
@@ -199,11 +210,12 @@ void FindReplaceBar::setupUi()
     mainLayout->addWidget(m_replaceSection);
 
     // Tab goes from the search text to the replacement and its buttons, then to the
-    // options, the arrows and Close, as in Word's Find and Replace (the replace row is
-    // skipped while it is hidden)
+    // options, the arrows, the gear and Close, as in Word's Find and Replace (the replace row
+    // is skipped while it is hidden)
     const QList<QWidget*> tabOrder = {m_searchInput, m_replaceInput, m_replaceBtn,
                                       m_replaceAllBtn, m_caseSensitiveBtn, m_wholeWordBtn,
-                                      m_regexBtn, m_prevBtn, m_nextBtn, m_closeBtn};
+                                      m_regexBtn, m_prevBtn, m_nextBtn, m_settingsBtn,
+                                      m_closeBtn};
     for (qsizetype i = 1; i < tabOrder.size(); ++i) {
         setTabOrder(tabOrder.at(i - 1), tabOrder.at(i));
     }
@@ -245,7 +257,7 @@ QToolButton* FindReplaceBar::optionFor(const QKeyEvent* event) const
 
 QList<QAbstractButton*> FindReplaceBar::enterButtons() const
 {
-    return {m_prevBtn, m_nextBtn, m_closeBtn, m_replaceBtn, m_replaceAllBtn};
+    return {m_prevBtn, m_nextBtn, m_settingsBtn, m_closeBtn, m_replaceBtn, m_replaceAllBtn};
 }
 
 bool FindReplaceBar::takesOptionKeys(const QObject* watched) const
@@ -284,7 +296,8 @@ void FindReplaceBar::createConnections()
     connect(m_nextBtn, &QToolButton::clicked,
             this, &FindReplaceBar::onFindNext);
 
-    // Close
+    // The gear and Close
+    connect(m_settingsBtn, &QToolButton::clicked, this, &FindReplaceBar::colorSettingsRequested);
     connect(m_closeBtn, &QToolButton::clicked,
             this, &FindReplaceBar::onClose);
 

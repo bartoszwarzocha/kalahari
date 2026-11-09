@@ -485,6 +485,7 @@ ExportArchiveDialog::Book ExportArchiveDialog::openBook()
         }
     }
     book.backups = static_cast<int>(pm.databaseBackups().size());
+    book.versions = pm.versionCount();
     return book;
 }
 
@@ -541,6 +542,30 @@ ExportArchiveDialog::ExportArchiveDialog(const Book& book, const QString& folder
         //: ma jeszcze kopii bazy: program robi je przy zamykaniu książki.
         showNote(m_backupsNote, tr("The book has no backups of its database yet: Kalahari "
                                    "makes them when the book is closed."));
+    }
+
+    // The versions of the texts go unless the writer does not want them
+    //: A check box of the window; %1: how many versions the texts of the book have. In Polish:
+    //: Dołącz wersje rozdziałów (%1)
+    m_versionsBox = new QCheckBox(tr("Include the versions of the chapters (%1)")
+                                      .arg(m_book.versions),
+                                  archive->parentWidget());
+    m_versionsBox->setObjectName(QStringLiteral("archiveVersionsBox"));
+    m_versionsBox->setEnabled(m_book.versions > 0);
+    m_versionsBox->setChecked(m_book.versions > 0);
+    connect(m_versionsBox, &QCheckBox::toggled, this, &ExportArchiveDialog::dropFailure);
+    archive->addWidget(m_versionsBox, nextRow(archive), 1);
+    m_versionsNote = addNote(archive);
+    if (m_book.versions > 0) {
+        //: Under the check box of the versions. In Polish: Archiwum zabierze zapisane wersje
+        //: tekstów, więc po imporcie na innym komputerze historia wersji jest taka sama.
+        showNote(m_versionsNote,
+                 tr("The archive takes the versions of the texts, so after an import on another "
+                    "computer the version history is the same."));
+    } else {
+        //: Under the check box of the versions, which cannot be checked. In Polish: Teksty
+        //: książki nie mają jeszcze wersji.
+        showNote(m_versionsNote, tr("The texts of the book have no versions yet."));
     }
 
     // The text elements that are not final go as they are
@@ -627,7 +652,8 @@ void ExportArchiveDialog::run()
         reason =
             tr("Kalahari cannot create the folder %1.").arg(QDir::toNativeSeparators(m_folder));
     } else {
-        written = m_exporter(path, m_backupsBox->isChecked(), progress(), &problem);
+        written = m_exporter(path, m_backupsBox->isChecked(), m_versionsBox->isChecked(),
+                             progress(), &problem);
         reason = reasonOf(problem);
     }
     if (written) {

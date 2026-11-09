@@ -26,6 +26,9 @@ std::map<std::string, json> buildDefaults() {
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
         // The bar that says the panels on the right were hidden for a small screen was shown
         {"window.smallScreenNoticeShown", false},
+        // The tabs in the middle of the window (Settings > Appearance > General): in one row
+        // with arrows when they do not fit ("single") or in more rows ("wrap")
+        {"window.tabRows", "single"},
 
         // The Paragraph and Styles panel: a panel of its own ("panel") or the lower part of
         // the Properties panel ("properties"), folded there to its band or not, with the
@@ -38,6 +41,13 @@ std::map<std::string, json> buildDefaults() {
         // The Log button of the Panels toolbar, for those who read the log (Settings >
         // Advanced > Log); View > Panels > Log (F4) opens the panel anyway
         {"panels.showLogButton", false},
+        // The tabs of panels docked one over another (Settings > Appearance > General): icons
+        // alone ("icons"), icons and names ("iconsAndNames") or names alone ("names"); in more
+        // rows when they do not fit ("wrap") or in one row with shortened names ("single");
+        // above the panels ("above") or under them ("below")
+        {"panels.tabLook", "icons"},
+        {"panels.tabRows", "wrap"},
+        {"panels.tabSide", "above"},
         {"recent_files", json::array()},
 
         // Interface
@@ -102,9 +112,19 @@ std::map<std::string, json> buildDefaults() {
         // created or imported without opening is the first of the recent books but not this
         // one. Empty: the first of the recent books
         {"startup.lastBook", ""},
+        // A tab moved to a window of its own: the window shows the menus and the toolbars of the
+        // book window ("full") or the Format toolbar ("writing"); closing it takes its texts back
+        // to the book window ("return") or closes them ("close")
+        {"window.detached.look", "full"},
+        {"window.detached.close", "return"},
 
         // Annotations: the name new ones are made with. Empty: by no one named
         {"annotations.author", ""},
+
+        // Whether a link of a material may name a paragraph of a text, which the editor marks
+        // with a paperclip (core::LinkRoles::PARAGRAPHS_SETTING); false hides the paragraphs of
+        // the links and keeps them
+        {"materials.linkParagraphs", true},
 
         // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
         // and the commands named after the kinds most added there) or "single" ("Add..." only)
@@ -144,9 +164,11 @@ std::map<std::string, json> buildDefaults() {
         // Editor: text
         {"editor.fontFamily", "Georgia"},
         {"editor.fontSize", 14},
+        // How far apart the tab stops are: "indent", every first-line indent of the paragraph's
+        // style (a style without one: editor.indentSize), or "spaces", every editor.tabSize
+        // spaces of its font
+        {"editor.tabStops", "indent"},
         {"editor.tabSize", 4},
-        {"editor.lineNumbers", true},
-        {"editor.wordWrap", false},
         // Where a chapter opens: "lastEdit", where its cursor was when it was closed last, or
         // "start"
         {"editor.chapterOpensAt", "lastEdit"},
@@ -189,24 +211,16 @@ std::map<std::string, json> buildDefaults() {
         {"spellingPanel.nextIssue", "panel"},
         {"spellingPanel.grammarScope", "whole"},
 
-        // Editor: colors. The user's values of the theme's editor colors (the underlines of
-        // the misspelled words and grammar issues, the annotations) are kept for each theme,
-        // themes.<theme>.editor.<name in the theme's "editor" section>, without a default here:
-        // the theme file gives it (ThemeManager::editorColorSetting()). "Optimize colors in
-        // themes" shows them darker on a light background and lighter on a dark one where they
+        // Editor: the paper, light or dark whatever the theme, and the colors. The user's values
+        // of the theme's editor colors (both papers and their text, the desk around them, the
+        // selection, the search's hits, the underlines of the misspelled words and grammar
+        // issues, the annotations) are kept for each theme, themes.<theme>.editor.<name in the
+        // theme's "editor" section>, without a default here: the theme file gives it
+        // (ThemeManager::editorColorSetting()). "Optimize colors in themes" shows the underlines
+        // and the annotations darker on a light background and lighter on a dark one where they
         // are hard to see there
         {"editor.darkMode", true},
         {"editor.colors.optimize", true},
-        {"editor.colors.backgroundLight", "#ffffff"},
-        {"editor.colors.textLight", "#1e1e1e"},
-        {"editor.colors.inactiveLight", "#aaaaaa"},
-        {"editor.colors.formattingMarksLight", "#5b7fc0"},
-        {"editor.colors.linkLight", "#0563c1"},
-        {"editor.colors.backgroundDark", "#232328"},
-        {"editor.colors.textDark", "#e0e0e0"},
-        {"editor.colors.inactiveDark", "#78787d"},
-        {"editor.colors.formattingMarksDark", "#7a96d0"},
-        {"editor.colors.linkDark", "#8ab4f8"},
 
         // Editor: cursor
         {"editor.cursor.style", 0},
@@ -216,7 +230,9 @@ std::map<std::string, json> buildDefaults() {
         {"editor.cursor.blinkInterval", 500},
         {"editor.cursor.lineWidth", 2},
 
-        // Editor: margins (view margins in pixels, page margins in millimetres)
+        // Editor: page margins in millimetres. Mirror margins: the inner one at the binding,
+        // the outer one at the edge; the first page of a chapter is a right page unless the
+        // chapter starts on a left one (the chapter's own setting, in the book)
         {"editor.margins.pageTop", 25.4},
         {"editor.margins.pageBottom", 25.4},
         {"editor.margins.pageLeft", 25.4},
@@ -241,8 +257,20 @@ std::map<std::string, json> buildDefaults() {
         {"editor.focus.enabled", false},
 
         // Editor: the formatting marks (View > Show Formatting Marks: ¶ · ° → ↵ ¬), in the
-        // colors editor.colors.formattingMarksLight/Dark
+        // theme's colors of the papers
         {"editor.showFormattingMarks", false},
+
+        // Editor: the working numbers on the left margin (View > Margin Numbering), only on the
+        // screen: "none", "lines" (every line) or "paragraphs" (every paragraph with text). A
+        // number every "interval" lines or paragraphs; with "restartEachPage" the lines are
+        // counted from 1 on every page of the page view. The font and its size in points at
+        // 100% zoom, and one color for the light and the dark paper
+        {"editor.marginNumbers.mode", "none"},
+        {"editor.marginNumbers.interval", 1},
+        {"editor.marginNumbers.restartEachPage", false},
+        {"editor.marginNumbers.font", "Courier New"},
+        {"editor.marginNumbers.size", 8},
+        {"editor.marginNumbers.color", "#808080"},
 
         // Editor: how the scene breaks look: "asterisks" (* * *), "asterism" (⁂), "fleuron"
         // (❦), "line" (a short line) or "blank" (an empty line); the files keep the breaks
@@ -256,6 +284,28 @@ std::map<std::string, json> buildDefaults() {
         // Editor: the size of the annotations' marks in the text, in percent of the size
         // the text's font gives them
         {"editor.annotationMarkSize", 100},
+
+        // Editor: the cards of the annotations under their paragraphs, in the continuous view
+        // (View > Annotation Cards Under Paragraphs, Settings > Annotations): shown or not, and
+        // for which kinds; "full" (the kind, the author and the date over the text) or
+        // "compact" (the text alone, the author and the date at its end); a collapsed one
+        // "mark" (its mark alone) or "line" (a line with the start of its text); "expanded" or
+        // "collapsed" after a chapter opens; a long text cut short after so many lines (0:
+        // whole); the size of their text in percent of the chapter's; how much of the kind's
+        // color they have, in percent of the usual; the fragment of the card the mouse is on
+        // highlighted; "show" or "hide" them in Distraction-Free
+        {"editor.annotationCards.show", false},
+        {"editor.annotationCards.comments", true},
+        {"editor.annotationCards.todos", true},
+        {"editor.annotationCards.notes", true},
+        {"editor.annotationCards.look", "full"},
+        {"editor.annotationCards.collapsedLook", "mark"},
+        {"editor.annotationCards.afterOpening", "expanded"},
+        {"editor.annotationCards.longLines", 0},
+        {"editor.annotationCards.fontSize", 90},
+        {"editor.annotationCards.tint", 100},
+        {"editor.annotationCards.highlightFragment", true},
+        {"editor.annotationCards.distractionFree", "show"},
 
         // Word count in the whole program: a dash standing alone (a dialogue dash) is a word
         {"editor.wordCount.dashesAsWords", false},
@@ -327,6 +377,49 @@ std::map<std::string, json> buildDefaults() {
                       "St.", "vol.", "vs."})},
         {"editor.autoCorrect.twoCapitalsExceptions", json::array({"IDs", "PCs"})},
         {"editor.autoCorrect.learnExceptions", true},
+
+        // Editor: quick insert (Settings > Editor > Quick Insert, gui/quick_insert_items.h).
+        // @ or # typed at the start of a word opens a list of the sources chosen for it:
+        // "cards" (the names of the cards of the Workshop), "fragments" (the writer's text
+        // fragments), "characters" (the typographic characters). The fragments and the
+        // characters: [{"name", "text", "kind": "fragment" | "character"}]; null: the
+        // characters the program has at first
+        {"editor.quickInsert.enabled", true},
+        {"editor.quickInsert.at", json::array({"cards"})},
+        {"editor.quickInsert.hash", json::array({"fragments", "characters"})},
+        {"editor.quickInsert.items", nullptr},
+
+        // Editor: repetitions of words (Settings > Editor > Repetitions, RepetitionsCoordinator).
+        // A word repeats when it comes back within distance words; shorter words than
+        // minLength do not count. mergeForms: the forms of a word count as one (by the
+        // spelling dictionary); skipCommon: the very common words of the language do not
+        // count; skipped: the writer's words that do not count, in lower case. highlight: the
+        // words too close are marked in the text while the panel shows, with a "background" or
+        // a "wave"
+        {"editor.repetitions.distance", 30},
+        {"editor.repetitions.minLength", 3},
+        {"editor.repetitions.mergeForms", true},
+        {"editor.repetitions.skipCommon", true},
+        {"editor.repetitions.skipped", json::array()},
+        {"editor.repetitions.highlight", true},
+        {"editor.repetitions.style", "background"},
+
+        // Editor: versions of the texts (Settings > Editor > Versions, ChapterVersions). With
+        // enabled off no new version is kept, neither the writer's nor the program's (except
+        // the current text before another version is restored); those kept stay. Save
+        // Version asks for a description; the program keeps a version by itself when a chapter
+        // is saved, at most once in onSaveMinutes, and before Replace All in a chapter (and
+        // always before another version is restored), keeping at most keepAutomatic of them
+        // for each file. The writer's own versions stay until the writer deletes them. The
+        // buttons of Save Version and Version History are on a toolbar of their own, with
+        // Backup Now ("ownToolbar"), or on the Quick Actions toolbar ("quickActions")
+        {"editor.versions.enabled", true},
+        {"editor.versions.askName", true},
+        {"editor.versions.onSave", true},
+        {"editor.versions.onSaveMinutes", 60},
+        {"editor.versions.beforeReplaceAll", true},
+        {"editor.versions.keepAutomatic", 20},
+        {"editor.versions.buttons", "ownToolbar"},
     };
 }
 
