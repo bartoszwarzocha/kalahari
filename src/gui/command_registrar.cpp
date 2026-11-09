@@ -838,7 +838,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // (AnnotationsCoordinator)
     REG_CMD_CB("view.annotationCards", QT_TRANSLATE_NOOP("CommandRegistrar", "Annotation &Cards Under Paragraphs"), "VIEW/Annotation Cards Under Paragraphs", 68, false, 0,
                callbacks.onAnnotationCardsToggle);
-    REG_CMD("view.collapseAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "C&ollapse All Annotations"), "VIEW/Collapse All Annotations", 69, false, 0);
+    REG_CMD("view.collapseAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "Collapse &All Annotations"), "VIEW/Collapse All Annotations", 69, false, 0);
     REG_CMD("view.expandAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "&Expand All Annotations"), "VIEW/Expand All Annotations", 70, true, 0);
 
     // Perspectives submenu
@@ -857,7 +857,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("view.showStatsBar", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Statistics &Bar"), "VIEW/Show Statistics Bar", 190, false, 1);
     // The repetitions of words marked in the text while the panel Repetitions is open: the
     // setting editor.repetitions.highlight (RepetitionsCoordinator gives it its callback)
-    REG_CMD_TOOL_ICON("view.repetitionMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Repetitions in &Text"), "VIEW/Repetitions in Text", 205, false, 0,
+    REG_CMD_TOOL_ICON("view.repetitionMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Repetiti&ons in Text"), "VIEW/Repetitions in Text", 205, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       nullptr);
