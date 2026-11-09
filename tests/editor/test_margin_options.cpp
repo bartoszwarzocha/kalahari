@@ -95,8 +95,9 @@ qreal caretX(BookEditor& editor, const CursorPosition& position) {
 }
 
 /// The red pixels of the numbers on the cursor's line, left of its text (also on the margin of
-/// a centred heading). Not of the text: with subpixel antialiasing its edges are red too
-int numberInk(BookEditor& editor) {
+/// a centred heading), or left of @p textLeft. Not of the text: with subpixel antialiasing its
+/// edges are red too
+int numberInk(BookEditor& editor, std::optional<qreal> textLeft = std::nullopt) {
     // The text starts where the cursor before the line's first character stands
     const CursorPosition position = editor.cursorPosition();
     paint(editor);
@@ -108,7 +109,7 @@ int numberInk(BookEditor& editor) {
     const QImage image = paint(editor);
     const QRectF at = caret(editor);
     editor.setCursorPosition(position);
-    const int right = static_cast<int>(at.left()) - 2;
+    const int right = static_cast<int>(textLeft.value_or(at.left())) - 2;
     const int left = 0;
     int ink = 0;
     for (int y = std::max(0, static_cast<int>(at.top())); y < std::min(image.height(), static_cast<int>(at.bottom())); ++y) {
@@ -458,13 +459,16 @@ TEST_CASE("Margin numbers: the cells of a table are not counted and have no numb
     CHECK(layout->marginCountsBefore(index) == counts);
     REQUIRE(two > 0);
 
-    // Side by side, the numbers of the cells would be drawn over each other: none
+    // Side by side, the numbers of the cells would be drawn over each other: none, left of the
+    // table (left of a cell, the cells before it are text)
     for (const MarginNumbering numbering : {MarginNumbering::Lines, MarginNumbering::Paragraphs}) {
         CAPTURE(static_cast<int>(numbering));
         number(*editor, numbering);
+        const qreal tableText = caretX(*editor, {cells.front(), 0});
         for (const int cell : cells) {
+            CAPTURE(cell);
             editor->setCursorPosition({cell, 0});
-            CHECK(numberInk(*editor) == 0);
+            CHECK(numberInk(*editor, tableText) == 0);
         }
         editor->setCursorPosition({two, 0});
         CHECK(numberInk(*editor) > 0);
