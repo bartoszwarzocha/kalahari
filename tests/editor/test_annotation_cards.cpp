@@ -343,6 +343,7 @@ TEST_CASE("Annotation cards: none in a cell of a table, where a click on the mar
     }
     REQUIRE(cell.isValid());
     REQUIRE(tableOf(cell) != nullptr);
+    (void)editor->grab();  // painted, as before a click: the view knows its paragraphs on screen
     const std::optional<QPointF> mark =
         markPoint(*editor, cell.position() + 3, QStringLiteral("c1"));
     REQUIRE(mark.has_value());

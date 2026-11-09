@@ -952,7 +952,8 @@ void KalahariTextDocumentLayout::recountMarginsFrom(int blockNumber) {
 }
 
 qreal KalahariTextDocumentLayout::askSpaceBelow(const QTextBlock& block) const {
-    if (!m_spaceBelowProvider || m_pageFlow.enabled) {
+    // The cells of a row side by side are as high as the row: no space under one of them
+    if (!m_spaceBelowProvider || m_pageFlow.enabled || tableOf(block) != nullptr) {
         return 0.0;
     }
     return std::ceil(std::max<qreal>(0.0, m_spaceBelowProvider(block)));
@@ -1159,6 +1160,7 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
             for (size_t i = static_cast<size_t>(std::max(0, number - tableFirst)); i < entries.size(); ++i) {
                 heights.push_back(entries[i].height);
                 extents.push_back(entries[i].extent);
+                spaces.push_back(0.0);  // no cards in the cells: no space under them
                 flowEntries.push_back(entries[i].flow);
             }
             number = tableFirst + static_cast<int>(entries.size()) - 1;

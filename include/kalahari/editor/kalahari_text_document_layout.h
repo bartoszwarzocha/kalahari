@@ -301,9 +301,10 @@ public:
     /// @brief Set what gives the room under the blocks (none: no block has any); every
     ///        block is asked again
     ///
-    /// Without page flow only: the pages keep their lines as they are printed. The room is
-    /// part of the block's height (blockHeight(), blockBoundingRect()), under its spacing;
-    /// its lines stay where they are. Whole pixels.
+    /// Without page flow only: the pages keep their lines as they are printed. Not in the
+    /// cells of a table: they are side by side, as high as their row. The room is part of
+    /// the block's height (blockHeight(), blockBoundingRect()), under its spacing; its lines
+    /// stay where they are. Whole pixels.
     void setSpaceBelowProvider(SpaceBelowProvider provider);
 
     /// @brief Ask the blocks [first, last] for their room again: what it depends on changed
@@ -470,7 +471,8 @@ private:
     ///        blocks before it are as they were)
     void recountMarginsFrom(int blockNumber);
 
-    /// @brief The room the provider gives a block (0 without a provider or with page flow)
+    /// @brief The room the provider gives a block (0 without a provider, with page flow or
+    ///        in a cell of a table)
     qreal askSpaceBelow(const QTextBlock& block) const;
 
     /// @brief Height of a line's box: the line, or for the line of an empty paragraph
