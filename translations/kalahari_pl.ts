@@ -732,6 +732,10 @@
         <translation>&amp;Cele i terminy pisania...</translation>
     </message>
     <message>
+        <source>A&amp;dd Challenge...</source>
+        <translation>Dodaj wyzwani&amp;e...</translation>
+    </message>
+    <message>
         <source>Statistics S&amp;ettings...</source>
         <translation>Ustawienia s&amp;tatystyk...</translation>
     </message>
@@ -990,6 +994,10 @@
     <message>
         <source>Version &amp;History...</source>
         <translation>&amp;Historia wersji...</translation>
+    </message>
+    <message>
+        <source>Statis&amp;tics</source>
+        <translation>S&amp;tatystyki</translation>
     </message>
 </context>
 <context>
@@ -4386,6 +4394,14 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     <message>
         <source>Paragraph and Styles</source>
         <translation>Akapit i style</translation>
+    </message>
+    <message>
+        <source>Statistics</source>
+        <translation>Statystyki</translation>
+    </message>
+    <message>
+        <source>Statistics Settings</source>
+        <translation>Ustawienia statystyk</translation>
     </message>
 </context>
 <context>
@@ -8380,6 +8396,26 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Materials</source>
         <extracomment>The page of the downloads for the materials with a web address. In Polish: Materiały</extracomment>
         <translation>Materiały</translation>
+    </message>
+    <message>
+        <source>Statistics and Goals</source>
+        <extracomment>Settings &gt; Statistics and Goals: the statistics bar, the panel, the counting of the words and the colors. In Polish: Statystyki i cele</extracomment>
+        <translation>Statystyki i cele</translation>
+    </message>
+    <message>
+        <source>Bar and Panel</source>
+        <extracomment>In Polish: Pasek i panel</extracomment>
+        <translation>Pasek i panel</translation>
+    </message>
+    <message>
+        <source>Counting</source>
+        <extracomment>In Polish: Liczenie</extracomment>
+        <translation>Liczenie</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <extracomment>In Polish: Powiadomienia</extracomment>
+        <translation>Powiadomienia</translation>
     </message>
 </context>
 <context>
@@ -14158,6 +14194,2392 @@ Notatka: %2</translation>
         <source>The program downloads only the address of the material: a page up to its title, or a picture, whose copy it saves in the book&apos;s &quot;workshop&quot; folder.</source>
         <extracomment>In Polish: Program pobiera tylko adres materiału: stronę do jej tytułu albo obraz, którego kopię zapisuje w folderze „workshop” książki.</extracomment>
         <translation>Program pobiera tylko adres materiału: stronę do jej tytułu albo obraz, którego kopię zapisuje w folderze „workshop” książki.</translation>
+    </message>
+</context>
+<context>
+    <name>BadgePainter</name>
+    <message>
+        <source>1 word</source>
+        <extracomment>In Polish: 1 słowo</extracomment>
+        <translation>1 słowo</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 words</source>
+        <translation>
+            <numerusform>%1 słowo</numerusform>
+            <numerusform>%1 słowa</numerusform>
+            <numerusform>%1 słów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 day</source>
+        <extracomment>In Polish: 1 dzień</extracomment>
+        <translation>1 dzień</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 days</source>
+        <translation>
+            <numerusform>%1 dzień</numerusform>
+            <numerusform>%1 dni</numerusform>
+            <numerusform>%1 dni</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 week</source>
+        <extracomment>In Polish: 1 tydzień</extracomment>
+        <translation>1 tydzień</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 weeks</source>
+        <translation>
+            <numerusform>%1 tydzień</numerusform>
+            <numerusform>%1 tygodnie</numerusform>
+            <numerusform>%1 tygodni</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 book</source>
+        <extracomment>In Polish: 1 książka</extracomment>
+        <translation>1 książka</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 books</source>
+        <translation>
+            <numerusform>%1 książka</numerusform>
+            <numerusform>%1 książki</numerusform>
+            <numerusform>%1 książek</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 deadline</source>
+        <extracomment>In Polish: 1 termin</extracomment>
+        <translation>1 termin</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 deadlines</source>
+        <translation>
+            <numerusform>%1 termin</numerusform>
+            <numerusform>%1 terminy</numerusform>
+            <numerusform>%1 terminów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <extracomment>A share in percent. In Polish: %1%</extracomment>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <source>Words</source>
+        <extracomment>The badges of all the words written. In Polish: Słowa</extracomment>
+        <translation>Słowa</translation>
+    </message>
+    <message>
+        <source>Writing Days</source>
+        <extracomment>In Polish: Dni pisania</extracomment>
+        <translation>Dni pisania</translation>
+    </message>
+    <message>
+        <source>Streak</source>
+        <extracomment>The longest run of days in a row. In Polish: Seria</extracomment>
+        <translation>Seria</translation>
+    </message>
+    <message>
+        <source>Daily Goal</source>
+        <extracomment>In Polish: Cel dnia</extracomment>
+        <translation>Cel dnia</translation>
+    </message>
+    <message>
+        <source>Weekly Goal</source>
+        <extracomment>In Polish: Cel tygodnia</extracomment>
+        <translation>Cel tygodnia</translation>
+    </message>
+    <message>
+        <source>Early Bird</source>
+        <extracomment>In Polish: Ranny ptaszek</extracomment>
+        <translation>Ranny ptaszek</translation>
+    </message>
+    <message>
+        <source>Night Owl</source>
+        <extracomment>In Polish: Nocny marek</extracomment>
+        <translation>Nocny marek</translation>
+    </message>
+    <message>
+        <source>Finished Books</source>
+        <extracomment>In Polish: Ukończone książki</extracomment>
+        <translation>Ukończone książki</translation>
+    </message>
+    <message>
+        <source>Book Goal</source>
+        <extracomment>In Polish: Cel książki</extracomment>
+        <translation>Cel książki</translation>
+    </message>
+    <message>
+        <source>Chapters Done</source>
+        <extracomment>In Polish: Rozdziały gotowe</extracomment>
+        <translation>Gotowe rozdziały</translation>
+    </message>
+    <message>
+        <source>Deadlines</source>
+        <extracomment>In Polish: Terminy</extracomment>
+        <translation>Terminy</translation>
+    </message>
+    <message>
+        <source>Steady Pace</source>
+        <extracomment>In Polish: Równe tempo</extracomment>
+        <translation>Równe tempo</translation>
+    </message>
+    <message>
+        <source>Month with the Goal</source>
+        <extracomment>In Polish: Miesiąc z celem</extracomment>
+        <translation>Miesiąc z celem</translation>
+    </message>
+    <message>
+        <source>Words of the Month</source>
+        <extracomment>In Polish: Słowa miesiąca</extracomment>
+        <translation>Słowa miesiąca</translation>
+    </message>
+    <message>
+        <source>Weeks with the Goal</source>
+        <extracomment>In Polish: Tygodnie z celem</extracomment>
+        <translation>Tygodnie z celem</translation>
+    </message>
+    <message>
+        <source>All the words written in the program, in all the books.</source>
+        <extracomment>In Polish: Wszystkie słowa napisane w programie, we wszystkich książkach.</extracomment>
+        <translation>Wszystkie słowa napisane w programie, we wszystkich książkach.</translation>
+    </message>
+    <message>
+        <source>The days with at least the minimum words of a day written.</source>
+        <extracomment>In Polish: Dni, w których powstało co najmniej minimum słów dnia.</extracomment>
+        <translation>Dni, w których napisano co najmniej minimum słów dnia.</translation>
+    </message>
+    <message>
+        <source>The longest run of days in a row; days off do not break it.</source>
+        <extracomment>In Polish: Najdłuższa seria dni z rzędu; dni wolne jej nie przerywają.</extracomment>
+        <translation>Najdłuższa seria dni z rzędu; dni wolne jej nie przerywają.</translation>
+    </message>
+    <message>
+        <source>The days with the daily goal reached – the goal as it was then.</source>
+        <extracomment>In Polish: Dni z osiągniętym celem dziennym – takim, jaki był wtedy ustawiony.</extracomment>
+        <translation>Dni z osiągniętym celem dziennym – takim, jaki był wtedy ustawiony.</translation>
+    </message>
+    <message>
+        <source>The weeks with the weekly goal reached.</source>
+        <extracomment>In Polish: Tygodnie z osiągniętym celem tygodniowym.</extracomment>
+        <translation>Tygodnie z osiągniętym celem tygodniowym.</translation>
+    </message>
+    <message>
+        <source>The weeks with the most words written in the morning (5:00–12:00).</source>
+        <extracomment>In Polish: Tygodnie, w których najwięcej słów powstało rano (5:00–12:00).</extracomment>
+        <translation>Tygodnie, w których najwięcej słów powstało rano (5:00–12:00).</translation>
+    </message>
+    <message>
+        <source>The weeks with the most words written in the evening and at night (18:00–4:00).</source>
+        <extracomment>In Polish: Tygodnie, w których najwięcej słów powstało wieczorem i w nocy (18:00–4:00).</extracomment>
+        <translation>Tygodnie, w których najwięcej słów powstało wieczorem i w nocy (18:00–4:00).</translation>
+    </message>
+    <message>
+        <source>The books that reached their target length.</source>
+        <extracomment>In Polish: Książki, które osiągnęły swoją docelową długość.</extracomment>
+        <translation>Książki, które osiągnęły docelową długość.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The progress toward the target length of the book: %1 words.</source>
+        <extracomment>In Polish: Postęp celu długości książki: %1 słów.</extracomment>
+        <translation>
+            <numerusform>Postęp książki względem docelowej długości: %1 słowo.</numerusform>
+            <numerusform>Postęp książki względem docelowej długości: %1 słowa.</numerusform>
+            <numerusform>Postęp książki względem docelowej długości: %1 słów.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The progress toward the target length of the book. The length is set on the tab Writing Goals and Deadlines.</source>
+        <extracomment>In Polish: Postęp celu długości książki. Długość ustawia się na karcie „Cele i terminy pisania”.</extracomment>
+        <translation>Postęp książki względem docelowej długości. Długość ustawia się na karcie „Cele i terminy pisania”.</translation>
+    </message>
+    <message>
+        <source>The chapters with the status Final: the first, a quarter, half, all.</source>
+        <extracomment>In Polish: Rozdziały w stanie „Gotowy”: pierwszy, ćwierć, połowa, wszystkie.</extracomment>
+        <translation>Rozdziały w stanie „Gotowy”: pierwszy, ćwierć, połowa, wszystkie.</translation>
+    </message>
+    <message>
+        <source>The deadlines from the tab Writing Goals and Deadlines kept before their day.</source>
+        <extracomment>In Polish: Terminy z karty „Cele i terminy pisania” dotrzymane przed datą.</extracomment>
+        <translation>Terminy z karty „Cele i terminy pisania” dotrzymane na czas.</translation>
+    </message>
+    <message>
+        <source>The weeks in a row with the weekly goal reached, in this book.</source>
+        <extracomment>In Polish: Tygodnie z rzędu z osiągniętym celem tygodniowym, przy tej książce.</extracomment>
+        <translation>Kolejne tygodnie z osiągniętym celem tygodniowym przy pracy nad tą książką.</translation>
+    </message>
+    <message>
+        <source>The writing days of this month with the daily goal reached. The badge comes when the month is over.</source>
+        <extracomment>In Polish: Dni pisania tego miesiąca z osiągniętym celem dziennym. Odznaka przychodzi na koniec miesiąca.</extracomment>
+        <translation>Dni pisania w tym miesiącu z osiągniętym celem dziennym. Odznaka przychodzi na koniec miesiąca.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The words against the plan of the month: the daily goal of each writing day (%1 words).</source>
+        <extracomment>In Polish: Słowa wobec planu miesiąca: cel dnia w każdym dniu pisania (%1 słów).</extracomment>
+        <translation>
+            <numerusform>Słowa wobec planu miesiąca: cel dzienny w każdym dniu pisania (%1 słowo).</numerusform>
+            <numerusform>Słowa wobec planu miesiąca: cel dzienny w każdym dniu pisania (%1 słowa).</numerusform>
+            <numerusform>Słowa wobec planu miesiąca: cel dzienny w każdym dniu pisania (%1 słów).</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The words against the plan of the month: the daily goal of each writing day.</source>
+        <extracomment>In Polish: Słowa wobec planu miesiąca: cel dnia w każdym dniu pisania.</extracomment>
+        <translation>Słowa wobec planu miesiąca: cel dzienny w każdym dniu pisania.</translation>
+    </message>
+    <message>
+        <source>The weeks of this month with the weekly goal reached.</source>
+        <extracomment>In Polish: Tygodnie tego miesiąca z osiągniętym celem tygodniowym.</extracomment>
+        <translation>Tygodnie tego miesiąca z osiągniętym celem tygodniowym.</translation>
+    </message>
+    <message>
+        <source>bronze</source>
+        <extracomment>A badge of the first threshold. In Polish: brązowa</extracomment>
+        <translation>brązowa</translation>
+    </message>
+    <message>
+        <source>silver</source>
+        <extracomment>In Polish: srebrna</extracomment>
+        <translation>srebrna</translation>
+    </message>
+    <message>
+        <source>gold</source>
+        <extracomment>In Polish: złota</extracomment>
+        <translation>złota</translation>
+    </message>
+    <message>
+        <source>platinum</source>
+        <extracomment>In Polish: platynowa</extracomment>
+        <translation>platynowa</translation>
+    </message>
+    <message>
+        <source>the first</source>
+        <extracomment>The first chapter done. In Polish: pierwszy</extracomment>
+        <translation>pierwszy</translation>
+    </message>
+    <message>
+        <source>a quarter</source>
+        <extracomment>A quarter of the chapters. In Polish: ćwierć</extracomment>
+        <translation>ćwierć</translation>
+    </message>
+    <message>
+        <source>half</source>
+        <extracomment>Half of the chapters. In Polish: połowa</extracomment>
+        <translation>połowa</translation>
+    </message>
+    <message>
+        <source>all</source>
+        <extracomment>All the chapters. In Polish: wszystkie</extracomment>
+        <translation>wszystkie</translation>
+    </message>
+    <message>
+        <source>one</source>
+        <extracomment>One week of the month. In Polish: jeden</extracomment>
+        <translation>jeden</translation>
+    </message>
+    <message>
+        <source>two</source>
+        <extracomment>In Polish: dwa</extracomment>
+        <translation>dwa</translation>
+    </message>
+    <message>
+        <source>three</source>
+        <extracomment>In Polish: trzy</extracomment>
+        <translation>trzy</translation>
+    </message>
+    <message>
+        <source>all weeks</source>
+        <extracomment>All the weeks of the month. In Polish: wszystkie</extracomment>
+        <translation>wszystkie</translation>
+    </message>
+    <message numerus="yes">
+        <source>Streak: %1 days in a row</source>
+        <extracomment>In Polish: Seria: %1 dni z rzędu</extracomment>
+        <translation>
+            <numerusform>Seria: %1 dzień z rzędu</numerusform>
+            <numerusform>Seria: %1 dni z rzędu</numerusform>
+            <numerusform>Seria: %1 dni z rzędu</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1: %2</source>
+        <extracomment>The name of a badge and its threshold. In Polish: %1: %2</extracomment>
+        <translation>%1: %2</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 of %2 words (%3%)</source>
+        <extracomment>In Polish: %1 z %2 słów (%3%)</extracomment>
+        <translation>
+            <numerusform>%1 z %2 słowa (%3%)</numerusform>
+            <numerusform>%1 z %2 słów (%3%)</numerusform>
+            <numerusform>%1 z %2 słów (%3%)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 of %2 days (%3%)</source>
+        <extracomment>In Polish: %1 z %2 dni (%3%)</extracomment>
+        <translation>
+            <numerusform>%1 z %2 dnia (%3%)</numerusform>
+            <numerusform>%1 z %2 dni (%3%)</numerusform>
+            <numerusform>%1 z %2 dni (%3%)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <extracomment>Done of all. In Polish: %1 z %2
+----------
+Words done of a challenge. In Polish: %1 z %2</extracomment>
+        <translation>%1 z %2</translation>
+    </message>
+    <message>
+        <source>won on %1</source>
+        <extracomment>The day a badge was won. In Polish: zdobyta %1</extracomment>
+        <translation>zdobyta %1</translation>
+    </message>
+    <message>
+        <source>%1 – %2: won on %3.</source>
+        <extracomment>In Polish: %1 – %2: zdobyta %3.</extracomment>
+        <translation>%1 – %2: zdobyta %3.</translation>
+    </message>
+    <message>
+        <source>%1 – %2: not yet, %3% (now %4).</source>
+        <extracomment>In Polish: %1 – %2: jeszcze nie, %3% (teraz %4).</extracomment>
+        <translation>%1 – %2: jeszcze nie, %3% (teraz %4).</translation>
+    </message>
+    <message>
+        <source>%1 – %2: not yet.</source>
+        <extracomment>In Polish: %1 – %2: jeszcze nie.</extracomment>
+        <translation>%1 – %2: jeszcze nie.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Won %n times.</source>
+        <extracomment>The months a badge of the month was won in, 2 or more. In Polish: Zdobyta %n razy.</extracomment>
+        <translation>
+            <numerusform>Zdobyta %n raz.</numerusform>
+            <numerusform>Zdobyta %n razy.</numerusform>
+            <numerusform>Zdobyta %n razy.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 day in a row</source>
+        <extracomment>A challenge. In Polish: 1 dzień z rzędu</extracomment>
+        <translation>1 dzień z rzędu</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 days in a row</source>
+        <translation>
+            <numerusform>%1 dzień z rzędu</numerusform>
+            <numerusform>%1 dni z rzędu</numerusform>
+            <numerusform>%1 dni z rzędu</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 writing day</source>
+        <extracomment>A challenge. In Polish: 1 dzień pisania</extracomment>
+        <translation>1 dzień pisania</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 writing days</source>
+        <translation>
+            <numerusform>%1 dzień pisania</numerusform>
+            <numerusform>%1 dni pisania</numerusform>
+            <numerusform>%1 dni pisania</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>until %1</source>
+        <extracomment>The last day of a challenge. In Polish: do %1</extracomment>
+        <translation>do %1</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 of %2 days</source>
+        <extracomment>Days done of a challenge. In Polish: %1 z %2 dni</extracomment>
+        <translation>
+            <numerusform>%1 z %2 dnia</numerusform>
+            <numerusform>%1 z %2 dni</numerusform>
+            <numerusform>%1 z %2 dni</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>done</source>
+        <extracomment>A challenge done. In Polish: ukończone</extracomment>
+        <translation>ukończone</translation>
+    </message>
+    <message>
+        <source>done on %1</source>
+        <extracomment>In Polish: ukończone %1</extracomment>
+        <translation>ukończone %1</translation>
+    </message>
+    <message>
+        <source>time is up</source>
+        <extracomment>A challenge whose last day has passed without it done. In Polish: czas minął</extracomment>
+        <translation>czas minął</translation>
+    </message>
+    <message>
+        <source>the last day</source>
+        <extracomment>In Polish: ostatni dzień</extracomment>
+        <translation>ostatni dzień</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n days left</source>
+        <extracomment>In Polish: został %n dzień / zostały %n dni / zostało %n dni</extracomment>
+        <translation>
+            <numerusform>został %n dzień</numerusform>
+            <numerusform>zostały %n dni</numerusform>
+            <numerusform>zostało %n dni</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>SessionSummary</name>
+    <message>
+        <source>Words per %1 min</source>
+        <extracomment>Above the graph of the summary. In Polish: Słowa na %1 min</extracomment>
+        <translation>Słowa na %1 min</translation>
+    </message>
+    <message>
+        <source>Today: %1</source>
+        <extracomment>In Polish: Dzisiaj: %1</extracomment>
+        <translation>Dzisiaj: %1</translation>
+    </message>
+    <message>
+        <source>Book “%1”</source>
+        <extracomment>In Polish: Książka „%1”</extracomment>
+        <translation>Książka „%1”</translation>
+    </message>
+    <message>
+        <source>1 session</source>
+        <extracomment>In Polish: 1 sesja</extracomment>
+        <translation>1 sesja</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n sessions</source>
+        <translation>
+            <numerusform>%n sesja</numerusform>
+            <numerusform>%n sesje</numerusform>
+            <numerusform>%n sesji</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>This session, %1–%2</source>
+        <extracomment>In Polish: Ta sesja, %1–%2</extracomment>
+        <translation>Ta sesja, %1–%2</translation>
+    </message>
+    <message>
+        <source>Written and deleted</source>
+        <extracomment>In Polish: Napisane i usunięte / %1 i %2</extracomment>
+        <translation>Napisane i usunięte</translation>
+    </message>
+    <message>
+        <source>%1 and %2</source>
+        <translation>%1 i %2</translation>
+    </message>
+    <message>
+        <source>Pace</source>
+        <extracomment>In Polish: Tempo / %1 sł./godz.</extracomment>
+        <translation>Tempo</translation>
+    </message>
+    <message>
+        <source>%1 words an hour</source>
+        <translation>%1 sł./godz.</translation>
+    </message>
+    <message>
+        <source>Days in a row</source>
+        <extracomment>In Polish: Dni z rzędu</extracomment>
+        <translation>Dni z rzędu</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>%1 of %2 words</source>
+        <translation>%1 z %2 słów</translation>
+    </message>
+    <message>
+        <source>Words</source>
+        <extracomment>In Polish: Słowa</extracomment>
+        <translation>Słowa</translation>
+    </message>
+    <message>
+        <source>Time of writing</source>
+        <extracomment>In Polish: Czas pisania</extracomment>
+        <translation>Czas pisania</translation>
+    </message>
+    <message>
+        <source>Daily goal</source>
+        <extracomment>In Polish: Cel dzienny</extracomment>
+        <translation>Cel dzienny</translation>
+    </message>
+</context>
+<context>
+    <name>StatsPainter</name>
+    <message>
+        <source>1 word</source>
+        <extracomment>In Polish: 1 słowo</extracomment>
+        <translation>1 słowo</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 words</source>
+        <extracomment>In Polish: %1 słowo / %1 słowa / %1 słów</extracomment>
+        <translation>
+            <numerusform>%1 słowo</numerusform>
+            <numerusform>%1 słowa</numerusform>
+            <numerusform>%1 słów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>a lot, fast</source>
+        <extracomment>In Polish: dużo i szybko</extracomment>
+        <translation>dużo i szybko</translation>
+    </message>
+    <message>
+        <source>a lot, slowly</source>
+        <extracomment>In Polish: dużo i powoli</extracomment>
+        <translation>dużo i powoli</translation>
+    </message>
+    <message>
+        <source>a little, fast</source>
+        <extracomment>In Polish: mało i szybko</extracomment>
+        <translation>mało i szybko</translation>
+    </message>
+    <message>
+        <source>a little, slowly</source>
+        <extracomment>In Polish: mało i powoli</extracomment>
+        <translation>mało i powoli</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <extracomment>In Polish: przerwa</extracomment>
+        <translation>przerwa</translation>
+    </message>
+</context>
+<context>
+    <name>StatsPreview</name>
+    <message>
+        <source>Preview of the colors</source>
+        <translation>Podgląd kolorów</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::StatsBarPage</name>
+    <message>
+        <source>The statistics bar above the tabs of the texts, the Statistics panel and the status bar. The colors are on the Colors page.</source>
+        <extracomment>In Polish: Pasek statystyk nad kartami tekstów, panel „Statystyki” i pasek stanu. Kolory są na stronie „Kolory”.</extracomment>
+        <translation>Pasek statystyk nad kartami tekstów, panel „Statystyki” i pasek stanu. Kolory są na stronie „Kolory”.</translation>
+    </message>
+    <message>
+        <source>Statistics Bar</source>
+        <translation>Pasek statystyk</translation>
+    </message>
+    <message>
+        <source>&amp;Show the statistics bar</source>
+        <translation>&amp;Pokazuj pasek statystyk</translation>
+    </message>
+    <message>
+        <source>Above the tabs of the texts. The button on the toolbar and the View menu show and hide it too.</source>
+        <translation>Nad kartami tekstów. Pokazuje go i ukrywa także przycisk na pasku narzędzi i menu Widok.</translation>
+    </message>
+    <message>
+        <source>Look:</source>
+        <translation>Wygląd:</translation>
+    </message>
+    <message>
+        <source>&amp;Graph</source>
+        <translation>&amp;Wykres</translation>
+    </message>
+    <message>
+        <source>&amp;One line</source>
+        <translation>&amp;Jedna linia</translation>
+    </message>
+    <message>
+        <source>The button in the top right corner of the bar switches it too.</source>
+        <translation>Przełącza go też przycisk w prawym górnym rogu paska.</translation>
+    </message>
+    <message>
+        <source> px</source>
+        <translation> px</translation>
+    </message>
+    <message>
+        <source>Graph &amp;height:</source>
+        <translation>Wy&amp;sokość wykresu:</translation>
+    </message>
+    <message>
+        <source>At least %1 px.</source>
+        <translation>Co najmniej %1 px.</translation>
+    </message>
+    <message>
+        <source>Texts on the graph:</source>
+        <translation>Teksty na wykresie:</translation>
+    </message>
+    <message>
+        <source>On the &amp;right</source>
+        <translation>Po p&amp;rawej</translation>
+    </message>
+    <message>
+        <source>On the &amp;left</source>
+        <translation>Po &amp;lewej</translation>
+    </message>
+    <message>
+        <source>&amp;Words today and the temperature of work</source>
+        <translation>Słowa dziś i &amp;temperatura pracy</translation>
+    </message>
+    <message>
+        <source>&amp;Time of writing</source>
+        <translation>&amp;Czas pisania</translation>
+    </message>
+    <message>
+        <source>&amp;Days in a row</source>
+        <translation>&amp;Dni z rzędu</translation>
+    </message>
+    <message>
+        <source>Show:</source>
+        <translation>Pokazuj:</translation>
+    </message>
+    <message>
+        <source>Today</source>
+        <translation>Dzisiaj</translation>
+    </message>
+    <message>
+        <source>The last 7 days</source>
+        <translation>Ostatnie 7 dni</translation>
+    </message>
+    <message>
+        <source>The last 30 days</source>
+        <translation>Ostatnie 30 dni</translation>
+    </message>
+    <message>
+        <source>&amp;Mini graph in one line:</source>
+        <translation>&amp;Miniwykres w jednej linii:</translation>
+    </message>
+    <message>
+        <source>A click on the mini graph switches it too: today, 7 or 30 days.</source>
+        <translation>Przełącza go też kliknięcie miniwykresu: dzisiaj, 7 albo 30 dni.</translation>
+    </message>
+    <message>
+        <source>Statistics Panel</source>
+        <translation>Panel „Statystyki”</translation>
+    </message>
+    <message>
+        <source>Week</source>
+        <translation>Tydzień</translation>
+    </message>
+    <message>
+        <source>30 days</source>
+        <translation>30 dni</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Times of writing</source>
+        <translation>Pory pisania</translation>
+    </message>
+    <message>
+        <source>Achievements</source>
+        <translation>Osiągnięcia</translation>
+    </message>
+    <message>
+        <source>Views in the panel:</source>
+        <translation>Widoki w panelu:</translation>
+    </message>
+    <message>
+        <source>Hidden views take no room in the panel.</source>
+        <translation>Ukryte widoki nie zajmują miejsca w panelu.</translation>
+    </message>
+    <message>
+        <source>Status Bar</source>
+        <translation>Pasek stanu</translation>
+    </message>
+    <message>
+        <source>Show the time of writing and the d&amp;ays in a row</source>
+        <translation>Pok&amp;azuj czas pisania i dni z rzędu</translation>
+    </message>
+    <message>
+        <source>Beside the words and the reading time, at the bottom of the window.</source>
+        <translation>Obok liczby słów i czasu czytania, na dole okna.</translation>
+    </message>
+    <message>
+        <source>Graph of the Bar</source>
+        <translation>Wykres paska</translation>
+    </message>
+    <message>
+        <source>From</source>
+        <translation>Od</translation>
+    </message>
+    <message>
+        <source>To</source>
+        <translation>Do</translation>
+    </message>
+    <message>
+        <source>Ho&amp;urs: from</source>
+        <translation>&amp;Godziny: od</translation>
+    </message>
+    <message>
+        <source>to</source>
+        <translation>do</translation>
+    </message>
+    <message>
+        <source>When you write outside these hours, the graph widens by itself.</source>
+        <translation>Gdy piszesz poza tymi godzinami, wykres sam się poszerza.</translation>
+    </message>
+    <message>
+        <source>5 min</source>
+        <translation>5 min</translation>
+    </message>
+    <message>
+        <source>10 min</source>
+        <translation>10 min</translation>
+    </message>
+    <message>
+        <source>15 min</source>
+        <translation>15 min</translation>
+    </message>
+    <message>
+        <source>20 min</source>
+        <translation>20 min</translation>
+    </message>
+    <message>
+        <source>30 min</source>
+        <translation>30 min</translation>
+    </message>
+    <message>
+        <source>&amp;Piece of the graph:</source>
+        <translation>&amp;Odcinek wykresu:</translation>
+    </message>
+    <message>
+        <source>The graph shows the words written in each piece.</source>
+        <translation>Wykres pokazuje słowa napisane w każdym odcinku.</translation>
+    </message>
+    <message>
+        <source>Words in &amp;each piece</source>
+        <translation>Słowa w każdym odcin&amp;ku</translation>
+    </message>
+    <message>
+        <source>Words today with the li&amp;ne of the goal</source>
+        <translation>Słowa dziś z li&amp;nią celu</translation>
+    </message>
+    <message>
+        <source>Lines:</source>
+        <translation>Linie:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::StatsColorsPage</name>
+    <message>
+        <source>The colors of the graphs, of the bar of the daily goal and of the temperature of work. Each theme of the program has its own; the program uses those of the theme in use.</source>
+        <extracomment>In Polish: Kolory wykresów, paska celu dziennego i temperatury pracy. Każdy motyw programu ma własne kolory; program używa tych, które pasują do bieżącego motywu.</extracomment>
+        <translation>Kolory wykresów, paska celu dziennego i temperatury pracy. Każdy motyw programu ma własne kolory; program używa kolorów bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Colors of the Light Theme</source>
+        <translation>Kolory motywu jasnego</translation>
+    </message>
+    <message>
+        <source>Colors of the Dark Theme</source>
+        <translation>Kolory motywu ciemnego</translation>
+    </message>
+    <message>
+        <source>Colors of the Theme %1</source>
+        <translation>Kolory motywu %1</translation>
+    </message>
+    <message>
+        <source>Background of the graphs</source>
+        <translation>Tło wykresów</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>Siatka</translation>
+    </message>
+    <message>
+        <source>Frame of the graphs</source>
+        <translation>Ramka wykresów</translation>
+    </message>
+    <message>
+        <source>Line and fill of the graphs</source>
+        <translation>Linia i wypełnienie wykresów</translation>
+    </message>
+    <message>
+        <source>Line of the goal</source>
+        <translation>Linia celu</translation>
+    </message>
+    <message>
+        <source>Goal reached</source>
+        <translation>Cel osiągnięty</translation>
+    </message>
+    <message>
+        <source>Temperature: a lot, fast</source>
+        <translation>Temperatura: dużo i szybko</translation>
+    </message>
+    <message>
+        <source>Temperature: a lot, slowly</source>
+        <translation>Temperatura: dużo i powoli</translation>
+    </message>
+    <message>
+        <source>Temperature: a little, fast</source>
+        <translation>Temperatura: mało i szybko</translation>
+    </message>
+    <message>
+        <source>Temperature: a little, slowly</source>
+        <translation>Temperatura: mało i powoli</translation>
+    </message>
+    <message>
+        <source>Times of writing: the fewest words</source>
+        <translation>Pory pisania: najmniej słów</translation>
+    </message>
+    <message>
+        <source>Times of writing: the most words</source>
+        <translation>Pory pisania: najwięcej słów</translation>
+    </message>
+    <message>
+        <source>Texts on the graphs</source>
+        <translation>Teksty na wykresach</translation>
+    </message>
+    <message>
+        <source>Badges: bronze</source>
+        <extracomment>In Polish: Odznaki: brązowa</extracomment>
+        <translation>Odznaka brązowa</translation>
+    </message>
+    <message>
+        <source>Badges: silver</source>
+        <extracomment>In Polish: Odznaki: srebrna</extracomment>
+        <translation>Odznaka srebrna</translation>
+    </message>
+    <message>
+        <source>Badges: gold</source>
+        <extracomment>In Polish: Odznaki: złota</extracomment>
+        <translation>Odznaka złota</translation>
+    </message>
+    <message>
+        <source>Badges: platinum</source>
+        <extracomment>In Polish: Odznaki: platynowa</extracomment>
+        <translation>Odznaka platynowa</translation>
+    </message>
+    <message>
+        <source>Restore Default Colors</source>
+        <translation>Przywróć domyślne kolory</translation>
+    </message>
+    <message>
+        <source> %</source>
+        <translation> %</translation>
+    </message>
+    <message>
+        <source>&amp;Fill under the lines:</source>
+        <translation>&amp;Wypełnienie pod liniami:</translation>
+    </message>
+    <message>
+        <source>Preview:</source>
+        <translation>Podgląd:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::StatsCountingPage</name>
+    <message>
+        <source>How the program counts the words, the time of writing and the days in a row. The goals and the deadlines themselves are on the tab Writing Goals and Deadlines (Tools &gt; Writing Goals and Deadlines).</source>
+        <extracomment>In Polish: Jak program liczy słowa, czas pisania i dni z rzędu. Same cele i terminy ustawiasz na karcie „Cele i terminy pisania” (Narzędzia &gt; Cele i terminy pisania).</extracomment>
+        <translation>Jak program liczy słowa, czas pisania i dni z rzędu. Same cele i terminy ustawiasz na karcie „Cele i terminy pisania” (Narzędzia &gt; Cele i terminy pisania).</translation>
+    </message>
+    <message>
+        <source>What Counts toward the Goal</source>
+        <translation>Co liczy się do celu</translation>
+    </message>
+    <message>
+        <source>&amp;Words added: written minus deleted</source>
+        <translation>&amp;Słowa dodane: napisane minus usunięte</translation>
+    </message>
+    <message>
+        <source>When you delete a paragraph, the words of the day go down.</source>
+        <translation>Gdy usuniesz akapit, słów dnia ubywa.</translation>
+    </message>
+    <message>
+        <source>&amp;All the words written</source>
+        <translation>&amp;Wszystkie napisane słowa</translation>
+    </message>
+    <message>
+        <source>Deleting does not lower the words of the day.</source>
+        <translation>Usuwanie nie zmniejsza liczby słów dnia.</translation>
+    </message>
+    <message>
+        <source>Daily and Weekly Goal</source>
+        <translation>Cel dzienny i tygodniowy</translation>
+    </message>
+    <message>
+        <source>Words of all the &amp;books</source>
+        <translation>Słowa wszystkich &amp;książek</translation>
+    </message>
+    <message>
+        <source>The goal is your habit of writing, not that of one book.</source>
+        <translation>Cel dotyczy Twojego nawyku pisania, a nie jednej książki.</translation>
+    </message>
+    <message>
+        <source>Words of the &amp;open book only</source>
+        <translation>Słowa tylko &amp;otwartej książki</translation>
+    </message>
+    <message>
+        <source>Pasted Text</source>
+        <translation>Wklejony tekst</translation>
+    </message>
+    <message>
+        <source>Count &amp;pasted text in the statistics</source>
+        <extracomment>In Polish: Wliczaj wklejony tekst do statystyk</extracomment>
+        <translation>Wliczaj wklejony &amp;tekst do statystyk</translation>
+    </message>
+    <message>
+        <source>Text pasted or dropped is not writing: it does not count toward the words of the day, the goals, the days in a row or the badges. The length of the book counts the whole text. The same box is at the foot of the Statistics panel.</source>
+        <extracomment>In Polish: Wklejony albo upuszczony tekst to nie pisanie: nie liczy się do słów dnia, celów, dni z rzędu ani odznak. Długość książki liczy cały tekst. To samo pole jest na dole panelu „Statystyki”.</extracomment>
+        <translation>Wklejony albo upuszczony tekst to nie pisanie: nie liczy się do słów dnia, celów, dni z rzędu ani odznak. Długość książki obejmuje cały tekst. To samo pole jest na dole panelu „Statystyki”.</translation>
+    </message>
+    <message>
+        <source>Days in a Row</source>
+        <translation>Dni z rzędu</translation>
+    </message>
+    <message>
+        <source>Words a day</source>
+        <translation>Słowa dziennie</translation>
+    </message>
+    <message>
+        <source>A day counts when you:</source>
+        <translation>Dzień się liczy, gdy:</translation>
+    </message>
+    <message>
+        <source>w&amp;rite at least</source>
+        <translation>napiszesz co &amp;najmniej</translation>
+    </message>
+    <message>
+        <source>reach the &amp;daily goal</source>
+        <translation>osiągniesz &amp;cel dzienny</translation>
+    </message>
+    <message>
+        <source>words</source>
+        <translation>słów</translation>
+    </message>
+    <message>
+        <source>Days off do not break the run.</source>
+        <translation>Dni wolne nie przerywają serii.</translation>
+    </message>
+    <message>
+        <source>Details of Counting</source>
+        <translation>Szczegóły liczenia</translation>
+    </message>
+    <message>
+        <source>Writing day &amp;ends at:</source>
+        <translation>Dzień pisania kończy się o &amp;godzinie:</translation>
+    </message>
+    <message>
+        <source>The words written after midnight, until this hour, still count to the day before.</source>
+        <translation>Słowa napisane po północy, do tej godziny, liczą się jeszcze do poprzedniego dnia.</translation>
+    </message>
+    <message>
+        <source> min</source>
+        <translation> min</translation>
+    </message>
+    <message>
+        <source>Time of writing &amp;stops after:</source>
+        <translation>Czas pisania &amp;zatrzymuje się po:</translation>
+    </message>
+    <message>
+        <source>without writing</source>
+        <translation>bez pisania</translation>
+    </message>
+    <message>
+        <source>A longer pause does not count as time of writing.</source>
+        <translation>Dłuższa przerwa nie liczy się do czasu pisania.</translation>
+    </message>
+    <message>
+        <source>Do not count &amp;large changes at once, over</source>
+        <translation>Nie licz &amp;dużych zmian naraz, powyżej</translation>
+    </message>
+    <message>
+        <source>Words of a large change</source>
+        <translation>Słowa dużej zmiany</translation>
+    </message>
+    <message>
+        <source>Cutting, restoring a version or Replace All is not writing.</source>
+        <extracomment>In Polish: Wycięcie, przywrócenie wersji albo „Zamień wszystko” to nie pisanie.</extracomment>
+        <translation>Wycięcie, przywrócenie wersji albo „Zamień wszystko” to nie pisanie.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::StatsNotificationsPage</name>
+    <message>
+        <source>The messages show in the bar at the bottom of the window, with a button that copies them.</source>
+        <extracomment>In Polish: Wiadomości pokazują się na pasku na dole okna, z przyciskiem kopiowania.</extracomment>
+        <translation>Wiadomości pokazują się na pasku na dole okna, z przyciskiem kopiowania.</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Wiadomości</translation>
+    </message>
+    <message>
+        <source>&amp;Daily goal reached</source>
+        <translation>Cel &amp;dzienny osiągnięty</translation>
+    </message>
+    <message>
+        <source>&amp;Weekly goal reached</source>
+        <translation>Cel &amp;tygodniowy osiągnięty</translation>
+    </message>
+    <message>
+        <source>A deadline is &amp;coming,</source>
+        <translation>&amp;Przypomnienie o terminie</translation>
+    </message>
+    <message>
+        <source>Days before the deadline</source>
+        <translation>Dni przed terminem</translation>
+    </message>
+    <message>
+        <source>days before</source>
+        <translation>dni wcześniej</translation>
+    </message>
+    <message>
+        <source>The deadline of the book and the deadlines on the tab Writing Goals and Deadlines.</source>
+        <translation>Termin książki i terminy z karty „Cele i terminy pisania”.</translation>
+    </message>
+    <message>
+        <source>Summary of the Session</source>
+        <translation>Podsumowanie sesji</translation>
+    </message>
+    <message>
+        <source>Show a &amp;summary of the session</source>
+        <extracomment>In Polish: Pokazuj &amp;podsumowanie sesji</extracomment>
+        <translation>Pokazuj podsumowanie &amp;sesji</translation>
+    </message>
+    <message>
+        <source>When the book or the program closes: the words, the time of writing and the progress of the goal of the day.</source>
+        <extracomment>In Polish: Przy zamknięciu książki albo programu: słowa, czas pisania i postęp celu dnia.</extracomment>
+        <translation>Przy zamknięciu książki albo programu: słowa, czas pisania i postęp celu dnia.</translation>
+    </message>
+    <message>
+        <source>Badges and Challenges</source>
+        <translation>Odznaki i wyzwania</translation>
+    </message>
+    <message>
+        <source>&amp;Badges</source>
+        <translation>&amp;Odznaki</translation>
+    </message>
+    <message>
+        <source>For days in a row, for words and for goals reached.</source>
+        <translation>Za dni z rzędu, za słowa i za osiągnięte cele.</translation>
+    </message>
+    <message>
+        <source>C&amp;hallenges</source>
+        <translation>&amp;Wyzwania</translation>
+    </message>
+    <message>
+        <source>For those who like them, e.g. 50,000 words in a month.</source>
+        <translation>Dla tych, którzy je lubią, np. 50 000 słów w miesiąc.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::StatsSettingsPage</name>
+    <message>
+        <source>Ad&amp;vanced Settings</source>
+        <translation>&amp;Ustawienia zaawansowane</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::StatusBarWriting</name>
+    <message>
+        <source>Time of writing today: %1</source>
+        <extracomment>In the status bar. In Polish: Czas pisania dziś: %1</extracomment>
+        <translation>Czas pisania dziś: %1</translation>
+    </message>
+    <message>
+        <source>1 day</source>
+        <extracomment>In the status bar. In Polish: 1 dzień</extracomment>
+        <translation>1 dzień</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 days</source>
+        <translation>
+            <numerusform>%1 dzień</numerusform>
+            <numerusform>%1 dni</numerusform>
+            <numerusform>%1 dni</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Days in a row: %1</source>
+        <extracomment>In Polish: Dni z rzędu: %1</extracomment>
+        <translation>Dni z rzędu: %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::WritingAwardsTab</name>
+    <message>
+        <source>not yet</source>
+        <extracomment>The badges not won yet, in the key of the colors. In Polish: jeszcze nie</extracomment>
+        <translation>jeszcze nie</translation>
+    </message>
+    <message>
+        <source>Challenges and Badges</source>
+        <extracomment>The tab in the middle of the window. In Polish: Wyzwania i odznaki</extracomment>
+        <translation>Wyzwania i odznaki</translation>
+    </message>
+    <message>
+        <source>Challenges</source>
+        <extracomment>In Polish: Wyzwania</extracomment>
+        <translation>Wyzwania</translation>
+    </message>
+    <message>
+        <source>&amp;Add Challenge...</source>
+        <extracomment>In Polish: &amp;Dodaj wyzwanie...</extracomment>
+        <translation>&amp;Dodaj wyzwanie...</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Yours – All the Books</source>
+        <extracomment>The badges of the writer, of all the books. In Polish: Twoje – wszystkie książki</extracomment>
+        <translation>Twoje – wszystkie książki</translation>
+    </message>
+    <message>
+        <source>Your badges</source>
+        <extracomment>In Polish: Twoje odznaki</extracomment>
+        <translation>Twoje odznaki</translation>
+    </message>
+    <message>
+        <source>Badges of the book</source>
+        <extracomment>In Polish: Odznaki książki</extracomment>
+        <translation>Odznaki książki</translation>
+    </message>
+    <message>
+        <source>Badges of the month</source>
+        <extracomment>In Polish: Odznaki miesiąca</extracomment>
+        <translation>Odznaki miesiąca</translation>
+    </message>
+    <message>
+        <source>&amp;Start Over...</source>
+        <extracomment>In Polish: &amp;Zacznij od nowa...</extracomment>
+        <translation>&amp;Zacznij od nowa...</translation>
+    </message>
+    <message>
+        <source>E.g. before a new version of the book; the badges won stay in its history.</source>
+        <extracomment>In Polish: Np. przed nową wersją książki; zdobyte odznaki zostają w jej historii.</extracomment>
+        <translation>Np. przed nową wersją książki; zdobyte odznaki zostają w jej historii.</translation>
+    </message>
+    <message>
+        <source>Badges won: %1 of %2</source>
+        <extracomment>In Polish: Zdobyte odznaki: %1 z %2</extracomment>
+        <translation>Zdobyte odznaki: %1 z %2</translation>
+    </message>
+    <message>
+        <source>The challenges are off and are not marked as done. Adding a challenge turns them on; so does Settings &gt; Statistics and Goals &gt; Notifications.</source>
+        <extracomment>In Polish: Wyzwania są wyłączone i nie są oznaczane jako ukończone. Dodanie wyzwania je włącza; włącza je też Ustawienia &gt; Statystyki i cele &gt; Powiadomienia.</extracomment>
+        <translation>Wyzwania są wyłączone i nie są oznaczane jako ukończone. Włącza je dodanie wyzwania albo okno Ustawienia &gt; Statystyki i cele &gt; Powiadomienia.</translation>
+    </message>
+    <message>
+        <source>No challenges yet. A challenge is a goal of your own for a time, e.g. 50,000 words in a month.</source>
+        <extracomment>In Polish: Nie ma jeszcze wyzwań. Wyzwanie to Twój własny cel na określony czas, np. 50 000 słów w miesiąc.</extracomment>
+        <translation>Nie ma jeszcze wyzwań. Wyzwanie to Twój własny cel na określony czas, np. 50 000 słów w miesiąc.</translation>
+    </message>
+    <message>
+        <source>The badges are off: no new ones are won. They are turned on in Settings &gt; Statistics and Goals &gt; Notifications.</source>
+        <extracomment>In Polish: Odznaki są wyłączone: nowych się nie zdobywa. Włącza je Ustawienia &gt; Statystyki i cele &gt; Powiadomienia.</extracomment>
+        <translation>Odznaki są wyłączone: nie zdobywa się nowych. Można je włączyć w oknie Ustawienia &gt; Statystyki i cele &gt; Powiadomienia.</translation>
+    </message>
+    <message>
+        <source>Month – %1</source>
+        <extracomment>%1: the month and its year. In Polish: Miesiąc – %1</extracomment>
+        <translation>Miesiąc – %1</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Book “%1”</source>
+        <translation>Książka „%1”</translation>
+    </message>
+    <message>
+        <source>Counted since %1. The badges won before stay in the history of the book.</source>
+        <extracomment>In Polish: Liczone od %1. Wcześniej zdobyte odznaki zostają w historii książki.</extracomment>
+        <translation>Liczone od %1. Wcześniej zdobyte odznaki zostają w historii książki.</translation>
+    </message>
+    <message>
+        <source>The badges of the book show when a book is open.</source>
+        <extracomment>In Polish: Odznaki książki pokazują się, gdy książka jest otwarta.</extracomment>
+        <translation>Odznaki książki pokazują się, gdy książka jest otwarta.</translation>
+    </message>
+    <message>
+        <source>Remove Challenge</source>
+        <extracomment>In Polish: Usuń wyzwanie</extracomment>
+        <translation>Usuń wyzwanie</translation>
+    </message>
+    <message>
+        <source>Remove the challenge “%1” (%2)?</source>
+        <extracomment>%1: the challenge, %2: its last day. In Polish: Usunąć wyzwanie „%1” (%2)?</extracomment>
+        <translation>Usunąć wyzwanie „%1” (%2)?</translation>
+    </message>
+    <message>
+        <source>Start Over</source>
+        <extracomment>In Polish: Zacznij od nowa</extracomment>
+        <translation>Zacznij od nowa</translation>
+    </message>
+    <message>
+        <source>Count the badges of the book “%1” over? From today they count from nothing, e.g. before a new version of the book. The badges won stay in the history of the book.</source>
+        <extracomment>%1: the title of the book. In Polish: Liczyć odznaki książki „%1” od nowa? Od dziś liczą się od zera, np. przed nową wersją książki. Zdobyte odznaki zostają w historii książki.</extracomment>
+        <translation>Liczyć odznaki książki „%1” od nowa? Od dziś liczą się od zera, np. przed nową wersją książki. Zdobyte odznaki zostają w historii książki.</translation>
+    </message>
+    <message>
+        <source>&amp;Start Over</source>
+        <extracomment>In Polish: &amp;Zacznij od nowa</extracomment>
+        <translation>&amp;Zacznij od nowa</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::WritingGoalsTab</name>
+    <message>
+        <source>Writing Goals and Deadlines</source>
+        <extracomment>The tab in the middle of the window. In Polish: Cele i terminy pisania</extracomment>
+        <translation>Cele i terminy pisania</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 words</source>
+        <extracomment>%1: a number of words. In Polish: %1 słowo / %1 słowa / %1 słów</extracomment>
+        <translation>
+            <numerusform>%1 słowo</numerusform>
+            <numerusform>%1 słowa</numerusform>
+            <numerusform>%1 słów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Daily Goal</source>
+        <extracomment>In Polish: Cel dzienny</extracomment>
+        <translation>Cel dzienny</translation>
+    </message>
+    <message>
+        <source>&amp;Write at least</source>
+        <extracomment>Before the words of the daily goal. In Polish: &amp;Pisać co najmniej</extracomment>
+        <translation>&amp;Pisać co najmniej</translation>
+    </message>
+    <message>
+        <source>words on a writing day</source>
+        <extracomment>After the words of the daily goal. In Polish: słów w dniu pisania</extracomment>
+        <translation>słów w dniu pisania</translation>
+    </message>
+    <message>
+        <source>0: no daily goal</source>
+        <extracomment>In Polish: 0 – bez celu dziennego</extracomment>
+        <translation>0 – bez celu dziennego</translation>
+    </message>
+    <message>
+        <source>Writing &amp;days:</source>
+        <extracomment>In Polish: &amp;Dni pisania:</extracomment>
+        <translation>&amp;Dni pisania:</translation>
+    </message>
+    <message>
+        <source>Mo</source>
+        <extracomment>Monday, short, on a button. In Polish: Pn</extracomment>
+        <translation>Pn</translation>
+    </message>
+    <message>
+        <source>Tu</source>
+        <extracomment>Tuesday, short. In Polish: Wt</extracomment>
+        <translation>Wt</translation>
+    </message>
+    <message>
+        <source>We</source>
+        <extracomment>Wednesday, short. In Polish: Śr</extracomment>
+        <translation>Śr</translation>
+    </message>
+    <message>
+        <source>Th</source>
+        <extracomment>Thursday, short. In Polish: Cz</extracomment>
+        <translation>Cz</translation>
+    </message>
+    <message>
+        <source>Fr</source>
+        <extracomment>Friday, short. In Polish: Pt</extracomment>
+        <translation>Pt</translation>
+    </message>
+    <message>
+        <source>Sa</source>
+        <extracomment>Saturday, short. In Polish: So</extracomment>
+        <translation>So</translation>
+    </message>
+    <message>
+        <source>Su</source>
+        <extracomment>Sunday, short. In Polish: Nd</extracomment>
+        <translation>Nd</translation>
+    </message>
+    <message>
+        <source>Days off do not break the days in a row.</source>
+        <extracomment>In Polish: Dni wolne nie przerywają serii dni z rzędu.</extracomment>
+        <translation>Dni wolne nie przerywają serii dni z rzędu.</translation>
+    </message>
+    <message>
+        <source>Set the daily goal from the deadline of the &amp;book</source>
+        <extracomment>In Polish: Ustal cel dzienny z terminu &amp;książki</extracomment>
+        <translation>Ustal cel dzienny z terminu &amp;książki</translation>
+    </message>
+    <message>
+        <source>Weekly Goal</source>
+        <extracomment>In Polish: Cel tygodniowy</extracomment>
+        <translation>Cel tygodniowy</translation>
+    </message>
+    <message>
+        <source>&amp;Own:</source>
+        <extracomment>In Polish: &amp;Własny:</extracomment>
+        <translation>&amp;Własny:</translation>
+    </message>
+    <message>
+        <source>words</source>
+        <extracomment>After the words of the weekly goal. In Polish: słów
+----------
+After the length of the book. In Polish: słów</extracomment>
+        <translation>słów</translation>
+    </message>
+    <message>
+        <source>Goal of the Book</source>
+        <extracomment>In Polish: Cel książki</extracomment>
+        <translation>Cel książki</translation>
+    </message>
+    <message>
+        <source>Target &amp;length</source>
+        <extracomment>In Polish: Docel&amp;owa długość</extracomment>
+        <translation>Docel&amp;owa długość</translation>
+    </message>
+    <message>
+        <source>0: no target length</source>
+        <extracomment>In Polish: 0 – bez docelowej długości</extracomment>
+        <translation>0 – bez docelowej długości</translation>
+    </message>
+    <message>
+        <source>Deadli&amp;ne:</source>
+        <extracomment>In Polish: &amp;Termin:</extracomment>
+        <translation>&amp;Termin:</translation>
+    </message>
+    <message>
+        <source>Deadline of the book</source>
+        <extracomment>In Polish: Termin książki</extracomment>
+        <translation>Termin książki</translation>
+    </message>
+    <message>
+        <source>Deadlines</source>
+        <extracomment>In Polish: Terminy</extracomment>
+        <translation>Terminy</translation>
+    </message>
+    <message>
+        <source>Deadline</source>
+        <extracomment>In Polish: Termin</extracomment>
+        <translation>Termin</translation>
+    </message>
+    <message>
+        <source>Date</source>
+        <extracomment>In Polish: Data</extracomment>
+        <translation>Data</translation>
+    </message>
+    <message>
+        <source>What It Is About</source>
+        <extracomment>In Polish: Czego dotyczy</extracomment>
+        <translation>Czego dotyczy</translation>
+    </message>
+    <message>
+        <source>Goal</source>
+        <extracomment>In Polish: Cel</extracomment>
+        <translation>Cel</translation>
+    </message>
+    <message>
+        <source>State</source>
+        <extracomment>In Polish: Stan</extracomment>
+        <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Deadlines of the book</source>
+        <extracomment>In Polish: Terminy książki</extracomment>
+        <translation>Terminy książki</translation>
+    </message>
+    <message>
+        <source>&amp;Add Deadline...</source>
+        <extracomment>In Polish: Dod&amp;aj termin...</extracomment>
+        <translation>Dod&amp;aj termin...</translation>
+    </message>
+    <message>
+        <source>C&amp;hange...</source>
+        <extracomment>In Polish: &amp;Zmień...</extracomment>
+        <translation>&amp;Zmień...</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>The program reminds you of a deadline at the bottom of the window (Settings &gt; Statistics and Goals &gt; Notifications).</source>
+        <extracomment>In Polish: Program przypomina o terminie na dole okna (Ustawienia &gt; Statystyki i cele &gt; Powiadomienia).</extracomment>
+        <translation>Program przypomina o terminie na dole okna (Ustawienia &gt; Statystyki i cele &gt; Powiadomienia).</translation>
+    </message>
+    <message>
+        <source>Statistics S&amp;ettings...</source>
+        <extracomment>In Polish: Ustaw&amp;ienia statystyk...</extracomment>
+        <translation>Ustaw&amp;ienia statystyk...</translation>
+    </message>
+    <message>
+        <source>The &amp;sum of the daily goals: %1</source>
+        <extracomment>The weekly goal that adds up the daily goals. In Polish: &amp;Suma celów dni pisania: %1</extracomment>
+        <translation>&amp;Suma celów dziennych: %1</translation>
+    </message>
+    <message>
+        <source>The daily goal and the writing days are yours, the same for all the books. The goal of the book and the deadlines are kept in the book “%1”. The changes work at once.</source>
+        <extracomment>%1: the title of the book. In Polish: Cel dzienny i dni pisania są Twoje, wspólne dla wszystkich książek. Cel książki i terminy zapisują się w książce „%1”. Zmiany działają od razu.</extracomment>
+        <translation>Cel dzienny i dni pisania są Twoje, wspólne dla wszystkich książek. Cel książki i terminy zapisują się w książce „%1”. Zmiany działają od razu.</translation>
+    </message>
+    <message>
+        <source>The daily goal and the writing days are yours, the same for all the books. Open a book to set its goal and deadlines. The changes work at once.</source>
+        <extracomment>In Polish: Cel dzienny i dni pisania są Twoje, wspólne dla wszystkich książek. Cel książki i terminy ustawisz po otwarciu książki. Zmiany działają od razu.</extracomment>
+        <translation>Cel dzienny i dni pisania są Twoje, wspólne dla wszystkich książek. Cel książki i terminy ustawisz po otwarciu książki. Zmiany działają od razu.</translation>
+    </message>
+    <message>
+        <source>(needs the length and the deadline of the book)</source>
+        <extracomment>In Polish: (potrzebuje długości i terminu książki)</extracomment>
+        <translation>(wymaga długości i terminu książki)</translation>
+    </message>
+    <message>
+        <source>(today: %1)</source>
+        <translation>(dziś: %1)</translation>
+    </message>
+    <message>
+        <source>(on a writing day: %1)</source>
+        <translation>(w dniu pisania: %1)</translation>
+    </message>
+    <message>
+        <source>Open a book to set its length and deadline.</source>
+        <extracomment>In Polish: Otwórz książkę, aby ustawić jej długość i termin.</extracomment>
+        <translation>Otwórz książkę, aby ustawić jej długość i termin.</translation>
+    </message>
+    <message>
+        <source>The book has %1. Set its length to see how much is left.</source>
+        <extracomment>%1: the words of the book. In Polish: Książka ma %1. Ustaw jej długość, aby zobaczyć, ile zostało.</extracomment>
+        <translation>Książka ma %1. Ustaw jej długość, aby zobaczyć, ile zostało.</translation>
+    </message>
+    <message>
+        <source>The book has %1: it has reached its length.</source>
+        <extracomment>In Polish: Książka ma %1: osiągnęła docelową długość.</extracomment>
+        <translation>Książka ma %1 i osiągnęła docelową długość.</translation>
+    </message>
+    <message>
+        <source>The book has %1, %2 are left and %3 to the deadline, that is &lt;b&gt;%4 on a writing day&lt;/b&gt;.</source>
+        <extracomment>%1: the words of the book, %2: the words left, %3: the writing days to the deadline, %4: the words a writing day needs. In Polish: Jest %1, zostało %2 i %3 do terminu, czyli &lt;b&gt;%4 w dniu pisania&lt;/b&gt;.</extracomment>
+        <translation>Książka ma %1. Do napisania: %2, do terminu: %3, czyli &lt;b&gt;%4 w dniu pisania&lt;/b&gt;.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 writing days</source>
+        <extracomment>In Polish: %1 dzień pisania / %1 dni pisania</extracomment>
+        <translation>
+            <numerusform>%1 dzień pisania</numerusform>
+            <numerusform>%1 dni pisania</numerusform>
+            <numerusform>%1 dni pisania</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The book has %1 and %2 are left. The deadline has passed.</source>
+        <extracomment>In Polish: Jest %1 i zostało %2. Termin minął.</extracomment>
+        <translation>Książka ma %1. Do napisania: %2. Termin minął.</translation>
+    </message>
+    <message>
+        <source>The book has %1 and %2 are left.</source>
+        <extracomment>In Polish: Jest %1 i zostało %2.</extracomment>
+        <translation>Książka ma %1. Do napisania: %2.</translation>
+    </message>
+    <message>
+        <source>At the present pace (an average of %1) you will finish about %2.</source>
+        <extracomment>%1: the average words of a writing day, %2: a day. In Polish: W obecnym tempie (średnio %1) skończysz ok. %2.</extracomment>
+        <translation>W obecnym tempie (średnio %1) skończysz około %2.</translation>
+    </message>
+    <message>
+        <source>The forecast shows after a few days of writing.</source>
+        <extracomment>In Polish: Prognoza pojawi się po kilku dniach pisania.</extracomment>
+        <translation>Prognoza pojawi się po kilku dniach pisania.</translation>
+    </message>
+    <message>
+        <source>the whole book</source>
+        <extracomment>What a deadline is about. In Polish: cała książka</extracomment>
+        <translation>cała książka</translation>
+    </message>
+    <message>
+        <source>a part no longer in the book</source>
+        <extracomment>In Polish: część, której nie ma już w książce</extracomment>
+        <translation>część, której nie ma już w książce</translation>
+    </message>
+    <message>
+        <source>%1, passed</source>
+        <extracomment>The state of a deadline that has passed. In Polish: %1, po terminie</extracomment>
+        <translation>%1, po terminie</translation>
+    </message>
+    <message>
+        <source>%1 (the next deadline)</source>
+        <extracomment>%1: the name of a deadline. In Polish: %1 (najbliższy termin)</extracomment>
+        <translation>%1 (najbliższy termin)</translation>
+    </message>
+    <message>
+        <source>Remove Deadline</source>
+        <extracomment>In Polish: Usuń termin</extracomment>
+        <translation>Usuń termin</translation>
+    </message>
+    <message>
+        <source>Remove the deadline “%1”?</source>
+        <extracomment>%1: the name of the deadline. In Polish: Usunąć termin „%1”?</extracomment>
+        <translation>Usunąć termin „%1”?</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::WritingStatsBar</name>
+    <message>
+        <source>Statistics bar</source>
+        <translation>Pasek statystyk</translation>
+    </message>
+    <message>
+        <source>Writing Goals and Deadlines</source>
+        <translation>Cele i terminy pisania</translation>
+    </message>
+    <message>
+        <source>Statistics panel</source>
+        <translation>Panel „Statystyki”</translation>
+    </message>
+    <message>
+        <source>Statistics settings</source>
+        <translation>Ustawienia statystyk</translation>
+    </message>
+    <message>
+        <source>goal reached</source>
+        <translation>cel osiągnięty</translation>
+    </message>
+    <message>
+        <source>%1 of %2 words</source>
+        <extracomment>In Polish: %1 z %2 słów</extracomment>
+        <translation>%1 z %2 słów</translation>
+    </message>
+    <message>
+        <source>%1 word</source>
+        <translation>%1 słowo</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 words</source>
+        <translation>
+            <numerusform>%1 słowo</numerusform>
+            <numerusform>%1 słowa</numerusform>
+            <numerusform>%1 słów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>, </source>
+        <translation>, </translation>
+    </message>
+    <message>
+        <source>%1 of writing</source>
+        <translation>%1 pisania</translation>
+    </message>
+    <message>
+        <source>1 day in a row</source>
+        <extracomment>In Polish: 1 dzień z rzędu</extracomment>
+        <translation>1 dzień z rzędu</translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln days in a row</source>
+        <translation>
+            <numerusform>%Ln dzień z rzędu</numerusform>
+            <numerusform>%Ln dni z rzędu</numerusform>
+            <numerusform>%Ln dni z rzędu</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>today: %1</source>
+        <translation>dziś: %1</translation>
+    </message>
+    <message>
+        <source>7 days: %1</source>
+        <translation>7 dni: %1</translation>
+    </message>
+    <message>
+        <source>30 days: %1</source>
+        <translation>30 dni: %1</translation>
+    </message>
+    <message>
+        <source>%1. Click: today, 7 or 30 days</source>
+        <translation>%1. Kliknięcie: dziś, 7 albo 30 dni</translation>
+    </message>
+    <message>
+        <source>Unfold the bar to the graph</source>
+        <translation>Rozwiń pasek do wykresu</translation>
+    </message>
+    <message>
+        <source>Fold the bar to one line</source>
+        <translation>Zwiń pasek do jednej linii</translation>
+    </message>
+    <message>
+        <source>%1–%2</source>
+        <translation>%1–%2</translation>
+    </message>
+    <message>
+        <source>%1: no writing</source>
+        <translation>%1: bez pisania</translation>
+    </message>
+    <message>
+        <source>%1: %2 (written %3, deleted %4)</source>
+        <extracomment>%1: the hours, %2: the words. In Polish: %1: %2 (napisane %3, usunięte %4)</extracomment>
+        <translation>%1: %2 (napisane %3, usunięte %4)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::WritingStatsCoordinator</name>
+    <message>
+        <source>Copy</source>
+        <extracomment>The button of a message at the bottom of the window. In Polish: Kopiuj</extracomment>
+        <translation>Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy this message</source>
+        <extracomment>In Polish: Kopiuj tę wiadomość</extracomment>
+        <translation>Kopiuj tę wiadomość</translation>
+    </message>
+    <message>
+        <source>Daily goal reached: %1 of %2 words.</source>
+        <extracomment>%1 and %2: numbers. In Polish: Cel dzienny osiągnięty: %1 z %2 słów.</extracomment>
+        <translation>Cel dzienny osiągnięty: %1 z %2 słów.</translation>
+    </message>
+    <message>
+        <source>Left to the weekly goal: %1.</source>
+        <extracomment>In Polish: Do celu tygodniowego zostało: %1.</extracomment>
+        <translation>Do celu tygodniowego: %1.</translation>
+    </message>
+    <message>
+        <source>Weekly goal reached: %1 of %2 words.</source>
+        <extracomment>In Polish: Cel tygodniowy osiągnięty: %1 z %2 słów.</extracomment>
+        <translation>Cel tygodniowy osiągnięty: %1 z %2 słów.</translation>
+    </message>
+    <message>
+        <source>The deadline of the book</source>
+        <extracomment>The deadline of the whole book. In Polish: Termin książki</extracomment>
+        <translation>Termin książki</translation>
+    </message>
+    <message>
+        <source>The deadline “%1”</source>
+        <translation>Termin „%1”</translation>
+    </message>
+    <message>
+        <source>%1 is today (%2).</source>
+        <extracomment>In Polish: %1 jest dziś (%2).</extracomment>
+        <translation>%1 mija dziś (%2).</translation>
+    </message>
+    <message>
+        <source>%1 is tomorrow (%2).</source>
+        <extracomment>In Polish: %1 jest jutro (%2).</extracomment>
+        <translation>%1 mija jutro (%2).</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 is in %n days (%2).</source>
+        <extracomment>In Polish: %1 jest za %n dni (%2).</extracomment>
+        <translation>
+            <numerusform>%1 mija za %n dzień (%2).</numerusform>
+            <numerusform>%1 mija za %n dni (%2).</numerusform>
+            <numerusform>%1 mija za %n dni (%2).</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>There are %1 of %2 words.</source>
+        <extracomment>In Polish: Jest %1 z %2 słów.</extracomment>
+        <translation>Napisano %1 z %2 słów.</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>New badge: %1.</source>
+        <extracomment>In Polish: Nowa odznaka: %1.</extracomment>
+        <translation>Nowa odznaka: %1.</translation>
+    </message>
+    <message numerus="yes">
+        <source>New badges: %n, among them %1.</source>
+        <extracomment>In Polish: Nowe odznaki: %n, w tym %1.</extracomment>
+        <translation>
+            <numerusform>Nowe odznaki: %n, w tym %1.</numerusform>
+            <numerusform>Nowe odznaki: %n, w tym %1.</numerusform>
+            <numerusform>Nowe odznaki: %n, w tym %1.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Challenge done: %1 (%2).</source>
+        <extracomment>In Polish: Wyzwanie ukończone: %1 (%2).</extracomment>
+        <translation>Wyzwanie ukończone: %1 (%2).</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::WritingStatsPanel</name>
+    <message>
+        <source>Views of the statistics</source>
+        <translation>Widoki statystyk</translation>
+    </message>
+    <message>
+        <source>Earlier</source>
+        <translation>Wcześniej</translation>
+    </message>
+    <message>
+        <source>Later</source>
+        <translation>Później</translation>
+    </message>
+    <message>
+        <source>&amp;Goals and Deadlines</source>
+        <translation>&amp;Cele i terminy</translation>
+    </message>
+    <message>
+        <source>Count &amp;pasted text in the statistics</source>
+        <extracomment>In Polish: &amp;Wliczaj wklejony tekst do statystyk</extracomment>
+        <translation>&amp;Wliczaj wklejony tekst do statystyk</translation>
+    </message>
+    <message>
+        <source>Count pasted text in the statistics</source>
+        <translation>Wliczaj wklejony tekst do statystyk</translation>
+    </message>
+    <message>
+        <source>The same as Settings &gt; Statistics and Goals &gt; Counting</source>
+        <extracomment>In Polish: To samo co Ustawienia &gt; Statystyki i cele &gt; Liczenie</extracomment>
+        <translation>To samo co Ustawienia &gt; Statystyki i cele &gt; Liczenie</translation>
+    </message>
+    <message>
+        <source>&amp;Add Challenge...</source>
+        <extracomment>In Polish: &amp;Dodaj wyzwanie...</extracomment>
+        <translation>&amp;Dodaj wyzwanie...</translation>
+    </message>
+    <message>
+        <source>Last badge won</source>
+        <extracomment>In Polish: Ostatnio zdobyta odznaka</extracomment>
+        <translation>Ostatnio zdobyta odznaka</translation>
+    </message>
+    <message>
+        <source>Open the tab Challenges and Badges in the middle of the window</source>
+        <extracomment>In Polish: Otwórz kartę „Wyzwania i odznaki” w środku okna</extracomment>
+        <translation>Otwórz kartę „Wyzwania i odznaki” na środku okna</translation>
+    </message>
+    <message>
+        <source>Today</source>
+        <translation>Dzisiaj</translation>
+    </message>
+    <message>
+        <source>Week</source>
+        <translation>Tydzień</translation>
+    </message>
+    <message>
+        <source>30 Days</source>
+        <translation>30 dni</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Times of Writing</source>
+        <translation>Pory pisania</translation>
+    </message>
+    <message>
+        <source>Achievements</source>
+        <extracomment>The view of the badges and the challenges. In Polish: Osiągnięcia</extracomment>
+        <translation>Osiągnięcia</translation>
+    </message>
+    <message>
+        <source>No statistics yet.</source>
+        <translation>Nie ma jeszcze statystyk.</translation>
+    </message>
+    <message>
+        <source>%1 of %2 words · %3</source>
+        <translation>%1 z %2 słów · %3</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>Two counts side by side. In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+    <message>
+        <source>%1–%2: %3</source>
+        <translation>%1–%2: %3</translation>
+    </message>
+    <message>
+        <source>Words in %1 min</source>
+        <translation>Słowa w %1 min</translation>
+    </message>
+    <message>
+        <source>Words today</source>
+        <translation>Słowa dziś</translation>
+    </message>
+    <message>
+        <source>Time of writing</source>
+        <translation>Czas pisania</translation>
+    </message>
+    <message>
+        <source>Days in a row</source>
+        <translation>Dni z rzędu</translation>
+    </message>
+    <message>
+        <source>Pace</source>
+        <translation>Tempo</translation>
+    </message>
+    <message>
+        <source>words/h</source>
+        <translation>sł./godz.</translation>
+    </message>
+    <message>
+        <source>Daily goal</source>
+        <translation>Cel dzienny</translation>
+    </message>
+    <message>
+        <source>Sessions</source>
+        <translation>Sesje</translation>
+    </message>
+    <message>
+        <source>Written</source>
+        <translation>Napisane</translation>
+    </message>
+    <message>
+        <source>Deleted</source>
+        <translation>Usunięte</translation>
+    </message>
+    <message>
+        <source>Pasted</source>
+        <extracomment>In Polish: Wklejone; &quot;%1 – wliczone&quot; albo &quot;%1 – niewliczone&quot;</extracomment>
+        <translation>Wklejone</translation>
+    </message>
+    <message>
+        <source>%1, counted</source>
+        <translation>%1 – wliczone</translation>
+    </message>
+    <message>
+        <source>%1, not counted</source>
+        <translation>%1 – niewliczone</translation>
+    </message>
+    <message>
+        <source>To the daily goal</source>
+        <translation>Do celu dziennego</translation>
+    </message>
+    <message>
+        <source>reached</source>
+        <translation>osiągnięty</translation>
+    </message>
+    <message>
+        <source>Temperature of work</source>
+        <translation>Temperatura pracy</translation>
+    </message>
+    <message>
+        <source>Longest session</source>
+        <translation>Najdłuższa sesja</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>Texts</source>
+        <translation>Teksty</translation>
+    </message>
+    <message>
+        <source>%1: %2</source>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <source>Words a day · line: goal %1</source>
+        <translation>Słowa dziennie · linia: cel %1</translation>
+    </message>
+    <message>
+        <source>Words a day</source>
+        <translation>Słowa dziennie</translation>
+    </message>
+    <message>
+        <source>%1 – %2</source>
+        <translation>%1 – %2</translation>
+    </message>
+    <message>
+        <source>%1 of %2 words</source>
+        <translation>%1 z %2 słów</translation>
+    </message>
+    <message>
+        <source>This week</source>
+        <translation>Ten tydzień</translation>
+    </message>
+    <message>
+        <source>In the week</source>
+        <translation>W tygodniu</translation>
+    </message>
+    <message>
+        <source>Weekly goal</source>
+        <translation>Cel tygodniowy</translation>
+    </message>
+    <message>
+        <source>Average</source>
+        <translation>Średnio</translation>
+    </message>
+    <message>
+        <source>words/day</source>
+        <translation>sł./dzień</translation>
+    </message>
+    <message>
+        <source>%1 (%2 × %3)</source>
+        <translation>%1 (%2 × %3)</translation>
+    </message>
+    <message>
+        <source>1 writing day</source>
+        <extracomment>In Polish: 1 dzień pisania</extracomment>
+        <translation>1 dzień pisania</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 writing days</source>
+        <translation>
+            <numerusform>%1 dzień pisania</numerusform>
+            <numerusform>%1 dni pisania</numerusform>
+            <numerusform>%1 dni pisania</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <translation>Do napisania</translation>
+    </message>
+    <message>
+        <source>goal reached</source>
+        <translation>cel osiągnięty</translation>
+    </message>
+    <message>
+        <source>Best day</source>
+        <translation>Najlepszy dzień</translation>
+    </message>
+    <message>
+        <source>%1, %2</source>
+        <translation>%1, %2</translation>
+    </message>
+    <message>
+        <source>Days with the goal</source>
+        <translation>Dni z celem</translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <translation>%1 z %2</translation>
+    </message>
+    <message>
+        <source>Days off</source>
+        <translation>Dni wolne</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source>Total</source>
+        <translation>Razem</translation>
+    </message>
+    <message>
+        <source>on a writing day</source>
+        <translation>w dniu pisania</translation>
+    </message>
+    <message>
+        <source>Writing days and days off</source>
+        <translation>Dni pisania i dni wolne</translation>
+    </message>
+    <message>
+        <source>%1% and %2%</source>
+        <translation>%1% i %2%</translation>
+    </message>
+    <message>
+        <source>Writing days missed</source>
+        <translation>Opuszczone dni pisania</translation>
+    </message>
+    <message>
+        <source>%1 (the last: %2)</source>
+        <translation>%1 (ostatni: %2)</translation>
+    </message>
+    <message>
+        <source>No book is open</source>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>Open a book to see its words, its goal and its deadline.</source>
+        <translation>Otwórz książkę, aby zobaczyć jej słowa, cel i termin.</translation>
+    </message>
+    <message>
+        <source>“%1”</source>
+        <translation>„%1”</translation>
+    </message>
+    <message>
+        <source>Words in the book · lines: goal and deadline</source>
+        <translation>Słowa w książce · linie: cel i termin</translation>
+    </message>
+    <message>
+        <source>Words in the book</source>
+        <translation>Słowa w książce</translation>
+    </message>
+    <message>
+        <source>Words</source>
+        <translation>Słowa</translation>
+    </message>
+    <message>
+        <source>Goal</source>
+        <translation>Cel</translation>
+    </message>
+    <message>
+        <source>To the deadline</source>
+        <translation>Do terminu</translation>
+    </message>
+    <message>
+        <source>day</source>
+        <extracomment>The unit after 1. In Polish: dzień</extracomment>
+        <translation>dzień</translation>
+    </message>
+    <message numerus="yes">
+        <source>days</source>
+        <translation>
+            <numerusform>dzień</numerusform>
+            <numerusform>dni</numerusform>
+            <numerusform>dni</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The book has no length or deadline yet. Set them on the tab Writing Goals and Deadlines.</source>
+        <translation>Książka nie ma jeszcze długości ani terminu. Ustawisz je na karcie „Cele i terminy pisania”.</translation>
+    </message>
+    <message>
+        <source>Length of the book</source>
+        <translation>Długość książki</translation>
+    </message>
+    <message>
+        <source>Deadline</source>
+        <translation>Termin</translation>
+    </message>
+    <message>
+        <source>Writing days to the deadline</source>
+        <translation>Dni pisania do terminu</translation>
+    </message>
+    <message>
+        <source>Needed on a writing day</source>
+        <translation>Potrzeba w dniu pisania</translation>
+    </message>
+    <message>
+        <source>Forecast at the present pace</source>
+        <translation>Prognoza w obecnym tempie</translation>
+    </message>
+    <message>
+        <source>about %1</source>
+        <translation>około %1</translation>
+    </message>
+    <message>
+        <source>not known yet</source>
+        <translation>jeszcze nieznana</translation>
+    </message>
+    <message>
+        <source>Next deadline</source>
+        <translation>Najbliższy termin</translation>
+    </message>
+    <message>
+        <source>the last 4 weeks</source>
+        <translation>ostatnie 4 tygodnie</translation>
+    </message>
+    <message>
+        <source>Average words in an hour</source>
+        <translation>Średnia liczba słów w godzinie</translation>
+    </message>
+    <message>
+        <source>days × hours</source>
+        <translation>dni × godziny</translation>
+    </message>
+    <message>
+        <source>%1, %2:00–%3:00: %4 on average</source>
+        <extracomment>%1: a day of the week, %2 and %3: hours, %4: words. In Polish: %1, %2:00–%3:00: średnio %4</extracomment>
+        <translation>%1, %2:00–%3:00: średnio %4</translation>
+    </message>
+    <message>
+        <source>too little writing yet</source>
+        <translation>na razie za mało pisania</translation>
+    </message>
+    <message>
+        <source>Too little writing in the last 4 weeks to tell.</source>
+        <translation>Za mało pisania w ostatnich 4 tygodniach, aby to ocenić.</translation>
+    </message>
+    <message>
+        <source>%1–%2</source>
+        <translation>%1–%2</translation>
+    </message>
+    <message>
+        <source>best at %1, on %2</source>
+        <translation>najlepiej: %1, %2</translation>
+    </message>
+    <message>
+        <source>best at %1</source>
+        <translation>najlepiej: %1</translation>
+    </message>
+    <message>
+        <source>Best time</source>
+        <translation>Najlepsza pora</translation>
+    </message>
+    <message>
+        <source>Your best time</source>
+        <translation>Twoja najlepsza pora</translation>
+    </message>
+    <message>
+        <source>%1, %2:00–%3:00</source>
+        <translation>%1, %2:00–%3:00</translation>
+    </message>
+    <message>
+        <source>Morning (5–12)</source>
+        <translation>Rano (5–12)</translation>
+    </message>
+    <message>
+        <source>Afternoon (12–18)</source>
+        <translation>Po południu (12–18)</translation>
+    </message>
+    <message>
+        <source>Evening (18–24)</source>
+        <translation>Wieczorem (18–24)</translation>
+    </message>
+    <message>
+        <source>Night (0–5)</source>
+        <translation>W nocy (0–5)</translation>
+    </message>
+    <message>
+        <source>Monday to Friday and weekend</source>
+        <translation>Od poniedziałku do piątku i weekend</translation>
+    </message>
+    <message>
+        <source>%1 and %2</source>
+        <translation>%1 i %2</translation>
+    </message>
+    <message>
+        <source>No badges yet.</source>
+        <extracomment>In Polish: Nie ma jeszcze odznak.</extracomment>
+        <translation>Nie ma jeszcze odznak.</translation>
+    </message>
+    <message>
+        <source>1 badge</source>
+        <extracomment>In Polish: 1 odznaka</extracomment>
+        <translation>1 odznaka</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n badges</source>
+        <translation>
+            <numerusform>%n odznaka</numerusform>
+            <numerusform>%n odznaki</numerusform>
+            <numerusform>%n odznak</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 challenge</source>
+        <extracomment>A challenge going on. In Polish: 1 wyzwanie</extracomment>
+        <translation>1 wyzwanie</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n challenges</source>
+        <translation>
+            <numerusform>%n wyzwanie</numerusform>
+            <numerusform>%n wyzwania</numerusform>
+            <numerusform>%n wyzwań</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>No badges yet</source>
+        <extracomment>In Polish: Nie ma jeszcze odznak</extracomment>
+        <translation>Nie ma jeszcze odznak</translation>
+    </message>
+    <message>
+        <source>The badges come with the writing: for the words, the days in a row and the goals reached.</source>
+        <extracomment>In Polish: Odznaki przychodzą z pisaniem: za słowa, dni z rzędu i osiągnięte cele.</extracomment>
+        <translation>Odznaki przychodzą z pisaniem: za słowa, dni z rzędu i osiągnięte cele.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ChallengeDialog</name>
+    <message>
+        <source>Add Challenge</source>
+        <extracomment>In Polish: Dodaj wyzwanie</extracomment>
+        <translation>Dodaj wyzwanie</translation>
+    </message>
+    <message>
+        <source>A goal of your own for a time, e.g. 50,000 words in a month. The program says so at the bottom of the window when it is done.</source>
+        <extracomment>In Polish: Twój własny cel na określony czas, np. 50 000 słów w miesiąc. Program podaje na dole okna, gdy wyzwanie się uda.</extracomment>
+        <translation>Twój własny cel na określony czas, np. 50 000 słów w miesiąc. Gdy go osiągniesz, program poda to na dole okna.</translation>
+    </message>
+    <message>
+        <source>Write a number of words</source>
+        <extracomment>In Polish: Napisać określoną liczbę słów</extracomment>
+        <translation>Napisać określoną liczbę słów</translation>
+    </message>
+    <message>
+        <source>Write a number of days in a row</source>
+        <extracomment>In Polish: Pisać określoną liczbę dni z rzędu</extracomment>
+        <translation>Pisać określoną liczbę dni z rzędu</translation>
+    </message>
+    <message>
+        <source>Write on a number of days</source>
+        <extracomment>In Polish: Pisać w określonej liczbie dni</extracomment>
+        <translation>Pisać w określonej liczbie dni</translation>
+    </message>
+    <message>
+        <source>&amp;Challenge</source>
+        <extracomment>In Polish: &amp;Wyzwanie</extracomment>
+        <translation>&amp;Wyzwanie</translation>
+    </message>
+    <message>
+        <source>&amp;How much</source>
+        <extracomment>In Polish: &amp;Ile</extracomment>
+        <translation>&amp;Ile</translation>
+    </message>
+    <message>
+        <source>by the end of this week (%1)</source>
+        <extracomment>%1: the day. In Polish: do końca tygodnia (%1)</extracomment>
+        <translation>do końca tygodnia (%1)</translation>
+    </message>
+    <message>
+        <source>by the end of this month (%1)</source>
+        <extracomment>%1: the day. In Polish: do końca miesiąca (%1)</extracomment>
+        <translation>do końca miesiąca (%1)</translation>
+    </message>
+    <message>
+        <source>by a day of your choice</source>
+        <extracomment>In Polish: do wybranego dnia</extracomment>
+        <translation>do wybranego dnia</translation>
+    </message>
+    <message>
+        <source>&amp;By when</source>
+        <extracomment>In Polish: &amp;Do kiedy</extracomment>
+        <translation>Do &amp;kiedy</translation>
+    </message>
+    <message>
+        <source>&amp;Last day</source>
+        <extracomment>In Polish: &amp;Ostatni dzień</extracomment>
+        <translation>&amp;Ostatni dzień</translation>
+    </message>
+    <message>
+        <source>&amp;Add</source>
+        <extracomment>In Polish: &amp;Dodaj</extracomment>
+        <translation>&amp;Dodaj</translation>
+    </message>
+    <message>
+        <source> words</source>
+        <extracomment>In Polish: &quot; słów&quot; / &quot; dni&quot;</extracomment>
+        <translation> słów</translation>
+    </message>
+    <message>
+        <source> days</source>
+        <translation> dni</translation>
+    </message>
+    <message>
+        <source>There is only one day until then: today.</source>
+        <extracomment>In Polish: Do tego dnia jest tylko jeden dzień, dzisiejszy.</extracomment>
+        <translation>Do tego dnia jest tylko jeden dzień: dziś.</translation>
+    </message>
+    <message numerus="yes">
+        <source>There are only %n days until then.</source>
+        <translation>
+            <numerusform>Do tego dnia jest tylko %n dzień.</numerusform>
+            <numerusform>Do tego dnia są tylko %n dni.</numerusform>
+            <numerusform>Do tego dnia jest tylko %n dni.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The challenge lasts one day: today.</source>
+        <extracomment>In Polish: Wyzwanie trwa jeden dzień: dziś.</extracomment>
+        <translation>Wyzwanie trwa jeden dzień: dziś.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The challenge lasts %n days, from today to the last day.</source>
+        <translation>
+            <numerusform>Wyzwanie trwa %n dzień, od dziś do ostatniego dnia.</numerusform>
+            <numerusform>Wyzwanie trwa %n dni, od dziś do ostatniego dnia.</numerusform>
+            <numerusform>Wyzwanie trwa %n dni, od dziś do ostatniego dnia.</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::DeadlineDialog</name>
+    <message>
+        <source>Add Deadline</source>
+        <extracomment>In Polish: Dodaj termin / Zmień termin</extracomment>
+        <translation>Dodaj termin</translation>
+    </message>
+    <message>
+        <source>Change Deadline</source>
+        <translation>Zmień termin</translation>
+    </message>
+    <message>
+        <source>A part of the book, or all of it, due by a day, e.g. the chapters for the editor. The program reminds you of it at the bottom of the window.</source>
+        <extracomment>In Polish: Część książki albo cała książka na określony dzień, np. rozdziały dla redaktorki. Program przypomina o terminie na dole okna.</extracomment>
+        <translation>Część książki albo cała książka na określony dzień, np. rozdziały dla redakcji. Program przypomina o terminie na dole okna.</translation>
+    </message>
+    <message>
+        <source>e.g. Chapters 1-10 for the editor</source>
+        <extracomment>In Polish: np. Rozdziały 1–10 dla redaktorki</extracomment>
+        <translation>np. Rozdziały 1–10 dla redakcji</translation>
+    </message>
+    <message>
+        <source>&amp;Name</source>
+        <extracomment>In Polish: &amp;Nazwa</extracomment>
+        <translation>&amp;Nazwa</translation>
+    </message>
+    <message>
+        <source>&amp;Date</source>
+        <extracomment>In Polish: &amp;Data</extracomment>
+        <translation>&amp;Data</translation>
+    </message>
+    <message>
+        <source>the whole book</source>
+        <extracomment>In Polish: cała książka</extracomment>
+        <translation>cała książka</translation>
+    </message>
+    <message>
+        <source>a part no longer in the book</source>
+        <extracomment>In Polish: część, której nie ma już w książce</extracomment>
+        <translation>część, której nie ma już w książce</translation>
+    </message>
+    <message>
+        <source>&amp;What it is about</source>
+        <extracomment>In Polish: &amp;Czego dotyczy</extracomment>
+        <translation>&amp;Czego dotyczy</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>The words a part should have by the deadline: none. In Polish: brak</extracomment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source> words</source>
+        <extracomment>In Polish: &quot; słów&quot;</extracomment>
+        <translation> słów</translation>
+    </message>
+    <message>
+        <source>&amp;Goal: the words of the part by then</source>
+        <extracomment>In Polish: &amp;Cel: słowa w tej części do terminu</extracomment>
+        <translation>C&amp;el: słowa tej części do terminu</translation>
+    </message>
+    <message>
+        <source>&amp;Add</source>
+        <extracomment>In Polish: &amp;Dodaj / &amp;Zmień</extracomment>
+        <translation>Dod&amp;aj</translation>
+    </message>
+    <message>
+        <source>&amp;Change</source>
+        <translation>&amp;Zmień</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::SessionSummaryDialog</name>
+    <message>
+        <source>Summary of the Writing Session</source>
+        <extracomment>In Polish: Podsumowanie sesji pisania</extracomment>
+        <translation>Podsumowanie sesji pisania</translation>
+    </message>
+    <message>
+        <source>&amp;Show the summary when the book closes</source>
+        <extracomment>In Polish: &amp;Pokazuj podsumowanie przy zamknięciu książki</extracomment>
+        <translation>&amp;Pokazuj podsumowanie przy zamknięciu książki</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <extracomment>In Polish: &amp;Kopiuj</extracomment>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
     </message>
 </context>
 </TS>
