@@ -57,9 +57,8 @@ struct AddedCommand {
 ///   4: Paragraph and Styles on the Panels toolbar
 ///   5: Save Version and Version History on Quick Actions (shown there when the buttons of the
 ///      versions are not on Versions and Backups)
-///   6: Show Statistics Bar on the Views toolbar
-///   7: Statistics on the Panels toolbar
-constexpr std::array<AddedCommand, 11> ADDED_COMMANDS{{
+///   6: Statistics on the Panels toolbar
+constexpr std::array<AddedCommand, 10> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
@@ -69,8 +68,7 @@ constexpr std::array<AddedCommand, 11> ADDED_COMMANDS{{
     {"view", "view.paragraph", 4},
     {"quickActions", "file.saveVersion", 5},
     {"quickActions", "file.versionHistory", 5},
-    {"views", "view.showStatsBar", 6},
-    {"view", "view.statistics", 7},
+    {"view", "view.statistics", 6},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -90,7 +88,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 7;
+constexpr int CHANGED_COMMANDS_VERSION = 6;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
@@ -273,8 +271,20 @@ void ToolbarManager::initializeConfigs() {
         true,  // visible by default (Row 2)
         {"view.mode.continuous", "view.mode.page", SEPARATOR_ID,
          "view.mode.distraction-free", "view.focus", "view.typewriter", "view.darkPaper",
-         "view.textFrameBorder", "view.showFormattingMarks", "view.showStatsBar", SEPARATOR_ID,
+         "view.textFrameBorder", "view.showFormattingMarks", SEPARATOR_ID,
          "view.zoomOut", "view.zoomIn", "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}
+    };
+
+    // Writing Statistics Toolbar: the statistics of writing in one place - the statistics bar, the
+    // Statistics panel (also on the Panels toolbar, with the other panels), the tabs of the
+    // goals and of the challenges and badges, and the settings of the statistics
+    m_configs["stats"] = {
+        "stats",
+        QT_TRANSLATE_NOOP("QObject", "&Writing Statistics Toolbar"),
+        Qt::TopToolBarArea,
+        true,  // visible by default (Row 2)
+        {"view.showStatsBar", "view.statistics", SEPARATOR_ID, "tools.writingGoals",
+         "tools.challenges", SEPARATOR_ID, "tools.statsSettings"}
     };
 
     // Format Toolbar (text formatting - essential for writer's IDE)
@@ -359,7 +369,7 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
 
     // OpenSpec #00037 Phase E: Multi-row toolbar layout
     // Row 1: Quick Actions, Versions and Backups, Edit, Format, Insert (visible by default)
-    // Row 2: Book, Styles, Views, Tools, Help (visible by default)
+    // Row 2: Book, Styles, Views, Tools, Statistics, Help (visible by default)
     // Hidden: File, Panels
 
     // Row 1 toolbars: Quick Actions, Versions and Backups, Edit, Format, Insert
@@ -377,8 +387,8 @@ void ToolbarManager::createToolbars(CommandRegistry& registry) {
     // Add toolbar break between rows
     m_mainWindow->addToolBarBreak(Qt::TopToolBarArea);
 
-    // Row 2 toolbars: Book, Styles, Views, Tools, Help
-    std::vector<std::string> row2 = {"book", "styles", "views", "tools", "help"};
+    // Row 2 toolbars: Book, Styles, Views, Tools, Statistics, Help
+    std::vector<std::string> row2 = {"book", "styles", "views", "tools", "stats", "help"};
     for (const std::string& id : row2) {
         auto it = m_configs.find(id);
         if (it != m_configs.end()) {
@@ -619,8 +629,8 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
     // OpenSpec #00037: Order matches layout - Row 1, Row 2, then File (hidden) and Panels (on the
     // right)
     std::vector<std::string> order = {"quickActions", VERSIONS_TOOLBAR_ID, "edit", "format",
-                                      "insert", "book", "styles", "views", "tools", "help",
-                                      "file", "view"};
+                                      "insert", "book", "styles", "views", "tools", "stats",
+                                      "help", "file", "view"};
 
     for (const std::string& id : order) {
         auto it = m_configs.find(id);
@@ -1048,8 +1058,8 @@ void ToolbarManager::applyDefaultLayout() {
     // Add toolbar break between Row 1 and Row 2
     m_mainWindow->addToolBarBreak(Qt::TopToolBarArea);
 
-    // Row 2 toolbars: Book, Styles, Views, Tools, Help, then the hidden File
-    addRow({"book", "styles", "views", "tools", "help", "file"});
+    // Row 2 toolbars: Book, Styles, Views, Tools, Statistics, Help, then the hidden File
+    addRow({"book", "styles", "views", "tools", "stats", "help", "file"});
 
     // The user toolbars, in the order they are made at the start
     std::vector<std::string> userToolbars;

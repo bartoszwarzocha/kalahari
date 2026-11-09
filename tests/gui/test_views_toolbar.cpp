@@ -113,7 +113,7 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, fo
 
     // The very actions of the View menu, so a button is checked with its menu item
     const QList<QAction*> actions = toolbar->actions();
-    REQUIRE(actions.size() == 16);
+    REQUIRE(actions.size() == 15);
     CHECK(actions[0] == registry.getAction(std::string("view.mode.continuous")));
     CHECK(actions[1] == registry.getAction(std::string("view.mode.page")));
     CHECK(actions[2]->isSeparator());
@@ -123,13 +123,12 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, fo
     CHECK(actions[6] == registry.getAction(std::string("view.darkPaper")));
     CHECK(actions[7] == registry.getAction(std::string("view.textFrameBorder")));
     CHECK(actions[8] == registry.getAction(std::string("view.showFormattingMarks")));
-    CHECK(actions[9] == registry.getAction(std::string("view.showStatsBar")));
-    CHECK(actions[10]->isSeparator());
-    CHECK(actions[11] == registry.getAction(std::string("view.zoomOut")));
-    CHECK(actions[12] == registry.getAction(std::string("view.zoomIn")));
-    CHECK(actions[13] == registry.getAction(std::string("view.resetZoom")));
-    CHECK(actions[14] == registry.getAction(std::string("view.zoomPageWidth")));
-    CHECK(actions[15] == registry.getAction(std::string("view.zoomWholePage")));
+    CHECK(actions[9]->isSeparator());
+    CHECK(actions[10] == registry.getAction(std::string("view.zoomOut")));
+    CHECK(actions[11] == registry.getAction(std::string("view.zoomIn")));
+    CHECK(actions[12] == registry.getAction(std::string("view.resetZoom")));
+    CHECK(actions[13] == registry.getAction(std::string("view.zoomPageWidth")));
+    CHECK(actions[14] == registry.getAction(std::string("view.zoomWholePage")));
 
     // In the View menu the text frame border follows the paper, before the separator
     const Command* paper = registry.getCommand("view.darkPaper");
@@ -276,7 +275,7 @@ TEST_CASE("Views toolbar: one customized before gets the formatting marks after 
         ToolbarManager manager(&window);
         CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
               "view.mode.continuous | view.mode.page | view.textFrameBorder | "
-              "view.showFormattingMarks | view.showStatsBar | view.zoomIn | view.darkPaper");
+              "view.showFormattingMarks | view.zoomIn | view.darkPaper");
 
         // Taken away by the writer after that, it stays away
         QStringList without = manager.getToolbarCommands(views);
@@ -827,4 +826,38 @@ TEST_CASE("Toolbar manager: Apply and OK save a changed toolbar, Reset to Defaul
     }
 
     manager.deleteUserToolbar(id);
+}
+
+TEST_CASE("Statistics toolbar: the statistics of writing in one place, shown at the start",
+          "[gui][toolbar][statistics]") {
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+    CommandRegistry& registry = CommandRegistry::getInstance();
+
+    QMainWindow window;
+    ToolbarManager manager(&window);
+    manager.createToolbars(registry);
+
+    QToolBar* toolbar = manager.getToolbar("stats");
+    REQUIRE(toolbar != nullptr);
+    CHECK(window.toolBarArea(toolbar) == Qt::TopToolBarArea);
+    CHECK_FALSE(toolbar->isHidden());
+    CHECK(withoutAccessKey(toolbar->windowTitle()) == QStringLiteral("Writing Statistics Toolbar"));
+
+    // The very actions of the menus: the statistics bar and the panel are checked with them
+    const QList<QAction*> actions = toolbar->actions();
+    REQUIRE(actions.size() == 7);
+    CHECK(actions[0] == registry.getAction(std::string("view.showStatsBar")));
+    CHECK(actions[1] == registry.getAction(std::string("view.statistics")));
+    CHECK(actions[2]->isSeparator());
+    CHECK(actions[3] == registry.getAction(std::string("tools.writingGoals")));
+    CHECK(actions[4] == registry.getAction(std::string("tools.challenges")));
+    CHECK(actions[5]->isSeparator());
+    CHECK(actions[6] == registry.getAction(std::string("tools.statsSettings")));
+
+    // The panel keeps its button on the Panels toolbar too; the Views toolbar has none of them
+    CHECK(manager.getToolbarCommands(QStringLiteral("view"))
+              .contains(QStringLiteral("view.statistics")));
+    CHECK_FALSE(manager.getToolbarCommands(QStringLiteral("views"))
+                    .contains(QStringLiteral("view.showStatsBar")));
 }

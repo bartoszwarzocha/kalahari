@@ -6,6 +6,8 @@
 #include "../editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/writing_journal.h"
+#include "kalahari/gui/command_registrar.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/widgets/stats_painter.h"
 #include "kalahari/gui/widgets/writing_stats_bar.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
@@ -248,5 +250,22 @@ TEST_CASE("Statistics bar: View > Show Statistics Bar turns it on and off", "[gu
     coordinator.toggleBar();
     CHECK(settings.get<bool>(gui::WritingStatsCoordinator::SHOW_BAR_SETTING));
     CHECK_FALSE(coordinator.bar()->isHidden());
+    coordinator.bar()->hide();
+}
+
+TEST_CASE("Statistics bar: the settings of the statistics from their command",
+          "[gui][statistics]")
+{
+    gui::registerAllCommands(gui::CommandCallbacks{});
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    QString opened;
+    gui::WritingStatsCoordinator coordinator(
+        nullptr, nullptr, [&opened](const QString& page) { opened = page; }, nullptr,
+        dir.filePath(QStringLiteral("journal.db")));
+    coordinator.connectCommands();
+    CHECK(gui::CommandRegistry::getInstance().executeCommand("tools.statsSettings") ==
+          gui::CommandExecutionResult::Success);
+    CHECK(opened == QString::fromLatin1(gui::WritingStatsCoordinator::SETTINGS_PAGE));
     coordinator.bar()->hide();
 }

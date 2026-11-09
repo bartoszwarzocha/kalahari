@@ -586,7 +586,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("tools.plugins.reload", QT_TRANSLATE_NOOP("CommandRegistrar", "&Reload Plugins"), "TOOLS/Plugins/Reload Plugins", 160, false, 2);
 
     REG_CMD("tools.challenges", QT_TRANSLATE_NOOP("CommandRegistrar", "&Challenges && Badges..."), "TOOLS/Challenges & Badges...", 170, false, 2);
-    REG_CMD("tools.writingGoals", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writing Goals && Deadlines..."), "TOOLS/Writing Goals & Deadlines...", 180, true, 2);
+    REG_CMD("tools.writingGoals", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writing Goals && Deadlines..."), "TOOLS/Writing Goals & Deadlines...", 180, false, 2);
+    // Settings > Statistics and Goals (WritingStatsCoordinator); on the Statistics toolbar
+    REG_CMD("tools.statsSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Statistics S&ettings..."), "TOOLS/Statistics Settings...", 185, true, 1);
 
     // OpenSpec #00037: Toolbar Manager command (used in Quick Actions toolbar)
     REG_CMD_TOOL_ICON("tools.toolbarManager", QT_TRANSLATE_NOOP("CommandRegistrar", "Customize &Toolbars..."), "TOOLS/Customize Toolbars...", 210, false, 0,

@@ -732,6 +732,10 @@
         <translation>&amp;Cele i terminy pisania...</translation>
     </message>
     <message>
+        <source>Statistics S&amp;ettings...</source>
+        <translation>Ustawienia s&amp;tatystyk...</translation>
+    </message>
+    <message>
         <source>Customize &amp;Toolbars...</source>
         <translation>&amp;Dostosuj paski narzędzi...</translation>
     </message>
@@ -2146,6 +2150,10 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>&amp;Tools Toolbar</source>
         <translation>&amp;Narzędzia</translation>
+    </message>
+    <message>
+        <source>&amp;Writing Statistics Toolbar</source>
+        <translation>Stat&amp;ystyki</translation>
     </message>
     <message>
         <source>&amp;Views Toolbar</source>

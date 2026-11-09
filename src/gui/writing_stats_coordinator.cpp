@@ -124,6 +124,16 @@ void WritingStatsCoordinator::connectCommands()
     if (QAction* action = registry.getAction(std::string("view.showStatsBar"))) {
         utils::followSetting(action, SHOW_BAR_SETTING);
     }
+    // Settings > Statistics and Goals, from the Statistics toolbar and the Tools menu
+    if (Command* command = registry.getCommand("tools.statsSettings")) {
+        command->execute = [this]() {
+            if (m_openSettings) {
+                m_openSettings(QString::fromLatin1(SETTINGS_PAGE));
+            }
+        };
+        command->isEnabled = []() { return true; };
+        registry.updateActionState("tools.statsSettings");
+    }
 }
 
 void WritingStatsCoordinator::toggleBar()
