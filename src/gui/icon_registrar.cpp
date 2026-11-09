@@ -241,6 +241,13 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.rotateRight", "resources/icons/twotone/rotate_right.svg", "Rotate Right");
     iconRegistry.registerIcon("view.negative", "resources/icons/twotone/contrast.svg", "Negative");
     iconRegistry.registerIcon("view.textFrameBorder", "resources/icons/twotone/text_frame.svg", "Text Frame Border");
+    iconRegistry.registerIcon("view.marginNumbers.none", "resources/icons/twotone/margin_numbers_off.svg", "No Numbering");
+    iconRegistry.registerIcon("view.marginNumbers.lines", "resources/icons/twotone/margin_line_numbers.svg", "Line Numbers");
+    iconRegistry.registerIcon("view.marginNumbers.paragraphs", "resources/icons/twotone/margin_paragraph_numbers.svg", "Paragraph Numbers");
+    iconRegistry.registerIcon("view.marginNumbers.settings", "resources/icons/twotone/tune.svg", "Numbering Settings");
+    iconRegistry.registerIcon("view.annotationCards", "resources/icons/twotone/annotation_cards.svg", "Annotation Cards Under Paragraphs");
+    iconRegistry.registerIcon("view.collapseAllAnnotations", "resources/icons/twotone/unfold_less.svg", "Collapse All Annotations");
+    iconRegistry.registerIcon("view.expandAllAnnotations", "resources/icons/twotone/unfold_more.svg", "Expand All Annotations");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
 
@@ -260,6 +267,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
     iconRegistry.registerIcon("menu.viewMode", "resources/icons/twotone/visibility.svg", "View Mode");
     iconRegistry.registerIcon("menu.zoom", "resources/icons/twotone/zoom_in.svg", "Zoom");
+    iconRegistry.registerIcon("menu.marginNumbers", "resources/icons/twotone/margin_line_numbers.svg", "Margin Numbering");
     iconRegistry.registerIcon("menu.panels", "resources/icons/twotone/view_sidebar.svg", "Panels");
     iconRegistry.registerIcon("menu.perspectives", "resources/icons/twotone/view_quilt.svg", "Perspectives");
     iconRegistry.registerIcon("menu.toolbars", "resources/icons/twotone/build.svg", "Toolbars");

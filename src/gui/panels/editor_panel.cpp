@@ -45,6 +45,14 @@ namespace {
 constexpr double MIN_MARK_SCALE = 0.5;
 constexpr double MAX_MARK_SCALE = 3.0;
 
+/// The size of the text of the cards under the paragraphs, in percent of the chapter's text
+constexpr int MIN_CARD_FONT = 60;
+constexpr int MAX_CARD_FONT = 130;
+
+/// How much of the kind's color the cards have, in percent of the usual
+constexpr int MIN_CARD_TINT = 50;
+constexpr int MAX_CARD_TINT = 200;
+
 /// @brief The languages with lists of abbreviations of their own in the settings
 /// (editor.autoCorrect.abbreviations.pl); another language has the English one
 constexpr std::array<const char*, 2> ABBREVIATION_LANGUAGES = {"pl", "en"};
@@ -374,6 +382,11 @@ void EditorPanel::applySettings() {
     appearance.typography.paragraphSpacing = settings.get<double>("editor.paragraphSpacing");
     appearance.typography.firstLineIndent = settings.get<bool>("editor.firstLineIndent");
     appearance.typography.indentSize = settings.get<double>("editor.indentSize");
+    appearance.typography.tabStops =
+        settings.get<std::string>("editor.tabStops") == editor::TAB_STOPS_SPACES
+            ? editor::TabStops::Spaces
+            : editor::TabStops::Indent;
+    appearance.typography.tabSpaces = settings.get<int>("editor.tabSize");
 
     // The paper (light or dark, independent from the application's theme) and its colors
     appearance.colorMode = settings.get<bool>("editor.darkMode")
@@ -401,6 +414,11 @@ void EditorPanel::applySettings() {
     appearance.pageMargins.bottom = settings.get<double>("editor.margins.pageBottom");
     appearance.pageMargins.left = settings.get<double>("editor.margins.pageLeft");
     appearance.pageMargins.right = settings.get<double>("editor.margins.pageRight");
+    // Mirror margins: the inner one at the binding (the chapter tells whether its first page
+    // is a left one: setFirstPageLeft())
+    appearance.pageMargins.mirrored = settings.get<bool>("editor.margins.mirrorEnabled");
+    appearance.pageMargins.inner = settings.get<double>("editor.margins.pageInner");
+    appearance.pageMargins.outer = settings.get<double>("editor.margins.pageOuter");
 
     // Page format (Page Layout view)
     appearance.pageLayout.pageSize = editor::PageLayout::pageSizeFromId(
@@ -420,6 +438,17 @@ void EditorPanel::applySettings() {
 
     // The formatting marks (View > Show Formatting Marks) and how the scene breaks look
     appearance.showFormattingMarks = settings.get<bool>("editor.showFormattingMarks");
+
+    // The numbers on the left margin (View > Margin Numbering)
+    editor::MarginNumbers& numbers = appearance.marginNumbers;
+    numbers.numbering = editor::marginNumberingFromName(
+        QString::fromStdString(settings.get<std::string>("editor.marginNumbers.mode")));
+    numbers.interval = settings.get<int>("editor.marginNumbers.interval");
+    numbers.restartEachPage = settings.get<bool>("editor.marginNumbers.restartEachPage");
+    numbers.fontFamily =
+        QString::fromStdString(settings.get<std::string>("editor.marginNumbers.font"));
+    numbers.pointSize = settings.get<double>("editor.marginNumbers.size");
+    numbers.color = color("editor.marginNumbers.color");
     appearance.sceneBreakLook = editor::sceneBreakLookFromName(
         QString::fromStdString(settings.get<std::string>("editor.sceneBreak.style")));
 
@@ -458,6 +487,24 @@ void EditorPanel::applySettings() {
     appearance.annotationMarkScale =
         std::clamp(settings.get<int>("editor.annotationMarkSize") / 100.0, MIN_MARK_SCALE,
                    MAX_MARK_SCALE);
+
+    // The cards of the annotations under their paragraphs
+    const auto text = [&settings](const std::string& key) { return settings.get<std::string>(key); };
+    editor::AnnotationCardSettings& cards = appearance.annotationCards;
+    cards.show = settings.get<bool>("editor.annotationCards.show");
+    cards.comments = settings.get<bool>("editor.annotationCards.comments");
+    cards.todos = settings.get<bool>("editor.annotationCards.todos");
+    cards.notes = settings.get<bool>("editor.annotationCards.notes");
+    cards.compact = text("editor.annotationCards.look") == "compact";
+    cards.collapsedLine = text("editor.annotationCards.collapsedLook") == "line";
+    cards.startCollapsed = text("editor.annotationCards.afterOpening") == "collapsed";
+    cards.longLines = std::max(0, settings.get<int>("editor.annotationCards.longLines"));
+    cards.fontPercent = std::clamp(settings.get<int>("editor.annotationCards.fontSize"),
+                                   MIN_CARD_FONT, MAX_CARD_FONT);
+    cards.tintPercent = std::clamp(settings.get<int>("editor.annotationCards.tint"),
+                                   MIN_CARD_TINT, MAX_CARD_TINT);
+    cards.highlightFragment = settings.get<bool>("editor.annotationCards.highlightFragment");
+    cards.inDistractionFree = text("editor.annotationCards.distractionFree") != "hide";
 
     m_bookEditor->setAppearance(appearance);
 
@@ -583,6 +630,16 @@ void EditorPanel::showNumberingValue() {
     if (dialog.exec() == QDialog::Accepted) {
         m_bookEditor->setNumberingValue(dialog.value());
     }
+}
+
+void EditorPanel::setFirstPageLeft(bool left) {
+    // The editor's appearance keeps it: applySettings() starts from it
+    editor::EditorAppearance appearance = m_bookEditor->appearance();
+    if (appearance.pageMargins.firstPageLeft == left) {
+        return;
+    }
+    appearance.pageMargins.firstPageLeft = left;
+    m_bookEditor->setAppearance(appearance);
 }
 
 void EditorPanel::scheduleSettings() {

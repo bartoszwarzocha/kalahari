@@ -50,6 +50,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   darker, so it stays readable; the book keeps the colors as they were chosen. KML has the
   attributes of a paragraph's own formatting and `<span caps spacing>` (docs/kml_format.md).
 
+- **Editor: numbers on the margin, mirror margins, the tab width** - 2026-10-26. View >
+  Margin Numbering shows working numbers on the left margin of every editor, only on the
+  screen: No Numbering, Line Numbers or Paragraph Numbers, also as two buttons of the Views
+  toolbar (the numbering chosen again turns it off); a toolbar layout saved before gets the
+  two buttons too. The lines count every line, also of the headings, the empty paragraphs and
+  the breaks; the paragraphs only those with text, not the headings or the objects. View >
+  Margin Numbering > Numbering Settings... opens Settings > Editor > Pages and Margins at the
+  Margin Numbering group: a number every few lines or paragraphs (Interval), the lines counted
+  from 1 on every page of the page view (Restart on every page; the continuous view counts
+  through the whole chapter), the font, its size and one color for the light and the dark
+  paper, with a preview on both papers and Restore Defaults, which keeps the numbering chosen.
+  The same page has Mirror margins (for book binding): an inner margin at the binding and an
+  outer one at the edge of the page, with a preview of pages 2 and 3 side by side. The first
+  page of a chapter is a right page, unless the chapter starts on a left page (Properties >
+  Starts on a left page, kept in the book's file as `"firstPage": "left"`); the continuous view
+  has the margins of page 1. Tab types a tab character, also at the start of a paragraph.
+  Settings > Editor > General > Tab Size sets the tab stops as far apart as the first-line
+  indent of the paragraph's style (Paragraph Indent; a style without one, as a heading, takes
+  the indent of the Settings) or every few spaces of its font (Number of Spaces). The options
+  Show Line Numbers and Enable Word Wrap, which did nothing, are gone: the text always wraps.
+
+- **Annotations: cards under the paragraphs, a second way of showing them** - 2026-10-26.
+  View > Annotation Cards Under Paragraphs (also Settings > Annotations > Cards Under
+  Paragraphs) shows each comment, to-do and note not done as a card under the paragraph of
+  its mark, in the order of the marks and in the kind's color: the kind, the author and the
+  date above the text (or, in the compact look, the text alone with the author and the date
+  at its end). Without it the annotations work as before: a mark in the text, a click on it
+  opens the frame. The cards are in the continuous view and, as the Settings say, in
+  Distraction-Free; the page view keeps the marks only. A click on a card goes to its
+  fragment and selects it, a double click edits it, and the fragment is highlighted while
+  the mouse is on its card. A click on a mark collapses or expands its card: collapsed, the
+  annotation is its mark alone or, if chosen, a line with the start of its text; View >
+  Collapse All Annotations and Expand All Annotations do it for the chapter, and the Settings
+  say whether a chapter opens with them expanded or collapsed. The "..." button of a card
+  opens its menu (Edit, Collapse, Mark as Resolved or Mark as Done, Remove, Card Appearance
+  and Colors...), the box of a to-do marks it done, and a long text can be cut short to 3 or
+  6 lines with "Show all" under it. With the cards, an annotation is written in the frame
+  over its card, and a new one in the frame where its card will be. The menu of the text has
+  the annotation at the click on top: its kind and the start of its text, Edit, Mark as
+  Resolved or Done and Remove (also Collapse and Expand with the cards). The Settings also
+  give the kinds that have cards, the size of their text (90% of the chapter's by default)
+  and how strong their background is. The colors are those of the annotations (Settings >
+  Annotations > Colors).
+
 - **Lists of the kinds of materials on tabs** - 2026-10-25. A kind of the Materials clicked
   in the Navigator (or Enter on it, or Open List in its menu) shows its materials on a tab in
   the middle of the window; Materials itself shows All Materials, the working notes too. The

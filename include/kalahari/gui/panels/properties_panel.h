@@ -20,6 +20,7 @@ class QDateTime;
 class QStackedWidget;
 class QLabel;
 class QLineEdit;
+class QCheckBox;
 class QComboBox;
 class QTextEdit;
 class QFormLayout;
@@ -186,6 +187,9 @@ private slots:
     /// @brief Handle chapter status changed
     void onChapterStatusChanged(int index);
 
+    /// @brief The writer set whether the text element starts on a left page
+    void onChapterFirstPageChanged(bool left);
+
     /// @brief Handle chapter notes changed (called on focus lost)
     void onChapterNotesChanged();
 
@@ -210,6 +214,10 @@ signals:
     /// @param elementId Element ID of the chapter
     /// @note Used to notify Navigator to refresh the item's display title (status suffix)
     void chapterStatusChanged(const QString& elementId);
+
+    /// @brief Whether a text element starts on a left page changed in the panel: its open
+    ///        editor places the margins of its pages anew
+    void chapterFirstPageChanged(const QString& elementId);
 
     /// @brief The writer chose how the Navigator divides the book: sections @p sections
     /// @note The Navigator's coordinator saves them, and refreshes the Navigator and the panel
@@ -393,6 +401,7 @@ private:
     QLineEdit* m_chapterTitleEdit;
     QLabel* m_chapterWordCountLabel;
     QComboBox* m_chapterStatusCombo;
+    QCheckBox* m_chapterFirstPageLeft;  ///< The text starts on a left page (mirror margins)
     QGroupBox* m_chapterNotesGroup;
     QTextEdit* m_chapterNotesEdit;
     LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element

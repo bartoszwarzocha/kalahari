@@ -80,6 +80,11 @@ LayoutTypography layoutTypography(const EditorTypography& typography) {
     result.lineSpacing = typography.lineHeight;
     result.paragraphSpacing = typography.paragraphSpacing;
     result.firstLineIndent = typography.firstLineIndent ? typography.indentSize : 0.0;
+    // A style without an indent has its tab stops as far apart as the indent of the
+    // settings, also when the first lines are not indented
+    result.tabStops = typography.tabStops;
+    result.tabIndent = typography.indentSize;
+    result.tabSpaces = typography.tabSpaces;
     return result;
 }
 
@@ -246,6 +251,9 @@ BookEditor::BookEditor(QWidget* parent)
         update(region.boundingRect());
     });
 
+    // The cards of the annotations under the paragraphs are drawn with them
+    setUpAnnotationCards();
+
     // Connect ViewportManager signals
     connect(m_viewportManager.get(), &ViewportManager::viewportChanged,
             this, [this]() {
@@ -312,6 +320,8 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         std::abs(appearance.typewriter.focusPosition - m_appearance.typewriter.focusPosition) >=
             TYPEWRITER_HEIGHT_EPSILON;
     m_appearance = appearance;
+    // The cards are sized after the text's font: before the text is laid out with it
+    m_annotationCards.setTextFont(m_appearance.typography.textFont);
 
     // The render pipeline owns the document font: it applies the font of the settings as
     // the document's default font (one relayout, only when it changes; the zoom scales the
@@ -339,6 +349,7 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         m_renderPipeline->setConfigColors(renderColorsFor(m_appearance, m_appearance.colorMode));
         m_renderPipeline->setConfigFocus(m_appearance.focusMode.enabled);
         m_renderPipeline->setConfigFormattingMarks(m_appearance.showFormattingMarks);
+        m_renderPipeline->setConfigMarginNumbers(m_appearance.marginNumbers);
         m_renderPipeline->setConfigAnnotationMarkScale(m_appearance.annotationMarkScale);
         m_renderPipeline->setConfigTextFrameBorder(m_appearance.textFrameBorder.show,
                                                    m_appearance.textFrameBorder.color,
@@ -354,6 +365,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
                                     : nullptr) {
         layout->setSceneBreakLook(m_appearance.sceneBreakLook);
     }
+
+    // The cards of the annotations under the paragraphs: shown or not, their looks and colors
+    updateAnnotationCards();
 
     // The page's margins set the scroll range (the pipeline gives the viewport the scroll
     // padding)
@@ -394,6 +408,7 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
         if (m_renderPipeline) {
             m_renderPipeline->setConfigColors(renderColorsFor(m_appearance, mode));
         }
+        updateAnnotationCards();  // in the colors of the paper
 
         update();
     }
@@ -429,10 +444,24 @@ bool BookEditor::event(QEvent* event)
             return true;
         }
     }
+    // Tab types a tab character, as in word processors: QWidget::event() would go to the next
+    // field. Shift+Tab still goes to the field before, and so does Tab in a read-only text, as
+    // in any field. A Tab a field of the editor's own bars left over is not the text's
+    if (event->type() == QEvent::KeyPress && hasFocus() && !m_readOnly) {
+        auto* key = static_cast<QKeyEvent*>(event);
+        if (textKeyFor(key->key(), key->modifiers(), isMacOS()).action == TextKeyAction::Tab) {
+            keyPressEvent(key);
+            return true;
+        }
+    }
     // The tooltip of an annotation's mark: who made the annotation, in bold, and its text,
-    // as it is written
+    // as it is written; on a card, what its button does
     if (event->type() == QEvent::ToolTip && m_renderPipeline) {
         const auto* help = static_cast<QHelpEvent*>(event);
+        if (const QString tip = annotationCardToolTip(QPointF(help->pos())); !tip.isEmpty()) {
+            QToolTip::showText(help->globalPos(), tip, this);
+            return true;
+        }
         // The mark beside a paragraph: the titles of the materials linked with it
         if (const std::optional<ParagraphMark> marked = paragraphMarkAt(QPointF(help->pos()))) {
             //: The tooltip of the paperclip beside a paragraph, over the titles of the
@@ -1025,6 +1054,25 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     m_textBuffer->setDocumentLayout(layout);
     layout->setParagraphStyles(m_paragraphStyles);  // the book's styles (setParagraphStyles())
     layout->setSceneBreakLook(m_appearance.sceneBreakLook);  // the view's setting
+
+    // The numbers on the margin go on from the lines above the view, estimated until the
+    // background pass lays them out: the view shows the exact numbers then. Laying out the
+    // blocks above leaves the view's text where it is, so nothing else repaints it.
+    connect(layout, &KalahariTextDocumentLayout::blocksLaidOut, this, [this]() {
+        if (m_renderPipeline && m_renderPipeline->marginNumbersOutdated()) {
+            update();
+        }
+    });
+
+    // The cards of its annotations: collapsed or expanded as the settings say, with room
+    // under their paragraphs
+    m_annotationCards.startText();
+    m_pressedCard.clear();
+    m_selectedCard = QTextCursor();
+    if (m_renderPipeline) {
+        m_renderPipeline->setFragmentHighlight(std::nullopt);
+    }
+    setUpAnnotationCards();
 
     // The render pipeline applies the font and the wrap width while the document is
     // still empty, so the content below is laid out exactly once.

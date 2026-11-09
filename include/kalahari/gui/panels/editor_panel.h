@@ -143,6 +143,10 @@ public:
     ///        cursor; OK gives the selected paragraphs what the writer changed
     void showParagraphDialog();
 
+    /// @brief Set whether the text starts on a left page: the chapter's own setting
+    ///        (ProjectElement::firstPageLeft), which the margins of its pages follow
+    void setFirstPageLeft(bool left);
+
 signals:
     /// @brief Emitted when editor content changes
     ///

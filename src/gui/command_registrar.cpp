@@ -8,6 +8,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/command.h"
 #include "kalahari/gui/utils/access_keys.h"
+#include "kalahari/editor/editor_appearance.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/editor/character_format.h"
 
@@ -273,7 +274,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("file.export.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "Export &Settings..."), "FILE/Export/Export Settings...", 190, true, 2);
 
     // Export Archive (priority 195 = end of Export submenu)
-    REG_CMD_TOOL_ICON("file.export.archive", QT_TRANSLATE_NOOP("CommandRegistrar", "Project &Archive..."), "FILE/Export/Project Archive...", 195, true, 0,
+    REG_CMD_TOOL_ICON("file.export.archive", QT_TRANSLATE_NOOP("CommandRegistrar", "Project &Archive..."), "FILE/Export/Project Archive...", 195, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onExportArchive);
@@ -660,7 +661,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // Statistics submenu (analysis tools only, panels in VIEW)
     REG_CMD("tools.stats.full", QT_TRANSLATE_NOOP("CommandRegistrar", "&Full Statistics..."), "TOOLS/Statistics/Full Statistics...", 10, false, 2);
 
-    REG_CMD_TOOL_ICON("tools.stats.wordCount", QT_TRANSLATE_NOOP("CommandRegistrar", "&Word Count"), "TOOLS/Statistics/Word Count", 20, true, 0,
+    REG_CMD_TOOL_ICON("tools.stats.wordCount", QT_TRANSLATE_NOOP("CommandRegistrar", "&Word Count"), "TOOLS/Statistics/Word Count", 20, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       nullptr);
@@ -794,11 +795,38 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // border around the text of every editor, as in the Settings dialog
     REG_CMD_CB("view.darkPaper", QT_TRANSLATE_NOOP("CommandRegistrar", "Dar&k Paper"), "VIEW/Dark Paper", 62, false, 0,
                callbacks.onDarkPaperToggle);
-    REG_CMD_CB("view.textFrameBorder", QT_TRANSLATE_NOOP("CommandRegistrar", "Te&xt Frame Border"), "VIEW/Text Frame Border", 63, true, 0,
+    REG_CMD_CB("view.textFrameBorder", QT_TRANSLATE_NOOP("CommandRegistrar", "Te&xt Frame Border"), "VIEW/Text Frame Border", 63, false, 0,
                callbacks.onTextFrameBorderToggle);
 
+    // The working numbers on the margin of every editor, also as in the Settings dialog: one
+    // choice of three (the numbering on chosen again turns it off, as its toolbar button)
+    const auto toNumbering = [&callbacks](const char* mode) -> std::function<void()> {
+        if (!callbacks.onMarginNumbering) {
+            return {};
+        }
+        return [onNumbering = callbacks.onMarginNumbering, mode = QString::fromLatin1(mode)]() {
+            onNumbering(mode);
+        };
+    };
+    REG_CMD_CB("view.marginNumbers.none", QT_TRANSLATE_NOOP("CommandRegistrar", "&No Numbering"), "VIEW/Margin Numbering/No Numbering", 64, false, 0,
+               toNumbering(editor::MARGIN_NUMBERING_NONE));
+    REG_CMD_CB("view.marginNumbers.lines", QT_TRANSLATE_NOOP("CommandRegistrar", "&Line Numbers"), "VIEW/Margin Numbering/Line Numbers", 65, false, 0,
+               toNumbering(editor::MARGIN_NUMBERING_LINES));
+    REG_CMD_CB("view.marginNumbers.paragraphs", QT_TRANSLATE_NOOP("CommandRegistrar", "&Paragraph Numbers"), "VIEW/Margin Numbering/Paragraph Numbers", 66, true, 0,
+               toNumbering(editor::MARGIN_NUMBERING_PARAGRAPHS));
+    REG_CMD_CB("view.marginNumbers.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "Numbering &Settings..."), "VIEW/Margin Numbering/Numbering Settings...", 67, true, 0,
+               callbacks.onMarginNumberingSettings);
+
+    // The cards of the annotations under their paragraphs, a setting of every editor as in
+    // the Settings dialog; collapsing and expanding all of them in the editor in front
+    // (AnnotationsCoordinator)
+    REG_CMD_CB("view.annotationCards", QT_TRANSLATE_NOOP("CommandRegistrar", "Annotation &Cards Under Paragraphs"), "VIEW/Annotation Cards Under Paragraphs", 68, false, 0,
+               callbacks.onAnnotationCardsToggle);
+    REG_CMD("view.collapseAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "C&ollapse All Annotations"), "VIEW/Collapse All Annotations", 69, false, 0);
+    REG_CMD("view.expandAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "&Expand All Annotations"), "VIEW/Expand All Annotations", 70, true, 0);
+
     // Perspectives submenu
-    REG_CMD("view.perspectives.writer", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writer"), "VIEW/Perspectives/Writer", 70, false, 1);
+    REG_CMD("view.perspectives.writer", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writer"), "VIEW/Perspectives/Writer", 71, false, 1);
     REG_CMD("view.perspectives.editor", QT_TRANSLATE_NOOP("CommandRegistrar", "&Editor"), "VIEW/Perspectives/Editor", 80, false, 1);
     REG_CMD("view.perspectives.researcher", QT_TRANSLATE_NOOP("CommandRegistrar", "&Researcher"), "VIEW/Perspectives/Researcher", 90, false, 1);
     REG_CMD("view.perspectives.planner", QT_TRANSLATE_NOOP("CommandRegistrar", "&Planner"), "VIEW/Perspectives/Planner", 100, true, 1);
@@ -824,7 +852,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                    KeyboardShortcut(Qt::Key_0, Qt::ControlModifier), callbacks.onZoomReset);
     REG_CMD_CB("view.zoomPageWidth", QT_TRANSLATE_NOOP("CommandRegistrar", "&Page Width"), "VIEW/Zoom/Page Width", 223, false, 0,
                callbacks.onZoomPageWidth);
-    REG_CMD_CB("view.zoomWholePage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Whole Page"), "VIEW/Zoom/Whole Page", 224, true, 0,
+    REG_CMD_CB("view.zoomWholePage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Whole Page"), "VIEW/Zoom/Whole Page", 224, false, 0,
                callbacks.onZoomWholePage);
 
     // F11 (Control+Cmd+F on macOS, see SHORTCUTS)

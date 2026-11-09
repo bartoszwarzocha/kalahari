@@ -188,6 +188,10 @@ class EditorPagesPage : public SettingsPage {
     Q_OBJECT
 public:
     explicit EditorPagesPage(QWidget* parent = nullptr);
+
+private:
+    /// @brief The group Margin Numbering: the working numbers on the left margin
+    void addMarginNumbersGroup();
 };
 
 /// @brief Editor > Auto-correct: what is changed in the text as it is typed, on three tabs
@@ -276,11 +280,16 @@ public:
     explicit EditorVersionsPage(QWidget* parent = nullptr);
 };
 
-/// @brief Annotations: who new comments, to-dos and notes are by, and their marks in the text
+/// @brief Annotations: who new comments, to-dos and notes are by, their marks in the text, their
+/// cards under the paragraphs and their colors
 class AnnotationsPage : public SettingsPage {
     Q_OBJECT
 public:
     explicit AnnotationsPage(QWidget* parent = nullptr);
+
+private:
+    /// @brief The group of the cards under the paragraphs
+    void addCardSettings();
 };
 
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,

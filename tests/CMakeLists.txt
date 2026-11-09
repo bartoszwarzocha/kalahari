@@ -57,6 +57,7 @@ set(TEST_SOURCES
     editor/test_search_engine.cpp          # OpenSpec #00044 Task 9.4: SearchEngine tests
     editor/test_kml_document_model.cpp     # KML reader tests
     editor/test_annotations.cpp            # Comments, TODOs and notes: model, file, editing
+    editor/test_annotation_cards.cpp       # Annotation cards under the paragraphs
     editor/test_style_resolver.cpp         # Sub-Project C WS4.4: StyleResolver unit tests
     editor/test_editor_stage0_kml_roundtrip.cpp  # Editor Stage 0: KML load/save through BookEditor
     editor/test_editor_stage0_layout.cpp         # Editor Stage 0: layout/viewport geometry
@@ -64,6 +65,7 @@ set(TEST_SOURCES
     editor/test_editor_stage2.cpp                # Editor Stage 2: typography, paste/undo, on-demand layout
     editor/test_editor_stage3.cpp                # Editor Stage 3: drag and drop, find and replace, cursor
     editor/test_editor_stage4.cpp                # Editor Stage 4: page mode, zoom, typewriter scrolling
+    editor/test_margin_options.cpp               # Editor: mirror margins, numbers of the lines and paragraphs on the margin
     editor/test_editor_stage5.cpp                # Editor Stage 5: highlight layer
     editor/test_paragraph_marks.cpp              # The paperclips beside the paragraphs
     editor/test_text_keys.cpp                    # The keys of the text on each system
@@ -214,7 +216,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/style_resolver.cpp    # Sub-Project C WS4.4: StyleResolver (Q_OBJECT)
     ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget
+    ${CMAKE_SOURCE_DIR}/src/editor/annotation_cards.cpp  # The cards of the annotations under their paragraphs
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_annotations.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_cards.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_checking.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_cursor.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_editing.cpp

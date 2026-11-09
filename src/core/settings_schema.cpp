@@ -159,9 +159,11 @@ std::map<std::string, json> buildDefaults() {
         // Editor: text
         {"editor.fontFamily", "Georgia"},
         {"editor.fontSize", 14},
+        // How far apart the tab stops are: "indent", every first-line indent of the paragraph's
+        // style (a style without one: editor.indentSize), or "spaces", every editor.tabSize
+        // spaces of its font
+        {"editor.tabStops", "indent"},
         {"editor.tabSize", 4},
-        {"editor.lineNumbers", true},
-        {"editor.wordWrap", false},
         // Where a chapter opens: "lastEdit", where its cursor was when it was closed last, or
         // "start"
         {"editor.chapterOpensAt", "lastEdit"},
@@ -229,7 +231,9 @@ std::map<std::string, json> buildDefaults() {
         {"editor.cursor.blinkInterval", 500},
         {"editor.cursor.lineWidth", 2},
 
-        // Editor: margins (view margins in pixels, page margins in millimetres)
+        // Editor: page margins in millimetres. Mirror margins: the inner one at the binding,
+        // the outer one at the edge; the first page of a chapter is a right page unless the
+        // chapter starts on a left one (the chapter's own setting, in the book)
         {"editor.margins.pageTop", 25.4},
         {"editor.margins.pageBottom", 25.4},
         {"editor.margins.pageLeft", 25.4},
@@ -257,6 +261,18 @@ std::map<std::string, json> buildDefaults() {
         // colors editor.colors.formattingMarksLight/Dark
         {"editor.showFormattingMarks", false},
 
+        // Editor: the working numbers on the left margin (View > Margin Numbering), only on the
+        // screen: "none", "lines" (every line) or "paragraphs" (every paragraph with text). A
+        // number every "interval" lines or paragraphs; with "restartEachPage" the lines are
+        // counted from 1 on every page of the page view. The font and its size in points at
+        // 100% zoom, and one color for the light and the dark paper
+        {"editor.marginNumbers.mode", "none"},
+        {"editor.marginNumbers.interval", 1},
+        {"editor.marginNumbers.restartEachPage", false},
+        {"editor.marginNumbers.font", "Courier New"},
+        {"editor.marginNumbers.size", 8},
+        {"editor.marginNumbers.color", "#808080"},
+
         // Editor: how the scene breaks look: "asterisks" (* * *), "asterism" (⁂), "fleuron"
         // (❦), "line" (a short line) or "blank" (an empty line); the files keep the breaks
         {"editor.sceneBreak.style", "asterisks"},
@@ -269,6 +285,28 @@ std::map<std::string, json> buildDefaults() {
         // Editor: the size of the annotations' marks in the text, in percent of the size
         // the text's font gives them
         {"editor.annotationMarkSize", 100},
+
+        // Editor: the cards of the annotations under their paragraphs, in the continuous view
+        // (View > Annotation Cards Under Paragraphs, Settings > Annotations): shown or not, and
+        // for which kinds; "full" (the kind, the author and the date over the text) or
+        // "compact" (the text alone, the author and the date at its end); a collapsed one
+        // "mark" (its mark alone) or "line" (a line with the start of its text); "expanded" or
+        // "collapsed" after a chapter opens; a long text cut short after so many lines (0:
+        // whole); the size of their text in percent of the chapter's; how much of the kind's
+        // color they have, in percent of the usual; the fragment of the card the mouse is on
+        // highlighted; "show" or "hide" them in Distraction-Free
+        {"editor.annotationCards.show", false},
+        {"editor.annotationCards.comments", true},
+        {"editor.annotationCards.todos", true},
+        {"editor.annotationCards.notes", true},
+        {"editor.annotationCards.look", "full"},
+        {"editor.annotationCards.collapsedLook", "mark"},
+        {"editor.annotationCards.afterOpening", "expanded"},
+        {"editor.annotationCards.longLines", 0},
+        {"editor.annotationCards.fontSize", 90},
+        {"editor.annotationCards.tint", 100},
+        {"editor.annotationCards.highlightFragment", true},
+        {"editor.annotationCards.distractionFree", "show"},
 
         // Word count in the whole program: a dash standing alone (a dialogue dash) is a word
         {"editor.wordCount.dashesAsWords", false},

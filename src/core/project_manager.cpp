@@ -2248,6 +2248,27 @@ bool ProjectManager::setStatus(const QString& elementId, const QString& status) 
     return true;
 }
 
+bool ProjectManager::setFirstPageLeft(const QString& elementId, bool left) {
+    if (refusesChange("setFirstPageLeft")) {
+        return false;
+    }
+    ProjectElement* element = findElement(elementId);
+    if (!element || !stateOf(elementId) || isBookFile(elementId)) {
+        Logger::getInstance().warn("setFirstPageLeft: Not a text element: {}",
+                                   elementId.toStdString());
+        return false;
+    }
+    if (element->firstPageLeft == left) {
+        return true;
+    }
+    element->firstPageLeft = left;
+    if (!saveManifest()) {
+        element->firstPageLeft = !left;
+        return false;
+    }
+    return true;
+}
+
 QString ProjectManager::notes(const QString& elementId) const {
     // An element without a chapter file keeps them in the .klh file
     const ProjectElement* element = findElement(elementId);

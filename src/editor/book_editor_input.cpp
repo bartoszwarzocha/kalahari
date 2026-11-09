@@ -282,17 +282,28 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         return;
     }
 
-    // A click on an annotation's mark opens the annotation, on the mark beside a paragraph
-    // chooses a material; the cursor stays
+    // A click on an annotation's card does what its part does; one on an annotation's mark
+    // collapses or expands its card, or opens the annotation without cards; one on the mark
+    // beside a paragraph chooses a material. The cursor stays.
     if (!(event->modifiers() & Qt::ShiftModifier)) {
+        if (pressAnnotationCard(event->position())) {
+            event->accept();
+            return;
+        }
         if (const std::optional<ParagraphMark> marked = paragraphMarkAt(event->position())) {
             openParagraphMark(*marked, event->globalPosition().toPoint());
             event->accept();
             return;
         }
-        const QString markId = annotationMarkAt(event->position());
-        if (!markId.isEmpty()) {
-            emit annotationMarkClicked(markId);
+        const std::optional<AnnotationMark> mark =
+            m_renderPipeline ? m_renderPipeline->annotationMarkDetailsAt(event->position())
+                             : std::nullopt;
+        if (mark) {
+            if (m_annotationCards.hasCard(mark->kind)) {
+                setAnnotationCollapsed(mark->id, !m_annotationCards.isCollapsed(mark->id));
+            } else {
+                emit annotationMarkClicked(mark->id);
+            }
             event->accept();
             return;
         }
@@ -396,10 +407,15 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
 
     const QPointF pos = event->position();
     if (!(event->buttons() & Qt::LeftButton)) {
-        // A hand over an annotation's mark, which opens it, and over the mark beside a
-        // paragraph; an arrow over the selected text, which can be dragged; an I-beam elsewhere
+        // A hand over an annotation's mark, which opens it, over the mark beside a paragraph
+        // and over the buttons of a card; an arrow over a card and over the selected text,
+        // which can be dragged; an I-beam elsewhere
         Qt::CursorShape shape = Qt::IBeamCursor;
-        if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos)) {
+        if (hoverAnnotationCard(pos)) {
+            shape = m_annotationCards.hoveredPart() == AnnotationCardPart::Card
+                        ? Qt::ArrowCursor
+                        : Qt::PointingHandCursor;
+        } else if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos)) {
             shape = Qt::PointingHandCursor;
         } else if (isOverSelectedText(pos)) {
             shape = Qt::ArrowCursor;
@@ -463,6 +479,17 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
 
     if (event->button() != Qt::LeftButton) {
         QWidget::mouseDoubleClickEvent(event);
+        return;
+    }
+
+    // A double click on a card edits its annotation; on its buttons it does no more than
+    // the first click
+    if (const std::optional<AnnotationCardHit> card = annotationCardAt(event->position())) {
+        if (card->part == AnnotationCardPart::Card && card->id == m_pressedCard) {
+            emit annotationEditRequested(card->id);
+        }
+        m_pressedCard.clear();
+        event->accept();
         return;
     }
 
@@ -719,6 +746,14 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         return;
     }
 
+    // On an annotation's card: the menu of its annotation
+    if (event->reason() == QContextMenuEvent::Mouse) {
+        if (const std::optional<AnnotationCardHit> card = annotationCardAt(event->pos())) {
+            showAnnotationCardMenu(card->id, event->globalPos());
+            return;
+        }
+    }
+
     const CursorPosition pos = positionFromPoint(event->pos());
     if (pos.paragraph < 0) {
         QWidget::contextMenuEvent(event);
@@ -789,9 +824,16 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         addGrammarActions(menu, *grammarError, pos.paragraph);
     }
 
+    // The annotation whose fragment or place is there: what can be done with it
+    if (const QString annotation = annotationAt(pos); !annotation.isEmpty()) {
+        addAnnotationActions(menu, annotation, false);
+        menu.addSeparator();
+    }
+
     // A list item: its numbering and its level, as in Word
     if (const std::optional<ListItem> item = currentListItem()) {
-        if (!menu.isEmpty()) {
+        // (after the annotation's items, which end with a line)
+        if (!menu.isEmpty() && !menu.actions().constLast()->isSeparator()) {
             menu.addSeparator();
         }
         if (!item->levelFormat().isBullet()) {
