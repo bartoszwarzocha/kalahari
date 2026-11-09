@@ -10,7 +10,12 @@
 #include <kalahari/editor/book_editor.h>
 #include "editor_test_utils.h"
 
+#include <kalahari/core/project_database.h>
+#include <kalahari/core/writing_journal.h>
+#include <kalahari/core/writing_statistics.h>
+
 #include <QApplication>
+#include <QTemporaryDir>
 #include <memory>
 
 using namespace kalahari::editor;
@@ -407,5 +412,94 @@ TEST_CASE("StatisticsCollector: an editor closed while followed is forgotten",
     other.fromKml(createKml("One"));
     collector.setBookEditor(&other);
     CHECK(collector.wordCount() == 1);
+    collector.setBookEditor(nullptr);
+}
+
+// =============================================================================
+// The Record of Writing
+// =============================================================================
+
+TEST_CASE("StatisticsCollector: the record of writing goes to the book and the journal",
+          "[editor][statistics]") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    kalahari::core::ProjectDatabase database;
+    REQUIRE(database.open(dir.path()));
+    kalahari::core::WritingJournal journal;
+    REQUIRE(journal.open(dir.filePath("writing_journal.db")));
+
+    // The panel of a chapter knows its element, and the editor is inside it
+    QWidget panel;
+    panel.setProperty("elementId", QStringLiteral("chapter-7"));
+    auto* editor = new BookEditor(&panel);
+    editor->fromKml(createKml("Hello world"));
+
+    StatisticsCollector collector;
+    collector.setDatabase(&database);
+    collector.setJournal(&journal);
+    collector.setBookId(QStringLiteral("book-1"));
+    collector.setBookEditor(editor);
+    collector.startSession();
+
+    editor->setCursorPosition({0, 11});
+    editor->insertText(QStringLiteral(" and more"));
+    waitForCount();
+    REQUIRE(collector.pendingActivity().size() == 1);
+    const kalahari::core::WritingActivity entry = collector.pendingActivity().first();
+    CHECK(entry.bookId == "book-1");
+    CHECK(entry.elementId == "chapter-7");
+    CHECK(entry.written == 2);
+    CHECK(entry.date == QDate::currentDate());
+
+    int saved = 0;
+    QObject::connect(&collector, &StatisticsCollector::activitySaved, &collector,
+                     [&saved](const QList<kalahari::core::WritingActivity>& activity) {
+                         saved += int(activity.size());
+                     });
+    collector.flush();
+    CHECK(saved == 1);
+    CHECK(collector.pendingActivity().isEmpty());
+
+    const QDate today = QDate::currentDate();
+    const auto inBook = database.writingActivity(today.addDays(-1), today);
+    const auto inJournal = journal.activity(today.addDays(-1), today, QStringLiteral("book-1"));
+    REQUIRE(inBook.size() == 1);
+    REQUIRE(inJournal.size() == 1);
+    CHECK(inBook.first().written == 2);
+    CHECK(inJournal.first().elementId == "chapter-7");
+
+    collector.endSession();
+    collector.setBookEditor(nullptr);
+    collector.setDatabase(nullptr);
+    collector.setJournal(nullptr);
+}
+
+TEST_CASE("StatisticsCollector: a large change at once is not writing", "[editor][statistics]") {
+    BookEditor editor;
+    editor.fromKml(createKml("Start"));
+    StatisticsCollector collector;
+    kalahari::core::WritingRules rules;
+    rules.largeChangeWords = 5;
+    collector.setRules(rules);
+    collector.setBookEditor(&editor);
+    collector.startSession();
+    QList<int> skipped;
+    QObject::connect(&collector, &StatisticsCollector::largeChangeSkipped, &collector,
+                     [&skipped](int words) { skipped.append(words); });
+
+    editor.setCursorPosition({0, 5});
+    editor.insertText(QStringLiteral(" one two three four five six seven"));
+    waitForCount();
+    CHECK(collector.wordCount() == 8);
+    CHECK(collector.wordsWrittenThisSession() == 0);
+    REQUIRE(skipped.size() == 1);
+    CHECK(skipped.first() == 7);
+
+    // What is written after it counts from the text with those words
+    editor.insertText(QStringLiteral(" eight"));
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 1);
+
+    collector.endSession();
     collector.setBookEditor(nullptr);
 }

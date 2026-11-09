@@ -234,15 +234,15 @@ void WritingStatistics::setRules(const WritingRules& rules)
 
 void WritingStatistics::setActivity(const QList<WritingActivity>& activity)
 {
-    m_activity = activity;
-    regroup();
+    m_byDay.clear();
+    m_days.clear();
+    addActivity(activity);
 }
 
 void WritingStatistics::addActivity(const QList<WritingActivity>& activity)
 {
     for (const WritingActivity& entry : activity) {
         if (!entry.isEmpty() && entry.date.isValid()) {
-            m_activity.append(entry);
             addToDays(entry);
         }
     }
@@ -437,14 +437,11 @@ WritingTemperature WritingStatistics::temperature(const QDateTime& now, int wind
 
 void WritingStatistics::regroup()
 {
-    m_byDay.clear();
-    m_days.clear();
-    m_activity.removeIf([](const WritingActivity& entry) {
-        return entry.isEmpty() || !entry.date.isValid();
-    });
-    for (const WritingActivity& entry : std::as_const(m_activity)) {
-        addToDays(entry);
+    QList<WritingActivity> all;
+    for (const QList<WritingActivity>& day : std::as_const(m_byDay)) {
+        all.append(day);
     }
+    setActivity(all);
 }
 
 void WritingStatistics::addToDays(const WritingActivity& activity)

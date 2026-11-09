@@ -3,17 +3,19 @@
 ///
 /// StatisticsCollector provides:
 /// - Real-time word/character/paragraph counting
-/// - Writing session tracking (words written/deleted, active time)
-/// - Database integration for historical statistics
-/// - Automatic periodic flush to database
+/// - Writing session tracking (words written/deleted, time of writing)
+/// - The record of writing in 5-minute slots (core::WritingRecorder), saved every minute to
+///   the book's project.db and to the writer's journal of all the books
 ///
-/// The collector uses an observer pattern to track document changes
-/// and maintains hourly statistics for productivity analysis.
+/// The collector uses an observer pattern to track document changes.
 
 #pragma once
 
+#include <kalahari/core/writing_activity.h>
+
 #include <QObject>
 #include <QDateTime>
+#include <QList>
 #include <QTimer>
 #include <QString>
 
@@ -24,6 +26,8 @@ class BookEditor;
 
 namespace kalahari::core {
 class ProjectDatabase;
+class WritingJournal;
+struct WritingRules;
 }
 
 namespace kalahari::editor {
@@ -74,8 +78,23 @@ public:
     void setBookEditor(BookEditor* editor);
 
     /// @brief Set the database for statistics persistence
-    /// @param database ProjectDatabase for storing session stats (nullptr to disable)
+    /// @param database ProjectDatabase that keeps the record of writing of the book (nullptr
+    ///        to disable)
     void setDatabase(core::ProjectDatabase* database);
+
+    /// @brief The writer's journal of all the books, which gets the record of writing too
+    /// (nullptr: none)
+    void setJournal(core::WritingJournal* journal);
+
+    /// @brief The id of the book the record of writing is about (its project id)
+    void setBookId(const QString& bookId);
+
+    /// @brief The rules of the writer: the idle time and the limit of a change that is not
+    /// writing
+    void setRules(const core::WritingRules& rules);
+
+    /// @brief The record of writing not saved yet
+    const QList<core::WritingActivity>& pendingActivity() const;
 
     // =========================================================================
     // Real-time Statistics (from current document)
@@ -139,6 +158,10 @@ public:
     /// @return Minutes of active editing (excludes idle time)
     int activeMinutesThisSession() const;
 
+    /// @brief Time of writing in the current session, without the pauses longer than the idle
+    /// time
+    qint64 activeMsThisSession() const;
+
     /// @brief Get session duration in minutes
     /// @return Total minutes since session start
     int sessionDurationMinutes() const;
@@ -155,6 +178,16 @@ signals:
     /// @param wordsDeleted Total words deleted this session
     /// @param activeMinutes Active editing minutes this session
     void sessionStatsUpdated(int wordsWritten, int wordsDeleted, int activeMinutes);
+
+    /// @brief Emitted when words or time of writing were recorded (pendingActivity() changed)
+    void writingRecorded();
+
+    /// @brief Emitted when the record not saved yet was saved: it is no longer in
+    /// pendingActivity(), and it is @p activity
+    void activitySaved(const QList<kalahari::core::WritingActivity>& activity);
+
+    /// @brief Emitted when a change of more words at once than the limit was not counted
+    void largeChangeSkipped(int words);
 
 private slots:
     /// @brief Handle flush timer timeout
@@ -176,22 +209,18 @@ private:
     /// @brief Recalculate all statistics from document
     void recalculateStats();
 
-    /// @brief Update hourly stats with word delta
-    /// @param wordsDelta Change in word count (positive = written, negative = deleted)
-    void updateHourlyStats(int wordsDelta);
-
-    /// @brief Check if hour has changed and handle rollover
-    void checkHourRollover();
-
-    /// @brief Save current hour's stats to database
-    void saveHourlyStats();
-
-    /// @brief Update active time tracking
-    void updateActiveTime();
+    /// @brief The text of the book that @p editor shows: the "elementId" of the panel it is in
+    static QString elementIdOf(const BookEditor* editor);
 
     // Editor and database
     BookEditor* m_editor{nullptr};
     core::ProjectDatabase* m_database{nullptr};
+    core::WritingJournal* m_journal{nullptr};
+    QString m_bookId;
+    QString m_elementId;
+
+    // The record of writing in 5-minute slots, until it is saved
+    core::WritingRecorder m_recorder;
 
     // Cached statistics (real-time)
     int m_wordCount{0};
@@ -203,15 +232,6 @@ private:
     bool m_sessionActive{false};
     QDateTime m_sessionStart;
     int m_previousWordCount{0};  ///< For delta calculation
-    int m_wordsWritten{0};       ///< Total session words written
-    int m_wordsDeleted{0};       ///< Total session words deleted
-
-    // Hourly tracking (for database)
-    int m_currentHour{-1};
-    int m_wordsWrittenThisHour{0};
-    int m_wordsDeletedThisHour{0};
-    int m_activeMinutesThisHour{0};
-    QDateTime m_lastActivityTime;
 
     // Auto-flush timer
     QTimer* m_flushTimer{nullptr};
@@ -220,9 +240,8 @@ private:
     QTimer* m_debounceTimer{nullptr};
 
     // Constants
-    static constexpr int FLUSH_INTERVAL_MS = 5 * 60 * 1000;  ///< 5 minutes
-    static constexpr int IDLE_THRESHOLD_MS = 2 * 60 * 1000;  ///< 2 minutes
-    static constexpr int STATS_DEBOUNCE_MS = 250;            ///< Debounce delay for stats
+    static constexpr int FLUSH_INTERVAL_MS = 60 * 1000;  ///< The record is saved every minute
+    static constexpr int STATS_DEBOUNCE_MS = 250;        ///< Debounce delay for stats
 };
 
 }  // namespace kalahari::editor

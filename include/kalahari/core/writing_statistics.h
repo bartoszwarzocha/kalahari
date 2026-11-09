@@ -141,8 +141,11 @@ public:
     /// @brief Counts this record instead of the one it had
     void setActivity(const QList<WritingActivity>& activity);
 
-    /// @brief Counts this record too (the record not saved yet)
+    /// @brief Counts this record too (the record not saved yet, or just saved)
     void addActivity(const QList<WritingActivity>& activity);
+
+    /// @brief The whole record it counts, by writing day
+    const QMap<QDate, QList<WritingActivity>>& record() const { return m_byDay; }
 
     /// @brief The writing day of a slot of a day of the calendar
     QDate writingDayOf(const QDate& date, int slot) const;
@@ -204,8 +207,9 @@ private:
     void regroup();
     void addToDays(const WritingActivity& activity);
 
+    // A copy shares the record until one of them changes, and then copies only the map of
+    // the days, so a copy with the record not saved yet added to it is cheap
     WritingRules m_rules;
-    QList<WritingActivity> m_activity;
     QMap<QDate, QList<WritingActivity>> m_byDay;  ///< The record by writing day
     QMap<QDate, WritingTotals> m_days;             ///< The totals by writing day
 };
