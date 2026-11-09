@@ -8,7 +8,6 @@
 #include <QMainWindow>
 #include <QObject>
 #include <QPoint>
-#include <QPointer>
 #include <QString>
 
 #include <functional>
@@ -207,11 +206,11 @@ private:
     bool m_frontSaid = false;              ///< frontChanged() was emitted
 
     // A tab pressed on a bar: dragging it off the bar takes it to a window of its own
-    const QTabBar* m_pressedBar = nullptr;  ///< To compare
-    QPointer<QWidget> m_pressedPage;        ///< Of the tab pressed, wherever the bar moves it
-    QPoint m_pressPos;                      ///< On the bar or on its tabs in more rows
-    QWidget* m_draggedPage = nullptr;  ///< The page of the tab being dragged
-    bool m_dropped = false;            ///< The tab being dragged was dropped on a bar of tabs
+    const QTabBar* m_pressedBar = nullptr;   ///< To compare
+    const QWidget* m_pressedPage = nullptr;  ///< To compare: of the tab pressed, wherever it moves
+    QPoint m_pressPos;                       ///< On the bar or on its tabs in more rows
+    QWidget* m_draggedPage = nullptr;        ///< The page of the tab being dragged
+    bool m_dropped = false;                  ///< The tab being dragged was dropped on a bar of tabs
 
     QList<QAction*> m_windowActions;  ///< The windows listed in the Window menu
 };

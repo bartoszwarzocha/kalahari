@@ -447,13 +447,14 @@ bool DocumentWindows::eventFilter(QObject* watched, QEvent* event) {
     }
     case QEvent::MouseMove: {
         auto* mouse = static_cast<QMouseEvent*>(event);
-        QWidget* page = m_pressedPage;
-        if (m_pressedBar != bar || page == nullptr || !(mouse->buttons() & Qt::LeftButton)) {
+        if (m_pressedBar != bar || m_pressedPage == nullptr ||
+            !(mouse->buttons() & Qt::LeftButton)) {
             break;
         }
-        // Off the tabs, further than a tab is high: the tab leaves them
-        const int index = tabs->indexOf(page);
-        if (index < 0 || !canDetach(page)) {
+        // Off the tabs, further than a tab is high: the tab leaves them. Its page, if it is
+        // still among them
+        const int index = tabs->indexOf(m_pressedPage);
+        if (index < 0 || !canDetach(tabs->widget(index))) {
             break;
         }
         const QPoint pos = mouse->position().toPoint();
