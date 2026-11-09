@@ -1173,6 +1173,19 @@ public:
     /// lives.
     void setContextMenuEditActions(const ContextMenuEditActions& actions);
 
+    /// @brief The application's commands of the Table menu (setContextMenuTableActions())
+    struct ContextMenuTableActions {
+        QList<QAction*> insert;    ///< Rows Above, Rows Below, Columns to the Left and Right
+        QList<QAction*> remove;    ///< Rows, Columns, Table
+        QList<QAction*> select;    ///< Cell, Row, Column, Table
+        QList<QAction*> commands;  ///< Merge Cells... Table Properties...; a null: a line
+    };
+
+    /// @brief The commands of the Table menu the context menu of a cell shows above its
+    ///        editing items: Insert, Delete and Select as its own submenus, then the others,
+    ///        enabled as in the Table menu
+    void setContextMenuTableActions(const ContextMenuTableActions& actions);
+
     /// @brief Show the text's context menu under the cursor, as the menu key and Shift+F10
     ///        do: for a misspelled word at the cursor it offers what to put in its place
     void showContextMenuAtCursor();
@@ -2347,6 +2360,7 @@ private:
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
     QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
+    ContextMenuTableActions m_contextMenuTableActions;  ///< The Table menu's, in a cell
     QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
     bool m_readOnly = false;            ///< The text can only be read (isReadOnly())

@@ -745,6 +745,11 @@ void BookEditor::setContextMenuEditActions(const ContextMenuEditActions& actions
     m_contextMenuEditActions = actions;
 }
 
+void BookEditor::setContextMenuTableActions(const ContextMenuTableActions& actions)
+{
+    m_contextMenuTableActions = actions;
+}
+
 void BookEditor::setNextIssueAction(QAction* action)
 {
     m_nextIssueAction = action;
@@ -891,6 +896,42 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         higher->setEnabled(higher->isEnabled() && item->level > 0);
         disableWhileReadOnly(menu.addAction(tr("Bullets and Numberin&g..."), this,
                                             &BookEditor::bulletsAndNumberingAsked));
+        menu.addSeparator();
+    }
+
+    // A cell of a table: the commands of the Table menu, Insert, Delete and Select in
+    // submenus of the menu's own (their keys those of the Table menu's submenus)
+    const ContextMenuTableActions& table = m_contextMenuTableActions;
+    if (isInTable() && (!table.insert.isEmpty() || !table.commands.isEmpty())) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        const auto addSubmenu = [&menu](const QString& title, const QList<QAction*>& actions) {
+            if (actions.isEmpty()) {
+                return;
+            }
+            QMenu* submenu = menu.addMenu(title);
+            submenu->setToolTipsVisible(true);
+            for (QAction* action : actions) {
+                if (action != nullptr) {
+                    submenu->addAction(action);
+                }
+            }
+        };
+        //: The context menu of a cell, as the Table menu's submenus. In Polish: W&staw
+        addSubmenu(tr("Inse&rt"), table.insert);
+        //: In Polish: &Usuń
+        addSubmenu(tr("D&elete"), table.remove);
+        //: In Polish: Z&aznacz
+        addSubmenu(tr("&Select"), table.select);
+        menu.addSeparator();
+        for (QAction* action : table.commands) {
+            if (action != nullptr) {
+                menu.addAction(action);
+            } else {
+                menu.addSeparator();
+            }
+        }
         menu.addSeparator();
     }
 

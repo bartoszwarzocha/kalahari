@@ -109,6 +109,21 @@ EditorPanel::EditorPanel(QWidget* parent)
          registry.getAction(QStringLiteral("edit.paste")),
          registry.getAction(QStringLiteral("edit.selectAll")),
          registry.getAction(QStringLiteral("insert.link"))});
+    // The context menu of a cell: the commands of the Table menu, enabled as there
+    const auto actions = [&registry](std::initializer_list<const char*> ids) {
+        QList<QAction*> found;
+        for (const char* id : ids) {
+            found << (id != nullptr ? registry.getAction(QString::fromLatin1(id)) : nullptr);
+        }
+        return found;
+    };
+    m_bookEditor->setContextMenuTableActions(
+        {actions({"table.insertRowsAbove", "table.insertRowsBelow", "table.insertColumnsLeft",
+                  "table.insertColumnsRight"}),
+         actions({"table.deleteRows", "table.deleteColumns", "table.deleteTable"}),
+         actions({"table.selectCell", "table.selectRow", "table.selectColumn", "table.selectTable"}),
+         actions({"table.mergeCells", "table.splitCells", nullptr, "table.distributeRows",
+                  "table.distributeColumns", nullptr, "table.sort", "table.properties"})});
 
     // Autocorrect puts in the quotation marks of the text's language, asked when they are
     // typed: the book's language may change, and a chapter is told from a file outside the
