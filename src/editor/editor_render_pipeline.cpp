@@ -892,12 +892,15 @@ QRectF EditorRenderPipeline::paragraphMarkRect(size_t paragraph) const {
     QTextLayout* layout = m_textSource->layout(paragraph);
     if (!layout || layout->lineCount() == 0) return {};
 
-    // In the left margin, beside the middle of the paragraph's first line
+    // In the left margin of the line's page (mirror margins: its margin), beside the middle
+    // of the paragraph's first line
     const QTextLine line = layout->lineAt(0);
     const double scale = m_context.computed.viewScale;
     const double size =
         std::max(PARAGRAPH_MARK_MINIMUM, line.height() * scale * PARAGRAPH_MARK_SHARE);
-    const double x = m_context.computed.originX - size * (1.0 + PARAGRAPH_MARK_GAP_SHARE);
+    const double textLeft =
+        documentToWidget(QPointF(0.0, m_textSource->paragraphY(paragraph) + line.y())).x();
+    const double x = textLeft - size * (1.0 + PARAGRAPH_MARK_GAP_SHARE);
     const double middle = paragraphWidgetY(paragraph) + (line.y() + line.height() / 2.0) * scale;
     return QRectF(x, middle - size / 2.0, size, size);
 }
