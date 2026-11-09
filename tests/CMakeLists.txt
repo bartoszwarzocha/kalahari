@@ -16,6 +16,7 @@ set(TEST_SOURCES
     core/test_text_statistics.cpp
     core/test_writing_activity.cpp    # The record of writing in 5-minute slots, and its recorder
     core/test_writing_statistics.cpp  # Writing days, the graph of a day, days in a row, hours, temperature
+    core/test_writing_goals.cpp       # Book goals, deadlines, the journal and project.db record
     core/test_text_file.cpp         # Plain text files in their own encoding and line ends
     core/test_standalone_file.cpp   # Chapters and text files opened outside a book project
     core/test_file_trash.cpp        # Files to the Trash of the system
@@ -174,6 +175,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp
     ${CMAKE_SOURCE_DIR}/src/core/writing_activity.cpp
     ${CMAKE_SOURCE_DIR}/src/core/writing_statistics.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/writing_goals.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/writing_journal.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/standalone_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/file_trash.cpp
