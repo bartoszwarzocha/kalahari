@@ -61,6 +61,12 @@ constexpr char FLOW_PAGE_BREAK_BEFORE = 4;
 constexpr char FLOW_TABLE = 8;
 constexpr char FLOW_ROW_START = 16;
 
+/// Page flow flag of the first block of a row of a table that may be split between pages
+constexpr char FLOW_ROW_SPLIT = 32;
+
+/// The narrowest a table gets: so many paddings of its cells for each column (pixels)
+constexpr qreal MIN_COLUMN_PADDINGS = 3.0;
+
 /// Space between the edges of a cell and its text, in lines of the document font
 constexpr qreal CELL_PADDING_LINES = 0.25;
 
@@ -1320,19 +1326,41 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
     // its own, the space it leaves belonging to the block above. The text after a page
     // break starts on the next page, the rest of the break's page belonging to the break.
     const bool inStep = document()->blockCount() == static_cast<int>(count);
+    m_headerRepeats.clear();
     qreal lastSpacing = 0;
     QTextBlock block = document()->begin();
     for (size_t i = 0; i < count; ++i, block = block.next()) {
         const FlowEntry& entry = m_blockFlowEntries[i];
         if ((entry.flags & FLOW_TABLE) != 0) {
             // A row of a table goes on the next page as a whole when it does not fit in the
-            // rest of its own (a row higher than a page stays where it starts)
-            if ((entry.flags & FLOW_ROW_START) != 0) {
-                y = flowLineTop(y, rowHeight(i));
+            // rest of its own, a row higher than a page (or one that may be) split between
+            // pages; its blocks have its top
+            if ((entry.flags & FLOW_ROW_START) == 0) {
+                m_blockYPositions[i] = y;
+                y += m_blockHeights[i];
+                lastSpacing = 0;
+                continue;
             }
-            m_blockYPositions[i] = y;
-            y += m_blockHeights[i];
+            size_t last = i;
+            while (last + 1 < count && (m_blockFlowEntries[last + 1].flags & FLOW_TABLE) != 0 &&
+                   (m_blockFlowEntries[last + 1].flags & FLOW_ROW_START) == 0) {
+                ++last;
+            }
+            int tableFirst = -1;
+            if (entry.header > 0 && inStep && block.isValid()) {
+                if (const QTextTable* table = tableOf(block)) {
+                    tableFirst = document()->findBlock(table->firstPosition()).blockNumber();
+                }
+            }
+            const auto [top, height] = placeRow(i, last, y, inStep, tableFirst);
+            for (size_t k = i; k <= last; ++k) {
+                m_blockYPositions[k] = top;
+            }
+            y = top + height;
             lastSpacing = 0;
+            for (; i < last; ++i) {
+                block = block.next();
+            }
             continue;
         }
         if ((entry.flags & FLOW_PAGE_BREAK_BEFORE) != 0 &&
@@ -1624,10 +1652,29 @@ qreal KalahariTextDocumentLayout::cellPadding() const {
     return std::max(MIN_CELL_PADDING, std::round(line * CELL_PADDING_LINES));
 }
 
+qreal KalahariTextDocumentLayout::tableBorderWidth(const QTextTable& table) const {
+    return std::max<qreal>(0.0, tablePropertiesOf(table.format()).borders.width * packagePixels());
+}
+
 std::vector<qreal> KalahariTextDocumentLayout::tableColumnEdges(const QTextTable& table) const {
     const int columns = std::max(1, table.columns());
-    const qreal textWidth = document()->textWidth();
-    const qreal width = textWidth > 0 ? textWidth : UNWRAPPED_LINE_WIDTH;
+    const qreal documentWidth = document()->textWidth();
+    const qreal textWidth = documentWidth > 0 ? documentWidth : UNWRAPPED_LINE_WIDTH;
+
+    // The table's width and place: never wider than the text, its points shown as the
+    // style's points are
+    const TableProperties properties = tablePropertiesOf(table.format());
+    const qreal pixels = packagePixels();
+    const qreal narrowest = std::min(textWidth, MIN_COLUMN_PADDINGS * cellPadding() * columns);
+    const qreal indent = properties.alignment == TableAlignment::Left
+                             ? std::clamp(std::round(properties.indent * pixels), 0.0, textWidth - narrowest)
+                             : 0.0;
+    const qreal width = std::clamp(properties.width ? std::round(*properties.width * pixels)
+                                                    : textWidth - indent,
+                                   narrowest, textWidth - indent);
+    const qreal left = properties.alignment == TableAlignment::Center ? std::round((textWidth - width) / 2.0)
+                       : properties.alignment == TableAlignment::Right ? textWidth - width
+                                                                       : indent;
 
     // The widths of the format in percent, else equal columns
     std::vector<qreal> shares(static_cast<size_t>(columns), 1.0);
@@ -1648,21 +1695,24 @@ std::vector<qreal> KalahariTextDocumentLayout::tableColumnEdges(const QTextTable
     for (const qreal share : shares) {
         total += share;
     }
-    std::vector<qreal> edges(shares.size() + 1, 0.0);
+    std::vector<qreal> edges(shares.size() + 1, left);
     qreal sum = 0;
     for (size_t i = 0; i < shares.size(); ++i) {
         sum += shares[i];
-        edges[i + 1] = std::round(width * sum / total);
+        edges[i + 1] = left + std::round(width * sum / total);
     }
-    edges.back() = std::round(width);
+    edges.back() = left + std::round(width);
     return edges;
 }
 
 std::vector<KalahariTextDocumentLayout::TableRow> KalahariTextDocumentLayout::tableRows(
     const QTextTable& table) const {
-    // Each row from its first block: its top, and the height of its blocks together
+    // Each row from its first block: its top, and the height of its blocks together (in
+    // the page flow, as the flow places them)
+    updateBlockPositions();
     std::vector<TableRow> rows(static_cast<size_t>(std::max(0, table.rows())));
     qreal bottom = 0;
+    qreal header = 0;
     for (int row = 0; row < table.rows(); ++row) {
         TableRow& place = rows[static_cast<size_t>(row)];
         place.top = bottom;
@@ -1676,12 +1726,170 @@ std::vector<KalahariTextDocumentLayout::TableRow> KalahariTextDocumentLayout::ta
                 break;
             }
             place.top = blockY(first);
-            place.height = rowHeight(static_cast<size_t>(first));
+            place.height = rowFlowHeight(static_cast<size_t>(first));
+            header = m_blockFlowEntries[static_cast<size_t>(first)].header;
             break;
         }
         bottom = place.top + place.height;
+
+        // Its parts on the pages: a part goes to the end of its page's text area, the next
+        // one starts below the header repeated on the next page
+        qreal top = place.top;
+        while (m_pageFlow.enabled && m_pageFlow.pitch > 0) {
+            const qreal areaEnd = pageTopOf(top) + m_pageFlow.textHeight;
+            if (bottom <= areaEnd + FLOW_EPSILON) {
+                break;
+            }
+            place.parts.emplace_back(top, areaEnd);
+            top = nextPageTop(top) + header;
+        }
+        place.parts.emplace_back(top, std::max(top, bottom));
     }
     return rows;
+}
+
+std::vector<qreal> KalahariTextDocumentLayout::headerRepeats(const QTextTable& table) const {
+    updateBlockPositions();
+    std::vector<qreal> tops;
+    const int first = document()->findBlock(table.firstPosition()).blockNumber();
+    for (const HeaderRepeat& repeat : m_headerRepeats) {
+        if (repeat.tableFirstBlock == first) {
+            tops.push_back(repeat.top);
+        }
+    }
+    return tops;
+}
+
+QPointF KalahariTextDocumentLayout::fromRepeatedHeader(const QPointF& point) const {
+    updateBlockPositions();
+    const auto after = std::upper_bound(
+        m_headerRepeats.begin(), m_headerRepeats.end(), point.y(),
+        [](qreal y, const HeaderRepeat& repeat) { return y < repeat.top; });
+    if (after == m_headerRepeats.begin()) {
+        return point;
+    }
+    const HeaderRepeat& repeat = *std::prev(after);
+    if (point.y() >= repeat.top + repeat.height) {
+        return point;
+    }
+    return QPointF(point.x(), point.y() - repeat.top + blockY(repeat.tableFirstBlock));
+}
+
+qreal KalahariTextDocumentLayout::rowFlowHeight(size_t first) const {
+    if (m_pageFlow.enabled && first < m_blockFlowHeights.size() &&
+        m_blockFlowHeights[first] > 0) {
+        return m_blockFlowHeights[first];
+    }
+    return rowHeight(first);
+}
+
+qreal KalahariTextDocumentLayout::pageTopOf(qreal y) const {
+    return std::floor((y + FLOW_EPSILON) / m_pageFlow.pitch) * m_pageFlow.pitch;
+}
+
+qreal KalahariTextDocumentLayout::paginateRow(size_t first, size_t last, qreal top,
+                                              qreal header, bool natural) const {
+    // Each cell's lines stacked as layoutTable() stacks them; a line that does not fit in
+    // the rest of its page goes on to the next one, below the repeated header, with the
+    // cell's lines after it
+    const qreal padding = cellPadding();
+    qreal height = rowHeight(first);
+    qreal shift = 0;
+    int cell = -1;
+    QTextBlock block = document()->findBlockByNumber(static_cast<int>(first));
+    for (size_t index = first; index <= last && block.isValid(); ++index, block = block.next()) {
+        const QTextTable* table = tableOf(block);
+        const int own = table ? table->cellAt(block.position()).firstPosition() : -1;
+        if (own != cell) {
+            cell = own;
+            shift = 0;
+        }
+        QTextLayout* layout = block.layout();
+        if (!layout) {
+            continue;
+        }
+        const BlockMetrics& metrics = blockMetrics(block);
+        const bool empty = block.length() <= 1;
+        qreal y = m_blockFlowEntries[index].cellTop + metrics.spaceBefore;
+        for (int i = 0; i < layout->lineCount(); ++i) {
+            QTextLine line = layout->lineAt(i);
+            const qreal box = lineBoxHeight(line, metrics, empty);
+            if (!natural) {
+                const qreal boxTop = top + y + shift;
+                const qreal moved = flowLineTop(boxTop, box);
+                if (moved > boxTop + FLOW_EPSILON) {
+                    shift += moved + header - boxTop;
+                }
+            }
+            line.setPosition(QPointF(line.x(), y + shift + lineTopInBox(line, metrics, empty)));
+            y += box;
+        }
+        height = std::max(height, y + shift + padding);
+    }
+    return height;
+}
+
+std::pair<qreal, qreal> KalahariTextDocumentLayout::placeRow(size_t i, size_t last, qreal y,
+                                                             bool inStep, int tableFirst) const {
+    const FlowEntry& entry = m_blockFlowEntries[i];
+    const qreal natural = rowHeight(i);
+    const qreal header = entry.header;
+    const bool splits = (entry.flags & FLOW_ROW_SPLIT) != 0;
+
+    // On this page when it fits (a header row with the first row after the header), else
+    // on the next one; a row that may be split starts here when its first lines fit
+    qreal top = flowLineTop(y, splits ? entry.estimatedLineHeight : std::max(natural, entry.lead));
+    const qreal pageTop = pageTopOf(top);
+    const bool moved = top > y + FLOW_EPSILON;
+    const bool startsPage = top - pageTop < FLOW_EPSILON;
+    if (header > 0 && startsPage) {
+        // A row starting a page the table goes on to: the header rows above it again
+        if (tableFirst >= 0) {
+            m_headerRepeats.push_back({top, header, tableFirst});
+        }
+        top += header;
+    }
+    const bool fits = top + natural <= pageTop + m_pageFlow.textHeight + FLOW_EPSILON;
+    const bool split = !fits && (splits || moved || startsPage);
+
+    qreal height = natural;
+    const bool laidOut = inStep && m_blockPending[i] == 0;
+    const qreal offset = top - pageTop;
+    if (split && laidOut) {
+        if (std::abs(m_blockFlowOffsets[i] - offset) < FLOW_EPSILON && m_blockFlowHeights[i] > 0) {
+            height = m_blockFlowHeights[i];  // placed there already
+        } else {
+            height = paginateRow(i, last, top, header, false);
+            m_blockFlowOffsets[i] = offset;
+        }
+    } else if (split) {
+        // Not laid out yet (or the document in the middle of a change): the height it
+        // probably takes, a page break taking the rest of a page and the header
+        qreal rest = natural;
+        qreal partTop = top;
+        height = 0;
+        while (m_pageFlow.textHeight > header + FLOW_EPSILON &&
+               rest > pageTopOf(partTop) + m_pageFlow.textHeight - partTop + FLOW_EPSILON) {
+            rest -= pageTopOf(partTop) + m_pageFlow.textHeight - partTop;
+            const qreal next = nextPageTop(partTop) + header;
+            height += next - partTop;
+            partTop = next;
+        }
+        height += rest;
+    } else if (laidOut && m_blockFlowOffsets[i] != FLOW_UNPLACED) {
+        paginateRow(i, last, top, header, true);  // its lines as they were
+        m_blockFlowOffsets[i] = FLOW_UNPLACED;
+    }
+    m_blockFlowHeights[i] = height;
+
+    // The pages a split row goes on to start with the header too
+    if (header > 0 && split && tableFirst >= 0) {
+        for (qreal page = nextPageTop(top); page < top + height - FLOW_EPSILON;
+             page = nextPageTop(page)) {
+            m_headerRepeats.push_back({page, header, tableFirst});
+        }
+    }
+    return {top, height};
 }
 
 qreal KalahariTextDocumentLayout::cellTextLeft(const QTextBlock& block) const {
@@ -1706,21 +1914,29 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
     }
     const std::vector<qreal> edges = tableColumnEdges(table);
     const qreal padding = cellPadding();
+    const qreal pixels = packagePixels();
     const int rows = table.rows();
     const int columns = static_cast<int>(edges.size()) - 1;
 
     // Each cell's paragraphs one below another on the cell's width; a row as high as its
-    // highest cell, a cell spanning rows makes the last of them higher when they are too low
+    // highest cell, or as its least height, a cell spanning rows makes the last of them
+    // higher when they are too low
     std::vector<qreal> rowHeights(static_cast<size_t>(std::max(0, rows)), 0.0);
     std::vector<int> firstOfRow(rowHeights.size(), -1);  // index of the row's first block
     std::vector<int> lastOfRow(rowHeights.size(), -1);   // and of its last one
-    struct Spanning {
+    std::vector<qreal> firstLines(rowHeights.size(), 0.0);  // the space its first lines need
+    std::vector<TableRowProperties> rowProperties(rowHeights.size());
+    struct Cell {
         int row = 0;
         int rows = 1;
+        int firstIndex = 0;  // its blocks
+        int lastIndex = -1;
         qreal height = 0;
+        CellAlignment alignment = CellAlignment::Top;
     };
-    std::vector<Spanning> spanning;
+    std::vector<Cell> cells;
     for (int row = 0; row < rows; ++row) {
+        rowProperties[static_cast<size_t>(row)] = rowPropertiesOf(table, row);
         for (int column = 0; column < columns; ++column) {
             const QTextTableCell cell = table.cellAt(row, column);
             if (cell.row() != row || cell.column() != column) {
@@ -1736,7 +1952,15 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
             // first paragraph and below its last one
             QTextBlock block = doc->findBlock(cell.firstPosition());
             const QTextBlock end = doc->findBlock(cell.lastPosition()).next();
-            placement.top -= blockMetrics(block).spaceBefore;
+            const BlockMetrics& firstMetrics = blockMetrics(block);
+            placement.top -= firstMetrics.spaceBefore;
+            firstLines[static_cast<size_t>(row)] = std::max(
+                firstLines[static_cast<size_t>(row)], 2.0 * padding + firstMetrics.estimatedLineHeight);
+            Cell laid;
+            laid.row = row;
+            laid.rows = std::min(cell.rowSpan(), rows - row);
+            laid.alignment = cellPropertiesOf(cell).alignment;
+            laid.firstIndex = block.blockNumber() - firstNumber;
             qreal spaceAfter = 0;
             for (; block.isValid() && block != end; block = block.next()) {
                 const int index = block.blockNumber() - firstNumber;
@@ -1745,6 +1969,7 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
                 }
                 TableBlockLayout& entry = blocks[static_cast<size_t>(index)];
                 const BlockMetrics& metrics = blockMetrics(block);
+                entry.flow.cellTop = placement.top;
                 qreal extent = block.length();
                 const qreal height =
                     estimate ? estimatedHeight(extent, metrics, placement.width)
@@ -1756,23 +1981,57 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
                     firstOfRow[static_cast<size_t>(row)] = index;
                 }
                 lastOfRow[static_cast<size_t>(row)] = index;
+                laid.lastIndex = index;
             }
-            const qreal height = placement.top - spaceAfter + padding;
-            const int spannedRows = std::min(cell.rowSpan(), rows - row);
-            if (spannedRows <= 1) {
-                rowHeights[static_cast<size_t>(row)] = std::max(rowHeights[static_cast<size_t>(row)], height);
-            } else {
-                spanning.push_back({row, spannedRows, height});
+            laid.height = placement.top - spaceAfter + padding;
+            if (laid.rows <= 1) {
+                rowHeights[static_cast<size_t>(row)] =
+                    std::max(rowHeights[static_cast<size_t>(row)], laid.height);
             }
+            cells.push_back(laid);
         }
+        const qreal least = std::round(rowProperties[static_cast<size_t>(row)].minHeight * pixels);
+        rowHeights[static_cast<size_t>(row)] = std::max(rowHeights[static_cast<size_t>(row)], least);
     }
-    for (const Spanning& cell : spanning) {
+    const auto spannedHeight = [&rowHeights](const Cell& cell) {
         qreal height = 0;
         for (int row = cell.row; row < cell.row + cell.rows; ++row) {
             height += rowHeights[static_cast<size_t>(row)];
         }
-        if (height < cell.height) {
-            rowHeights[static_cast<size_t>(cell.row + cell.rows - 1)] += cell.height - height;
+        return height;
+    };
+    for (const Cell& cell : cells) {
+        if (cell.rows > 1) {
+            const qreal height = spannedHeight(cell);
+            if (height < cell.height) {
+                rowHeights[static_cast<size_t>(cell.row + cell.rows - 1)] += cell.height - height;
+            }
+        }
+    }
+
+    // A cell's text in the middle or at the bottom of its rows: its lines lower
+    for (const Cell& cell : cells) {
+        if (cell.alignment == CellAlignment::Top || cell.lastIndex < cell.firstIndex) {
+            continue;
+        }
+        const qreal room = spannedHeight(cell) - cell.height;
+        const qreal shift = std::round(cell.alignment == CellAlignment::Middle ? room / 2.0 : room);
+        if (shift <= 0) {
+            continue;
+        }
+        QTextBlock block = doc->findBlockByNumber(firstNumber + cell.firstIndex);
+        for (int index = cell.firstIndex; index <= cell.lastIndex && block.isValid();
+             ++index, block = block.next()) {
+            blocks[static_cast<size_t>(index)].flow.cellTop += shift;
+            if (estimate) {
+                continue;
+            }
+            if (QTextLayout* lines = block.layout()) {
+                for (int i = 0; i < lines->lineCount(); ++i) {
+                    QTextLine line = lines->lineAt(i);
+                    line.setPosition(line.position() + QPointF(0.0, shift));
+                }
+            }
         }
     }
 
@@ -1784,17 +2043,41 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
             unit = row;
             TableBlockLayout& first = blocks[static_cast<size_t>(firstOfRow[static_cast<size_t>(row)])];
             first.flow.flags |= FLOW_ROW_START;
+            if (rowProperties[static_cast<size_t>(row)].allowSplit) {
+                first.flow.flags |= FLOW_ROW_SPLIT;
+            }
+            first.flow.estimatedLineHeight = firstLines[static_cast<size_t>(row)];
         }
         if (unit >= 0) {
             blocks[static_cast<size_t>(lastOfRow[static_cast<size_t>(unit)])].height +=
                 rowHeights[static_cast<size_t>(row)];
         }
     }
-    // The space a row takes is what keeps a heading above the table with its first row
+
+    // The header rows go with the first row after them, and are repeated above a row
+    // starting a page the table goes on to
+    const int headerRows = std::clamp(table.format().headerRowCount(), 0, rows);
+    qreal header = 0;
+    for (int row = 0; row < headerRows && headerRows < rows; ++row) {
+        header += rowHeights[static_cast<size_t>(row)];
+    }
+    const qreal firstBody = headerRows < rows ? rowHeights[static_cast<size_t>(headerRows)] : 0.0;
     for (int row = 0; row < rows; ++row) {
-        if (firstOfRow[static_cast<size_t>(row)] >= 0) {
-            blocks[static_cast<size_t>(firstOfRow[static_cast<size_t>(row)])].flow.lead =
-                blocks[static_cast<size_t>(lastOfRow[static_cast<size_t>(row)])].height;
+        const int index = firstOfRow[static_cast<size_t>(row)];
+        if (index < 0) {
+            continue;
+        }
+        FlowEntry& flow = blocks[static_cast<size_t>(index)].flow;
+        if (row < headerRows) {
+            // The space a row takes is what keeps a heading above the table with it
+            qreal together = firstBody;
+            for (int below = row; below < headerRows; ++below) {
+                together += rowHeights[static_cast<size_t>(below)];
+            }
+            flow.lead = together;
+        } else {
+            flow.lead = blocks[static_cast<size_t>(lastOfRow[static_cast<size_t>(row)])].height;
+            flow.header = header;
         }
     }
     return blocks;

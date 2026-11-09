@@ -228,16 +228,34 @@ std::vector<TableGrid> QTextDocumentSource::tablesIn(size_t first, size_t last) 
         for (const KalahariTextDocumentLayout::TableRow& row : layout->tableRows(*table)) {
             grid.rowTops.push_back(row.top);
             grid.rowHeights.push_back(row.height);
+            std::vector<std::pair<double, double>> parts;
+            for (const auto& [top, bottom] : row.parts) {
+                parts.emplace_back(top, bottom);
+            }
+            grid.rowParts.push_back(std::move(parts));
         }
         for (int row = 0; row < table->rows(); ++row) {
             for (int column = 0; column < table->columns(); ++column) {
                 const QTextTableCell cell = table->cellAt(row, column);
                 if (cell.row() == row && cell.column() == column) {
-                    grid.cells.push_back({row, column, cell.rowSpan(), cell.columnSpan()});
+                    grid.cells.push_back({row, column, cell.rowSpan(), cell.columnSpan(),
+                                          cellPropertiesOf(cell).background});
                 }
             }
         }
-        grid.headerRows = table->format().headerRowCount();
+        const QTextTableFormat format = table->format();
+        grid.headerRows = std::clamp(format.headerRowCount(), 0, table->rows());
+        grid.borders = tablePropertiesOf(format).borders;
+        grid.borderWidth = layout->tableBorderWidth(*table);
+        grid.firstParagraph = static_cast<size_t>(m_document->findBlock(table->firstPosition()).blockNumber());
+        grid.headerEnd = grid.firstParagraph;
+        if (grid.headerRows > 0) {
+            const QTextTableCell last = table->cellAt(grid.headerRows - 1, table->columns() - 1);
+            grid.headerEnd = static_cast<size_t>(m_document->findBlock(last.lastPosition()).blockNumber()) + 1;
+            for (const qreal top : layout->headerRepeats(*table)) {
+                grid.headerRepeats.push_back(top);
+            }
+        }
         grids.push_back(std::move(grid));
 
         // On after the table
@@ -245,6 +263,37 @@ std::vector<TableGrid> QTextDocumentSource::tablesIn(size_t first, size_t last) 
         index = block.isValid() ? static_cast<size_t>(block.blockNumber()) : last + 1;
     }
     return grids;
+}
+
+std::optional<TableCellSelection> QTextDocumentSource::cellSelection(
+    const SelectionRange& selection) const {
+    if (!m_document || selection.isEmpty()) {
+        return std::nullopt;
+    }
+    const QTextBlock anchorBlock = m_document->findBlockByNumber(selection.start.paragraph);
+    const QTextBlock endBlock = m_document->findBlockByNumber(selection.end.paragraph);
+    if (!anchorBlock.isValid() || !endBlock.isValid()) {
+        return std::nullopt;
+    }
+    const std::optional<TableCellRange> range =
+        selectedCells(*m_document, anchorBlock.position() + selection.start.offset,
+                      endBlock.position() + selection.end.offset);
+    if (!range) {
+        return std::nullopt;
+    }
+    TableCellSelection cells;
+    cells.tableFirstParagraph =
+        static_cast<size_t>(m_document->findBlock(range->table->firstPosition()).blockNumber());
+    cells.firstRow = range->firstRow;
+    cells.lastRow = range->lastRow;
+    cells.firstColumn = range->firstColumn;
+    cells.lastColumn = range->lastColumn;
+    return cells;
+}
+
+QPointF QTextDocumentSource::fromRepeatedHeader(const QPointF& point) const {
+    const auto* layout = kalahariLayout();
+    return layout ? layout->fromRepeatedHeader(point) : point;
 }
 
 size_t QTextDocumentSource::paragraphAtY(double y) const {

@@ -61,6 +61,11 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     colors.inactiveText = appearance.colors.focusInactiveColor(mode);
     colors.formattingMarks = appearance.colors.formattingMarksColor(mode);
     colors.link = appearance.colors.linkColor(mode);
+    const bool light = mode == EditorColorMode::Light;
+    const EditorColors::TableColors& tables = appearance.colors.tables;
+    colors.tableLines = light ? tables.linesLight : tables.linesDark;
+    colors.tableHeader = light ? tables.headerLight : tables.headerDark;
+    colors.tableGridlines = light ? tables.gridlinesLight : tables.gridlinesDark;
     const EditorColors::AnnotationColors& annotations = appearance.colors.annotations(mode);
     colors.annotationComment = annotations.comment;
     colors.annotationTodo = annotations.todo;

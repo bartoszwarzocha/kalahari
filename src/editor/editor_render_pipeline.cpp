@@ -47,18 +47,6 @@ constexpr double DIMMED_MARK_OPACITY = 0.45;
 /// The area around a mark a click or the mouse finds it in, in pixels of the screen
 constexpr double MARK_HIT_SIZE = 14.0;
 
-/// The edges of the cells of a table, and the background of its header rows: the text's
-/// color over the paper's in these shares
-constexpr double TABLE_LINE_SHARE = 0.45;
-constexpr double TABLE_HEADER_SHARE = 0.06;
-
-/// A color between two: @p share of @p over on @p under
-QColor blended(const QColor& over, const QColor& under, double share) {
-    return QColor::fromRgbF(static_cast<float>(under.redF() + (over.redF() - under.redF()) * share),
-                            static_cast<float>(under.greenF() + (over.greenF() - under.greenF()) * share),
-                            static_cast<float>(under.blueF() + (over.blueF() - under.blueF()) * share));
-}
-
 /// The line a place is on: of the character before it for a place after text (the end of
 /// a wrapped line belongs to that line, not to the next one)
 QTextLine placeLine(const QTextLayout& layout, int offset, bool afterText) {
@@ -1029,62 +1017,169 @@ void EditorRenderPipeline::renderParagraphs(QPainter* painter, const QRect& clip
     }
 }
 
-void EditorRenderPipeline::renderTables(QPainter* painter) {
-    if (!m_textSource) return;
-    const std::vector<TableGrid> tables = m_textSource->tablesIn(
-        m_context.computed.firstVisibleParagraph, m_context.computed.lastVisibleParagraph);
-    if (tables.empty()) return;
+void EditorRenderPipeline::renderTables(QPainter* painter, const std::vector<TableGrid>& tables,
+                                        const std::optional<TableCellSelection>& selected) {
+    for (const TableGrid& grid : tables) {
+        const auto rows = static_cast<int>(grid.rowTops.size());
+        if (grid.columnEdges.size() < 2 || rows < 1) {
+            continue;
+        }
+        const bool selectedHere = selected && selected->tableFirstParagraph == grid.firstParagraph;
+        renderTableGrid(painter, grid, selectedHere ? selected : std::nullopt, rows - 1, 0.0);
+        for (const double top : grid.headerRepeats) {
+            renderTableGrid(painter, grid, std::nullopt, grid.headerRows - 1, top - grid.rowTops.front());
+        }
+    }
+}
 
-    // Opaque shades, so the edge two cells share looks as the others
-    const QColor paper = m_context.colors.background;
-    const QColor lineColor = blended(m_context.colors.text, paper, TABLE_LINE_SHARE);
-    const QColor headerColor = blended(m_context.colors.text, paper, TABLE_HEADER_SHARE);
+void EditorRenderPipeline::renderTableGrid(QPainter* painter, const TableGrid& grid,
+                                           const std::optional<TableCellSelection>& selected,
+                                           int lastRow, double shift) {
+    const auto columns = static_cast<int>(grid.columnEdges.size()) - 1;
+    const auto rows = static_cast<int>(grid.rowTops.size());
+    const double scale = m_context.computed.viewScale;
     const auto widgetX = [this](double x) { return std::round(documentToWidget(QPointF(x, 0.0)).x()); };
-    const auto widgetY = [this](double y) { return std::round(documentToWidget(QPointF(0.0, y)).y()); };
+    const auto widgetY = [this, shift](double y) {
+        return std::round(documentToWidget(QPointF(0.0, y + shift)).y());
+    };
+
+    // The pens: the borders in their style, width and color (Automatic: the settings'),
+    // the faint dotted lines where the table has no border
+    const TableBorders& borders = grid.borders;
+    const QColor borderColor = borders.color.isValid() ? borders.color : m_context.colors.tableLines;
+    const double width = std::max(1.0, std::round(grid.borderWidth * scale));
+    const bool doubled = borders.style == BorderStyle::Double;
+    QPen borderPen(borderColor, doubled ? std::max(1.0, std::round(width / 2.0)) : width);
+    borderPen.setCapStyle(Qt::FlatCap);
+    borderPen.setStyle(borders.style == BorderStyle::Dashed   ? Qt::DashLine
+                       : borders.style == BorderStyle::Dotted ? Qt::DotLine
+                                                              : Qt::SolidLine);
+    const double gap = doubled ? std::max(1.0, width) : 0.0;  // between the lines of a double one
+    QPen gridPen(m_context.colors.tableGridlines, 0, Qt::DotLine);
+
+    // A line of an edge: a border when the table has its kind of lines, else a faint one
+    const auto drawEdge = [&](bool border, const QPointF& from, const QPointF& to) {
+        painter->setPen(border ? borderPen : gridPen);
+        if (border && doubled) {
+            const QPointF offset = from.y() == to.y() ? QPointF(0.0, gap) : QPointF(gap, 0.0);
+            painter->drawLine(from - offset, to - offset);
+            painter->drawLine(from + offset, to + offset);
+        } else {
+            painter->drawLine(from, to);
+        }
+    };
 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing, false);
-    for (const TableGrid& grid : tables) {
-        const auto columns = static_cast<int>(grid.columnEdges.size()) - 1;
-        const auto rows = static_cast<int>(grid.rowTops.size());
-        if (columns < 1 || rows < 1) {
+    for (const TableGridCell& cell : grid.cells) {
+        if (cell.row > lastRow) {
             continue;
         }
-        // Each cell row by row: in the page view the rows it spans may be on two pages
-        for (const bool lines : {false, true}) {
-            painter->setPen(lines ? QPen(lineColor, 0) : Qt::NoPen);
-            for (const TableGridCell& cell : grid.cells) {
-                const int lastColumn = std::min(cell.column + cell.columns, columns);
-                const int lastRow = std::min(cell.row + cell.rows, rows) - 1;
-                const double left = widgetX(grid.columnEdges[static_cast<size_t>(cell.column)]);
-                const double right = widgetX(grid.columnEdges[static_cast<size_t>(lastColumn)]);
-                for (int row = cell.row; row <= lastRow; ++row) {
-                    const double top = widgetY(grid.rowTops[static_cast<size_t>(row)]);
-                    const double bottom = widgetY(grid.rowTops[static_cast<size_t>(row)] +
-                                                  grid.rowHeights[static_cast<size_t>(row)]);
-                    if (bottom <= top) {
-                        continue;
-                    }
-                    if (!lines) {
-                        if (cell.row < grid.headerRows) {
-                            painter->fillRect(QRectF(left, top, right - left, bottom - top),
-                                              headerColor);
-                        }
-                        continue;
-                    }
-                    painter->drawLine(QPointF(left, top), QPointF(left, bottom));
-                    painter->drawLine(QPointF(right, top), QPointF(right, bottom));
-                    if (row == cell.row) {
-                        painter->drawLine(QPointF(left, top), QPointF(right, top));
-                    }
-                    if (row == lastRow) {
-                        painter->drawLine(QPointF(left, bottom), QPointF(right, bottom));
-                    }
+        const int lastColumn = std::min(cell.column + cell.columns, columns);
+        const int cellLastRow = std::min({cell.row + cell.rows, rows, lastRow + 1}) - 1;
+        const double left = widgetX(grid.columnEdges[static_cast<size_t>(cell.column)]);
+        const double right = widgetX(grid.columnEdges[static_cast<size_t>(lastColumn)]);
+
+        // The cell's parts on the pages: its rows' parts, those that touch joined
+        std::vector<std::pair<double, double>> segments;
+        for (int row = cell.row; row <= cellLastRow; ++row) {
+            const std::vector<std::pair<double, double>>& parts =
+                static_cast<size_t>(row) < grid.rowParts.size() && !grid.rowParts[static_cast<size_t>(row)].empty()
+                    ? grid.rowParts[static_cast<size_t>(row)]
+                    : std::vector<std::pair<double, double>>{
+                          {grid.rowTops[static_cast<size_t>(row)],
+                           grid.rowTops[static_cast<size_t>(row)] + grid.rowHeights[static_cast<size_t>(row)]}};
+            for (const auto& [top, bottom] : parts) {
+                const double widgetTop = widgetY(top);
+                const double widgetBottom = widgetY(bottom);
+                if (widgetBottom <= widgetTop) {
+                    continue;
+                }
+                if (!segments.empty() && std::abs(segments.back().second - widgetTop) < 1.0) {
+                    segments.back().second = widgetBottom;
+                } else {
+                    segments.emplace_back(widgetTop, widgetBottom);
+                }
+            }
+        }
+        if (segments.empty()) {
+            continue;
+        }
+
+        // Its background: its own, else the shade of the header; the selection over it
+        const QColor background = cell.background.isValid() ? cell.background
+                                  : cell.row < grid.headerRows ? m_context.colors.tableHeader
+                                                               : QColor();
+        const bool isSelected = selected && cell.row >= selected->firstRow &&
+                                cell.row <= selected->lastRow && cell.column >= selected->firstColumn &&
+                                cell.column <= selected->lastColumn;
+        for (const auto& [top, bottom] : segments) {
+            const QRectF area(left, top, right - left, bottom - top);
+            if (background.isValid()) {
+                painter->fillRect(area, background);
+            }
+            if (isSelected) {
+                painter->fillRect(area, m_context.colors.selection);
+            }
+        }
+
+        // Its edges, the faint ones first so the borders cover them: between the parts on
+        // two pages the edges of the table
+        for (const bool borderPass : {false, true}) {
+            const bool leftBorder = (borders.lines & (cell.column == 0 ? BORDER_LEFT : BORDER_COLUMNS)) != 0;
+            const bool rightBorder = (borders.lines & (lastColumn == columns ? BORDER_RIGHT : BORDER_COLUMNS)) != 0;
+            for (size_t i = 0; i < segments.size(); ++i) {
+                const auto [top, bottom] = segments[i];
+                const bool topBorder =
+                    i == 0 ? (borders.lines & (cell.row == 0 ? BORDER_TOP : BORDER_ROWS)) != 0
+                           : (borders.lines & (grid.headerRows > 0 ? BORDER_ROWS : BORDER_TOP)) != 0;
+                const bool bottomBorder =
+                    i + 1 == segments.size()
+                        ? (borders.lines & (cell.row + cell.rows >= rows ? BORDER_BOTTOM : BORDER_ROWS)) != 0
+                        : (borders.lines & BORDER_BOTTOM) != 0;
+                if (leftBorder == borderPass) {
+                    drawEdge(leftBorder, QPointF(left, top), QPointF(left, bottom));
+                }
+                if (rightBorder == borderPass) {
+                    drawEdge(rightBorder, QPointF(right, top), QPointF(right, bottom));
+                }
+                if (topBorder == borderPass) {
+                    drawEdge(topBorder, QPointF(left, top), QPointF(right, top));
+                }
+                if (bottomBorder == borderPass) {
+                    drawEdge(bottomBorder, QPointF(left, bottom), QPointF(right, bottom));
                 }
             }
         }
     }
     painter->restore();
+}
+
+void EditorRenderPipeline::renderHeaderCopies(QPainter* painter, const std::vector<TableGrid>& tables,
+                                              const QRect& clipRect) {
+    const double scale = m_context.computed.viewScale;
+    for (const TableGrid& grid : tables) {
+        if (grid.headerRepeats.empty() || grid.headerEnd <= grid.firstParagraph || grid.rowTops.empty()) {
+            continue;
+        }
+        const size_t count = m_textSource->paragraphCount();
+        const size_t last = std::min(grid.headerEnd, count) - 1;
+        m_textSource->ensureLayouted(grid.firstParagraph, last);
+        double height = 0;
+        for (int row = 0; row < grid.headerRows && static_cast<size_t>(row) < grid.rowHeights.size(); ++row) {
+            height += grid.rowHeights[static_cast<size_t>(row)];
+        }
+        for (const double top : grid.headerRepeats) {
+            const double shift = (top - grid.rowTops.front()) * scale;
+            const double widgetTop = documentToWidget(QPointF(0.0, top)).y();
+            if (widgetTop > clipRect.bottom() || widgetTop + height * scale < clipRect.top()) {
+                continue;
+            }
+            for (size_t i = grid.firstParagraph; i <= last; ++i) {
+                renderParagraph(painter, i, paragraphWidgetY(i) + shift);
+            }
+        }
+    }
 }
 
 void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, double widgetY) {
@@ -1419,11 +1514,18 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     // Only the visible paragraphs (firstVisibleParagraph..lastVisibleParagraph): O(visible)
     // instead of O(n) -- ~30 draw calls vs ~3000.
 
-    // The grids of the tables, under the selection and the text
-    renderTables(painter);
+    // The grids of the tables, under the selection and the text; a selection of whole
+    // cells is drawn as their background
+    const std::vector<TableGrid> tables =
+        m_textSource ? m_textSource->tablesIn(m_context.computed.firstVisibleParagraph,
+                                              m_context.computed.lastVisibleParagraph)
+                     : std::vector<TableGrid>{};
+    const std::optional<TableCellSelection> selectedCells =
+        hasSelection() && m_textSource ? m_textSource->cellSelection(m_selection) : std::nullopt;
+    renderTables(painter, tables, selectedCells);
 
     // Selection highlights (only visible paragraphs)
-    if (hasSelection() && m_textSource) {
+    if (hasSelection() && m_textSource && !selectedCells) {
         SelectionRange sel = m_selection.normalized();
         size_t first = m_context.computed.firstVisibleParagraph;
         size_t last = m_context.computed.lastVisibleParagraph;
@@ -1456,8 +1558,12 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     // The annotations' marks, under the text: the letters stay readable
     renderAnnotationMarks(painter, clipRect);
 
-    // Paragraph text (already viewport-culled internally)
+    // Paragraph text (already viewport-culled internally), and the copies of the header
+    // rows of the tables at the top of the pages they go on to
     renderParagraphs(painter, clipRect);
+    if (!tables.empty()) {
+        renderHeaderCopies(painter, tables, clipRect);
+    }
 
     renderHighlightMarks(painter, highlights);
 
@@ -1670,7 +1776,7 @@ CursorPosition EditorRenderPipeline::positionFromPoint(const QPointF& point) con
 
     // The document position under the point; the layout has the lines where they are
     // shown, on their pages too, and in a row of a table the cell under the point
-    const QPointF docPoint = widgetToDocument(point);
+    const QPointF docPoint = m_textSource->fromRepeatedHeader(widgetToDocument(point));
     size_t paraIndex = m_textSource->paragraphAt(docPoint);
     if (paraIndex >= m_textSource->paragraphCount()) {
         paraIndex = m_textSource->paragraphCount() - 1;

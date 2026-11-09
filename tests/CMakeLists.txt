@@ -200,6 +200,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/character_format.cpp  # The character formatting of Format > Font, Change Case
     ${CMAKE_SOURCE_DIR}/src/editor/text_lists.cpp        # Bulleted and numbered lists
     ${CMAKE_SOURCE_DIR}/src/editor/text_tables.cpp       # Tables of the text
+    ${CMAKE_SOURCE_DIR}/src/editor/table_editing.cpp     # Changes of tables (the Table menu)
+    ${CMAKE_SOURCE_DIR}/src/editor/text_sorting.cpp      # Sorting rows and paragraphs
     ${CMAKE_SOURCE_DIR}/src/editor/formatting_marks.cpp  # The formatting marks of a paragraph
     ${CMAKE_SOURCE_DIR}/src/editor/style_resolver.cpp    # Sub-Project C WS4.4: StyleResolver (Q_OBJECT)
     ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager

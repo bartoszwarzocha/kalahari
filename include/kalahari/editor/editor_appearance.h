@@ -106,6 +106,17 @@ struct EditorColors {
         return mode == EditorColorMode::Light ? links.light : links.dark;
     }
 
+    /// @brief The tables: the lines of their borders (the color "Automatic"), the background
+    ///        of their header rows, and the faint lines shown where a table has no border
+    struct TableColors {
+        QColor linesLight{154, 154, 154};
+        QColor linesDark{120, 120, 123};
+        QColor headerLight{242, 242, 242};
+        QColor headerDark{46, 46, 51};
+        QColor gridlinesLight{180, 198, 231};
+        QColor gridlinesDark{74, 88, 120};
+    } tables;
+
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on
     /// that paper; not valid: the text's color)
     struct AnnotationColors {

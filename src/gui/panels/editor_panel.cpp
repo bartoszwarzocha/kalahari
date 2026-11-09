@@ -401,6 +401,12 @@ void EditorPanel::applySettings() {
     appearance.colors.formattingMarks.dark = color("editor.colors.formattingMarksDark");
     appearance.colors.links.light = color("editor.colors.linkLight");
     appearance.colors.links.dark = color("editor.colors.linkDark");
+    appearance.colors.tables.linesLight = color("editor.colors.tableLinesLight");
+    appearance.colors.tables.linesDark = color("editor.colors.tableLinesDark");
+    appearance.colors.tables.headerLight = color("editor.colors.tableHeaderLight");
+    appearance.colors.tables.headerDark = color("editor.colors.tableHeaderDark");
+    appearance.colors.tables.gridlinesLight = color("editor.colors.tableGridlinesLight");
+    appearance.colors.tables.gridlinesDark = color("editor.colors.tableGridlinesDark");
 
     // Cursor
     appearance.cursor.style = static_cast<editor::CursorStyle>(settings.get<int>("editor.cursor.style"));

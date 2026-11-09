@@ -311,6 +311,9 @@ public:
     struct TableRow {
         qreal top = 0.0;
         qreal height = 0.0;
+        /// Its parts on the pages, top and bottom of each: one, but for a row split between
+        /// pages (a part on a page the table goes on to starts below the repeated header)
+        std::vector<std::pair<qreal, qreal>> parts;
     };
 
     /// @brief The rows of a table, each at its place (in the page flow, a row may start
@@ -318,8 +321,21 @@ public:
     ///        height of its own: it goes with the row above
     std::vector<TableRow> tableRows(const QTextTable& table) const;
 
+    /// @brief The tops of the copies of a table's header rows at the top of each page the
+    ///        table goes on to (the page flow), in order
+    std::vector<qreal> headerRepeats(const QTextTable& table) const;
+
+    /// @brief A point in a copy of a header (headerRepeats()) moved to the same place of the
+    ///        header itself: a click there puts the cursor in the header; another point as
+    ///        it is
+    QPointF fromRepeatedHeader(const QPointF& point) const;
+
     /// @brief Space between the edges of a cell and its text (whole pixels)
     qreal cellPadding() const;
+
+    /// @brief The width of the lines of a table's borders, its points shown as the style's
+    ///        points are (pixels)
+    qreal tableBorderWidth(const QTextTable& table) const;
 
     /// @brief Box of a laid out line: the line plus its share of the line spacing
     ///
@@ -518,7 +534,13 @@ private:
         qreal lead = 0;                  ///< The space above with the first line box (estimated while pending)
         qreal spaceBefore = 0;           ///< The style's space above
         qreal spaceAfter = 0;            ///< The style's space below
-        qreal estimatedLineHeight = 1;   ///< A line box of the style, for the estimates
+        qreal estimatedLineHeight = 1;   ///< A line box of the style, for the estimates; of
+                                         ///< a row's first block: the least space its first
+                                         ///< lines need
+        qreal cellTop = 0;               ///< A block of a table: the top of its lines below
+                                         ///< the top of its row, without page breaks
+        qreal header = 0;                ///< A row's first block: the height of the table's
+                                         ///< header rows repeated above it on a new page
     };
 
     /// @brief The page flow entry of a block in a style, with @p lead
@@ -546,6 +568,26 @@ private:
     /// @brief Height of the row of a table whose first block is @p first (the heights of
     ///        the row's blocks together)
     qreal rowHeight(size_t first) const;
+
+    /// @brief Height of the row of a table whose first block is @p first as the page flow
+    ///        places it: split between pages, higher than rowHeight()
+    qreal rowFlowHeight(size_t first) const;
+
+    /// @brief Place the lines of the row of a table from block @p first to @p last at
+    ///        @p top of the page flow: a line that does not fit in the rest of its page
+    ///        goes on to the next one, below the repeated header of @p header (each cell
+    ///        splits at the same place); @p natural places them without page breaks
+    /// @return The height the row takes in the flow
+    qreal paginateRow(size_t first, size_t last, qreal top, qreal header, bool natural) const;
+
+    /// @brief Where the page flow puts the row of a table from block @p i to @p last: its
+    ///        top and its height, split between pages when needed; the copies of the header
+    ///        of the table starting at block @p tableFirst it repeats go to m_headerRepeats
+    std::pair<qreal, qreal> placeRow(size_t i, size_t last, qreal y, bool inStep,
+                                     int tableFirst) const;
+
+    /// @brief Top of the text area holding @p y
+    qreal pageTopOf(qreal y) const;
 
     /// @brief Left of the text of the cell holding a block of a table
     qreal cellTextLeft(const QTextBlock& block) const;
@@ -637,6 +679,15 @@ private:
 
     // Page flow: bottom of the last line box (document coordinates)
     mutable qreal m_contentBottom = 0;
+
+    // Page flow: the copies of the header rows of tables at the top of the pages they go on
+    // to, in order (document coordinates)
+    struct HeaderRepeat {
+        qreal top = 0;
+        qreal height = 0;
+        int tableFirstBlock = 0;  ///< The number of the table's first block
+    };
+    mutable std::vector<HeaderRepeat> m_headerRepeats;
 
     // Last size announced through documentSizeChanged()
     QSizeF m_lastReportedSize;

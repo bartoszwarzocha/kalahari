@@ -437,9 +437,21 @@ private:
     /// @brief Render visible paragraphs
     void renderParagraphs(QPainter* painter, const QRect& clipRect);
 
-    /// @brief Render the grids of the visible tables: the background of their header rows
-    ///        and the edges of their cells, thin lines in a shade of the text
-    void renderTables(QPainter* painter);
+    /// @brief Render the grids of the visible tables: the backgrounds of their cells (of the
+    ///        header rows: a shade of the settings), the selected cells, their borders and
+    ///        the faint lines where they have none, and the copies of their header rows
+    void renderTables(QPainter* painter, const std::vector<TableGrid>& tables,
+                      const std::optional<TableCellSelection>& selected);
+
+    /// @brief Render the rows of a table's grid down to @p lastRow, @p shift lower
+    ///        (document coordinates: a copy of its header)
+    void renderTableGrid(QPainter* painter, const TableGrid& grid,
+                         const std::optional<TableCellSelection>& selected, int lastRow,
+                         double shift);
+
+    /// @brief Render the text of the copies of the tables' header rows
+    void renderHeaderCopies(QPainter* painter, const std::vector<TableGrid>& tables,
+                            const QRect& clipRect);
 
     /// @brief Render single paragraph
     void renderParagraph(QPainter* painter, size_t index, double widgetY);

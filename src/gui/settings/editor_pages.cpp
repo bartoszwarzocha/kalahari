@@ -276,12 +276,18 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
     color(light, tr("Inactive (Focus mode)"), "editor.colors.inactiveLight");
     color(light, tr("Formatting marks"), "editor.colors.formattingMarksLight");
     color(light, tr("Links"), "editor.colors.linkLight");
+    color(light, tr("Table borders"), "editor.colors.tableLinesLight");
+    color(light, tr("Table header rows"), "editor.colors.tableHeaderLight");
+    color(light, tr("Table gridlines (no border)"), "editor.colors.tableGridlinesLight");
     QFormLayout* dark = addGroup(tr("Dark Mode Colors"));
     color(dark, tr("Background"), "editor.colors.backgroundDark");
     color(dark, tr("Text"), "editor.colors.textDark");
     color(dark, tr("Inactive (Focus mode)"), "editor.colors.inactiveDark");
     color(dark, tr("Formatting marks"), "editor.colors.formattingMarksDark");
     color(dark, tr("Links"), "editor.colors.linkDark");
+    color(dark, tr("Table borders"), "editor.colors.tableLinesDark");
+    color(dark, tr("Table header rows"), "editor.colors.tableHeaderDark");
+    color(dark, tr("Table gridlines (no border)"), "editor.colors.tableGridlinesDark");
 
     pageLayout()->addStretch();
 }

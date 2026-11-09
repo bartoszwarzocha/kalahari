@@ -16,6 +16,8 @@ set(KALAHARI_CORE_SOURCES
     editor/character_format.cpp  # The character formatting of Format > Font, Change Case
     editor/text_lists.cpp        # Bulleted and numbered lists
     editor/text_tables.cpp       # Tables: a table of the document, its cells of paragraphs
+    editor/table_editing.cpp     # Tables: rows, columns, cells, moving, sorting, conversions
+    editor/text_sorting.cpp      # Sorting rows and paragraphs: text, numbers, dates
     editor/kml_document_model.cpp  # KML reader (the clipboard reads the lists of KML)
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration

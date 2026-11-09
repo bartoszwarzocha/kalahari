@@ -202,11 +202,17 @@ std::map<std::string, json> buildDefaults() {
         {"editor.colors.inactiveLight", "#aaaaaa"},
         {"editor.colors.formattingMarksLight", "#5b7fc0"},
         {"editor.colors.linkLight", "#0563c1"},
+        {"editor.colors.tableLinesLight", "#9a9a9a"},
+        {"editor.colors.tableHeaderLight", "#f2f2f2"},
+        {"editor.colors.tableGridlinesLight", "#b4c6e7"},
         {"editor.colors.backgroundDark", "#232328"},
         {"editor.colors.textDark", "#e0e0e0"},
         {"editor.colors.inactiveDark", "#78787d"},
         {"editor.colors.formattingMarksDark", "#7a96d0"},
         {"editor.colors.linkDark", "#8ab4f8"},
+        {"editor.colors.tableLinesDark", "#78787b"},
+        {"editor.colors.tableHeaderDark", "#2e2e33"},
+        {"editor.colors.tableGridlinesDark", "#4a5878"},
 
         // Editor: cursor
         {"editor.cursor.style", 0},
