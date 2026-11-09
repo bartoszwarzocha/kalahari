@@ -51,6 +51,7 @@
 #include <QFile>
 #include <QHash>
 #include <QHostAddress>
+#include <QIcon>
 #include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
@@ -73,6 +74,7 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
+#include <algorithm>
 #include <memory>
 #include <optional>
 
@@ -543,6 +545,30 @@ void checkTextMenus(bool shown, QStringList& problems) {
                             problems);
             CHECK(itemCount(items) == 5);  // and Card Appearance and Colors
         }
+
+        // A comment in a paragraph with linked materials (Mark as Resolved and Linked
+        // Materials have the same key): each item has its own key, the commands of the window
+        // keep theirs
+        annotated.fromKml(QStringLiteral(
+            "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Check it</annotation>"
+            "</annotations><p>One <anchor ref=\"c1\">two</anchor> three</p></kml>"));
+        annotated.setParagraphMarks({editor::ParagraphMark{0, {QStringLiteral("m1")},
+                                                           {QStringLiteral("Map")}}},
+                                    QIcon());
+        const QString comment =
+            editor::AnnotationCards::kindTitle(editor::AnnotationKind::Comment) +
+            QStringLiteral(": ") + QLocale().quoteString(QStringLiteral("Check it"));
+        items = contextMenu(&annotated, &annotated, placeOf(annotated, 5));
+        // The title of a material is a name the menu shows as it is: as Windows and Linux
+        // show it, with a free key
+        const QStringList keyless = shown ? QStringList{comment}
+                                          : QStringList{comment, QStringLiteral("Map")};
+        collectProblems(items, where + QStringLiteral(", with linked materials"), keyless,
+                        problems);
+        CHECK(itemCount(items) == (cards ? 5 : 4) + 6 + 2);  // and Linked Materials > Map
+        const QString paste = registry.getAction(QStringLiteral("edit.paste"))->text();
+        CHECK(std::any_of(items.cbegin(), items.cend(),
+                          [&paste](const test::MenuItem& item) { return item.text == paste; }));
     }
 
     // The words for a misspelled one, from the dictionary, on top of the usual menu; the
