@@ -1035,7 +1035,7 @@
         <translation>Karty uwag p&amp;od akapitem</translation>
     </message>
     <message>
-        <source>C&amp;ollapse All Annotations</source>
+        <source>Collapse &amp;All Annotations</source>
         <translation>Zw&amp;iń wszystkie uwagi</translation>
     </message>
     <message>
@@ -1131,8 +1131,8 @@
         <translation>Powtó&amp;rzenia</translation>
     </message>
     <message>
-        <source>Repetitions in &amp;Text</source>
-        <translation>Powtórze&amp;nia w tekście</translation>
+        <source>Repetiti&amp;ons in Text</source>
+        <translation>Powtórzeni&amp;a w tekście</translation>
     </message>
 </context>
 <context>
@@ -2265,7 +2265,7 @@ Uruchomić ponownie teraz?</translation>
     </message>
     <message>
         <source>&amp;Panels</source>
-        <translation>P&amp;anele</translation>
+        <translation>Pane&amp;le</translation>
     </message>
     <message>
         <source>Pe&amp;rspectives</source>

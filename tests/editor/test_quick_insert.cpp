@@ -182,12 +182,13 @@ TEST_CASE("Quick insert: a fragment with paragraphs inserts them", "[editor][qui
 }
 
 TEST_CASE("Quick insert: inside a word the characters stay characters", "[editor][quickinsert]") {
+    // Inside a sentence, where autocorrect leaves the small letter of the address
     Fixture f({QString()});
-    f.type(QStringLiteral("jan@poczta"));
+    f.type(QStringLiteral("Pisz na jan@poczta"));
     CHECK_FALSE(f.quick->isOpen());
     f.type(QStringLiteral(" C#"));
     CHECK_FALSE(f.quick->isOpen());
-    CHECK(f.editor->plainText() == QStringLiteral("jan@poczta C#"));
+    CHECK(f.editor->plainText() == QStringLiteral("Pisz na jan@poczta C#"));
 }
 
 TEST_CASE("Quick insert: Esc, a space or a punctuation mark close the list, the text stays",
