@@ -10,6 +10,7 @@
 
 #include <QString>
 #include <QColor>
+#include <QVariant>
 #include <QWidget>
 
 #include <nlohmann/json.hpp>
@@ -21,6 +22,7 @@
 
 class QAbstractButton;
 class QCheckBox;
+class QComboBox;
 class QFormLayout;
 class QLabel;
 class QLayout;
@@ -151,6 +153,28 @@ protected:
     /// @brief Add a short muted explanation under check box or radio button @p button of
     ///        @p layout, in line with its text
     QLabel* addOptionNote(QLayout* layout, const QAbstractButton* button, const QString& text);
+
+    /// @brief One item of a list of choices (addChoice())
+    struct Choice {
+        QString text;    ///< In the list
+        QVariant value;  ///< The value of the setting (the item data)
+        QString note;    ///< Under the list while it is the chosen one: what it means
+    };
+
+    /// @brief Add a list of choices to a form, with the note of the chosen one under it, in
+    ///        line with the list (instead of a column of radio buttons with a note under each)
+    ///
+    /// The note follows the choice, and is the list's accessible description too.
+    /// @param key The setting, bound as bind() binds a combo box (its item data compared with
+    ///            the stored value); empty: the page binds the list itself
+    /// @return The list (its label: QFormLayout::labelForField())
+    QComboBox* addChoice(QFormLayout* form, const QString& label,
+                         const std::vector<Choice>& choices, const std::string& key);
+
+    /// @brief Bind a list of choices (addChoice()) to a setting of words, the item data, that
+    ///        has no default in settings_schema: @p fallback when the setting is not there; a
+    ///        word the list does not have shows as its first item
+    void bindChoice(QComboBox* list, const std::string& key, const std::string& fallback);
 
     /// @brief Add a titled group under the button "Advanced Settings" at the end of the page:
     ///        the settings changed seldom, hidden until the button is pressed (as on the page

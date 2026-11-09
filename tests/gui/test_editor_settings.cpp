@@ -23,7 +23,6 @@
 #include <QImage>
 #include <QLabel>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QScrollArea>
 #include <QSize>
 #include <QSpinBox>
@@ -501,18 +500,14 @@ TEST_CASE("Settings dialog: the margin numbering, its fields greyed out without 
     gui::SettingsDialog dialog(nullptr);
     REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::MARGIN_NUMBERING_PAGE)));
 
-    auto* none = dialog.findChild<QRadioButton*>(QStringLiteral("marginNumbers_none"));
-    auto* lines = dialog.findChild<QRadioButton*>(QStringLiteral("marginNumbers_lines"));
-    auto* paragraphs = dialog.findChild<QRadioButton*>(QStringLiteral("marginNumbers_paragraphs"));
+    auto* mode = dialog.findChild<QComboBox*>(QStringLiteral("marginNumbersMode"));
     auto* interval = dialog.findChild<QSpinBox*>(QStringLiteral("marginNumbersInterval"));
     auto* restart = dialog.findChild<QCheckBox*>(QStringLiteral("marginNumbersRestart"));
     auto* size = dialog.findChild<QSpinBox*>(QStringLiteral("marginNumbersSize"));
     auto* color = dialog.findChild<gui::ColorConfigWidget*>(QStringLiteral("marginNumbersColor"));
     auto* preview = dialog.findChild<QWidget*>(QStringLiteral("marginNumbersPreview"));
     auto* defaults = dialog.findChild<QPushButton*>(QStringLiteral("marginNumbersDefaults"));
-    REQUIRE(none != nullptr);
-    REQUIRE(lines != nullptr);
-    REQUIRE(paragraphs != nullptr);
+    REQUIRE(mode != nullptr);
     REQUIRE(interval != nullptr);
     REQUIRE(restart != nullptr);
     REQUIRE(size != nullptr);
@@ -521,19 +516,19 @@ TEST_CASE("Settings dialog: the margin numbering, its fields greyed out without 
     REQUIRE(defaults != nullptr);
 
     // None: the fields greyed out
-    CHECK(none->isChecked());
+    CHECK(mode->currentData().toString() == QStringLiteral("none"));
     for (const QWidget* field : std::initializer_list<const QWidget*>{
              interval, restart, size, color, preview, defaults}) {
         CHECK_FALSE(field->isEnabled());
     }
 
     // Lines: all of them; Paragraphs: all but Restart on every page, which counts lines
-    lines->setChecked(true);
+    mode->setCurrentIndex(mode->findData(QStringLiteral("lines")));
     for (const QWidget* field : std::initializer_list<const QWidget*>{
              interval, restart, size, color, preview, defaults}) {
         CHECK(field->isEnabled());
     }
-    paragraphs->setChecked(true);
+    mode->setCurrentIndex(mode->findData(QStringLiteral("paragraphs")));
     CHECK(interval->isEnabled());
     CHECK_FALSE(restart->isEnabled());
 
@@ -543,7 +538,7 @@ TEST_CASE("Settings dialog: the margin numbering, its fields greyed out without 
     defaults->click();
     CHECK(interval->value() == 1);
     CHECK(size->value() == 8);
-    CHECK(paragraphs->isChecked());
+    CHECK(mode->currentData().toString() == QStringLiteral("paragraphs"));
 
     // Applied: every editor numbers the paragraphs, every third one
     interval->setValue(3);
@@ -559,9 +554,9 @@ TEST_CASE("Settings dialog: the margin numbering, its fields greyed out without 
     settings.set<std::string>("editor.marginNumbers.mode", "lines");
     gui::SettingsDialog next(nullptr);
     REQUIRE(next.openPage(QString::fromLatin1(gui::SettingsDialog::MARGIN_NUMBERING_PAGE)));
-    auto* nextLines = next.findChild<QRadioButton*>(QStringLiteral("marginNumbers_lines"));
-    REQUIRE(nextLines != nullptr);
-    CHECK(nextLines->isChecked());
+    auto* nextMode = next.findChild<QComboBox*>(QStringLiteral("marginNumbersMode"));
+    REQUIRE(nextMode != nullptr);
+    CHECK(nextMode->currentData().toString() == QStringLiteral("lines"));
 
     restore(before);
 }
@@ -601,24 +596,25 @@ TEST_CASE("Settings dialog: View > Margin Numbering > Numbering Settings... puts
 
     gui::SettingsDialog dialog(nullptr);
     REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::MARGIN_NUMBERING_PAGE)));
-    auto* paragraphs = dialog.findChild<QRadioButton*>(QStringLiteral("marginNumbers_paragraphs"));
-    REQUIRE(paragraphs != nullptr);
+    auto* mode = dialog.findChild<QComboBox*>(QStringLiteral("marginNumbersMode"));
+    REQUIRE(mode != nullptr);
+    CHECK(mode->currentData().toString() == QStringLiteral("paragraphs"));
     dialog.show();
     dialog.activateWindow();
     QCoreApplication::processEvents();
-    CHECK(dialog.focusWidget() == paragraphs);
+    CHECK(dialog.focusWidget() == mode);
     // On the page the dialog shows
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     REQUIRE(tree->currentItem() != nullptr);
     CHECK(tree->currentItem()->text(0) == QStringLiteral("Margin Numbering"));
     QScrollArea* area = nullptr;
-    for (QWidget* parent = paragraphs->parentWidget(); parent != nullptr && area == nullptr;
+    for (QWidget* parent = mode->parentWidget(); parent != nullptr && area == nullptr;
          parent = parent->parentWidget()) {
         area = qobject_cast<QScrollArea*>(parent);
     }
     REQUIRE(area != nullptr);
-    CHECK(area->viewport()->rect().contains(paragraphs->mapTo(area->viewport(), QPoint(0, 0))));
+    CHECK(area->viewport()->rect().contains(mode->mapTo(area->viewport(), QPoint(0, 0))));
     dialog.close();
 
     restore(before);

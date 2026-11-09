@@ -21,7 +21,6 @@ class QHBoxLayout;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
-class QRadioButton;
 class QTableWidget;
 class QTableWidgetItem;
 class QTreeWidget;
@@ -400,25 +399,8 @@ private:
     void createKinds();
     void createCover();
 
-    QRadioButton* m_named = nullptr;   ///< "Add..." and the commands named after kinds
-    QRadioButton* m_single = nullptr;  ///< "Add..." only
-    QRadioButton* m_sections = nullptr;  ///< A section of the book or the Workshop at a time
-    QRadioButton* m_book = nullptr;      ///< The whole book or the Workshop
-    QRadioButton* m_place = nullptr;     ///< No choice: the kinds of the place only
-    QRadioButton* m_treeTypes = nullptr;   ///< The Materials show their kinds with numbers
-    QRadioButton* m_treeExpand = nullptr;  ///< The kinds have their materials under them
-    QRadioButton* m_tabsOwn = nullptr;     ///< A kind clicked opens its list on a tab of its own
-    QRadioButton* m_tabsOne = nullptr;     ///< The one tab of the lists shows the kind clicked
-    QRadioButton* m_openCard = nullptr;    ///< A material opens on a tab of the program
-    QRadioButton* m_openSystem = nullptr;  ///< A material opens in the system program
-    QRadioButton* m_pagesBrowser = nullptr;  ///< A page opens in the browser
-    QRadioButton* m_pagesCard = nullptr;     ///< A page opens on the card of its material
-    QRadioButton* m_quickLink = nullptr;    ///< Dropped or pasted: at once, linked with the node
-    QRadioButton* m_quickAdd = nullptr;     ///< At once, without links
-    QRadioButton* m_quickWindow = nullptr;  ///< In the Add Element window
     QList<QCheckBox*> m_kindBoxes;  ///< The kinds of materials shown, with their "kind"
-    QRadioButton* m_unitCharacters = nullptr;  ///< The texts of the cover counted in characters
-    QRadioButton* m_unitWords = nullptr;       ///< In words
+    QComboBox* m_coverUnit = nullptr;  ///< The texts of the cover counted in characters or words
     QList<QSpinBox*> m_characterTargets;  ///< The targets of the texts of the cover in characters
     QList<QSpinBox*> m_wordTargets;       ///< In words
 };
@@ -430,11 +412,6 @@ class NetworkMaterialsPage : public SettingsPage {
     Q_OBJECT
 public:
     explicit NetworkMaterialsPage(QWidget* parent = nullptr);
-
-private:
-    QRadioButton* m_ask = nullptr;     ///< The box of the Add Element window, empty each time
-    QRadioButton* m_always = nullptr;  ///< Every new material with an address
-    QRadioButton* m_never = nullptr;   ///< The program does not connect to the addresses
 };
 
 /// @brief Files > Folders: the folders of the books and of the archives, and where and how
@@ -465,8 +442,7 @@ private:
     };
     std::vector<CheckedFolder> m_folders;
 
-    QRadioButton* m_inEachBook = nullptr;   ///< The backups in the folder of each book
-    QRadioButton* m_inOneFolder = nullptr;  ///< The backups in one folder for all books
+    QComboBox* m_backupPlace = nullptr;  ///< The backups in the folder of each book, or in one
     FolderField* m_backupFolder = nullptr;
 };
 

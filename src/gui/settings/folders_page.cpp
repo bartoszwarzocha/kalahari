@@ -12,15 +12,12 @@
 #include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/gui/widgets/folder_field.h"
 
+#include <QComboBox>
 #include <QDir>
 #include <QFormLayout>
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QRadioButton>
 #include <QSpinBox>
-#include <QStyle>
-#include <QVBoxLayout>
 
 namespace kalahari {
 namespace gui {
@@ -46,27 +43,25 @@ FoldersPage::FoldersPage(QWidget* parent)
                          "last, until this setting changes."));
 
     QFormLayout* backups = addGroup(tr("Database Backups"));
-    m_inEachBook = new QRadioButton(tr("In the .backups folder of each book"));
-    m_inEachBook->setObjectName(QStringLiteral("backupsInEachBook"));
-    m_inOneFolder = new QRadioButton(tr("In one folder for all books:"));
-    m_inOneFolder->setObjectName(QStringLiteral("backupsInOneFolder"));
-    backups->addRow(m_inEachBook);
-    backups->addRow(m_inOneFolder);
+    //: In Polish: Kopie:
+    m_backupPlace = addChoice(backups, tr("Backups:"),
+                              {{tr("In the .backups folder of each book"), false, QString()},
+                               //: In Polish: We wspólnym folderze wszystkich książek
+                               {tr("In one folder for all books"), true, QString()}},
+                              std::string());
+    m_backupPlace->setObjectName(QStringLiteral("backupsPlace"));
 
     m_backupFolder = new FolderField();
     m_backupFolder->setObjectName(QStringLiteral("backupFolder"));
     m_backupFolder->setDefaultFolder(ProgramFolders::defaultBackupsFolder());
     m_backupFolder->setChooseTitle(tr("Choose the Folder of the Backups"));
     m_backupFolder->lineEdit()->setAccessibleName(tr("Folder of the backups of all books"));
-    // Under the option it belongs to
-    auto* folderRow = new QWidget();
-    auto* folderLayout = new QHBoxLayout(folderRow);
-    folderLayout->setContentsMargins(style()->pixelMetric(QStyle::PM_ExclusiveIndicatorWidth) +
-                                         style()->pixelMetric(QStyle::PM_RadioButtonLabelSpacing),
-                                     0, 0, 0);
-    folderLayout->addWidget(m_backupFolder);
-    backups->addRow(folderRow);
-    connect(m_inOneFolder, &QRadioButton::toggled, m_backupFolder, &QWidget::setEnabled);
+    // Under the choice it belongs to, in line with it
+    backups->addRow(QString(), m_backupFolder);
+    const auto syncFolder = [this]() {
+        m_backupFolder->setEnabled(m_backupPlace->currentData().toBool());
+    };
+    connect(m_backupPlace, &QComboBox::currentIndexChanged, this, syncFolder);
 
     // One setting: empty for the folder of each book, else the common folder
     auto& settings = core::SettingsManager::getInstance();
@@ -76,13 +71,13 @@ FoldersPage::FoldersPage(QWidget* parent)
         return json(settings.get<std::string>(core::BackupManager::FOLDER_SETTING));
     };
     backupFolder.shown = [this]() {
-        return json(m_inOneFolder->isChecked() ? m_backupFolder->folder().toStdString()
-                                               : std::string());
+        return json(m_backupPlace->currentData().toBool() ? m_backupFolder->folder().toStdString()
+                                                          : std::string());
     };
     backupFolder.show = [this](const json& value) {
         const QString folder = ProgramFolders::cleanPath(
             QString::fromStdString(value.is_string() ? value.get<std::string>() : std::string()));
-        (folder.isEmpty() ? m_inEachBook : m_inOneFolder)->setChecked(true);
+        m_backupPlace->setCurrentIndex(folder.isEmpty() ? 0 : 1);
         m_backupFolder->setFolder(folder.isEmpty() ? m_backupFolder->defaultFolder() : folder);
         m_backupFolder->setEnabled(!folder.isEmpty());
     };

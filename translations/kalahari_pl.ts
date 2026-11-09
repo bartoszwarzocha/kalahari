@@ -6430,14 +6430,6 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>P&amp;okaż postęp</translation>
     </message>
     <message>
-        <source>On this comp&amp;uter (recommended)</source>
-        <translation>Na tym &amp;komputerze (zalecane)</translation>
-    </message>
-    <message>
-        <source>On a server in the &amp;internet</source>
-        <translation>Na serwerze w &amp;internecie</translation>
-    </message>
-    <message>
         <source>The text of the book does not leave the computer.</source>
         <translation>Tekst książki nie opuszcza komputera.</translation>
     </message>
@@ -6813,6 +6805,16 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>The color of the wavy line under a grammar issue and of the frames of its cards in the Spelling and Grammar panel. Each theme has its own colors: these are the colors of the current theme.</source>
         <translation>Kolor falistej linii pod błędem gramatyki i ramek jego kart w panelu „Pisownia i gramatyka”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>On this computer (recommended)</source>
+        <extracomment>In Polish: Na tym komputerze (zalecane)</extracomment>
+        <translation>Na tym komputerze (zalecane)</translation>
+    </message>
+    <message>
+        <source>On a server in the internet</source>
+        <extracomment>In Polish: Na serwerze w internecie</extracomment>
+        <translation>Na serwerze w internecie</translation>
     </message>
 </context>
 <context>
@@ -7370,10 +7372,6 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>W podfolderze .backups każdej książki</translation>
     </message>
     <message>
-        <source>In one folder for all books:</source>
-        <translation>We wspólnym folderze wszystkich książek:</translation>
-    </message>
-    <message>
         <source>Choose the Folder of the Backups</source>
         <translation>Wybierz folder kopii zapasowych</translation>
     </message>
@@ -7404,6 +7402,16 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>The windows exporting a book and choosing an archive to import open in this folder. Later each of them starts in the folder chosen in it last, until this setting changes.</source>
         <translation>Okna eksportu książki i wyboru archiwum do importu otwierają się w tym folderze. Później każde z nich zaczyna od folderu wybranego w nim ostatnio, aż do zmiany tego ustawienia.</translation>
+    </message>
+    <message>
+        <source>Backups:</source>
+        <extracomment>In Polish: Kopie:</extracomment>
+        <translation>Kopie:</translation>
+    </message>
+    <message>
+        <source>In one folder for all books</source>
+        <extracomment>In Polish: We wspólnym folderze wszystkich książek</extracomment>
+        <translation>We wspólnym folderze wszystkich książek</translation>
     </message>
 </context>
 <context>

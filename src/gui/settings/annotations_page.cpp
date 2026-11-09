@@ -16,7 +16,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QRadioButton>
 #include <QSlider>
 #include <QSpinBox>
 #include <QVBoxLayout>
@@ -143,60 +142,22 @@ void AnnotationsPage::addCardSettings()
     //: The group of Settings > Annotations > Cards Under Paragraphs. In Polish: Wygląd kart
     QFormLayout* look = addGroup(tr("Look of the Cards"));
 
-    // Two looks of a card, two of a collapsed one: a setting each, one of two words. Short
-    // texts with a note under each, which wraps in a narrow window
-    struct Choice {
-        const char* value;  ///< The setting's word
-        QString text;       ///< The button
-        QString note;       ///< What it means, under the button
-    };
-    auto& settings = core::SettingsManager::getInstance();
-    const auto addChoice = [this, look, &settings](const QString& label, const std::string& key,
-                                                    const Choice& firstChoice,
-                                                    const Choice& secondChoice,
-                                                    const QString& name) {
-        auto* choices = new QWidget();
-        auto* layout = new QVBoxLayout(choices);
-        layout->setContentsMargins(0, 0, 0, 0);
-        auto* first = new QRadioButton(firstChoice.text);
-        first->setObjectName(name + QStringLiteral("First"));
-        auto* second = new QRadioButton(secondChoice.text);
-        second->setObjectName(name + QStringLiteral("Second"));
-        layout->addWidget(first);
-        alignWithText(addNote(layout, firstChoice.note), first);
-        layout->addWidget(second);
-        alignWithText(addNote(layout, secondChoice.note), second);
-        auto* choicesLabel = new QLabel(label);
-        choicesLabel->setBuddy(first);
-        look->addRow(choicesLabel, choices);
-
-        const char* firstValue = firstChoice.value;
-        const char* secondValue = secondChoice.value;
-        Binding binding;
-        binding.key = [key]() { return key; };
-        binding.stored = [&settings, key, firstValue]() {
-            return json(settings.get<std::string>(key, firstValue));
-        };
-        binding.shown = [second, firstValue, secondValue]() {
-            return json(second->isChecked() ? secondValue : firstValue);
-        };
-        binding.show = [first, second, secondValue](const json& value) {
-            const bool isSecond = value.is_string() && value.get<std::string>() == secondValue;
-            (isSecond ? second : first)->setChecked(true);
-        };
-        binding.store = [&settings, key](const json& value) {
-            settings.set<std::string>(key, value.get<std::string>());
-        };
-        bindCustom(std::move(binding));
-    };
-    addChoice(tr("Card look:"), "editor.annotationCards.look",
-              {"full", tr("Full"), tr("The kind, the author and the date above the text.")},
-              {"compact", tr("Compact"), tr("The text alone, the author and the date at its end.")},
-              QStringLiteral("annotationCardsLook"));
-    addChoice(tr("Collapsed annotation:"), "editor.annotationCards.collapsedLook",
-              {"mark", tr("Mark only"), tr("Its mark in the text alone, as without the cards.")},
-              {"line", tr("One line"), tr("A line with the start of its text under the paragraph.")},
-              QStringLiteral("annotationCardsCollapsed"));
+    // Two looks of a card, two of a collapsed one: a setting each, one of two words, with the
+    // meaning of the chosen one under the list
+    addChoice(look, tr("Card look:"),
+              {{tr("Full"), QStringLiteral("full"),
+                tr("The kind, the author and the date above the text.")},
+               {tr("Compact"), QStringLiteral("compact"),
+                tr("The text alone, the author and the date at its end.")}},
+              "editor.annotationCards.look")
+        ->setObjectName(QStringLiteral("annotationCardsLook"));
+    addChoice(look, tr("Collapsed annotation:"),
+              {{tr("Mark only"), QStringLiteral("mark"),
+                tr("Its mark in the text alone, as without the cards.")},
+               {tr("One line"), QStringLiteral("line"),
+                tr("A line with the start of its text under the paragraph.")}},
+              "editor.annotationCards.collapsedLook")
+        ->setObjectName(QStringLiteral("annotationCardsCollapsed"));
 
     auto* longLines = new QComboBox();
     longLines->setObjectName(QStringLiteral("annotationCardsLongLines"));
@@ -231,6 +192,7 @@ void AnnotationsPage::addCardSettings()
     tint->setAccessibleName(tr("Card background"));
     tint->setAccessibleDescription(tr("From subtle to strong"));
     look->addRow(tintLabel, tintRow);
+    auto& settings = core::SettingsManager::getInstance();
     Binding tintBinding;
     tintBinding.key = []() { return std::string("editor.annotationCards.tint"); };
     tintBinding.stored = [&settings]() {

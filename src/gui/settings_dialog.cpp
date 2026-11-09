@@ -13,10 +13,10 @@
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QElapsedTimer>
 #include <QFont>
 #include <QLabel>
-#include <QRadioButton>
 #include <QScreen>
 #include <QScrollArea>
 #include <QSplitter>
@@ -337,13 +337,8 @@ bool SettingsDialog::openPage(const QString& page) {
             ? scrollArea->findChild<QWidget*>(QStringLiteral("marginNumbersGroup"))
             : nullptr;
         if (group != nullptr) {
-            const QList<QRadioButton*> choices = group->findChildren<QRadioButton*>();
-            const auto checked = std::find_if(choices.begin(), choices.end(),
-                                              [](const QRadioButton* choice) {
-                                                  return choice->isChecked();
-                                              });
-            if (checked != choices.end()) {
-                (*checked)->setFocus(Qt::OtherFocusReason);
+            if (auto* mode = group->findChild<QComboBox*>(QStringLiteral("marginNumbersMode"))) {
+                mode->setFocus(Qt::OtherFocusReason);
             }
             // Once the dialog shows: the page has its size then
             QTimer::singleShot(0, scrollArea, [scrollArea, group]() {

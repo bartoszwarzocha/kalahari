@@ -27,7 +27,6 @@
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QProgressBar>
-#include <QRadioButton>
 #include <QSortFilterProxyModel>
 #include <QSpinBox>
 #include <QTreeWidget>
@@ -314,19 +313,19 @@ TEST_CASE("Cover materials: a kind hidden in the Navigator, its list and Setting
     // Settings > Navigator > Cover: the unit of the texts of the cover and the targets of
     // their kinds
     gui::NavigatorPage coverPage(gui::NavigatorPage::Part::Cover);
-    auto* words = coverPage.findChild<QRadioButton*>(QStringLiteral("navigatorCoverWords"));
+    auto* unit = coverPage.findChild<QComboBox*>(QStringLiteral("navigatorCoverUnit"));
     auto* blurbWords =
         coverPage.findChild<QSpinBox*>(QStringLiteral("navigatorCoverTarget_blurb_words"));
     auto* blurbCharacters =
         coverPage.findChild<QSpinBox*>(QStringLiteral("navigatorCoverTarget_blurb_characters"));
-    REQUIRE(words != nullptr);
+    REQUIRE(unit != nullptr);
     REQUIRE(blurbWords != nullptr);
     REQUIRE(blurbCharacters != nullptr);
     coverPage.load();
     CHECK(blurbCharacters->value() == 600);
     CHECK(blurbCharacters->isVisibleTo(&coverPage));
     CHECK_FALSE(blurbWords->isVisibleTo(&coverPage));
-    words->setChecked(true);
+    unit->setCurrentIndex(unit->findData(QStringLiteral("words")));
     CHECK(blurbWords->isVisibleTo(&coverPage));
     CHECK_FALSE(blurbCharacters->isVisibleTo(&coverPage));
     blurbWords->setValue(120);

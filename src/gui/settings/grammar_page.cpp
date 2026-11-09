@@ -32,7 +32,6 @@
 #include <QMetaObject>
 #include <QProgressBar>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QSpinBox>
 #include <QStyle>
 #include <QToolButton>
@@ -175,9 +174,13 @@ std::vector<std::string> EditorGrammarPage::apply() {
     return written;
 }
 
+bool EditorGrammarPage::remoteChosen() const {
+    return m_where->currentData().toString() == QLatin1String(GrammarCoordinator::REMOTE_MODE);
+}
+
 void EditorGrammarPage::setRemoteWithoutAsking(bool remote) {
     const bool asking = std::exchange(m_asking, true);
-    (remote ? m_remote : m_local)->setChecked(true);
+    m_where->setCurrentIndex(remote ? 1 : 0);
     m_asking = asking;
 }
 
@@ -226,26 +229,22 @@ void EditorGrammarPage::createChecking() {
     connect(m_showProgress, &QPushButton::clicked, this, &EditorGrammarPage::prepare);
 
     // Where the text is checked
-    m_local = new QRadioButton(tr("On this comp&uter (recommended)"));
-    m_remote = new QRadioButton(tr("On a server in the &internet"));
-    auto* where = new QWidget();
-    auto* whereLayout = new QVBoxLayout(where);
-    whereLayout->setContentsMargins(0, 0, 0, 0);
-    whereLayout->addWidget(m_local);
-    alignWithText(addNote(whereLayout, tr("The text of the book does not leave the computer.")),
-                  m_local);
-    whereLayout->addWidget(m_remote);
-    alignWithText(addNote(whereLayout, tr("The text is sent through the internet.")), m_remote);
-    auto* whereLabel = new QLabel(tr("Where to check:"));
-    whereLabel->setBuddy(m_local);
-    form->addRow(whereLabel, where);
-    // The question comes after the click, not inside the switch of the buttons
-    connect(m_remote, &QRadioButton::toggled, this, [this](bool checked) {
-        if (checked && !m_asking) {
+    m_where = addChoice(form, tr("Where to check:"),
+                        //: In Polish: Na tym komputerze (zalecane)
+                        {{tr("On this computer (recommended)"),
+                          QLatin1String(GrammarCoordinator::LOCAL_MODE),
+                          tr("The text of the book does not leave the computer.")},
+                         //: In Polish: Na serwerze w internecie
+                         {tr("On a server in the internet"),
+                          QLatin1String(GrammarCoordinator::REMOTE_MODE),
+                          tr("The text is sent through the internet.")}},
+                        std::string());
+    m_where->setObjectName(QStringLiteral("grammarWhere"));
+    // The question comes after the choice, not inside the change of the list
+    connect(m_where, &QComboBox::currentIndexChanged, this, [this]() {
+        if (remoteChosen() && !m_asking) {
             QMetaObject::invokeMethod(this, "askForRemote", Qt::QueuedConnection);
         }
-    });
-    connect(m_local, &QRadioButton::toggled, this, [this]() {
         updateCard();
         updateServerState();
     });
@@ -258,8 +257,8 @@ void EditorGrammarPage::createChecking() {
                                               GrammarCoordinator::LOCAL_MODE));
     };
     mode.shown = [this]() {
-        return json(m_remote->isChecked() ? GrammarCoordinator::REMOTE_MODE
-                                          : GrammarCoordinator::LOCAL_MODE);
+        return json(remoteChosen() ? GrammarCoordinator::REMOTE_MODE
+                                   : GrammarCoordinator::LOCAL_MODE);
     };
     mode.show = [this](const json& value) {
         setRemoteWithoutAsking(value.is_string() &&
@@ -582,7 +581,7 @@ void EditorGrammarPage::createAdvanced() {
 
     connect(m_advancedToggle, &QToolButton::toggled, this, [this](bool open) {
         m_advancedToggle->setArrowType(open ? Qt::DownArrow : Qt::RightArrow);
-        m_advanced->setVisible(open && !m_remote->isChecked());
+        m_advanced->setVisible(open && !remoteChosen());
     });
 }
 
@@ -591,7 +590,7 @@ void EditorGrammarPage::createAdvanced() {
 // =============================================================================
 
 void EditorGrammarPage::updateCard() {
-    const bool remote = m_remote->isChecked();
+    const bool remote = remoteChosen();
     const bool external = m_external->isChecked();
     const GrammarSetup* setup = m_grammar != nullptr ? m_grammar->setup() : nullptr;
     const bool preparing = setup != nullptr && setup->isRunning();
@@ -795,7 +794,7 @@ void EditorGrammarPage::updateServerState() {
     // The server is checked with the settings applied, ready, and while it is not starting
     const bool changed = serverSettingsChanged();
     const bool ready =
-        GrammarCoordinator::readinessOf(m_remote->isChecked(), m_external->isChecked(),
+        GrammarCoordinator::readinessOf(remoteChosen(), m_external->isChecked(),
                                         m_java->text(), m_folder->text()) ==
         GrammarCoordinator::Readiness::Ready;
     const bool idle = server->state() == LanguageToolServer::State::Stopped ||
@@ -866,7 +865,7 @@ GrammarComponents::LanguageToolInfo EditorGrammarPage::languageToolInfo(const QS
 
 void EditorGrammarPage::askForRemote() {
     // Gone back to this computer meanwhile, or agreed before (the setting says so)
-    if (!m_remote->isChecked() ||
+    if (!remoteChosen() ||
         m_modeBinding->loaded == json(GrammarCoordinator::REMOTE_MODE)) {
         return;
     }

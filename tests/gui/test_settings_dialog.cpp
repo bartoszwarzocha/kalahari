@@ -21,6 +21,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -38,7 +39,6 @@
 #include <QTreeWidgetItemIterator>
 
 #include <optional>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -121,6 +121,20 @@ void settle() {
     for (int pass = 0; pass < 3; ++pass) {
         QApplication::processEvents();
     }
+}
+
+/// The list of choices named @p name in @p dialog
+QComboBox* choiceList(const QWidget& dialog, const char* name) {
+    auto* list = dialog.findChild<QComboBox*>(QLatin1String(name));
+    REQUIRE(list != nullptr);
+    return list;
+}
+
+/// Choose the item of @p list with value @p value, as the writer does
+void choose(QComboBox* list, const char* value) {
+    const int index = list->findData(QLatin1String(value));
+    REQUIRE(index >= 0);
+    list->setCurrentIndex(index);
 }
 
 /// The program in Polish while it lives: the translation it ships
@@ -514,15 +528,11 @@ TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in 
 
     SettingsDialog dialog(nullptr);
     openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
-    auto* named = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddNamed"));
-    auto* single = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddSingle"));
-    REQUIRE(named != nullptr);
-    REQUIRE(single != nullptr);
-    CHECK(named->isChecked());
-    CHECK_FALSE(single->isChecked());
+    QComboBox* commands = choiceList(dialog, "navigatorAddCommands");
+    CHECK(commands->currentData().toString() == QStringLiteral("named"));
     CHECK_FALSE(dialog.hasChanges());
 
-    single->click();
+    choose(commands, "single");
     CHECK(dialog.hasChanges());
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::ADD_COMMANDS_SETTING)});
@@ -531,9 +541,8 @@ TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in 
     // Opened again, the page shows the stored choice
     SettingsDialog again(nullptr);
     openPage(again, QStringLiteral("Navigator"), QStringLiteral("Adding"));
-    auto* singleAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorAddSingle"));
-    REQUIRE(singleAgain != nullptr);
-    CHECK(singleAgain->isChecked());
+    CHECK(choiceList(again, "navigatorAddCommands")->currentData().toString() ==
+          QStringLiteral("single"));
 
     settings.set<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, before);
 }
@@ -547,28 +556,20 @@ TEST_CASE("Settings dialog: the Navigator page chooses the top of the Add Elemen
 
     SettingsDialog dialog(nullptr);
     openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
-    auto* sections = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowSections"));
-    auto* book = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
-    auto* place = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowPlace"));
-    REQUIRE(sections != nullptr);
-    REQUIRE(book != nullptr);
-    REQUIRE(place != nullptr);
-    CHECK(sections->isChecked());
-    CHECK_FALSE(book->isChecked());
-    CHECK_FALSE(place->isChecked());
+    QComboBox* window = choiceList(dialog, "navigatorAddWindow");
+    CHECK(window->currentData().toString() == QStringLiteral("sections"));
     CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::Sections);
 
     // A choice of its own, apart from the commands of the menus
-    auto* named = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddNamed"));
-    REQUIRE(named != nullptr);
-    const bool namedBefore = named->isChecked();
-    place->click();
-    CHECK(named->isChecked() == namedBefore);
+    QComboBox* commands = choiceList(dialog, "navigatorAddCommands");
+    const QString commandsBefore = commands->currentData().toString();
+    choose(window, "place");
+    CHECK(commands->currentData().toString() == commandsBefore);
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING)});
     CHECK(settings.get<std::string>(NavigatorPanel::ADD_WINDOW_SETTING) == "place");
     CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::None);
-    book->click();
+    choose(window, "book");
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING)});
     CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::Book);
@@ -576,9 +577,8 @@ TEST_CASE("Settings dialog: the Navigator page chooses the top of the Add Elemen
     // Opened again, the page shows the stored choice
     SettingsDialog again(nullptr);
     openPage(again, QStringLiteral("Navigator"), QStringLiteral("Adding"));
-    auto* bookAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
-    REQUIRE(bookAgain != nullptr);
-    CHECK(bookAgain->isChecked());
+    CHECK(choiceList(again, "navigatorAddWindow")->currentData().toString() ==
+          QStringLiteral("book"));
 
     settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, before);
 }
@@ -593,19 +593,14 @@ TEST_CASE("Settings dialog: the Navigator page chooses how a material opens",
     SettingsDialog dialog(nullptr);
     openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
     openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Materials"));
-    auto* card = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
-    auto* system = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsSystem"));
-    REQUIRE(card != nullptr);
-    REQUIRE(system != nullptr);
-    CHECK(card->isChecked());
-    CHECK_FALSE(system->isChecked());
+    QComboBox* open = choiceList(dialog, "navigatorOpenMaterials");
+    CHECK(open->currentData().toString() == QStringLiteral("card"));
 
     // A choice of its own, apart from those of the window and the menus
-    auto* sections = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowSections"));
-    REQUIRE(sections != nullptr);
-    const bool sectionsBefore = sections->isChecked();
-    system->click();
-    CHECK(sections->isChecked() == sectionsBefore);
+    QComboBox* window = choiceList(dialog, "navigatorAddWindow");
+    const QString windowBefore = window->currentData().toString();
+    choose(open, "system");
+    CHECK(window->currentData().toString() == windowBefore);
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::OPEN_MATERIALS_SETTING)});
     CHECK(settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING) == "system");
@@ -613,10 +608,8 @@ TEST_CASE("Settings dialog: the Navigator page chooses how a material opens",
     // Opened again, the page shows the stored choice
     SettingsDialog again(nullptr);
     openPage(again, QStringLiteral("Navigator"), QStringLiteral("Materials"));
-    auto* systemAgain =
-        again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsSystem"));
-    REQUIRE(systemAgain != nullptr);
-    CHECK(systemAgain->isChecked());
+    CHECK(choiceList(again, "navigatorOpenMaterials")->currentData().toString() ==
+          QStringLiteral("system"));
 
     settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, before);
 }
@@ -659,25 +652,18 @@ TEST_CASE("Settings dialog: the Navigator page chooses what the Materials show a
     // The usual ones: the kinds with their numbers, each on a tab of its own
     SettingsDialog dialog(nullptr);
     openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Materials"));
-    auto* types = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsTypes"));
-    auto* expand = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
-    auto* own = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOwnTabs"));
-    auto* one = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOneTab"));
-    REQUIRE(types != nullptr);
-    REQUIRE(expand != nullptr);
-    REQUIRE(own != nullptr);
-    REQUIRE(one != nullptr);
-    CHECK(types->isChecked());
-    CHECK(own->isChecked());
+    QComboBox* tree = choiceList(dialog, "navigatorMaterialsTree");
+    QComboBox* tabs = choiceList(dialog, "navigatorMaterialsTabs");
+    CHECK(tree->currentData().toString() == QStringLiteral("types"));
+    CHECK(tabs->currentData().toString() == QStringLiteral("own"));
     CHECK_FALSE(NavigatorPanel::materialsExpandable());
     CHECK(MaterialList::ownTabs());
 
-    // Each row is a choice of its own
-    expand->click();
-    CHECK(expand->isChecked());
-    CHECK(own->isChecked());
-    one->click();
-    CHECK(expand->isChecked());
+    // Each list is a choice of its own
+    choose(tree, "expand");
+    CHECK(tabs->currentData().toString() == QStringLiteral("own"));
+    choose(tabs, "one");
+    CHECK(tree->currentData().toString() == QStringLiteral("expand"));
     const QStringList written = dialog.applyChanges();
     CHECK(written.size() == 2);
     CHECK(written.contains(QString::fromLatin1(NavigatorPanel::MATERIALS_TREE_SETTING)));
@@ -690,18 +676,15 @@ TEST_CASE("Settings dialog: the Navigator page chooses what the Materials show a
     // Opened again, the page shows the stored choices
     SettingsDialog again(nullptr);
     openPage(again, QStringLiteral("Navigator"), QStringLiteral("Materials"));
-    auto* expandAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
-    auto* oneAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOneTab"));
-    REQUIRE(expandAgain != nullptr);
-    REQUIRE(oneAgain != nullptr);
-    CHECK(expandAgain->isChecked());
-    CHECK(oneAgain->isChecked());
+    CHECK(choiceList(again, "navigatorMaterialsTree")->currentData().toString() ==
+          QStringLiteral("expand"));
+    CHECK(choiceList(again, "navigatorMaterialsTabs")->currentData().toString() ==
+          QStringLiteral("one"));
 }
 
-TEST_CASE("Settings dialog: the settings of the Materials on the Navigator pages keep apart",
-          "[gui][settings][materials]") {
-    // Regression: the notes of a setting ran into the next setting, with no more room between
-    // two settings than between the choices of one
+TEST_CASE("Settings dialog: a choice is a list with the note of the chosen item under it, and "
+          "no page has radio buttons", "[gui][settings]") {
+    // Regression: the columns of radio buttons with a note under each ran into one another
     ProgramStyle programStyle;
     SettingsDialog dialog(nullptr);
     dialog.resize(900, 700);
@@ -709,68 +692,42 @@ TEST_CASE("Settings dialog: the settings of the Materials on the Navigator pages
     openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Materials"));
     settle();
 
-    auto* types = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsTypes"));
-    auto* expand = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
-    auto* own = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOwnTabs"));
-    auto* card = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
-    auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesBrowser"));
-    auto* paragraphs = dialog.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
-    REQUIRE(types != nullptr);
-    REQUIRE(expand != nullptr);
-    REQUIRE(own != nullptr);
-    REQUIRE(card != nullptr);
-    REQUIRE(browser != nullptr);
-    REQUIRE(paragraphs != nullptr);
-
-    // The lists, the opening and the links: a group each
-    QWidget* const tree = types->parentWidget();
-    QWidget* const lists = tree->parentWidget();
-    QWidget* const opening = card->parentWidget()->parentWidget();
-    QWidget* const links = paragraphs->parentWidget();
-    REQUIRE(qobject_cast<QGroupBox*>(lists) != nullptr);
-    REQUIRE(qobject_cast<QGroupBox*>(opening) != nullptr);
-    REQUIRE(qobject_cast<QGroupBox*>(links) != nullptr);
-    CHECK(own->parentWidget()->parentWidget() == lists);
-    CHECK(browser->parentWidget()->parentWidget() == opening);
-    CHECK(opening != lists);
-    CHECK(links != lists);
-    CHECK(links != opening);
-
-    // The choices of a setting with their notes, apart from the next setting of the group
-    auto* typesNote = qobject_cast<QLabel*>(tree->layout()->itemAt(1)->widget());
-    REQUIRE(typesNote != nullptr);
-    const auto gap = [](const QWidget* group, const QWidget* above, const QWidget* below) {
-        return below->mapTo(group, QPoint()).y() -
-               above->mapTo(group, QPoint(0, above->height())).y();
-    };
-    const int line = lists->fontMetrics().height();
-    const int within = gap(lists, typesNote, expand);
-    INFO("a line is " << line << " px; the choices of one setting are " << within
-                      << " px apart");
-    const std::vector<std::tuple<const QWidget*, const QWidget*, const QWidget*>> settings{
-        {lists, tree, own->parentWidget()},
-        {opening, card->parentWidget(), browser->parentWidget()}};
-    for (const auto& [group, above, below] : settings) {
-        INFO("two settings " << gap(group, above, below) << " px apart");
-        CHECK(gap(group, above, below) >= line);
-        CHECK(gap(group, above, below) > within);
-    }
-
-    // Navigator > Adding: what a drop gives, its note under its choices
-    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
+    // The note under the list, in line with it, says what the chosen item means
+    QComboBox* tree = choiceList(dialog, "navigatorMaterialsTree");
+    choose(tree, "types");
+    auto* group = qobject_cast<QGroupBox*>(tree->parentWidget());
+    REQUIRE(group != nullptr);
+    auto* form = qobject_cast<QFormLayout*>(group->layout());
+    REQUIRE(form != nullptr);
+    int row = -1;
+    QFormLayout::ItemRole role = QFormLayout::FieldRole;
+    form->getWidgetPosition(tree, &row, &role);
+    REQUIRE(row >= 0);
+    QLayoutItem* under = form->itemAt(row + 1, QFormLayout::FieldRole);
+    REQUIRE(under != nullptr);
+    auto* note = qobject_cast<QLabel*>(under->widget());
+    REQUIRE(note != nullptr);
+    CHECK(note->text().startsWith(QStringLiteral("The list of a kind opens on a tab")));
+    CHECK(tree->accessibleDescription() == note->text());
     settle();
-    auto* link = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsLink"));
-    REQUIRE(link != nullptr);
-    QWidget* const dropped = link->parentWidget()->parentWidget();
-    REQUIRE(qobject_cast<QGroupBox*>(dropped) != nullptr);
-    QLabel* dropNote = nullptr;
-    for (QLabel* label : dropped->findChildren<QLabel*>()) {
-        if (label->text().startsWith(QStringLiteral("Applies to a file dragged"))) {
-            dropNote = label;
-        }
+    CHECK(note->mapTo(group, QPoint()).x() == tree->mapTo(group, QPoint()).x());
+    CHECK(note->mapTo(group, QPoint()).y() >= tree->mapTo(group, QPoint(0, tree->height())).y());
+    choose(tree, "expand");
+    CHECK(note->text().startsWith(QStringLiteral("Each kind also has its materials under it")));
+    CHECK(tree->accessibleDescription() == note->text());
+
+    // Every page: lists, no radio buttons
+    QTreeWidget* pages = dialog.findChild<QTreeWidget*>();
+    REQUIRE(pages != nullptr);
+    for (QTreeWidgetItemIterator item(pages); *item != nullptr; ++item) {
+        pages->setCurrentItem(*item);
     }
-    REQUIRE(dropNote != nullptr);
-    CHECK(gap(dropped, link->parentWidget(), dropNote) >= 0);
+    settle();
+    const QList<QRadioButton*> radios = dialog.findChildren<QRadioButton*>();
+    for (const QRadioButton* radio : radios) {
+        INFO("a radio button: " << radio->text().toStdString());
+    }
+    CHECK(radios.isEmpty());
 }
 
 TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a drop gives",
@@ -789,33 +746,17 @@ TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a
     SettingsDialog dialog(nullptr);
     openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
     openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Materials"));
-    auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesBrowser"));
-    auto* onCard = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesCard"));
-    auto* link = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsLink"));
-    auto* add = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsAdd"));
-    auto* window = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsWindow"));
-    auto* materialsCard =
-        dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
-    REQUIRE(browser != nullptr);
-    REQUIRE(onCard != nullptr);
-    REQUIRE(link != nullptr);
-    REQUIRE(add != nullptr);
-    REQUIRE(window != nullptr);
-    REQUIRE(materialsCard != nullptr);
+    QComboBox* pages = choiceList(dialog, "navigatorOpenPages");
+    QComboBox* quick = choiceList(dialog, "navigatorQuickMaterials");
+    QComboBox* materials = choiceList(dialog, "navigatorOpenMaterials");
     // The usual ones: the browser, and at once with the link
-    CHECK(browser->isChecked());
-    CHECK(link->isChecked());
-    CHECK_FALSE(add->isChecked());
-    CHECK_FALSE(window->isChecked());
+    CHECK(pages->currentData().toString() == QStringLiteral("browser"));
+    CHECK(quick->currentData().toString() == QStringLiteral("link"));
 
-    // Each row is a choice of its own
-    onCard->click();
-    window->click();
-    CHECK(onCard->isChecked());
-    CHECK_FALSE(browser->isChecked());
-    CHECK(window->isChecked());
-    CHECK_FALSE(link->isChecked());
-    CHECK(materialsCard->isChecked());
+    // Each list is a choice of its own
+    choose(pages, "card");
+    choose(quick, "window");
+    CHECK(materials->currentData().toString() == QStringLiteral("card"));
     const QStringList written = dialog.applyChanges();
     CHECK(written.size() == 2);
     CHECK(written.contains(QString::fromLatin1(NavigatorPanel::OPEN_PAGES_SETTING)));
@@ -824,7 +765,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a
     CHECK(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING) == "window");
     CHECK(NavigatorPanel::quickMaterials() == QStringLiteral("window"));
 
-    add->click();
+    choose(quick, "add");
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::QUICK_MATERIALS_SETTING)});
     CHECK(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING) == "add");
@@ -833,12 +774,10 @@ TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a
     SettingsDialog again(nullptr);
     openPage(again, QStringLiteral("Navigator"), QStringLiteral("Adding"));
     openPage(again, QStringLiteral("Navigator"), QStringLiteral("Materials"));
-    auto* onCardAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesCard"));
-    auto* addAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsAdd"));
-    REQUIRE(onCardAgain != nullptr);
-    REQUIRE(addAgain != nullptr);
-    CHECK(onCardAgain->isChecked());
-    CHECK(addAgain->isChecked());
+    CHECK(choiceList(again, "navigatorOpenPages")->currentData().toString() ==
+          QStringLiteral("card"));
+    CHECK(choiceList(again, "navigatorQuickMaterials")->currentData().toString() ==
+          QStringLiteral("add"));
 
     settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, pagesBefore);
     settings.set<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, quickBefore);
@@ -853,30 +792,24 @@ TEST_CASE("Settings dialog: Network > Materials chooses the downloads of the mat
 
     SettingsDialog dialog(nullptr);
     openPage(dialog, QStringLiteral("Network"), QStringLiteral("Materials"));
-    auto* ask = dialog.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAsk"));
-    auto* always = dialog.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAlways"));
-    auto* never = dialog.findChild<QRadioButton*>(QStringLiteral("networkDownloadsNever"));
-    REQUIRE(ask != nullptr);
-    REQUIRE(always != nullptr);
-    REQUIRE(never != nullptr);
-    CHECK(ask->isChecked());
+    QComboBox* downloads = choiceList(dialog, "networkDownloads");
+    CHECK(downloads->currentData().toString() == QStringLiteral("ask"));
     CHECK(MaterialDownloader::policy() == MaterialDownloader::Policy::Ask);
 
-    never->click();
+    choose(downloads, "never");
     CHECK(dialog.applyChanges() == QStringList{QString::fromLatin1(MaterialDownloader::SETTING)});
     CHECK(settings.get<std::string>(MaterialDownloader::SETTING) == "never");
     CHECK(MaterialDownloader::policy() == MaterialDownloader::Policy::Never);
 
-    always->click();
+    choose(downloads, "always");
     CHECK(dialog.applyChanges() == QStringList{QString::fromLatin1(MaterialDownloader::SETTING)});
     CHECK(MaterialDownloader::policy() == MaterialDownloader::Policy::Always);
 
     // Opened again, the page shows the stored choice
     SettingsDialog again(nullptr);
     openPage(again, QStringLiteral("Network"), QStringLiteral("Materials"));
-    auto* alwaysAgain = again.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAlways"));
-    REQUIRE(alwaysAgain != nullptr);
-    CHECK(alwaysAgain->isChecked());
+    CHECK(choiceList(again, "networkDownloads")->currentData().toString() ==
+          QStringLiteral("always"));
 
     settings.set<std::string>(MaterialDownloader::SETTING, before);
 }

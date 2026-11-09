@@ -26,7 +26,6 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QSpinBox>
 #include <QVBoxLayout>
 
@@ -843,56 +842,40 @@ void EditorPagesPage::addMarginNumbersGroup() {
                              "below."));
     QFormLayout* numbers = addGroup(tr("Margin Numbering"));
     numbers->parentWidget()->setObjectName(QStringLiteral("marginNumbersGroup"));
-    const std::vector<std::pair<QRadioButton*, const char*>> choices = {
-        {new QRadioButton(tr("None")), editor::MARGIN_NUMBERING_NONE},
-        {new QRadioButton(tr("Lines")), editor::MARGIN_NUMBERING_LINES},
-        {new QRadioButton(tr("Paragraphs")), editor::MARGIN_NUMBERING_PARAGRAPHS}};
-    auto* choicesRow = new QWidget();
-    auto* choicesLayout = new QHBoxLayout(choicesRow);
-    choicesLayout->setContentsMargins(0, 0, 0, 0);
-    for (const auto& [button, name] : choices) {
-        button->setObjectName(QStringLiteral("marginNumbers_%1").arg(QLatin1String(name)));
-        choicesLayout->addWidget(button);
-    }
-    choicesLayout->addStretch();
-    auto* choicesLabel = new QLabel(tr("Number:"));
-    choicesLabel->setBuddy(choices.front().first);
-    numbers->addRow(choicesLabel, choicesRow);
+    QComboBox* const mode = addChoice(
+        numbers, tr("Number:"),
+        {{tr("None"), QLatin1String(editor::MARGIN_NUMBERING_NONE), QString()},
+         {tr("Lines"), QLatin1String(editor::MARGIN_NUMBERING_LINES), QString()},
+         {tr("Paragraphs"), QLatin1String(editor::MARGIN_NUMBERING_PARAGRAPHS), QString()}},
+        std::string());
+    mode->setObjectName(QStringLiteral("marginNumbersMode"));
 
     auto& settings = core::SettingsManager::getInstance();
-    const auto chosen = [choices]() {
-        for (const auto& [button, name] : choices) {
-            if (button->isChecked()) {
-                return editor::marginNumberingFromName(QLatin1String(name));
-            }
-        }
-        return editor::MarginNumbering::None;
+    const auto chosen = [mode]() {
+        return editor::marginNumberingFromName(mode->currentData().toString());
     };
-    Binding mode;
-    mode.key = []() { return std::string("editor.marginNumbers.mode"); };
-    mode.stored = [&settings]() {
+    Binding modeBinding;
+    modeBinding.key = []() { return std::string("editor.marginNumbers.mode"); };
+    modeBinding.stored = [&settings]() {
         return nlohmann::json(settings.get<std::string>("editor.marginNumbers.mode"));
     };
-    mode.shown = [choices]() {
-        for (const auto& [button, name] : choices) {
-            if (button->isChecked()) {
-                return nlohmann::json(name);
-            }
-        }
-        return nlohmann::json(editor::MARGIN_NUMBERING_NONE);
+    modeBinding.shown = [mode]() {
+        return nlohmann::json(mode->currentData().toString().toStdString());
     };
-    mode.show = [choices](const nlohmann::json& value) {
+    modeBinding.show = [mode](const nlohmann::json& value) {
         // A name the program does not know shows as None, as the editor takes it
         const editor::MarginNumbering numbering = editor::marginNumberingFromName(
             QString::fromStdString(value.is_string() ? value.get<std::string>() : std::string()));
-        for (const auto& [button, name] : choices) {
-            button->setChecked(editor::marginNumberingFromName(QLatin1String(name)) == numbering);
+        for (int index = 0; index < mode->count(); ++index) {
+            if (editor::marginNumberingFromName(mode->itemData(index).toString()) == numbering) {
+                mode->setCurrentIndex(index);
+            }
         }
     };
-    mode.store = [&settings](const nlohmann::json& value) {
+    modeBinding.store = [&settings](const nlohmann::json& value) {
         settings.set<std::string>("editor.marginNumbers.mode", value.get<std::string>());
     };
-    bindCustom(std::move(mode));
+    bindCustom(std::move(modeBinding));
 
     // The fields of the look, which the button Restore Defaults shows again
     std::vector<Binding*> look;
@@ -997,9 +980,7 @@ void EditorPagesPage::addMarginNumbersGroup() {
                                   : tr("1: a number at every line, 5: at every fifth one."));
         showPreview();
     };
-    for (const auto& [button, name] : choices) {
-        connect(button, &QRadioButton::toggled, this, syncNumbers);
-    }
+    connect(mode, &QComboBox::currentIndexChanged, this, syncNumbers);
     whenLoaded(syncNumbers);
     connect(interval, &QSpinBox::valueChanged, this, showPreview);
     connect(font, &QFontComboBox::currentFontChanged, this, showPreview);
