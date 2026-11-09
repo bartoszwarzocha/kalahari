@@ -2199,6 +2199,11 @@ Uruchomić ponownie teraz?</translation>
         <translation>&amp;Widok</translation>
     </message>
     <message>
+        <source>&amp;Window</source>
+        <extracomment>The menu of the windows of the program, before Help. In Polish: &amp;Okno</extracomment>
+        <translation>&amp;Okno</translation>
+    </message>
+    <message>
         <source>&amp;Help</source>
         <translation>Pomo&amp;c</translation>
     </message>
@@ -3501,6 +3506,11 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
 <context>
     <name>kalahari::editor::FindReplaceBar</name>
     <message>
+        <source>Colors of the Search Hits</source>
+        <extracomment>The gear of the find bar: Settings &gt; Editor &gt; Colors, with the colors of the hits</extracomment>
+        <translation>Kolory znalezionych wystąpień</translation>
+    </message>
+    <message>
         <source>Find...</source>
         <translation>Znajdź...</translation>
     </message>
@@ -4527,6 +4537,23 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::DetachedWindow</name>
+    <message>
+        <source>Window Settings</source>
+        <extracomment>The gear at the end of the tabs of a window of its own: Settings &gt; General, the options of the windows. In Polish: Ustawienia okien</extracomment>
+        <translation>Ustawienia okien</translation>
+    </message>
+    <message>
+        <source>Page %1 of %2</source>
+        <extracomment>The status bar of a window of its own, as that of the book window. In Polish: Strona %1 z %2</extracomment>
+        <translation>Strona %1 z %2</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::DiagnosticController</name>
     <message>
         <source>This benchmark will temporarily modify the editor content.
@@ -5304,6 +5331,49 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     </message>
 </context>
 <context>
+    <name>kalahari::gui::DocumentWindows</name>
+    <message>
+        <source>&amp;Move to New Window</source>
+        <extracomment>The menu of a tab of a text: it goes to a window of its own. In Polish: &amp;Przenieś do nowego okna</extracomment>
+        <translation>&amp;Przenieś do nowego okna</translation>
+    </message>
+    <message>
+        <source>&amp;Return to Book Window</source>
+        <extracomment>The menu of a tab in a window of its own: the text goes back to the book window. In Polish: Przy&amp;wróć do okna książki</extracomment>
+        <translation>Przy&amp;wróć do okna książki</translation>
+    </message>
+    <message>
+        <source>&amp;Close Tab</source>
+        <extracomment>The menu of a tab: closes it, as its cross does. In Polish: &amp;Zamknij kartę</extracomment>
+        <translation>&amp;Zamknij kartę</translation>
+    </message>
+    <message>
+        <source>&amp;Move Tab to New Window</source>
+        <extracomment>Window menu: the text in front goes to a window of its own. In Polish: &amp;Przenieś kartę do nowego okna</extracomment>
+        <translation>&amp;Przenieś kartę do nowego okna</translation>
+    </message>
+    <message>
+        <source>&amp;Return Tab to Book Window</source>
+        <extracomment>Window menu: the text in front, in a window of its own, goes back to the book window. In Polish: Przy&amp;wróć kartę do okna książki</extracomment>
+        <translation>Przy&amp;wróć kartę do okna książki</translation>
+    </message>
+    <message>
+        <source>&amp;Next Window</source>
+        <extracomment>Window menu: the next window of the program comes to the front. In Polish: &amp;Następne okno</extracomment>
+        <translation>&amp;Następne okno</translation>
+    </message>
+    <message>
+        <source>&amp;Previous Window</source>
+        <extracomment>Window menu: the previous window of the program comes to the front. In Polish: Popr&amp;zednie okno</extracomment>
+        <translation>Popr&amp;zednie okno</translation>
+    </message>
+    <message>
+        <source>Window &amp;Settings...</source>
+        <extracomment>Window menu: Settings &gt; General at the options of the windows. In Polish: &amp;Ustawienia okien...</extracomment>
+        <translation>&amp;Ustawienia okien...</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::EditorAutoCorrectPage</name>
     <message>
         <source>Replace as You Type</source>
@@ -5604,38 +5674,28 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
 <context>
     <name>kalahari::gui::EditorColorsPage</name>
     <message>
-        <source>Configure editor colors for light and dark mode.
-Editor color mode is independent from the application theme.</source>
-        <translation>Ustaw kolory edytora w trybie jasnym i ciemnym.
-Tryb kolorów edytora nie zależy od motywu programu.</translation>
+        <source>The colors of the paper and of the text on it, of the desk around the paper and of what is shown under the text. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolory papieru i tekstu na nim, tła wokół kartki oraz tego, co widać pod tekstem. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
     </message>
     <message>
-        <source>Use dark mode for editor</source>
-        <translation>Ciemny tryb edytora</translation>
+        <source>Dark paper</source>
+        <translation>Ciemny papier</translation>
     </message>
     <message>
-        <source>Toggle between light and dark editor colors</source>
-        <translation>Przełącza między jasnymi a ciemnymi kolorami edytora</translation>
+        <source>Write on the dark paper, whatever the theme. View &gt; Dark Paper switches it as well.</source>
+        <translation>Piszesz na ciemnym papierze, niezależnie od motywu. To samo przełącza polecenie Widok &gt; Ciemny papier.</translation>
     </message>
     <message>
-        <source>Light Mode Colors</source>
-        <translation>Kolory trybu jasnego</translation>
-    </message>
-    <message>
-        <source>Background</source>
-        <translation>Tło</translation>
+        <source>Paper</source>
+        <translation>Papier</translation>
     </message>
     <message>
         <source>Text</source>
         <translation>Tekst</translation>
     </message>
     <message>
-        <source>Inactive (Focus mode)</source>
-        <translation>Nieaktywny tekst (tryb skupienia)</translation>
-    </message>
-    <message>
-        <source>Dark Mode Colors</source>
-        <translation>Kolory trybu ciemnego</translation>
+        <source>Dimmed text (Focus)</source>
+        <translation>Przygaszony tekst (Skupienie)</translation>
     </message>
     <message>
         <source>Formatting marks</source>
@@ -5644,6 +5704,38 @@ Tryb kolorów edytora nie zależy od motywu programu.</translation>
     <message>
         <source>Links</source>
         <translation>Łącza</translation>
+    </message>
+    <message>
+        <source>Around the paper</source>
+        <translation>Tło wokół kartki</translation>
+    </message>
+    <message>
+        <source>Light Paper</source>
+        <translation>Jasny papier</translation>
+    </message>
+    <message>
+        <source>Dark Paper</source>
+        <translation>Ciemny papier</translation>
+    </message>
+    <message>
+        <source>On Both Papers</source>
+        <translation>Na obu papierach</translation>
+    </message>
+    <message>
+        <source>Shown translucent under the text, so the text stays readable on either paper.</source>
+        <translation>Te kolory są półprzezroczyste i leżą pod tekstem, więc tekst pozostaje czytelny na obu papierach.</translation>
+    </message>
+    <message>
+        <source>Selection</source>
+        <translation>Zaznaczenie</translation>
+    </message>
+    <message>
+        <source>Search hits</source>
+        <translation>Znalezione wystąpienia</translation>
+    </message>
+    <message>
+        <source>Current search hit</source>
+        <translation>Bieżące wystąpienie</translation>
     </message>
 </context>
 <context>
@@ -6974,6 +7066,55 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Automatically open the most recently used book when Kalahari starts</source>
         <translation>Po uruchomieniu Kalahari otwiera ostatnio używaną książkę</translation>
+    </message>
+    <message>
+        <source>Windows</source>
+        <extracomment>Settings &gt; General: the group of the options of the windows. In Polish: Okna</extracomment>
+        <translation>Okna</translation>
+    </message>
+    <message>
+        <source>Full window</source>
+        <extracomment>Settings &gt; General &gt; Windows: a tab moved to a window of its own shows the menus, the toolbars and the status bar. In Polish: Pełne okno</extracomment>
+        <translation>Pełne okno</translation>
+    </message>
+    <message>
+        <source>Writing only</source>
+        <extracomment>The Format toolbar and the status bar. In Polish: Samo pisanie</extracomment>
+        <translation>Samo pisanie</translation>
+    </message>
+    <message>
+        <source>Full window: the menus, the toolbars and the status bar, as in the book window. Writing only: the Format toolbar and the status bar.</source>
+        <extracomment>In Polish: Pełne okno: menu, paski narzędzi i pasek stanu, jak w oknie książki. Samo pisanie: pasek formatowania i pasek stanu.</extracomment>
+        <translation>Pełne okno: menu, paski narzędzi i pasek stanu, jak w oknie książki. Samo pisanie: pasek formatowania i pasek stanu.</translation>
+    </message>
+    <message>
+        <source>Detached window:</source>
+        <extracomment>In Polish: Wygląd oderwanego okna:</extracomment>
+        <translation>Wygląd oderwanego okna:</translation>
+    </message>
+    <message>
+        <source>Its tabs return to the book window</source>
+        <extracomment>In Polish: Karty wracają do okna książki</extracomment>
+        <translation>Karty wracają do okna książki</translation>
+    </message>
+    <message>
+        <source>Its texts close</source>
+        <extracomment>In Polish: Teksty się zamykają</extracomment>
+        <translation>Teksty się zamykają</translation>
+    </message>
+    <message>
+        <source>What closing a window of its own of tabs does to its texts; unsaved changes are asked about</source>
+        <translation>Co dzieje się z tekstami po zamknięciu oderwanego okna; o niezapisane zmiany program pyta</translation>
+    </message>
+    <message>
+        <source>Closing a detached window:</source>
+        <extracomment>In Polish: Zamknięcie oderwanego okna:</extracomment>
+        <translation>Zamknięcie oderwanego okna:</translation>
+    </message>
+    <message>
+        <source>A tab goes to a window of its own when it is dragged off the bar of the tabs, or from the Window menu.</source>
+        <extracomment>In Polish: Kartę odrywa się, przeciągając ją poza pasek kart albo z menu Okno.</extracomment>
+        <translation>Kartę odrywa się do osobnego okna, przeciągając ją poza pasek kart albo z menu Okno.</translation>
     </message>
 </context>
 <context>

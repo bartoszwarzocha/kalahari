@@ -5,6 +5,7 @@
 
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/utils/panel_toggle.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
@@ -640,11 +641,8 @@ void DockCoordinator::refreshTabIcons() {
         return;
     }
     auto& artProvider = core::ArtProvider::getInstance();
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        QWidget* page = m_centralTabs->widget(i);
-        if (!page) {
-            continue;
-        }
+    // Those of the windows of their own too
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
         const QString iconId = page->property("tabIconId").toString();
         // A chapter of a kind the program does not have: the icon on the book's card of its
         // package
@@ -653,7 +651,7 @@ void DockCoordinator::refreshTabIcons() {
             package.isEmpty() ? nullptr
                               : core::ProjectManager::getInstance().packageCard(package);
         if (!iconId.isEmpty()) {
-            m_centralTabs->setTabIcon(i, artProvider.getPackageIcon(iconId, card));
+            DocumentWindows::setTabIcon(page, artProvider.getPackageIcon(iconId, card));
         }
     }
 }

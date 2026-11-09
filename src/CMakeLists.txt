@@ -197,6 +197,7 @@ set(KALAHARI_SOURCES
     gui/settings_coordinator.cpp  # SettingsCoordinator - Settings management extracted from MainWindow (OpenSpec #00038 Phase 5)
     gui/navigator_coordinator.cpp  # NavigatorCoordinator - Navigator handlers extracted from MainWindow (OpenSpec #00038 Phase 6)
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
+    gui/document_windows.cpp  # The texts of the book window in its tabs and in windows of their own
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
     gui/paragraph_marks_coordinator.cpp  # ParagraphMarksCoordinator - paperclips of linked paragraphs
     gui/material_list_coordinator.cpp  # MaterialListCoordinator - the lists of the materials on tabs
@@ -342,6 +343,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/program_instance.h  # ProgramInstance with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT (OpenSpec #00038 Phase 4)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_windows.h  # DocumentWindows and DetachedWindow with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panel_tabs.h  # PanelTabs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/panel_tab_bar.h  # PanelTabBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/central_tabs.h  # CentralTabs with Q_OBJECT

@@ -63,6 +63,7 @@ class VersionsCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
+class DocumentWindows;
 class ColorMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
@@ -430,6 +431,9 @@ private:
 
     // Distraction-Free writing: full screen with the bars, panels and tabs hidden
     utils::DistractionFreeLayout* m_distractionFreeLayout{nullptr};
+
+    /// @brief The texts of the tabs, also in the windows of their own the tabs are moved to
+    DocumentWindows* m_documentWindows{nullptr};
 
     /// @brief Whether Distraction-Free writing is on
     [[nodiscard]] bool isDistractionFree() const;

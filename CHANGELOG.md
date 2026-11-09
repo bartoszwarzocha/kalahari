@@ -15,10 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the cursor, a link to a web page or an e-mail address: a window with the text to display and
   the address ("www.example.com" gets https://, "jan@example.com" mailto:). On a link the window
   edits it and has Remove Link. A link is drawn underlined in the link color of the paper, which
-  Settings > Editor > Colors chooses (the gear of the window opens that page); its tooltip shows
-  the address, and Ctrl+click opens it in the browser. The context menu of a link has Edit
-  Hyperlink..., Open Hyperlink, Copy Hyperlink and Remove Hyperlink. Text typed after a link is
-  not a part of it. Kalahari opens only the addresses of web pages, file servers and e-mail
+  Settings > Editor > Colors chooses for each theme, like the other colors of the papers (the
+  gear of the window opens that page); its tooltip shows the address, and Ctrl+click opens it
+  in the browser. The context menu of a link has Edit Hyperlink..., Open Hyperlink, Copy
+  Hyperlink and Remove Hyperlink. Text typed after a link is not a part of it. Kalahari opens only the addresses of web pages, file servers and e-mail
   (http, https, ftp, mailto). Autocorrect makes an address typed with www., http:// or https://,
   and an e-mail address, a link when a space or Enter follows it (Settings > Editor >
   Auto-correct, "Internet addresses with links"; undone right after, it stays text). Copied
@@ -28,6 +28,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dialogs: the gear opens their settings** - 2026-10-27. A dialog with settings of its own in
   the Settings window has a gear in its heading that opens the Settings window at their page;
   the first is the Link window (Editor > Colors).
+
+- **Windows of their own for the tabs of the texts** - 2026-10-27. A text's tab goes to a
+  window of its own when it is dragged off the bar of the tabs (the window opens where it is
+  dropped), from the menu of its tab (Move to New Window) or with Window > Move Tab to New
+  Window; more tabs can go to the same window. It comes back when it is dropped on the tabs
+  of the book window, with Return to Book Window, or when its window closes. The window shows
+  the text and the book in its title, the menus and the toolbars of the book window (or,
+  with Settings > General > Windows, only the Format toolbar) and the page, the zoom and the
+  counts of its text; the gear at the end of its tabs opens those settings. The panels stay
+  in the book window and follow the text the keys went to last, in any window; Save All,
+  the Navigator, spelling, grammar, annotations and versions find a text in any window, and
+  closing the book closes its texts everywhere. The new Window menu (before Help) moves the
+  tab in front, goes to the next and the previous window (Ctrl+F6, Ctrl+Shift+F6), lists the
+  windows and opens Window Settings...; closing a window of its own takes its texts back to
+  the book window or closes them, asking about their changes (Settings > General > Windows).
+
+- **Settings: the colors of the papers in each theme, and a gear in the find bar** -
+  2026-10-27. Settings > Editor > Colors has a group for the light paper and one for the dark
+  paper, each with the colors of the paper, of the text, of the text Focus dims, of the
+  formatting marks and of the desk around the paper (beside the endless page and around the
+  pages), and the group On Both Papers with the colors of the selection, of the search's hits
+  and of the current hit, drawn translucent under the text as before. Like the colors of the
+  annotations, they are the theme's until changed, each theme keeps its own, and each group has
+  Restore Default Colors; the check box Dark paper (as View > Dark Paper) still chooses the paper
+  whatever the theme. The themes' colors are those the editor had: nothing looks different
+  until a color is changed. The colors of the papers changed before, kept for all themes alike,
+  move at the first start into each theme. The find bar has a gear before its Close button
+  ("Colors of the Search Hits"), which opens Settings > Editor > Colors.
 
 - **Lists: Numbering and Bullets** - 2026-10-26. Format > Numbering (F12) and Bullets
   (Shift+F12) make the selected paragraphs a list, change its kind or take them out of it; a

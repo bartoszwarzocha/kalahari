@@ -127,11 +127,16 @@ TEST_CASE("Editor settings: the waves and the marks in the theme's colors, optim
     const std::string spelling = core::ThemeManager::editorColorSetting(theme, "spelling");
     const std::string comment = core::ThemeManager::editorColorSetting(theme, "annotationComment");
     const std::string optimize = core::ThemeManager::OPTIMIZE_COLORS_SETTING;
-    const auto before = valuesOf({"editor.colors.backgroundLight", "editor.colors.backgroundDark"});
+    // The theme's papers
     const QColor lightPaper(QStringLiteral("#ffffff"));
     const QColor darkPaper(QStringLiteral("#232328"));
-    settings.set<std::string>("editor.colors.backgroundLight", lightPaper.name().toStdString());
-    settings.set<std::string>("editor.colors.backgroundDark", darkPaper.name().toStdString());
+    const std::string papers[] = {
+        core::ThemeManager::editorColorSetting(theme, editor::LIGHT_PAPER_COLOR_KEYS.paper),
+        core::ThemeManager::editorColorSetting(theme, editor::DARK_PAPER_COLOR_KEYS.paper),
+    };
+    for (const std::string& paper : papers) {
+        settings.removeKey(paper);
+    }
 
     // A spelling color too faint for the light paper, a comment color too dark for the dark one
     const QColor faint(QStringLiteral("#ffd0d0"));
@@ -143,6 +148,8 @@ TEST_CASE("Editor settings: the waves and the marks in the theme's colors, optim
 
     gui::EditorPanel panel;
     const auto colors = [&panel]() { return panel.getBookEditor()->appearance().colors; };
+    REQUIRE(colors().continuous.backgroundLight == lightPaper);
+    REQUIRE(colors().continuous.backgroundDark == darkPaper);
 
     // Optimized by default: darker on the light paper and lighter on the dark one, as far as
     // they need to be seen there; as set where they are seen already
@@ -163,7 +170,73 @@ TEST_CASE("Editor settings: the waves and the marks in the theme's colors, optim
     settings.removeKey(spelling);
     settings.removeKey(comment);
     settings.removeKey(optimize);
+    QCoreApplication::processEvents();
+}
+
+TEST_CASE("Editor settings: both papers, the desk, the selection and the search's hits in the "
+          "theme's colors",
+          "[gui][editor][settings][colors]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string theme = core::ThemeManager::getInstance().getCurrentTheme().name;
+    const auto setting = [&theme](const char* key) {
+        return core::ThemeManager::editorColorSetting(theme, key);
+    };
+    const std::string cream = setting(editor::LIGHT_PAPER_COLOR_KEYS.paper);
+    const std::string ink = setting(editor::DARK_PAPER_COLOR_KEYS.text);
+    const std::string desk = setting(editor::DARK_PAPER_COLOR_KEYS.desk);
+    const std::string dimmed = setting(editor::LIGHT_PAPER_COLOR_KEYS.focusDimmed);
+    const std::string selection = setting(editor::SELECTION_COLOR_KEY);
+    const std::string hits = setting(editor::SEARCH_MATCH_COLOR_KEY);
+    const std::string current = setting(editor::CURRENT_SEARCH_MATCH_COLOR_KEY);
+    const std::string all[] = {cream, ink, desk, dimmed, selection, hits, current};
+    const auto clear = [&]() {
+        for (const std::string& key : all) {
+            settings.removeKey(key);
+        }
+        QCoreApplication::processEvents();
+    };
+    clear();
+
+    // Without the writer's colors: the theme's, as the editor has them by itself
+    gui::EditorPanel panel;
+    const auto colors = [&panel]() { return panel.getBookEditor()->appearance().colors; };
+    const editor::EditorColors own;
+    CHECK(colors().continuous.backgroundLight == own.continuous.backgroundLight);
+    CHECK(colors().continuous.textDark == own.continuous.textDark);
+    CHECK(colors().continuous.deskDark == own.continuous.deskDark);
+    CHECK(colors().focus.inactiveLight == own.focus.inactiveLight);
+    CHECK(colors().selection == own.selection);
+    CHECK(colors().searchMatch == own.searchMatch);
+    CHECK(colors().currentSearchMatch == own.currentSearchMatch);
+
+    // The writer's colors of the theme reach the open editors; under the text they stay
+    // translucent
+    settings.set<std::string>(cream, "#f5ecd7");
+    settings.set<std::string>(ink, "#c8c0b0");
+    settings.set<std::string>(desk, "#101018");
+    settings.set<std::string>(dimmed, "#c0b8a8");
+    settings.set<std::string>(selection, "#00ff00");
+    settings.set<std::string>(hits, "#ff00ff");
+    settings.set<std::string>(current, "#0000ff");
+    QCoreApplication::processEvents();  // the theme follows the settings
+    QCoreApplication::processEvents();  // and the editors the theme
+    CHECK(colors().continuous.backgroundLight == QColor(QStringLiteral("#f5ecd7")));
+    CHECK(colors().continuous.textDark == QColor(QStringLiteral("#c8c0b0")));
+    CHECK(colors().continuous.deskDark == QColor(QStringLiteral("#101018")));
+    CHECK(colors().focus.inactiveLight == QColor(QStringLiteral("#c0b8a8")));
+    CHECK(colors().selection == QColor(0, 255, 0, editor::SELECTION_OPACITY));
+    CHECK(colors().searchMatch == QColor(255, 0, 255, editor::SEARCH_MATCH_OPACITY));
+    CHECK(colors().currentSearchMatch == QColor(0, 0, 255, editor::CURRENT_SEARCH_MATCH_OPACITY));
+
+    // The paper the text is written on: the light one in its colors
+    const auto before = valuesOf({"editor.darkMode"});
+    settings.set<bool>("editor.darkMode", false);
+    QCoreApplication::processEvents();
+    const editor::EditorAppearance& appearance = panel.getBookEditor()->appearance();
+    CHECK(appearance.colors.background(appearance.colorMode) == QColor(QStringLiteral("#f5ecd7")));
+
     restore(before);
+    clear();
 }
 
 TEST_CASE("Editor settings: a switch of the Tools menu leaves the view where it is",
@@ -568,9 +641,12 @@ TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the sce
           "every editor",
           "[gui][editor][settings][marks]") {
     auto& settings = core::SettingsManager::getInstance();
-    const auto before = valuesOf({"editor.showFormattingMarks", "editor.sceneBreak.style",
-                                  "editor.colors.formattingMarksLight",
-                                  "editor.colors.formattingMarksDark"});
+    const std::string theme = core::ThemeManager::getInstance().getCurrentTheme().name;
+    const std::string marksLight = core::ThemeManager::editorColorSetting(
+        theme, editor::LIGHT_PAPER_COLOR_KEYS.formattingMarks);
+    const std::string marksDark = core::ThemeManager::editorColorSetting(
+        theme, editor::DARK_PAPER_COLOR_KEYS.formattingMarks);
+    const auto before = valuesOf({"editor.showFormattingMarks", "editor.sceneBreak.style"});
     settings.set<bool>("editor.showFormattingMarks", false);
     settings.set<std::string>("editor.sceneBreak.style", "asterisks");
 
@@ -593,14 +669,17 @@ TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the sce
         CHECK(panel->getBookEditor()->appearance().showFormattingMarks);
     }
 
-    // Their color on each paper
-    settings.set<std::string>("editor.colors.formattingMarksLight", "#123456");
-    settings.set<std::string>("editor.colors.formattingMarksDark", "#abcdef");
-    QCoreApplication::processEvents();
+    // Their color on each paper, the theme's
+    settings.set<std::string>(marksLight, "#123456");
+    settings.set<std::string>(marksDark, "#abcdef");
+    QCoreApplication::processEvents();  // the theme follows the settings
+    QCoreApplication::processEvents();  // and the editors the theme
     CHECK(first.getBookEditor()->appearance().colors.formattingMarks.light ==
           QColor(QStringLiteral("#123456")));
     CHECK(first.getBookEditor()->appearance().colors.formattingMarks.dark ==
           QColor(QStringLiteral("#abcdef")));
+    settings.removeKey(marksLight);
+    settings.removeKey(marksDark);
 
     // How the scene breaks look; a name the program does not know: three asterisks
     settings.set<std::string>("editor.sceneBreak.style", "fleuron");
@@ -620,23 +699,37 @@ TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the sce
 TEST_CASE("Editor settings: the color of links on each paper, and links made by autocorrect",
           "[gui][editor][settings][links]") {
     auto& settings = core::SettingsManager::getInstance();
-    const auto before = valuesOf({"editor.colors.linkLight", "editor.colors.linkDark",
-                                  "editor.autoCorrect.links"});
+    const std::string theme = core::ThemeManager::getInstance().getCurrentTheme().name;
+    const std::string light =
+        core::ThemeManager::editorColorSetting(theme, editor::LIGHT_PAPER_COLOR_KEYS.link);
+    const std::string dark =
+        core::ThemeManager::editorColorSetting(theme, editor::DARK_PAPER_COLOR_KEYS.link);
+    settings.removeKey(light);
+    settings.removeKey(dark);
+    QCoreApplication::processEvents();
+    const auto before = valuesOf({"editor.autoCorrect.links"});
+
+    // Without the writer's colors: the theme's, as the editor has them by itself
     gui::EditorPanel panel;
     const editor::BookEditor* bookEditor = panel.getBookEditor();
     CHECK(bookEditor->appearance().colors.links.light == QColor(QStringLiteral("#0563c1")));
     CHECK(bookEditor->appearance().colors.links.dark == QColor(QStringLiteral("#8ab4f8")));
     CHECK(bookEditor->autoCorrect().links);
 
-    settings.set<std::string>("editor.colors.linkLight", "#123456");
-    settings.set<std::string>("editor.colors.linkDark", "#abcdef");
+    // The writer's colors of the theme reach the open editors
+    settings.set<std::string>(light, "#123456");
+    settings.set<std::string>(dark, "#abcdef");
     settings.set<bool>("editor.autoCorrect.links", false);
-    QCoreApplication::processEvents();
+    QCoreApplication::processEvents();  // the theme follows the settings
+    QCoreApplication::processEvents();  // and the editors the theme
     CHECK(bookEditor->appearance().colors.links.light == QColor(QStringLiteral("#123456")));
     CHECK(bookEditor->appearance().colors.links.dark == QColor(QStringLiteral("#abcdef")));
     CHECK_FALSE(bookEditor->autoCorrect().links);
 
     restore(before);
+    settings.removeKey(light);
+    settings.removeKey(dark);
+    QCoreApplication::processEvents();
 }
 
 TEST_CASE("Settings dialog: the look of the scene breaks, with its preview, and the color of the "

@@ -1441,6 +1441,10 @@ signals:
     /// it, pasted, cut, undid, redid, formatted or aligned it; nothing changed
     void changeRefused();
 
+    /// @brief The gear of the find bar asks for the colors of the hits (Settings > Editor >
+    /// Colors)
+    void searchColorsRequested();
+
     /// @brief The writer undid a change of autocorrect right after it, one an exception list
     ///        can keep from (AutoCorrection::learns): as in Word, the list may get it
     /// @param list The list: the abbreviations, or the words with two capitals
