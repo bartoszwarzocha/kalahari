@@ -122,7 +122,8 @@
   "main":     ["part", "chapter", "conclusion"],
   "back":     ["annex", "endnotes", "bibliography", "glossary", "index", "illustrations",
                "acknowledgments", "about_author", "toc"],
-  "workshop": ["source", "work_note", "timeline", "mindmap", "material"],
+  "workshop": ["source", "timeline", "mindmap", "work_note", "quote", "web_page",
+               "picture", "document", "publication", "recording", "other_file"],
   "primary":  "chapter",
   "start":    ["title_page", "introduction", "chapter"],
   "styles":   "styles.json"

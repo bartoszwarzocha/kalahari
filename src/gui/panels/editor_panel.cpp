@@ -4,14 +4,15 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/font_dialog.h"
+#include "kalahari/gui/dialogs/hyperlink_dialog.h"
 #include "kalahari/gui/dialogs/insert_table_dialog.h"
-#include "kalahari/gui/dialogs/link_dialog.h"
 #include "kalahari/gui/dialogs/list_dialogs.h"
 #include "kalahari/gui/dialogs/paragraph_dialog.h"
 #include "kalahari/gui/dialogs/table_dialogs.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
+#include "kalahari/gui/quick_insert_items.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/utils/language_names.h"
@@ -27,8 +28,10 @@
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/paragraph_styles.h"
+#include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/statistics_collector.h"
 #include "kalahari/editor/text_link.h"
+#include "kalahari/editor/word_repetitions.h"
 #include <QDesktopServices>
 #include <QEvent>
 #include <QGuiApplication>
@@ -51,6 +54,14 @@ namespace {
 /// @brief The smallest and the largest size of the annotations' marks (1 = 100%)
 constexpr double MIN_MARK_SCALE = 0.5;
 constexpr double MAX_MARK_SCALE = 3.0;
+
+/// The size of the text of the cards under the paragraphs, in percent of the chapter's text
+constexpr int MIN_CARD_FONT = 60;
+constexpr int MAX_CARD_FONT = 130;
+
+/// How much of the kind's color the cards have, in percent of the usual
+constexpr int MIN_CARD_TINT = 50;
+constexpr int MAX_CARD_TINT = 200;
 
 /// @brief The languages with lists of abbreviations of their own in the settings
 /// (editor.autoCorrect.abbreviations.pl); another language has the English one
@@ -130,6 +141,11 @@ EditorPanel::EditorPanel(QWidget* parent)
     // book only after its tab is shown
     m_bookEditor->setTextLanguage([this]() { return textLanguage(); });
 
+    // Quick insert: the cards of the book, the fragments and the characters at the cursor;
+    // the editor owns it, Insert > Quick Insert... finds it there
+    m_quickInsert = new editor::QuickInsertController(
+        m_bookEditor, [](QChar trigger) { return quickInsertItems(trigger); }, m_bookEditor);
+
     // A change of autocorrect undone right after it: as in Word, the exceptions keep the
     // abbreviation or the word, unless the writer turned that off
     connect(m_bookEditor, &editor::BookEditor::autoCorrectionUndone, this,
@@ -154,7 +170,7 @@ EditorPanel::EditorPanel(QWidget* parent)
     // The window of a link, and its address opened, asked for by its context menu or a
     // Ctrl+click
     connect(m_bookEditor, &editor::BookEditor::linkDialogAsked, this,
-            &EditorPanel::showLinkDialog);
+            &EditorPanel::showHyperlinkDialog);
     connect(m_bookEditor, &editor::BookEditor::linkOpenAsked, this, &EditorPanel::openLink);
 
     // F7 in the menu of an issue goes on to the next one, as in the text
@@ -403,27 +419,55 @@ void EditorPanel::applySettings() {
     appearance.typography.paragraphSpacing = settings.get<double>("editor.paragraphSpacing");
     appearance.typography.firstLineIndent = settings.get<bool>("editor.firstLineIndent");
     appearance.typography.indentSize = settings.get<double>("editor.indentSize");
+    appearance.typography.tabStops =
+        settings.get<std::string>("editor.tabStops") == editor::TAB_STOPS_SPACES
+            ? editor::TabStops::Spaces
+            : editor::TabStops::Indent;
+    appearance.typography.tabSpaces = settings.get<int>("editor.tabSize");
 
-    // The paper (light or dark, independent from the application's theme) and its colors
+    // The paper (light or dark, independent from the application's theme) and the colors of
+    // both papers: the theme's (the editor's own where the theme has none)
     appearance.colorMode = settings.get<bool>("editor.darkMode")
         ? editor::EditorColorMode::Dark
         : editor::EditorColorMode::Light;
-    appearance.colors.continuous.backgroundLight = color("editor.colors.backgroundLight");
-    appearance.colors.continuous.textLight = color("editor.colors.textLight");
-    appearance.colors.focus.inactiveLight = color("editor.colors.inactiveLight");
-    appearance.colors.continuous.backgroundDark = color("editor.colors.backgroundDark");
-    appearance.colors.continuous.textDark = color("editor.colors.textDark");
-    appearance.colors.focus.inactiveDark = color("editor.colors.inactiveDark");
-    appearance.colors.formattingMarks.light = color("editor.colors.formattingMarksLight");
-    appearance.colors.formattingMarks.dark = color("editor.colors.formattingMarksDark");
-    appearance.colors.links.light = color("editor.colors.linkLight");
-    appearance.colors.links.dark = color("editor.colors.linkDark");
-    appearance.colors.tables.linesLight = color("editor.colors.tableLinesLight");
-    appearance.colors.tables.linesDark = color("editor.colors.tableLinesDark");
-    appearance.colors.tables.headerLight = color("editor.colors.tableHeaderLight");
-    appearance.colors.tables.headerDark = color("editor.colors.tableHeaderDark");
-    appearance.colors.tables.gridlinesLight = color("editor.colors.tableGridlinesLight");
-    appearance.colors.tables.gridlinesDark = color("editor.colors.tableGridlinesDark");
+    const auto& themes = core::ThemeManager::getInstance();
+    const editor::EditorColors defaults;
+    const editor::PaperColorKeys& light = editor::LIGHT_PAPER_COLOR_KEYS;
+    const editor::PaperColorKeys& dark = editor::DARK_PAPER_COLOR_KEYS;
+    auto& papers = appearance.colors.continuous;
+    papers.backgroundLight = themes.editorColor(light.paper, defaults.continuous.backgroundLight);
+    papers.textLight = themes.editorColor(light.text, defaults.continuous.textLight);
+    papers.deskLight = themes.editorColor(light.desk, defaults.continuous.deskLight);
+    papers.backgroundDark = themes.editorColor(dark.paper, defaults.continuous.backgroundDark);
+    papers.textDark = themes.editorColor(dark.text, defaults.continuous.textDark);
+    papers.deskDark = themes.editorColor(dark.desk, defaults.continuous.deskDark);
+    appearance.colors.focus.inactiveLight =
+        themes.editorColor(light.focusDimmed, defaults.focus.inactiveLight);
+    appearance.colors.focus.inactiveDark =
+        themes.editorColor(dark.focusDimmed, defaults.focus.inactiveDark);
+    appearance.colors.formattingMarks.light =
+        themes.editorColor(light.formattingMarks, defaults.formattingMarks.light);
+    appearance.colors.formattingMarks.dark =
+        themes.editorColor(dark.formattingMarks, defaults.formattingMarks.dark);
+    appearance.colors.links.light = themes.editorColor(light.link, defaults.links.light);
+    appearance.colors.links.dark = themes.editorColor(dark.link, defaults.links.dark);
+    auto& tables = appearance.colors.tables;
+    tables.linesLight = themes.editorColor(light.tableLines, defaults.tables.linesLight);
+    tables.linesDark = themes.editorColor(dark.tableLines, defaults.tables.linesDark);
+    tables.headerLight = themes.editorColor(light.tableHeader, defaults.tables.headerLight);
+    tables.headerDark = themes.editorColor(dark.tableHeader, defaults.tables.headerDark);
+    tables.gridlinesLight = themes.editorColor(light.tableGridlines, defaults.tables.gridlinesLight);
+    tables.gridlinesDark = themes.editorColor(dark.tableGridlines, defaults.tables.gridlinesDark);
+    // Under the text on both papers: translucent, so the text stays readable
+    appearance.colors.selection =
+        editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),
+                               editor::SELECTION_OPACITY);
+    appearance.colors.searchMatch = editor::underTextColor(
+        themes.editorColor(editor::SEARCH_MATCH_COLOR_KEY, defaults.searchMatch),
+        editor::SEARCH_MATCH_OPACITY);
+    appearance.colors.currentSearchMatch = editor::underTextColor(
+        themes.editorColor(editor::CURRENT_SEARCH_MATCH_COLOR_KEY, defaults.currentSearchMatch),
+        editor::CURRENT_SEARCH_MATCH_OPACITY);
 
     // Cursor
     appearance.cursor.style = static_cast<editor::CursorStyle>(settings.get<int>("editor.cursor.style"));
@@ -438,6 +482,11 @@ void EditorPanel::applySettings() {
     appearance.pageMargins.bottom = settings.get<double>("editor.margins.pageBottom");
     appearance.pageMargins.left = settings.get<double>("editor.margins.pageLeft");
     appearance.pageMargins.right = settings.get<double>("editor.margins.pageRight");
+    // Mirror margins: the inner one at the binding (the chapter tells whether its first page
+    // is a left one: setFirstPageLeft())
+    appearance.pageMargins.mirrored = settings.get<bool>("editor.margins.mirrorEnabled");
+    appearance.pageMargins.inner = settings.get<double>("editor.margins.pageInner");
+    appearance.pageMargins.outer = settings.get<double>("editor.margins.pageOuter");
 
     // Page format (Page Layout view)
     appearance.pageLayout.pageSize = editor::PageLayout::pageSizeFromId(
@@ -457,6 +506,17 @@ void EditorPanel::applySettings() {
 
     // The formatting marks (View > Show Formatting Marks) and how the scene breaks look
     appearance.showFormattingMarks = settings.get<bool>("editor.showFormattingMarks");
+
+    // The numbers on the left margin (View > Margin Numbering)
+    editor::MarginNumbers& numbers = appearance.marginNumbers;
+    numbers.numbering = editor::marginNumberingFromName(
+        QString::fromStdString(settings.get<std::string>("editor.marginNumbers.mode")));
+    numbers.interval = settings.get<int>("editor.marginNumbers.interval");
+    numbers.restartEachPage = settings.get<bool>("editor.marginNumbers.restartEachPage");
+    numbers.fontFamily =
+        QString::fromStdString(settings.get<std::string>("editor.marginNumbers.font"));
+    numbers.pointSize = settings.get<double>("editor.marginNumbers.size");
+    numbers.color = color("editor.marginNumbers.color");
     appearance.sceneBreakLook = editor::sceneBreakLookFromName(
         QString::fromStdString(settings.get<std::string>("editor.sceneBreak.style")));
 
@@ -465,10 +525,9 @@ void EditorPanel::applySettings() {
     appearance.textFrameBorder.color = color("editor.textFrameBorder.color");
     appearance.textFrameBorder.width = settings.get<int>("editor.textFrameBorder.width");
 
-    // The annotations' marks (at the size of the setting) and the waves under the misspelled
-    // words and the grammar issues: the theme's colors, on each paper as "Optimize colors in
-    // themes" shows them
-    const auto& themes = core::ThemeManager::getInstance();
+    // The annotations' marks (at the size of the setting), the waves under the misspelled
+    // words and the grammar issues, and the marks of the repeated words: the theme's colors,
+    // on each paper as "Optimize colors in themes" shows them
     const bool optimize = themes.optimizesEditorColors();
     const auto onPaper = [&themes, optimize](const std::string& key, const QColor& paper) {
         return shownColor(themes.editorColor(key, QColor()), paper, optimize);
@@ -484,6 +543,7 @@ void EditorPanel::applySettings() {
         editor::EditorColors::IssueColors colors;
         colors.spelling = onPaper(editor::issueColorKey(editor::TextIssueKind::Spelling), paper);
         colors.grammar = onPaper(editor::issueColorKey(editor::TextIssueKind::Grammar), paper);
+        colors.repetition = onPaper(editor::REPETITION_COLOR_KEY, paper);
         return colors;
     };
     const QColor lightPaper = appearance.colors.continuous.backgroundLight;
@@ -495,6 +555,24 @@ void EditorPanel::applySettings() {
     appearance.annotationMarkScale =
         std::clamp(settings.get<int>("editor.annotationMarkSize") / 100.0, MIN_MARK_SCALE,
                    MAX_MARK_SCALE);
+
+    // The cards of the annotations under their paragraphs
+    const auto text = [&settings](const std::string& key) { return settings.get<std::string>(key); };
+    editor::AnnotationCardSettings& cards = appearance.annotationCards;
+    cards.show = settings.get<bool>("editor.annotationCards.show");
+    cards.comments = settings.get<bool>("editor.annotationCards.comments");
+    cards.todos = settings.get<bool>("editor.annotationCards.todos");
+    cards.notes = settings.get<bool>("editor.annotationCards.notes");
+    cards.compact = text("editor.annotationCards.look") == "compact";
+    cards.collapsedLine = text("editor.annotationCards.collapsedLook") == "line";
+    cards.startCollapsed = text("editor.annotationCards.afterOpening") == "collapsed";
+    cards.longLines = std::max(0, settings.get<int>("editor.annotationCards.longLines"));
+    cards.fontPercent = std::clamp(settings.get<int>("editor.annotationCards.fontSize"),
+                                   MIN_CARD_FONT, MAX_CARD_FONT);
+    cards.tintPercent = std::clamp(settings.get<int>("editor.annotationCards.tint"),
+                                   MIN_CARD_TINT, MAX_CARD_TINT);
+    cards.highlightFragment = settings.get<bool>("editor.annotationCards.highlightFragment");
+    cards.inDistractionFree = text("editor.annotationCards.distractionFree") != "hide";
 
     m_bookEditor->setAppearance(appearance);
 
@@ -555,6 +633,9 @@ void EditorPanel::applySettings() {
     autoCorrect.links = replaces("editor.autoCorrect.links");
     m_bookEditor->setAutoCorrect(autoCorrect);
 
+    // The characters that open quick insert (Settings > Editor > Quick Insert)
+    m_quickInsert->setTriggers(quickInsertTriggers());
+
     // How text from other programs is pasted (Settings > Editor > General)
     m_bookEditor->setPasteMode(editor::ClipboardHandler::pasteModeFromId(
         QString::fromStdString(settings.get<std::string>(editor::PASTE_MODE_KEY))));
@@ -609,12 +690,12 @@ void EditorPanel::showParagraphDialog() {
     }
 }
 
-void EditorPanel::showLinkDialog() {
+void EditorPanel::showHyperlinkDialog() {
     if (m_bookEditor->isReadOnly()) {
         return;
     }
     const editor::LinkTarget target = m_bookEditor->linkTarget();
-    dialogs::LinkDialog dialog(window());
+    dialogs::HyperlinkDialog dialog(window());
     dialog.setLink(target.text, target.address, target.existing, target.textEditable);
     if (dialog.exec() != QDialog::Accepted) {
         return;
@@ -727,6 +808,16 @@ void EditorPanel::showNumberingValue() {
     if (dialog.exec() == QDialog::Accepted) {
         m_bookEditor->setNumberingValue(dialog.value());
     }
+}
+
+void EditorPanel::setFirstPageLeft(bool left) {
+    // The editor's appearance keeps it: applySettings() starts from it
+    editor::EditorAppearance appearance = m_bookEditor->appearance();
+    if (appearance.pageMargins.firstPageLeft == left) {
+        return;
+    }
+    appearance.pageMargins.firstPageLeft = left;
+    m_bookEditor->setAppearance(appearance);
 }
 
 void EditorPanel::scheduleSettings() {

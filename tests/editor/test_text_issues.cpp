@@ -525,8 +525,8 @@ TEST_CASE("Issues: the waves have the colors of the editor's appearance, on each
     };
 
     const RenderColors before;
-    appearance.colors.issuesLight = {QColor(0, 160, 0), QColor(170, 0, 170)};
-    appearance.colors.issuesDark = {QColor(0, 220, 220), QColor(230, 230, 0)};
+    appearance.colors.issuesLight = {QColor(0, 160, 0), QColor(170, 0, 170), QColor()};
+    appearance.colors.issuesDark = {QColor(0, 220, 220), QColor(230, 230, 0), QColor()};
 
     SECTION("on the dark paper") {
         appearance.colorMode = EditorColorMode::Dark;
@@ -553,6 +553,58 @@ TEST_CASE("Issues: the waves have the colors of the editor's appearance, on each
         CHECK(wavePixels(wavedImage, plainImage, spellingArea, before.spellError) > 0);
         CHECK(wavePixels(wavedImage, plainImage, grammarArea, before.grammarWarning) > 0);
     }
+}
+
+TEST_CASE("Repetitions: the repeated words marked with a background or a wave, the chosen ones "
+          "framed",
+          "[editor][repetitions]") {
+    const QStringList text{QStringLiteral("The rain fell. The rain fell again.")};
+    auto marked = shownEditor(text, nullptr, nullptr);
+    auto plain = shownEditor(text, nullptr, nullptr);
+    const QColor green(0, 160, 0);
+    EditorAppearance appearance = marked->appearance();
+    appearance.colorMode = EditorColorMode::Light;
+    appearance.colors.issuesLight.repetition = green;
+    marked->setAppearance(appearance);
+    plain->setAppearance(appearance);
+    const auto image = [](BookEditor& editor) {
+        editor.setCursorPosition({0, 0});
+        return editorImage(editor);
+    };
+    const QImage plainImage = image(*plain);
+    const QRect firstRain = waveArea(*marked, 4, 8);
+    const QRect fell = waveArea(*marked, 9, 13);
+    const QRect secondRain = waveArea(*marked, 19, 23);
+    const std::vector<RepetitionMark> marks = {{0, 4, 4, false}, {0, 19, 4, true}};
+
+    // A background: lighter than the color itself, and nothing on the words between; the
+    // chosen word framed in the color
+    marked->setRepetitionMarks(marks, RepetitionMarkStyle::Background);
+    CHECK(marked->repetitionMarks() == marks);
+    QImage markedImage = image(*marked);
+    const auto changed = [&markedImage, &plainImage](const QRect& area) {
+        int count = 0;
+        for (int y = area.top(); y <= area.bottom(); ++y) {
+            for (int x = area.left(); x <= area.right(); ++x) {
+                count += markedImage.pixel(x, y) != plainImage.pixel(x, y) ? 1 : 0;
+            }
+        }
+        return count;
+    };
+    CHECK(changed(firstRain) > 0);
+    CHECK(changed(fell) == 0);
+    CHECK(wavePixels(markedImage, plainImage, firstRain, green) == 0);
+    CHECK(wavePixels(markedImage, plainImage, secondRain, green) > 0);
+
+    // A wave in the color
+    marked->setRepetitionMarks(marks, RepetitionMarkStyle::Wave);
+    markedImage = image(*marked);
+    CHECK(wavePixels(markedImage, plainImage, firstRain, green) > 0);
+    CHECK(changed(fell) == 0);
+
+    // None
+    marked->setRepetitionMarks({});
+    CHECK(image(*marked) == plainImage);
 }
 
 TEST_CASE("Issues: the themes have a color for each kind of wave, seen on both papers",

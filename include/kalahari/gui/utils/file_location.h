@@ -1,10 +1,11 @@
 /// @file file_location.h
-/// @brief A file or a folder shown in the file manager of the system, and a file opened in the
-/// program the system gives it
+/// @brief A file or a folder shown in the file manager of the system, a file opened in the
+/// program the system gives it, and a web address opened in the system's browser
 
 #pragma once
 
 #include <QString>
+#include <QUrl>
 
 #include <functional>
 
@@ -32,6 +33,16 @@ bool openWithSystem(const QString& path);
 /// test sees what the program opens; an empty function gives the system's programs back
 /// @param open Does openWithSystem() for a path that exists
 void setFileOpenerForTests(std::function<bool(const QString&)> open);
+
+/// @brief Open web address @p url in the system's browser
+/// @return false when @p url is no http or https address or the system could not open it;
+///         the caller tells the writer
+bool openInBrowser(const QUrl& url);
+
+/// @brief A browser in place of the system's, for tests: no browser starts, and a test sees
+/// what the program opens; an empty function gives the system's browser back
+/// @param open Does openInBrowser() for a web address
+void setBrowserForTests(std::function<bool(const QUrl&)> open);
 
 } // namespace gui
 } // namespace kalahari

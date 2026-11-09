@@ -352,7 +352,8 @@ TEST_CASE("Annotations: a mark at the end of each open one, in the paragraph it 
     // from "three" to "four"
     auto editor = editorWith(kmlWith(
         record(QStringLiteral("s"), QStringLiteral("note")) +
-            QStringLiteral("<annotation id=\"t1\" kind=\"todo\" author=\"Anna\">Fix</annotation>") +
+            QStringLiteral("<annotation id=\"t1\" kind=\"todo\" author=\"Anna\" "
+                           "created=\"2026-10-24T09:30:00Z\">Fix</annotation>") +
             record(QStringLiteral("a")) + record(QStringLiteral("n1"), QStringLiteral("note")) +
             record(QStringLiteral("n2"), QStringLiteral("note")) +
             QStringLiteral("<annotation id=\"t2\" kind=\"todo\" done=\"true\">Done</annotation>"
@@ -375,12 +376,14 @@ TEST_CASE("Annotations: a mark at the end of each open one, in the paragraph it 
     CHECK(marksOf(*editor, 3).isEmpty());
     CHECK(annotationMarksIn(QTextBlock()).empty());
 
-    // A mark tells whose it is, with the annotation's text and author
+    // A mark tells whose it is, with the annotation's text, author and date
     const std::vector<AnnotationMark> marks =
         annotationMarksIn(editor->textDocument()->firstBlock());
     REQUIRE(marks.size() == 2);
     CHECK(marks[1] == AnnotationMark{7, AnnotationKind::Todo, QStringLiteral("t1"),
-                                     QStringLiteral("Fix"), QStringLiteral("Anna")});
+                                     QStringLiteral("Fix"), QStringLiteral("Anna"),
+                                     QDateTime::fromString(QStringLiteral("2026-10-24T09:30:00Z"),
+                                                           Qt::ISODate)});
 
     SECTION("the mark follows the end of its fragment") {
         editor->setCursorPosition({0, 5});

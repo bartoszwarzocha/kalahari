@@ -76,6 +76,7 @@ std::vector<TextKey> windowsKeys() {
         // Alt+Down are the TODOs of the Edit menu)
         .key(Qt::Key_Up, ALT | SHIFT, Action::MoveUp)
         .key(Qt::Key_Down, ALT | SHIFT, Action::MoveDown)
+        .key(Qt::Key_Tab, NONE, Action::Tab)
         // The second keys of the commands, those of every Windows text field
         .key(Qt::Key_Z, CTRL | SHIFT, Action::Redo)
         .key(Qt::Key_Backspace, ALT, Action::Undo)
@@ -125,6 +126,7 @@ std::vector<TextKey> macKeys() {
         // Cmd+Return is Insert > Page Break, a command of the window
         .enter({NONE, ALT}, Action::NewParagraph)
         .enter({SHIFT}, Action::NewLine)
+        .key(Qt::Key_Tab, NONE, Action::Tab)
         .key(Qt::Key_Z, CTRL | SHIFT, Action::Redo)
         // The rows of a table and the paragraphs up and down, as in Word for macOS (Option+
         // Shift+Up selects to the start of the paragraph)

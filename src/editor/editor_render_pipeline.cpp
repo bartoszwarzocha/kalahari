@@ -6,13 +6,16 @@
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/core/logger.h>
+#include <QPaintDevice>
 #include <QPainter>
 #include <QPainterPath>
 #include <QTextLayout>
 #include <QTextLine>
 #include <QTextBlock>
+#include <QPixmap>
 #include <algorithm>
 #include <cmath>
+#include <map>
 
 namespace kalahari::editor {
 
@@ -21,8 +24,13 @@ namespace {
 /// Size of the page numbers relative to the text font
 constexpr double PAGE_NUMBER_FONT_SCALE = 0.8;
 
-/// Shade of the desk around the pages, from the paper color (QColor::darker() for light
-/// paper, QColor::lighter() for dark paper)
+/// The numbers on the margin: their right edge this far left of the text (or half the
+/// margin, when it is narrower than twice as much), and their size without a valid one
+constexpr double MARGIN_NUMBER_GAP_MM = 8.0;
+constexpr double DEFAULT_MARGIN_NUMBER_POINTS = 8.0;
+
+/// Shade of the desk around the pages, from the paper color, where the desk has no color of its
+/// own (QColor::darker() for light paper, QColor::lighter() for dark paper)
 constexpr int DESK_DARKER_FACTOR = 118;
 constexpr int DESK_LIGHTER_FACTOR = 160;
 
@@ -44,8 +52,25 @@ constexpr double MARK_SPACING = 1.2;
 /// The marks of the paragraphs Focus dims are dimmed as much
 constexpr double DIMMED_MARK_OPACITY = 0.45;
 
+/// The line along the bottom of a fragment shown in a color, in pixels at zoom 100%
+constexpr double FRAGMENT_LINE_WIDTH = 2.0;
+
 /// The area around a mark a click or the mouse finds it in, in pixels of the screen
 constexpr double MARK_HIT_SIZE = 14.0;
+
+/// How opaque the background of a repeated word is, and of one chosen in the Repetitions
+/// panel: the text stays readable on a light and a dark paper
+constexpr float REPETITION_ALPHA = 0.3F;
+constexpr float CURRENT_REPETITION_ALPHA = 0.45F;
+
+/// The marks beside the paragraphs (paperclips): their size as a share of the height of the
+/// paragraph's first line, at least PARAGRAPH_MARK_MINIMUM pixels of the screen; the gap
+/// between a mark and the text as a share of its size; how strong its color is, so that it
+/// does not draw the eye away from the text
+constexpr double PARAGRAPH_MARK_SHARE = 0.8;
+constexpr double PARAGRAPH_MARK_MINIMUM = 10.0;
+constexpr double PARAGRAPH_MARK_GAP_SHARE = 0.6;
+constexpr double PARAGRAPH_MARK_OPACITY = 0.6;
 
 /// The line a place is on: of the character before it for a place after text (the end of
 /// a wrapped line belongs to that line, not to the next one)
@@ -413,14 +438,15 @@ void EditorRenderPipeline::setConfigViewportSize(const QSizeF& size) {
 }
 
 void EditorRenderPipeline::setConfigPageLayout(const QSizeF& pageSize, const QMarginsF& marginsMm,
-                                               double pageGap) {
+                                               double pageGap, bool mirrorMargins) {
     PageModeConfig& page = m_context.pageMode;
     if (page.pageSize == pageSize && page.marginsMm == marginsMm &&
-        std::abs(page.pageSpacing - pageGap) < 0.01) return;
+        std::abs(page.pageSpacing - pageGap) < 0.01 && page.mirrorMargins == mirrorMargins) return;
 
     page.pageSize = pageSize;
     page.marginsMm = marginsMm;
     page.pageSpacing = pageGap;
+    page.mirrorMargins = mirrorMargins;  // the text of every page is as wide: no relayout
 
     computePageLayout();
     computeMargins();
@@ -464,6 +490,25 @@ void EditorRenderPipeline::setConfigFormattingMarks(bool show) {
 
     m_context.showFormattingMarks = show;
     markRepaintOnly();
+}
+
+void EditorRenderPipeline::setConfigMarginNumbers(const MarginNumbers& numbers) {
+    if (m_context.marginNumbers == numbers) return;
+
+    m_context.marginNumbers = numbers;
+    markRepaintOnly();
+}
+
+bool EditorRenderPipeline::marginNumbersOutdated() const {
+    const MarginNumbering numbering = m_context.marginNumbers.numbering;
+    if (numbering == MarginNumbering::None || !m_textSource ||
+        m_paintedMarginFirst >= m_textSource->paragraphCount()) {
+        return false;
+    }
+    // Only the lines are estimated: the paragraphs with text are known without the layout
+    const MarginCounts counts = m_textSource->marginCountsBefore(m_paintedMarginFirst);
+    return numbering == MarginNumbering::Lines ? counts.lines != m_paintedMarginBase.lines
+                                               : counts.paragraphs != m_paintedMarginBase.paragraphs;
 }
 
 void EditorRenderPipeline::setConfigAnnotationMarkScale(double scale) {
@@ -671,10 +716,10 @@ QRectF EditorRenderPipeline::caretRect(const CursorPosition& position) const {
     QTextLayout* layout = m_textSource->layout(static_cast<size_t>(paraIndex));
     if (!layout || layout->lineCount() == 0) {
         // Fallback: return default cursor rect
-        double widgetY = paragraphWidgetY(static_cast<size_t>(paraIndex));
+        const double docY = m_textSource->paragraphY(static_cast<size_t>(paraIndex));
         QFontMetricsF fm(m_context.font);
-        return QRectF(m_context.computed.originX, widgetY,
-                      m_context.cursor.width, fm.height() * scale);
+        return QRectF(documentToWidget(QPointF(0.0, docY)),
+                      QSizeF(m_context.cursor.width, fm.height() * scale));
     }
 
     // Find line containing cursor - O(log n) using Qt's binary search
@@ -731,11 +776,8 @@ std::vector<EditorRenderPipeline::AnnotationMarkShape> EditorRenderPipeline::ann
     if (!layout || layout->lineCount() == 0) return shapes;
 
     const double scale = m_context.computed.viewScale;
-    const double originX = m_context.computed.originX;
+    const double paragraphY = m_textSource->paragraphY(paragraph);
     const double widgetY = paragraphWidgetY(paragraph);
-    const auto toWidget = [scale, originX, widgetY](double x, double y) {
-        return QPointF(originX + x * scale, widgetY + y * scale);
-    };
 
     int samePlace = 0;  // marks before this one on the same place: they stand side by side
     for (size_t i = 0; i < marks.size(); ++i) {
@@ -748,6 +790,11 @@ std::vector<EditorRenderPipeline::AnnotationMarkShape> EditorRenderPipeline::ann
         const double width = height * MARK_WIDTH_RATIO;
         const double x = line.cursorToX(mark.offset) + samePlace * width * MARK_SPACING;
         const double top = line.y() + line.ascent() + line.descent() * MARK_GAP_SHARE;
+        // On the page of its line
+        const double originX = documentToWidget(QPointF(0.0, paragraphY + line.y())).x();
+        const auto toWidget = [scale, originX, widgetY](double atX, double atY) {
+            return QPointF(originX + atX * scale, widgetY + atY * scale);
+        };
 
         AnnotationMarkShape shape;
         shape.mark = mark;
@@ -817,6 +864,81 @@ void EditorRenderPipeline::renderAnnotationMarks(QPainter* painter, const QRect&
     painter->restore();
 }
 
+void EditorRenderPipeline::setParagraphMarks(std::vector<ParagraphMark> marks,
+                                             const QIcon& icon) {
+    m_paragraphMarks = std::move(marks);
+    m_paragraphMarkIcon = icon;
+    markRepaintOnly();
+}
+
+std::optional<ParagraphMark> EditorRenderPipeline::paragraphMarkAt(const QPointF& point) const {
+    const size_t first = m_context.computed.firstVisibleParagraph;
+    const size_t last = m_context.computed.lastVisibleParagraph;
+    for (const ParagraphMark& mark : m_paragraphMarks) {
+        const auto paragraph = static_cast<size_t>(std::max(mark.paragraph, 0));
+        if (paragraph < first || paragraph > last) continue;
+        const QRectF rect = paragraphMarkRect(paragraph);
+        const double growX = std::max(0.0, (MARK_HIT_SIZE - rect.width()) / 2.0);
+        const double growY = std::max(0.0, (MARK_HIT_SIZE - rect.height()) / 2.0);
+        if (!rect.isEmpty() && rect.adjusted(-growX, -growY, growX, growY).contains(point)) {
+            return mark;
+        }
+    }
+    return std::nullopt;
+}
+
+QRectF EditorRenderPipeline::paragraphMarkRect(size_t paragraph) const {
+    if (!m_textSource || paragraph >= m_textSource->paragraphCount()) return {};
+    QTextLayout* layout = m_textSource->layout(paragraph);
+    if (!layout || layout->lineCount() == 0) return {};
+
+    // In the left margin of the line's page (mirror margins: its margin), beside the middle
+    // of the paragraph's first line
+    const QTextLine line = layout->lineAt(0);
+    const double scale = m_context.computed.viewScale;
+    const double size =
+        std::max(PARAGRAPH_MARK_MINIMUM, line.height() * scale * PARAGRAPH_MARK_SHARE);
+    const double lineY = m_textSource->paragraphY(paragraph) + line.y();
+    const double textLeft = documentToWidget(QPointF(0.0, lineY)).x();
+    // The numbers on the margin are next to the text: the mark goes left of their column, so
+    // that a large first line (a heading) does not cover them
+    const double besides = m_context.marginNumbers.numbering == MarginNumbering::None
+                               ? textLeft
+                               : marginNumbersLeft(lineY);
+    const double x = besides - size * (1.0 + PARAGRAPH_MARK_GAP_SHARE);
+    const double middle = paragraphWidgetY(paragraph) + (line.y() + line.height() / 2.0) * scale;
+    return QRectF(x, middle - size / 2.0, size, size);
+}
+
+void EditorRenderPipeline::renderParagraphMarks(QPainter* painter, const QRect& clipRect) {
+    if (!m_textSource || m_paragraphMarks.empty() || m_paragraphMarkIcon.isNull()) return;
+
+    const size_t first = m_context.computed.firstVisibleParagraph;
+    const size_t last = m_context.computed.lastVisibleParagraph;
+    const qreal ratio = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+    painter->save();
+    for (const ParagraphMark& mark : m_paragraphMarks) {
+        const auto paragraph = static_cast<size_t>(std::max(mark.paragraph, 0));
+        if (paragraph < first || paragraph > last) continue;
+        const QRectF rect = paragraphMarkRect(paragraph);
+        if (rect.isEmpty() || !rect.intersects(clipRect)) continue;
+
+        // The icon in the color of the text, whatever the colors of the program's icons:
+        // it is read on the paper
+        QPixmap pixmap = m_paragraphMarkIcon.pixmap(rect.size().toSize(), ratio);
+        {
+            QPainter tint(&pixmap);
+            tint.setCompositionMode(QPainter::CompositionMode_SourceIn);
+            tint.fillRect(QRectF(QPointF(0.0, 0.0), pixmap.deviceIndependentSize()),
+                          m_context.colors.text);
+        }
+        const bool dimmed = m_context.focus && mark.paragraph != m_cursorPosition.paragraph;
+        painter->setOpacity(PARAGRAPH_MARK_OPACITY * (dimmed ? DIMMED_MARK_OPACITY : 1.0));
+        painter->drawPixmap(rect, pixmap, QRectF(pixmap.rect()));
+    }
+    painter->restore();
+}
+
 // =============================================================================
 // Integration
 // =============================================================================
@@ -848,6 +970,46 @@ void EditorRenderPipeline::setSpokenWord(int paragraph, int offset, int length) 
     }
 }
 
+void EditorRenderPipeline::setRepetitionMarks(const std::vector<RepetitionMark>& marks,
+                                              RepetitionMarkStyle style) {
+    std::vector<ParagraphHighlight> repetitions;
+    repetitions.reserve(marks.size());
+    for (const RepetitionMark& mark : marks) {
+        if (mark.paragraph >= 0 && mark.length > 0) {
+            repetitions.emplace_back(
+                static_cast<size_t>(mark.paragraph),
+                TextHighlight{mark.start, mark.length,
+                              mark.current ? HighlightKind::CurrentRepetition
+                                           : HighlightKind::Repetition});
+        }
+    }
+    // By paragraph: the ones in view are found by binary search
+    std::stable_sort(repetitions.begin(), repetitions.end(),
+                     [](const ParagraphHighlight& a, const ParagraphHighlight& b) {
+                         return a.first < b.first;
+                     });
+    if (repetitions == m_repetitions && style == m_repetitionStyle) {
+        return;
+    }
+    m_repetitions = std::move(repetitions);
+    m_repetitionStyle = style;
+    markRepaintOnly();
+}
+
+void EditorRenderPipeline::setParagraphDecorator(ParagraphDecorator decorator) {
+    m_paragraphDecorator = std::move(decorator);
+    markAllDirty();
+}
+
+void EditorRenderPipeline::setFragmentHighlight(
+    const std::optional<FragmentHighlight>& highlight) {
+    if (m_fragmentHighlight == highlight) {
+        return;
+    }
+    m_fragmentHighlight = highlight;
+    markAllDirty();
+}
+
 // =============================================================================
 // Main Render Entry Point (Stage 3+4)
 // =============================================================================
@@ -865,10 +1027,22 @@ void EditorRenderPipeline::ensureVisibleLaidOut() {
     do {
         first = m_context.computed.firstVisibleParagraph;
         last = m_context.computed.lastVisibleParagraph;
-        m_textSource->ensureLayouted(first, last);
+        m_textSource->ensureLayouted(firstParagraphToLayOut(first), last);
         updateVisibleRange();
     } while (first != m_context.computed.firstVisibleParagraph ||
              last != m_context.computed.lastVisibleParagraph);
+}
+
+size_t EditorRenderPipeline::firstParagraphToLayOut(size_t first) const {
+    // The lines numbered from 1 on every page: the lines of the first page in view are
+    // counted from its top, which may be above the view
+    const MarginNumbers& numbers = m_context.marginNumbers;
+    if (numbers.numbering != MarginNumbering::Lines || !numbers.restartEachPage ||
+        m_context.viewMode != ViewMode::Page || first >= m_textSource->paragraphCount()) {
+        return first;
+    }
+    const int page = pageAtDocumentY(m_textSource->paragraphY(first));
+    return std::min(first, m_textSource->paragraphAtY(pageTextTop(page)));
 }
 
 void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
@@ -953,8 +1127,12 @@ void EditorRenderPipeline::clearDirtyRegion() {
 // =============================================================================
 
 void EditorRenderPipeline::renderBackground(QPainter* painter, const QRect& clipRect) {
-    // The desk around the page: a shade of the paper, darker for light paper and lighter
-    // for dark paper, so the sheets stand out in both color modes
+    // The desk around the page: the theme's color, otherwise a shade of the paper, darker for
+    // light paper and lighter for dark paper, so the sheets stand out in both color modes
+    if (m_context.colors.desk.isValid()) {
+        painter->fillRect(clipRect, m_context.colors.desk);
+        return;
+    }
     const QColor& paper = m_context.colors.background;
     painter->fillRect(clipRect, paper.lightness() > 127 ? paper.darker(DESK_DARKER_FACTOR)
                                                         : paper.lighter(DESK_LIGHTER_FACTOR));
@@ -1012,7 +1190,8 @@ void EditorRenderPipeline::renderParagraphs(QPainter* painter, const QRect& clip
                 ? m_textSource->paragraphFormattingMarks(i)
                 : std::vector<FormattingMark>{};
             renderParagraph(painter, i, widgetY);
-            renderFormattingMarks(painter, marks, widgetY);
+            renderFormattingMarks(painter, i, marks, widgetY);
+            renderParagraphDecoration(painter, i, widgetY);
         }
     }
 }
@@ -1038,7 +1217,10 @@ void EditorRenderPipeline::renderTableGrid(QPainter* painter, const TableGrid& g
     const auto columns = static_cast<int>(grid.columnEdges.size()) - 1;
     const auto rows = static_cast<int>(grid.rowTops.size());
     const double scale = m_context.computed.viewScale;
-    const auto widgetX = [this](double x) { return std::round(documentToWidget(QPointF(x, 0.0)).x()); };
+    // On the page of the part of a row (mirror margins: its margins), in whole pixels
+    const auto widgetX = [this, shift](double x, double y) {
+        return std::round(documentToWidget(QPointF(x, y + shift)).x());
+    };
     const auto widgetY = [this, shift](double y) {
         return std::round(documentToWidget(QPointF(0.0, y + shift)).y());
     };
@@ -1077,11 +1259,15 @@ void EditorRenderPipeline::renderTableGrid(QPainter* painter, const TableGrid& g
         }
         const int lastColumn = std::min(cell.column + cell.columns, columns);
         const int cellLastRow = std::min({cell.row + cell.rows, rows, lastRow + 1}) - 1;
-        const double left = widgetX(grid.columnEdges[static_cast<size_t>(cell.column)]);
-        const double right = widgetX(grid.columnEdges[static_cast<size_t>(lastColumn)]);
 
-        // The cell's parts on the pages: its rows' parts, those that touch joined
-        std::vector<std::pair<double, double>> segments;
+        // The cell's parts on the pages: its rows' parts, those that touch joined, each with
+        // its top in the text (its page)
+        struct Segment {
+            double top = 0;
+            double bottom = 0;
+            double documentTop = 0;
+        };
+        std::vector<Segment> segments;
         for (int row = cell.row; row <= cellLastRow; ++row) {
             const std::vector<std::pair<double, double>>& parts =
                 static_cast<size_t>(row) < grid.rowParts.size() && !grid.rowParts[static_cast<size_t>(row)].empty()
@@ -1095,10 +1281,10 @@ void EditorRenderPipeline::renderTableGrid(QPainter* painter, const TableGrid& g
                 if (widgetBottom <= widgetTop) {
                     continue;
                 }
-                if (!segments.empty() && std::abs(segments.back().second - widgetTop) < 1.0) {
-                    segments.back().second = widgetBottom;
+                if (!segments.empty() && std::abs(segments.back().bottom - widgetTop) < 1.0) {
+                    segments.back().bottom = widgetBottom;
                 } else {
-                    segments.emplace_back(widgetTop, widgetBottom);
+                    segments.push_back({widgetTop, widgetBottom, top});
                 }
             }
         }
@@ -1113,8 +1299,15 @@ void EditorRenderPipeline::renderTableGrid(QPainter* painter, const TableGrid& g
         const bool isSelected = selected && cell.row >= selected->firstRow &&
                                 cell.row <= selected->lastRow && cell.column >= selected->firstColumn &&
                                 cell.column <= selected->lastColumn;
-        for (const auto& [top, bottom] : segments) {
-            const QRectF area(left, top, right - left, bottom - top);
+        const auto leftOf = [&](const Segment& segment) {
+            return widgetX(grid.columnEdges[static_cast<size_t>(cell.column)], segment.documentTop);
+        };
+        const auto rightOf = [&](const Segment& segment) {
+            return widgetX(grid.columnEdges[static_cast<size_t>(lastColumn)], segment.documentTop);
+        };
+        for (const Segment& segment : segments) {
+            const double left = leftOf(segment);
+            const QRectF area(left, segment.top, rightOf(segment) - left, segment.bottom - segment.top);
             if (background.isValid()) {
                 painter->fillRect(area, background);
             }
@@ -1129,7 +1322,10 @@ void EditorRenderPipeline::renderTableGrid(QPainter* painter, const TableGrid& g
             const bool leftBorder = (borders.lines & (cell.column == 0 ? BORDER_LEFT : BORDER_COLUMNS)) != 0;
             const bool rightBorder = (borders.lines & (lastColumn == columns ? BORDER_RIGHT : BORDER_COLUMNS)) != 0;
             for (size_t i = 0; i < segments.size(); ++i) {
-                const auto [top, bottom] = segments[i];
+                const double top = segments[i].top;
+                const double bottom = segments[i].bottom;
+                const double left = leftOf(segments[i]);
+                const double right = rightOf(segments[i]);
                 const bool topBorder =
                     i == 0 ? (borders.lines & (cell.row == 0 ? BORDER_TOP : BORDER_ROWS)) != 0
                            : (borders.lines & (grid.headerRows > 0 ? BORDER_ROWS : BORDER_TOP)) != 0;
@@ -1170,23 +1366,40 @@ void EditorRenderPipeline::renderHeaderCopies(QPainter* painter, const std::vect
             height += grid.rowHeights[static_cast<size_t>(row)];
         }
         for (const double top : grid.headerRepeats) {
-            const double shift = (top - grid.rowTops.front()) * scale;
+            const double copyShift = top - grid.rowTops.front();
             const double widgetTop = documentToWidget(QPointF(0.0, top)).y();
             if (widgetTop > clipRect.bottom() || widgetTop + height * scale < clipRect.top()) {
                 continue;
             }
             for (size_t i = grid.firstParagraph; i <= last; ++i) {
-                renderParagraph(painter, i, paragraphWidgetY(i) + shift);
+                renderParagraph(painter, i, paragraphWidgetY(i) + copyShift * scale, copyShift);
             }
         }
     }
 }
 
-void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, double widgetY) {
+void EditorRenderPipeline::renderParagraphDecoration(QPainter* painter, size_t index,
+                                                     double widgetY) {
+    if (!m_paragraphDecorator) return;
+
+    // In the paragraph's coordinates, zoomed as its text; faint as its marks when Focus
+    // dims it
+    painter->save();
+    painter->translate(m_context.computed.originX, widgetY);
+    const double scale = m_context.computed.viewScale;
+    if (scale != 1.0) {
+        painter->scale(scale, scale);
+    }
+    const bool dimmed = m_context.focus && static_cast<int>(index) != m_cursorPosition.paragraph;
+    painter->setOpacity(dimmed ? DIMMED_MARK_OPACITY : 1.0);
+    m_paragraphDecorator(painter, index);
+    painter->restore();
+}
+
+void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, double widgetY,
+                                           double copyShift) {
     QTextLayout* layout = m_textSource->layout(index);
     if (!layout) return;
-
-    QPointF drawPos(m_context.computed.originX, widgetY);
 
     // Focus dims every paragraph but the cursor's
     const bool isDimmed = m_context.focus &&
@@ -1195,21 +1408,23 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
     QColor textColor = isDimmed ? m_context.colors.inactiveText : m_context.colors.text;
     painter->setPen(textColor);
 
-    // Apply transform
-    painter->save();
-    painter->translate(drawPos);
-
-    // The zoom scales the painter
-    const double scale = m_context.computed.viewScale;
-    if (scale != 1.0) {
-        painter->scale(scale, scale);
+    // The pages of the paragraph's lines (of the copy's). With mirror margins a paragraph going
+    // on to a page with its text further right or left is drawn once for each page, cut to the
+    // page.
+    const double paragraphY = m_textSource->paragraphY(index) + copyShift;
+    int firstPage = 0;
+    int lastPage = 0;
+    if (m_context.pageMode.mirrorMargins && m_context.viewMode == ViewMode::Page &&
+        layout->lineCount() > 0) {
+        firstPage = pageAtDocumentY(paragraphY + layout->lineAt(0).y());
+        lastPage = pageAtDocumentY(paragraphY + layout->lineAt(layout->lineCount() - 1).y());
     }
 
-    // Draw the layout, and the number or bullet of a list item. On dark paper the text and
-    // highlights of colors of their own are lighter and darker, so the text stays readable;
-    // focus dims colored text as the rest. The saved colors stay as they are. A link is
-    // underlined, in the link color unless it has a color of its own (the layout draws the
-    // underline of a range only with its color).
+    // The colors of the text as shown. On dark paper the text and highlights of colors of
+    // their own are lighter and darker, so the text stays readable; focus dims colored text as
+    // the rest. The saved colors stay as they are. A link is underlined, in the link color
+    // unless it has a color of its own (the layout draws the underline of a range only with
+    // its color).
     QList<QTextLayout::FormatRange> shownColors;
     const QColor paper = m_context.colors.background;
     const bool darkPaper = isDarkPaper(paper);
@@ -1245,28 +1460,51 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
             shownColors.append(range);
         }
     }
-    layout->draw(painter, QPointF(0, 0), shownColors);
-    m_textSource->drawListMarker(painter, index);
 
-    painter->restore();
+    const double scale = m_context.computed.viewScale;
+    for (int page = firstPage; page <= lastPage; ++page) {
+        painter->save();
+        if (firstPage != lastPage) {
+            // The page's sheet, with the gap below it (pageAtDocumentY())
+            const double sheetTop = pageTextTop(page) - m_context.computed.marginTop;
+            const double top = documentToWidget(QPointF(0.0, sheetTop)).y();
+            painter->setClipRect(QRectF(0.0, top, m_context.viewportSize.width(),
+                                        m_context.computed.pagePitch * scale),
+                                 Qt::IntersectClip);
+        }
+        painter->translate(m_context.computed.originX + pageShiftX(page) * scale, widgetY);
+
+        // The zoom scales the painter
+        if (scale != 1.0) {
+            painter->scale(scale, scale);
+        }
+
+        // Draw the layout, and the number or bullet of a list item
+        layout->draw(painter, QPointF(0, 0), shownColors);
+        m_textSource->drawListMarker(painter, index);
+
+        painter->restore();
+    }
 }
 
-void EditorRenderPipeline::renderFormattingMarks(QPainter* painter,
+void EditorRenderPipeline::renderFormattingMarks(QPainter* painter, size_t index,
                                                  const std::vector<FormattingMark>& marks,
                                                  double widgetY) {
     if (marks.empty()) return;
 
-    // In the paragraph's coordinates, zoomed as its text
+    // In the paragraph's coordinates, zoomed as its text, each on the page of its line
+    const double paragraphY = m_textSource->paragraphY(index);
+    const double scale = m_context.computed.viewScale;
     painter->save();
     painter->translate(m_context.computed.originX, widgetY);
-    const double scale = m_context.computed.viewScale;
     if (scale != 1.0) {
         painter->scale(scale, scale);
     }
     painter->setPen(m_context.colors.formattingMarks);
     for (const FormattingMark& mark : marks) {
         painter->setFont(mark.font);
-        painter->drawText(mark.position, QString(mark.glyph));
+        const double shift = shiftAtY(paragraphY + mark.position.y());
+        painter->drawText(mark.position + QPointF(shift, 0.0), QString(mark.glyph));
     }
     painter->restore();
 }
@@ -1328,12 +1566,15 @@ void EditorRenderPipeline::fillTextRange(QPainter* painter, size_t paraIndex, in
                                          int endOffset, double widgetY, const QColor& color,
                                          bool lineBoxes) {
     const double scale = m_context.computed.viewScale;
+    const double paragraphY = m_textSource->paragraphY(paraIndex);
     for (const LinePiece& piece : linePieces(paraIndex, startOffset, endOffset)) {
         const QRectF band = lineBoxes ? lineBox(paraIndex, piece.line)
                                       : QRectF(piece.line.x(), piece.line.y(), piece.line.width(),
                                                piece.line.height());
-        const double x1 = m_context.computed.originX + piece.x1 * scale;
-        const double x2 = m_context.computed.originX + piece.x2 * scale;
+        // On the page of the line
+        const double originX = documentToWidget(QPointF(0.0, paragraphY + piece.line.y())).x();
+        const double x1 = originX + piece.x1 * scale;
+        const double x2 = originX + piece.x2 * scale;
         painter->fillRect(QRectF(x1, widgetY + band.y() * scale, x2 - x1, band.height() * scale),
                           color);
     }
@@ -1383,6 +1624,16 @@ std::vector<EditorRenderPipeline::ParagraphHighlight> EditorRenderPipeline::visi
         m_spokenWord->first < count) {
         highlights.push_back(*m_spokenWord);
     }
+
+    // The repeated words, sorted by paragraph
+    const auto firstRepetition = std::lower_bound(
+        m_repetitions.begin(), m_repetitions.end(), first,
+        [](const ParagraphHighlight& mark, size_t paragraph) { return mark.first < paragraph; });
+    for (auto it = firstRepetition; it != m_repetitions.end() && it->first <= last; ++it) {
+        if (it->first < count) {
+            highlights.push_back(*it);
+        }
+    }
     return highlights;
 }
 
@@ -1395,6 +1646,17 @@ void EditorRenderPipeline::renderHighlightBackgrounds(
             case HighlightKind::SearchMatch: color = colors.searchHighlight; break;
             case HighlightKind::CurrentSearchMatch: color = colors.currentMatch; break;
             case HighlightKind::SpokenWord: color = colors.spokenWord; break;
+            case HighlightKind::Repetition:
+            case HighlightKind::CurrentRepetition:
+                if (m_repetitionStyle != RepetitionMarkStyle::Background) {
+                    continue;  // a wave
+                }
+                // Translucent, as the search matches: the text stays readable on any paper
+                color = colors.repetition;
+                color.setAlphaF(highlight.kind == HighlightKind::CurrentRepetition
+                                    ? CURRENT_REPETITION_ALPHA
+                                    : REPETITION_ALPHA);
+                break;
             // Drawn as marks only
             case HighlightKind::Spelling:
             case HighlightKind::Grammar: continue;
@@ -1404,45 +1666,118 @@ void EditorRenderPipeline::renderHighlightBackgrounds(
     }
 }
 
+void EditorRenderPipeline::renderFragmentHighlight(QPainter* painter) {
+    if (!m_fragmentHighlight || !m_textSource) return;
+
+    const FragmentHighlight& fragment = *m_fragmentHighlight;
+    const size_t count = m_textSource->paragraphCount();
+    const int first = std::max(fragment.start.paragraph,
+                               static_cast<int>(m_context.computed.firstVisibleParagraph));
+    const int last = std::min(fragment.end.paragraph,
+                              static_cast<int>(m_context.computed.lastVisibleParagraph));
+    const double scale = m_context.computed.viewScale;
+    const double originX = m_context.computed.originX;
+    const double lineWidth = std::max(1.0, FRAGMENT_LINE_WIDTH * scale);
+
+    for (int paragraph = first; paragraph <= last && static_cast<size_t>(paragraph) < count;
+         ++paragraph) {
+        const auto index = static_cast<size_t>(paragraph);
+        const int length = static_cast<int>(m_textSource->paragraphText(index).length());
+        const int start = paragraph == fragment.start.paragraph ? fragment.start.offset : 0;
+        const int end = paragraph == fragment.end.paragraph ? std::min(fragment.end.offset, length)
+                                                            : length;
+        if (start >= end) continue;
+
+        // The text's height of each line, with the line along its bottom
+        const double widgetY = paragraphWidgetY(index);
+        for (const LinePiece& piece : linePieces(index, start, end)) {
+            const QRectF band(originX + piece.x1 * scale, widgetY + piece.line.y() * scale,
+                              (piece.x2 - piece.x1) * scale, piece.line.height() * scale);
+            painter->fillRect(band, fragment.fill);
+            painter->fillRect(QRectF(band.left(), band.bottom() - lineWidth, band.width(), lineWidth),
+                              fragment.line);
+        }
+    }
+}
+
 void EditorRenderPipeline::renderHighlightMarks(
     QPainter* painter, const std::vector<ParagraphHighlight>& highlights) {
     const RenderColors& colors = m_context.colors;
     const double scale = m_context.computed.viewScale;
-    const double originX = m_context.computed.originX;
 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
     for (const auto& [paragraph, highlight] : highlights) {
-        if (highlight.kind != HighlightKind::Spelling && highlight.kind != HighlightKind::Grammar) {
-            continue;  // backgrounds only
-        }
-        const auto pieces =
-            linePieces(paragraph, highlight.start, highlight.start + highlight.length);
-        if (pieces.empty()) continue;
-
-        // A wave under the baseline
-        const double widgetY = paragraphWidgetY(paragraph);
-        const double amplitude = std::max(1.0, 1.5 * scale);
-        const double step = 2.0 * amplitude;
-        painter->setPen(QPen(highlight.kind == HighlightKind::Spelling ? colors.spellError
-                                                                       : colors.grammarWarning,
-                             std::max(1.0, scale)));
-        painter->setBrush(Qt::NoBrush);
-        for (const LinePiece& piece : pieces) {
-            const double x1 = originX + piece.x1 * scale;
-            const double x2 = originX + piece.x2 * scale;
-            const double y =
-                widgetY + (piece.line.y() + piece.line.ascent()) * scale + amplitude + 1.0;
-            QPainterPath wave(QPointF(x1, y));
-            const int steps = static_cast<int>(std::ceil((x2 - x1) / step));
-            for (int i = 1; i <= steps; ++i) {
-                wave.lineTo(QPointF(std::min(x1 + i * step, x2),
-                                    i % 2 == 1 ? y - amplitude : y + amplitude));
+        switch (highlight.kind) {
+            case HighlightKind::Spelling:
+                drawWave(painter, paragraph, highlight, colors.spellError);
+                break;
+            case HighlightKind::Grammar:
+                drawWave(painter, paragraph, highlight, colors.grammarWarning);
+                break;
+            case HighlightKind::Repetition:
+            case HighlightKind::CurrentRepetition: {
+                if (m_repetitionStyle == RepetitionMarkStyle::Wave) {
+                    drawWave(painter, paragraph, highlight, colors.repetition);
+                }
+                if (highlight.kind != HighlightKind::CurrentRepetition) {
+                    break;
+                }
+                // The words of the repetition chosen in the panel: framed, line by line
+                const double paragraphY = m_textSource->paragraphY(paragraph);
+                const double widgetY = paragraphWidgetY(paragraph);
+                painter->setPen(QPen(colors.repetition, std::max(1.5, 2.0 * scale)));
+                painter->setBrush(Qt::NoBrush);
+                for (const LinePiece& piece : linePieces(paragraph, highlight.start,
+                                                         highlight.start + highlight.length)) {
+                    // On the page of the line
+                    const double originX =
+                        documentToWidget(QPointF(0.0, paragraphY + piece.line.y())).x();
+                    const double x1 = originX + piece.x1 * scale;
+                    const double x2 = originX + piece.x2 * scale;
+                    painter->drawRoundedRect(
+                        QRectF(x1, widgetY + piece.line.y() * scale, x2 - x1,
+                               piece.line.height() * scale),
+                        2.0 * scale, 2.0 * scale);
+                }
+                break;
             }
-            painter->drawPath(wave);
+            // Backgrounds only
+            case HighlightKind::SearchMatch:
+            case HighlightKind::CurrentSearchMatch:
+            case HighlightKind::SpokenWord: break;
         }
     }
     painter->restore();
+}
+
+void EditorRenderPipeline::drawWave(QPainter* painter, size_t paragraph,
+                                    const TextHighlight& range, const QColor& color) {
+    const auto pieces = linePieces(paragraph, range.start, range.start + range.length);
+    if (pieces.empty()) return;
+
+    // A wave under the baseline
+    const double scale = m_context.computed.viewScale;
+    const double paragraphY = m_textSource->paragraphY(paragraph);
+    const double widgetY = paragraphWidgetY(paragraph);
+    const double amplitude = std::max(1.0, 1.5 * scale);
+    const double step = 2.0 * amplitude;
+    painter->setPen(QPen(color, std::max(1.0, scale)));
+    painter->setBrush(Qt::NoBrush);
+    for (const LinePiece& piece : pieces) {
+        // On the page of the line
+        const double originX = documentToWidget(QPointF(0.0, paragraphY + piece.line.y())).x();
+        const double x1 = originX + piece.x1 * scale;
+        const double x2 = originX + piece.x2 * scale;
+        const double y = widgetY + (piece.line.y() + piece.line.ascent()) * scale + amplitude + 1.0;
+        QPainterPath wave(QPointF(x1, y));
+        const int steps = static_cast<int>(std::ceil((x2 - x1) / step));
+        for (int i = 1; i <= steps; ++i) {
+            wave.lineTo(QPointF(std::min(x1 + i * step, x2),
+                                i % 2 == 1 ? y - amplitude : y + amplitude));
+        }
+        painter->drawPath(wave);
+    }
 }
 
 QRectF EditorRenderPipeline::cursorPaintRect() const {
@@ -1498,7 +1833,9 @@ void EditorRenderPipeline::renderCursor(QPainter* painter) {
     painter->save();
     painter->setClipRect(rect, Qt::IntersectClip);
     painter->setPen(m_context.colors.background);
-    painter->translate(m_context.computed.originX, paragraphWidgetY(paragraph));
+    // On the page of the line
+    const double lineY = m_textSource->paragraphY(paragraph) + line.y();
+    painter->translate(documentToWidget(QPointF(0.0, lineY)).x(), paragraphWidgetY(paragraph));
     if (m_context.computed.viewScale != 1.0) {
         painter->scale(m_context.computed.viewScale, m_context.computed.viewScale);
     }
@@ -1555,8 +1892,13 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     const std::vector<ParagraphHighlight> highlights = visibleHighlights(clipRect);
     renderHighlightBackgrounds(painter, highlights);
 
-    // The annotations' marks, under the text: the letters stay readable
+    // The fragment of the annotation whose card the mouse is on, under the text too
+    renderFragmentHighlight(painter);
+
+    // The annotations' marks, under the text: the letters stay readable; the paperclips of
+    // the paragraphs, in the margin
     renderAnnotationMarks(painter, clipRect);
+    renderParagraphMarks(painter, clipRect);
 
     // Paragraph text (already viewport-culled internally), and the copies of the header
     // rows of the tables at the top of the pages they go on to
@@ -1564,6 +1906,9 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     if (!tables.empty()) {
         renderHeaderCopies(painter, tables, clipRect);
     }
+
+    // The numbers on the left margin
+    renderMarginNumbers(painter, clipRect);
 
     renderHighlightMarks(painter, highlights);
 
@@ -1580,6 +1925,128 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     if (m_dropCaret && isVisible(m_dropCaret->paragraph)) {
         painter->fillRect(caretRect(*m_dropCaret), m_context.colors.cursor);
     }
+}
+
+void EditorRenderPipeline::renderMarginNumbers(QPainter* painter, const QRect& clipRect) {
+    const MarginNumbers& numbers = m_context.marginNumbers;
+    const size_t count = m_textSource ? m_textSource->paragraphCount() : 0;
+    if (numbers.numbering == MarginNumbering::None || count == 0) return;
+    const size_t first = m_context.computed.firstVisibleParagraph;
+    const size_t last = std::min(m_context.computed.lastVisibleParagraph, count - 1);
+    if (first > last) return;
+
+    // The numbers go on from what is counted above the view
+    m_paintedMarginFirst = first;
+    m_paintedMarginBase = m_textSource->marginCountsBefore(first);
+
+    const auto& computed = m_context.computed;
+    const double scale = computed.viewScale;
+    const bool lines = numbers.numbering == MarginNumbering::Lines;
+    const bool restart = lines && numbers.restartEachPage && m_context.viewMode == ViewMode::Page;
+    const int interval = std::max(1, numbers.interval);
+
+    const QFont font = marginNumberFont();
+    const QFontMetricsF metrics(font);
+    painter->save();
+    painter->setFont(font);
+    painter->setPen(numbers.color);
+
+    std::map<int, int> pageFirstLines;  // restart: the number of the first line of a page
+    const auto drawNumber = [&](int number, double paragraphY, const QTextLine& line) {
+        const double lineY = paragraphY + line.y();
+        const QPointF lineTop = documentToWidget(QPointF(0.0, lineY));
+        if (lineTop.y() > clipRect.bottom() + 1.0 || lineTop.y() + line.height() * scale < clipRect.top()) {
+            return;
+        }
+        // Right-aligned, left of the text of the line's page (mirror margins: its margin)
+        const double gap = marginNumberGap(pageAtDocumentY(lineY));
+        const QString text = QString::number(number);
+        painter->save();
+        painter->translate(lineTop);
+        painter->scale(scale, scale);
+        painter->drawText(QPointF(-gap - metrics.horizontalAdvance(text), line.ascent()), text);
+        painter->restore();
+    };
+
+    for (size_t paragraph = first; paragraph <= last; ++paragraph) {
+        QTextLayout* layout = m_textSource->layout(paragraph);
+        if (!layout || layout->lineCount() == 0) continue;
+        const double paragraphY = m_textSource->paragraphY(paragraph);
+        const MarginCounts before = m_textSource->marginCountsBefore(paragraph);
+        if (lines) {
+            // A paragraph whose lines are not counted (in a cell of a table) has no numbers
+            if (m_textSource->marginCountsBefore(paragraph + 1).lines == before.lines) continue;
+            for (int i = 0; i < layout->lineCount(); ++i) {
+                const QTextLine line = layout->lineAt(i);
+                int number = before.lines + i + 1;
+                if (restart) {
+                    const int page = pageAtDocumentY(paragraphY + line.y());
+                    auto it = pageFirstLines.find(page);
+                    if (it == pageFirstLines.end()) {
+                        it = pageFirstLines.emplace(page, firstLineOfPage(page)).first;
+                    }
+                    number -= it->second - 1;
+                }
+                if (number % interval == 0) {
+                    drawNumber(number, paragraphY, line);
+                }
+            }
+        } else if (m_textSource->isNumberedParagraph(paragraph)) {
+            // At the paragraph's first line
+            const int number = before.paragraphs + 1;
+            if (number % interval == 0) {
+                drawNumber(number, paragraphY, layout->lineAt(0));
+            }
+        }
+    }
+    painter->restore();
+}
+
+QFont EditorRenderPipeline::marginNumberFont() const {
+    const MarginNumbers& numbers = m_context.marginNumbers;
+    QFont font(numbers.fontFamily);
+    font.setPointSizeF(numbers.pointSize > 0.0 ? numbers.pointSize : DEFAULT_MARGIN_NUMBER_POINTS);
+    return font;
+}
+
+double EditorRenderPipeline::marginNumberGap(int page) const {
+    const auto& computed = m_context.computed;
+    const double margin = computed.marginLeft + pageShiftX(page);
+    return std::min(MARGIN_NUMBER_GAP_MM * computed.mmToPixels, margin / 2.0);
+}
+
+double EditorRenderPipeline::marginNumbersLeft(double documentY) const {
+    const double textLeft = documentToWidget(QPointF(0.0, documentY)).x();
+    const size_t count = m_textSource ? m_textSource->paragraphCount() : 0;
+    const MarginCounts all = count > 0 ? m_textSource->marginCountsBefore(count) : MarginCounts{};
+    const int largest =
+        std::max(1, m_context.marginNumbers.numbering == MarginNumbering::Lines ? all.lines
+                                                                                : all.paragraphs);
+    const double width = QFontMetricsF(marginNumberFont()).horizontalAdvance(QString::number(largest));
+    return textLeft -
+           (marginNumberGap(pageAtDocumentY(documentY)) + width) * m_context.computed.viewScale;
+}
+
+int EditorRenderPipeline::firstLineOfPage(int page) const {
+    // The first line whose top is in the page's text area: of the paragraph at its top, or
+    // of one after it (the paragraph at the top may end on the page before)
+    const double top = pageTextTop(page);
+    const size_t count = m_textSource->paragraphCount();
+    for (size_t paragraph = std::min(m_textSource->paragraphAtY(top), count - 1);
+         paragraph < count; ++paragraph) {
+        QTextLayout* layout = m_textSource->layout(paragraph);
+        const double paragraphY = m_textSource->paragraphY(paragraph);
+        const int before = m_textSource->marginCountsBefore(paragraph).lines;
+        if (m_textSource->marginCountsBefore(paragraph + 1).lines == before) {
+            continue;  // its lines are not counted (in a cell of a table)
+        }
+        for (int i = 0; layout && i < layout->lineCount(); ++i) {
+            if (paragraphY + layout->lineAt(i).y() >= top - 0.5) {
+                return before + i + 1;
+            }
+        }
+    }
+    return m_textSource->marginCountsBefore(count).lines + 1;
 }
 
 void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect) {
@@ -1599,15 +2066,19 @@ void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect)
     numberFont.setPointSizeF(m_context.font.pointSizeF() * PAGE_NUMBER_FONT_SCALE);
 
     for (int page = firstPage; page <= lastPage; ++page) {
+        // The sheets are one below the other; with mirror margins the text of every other
+        // page is further right or left on its sheet (pageShiftX())
         const double sheetTop = pageTextTop(page) - computed.marginTop;
-        const QRectF sheet(documentToWidget(QPointF(-computed.marginLeft, sheetTop)),
+        const QRectF sheet(QPointF(computed.pageCenterOffset,
+                                   documentToWidget(QPointF(0.0, sheetTop)).y()),
                            QSizeF(computed.pageWidthPixels * scale,
                                   computed.pageHeightPixels * scale));
         renderSheet(painter, sheet);
 
         // Text frame border if enabled
         if (m_context.showTextFrameBorder) {
-            const QRectF textRect(documentToWidget(QPointF(0.0, pageTextTop(page))),
+            const QRectF textRect(QPointF(computed.originX + pageShiftX(page) * scale,
+                                          documentToWidget(QPointF(0.0, pageTextTop(page))).y()),
                                   QSizeF(computed.textWidth * scale,
                                          computed.textAreaHeight * scale));
             painter->save();
@@ -1731,15 +2202,33 @@ double EditorRenderPipeline::paragraphWidgetY(size_t index) const {
 QPointF EditorRenderPipeline::documentToWidget(const QPointF& point) const {
     const auto& computed = m_context.computed;
     const double scale = computed.viewScale;
-    return QPointF(computed.originX + point.x() * scale,
+    return QPointF(computed.originX + (point.x() + shiftAtY(point.y())) * scale,
                    computed.originY + (point.y() - m_context.scrollY) * scale);
 }
 
 QPointF EditorRenderPipeline::widgetToDocument(const QPointF& point) const {
     const auto& computed = m_context.computed;
     const double scale = computed.viewScale;
-    return QPointF((point.x() - computed.originX) / scale,
-                   (point.y() - computed.originY) / scale + m_context.scrollY);
+    const double y = (point.y() - computed.originY) / scale + m_context.scrollY;
+    return QPointF((point.x() - computed.originX) / scale - shiftAtY(y), y);
+}
+
+double EditorRenderPipeline::pageShiftX(int page) const {
+    // Page 1 has the margins as set (the first page of a chapter is a right page, unless the
+    // chapter starts on a left one: BookEditor::applyPageLayout()); the page facing it has
+    // them swapped
+    if (m_context.viewMode != ViewMode::Page || !m_context.pageMode.mirrorMargins ||
+        page % 2 == 0) {
+        return 0.0;
+    }
+    return m_context.computed.marginRight - m_context.computed.marginLeft;
+}
+
+double EditorRenderPipeline::shiftAtY(double y) const {
+    if (m_context.viewMode != ViewMode::Page || !m_context.pageMode.mirrorMargins) {
+        return 0.0;
+    }
+    return pageShiftX(pageAtDocumentY(y));
 }
 
 int EditorRenderPipeline::pageCount() const {

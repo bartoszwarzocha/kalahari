@@ -282,7 +282,7 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
     checkKeys(object, field,
               {"form", "name", "plural", "words", "icon", "places", "limit", "title",
                "numbering", "template", "position", "first", "editor", "generated",
-               "settings", "workshopGroup"},
+               "settings", "workshopGroup", "retired"},
               problems);
 
     ElementKind kind;
@@ -459,6 +459,17 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
                                       "Workshop"));
         } else {
             kind.workshopGroup = *group;
+        }
+    }
+
+    // A kind of earlier versions: its elements are read, and no new ones are offered
+    const QJsonValue retired = object.value(QStringLiteral("retired"));
+    if (!retired.isUndefined()) {
+        if (!retired.isBool()) {
+            addProblem(problems, field + QStringLiteral(".retired"),
+                       QStringLiteral("must be true or false"));
+        } else {
+            kind.retired = retired.toBool();
         }
     }
 

@@ -8,15 +8,21 @@
 #include "kalahari/gui/shortcut_settings.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/annotations_coordinator.h"
+#include "kalahari/gui/paragraph_marks_coordinator.h"
+#include "kalahari/gui/material_list_coordinator.h"
+#include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/special_character_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
+#include "kalahari/gui/versions_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
+#include "kalahari/gui/repetitions_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -34,10 +40,13 @@
 #include "kalahari/gui/recent_books_menu.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/image_preview_panel.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/paragraph_styles.h"
+#include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/view_modes.h"
 #include "kalahari/editor/editor_types.h"
+#include "kalahari/editor/editor_appearance.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
@@ -226,6 +235,9 @@ MainWindow::MainWindow(QWidget* parent)
     // A chapter title changed in the Properties panel shows on its tab too
     connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
             m_navigatorCoordinator, &NavigatorCoordinator::refreshTabTitle);
+    // ... and whether it starts on a left page, in the margins of its pages
+    connect(m_dockCoordinator, &DockCoordinator::chapterFirstPageChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::refreshFirstPage);
     // Add... on a node of the Navigator: the Add Element window with the kinds of the node
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestAdd,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAdd);
@@ -234,9 +246,38 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestRenameNode);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestWorkshopGrouped,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestWorkshopGrouped);
-    // A material of the Workshop opens in the program the system gives its file
+    // A material of the Workshop opens as the settings say: on its preview tab or in the
+    // program the system gives its file. Its card in the Properties panel opens it both ways
+    // and opens the elements it is about; the page of an element opens its materials.
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterial,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenMaterial);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenMaterial,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenMaterial);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestPreview,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestPreview);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenWithSystem,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenWithSystem);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenLink,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenLink);
+    // A material with an address: its page in the browser, the copy of its picture; a change
+    // on one card of a material shows on the others
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenInBrowser,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenInBrowser);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSaveCopy,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestSaveCopy);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::materialChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::onMaterialChanged);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::message, this,
+            [this](const QString& text) { statusBar()->showMessage(text, 2000); });
+    // The card of a material in the middle of the window; files, web addresses and pictures
+    // dropped on the Navigator or pasted in it are new materials
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterialCard,
+            m_navigatorCoordinator,
+            [this](const QString& elementId) {
+                m_navigatorCoordinator->onRequestOpenMaterialCard(elementId);
+            });
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestAddMaterials,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddMaterials);
     // The sections of the book: shown or not, and their names
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowSections,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestShowSections);
@@ -348,6 +389,82 @@ MainWindow::MainWindow(QWidget* parent)
         statusBar(),
         this);
     m_annotationsCoordinator->connectCommands();
+    // Card Appearance and Colors... in the menu of a card opens the Annotations page
+    connect(m_annotationsCoordinator, &AnnotationsCoordinator::settingsPageRequested, this,
+            [this](const QString& page) {
+                if (m_settingsCoordinator) m_settingsCoordinator->openSettingsPage(page);
+            });
+
+    // The paperclips beside the paragraphs that materials are linked with: one chosen shows
+    // its material in the Properties panel, brought to the front
+    m_paragraphMarksCoordinator = new ParagraphMarksCoordinator(
+        m_dockCoordinator->centralTabs(),
+        [this](const QString& materialId) {
+            m_dockCoordinator->propertiesPanel()->showMaterialProperties(materialId);
+            QDockWidget* dock = m_dockCoordinator->propertiesDock();
+            dock->show();
+            dock->raise();
+            if (dock->isFloating()) {
+                dock->activateWindow();
+            }
+        },
+        this);
+
+    // The lists of the kinds of materials on their tabs: a kind of the Materials clicked in
+    // the Navigator, or Materials itself. A material chosen in a list shows in the Properties
+    // panel, brought to the front; Alt+Enter gives it the keys.
+    m_materialListCoordinator = new MaterialListCoordinator(
+        m_dockCoordinator->centralTabs(), m_navigatorCoordinator, statusBar(),
+        [this](bool keys) {
+            QDockWidget* dock = m_dockCoordinator->propertiesDock();
+            dock->show();
+            dock->raise();
+            if (keys) {
+                if (dock->isFloating()) {
+                    dock->activateWindow();
+                }
+                m_dockCoordinator->propertiesPanel()->focusFirstField();
+            }
+        },
+        this);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterialList,
+            m_materialListCoordinator, &MaterialListCoordinator::openList);
+    // Save Version and Version History of the text in front; a text is opened as from the
+    // Navigator, and the bar under it says that a version was restored
+    m_versionsCoordinator = new VersionsCoordinator(
+        m_dockCoordinator->centralTabs(),
+        [this](const QString& elementId) {
+            if (const core::ProjectElement* element =
+                    core::ProjectManager::getInstance().findElement(elementId)) {
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
+            }
+        },
+        [this](EditorPanel* editor, const QString& message, const QString& actionText,
+               const QString& actionToolTip, std::function<void()> action) {
+            m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
+                                              std::move(action));
+        },
+        statusBar(), this, this);
+    m_versionsCoordinator->connectCommands();
+    // Version History... of a text in the Navigator, and the buttons of the group of the
+    // versions in the Properties panel: the text opens, if it is not open
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestVersionHistory,
+            m_versionsCoordinator,
+            [this](const QString& elementId) { m_versionsCoordinator->showHistory(elementId); });
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSaveVersion,
+            m_versionsCoordinator,
+            [this](const QString& elementId) { m_versionsCoordinator->saveVersion(elementId); });
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestVersionHistory,
+            m_versionsCoordinator,
+            [this](const QString& elementId) { m_versionsCoordinator->showHistory(elementId); });
+    // The gear of the group of the versions: their settings
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestVersionSettings, this,
+            [this]() {
+                if (m_settingsCoordinator) {
+                    m_settingsCoordinator->openSettingsPage(
+                        QString::fromLatin1(SettingsDialog::VERSIONS_PAGE));
+                }
+            });
 
     // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
     // is done in the Annotations panel is undone in the text in front
@@ -371,7 +488,8 @@ MainWindow::MainWindow(QWidget* parent)
         "insert.horizontalLine", "insert.sceneBreak", "insert.pageBreak", "book.sceneBreak"};
     const std::vector<std::string> characterCommands = {
         "insert.specialChar", "insert.quickCharacter", "insert.noBreakSpace",
-        "insert.nonBreakingHyphen", "insert.optionalHyphen", "insert.enDash", "insert.emDash"};
+        "insert.nonBreakingHyphen", "insert.optionalHyphen", "insert.enDash", "insert.emDash",
+        "insert.quickInsert"};
     m_editCoordinator->addTextCommands(objectCommands, [](const editor::BookEditor& text) {
         return !text.isReadOnly() && !text.isInTable();
     });
@@ -511,6 +629,20 @@ MainWindow::MainWindow(QWidget* parent)
         m_dockCoordinator->spellingPanel(), m_dockCoordinator->spellingDock(),
         m_dockCoordinator->centralTabs(), m_spellingCoordinator, m_grammarCoordinator, this);
 
+    // The Repetitions panel, the marks of the repeated words and Next Repetition; a chapter
+    // is opened as from the Navigator
+    m_repetitionsCoordinator = new RepetitionsCoordinator(
+        m_dockCoordinator->repetitionsPanel(), m_dockCoordinator->repetitionsDock(),
+        m_dockCoordinator->centralTabs(), m_spellingCoordinator,
+        [this](const QString& elementId) {
+            if (const core::ProjectElement* element =
+                    core::ProjectManager::getInstance().findElement(elementId)) {
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
+            }
+        },
+        statusBar(), this);
+    m_repetitionsCoordinator->connectCommands();
+
     // NOTE (Task #00015): EditorPanel textChanged signal connected when tab created
     // No m_editorPanel at startup - Dashboard is default first tab
 
@@ -559,6 +691,11 @@ MainWindow::~MainWindow() {
     auto& logger = core::Logger::getInstance();
     logger.debug("MainWindow destructor - disconnecting all signals");
 
+    // The windows of their own of the tabs go with the window, saying nothing meanwhile
+    if (m_documentWindows) {
+        m_documentWindows->blockSignals(true);
+    }
+
     // CRITICAL: Disconnect from SINGLETON objects first.
     // These are NOT children of MainWindow, so findChildren() won't find them.
     // If we don't disconnect, signals from singletons may be delivered to
@@ -591,6 +728,9 @@ MainWindow::~MainWindow() {
     // The Spelling and Grammar panel stops following the text and the checking before they go
     delete m_spellingPanelCoordinator;
     m_spellingPanelCoordinator = nullptr;
+    // The Repetitions panel too: it follows the texts and marks them
+    delete m_repetitionsCoordinator;
+    m_repetitionsCoordinator = nullptr;
     if (m_spellingCoordinator) {
         disconnect(m_spellingCoordinator, nullptr, this, nullptr);
     }
@@ -691,6 +831,13 @@ void MainWindow::registerCommands() {
     callbacks.onInsertHorizontalLine = insert(editor::TextObject::HorizontalRule);
     callbacks.onInsertSceneBreak = insert(editor::TextObject::SceneBreak);
     callbacks.onInsertPageBreak = insert(editor::TextObject::PageBreak);
+    // The list of quick insert of the text (EditorPanel), with all its items
+    callbacks.onQuickInsert = inText([](editor::BookEditor& text) {
+        if (auto* quick = text.findChild<editor::QuickInsertController*>(
+                QString(), Qt::FindDirectChildrenOnly)) {
+            quick->openAtCursor();
+        }
+    });
     callbacks.onSpecialCharacter = [this]() {
         if (m_specialCharacterCoordinator != nullptr) {
             m_specialCharacterCoordinator->openWindow();
@@ -771,7 +918,7 @@ void MainWindow::registerCommands() {
     // Insert > Link...: the window of the link at the cursor, of the editor in front
     callbacks.onInsertLink = [this]() {
         if (EditorPanel* editor = getCurrentEditor()) {
-            editor->showLinkDialog();
+            editor->showHyperlinkDialog();
         }
     };
     // Insert > Table...: the window of the new table, of the editor in front
@@ -872,23 +1019,38 @@ void MainWindow::registerCommands() {
     callbacks.onFocusToggle = [this]() { onFocusToggle(); };
     callbacks.onDarkPaperToggle = [this]() { onDarkPaperToggle(); };
     callbacks.onTextFrameBorderToggle = [this]() { onTextFrameBorderToggle(); };
+    callbacks.onAnnotationCardsToggle = [this]() { onAnnotationCardsToggle(); };
     callbacks.onDistractionFreeToggle = [this]() { onDistractionFreeToggle(); };
     callbacks.onFormattingMarksToggle = [this]() { onFormattingMarksToggle(); };
+    callbacks.onMarginNumbering = [this](const QString& mode) { onMarginNumbering(mode); };
+    callbacks.onMarginNumberingSettings = [this]() {
+        m_settingsCoordinator->openSettingsPage(
+            QString::fromLatin1(SettingsDialog::MARGIN_NUMBERING_PAGE));
+    };
 
-    // Zoom commands act on the editor in front
-    const auto onEditor = [this](void (editor::BookEditor::*action)()) {
-        return [this, action]() {
+    // Zoom commands act on the editor in front, or on the preview of a material, which fits
+    // its picture to the window for the width of the page and the whole page
+    const auto onEditor = [this](void (editor::BookEditor::*action)(),
+                                 void (ImagePreviewPanel::*previewAction)()) {
+        return [this, action, previewAction]() {
+            if (ImagePreviewPanel* preview = currentPreview()) {
+                (preview->*previewAction)();
+                return;
+            }
             EditorPanel* editor = getCurrentEditor();
             if (editor && editor->getBookEditor()) {
                 (editor->getBookEditor()->*action)();
             }
         };
     };
-    callbacks.onZoomIn = onEditor(&editor::BookEditor::zoomIn);
-    callbacks.onZoomOut = onEditor(&editor::BookEditor::zoomOut);
-    callbacks.onZoomReset = onEditor(&editor::BookEditor::zoomReset);
-    callbacks.onZoomPageWidth = onEditor(&editor::BookEditor::zoomToPageWidth);
-    callbacks.onZoomWholePage = onEditor(&editor::BookEditor::zoomToWholePage);
+    callbacks.onZoomIn = onEditor(&editor::BookEditor::zoomIn, &ImagePreviewPanel::zoomIn);
+    callbacks.onZoomOut = onEditor(&editor::BookEditor::zoomOut, &ImagePreviewPanel::zoomOut);
+    callbacks.onZoomReset =
+        onEditor(&editor::BookEditor::zoomReset, &ImagePreviewPanel::zoomReset);
+    callbacks.onZoomPageWidth =
+        onEditor(&editor::BookEditor::zoomToPageWidth, &ImagePreviewPanel::zoomToFit);
+    callbacks.onZoomWholePage =
+        onEditor(&editor::BookEditor::zoomToWholePage, &ImagePreviewPanel::zoomToFit);
 
     // View commands
     callbacks.onDashboard = [this]() {
@@ -896,8 +1058,11 @@ void MainWindow::registerCommands() {
         QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
         for (int i = 0; i < centralTabs->count(); ++i) {
             if (qobject_cast<DashboardPanel*>(centralTabs->widget(i))) {
-                // Dashboard exists - activate it
+                // Dashboard exists - activate it, its window in front
                 centralTabs->setCurrentIndex(i);
+                if (m_documentWindows) {
+                    m_documentWindows->showPage(centralTabs->widget(i));
+                }
                 core::Logger::getInstance().debug("Dashboard tab activated at index {}", i);
                 return;
             }
@@ -930,6 +1095,10 @@ void MainWindow::registerCommands() {
     // Register all commands with the callbacks
     int count = registerAllCommands(callbacks);
 
+    // The Window menu: the texts in windows of their own (DocumentWindows, made with the tabs)
+    count += DocumentWindows::registerCommands(CommandRegistry::getInstance(),
+                                               [this]() { return m_documentWindows; });
+
     // The keys the user changed in Settings > Keyboard Shortcuts take the place of the
     // program's, in the menus and the toolbars built next
     CommandRegistry::getInstance().setCustomShortcuts(loadCustomShortcuts());
@@ -946,7 +1115,10 @@ void MainWindow::registerCommands() {
     if (auto* dfCmd = registry.getCommand("view.mode.distraction-free")) {
         dfCmd->isChecked = [this]() { return isDistractionFree(); };
         dfCmd->isEnabled = [this]() {
-            return isDistractionFree() || (m_dockCoordinator != nullptr && getCurrentEditor() != nullptr);
+            // A text in a window of its own is written there, not in the book window
+            EditorPanel* front = m_dockCoordinator != nullptr ? getCurrentEditor() : nullptr;
+            const bool detached = m_documentWindows && m_documentWindows->isDetached(front);
+            return isDistractionFree() || (front != nullptr && !detached);
         };
     }
 
@@ -1046,6 +1218,25 @@ void MainWindow::registerCommands() {
         };
     }
 
+    // Find goes to the search of a list of materials too
+    if (Command* command = registry.getCommand("edit.find")) {
+        command->isEnabled = [this]() {
+            return hasDocumentInFront() || (m_materialListCoordinator != nullptr &&
+                                            m_materialListCoordinator->currentList() != nullptr);
+        };
+    }
+
+    // The zoom works on the preview of a material too
+    for (const char* id : {"view.zoomIn", "view.zoomOut", "view.resetZoom", "view.zoomPageWidth",
+                           "view.zoomWholePage"}) {
+        if (Command* command = registry.getCommand(id)) {
+            command->isEnabled = [this]() {
+                return hasDocumentInFront() ||
+                       (m_dockCoordinator != nullptr && currentPreview() != nullptr);
+            };
+        }
+    }
+
     // Close Book and the export of the book's archive work on the open book: without one
     // they are greyed out, as the Book menu (updateBookCommands())
     utils::bindToOpenBook(registry, []() {
@@ -1058,11 +1249,26 @@ void MainWindow::registerCommands() {
     utils::followSetting(registry.getAction(std::string("view.darkPaper")), "editor.darkMode");
     utils::followSetting(registry.getAction(std::string("view.textFrameBorder")),
                          "editor.textFrameBorder.show");
+    utils::followSetting(registry.getAction(std::string("view.annotationCards")),
+                         "editor.annotationCards.show");
     utils::followSetting(registry.getAction(std::string("view.typewriter")),
                          "editor.typewriter.enabled");
     utils::followSetting(registry.getAction(std::string("view.focus")), "editor.focus.enabled");
     utils::followSetting(registry.getAction(std::string("view.showFormattingMarks")),
                          "editor.showFormattingMarks");
+
+    // So are the numbers on the margin: one choice of three, as in the Settings dialog
+    auto* numbering = new QActionGroup(this);
+    for (const auto& [id, mode] : {std::pair{"view.marginNumbers.none", editor::MARGIN_NUMBERING_NONE},
+                                   std::pair{"view.marginNumbers.lines", editor::MARGIN_NUMBERING_LINES},
+                                   std::pair{"view.marginNumbers.paragraphs",
+                                             editor::MARGIN_NUMBERING_PARAGRAPHS}}) {
+        QAction* action = registry.getAction(std::string(id));
+        utils::followChoice(action, "editor.marginNumbers.mode", mode);
+        if (action != nullptr) {
+            numbering->addAction(action);
+        }
+    }
 
     logger.debug("Commands registered successfully ({} commands)", count);
 }
@@ -1254,6 +1460,13 @@ void MainWindow::onSelectAll() {
 void MainWindow::onFind() {
     core::Logger::getInstance().info("Action triggered: Find");
 
+    // A list of materials in front: its search
+    if (MaterialListPanel* list = m_materialListCoordinator != nullptr
+                                      ? m_materialListCoordinator->currentList()
+                                      : nullptr) {
+        list->focusSearch();
+        return;
+    }
     EditorPanel* editor = getCurrentEditor();
     if (editor && editor->getBookEditor()) {
         editor->getBookEditor()->showFind();
@@ -1460,6 +1673,20 @@ void MainWindow::onTextFrameBorderToggle() {
                              2000);
 }
 
+void MainWindow::onAnnotationCardsToggle() {
+    auto& settings = core::SettingsManager::getInstance();
+
+    // A setting of all editors, kept between sessions, as in the Settings dialog: every
+    // editor follows it
+    const bool show = !settings.get<bool>("editor.annotationCards.show");
+    settings.set<bool>("editor.annotationCards.show", show);
+    core::Logger::getInstance().info("Action triggered: Annotation Cards Under Paragraphs {}",
+                                     show ? "on" : "off");
+    statusBar()->showMessage(show ? tr("Annotation cards under paragraphs: shown")
+                                  : tr("Annotation cards under paragraphs: hidden"),
+                             2000);
+}
+
 void MainWindow::onFormattingMarksToggle() {
     auto& settings = core::SettingsManager::getInstance();
 
@@ -1472,6 +1699,23 @@ void MainWindow::onFormattingMarksToggle() {
                              2000);
 }
 
+void MainWindow::onMarginNumbering(const QString& mode) {
+    // A setting of all editors, kept between sessions, as in the Settings dialog: every
+    // editor follows it. The numbering on chosen again (its toolbar button) turns it off.
+    const std::string chosen = utils::chooseSetting("editor.marginNumbers.mode",
+                                                    mode.toStdString(),
+                                                    editor::MARGIN_NUMBERING_NONE);
+    core::Logger::getInstance().info("Action triggered: Margin Numbering {}", chosen);
+
+    QString message = tr("Margin numbering: off");
+    switch (editor::marginNumberingFromName(QString::fromStdString(chosen))) {
+        case editor::MarginNumbering::Lines: message = tr("Margin numbering: lines"); break;
+        case editor::MarginNumbering::Paragraphs: message = tr("Margin numbering: paragraphs"); break;
+        case editor::MarginNumbering::None: break;
+    }
+    statusBar()->showMessage(message, 2000);
+}
+
 bool MainWindow::isDistractionFree() const {
     return m_distractionFreeLayout != nullptr && m_distractionFreeLayout->isActive();
 }
@@ -1481,11 +1725,14 @@ void MainWindow::onDistractionFreeToggle() {
     const bool enabled = !isDistractionFree();
     logger.info("Action triggered: Distraction-Free {}", enabled ? "on" : "off");
 
-    // The chapter tabs hide with the window's bars and panels
+    // The chapter tabs, and the button by them, hide with the window's bars and panels
     QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
     QList<QWidget*> alsoHidden;
     if (centralTabs) {
         alsoHidden.append(centralTabs->tabBar());
+        if (QWidget* corner = centralTabs->cornerWidget(Qt::TopRightCorner)) {
+            alsoHidden.append(corner);
+        }
     }
     m_distractionFreeLayout->setActive(enabled, alsoHidden);
 }
@@ -1496,9 +1743,8 @@ void MainWindow::onDistractionFreeChanged(bool enabled) {
 
     // Every editor darkens the sides of its view and shows the word count; an editor
     // opened meanwhile gets it when it comes to the front
-    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    for (int i = 0; centralTabs && i < centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_dockCoordinator->centralTabs()).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         if (editor && editor->getBookEditor()) {
             editor->getBookEditor()->setDistractionFree(enabled);
         }
@@ -1812,10 +2058,24 @@ void MainWindow::createDocks() {
     QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
     utils::focusPageOnTabClick(*centralTabs);
 
-    // Connect tab close signal (Task #00015)
-    connect(m_dockCoordinator, &DockCoordinator::tabCloseRequested, this, [this, centralTabs](int index) {
+    // The texts of the tabs, also in the windows of their own the tabs are moved to
+    m_documentWindows = &DocumentWindows::of(*centralTabs);
+    if (m_menuBuilder) {
+        m_documentWindows->listWindowsIn(m_menuBuilder->getMenu("WINDOW"));
+    }
+    connect(m_documentWindows, &DocumentWindows::settingsRequested, this, [this]() {
+        if (m_settingsCoordinator) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::GENERAL_PAGE));
+        }
+    });
+
+    // Close a tab, of the book window or of a window of its own (Task #00015)
+    const auto closeTab = [this](QWidget* widget) {
         auto& logger = core::Logger::getInstance();
-        QWidget* widget = centralTabs->widget(index);
+        if (widget == nullptr) {
+            return;
+        }
         EditorPanel* editor = qobject_cast<EditorPanel*>(widget);
 
         // An annotation being written in this tab is kept first
@@ -1850,20 +2110,23 @@ void MainWindow::createDocks() {
 
         // Remove tab and delete widget
         // (the keys go on to the page in front, not to the font box of the toolbar)
-        utils::removeTabKeepingFocus(*centralTabs, index);
+        DocumentWindows::removePage(widget);
         widget->deleteLater();
         // Save All saves the files of all tabs: the last file outside a book leaves it
         // nothing, also from a tab behind the one in front
         utils::updateSaveCommands(CommandRegistry::getInstance());
 
-        logger.debug("Tab closed at index {}", index);
-    });
+        logger.debug("Tab closed");
+    };
+    connect(m_dockCoordinator, &DockCoordinator::tabCloseRequested, this,
+            [centralTabs, closeTab](int index) { closeTab(centralTabs->widget(index)); });
+    connect(m_documentWindows, &DocumentWindows::closeRequested, this, closeTab);
 
     // Connect tab change to navigator highlight (OpenSpec #00034 Phase C)
     // Also update action states when switching tabs (OpenSpec #00042 Phase 7.3)
     // Also connect properties panel to active editor (OpenSpec #00042 Task 7.4)
     // Also sync font toolbar widgets (OpenSpec #00042 Phase 7.2)
-    connect(m_dockCoordinator, &DockCoordinator::currentTabChanged, this, [this, centralTabs](int index) {
+    connect(m_documentWindows, &DocumentWindows::frontChanged, this, [this](QWidget* page) {
         NavigatorPanel* navigatorPanel = m_dockCoordinator->navigatorPanel();
         PropertiesPanel* propertiesPanel = m_dockCoordinator->propertiesPanel();
 
@@ -1871,16 +2134,22 @@ void MainWindow::createDocks() {
         // (none over the Dashboard or without a tab)
         EditorPanel* front = getCurrentEditor();
         m_statusBarStatistics->setEditor(front ? front->getBookEditor() : nullptr);
+        // The zoom of the preview of a material follows it
+        if (ImagePreviewPanel* preview = currentPreview()) {
+            connect(preview, &ImagePreviewPanel::zoomChanged, this,
+                    &MainWindow::updatePageStatus, Qt::UniqueConnection);
+        }
         updatePageStatus();
 
         // Distraction-Free needs a document in front: it goes off over the Dashboard or
         // without a tab, and its command waits for a document
-        if (isDistractionFree() && getCurrentEditor() == nullptr) {
+        if (isDistractionFree()
+            && (getCurrentEditor() == nullptr || m_documentWindows->isDetached(page))) {
             m_distractionFreeLayout->setActive(false);
         }
         CommandRegistry::getInstance().updateActionState("view.mode.distraction-free");
 
-        if (index < 0) {
+        if (page == nullptr) {
             navigatorPanel->clearHighlight();
             // OpenSpec #00042 Task 7.4: Disconnect from editor when no tab
             if (propertiesPanel) {
@@ -1896,8 +2165,7 @@ void MainWindow::createDocks() {
             return;
         }
 
-        QWidget* currentWidget = centralTabs->widget(index);
-        EditorPanel* editor = qobject_cast<EditorPanel*>(currentWidget);
+        EditorPanel* editor = qobject_cast<EditorPanel*>(page);
         if (editor) {
             QString elementId = editor->property("elementId").toString();
             if (!elementId.isEmpty()) {
@@ -1917,6 +2185,7 @@ void MainWindow::createDocks() {
                 disconnect(bookEditor, &editor::BookEditor::zoomChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::contentChanged, this, nullptr);
                 disconnect(bookEditor, &editor::BookEditor::changeRefused, this, nullptr);
+                disconnect(bookEditor, &editor::BookEditor::searchColorsRequested, this, nullptr);
 
                 // Connect to update action states when selection/cursor/viewMode changes
                 connect(bookEditor, &editor::BookEditor::selectionChanged,
@@ -1945,6 +2214,14 @@ void MainWindow::createDocks() {
                 // the status bar says why nothing happened
                 connect(bookEditor, &editor::BookEditor::changeRefused, this, [this]() {
                     statusBar()->showMessage(readOnlyReason(), READ_ONLY_MESSAGE_MS);
+                });
+
+                // The gear of the find bar: the colors of the hits
+                connect(bookEditor, &editor::BookEditor::searchColorsRequested, this, [this]() {
+                    if (m_settingsCoordinator) {
+                        m_settingsCoordinator->openSettingsPage(
+                            QString::fromLatin1(SettingsDialog::EDITOR_COLORS_PAGE));
+                    }
                 });
 
                 // Page of the cursor and zoom in the status bar
@@ -2269,8 +2546,16 @@ EditorPanel* MainWindow::getCurrentEditor() {
         return nullptr;
     }
 
-    QWidget* currentWidget = centralTabs->currentWidget();
+    // The page the keys went to last, also in a window of its own
+    QWidget* currentWidget =
+        m_documentWindows ? m_documentWindows->frontPage() : centralTabs->currentWidget();
     return qobject_cast<EditorPanel*>(currentWidget);  // nullptr if not EditorPanel
+}
+
+ImagePreviewPanel* MainWindow::currentPreview() {
+    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
+    return centralTabs != nullptr ? qobject_cast<ImagePreviewPanel*>(centralTabs->currentWidget())
+                                  : nullptr;
 }
 
 // =============================================================================
@@ -2291,13 +2576,13 @@ void MainWindow::onNavigatorElementSelected(const QString& elementId, const QStr
 }
 
 void MainWindow::openGivingKeys(const std::function<void()>& open) {
-    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    const int front = centralTabs->currentIndex();
-    const int count = centralTabs->count();
+    const DocumentWindows& texts = DocumentWindows::of(*m_dockCoordinator->centralTabs());
+    const QWidget* front = texts.frontPage();
+    const qsizetype count = texts.pages().size();
     open();
     // A tab more, or another one in front: a document was opened (also after the window that
-    // chose it, as the window for choosing a file)
-    if (centralTabs->currentIndex() != front || centralTabs->count() != count) {
+    // chose it, as the window for choosing a file), or brought to the front in its window
+    if (texts.frontPage() != front || texts.pages().size() != count) {
         focusCurrentText();
     }
 }
@@ -2316,9 +2601,8 @@ void MainWindow::placeOpenedChapterCursor(const QString& elementId) {
     if (opensAt == utils::CHAPTER_OPENS_AT_START || database == nullptr || !database->isOpen()) {
         return;  // at its start, as a new editor has it
     }
-    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    for (int i = 0; i < centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_dockCoordinator->centralTabs()).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         if (editor != nullptr && editor->getBookEditor() != nullptr
             && editor->property("elementId").toString() == elementId) {
             utils::restoreChapterCursor(*database, elementId, *editor->getBookEditor());
@@ -2348,8 +2632,8 @@ void MainWindow::rememberChapterCursors() {
     }
     // One write to the book's database for all of them
     database->executeInTransaction([this, centralTabs]() {
-        for (int i = 0; i < centralTabs->count(); ++i) {
-            rememberChapterCursor(qobject_cast<const EditorPanel*>(centralTabs->widget(i)));
+        for (QWidget* page : DocumentWindows::of(*centralTabs).pages()) {
+            rememberChapterCursor(qobject_cast<const EditorPanel*>(page));
         }
         return true;
     });
@@ -2517,6 +2801,14 @@ void MainWindow::showEvent(QShowEvent* event) {
 
 void MainWindow::updatePageStatus() {
     if (!m_pageLabel || !m_zoomLabel) {
+        return;
+    }
+
+    // The zoom of the preview of a material
+    if (ImagePreviewPanel* preview = currentPreview()) {
+        m_pageLabel->hide();
+        m_zoomLabel->setText(tr("%1%").arg(qRound(preview->zoom() * 100.0)));
+        m_zoomLabel->show();
         return;
     }
 

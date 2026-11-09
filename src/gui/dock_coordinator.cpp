@@ -5,6 +5,8 @@
 
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/document_windows.h"
+#include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/utils/panel_toggle.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -14,8 +16,10 @@
 #include "kalahari/gui/panels/assistant_panel.h"
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/spelling_panel.h"
+#include "kalahari/gui/panels/repetitions_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 #include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
@@ -141,6 +145,7 @@ void DockCoordinator::createDocks() {
     createAssistantDock();
     createAnnotationsDock();
     createSpellingDock();
+    createRepetitionsDock();
 
     // Tab right-side docks: Paragraph and Styles next to Properties
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
@@ -148,10 +153,13 @@ void DockCoordinator::createDocks() {
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
     m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
+    m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
 
     // The Spelling and Grammar panel is closed until opened (View > Panels, Next Spelling or
-    // Grammar Issue); then its tab is next to the Annotations tab, which is on top by default
+    // Grammar Issue); then its tab is next to the Annotations tab, which is on top by default.
+    // The Repetitions panel likewise (View > Panels, Tools > Word Repetitions), after them
     m_spellingDock->hide();
+    m_repetitionsDock->hide();
     m_annotationsDock->raise();
 
     // A panel on the right shown again: the bar that says they were hidden has done its job
@@ -169,6 +177,19 @@ void DockCoordinator::createDocks() {
 
     // Setup VIEW menu panel actions
     setupViewMenuActions();
+
+    // The tabs of the panels docked one over another: the program's own, with the icons of
+    // View > Panels, as the settings say
+    m_panelTabs = new PanelTabs(m_mainWindow, this);
+    m_panelTabs->addPanel(m_navigatorDock, "view.navigator");
+    m_panelTabs->addPanel(m_propertiesDock, "view.properties");
+    m_panelTabs->addPanel(m_paragraphDock, "view.paragraph");
+    m_panelTabs->addPanel(m_logDock, "view.log");
+    m_panelTabs->addPanel(m_searchDock, "view.search");
+    m_panelTabs->addPanel(m_assistantDock, "view.assistant");
+    m_panelTabs->addPanel(m_annotationsDock, "view.annotations");
+    m_panelTabs->addPanel(m_spellingDock, "view.spelling");
+    m_panelTabs->applySettings();
 
     // The Paragraph and Styles panel where the settings say
     placeParagraphPanel(false);
@@ -199,11 +220,13 @@ void DockCoordinator::createCentralWidget() {
     connect(m_layoutNoticeBar, &InfoBar::actionClicked, this, &DockCoordinator::showRightPanels);
     connect(m_layoutNoticeBar, &InfoBar::dismissed, m_layoutNoticeBar, &QWidget::hide);
 
-    // Create central tabbed workspace
-    m_centralTabs = new QTabWidget(m_centralWrapper);
+    // Create central tabbed workspace: one row of tabs, or more as the settings say
+    auto* centralTabs = new CentralTabs(m_centralWrapper);
+    m_centralTabs = centralTabs;
     m_centralTabs->setTabsClosable(true);
     m_centralTabs->setMovable(true);
     m_centralTabs->setDocumentMode(true);
+    centralTabs->applySettings();
     centralLayout->addWidget(m_centralTabs, 1);  // Stretch factor 1 to fill space
 
     // Create standalone info bar at BOTTOM (hidden by default)
@@ -290,12 +313,16 @@ void DockCoordinator::createNavigatorDock() {
     connect(m_navigatorPanel, &NavigatorPanel::requestPartProperties,
             this, &DockCoordinator::navigatorRequestPartProperties);
 
-    // Only the Properties command brings the panel to the front; choosing an element
-    // only fills it, so a panel on top of the same tab group (Annotations) stays there
+    // The Properties command, Alt+Enter and a material chosen bring the panel to the front;
+    // choosing another element only fills it, so a panel on top of the same tab group
+    // (Annotations) stays there
     connect(m_navigatorPanel, &NavigatorPanel::requestPropertiesPanel, this, [this]() {
         m_propertiesDock->show();
         m_propertiesDock->raise();
     });
+    // Alt+Enter: the keys go to the first field of the panel
+    connect(m_navigatorPanel, &NavigatorPanel::requestPropertiesFocus, this,
+            [this]() { m_propertiesPanel->focusFirstField(); });
 
     logger.debug("DockCoordinator: Navigator dock created");
 }
@@ -344,6 +371,8 @@ void DockCoordinator::createPropertiesDock() {
     // Connect PropertiesPanel status change to coordinator
     connect(m_propertiesPanel, &PropertiesPanel::chapterStatusChanged,
             this, &DockCoordinator::chapterStatusChanged);
+    connect(m_propertiesPanel, &PropertiesPanel::chapterFirstPageChanged,
+            this, &DockCoordinator::chapterFirstPageChanged);
 
     logger.debug("DockCoordinator: Properties dock created");
 }
@@ -511,12 +540,30 @@ void DockCoordinator::createSpellingDock() {
     logger.debug("DockCoordinator: Spelling dock created");
 }
 
+void DockCoordinator::createRepetitionsDock() {
+    auto& logger = core::Logger::getInstance();
+
+    m_repetitionsPanel = new RepetitionsPanel(m_mainWindow);
+    //: The panel of the words that come back too close. In Polish: Powtórzenia
+    m_repetitionsDock = new QDockWidget(tr("Repetitions"), m_mainWindow);
+    m_repetitionsDock->setWidget(scrollingPanel(m_repetitionsPanel, m_repetitionsDock));
+    m_repetitionsDock->setObjectName("RepetitionsDock");
+    setupDockTitleBar(m_repetitionsDock, "view.repetitionsPanel", tr("Repetitions"));
+    // What counts as a repetition, the skipped words and the marks are on the Repetitions page
+    //: The tooltip of the gear of the Repetitions panel. In Polish: Ustawienia powtórzeń
+    addSettingsButton(m_repetitionsDock, QString::fromLatin1(SettingsDialog::REPETITIONS_PAGE),
+                      tr("Repetition Settings"));
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_repetitionsDock);
+
+    logger.debug("DockCoordinator: Repetitions dock created");
+}
+
 QToolButton* DockCoordinator::addTitleBarButton(QDockWidget* dock, const QString& iconId,
                                                 const QString& toolTip) {
-    QWidget* titleBar = dock->titleBarWidget();
-    auto* layout = qobject_cast<QHBoxLayout*>(titleBar->layout());
+    auto* row = dock->titleBarWidget()->findChild<QWidget*>(QString::fromLatin1(TITLE_ROW));
+    auto* layout = qobject_cast<QHBoxLayout*>(row->layout());
 
-    auto* button = new QToolButton(titleBar);
+    auto* button = new QToolButton(row);
     button->setAutoRaise(true);
     button->setIcon(core::ArtProvider::getInstance().getIcon(iconId));
     button->setToolTip(toolTip);
@@ -548,14 +595,21 @@ void DockCoordinator::addSettingsButton(QDockWidget* dock, const QString& page,
 void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId, const QString& title) {
     auto& artProvider = core::ArtProvider::getInstance();
 
-    // Create custom title bar widget
+    // Create custom title bar widget: its row, with room above it for the tabs of the panel's
+    // group when the settings put them there (PanelTabs)
     QWidget* titleBar = new QWidget(dock);
-    QHBoxLayout* layout = new QHBoxLayout(titleBar);
+    auto* titleLayout = new QVBoxLayout(titleBar);
+    titleLayout->setContentsMargins(0, 0, 0, 0);
+    titleLayout->setSpacing(0);
+    QWidget* row = new QWidget(titleBar);
+    row->setObjectName(QString::fromLatin1(TITLE_ROW));
+    titleLayout->addWidget(row);
+    QHBoxLayout* layout = new QHBoxLayout(row);
     layout->setContentsMargins(6, 2, 6, 2);
     layout->setSpacing(4);
 
     // Icon label (16x16 for title bar)
-    QLabel* iconLabel = new QLabel(titleBar);
+    QLabel* iconLabel = new QLabel(row);
     QIcon icon = artProvider.getIcon(iconId);
     iconLabel->setPixmap(icon.pixmap(16, 16));
     iconLabel->setFixedSize(16, 16);
@@ -566,7 +620,7 @@ void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId
     m_dockIconLabels.append(iconLabel);
 
     // Title label
-    QLabel* titleLabel = new PanelTitleLabel(title, titleBar);
+    QLabel* titleLabel = new PanelTitleLabel(title, row);
     titleLabel->setStyleSheet("font-weight: bold;");
     layout->addWidget(titleLabel);
 
@@ -576,7 +630,7 @@ void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId
     // Float button (if dock is floatable)
     QDockWidget::DockWidgetFeatures features = dock->features();
     if (features & QDockWidget::DockWidgetFloatable) {
-        QToolButton* floatButton = new QToolButton(titleBar);
+        QToolButton* floatButton = new QToolButton(row);
         floatButton->setAutoRaise(true);
         floatButton->setIcon(artProvider.getIcon("dock.float"));
         floatButton->setToolTip(QObject::tr("Float"));
@@ -591,7 +645,7 @@ void DockCoordinator::setupDockTitleBar(QDockWidget* dock, const QString& iconId
 
     // Close button (if dock is closable)
     if (features & QDockWidget::DockWidgetClosable) {
-        QToolButton* closeButton = new QToolButton(titleBar);
+        QToolButton* closeButton = new QToolButton(row);
         closeButton->setAutoRaise(true);
         closeButton->setIcon(artProvider.getIcon("dock.close"));
         closeButton->setToolTip(QObject::tr("Close"));
@@ -610,11 +664,8 @@ void DockCoordinator::refreshTabIcons() {
         return;
     }
     auto& artProvider = core::ArtProvider::getInstance();
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        QWidget* page = m_centralTabs->widget(i);
-        if (!page) {
-            continue;
-        }
+    // Those of the windows of their own too
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
         const QString iconId = page->property("tabIconId").toString();
         // A chapter of a kind the program does not have: the icon on the book's card of its
         // package
@@ -623,7 +674,7 @@ void DockCoordinator::refreshTabIcons() {
             package.isEmpty() ? nullptr
                               : core::ProjectManager::getInstance().packageCard(package);
         if (!iconId.isEmpty()) {
-            m_centralTabs->setTabIcon(i, artProvider.getPackageIcon(iconId, card));
+            DocumentWindows::setTabIcon(page, artProvider.getPackageIcon(iconId, card));
         }
     }
 }
@@ -668,6 +719,7 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.assistant", m_assistantDock);
     connectPanelCommand("view.annotations", m_annotationsDock);
     connectPanelCommand("view.spelling", m_spellingDock);
+    connectPanelCommand("view.repetitionsPanel", m_repetitionsDock);
 
     // Paragraph and Styles: a panel of its own or the lower part of Properties
     auto& registry = CommandRegistry::getInstance();
@@ -686,6 +738,7 @@ void DockCoordinator::setupViewMenuActions() {
     m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock);
     m_viewAnnotationsAction = createPanelAction("view.annotations", m_annotationsDock);
     m_viewSpellingAction = createPanelAction("view.spelling", m_spellingDock);
+    m_viewRepetitionsAction = createPanelAction("view.repetitionsPanel", m_repetitionsDock);
     m_viewParagraphAction = registry.getAction(std::string("view.paragraph"));
     if (m_viewParagraphAction != nullptr) {
         m_viewParagraphAction->setCheckable(true);
@@ -747,6 +800,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->removeDockWidget(m_assistantDock);
     m_mainWindow->removeDockWidget(m_annotationsDock);
     m_mainWindow->removeDockWidget(m_spellingDock);
+    m_mainWindow->removeDockWidget(m_repetitionsDock);
     m_mainWindow->removeDockWidget(m_paragraphDock);
 
     // Re-add in default layout
@@ -758,6 +812,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_assistantDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_annotationsDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_spellingDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_repetitionsDock);
 
     // Tab right-side docks
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
@@ -765,9 +820,10 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
     m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
+    m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
 
-    // Show docks (LogDock only in diagnostic/dev mode; the Spelling and Grammar panel only
-    // when opened; Paragraph and Styles unfolded where the settings put it)
+    // Show docks (LogDock only in diagnostic/dev mode; the Spelling and Grammar panel and the
+    // Repetitions panel only when opened; Paragraph and Styles unfolded where the settings put it)
     m_navigatorDock->show();
     m_propertiesDock->show();
     m_paragraphDock->setVisible(!paragraphInProperties());
@@ -778,6 +834,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_assistantDock->show();
     m_annotationsDock->show();
     m_spellingDock->hide();
+    m_repetitionsDock->hide();
 
     // The Annotations tab is on top, as at the first start
     m_annotationsDock->raise();

@@ -19,6 +19,7 @@
 #include <QTimer>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace kalahari::editor {
 
@@ -33,6 +34,10 @@ constexpr qreal UNBOUNDED_EXTENT = 1000000000.0;
 /// Accepted range of the line spacing multiplier
 constexpr qreal MIN_LINE_SPACING = 0.5;
 constexpr qreal MAX_LINE_SPACING = 4.0;
+
+/// Accepted range of the spaces between two tab stops
+constexpr int MIN_TAB_SPACES = 1;
+constexpr int MAX_TAB_SPACES = 32;
 
 /// An edit touching at most this many blocks lays them out at once. A larger one (a
 /// load, a long paste or its undo) leaves them waiting for layout.
@@ -315,6 +320,8 @@ void KalahariTextDocumentLayout::setTypography(const LayoutTypography& typograph
     normalized.paragraphSpacing = std::max<qreal>(0, typography.paragraphSpacing);
     normalized.firstLineIndent = std::max<qreal>(0, typography.firstLineIndent);
     normalized.referencePointSize = std::max<qreal>(0, typography.referencePointSize);
+    normalized.tabIndent = std::max<qreal>(0, typography.tabIndent);
+    normalized.tabSpaces = std::clamp(typography.tabSpaces, MIN_TAB_SPACES, MAX_TAB_SPACES);
     if (normalized == m_typography) {
         return;
     }
@@ -343,6 +350,53 @@ qreal KalahariTextDocumentLayout::firstLineIndent() const {
 void KalahariTextDocumentLayout::layoutAllBlocks() {
     invalidateAll();
     layoutPendingBlocks();
+}
+
+// =============================================================================
+// The numbers on the margin
+// =============================================================================
+
+MarginCounts KalahariTextDocumentLayout::marginCountsBefore(int blockNumber) const {
+    // Counted again only when asked after a change (the numbers are shown): typing, a block
+    // laid out. The blocks before the first changed one keep their counts
+    const QTextDocument* doc = document();
+    const int blockCount = doc->blockCount();
+    if (m_marginCountsFrom < blockCount ||
+        m_marginCounts.size() != static_cast<size_t>(blockCount) + 1) {
+        const int from = std::clamp(m_marginCountsFrom, 0,
+                                    std::max(static_cast<int>(m_marginCounts.size()) - 1, 0));
+        m_marginCounts.resize(static_cast<size_t>(from) + 1);
+        m_marginCounts.reserve(static_cast<size_t>(blockCount) + 1);
+        auto index = static_cast<size_t>(from);
+        for (QTextBlock block = doc->findBlockByNumber(from); block.isValid();
+             block = block.next(), ++index) {
+            // Every block shows a line at least (an edited one has none for a moment); the
+            // lines of the cells of a table are not counted, as in Word: side by side, their
+            // numbers would be drawn over each other
+            const bool laidOut = index < m_blockPending.size() && m_blockPending[index] == 0;
+            const qreal extent =
+                index < m_blockExtents.size() ? m_blockExtents[index] : block.length();
+            int lines = 0;
+            if (tableOf(block) == nullptr) {
+                lines = laidOut && block.layout() != nullptr
+                            ? std::max(1, block.layout()->lineCount())
+                            : static_cast<int>(estimatedLines(extent, blockMetrics(block)));
+            }
+            MarginCounts next = m_marginCounts.back();
+            next.lines += lines;
+            next.paragraphs += isNumberedParagraph(block) ? 1 : 0;
+            m_marginCounts.push_back(next);
+        }
+        m_marginCountsFrom = std::numeric_limits<int>::max();
+    }
+    const auto last = static_cast<int>(m_marginCounts.size()) - 1;
+    return m_marginCounts[static_cast<size_t>(std::clamp(blockNumber, 0, last))];
+}
+
+bool KalahariTextDocumentLayout::isNumberedParagraph(const QTextBlock& block) {
+    return blockObject(block) == TextObject::None &&
+           headingLevelOf(paragraphStyleOf(block.blockFormat())) == 0 &&
+           !block.text().trimmed().isEmpty() && tableOf(block) == nullptr;
 }
 
 // =============================================================================
@@ -554,6 +608,17 @@ KalahariTextDocumentLayout::BlockMetrics KalahariTextDocumentLayout::styleMetric
     metrics.emptyLineHeight = std::ceil(styledMetrics.ascent() + styledMetrics.descent());
     metrics.estimatedLineHeight =
         metrics.emptyLineHeight + extraLeading(metrics.emptyLineHeight, metrics.lineSpacing);
+
+    // The tab stops: every first-line indent of the style (a style without one, as headings
+    // have, takes the indent of the settings), or every few spaces of its font
+    if (m_typography.tabStops == TabStops::Spaces) {
+        metrics.tabStopDistance =
+            m_typography.tabSpaces * styledMetrics.horizontalAdvance(QLatin1Char(' '));
+    } else {
+        metrics.tabStopDistance = metrics.firstLineIndent > 0
+                                      ? metrics.firstLineIndent
+                                      : m_typography.tabIndent * typographyScale();
+    }
     return metrics;
 }
 
@@ -880,6 +945,7 @@ void KalahariTextDocumentLayout::layoutStep() {
 void KalahariTextDocumentLayout::invalidateAll() {
     const QTextDocument* doc = document();
     updateEstimateMetrics();
+    recountMarginsFrom(0);
 
     const auto count = static_cast<size_t>(doc->blockCount());
     if (m_blockHeights.size() != count || m_blockExtents.size() != count) {
@@ -894,6 +960,7 @@ void KalahariTextDocumentLayout::invalidateAll() {
         m_blockHeights.resize(count);
     }
     m_blockFlowEntries.assign(count, FlowEntry());
+    m_blockSpaceBelow.assign(count, 0.0);
 
     QTextBlock block = doc->begin();
     size_t i = 0;
@@ -912,6 +979,7 @@ void KalahariTextDocumentLayout::invalidateAll() {
         }
         const BlockMetrics& metrics = blockMetrics(block);
         m_blockHeights[i] = estimatedHeight(m_blockExtents[i], metrics);
+        m_blockSpaceBelow[i] = askSpaceBelow(block);
         storeFlowEntries(static_cast<int>(i), block,
                          metrics.spaceBefore + metrics.estimatedLineHeight);
         ++i;
@@ -942,13 +1010,71 @@ void KalahariTextDocumentLayout::updateEstimateMetrics() {
 
 qreal KalahariTextDocumentLayout::estimatedHeight(qreal extent, const BlockMetrics& metrics,
                                                   qreal ownWidth) const {
+    return estimatedLines(extent, metrics, ownWidth) * metrics.estimatedLineHeight +
+           metrics.spaceBefore + metrics.spaceAfter;
+}
+
+qreal KalahariTextDocumentLayout::estimatedLines(qreal extent, const BlockMetrics& metrics,
+                                                 qreal ownWidth) const {
     const qreal width = ownWidth >= 0 ? ownWidth : document()->textWidth();
     const qreal lineWidth =
         std::max<qreal>(1.0, (width > 0 ? width : UNWRAPPED_LINE_WIDTH) - metrics.leftMargin -
                                  metrics.rightMargin) *
         AVERAGE_LINE_FILL;
-    const qreal lines = std::max<qreal>(1.0, std::ceil(extent * m_averageCharWidth / lineWidth));
-    return lines * metrics.estimatedLineHeight + metrics.spaceBefore + metrics.spaceAfter;
+    return std::max<qreal>(1.0, std::ceil(extent * m_averageCharWidth / lineWidth));
+}
+
+void KalahariTextDocumentLayout::recountMarginsFrom(int blockNumber) {
+    m_marginCountsFrom = std::min(m_marginCountsFrom, std::max(blockNumber, 0));
+}
+
+qreal KalahariTextDocumentLayout::askSpaceBelow(const QTextBlock& block) const {
+    // The cells of a row side by side are as high as the row: no space under one of them
+    if (!m_spaceBelowProvider || m_pageFlow.enabled || tableOf(block) != nullptr) {
+        return 0.0;
+    }
+    return std::ceil(std::max<qreal>(0.0, m_spaceBelowProvider(block)));
+}
+
+void KalahariTextDocumentLayout::setSpaceBelowProvider(SpaceBelowProvider provider) {
+    if (!provider && !m_spaceBelowProvider) {
+        return;
+    }
+    m_spaceBelowProvider = std::move(provider);
+    updateSpaceBelow(0);
+}
+
+void KalahariTextDocumentLayout::updateSpaceBelow(int first, int last) {
+    // Asked in the middle of a change, the cache is out of step with the blocks: the change
+    // asks every block it touched by itself
+    const auto count = static_cast<int>(m_blockSpaceBelow.size());
+    if (document()->blockCount() != count) {
+        return;
+    }
+    first = std::max(first, 0);
+    last = last < 0 ? count - 1 : std::min(last, count - 1);
+    bool changed = false;
+    QTextBlock block = document()->findBlockByNumber(first);
+    for (int number = first; number <= last && block.isValid(); ++number, block = block.next()) {
+        const qreal space = askSpaceBelow(block);
+        qreal& stored = m_blockSpaceBelow[static_cast<size_t>(number)];
+        if (space != stored) {
+            stored = space;
+            changed = true;
+        }
+    }
+    if (!changed) {
+        return;
+    }
+    // The blocks below move; their lines stay
+    m_positionsDirty = true;
+    emit blockGeometryChanged(first);
+    notifyGeometryChanged(first, UNBOUNDED_EXTENT);
+}
+
+qreal KalahariTextDocumentLayout::spaceBelow(int blockNumber) const {
+    const auto index = static_cast<size_t>(blockNumber);
+    return blockNumber >= 0 && index < m_blockSpaceBelow.size() ? m_blockSpaceBelow[index] : 0.0;
 }
 
 void KalahariTextDocumentLayout::reportDocumentSize() {
@@ -1014,6 +1140,7 @@ void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int
 
     // Every block touching the change is laid out again. Blocks outside it are untouched.
     const auto [first, last] = changedBlocks(from, charsAdded);
+    recountMarginsFrom(first.blockNumber());  // the text, and so the lines, changed
 
     // The changed blocks lose their lines, as QTextDocumentLayout clears them (when the
     // document announced the change, they have lost them already): Qt keeps the lines of an
@@ -1105,9 +1232,11 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
     const bool layOutNow = rangeSize <= IMMEDIATE_LAYOUT_LIMIT;
     std::vector<qreal> heights;
     std::vector<qreal> extents;
+    std::vector<qreal> spaces;
     std::vector<FlowEntry> flowEntries;
     heights.reserve(static_cast<size_t>(rangeSize));
     extents.reserve(static_cast<size_t>(rangeSize));
+    spaces.reserve(static_cast<size_t>(rangeSize));
     flowEntries.reserve(static_cast<size_t>(rangeSize));
     // The tables whose head is in the range: the height of their header for the rows below
     // the range (tableHeader())
@@ -1142,6 +1271,7 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
             for (size_t i = static_cast<size_t>(std::max(0, number - bandFirst)); i < entries.size(); ++i) {
                 heights.push_back(entries[i].height);
                 extents.push_back(entries[i].extent);
+                spaces.push_back(0.0);  // no cards in the cells: no space under them
                 flowEntries.push_back(entries[i].flow);
             }
             number = bandFirst + static_cast<int>(entries.size()) - 1;
@@ -1157,6 +1287,7 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         heights.push_back(layOutNow ? layoutBlock(block, &extent, true, &lead)
                                     : estimatedHeight(extent, metrics));
         extents.push_back(extent);
+        spaces.push_back(askSpaceBelow(block));
         flowEntries.push_back(flowEntry(metrics, lead));
         block = block.next();
     }
@@ -1175,9 +1306,12 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
     m_pendingCount += layOutNow ? 0 : static_cast<int>(pending.size());
     bool geometryChanged = true;
     if (static_cast<std::ptrdiff_t>(heights.size()) == oldEnd - begin) {
-        geometryChanged = !std::equal(heights.begin(), heights.end(), m_blockHeights.begin() + begin);
+        geometryChanged =
+            !std::equal(heights.begin(), heights.end(), m_blockHeights.begin() + begin) ||
+            !std::equal(spaces.begin(), spaces.end(), m_blockSpaceBelow.begin() + begin);
         std::copy(heights.begin(), heights.end(), m_blockHeights.begin() + begin);
         std::copy(extents.begin(), extents.end(), m_blockExtents.begin() + begin);
+        std::copy(spaces.begin(), spaces.end(), m_blockSpaceBelow.begin() + begin);
         std::copy(pending.begin(), pending.end(), m_blockPending.begin() + begin);
         std::copy(unplaced.begin(), unplaced.end(), m_blockFlowOffsets.begin() + begin);
         std::copy(noFlowHeights.begin(), noFlowHeights.end(), m_blockFlowHeights.begin() + begin);
@@ -1189,6 +1323,7 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         };
         replace(m_blockHeights, heights);
         replace(m_blockExtents, extents);
+        replace(m_blockSpaceBelow, spaces);
         replace(m_blockPending, pending);
         replace(m_blockFlowOffsets, unplaced);
         replace(m_blockFlowHeights, noFlowHeights);
@@ -1231,6 +1366,7 @@ bool KalahariTextDocumentLayout::layOutBlock(int number, const QTextBlock& block
     qreal lead = 0.0;
     const qreal height = layoutBlock(block, &extent, false, &lead);
     const bool changed = height != m_blockHeights[index];
+    recountMarginsFrom(number);  // its lines, no longer estimated
     m_blockHeights[index] = height;
     m_blockExtents[index] = extent;
     m_blockFlowOffsets[index] = FLOW_UNPLACED;  // the new lines follow the block's top
@@ -1293,6 +1429,9 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
     // advances scale linearly, so lines break the same way and letters stay evenly
     // spaced at every zoom, in the pages and in the endless page alike
     textOption.setUseDesignMetrics(true);
+    if (metrics.tabStopDistance > 0) {
+        textOption.setTabStopDistance(metrics.tabStopDistance);
+    }
     layout->setTextOption(textOption);
 
     // Blocks laid out on demand keep only the line breaks: their glyphs are shaped again
@@ -1418,7 +1557,7 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
     if (!m_pageFlow.enabled) {
         for (size_t i = 0; i < count; ++i) {
             m_blockYPositions[i] = y;
-            y += m_blockHeights[i];
+            y += m_blockHeights[i] + m_blockSpaceBelow[i];
         }
         m_cachedDocumentHeight = y;
         m_contentBottom = y;
@@ -1666,7 +1805,7 @@ qreal KalahariTextDocumentLayout::blockHeight(int blockNumber) const {
         return 0;
     }
     if (!m_pageFlow.enabled) {
-        return m_blockHeights[index];
+        return m_blockHeights[index] + m_blockSpaceBelow[index];
     }
     // Page flow: from the block's top to the next block's (page breaks included)
     updateBlockPositions();

@@ -5,6 +5,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/database_types.h>
+#include <kalahari/core/file_trash.h>
+#include <kalahari/core/link_roles.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/project_database.h>
 #include <kalahari/core/recent_books_manager.h>
@@ -1237,8 +1239,10 @@ TEST_CASE("ProjectManager opens elements whose package is not installed, read-on
     CHECK(pm.formOf(*board) == ElementForm::Window);
 
     // Its text opens, is counted and keeps its status, which does not change: the book is
-    // read-only without the package
+    // read-only without the package, and keeps no versions
     CHECK(pm.loadChapterContent(chapter) == kmlWith("Dark night"));
+    CHECK(pm.keepVersion(chapter, kmlWith("Dark night"), {.origin = VersionOrigin::Manual}) ==
+          ProjectManager::VersionKept::Failed);
     CHECK(pm.wordCount(chapter) == 2);
     CHECK(pm.getStatusStatistics() == std::map<QString, int>{{"draft", 2}});  // and the title page
     CHECK_FALSE(pm.setStatus(chapter, "final"));
@@ -1676,16 +1680,22 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     const QString manifest = pm.getManifestPath();
     const QDir project(pm.getProjectPath());
     const KindRef note = kind("kalahari.base", "work_note");
-    const KindRef material = kind("kalahari.base", "material");
+    const KindRef material = kind("kalahari.base", "picture");
+    const KindRef otherFile = kind("kalahari.base", "other_file");
 
     // The kinds of the Workshop; the program adds working notes and materials, and the other
-    // kinds that open in a window of their own wait for their windows
+    // kinds that open in a window of their own wait for their windows. The one kind of
+    // materials of earlier versions gets no new elements.
     CHECK(references(pm.kindsFor(BookPlace::Workshop)) ==
-          "kalahari.base:work_note, kalahari.base:mindmap, kalahari.base:timeline, "
-          "kalahari.base:character, kalahari.base:location, kalahari.base:item, "
-          "kalahari.base:material");
+          "kalahari.base:mindmap, kalahari.base:timeline, kalahari.base:character, "
+          "kalahari.base:location, kalahari.base:item, kalahari.base:work_note, "
+          "kalahari.base:quote, kalahari.base:web_page, kalahari.base:picture, "
+          "kalahari.base:document, kalahari.base:publication, kalahari.base:recording, "
+          "kalahari.base:other_file");
     CHECK(ProjectManager::canAdd(note));
     CHECK(ProjectManager::canAdd(material));
+    CHECK(ProjectManager::canAdd(otherFile));
+    CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "material")));
     CHECK(ProjectManager::canAdd(pm.chapterKindFor(BookPlace::Main)));
     CHECK(ProjectManager::canAdd(pm.partKind()));
     CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "character")));
@@ -1707,7 +1717,7 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     const ProjectElement* mapElement = pm.findElement(map);
     REQUIRE(mapElement != nullptr);
     CHECK(mapElement->file == "workshop/island map.jpg");
-    CHECK(mapElement->kind == KindReference{"kalahari.base", "material"});
+    CHECK(mapElement->kind == KindReference{"kalahari.base", "picture"});
     CHECK(mapElement->status.isEmpty());
     CHECK(pm.formOf(*mapElement) == ElementForm::Window);
     QFile copy(pm.filePathOf(*mapElement));
@@ -1724,7 +1734,7 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     CHECK(pm.findElement(again)->file == "workshop/island map_3.jpg");
     const QString readme = QDir(dir.path()).filePath("README");
     writeFile(readme, "notes");
-    REQUIRE_FALSE(pm.addMaterial(readme, material, "Readme").isEmpty());
+    REQUIRE_FALSE(pm.addMaterial(readme, otherFile, "Readme").isEmpty());
     CHECK(pm.newMaterialFile(readme) == "workshop/README_2");
     CHECK(titles(pm.project()->workshop.elements) == "Idea, Island map, Island map, Readme");
 
@@ -1734,6 +1744,7 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     CHECK(pm.addMaterial(picture, note, "Wrong").isEmpty());
     CHECK(pm.addMaterial(picture, kind("kalahari.base", "character"), "Wrong").isEmpty());
     CHECK(pm.addMaterial(picture, pm.chapterKindFor(BookPlace::Main), "Wrong").isEmpty());
+    CHECK(pm.addMaterial(picture, kind("kalahari.base", "material"), "Wrong").isEmpty());
     CHECK(pm.addMaterial(QDir(dir.path()).filePath("no file.jpg"), material, "Wrong").isEmpty());
     CHECK(pm.addMaterial(dir.path(), material, "Wrong").isEmpty());
     const BookProject unchanged = *pm.project();
@@ -1755,6 +1766,391 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     // Without a book there is no file
     CHECK(pm.newMaterialFile(picture).isEmpty());
     CHECK(pm.addMaterial(picture, material, "Nothing").isEmpty());
+}
+
+TEST_CASE("ProjectManager keeps the description, own fields, links and turn of a material",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Materials", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString first =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    const QString second =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 2", BookPlace::Main);
+    REQUIRE_FALSE(first.isEmpty());
+    REQUIRE_FALSE(second.isEmpty());
+    const QString picture = QDir(dir.path()).filePath("map.png");
+    writeFile(picture, "a picture");
+    const KindRef material = kind("kalahari.base", "picture");
+    const QString map = pm.addMaterial(picture, material, "Map");
+    const QString photo = pm.addMaterial(picture, material, "Photo");
+    REQUIRE_FALSE(map.isEmpty());
+    REQUIRE_FALSE(photo.isEmpty());
+    CHECK(pm.isMaterial(*pm.findElement(map)));
+    CHECK_FALSE(pm.isMaterial(*pm.findElement(first)));
+    const QString body = pm.project()->sectionLink(BookPlace::Main);
+    REQUIRE_FALSE(body.isEmpty());
+
+    // The description is the notes of an element without a chapter file
+    REQUIRE(pm.setDescription(map, "The oasis and the road."));
+    CHECK(pm.findElement(map)->description == "The oasis and the road.");
+    CHECK(pm.notes(map) == "The oasis and the road.");
+    REQUIRE(pm.setNotes(photo, "Taken in 1931."));
+    CHECK(pm.findElement(photo)->description == "Taken in 1931.");
+
+    // The writer's own fields, in the writer's order; their names are suggested for others
+    REQUIRE(pm.setFields(map, {{"Scale", "1 : 50 000", {}}, {"source", "the author", {}}}));
+    REQUIRE(pm.setFields(photo, {{"Scale", "", {}}, {"Place", "Siwa", {}}, {" ", "", {}}}));
+    CHECK(pm.findElement(map)->fields.size() == 2);
+    CHECK(pm.findElement(photo)->fields.at(1).value == "Siwa");
+    CHECK(pm.fieldNames() == QStringList{"Place", "Scale", "source"});
+
+    // Links: only what the project has, not the element itself, each once
+    REQUIRE(pm.setLinks(map, {first, body, "nothing", map, first, second}));
+    CHECK(pm.findElement(map)->linkTargets() == QStringList{first, body, second});
+    REQUIRE(pm.setLinks(photo, {second}));
+    CHECK(pm.materialsLinkedTo(first) == QList<const ProjectElement*>{pm.findElement(map)});
+    CHECK(pm.materialsLinkedTo(second) ==
+          (QList<const ProjectElement*>{pm.findElement(map), pm.findElement(photo)}));
+    CHECK(pm.materialsLinkedTo(body).size() == 1);
+    CHECK(pm.materialsLinkedTo(QString()).isEmpty());
+
+    // The turn of the picture: a right angle only
+    REQUIRE(pm.setRotation(map, 90));
+    CHECK(pm.findElement(map)->rotation == 90);
+    CHECK_FALSE(pm.setRotation(map, 45));
+    CHECK_FALSE(pm.setRotation("nothing", 180));
+    CHECK(pm.findElement(map)->rotation == 90);
+
+    // A .klh file that cannot be written leaves everything as it was
+    const BookProject unchanged = *pm.project();
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkdir(manifest));
+    CHECK_FALSE(pm.setDescription(map, "Changed"));
+    CHECK_FALSE(pm.setFields(map, {}));
+    CHECK_FALSE(pm.setLinks(map, QStringList()));
+    CHECK_FALSE(pm.setRotation(map, 180));
+    CHECK_FALSE(pm.removeElement(second).has_value());
+    CHECK(*pm.project() == unchanged);
+    REQUIRE(QDir().rmdir(manifest));
+    REQUIRE(pm.saveManifest());
+
+    // An element deleted from the book leaves the links
+    REQUIRE(pm.removeElement(second).has_value());
+    CHECK(pm.findElement(map)->linkTargets() == QStringList{first, body});
+    CHECK(pm.findElement(photo)->links.isEmpty());
+
+    // The .klh file has them all
+    REQUIRE(pm.closeProject(false));
+    const BookProject saved = savedProject(manifest);
+    const ProjectElement* savedMap = saved.findElement(map);
+    REQUIRE(savedMap != nullptr);
+    CHECK(savedMap->description == "The oasis and the road.");
+    CHECK(savedMap->fields.at(0).name == "Scale");
+    CHECK(savedMap->linkTargets() == QStringList{first, body});
+    CHECK(savedMap->rotation == 90);
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.notes(map) == "The oasis and the road.");
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager keeps how a material is linked, and a link follows its paragraph",
+          "[project_manager][links]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Roles", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString chapter =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    const QString second =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 2", BookPlace::Main);
+    REQUIRE_FALSE(chapter.isEmpty());
+    REQUIRE_FALSE(second.isEmpty());
+    const QString body = pm.project()->sectionLink(BookPlace::Main);
+    const QString picture = QDir(dir.path()).filePath("map.png");
+    writeFile(picture, "a picture");
+    const QString map = pm.addMaterial(picture, kind("kalahari.base", "picture"), "Map");
+    REQUIRE_FALSE(map.isEmpty());
+
+    QObject context;
+    int changes = 0;
+    QObject::connect(&pm, &ProjectManager::linksChanged, &context, [&changes]() { ++changes; });
+
+    // A new link of a material has the role of its kind; of another element, none
+    CHECK(pm.newLink(map, chapter) == ElementLink{chapter, LinkRoles::ILLUSTRATION, 0, {}, {}, {}});
+    CHECK(pm.newLink(second, chapter) == ElementLink{chapter, {}, 0, {}, {}, {}});
+    NewMaterial words;
+    words.title = "Water";
+    words.links = {chapter, "nothing"};
+    const QString quote = pm.addMaterial(words, kind("kalahari.base", "quote"));
+    REQUIRE_FALSE(quote.isEmpty());
+    CHECK(pm.findElement(quote)->links ==
+          QList<ElementLink>{{chapter, LinkRoles::QUOTED, 0, {}, {}, {}}});
+    CHECK(changes == 1);
+
+    // The text of the chapter: its paragraphs, as the editor has them, before and after saving
+    const QStringList text{"The storm came from the west.", "- We turn back - said Tau.",
+                           "Tau was silent for a long time."};
+    const auto kmlOf = [](const QStringList& paragraphs) {
+        return "<kml><p>" + paragraphs.join("</p><p>") + "</p></kml>";
+    };
+    pm.setChapterContent(chapter, kmlOf(text));
+    CHECK(pm.paragraphsOf(chapter) == text);
+    REQUIRE(pm.saveChapterContent(chapter));
+    pm.discardChapterContent(chapter);
+    CHECK(pm.paragraphsOf(chapter) == text);
+    CHECK(pm.paragraphsOf(second).isEmpty());
+    CHECK(pm.paragraphsOf(map).isEmpty());
+    CHECK(pm.paragraphsOf("nothing").isEmpty());
+    CHECK(changes == 1);
+
+    // The links with their details, without the element itself and what the project does not
+    // have, each once: the first
+    const ElementLink inText{chapter, LinkRoles::INSPIRATION, 3, LinkRoles::excerptOf(text.at(2)),
+                             "His fear", {}};
+    REQUIRE(pm.setLinks(map, QList<ElementLink>{inText,
+                                                {map, {}, 0, {}, {}, {}},
+                                                {chapter, LinkRoles::SOURCE, 0, {}, {}, {}},
+                                                {"nothing", {}, 0, {}, {}, {}},
+                                                {second, {}, 0, {}, {}, {}}}));
+    CHECK(pm.findElement(map)->links ==
+          (QList<ElementLink>{inText, {second, {}, 0, {}, {}, {}}}));
+    CHECK(changes == 2);
+    const QList<ElementLink> same = pm.findElement(map)->links;
+    REQUIRE(pm.setLinks(map, same));
+    CHECK(changes == 2);
+
+    // Given by their ids, the links it has keep their details; a new one is new
+    REQUIRE(pm.setLinks(map, QStringList{second, chapter, body}));
+    CHECK(pm.findElement(map)->links ==
+          (QList<ElementLink>{{second, {}, 0, {}, {}, {}},
+                              inText,
+                              {body, LinkRoles::ILLUSTRATION, 0, {}, {}, {}}}));
+    CHECK(changes == 3);
+
+    // A paragraph moved: the link names it again when the text is saved, and the .klh file has
+    // it; a link to the whole chapter stays as it is
+    QStringList edited = text;
+    edited.prepend("A new first paragraph.");
+    pm.setChapterContent(chapter, kmlOf(edited));
+    CHECK(pm.findElement(map)->linkTo(chapter)->paragraph == 3);
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(pm.findElement(map)->linkTo(chapter)->paragraph == 4);
+    CHECK(pm.findElement(map)->linkTo(chapter)->excerpt == inText.excerpt);
+    CHECK(pm.findElement(map)->linkTo(chapter)->note == "His fear");
+    CHECK(pm.findElement(quote)->linkTo(chapter)->paragraph == 0);
+    CHECK(changes == 4);
+    CHECK(savedProject(manifest).findElement(map)->linkTo(chapter)->paragraph == 4);
+
+    // A saved text whose paragraphs stay changes no links
+    REQUIRE(pm.saveChapterContent(chapter));
+    pm.setChapterContent(chapter, kmlOf(edited));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(changes == 4);
+
+    // The beginning of the paragraph rewritten: the link keeps its number and the new
+    // beginning, by which it is found when the paragraph moves again
+    edited[3] = "Tau said nothing for a long time.";
+    pm.setChapterContent(chapter, kmlOf(edited));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(pm.findElement(map)->linkTo(chapter)->paragraph == 4);
+    CHECK(pm.findElement(map)->linkTo(chapter)->excerpt == "Tau said nothing for a long time.");
+    CHECK(changes == 5);
+    edited.removeFirst();
+    edited.removeFirst();
+    pm.setChapterContent(chapter, kmlOf(edited));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(pm.findElement(map)->linkTo(chapter)->paragraph == 2);
+    CHECK(changes == 6);
+
+    // An element deleted from the book takes its links out of the materials
+    REQUIRE(pm.removeElement(second).has_value());
+    CHECK(pm.findElement(map)->linkTargets() == (QStringList{chapter, body}));
+    CHECK(changes == 7);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager adds a material with a web address, with a picture's data, or "
+          "without a file",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Sources", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QDir project(QFileInfo(manifest).absolutePath());
+    const KindRef webPage = kind("kalahari.base", "web_page");
+    const KindRef publication = kind("kalahari.base", "publication");
+    const KindRef material = kind("kalahari.base", "picture");
+    const QString chapter =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    REQUIRE_FALSE(chapter.isEmpty());
+    const QString body = pm.project()->sectionLink(BookPlace::Main);
+
+    // A web address only: no file
+    NewMaterial page;
+    page.title = "Kalahari";
+    page.url = "https://pl.wikipedia.org/wiki/Kalahari";
+    page.links = {chapter, "nothing", chapter, body};
+    const QString pageId = pm.addMaterial(page, webPage);
+    REQUIRE_FALSE(pageId.isEmpty());
+    const ProjectElement* pageElement = pm.findElement(pageId);
+    CHECK(pageElement->url == "https://pl.wikipedia.org/wiki/Kalahari");
+    CHECK(pageElement->file.isEmpty());
+    CHECK(pageElement->linkTargets() == QStringList{chapter, body});
+
+    // Neither a file nor an address: a paper book, a talk
+    NewMaterial book;
+    book.title = "Caravan Trails";
+    const QString bookId = pm.addMaterial(book, publication);
+    REQUIRE_FALSE(bookId.isEmpty());
+    CHECK(pm.findElement(bookId)->file.isEmpty());
+    CHECK(pm.findElement(bookId)->url.isEmpty());
+
+    // A picture from the clipboard: its data in a file of the Workshop
+    NewMaterial shot;
+    shot.title = "Screenshot";
+    shot.data = "png data";
+    shot.fileName = "screenshot.png";
+    const QString shotId = pm.addMaterial(shot, material);
+    REQUIRE_FALSE(shotId.isEmpty());
+    CHECK(pm.findElement(shotId)->file == "workshop/screenshot.png");
+    QFile shotFile(project.filePath("workshop/screenshot.png"));
+    REQUIRE(shotFile.open(QIODevice::ReadOnly));
+    CHECK(shotFile.readAll() == "png data");
+    shotFile.close();
+    CHECK(pm.findElement(pm.addMaterial(shot, material))->file == "workshop/screenshot_2.png");
+
+    // The copy of a picture on the web, saved later, named as the picture
+    NewMaterial camel;
+    camel.title = "Camel";
+    camel.url = "https://example.org/camel.jpg";
+    const QString camelId = pm.addMaterial(camel, material);
+    REQUIRE_FALSE(camelId.isEmpty());
+    REQUIRE(pm.setMaterialCopy(camelId, "jpeg data", "camel.jpg"));
+    CHECK(pm.findElement(camelId)->file == "workshop/camel.jpg");
+    CHECK(pm.findElement(camelId)->url == "https://example.org/camel.jpg");
+    // Once: a material with a file keeps it
+    CHECK_FALSE(pm.setMaterialCopy(camelId, "other", "camel.jpg"));
+    CHECK_FALSE(pm.setMaterialCopy("nothing", "other", "camel.jpg"));
+    CHECK_FALSE(QFileInfo::exists(project.filePath("workshop/camel_2.jpg")));
+
+    // A .klh file that cannot be written leaves no copy and no element
+    const qsizetype count = pm.project()->workshop.elements.size();
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkdir(manifest));
+    CHECK(pm.addMaterial(shot, material).isEmpty());
+    CHECK_FALSE(pm.setMaterialCopy(pageId, "jpeg data", "page.jpg"));
+    REQUIRE(QDir().rmdir(manifest));
+    CHECK(pm.project()->workshop.elements.size() == count);
+    CHECK(pm.findElement(pageId)->file.isEmpty());
+    CHECK_FALSE(QFileInfo::exists(project.filePath("workshop/screenshot_3.png")));
+    CHECK_FALSE(QFileInfo::exists(project.filePath("workshop/page.jpg")));
+    REQUIRE(pm.saveManifest());
+
+    // The .klh file has the addresses
+    REQUIRE(pm.closeProject(false));
+    const BookProject saved = savedProject(manifest);
+    REQUIRE(saved.findElement(pageId) != nullptr);
+    CHECK(saved.findElement(pageId)->url == "https://pl.wikipedia.org/wiki/Kalahari");
+    CHECK(saved.findElement(camelId)->file == "workshop/camel.jpg");
+    CHECK(saved.findElement(bookId)->file.isEmpty());
+}
+
+TEST_CASE("ProjectManager gives the materials of earlier versions the kinds of their sources",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Old materials", "Author", "en", true, QString()));
+    const QString manifest = pm.getManifestPath();
+    const QDir project(pm.getProjectPath());
+    REQUIRE(project.mkpath("workshop"));
+
+    // A book saved before the kinds of materials: all its materials of one kind, and the list
+    // of its kinds with that kind in place of the new ones
+    const KindReference old{"kalahari.base", "material"};
+    const auto material = [&old](const QString& id, const QString& title, const QString& file,
+                                 const QString& url, const QString& description = QString()) {
+        ProjectElement element;
+        element.id = id;
+        element.kind = old;
+        element.title = title;
+        element.file = file;
+        element.url = url;
+        element.description = description;
+        return element;
+    };
+    writeFile(project.filePath("workshop/map.jpg"), "a picture");
+    writeFile(project.filePath("workshop/atlas.pdf"), "%PDF-1.4");
+    writeFile(project.filePath("workshop/talk.mp3"), "a sound");
+    writeFile(project.filePath("workshop/route.zip"), "an archive");
+    writeFile(project.filePath("workshop/photo.png"), "a picture");
+    QList<ProjectElement>& elements = pm.project()->workshop.elements;
+    elements << material("m1", "Map", "workshop/map.jpg", QString())
+             << material("m2", "Atlas", "workshop/atlas.pdf", QString())
+             << material("m3", "Talk", "workshop/talk.mp3", QString())
+             << material("m4", "Route", "workshop/route.zip", QString())
+             << material("m5", "Kalahari", QString(), "https://en.wikipedia.org/wiki/Kalahari")
+             << material("m6", "Camel", QString(), "https://example.org/camel.jpg")
+             << material("m7", "Photo", "workshop/photo.png", "https://example.org/photo?id=7")
+             << material("m8", "Caravan Trails", QString(), QString(), "Notes from the road.");
+    QList<KindReference>& kinds = pm.project()->kinds;
+    const QStringList newKinds{"quote",       "web_page",  "picture",   "document",
+                               "publication", "recording", "other_file"};
+    kinds.removeIf([&newKinds](const KindReference& kind) {
+        return newKinds.contains(kind.kindId);
+    });
+    kinds.append(old);
+    REQUIRE(pm.saveManifest());
+    REQUIRE(pm.closeProject(false));
+
+    // Opened, each material has the kind of its source, and the book is saved so
+    REQUIRE(pm.openProject(manifest));
+    const auto kindOf = [&pm](const QString& id) {
+        const ProjectElement* element = pm.findElement(id);
+        REQUIRE(element != nullptr);
+        return element->kind.toString().toStdString();
+    };
+    CHECK(kindOf("m1") == "kalahari.base:picture");
+    CHECK(kindOf("m2") == "kalahari.base:document");
+    CHECK(kindOf("m3") == "kalahari.base:recording");
+    CHECK(kindOf("m4") == "kalahari.base:other_file");
+    CHECK(kindOf("m5") == "kalahari.base:web_page");
+    CHECK(kindOf("m6") == "kalahari.base:picture");
+    CHECK(kindOf("m7") == "kalahari.base:picture");
+    CHECK(pm.findElement("m1")->file == "workshop/map.jpg");
+    CHECK(pm.findElement("m7")->url == "https://example.org/photo?id=7");
+
+    // Without a file and an address, a working note whose text is its description
+    CHECK(kindOf("m8") == "kalahari.base:work_note");
+    const ProjectElement* note = pm.findElement("m8");
+    CHECK(note->title == "Caravan Trails");
+    CHECK(note->description.isEmpty());
+    CHECK(note->status == "draft");
+    CHECK(note->file == "workshop/work_note_001.kchapter");
+    CHECK(pm.formOf(*note) == ElementForm::Text);
+    CHECK(paragraphsOf("m8") == QStringList{"Notes from the road."});
+
+    // The kinds of the book: the working notes once, and the kinds of materials in place of
+    // the old one
+    CHECK(pm.project()->kinds.count(KindReference{"kalahari.base", "work_note"}) == 1);
+    CHECK_FALSE(pm.project()->kinds.contains(old));
+    QStringList last;
+    for (qsizetype i = pm.project()->kinds.size() - newKinds.size();
+         i < pm.project()->kinds.size(); ++i) {
+        last << pm.project()->kinds.at(i).kindId;
+    }
+    CHECK(last == newKinds);
+
+    // The .klh file has the new kinds, and the book opens again as it is
+    const BookProject saved = savedProject(manifest);
+    CHECK(saved.findElement("m2")->kind.kindId == "document");
+    CHECK(saved.findElement("m8")->kind.kindId == "work_note");
+    CHECK(saved.kinds == pm.project()->kinds);
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK(*pm.project() == saved);
+    REQUIRE(pm.closeProject(false));
 }
 
 TEST_CASE("Move to Start and Move to End keep the prologue first and the epilogue last",
@@ -2265,6 +2661,35 @@ TEST_CASE("ProjectManager keeps the status in the .klh file and in the chapter f
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager keeps in the .klh file that a chapter starts on a left page",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Pages", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString id = pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter", BookPlace::Main);
+    const QString part = pm.addElement(pm.partKind(), "Part", BookPlace::Main);
+    REQUIRE_FALSE(id.isEmpty());
+    REQUIRE_FALSE(part.isEmpty());
+
+    // A right page unless the chapter says otherwise
+    CHECK_FALSE(pm.findElement(id)->firstPageLeft);
+    REQUIRE(pm.setFirstPageLeft(id, true));
+    CHECK(pm.findElement(id)->firstPageLeft);
+    CHECK_FALSE(pm.setFirstPageLeft(part, true));  // a group has no pages of its own
+    CHECK_FALSE(pm.findElement(part)->firstPageLeft);
+    REQUIRE(pm.closeProject(false));
+
+    // The .klh file keeps it
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.findElement(id)->firstPageLeft);
+    REQUIRE(pm.setFirstPageLeft(id, false));
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK_FALSE(pm.findElement(id)->firstPageLeft);
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("ProjectManager keeps the notes of a chapter in its chapter file", "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();
@@ -2535,6 +2960,211 @@ TEST_CASE("The book opened at startup is the book opened last, not one added wit
 }
 
 // =============================================================================
+// Versions of the texts
+// =============================================================================
+
+TEST_CASE("ProjectManager keeps versions of the texts of the book", "[project_manager][versions]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Caravan", "Anna", "en", true, "kalahari.novel"));
+    auto& settings = SettingsManager::getInstance();
+    settings.set<bool>(ChapterVersions::ON_SAVE_SETTING, false);
+    const QString chapter = pm.book()->mainElements.first().id;
+    const QString file = pm.findElement(chapter)->file;
+
+    std::optional<ChapterVersions> versions = pm.versionsOf(chapter);
+    REQUIRE(versions.has_value());
+    CHECK(versions->file() == file);
+    CHECK(versions->folder() == ChapterVersions::folderOf(pm.getProjectPath(), file));
+    CHECK(versions->list().isEmpty());
+
+    // The writer's version is always kept, also of a text kept before or without text
+    ChapterVersion kept;
+    CHECK(pm.keepVersion(chapter, kmlWith("Storm"),
+                         {.origin = VersionOrigin::Manual, .name = "First"},
+                         &kept) == ProjectManager::VersionKept::Added);
+    CHECK(kept.name == "First");
+    CHECK(kept.origin == VersionOrigin::Manual);
+    CHECK(pm.keepVersion(chapter, kmlWith("Storm"), {.origin = VersionOrigin::Manual}) ==
+          ProjectManager::VersionKept::Added);
+    CHECK(pm.keepVersion(chapter, "<kml><p> </p></kml>", {.origin = VersionOrigin::Manual}) ==
+          ProjectManager::VersionKept::Added);
+    CHECK(versions->count() == 3);
+
+    // The program keeps no version of a text without characters, nor the same text again
+    CHECK(pm.keepVersion(chapter, "<kml><p> </p></kml>", {.origin = VersionOrigin::Restore}) ==
+          ProjectManager::VersionKept::NoText);
+    ChapterVersion restored;
+    CHECK(pm.keepVersion(chapter, kmlWith("Storm"),
+                         {.origin = VersionOrigin::Restore, .restored = kept.created},
+                         &restored) == ProjectManager::VersionKept::Added);
+    CHECK(restored.restored == kept.created);
+    ChapterVersion same;
+    CHECK(pm.keepVersion(chapter, kmlWith("Storm"),
+                         {.origin = VersionOrigin::ReplaceAll,
+                          .found = "a",
+                          .replacement = "b",
+                          .replaced = 2},
+                         &same) == ProjectManager::VersionKept::Same);
+    CHECK(same == *versions->newest());
+    CHECK(same.origin == VersionOrigin::Restore);
+    CHECK(same.restored == kept.created);
+    CHECK(same.replaced == 0);
+    CHECK(versions->count() == 4);
+
+    // Of the versions that the program keeps by itself, the newest of the setting stay
+    settings.set<int>(ChapterVersions::KEEP_AUTOMATIC_SETTING, 2);
+    for (const char* text : {"One", "Two", "Three"}) {
+        CHECK(pm.keepVersion(chapter, kmlWith(text),
+                             {.origin = VersionOrigin::ReplaceAll,
+                              .found = "x",
+                              .replacement = "y",
+                              .replaced = 1}) == ProjectManager::VersionKept::Added);
+    }
+    const QList<ChapterVersion> listed = versions->list();
+    REQUIRE(listed.size() == 5);
+    CHECK(versions->text(listed.at(0).file) == kmlWith("Three"));
+    CHECK(versions->text(listed.at(1).file) == kmlWith("Two"));
+    CHECK(listed.at(1).found == "x");
+    CHECK(listed.at(1).replacement == "y");
+    CHECK(listed.at(1).replaced == 1);
+    CHECK(std::count_if(listed.cbegin(), listed.cend(),
+                        [](const ChapterVersion& v) { return v.isAutomatic(); }) == 2);
+
+    // A part has no text, and an unknown element no file
+    const QString part = pm.addElement(pm.partKind(), "Part", BookPlace::Main);
+    REQUIRE_FALSE(part.isEmpty());
+    CHECK_FALSE(pm.versionsOf(part));
+    CHECK_FALSE(pm.versionsOf("unknown"));
+    CHECK(pm.keepVersion(part, kmlWith("Text"), {.origin = VersionOrigin::Manual}) ==
+          ProjectManager::VersionKept::Failed);
+
+    // The versions belong to the file: an element added with it again has them
+    const std::optional<ProjectElement> removed = pm.removeElement(chapter);
+    REQUIRE(removed.has_value());
+    const QString again = pm.addUnassignedFile(file, pm.chapterKindFor(BookPlace::Main),
+                                               "Storm", BookPlace::Main);
+    REQUIRE_FALSE(again.isEmpty());
+    REQUIRE(pm.versionsOf(again).has_value());
+    CHECK(pm.versionsOf(again)->count() == 5);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("Saving a chapter keeps its text as a version when the settings say so",
+          "[project_manager][versions]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Caravan", "Anna", "en", true, "kalahari.novel"));
+    auto& settings = SettingsManager::getInstance();
+    const QString chapter = pm.book()->mainElements.first().id;
+    const std::optional<ChapterVersions> versions = pm.versionsOf(chapter);
+    REQUIRE(versions.has_value());
+    // At most one in an hour by default
+    CHECK(settings.get<int>(ChapterVersions::ON_SAVE_MINUTES_SETTING) == 60);
+
+    // The first save keeps a version; the next ones within the minutes of the setting do not
+    pm.setChapterContent(chapter, kmlWith("Storm"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    REQUIRE(versions->count() == 1);
+    CHECK(versions->newest()->origin == VersionOrigin::Save);
+    CHECK(versions->text(versions->newest()->file) == kmlWith("Storm"));
+    pm.setChapterContent(chapter, kmlWith("Storm came"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(versions->count() == 1);
+
+    // With no minutes, each save of another text keeps one
+    settings.set<int>(ChapterVersions::ON_SAVE_MINUTES_SETTING, 0);
+    pm.setChapterContent(chapter, kmlWith("Storm came at night"));
+    REQUIRE(pm.saveAllDirty());
+    REQUIRE(versions->count() == 2);
+    CHECK(versions->text(versions->newest()->file) == kmlWith("Storm came at night"));
+    pm.setChapterContent(chapter, kmlWith("Storm came at night"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(versions->count() == 2);  // the same text
+
+    // A version on saving of a writer's version
+    REQUIRE(pm.keepVersion(chapter, kmlWith("Mine"), {.origin = VersionOrigin::Manual}) ==
+            ProjectManager::VersionKept::Added);
+    pm.setChapterContent(chapter, kmlWith("Storm came at dawn"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(versions->count() == 4);
+
+    // Without the setting, none
+    settings.set<bool>(ChapterVersions::ON_SAVE_SETTING, false);
+    pm.setChapterContent(chapter, kmlWith("Storm came at noon"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(versions->count() == 4);
+
+    // Nor with the versions turned off, whatever the setting of saving says
+    settings.set<bool>(ChapterVersions::ON_SAVE_SETTING, true);
+    settings.set<bool>(ChapterVersions::ENABLED_SETTING, false);
+    pm.setChapterContent(chapter, kmlWith("Storm came at dusk"));
+    REQUIRE(pm.saveChapterContent(chapter));
+    CHECK(versions->count() == 4);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("The folders of the versions of files go with the files", "[project_manager][versions]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Caravan", "Anna", "en", true, "kalahari.novel"));
+    const KindRef kind = pm.chapterKindFor(BookPlace::Main);
+    const QString part = pm.addElement(pm.partKind(), "Part", BookPlace::Main);
+    const QString a = pm.addElement(kind, "A", BookPlace::Main, part);
+    const QString b = pm.addElement(kind, "B", BookPlace::Main, part);
+    REQUIRE_FALSE(b.isEmpty());
+    REQUIRE(pm.keepVersion(a, kmlWith("A"), {.origin = VersionOrigin::Manual}) ==
+            ProjectManager::VersionKept::Added);
+
+    // Only the files with versions have folders
+    const QStringList files = pm.filesOf(*pm.findElement(part));
+    REQUIRE(files.size() == 2);
+    const QString folderOfA = pm.versionsOf(a)->folder();
+    CHECK(pm.versionFoldersOf(files) == QStringList{folderOfA});
+    CHECK(pm.versionFoldersOf({files.at(1)}).isEmpty());
+
+    // A new file never gets the versions of a file deleted outside the program
+    const QString fileOfA = pm.findElement(a)->file;
+    REQUIRE(pm.removeElement(a).has_value());
+    REQUIRE(QFile::remove(files.at(0)));
+    const QString c = pm.addElement(kind, "C", BookPlace::Main);
+    REQUIRE_FALSE(c.isEmpty());
+    CHECK(pm.findElement(c)->file != fileOfA);
+    CHECK(pm.versionsOf(c)->list().isEmpty());
+
+    // The versions go with the files deleted: for good, or to the Trash
+    CHECK(pm.deleteVersionsOf(files, false).isEmpty());
+    CHECK_FALSE(QFileInfo::exists(folderOfA));
+    CHECK_FALSE(QFileInfo::exists(QDir(pm.getProjectPath()).filePath("versions")));
+    REQUIRE(pm.keepVersion(b, kmlWith("B"), {.origin = VersionOrigin::Manual}) ==
+            ProjectManager::VersionKept::Added);
+    // A Trash of the test until the test ends
+    struct TestTrash {
+        bool takes = false;  ///< It takes what it is given; else it refuses it
+        QStringList taken;   ///< What it was given
+
+        TestTrash() {
+            setTrashForTests([](const QString&) { return true; },
+                             [this](const QString& path) {
+                                 taken << path;
+                                 return takes && QDir(path).removeRecursively();
+                             });
+        }
+        ~TestTrash() { setTrashForTests({}, {}); }
+        TestTrash(const TestTrash&) = delete;
+        TestTrash& operator=(const TestTrash&) = delete;
+    } trash;
+    const QString folderOfB = pm.versionsOf(b)->folder();
+    CHECK(pm.deleteVersionsOf({files.at(1)}, true) == QStringList{folderOfB});
+    CHECK(QFileInfo(folderOfB).isDir());  // the Trash refused it
+    trash.takes = true;
+    CHECK(pm.deleteVersionsOf({files.at(1)}, true).isEmpty());
+    CHECK(trash.taken == QStringList{folderOfB, folderOfB});
+    CHECK_FALSE(QFileInfo::exists(QDir(pm.getProjectPath()).filePath("versions")));
+    REQUIRE(pm.closeProject(false));
+}
+
+// =============================================================================
 // Archives
 // =============================================================================
 
@@ -2576,10 +3206,21 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
     while (cards.hasNext()) {
         entries << project.relativeFilePath(cards.next());
     }
+    // The text saved has a version, kept on saving
+    const std::optional<ChapterVersions> versions = pm.versionsOf(chapter);
+    REQUIRE(versions.has_value());
+    REQUIRE(versions->count() == 1);
+    const QString version = "versions/book/chapter_001/" + versions->newest()->file;
+    entries << "versions/book/chapter_001/index.json" << version;
     entries.sort();
     CHECK(entries.contains("types/kalahari.base/card.json"));
     CHECK(entries.contains("types/kalahari.novel/card.json"));
     CHECK(entriesOf(archive) == entries);
+
+    // Without the versions when the writer says so
+    REQUIRE(pm.exportArchive(archive, nullptr, &problem, false, false));
+    CHECK(entriesOf(archive).filter("versions/").isEmpty());
+    CHECK(entriesOf(archive).size() == entries.size() - 2);
 
     // An archive written to the book's folder is not in the next one
     REQUIRE(pm.exportArchive(archive));
@@ -2596,6 +3237,8 @@ TEST_CASE("ProjectManager exports the open book to an archive and imports it",
     CHECK(pm.loadChapterContent(chapter) == kmlWith("Far away"));
     CHECK(hasParagraphStyle("travel_note"));
     CHECK_FALSE(QFileInfo::exists(imported.filePath(".backups/project_backup.db")));
+    REQUIRE(pm.versionsOf(chapter).has_value());
+    CHECK(pm.versionsOf(chapter)->text(QFileInfo(version).fileName()) == kmlWith("Far away"));
     REQUIRE(pm.closeProject(false));
 
     // A second import does not touch the folder of the first

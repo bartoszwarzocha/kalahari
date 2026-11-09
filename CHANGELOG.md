@@ -57,14 +57,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   table is its rows of text. KML has `<table>`, `<col>`, `<tr>`, `<th>` and `<td>`
   (docs/kml_format.md).
 
+- **Quick insert: @ and # in the text** - 2026-10-27. @ or # typed at the start of a word
+  opens a list at the cursor: by default @ the names of the cards of the Workshop (characters,
+  locations, items) and # the writer's text fragments and the typographic characters (en dash,
+  ellipsis, quotation marks, no-break space...). The letters typed after it narrow the list;
+  Up and Down, Page Up and Page Down choose, Enter or Tab insert the item in place of what was
+  typed, Esc closes the list and keeps the text; @ or # in the middle of a word stays a
+  character. Insert > Quick Insert... (Ctrl+Shift+W) opens the list with all of them.
+  Settings > Editor > Quick Insert turns it off, chooses what @ and # open, and adds, changes
+  and removes the fragments and characters (a fragment in several lines inserts paragraphs; a
+  pair of marks leaves the cursor between them). The program does not make cards yet, so @
+  lists the cards of a book that has them.
+- **Word repetitions** - 2026-10-27. Tools > Word Repetitions opens the Repetitions panel with
+  the keys in it. Close Together has a card for each word that comes back within 30 words, in
+  the order of the text: the word, how many times in how many words, and the text around it
+  with its words marked; Most Frequent lists the words used most often, with their counts in a
+  thousand words and their forms. The scope is the chapter in front (counted again a moment
+  after the writing stops) or the whole book (Recount; a card of a chapter not open opens it).
+  While the panel shows, the repeated words are marked in the text with a background or a
+  wavy line, and those of the card chosen are framed (View > Repetitions in Text turns the
+  marks on and off). Up and Down choose a card, Enter goes to its words, Delete skips the word
+  from now on, Ctrl+Tab switches the pages, Esc goes back to the text; Tools > Next Repetition
+  (Ctrl+Shift+F7) selects the next one in the text, with the panel closed too. The forms of a
+  word count as one by the spelling dictionary, and very common words do not count.
+  Settings > Editor > Repetitions (also the gear of the panel) sets the distance, the length
+  of the words counted, the skipped words, the marks and their color in each theme.
+
 - **Links** - 2026-10-27. Insert > Link... (Ctrl+K) makes the selected text, or a new text at
   the cursor, a link to a web page or an e-mail address: a window with the text to display and
   the address ("www.example.com" gets https://, "jan@example.com" mailto:). On a link the window
   edits it and has Remove Link. A link is drawn underlined in the link color of the paper, which
-  Settings > Editor > Colors chooses (the gear of the window opens that page); its tooltip shows
-  the address, and Ctrl+click opens it in the browser. The context menu of a link has Edit
-  Hyperlink..., Open Hyperlink, Copy Hyperlink and Remove Hyperlink. Text typed after a link is
-  not a part of it. Kalahari opens only the addresses of web pages, file servers and e-mail
+  Settings > Editor > Colors chooses for each theme, like the other colors of the papers (the
+  gear of the window opens that page); its tooltip shows the address, and Ctrl+click opens it
+  in the browser. The context menu of a link has Edit Hyperlink..., Open Hyperlink, Copy
+  Hyperlink and Remove Hyperlink. Text typed after a link is not a part of it. Kalahari opens only the addresses of web pages, file servers and e-mail
   (http, https, ftp, mailto). Autocorrect makes an address typed with www., http:// or https://,
   and an e-mail address, a link when a space or Enter follows it (Settings > Editor >
   Auto-correct, "Internet addresses with links"; undone right after, it stays text). Copied
@@ -74,6 +100,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dialogs: the gear opens their settings** - 2026-10-27. A dialog with settings of its own in
   the Settings window has a gear in its heading that opens the Settings window at their page;
   the first is the Link window (Editor > Colors).
+
+- **Windows of their own for the tabs of the texts** - 2026-10-27. A text's tab goes to a
+  window of its own when it is dragged off the bar of the tabs (the window opens where it is
+  dropped), from the menu of its tab (Move to New Window) or with Window > Move Tab to New
+  Window; more tabs can go to the same window. It comes back when it is dropped on the tabs
+  of the book window, with Return to Book Window, or when its window closes. The window shows
+  the text and the book in its title, the menus and the toolbars of the book window (or,
+  with Settings > General > Windows, only the Format toolbar) and the page, the zoom and the
+  counts of its text; the gear at the end of its tabs opens those settings. The panels stay
+  in the book window and follow the text the keys went to last, in any window; Save All,
+  the Navigator, spelling, grammar, annotations and versions find a text in any window, and
+  closing the book closes its texts everywhere. The new Window menu (before Help) moves the
+  tab in front, goes to the next and the previous window (Ctrl+F6, Ctrl+Shift+F6), lists the
+  windows and opens Window Settings...; closing a window of its own takes its texts back to
+  the book window or closes them, asking about their changes (Settings > General > Windows).
+
+- **Settings: the colors of the papers in each theme, and a gear in the find bar** -
+  2026-10-27. Settings > Editor > Colors has a group for the light paper and one for the dark
+  paper, each with the colors of the paper, of the text, of the text Focus dims, of the
+  formatting marks and of the desk around the paper (beside the endless page and around the
+  pages), and the group On Both Papers with the colors of the selection, of the search's hits
+  and of the current hit, drawn translucent under the text as before. Like the colors of the
+  annotations, they are the theme's until changed, each theme keeps its own, and each group has
+  Restore Default Colors; the check box Dark paper (as View > Dark Paper) still chooses the paper
+  whatever the theme. The themes' colors are those the editor had: nothing looks different
+  until a color is changed. The colors of the papers changed before, kept for all themes alike,
+  move at the first start into each theme. The find bar has a gear before its Close button
+  ("Colors of the Search Hits"), which opens Settings > Editor > Colors.
 
 - **Lists: Numbering and Bullets** - 2026-10-26. Format > Numbering (F12) and Bullets
   (Shift+F12) make the selected paragraphs a list, change its kind or take them out of it; a
@@ -113,6 +167,177 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   paragraph's own formatting. On dark paper colored text is shown lighter and highlights
   darker, so it stays readable; the book keeps the colors as they were chosen. KML has the
   attributes of a paragraph's own formatting and `<span caps spacing>` (docs/kml_format.md).
+
+- **Editor: numbers on the margin, mirror margins, the tab width** - 2026-10-26. View >
+  Margin Numbering shows working numbers on the left margin of every editor, only on the
+  screen: No Numbering, Line Numbers or Paragraph Numbers, also as two buttons of the Views
+  toolbar (the numbering chosen again turns it off); a toolbar layout saved before gets the
+  two buttons too. The lines count every line, also of the headings, the empty paragraphs and
+  the breaks; the paragraphs only those with text, not the headings or the objects. View >
+  Margin Numbering > Numbering Settings... opens Settings > Editor > Pages and Margins at the
+  Margin Numbering group: a number every few lines or paragraphs (Interval), the lines counted
+  from 1 on every page of the page view (Restart on every page; the continuous view counts
+  through the whole chapter), the font, its size and one color for the light and the dark
+  paper, with a preview on both papers and Restore Defaults, which keeps the numbering chosen.
+  The same page has Mirror margins (for book binding): an inner margin at the binding and an
+  outer one at the edge of the page, with a preview of pages 2 and 3 side by side. The first
+  page of a chapter is a right page, unless the chapter starts on a left page (Properties >
+  Starts on a left page, kept in the book's file as `"firstPage": "left"`); the continuous view
+  has the margins of page 1. Tab types a tab character, also at the start of a paragraph.
+  Settings > Editor > General > Tab Size sets the tab stops as far apart as the first-line
+  indent of the paragraph's style (Paragraph Indent; a style without one, as a heading, takes
+  the indent of the Settings) or every few spaces of its font (Number of Spaces). The options
+  Show Line Numbers and Enable Word Wrap, which did nothing, are gone: the text always wraps.
+
+- **Annotations: cards under the paragraphs, a second way of showing them** - 2026-10-26.
+  View > Annotation Cards Under Paragraphs (also Settings > Annotations > Cards Under
+  Paragraphs) shows each comment, to-do and note not done as a card under the paragraph of
+  its mark, in the order of the marks and in the kind's color: the kind, the author and the
+  date above the text (or, in the compact look, the text alone with the author and the date
+  at its end). Without it the annotations work as before: a mark in the text, a click on it
+  opens the frame. The cards are in the continuous view and, as the Settings say, in
+  Distraction-Free; the page view keeps the marks only. A click on a card goes to its
+  fragment and selects it, a double click edits it, and the fragment is highlighted while
+  the mouse is on its card. A click on a mark collapses or expands its card: collapsed, the
+  annotation is its mark alone or, if chosen, a line with the start of its text; View >
+  Collapse All Annotations and Expand All Annotations do it for the chapter, and the Settings
+  say whether a chapter opens with them expanded or collapsed. The "..." button of a card
+  opens its menu (Edit, Collapse, Mark as Resolved or Mark as Done, Remove, Card Appearance
+  and Colors...), the box of a to-do marks it done, and a long text can be cut short to 3 or
+  6 lines with "Show all" under it. With the cards, an annotation is written in the frame
+  over its card, and a new one in the frame where its card will be. The menu of the text has
+  the annotation at the click on top: its kind and the start of its text, Edit, Mark as
+  Resolved or Done and Remove (also Collapse and Expand with the cards). The Settings also
+  give the kinds that have cards, the size of their text (90% of the chapter's by default)
+  and how strong their background is. The colors are those of the annotations (Settings >
+  Annotations > Colors).
+
+- **Lists of the kinds of materials on tabs** - 2026-10-25. A kind of the Materials clicked
+  in the Navigator (or Enter on it, or Open List in its menu) shows its materials on a tab in
+  the middle of the window; Materials itself shows All Materials, the working notes too. The
+  list is a table with the columns of the kind: the words and the links of the quotes, the
+  site of the web pages, a thumbnail, the format, the size in pixels and the origin of the
+  pictures, the kind, the format and the size of the documents, the words and the status of
+  the working notes; the writer's own fields are columns too. A click on a header sorts by its
+  column (a material without a value comes last); Columns... shows and hides the columns, and
+  dragging a header changes their order, kept for each kind. The search (Ctrl+F; Esc clears
+  it) finds the words of any column; the filters keep the materials linked with an element,
+  those without links, and, with Column Filters, those whose column has the words typed under
+  its header; Clear Filters shows them all. The pictures, the documents and the publications
+  can be shown as tiles, kept for each kind. Above the list: Add (with the kind's name), Edit,
+  Link..., Copy and Delete; the menu of a row (also the menu key and Shift+F10) has Edit, Open,
+  Show in Folder, Copy, Link..., Rename..., Delete... and Properties. The keys of the list:
+  Enter edits (the card of a material, the editor of a working note), a double-click opens,
+  Insert adds, F2 renames, Delete deletes, Ctrl+C copies (the words of a quote, the address,
+  the path of the file), Alt+Enter goes to the Properties panel. A material chosen shows in
+  the Properties panel. Each list keeps what is chosen, the search, the filters and the
+  sorting. Settings > Navigator > Materials: "In the Navigator" shows the kinds with their
+  numbers of materials (the usual) or the kinds with their materials under them, collapsed at
+  first; "A kind clicked in the Navigator" opens a tab of its own (the usual) or changes the
+  kind on one tab. A material shown in the Navigator while its kind has no materials under it
+  shows its kind, and its card in the Properties panel. The lists follow the book and close
+  with it.
+
+- **Links of materials: the role, the paragraph and a note** - 2026-10-25. A link of a
+  material with an element of the book says how: quoted in the text, source of information,
+  inspiration, illustration or to check, or no role. A new link gets the role the kind of the
+  material suggests (a quote is quoted in the text, a picture an illustration, a web page, a
+  document and a publication sources of information), also a material dropped or pasted on
+  the Navigator. The Link window has, beside the tree, the link of the element chosen: its
+  role, its place in the text (the whole element or a paragraph of the chapter, listed with
+  its first words; the paragraph with the words of a quote is marked and chosen for a new
+  link of the quote) and a short note. The lists of the links on the card of a material and
+  of the materials of a chapter, a part or a section show the role and the paragraph under
+  the title, and the note in the tooltip. A link to a paragraph keeps its first words: when
+  the chapter is saved, a paragraph that moved (paragraphs added or taken out before it) is
+  found by them and the link follows it, and a paragraph whose beginning was rewritten keeps
+  its number and its new first words. The editor marks a paragraph that materials are linked
+  with by a paperclip in the left margin, in the color of the text, which stays with its
+  paragraph while the writer types; a click on it, or Linked Materials in the context menu of
+  the paragraph (also from the keyboard), shows the material in the Properties panel, with a
+  menu first when the paragraph has several. Settings > Navigator > "Links name paragraphs of
+  the text" (on by default) hides the paragraphs and the paperclips when it is off, and keeps
+  the paragraphs named. In the .klh file a link with any of these details is an object
+  (`{"to": "...", "role": "quoted", "paragraph": 4, "excerpt": "...", "note": "..."}`), a link
+  without them the id alone, as before; fields a later version adds to a link are kept.
+
+- **Workshop: kinds of materials, always in Materials** - 2026-10-25. A material is now a
+  quote, a web page, a picture, a document, a publication, a recording or another file, each
+  with its group, name and icon; all types of books have them in the Workshop. The Workshop
+  of the Navigator has the node Materials, always, also when the Workshop is grouped: the
+  working notes and the groups of the kinds of materials, also empty, each with its number of
+  elements at the right, and Materials with the number of all of them (a screen reader reads
+  the numbers with the names). Resources is gone; Grouping puts only the cards in Libraries.
+  A file, an address or a picture dropped on the Navigator or pasted gets the kind of its
+  source: a picture, on the disk or on the web, is a picture; the address of a page a web
+  page; a sound or a film a recording; a PDF, Word, OpenDocument, RTF, text, Markdown file, a
+  spreadsheet, a presentation or an e-book a document; any other file another file. In the
+  Add Element window the source follows the kind: a web page starts with its address, a quote
+  with neither a file nor an address, the other kinds with a file, until the writer chooses
+  another one. A book saved before has its materials of the one kind "Material": when it
+  opens, they get the kinds of their sources by the same rule, a material without a file and
+  an address becomes a working note whose text is its description, and the book is saved so;
+  "Material" stays in the packages, retired (`"retired": true`), so that such books are read,
+  but it is offered nowhere.
+
+- **The tabs of the panels: icons, names or both, in one row or more** - 2026-10-26.
+  Panels docked one over another have tabs of the program's own in place of Qt's, which
+  showed the names alone in one row and shortened them to a few letters. By default the tabs
+  show the panels' icons alone, above the title of the panel in front, with each panel's name
+  and keys in its tooltip. Settings > Appearance > General > Panels chooses what the tabs
+  show (icons only, icons and names, names only), what happens when they do not fit the
+  width of the panel (they wrap to the next row, or stay in one row with shortened names) and
+  where they are (above the panels or below them). The tab of the panel in front is marked
+  with a line on its side toward the panel, in the colors of the theme. A click or the arrow
+  keys, Home and End bring a panel to the front, and a tab dragged to another place moves its
+  panel in the group; a click on the tabs never floats the panel. A floating panel, or one
+  left alone, has no tabs.
+- **The tabs in the middle of the window in more rows** - 2026-10-26. Settings > Appearance >
+  General > Tabs in the middle of the window chooses what the tabs of the Dashboard, the
+  chapters, the lists and the materials do when they do not fit the width of the window:
+  they stay in one row that scrolls with the arrows (as before, the default), or wrap to the
+  next row, in as many rows as the width needs. In more rows they look as in one row, each
+  with its close button, a click brings a tab to the front and a tab dragged to another place
+  moves there, with a line showing where it goes. A button to the right of the tabs (Tabs in
+  More Rows) switches between one row and more rows at once and keeps the choice in the
+  setting; it hides with the tabs in Distraction-Free.
+- **Versions of the texts: Save Version and Version History** - 2026-10-22. File > Save
+  Version (Alt+Shift+S; on macOS Option+Shift+Cmd+S) keeps the text in front as it is in its
+  editor, with its formatting, its annotations and the changes not saved yet, as a version:
+  after a small window with an optional description (Enter saves also without one), or at
+  once when Settings > Editor > Versions says so; the status bar says it is kept. The program
+  keeps versions by itself too: when a chapter is saved, at most once an hour and only when
+  its text differs from the last version (a version is the whole text: about 40 KB for 5,000
+  words); before Replace All in a chapter, with what was replaced; and always before another
+  version is restored. It keeps at most 20 of its own in each chapter (both in the Settings,
+  with the minutes), and never deletes the writer's. Settings > Editor > Versions > Create
+  Versions of the Texts (on by default) turns them off: no new versions, neither the
+  writer's nor the program's, Save Version is greyed out everywhere, saying why, and the
+  history still reads, compares and restores the versions kept, keeping the current text
+  first.
+  File > Version History (Alt+Shift+H) lists the versions of the text from the newest, with
+  their descriptions or where they come from, their dates and words, wrapped to the width of
+  the list; a box hides the program's own. The preview, its page at the width of the preview
+  in every size of the window, shows the text of a version, read-only, or its changes to the
+  current text word by word, deleted words struck out and added ones underlined, in colors of
+  each theme (Settings > Editor > Versions), from change to change with Alt+Down and Alt+Up
+  (Cmd+Option with the arrows on macOS), each change at the same height in the preview.
+  Restore This Version puts the version in place of the text as one step of Undo, after the
+  text is kept as a version, and the bar under the text says so, with Undo; Insert Selected
+  Fragment puts the selection of the preview at the cursor. Change Description (F2) and
+  Delete (Delete, after a question) work in the list; in a book open read-only the window
+  reads and compares only. The Navigator has Version History in the menu of a text
+  (Alt+Shift+H in the tree), and the Properties panel of a text has the group Versions: how
+  many, the last one, Save Version and Version History, also under the counts of the text in
+  front, and a gear that opens Settings > Editor > Versions. Save Version and Version History
+  are on the toolbar Versions and Backups, with Backup Now (moved from Quick Actions), in
+  the first row after Quick Actions; it can be moved or hidden like any toolbar, and
+  Settings > Editor > Versions > Version Buttons puts the two on Quick Actions, next to
+  Backup Now, instead. The notes of a greyed-out group in the Settings are greyed out with
+  it. The versions of a file are in the
+  book's folder, under versions/ (a .kml file for each and index.json), go with the file to
+  the Trash, and go into the book's archive unless its export leaves them out. Tools > Version
+  History, which was always greyed out, is gone.
 
 - **Paragraph styles, a horizontal line and the breaks, the formatting marks** - 2026-10-19.
   Format > Text Style puts the paragraphs of the cursor or the selection in a style of the
@@ -177,7 +402,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   toolbar shows a closed panel on top, brings an open panel under another tab on top, and
   closes the panel on top, which unchecks it; a floating panel closes at once. The Panels
   toolbar stands at the right edge of the window, next to the panels on the right, shown; a
-  toolbar layout saved before stays as it was until View > Reset Layout. Its Log button is
+  toolbar layout saved while it was hidden at the top gets it there once, shown, with the
+  other toolbars where they were, and after that the writer's own place for it is kept (View >
+  Reset Layout puts it back by the right edge). Its Log button is
   hidden unless Settings > Advanced > Log > Show the Log button on the Panels toolbar is on;
   View > Panels > Log (F4) opens the log panel either way.
 
