@@ -108,7 +108,7 @@ TEST_CASE("LanguageTool server: one started outside the program is connected to"
     server.setExternal(true);
     server.setPort(languageTool.port());
     CHECK(server.canStart());
-    CHECK(server.address() == QStringLiteral("http://localhost:%1").arg(languageTool.port()));
+    CHECK(server.address() == QStringLiteral("http://127.0.0.1:%1").arg(languageTool.port()));
 
     server.start();
     CHECK(server.state() == LanguageToolServer::State::Starting);
