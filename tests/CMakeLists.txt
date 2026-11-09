@@ -128,6 +128,8 @@ set(TEST_SOURCES
     gui/test_chapter_cursor.cpp                  # A chapter opens where its cursor was
     gui/test_editor_panel.cpp                    # Editor panel between the settings and its editor
     gui/test_status_bar_statistics.cpp           # Counts of the document in front in the status bar
+    gui/test_writing_stats_bar.cpp               # The statistics bar and its model
+    gui/test_stats_pages.cpp                     # Settings > Statistics and Goals
     gui/test_reading_time.cpp                    # The reading time of a text as the program shows it
     gui/test_properties_panel.cpp                # Properties panel: the counts of the editor in front
     gui/test_material_card.cpp                   # The card of a material, its preview and Link
@@ -252,6 +254,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/network_page.cpp  # Settings > Network > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/folders_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/stats_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_rules.cpp          # Which keys a command can have
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_settings.cpp       # The user's keys in the settings and files
     ${CMAKE_SOURCE_DIR}/src/gui/widget_keys.cpp             # Qt's widgets have the keys of Windows
@@ -285,6 +288,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_panel.cpp  # Spelling and Grammar panel
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_marks_coordinator.cpp  # Paperclips of linked paragraphs
+    ${CMAKE_SOURCE_DIR}/src/gui/writing_stats_coordinator.cpp  # The statistics bar and goals
+    ${CMAKE_SOURCE_DIR}/src/gui/writing_stats_model.cpp  # The statistics of writing shown
     ${CMAKE_SOURCE_DIR}/src/gui/material_list_coordinator.cpp  # The lists of the materials on tabs
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_style_menu.cpp    # Format > Text Style: the text's styles
@@ -313,6 +318,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/fitting_scroll_area.cpp
     ${CMAKE_SOURCE_DIR}/src/core/log_panel_sink.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/status_bar_statistics.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/stats_painter.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/writing_stats_bar.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/utils/reading_time.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_manager.cpp         # Toolbars of the main window
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/toolbar_manager_dialog.cpp  # Toolbar Manager dialog for ToolbarManager
@@ -390,6 +397,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/grammar_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/shortcuts_page.h  # ShortcutsPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/stats_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h  # ShortcutRecorder with Q_OBJECT
@@ -413,6 +421,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_panel.h  # SpellingPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/paragraph_marks_coordinator.h  # ParagraphMarksCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_coordinator.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
@@ -434,6 +444,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/writing_stats_bar.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h  # AboutDialog with Q_OBJECT

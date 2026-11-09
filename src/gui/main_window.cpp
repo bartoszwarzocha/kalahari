@@ -20,6 +20,7 @@
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
+#include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -339,6 +340,13 @@ MainWindow::MainWindow(QWidget* parent)
             m_distractionFreeLayout, &utils::DistractionFreeLayout::updateShortcuts);
 
     logger.debug("MainWindow: DocumentCoordinator created");
+
+    // The statistics bar above the tabs of the texts, and the record of writing of the book
+    // that opens (after the documents, which make the collector of its editors)
+    m_writingStatsCoordinator = new WritingStatsCoordinator(
+        m_dockCoordinator, m_documentCoordinator,
+        [this](const QString& page) { m_settingsCoordinator->openSettingsPage(page); }, this);
+    m_writingStatsCoordinator->connectCommands();
 
     // The annotation commands and the Annotations panel; a chapter is opened as from the
     // Navigator

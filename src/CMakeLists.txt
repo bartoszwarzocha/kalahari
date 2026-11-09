@@ -190,6 +190,8 @@ set(KALAHARI_SOURCES
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
     gui/paragraph_marks_coordinator.cpp  # ParagraphMarksCoordinator - paperclips of linked paragraphs
+    gui/writing_stats_coordinator.cpp  # WritingStatsCoordinator - the statistics bar and goals
+    gui/writing_stats_model.cpp  # WritingStatsModel - the statistics of writing shown
     gui/material_list_coordinator.cpp  # MaterialListCoordinator - the lists of the materials on tabs
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
     gui/paragraph_style_menu.cpp  # ParagraphStyleMenu - Format > Text Style shows the text's styles
@@ -219,6 +221,7 @@ set(KALAHARI_SOURCES
     gui/settings/network_page.cpp  # Settings > Network > Materials
     gui/settings/folders_page.cpp
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
+    gui/settings/stats_pages.cpp  # Settings > Statistics and Goals
     gui/shortcut_rules.cpp  # Which keys a command can have
     gui/shortcut_settings.cpp  # The user's keys in the settings and in the files
     gui/widget_keys.cpp  # Qt's widgets have the keys of Windows, also on Linux
@@ -243,6 +246,8 @@ set(KALAHARI_SOURCES
     gui/widgets/folder_field.cpp  # FolderField - the path of a folder, Browse... and Restore Default
     gui/toolbar_manager.cpp
     gui/widgets/status_bar_statistics.cpp  # Counts of the document in front in the status bar
+    gui/widgets/stats_painter.cpp  # Colors and drawing of the statistics graphs
+    gui/widgets/writing_stats_bar.cpp  # The statistics bar above the tabs of the texts
     gui/panels/annotation_card.cpp
     gui/panels/annotation_colors.cpp
     gui/panels/annotation_entry.cpp
@@ -355,6 +360,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator with Q_OBJECT (OpenSpec #00038 Phase 7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/paragraph_marks_coordinator.h  # ParagraphMarksCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_coordinator.h  # WritingStatsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h  # WritingStatsModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
@@ -369,6 +376,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/grammar_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/shortcuts_page.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/stats_pages.h  # Statistics pages with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h  # InfoBar with Q_OBJECT
@@ -384,6 +392,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h  # StatusBarStatistics with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/writing_stats_bar.h  # WritingStatsBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h

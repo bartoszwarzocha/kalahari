@@ -49,6 +49,7 @@
 
 #include <array>
 #include <cmath>
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -369,8 +370,14 @@ TEST_CASE("Colors: a kind's color as Optimize colors in themes shows it", "[gui]
     const QColor darkBase = themeNamed(QStringLiteral("Dark")).palette.base;
     for (const QString& name : {QStringLiteral("Light"), QStringLiteral("Dark")}) {
         const core::Theme theme = themeNamed(name);
-        CHECK(theme.editor.size() == 7);
-        for (const auto& [key, color] : theme.editor) {
+        // The colors of the statistics are not marks of the text
+        const auto isMark = [](const auto& entry) { return entry.first.rfind("stats", 0) != 0; };
+        CHECK(std::count_if(theme.editor.begin(), theme.editor.end(), isMark) == 7);
+        for (const auto& entry : theme.editor) {
+            if (!isMark(entry)) {
+                continue;
+            }
+            const auto& [key, color] = entry;
             for (const QColor& background : {white, darkPaper, lightBase, darkBase}) {
                 INFO(name.toStdString() << " " << key << " on " << background.name().toStdString());
                 CHECK(contrastRatio(shownColor(color, background, true), background) >=

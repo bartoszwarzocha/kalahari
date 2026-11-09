@@ -97,6 +97,42 @@ std::map<std::string, json> buildDefaults() {
         {"stats.weeklyGoal", 0},
         {"stats.streakRule", "minimumWords"},
         {"stats.streakMinimumWords", 100},
+        // The statistics bar above the tabs of the texts (Settings > Statistics and Goals > Bar
+        // and Panel): a graph of the day ("graph", bar.height pixels high, at least 83) or one
+        // line ("line"); its texts on the right or the left of the graph; the mini graph of the
+        // line shows today ("day"), the last 7 or the last 30 days. The graph shows the hours
+        // from bar.fromHour to bar.toHour (24: midnight), in pieces of bar.pieceMinutes.
+        {"stats.bar.show", true},
+        {"stats.bar.mode", "graph"},
+        {"stats.bar.height", 83},
+        {"stats.bar.textSide", "right"},
+        {"stats.bar.showWords", true},
+        {"stats.bar.showTime", true},
+        {"stats.bar.showStreak", true},
+        {"stats.bar.miniGraph", "7"},
+        {"stats.bar.fromHour", 6},
+        {"stats.bar.toHour", 24},
+        {"stats.bar.pieceMinutes", 10},
+        {"stats.bar.showPieces", true},
+        {"stats.bar.showCumulative", true},
+        // The views of the Statistics panel, and the time of writing and the days in a row in
+        // the status bar
+        {"stats.panel.today", true},
+        {"stats.panel.week", true},
+        {"stats.panel.month", true},
+        {"stats.panel.book", true},
+        {"stats.panel.hours", true},
+        {"stats.panel.awards", true},
+        {"stats.statusBar", true},
+        // Messages in the bar at the bottom of the window (Settings > Statistics and Goals >
+        // Notifications), the summary of the session and the badges and challenges
+        {"stats.notify.dailyGoal", true},
+        {"stats.notify.weeklyGoal", true},
+        {"stats.notify.deadline", true},
+        {"stats.notify.deadlineDays", 3},
+        {"stats.sessionSummary", true},
+        {"stats.badges", true},
+        {"stats.challenges", false},
 
         // Toolbars
         {"toolbars.locked", false},

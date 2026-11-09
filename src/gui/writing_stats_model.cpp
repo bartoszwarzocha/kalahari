@@ -1,0 +1,269 @@
+/// @file writing_stats_model.cpp
+/// @brief The statistics of writing of the writer and of the open book
+
+#include "kalahari/gui/writing_stats_model.h"
+
+#include "kalahari/core/logger.h"
+#include "kalahari/core/project_database.h"
+#include "kalahari/core/settings_manager.h"
+#include "kalahari/editor/statistics_collector.h"
+
+#include <QTimer>
+
+#include <algorithm>
+
+namespace kalahari::gui {
+
+namespace {
+
+/// @brief The days the record is read from and to: all of it
+const QDate FIRST_DAY(2000, 1, 1);
+const QDate LAST_DAY(2999, 12, 31);
+
+}  // namespace
+
+WritingStatsModel::WritingStatsModel(QObject* parent)
+    : QObject(parent)
+    , m_rules(core::WritingRules::fromSettings())
+    , m_journalRecord(m_rules)
+    , m_bookRecord(m_rules)
+    , m_changeTimer(new QTimer(this))
+    , m_minuteTimer(new QTimer(this))
+{
+    m_changeTimer->setSingleShot(true);
+    m_changeTimer->setInterval(CHANGE_INTERVAL_MS);
+    connect(m_changeTimer, &QTimer::timeout, this, &WritingStatsModel::changed);
+
+    m_minuteTimer->setInterval(60 * 1000);
+    connect(m_minuteTimer, &QTimer::timeout, this, &WritingStatsModel::changed);
+    m_minuteTimer->start();
+
+    // The settings may change on another thread: the rules change on this one
+    m_settingsListener = core::SettingsManager::getInstance().subscribe(
+        [model = QPointer<WritingStatsModel>(this)](const std::string& key) {
+            if (key.rfind("stats.", 0) == 0 && model != nullptr) {
+                QMetaObject::invokeMethod(model, &WritingStatsModel::reloadRules,
+                                          Qt::QueuedConnection);
+            }
+        });
+}
+
+WritingStatsModel::~WritingStatsModel()
+{
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
+}
+
+bool WritingStatsModel::openJournal(const QString& path)
+{
+    if (!m_journal.open(path)) {
+        core::Logger::getInstance().warn("WritingStatsModel: the writer's journal cannot be "
+                                         "opened: {}",
+                                         m_journal.lastError().toStdString());
+        return false;
+    }
+    m_journalRecord.setActivity(m_journal.activity(FIRST_DAY, LAST_DAY));
+    if (m_collector) {
+        m_collector->setJournal(&m_journal);
+    }
+    schedule();
+    return true;
+}
+
+void WritingStatsModel::setCollector(editor::StatisticsCollector* collector)
+{
+    if (m_collector == collector) {
+        return;
+    }
+    if (m_collector) {
+        disconnect(m_collector, nullptr, this, nullptr);
+    }
+    m_collector = collector;
+    if (m_collector) {
+        m_collector->setJournal(m_journal.isOpen() ? &m_journal : nullptr);
+        m_collector->setRules(m_rules);
+        m_collector->setBookId(m_bookId);
+        connect(m_collector, &editor::StatisticsCollector::writingRecorded, this,
+                &WritingStatsModel::schedule);
+        // What it saved is in the book and in the journal now
+        connect(m_collector, &editor::StatisticsCollector::activitySaved, this,
+                [this](const QList<core::WritingActivity>& activity) {
+                    if (m_journal.isOpen()) {
+                        m_journalRecord.addActivity(activity);
+                    }
+                    if (m_database != nullptr) {
+                        m_bookRecord.addActivity(activity);
+                    }
+                    schedule();
+                });
+    }
+    schedule();
+}
+
+editor::StatisticsCollector* WritingStatsModel::collector() const
+{
+    return m_collector;
+}
+
+void WritingStatsModel::setBook(core::ProjectDatabase* database, const QString& bookId)
+{
+    m_database = database;
+    m_bookId = database != nullptr ? bookId : QString();
+    if (m_collector) {
+        m_collector->setBookId(m_bookId);
+    }
+    readBook();
+    emit goalsChanged();
+    schedule();
+}
+
+void WritingStatsModel::readBook()
+{
+    m_goals = {};
+    m_bookRecord.setActivity({});
+    if (m_database == nullptr || !m_database->isOpen()) {
+        return;
+    }
+    m_bookRecord.setActivity(
+        m_database->writingActivity(FIRST_DAY, LAST_DAY));
+    m_goals = core::BookGoals::fromJson(
+        m_database->getSetting(QString::fromLatin1(core::BookGoals::SETTING_KEY)).toString());
+}
+
+void WritingStatsModel::setBookWordsSource(std::function<int()> source)
+{
+    m_bookWords = std::move(source);
+    schedule();
+}
+
+int WritingStatsModel::bookWords() const
+{
+    return m_database != nullptr && m_bookWords ? m_bookWords() : 0;
+}
+
+bool WritingStatsModel::setGoals(const core::BookGoals& goals)
+{
+    if (m_database == nullptr || !m_database->isOpen()) {
+        return false;
+    }
+    core::BookGoals sorted = goals;
+    sorted.sortDeadlines();
+    if (sorted == m_goals) {
+        return true;
+    }
+    m_database->setSetting(QString::fromLatin1(core::BookGoals::SETTING_KEY), sorted.toJson());
+    m_goals = sorted;
+    emit goalsChanged();
+    schedule();
+    return true;
+}
+
+void WritingStatsModel::reloadRules()
+{
+    const core::WritingRules rules = core::WritingRules::fromSettings();
+    m_rules = rules;
+    m_journalRecord.setRules(rules);
+    m_bookRecord.setRules(rules);
+    if (m_collector) {
+        m_collector->setRules(rules);
+    }
+    schedule();
+}
+
+core::WritingStatistics WritingStatsModel::goalStatistics() const
+{
+    return m_rules.allBooks ? journalStatistics() : bookStatistics();
+}
+
+core::WritingStatistics WritingStatsModel::bookStatistics() const
+{
+    core::WritingStatistics statistics = m_bookRecord;
+    if (m_database != nullptr && m_collector) {
+        statistics.addActivity(m_collector->pendingActivity());
+    }
+    return statistics;
+}
+
+core::WritingStatistics WritingStatsModel::journalStatistics() const
+{
+    core::WritingStatistics statistics = m_journalRecord;
+    if (m_collector) {
+        statistics.addActivity(m_collector->pendingActivity());
+    }
+    return statistics;
+}
+
+QDateTime WritingStatsModel::now() const
+{
+    return m_clock ? m_clock() : QDateTime::currentDateTime();
+}
+
+void WritingStatsModel::setClock(std::function<QDateTime()> clock)
+{
+    m_clock = std::move(clock);
+    schedule();
+}
+
+QDate WritingStatsModel::today() const
+{
+    return m_journalRecord.writingDayOf(now());
+}
+
+QList<DayPiece> WritingStatsModel::dayPieces(const core::WritingStatistics& statistics,
+                                             const QDate& day, int minutes)
+{
+    // The pieces of the graph of the day, as WritingStatistics::dayGraph() takes them
+    constexpr int DAY_MINUTES = 24 * 60;
+    int piece = std::clamp(minutes - minutes % core::ACTIVITY_SLOT_MINUTES,
+                           core::ACTIVITY_SLOT_MINUTES, DAY_MINUTES);
+    while (DAY_MINUTES % piece != 0) {
+        piece -= core::ACTIVITY_SLOT_MINUTES;
+    }
+    QList<DayPiece> pieces(DAY_MINUTES / piece);
+    const auto& record = statistics.record();
+    const auto found = record.constFind(day);
+    if (found == record.constEnd()) {
+        return pieces;
+    }
+    const int dayStart = statistics.rules().dayStartMinutes;
+    for (const core::WritingActivity& entry : found.value()) {
+        const qint64 offset = day.daysTo(entry.date) * DAY_MINUTES +
+                              qint64(entry.slot) * core::ACTIVITY_SLOT_MINUTES - dayStart;
+        if (offset < 0 || offset >= DAY_MINUTES) {
+            continue;
+        }
+        DayPiece& target = pieces[int(offset / piece)];
+        target.written += entry.written;
+        target.deleted += entry.deleted;
+        target.activeMs += entry.activeMs;
+    }
+    return pieces;
+}
+
+qint64 WritingStatsModel::minutesIntoDay(const QDate& day, const QDateTime& when) const
+{
+    const QDateTime start(day, QTime(0, 0).addSecs(qint64(m_rules.dayStartMinutes) * 60));
+    return start.secsTo(when) / 60;
+}
+
+int WritingStatsModel::dailyGoalToday() const
+{
+    const QDate day = today();
+    if (m_goals.dailyGoalFromDeadline && m_database != nullptr) {
+        const int wordsToday = bookStatistics().day(day).counted(m_rules.counting);
+        const int goal =
+            core::dailyGoalForDeadline(m_rules, m_goals, bookWords() - wordsToday, day);
+        if (goal > 0 || m_goals.deadline.isValid()) {
+            return m_rules.isWritingDay(day) ? goal : 0;
+        }
+    }
+    return m_rules.dailyGoalOn(day);
+}
+
+void WritingStatsModel::schedule()
+{
+    if (!m_changeTimer->isActive()) {
+        m_changeTimer->start();
+    }
+}
+
+}  // namespace kalahari::gui

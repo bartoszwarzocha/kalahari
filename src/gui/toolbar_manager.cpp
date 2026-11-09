@@ -57,7 +57,8 @@ struct AddedCommand {
 ///   4: Paragraph and Styles on the Panels toolbar
 ///   5: Save Version and Version History on Quick Actions (shown there when the buttons of the
 ///      versions are not on Versions and Backups)
-constexpr std::array<AddedCommand, 9> ADDED_COMMANDS{{
+///   6: Show Statistics Bar on the Views toolbar
+constexpr std::array<AddedCommand, 10> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
@@ -67,6 +68,7 @@ constexpr std::array<AddedCommand, 9> ADDED_COMMANDS{{
     {"view", "view.paragraph", 4},
     {"quickActions", "file.saveVersion", 5},
     {"quickActions", "file.versionHistory", 5},
+    {"views", "view.showStatsBar", 6},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -86,7 +88,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 5;
+constexpr int CHANGED_COMMANDS_VERSION = 6;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
@@ -269,7 +271,7 @@ void ToolbarManager::initializeConfigs() {
         true,  // visible by default (Row 2)
         {"view.mode.continuous", "view.mode.page", SEPARATOR_ID,
          "view.mode.distraction-free", "view.focus", "view.typewriter", "view.darkPaper",
-         "view.textFrameBorder", "view.showFormattingMarks", SEPARATOR_ID,
+         "view.textFrameBorder", "view.showFormattingMarks", "view.showStatsBar", SEPARATOR_ID,
          "view.zoomOut", "view.zoomIn", "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}
     };
 

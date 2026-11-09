@@ -51,6 +51,19 @@
     "spelling": "#FF0000",
     "grammar": "#0064FF",
     "versionDeleted": "#C62828",
-    "versionAdded": "#2E7D32"
+    "versionAdded": "#2E7D32",
+    "statsBackground": "#FFFFFF",
+    "statsGrid": "#E2ECF2",
+    "statsFrame": "#8FB5D0",
+    "statsLine": "#1673B8",
+    "statsGoal": "#A86F00",
+    "statsDone": "#2E7D32",
+    "statsMuchFast": "#D4521F",
+    "statsMuchSlow": "#B7790A",
+    "statsLittleFast": "#1B88B3",
+    "statsLittleSlow": "#6B7088",
+    "statsHoursLow": "#EEF4F8",
+    "statsHoursHigh": "#1673B8",
+    "statsText": "#2E3D49"
   }
 }
