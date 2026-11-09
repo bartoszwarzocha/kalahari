@@ -146,6 +146,11 @@ TEST_CASE("Cover materials: the words of their parts, places, states and lengths
     CHECK(CoverNames::placeName(QStringLiteral("frontFlap")) == QStringLiteral("Front flap"));
     CHECK(CoverNames::placeName(QString()) == QStringLiteral("Not set"));
     CHECK(CoverNames::stateName(QString()) == QStringLiteral("draft"));
+    // Values a later version adds are shown as they are written, not as none
+    CHECK(CoverNames::placeName(QStringLiteral("belly band")) == QStringLiteral("belly band"));
+    CHECK(CoverNames::stateName(QStringLiteral("printed")) == QStringLiteral("printed"));
+    CHECK(CoverNames::consentName(QStringLiteral("oral")) == QStringLiteral("oral"));
+    CHECK(CoverNames::shortConsentName(QString()) == QStringLiteral("not said"));
     CHECK(CoverNames::shortStateName(QStringLiteral("chosen")) == QStringLiteral("★ chosen"));
     CHECK(CoverNames::shortConsentName(QStringLiteral("asked")) == QStringLiteral("waiting"));
     CHECK(CoverNames::lengthText(311, false) == QStringLiteral("311 ch."));

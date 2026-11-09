@@ -3645,6 +3645,14 @@ TEST_CASE("ProjectManager chooses the materials of the cover", "[project_manager
     CHECK(stateOf(other).isEmpty());
     CHECK_FALSE(pm.setCoverState("nothing", CoverMaterial::CHOSEN));
 
+    // A material of another kind has no state on the cover
+    NewMaterial quote;
+    quote.title = QStringLiteral("Quote");
+    const QString quoteId = pm.addMaterial(quote, kind("kalahari.base", "quote"));
+    REQUIRE_FALSE(quoteId.isEmpty());
+    CHECK_FALSE(pm.setCoverState(quoteId, CoverMaterial::CHOSEN));
+    CHECK(pm.findElement(quoteId)->cover.isEmpty());
+
     // A .klh file that cannot be written leaves all the states as they were
     const BookProject unchanged = *pm.project();
     REQUIRE(QFile::remove(manifest));

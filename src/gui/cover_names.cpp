@@ -174,6 +174,10 @@ QString CoverNames::placeName(const QString& place) {
         //: The place of a design: the whole cover. In Polish: Cała okładka
         return tr("Whole cover");
     }
+    // A place a later version adds is shown as it is written
+    if (!place.isEmpty()) {
+        return place;
+    }
     //: A material without a place on the cover yet. In Polish: Nie ustalono
     return tr("Not set");
 }
@@ -186,6 +190,9 @@ QString CoverNames::stateName(const QString& state) {
     if (state == QLatin1String(CoverMaterial::REJECTED)) {
         //: The state of a material of the cover. In Polish: odrzucony
         return tr("rejected");
+    }
+    if (!state.isEmpty()) {
+        return state;
     }
     //: The state of a material of the cover, at first. In Polish: roboczy
     return tr("draft");
@@ -212,6 +219,9 @@ QString CoverNames::consentName(const QString& consent) {
     if (consent == QLatin1String(CoverMaterial::REFUSED)) {
         //: No consent to print an opinion. In Polish: brak zgody
         return tr("none");
+    }
+    if (!consent.isEmpty()) {
+        return consent;
     }
     //: The consent to print an opinion, not said. In Polish: nie ustalono
     return tr("not said");

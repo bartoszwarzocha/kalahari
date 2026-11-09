@@ -45,16 +45,19 @@ public:
     /// @brief Icon of a material of @p part; empty for an unknown part
     static QString partIconId(const QString& part);
 
-    /// @brief Name of @p place: "Front", "Back"...; "Not set" for none
+    /// @brief Name of @p place: "Front", "Back"...; "Not set" for none; a place this version
+    /// does not know as it is written
     static QString placeName(const QString& place);
 
-    /// @brief Name of @p state: "draft", "chosen for the cover", "rejected"
+    /// @brief Name of @p state: "draft" for none, "chosen for the cover", "rejected"; a state
+    /// this version does not know as it is written
     static QString stateName(const QString& state);
 
     /// @brief The short name of @p state in a list: "draft", "★ chosen", "rejected"
     static QString shortStateName(const QString& state);
 
-    /// @brief Name of @p consent: "granted", "asked for", "refused"; "not said" for none
+    /// @brief Name of @p consent: "granted", "asked for", "refused"; "not said" for none; a
+    /// consent this version does not know as it is written
     static QString consentName(const QString& consent);
 
     /// @brief The short name of @p consent in a list: "given", "waiting", "missing"

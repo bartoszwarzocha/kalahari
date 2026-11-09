@@ -2416,8 +2416,17 @@ bool ProjectManager::setCoverState(const QString& elementId, const QString& stat
     if (refusesChange("setCoverState")) {
         return false;
     }
-    if (!findElement(elementId)) {
+    const ProjectElement* found = findElement(elementId);
+    if (found == nullptr) {
         Logger::getInstance().warn("setCoverState: Element not found: {}",
+                                   elementId.toStdString());
+        return false;
+    }
+    // Only a material of the cover has a state on it
+    const KindRef kind = kindOf(*found);
+    if (!kind || kind.package == nullptr || kind.package->id != QLatin1String(BASE_PACKAGE) ||
+        kind.kind->id != QLatin1String(MaterialKinds::COVER)) {
+        Logger::getInstance().warn("setCoverState: Not a material of the cover: {}",
                                    elementId.toStdString());
         return false;
     }
