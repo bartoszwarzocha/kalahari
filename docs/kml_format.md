@@ -205,17 +205,17 @@ it: its first item gets the number it has in the chapter as `value`.
 ## Tables
 
 ```xml
-<table>
+<table align="center" width="12cm" borders="top bottom rows" border-style="dashed">
   <col width="40%"/><col width="60%"/>
   <tr><th><p>Who</p></th><th><p>Role</p></th></tr>
-  <tr><td><p>Anna</p></td><td><p>Narrator</p><p>A second paragraph</p></td></tr>
-  <tr><td colspan="2"><p>Both</p></td></tr>
+  <tr height="1cm"><td valign="middle"><p>Anna</p></td><td background="#fff2cc"><p>Narrator</p><p>A second paragraph</p></td></tr>
+  <tr split="true"><td colspan="2"><p>Both</p></td></tr>
 </table>
 ```
 
-- **A table** is a block between paragraphs, as wide as the text. Insert > Table... puts one
-  at the cursor: its columns and rows (up to 20 and 100), equal columns, and whether its first
-  row is a header row.
+- **A table** is a block between paragraphs, as wide as the text unless it has a width of its
+  own. Insert > Table... (or Table > Insert Table...) puts one at the cursor: its columns and
+  rows (up to 20 and 100), equal columns, and whether its first row is a header row.
 - **Rows and cells.** Each `<tr>` is a row, each `<td>` or `<th>` in it a cell, from left to
   right. A cell holds paragraphs: `<p>`, the headings and the lists, with their formatting,
   links and the anchors of annotations; an empty cell has one empty paragraph. Text in a cell
@@ -226,8 +226,9 @@ it: its first item gets the number it has in the chapter as `value`.
   cell goes in the first column the cells above it do not span into; a row with fewer cells
   than the table has columns gets empty ones, and a cell spanning more rows than the table has
   spans those it has.
-- **The header row.** A first row of `<th>` cells only is the header row, which the editor
-  shows in bold on a shaded background. A `<th>` in another row is read as a `<td>`, and the
+- **The header rows.** The first rows of `<th>` cells only are the header rows (one or more),
+  which the editor shows in bold on a shaded background; in Page view they are repeated at the
+  top of each page the table goes on to. A `<th>` in another row is read as a `<td>`, and the
   editor writes it as one.
 - **The widths of the columns.** The `<col width="..."/>` elements before the rows, one for
   each column, give the widths in percent of the table's width; the editor writes them in
@@ -236,6 +237,28 @@ it: its first item gets the number it has in the chapter as `value`.
   (`120px`) are taken in proportion to one another, and a column without a `<col>` gets the
   average width of the others; without `<col>` elements, or when one has no width, the columns
   are equal.
+- **Lengths** are a number with a unit: `pt` (also without a unit), `cm`, `mm`, `in`, `px`
+  (0.75 pt) or `pc` (12 pt). The editor writes them in points, rounded to two decimals
+  (`340.16pt`).
+- **The table's attributes** (Table > Table Properties..., the Table and Borders tabs); the
+  editor writes only those that are not the default:
+
+  | Attribute | Values | Meaning |
+  |-----------|--------|---------|
+  | `width` | a length | A fixed width; without it the table is as wide as the text. A table is never wider than the text; a width in percent is read as none |
+  | `align` | `left` (default), `center`, `right` | Where the table is between the margins |
+  | `indent` | a length | The indent of a table at the left (ignored with `center` and `right`) |
+  | `borders` | `grid` (default), `box`, `none`, or the lines: `top`, `bottom`, `left`, `right`, `rows` (between the rows), `columns` (between the columns), separated by spaces | The lines of the borders; unknown names alone are read as `grid` |
+  | `border-style` | `solid` (default), `dashed`, `dotted`, `double` | The style of the lines |
+  | `border-width` | a length, at most 6 pt (default 0.5 pt) | The width of the lines |
+  | `border-color` | `#rrggbb` | The color of the lines; without it the color set in Settings > Editor > Colors, for the light and the dark mode |
+
+- **A row's attributes** (the Row tab): `height` – the least height of the row, a length (at
+  most 22 inches); without it the row is as high as its text. `split="true"` – the row may be
+  split at the end of a page. Without it a row that does not fit goes whole to the next page,
+  and only a row higher than a page is split.
+- **A cell's attributes** (the Cell tab): `valign` – `top` (default), `middle` (also `center`)
+  or `bottom`, where the text of the cell is; `background` – `#rrggbb`, the color behind it.
 - `<thead>`, `<tbody>`, `<tfoot>` and `<colgroup>` around the rows or the `<col>` elements are
   read as if they were not there. Any other element in a table is skipped with everything
   inside it, and a table without cells is left out.
@@ -245,12 +268,39 @@ it: its first item gets the number it has in the chapter as `value`.
 - **In the editor.** Tab goes to the next cell, in the last one it adds a row; Shift+Tab goes
   to the cell before, Up and Down to the cell above and below. Enter starts a paragraph in the
   cell; Backspace and Delete do not join cells, and next to a table they remove an empty
-  paragraph the table does not need. A selection going into or out of a table removes the text
-  of the cells it covers, not the cells; a table it covers whole goes with it. In a cell
-  Insert > Horizontal Line, Scene Break, Page Break and Table are greyed out.
-- **A part of a table** (copied text): the rows from the cell where the part starts to the cell
-  where it ends, with its text; the other cells of those rows are empty. A part inside one cell
-  is its paragraphs, without the table.
+  paragraph the table does not need. In a cell Insert > Horizontal Line, Scene Break, Page
+  Break and Table are greyed out.
+- **Selected cells.** A selection from one cell to another (with the mouse, or Shift with the
+  arrows) selects the rectangle of whole cells between them, as in Word. Delete and Backspace
+  clear their text, and typing clears it and goes into the first cell. A selection going into
+  or out of a table removes the text of the cells it covers, not the cells; a table it covers
+  whole goes with it.
+- **The Table menu** (and the context menu of a cell): Insert (rows above and below, columns to
+  the left and right, as many as are selected), Delete (rows, columns, the table), Select (the
+  cell, row, column, table), Merge Cells, Split Cells..., Distribute Rows Evenly and Distribute
+  Columns Evenly, Repeat Header Rows, Sort..., Convert (Text to Table... and Table to Text...)
+  and Table Properties.... Each command is one step of Undo; the commands that change a table
+  are greyed out in a read-only book.
+- **Sort...** orders the rows of a table (those selected, or all; the header rows stay at the
+  top) by one column and then by another, as text in the order of the book's language, as
+  numbers (the first number of a cell) or as dates. Outside a table it orders the selected
+  paragraphs, list items with their paragraphs.
+- **Text to Table...** makes the selected paragraphs the rows of a table, divided into cells
+  at a tab, a semicolon, a comma or another character (the spaces next to a character other
+  than a tab go), or each paragraph a cell. **Table to Text...** makes each row a paragraph,
+  its cells separated by the character (a space after a semicolon and a comma), or each cell a
+  paragraph; the paragraphs of a cell are joined by spaces.
+- **Alt+Shift+Up and Alt+Shift+Down** move the rows of a table with the cursor or the
+  selection one row up or down (rows do not pass between the header rows and the others, and
+  a selection going out of the table moves nothing), and outside a table the paragraphs, past
+  a table as a whole.
+- **The width of a column** changes also by dragging the edge between two columns with the
+  mouse: the column next to it gives or takes the width (at least 0.5 cm each). Esc cancels
+  the drag.
+- **A part of a table** (copied text): a rectangle of selected cells is copied as a table of
+  those whole cells; a selection going into or out of a table gives the rows from the cell
+  where it starts to the cell where it ends, with its text, the other cells of those rows
+  empty. A part inside one cell is its paragraphs, without the table.
 - **Pasted** text with a table puts it at the cursor, splitting the paragraph; an empty
   paragraph next to the table that it does not need goes. Pasted in a cell, the text keeps only
   its text: each row of a table is a paragraph with its cells separated by tabs, and a

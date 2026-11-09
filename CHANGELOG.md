@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tables: the Table menu and Table Properties** - 2026-11-09. A new Table menu, and the same
+  commands in the context menu of a cell: Insert Table..., Insert (rows above and below,
+  columns to the left and right), Delete (rows, columns, the table), Select (the cell, row,
+  column, table), Merge Cells, Split Cells..., Distribute Rows Evenly and Distribute Columns
+  Evenly, Repeat Header Rows, Sort..., Convert (Text to Table... and Table to Text...) and Table
+  Properties...; each is one step of Undo. Split Cells... divides a cell (or the selected cells,
+  merged first) into columns and rows, its paragraphs one to each new cell if wanted. Sort...
+  orders the rows of a table by one or two columns as text in the order of the book's
+  language, as numbers or as dates, ascending or descending (the header rows stay at the top),
+  and outside a table the selected paragraphs and list items. Text to Table... divides the
+  selected paragraphs into cells at a tab, a semicolon, a comma or another character (the one
+  most of them have is chosen), or makes each paragraph a cell; Table to Text... does the
+  opposite. Table Properties... has five tabs: Table (a width of the text or a fixed one, at the
+  left with an indent, in the center or at the right), Row (a least height, the header rows
+  repeated at the top of each page, a row allowed to split across pages; Previous and Next go
+  through the rows), Column (its width, Distribute Columns Evenly), Cell (the vertical
+  alignment and the background of the selected cells) and Borders (None, Box, Grid or Custom
+  lines, their style, width and color, a picture whose lines a click takes away or draws); its
+  gear opens Settings > Editor > Colors, where the automatic color of the lines is set.
+  Dragging the edge between two columns changes their widths. Alt+Shift+Up and Alt+Shift+Down
+  move the rows of a table, and outside a table the paragraphs. A selection from cell to cell
+  selects the rectangle of whole cells (Shift with the arrows too): Delete clears them, typing
+  goes into the first, and Copy gives a table of those cells. In the page view the header rows
+  are repeated at the top of each page, and a row higher than a page is split between pages.
+  KML has the new attributes `width`, `align`, `indent`, `borders`, `border-style`,
+  `border-width` and `border-color` of `<table>`, `height` and `split` of `<tr>`, and `valign`
+  and `background` of `<td>` and `<th>` (docs/kml_format.md). A long table no longer slows
+  typing: a change lays out again only its rows (with the rows its cells span and the header
+  rows), and the view draws only the rows it shows.
+
 - **Tables** - 2026-10-27. Insert > Table... puts a table at the cursor: a window with its
   columns (up to 20) and rows (up to 100), whether its first row is a header row, and a picture
   of its grid. A table is as wide as the text; its cells side by side in both views, drawn with
