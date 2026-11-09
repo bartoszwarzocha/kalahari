@@ -154,6 +154,31 @@ void removeBlocks(QTextCursor& cursor, const QTextBlock& first, const QTextBlock
     cursor.removeSelectedText();
 }
 
+/// Remove the table with all its rows; returns the number of the paragraph before it
+///
+/// The marks of the table's start and end end the paragraphs next to it, so without them
+/// Qt joins the paragraph before the table and the one after it; the one after is split
+/// off again, in its own formats.
+int removeTableFrame(QTextCursor& cursor, QTextTable& table) {
+    QTextDocument& document = *cursor.document();
+    const QTextBlock before = document.findBlock(table.firstPosition() - 1);
+    const QTextBlock after = document.findBlock(table.lastPosition() + 1);
+    const int beforeNumber = before.blockNumber();
+    const int beforeLength = before.length();
+    const int expectedBlocks = document.blockCount() - (after.blockNumber() - beforeNumber - 1);
+    const QTextBlockFormat afterFormat = after.blockFormat();
+    const QTextCharFormat afterCharFormat = paragraphCharFormat(after);
+
+    table.removeRows(0, table.rows());
+
+    if (document.blockCount() < expectedBlocks) {
+        const QTextBlock joined = document.findBlockByNumber(beforeNumber);
+        cursor.setPosition(joined.position() + beforeLength - 1);
+        cursor.insertBlock(afterFormat, afterCharFormat);
+    }
+    return beforeNumber;
+}
+
 }  // anonymous namespace
 
 // =============================================================================
@@ -484,11 +509,9 @@ int removeWholeTable(QTextCursor& cursor, QTextTable& table)
     QTextDocument& document = *cursor.document();
     const QTextBlock before = document.findBlock(table.firstPosition() - 1);
     const QTextBlock after = document.findBlock(table.lastPosition() + 1);
-    const int beforeNumber = before.blockNumber();
-    const bool emptyStart = beforeNumber == 0 && before.length() == 1;
+    const bool emptyStart = before.blockNumber() == 0 && before.length() == 1;
     const bool emptyEnd = !after.next().isValid() && after.length() == 1;
-
-    table.removeRows(0, table.rows());
+    const int beforeNumber = removeTableFrame(cursor, table);
 
     // An empty paragraph Qt kept only for the table goes, unless the text would be empty
     if (emptyEnd) {
@@ -991,10 +1014,9 @@ int tableToText(QTextCursor& cursor, QTextTable& table, QChar separator)
 
     const QTextBlock before = document.findBlock(table.firstPosition() - 1);
     const QTextBlock after = document.findBlock(table.lastPosition() + 1);
-    const int beforeNumber = before.blockNumber();
-    const bool emptyStart = beforeNumber == 0 && before.length() == 1;
+    const bool emptyStart = before.blockNumber() == 0 && before.length() == 1;
     const bool emptyEnd = !after.next().isValid() && after.length() == 1;
-    table.removeRows(0, table.rows());
+    const int beforeNumber = removeTableFrame(cursor, table);
 
     const QTextBlock start = document.findBlockByNumber(beforeNumber);
     int firstNumber = beforeNumber + 1;

@@ -71,6 +71,7 @@ set(TEST_SOURCES
     editor/test_list_editing.cpp                 # Lists: editing, indents, numbering, auto-correct
     editor/test_text_links.cpp                   # Links: KML, editing, the clipboard, auto-correct
     editor/test_tables.cpp                       # Tables: the model, KML, the layout, the keys
+    editor/test_table_commands.cpp              # The Table menu in the text
     editor/test_paragraph_layout.cpp             # A paragraph's own formatting and lists in the layout
     editor/test_styles_view.cpp                  # How the editor shows styles, objects and formatting marks
     editor/test_auto_correct.cpp                 # Autocorrect: the changes of the text as it is typed

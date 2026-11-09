@@ -884,13 +884,17 @@ void BookEditor::setTablePropertiesData(const TablePropertiesData& data)
     // The widths of the columns, in proportion: only when they changed (a table of equal
     // columns keeps none)
     bool columnsChanged = false;
-    if (data.columnWidths.size() == static_cast<size_t>(table.columns())) {
+    if (data.columnWidths.size() == static_cast<size_t>(table.columns()) &&
+        data.columnWidths.size() == before->columnWidths.size()) {
         const double total =
             std::accumulate(data.columnWidths.begin(), data.columnWidths.end(), 0.0);
-        const std::vector<double> current = columnWidthsOf(table);
-        for (size_t column = 0; total > 0 && column < current.size(); ++column) {
-            columnsChanged = columnsChanged || std::abs(data.columnWidths[column] * 100.0 / total -
-                                                        current[column]) > 0.05;
+        const double current =
+            std::accumulate(before->columnWidths.begin(), before->columnWidths.end(), 0.0);
+        for (size_t column = 0; total > 0 && current > 0 && column < data.columnWidths.size();
+             ++column) {
+            columnsChanged = columnsChanged ||
+                             std::abs(data.columnWidths[column] * 100.0 / total -
+                                      before->columnWidths[column] * 100.0 / current) > 0.05;
         }
     }
     if (!tableChanged && !rowsChanged && !columnsChanged && !data.cellChanged) {
