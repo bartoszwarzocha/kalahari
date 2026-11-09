@@ -106,6 +106,12 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
         QString text = event->text();
         // Only handle printable characters
         if (!text.isEmpty() && text.at(0).isPrint()) {
+            // Caps Lock: a letter typed small with Shift, or a capital without it, shows
+            // it on (autocorrect changes a word typed with it on by mistake)
+            if (const QChar first = text.at(0);
+                text.size() == 1 && first.isUpper() != first.isLower()) {
+                m_capsLockOn = first.isUpper() != event->modifiers().testFlag(Qt::ShiftModifier);
+            }
             typeText(text);
             handled = true;
         }
