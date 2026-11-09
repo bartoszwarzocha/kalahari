@@ -9,6 +9,9 @@
 #include "kalahari/core/theme.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_appearance.h"
+#include "kalahari/editor/text_issue.h"
+#include "kalahari/editor/version_comparison.h"
+#include "kalahari/editor/word_repetitions.h"
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
@@ -367,12 +370,24 @@ TEST_CASE("Colors: a kind's color as Optimize colors in themes shows it", "[gui]
     // changes of a version and the repetitions), on both papers and on the panels of both themes
     const QColor lightBase = themeNamed(QStringLiteral("Light")).palette.base;
     const QColor darkBase = themeNamed(QStringLiteral("Dark")).palette.base;
+    const std::string marks[] = {
+        editor::annotationColorKey(editor::AnnotationKind::Comment),
+        editor::annotationColorKey(editor::AnnotationKind::Todo),
+        editor::annotationColorKey(editor::AnnotationKind::Note),
+        editor::issueColorKey(editor::TextIssueKind::Spelling),
+        editor::issueColorKey(editor::TextIssueKind::Grammar),
+        editor::DELETED_COLOR_KEY,
+        editor::ADDED_COLOR_KEY,
+        editor::REPETITION_COLOR_KEY,
+    };
     for (const QString& name : {QStringLiteral("Light"), QStringLiteral("Dark")}) {
         const core::Theme theme = themeNamed(name);
-        CHECK(theme.editor.size() == 8);
-        for (const auto& [key, color] : theme.editor) {
+        for (const std::string& key : marks) {
+            INFO(name.toStdString() << " " << key);
+            REQUIRE(theme.editor.count(key) == 1);
+            const QColor color = theme.editor.at(key);
             for (const QColor& background : {white, darkPaper, lightBase, darkBase}) {
-                INFO(name.toStdString() << " " << key << " on " << background.name().toStdString());
+                INFO("on " << background.name().toStdString());
                 CHECK(contrastRatio(shownColor(color, background, true), background) >=
                       MIN_MARK_CONTRAST);
             }
@@ -887,7 +902,8 @@ TEST_CASE("Annotations frame: under its place within the text column, above it w
     QWidget editor;
     editor.resize(800, 600);
     auto* frame = new AnnotationFrame(&editor);
-    AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600)};
+    AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600),
+                                         QRectF()};
     frame->setPlacement([&placement]() { return placement; });
 
     // Two thirds of the column wide, a little left of the place
@@ -928,7 +944,8 @@ TEST_CASE("Annotations frame: who the annotation is by, on the right of its head
 
     frame->setAuthor(QStringLiteral(" Anna Nowak "));
     frame->setPlacement([]() {
-        return AnnotationFrame::Placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600)};
+        return AnnotationFrame::Placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600),
+                                         QRectF()};
     });
     frame->show();
     QApplication::processEvents();

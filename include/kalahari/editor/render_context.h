@@ -47,6 +47,7 @@ constexpr double MIN_PAGE_TEXT_SHARE = 0.2;
 struct RenderColors {
     QColor text{30, 30, 30};                   ///< Default text color
     QColor background{255, 255, 255};          ///< Background color
+    QColor desk;                               ///< Around the paper (not valid: a shade of it)
     QColor cursor{30, 30, 30};                 ///< Cursor color
     QColor selection{51, 153, 255, 127};       ///< Selection highlight color
     QColor selectionText{255, 255, 255};       ///< Selected text color
@@ -78,10 +79,14 @@ struct RenderColors {
     /// @brief The formatting marks (¶ · ° → ↵ ¬)
     QColor formattingMarks{91, 127, 192};
 
+    /// @brief The text of links (underlined in it), unless it has a color of its own
+    QColor link{5, 99, 193};
+
     /// @brief Check if colors are equal
     bool operator==(const RenderColors& other) const {
         return text == other.text &&
                background == other.background &&
+               desk == other.desk &&
                cursor == other.cursor &&
                selection == other.selection &&
                selectionText == other.selectionText &&
@@ -96,7 +101,8 @@ struct RenderColors {
                annotationComment == other.annotationComment &&
                annotationTodo == other.annotationTodo &&
                annotationNote == other.annotationNote &&
-               formattingMarks == other.formattingMarks;
+               formattingMarks == other.formattingMarks &&
+               link == other.link;
     }
 
     bool operator!=(const RenderColors& other) const {
@@ -120,6 +126,8 @@ struct PageModeConfig {
     QColor pageShadow{0, 0, 0, 50};           ///< Page shadow color
     bool showPageBreaks = true;                ///< Draw page shadows
     bool showPageNumbers = true;               ///< Page numbers at the bottom centre (page view)
+    bool mirrorMargins = false;                ///< Facing pages (page view): pages 2, 4, ... have
+                                               ///< the left and right margins of page 1 swapped
 };
 
 /// @brief Typewriter scrolling configuration
@@ -207,6 +215,8 @@ struct RenderContext {
                                                ///< the text's font asks)
     bool showFormattingMarks = false;          ///< ¶ · ° → ↵ ¬ over the text (in any view
                                                ///< mode)
+    MarginNumbers marginNumbers;               ///< The numbers on the left margin (in any
+                                               ///< view mode)
 
     // -------------------------------------------------------------------------
     // Text Frame Border
@@ -223,7 +233,6 @@ struct RenderContext {
     double scrollY = 0.0;                      ///< Vertical scroll offset (document units)
     double scrollX = 0.0;                      ///< Horizontal scroll offset (pixels; while the
                                                ///< zoomed page is wider than the view)
-    int currentPageNumber = 1;                 ///< Current page number (1-based, for mirror margins)
 
     // -------------------------------------------------------------------------
     // Viewport Info
@@ -258,9 +267,9 @@ struct RenderContext {
         // Effective margins (document units: pixels at 100% zoom): the page's, in every view
         // ---------------------------------------------------------------------
 
-        double marginLeft = 50.0;               ///< Left margin
+        double marginLeft = 50.0;               ///< Left margin (of page 1)
         double marginTop = 30.0;                ///< Top margin
-        double marginRight = 50.0;              ///< Right margin
+        double marginRight = 50.0;              ///< Right margin (of page 1)
         double marginBottom = 30.0;             ///< Bottom margin
 
         // ---------------------------------------------------------------------
@@ -286,7 +295,8 @@ struct RenderContext {
         // View mapping: widget = origin + (document - (0, scrollY)) * viewScale
         // ---------------------------------------------------------------------
 
-        double originX = 50.0;                  ///< Widget x of document x = 0
+        double originX = 50.0;                  ///< Widget x of document x = 0 (on page 1:
+                                                ///< see EditorRenderPipeline::shiftAtY())
         double originY = 30.0;                  ///< Widget y of document y = scrollY
         double scrollPaddingTop = 30.0;         ///< Scroll room above the text (document units)
         double scrollPaddingBottom = 30.0;      ///< Scroll room below the text (document units)

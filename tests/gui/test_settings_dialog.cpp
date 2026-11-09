@@ -203,12 +203,27 @@ TEST_CASE("Settings dialog: the gears of the panels open it at their pages", "[g
     CHECK(tree->currentItem()->text(0) == QStringLiteral("Annotations"));
     CHECK(tree->currentItem()->parent() == nullptr);
 
+    // The gears of the Link dialog and of the find bar: Editor > Colors, with the colors of
+    // links and of the hits
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::EDITOR_COLORS_PAGE)));
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Colors"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
+
     // The gear of the group of the versions in the Properties panel: Editor > Versions
     CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::VERSIONS_PAGE)));
     REQUIRE(tree->currentItem() != nullptr);
     CHECK(tree->currentItem()->text(0) == QStringLiteral("Versions"));
     REQUIRE(tree->currentItem()->parent() != nullptr);
     CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
+
+    // The gear of a window of its own of a tab, and Window > Window Settings...: General
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::GENERAL_PAGE)));
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("General"));
+    CHECK(tree->currentItem()->parent() == nullptr);
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::VERSIONS_PAGE)));
 
     // A page the dialog does not have leaves the page shown
     CHECK_FALSE(dialog.openPage(QStringLiteral("nowhere")));
@@ -262,6 +277,10 @@ TEST_CASE("Settings dialog: every page fits the narrowest window, in English and
     // and Keyboard Shortcuts were wider than the window in Polish, Keyboard Shortcuts also in
     // English. In the program's style (Fusion) on every system
     ProgramStyle programStyle;
+    // With every row shown: the inner and the outer margin with their preview too
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const bool mirrored = settings.get<bool>("editor.margins.mirrorEnabled");
+    settings.set<bool>("editor.margins.mirrorEnabled", true);
 
     for (const bool inPolish : {false, true}) {
         INFO((inPolish ? "in Polish" : "in English"));
@@ -293,6 +312,7 @@ TEST_CASE("Settings dialog: every page fits the narrowest window, in English and
         }
         CHECK(pages > 20);
     }
+    settings.set<bool>("editor.margins.mirrorEnabled", mirrored);
 }
 
 TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][settings]") {

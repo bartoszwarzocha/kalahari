@@ -21,6 +21,7 @@
 #include <QObject>
 #include <QPolygonF>
 #include <QRect>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -178,9 +179,12 @@ public:
 
     /// @brief Set page layout parameters (recalculates: pageLayout, textWidth)
     /// @param pageSize Page size in points (72 DPI)
-    /// @param marginsMm Page margins in millimetres
+    /// @param marginsMm Page margins in millimetres (of page 1)
     /// @param pageGap Gap between and around pages, in pixels at 100% zoom
-    void setConfigPageLayout(const QSizeF& pageSize, const QMarginsF& marginsMm, double pageGap);
+    /// @param mirrorMargins Facing pages: in the page view pages 2, 4, ... have the left and
+    ///        right margins of page 1 swapped
+    void setConfigPageLayout(const QSizeF& pageSize, const QMarginsF& marginsMm, double pageGap,
+                             bool mirrorMargins = false);
 
     /// @brief Show or hide the page numbers (repaint only)
     void setConfigShowPageNumbers(bool show);
@@ -199,6 +203,14 @@ public:
     /// @brief Set the size of the annotations' marks (repaint only)
     /// @param scale 1: as the text's font asks; 2: twice as big
     void setConfigAnnotationMarkScale(double scale);
+
+    /// @brief Set the numbers on the left margin (repaint only)
+    void setConfigMarginNumbers(const MarginNumbers& numbers);
+
+    /// @brief Whether the numbers on the margin painted last are out of date: blocks above
+    ///        the view were laid out since (the numbers in the view go on from the lines
+    ///        above it, estimated while they wait for layout)
+    bool marginNumbersOutdated() const;
 
     /// @brief Show or hide the frame around the text area of the pages (repaint only)
     /// @param show Whether the frame is drawn
@@ -355,6 +367,39 @@ public:
     void setRepetitionMarks(const std::vector<RepetitionMark>& marks, RepetitionMarkStyle style);
 
     // =========================================================================
+    // What the view adds to the text
+    // =========================================================================
+
+    /// @brief Draws what a paragraph has in the room under its text (the cards of its
+    ///        annotations)
+    ///
+    /// Called after the paragraph's text, with the painter in the paragraph's coordinates,
+    /// zoomed as its text, and as faint as Focus makes the marks of a dimmed paragraph.
+    using ParagraphDecorator = std::function<void(QPainter* painter, size_t paragraph)>;
+
+    /// @brief Set what draws the room under the paragraphs (an empty one: nothing)
+    void setParagraphDecorator(ParagraphDecorator decorator);
+
+    /// @brief A fragment of the text shown in a color: a fill under it, a line along its
+    ///        bottom (the fragment of the annotation whose card the mouse is on)
+    struct FragmentHighlight {
+        CursorPosition start;  ///< Where it starts
+        CursorPosition end;    ///< Where it ends
+        QColor fill;           ///< Under the text
+        QColor line;           ///< Along its bottom
+
+        bool operator==(const FragmentHighlight& other) const = default;
+    };
+
+    /// @brief Show a fragment of the text in a color (std::nullopt: none)
+    void setFragmentHighlight(const std::optional<FragmentHighlight>& highlight);
+
+    /// @brief The fragment shown in a color, if any
+    const std::optional<FragmentHighlight>& fragmentHighlight() const {
+        return m_fragmentHighlight;
+    }
+
+    // =========================================================================
     // Main Render Entry Point (Stage 3+4)
     // =========================================================================
 
@@ -413,11 +458,22 @@ public:
     // Geometry: document <-> widget, pages
     // =========================================================================
 
-    /// @brief Widget position of a document position (scroll and zoom applied)
+    /// @brief Widget position of a document position (scroll and zoom applied, and the
+    /// shift of its page: see shiftAtY())
     QPointF documentToWidget(const QPointF& point) const;
 
     /// @brief Document position shown at a widget position
     QPointF widgetToDocument(const QPointF& point) const;
+
+    /// @brief How far right of page 1's the text of a page is (document units)
+    ///
+    /// The document is one column of text. With mirror margins the page view's pages 2,
+    /// 4, ... have the left and right margins of page 1 swapped: their text is shown by the
+    /// difference of the two margins further right (or left). 0 in the other views.
+    double pageShiftX(int page) const;
+
+    /// @brief pageShiftX() of the page whose sheet holds document y
+    double shiftAtY(double y) const;
 
     /// @brief Number of pages (page mode; 1 in the other modes)
     int pageCount() const;
@@ -463,8 +519,8 @@ private:
     void renderParagraph(QPainter* painter, size_t index, double widgetY);
 
     /// @brief Draw the formatting marks of a paragraph over its text, in their color
-    void renderFormattingMarks(QPainter* painter, const std::vector<FormattingMark>& marks,
-                               double widgetY);
+    void renderFormattingMarks(QPainter* painter, size_t index,
+                               const std::vector<FormattingMark>& marks, double widgetY);
 
     /// @brief Render selection highlights
     void renderSelection(QPainter* painter, const QRect& clipRect);
@@ -525,6 +581,12 @@ private:
     /// @brief Draw the marks of the annotations (under the text, which stays readable)
     void renderAnnotationMarks(QPainter* painter, const QRect& clipRect);
 
+    /// @brief Draw the fragment shown in a color (under the text)
+    void renderFragmentHighlight(QPainter* painter);
+
+    /// @brief Draw what a paragraph has in the room under its text (the decorator)
+    void renderParagraphDecoration(QPainter* painter, size_t index, double widgetY);
+
     /// @brief Draw the marks beside the paragraphs (in the left margin)
     void renderParagraphMarks(QPainter* painter, const QRect& clipRect);
 
@@ -534,6 +596,16 @@ private:
     /// @brief Render the visible text: selection, highlights, paragraphs, cursor and drop
     ///        caret (only the visible paragraphs: O(visible), not O(n))
     void renderText(QPainter* painter, const QRect& clipRect);
+
+    /// @brief Render the numbers on the left margin of the visible lines or paragraphs
+    void renderMarginNumbers(QPainter* painter, const QRect& clipRect);
+
+    /// @brief Number (from 1 in the chapter) of the first line of a page (page mode)
+    int firstLineOfPage(int page) const;
+
+    /// @brief The first paragraph to lay out for the view: @p first, or for the lines
+    ///        numbered from 1 on every page the first one of its page
+    size_t firstParagraphToLayOut(size_t first) const;
 
     /// @brief Render the sheets of the pages in the clip rect: shadow, paper, border,
     ///        text frame and page number (page mode)
@@ -577,8 +649,15 @@ private:
     std::optional<ParagraphHighlight> m_spokenWord;  ///< Word being read aloud
     std::vector<ParagraphHighlight> m_repetitions;   ///< Repeated words, by paragraph
     RepetitionMarkStyle m_repetitionStyle = RepetitionMarkStyle::Background;
+    std::optional<FragmentHighlight> m_fragmentHighlight;  ///< Fragment shown in a color
+    ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
     std::vector<ParagraphMark> m_paragraphMarks;     ///< Marks beside the paragraphs
     QIcon m_paragraphMarkIcon;                       ///< What they show
+
+    // The numbers on the margin painted last: they went on from what was counted before
+    // their first paragraph (marginNumbersOutdated())
+    size_t m_paintedMarginFirst = 0;
+    MarginCounts m_paintedMarginBase;
 
     // External components (not owned)
     ViewportManager* m_viewportManager = nullptr;

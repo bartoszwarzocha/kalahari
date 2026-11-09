@@ -15,6 +15,7 @@
 #include "kalahari/editor/spell_check_service.h"
 #include "kalahari/editor/text_highlight.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/repetitions_panel.h"
@@ -85,7 +86,8 @@ RepetitionsCoordinator::RepetitionsCoordinator(RepetitionsPanel* panel, QDockWid
     m_countTimer->setInterval(COUNT_DELAY_MS);
     connect(m_countTimer, &QTimer::timeout, this, &RepetitionsCoordinator::refresh);
 
-    connect(m_centralTabs, &QTabWidget::currentChanged, this,
+    // The text the keys went to last, in the book window or in a window of its own
+    connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
             &RepetitionsCoordinator::onCurrentTabChanged);
     connect(m_dock, &QDockWidget::visibilityChanged, this,
             &RepetitionsCoordinator::onDockVisibilityChanged);
@@ -176,7 +178,7 @@ void RepetitionsCoordinator::connectCommands() {
     }
     // Checked while the repetitions are marked, also after the Settings dialog changes it
     utils::followSetting(registry.getAction(std::string(MARKS_COMMAND)), HIGHLIGHT_KEY);
-    connect(m_centralTabs, &QTabWidget::currentChanged, this,
+    connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
             []() { CommandRegistry::getInstance().updateActionState(NEXT_COMMAND); });
 }
 
@@ -318,7 +320,7 @@ void RepetitionsCoordinator::onSettingsChanged() {
 // =============================================================================
 
 EditorPanel* RepetitionsCoordinator::currentEditorPanel() const {
-    return qobject_cast<EditorPanel*>(m_centralTabs->currentWidget());
+    return qobject_cast<EditorPanel*>(DocumentWindows::of(*m_centralTabs).frontPage());
 }
 
 editor::BookEditor* RepetitionsCoordinator::currentEditor() const {
@@ -327,8 +329,8 @@ editor::BookEditor* RepetitionsCoordinator::currentEditor() const {
 }
 
 EditorPanel* RepetitionsCoordinator::openPanel(const QString& elementId) const {
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* panel = qobject_cast<EditorPanel*>(page);
         if (panel != nullptr && !elementId.isEmpty() && elementIdOf(panel) == elementId) {
             return panel;
         }
@@ -349,7 +351,7 @@ QString RepetitionsCoordinator::titleOf(const EditorPanel* panel) const {
         }
     }
     // A document outside the book: its tab's text, without the mark of changes
-    QString title = m_centralTabs->tabText(m_centralTabs->indexOf(panel));
+    QString title = DocumentWindows::tabText(panel);
     if (title.startsWith(QLatin1Char('*'))) {
         title.remove(0, 1);
     }
@@ -366,8 +368,8 @@ int RepetitionsCoordinator::textOf(const editor::BookEditor* editor) const {
         }
     }
     // A chapter counted from its file, opened since
-    for (int tab = 0; tab < m_centralTabs->count(); ++tab) {
-        auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(tab));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* panel = qobject_cast<EditorPanel*>(page);
         if (panel == nullptr || panel->getBookEditor() != editor) {
             continue;
         }
@@ -657,8 +659,8 @@ void RepetitionsCoordinator::updateMarks() {
         core::SettingsManager::getInstance().get<std::string>(STYLE_KEY) == "wave"
             ? editor::RepetitionMarkStyle::Wave
             : editor::RepetitionMarkStyle::Background;
-    for (int tab = 0; tab < m_centralTabs->count(); ++tab) {
-        auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(tab));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* panel = qobject_cast<EditorPanel*>(page);
         if (panel == nullptr) {
             continue;
         }
@@ -769,10 +771,11 @@ editor::CursorPosition RepetitionsCoordinator::after(const editor::BookEditor& e
 }
 
 void RepetitionsCoordinator::bringToFront(const editor::BookEditor* editor) {
-    for (int tab = 0; tab < m_centralTabs->count(); ++tab) {
-        auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(tab));
+    DocumentWindows& windows = DocumentWindows::of(*m_centralTabs);
+    for (QWidget* page : windows.pages()) {
+        auto* panel = qobject_cast<EditorPanel*>(page);
         if (panel != nullptr && panel->getBookEditor() == editor) {
-            m_centralTabs->setCurrentIndex(tab);
+            windows.showPage(panel);
             return;
         }
     }

@@ -73,6 +73,10 @@ public:
     /// @brief My colors, in the order they were added, from the settings
     static QStringList myColors();
 
+    /// @brief The palette the window showed last, which it shows next (the first one at
+    ///        first)
+    static ColorPalette lastPalette();
+
     /// @brief Ask for a color in one call
     /// @param initial The color the setting has now
     /// @param parent Parent widget

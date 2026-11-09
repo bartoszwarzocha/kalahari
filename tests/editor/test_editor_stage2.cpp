@@ -7,12 +7,15 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <kalahari/core/book_type_package.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/clipboard_handler.h>
+#include <kalahari/editor/paragraph_styles.h>
 #include "editor_test_utils.h"
 
+#include <QFontMetricsF>
 #include <QImage>
 #include <QMimeData>
 #include <QScrollBar>
@@ -228,6 +231,59 @@ TEST_CASE("Stage2 typography: lengths follow the document font", "[editor][stage
     CHECK(d.layout->paragraphSpacing() == Approx(20.0));
     CHECK(d.layout->firstLineIndent() == Approx(40.0));
     CHECK(d.block(0).layout()->lineAt(0).x() == Approx(40.0));
+}
+
+TEST_CASE("Stage2 typography: tab stops every first-line indent of the style, or every few "
+          "spaces",
+          "[editor][stage2][typography][tab]") {
+    TypesetDocument d;
+    d.load({QStringLiteral("\tA"), QStringLiteral("B\tC"), QStringLiteral("\tD")});
+    // Where the character after a tab starts (block coordinates: the indent included)
+    const auto afterTab = [&d](int block, int position) {
+        const QTextLayout* layout = d.block(block).layout();
+        return layout->lineForTextPosition(position).cursorToX(position);
+    };
+    LayoutTypography typography;
+    typography.firstLineIndent = 20.0;
+    typography.tabIndent = 30.0;
+
+    SECTION("every first-line indent: a tab at the start of a paragraph doubles its indent") {
+        d.layout->setTypography(typography);
+        d.layout->layoutPendingBlocks();
+        CHECK(afterTab(0, 1) == Approx(40.0));
+        // After a letter narrower than the indent: the next stop
+        REQUIRE(afterTab(1, 1) < 40.0);
+        CHECK(afterTab(1, 2) == Approx(40.0));
+    }
+
+    SECTION("a style without a first-line indent has the stops of the indent of the settings") {
+        kalahari::core::PackageParagraphStyle normal;
+        normal.id = QStringLiteral("normal");
+        normal.properties = {{QStringLiteral("firstLineIndent"), 0.5}};
+        kalahari::core::PackageParagraphStyle heading;
+        heading.id = headingStyleId(1);
+        heading.properties = {{QStringLiteral("firstLineIndent"), 0.0}};
+        d.layout->setParagraphStyles(
+            ParagraphStyleSet::fromPackage({normal, heading}, QStringLiteral("en")));
+        QTextCursor cursor(d.block(2));
+        QTextBlockFormat format = cursor.blockFormat();
+        setParagraphStyle(format, headingStyleId(1));
+        cursor.setBlockFormat(format);
+        d.layout->setTypography(typography);
+        d.layout->layoutPendingBlocks();
+        CHECK(afterTab(0, 1) == Approx(40.0));
+        CHECK(afterTab(2, 1) == Approx(30.0));
+    }
+
+    SECTION("every few spaces of the paragraph's font") {
+        typography.tabStops = TabStops::Spaces;
+        typography.tabSpaces = 4;
+        d.layout->setTypography(typography);
+        d.layout->layoutPendingBlocks();
+        const qreal stop = 4 * QFontMetricsF(testFont()).horizontalAdvance(QLatin1Char(' '));
+        CHECK(afterTab(0, 1) == Approx(20.0 + stop).margin(0.05));
+        CHECK(afterTab(1, 2) == Approx(20.0 + stop).margin(0.05));
+    }
 }
 
 TEST_CASE("Stage2 typography: hit test between lines and in the paragraph spacing",

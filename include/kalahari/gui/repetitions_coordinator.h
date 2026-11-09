@@ -65,7 +65,8 @@ public:
     /// @brief Constructor
     /// @param panel The panel Repetitions
     /// @param dock The panel's dock
-    /// @param centralTabs The tabs of the documents
+    /// @param centralTabs The tabs of the documents of the book window (DocumentWindows: with
+    ///        the texts in the windows of their own)
     /// @param spelling The spelling as you type, whose dictionary gives the base forms of the
     ///        words of the chapters not open (may be null)
     /// @param openChapter Opens a chapter whose card the writer goes to

@@ -20,6 +20,7 @@ class BookEditor;
 class ParagraphStyleSet;
 class QuickInsertController;
 class StatisticsCollector;
+enum class LearnedException;
 }
 
 namespace kalahari {
@@ -131,6 +132,36 @@ public:
     /// loop runs, after any change of an editor setting.
     void applySettings();
 
+    /// @brief Format > Bullets and Numbering...: the window of the formats of the list at the
+    ///        cursor (of a new numbered list outside a list); OK gives them to the lists of
+    ///        the selected paragraphs
+    void showBulletsAndNumbering();
+
+    /// @brief Set Numbering Value... of a list item: the window that asks for its number
+    void showNumberingValue();
+
+    /// @brief Format > Font...: the window of the formatting of the selected text, or of the
+    ///        text typed next; OK gives the text what the writer changed
+    void showFontDialog();
+
+    /// @brief Format > Paragraph...: the window of the formatting of the paragraph at the
+    ///        cursor; OK gives the selected paragraphs what the writer changed
+    void showParagraphDialog();
+
+    /// @brief Insert > Link... (Ctrl+K), also Edit Hyperlink of a link's context menu: the
+    ///        window of the link at the cursor (BookEditor::linkTarget()); OK makes the link,
+    ///        Remove Link takes it off the text
+    void showHyperlinkDialog();
+
+    /// @brief Open a link's address in the system's program (a Ctrl+click, Open Hyperlink):
+    ///        a page, a file server or a new e-mail; another address is refused with a
+    ///        message in the status bar (editor::isOpenableLinkAddress())
+    void openLink(const QString& address);
+
+    /// @brief Set whether the text starts on a left page: the chapter's own setting
+    ///        (ProjectElement::firstPageLeft), which the margins of its pages follow
+    void setFirstPageLeft(bool left);
+
 signals:
     /// @brief Emitted when editor content changes
     ///
@@ -152,6 +183,14 @@ private slots:
     void applyScheduledSettings();
 
 private:
+    /// @brief Add to an exception list of autocorrect the word whose change the writer
+    ///        undid right after it (editor.autoCorrect.learnExceptions), and say so in the
+    ///        status bar
+    void learnAutoCorrectException(editor::LearnedException list, const QString& exception);
+
+    /// @brief A message of autocorrect in the status bar of the main window
+    void showStatusMessage(const QString& message);
+
     /// @brief Set the editor's paper scale from the screen the panel is on
     ///
     /// Runs when the panel is shown or moves to another screen, and when a screen's display

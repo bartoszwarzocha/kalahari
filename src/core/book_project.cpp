@@ -351,6 +351,12 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.file = readFile(fields, field, seen, false);
     element.url = readUrl(fields);
     element.status = fields.string("status");
+    const QString firstPage = fields.string("firstPage");
+    if (firstPage == QLatin1String("left")) {
+        element.firstPageLeft = true;
+    } else if (!firstPage.isEmpty() && firstPage != QLatin1String("right")) {
+        fields.problem("firstPage", QStringLiteral("must be \"left\" or \"right\""));
+    }
     element.elements = readElements(fields.array("elements"), fields.path("elements"), seen,
                                     problems);
     element.description = fields.string("description");
@@ -511,6 +517,8 @@ QJsonObject elementToJson(const ProjectElement& element) {
     setOrRemove(json, "file", element.file);
     setOrRemove(json, "url", element.url);
     setOrRemove(json, "status", element.status);
+    // A right page needs no field: the first page of a text is one unless it says otherwise
+    setOrRemove(json, "firstPage", element.firstPageLeft ? QStringLiteral("left") : QString());
     if (element.elements.isEmpty()) {
         json.remove(QLatin1String("elements"));
     } else {
@@ -877,9 +885,9 @@ const ElementLink* ProjectElement::linkTo(const QString& target) const {
 bool ProjectElement::operator==(const ProjectElement& other) const {
     return id == other.id && kind == other.kind && title == other.title &&
            file == other.file && url == other.url && status == other.status &&
-           elements == other.elements && description == other.description &&
-           fields == other.fields && links == other.links && rotation == other.rotation &&
-           viewExtra == other.viewExtra && extra == other.extra;
+           firstPageLeft == other.firstPageLeft && elements == other.elements &&
+           description == other.description && fields == other.fields && links == other.links &&
+           rotation == other.rotation && viewExtra == other.viewExtra && extra == other.extra;
 }
 
 // =============================================================================

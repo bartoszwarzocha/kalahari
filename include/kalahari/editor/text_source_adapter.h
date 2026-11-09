@@ -12,12 +12,14 @@
 #include <QTextCharFormat>
 #include <QFont>
 #include <kalahari/editor/annotation.h>
+#include <kalahari/editor/character_format.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/formatting_marks.h>
 #include <kalahari/editor/text_highlight.h>
 #include <vector>
 #include <memory>
 
+class QPainter;
 class QTextDocument;
 
 namespace kalahari::editor {
@@ -79,6 +81,18 @@ public:
     virtual std::vector<FormattingMark> paragraphFormattingMarks(size_t /*index*/) const {
         return {};
     }
+
+    /// @brief The text of a paragraph with colors of its own, and of its links
+    ///        (character_format.h)
+    /// @param index Paragraph index (0-based)
+    /// @note Sources without formats have none
+    virtual std::vector<ColoredText> paragraphColors(size_t /*index*/) const { return {}; }
+
+    /// @brief Draw the number or bullet of a list item in the paragraph's coordinates (its
+    ///        top left at the painter's origin), in the painter's pen unless it has a color
+    /// @param index Paragraph index (0-based)
+    /// @note Sources without lists draw nothing
+    virtual void drawListMarker(QPainter* /*painter*/, size_t /*index*/) const {}
 
     // =========================================================================
     // Layout Access
@@ -163,6 +177,17 @@ public:
 
     /// @brief Number of pages the text fills (1 without page flow)
     virtual int pageCount() const { return 1; }
+
+    /// @brief What the numbers on the margin count before a paragraph (see MarginCounts)
+    /// @param index Paragraph index; paragraphCount(): the whole text
+    /// @note Sources without the count take every paragraph for one line with text
+    virtual MarginCounts marginCountsBefore(size_t index) const {
+        return MarginCounts{static_cast<int>(index), static_cast<int>(index)};
+    }
+
+    /// @brief Whether the numbers on the margin count a paragraph as one: a paragraph with
+    ///        text, not a heading and not an object
+    virtual bool isNumberedParagraph(size_t /*index*/) const { return true; }
 };
 
 // =============================================================================
@@ -191,6 +216,8 @@ public:
     std::vector<TextHighlight> paragraphHighlights(size_t index) const override;
     std::vector<AnnotationMark> paragraphAnnotationMarks(size_t index) const override;
     std::vector<FormattingMark> paragraphFormattingMarks(size_t index) const override;
+    std::vector<ColoredText> paragraphColors(size_t index) const override;
+    void drawListMarker(QPainter* painter, size_t index) const override;
 
     QTextLayout* layout(size_t index) const override;
     bool hasLayout(size_t index) const override;
@@ -210,6 +237,8 @@ public:
     double paragraphSpacing() const override;
     void setPageFlow(const PageFlow& flow) override;
     int pageCount() const override;
+    MarginCounts marginCountsBefore(size_t index) const override;
+    bool isNumberedParagraph(size_t index) const override;
 
     /// @brief Get underlying QTextDocument
     /// @return Pointer to wrapped document

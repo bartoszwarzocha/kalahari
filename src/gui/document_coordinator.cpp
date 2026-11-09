@@ -4,6 +4,7 @@
 /// OpenSpec #00038 - Phase 7: Extract Document Operations from MainWindow
 
 #include "kalahari/gui/document_coordinator.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
@@ -133,7 +134,7 @@ DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
 {
     // Files opened outside the project: the info bar shows the file of the current tab,
     // and the navigator's "Other Files" open, add and drop them
-    connect(m_centralTabs, &QTabWidget::currentChanged,
+    connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged,
             this, &DocumentCoordinator::updateStandaloneInfoBar);
     connect(m_standaloneInfoBar, &StandaloneInfoBar::dismissed, this, [this]() {
         if (m_standaloneInfoBar->showsNotice()) {
@@ -175,7 +176,8 @@ EditorPanel* DocumentCoordinator::getCurrentEditor() const {
     if (!m_centralTabs) {
         return nullptr;
     }
-    QWidget* currentWidget = m_centralTabs->currentWidget();
+    // The text the keys went to last, also in a window of its own
+    QWidget* currentWidget = DocumentWindows::of(*m_centralTabs).frontPage();
     return qobject_cast<EditorPanel*>(currentWidget);
 }
 
@@ -889,8 +891,8 @@ QString DocumentCoordinator::whyNotSaveAll() const {
     if (core::ProjectManager::getInstance().isProjectOpen()) {
         return QString();
     }
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        const auto* editor = qobject_cast<const EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        const auto* editor = qobject_cast<const EditorPanel*>(page);
         if (editor && editorKind(editor) == EditorKind::StandaloneFile) {
             return QString();
         }
@@ -965,8 +967,8 @@ bool DocumentCoordinator::saveAllChanges() {
     }
 
     // Then every other tab that still has unsaved changes
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         if (!editor || !isEditorDirty(editor)) {
             continue;
         }
@@ -989,10 +991,10 @@ QStringList DocumentCoordinator::unsavedDocumentNames() const {
         names << book->title;
     }
 
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         if (editor && editorKind(editor) != EditorKind::ProjectChapter && isEditorDirty(editor)) {
-            QString name = m_centralTabs->tabText(i);
+            QString name = DocumentWindows::tabText(page);
             if (name.startsWith(QLatin1Char('*'))) {
                 name.remove(0, 1);
             }
@@ -1014,9 +1016,9 @@ void DocumentCoordinator::onSaveAll() {
         return;
     }
 
-    // The editor of tab @p index when it is a file outside the book with unsaved changes
-    const auto unsavedFile = [this](int index) -> EditorPanel* {
-        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(index));
+    // The editor of @p page when it is a file outside the book with unsaved changes
+    const auto unsavedFile = [this](QWidget* page) -> EditorPanel* {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         const bool unsaved =
             editor && editorKind(editor) != EditorKind::ProjectChapter && isEditorDirty(editor);
         return unsaved ? editor : nullptr;
@@ -1025,8 +1027,9 @@ void DocumentCoordinator::onSaveAll() {
     // What has unsaved changes now: the book, and the open files outside it
     const bool bookChanged = bookHasUnsavedChanges();
     bool filesChanged = false;
-    for (int i = 0; i < m_centralTabs->count() && !filesChanged; ++i) {
-        filesChanged = unsavedFile(i) != nullptr;
+    const QList<QWidget*> pages = DocumentWindows::of(*m_centralTabs).pages();
+    for (QWidget* page : pages) {
+        filesChanged = filesChanged || unsavedFile(page) != nullptr;
     }
     if (!bookChanged && !filesChanged) {
         m_statusBar->showMessage(tr("Nothing to save: all changes are saved"), 3000);
@@ -1040,8 +1043,8 @@ void DocumentCoordinator::onSaveAll() {
         onSaveBook();
         saved = !bookHasUnsavedChanges();
     }
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        if (EditorPanel* editor = unsavedFile(i); editor && !saveEditor(editor)) {
+    for (QWidget* page : pages) {
+        if (EditorPanel* editor = unsavedFile(page); editor && !saveEditor(editor)) {
             saved = false;
         }
     }
@@ -1074,8 +1077,8 @@ bool DocumentCoordinator::bookHasUnsavedChanges() const {
         return false;
     }
     // The texts of its open elements that differ from their saved texts, and its data
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        const auto* editor = qobject_cast<const EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        const auto* editor = qobject_cast<const EditorPanel*>(page);
         if (editor && editorKind(editor) == EditorKind::ProjectChapter && isEditorDirty(editor)) {
             return true;
         }
@@ -1089,8 +1092,8 @@ bool DocumentCoordinator::saveBook() {
 
     // First, give ProjectManager the texts of the chapters whose tabs have changes
     QList<EditorPanel*> changed;
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         if (editor && editorKind(editor) == EditorKind::ProjectChapter && isEditorDirty(editor)) {
             const QString elemId = editor->property("elementId").toString();
             pm.setChapterContent(elemId, editor->getContent());
@@ -1111,10 +1114,9 @@ bool DocumentCoordinator::saveBook() {
             m_navigatorCoordinator->setChapterDirty(editor->property("elementId").toString(),
                                                     false);
             editor->setUnmodified();
-            const int index = m_centralTabs->indexOf(editor);
-            const QString tabText = m_centralTabs->tabText(index);
+            const QString tabText = DocumentWindows::tabText(editor);
             if (tabText.startsWith(QLatin1Char('*'))) {
-                m_centralTabs->setTabText(index, tabText.mid(1));
+                DocumentWindows::setTabText(editor, tabText.mid(1));
             }
         }
 
@@ -1210,7 +1212,7 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
 
     // A file open in a tab is shown there, not opened twice
     if (EditorPanel* openEditor = findStandaloneEditor(path)) {
-        m_centralTabs->setCurrentWidget(openEditor);
+        DocumentWindows::of(*m_centralTabs).showPage(openEditor);
         return;
     }
 
@@ -1320,8 +1322,8 @@ EditorPanel* DocumentCoordinator::findStandaloneEditor(const QString& path) cons
         return nullptr;
     }
     const QFileInfo fileInfo(path);
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         if (!editor || !editor->property("isStandaloneFile").toBool()) {
             continue;
         }
@@ -1341,12 +1343,13 @@ void DocumentCoordinator::trackStandaloneChanges(EditorPanel* editor) {
     connect(editor, &EditorPanel::modifiedChanged, this, [this, editor](bool modified) {
         editor->setProperty("dirty", modified);
         m_navigatorPanel->setFileModified(listKeyOf(editor), modified);
-        const int index = m_centralTabs->indexOf(editor);
-        const QString tabText = index >= 0 ? m_centralTabs->tabText(index) : QString();
-        if (index >= 0 && modified && !tabText.startsWith(QLatin1Char('*'))) {
-            m_centralTabs->setTabText(index, QLatin1Char('*') + tabText);
+        // The tab is in the book window or in a window of its own
+        const bool inTabs = DocumentWindows::tabsOf(editor) != nullptr;
+        const QString tabText = DocumentWindows::tabText(editor);
+        if (inTabs && modified && !tabText.startsWith(QLatin1Char('*'))) {
+            DocumentWindows::setTabText(editor, QLatin1Char('*') + tabText);
         } else if (!modified && tabText.startsWith(QLatin1Char('*'))) {
-            m_centralTabs->setTabText(index, tabText.mid(1));
+            DocumentWindows::setTabText(editor, tabText.mid(1));
         }
     });
 }
@@ -1447,8 +1450,8 @@ void DocumentCoordinator::relistStandaloneFiles() {
     for (const QString& path : std::as_const(m_standaloneFilePaths)) {
         m_navigatorPanel->addStandaloneFile(path);
     }
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        const auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        const auto* editor = qobject_cast<EditorPanel*>(page);
         if (editor && editorKind(editor) == EditorKind::StandaloneFile &&
             editor->property("standaloneFilePath").toString().isEmpty()) {
             m_navigatorPanel->addNewFile(editor->property("newFileKey").toString(),
@@ -1488,7 +1491,8 @@ bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString
     }
     editor->setUnmodified();  // its text is the saved text now
 
-    const int index = m_centralTabs->indexOf(editor);
+    // The tab is in the book window or in a window of its own
+    const bool inTabs = DocumentWindows::tabsOf(editor) != nullptr;
     if (path != oldPath) {
         // The tab, the "Other Files" list and the info bar follow the file to its new name; a
         // new file leaves its key in the list for its file
@@ -1499,8 +1503,8 @@ bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString
         editor->setProperty("standaloneFilePath", path);
         const QString iconId = standaloneIconId(path);
         editor->setProperty("tabIconId", iconId);
-        if (index >= 0) {
-            m_centralTabs->setTabIcon(index, core::ArtProvider::getInstance().getIcon(iconId));
+        if (inTabs) {
+            DocumentWindows::setTabIcon(editor, core::ArtProvider::getInstance().getIcon(iconId));
         }
         m_standaloneFilePaths.removeAll(oldPath);
         m_standaloneFilePaths.append(path);
@@ -1508,8 +1512,8 @@ bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString
         m_navigatorPanel->addStandaloneFile(path);
         updateStandaloneInfoBar();
     }
-    if (index >= 0) {
-        m_centralTabs->setTabText(index, QFileInfo(path).fileName());  // without the "*"
+    if (inTabs) {
+        DocumentWindows::setTabText(editor, QFileInfo(path).fileName());  // without the "*"
     }
 
     logger.info("Standalone file saved: {}", path.toStdString());
@@ -1572,7 +1576,7 @@ bool DocumentCoordinator::saveStandaloneFileAs(EditorPanel* editor) {
     // A new file starts in the folder of Open File, as a Kalahari document named after its tab
     QString start = oldPath;
     if (oldPath.isEmpty()) {
-        QString name = m_centralTabs->tabText(m_centralTabs->indexOf(editor));
+        QString name = DocumentWindows::tabText(editor);
         if (name.startsWith(QLatin1Char('*'))) {
             name.remove(0, 1);
         }
@@ -1681,7 +1685,7 @@ void DocumentCoordinator::addNewFileToProject(EditorPanel* editor) {
         m_navigatorCoordinator->refreshNavigator();
     }
     m_navigatorPanel->revealElement(elementId);
-    utils::removeTabKeepingFocus(*m_centralTabs, m_centralTabs->indexOf(editor));
+    DocumentWindows::removePage(editor);
     editor->deleteLater();
     if (m_navigatorCoordinator) {
         m_navigatorCoordinator->onElementSelected(elementId, title);
@@ -1780,7 +1784,7 @@ void DocumentCoordinator::addToProject(const QString& filePath) {
     m_navigatorPanel->removeStandaloneFile(filePath);
     m_standaloneFilePaths.removeAll(filePath);
     if (fileEditor) {
-        utils::removeTabKeepingFocus(*m_centralTabs, m_centralTabs->indexOf(fileEditor));
+        DocumentWindows::removePage(fileEditor);
         fileEditor->deleteLater();
         if (m_navigatorCoordinator) {
             m_navigatorCoordinator->onElementSelected(elementId, title);
@@ -1994,10 +1998,11 @@ void DocumentCoordinator::adoptBookFiles() {
         return;
     }
 
-    QWidget* current = m_centralTabs->currentWidget();
+    DocumentWindows& texts = DocumentWindows::of(*m_centralTabs);
+    QWidget* current = texts.frontPage();
     QList<EditorPanel*> files;
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        auto* file = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    for (QWidget* page : texts.pages()) {
+        auto* file = qobject_cast<EditorPanel*>(page);
         if (file && editorKind(file) == EditorKind::StandaloneFile) {
             files << file;
         }
@@ -2022,7 +2027,7 @@ void DocumentCoordinator::adoptBookFiles() {
         const QString title = element->title;
         const QString text = file->getContent();
         m_navigatorCoordinator->onElementSelected(elementId, title);
-        auto* chapter = qobject_cast<EditorPanel*>(m_centralTabs->currentWidget());
+        auto* chapter = qobject_cast<EditorPanel*>(texts.frontPage());
         if (!chapter || chapter == file || chapter->property("elementId").toString() != elementId) {
             continue;  // it could not be opened: the file stays in its tab
         }
@@ -2030,12 +2035,14 @@ void DocumentCoordinator::adoptBookFiles() {
             // The changes are the chapter's now, not saved yet: one edit, which undo takes back
             chapter->getBookEditor()->replaceWithKml(text);
         }
-        m_centralTabs->tabBar()->moveTab(m_centralTabs->indexOf(chapter),
-                                         m_centralTabs->indexOf(file));
+        // In the place of the file's tab, also in a window of its own
+        if (QTabWidget* fileTabs = DocumentWindows::tabsOf(file)) {
+            texts.moveTo(chapter, *fileTabs, fileTabs->indexOf(file));
+        }
         if (current == file) {
             current = chapter;
         }
-        utils::removeTabKeepingFocus(*m_centralTabs, m_centralTabs->indexOf(file));
+        DocumentWindows::removePage(file);
         file->deleteLater();
         m_standaloneFilePaths.removeAll(path);
         m_navigatorPanel->removeStandaloneFile(path);
@@ -2044,7 +2051,9 @@ void DocumentCoordinator::adoptBookFiles() {
                                          path.toStdString(), elementId.toStdString());
     }
     if (current) {
-        m_centralTabs->setCurrentWidget(current);
+        if (QTabWidget* currentTabs = DocumentWindows::tabsOf(current)) {
+            currentTabs->setCurrentWidget(current);
+        }
     }
     if (!adopted.isEmpty()) {
         //: %1: the titles of the elements. In Polish: Pliki tej książki otwarte wcześniej
@@ -2087,15 +2096,17 @@ void DocumentCoordinator::onProjectClosed() {
         m_styleResolver->invalidateCache();
     }
 
-    // The book's chapters close with it; their changes were saved or discarded before. So do
-    // the previews and the cards of its materials, and the lists of them.
-    for (int i = m_centralTabs->count() - 1; i >= 0; --i) {
-        QWidget* widget = m_centralTabs->widget(i);
+    // The book's chapters close with it; their changes were saved or discarded before (also
+    // those in windows of their own, which close with their last tab). So do the previews and
+    // the cards of its materials, and the lists of them.
+    const QList<QWidget*> pages = DocumentWindows::of(*m_centralTabs).pages();
+    for (auto it = pages.crbegin(); it != pages.crend(); ++it) {
+        QWidget* widget = *it;
         if (((qobject_cast<EditorPanel*>(widget) || qobject_cast<ImagePreviewPanel*>(widget) ||
               qobject_cast<MaterialCardPanel*>(widget)) &&
              !widget->property("elementId").toString().isEmpty()) ||
             qobject_cast<MaterialListPanel*>(widget)) {
-            utils::removeTabKeepingFocus(*m_centralTabs, i);
+            DocumentWindows::removePage(widget);
             widget->deleteLater();
         }
     }
