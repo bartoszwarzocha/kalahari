@@ -1245,6 +1245,10 @@ void BookEditor::performTextKey(TextKeyAction action, bool select)
     case Action::Yank:
         yank();
         return;
+    case Action::MoveUp:
+    case Action::MoveDown:
+        moveParagraphsOrRows(action == Action::MoveDown);
+        return;
     case Action::Undo:
         undo();
         return;

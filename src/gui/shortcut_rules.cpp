@@ -685,6 +685,12 @@ QString ShortcutRules::textKeyReason(QKeyCombination keys, TextKeyAction action,
     case TextKeyAction::Yank:
         does = tr("pastes the text cut last");
         break;
+    case TextKeyAction::MoveUp:
+        does = tr("moves the rows of a table, or the selected paragraphs, one place up");
+        break;
+    case TextKeyAction::MoveDown:
+        does = tr("moves the rows of a table, or the selected paragraphs, one place down");
+        break;
     case TextKeyAction::Undo:
         does = tr("undoes (the second shortcut of Undo)");
         break;

@@ -646,6 +646,67 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                    clearFormattingShortcut, callbacks.onClearFormatting);
 
     // =========================================================================
+    // TABLE MENU
+    // =========================================================================
+
+    // The table of the cursor: its rows, columns and cells, its header, the order of its
+    // rows, text into a table and back, and its properties (gui/dialogs/table_dialogs.h).
+    // Without keys of their own: Alt+Shift+Up and Alt+Shift+Down of the text move its rows
+    // (editor/text_keys.h). The access keys are those of the cell's context menu too.
+    const auto table = [&callbacks](TableCommand command) {
+        return [onTable = callbacks.onTable, command]() {
+            if (onTable) {
+                onTable(command);
+            }
+        };
+    };
+    REG_CMD_CB("table.insert", QT_TRANSLATE_NOOP("CommandRegistrar", "Insert &Table..."), "TABLE/Insert Table...", 10, true, 0,
+               table(TableCommand::InsertTable));
+    REG_CMD_CB("table.insertRowsAbove", QT_TRANSLATE_NOOP("CommandRegistrar", "Rows &Above"), "TABLE/Insert/Rows Above", 20, false, 0,
+               table(TableCommand::InsertRowsAbove));
+    REG_CMD_CB("table.insertRowsBelow", QT_TRANSLATE_NOOP("CommandRegistrar", "Rows &Below"), "TABLE/Insert/Rows Below", 21, false, 0,
+               table(TableCommand::InsertRowsBelow));
+    REG_CMD_CB("table.insertColumnsLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Columns to the &Left"), "TABLE/Insert/Columns to the Left", 22, false, 0,
+               table(TableCommand::InsertColumnsLeft));
+    REG_CMD_CB("table.insertColumnsRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Columns to the &Right"), "TABLE/Insert/Columns to the Right", 23, false, 0,
+               table(TableCommand::InsertColumnsRight));
+    REG_CMD_CB("table.deleteRows", QT_TRANSLATE_NOOP("CommandRegistrar", "&Rows"), "TABLE/Delete/Rows", 30, false, 0,
+               table(TableCommand::DeleteRows));
+    REG_CMD_CB("table.deleteColumns", QT_TRANSLATE_NOOP("CommandRegistrar", "&Columns"), "TABLE/Delete/Columns", 31, false, 0,
+               table(TableCommand::DeleteColumns));
+    REG_CMD_CB("table.deleteTable", QT_TRANSLATE_NOOP("CommandRegistrar", "&Table"), "TABLE/Delete/Table", 32, false, 0,
+               table(TableCommand::DeleteTable));
+    REG_CMD_CB("table.selectCell", QT_TRANSLATE_NOOP("CommandRegistrar", "C&ell"), "TABLE/Select/Cell", 40, false, 0,
+               table(TableCommand::SelectCell));
+    REG_CMD_CB("table.selectRow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Row"), "TABLE/Select/Row", 41, false, 0,
+               table(TableCommand::SelectRow));
+    REG_CMD_CB("table.selectColumn", QT_TRANSLATE_NOOP("CommandRegistrar", "&Column"), "TABLE/Select/Column", 42, false, 0,
+               table(TableCommand::SelectColumn));
+    REG_CMD_CB("table.selectTable", QT_TRANSLATE_NOOP("CommandRegistrar", "&Table"), "TABLE/Select/Table", 43, true, 0,
+               table(TableCommand::SelectTable));
+    REG_CMD_CB("table.mergeCells", QT_TRANSLATE_NOOP("CommandRegistrar", "Mer&ge Cells"), "TABLE/Merge Cells", 50, false, 0,
+               table(TableCommand::MergeCells));
+    REG_CMD_CB("table.splitCells", QT_TRANSLATE_NOOP("CommandRegistrar", "Spl&it Cells..."), "TABLE/Split Cells...", 60, true, 0,
+               table(TableCommand::SplitCells));
+    REG_CMD_CB("table.distributeRows", QT_TRANSLATE_NOOP("CommandRegistrar", "Distribute Ro&ws Evenly"), "TABLE/Distribute Rows Evenly", 70, false, 0,
+               table(TableCommand::DistributeRows));
+    REG_CMD_CB("table.distributeColumns", QT_TRANSLATE_NOOP("CommandRegistrar", "Distribute Col&umns Evenly"), "TABLE/Distribute Columns Evenly", 80, true, 0,
+               table(TableCommand::DistributeColumns));
+    REG_CMD_CB("table.headerRows", QT_TRANSLATE_NOOP("CommandRegistrar", "Repeat &Header Rows"), "TABLE/Repeat Header Rows", 90, true, 0,
+               table(TableCommand::HeaderRows));
+    REG_CMD_CB("table.sort", QT_TRANSLATE_NOOP("CommandRegistrar", "S&ort..."), "TABLE/Sort...", 100, false, 0,
+               table(TableCommand::Sort));
+    REG_CMD_CB("table.textToTable", QT_TRANSLATE_NOOP("CommandRegistrar", "&Text to Table..."), "TABLE/Convert/Text to Table...", 110, false, 0,
+               table(TableCommand::TextToTable));
+    REG_CMD_CB("table.tableToText", QT_TRANSLATE_NOOP("CommandRegistrar", "Table to Te&xt..."), "TABLE/Convert/Table to Text...", 111, true, 0,
+               table(TableCommand::TableToText));
+    REG_CMD_CB("table.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Ta&ble Properties..."), "TABLE/Table Properties...", 120, false, 0,
+               table(TableCommand::Properties));
+    if (Command* header = registry.getCommand("table.headerRows")) {
+        header->isChecked = []() { return false; };  // the text at the cursor checks it
+    }
+
+    // =========================================================================
     // TOOLS MENU
     // =========================================================================
 

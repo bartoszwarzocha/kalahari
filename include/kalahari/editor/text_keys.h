@@ -65,6 +65,10 @@ enum class TextKeyAction {
     OpenLine,             ///< A paragraph break after the cursor (macOS: Control+O)
     Transpose,            ///< The characters around the cursor change places (Control+T)
     Yank,                 ///< The text the last Control+K took (macOS: Control+Y)
+    // Moving the text
+    MoveUp,               ///< The rows of the cursor's cells in a table, or the selected
+                          ///< paragraphs, one place up (Alt+Shift+Up; macOS: Control+Shift+Up)
+    MoveDown,             ///< One place down (Alt+Shift+Down; macOS: Control+Shift+Down)
 
     // The second keys of commands, and the context menu
     Undo,                 ///< Alt+Backspace (Windows, Linux)
