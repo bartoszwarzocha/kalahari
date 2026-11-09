@@ -13,6 +13,7 @@
 
 #include <kalahari/core/writing_activity.h>
 
+#include <QHash>
 #include <QObject>
 #include <QDateTime>
 #include <QList>
@@ -154,6 +155,10 @@ public:
     /// @return Number of words removed this session
     int wordsDeletedThisSession() const;
 
+    /// @brief Words pasted or dropped in the current session, less the pastes undone; they
+    /// are kept apart from the words written
+    int wordsPastedThisSession() const;
+
     /// @brief Get active editing time in current session
     /// @return Minutes of active editing (excludes idle time)
     int activeMinutesThisSession() const;
@@ -202,6 +207,13 @@ private slots:
     /// @brief Forget the tracked editor when it is destroyed
     void onEditorDestroyed(QObject* object);
 
+    /// @brief Text is about to be pasted: the words typed before it are counted now
+    void onPastingStarted();
+
+    /// @brief Text was pasted, or a paste undone or redone: its words are pasted words (the
+    /// words typed into the level of undo of a paste, written or deleted)
+    void onPastingFinished(int level, bool undoOrRedo);
+
 private:
     /// @brief Called when editor content changes
     void onContentChanged();
@@ -232,6 +244,8 @@ private:
     bool m_sessionActive{false};
     QDateTime m_sessionStart;
     int m_previousWordCount{0};  ///< For delta calculation
+    /// The words each paste brought, by its level of undo (BookEditor::pastingFinished())
+    QHash<int, int> m_pastedAtLevel;
 
     // Auto-flush timer
     QTimer* m_flushTimer{nullptr};

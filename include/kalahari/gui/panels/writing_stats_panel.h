@@ -5,7 +5,8 @@
 /// The views are today, the week, 30 days, the book and the times of writing. Each one has a
 /// large graph on a fine grid, big numbers and a few details in plain words. Everything fits
 /// the narrowest panel: the graphs are as wide as the panel, the numbers go to as many columns
-/// as fit, and a detail that does not fit beside its name goes under it.
+/// as fit, and a detail that does not fit beside its name goes under it. At its foot, a box
+/// says whether the text pasted counts in the statistics (the setting stats.countPasted).
 
 #pragma once
 
@@ -14,6 +15,7 @@
 
 #include <functional>
 
+class QCheckBox;
 class QLabel;
 class QListWidget;
 class QPushButton;
@@ -81,6 +83,14 @@ public:
     /// @brief The setting of a view in the list ("stats.panel.today")
     static const char* settingOf(View view);
 
+    /// @brief The box "Count pasted text in the statistics", which follows the setting
+    /// stats.countPasted and changes it
+    QCheckBox* countPastedBox() const { return m_countPasted; }
+
+    /// @brief Take the foot of the panel (the box of the text pasted) out of the panel, to be
+    /// put under a panel that scrolls, always in view; until then it is at the panel's foot
+    QWidget* takeFooter();
+
 public slots:
     /// @brief Count everything again and show it
     void refresh();
@@ -111,6 +121,8 @@ private:
     /// @brief The view in front
     void fillView(const Context& context);
     void updateFonts();
+    /// @brief The box of the text pasted as the setting says
+    void showCountPasted();
 
     QPointer<WritingStatsModel> m_model;
     std::function<QString(const QString&)> m_textTitle;
@@ -135,6 +147,9 @@ private:
     StatsProgress* m_progress{nullptr};
     StatsDetails* m_details{nullptr};
     QPushButton* m_goals{nullptr};
+    QWidget* m_footer{nullptr};
+    QCheckBox* m_countPasted{nullptr};
+    QLabel* m_countPastedText{nullptr};
 };
 
 }  // namespace kalahari::gui

@@ -539,7 +539,14 @@ void DockCoordinator::createSpellingDock() {
 void DockCoordinator::createStatisticsDock() {
     m_statisticsPanel = new WritingStatsPanel(m_mainWindow);
     m_statisticsDock = new QDockWidget(tr("Statistics"), m_mainWindow);
-    m_statisticsDock->setWidget(scrollingPanel(m_statisticsPanel, m_statisticsDock));
+    // The box of the text pasted stays in view under the panel, which may scroll
+    auto* body = new QWidget(m_statisticsDock);
+    auto* column = new QVBoxLayout(body);
+    column->setContentsMargins(0, 0, 0, 0);
+    column->setSpacing(0);
+    column->addWidget(scrollingPanel(m_statisticsPanel, m_statisticsDock), 1);
+    column->addWidget(m_statisticsPanel->takeFooter());
+    m_statisticsDock->setWidget(body);
     m_statisticsDock->setObjectName("StatisticsDock");
     setupDockTitleBar(m_statisticsDock, "view.statistics", tr("Statistics"));
     // What it shows, its colors and the statistics bar are on the pages of Statistics and Goals

@@ -4,6 +4,7 @@
 #include "kalahari/gui/panels/writing_stats_panel.h"
 
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/writing_goals.h"
@@ -12,12 +13,14 @@
 #include "kalahari/gui/writing_stats_model.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QEvent>
 #include <QHBoxLayout>
 #include <QHelpEvent>
 #include <QLabel>
 #include <QListWidget>
 #include <QLocale>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPushButton>
@@ -276,6 +279,36 @@ QPixmap miniGraph(const GraphData& graph, const StatsColors& colors, qreal ratio
 
 /// @brief The items of the list of views: the small graph, the name in bold and a line of
 /// numbers under it
+/// @brief The text of a check box, wrapped when the panel is narrow: a click on it clicks the
+/// box, and its mnemonic too (the box is its buddy)
+class BoxText : public QLabel {
+public:
+    BoxText(QAbstractButton* box, QWidget* parent)
+        : QLabel(parent)
+        , m_box(box)
+    {
+        setWordWrap(true);
+        setBuddy(box);
+        setTextInteractionFlags(Qt::NoTextInteraction);
+    }
+
+protected:
+    void mouseReleaseEvent(QMouseEvent* event) override
+    {
+        if (event->button() == Qt::LeftButton && rect().contains(event->position().toPoint()) &&
+            m_box->isEnabled()) {
+            m_box->setFocus(Qt::MouseFocusReason);
+            m_box->click();
+            event->accept();
+            return;
+        }
+        QLabel::mouseReleaseEvent(event);
+    }
+
+private:
+    QAbstractButton* m_box;
+};
+
 class ViewDelegate : public QStyledItemDelegate {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
@@ -844,6 +877,42 @@ WritingStatsPanel::WritingStatsPanel(QWidget* parent)
     root->addWidget(view);
     root->addStretch(1);
 
+    // The foot: whether the text pasted counts, at hand in every view
+    m_footer = new QWidget(this);
+    m_footer->setObjectName(QStringLiteral("statsPanelFooter"));
+    auto* foot = new QVBoxLayout(m_footer);
+    foot->setContentsMargins(0, 0, 0, 0);
+    foot->setSpacing(0);
+    auto* footLine = new QFrame(m_footer);
+    footLine->setFrameShape(QFrame::HLine);
+    footLine->setFrameShadow(QFrame::Sunken);
+    foot->addWidget(footLine);
+    auto* boxRow = new QHBoxLayout();
+    boxRow->setContentsMargins(8, 6, 8, 6);
+    boxRow->setSpacing(6);
+    m_countPasted = new QCheckBox(m_footer);
+    m_countPasted->setObjectName(QStringLiteral("statsCountPasted"));
+    m_countPastedText = new BoxText(m_countPasted, m_footer);
+    //: In Polish: &Wliczaj wklejony tekst do statystyk
+    m_countPastedText->setText(tr("Count &pasted text in the statistics"));
+    m_countPasted->setAccessibleName(tr("Count pasted text in the statistics"));
+    m_countPasted->setToolTip(
+        //: In Polish: To samo co Ustawienia > Statystyki i cele > Liczenie
+        tr("The same as Settings > Statistics and Goals > Counting"));
+    boxRow->addWidget(m_countPasted, 0, Qt::AlignTop);
+    boxRow->addWidget(m_countPastedText, 1);
+    foot->addLayout(boxRow);
+    root->addWidget(m_footer);
+    connect(m_countPasted, &QCheckBox::toggled, this, [](bool on) {
+        auto& settings = core::SettingsManager::getInstance();
+        if (settings.get<bool>("stats.countPasted", false) != on) {
+            settings.set<bool>("stats.countPasted", on);
+            core::Logger::getInstance().info("Statistics: pasted text {}",
+                                             on ? "counted" : "not counted");
+        }
+    });
+    showCountPasted();
+
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
             [this]() {
                 for (QToolButton* button : {m_previous, m_next}) {
@@ -875,6 +944,21 @@ void WritingStatsPanel::setModel(WritingStatsModel* model)
     }
     m_dirty = true;
     refresh();
+}
+
+QWidget* WritingStatsPanel::takeFooter()
+{
+    if (m_footer != nullptr && m_footer->parentWidget() == this) {
+        layout()->removeWidget(m_footer);
+    }
+    return m_footer;
+}
+
+void WritingStatsPanel::showCountPasted()
+{
+    const QSignalBlocker blocker(m_countPasted);
+    m_countPasted->setChecked(
+        core::SettingsManager::getInstance().get<bool>("stats.countPasted", false));
 }
 
 WritingStatsModel* WritingStatsPanel::model() const
@@ -963,6 +1047,7 @@ QStringList WritingStatsPanel::listTexts() const
 
 void WritingStatsPanel::refresh()
 {
+    showCountPasted();
     // Not shown (under the tab of another panel): counted again when it shows
     if (!isVisible() && testAttribute(Qt::WA_WState_Created)) {
         m_dirty = true;
@@ -993,6 +1078,9 @@ void WritingStatsPanel::changeEvent(QEvent* event)
         updateFonts();
         if (event->type() != QEvent::PaletteChange) {
             m_goals->setText(tr("&Goals and Deadlines"));
+            m_countPastedText->setText(tr("Count &pasted text in the statistics"));
+            m_countPasted->setAccessibleName(tr("Count pasted text in the statistics"));
+            m_countPasted->setToolTip(tr("The same as Settings > Statistics and Goals > Counting"));
             m_previous->setToolTip(tr("Earlier"));
             m_next->setToolTip(tr("Later"));
         }
@@ -1240,6 +1328,14 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& data) const
 
     data.details.append({tr("Written"), number(totals.written), {}});
     data.details.append({tr("Deleted"), number(totals.deleted), {}});
+    if (totals.pasted != 0) {
+        //: In Polish: Wklejone; "%1 – wliczone" albo "%1 – niewliczone"
+        data.details.append({tr("Pasted"),
+                             statistics.rules().countPasted
+                                 ? tr("%1, counted").arg(number(totals.pasted))
+                                 : tr("%1, not counted").arg(number(totals.pasted)),
+                             {}});
+    }
     if (goal > 0) {
         data.details.append({tr("To the daily goal"),
                              words >= goal ? tr("reached")

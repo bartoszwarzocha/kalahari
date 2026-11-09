@@ -27,17 +27,31 @@ const QString DAY_FORMAT = QStringLiteral("yyyy-MM-dd");
 bool createTable(QSqlDatabase& db)
 {
     QSqlQuery query(db);
+    if (!query.exec(QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS writing_activity ("
+            " day TEXT NOT NULL,"
+            " slot INTEGER NOT NULL,"
+            " book_id TEXT NOT NULL,"
+            " element_id TEXT NOT NULL DEFAULT '',"
+            " written INTEGER NOT NULL DEFAULT 0,"
+            " deleted INTEGER NOT NULL DEFAULT 0,"
+            " pasted INTEGER NOT NULL DEFAULT 0,"
+            " active_ms INTEGER NOT NULL DEFAULT 0,"
+            " PRIMARY KEY (day, slot, book_id, element_id)"
+            ") WITHOUT ROWID"))) {
+        return false;
+    }
+    // A record kept before the words pasted were kept apart gets their column
+    if (!query.exec(QStringLiteral("PRAGMA table_info(writing_activity)"))) {
+        return false;
+    }
+    while (query.next()) {
+        if (query.value(1).toString() == QLatin1String("pasted")) {
+            return true;
+        }
+    }
     return query.exec(QStringLiteral(
-        "CREATE TABLE IF NOT EXISTS writing_activity ("
-        " day TEXT NOT NULL,"
-        " slot INTEGER NOT NULL,"
-        " book_id TEXT NOT NULL,"
-        " element_id TEXT NOT NULL DEFAULT '',"
-        " written INTEGER NOT NULL DEFAULT 0,"
-        " deleted INTEGER NOT NULL DEFAULT 0,"
-        " active_ms INTEGER NOT NULL DEFAULT 0,"
-        " PRIMARY KEY (day, slot, book_id, element_id)"
-        ") WITHOUT ROWID"));
+        "ALTER TABLE writing_activity ADD COLUMN pasted INTEGER NOT NULL DEFAULT 0"));
 }
 
 bool add(QSqlDatabase& db, const QList<WritingActivity>& activity)
@@ -49,11 +63,13 @@ bool add(QSqlDatabase& db, const QList<WritingActivity>& activity)
     const bool ownTransaction = db.transaction();
     QSqlQuery query(db);
     query.prepare(QStringLiteral(
-        "INSERT INTO writing_activity (day, slot, book_id, element_id, written, deleted, active_ms)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO writing_activity"
+        " (day, slot, book_id, element_id, written, deleted, pasted, active_ms)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         " ON CONFLICT (day, slot, book_id, element_id) DO UPDATE SET"
         " written = written + excluded.written,"
         " deleted = deleted + excluded.deleted,"
+        " pasted = pasted + excluded.pasted,"
         " active_ms = active_ms + excluded.active_ms"));
     for (const WritingActivity& entry : activity) {
         if (entry.isEmpty() || !entry.date.isValid()) {
@@ -65,6 +81,7 @@ bool add(QSqlDatabase& db, const QList<WritingActivity>& activity)
         query.addBindValue(entry.elementId);
         query.addBindValue(entry.written);
         query.addBindValue(entry.deleted);
+        query.addBindValue(entry.pasted);
         query.addBindValue(entry.activeMs);
         if (!query.exec()) {
             Logger::getInstance().error("Writing record: cannot write: {}",
@@ -84,7 +101,7 @@ QList<WritingActivity> read(const QSqlDatabase& db, const QDate& from, const QDa
     QList<WritingActivity> result;
     QSqlQuery query(db);
     QString sql = QStringLiteral(
-        "SELECT day, slot, book_id, element_id, written, deleted, active_ms"
+        "SELECT day, slot, book_id, element_id, written, deleted, pasted, active_ms"
         " FROM writing_activity WHERE day >= ? AND day <= ?");
     if (!bookId.isEmpty()) {
         sql += QStringLiteral(" AND book_id = ?");
@@ -109,7 +126,8 @@ QList<WritingActivity> read(const QSqlDatabase& db, const QDate& from, const QDa
         entry.elementId = query.value(3).toString();
         entry.written = query.value(4).toInt();
         entry.deleted = query.value(5).toInt();
-        entry.activeMs = query.value(6).toLongLong();
+        entry.pasted = query.value(6).toInt();
+        entry.activeMs = query.value(7).toLongLong();
         if (entry.date.isValid() && entry.slot >= 0 && entry.slot < ACTIVITY_SLOTS_PER_DAY) {
             result.append(entry);
         }

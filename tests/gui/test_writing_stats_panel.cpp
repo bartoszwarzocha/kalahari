@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "../editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/writing_journal.h"
 #include "kalahari/gui/panels/writing_stats_panel.h"
@@ -11,6 +12,7 @@
 #include "kalahari/gui/writing_stats_model.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QLabel>
 #include <QListWidget>
 #include <QTemporaryDir>
@@ -41,7 +43,7 @@ core::WritingActivity entry(const QDate& date, int hour, int minute, int written
 const QDateTime NOW(QDate(2026, 11, 12), QTime(21, 30));
 
 /// The writer's journal of the tests and a model of it at NOW: 150 words on Tuesday, 500 on
-/// Wednesday and 480 today, in two sessions
+/// Wednesday and 480 today, in two sessions; and 100 words pasted today at 21:00
 struct Journal {
     QTemporaryDir dir;
     WritingStatsModel model;
@@ -53,10 +55,13 @@ struct Journal {
         {
             core::WritingJournal journal;
             REQUIRE(journal.open(path));
+            core::WritingActivity pasted = entry(QDate(2026, 11, 12), 21, 0, 0);
+            pasted.pasted = 100;
+            pasted.activeMs = 0;
             REQUIRE(journal.add({entry(QDate(2026, 11, 10), 20, 0, 150),
                                  entry(QDate(2026, 11, 11), 20, 0, 500),
                                  entry(QDate(2026, 11, 12), 10, 0, 200, 20),
-                                 entry(QDate(2026, 11, 12), 21, 0, 300)}));
+                                 entry(QDate(2026, 11, 12), 21, 0, 300), pasted}));
             journal.close();
         }
         model.setClock([]() { return NOW; });
@@ -93,6 +98,7 @@ TEST_CASE("Statistics panel: today, its numbers and its sessions", "[gui][statis
     CHECK(contains(panel.numbers(), QStringLiteral("Sessions: 2")));
     CHECK(contains(panel.details(), QStringLiteral("Written: 500")));
     CHECK(contains(panel.details(), QStringLiteral("Deleted: 20")));
+    CHECK(contains(panel.details(), QStringLiteral("Pasted: 100, not counted")));
     CHECK(contains(panel.details(), QStringLiteral("To the daily goal: 520 words")));
     CHECK(contains(panel.details(), QStringLiteral("Sessions: 10:00–10:05, 21:00–21:05")));
     CHECK(contains(panel.details(), QStringLiteral("Texts: Chapter 1 (480)")));
@@ -101,6 +107,42 @@ TEST_CASE("Statistics panel: today, its numbers and its sessions", "[gui][statis
     REQUIRE(panel.viewList()->count() == 5);
     CHECK(panel.listTexts().first() ==
           QStringLiteral("Today: 480 of %1 words · 0:10").arg(number(1000)));
+}
+
+TEST_CASE("Statistics panel: the box of the text pasted counts it at once", "[gui][statistics]")
+{
+    auto& settings = core::SettingsManager::getInstance();
+    Journal journal;
+    WritingStatsPanel panel;
+    panel.setModel(&journal.model);
+    panel.show();
+    QCheckBox* box = panel.countPastedBox();
+    REQUIRE(box != nullptr);
+    CHECK(box->isVisible());
+    CHECK_FALSE(box->isChecked());
+    CHECK(contains(panel.numbers(), QStringLiteral("Words today: 480")));
+
+    // The box changes the setting, and the statistics are counted again
+    box->click();
+    CHECK(settings.get<bool>("stats.countPasted"));
+    test::runEventLoop(WritingStatsModel::CHANGE_INTERVAL_MS * 2);
+    CHECK(contains(panel.numbers(), QStringLiteral("Words today: 580")));
+    CHECK(contains(panel.details(), QStringLiteral("Written: 600")));
+    CHECK(contains(panel.details(), QStringLiteral("Pasted: 100, counted")));
+
+    // The setting changed elsewhere (Settings > Counting) changes the box
+    settings.set<bool>("stats.countPasted", false);
+    test::runEventLoop(WritingStatsModel::CHANGE_INTERVAL_MS * 2);
+    CHECK_FALSE(box->isChecked());
+    CHECK(contains(panel.numbers(), QStringLiteral("Words today: 480")));
+
+    // The foot can be put under the panel, out of it
+    QWidget* footer = panel.takeFooter();
+    REQUIRE(footer != nullptr);
+    CHECK(footer->isAncestorOf(box));
+    QWidget holder;
+    footer->setParent(&holder);
+    CHECK_FALSE(panel.isAncestorOf(box));
 }
 
 TEST_CASE("Statistics panel: the week and the weeks before it", "[gui][statistics]")

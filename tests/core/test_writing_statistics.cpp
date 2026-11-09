@@ -66,6 +66,8 @@ TEST_CASE("Writing rules: from the settings", "[core][statistics][settings]")
         REQUIRE(rules.dayStartMinutes == defaults.dayStartMinutes);
         REQUIRE(rules.idleMinutes == defaults.idleMinutes);
         REQUIRE(rules.largeChangeWords == defaults.largeChangeWords);
+        REQUIRE(rules.countPasted == defaults.countPasted);
+        REQUIRE_FALSE(rules.countPasted);
         REQUIRE(rules.counting == defaults.counting);
         REQUIRE(rules.allBooks == defaults.allBooks);
         REQUIRE(rules.writingDays == defaults.writingDays);
@@ -79,6 +81,7 @@ TEST_CASE("Writing rules: from the settings", "[core][statistics][settings]")
     {
         settings.set<int>("stats.dayStart", 3 * 60);
         settings.set<bool>("stats.skipLargeChanges", false);
+        settings.set<bool>("stats.countPasted", true);
         settings.set<std::string>("stats.goalCounting", "written");
         settings.set<std::string>("stats.streakRule", "dailyGoal");
         settings.set<int>("stats.writingDays", 0x7f);
@@ -86,12 +89,14 @@ TEST_CASE("Writing rules: from the settings", "[core][statistics][settings]")
         const WritingRules rules = WritingRules::fromSettings();
         REQUIRE(rules.dayStartMinutes == 180);
         REQUIRE(rules.largeChangeWords == 0);
+        REQUIRE(rules.countPasted);
         REQUIRE(rules.counting == GoalCounting::Written);
         REQUIRE(rules.streakRule == StreakRule::DailyGoal);
         REQUIRE(rules.writingDays == 0x7f);
 
         settings.set<int>("stats.dayStart", 240);
         settings.set<bool>("stats.skipLargeChanges", true);
+        settings.set<bool>("stats.countPasted", false);
         settings.set<std::string>("stats.goalCounting", "net");
         settings.set<std::string>("stats.streakRule", "minimumWords");
         settings.set<int>("stats.writingDays", 31);
@@ -186,6 +191,47 @@ TEST_CASE("Writing statistics: the graph of a day", "[core][statistics]")
         REQUIRE(texts.value("chapter-1").deleted == 12);
         REQUIRE(texts.value("chapter-2").written == 5);
     }
+}
+
+TEST_CASE("Writing statistics: the words pasted count only when the writer says so",
+          "[core][statistics]")
+{
+    // 100 words written and 300 pasted at 10:00; at 11:00 a paste of 50 words undone
+    WritingActivity morning = entry(nov(12), QTime(10, 0), 100, 10, 5 * MINUTE);
+    morning.pasted = 300;
+    WritingActivity undone = entry(nov(12), QTime(11, 0), 20, 0, MINUTE);
+    undone.pasted = -50;
+    WritingStatistics stats;
+    stats.setActivity({morning, undone});
+
+    // Not counted: only the words written, the words pasted apart
+    WritingTotals today = stats.day(nov(12));
+    REQUIRE(today.written == 120);
+    REQUIRE(today.deleted == 10);
+    REQUIRE(today.pasted == 250);
+    REQUIRE(stats.dayGraph(nov(12), 60)[6] == 90);  // 10:00 is 6 hours after 4:00
+    REQUIRE(stats.texts(nov(12), nov(12)).value("chapter-1").written == 120);
+    REQUIRE(stats.counted(morning).written == 100);
+    REQUIRE(stats.counted(morning).pasted == 300);
+
+    // Counted: the words pasted are written, the paste undone is deleted; at once
+    WritingRules rules;
+    rules.countPasted = true;
+    stats.setRules(rules);
+    today = stats.day(nov(12));
+    REQUIRE(today.written == 420);
+    REQUIRE(today.deleted == 60);
+    REQUIRE(today.pasted == 250);
+    REQUIRE(today.net() == 360);
+    REQUIRE(stats.dayGraph(nov(12), 60)[6] == 390);
+    REQUIRE(stats.dayGraph(nov(12), 60)[7] == -30);
+    REQUIRE(stats.texts(nov(12), nov(12)).value("chapter-1").written == 420);
+    REQUIRE(stats.hourMap(nov(12), nov(12)).words[3][10] == Approx(400.0));
+    REQUIRE(stats.counted(undone).deleted == 50);
+
+    // And back
+    stats.setRules(WritingRules());
+    REQUIRE(stats.day(nov(12)).written == 120);
 }
 
 TEST_CASE("Writing statistics: the days in a row", "[core][statistics]")

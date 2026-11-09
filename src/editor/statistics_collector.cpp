@@ -11,6 +11,7 @@
 
 #include <QVariant>
 
+#include <algorithm>
 #include <cstdlib>
 
 namespace kalahari::editor {
@@ -76,6 +77,11 @@ void StatisticsCollector::setBookEditor(BookEditor* editor)
     if (m_editor) {
         connect(m_editor, &BookEditor::contentChanged,
                 this, &StatisticsCollector::onContentChanged);
+        // The words pasted are kept apart from the words written
+        connect(m_editor, &BookEditor::pastingStarted, this,
+                &StatisticsCollector::onPastingStarted);
+        connect(m_editor, &BookEditor::pastingFinished, this,
+                &StatisticsCollector::onPastingFinished);
         // A newly loaded text, or new rules of counting, are not words written or deleted
         connect(m_editor, &BookEditor::documentChanged, this, &StatisticsCollector::rebase);
         connect(m_editor, &BookEditor::countsChanged, this, &StatisticsCollector::rebase);
@@ -243,6 +249,11 @@ int StatisticsCollector::wordsDeletedThisSession() const
     return m_recorder.deleted();
 }
 
+int StatisticsCollector::wordsPastedThisSession() const
+{
+    return m_recorder.pasted();
+}
+
 int StatisticsCollector::activeMinutesThisSession() const
 {
     return static_cast<int>(activeMsThisSession() / 60000);
@@ -323,8 +334,51 @@ void StatisticsCollector::debouncedRecalculate()
     emit statisticsChanged(m_wordCount, m_characterCount, paragraphCount());
 }
 
+void StatisticsCollector::onPastingStarted()
+{
+    if (m_debounceTimer->isActive()) {
+        m_debounceTimer->stop();
+        debouncedRecalculate();
+    }
+}
+
+void StatisticsCollector::onPastingFinished(int level, bool undoOrRedo)
+{
+    m_debounceTimer->stop();
+    const int previousWords = m_wordCount;
+    recalculateStats();
+    const int wordsDelta = m_wordCount - previousWords;
+    if (!undoOrRedo) {
+        m_pastedAtLevel.insert(level, std::max(0, wordsDelta));
+    }
+    if (m_sessionActive && wordsDelta != 0) {
+        m_previousWordCount = m_wordCount;
+        const QDateTime now = QDateTime::currentDateTime();
+        // Pasted: the words it brought. A paste that replaced more words than it brought
+        // deleted words written by hand. Undone and redone, a paste takes away and brings back
+        // its words, and the words typed right after it in its level of undo are deleted and
+        // written again.
+        int pasted = 0;
+        if (!undoOrRedo) {
+            pasted = std::max(0, wordsDelta);
+        } else {
+            const int words = m_pastedAtLevel.value(level, std::abs(wordsDelta));
+            pasted = wordsDelta > 0 ? std::min(wordsDelta, words) : std::max(wordsDelta, -words);
+        }
+        m_recorder.recordPasted(pasted, now);
+        if (wordsDelta != pasted && !m_recorder.recordWords(wordsDelta - pasted, now)) {
+            emit largeChangeSkipped(std::abs(wordsDelta - pasted));
+        }
+        emit writingRecorded();
+        emit sessionStatsUpdated(m_recorder.written(), m_recorder.deleted(),
+                                 activeMinutesThisSession());
+    }
+    emit statisticsChanged(m_wordCount, m_characterCount, paragraphCount());
+}
+
 void StatisticsCollector::rebase()
 {
+    m_pastedAtLevel.clear();  // the levels of undo of another text, or of none
     // The counts of now are where the next words written or deleted are counted from
     m_debounceTimer->stop();
     recalculateStats();

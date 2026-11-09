@@ -70,6 +70,7 @@ WritingRules WritingRules::fromSettings()
     rules.largeChangeWords = settings.get<bool>("stats.skipLargeChanges")
                                  ? std::max(1, settings.get<int>("stats.largeChangeWords"))
                                  : 0;
+    rules.countPasted = settings.get<bool>("stats.countPasted");
     rules.counting = settings.get<std::string>("stats.goalCounting") == "written"
                          ? GoalCounting::Written
                          : GoalCounting::Net;
@@ -100,6 +101,7 @@ void WritingTotals::add(const WritingActivity& activity)
 {
     written += activity.written;
     deleted += activity.deleted;
+    pasted += activity.pasted;
     activeMs += activity.activeMs;
 }
 
@@ -107,6 +109,7 @@ WritingTotals& WritingTotals::operator+=(const WritingTotals& other)
 {
     written += other.written;
     deleted += other.deleted;
+    pasted += other.pasted;
     activeMs += other.activeMs;
     return *this;
 }
@@ -224,12 +227,23 @@ WritingStatistics::WritingStatistics(const WritingRules& rules)
 void WritingStatistics::setRules(const WritingRules& rules)
 {
     const int oldDayStart = m_rules.dayStartMinutes;
+    const bool oldCountPasted = m_rules.countPasted;
     m_rules = rules;
     const int dayStart = std::clamp(rules.dayStartMinutes, 0, MINUTES_PER_DAY - 1);
     m_rules.dayStartMinutes = dayStart - dayStart % ACTIVITY_SLOT_MINUTES;
-    if (m_rules.dayStartMinutes != oldDayStart) {
+    if (m_rules.dayStartMinutes != oldDayStart || m_rules.countPasted != oldCountPasted) {
         regroup();
     }
+}
+
+WritingActivity WritingStatistics::counted(const WritingActivity& entry) const
+{
+    WritingActivity result = entry;
+    if (m_rules.countPasted) {
+        result.written += std::max(0, entry.pasted);
+        result.deleted += std::max(0, -entry.pasted);
+    }
+    return result;
 }
 
 void WritingStatistics::setActivity(const QList<WritingActivity>& activity)
@@ -290,9 +304,10 @@ QList<int> WritingStatistics::dayGraph(const QDate& writingDay, int minutes) con
     }
 
     QList<int> graph(MINUTES_PER_DAY / piece, 0);
-    for (const WritingActivity& entry : m_byDay.value(writingDay)) {
-        const int at = minutesInWritingDay(writingDay, entry, m_rules.dayStartMinutes);
+    for (const WritingActivity& kept : m_byDay.value(writingDay)) {
+        const int at = minutesInWritingDay(writingDay, kept, m_rules.dayStartMinutes);
         if (at >= 0 && at < MINUTES_PER_DAY) {
+            const WritingActivity entry = counted(kept);
             graph[at / piece] += m_rules.counting == GoalCounting::Net
                                      ? entry.written - entry.deleted
                                      : entry.written;
@@ -306,7 +321,7 @@ QHash<QString, WritingTotals> WritingStatistics::texts(const QDate& from, const 
     QHash<QString, WritingTotals> result;
     for (auto it = m_byDay.lowerBound(from); it != m_byDay.end() && it.key() <= to; ++it) {
         for (const WritingActivity& entry : it.value()) {
-            result[entry.elementId].add(entry);
+            result[entry.elementId].add(counted(entry));
         }
     }
     return result;
@@ -372,7 +387,7 @@ WritingHourMap WritingStatistics::hourMap(const QDate& from, const QDate& to) co
         const int dayOfWeek = it.key().dayOfWeek() - 1;
         for (const WritingActivity& entry : it.value()) {
             const int hour = entry.slot * ACTIVITY_SLOT_MINUTES / 60;
-            map.words[dayOfWeek][hour] += entry.written;
+            map.words[dayOfWeek][hour] += counted(entry).written;
         }
     }
     // The average of each day of the week: the sum over the number of such days
@@ -411,7 +426,7 @@ WritingTemperature WritingStatistics::temperature(const QDateTime& now, int wind
         for (const WritingActivity& entry : it.value()) {
             const QDateTime start = activitySlotStart(entry.date, entry.slot);
             if (start >= first && start <= last) {
-                recent.add(entry);
+                recent.add(counted(entry));
             }
         }
     }
@@ -448,7 +463,7 @@ void WritingStatistics::addToDays(const WritingActivity& activity)
 {
     const QDate writingDay = writingDayOf(activity.date, activity.slot);
     m_byDay[writingDay].append(activity);
-    m_days[writingDay].add(activity);
+    m_days[writingDay].add(counted(activity));
 }
 
 }  // namespace kalahari::core

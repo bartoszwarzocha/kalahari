@@ -8,6 +8,8 @@
 #include <kalahari/core/writing_goals.h>
 #include <kalahari/core/writing_journal.h>
 
+#include <QSqlDatabase>
+#include <QSqlQuery>
 #include <QTemporaryDir>
 
 using namespace kalahari::core;
@@ -138,6 +140,52 @@ TEST_CASE("Writing record: the writer's journal", "[core][statistics][database]"
     REQUIRE(journal.activity(day(2026, 11, 1), day(2026, 11, 30)).isEmpty());
     REQUIRE(journal.open(dir.filePath("journal/writing_journal.db")));
     REQUIRE(journal.activity(day(2026, 11, 1), day(2026, 11, 30)).size() == 3);
+}
+
+TEST_CASE("Writing record: the words pasted, also in a record kept before them",
+          "[core][statistics][database]")
+{
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QString path = dir.filePath("writing_journal.db");
+    // A journal of the time before the words pasted were kept apart
+    {
+        QSqlDatabase old = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                                     QStringLiteral("old-journal"));
+        old.setDatabaseName(path);
+        REQUIRE(old.open());
+        QSqlQuery query(old);
+        REQUIRE(query.exec("CREATE TABLE writing_activity (day TEXT NOT NULL, slot INTEGER NOT "
+                           "NULL, book_id TEXT NOT NULL, element_id TEXT NOT NULL DEFAULT '', "
+                           "written INTEGER NOT NULL DEFAULT 0, deleted INTEGER NOT NULL DEFAULT "
+                           "0, active_ms INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, slot, "
+                           "book_id, element_id)) WITHOUT ROWID"));
+        REQUIRE(query.exec("INSERT INTO writing_activity VALUES ('2026-11-12', 100, 'book', "
+                           "'ch-1', 40, 2, 60000)"));
+        query.finish();
+        old.close();
+    }
+    QSqlDatabase::removeDatabase(QStringLiteral("old-journal"));
+
+    WritingJournal journal;
+    REQUIRE(journal.open(path));
+    QList<WritingActivity> record = journal.activity(day(2026, 11, 12), day(2026, 11, 12));
+    REQUIRE(record.size() == 1);
+    REQUIRE(record.first().written == 40);
+    REQUIRE(record.first().pasted == 0);
+
+    // The words pasted add up like the others, also below 0 (a paste undone)
+    WritingActivity pasted = entry(day(2026, 11, 12), 100, "book", 0);
+    pasted.pasted = 700;
+    WritingActivity undone = entry(day(2026, 11, 12), 100, "book", 0);
+    undone.pasted = -100;
+    REQUIRE(journal.add({pasted}));
+    REQUIRE(journal.add({undone}));
+    record = journal.activity(day(2026, 11, 12), day(2026, 11, 12));
+    REQUIRE(record.size() == 1);
+    REQUIRE(record.first().written == 40);
+    REQUIRE(record.first().pasted == 600);
+    journal.close();
 }
 
 TEST_CASE("Writing record: the record of a book in its project.db", "[core][statistics][database]")

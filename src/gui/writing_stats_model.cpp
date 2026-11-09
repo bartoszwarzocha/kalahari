@@ -225,12 +225,14 @@ QList<DayPiece> WritingStatsModel::dayPieces(const core::WritingStatistics& stat
         return pieces;
     }
     const int dayStart = statistics.rules().dayStartMinutes;
-    for (const core::WritingActivity& entry : found.value()) {
-        const qint64 offset = day.daysTo(entry.date) * DAY_MINUTES +
-                              qint64(entry.slot) * core::ACTIVITY_SLOT_MINUTES - dayStart;
+    for (const core::WritingActivity& kept : found.value()) {
+        const qint64 offset = day.daysTo(kept.date) * DAY_MINUTES +
+                              qint64(kept.slot) * core::ACTIVITY_SLOT_MINUTES - dayStart;
         if (offset < 0 || offset >= DAY_MINUTES) {
             continue;
         }
+        // The words pasted as the rules count them
+        const core::WritingActivity entry = statistics.counted(kept);
         DayPiece& target = pieces[int(offset / piece)];
         target.written += entry.written;
         target.deleted += entry.deleted;

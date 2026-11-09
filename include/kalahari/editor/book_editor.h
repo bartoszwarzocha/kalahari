@@ -36,6 +36,7 @@
 #include <QTextDocument>
 #include <QElapsedTimer>
 #include <QList>
+#include <QSet>
 #include <map>
 #include <memory>
 #include <optional>
@@ -1239,6 +1240,17 @@ signals:
     /// Use this to track content changes (e.g., for statistics, auto-save).
     void contentChanged();
 
+    /// @brief Text is about to be pasted or dropped, or a paste is about to be undone or
+    /// redone: the change that follows is not typed by hand (pastingFinished() follows it)
+    void pastingStarted();
+
+    /// @brief The change pastingStarted() announced is made (contentChanged() came before
+    /// it)
+    /// @param level The undo level of the paste: the same when it is undone and redone
+    /// (text typed right after a paste may join its level, and goes and comes back with it)
+    /// @param undoOrRedo A paste was undone or redone
+    void pastingFinished(int level, bool undoOrRedo);
+
     /// @brief Emitted when the content starts or stops differing from the saved content
     ///        (see isModified())
     ///
@@ -1923,6 +1935,14 @@ private:
     std::function<QString()> m_textLanguage;  ///< The language of the text (setTextLanguage())
 
     PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted
+
+    /// The levels of undo below the text as it is: one for each step undo() takes back
+    int m_undoLevel = 0;
+    /// The levels of undo that pasted or dropped text: undoing and redoing them is pasting too
+    QSet<int> m_pasteLevels;
+
+    /// @brief The last level of undo pasted or dropped text: pastingFinished()
+    void finishPasting();
 
     /// @brief Make the change autocorrect has for the character typed right before the
     ///        cursor, as an undo step of its own (see typeText())

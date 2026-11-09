@@ -1,6 +1,6 @@
 /// @file writing_activity.h
-/// @brief The record of writing: the words written and deleted, and the time of writing, in
-/// each 5-minute slot of a day, in each text of each book
+/// @brief The record of writing: the words written, deleted and pasted, and the time of
+/// writing, in each 5-minute slot of a day, in each text of each book
 ///
 /// The statistics and the goals of writing are counted from this record: the graph of the day,
 /// the weeks and months, the days in a row, the hours of writing. A project keeps the record of
@@ -31,10 +31,15 @@ struct WritingActivity {
     QString elementId;       ///< The id of the text in the project; empty when not known
     int written = 0;         ///< Words written
     int deleted = 0;         ///< Words deleted
+    /// Words pasted or dropped, less the pastes undone (so it may be below 0): not written by
+    /// hand, they count as written only when the writer says so (WritingRules::countPasted)
+    int pasted = 0;
     qint64 activeMs = 0;     ///< Time of writing, without the pauses longer than the idle time
 
-    /// @brief Nothing was written, deleted or done in it
-    bool isEmpty() const { return written == 0 && deleted == 0 && activeMs == 0; }
+    /// @brief Nothing was written, deleted, pasted or done in it
+    bool isEmpty() const {
+        return written == 0 && deleted == 0 && pasted == 0 && activeMs == 0;
+    }
 
     /// @brief The same slot of the same day, in the same text of the same book
     bool samePlace(const WritingActivity& other) const {
@@ -56,9 +61,9 @@ QDateTime activitySlotStart(const QDate& date, int slot);
 ///
 /// The times are given to it, so it counts the same in the program and in the tests. The time
 /// of writing is the time between two changes of the text, when the pause between them is not
-/// longer than the idle time; it goes to the slots it passes through. A change of more words
-/// than the limit at once (pasting a chapter, cutting it, restoring a version) is not writing
-/// and is not counted.
+/// longer than the idle time; it goes to the slots it passes through. The words pasted are
+/// kept apart from the words written (recordPasted()). Any other change of more words than the
+/// limit at once (cutting a chapter, restoring a version) is not writing and is not counted.
 class WritingRecorder {
 public:
     /// @brief The book and the text that the next changes are made in
@@ -86,6 +91,10 @@ public:
     /// @return false when the change is larger than the limit and was not counted
     bool recordWords(int delta, const QDateTime& when);
 
+    /// @brief The words of the text changed by @p delta at @p when by pasting or dropping text,
+    /// or by undoing or redoing that: kept apart from the words written, of any size
+    void recordPasted(int delta, const QDateTime& when);
+
     /// @brief The next change starts a new stretch of writing: the time since the last change
     /// is not counted (a text was closed, the program was in the background)
     void pause();
@@ -101,6 +110,9 @@ public:
 
     /// @brief Words deleted since the start or the last resetTotals()
     int deleted() const { return m_deleted; }
+
+    /// @brief Words pasted, less the pastes undone, since the start or the last resetTotals()
+    int pasted() const { return m_pasted; }
 
     /// @brief Time of writing since the start or the last resetTotals()
     qint64 activeMs() const { return m_activeMs; }
@@ -120,6 +132,7 @@ private:
     QList<WritingActivity> m_pending;
     int m_written = 0;
     int m_deleted = 0;
+    int m_pasted = 0;
     qint64 m_activeMs = 0;
 };
 

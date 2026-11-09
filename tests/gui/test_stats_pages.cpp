@@ -115,17 +115,25 @@ TEST_CASE("Statistics settings: Counting", "[gui][settings][statistics]")
     openBook->setChecked(true);
     goal->setChecked(true);
 
+    // The text pasted is not writing until the writer says so
+    auto* pasted = withText<QCheckBox>(page, QStringLiteral("Count pasted text in the statistics"));
+    REQUIRE(pasted != nullptr);
+    CHECK_FALSE(pasted->isChecked());
+    pasted->setChecked(true);
+
     // The end of the writing day, as a time of the clock
     auto* dayEnd = page.findChild<QTimeEdit*>();
     REQUIRE(dayEnd != nullptr);
     CHECK(dayEnd->time() == QTime(4, 0));
     dayEnd->setTime(QTime(3, 30));
 
-    CHECK(sorted(page.apply()) == std::vector<std::string>{"stats.dailyGoalAllBooks",
+    CHECK(sorted(page.apply()) == std::vector<std::string>{"stats.countPasted",
+                                                           "stats.dailyGoalAllBooks",
                                                            "stats.dayStart",
                                                            "stats.goalCounting",
                                                            "stats.streakRule"});
     const core::WritingRules rules = core::WritingRules::fromSettings();
+    CHECK(rules.countPasted);
     CHECK(rules.counting == core::GoalCounting::Written);
     CHECK_FALSE(rules.allBooks);
     CHECK(rules.streakRule == core::StreakRule::DailyGoal);

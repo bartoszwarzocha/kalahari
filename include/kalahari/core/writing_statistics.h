@@ -51,6 +51,7 @@ struct WritingRules {
     int dayStartMinutes = 4 * 60;  ///< A writing day ends at this time of the next morning
     int idleMinutes = 5;           ///< The pause after which the time of writing stops
     int largeChangeWords = 500;    ///< A change of more words at once is not writing; 0: off
+    bool countPasted = false;      ///< The words pasted count as written (and undone, deleted)
     GoalCounting counting = GoalCounting::Net;
     bool allBooks = true;          ///< The daily goals count the words of all the books
     int writingDays = 0x1f;        ///< Bit 0 is Monday, ... bit 6 Sunday; Monday to Friday
@@ -76,6 +77,7 @@ struct WritingRules {
 struct WritingTotals {
     int written = 0;
     int deleted = 0;
+    int pasted = 0;  ///< The words pasted, less the pastes undone; in written when they count
     qint64 activeMs = 0;
 
     /// @brief The growth of the text
@@ -89,7 +91,9 @@ struct WritingTotals {
     /// @brief The words that count, in an hour of writing; 0 without time of writing
     double wordsPerHour(GoalCounting counting) const;
 
-    bool isEmpty() const { return written == 0 && deleted == 0 && activeMs == 0; }
+    bool isEmpty() const {
+        return written == 0 && deleted == 0 && pasted == 0 && activeMs == 0;
+    }
 
     void add(const WritingActivity& activity);
     WritingTotals& operator+=(const WritingTotals& other);
@@ -144,8 +148,14 @@ public:
     /// @brief Counts this record too (the record not saved yet, or just saved)
     void addActivity(const QList<WritingActivity>& activity);
 
-    /// @brief The whole record it counts, by writing day
+    /// @brief The whole record it counts, by writing day, as it was kept: the words pasted
+    /// apart (counted() gives an entry as the rules count it)
     const QMap<QDate, QList<WritingActivity>>& record() const { return m_byDay; }
+
+    /// @brief An entry of the record as the rules count it: with WritingRules::countPasted
+    /// the words pasted are written (the pastes undone, deleted), otherwise they are not
+    /// counted; the words pasted stay in WritingActivity::pasted either way
+    WritingActivity counted(const WritingActivity& entry) const;
 
     /// @brief The writing day of a slot of a day of the calendar
     QDate writingDayOf(const QDate& date, int slot) const;

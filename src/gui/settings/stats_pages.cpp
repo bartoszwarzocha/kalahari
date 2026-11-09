@@ -407,6 +407,17 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
                  tr("The goal is your habit of writing, not that of one book.")},
                 {tr("Words of the &open book only"), false, {}}});
 
+    QFormLayout* pasted = addGroup(tr("Pasted Text"));
+    //: In Polish: Wliczaj wklejony tekst do statystyk
+    addOption(pasted, tr("Count &pasted text in the statistics"), "stats.countPasted",
+              //: In Polish: Wklejony albo upuszczony tekst to nie pisanie: nie liczy się do
+              //: słów dnia, celów, dni z rzędu ani odznak. Długość książki liczy cały tekst.
+              //: To samo pole jest na dole panelu „Statystyki”.
+              tr("Text pasted or dropped is not writing: it does not count toward the words "
+                 "of the day, the goals, the days in a row or the badges. The length of the "
+                 "book counts the whole text. The same box is at the foot of the Statistics "
+                 "panel."));
+
     QFormLayout* streak = addGroup(tr("Days in a Row"));
     auto* minimum = numberBox(1, 100000);
     bind(minimum, "stats.streakMinimumWords");
@@ -463,7 +474,8 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
     large->setAccessibleName(tr("Words of a large change"));
     bind(large, "stats.largeChangeWords");
     advanced->addRow(rowOf({skip, large, new QLabel(tr("words"))}));
-    QLabel* skipNote = addNote(advanced, tr("Pasting, cutting or restoring a version is not "
+    //: In Polish: Wycięcie, przywrócenie wersji albo „Zamień wszystko” to nie pisanie.
+    QLabel* skipNote = addNote(advanced, tr("Cutting, restoring a version or Replace All is not "
                                             "writing."));
     alignWithText(skipNote, skip);
     connect(skip, &QCheckBox::toggled, large, &QWidget::setEnabled);

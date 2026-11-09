@@ -15,6 +15,7 @@
 #include <kalahari/core/writing_statistics.h>
 
 #include <QApplication>
+#include <QMimeData>
 #include <QTemporaryDir>
 #include <memory>
 
@@ -499,6 +500,87 @@ TEST_CASE("StatisticsCollector: a large change at once is not writing", "[editor
     editor.insertText(QStringLiteral(" eight"));
     waitForCount();
     CHECK(collector.wordsWrittenThisSession() == 1);
+
+    collector.endSession();
+    collector.setBookEditor(nullptr);
+}
+
+TEST_CASE("StatisticsCollector: the words pasted are kept apart from the words written",
+          "[editor][statistics]") {
+    BookEditor editor;
+    editor.fromKml(createKml("Start"));
+    StatisticsCollector collector;
+    kalahari::core::WritingRules rules;
+    rules.largeChangeWords = 2;  // a paste is not a large change, whatever its size
+    collector.setRules(rules);
+    collector.setBookEditor(&editor);
+    collector.startSession();
+    QList<int> skipped;
+    QObject::connect(&collector, &StatisticsCollector::largeChangeSkipped, &collector,
+                     [&skipped](int words) { skipped.append(words); });
+
+    // Typed, and pasted at once after it: the words typed are written, those pasted pasted
+    editor.setCursorPosition({0, 5});
+    editor.insertText(QStringLiteral(" typed "));
+    QMimeData data;
+    data.setText(QStringLiteral("one two three"));
+    editor.insertFromMimeData(&data);
+    CHECK(collector.wordCount() == 5);
+    CHECK(collector.wordsWrittenThisSession() == 1);
+    CHECK(collector.wordsPastedThisSession() == 3);
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 1);
+    CHECK(collector.wordsPastedThisSession() == 3);
+    CHECK(skipped.isEmpty());
+    int written = 0;
+    int pasted = 0;
+    for (const kalahari::core::WritingActivity& entry : collector.pendingActivity()) {
+        written += entry.written;
+        pasted += entry.pasted;
+    }
+    CHECK(written == 1);
+    CHECK(pasted == 3);
+
+    // Undone and redone, the paste takes its words away and brings them back: neither
+    // deleted nor written
+    editor.undo();
+    waitForCount();
+    CHECK(collector.wordCount() == 2);
+    CHECK(collector.wordsPastedThisSession() == 0);
+    CHECK(collector.wordsDeletedThisSession() == 0);
+    editor.redo();
+    waitForCount();
+    CHECK(collector.wordCount() == 5);
+    CHECK(collector.wordsPastedThisSession() == 3);
+    CHECK(collector.wordsWrittenThisSession() == 1);
+
+    // Typing after it is writing again
+    editor.setCursorPosition({0, int(editor.plainText().length())});
+    editor.insertText(QStringLiteral(" more"));
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 2);
+    CHECK(collector.wordsPastedThisSession() == 3);
+
+    // Typed right after the paste, it is undone with it: the words typed are deleted, the
+    // words pasted taken away
+    editor.undo();
+    waitForCount();
+    CHECK(editor.plainText() == QStringLiteral("Start typed "));
+    CHECK(collector.wordsDeletedThisSession() == 1);
+    CHECK(collector.wordsPastedThisSession() == 0);
+    editor.redo();
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 3);
+    CHECK(collector.wordsPastedThisSession() == 3);
+
+    // Undoing what was typed in a level of its own is not undoing a paste
+    editor.setCursorPosition({0, 0});
+    editor.insertText(QStringLiteral("New "));
+    waitForCount();
+    editor.undo();
+    waitForCount();
+    CHECK(collector.wordsDeletedThisSession() == 2);
+    CHECK(collector.wordsPastedThisSession() == 3);
 
     collector.endSession();
     collector.setBookEditor(nullptr);

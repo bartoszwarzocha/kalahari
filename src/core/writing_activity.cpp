@@ -76,6 +76,15 @@ bool WritingRecorder::recordWords(int delta, const QDateTime& when)
     return true;
 }
 
+void WritingRecorder::recordPasted(int delta, const QDateTime& when)
+{
+    if (delta == 0 || !when.isValid()) {
+        return;
+    }
+    entryAt(when).pasted += delta;
+    m_pasted += delta;
+}
+
 void WritingRecorder::pause()
 {
     m_lastActivity = QDateTime();
@@ -90,6 +99,7 @@ void WritingRecorder::resetTotals()
 {
     m_written = 0;
     m_deleted = 0;
+    m_pasted = 0;
     m_activeMs = 0;
 }
 

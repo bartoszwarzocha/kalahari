@@ -90,6 +90,32 @@ TEST_CASE("Writing recorder: words written and deleted", "[core][statistics]")
     }
 }
 
+TEST_CASE("Writing recorder: the words pasted are kept apart", "[core][statistics]")
+{
+    WritingRecorder recorder;
+    recorder.setPlace("book", "chapter-1");
+    recorder.setLargeChangeWords(100);
+    REQUIRE(recorder.recordWords(10, at(10, 0)));
+    // A paste of any size is kept, apart from the words written
+    recorder.recordPasted(5000, at(10, 1));
+    recorder.recordPasted(-200, at(10, 2));  // a paste undone
+    recorder.recordPasted(0, at(10, 3));
+    REQUIRE(recorder.written() == 10);
+    REQUIRE(recorder.deleted() == 0);
+    REQUIRE(recorder.pasted() == 4800);
+    REQUIRE(recorder.pending().size() == 1);
+    REQUIRE(recorder.pending().first().written == 10);
+    REQUIRE(recorder.pending().first().pasted == 4800);
+
+    // Only pasted: an entry all the same
+    WritingActivity pastedOnly;
+    pastedOnly.pasted = 3;
+    REQUIRE_FALSE(pastedOnly.isEmpty());
+
+    recorder.resetTotals();
+    REQUIRE(recorder.pasted() == 0);
+}
+
 TEST_CASE("Writing recorder: the time of writing", "[core][statistics]")
 {
     WritingRecorder recorder;
