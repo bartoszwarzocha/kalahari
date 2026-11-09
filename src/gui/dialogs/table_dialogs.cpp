@@ -52,7 +52,7 @@ constexpr int PREVIEW_WIDTH = 320;
 constexpr int SPLIT_PREVIEW_WIDTH = 240;
 constexpr int SPLIT_ROW_HEIGHT = 16;
 constexpr int SPLIT_MAX_ROWS = 4;      ///< Of the split cell; more rows share their height
-constexpr int PREVIEW_MAX_ROWS = 6;
+constexpr int PREVIEW_MAX_ROWS = 4;
 constexpr int PREVIEW_LINES = 6;       ///< Of the text of Table to Text...
 constexpr int CELL_TEXT_PADDING = 3;
 constexpr int BORDERS_PREVIEW_WIDTH = 150;
@@ -468,13 +468,14 @@ SeparatorChoice::SeparatorChoice(const QString& title, const QStringList& labels
                                  QWidget* parent)
     : QObject(parent)
 {
+    // Two columns: tabs and semicolons, commas and paragraphs, and another character
     m_group = new QGroupBox(title, parent);
-    auto* layout = new QVBoxLayout(m_group);
+    auto* layout = new QGridLayout(m_group);
     m_buttons = new QButtonGroup(this);
     for (int kind = Tab; kind <= Other; ++kind) {
         auto* button = radio(labels.value(kind), m_buttons, kind, m_group);
         if (kind != Other) {
-            layout->addWidget(button);
+            layout->addWidget(button, kind / 2, kind % 2);
             continue;
         }
         m_other = new QLineEdit(QStringLiteral("|"), m_group);
@@ -487,8 +488,9 @@ SeparatorChoice::SeparatorChoice(const QString& title, const QStringList& labels
         row->addWidget(button);
         row->addWidget(m_other);
         row->addStretch(1);
-        layout->addLayout(row);
+        layout->addLayout(row, kind / 2, 0, 1, 2);
     }
+    layout->setColumnStretch(2, 1);
     m_buttons->button(Tab)->setChecked(true);
     connect(m_buttons, &QButtonGroup::idToggled, this, [this](int id, bool checked) {
         if (id == Other) {
@@ -770,6 +772,7 @@ TextToTableDialog::TextToTableDialog(const QStringList& paragraphs, QWidget* par
 {
     setHeading(tr("Text to Table"), tr("The selected paragraphs become the rows of a table."));
     setHeadingIcon(QStringLiteral("table.textToTable"));
+    setCompactHeading(true);
     setAcceptText(tr("Convert to Table"));
 
     //: Text to Table: divide the text into cells at the tabs, semicolons...
@@ -909,6 +912,7 @@ TableToTextDialog::TableToTextDialog(const std::vector<QStringList>& rows, QWidg
 {
     setHeading(tr("Table to Text"), tr("Each row of the table becomes a paragraph."));
     setHeadingIcon(QStringLiteral("table.tableToText"));
+    setCompactHeading(true);
     setAcceptText(tr("Convert to Text"));
 
     //: Table to Text: separate the cells with tabs, semicolons...
@@ -1121,7 +1125,9 @@ QWidget* TablePropertiesDialog::createTableTab()
     auto* alignmentGroup = new QGroupBox(tr("Alignment"), tab);
     auto* alignmentLayout = new QGridLayout(alignmentGroup);
     m_alignment = new QButtonGroup(this);
-    const QString alignments[] = {tr("&Left"), tr("&Center"), tr("&Right")};
+    //: Table Properties: where the table is; in Polish: Do &lewej, Do ś&rodka, Do &prawej
+    const QString alignments[] = {tr("&Left", "table alignment"), tr("&Center", "table alignment"),
+                                  tr("&Right", "table alignment")};
     for (int alignment = 0; alignment < 3; ++alignment) {
         alignmentLayout->addWidget(radio(alignments[alignment], m_alignment, alignment, alignmentGroup),
                                    0, alignment);
@@ -1157,8 +1163,8 @@ QWidget* TablePropertiesDialog::createRowTab()
     auto* tab = new QWidget(m_tabs);
     auto* layout = new QVBoxLayout(tab);
     m_rowName = new QLabel(tab);
-    m_previousRow = new QPushButton(tr("&Previous"), tab);
-    m_nextRow = new QPushButton(tr("&Next"), tab);
+    m_previousRow = new QPushButton(tr("&Previous", "row"), tab);
+    m_nextRow = new QPushButton(tr("&Next", "row"), tab);
     m_previousRow->setAutoDefault(false);
     m_nextRow->setAutoDefault(false);
     connect(m_previousRow, &QPushButton::clicked, this, [this]() { showRow(m_row - 1); });
@@ -1222,8 +1228,8 @@ QWidget* TablePropertiesDialog::createColumnTab()
     auto* tab = new QWidget(m_tabs);
     auto* layout = new QVBoxLayout(tab);
     m_columnName = new QLabel(tab);
-    m_previousColumn = new QPushButton(tr("&Previous"), tab);
-    m_nextColumn = new QPushButton(tr("&Next"), tab);
+    m_previousColumn = new QPushButton(tr("&Previous", "column"), tab);
+    m_nextColumn = new QPushButton(tr("&Next", "column"), tab);
     m_previousColumn->setAutoDefault(false);
     m_nextColumn->setAutoDefault(false);
     connect(m_previousColumn, &QPushButton::clicked, this, [this]() { showColumn(m_column - 1); });
@@ -1276,7 +1282,9 @@ QWidget* TablePropertiesDialog::createCellTab()
     auto* alignmentGroup = new QGroupBox(tr("Vertical alignment"), tab);
     auto* alignmentLayout = new QHBoxLayout(alignmentGroup);
     m_cellAlignment = new QButtonGroup(this);
-    const QString alignments[] = {tr("&Top"), tr("&Center"), tr("B&ottom")};
+    //: Table Properties: where the text of a cell is; in Polish: Do &góry, Do ś&rodka, Do &dołu
+    const QString alignments[] = {tr("&Top", "cell alignment"), tr("&Center", "cell alignment"),
+                                  tr("B&ottom", "cell alignment")};
     for (int alignment = 0; alignment < 3; ++alignment) {
         alignmentLayout->addWidget(
             radio(alignments[alignment], m_cellAlignment, alignment, alignmentGroup));
@@ -1341,7 +1349,7 @@ QWidget* TablePropertiesDialog::createBordersTab()
         tile->setText(tiles[setting].first);
         tile->setIcon(settingIcon(tiles[setting].second, color, faint));
         tile->setIconSize(QSize(TILE_ICON_WIDTH, TILE_ICON_HEIGHT));
-        tile->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+        tile->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
         tile->setCheckable(true);
         tile->setAutoRaise(true);
         m_setting->addButton(tile, setting);
@@ -1353,8 +1361,10 @@ QWidget* TablePropertiesDialog::createBordersTab()
     // The lines, one by one
     auto* linesGroup = new QGroupBox(tr("Lines"), tab);
     auto* linesLayout = new QGridLayout(linesGroup);
-    const QString lineNames[] = {tr("&Top"),   tr("B&ottom"),           tr("&Left"),
-                                 tr("&Right"), tr("Inside hori&zontal"), tr("Inside &vertical")};
+    //: Table Properties: the lines of the borders; in Polish: &Górna, &Dolna, L&ewa, &Prawa
+    const QString lineNames[] = {tr("&Top", "border line"),  tr("B&ottom", "border line"),
+                                 tr("&Left", "border line"), tr("&Right", "border line"),
+                                 tr("Inside hori&zontal"),   tr("Inside &vertical")};
     for (size_t line = 0; line < std::size(BORDER_LINES); ++line) {
         auto* box = new QCheckBox(lineNames[line], linesGroup);
         m_lines.push_back(box);

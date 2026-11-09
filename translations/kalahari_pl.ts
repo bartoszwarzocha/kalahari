@@ -1059,6 +1059,86 @@
         <source>Paste Fo&amp;rmatting</source>
         <translation>&amp;Wklej formatowanie</translation>
     </message>
+    <message>
+        <source>Insert &amp;Table...</source>
+        <translation>Wstaw &amp;tabelę...</translation>
+    </message>
+    <message>
+        <source>Rows &amp;Above</source>
+        <translation>Wiersze &amp;powyżej</translation>
+    </message>
+    <message>
+        <source>Rows &amp;Below</source>
+        <translation>Wiersze po&amp;niżej</translation>
+    </message>
+    <message>
+        <source>Columns to the &amp;Left</source>
+        <translation>Kolumny z &amp;lewej</translation>
+    </message>
+    <message>
+        <source>Columns to the &amp;Right</source>
+        <translation>Kolumny z p&amp;rawej</translation>
+    </message>
+    <message>
+        <source>&amp;Rows</source>
+        <translation>&amp;Wiersze</translation>
+    </message>
+    <message>
+        <source>&amp;Columns</source>
+        <translation>&amp;Kolumny</translation>
+    </message>
+    <message>
+        <source>&amp;Table</source>
+        <translation>&amp;Tabelę</translation>
+    </message>
+    <message>
+        <source>C&amp;ell</source>
+        <translation>&amp;Komórkę</translation>
+    </message>
+    <message>
+        <source>&amp;Row</source>
+        <translation>&amp;Wiersz</translation>
+    </message>
+    <message>
+        <source>&amp;Column</source>
+        <translation>Kol&amp;umnę</translation>
+    </message>
+    <message>
+        <source>Mer&amp;ge Cells</source>
+        <translation>Scal k&amp;omórki</translation>
+    </message>
+    <message>
+        <source>Spl&amp;it Cells...</source>
+        <translation>&amp;Podziel komórki...</translation>
+    </message>
+    <message>
+        <source>Distribute Ro&amp;ws Evenly</source>
+        <translation>Rozłóż wi&amp;ersze równomiernie</translation>
+    </message>
+    <message>
+        <source>Distribute Col&amp;umns Evenly</source>
+        <translation>Rozłóż kolumn&amp;y równomiernie</translation>
+    </message>
+    <message>
+        <source>Repeat &amp;Header Rows</source>
+        <translation>Powtarzaj wiersze &amp;nagłówka</translation>
+    </message>
+    <message>
+        <source>S&amp;ort...</source>
+        <translation>So&amp;rtuj...</translation>
+    </message>
+    <message>
+        <source>&amp;Text to Table...</source>
+        <translation>&amp;Tekst na tabelę...</translation>
+    </message>
+    <message>
+        <source>Table to Te&amp;xt...</source>
+        <translation>Tabelę na te&amp;kst...</translation>
+    </message>
+    <message>
+        <source>Ta&amp;ble Properties...</source>
+        <translation>Właściwości ta&amp;beli...</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -2275,6 +2355,26 @@ Uruchomić ponownie teraz?</translation>
         <source>A&amp;lign Text</source>
         <translation>W&amp;yrównanie</translation>
     </message>
+    <message>
+        <source>Tab&amp;le</source>
+        <translation>&amp;Tabela</translation>
+    </message>
+    <message>
+        <source>Inse&amp;rt</source>
+        <translation>W&amp;staw</translation>
+    </message>
+    <message>
+        <source>D&amp;elete</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>&amp;Select</source>
+        <translation>Z&amp;aznacz</translation>
+    </message>
+    <message>
+        <source>&amp;Convert</source>
+        <translation>&amp;Konwertuj</translation>
+    </message>
 </context>
 <context>
     <name>QPlatformTheme</name>
@@ -3368,6 +3468,37 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     <message>
         <source>Remove Hyperl&amp;ink</source>
         <translation>&amp;Usuń łącze</translation>
+    </message>
+    <message>
+        <source>Inse&amp;rt</source>
+        <extracomment>The context menu of a cell, as the Table menu&apos;s submenus. In Polish: W&amp;staw</extracomment>
+        <translation>W&amp;staw</translation>
+    </message>
+    <message>
+        <source>D&amp;elete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>&amp;Select</source>
+        <extracomment>In Polish: Z&amp;aznacz</extracomment>
+        <translation>Z&amp;aznacz</translation>
+    </message>
+    <message>
+        <source>The table has no rows to sort under its header</source>
+        <translation>Tabela nie ma pod nagłówkiem wierszy do posortowania</translation>
+    </message>
+    <message>
+        <source>Rows with cells merged across rows cannot be sorted</source>
+        <translation>Nie można sortować wierszy, w których komórki są scalone z innymi wierszami</translation>
+    </message>
+    <message>
+        <source>Select the paragraphs to sort, or put the cursor in a list</source>
+        <translation>Zaznacz akapity do posortowania albo umieść kursor na liście</translation>
+    </message>
+    <message>
+        <source>Only paragraphs of text can be sorted: the selection holds a table or an object</source>
+        <translation>Sortować można tylko akapity tekstu: w zaznaczeniu jest tabela lub obiekt</translation>
     </message>
 </context>
 <context>
@@ -5323,6 +5454,18 @@ Tryb kolorów edytora nie zależy od motywu programu.</translation>
         <source>Links</source>
         <translation>Łącza</translation>
     </message>
+    <message>
+        <source>Table borders</source>
+        <translation>Obramowanie tabel</translation>
+    </message>
+    <message>
+        <source>Table header rows</source>
+        <translation>Wiersze nagłówka tabel</translation>
+    </message>
+    <message>
+        <source>Table gridlines (no border)</source>
+        <translation>Linie siatki tabel (bez obramowania)</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
@@ -7092,6 +7235,29 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>A cell of a table holds only text</source>
         <extracomment>Why Insert &gt; Horizontal Line, Scene Break, Page Break and Table are greyed out with the cursor in a table. In Polish: Komórka tabeli może zawierać tylko tekst</extracomment>
         <translation>Komórka tabeli może zawierać tylko tekst</translation>
+    </message>
+    <message>
+        <source>The cursor is not in a table</source>
+        <extracomment>Why the commands of the Table menu are greyed out outside a table. In Polish: Kursor nie jest w tabeli</extracomment>
+        <translation>Kursor nie jest w tabeli</translation>
+    </message>
+    <message>
+        <source>Select the cells to merge</source>
+        <extracomment>Why Table &gt; Merge Cells is greyed out. In Polish: Zaznacz komórki do scalenia</extracomment>
+        <translation>Zaznacz komórki do scalenia</translation>
+    </message>
+    <message>
+        <source>The header rows are the first rows of the table: put the cursor in them or in the row under them</source>
+        <extracomment>Why Table &gt; Repeat Header Rows is greyed out in a row under the body&apos;s first one</extracomment>
+        <translation>Wiersze nagłówka to pierwsze wiersze tabeli: umieść kursor w jednym z nich albo w wierszu pod nimi</translation>
+    </message>
+    <message>
+        <source>The cursor is in a table: Table to Text... makes text of it</source>
+        <translation>Kursor jest w tabeli: polecenie „Tabelę na tekst...” zamienia ją na tekst</translation>
+    </message>
+    <message>
+        <source>Only paragraphs of text become a table: the selection holds a table or an object</source>
+        <translation>Tabelą mogą stać się tylko akapity tekstu: w zaznaczeniu jest tabela lub obiekt</translation>
     </message>
 </context>
 <context>
@@ -9149,6 +9315,18 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Delete the element</source>
         <translation>Usuń element</translation>
+    </message>
+    <message>
+        <source>Move the rows of a table, or the paragraphs, up / down</source>
+        <translation>Wiersze tabeli albo akapity w górę / w dół</translation>
+    </message>
+    <message>
+        <source>moves the rows of a table, or the selected paragraphs, one place up</source>
+        <translation>przesuwa wiersze tabeli albo zaznaczone akapity o jedno miejsce w górę</translation>
+    </message>
+    <message>
+        <source>moves the rows of a table, or the selected paragraphs, one place down</source>
+        <translation>przesuwa wiersze tabeli albo zaznaczone akapity o jedno miejsce w dół</translation>
     </message>
 </context>
 <context>
@@ -13957,6 +14135,97 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::SortDialog</name>
+    <message>
+        <source>Sort</source>
+        <translation>Sortuj</translation>
+    </message>
+    <message>
+        <source>The rows of the table in the order of the column chosen.</source>
+        <translation>Wiersze tabeli w kolejności według wybranej kolumny.</translation>
+    </message>
+    <message>
+        <source>The selected paragraphs in the order of their text.</source>
+        <translation>Zaznaczone akapity w kolejności według ich tekstu.</translation>
+    </message>
+    <message>
+        <source>Order</source>
+        <translation>Kolejność</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Tekst</translation>
+    </message>
+    <message>
+        <source>Numbers</source>
+        <translation>Liczby</translation>
+    </message>
+    <message>
+        <source>Dates</source>
+        <translation>Daty</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <extracomment>The type of the values a key of sorting has: text, numbers or dates</extracomment>
+        <translation>Typ</translation>
+    </message>
+    <message>
+        <source>&amp;Sort by</source>
+        <translation>&amp;Sortuj według</translation>
+    </message>
+    <message>
+        <source>&amp;Ascending</source>
+        <translation>Rosną&amp;co</translation>
+    </message>
+    <message>
+        <source>&amp;Descending</source>
+        <translation>Ma&amp;lejąco</translation>
+    </message>
+    <message>
+        <source>&amp;Then by</source>
+        <translation>&amp;Następnie według</translation>
+    </message>
+    <message>
+        <source>Ascending</source>
+        <translation>Rosnąco</translation>
+    </message>
+    <message>
+        <source>Descending</source>
+        <translation>Malejąco</translation>
+    </message>
+    <message>
+        <source>(none)</source>
+        <extracomment>Sort: the second key is not used</extracomment>
+        <translation>(brak)</translation>
+    </message>
+    <message>
+        <source>Column %1</source>
+        <extracomment>Sort: a column of a table without a header row; %1 is its number</extracomment>
+        <translation>Kolumna %1</translation>
+    </message>
+    <message>
+        <source>Paragraphs</source>
+        <translation>Akapity</translation>
+    </message>
+    <message>
+        <source>&amp;Match case</source>
+        <translation>Uwzględniaj &amp;wielkość liter</translation>
+    </message>
+    <message>
+        <source>The order of the alphabet: %1, the language of the book.</source>
+        <extracomment>Sort: %1 is the language of the book (&quot;Polish&quot;)</extracomment>
+        <translation>Kolejność alfabetyczna według języka książki: %1.</translation>
+    </message>
+    <message>
+        <source>The header row stays at the top.</source>
+        <translation>Wiersz nagłówka zostaje na górze.</translation>
+    </message>
+    <message>
+        <source>List items are sorted with their paragraphs.</source>
+        <translation>Punkty listy są sortowane razem ze swoimi akapitami.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::SpecialCharacterDialog</name>
     <message>
         <source>Special Character</source>
@@ -14141,6 +14410,523 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>Cancel</source>
         <translation>Anuluj</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::SplitCellsDialog</name>
+    <message>
+        <source>Split Cells</source>
+        <translation>Podziel komórki</translation>
+    </message>
+    <message>
+        <source>The selected cells are split into smaller cells.</source>
+        <translation>Zaznaczone komórki dzielą się na mniejsze komórki.</translation>
+    </message>
+    <message>
+        <source>The cell with the cursor is split into smaller cells.</source>
+        <translation>Komórka z kursorem dzieli się na mniejsze komórki.</translation>
+    </message>
+    <message>
+        <source>Split</source>
+        <translation>Podziel</translation>
+    </message>
+    <message>
+        <source>&amp;Columns</source>
+        <translation>&amp;Kolumny</translation>
+    </message>
+    <message>
+        <source>&amp;Rows</source>
+        <translation>&amp;Wiersze</translation>
+    </message>
+    <message>
+        <source>&amp;Merge the selected cells first</source>
+        <translation>&amp;Najpierw scal zaznaczone komórki</translation>
+    </message>
+    <message>
+        <source>Select several cells to merge them before they are split</source>
+        <translation>Zaznacz kilka komórek, aby scalić je przed podziałem</translation>
+    </message>
+    <message>
+        <source>&amp;Distribute the cell&apos;s paragraphs to the new cells</source>
+        <translation>&amp;Rozłóż akapity komórki na nowe komórki</translation>
+    </message>
+    <message>
+        <source>Preview – the new cells are highlighted</source>
+        <translation>Podgląd – nowe komórki są wyróżnione</translation>
+    </message>
+    <message>
+        <source>Preview of the table split</source>
+        <translation>Podgląd podziału komórek</translation>
+    </message>
+    <message>
+        <source>The cell has one paragraph: it stays in the first new cell</source>
+        <translation>Komórka ma jeden akapit: zostaje on w pierwszej nowej komórce</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n columns</source>
+        <translation>
+            <numerusform>%n kolumnę</numerusform>
+            <numerusform>%n kolumny</numerusform>
+            <numerusform>%n kolumn</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n rows</source>
+        <translation>
+            <numerusform>%n wiersz</numerusform>
+            <numerusform>%n wiersze</numerusform>
+            <numerusform>%n wierszy</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The cell split into %1 and %2</source>
+        <extracomment>%1 is the columns (&quot;2 columns&quot;), %2 the rows (&quot;1 rows&quot;)</extracomment>
+        <translation>Komórka podzielona na %1 i %2</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::TablePropertiesDialog</name>
+    <message>
+        <source>%1 pt</source>
+        <extracomment>The width of a line of a table&apos;s borders, in points: &quot;0.5 pt&quot;</extracomment>
+        <translation>%1 pt</translation>
+    </message>
+    <message>
+        <source>Table Properties</source>
+        <translation>Właściwości tabeli</translation>
+    </message>
+    <message>
+        <source>The look of the selected table, its rows, columns and cells.</source>
+        <translation>Wygląd zaznaczonej tabeli, jej wierszy, kolumn i komórek.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Table Color Settings</source>
+        <translation>Ustawienia kolorów tabel</translation>
+    </message>
+    <message>
+        <source>T&amp;able</source>
+        <extracomment>Table Properties: the tabs. In Polish: &amp;Tabela, &amp;Wiersz, &amp;Kolumna, Ko&amp;mórka, &amp;Obramowanie</extracomment>
+        <translation>&amp;Tabela</translation>
+    </message>
+    <message>
+        <source>Ro&amp;w</source>
+        <translation>&amp;Wiersz</translation>
+    </message>
+    <message>
+        <source>Colu&amp;mn</source>
+        <translation>&amp;Kolumna</translation>
+    </message>
+    <message>
+        <source>C&amp;ell</source>
+        <translation>Ko&amp;mórka</translation>
+    </message>
+    <message>
+        <source>&amp;Borders</source>
+        <translation>&amp;Obramowanie</translation>
+    </message>
+    <message>
+        <source>Width</source>
+        <translation>Szerokość</translation>
+    </message>
+    <message>
+        <source>&amp;Text width</source>
+        <translation>Szerokość tekst&amp;u</translation>
+    </message>
+    <message>
+        <source>&amp;Fixed</source>
+        <translation>&amp;Stała</translation>
+    </message>
+    <message>
+        <source>Width of the table</source>
+        <translation>Szerokość tabeli</translation>
+    </message>
+    <message>
+        <source>Alignment</source>
+        <translation>Wyrównanie</translation>
+    </message>
+    <message>
+        <source>&amp;Left</source>
+        <comment>table alignment</comment>
+        <extracomment>Table Properties: where the table is; in Polish: Do &amp;lewej, Do ś&amp;rodka, Do &amp;prawej</extracomment>
+        <translation>Do &amp;lewej</translation>
+    </message>
+    <message>
+        <source>&amp;Center</source>
+        <comment>table alignment</comment>
+        <translation>Do ś&amp;rodka</translation>
+    </message>
+    <message>
+        <source>&amp;Right</source>
+        <comment>table alignment</comment>
+        <translation>Do &amp;prawej</translation>
+    </message>
+    <message>
+        <source>&amp;Indent from left</source>
+        <translation>Wc&amp;ięcie od lewej</translation>
+    </message>
+    <message>
+        <source>A table is never wider than the text.</source>
+        <translation>Tabela nigdy nie jest szersza niż tekst.</translation>
+    </message>
+    <message>
+        <source>&amp;Previous</source>
+        <comment>row</comment>
+        <translation>&amp;Poprzedni</translation>
+    </message>
+    <message>
+        <source>&amp;Next</source>
+        <comment>row</comment>
+        <translation>&amp;Następny</translation>
+    </message>
+    <message>
+        <source>Height</source>
+        <translation>Wysokość</translation>
+    </message>
+    <message>
+        <source>A&amp;utomatic</source>
+        <translation>&amp;Automatyczna</translation>
+    </message>
+    <message>
+        <source>At &amp;least</source>
+        <translation>&amp;Co najmniej</translation>
+    </message>
+    <message>
+        <source>Height of the row</source>
+        <translation>Wysokość wiersza</translation>
+    </message>
+    <message>
+        <source>On the pages</source>
+        <translation>Na stronach</translation>
+    </message>
+    <message>
+        <source>Repeat as &amp;header row at the top of each page</source>
+        <translation>Powtarza&amp;j jako wiersz nagłówka na każdej stronie</translation>
+    </message>
+    <message>
+        <source>Allow the row to &amp;split across pages</source>
+        <translation>&amp;Zezwalaj na dzielenie wiersza między strony</translation>
+    </message>
+    <message>
+        <source>&amp;Previous</source>
+        <comment>column</comment>
+        <translation>&amp;Poprzednia</translation>
+    </message>
+    <message>
+        <source>&amp;Next</source>
+        <comment>column</comment>
+        <translation>&amp;Następna</translation>
+    </message>
+    <message>
+        <source>Column w&amp;idth</source>
+        <translation>&amp;Szerokość kolumny</translation>
+    </message>
+    <message>
+        <source>&amp;Distribute Columns Evenly</source>
+        <translation>&amp;Rozłóż kolumny równomiernie</translation>
+    </message>
+    <message>
+        <source>The only column is as wide as the table: the Table tab</source>
+        <translation>Jedyna kolumna ma szerokość tabeli, którą ustawia karta Tabela</translation>
+    </message>
+    <message>
+        <source>Dragging the edge of a column with the mouse also changes its width.</source>
+        <translation>Szerokość kolumny zmienia się też po przeciągnięciu jej krawędzi myszą.</translation>
+    </message>
+    <message>
+        <source>Vertical alignment</source>
+        <translation>Wyrównanie w pionie</translation>
+    </message>
+    <message>
+        <source>&amp;Top</source>
+        <comment>cell alignment</comment>
+        <extracomment>Table Properties: where the text of a cell is; in Polish: Do &amp;góry, Do ś&amp;rodka, Do &amp;dołu</extracomment>
+        <translation>Do &amp;góry</translation>
+    </message>
+    <message>
+        <source>&amp;Center</source>
+        <comment>cell alignment</comment>
+        <translation>Do ś&amp;rodka</translation>
+    </message>
+    <message>
+        <source>B&amp;ottom</source>
+        <comment>cell alignment</comment>
+        <translation>Do &amp;dołu</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <translation>Tło</translation>
+    </message>
+    <message>
+        <source>Back&amp;ground color</source>
+        <translation>Ko&amp;lor tła</translation>
+    </message>
+    <message>
+        <source>For the selected cells; without a selection, the cell with the cursor.</source>
+        <translation>Dla zaznaczonych komórek, a bez zaznaczenia – dla komórki z kursorem.</translation>
+    </message>
+    <message>
+        <source>Setting</source>
+        <translation>Ustawienie</translation>
+    </message>
+    <message>
+        <source>&amp;None</source>
+        <translation>&amp;Brak</translation>
+    </message>
+    <message>
+        <source>Bo&amp;x</source>
+        <translation>&amp;Ramka</translation>
+    </message>
+    <message>
+        <source>&amp;Grid</source>
+        <translation>&amp;Siatka</translation>
+    </message>
+    <message>
+        <source>C&amp;ustom</source>
+        <translation>Włas&amp;ne</translation>
+    </message>
+    <message>
+        <source>Lines</source>
+        <translation>Linie</translation>
+    </message>
+    <message>
+        <source>&amp;Top</source>
+        <comment>border line</comment>
+        <extracomment>Table Properties: the lines of the borders; in Polish: &amp;Górna, &amp;Dolna, L&amp;ewa, &amp;Prawa</extracomment>
+        <translation>&amp;Górna</translation>
+    </message>
+    <message>
+        <source>B&amp;ottom</source>
+        <comment>border line</comment>
+        <translation>&amp;Dolna</translation>
+    </message>
+    <message>
+        <source>&amp;Left</source>
+        <comment>border line</comment>
+        <translation>L&amp;ewa</translation>
+    </message>
+    <message>
+        <source>&amp;Right</source>
+        <comment>border line</comment>
+        <translation>&amp;Prawa</translation>
+    </message>
+    <message>
+        <source>Inside hori&amp;zontal</source>
+        <translation>Między wiers&amp;zami</translation>
+    </message>
+    <message>
+        <source>Inside &amp;vertical</source>
+        <translation>Między kolumn&amp;ami</translation>
+    </message>
+    <message>
+        <source>Solid line</source>
+        <translation>Linia ciągła</translation>
+    </message>
+    <message>
+        <source>Dashed line</source>
+        <translation>Linia kreskowa</translation>
+    </message>
+    <message>
+        <source>Dotted line</source>
+        <translation>Linia kropkowa</translation>
+    </message>
+    <message>
+        <source>Double line</source>
+        <translation>Linia podwójna</translation>
+    </message>
+    <message>
+        <source>&amp;Style</source>
+        <translation>St&amp;yl</translation>
+    </message>
+    <message>
+        <source>W&amp;idth</source>
+        <translation>Gr&amp;ubość</translation>
+    </message>
+    <message>
+        <source>&amp;Color</source>
+        <translation>Ko&amp;lor</translation>
+    </message>
+    <message>
+        <source>Preview of the borders</source>
+        <translation>Podgląd obramowania</translation>
+    </message>
+    <message>
+        <source>A click on a line takes it away or draws it</source>
+        <translation>Kliknięcie linii usuwa ją albo rysuje</translation>
+    </message>
+    <message>
+        <source>Row %1 of %2</source>
+        <extracomment>Table Properties: the row shown, &quot;Row 1 of 4&quot;</extracomment>
+        <translation>Wiersz %1 z %2</translation>
+    </message>
+    <message>
+        <source>%1 (header)</source>
+        <extracomment>Table Properties: the row shown is a header row, &quot;Row 1 of 4 (header)&quot;</extracomment>
+        <translation>%1 (nagłówek)</translation>
+    </message>
+    <message>
+        <source>The header rows are the first rows of the table: make the rows above it header rows first</source>
+        <translation>Wiersze nagłówka to pierwsze wiersze tabeli: najpierw uczyń wierszami nagłówka wiersze nad tym wierszem</translation>
+    </message>
+    <message>
+        <source>Column %1 of %2</source>
+        <extracomment>Table Properties: the column shown, &quot;Column 2 of 3&quot;</extracomment>
+        <translation>Kolumna %1 z %2</translation>
+    </message>
+    <message>
+        <source>No Color</source>
+        <extracomment>The color of a cell&apos;s background: none; of the lines: the editor&apos;s</extracomment>
+        <translation>Bez koloru</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Automatyczny</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::TableToTextDialog</name>
+    <message>
+        <source>Table to Text</source>
+        <translation>Tabelę na tekst</translation>
+    </message>
+    <message>
+        <source>Each row of the table becomes a paragraph.</source>
+        <translation>Każdy wiersz tabeli staje się akapitem.</translation>
+    </message>
+    <message>
+        <source>Convert to Text</source>
+        <translation>Zamień na tekst</translation>
+    </message>
+    <message>
+        <source>Separate the cells with</source>
+        <extracomment>Table to Text: separate the cells with tabs, semicolons...</extracomment>
+        <translation>Rozdziel komórki</translation>
+    </message>
+    <message>
+        <source>&amp;Tabs</source>
+        <translation>&amp;tabulatorami</translation>
+    </message>
+    <message>
+        <source>S&amp;emicolons</source>
+        <translation>śr&amp;ednikami</translation>
+    </message>
+    <message>
+        <source>Co&amp;mmas</source>
+        <translation>p&amp;rzecinkami</translation>
+    </message>
+    <message>
+        <source>&amp;Paragraphs</source>
+        <translation>&amp;akapitami</translation>
+    </message>
+    <message>
+        <source>&amp;Other character:</source>
+        <translation>&amp;innym znakiem:</translation>
+    </message>
+    <message>
+        <source>Other character</source>
+        <translation>Inny znak</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Preview of the text</source>
+        <translation>Podgląd tekstu</translation>
+    </message>
+    <message>
+        <source>Each cell becomes a paragraph: %1 in all.</source>
+        <extracomment>Table to Text: %1 is the paragraphs (&quot;12 paragraphs&quot;)</extracomment>
+        <translation>Każda komórka staje się akapitem – razem %1.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n paragraphs</source>
+        <translation>
+            <numerusform>%n akapit</numerusform>
+            <numerusform>%n akapity</numerusform>
+            <numerusform>%n akapitów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Note: the character is also in the text of a cell (“%1”), so turning the text back into a table divides it otherwise.</source>
+        <extracomment>Table to Text: %1 is the text of a cell with the separator chosen</extracomment>
+        <translation>Uwaga: ten znak jest też w tekście komórki („%1”), więc po zamianie tekstu z powrotem na tabelę podział będzie inny.</translation>
+    </message>
+    <message>
+        <source>The arrow in the preview stands for a tab.</source>
+        <translation>Strzałka w podglądzie oznacza tabulator.</translation>
+    </message>
+    <message>
+        <source>A space follows each semicolon and comma.</source>
+        <translation>Po każdym średniku i przecinku jest spacja.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::TextToTableDialog</name>
+    <message>
+        <source>Text to Table</source>
+        <translation>Tekst na tabelę</translation>
+    </message>
+    <message>
+        <source>The selected paragraphs become the rows of a table.</source>
+        <translation>Zaznaczone akapity stają się wierszami tabeli.</translation>
+    </message>
+    <message>
+        <source>Convert to Table</source>
+        <translation>Zamień na tabelę</translation>
+    </message>
+    <message>
+        <source>Divide the text into cells at</source>
+        <extracomment>Text to Table: divide the text into cells at the tabs, semicolons...</extracomment>
+        <translation>Rozdziel tekst na komórki w miejscu</translation>
+    </message>
+    <message>
+        <source>&amp;Tabs</source>
+        <translation>&amp;tabulatorów</translation>
+    </message>
+    <message>
+        <source>S&amp;emicolons</source>
+        <translation>śr&amp;edników</translation>
+    </message>
+    <message>
+        <source>Co&amp;mmas</source>
+        <translation>p&amp;rzecinków</translation>
+    </message>
+    <message>
+        <source>&amp;Paragraphs</source>
+        <translation>&amp;akapitów</translation>
+    </message>
+    <message>
+        <source>&amp;Other character:</source>
+        <translation>&amp;innego znaku:</translation>
+    </message>
+    <message>
+        <source>Other character</source>
+        <translation>Inny znak</translation>
+    </message>
+    <message>
+        <source>&amp;Columns</source>
+        <translation>&amp;Kolumny</translation>
+    </message>
+    <message>
+        <source>&amp;Header row</source>
+        <translation>Wiersz &amp;nagłówka</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Preview of the table</source>
+        <translation>Podgląd tabeli</translation>
+    </message>
+    <message>
+        <source>The table: %1 × %2 (columns × rows)</source>
+        <extracomment>Text to Table: the size of the table made, &quot;3 × 5 (columns × rows)&quot;</extracomment>
+        <translation>Tabela: %1 × %2 (kolumny × wiersze)</translation>
     </message>
 </context>
 <context>
