@@ -23,13 +23,16 @@
 #include <QLineEdit>
 #include <QPainter>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QRadioButton>
 #include <QSpinBox>
 #include <QStyle>
 #include <QStyleOption>
 #include <QTimer>
+#include <QToolButton>
 #include <QVBoxLayout>
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 
@@ -40,8 +43,42 @@ using json = nlohmann::json;
 
 namespace {
 
+/// A note under a field of a form, as high as its lines at its width
+///
+/// A form gives a row the height its widget prefers, and a word-wrapped label prefers the
+/// height of the shape Qt guesses for it: two lines for a short text, with an empty line under
+/// it then. This one prefers the height of its text at the width it has.
+class FieldNoteLabel : public QLabel {
+public:
+    explicit FieldNoteLabel(const QString& text) : QLabel(text) {}
+
+    [[nodiscard]] QSize sizeHint() const override {
+        QSize hint = QLabel::sizeHint();
+        if (m_laidOut) {
+            hint.setHeight(heightForWidth(width()));
+        }
+        return hint;
+    }
+
+protected:
+    void resizeEvent(QResizeEvent* event) override {
+        QLabel::resizeEvent(event);
+        // Its height follows its width: the form asks again once it has a width of its own
+        if (event->size().width() != event->oldSize().width()) {
+            m_laidOut = true;
+            updateGeometry();
+        }
+    }
+
+private:
+    bool m_laidOut = false;  ///< The form gave it a width
+};
+
 /// The item data of a combo box as a setting value of the same type as the stored one
 json comboValue(const QVariant& data, const json& like) {
+    if (like.is_boolean()) {
+        return data.toBool();
+    }
     if (like.is_number_integer()) {
         return data.toInt();
     }
@@ -318,6 +355,115 @@ void SettingsPage::alignWithText(QLabel* note, const QAbstractButton* button) {
         radio ? QStyle::PM_RadioButtonLabelSpacing : QStyle::PM_CheckBoxLabelSpacing, nullptr,
         button);
     note->setContentsMargins(indicator + spacing, 0, 0, 0);
+}
+
+QLabel* SettingsPage::addFieldNote(QFormLayout* form, const QString& text) {
+    auto* note = new FieldNoteLabel(text);
+    note->setWordWrap(true);
+    // Right under its field, also when the form gives the row more height than the text needs
+    note->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    note->setStyleSheet(noteStyleSheet());
+    m_notes.push_back(note);
+    // An empty label: the note starts where the fields start
+    form->addRow(QString(), note);
+    return note;
+}
+
+QLabel* SettingsPage::addOptionNote(QLayout* layout, const QAbstractButton* button,
+                                    const QString& text) {
+    QLabel* note = addNote(layout, text);
+    alignWithText(note, button);
+    return note;
+}
+
+QComboBox* SettingsPage::addChoice(QFormLayout* form, const QString& label,
+                                   const std::vector<Choice>& choices, const std::string& key) {
+    auto* list = new QComboBox();
+    QStringList notes;
+    for (const Choice& choice : choices) {
+        list->addItem(choice.text, choice.value);
+        notes.append(choice.note);
+    }
+    if (key.empty()) {
+        auto* labelWidget = new QLabel(label);
+        labelWidget->setBuddy(list);
+        form->addRow(labelWidget, list);
+    } else {
+        addField(form, label, list, key);
+    }
+    if (std::all_of(notes.cbegin(), notes.cend(), [](const QString& note) { return note.isEmpty(); })) {
+        return list;
+    }
+
+    // The note of the chosen item; none for an item without one. Half a line under it keeps
+    // the next setting apart from it
+    QLabel* note = addFieldNote(form, QString());
+    note->setContentsMargins(0, 0, 0, note->fontMetrics().height() / 2);
+    const auto showNote = [form, list, note, notes]() {
+        const QString text = notes.value(list->currentIndex());
+        note->setText(text);
+        list->setAccessibleDescription(text);
+        form->setRowVisible(note, !text.isEmpty());
+    };
+    connect(list, &QComboBox::currentIndexChanged, note, showNote);
+    showNote();
+    return list;
+}
+
+void SettingsPage::bindChoice(QComboBox* list, const std::string& key,
+                              const std::string& fallback) {
+    auto& settings = core::SettingsManager::getInstance();
+    Binding binding;
+    binding.key = [key]() { return key; };
+    binding.stored = [&settings, key, fallback]() {
+        return json(settings.get<std::string>(key, fallback));
+    };
+    binding.shown = [list]() { return json(list->currentData().toString().toStdString()); };
+    binding.show = [list](const json& value) {
+        const QString word =
+            QString::fromStdString(value.is_string() ? value.get<std::string>() : std::string());
+        list->setCurrentIndex(std::max(0, list->findData(word)));
+    };
+    binding.store = [&settings, key](const json& value) {
+        settings.set<std::string>(key, value.get<std::string>());
+    };
+    bindCustom(std::move(binding));
+}
+
+QVBoxLayout* SettingsPage::advancedLayout() {
+    if (m_advanced == nullptr) {
+        // The button, and the groups under it hidden until it is pressed
+        m_advancedToggle = new QToolButton();
+        m_advancedToggle->setObjectName(QStringLiteral("advancedSettings"));
+        m_advancedToggle->setText(tr("Ad&vanced Settings"));
+        m_advancedToggle->setCheckable(true);
+        m_advancedToggle->setAutoRaise(true);
+        m_advancedToggle->setFocusPolicy(Qt::StrongFocus);
+        m_advancedToggle->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+        m_advancedToggle->setArrowType(Qt::RightArrow);
+        m_layout->addWidget(m_advancedToggle, 0, Qt::AlignLeft);
+        m_advanced = new QWidget();
+        m_advanced->setObjectName(QStringLiteral("advancedSettingsGroups"));
+        auto* groups = new QVBoxLayout(m_advanced);
+        groups->setContentsMargins(0, 0, 0, 0);
+        m_layout->addWidget(m_advanced);
+        m_advanced->hide();
+        connect(m_advancedToggle, &QToolButton::toggled, this, [this](bool open) {
+            m_advancedToggle->setArrowType(open ? Qt::DownArrow : Qt::RightArrow);
+            m_advanced->setVisible(open);
+        });
+    }
+    return qobject_cast<QVBoxLayout*>(m_advanced->layout());
+}
+
+QFormLayout* SettingsPage::addAdvancedGroup(const QString& title) {
+    QVBoxLayout* groups = advancedLayout();
+    auto* group = new QGroupBox(title);
+    auto* form = new QFormLayout(group);
+    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    form->setRowWrapPolicy(QFormLayout::WrapLongRows);
+    groups->addWidget(group);
+    return form;
 }
 
 QColor SettingsPage::noteColor() {

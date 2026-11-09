@@ -4,6 +4,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/core/book_type_package.h>
 #include <kalahari/editor/annotation.h>
+#include <kalahari/editor/text_tables.h>
 #include <QHash>
 #include <QSet>
 #include <QTextBlock>
@@ -25,12 +26,15 @@ QString headingStyleId(int level) {
 }
 
 int headingLevelOf(const QString& styleId) {
-    for (int level = 1; level <= HEADING_LEVELS; ++level) {
-        if (styleId == headingStyleId(level)) {
-            return level;
-        }
+    // headingStyleId(): the prefix and the level, one digit. Read without building the ids,
+    // as the numbers on the margin ask it of every paragraph
+    static_assert(HEADING_LEVELS <= 9, "a heading level is one digit");
+    const QLatin1String prefix("heading_");
+    if (styleId.size() != prefix.size() + 1 || !styleId.startsWith(prefix)) {
+        return 0;
     }
-    return 0;
+    const int level = styleId.back().unicode() - u'0';
+    return level >= 1 && level <= HEADING_LEVELS ? level : 0;
 }
 
 int headingLevelOfElement(QStringView element) {
@@ -379,8 +383,12 @@ void removeBlock(QTextCursor& cursor, const QTextBlock& block) {
     const int end = block.position() + block.length() - 1;
     const AnnotationList staying = annotationsOfBlock(document, block);
 
+    // A break at a table stays: the table keeps its cells and the paragraphs next to it
+    const bool breakAfter = next.isValid() && !isTableBreakAt(document, end);
+    const bool breakBefore = previous.isValid() && !isTableBreakAt(document, block.position() - 1);
+
     cursor.beginEditBlock();
-    if (next.isValid()) {
+    if (breakAfter) {
         // Removed with the break after it, the block would give its formats to the next one
         const QTextBlockFormat format = next.blockFormat();
         const QTextCharFormat charFormat = next.charFormat();
@@ -389,16 +397,19 @@ void removeBlock(QTextCursor& cursor, const QTextBlock& block) {
         cursor.removeSelectedText();
         cursor.setBlockFormat(format);
         cursor.setBlockCharFormat(charFormat);
-    } else if (previous.isValid()) {
+    } else if (breakBefore) {
         cursor.setPosition(previous.position() + previous.length() - 1);
         cursor.setPosition(end, QTextCursor::KeepAnchor);
         cursor.removeSelectedText();
     } else {
+        // The only paragraph of the text, or of a cell (whose format keeps its span)
         cursor.setPosition(block.position());
         cursor.setPosition(end, QTextCursor::KeepAnchor);
         cursor.removeSelectedText();
         cursor.setBlockFormat(paragraphBlockFormat());
-        cursor.setBlockCharFormat(QTextCharFormat());
+        if (!tableOf(block)) {
+            cursor.setBlockCharFormat(QTextCharFormat());
+        }
     }
     anchorToPlace(document, cursor.position(), staying);
     cursor.endEditBlock();

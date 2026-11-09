@@ -292,16 +292,16 @@ TEST_CASE("Paste: a browser's HTML in the three modes", "[editor][paste]") {
     SECTION("Merge Formatting: a heading's own weight, a link's look and pictures go") {
         CHECK(pasted(BROWSER_HTML, PasteMode::Merge) ==
               utf8(kml("<h1>A page</h1>"
-                       "<p>Text <b>strong</b> and <i>emphasized</i>, a link and code.</p>"
+                       "<p>Text <b>strong</b> and <i>emphasized</i>, "
+                       "<a href=\"https://example.com\">a link</a> and code.</p>"
                        "<p style=\"quote\">A quote</p>"
                        "<p style=\"quote\">Its second paragraph</p>"
                        "<hr/>"
-                       "<p>\u2022 one</p>"
-                       "<p>\u2022 two</p>"
+                       "<ul><li>one</li><li>two</li></ul>"
                        "<p>Spans: <b>bold</b> <i>italic</i> <u><s>both</s></u> <sup>up</sup></p>"
                        "<p>A div</p>"
                        "<p>Another<br/>with a break</p>"
-                       "<p>a\tb</p>"
+                       "<table><tr><td><p>a</p></td><td><p>b</p></td></tr></table>"
                        "<p>After the picture</p>")));
     }
 
@@ -311,9 +311,10 @@ TEST_CASE("Paste: a browser's HTML in the three modes", "[editor][paste]") {
         CHECK(kmlText.startsWith(QStringLiteral(
             "<kml><h1><span font=\"Segoe UI\" color=\"#1f2328\" bg=\"#ffffff\">A page</span></h1>"
             "<p><span font=\"Segoe UI\" size=\"12\" color=\"#1f2328\">Text </span>")));
-        // A link keeps its font, not its color; a generic family (monospace) is no font
-        CHECK(kmlText.contains(
-            QStringLiteral("<span font=\"Segoe UI\" size=\"12\">a link</span>")));
+        // A link keeps its address and font, not its color; a generic family (monospace) is
+        // no font
+        CHECK(kmlText.contains(QStringLiteral("<a href=\"https://example.com\"><span "
+                                              "font=\"Segoe UI\" size=\"12\">a link</span></a>")));
         CHECK(kmlText.contains(QStringLiteral("<span size=\"12\" color=\"#1f2328\">code</span>")));
         CHECK(kmlText.contains(
             QStringLiteral("<p style=\"quote\"><span color=\"#59636e\">A quote</span></p>")));
@@ -362,13 +363,13 @@ TEST_CASE("Paste: what a browser shows of HTML", "[editor][paste]") {
               utf8(kml("<h1>A bold <i>italic</i></h1>")));
     }
 
-    SECTION("Quotes: every paragraph of a blockquote, also nested ones and lists in it") {
+    SECTION("Quotes: every paragraph of a blockquote, also nested ones; a list in it is a list") {
         CHECK(utf8(merged("<blockquote><p>a</p><p>b</p><blockquote>c</blockquote></blockquote>"
                           "<p>d</p>")) ==
               utf8(kml("<p style=\"quote\">a</p><p style=\"quote\">b</p><p style=\"quote\">c</p>"
                        "<p>d</p>")));
         CHECK(utf8(merged("<blockquote><div>a</div><ul><li>b</li></ul></blockquote>")) ==
-              utf8(kml("<p style=\"quote\">a</p><p style=\"quote\">\u2022 b</p>")));
+              utf8(kml("<p style=\"quote\">a</p><ul><li>b</li></ul>")));
     }
 
     SECTION("Page breaks: before and after a paragraph, two in a row are one") {
@@ -383,18 +384,98 @@ TEST_CASE("Paste: what a browser shows of HTML", "[editor][paste]") {
               utf8(kml("<p>a</p><page-break/><p>b</p>")));
     }
 
-    SECTION("Lists: their bullets and numbers") {
+    SECTION("Lists: lists of the editor, a list in an item a level of its list") {
         CHECK(utf8(merged("<ul><li>a<ul><li>b<ul><li>c</li></ul></li></ul></li></ul>"
                           "<ol><li>d</li><li>e</li></ol><ol type=\"a\"><li>f</li></ol>"
                           "<ul style=\"list-style-type: square\"><li>g</li></ul>")) ==
-              utf8(kml("<p>\u2022 a</p><p>\u25E6 b</p><p>\u25AA c</p><p>1. d</p><p>2. e</p>"
-                       "<p>a. f</p><p>\u25AA g</p>")));
+              utf8(kml("<ul><li>a<ul type=\"circle\"><li>b<ul type=\"square\"><li>c</li></ul></li>"
+                       "</ul></li></ul>"
+                       "<ol><li>d</li><li>e</li></ol><ol type=\"a\"><li>f</li></ol>"
+                       "<ul type=\"square\"><li>g</li></ul>")));
+        // Numbers in a list of bullets, and the bullets again after them
+        CHECK(utf8(merged("<ul><li>a<ol><li>b</li></ol></li><li>c</li></ul>")) ==
+              utf8(kml("<ul><li>a<ol><li>b</li></ol></li><li>c</li></ul>")));
     }
 
-    SECTION("Tables: a row is a paragraph, its cells separated by tabs") {
-        CHECK(utf8(merged("<table><tr><td>a</td><td><p>b</p><p>c</p></td></tr>"
-                          "<tr><td colspan=\"2\">d</td></tr></table>")) ==
-              utf8(kml("<p>a\tb<br/>c</p><p>d</p>")));
+    SECTION("Lists: only the text keeps their numbers and bullets") {
+        CHECK(pasted("<ul><li>a<ul><li>b</li></ul></li></ul><ol><li>d</li><li>e</li></ol>",
+                     PasteMode::Text) ==
+              utf8(kml("<p>\u2022 a</p><p>\u25E6 b</p><p>1. d</p><p>2. e</p>")));
+    }
+
+    SECTION("Lists of Word: their numbers, bullets and levels") {
+        // As Word writes them: the list and level in the paragraph's style, the number in a
+        // span that only an old browser shows
+        const QString word = QStringLiteral(
+            "<html><body><!--StartFragment-->"
+            "<p class=MsoListParagraphCxSpFirst style='text-indent:-18.0pt;mso-list:l0 level1 lfo1'>"
+            "<![if !supportLists]><span style='mso-fareast-font-family:Calibri'><span "
+            "style='mso-list:Ignore'>1.<span style='font:7.0pt \"Times New Roman\"'>&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp; </span></span></span><![endif]>One<o:p></o:p></p>"
+            "<p class=MsoListParagraphCxSpMiddle style='margin-left:72.0pt;text-indent:-18.0pt;"
+            "mso-list:l0 level2 lfo1'><![if !supportLists]><span><span style='mso-list:Ignore'>a)"
+            "<span style='font:7.0pt \"Times New Roman\"'>&nbsp;&nbsp;&nbsp; </span></span></span>"
+            "<![endif]>One <b>a</b><o:p></o:p></p>"
+            "<p class=MsoListParagraphCxSpMiddle style='text-indent:-18.0pt;mso-list:l0 level1 lfo1'>"
+            "<![if !supportLists]><span><span style='mso-list:Ignore'>2.<span style='font:7.0pt "
+            "\"Times New Roman\"'>&nbsp;&nbsp;&nbsp; </span></span></span><![endif]>Two<o:p></o:p></p>"
+            "<p class=MsoNormal>Between</p>"
+            "<p class=MsoListParagraphCxSpFirst style='text-indent:-18.0pt;mso-list:l1 level1 lfo2'>"
+            "<![if !supportLists]><span style='font-family:Symbol'><span style='mso-list:Ignore'>"
+            "\u00B7<span style='font:7.0pt \"Times New Roman\"'>&nbsp;&nbsp;&nbsp; </span></span>"
+            "</span><![endif]>Bullet<o:p></o:p></p>"
+            "<p class=MsoListParagraphCxSpLast style='margin-left:72.0pt;text-indent:-18.0pt;"
+            "mso-list:l1 level2 lfo2'><![if !supportLists]><span style='font-family:\"Courier New\"'>"
+            "<span style='mso-list:Ignore'>o<span style='font:7.0pt \"Times New Roman\"'>&nbsp;"
+            "&nbsp; </span></span></span><![endif]>Circle<o:p></o:p></p>"
+            "<p class=MsoListParagraph style='text-indent:-18.0pt;mso-list:l2 level1 lfo3'>"
+            "<![if !supportLists]><span><span style='mso-list:Ignore'>iii.<span>&nbsp; </span></span>"
+            "</span><![endif]>Third<o:p></o:p></p>"
+            "<!--EndFragment--></body></html>");
+        CHECK(utf8(ClipboardHandler::htmlToKml(word, PasteMode::Merge)) ==
+              utf8(kml("<ol><li>One<ol type=\"a\" suffix=\")\"><li>One <b>a</b></li></ol></li>"
+                       "<li>Two</li></ol>"
+                       "<p>Between</p>"
+                       "<ul><li>Bullet<ul type=\"circle\"><li>Circle</li></ul></li></ul>"
+                       "<ol type=\"i\" start=\"3\"><li>Third</li></ol>")));
+        CHECK(utf8(ClipboardHandler::htmlToKml(word, PasteMode::Text)) ==
+              utf8(kml("<p>1. One</p><p>a) One a</p><p>2. Two</p><p>Between</p>"
+                       "<p>\u2022 Bullet</p><p>\u25E6 Circle</p><p>iii. Third</p>")));
+    }
+
+    SECTION("Tables: tables of the editor, with their widths, header row and merged cells") {
+        const char* table = "<table><tr><td>a</td><td><p>b</p><p>c</p></td></tr>"
+                            "<tr><td colspan=\"2\">d</td></tr></table>";
+        CHECK(utf8(merged(table)) ==
+              utf8(kml("<table><tr><td><p>a</p></td><td><p>b</p><p>c</p></td></tr>"
+                       "<tr><td colspan=\"2\"><p>d</p></td></tr></table>")));
+        // The header row: in a thead, or of th cells; their bold and centering are its look
+        CHECK(utf8(merged("<table><thead><tr><th>A</th><th><b>B</b></th></tr></thead>"
+                          "<tr><td width=\"30%\">c</td><td width=\"70%\" rowspan=\"2\"></td></tr>"
+                          "<tr><td align=\"center\">e</td></tr></table>")) ==
+              utf8(kml("<table><col width=\"30%\"/><col width=\"70%\"/>"
+                       "<tr><th><p>A</p></th><th><p>B</p></th></tr>"
+                       "<tr><td><p>c</p></td><td rowspan=\"2\"><p></p></td></tr>"
+                       "<tr><td><p align=\"center\">e</p></td></tr></table>")));
+        // Widths in pixels in proportion to one another
+        CHECK(utf8(merged("<table><tr><th>A</th><th>B</th></tr>"
+                          "<tr><td width=\"100\">c</td><td width=\"300\">d</td></tr></table>")) ==
+              utf8(kml("<table><col width=\"25%\"/><col width=\"75%\"/>"
+                       "<tr><th><p>A</p></th><th><p>B</p></th></tr>"
+                       "<tr><td><p>c</p></td><td><p>d</p></td></tr></table>")));
+        // Keep Source Formatting keeps every alignment: a th's centering, a td's left
+        CHECK(pasted("<table><thead><tr><th>A</th></tr></thead><tr><td>b</td></tr></table>",
+                     PasteMode::Source) ==
+              utf8(kml("<table><tr><th><p align=\"center\">A</p></th></tr>"
+                       "<tr><td><p align=\"left\">b</p></td></tr></table>")));
+        // Only the text: a row is a paragraph, its cells separated by tabs
+        CHECK(pasted(table, PasteMode::Text) == utf8(kml("<p>a\tb<br/>c</p><p>d</p>")));
+    }
+
+    SECTION("Tables: a cell holds only text, a table in it is its rows") {
+        CHECK(utf8(merged("<table><tr><td>c<table><tr><td>x</td><td>y</td></tr></table>z"
+                          "<hr/><p style=\"page-break-before:always\">w</p></td></tr></table>")) ==
+              utf8(kml("<table><tr><td><p>c</p><p>x\ty</p><p>z</p><p>w</p></td></tr></table>")));
     }
 
     SECTION("Characters XML cannot hold go") {
@@ -432,7 +513,7 @@ TEST_CASE("Paste: the mode of the setting", "[editor][paste]") {
     CHECK(ClipboardHandler::pasteModeFromId(QStringLiteral("other")) == PasteMode::Merge);
 }
 
-TEST_CASE("Paste: Settings > Editor > General gives the editors the mode",
+TEST_CASE("Paste: Settings > Editor > Writing gives the editors the mode",
           "[gui][settings][paste]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string before = settings.get<std::string>(PASTE_MODE_KEY);
@@ -445,7 +526,7 @@ TEST_CASE("Paste: Settings > Editor > General gives the editors the mode",
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     for (QTreeWidgetItemIterator it(tree); *it; ++it) {
-        if ((*it)->text(0) == QStringLiteral("General") && (*it)->parent() &&
+        if ((*it)->text(0) == QStringLiteral("Writing") && (*it)->parent() &&
             (*it)->parent()->text(0) == QStringLiteral("Editor")) {
             tree->setCurrentItem(*it);
         }
@@ -706,4 +787,76 @@ TEST_CASE("Copy: the editor gives other programs plain text of its KML", "[edito
     // Pasted back from the HTML alone (without Kalahari's own format) it is the same text
     CHECK(utf8(ClipboardHandler::htmlToKml(copied->html())) ==
           utf8(kml("<p>One<br/>two</p><p><b>Three</b></p>")));
+}
+
+TEST_CASE("Copy: a list for other programs, with the numbers the editor shows",
+          "[editor][paste][lists]") {
+    auto editor = editorWith(kml("<ol><li>One<ol type=\"a\" suffix=\")\"><li>One a</li></ol></li>"
+                                 "<li>Two</li><li numbered=\"false\">More of two</li>"
+                                 "<li value=\"7\">Seven</li></ol><p>Text</p>"
+                                 "<ul><li>Coat</li><li>Torch</li></ul>"));
+    editor->selectAll();
+    std::unique_ptr<QMimeData> copied = editor->createMimeDataFromSelection();
+    REQUIRE(copied);
+    // A tab for each level below the first, the number or bullet and a space
+    CHECK(utf8(copied->text()) ==
+          utf8(QStringLiteral("1. One\n\ta) One a\n2. Two\nMore of two\n7. Seven\nText\n"
+                              "• Coat\n• Torch")));
+    CHECK(utf8(copied->html()) ==
+          utf8(ClipboardHandler::htmlDocument(QStringLiteral(
+              "<ol><li>One<ol type=\"a\"><li>One a</li></ol></li><li>Two</li>"
+              "<li style=\"list-style-type:none\">More of two</li><li value=\"7\">Seven</li></ol>"
+              "<p>Text</p><ul><li>Coat</li><li>Torch</li></ul>"))));
+    // Pasted back from the HTML alone: the same lists, but the suffix HTML has not
+    CHECK(utf8(ClipboardHandler::htmlToKml(copied->html())) ==
+          utf8(kml("<ol><li>One<ol type=\"a\"><li>One a</li></ol></li><li>Two</li>"
+                   "<li>More of two</li><li>Seven</li></ol><p>Text</p>"
+                   "<ul><li>Coat</li><li>Torch</li></ul>")));
+
+    // A part of a list goes on from the number of its first item
+    editor->setSelection({{2, 0}, {4, 5}});
+    copied = editor->createMimeDataFromSelection();
+    REQUIRE(copied);
+    CHECK(utf8(copied->text()) == utf8(QStringLiteral("2. Two\nMore of two\n7. Seven")));
+    CHECK(utf8(copied->html()) ==
+          utf8(ClipboardHandler::htmlDocument(QStringLiteral(
+              "<ol start=\"2\"><li>Two</li><li style=\"list-style-type:none\">More of two</li>"
+              "<li value=\"7\">Seven</li></ol>"))));
+
+    // KML alone counts its own numbers; bullets of no type of HTML get a CSS one
+    CHECK(utf8(ClipboardHandler::kmlToText(
+              QStringLiteral("<kml><ol type=\"I\" start=\"4\"><li>a</li><li>b</li></ol></kml>"))) ==
+          "IV. a\nV. b");
+    CHECK(utf8(ClipboardHandler::kmlToHtml(
+              QStringLiteral("<kml><ul type=\"check\"><li>a</li></ul></kml>"))) ==
+          utf8(QStringLiteral("<ul style=\"list-style-type:'✓ '\"><li>a</li></ul>")));
+}
+
+TEST_CASE("Copy and paste: small and all capitals and the letter spacing", "[editor][paste]") {
+    SECTION("Copied as CSS of the span, the spacing in points") {
+        CHECK(utf8(ClipboardHandler::kmlToHtml(
+                  kml("<p><span caps=\"small\">a</span><span caps=\"all\" spacing=\"1.5\">b</span></p>"),
+                  QStringLiteral("asterisks"))) ==
+              "<p><span style=\"font-variant:small-caps\">a</span>"
+              "<span style=\"text-transform:uppercase;letter-spacing:1.5pt\">b</span></p>");
+    }
+
+    const char* const caps =
+        "<p><span style=\"font-variant: small-caps\">small</span> "
+        "<span style=\"text-transform: uppercase; letter-spacing: 2px\">all</span></p>";
+
+    SECTION("Merge Formatting keeps the capitals, as it keeps the emphasis") {
+        CHECK(pasted(caps, PasteMode::Merge) ==
+              utf8(kml("<p><span caps=\"small\">small</span> <span caps=\"all\">all</span></p>")));
+    }
+
+    SECTION("Keep Source Formatting also keeps the spacing, pixels as points") {
+        CHECK(pasted(caps, PasteMode::Source) ==
+              utf8(kml("<p><span caps=\"small\">small</span> "
+                       "<span caps=\"all\" spacing=\"1.5\">all</span></p>")));
+    }
+
+    SECTION("Keep Text Only") {
+        CHECK(pasted(caps, PasteMode::Text) == utf8(kml("<p>small all</p>")));
+    }
 }

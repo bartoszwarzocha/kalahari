@@ -32,20 +32,22 @@ ThemePage::ThemePage(QWidget* parent)
     : SettingsPage(parent)
     , m_themeCombo(new QComboBox())
 {
-    auto* themeRow = new QHBoxLayout();
+    //: Settings > Appearance > Theme: the group of the choice of the theme. In Polish: Wygląd
+    //: programu
+    QFormLayout* look = addGroup(tr("Look of the Program"));
     auto* themeLabel = new QLabel(tr("Theme:"));
     themeLabel->setBuddy(m_themeCombo);
     m_themeCombo->addItem(tr("Light"), QStringLiteral("Light"));
     m_themeCombo->addItem(tr("Dark"), QStringLiteral("Dark"));
-    themeRow->addWidget(themeLabel);
-    themeRow->addWidget(m_themeCombo, 1);
-    pageLayout()->addLayout(themeRow);
+    look->addRow(themeLabel, m_themeCombo);
+    addFieldNote(look, tr("Light or dark, in the whole program. Each theme keeps its own colors: "
+                          "the fields below show those of the theme chosen here."));
     // Stored by apply(): reloading the theme stores its name
     bind(m_themeCombo, "appearance.theme").store = [](const json&) {};
 
-    const auto group = [this](const QString& title) {
+    const auto group = [](QVBoxLayout* place, const QString& title) {
         auto* box = new QGroupBox(title);
-        pageLayout()->addWidget(box);
+        place->addWidget(box);
         return new QVBoxLayout(box);
     };
     // Section headings inside a group, in the theme's text color
@@ -58,7 +60,7 @@ ThemePage::ThemePage(QWidget* parent)
     };
     using core::Theme;
 
-    QVBoxLayout* icons = group(tr("Icon Colors"));
+    QVBoxLayout* icons = group(pageLayout(), tr("Icon Colors"));
     m_primaryColor = addColor(icons, tr("Primary"), tr("Primary icon color used for main icon elements"),
                               "icons.themes.", ".colorPrimary",
                               [](const Theme& t) { return t.colors.primary; });
@@ -67,8 +69,19 @@ ThemePage::ThemePage(QWidget* parent)
                                 [](const Theme& t) { return t.colors.secondary; });
     connect(m_primaryColor, &ColorConfigWidget::colorChanged, this, &ThemePage::iconColorsChanged);
     connect(m_secondaryColor, &ColorConfigWidget::colorChanged, this, &ThemePage::iconColorsChanged);
+    addNote(icons, tr("The icons of the menus, the toolbars and the Dashboard are drawn in these "
+                      "two colors."));
 
-    QVBoxLayout* ui = group(tr("UI Colors"));
+    auto* reset = new QPushButton(tr("Reset to Theme Defaults"));
+    reset->setToolTip(tr("Reset all colors to the default values for the selected theme"));
+    connect(reset, &QPushButton::clicked, this, &ThemePage::resetToThemeDefaults);
+    pageLayout()->addWidget(reset, 0, Qt::AlignLeft);
+    addNote(pageLayout(), tr("Brings back the theme's own colors, also those under Advanced "
+                             "Settings."));
+
+    // The colors of the program's own parts, changed seldom
+    QVBoxLayout* const advanced = advancedLayout();
+    QVBoxLayout* ui = group(advanced, tr("UI Colors"));
     addColor(ui, tr("Tooltip Background"), tr("Background color for tooltips"),
              "themes.", ".ui.toolTipBase", [](const Theme& t) { return t.palette.toolTipBase; });
     addColor(ui, tr("Tooltip Text"), tr("Text color for tooltips"),
@@ -80,7 +93,7 @@ ThemePage::ThemePage(QWidget* parent)
     addColor(ui, tr("Info Header"), tr("Color for information panel headers"),
              "themes.", ".colors.infoHeader", [](const Theme& t) { return t.colors.infoHeader; });
 
-    QVBoxLayout* palette = group(tr("Palette Colors"));
+    QVBoxLayout* palette = group(advanced, tr("Palette Colors"));
     const auto paletteColor = [&](const QString& label, const QString& toolTip, const char* key,
                                   QColor Theme::Palette::*field) {
         addColor(palette, label, toolTip, "themes.", std::string(".palette.") + key,
@@ -118,7 +131,7 @@ ThemePage::ThemePage(QWidget* parent)
     paletteColor(tr("Link Visited"), tr("Color for visited hyperlinks"),
                  "linkVisited", &Theme::Palette::linkVisited);
 
-    QVBoxLayout* log = group(tr("Log Panel Colors"));
+    QVBoxLayout* log = group(advanced, tr("Log Panel Colors"));
     const auto logColor = [&](const QString& label, const QString& toolTip, const char* key,
                               QColor Theme::LogColors::*field) {
         addColor(log, label, toolTip, "themes.", std::string(".log.") + key,
@@ -136,10 +149,6 @@ ThemePage::ThemePage(QWidget* parent)
     logColor(tr("Background"), tr("Background color of the log panel"),
              "background", &Theme::LogColors::background);
 
-    auto* reset = new QPushButton(tr("Reset to Theme Defaults"));
-    reset->setToolTip(tr("Reset all colors to the default values for the selected theme"));
-    connect(reset, &QPushButton::clicked, this, &ThemePage::resetToThemeDefaults);
-    pageLayout()->addWidget(reset);
     pageLayout()->addStretch();
 
     connect(m_themeCombo, &QComboBox::currentIndexChanged, this, &ThemePage::onThemeChanged);

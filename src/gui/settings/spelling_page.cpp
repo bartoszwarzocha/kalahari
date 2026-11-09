@@ -126,28 +126,21 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
                               : dictionaryName(stored),
                           stored);
     }
+    addOptionNote(checking, enabled,
+                  tr("A misspelled word is underlined with a wavy line; right-click it for "
+                     "suggestions. Tools > Check Spelling as You Type (Shift+F7) turns the "
+                     "checking on and off too."));
     QLabel* languageLabel = addField(checking, tr("Language:"), language, LANGUAGE_KEY);
-    addNote(checking, tr("With \"Language of the book\" the chapters are checked in the "
-                         "language of the book, set in its properties, and other documents, such "
-                         "as a file opened from the disk, in the language of the program. A "
-                         "misspelled word is underlined with a wavy line; right-click it for "
-                         "suggestions. Tools > Check Spelling as You Type (Shift+F7) turns the "
-                         "checking on and off."));
+    addFieldNote(checking, tr("With \"Language of the book\" the chapters are checked in the "
+                              "language of the book, set in its properties, and other "
+                              "documents, such as a file opened from the disk, in the language "
+                              "of the program."));
     const auto syncLanguage = [enabled, language, languageLabel]() {
         language->setEnabled(enabled->isChecked());
         languageLabel->setEnabled(enabled->isChecked());
     };
     connect(enabled, &QCheckBox::toggled, this, syncLanguage);
     whenLoaded(syncLanguage);
-
-    // The waves under the misspelled words and the frames of their cards in the panel
-    QFormLayout* colors = addGroup(tr("Colors"));
-    addNote(colors, tr("The color of the wavy line under a misspelled word and of the frames of "
-                       "its cards in the Spelling and Grammar panel. Each theme has its own "
-                       "colors: these are the colors of the current theme."));
-    addIssueColor(colors, editor::TextIssueKind::Spelling);
-    addOptimizeColorsCheckBox(colors);
-    addRestoreColorsButton(colors);
 
     // The panel of the misspelled words and the grammar issues
     QFormLayout* panel = addGroup(tr("Spelling and Grammar Panel"));
@@ -167,16 +160,27 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
     grammarScope->addItem(tr("Checked only around the part in view"), QStringLiteral("nearby"));
     addField(panel, tr("Grammar while the panel is shown:"), grammarScope,
              "spellingPanel.grammarScope");
-    addNote(panel, tr("With \"Checked in the whole text\", while the panel is shown the whole "
-                      "text is checked in the background, so the counts and the list cover all "
-                      "of it once the check is done. The free server api.languagetool.org limits "
-                      "the requests per minute: there a long text takes longer. On this computer "
-                      "there is no such limit."));
+    addFieldNote(panel, tr("With \"Checked in the whole text\", while the panel is shown the "
+                           "whole text is checked in the background, so the counts and the list "
+                           "cover all of it once the check is done. The free server "
+                           "api.languagetool.org limits the requests per minute: there a long "
+                           "text takes longer. On this computer there is no such limit."));
 
-    if (spelling == nullptr) {
-        return;
+    if (spelling != nullptr) {
+        addOwnWords(spelling);
     }
 
+    // The waves under the misspelled words and the frames of their cards in the panel
+    QFormLayout* colors = addGroup(tr("Colors"));
+    addNote(colors, tr("The color of the wavy line under a misspelled word and of the frames of "
+                       "its cards in the Spelling and Grammar panel. Each theme has its own "
+                       "colors: these are the colors of the current theme."));
+    addIssueColor(colors, editor::TextIssueKind::Spelling);
+    addOptimizeColorsCheckBox(colors);
+    addRestoreColorsButton(colors);
+}
+
+void EditorSpellingPage::addOwnWords(editor::SpellCheckService* spelling) {
     // The writer's own words, put in the dictionary when the page is applied
     QFormLayout* own = addGroup(tr("Your Words"));
     m_words = new QListWidget();

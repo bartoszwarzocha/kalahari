@@ -22,21 +22,34 @@
 ///
 /// Whether a link of a material may name a paragraph of a chapter, marked with a paperclip in
 /// the editor (core::LinkRoles::PARAGRAPHS_SETTING). The paperclips follow the setting at once.
+///
+/// The kinds of materials the Navigator shows in every book (MaterialList::HIDDEN_SETTING),
+/// with the numbers of materials of the open book; the materials of a kind hidden stay in the
+/// book. How the texts of the cover are counted, in characters with spaces or in words, and
+/// the target lengths of a description, a tagline and an opinion in each unit
+/// (core::CoverMaterial). The Navigator, the lists and the cards follow them at once.
 
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/core/art_provider.h"
+#include "kalahari/core/cover_material.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/settings_manager.h"
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QFormLayout>
+#include <QGridLayout>
 #include <QLabel>
-#include <QRadioButton>
-#include <QSpacerItem>
+#include <QSpinBox>
+#include <QStackedWidget>
 #include <QVBoxLayout>
 
 #include <nlohmann/json.hpp>
+
+#include <algorithm>
 
 namespace kalahari {
 namespace gui {
@@ -71,350 +84,201 @@ constexpr const char* SYSTEM = "system";
 /// The values of NavigatorPanel::OPEN_PAGES_SETTING ("card" as above)
 constexpr const char* BROWSER = "browser";
 
+/// The values of core::CoverMaterial::UNIT_SETTING
+constexpr const char* CHARACTERS = "characters";
+constexpr const char* WORDS = "words";
+
+/// The longest target of a text of the cover, in characters or in words
+constexpr int MAXIMUM_TARGET = 100000;
+
 /// The values of NavigatorPanel::QUICK_MATERIALS_SETTING
 constexpr const char* LINK = "link";
 constexpr const char* ADD = "add";
 constexpr const char* WINDOW = "window";
 
-/// Room before the next setting of @p form, so that the notes of one setting do not run into
-/// the next one: half a line of text, with the room between two rows on each side of it about
-/// a line
-void addGap(QFormLayout* form) {
-    const int line = form->parentWidget()->fontMetrics().height();
-    form->addItem(new QSpacerItem(0, line / 2, QSizePolicy::Minimum, QSizePolicy::Fixed));
-}
-
 } // namespace
 
-NavigatorPage::NavigatorPage(QWidget* parent)
+NavigatorPage::NavigatorPage(Part part, QWidget* parent)
     : SettingsPage(parent)
 {
+    switch (part) {
+    case Part::Adding:
+        createAdding();
+        break;
+    case Part::Materials:
+        createMaterials();
+        break;
+    case Part::Kinds:
+        createKinds();
+        break;
+    case Part::Cover:
+        createCover();
+        break;
+    }
+    pageLayout()->addStretch();
+}
+
+void NavigatorPage::createAdding()
+{
     QFormLayout* menus = addGroup(tr("Node Menus"));
-    m_named = new QRadioButton(tr("\"Add...\" and a command for each kind"));
-    m_named->setObjectName(QStringLiteral("navigatorAddNamed"));
-    m_single = new QRadioButton(tr("Only \"Add...\""));
-    m_single->setObjectName(QStringLiteral("navigatorAddSingle"));
-    // Short texts with a note under each, which wraps in a narrow window
-    auto* choices = new QWidget();
-    auto* choicesLayout = new QVBoxLayout(choices);
-    choicesLayout->setContentsMargins(0, 0, 0, 0);
-    choicesLayout->addWidget(m_named);
-    alignWithText(addNote(choicesLayout, tr("\"Add Chapter...\", \"Add Part...\" and the like.")),
-                  m_named);
-    choicesLayout->addWidget(m_single);
-    alignWithText(addNote(choicesLayout, tr("The kind is chosen in the Add Element window.")),
-                  m_single);
-    auto* choicesLabel = new QLabel(tr("Add commands:"));
-    choicesLabel->setBuddy(m_named);
-    menus->addRow(choicesLabel, choices);
+    addChoice(menus, tr("Add commands:"),
+              {{tr("\"Add...\" and a command for each kind"), QLatin1String(NAMED),
+                tr("\"Add Chapter...\", \"Add Part...\" and the like.")},
+               {tr("Only \"Add...\""), QLatin1String(SINGLE),
+                tr("The kind is chosen in the Add Element window.")}},
+              NavigatorPanel::ADD_COMMANDS_SETTING)
+        ->setObjectName(QStringLiteral("navigatorAddCommands"));
     addNote(menus, tr("Applies to the menu the right mouse button opens on a node of the "
                       "Navigator. The Book menu, the \"+\" button and the keys work the same in "
                       "both variants."));
 
-    auto& settings = core::SettingsManager::getInstance();
-    Binding addCommands;
-    addCommands.key = []() { return std::string(NavigatorPanel::ADD_COMMANDS_SETTING); };
-    addCommands.stored = [&settings]() {
-        return json(settings.get<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, NAMED));
-    };
-    addCommands.shown = [this]() { return json(m_single->isChecked() ? SINGLE : NAMED); };
-    addCommands.show = [this](const json& value) {
-        const bool single = value.is_string() && value.get<std::string>() == SINGLE;
-        (single ? m_single : m_named)->setChecked(true);
-    };
-    addCommands.store = [&settings](const json& value) {
-        settings.set<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, value.get<std::string>());
-    };
-    bindCustom(std::move(addCommands));
-
     // The top of the Add Element window
     QFormLayout* window = addGroup(tr("Add Element Window"));
-    m_sections = new QRadioButton(tr("Sections and the Workshop"));
-    m_sections->setObjectName(QStringLiteral("navigatorAddWindowSections"));
-    m_book = new QRadioButton(tr("The book and the Workshop"));
-    m_book->setObjectName(QStringLiteral("navigatorAddWindowBook"));
-    m_place = new QRadioButton(tr("No choice"));
-    m_place->setObjectName(QStringLiteral("navigatorAddWindowPlace"));
-    auto* windowChoices = new QWidget();
-    auto* windowLayout = new QVBoxLayout(windowChoices);
-    windowLayout->setContentsMargins(0, 0, 0, 0);
-    windowLayout->addWidget(m_sections);
-    alignWithText(addNote(windowLayout, tr("The window shows one group at a time, first the one "
-                                           "of the node chosen in the Navigator.")),
-                  m_sections);
-    windowLayout->addWidget(m_book);
-    alignWithText(addNote(windowLayout, tr("All kinds of the book at once.")), m_book);
-    windowLayout->addWidget(m_place);
-    alignWithText(addNote(windowLayout, tr("Only the kinds of the place the window is opened on.")),
-                  m_place);
-    auto* windowLabel = new QLabel(tr("Choice at the top of the window:"));
-    windowLabel->setBuddy(m_sections);
-    window->addRow(windowLabel, windowChoices);
-
-    Binding addWindow;
-    addWindow.key = []() { return std::string(NavigatorPanel::ADD_WINDOW_SETTING); };
-    addWindow.stored = [&settings]() {
-        return json(settings.get<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, SECTIONS));
-    };
-    addWindow.shown = [this]() {
-        return json(m_book->isChecked() ? BOOK : m_place->isChecked() ? PLACE : SECTIONS);
-    };
-    addWindow.show = [this](const json& value) {
-        const std::string chosen = value.is_string() ? value.get<std::string>() : SECTIONS;
-        (chosen == BOOK ? m_book : chosen == PLACE ? m_place : m_sections)->setChecked(true);
-    };
-    addWindow.store = [&settings](const json& value) {
-        settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, value.get<std::string>());
-    };
-    bindCustom(std::move(addWindow));
-
-    // How a material opens
-    //: The group of the materials of the Workshop. In Polish: Materiały
-    QFormLayout* materials = addGroup(tr("Materials"));
-
-    // What the Materials show: their kinds, whose lists open on tabs, or their materials too
-    //: In Polish: Typy z liczbą materiałów
-    m_treeTypes = new QRadioButton(tr("Kinds with their numbers of materials"));
-    m_treeTypes->setObjectName(QStringLiteral("navigatorMaterialsTypes"));
-    //: In Polish: Typy z listą do rozwinięcia
-    m_treeExpand = new QRadioButton(tr("Kinds with a list to expand"));
-    m_treeExpand->setObjectName(QStringLiteral("navigatorMaterialsExpand"));
-    auto* treeChoices = new QWidget();
-    auto* treeLayout = new QVBoxLayout(treeChoices);
-    treeLayout->setContentsMargins(0, 0, 0, 0);
-    treeLayout->addWidget(m_treeTypes);
-    //: In Polish: Lista typu otwiera się na karcie na środku okna: tabela z wyszukiwaniem,
-    //: filtrami i sortowaniem.
-    alignWithText(addNote(treeLayout, tr("The list of a kind opens on a tab in the middle of the "
-                                         "window: a table with a search, filters and sorting.")),
-                  m_treeTypes);
-    treeLayout->addWidget(m_treeExpand);
-    //: In Polish: Pod każdym typem są także jego materiały, na początku zwinięte; lista typu
-    //: otwiera się na karcie jak wyżej.
-    alignWithText(addNote(treeLayout, tr("Each kind also has its materials under it, collapsed "
-                                         "at first; its list opens on a tab as above.")),
-                  m_treeExpand);
-    //: In Polish: W Nawigatorze:
-    auto* treeLabel = new QLabel(tr("In the Navigator:"));
-    treeLabel->setBuddy(m_treeTypes);
-    materials->addRow(treeLabel, treeChoices);
-
-    Binding tree;
-    tree.key = []() { return std::string(NavigatorPanel::MATERIALS_TREE_SETTING); };
-    tree.stored = [&settings]() {
-        return json(settings.get<std::string>(NavigatorPanel::MATERIALS_TREE_SETTING, TYPES));
-    };
-    tree.shown = [this]() { return json(m_treeExpand->isChecked() ? EXPAND : TYPES); };
-    tree.show = [this](const json& value) {
-        const bool expand = value.is_string() && value.get<std::string>() == EXPAND;
-        (expand ? m_treeExpand : m_treeTypes)->setChecked(true);
-    };
-    tree.store = [&settings](const json& value) {
-        settings.set<std::string>(NavigatorPanel::MATERIALS_TREE_SETTING,
-                                  value.get<std::string>());
-    };
-    bindCustom(std::move(tree));
-    addGap(materials);
-
-    // Where the list of a kind clicked opens
-    //: In Polish: Otwiera własną kartę
-    m_tabsOwn = new QRadioButton(tr("Opens a tab of its own"));
-    m_tabsOwn->setObjectName(QStringLiteral("navigatorMaterialsOwnTabs"));
-    //: In Polish: Zmienia typ na jednej karcie
-    m_tabsOne = new QRadioButton(tr("Changes the kind on one tab"));
-    m_tabsOne->setObjectName(QStringLiteral("navigatorMaterialsOneTab"));
-    auto* tabsChoices = new QWidget();
-    auto* tabsLayout = new QVBoxLayout(tabsChoices);
-    tabsLayout->setContentsMargins(0, 0, 0, 0);
-    tabsLayout->addWidget(m_tabsOwn);
-    //: In Polish: Każdy typ ma swoją kartę, która pamięta zaznaczenie, wyszukiwanie i filtry.
-    //: Ponowne kliknięcie przenosi ją na wierzch.
-    alignWithText(addNote(tabsLayout, tr("Each kind has its tab, which keeps what is chosen, "
-                                         "the search and the filters. Clicked again, it brings "
-                                         "its tab to the front.")),
-                  m_tabsOwn);
-    tabsLayout->addWidget(m_tabsOne);
-    //: In Polish: Jedna karta list pokazuje typ kliknięty ostatnio i pamięta zaznaczenie,
-    //: wyszukiwanie i filtry każdego typu.
-    alignWithText(addNote(tabsLayout, tr("One tab of the lists shows the kind clicked last, and "
-                                         "keeps what is chosen, the search and the filters of "
-                                         "each kind.")),
-                  m_tabsOne);
-    //: In Polish: Typ kliknięty w Nawigatorze:
-    auto* tabsLabel = new QLabel(tr("A kind clicked in the Navigator:"));
-    tabsLabel->setBuddy(m_tabsOwn);
-    materials->addRow(tabsLabel, tabsChoices);
-
-    Binding tabs;
-    tabs.key = []() { return std::string(MaterialList::TABS_SETTING); };
-    tabs.stored = [&settings]() {
-        return json(settings.get<std::string>(MaterialList::TABS_SETTING, OWN));
-    };
-    tabs.shown = [this]() { return json(m_tabsOne->isChecked() ? ONE : OWN); };
-    tabs.show = [this](const json& value) {
-        const bool one = value.is_string() && value.get<std::string>() == ONE;
-        (one ? m_tabsOne : m_tabsOwn)->setChecked(true);
-    };
-    tabs.store = [&settings](const json& value) {
-        settings.set<std::string>(MaterialList::TABS_SETTING, value.get<std::string>());
-    };
-    bindCustom(std::move(tabs));
-    addGap(materials);
-    //: In Polish: Na karcie w programie
-    m_openCard = new QRadioButton(tr("On a tab of the program"));
-    m_openCard->setObjectName(QStringLiteral("navigatorOpenMaterialsCard"));
-    //: In Polish: W programie systemowym
-    m_openSystem = new QRadioButton(tr("In the system program"));
-    m_openSystem->setObjectName(QStringLiteral("navigatorOpenMaterialsSystem"));
-    auto* openChoices = new QWidget();
-    auto* openLayout = new QVBoxLayout(openChoices);
-    openLayout->setContentsMargins(0, 0, 0, 0);
-    openLayout->addWidget(m_openCard);
-    //: In Polish: Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak
-    //: rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki
-    //: program nie będzie miał jego podglądu. Materiał bez pliku i adresu otwiera się na swojej
-    //: karcie.
-    alignWithText(addNote(openLayout, tr("A picture, also the copy of one from the web, opens "
-                                         "on a preview tab, as a chapter does. A file of "
-                                         "another kind, such as a PDF, opens in the system "
-                                         "program until the program has a preview of it. A "
-                                         "material without a file and an address opens on its "
-                                         "card.")),
-                  m_openCard);
-    openLayout->addWidget(m_openSystem);
-    //: In Polish: Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we
-    //: Właściwościach.
-    alignWithText(addNote(openLayout, tr("Pictures too. The Preview button in the Properties "
-                                         "panel then opens the preview tab.")),
-                  m_openSystem);
-    //: In Polish: Otwieranie materiałów:
-    auto* openLabel = new QLabel(tr("Opening materials:"));
-    openLabel->setBuddy(m_openCard);
-    materials->addRow(openLabel, openChoices);
-
-    Binding openMaterials;
-    openMaterials.key = []() { return std::string(NavigatorPanel::OPEN_MATERIALS_SETTING); };
-    openMaterials.stored = [&settings]() {
-        return json(settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, CARD));
-    };
-    openMaterials.shown = [this]() { return json(m_openSystem->isChecked() ? SYSTEM : CARD); };
-    openMaterials.show = [this](const json& value) {
-        const bool system = value.is_string() && value.get<std::string>() == SYSTEM;
-        (system ? m_openSystem : m_openCard)->setChecked(true);
-    };
-    openMaterials.store = [&settings](const json& value) {
-        settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING,
-                                  value.get<std::string>());
-    };
-    bindCustom(std::move(openMaterials));
-    addGap(materials);
-
-    // A page, and a picture on the web without a copy: the program shows no web pages
-    //: In Polish: W przeglądarce
-    m_pagesBrowser = new QRadioButton(tr("In the browser"));
-    m_pagesBrowser->setObjectName(QStringLiteral("navigatorOpenPagesBrowser"));
-    //: In Polish: Na karcie materiału
-    m_pagesCard = new QRadioButton(tr("On the card of the material"));
-    m_pagesCard->setObjectName(QStringLiteral("navigatorOpenPagesCard"));
-    auto* pagesChoices = new QWidget();
-    auto* pagesLayout = new QVBoxLayout(pagesChoices);
-    pagesLayout->setContentsMargins(0, 0, 0, 0);
-    pagesLayout->addWidget(m_pagesBrowser);
-    //: In Polish: Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału
-    //: na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.
-    alignWithText(addNote(pagesLayout, tr("Double-click and Enter open the address in the "
-                                          "system's browser. Open Card in the menu of the node "
-                                          "opens the card of the material in the middle of the "
-                                          "window.")),
-                  m_pagesBrowser);
-    pagesLayout->addWidget(m_pagesCard);
-    //: In Polish: Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk
-    //: „Otwórz w przeglądarce” na tej karcie.
-    alignWithText(addNote(pagesLayout, tr("Double-click and Enter open the card of the material "
-                                          "in the middle of the window; its Open in Browser "
-                                          "button opens the address.")),
-                  m_pagesCard);
-    //: In Polish: Strony i obrazy z sieci:
-    auto* pagesLabel = new QLabel(tr("Pages and pictures on the web:"));
-    pagesLabel->setBuddy(m_pagesBrowser);
-    materials->addRow(pagesLabel, pagesChoices);
-
-    Binding openPages;
-    openPages.key = []() { return std::string(NavigatorPanel::OPEN_PAGES_SETTING); };
-    openPages.stored = [&settings]() {
-        return json(settings.get<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, BROWSER));
-    };
-    openPages.shown = [this]() { return json(m_pagesCard->isChecked() ? CARD : BROWSER); };
-    openPages.show = [this](const json& value) {
-        const bool card = value.is_string() && value.get<std::string>() == CARD;
-        (card ? m_pagesCard : m_pagesBrowser)->setChecked(true);
-    };
-    openPages.store = [&settings](const json& value) {
-        settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, value.get<std::string>());
-    };
-    bindCustom(std::move(openPages));
-    addGap(materials);
+    QComboBox* addWindow = addChoice(
+        window, tr("Choice at the top of the window:"),
+        {{tr("Sections and the Workshop"), QLatin1String(SECTIONS),
+          tr("The window shows one group at a time, first the one of the node chosen in the "
+             "Navigator.")},
+         {tr("The book and the Workshop"), QLatin1String(BOOK),
+          tr("All kinds of the book at once.")},
+         {tr("No choice"), QLatin1String(PLACE),
+          tr("Only the kinds of the place the window is opened on.")}},
+        std::string());
+    addWindow->setObjectName(QStringLiteral("navigatorAddWindow"));
+    bindChoice(addWindow, NavigatorPanel::ADD_WINDOW_SETTING, SECTIONS);
 
     // Files, web addresses and pictures dropped on the Navigator or pasted in it
-    //: In Polish: Od razu, z powiązaniem
-    m_quickLink = new QRadioButton(tr("At once, linked"));
-    m_quickLink->setObjectName(QStringLiteral("navigatorQuickMaterialsLink"));
-    //: In Polish: Od razu
-    m_quickAdd = new QRadioButton(tr("At once"));
-    m_quickAdd->setObjectName(QStringLiteral("navigatorQuickMaterialsAdd"));
-    //: In Polish: W oknie „Dodaj element”
-    m_quickWindow = new QRadioButton(tr("In the Add Element window"));
-    m_quickWindow->setObjectName(QStringLiteral("navigatorQuickMaterialsWindow"));
-    auto* quickChoices = new QWidget();
-    auto* quickLayout = new QVBoxLayout(quickChoices);
-    quickLayout->setContentsMargins(0, 0, 0, 0);
-    quickLayout->addWidget(m_quickLink);
-    //: In Polish: Materiał dochodzi bez okna. Upuszczony albo wklejony na rozdział, część albo
-    //: sekcję od razu się z nimi wiąże.
-    alignWithText(addNote(quickLayout, tr("The material is added without a window. Dropped or "
-                                          "pasted on a chapter, a part or a section, it is "
-                                          "linked with it at once.")),
-                  m_quickLink);
-    quickLayout->addWidget(m_quickAdd);
-    //: In Polish: Materiał dochodzi bez okna, zawsze bez powiązań.
-    alignWithText(addNote(quickLayout, tr("The material is added without a window, always "
-                                          "without links.")),
-                  m_quickAdd);
-    quickLayout->addWidget(m_quickWindow);
-    //: In Polish: Okno otwiera się wypełnione plikiem, adresem albo obrazem; materiał dodaje
-    //: dopiero „Dodaj”.
-    alignWithText(addNote(quickLayout, tr("The window opens filled with the file, the address "
-                                          "or the picture; Add adds the material.")),
-                  m_quickWindow);
-    //: In Polish: Upuszczone albo wklejone:
-    auto* quickLabel = new QLabel(tr("Dropped or pasted:"));
-    quickLabel->setBuddy(m_quickLink);
-    materials->addRow(quickLabel, quickChoices);
+    //: The group of Settings > Navigator > Adding. In Polish: Upuszczone i wklejone
+    QFormLayout* materials = addGroup(tr("Dropped and Pasted"));
+    QComboBox* quick = addChoice(
+        materials,
+        //: The choice of the group Dropped and Pasted. In Polish: Dodawane:
+        tr("Added:"),
+        //: In Polish: Od razu, z powiązaniem
+        {{tr("At once, linked"), QLatin1String(LINK),
+          //: In Polish: Materiał dochodzi bez okna. Upuszczony albo wklejony na rozdział, część
+          //: albo sekcję od razu się z nimi wiąże.
+          tr("The material is added without a window. Dropped or pasted on a chapter, a part "
+             "or a section, it is linked with it at once.")},
+         //: In Polish: Od razu
+         {tr("At once"), QLatin1String(ADD),
+          //: In Polish: Materiał dochodzi bez okna, zawsze bez powiązań.
+          tr("The material is added without a window, always without links.")},
+         //: In Polish: W oknie „Dodaj element”
+         {tr("In the Add Element window"), QLatin1String(WINDOW),
+          //: In Polish: Okno otwiera się wypełnione plikiem, adresem albo obrazem; materiał
+          //: dodaje dopiero „Dodaj”.
+          tr("The window opens filled with the file, the address or the picture; Add adds the "
+             "material.")}},
+        std::string());
+    quick->setObjectName(QStringLiteral("navigatorQuickMaterials"));
+    bindChoice(quick, NavigatorPanel::QUICK_MATERIALS_SETTING, LINK);
     //: In Polish: Dotyczy pliku przeciągniętego z Eksploratora, adresu przeciągniętego z
     //: przeglądarki oraz adresu, pliku albo obrazu wklejonego w Nawigatorze (Ctrl+V).
     addNote(materials, tr("Applies to a file dragged from the file manager, an address dragged "
                           "from the browser, and an address, a file or a picture pasted in the "
                           "Navigator (Ctrl+V)."));
+}
 
-    Binding quick;
-    quick.key = []() { return std::string(NavigatorPanel::QUICK_MATERIALS_SETTING); };
-    quick.stored = [&settings]() {
-        return json(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, LINK));
-    };
-    quick.shown = [this]() {
-        return json(m_quickAdd->isChecked() ? ADD : m_quickWindow->isChecked() ? WINDOW : LINK);
-    };
-    quick.show = [this](const json& value) {
-        const std::string chosen = value.is_string() ? value.get<std::string>() : LINK;
-        (chosen == ADD ? m_quickAdd : chosen == WINDOW ? m_quickWindow : m_quickLink)
-            ->setChecked(true);
-    };
-    quick.store = [&settings](const json& value) {
-        settings.set<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING,
-                                  value.get<std::string>());
-    };
-    bindCustom(std::move(quick));
-    addGap(materials);
+void NavigatorPage::createMaterials()
+{
+    // What the Materials show, and where the list of a kind clicked opens
+    //: The group of Settings > Navigator > Materials. In Polish: Listy materiałów
+    QFormLayout* materials = addGroup(tr("Lists of Materials"));
+
+    // What the Materials show: their kinds, whose lists open on tabs, or their materials too
+    QComboBox* tree = addChoice(
+        materials,
+        //: In Polish: W Nawigatorze:
+        tr("In the Navigator:"),
+        //: In Polish: Typy z liczbą materiałów
+        {{tr("Kinds with their numbers of materials"), QLatin1String(TYPES),
+          //: In Polish: Lista typu otwiera się na karcie na środku okna: tabela z wyszukiwaniem,
+          //: filtrami i sortowaniem.
+          tr("The list of a kind opens on a tab in the middle of the window: a table with a "
+             "search, filters and sorting.")},
+         //: In Polish: Typy z listą do rozwinięcia
+         {tr("Kinds with a list to expand"), QLatin1String(EXPAND),
+          //: In Polish: Pod każdym typem są także jego materiały, na początku zwinięte; lista
+          //: typu otwiera się na karcie jak wyżej.
+          tr("Each kind also has its materials under it, collapsed at first; its list opens on "
+             "a tab as above.")}},
+        std::string());
+    tree->setObjectName(QStringLiteral("navigatorMaterialsTree"));
+    bindChoice(tree, NavigatorPanel::MATERIALS_TREE_SETTING, TYPES);
+
+    // Where the list of a kind clicked opens
+    QComboBox* tabs = addChoice(
+        materials,
+        //: In Polish: Typ kliknięty w Nawigatorze:
+        tr("A kind clicked in the Navigator:"),
+        //: In Polish: Otwiera własną kartę
+        {{tr("Opens a tab of its own"), QLatin1String(OWN),
+          //: In Polish: Każdy typ ma swoją kartę, która pamięta zaznaczenie, wyszukiwanie i
+          //: filtry. Ponowne kliknięcie przenosi ją na wierzch.
+          tr("Each kind has its tab, which keeps what is chosen, the search and the filters. "
+             "Clicked again, it brings its tab to the front.")},
+         //: In Polish: Zmienia typ na jednej karcie
+         {tr("Changes the kind on one tab"), QLatin1String(ONE),
+          //: In Polish: Jedna karta list pokazuje typ kliknięty ostatnio i pamięta zaznaczenie,
+          //: wyszukiwanie i filtry każdego typu.
+          tr("One tab of the lists shows the kind clicked last, and keeps what is chosen, the "
+             "search and the filters of each kind.")}},
+        std::string());
+    tabs->setObjectName(QStringLiteral("navigatorMaterialsTabs"));
+    bindChoice(tabs, MaterialList::TABS_SETTING, OWN);
+
+    // How a material opens
+    //: The group of Settings > Navigator > Materials. In Polish: Otwieranie materiałów
+    materials = addGroup(tr("Opening Materials"));
+    QComboBox* open = addChoice(
+        materials,
+        //: The choice of the group Opening Materials. In Polish: Pliki i obrazy:
+        tr("Files and pictures:"),
+        //: In Polish: Na karcie w programie
+        {{tr("On a tab of the program"), QLatin1String(CARD),
+          //: In Polish: Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak
+          //: rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki
+          //: program nie będzie miał jego podglądu. Materiał bez pliku i adresu otwiera się na
+          //: swojej karcie.
+          tr("A picture, also the copy of one from the web, opens on a preview tab, as a "
+             "chapter does. A file of another kind, such as a PDF, opens in the system program "
+             "until the program has a preview of it. A material without a file and an address "
+             "opens on its card.")},
+         //: In Polish: W programie systemowym
+         {tr("In the system program"), QLatin1String(SYSTEM),
+          //: In Polish: Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we
+          //: Właściwościach.
+          tr("Pictures too. The Preview button in the Properties panel then opens the preview "
+             "tab.")}},
+        std::string());
+    open->setObjectName(QStringLiteral("navigatorOpenMaterials"));
+    bindChoice(open, NavigatorPanel::OPEN_MATERIALS_SETTING, CARD);
+
+    // A page, and a picture on the web without a copy: the program shows no web pages
+    QComboBox* pages = addChoice(
+        materials,
+        //: In Polish: Strony i obrazy z sieci:
+        tr("Pages and pictures on the web:"),
+        //: In Polish: W przeglądarce
+        {{tr("In the browser"), QLatin1String(BROWSER),
+          //: In Polish: Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę
+          //: materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.
+          tr("Double-click and Enter open the address in the system's browser. Open Card in "
+             "the menu of the node opens the card of the material in the middle of the "
+             "window.")},
+         //: In Polish: Na karcie materiału
+         {tr("On the card of the material"), QLatin1String(CARD),
+          //: In Polish: Dwuklik i Enter otwierają kartę materiału na środku okna, a adres –
+          //: przycisk „Otwórz w przeglądarce” na tej karcie.
+          tr("Double-click and Enter open the card of the material in the middle of the "
+             "window; its Open in Browser button opens the address.")}},
+        std::string());
+    pages->setObjectName(QStringLiteral("navigatorOpenPages"));
+    bindChoice(pages, NavigatorPanel::OPEN_PAGES_SETTING, BROWSER);
+
+    //: The group of Settings > Navigator > Materials. In Polish: Powiązania
+    materials = addGroup(tr("Links"));
 
     // Paragraphs of the links, with the paperclips beside them in the editor
     //: In Polish: Powiązania wskazują akapity tekstu
@@ -428,8 +292,167 @@ NavigatorPage::NavigatorPage(QWidget* parent)
                           "is about, and the editor marks that paragraph with a paperclip in "
                           "the margin. Turned off, the paragraphs and the paperclips are hidden; "
                           "the paragraphs named are kept."));
+}
 
-    pageLayout()->addStretch();
+void NavigatorPage::createKinds()
+{
+    auto& settings = core::SettingsManager::getInstance();
+    // The kinds of materials the Navigator shows, in every book
+    //: The group of Settings > Navigator that hides kinds of materials. In Polish: Typy
+    //: materiałów w Nawigatorze
+    QFormLayout* kinds = addGroup(tr("Material Kinds in the Navigator"));
+    auto* kindChoices = new QWidget();
+    auto* kindsLayout = new QVBoxLayout(kindChoices);
+    kindsLayout->setContentsMargins(0, 0, 0, 0);
+    kindsLayout->setSpacing(4);
+    for (const QString& list : MaterialList::settingsKinds()) {
+        const int count = MaterialList::countOf(list);
+        auto* box = new QCheckBox(count < 0 ? MaterialList::nameOf(list)
+                                            //: A kind of materials with the number of its
+                                            //: materials in the open book. In Polish: %1 (%2)
+                                            : tr("%1 (%2)").arg(MaterialList::nameOf(list))
+                                                  .arg(count));
+        box->setObjectName(QStringLiteral("navigatorKind_") + list);
+        box->setProperty("kind", list);
+        box->setIcon(core::ArtProvider::getInstance().getIcon(MaterialList::iconIdOf(list),
+                                                              core::IconContext::Menu));
+        kindsLayout->addWidget(box);
+        m_kindBoxes << box;
+    }
+    //: In Polish: Odznaczony typ znika z Nawigatora we wszystkich książkach. Jego materiały
+    //: zostają w książce i są we „Wszystkich materiałach”; po zaznaczeniu typ wraca. To samo
+    //: robi polecenie „Ukryj typ” w menu typu w Nawigatorze. Liczby dotyczą otwartej książki.
+    addNote(kindsLayout, tr("A kind unchecked leaves the Navigator in every book. Its materials "
+                            "stay in the book and in All Materials; checked again, the kind "
+                            "comes back. \"Hide Kind\" in the menu of a kind in the Navigator "
+                            "does the same. The numbers are those of the open book."));
+    //: In Polish: &Pokazuj:
+    auto* kindsLabel = new QLabel(tr("&Show:"));
+    if (!m_kindBoxes.isEmpty()) {
+        kindsLabel->setBuddy(m_kindBoxes.constFirst());
+    }
+    kinds->addRow(kindsLabel, kindChoices);
+
+    Binding hidden;
+    hidden.key = []() { return std::string(MaterialList::HIDDEN_SETTING); };
+    // In the order of the boxes, so that the same kinds are the same value
+    hidden.stored = [this]() {
+        const QStringList kinds = MaterialList::hiddenKinds();
+        json value = json::array();
+        for (const QCheckBox* box : m_kindBoxes) {
+            if (kinds.contains(box->property("kind").toString())) {
+                value.push_back(box->property("kind").toString().toStdString());
+            }
+        }
+        return value;
+    };
+    hidden.shown = [this]() {
+        json value = json::array();
+        for (const QCheckBox* box : m_kindBoxes) {
+            if (!box->isChecked()) {
+                value.push_back(box->property("kind").toString().toStdString());
+            }
+        }
+        return value;
+    };
+    hidden.show = [this](const json& value) {
+        for (QCheckBox* box : m_kindBoxes) {
+            const std::string kind = box->property("kind").toString().toStdString();
+            box->setChecked(!value.is_array() ||
+                            std::find(value.begin(), value.end(), json(kind)) == value.end());
+        }
+    };
+    hidden.store = [&settings](const json& value) {
+        settings.set<json>(MaterialList::HIDDEN_SETTING, value);
+    };
+    bindCustom(std::move(hidden));
+}
+
+void NavigatorPage::createCover()
+{
+    auto& settings = core::SettingsManager::getInstance();
+
+    // The texts of the cover: the unit of their lengths and the targets of their kinds
+    //: The group of Settings > Navigator of the materials of the cover. In Polish: Okładka
+    QFormLayout* cover = addGroup(tr("Cover"));
+    m_coverUnit = addChoice(cover,
+                            //: In Polish: &Długość liczona w:
+                            tr("&Length counted in:"),
+                            //: The unit of the lengths of the texts of the cover. In Polish:
+                            //: znakach ze spacjami
+                            {{tr("characters with spaces"), QLatin1String(CHARACTERS), QString()},
+                             //: In Polish: słowach
+                             {tr("words"), QLatin1String(WORDS), QString()}},
+                            std::string());
+    m_coverUnit->setObjectName(QStringLiteral("navigatorCoverUnit"));
+
+    Binding unit;
+    unit.key = []() { return std::string(core::CoverMaterial::UNIT_SETTING); };
+    unit.stored = []() {
+        return json(core::CoverMaterial::countsWords() ? WORDS : CHARACTERS);
+    };
+    unit.shown = [this]() { return json(m_coverUnit->currentData().toString().toStdString()); };
+    unit.show = [this](const json& value) {
+        const bool words = value.is_string() && value.get<std::string>() == WORDS;
+        m_coverUnit->setCurrentIndex(words ? 1 : 0);
+    };
+    unit.store = [&settings](const json& value) {
+        settings.set<std::string>(core::CoverMaterial::UNIT_SETTING, value.get<std::string>());
+    };
+    bindCustom(std::move(unit));
+
+    // The targets of the unit chosen; those of the other unit wait on their page. The unit is
+    // said above them, so that the page fits a narrow window
+    auto* targetsLabel = new QLabel();
+    targetsLabel->setWordWrap(true);
+    cover->addRow(targetsLabel);
+    auto* targets = new QStackedWidget();
+    for (const bool words : {false, true}) {
+        auto* unitPage = new QWidget();
+        auto* grid = new QGridLayout(unitPage);
+        grid->setContentsMargins(0, 0, 0, 0);
+        grid->setHorizontalSpacing(8);
+        grid->setVerticalSpacing(4);
+        int row = 0;
+        for (const char* part : {core::CoverMaterial::BLURB, core::CoverMaterial::TAGLINE,
+                                 core::CoverMaterial::OPINION}) {
+            const QString partName = CoverNames::partName(QString::fromLatin1(part));
+            auto* label = new QLabel(partName);
+            auto* spin = new QSpinBox();
+            spin->setRange(1, MAXIMUM_TARGET);
+            spin->setObjectName(QStringLiteral("navigatorCoverTarget_%1_%2")
+                                    .arg(QString::fromLatin1(part),
+                                         words ? QStringLiteral("words")
+                                               : QStringLiteral("characters")));
+            //: The accessible name of a target: %1 the kind of text, %2 the unit. In Polish:
+            //: %1, %2
+            spin->setAccessibleName(tr("%1, %2").arg(partName, CoverNames::unitName(words)));
+            label->setBuddy(spin);
+            grid->addWidget(label, row, 0);
+            grid->addWidget(spin, row, 1);
+            bind(spin, core::CoverMaterial::targetSettingOf(QString::fromLatin1(part), words));
+            (words ? m_wordTargets : m_characterTargets) << spin;
+            ++row;
+        }
+        grid->setColumnStretch(2, 1);
+        targets->addWidget(unitPage);
+    }
+    cover->addRow(targets);
+    //: In Polish: Każdy materiał może mieć własną docelową długość na swojej karcie. Wydawnictwa
+    //: podają zwykle znaki ze spacjami.
+    addNote(cover, tr("Each material can have its own target length on its card. Publishers "
+                      "usually count characters with spaces."));
+    const auto showUnit = [this, targets, targetsLabel]() {
+        const bool words = m_coverUnit->currentData().toString() == QLatin1String(WORDS);
+        targets->setCurrentIndex(words ? 1 : 0);
+        targetsLabel->setText(words
+                                  //: In Polish: Docelowa długość w słowach:
+                                  ? tr("Target length in words:")
+                                  //: In Polish: Docelowa długość w znakach ze spacjami:
+                                  : tr("Target length in characters with spaces:"));
+    };
+    connect(m_coverUnit, &QComboBox::currentIndexChanged, this, showUnit);
+    whenLoaded(showUnit);
 }
 
 } // namespace gui

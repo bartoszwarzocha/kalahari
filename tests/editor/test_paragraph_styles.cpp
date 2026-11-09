@@ -92,6 +92,17 @@ QString kml(const QString& content) {
 // Styles
 // =============================================================================
 
+TEST_CASE("Paragraph styles: the level of a heading from its style", "[editor][styles]") {
+    for (int level = 1; level <= HEADING_LEVELS; ++level) {
+        CHECK(headingLevelOf(headingStyleId(level)) == level);
+    }
+    for (const char* id : {"normal", "heading_", "heading_0", "heading_4", "heading_12",
+                           "heading_x", "Heading_1", "subheading_1"}) {
+        CAPTURE(id);
+        CHECK(headingLevelOf(QString::fromLatin1(id)) == 0);
+    }
+}
+
 TEST_CASE("Paragraph styles: Enter", "[editor][styles]") {
     SECTION("At the end of a heading the text follows it") {
         auto editor = editorWith(kml(QStringLiteral("<h1>Title</h1>")), {0, 5});

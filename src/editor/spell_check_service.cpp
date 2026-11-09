@@ -776,6 +776,20 @@ QList<SpellErrorInfo> SpellCheckService::checkParagraph(const QString& text) con
     return errors;
 }
 
+QStringList SpellCheckService::stems(const QString& word) const
+{
+    QStringList result;
+    if (!m_inUse || word.isEmpty()) {
+        return result;
+    }
+    QString asked = word;
+    asked.replace(QChar(0x2019), QLatin1Char('\''));
+    for (const std::string& stem : m_hunspell->stem(toDictionary(asked))) {
+        result.append(fromDictionary(stem));
+    }
+    return result;
+}
+
 bool SpellCheckService::isWordCorrect(const QString& word) const
 {
     if (isOwnWord(word)) {

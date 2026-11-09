@@ -10,7 +10,13 @@ set(KALAHARI_CORE_SOURCES
     editor/kml_serializer.cpp  # Phase 11.2: QTextDocument to KML serializer
     editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     editor/annotation.cpp  # Comments, TODOs and notes anchored to the text
+    editor/text_link.cpp   # Links in the text: the address on its characters
     editor/paragraph_styles.cpp  # Paragraph styles of a book, the objects of its text
+    editor/paragraph_format.cpp  # A paragraph's own formatting: indents, spacing, breaks
+    editor/character_format.cpp  # The character formatting of Format > Font, Change Case
+    editor/text_lists.cpp        # Bulleted and numbered lists
+    editor/text_tables.cpp       # Tables: a table of the document, its cells of paragraphs
+    editor/kml_document_model.cpp  # KML reader (the clipboard reads the lists of KML)
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
     core/database_schema_manager.cpp
@@ -37,6 +43,7 @@ set(KALAHARI_CORE_SOURCES
     core/book_type_registry.cpp # Book type packages loaded from folders
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
+    core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
     core/link_roles.cpp         # The roles of links, and the paragraph a link names
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
@@ -162,8 +169,19 @@ set(KALAHARI_SOURCES
     gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
+    gui/quick_insert_items.cpp  # What the list of quick insert offers: cards, fragments, characters
+    gui/cover_names.cpp    # The materials of the cover in the program's words
     gui/read_only_book.cpp # What the program says of a book open read-only
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
+    gui/dialogs/special_character_dialog.cpp  # SpecialCharacterDialog - Insert > Special Character...
+    gui/dialogs/list_dialogs.cpp           # Bullets and Numbering, Set Numbering Value
+    gui/dialogs/font_dialog.cpp            # Format > Font...
+    gui/dialogs/paragraph_dialog.cpp       # Format > Paragraph...
+    gui/dialogs/hyperlink_dialog.cpp       # Insert > Link...
+    gui/dialogs/insert_table_dialog.cpp    # Insert > Table...
+    gui/widgets/character_grid.cpp  # CharacterGrid - characters in cells, in the font of the text
+    gui/widgets/quick_character_palette.cpp  # QuickCharacterPalette - Insert > Quick Character
+    gui/dialogs/character_dialogs.cpp  # The keys of a character, a replacement of auto-correct
     gui/dialogs/link_dialog.cpp  # LinkDialog - what a material is about, or the materials of an element
     gui/material_file.cpp  # MaterialFile - the file of a material: its name, format, size and picture
     gui/material_source.cpp  # MaterialSource - a file, a web page, a picture on the web or none
@@ -173,6 +191,7 @@ set(KALAHARI_SOURCES
     gui/version_texts.cpp  # What the program says of a version of a text
     gui/versions_coordinator.cpp  # VersionsCoordinator - Save Version and Version History
     gui/dialogs/version_name_dialog.cpp  # VersionNameDialog - the description of a version
+    gui/dialogs/quick_insert_item_dialog.cpp  # QuickInsertItemDialog - a fragment or a character of quick insert
     gui/dialogs/version_history_dialog.cpp  # VersionHistoryDialog - the versions of a text
     gui/kalahari_syntax_highlighter.cpp
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)
@@ -184,6 +203,7 @@ set(KALAHARI_SOURCES
     gui/settings_coordinator.cpp  # SettingsCoordinator - Settings management extracted from MainWindow (OpenSpec #00038 Phase 5)
     gui/navigator_coordinator.cpp  # NavigatorCoordinator - Navigator handlers extracted from MainWindow (OpenSpec #00038 Phase 6)
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
+    gui/document_windows.cpp  # The texts of the book window in its tabs and in windows of their own
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
     gui/paragraph_marks_coordinator.cpp  # ParagraphMarksCoordinator - paperclips of linked paragraphs
     gui/material_list_coordinator.cpp  # MaterialListCoordinator - the lists of the materials on tabs
@@ -194,6 +214,7 @@ set(KALAHARI_SOURCES
     gui/spelling_coordinator.cpp  # SpellingCoordinator - spelling as you type: the editors' dictionary
     gui/grammar_coordinator.cpp  # GrammarCoordinator - grammar as you type: the editors' LanguageTool server
     gui/spelling_panel_coordinator.cpp  # SpellingPanelCoordinator - the Spelling and Grammar panel and the text in front
+    gui/repetitions_coordinator.cpp  # RepetitionsCoordinator - the Repetitions panel, the marks in the text, Next Repetition
     gui/grammar_components.cpp  # GrammarComponents - Java and LanguageTool on this computer
     gui/language_tool_server.cpp  # LanguageToolServer - the LanguageTool server the program starts
     gui/grammar_setup.cpp  # GrammarSetup - Java and LanguageTool downloaded and prepared
@@ -209,6 +230,8 @@ set(KALAHARI_SOURCES
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
     gui/settings/auto_correct_page.cpp  # Settings > Editor > Auto-correct
+    gui/settings/quick_insert_page.cpp  # Settings > Editor > Quick Insert
+    gui/settings/repetitions_page.cpp  # Settings > Editor > Repetitions
     gui/settings/versions_page.cpp  # Settings > Editor > Versions
     gui/settings/annotations_page.cpp
     gui/settings/navigator_page.cpp  # Settings > Navigator
@@ -217,11 +240,18 @@ set(KALAHARI_SOURCES
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     gui/shortcut_rules.cpp  # Which keys a command can have
     gui/shortcut_settings.cpp  # The user's keys in the settings and in the files
+    gui/special_characters.cpp  # The characters of Insert > Special Character, by group, with names
+    gui/special_character_choices.cpp  # The favorite characters and those inserted last
+    gui/character_commands.cpp  # The commands of the characters given keys
+    gui/auto_correct_replacements.cpp  # The replacement table of auto-correct in the settings
+    gui/special_character_coordinator.cpp  # SpecialCharacterCoordinator - Insert > Special Character...
     gui/widget_keys.cpp  # Qt's widgets have the keys of Windows, also on Linux
     gui/widgets/color_config_widget.cpp
     gui/widgets/path_label.cpp  # A file path that wraps also inside a long name
     gui/widgets/length_spin_box.cpp
+    gui/widgets/color_menu.cpp             # The submenus Font Color and Highlight Color
     gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
+    gui/widgets/cover_plan.cpp  # CoverPlan - the plan of the cover with its materials in their places
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
     gui/widgets/flow_layout.cpp  # A row of buttons that wraps on a narrow panel
     gui/widgets/segmented_layout.cpp  # Joined buttons, one under another on a narrow panel
@@ -258,6 +288,7 @@ set(KALAHARI_SOURCES
     gui/panels/search_panel.cpp
     gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards, made only in view
     gui/panels/spelling_panel.cpp  # Spelling and Grammar panel: the counts, the state, the keys
+    gui/panels/repetitions_panel.cpp  # Repetitions panel: the words too close, the most frequent, the keys
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/access_keys.cpp  # The access keys of menu texts
     gui/utils/language_names.cpp  # Names of languages in the language of the user interface
@@ -267,6 +298,7 @@ set(KALAHARI_SOURCES
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
     gui/utils/program_folders.cpp  # The folders of the program and of the windows choosing files
     gui/utils/file_location.cpp  # A file or a folder shown in the file manager of the system
+    gui/utils/caps_lock.cpp  # Caps Lock turned off after autocorrect changed a word typed with it
     gui/utils/document_commands.cpp  # The commands that work on the document in front
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
     gui/utils/tab_focus.cpp  # The keys go to the page in front of the tabs
@@ -275,13 +307,18 @@ set(KALAHARI_SOURCES
     gui/utils/core_texts.cpp  # The core library's texts for the translations
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
+    editor/annotation_cards.cpp  # The cards of the annotations under their paragraphs
     editor/book_editor_annotations.cpp
+    editor/book_editor_cards.cpp
     editor/book_editor_checking.cpp
     editor/book_editor_cursor.cpp
     editor/book_editor_editing.cpp
     editor/book_editor_formatting.cpp
+    editor/book_editor_lists.cpp
+    editor/book_editor_links.cpp
     editor/book_editor_input.cpp
     editor/book_editor_search.cpp
+    editor/book_editor_tables.cpp
     editor/book_editor_view.cpp
     editor/find_replace_bar.cpp  # Find/Replace bar of the editor
     editor/version_comparison.cpp  # A version of a text compared with the text now
@@ -294,14 +331,13 @@ set(KALAHARI_SOURCES
     editor/style_resolver.cpp        # Phase 6.1-6.3: Style resolver with inheritance
     editor/spell_check_service.cpp   # Phase 6.4-6.9: Spell check service with Hunspell
     editor/grammar_check_service.cpp # Phase 6.14-6.17: Grammar check service with LanguageTool
-    editor/word_frequency_analyzer.cpp  # Phase 6.18-6.20: Word frequency analyzer
+    editor/word_repetitions.cpp  # The repetitions of words: too close and most frequent
     editor/text_to_speech_service.cpp   # Phase 6.21-6.24: Text-to-speech service (optional Qt Speech)
     editor/tag_detector.cpp              # Task 7.10: Tag detector service
-    editor/quick_insert_handler.cpp      # Tasks 7.11-7.12: Quick insert @ and # triggers
-    editor/quick_insert_popup.cpp        # Tasks 7.11-7.12: Quick insert autocomplete popup
+    editor/quick_insert.cpp              # Quick insert: the items the typed letters find
+    editor/quick_insert_controller.cpp   # Quick insert: the list at the cursor of an editor
     editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
-    editor/kml_document_model.cpp        # KML reader
     editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
     editor/formatting_marks.cpp               # The formatting marks of a paragraph (¶ · ° → ↵ ¬), drawn by the layout
     editor/text_source_adapter.cpp            # OpenSpec #00043 Phase 12.1: Text source adapters
@@ -319,6 +355,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/program_instance.h  # ProgramInstance with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT (OpenSpec #00038 Phase 4)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_windows.h  # DocumentWindows and DetachedWindow with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panel_tabs.h  # PanelTabs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/panel_tab_bar.h  # PanelTabBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/central_tabs.h  # CentralTabs with Q_OBJECT
@@ -339,8 +376,17 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/special_character_dialog.h  # SpecialCharacterDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/list_dialogs.h  # the list windows with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/font_dialog.h  # Format > Font... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_dialog.h  # Format > Paragraph... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/hyperlink_dialog.h  # Insert > Link... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/insert_table_dialog.h  # Insert > Table... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/versions_coordinator.h  # VersionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h
@@ -354,10 +400,12 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/special_character_coordinator.h  # SpecialCharacterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_panel_coordinator.h  # SpellingPanelCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/repetitions_coordinator.h  # RepetitionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/language_tool_server.h  # LanguageToolServer with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_setup.h  # GrammarSetup with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
@@ -367,7 +415,9 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/shortcuts_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_menu.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h  # InfoBar with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/cover_plan.h  # CoverPlan with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
@@ -398,6 +448,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_panel.h  # SpellingPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/repetitions_panel.h  # RepetitionsPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/tags_panel.h     # TagsPanel with Q_OBJECT (OpenSpec #00042 Task 7.10)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h  # CommandRegistry with Q_OBJECT (OpenSpec #00040)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h  # BookEditor with Q_OBJECT (OpenSpec #00042 Phase 3.1)
@@ -406,11 +457,9 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/style_resolver.h  # StyleResolver with Q_OBJECT (OpenSpec #00042 Phase 6.1-6.3)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT (OpenSpec #00042 Phase 6.4-6.9)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT (OpenSpec #00042 Phase 6.14-6.17)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h  # WordFrequencyAnalyzer with Q_OBJECT (OpenSpec #00042 Phase 6.18-6.20)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/text_to_speech_service.h  # TextToSpeechService with Q_OBJECT (OpenSpec #00042 Phase 6.21-6.24)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/tag_detector.h  # TagDetector with Q_OBJECT (OpenSpec #00042 Task 7.10)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/quick_insert_handler.h  # QuickInsertHandler with Q_OBJECT (OpenSpec #00042 Tasks 7.11-7.12)
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/quick_insert_popup.h    # QuickInsertPopup with Q_OBJECT (OpenSpec #00042 Tasks 7.11-7.12)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/quick_insert_controller.h  # QuickInsertList, QuickInsertController with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/viewport_manager.h     # ViewportManager with Q_OBJECT (OpenSpec #00043 Phase 4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/search_engine.h       # SearchEngine with Q_OBJECT (OpenSpec #00044 Task 9.4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/kalahari_text_document_layout.h  # KalahariTextDocumentLayout with Q_OBJECT (OpenSpec #00043 Phase 11.11)

@@ -13,6 +13,7 @@
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QElapsedTimer>
 #include <QFont>
 #include <QLabel>
@@ -96,7 +97,7 @@ void SettingsDialog::createNavigationTree() {
         item->setExpanded(true);
         return item;
     };
-    addPage(nullptr, tr("General"), [this]() {
+    m_pageItems[GENERAL_PAGE] = addPage(nullptr, tr("General"), [this]() {
         auto* generalPage = new GeneralPage();
         connect(generalPage, &GeneralPage::lengthUnitChanged, this,
                 [this](const QString& unit) { setLengthUnit(lengthUnitFromName(unit)); });
@@ -110,26 +111,62 @@ void SettingsDialog::createNavigationTree() {
     addPage(appearance, tr("Dashboard"), []() { return new DashboardPage(); });
 
     QTreeWidgetItem* editor = category(tr("Editor"));
-    addPage(editor, tr("General"), []() { return new EditorGeneralPage(); });
-    addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
+    addPage(editor, tr("General"),
+            []() { return new EditorGeneralPage(EditorGeneralPage::Part::Text); });
+    //: Settings > Editor > Writing: the behavior of the editor while writing. In Polish: Pisanie
+    addPage(editor, tr("Writing"),
+            []() { return new EditorGeneralPage(EditorGeneralPage::Part::Writing); });
+    m_pageItems[EDITOR_COLORS_PAGE] =
+        addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
-    addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
+    m_pageItems[PAGES_PAGE] = addPage(editor, tr("Pages and Margins"), []() {
+        return new EditorPagesPage(EditorPagesPage::Part::Pages);
+    });
+    //: Settings > Editor > Margin Numbering: the numbers of the lines or paragraphs in the
+    //: margin. Short: the list of the pages is as wide as its longest name. In Polish: Numeracja
+    m_pageItems[MARGIN_NUMBERING_PAGE] = addPage(editor, tr("Margin Numbering"), []() {
+        return new EditorPagesPage(EditorPagesPage::Part::MarginNumbers);
+    });
     m_pageItems[SPELLING_PAGE] =
         addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
     addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_grammar); });
     addPage(editor, tr("Auto-correct"), []() { return new EditorAutoCorrectPage(); });
+    //: Settings > Editor > Quick Insert: @ and # in the text. In Polish: Szybkie wstawianie
+    addPage(editor, tr("Quick Insert"), []() { return new EditorQuickInsertPage(); });
+    //: Settings > Editor > Repetitions: the words that come back too close. In Polish: Powtórzenia
+    m_pageItems[REPETITIONS_PAGE] =
+        addPage(editor, tr("Repetitions"), []() { return new EditorRepetitionsPage(); });
     //: Settings > Editor > Versions: the versions of the texts. In Polish: Wersje
     m_pageItems[VERSIONS_PAGE] =
         addPage(editor, tr("Versions"), []() { return new EditorVersionsPage(); });
-    addPlannedPage(editor, tr("Completion"),
-                   tr("Planned features:\n"
-                      "- Word completion suggestions\n"
-                      "- Character name completion\n"
-                      "- Location name completion"));
 
-    m_pageItems[ANNOTATIONS_PAGE] =
-        addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
-    addPage(nullptr, tr("Navigator"), []() { return new NavigatorPage(); });
+    QTreeWidgetItem* annotations = category(tr("Annotations"));
+    m_pageItems[ANNOTATIONS_PAGE] = addPage(annotations, tr("General"), []() {
+        return new AnnotationsPage(AnnotationsPage::Part::General);
+    });
+    //: Settings > Annotations > Cards: the annotations shown as cards under the paragraphs in
+    //: the continuous view. Short: the list of the pages is as wide as its longest name. In
+    //: Polish: Karty
+    addPage(annotations, tr("Cards"),
+            []() { return new AnnotationsPage(AnnotationsPage::Part::Cards); });
+
+    QTreeWidgetItem* navigator = category(tr("Navigator"));
+    //: Settings > Navigator > Adding: the menus of the nodes, the Add Element window and the
+    //: dropped files. In Polish: Dodawanie
+    m_pageItems[NAVIGATOR_ADDING_PAGE] = addPage(navigator, tr("Adding"), []() {
+        return new NavigatorPage(NavigatorPage::Part::Adding);
+    });
+    //: Settings > Navigator > Materials: the lists and the opening of the materials. In
+    //: Polish: Materiały
+    addPage(navigator, tr("Materials"),
+            []() { return new NavigatorPage(NavigatorPage::Part::Materials); });
+    //: Settings > Navigator > Material Kinds: the kinds of materials shown in the Navigator. In
+    //: Polish: Typy materiałów
+    m_pageItems[NAVIGATOR_PAGE] = addPage(navigator, tr("Material Kinds"), []() {
+        return new NavigatorPage(NavigatorPage::Part::Kinds);
+    });
+    //: Settings > Navigator > Cover: the cover of the book in the Navigator. In Polish: Okładka
+    addPage(navigator, tr("Cover"), []() { return new NavigatorPage(NavigatorPage::Part::Cover); });
     m_pageItems[SHORTCUTS_PAGE] =
         addPage(nullptr, tr("Keyboard Shortcuts"), []() { return new ShortcutsPage(); });
 
@@ -290,6 +327,23 @@ bool SettingsDialog::openPage(const QString& page) {
     if (page == QLatin1String(SHORTCUTS_PAGE)) {
         if (auto* shortcuts = m_pageStack->findChild<ShortcutsPage*>()) {
             shortcuts->setFocus(Qt::OtherFocusReason);
+        }
+    } else if (page == QLatin1String(MARGIN_NUMBERING_PAGE)) {
+        // The cursor in the choice of the numbering, its group in view
+        const auto built = m_builtPages.find(item->second);
+        auto* scrollArea =
+            built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;
+        auto* group = scrollArea != nullptr
+            ? scrollArea->findChild<QWidget*>(QStringLiteral("marginNumbersGroup"))
+            : nullptr;
+        if (group != nullptr) {
+            if (auto* mode = group->findChild<QComboBox*>(QStringLiteral("marginNumbersMode"))) {
+                mode->setFocus(Qt::OtherFocusReason);
+            }
+            // Once the dialog shows: the page has its size then
+            QTimer::singleShot(0, scrollArea, [scrollArea, group]() {
+                scrollArea->ensureWidgetVisible(group);
+            });
         }
     }
     return true;

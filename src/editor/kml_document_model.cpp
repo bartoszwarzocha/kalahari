@@ -5,12 +5,14 @@
 
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/editor/kml_format_registry.h"
+#include "kalahari/editor/text_link.h"
 #include "kalahari/core/logger.h"
 
 #include <QDateTime>
 #include <QTimeZone>
 #include <QXmlStreamReader>
 
+#include <algorithm>
 #include <optional>
 
 namespace kalahari {
@@ -130,6 +132,10 @@ bool KmlDocumentModel::loadKml(const QString& kml)
                 m_paragraphs.push_back(std::move(para));
                 reader.skipCurrentElement();
                 reader.readNext();
+            } else if (tag == QStringLiteral("ol") || tag == QStringLiteral("ul")) {
+                parseTopLevelList(reader);  // consumes </ol>
+            } else if (tag == QStringLiteral("table")) {
+                parseTable(reader);  // consumes </table>
             } else if (isBlockElement(tag)) {
                 // Parse the paragraph straight from the document reader (consumes </p>)
                 Paragraph para;
@@ -166,8 +172,11 @@ bool KmlDocumentModel::loadKml(const QString& kml)
 void KmlDocumentModel::clear()
 {
     m_paragraphs.clear();
+    m_tables.clear();
     m_annotations.clear();
     m_anchoredIds.clear();
+    m_lastListId = 0;
+    m_lastListDefinition = ListDefinition();
 }
 
 AnnotationList KmlDocumentModel::readAnnotations(const QString& kml)
@@ -265,6 +274,22 @@ TextObject KmlDocumentModel::paragraphObject(size_t index) const
     return m_paragraphs[index].object;
 }
 
+ParagraphFormat KmlDocumentModel::paragraphOwnFormat(size_t index) const
+{
+    if (index >= m_paragraphs.size()) {
+        return {};
+    }
+    return m_paragraphs[index].format;
+}
+
+std::optional<ListItem> KmlDocumentModel::paragraphList(size_t index) const
+{
+    if (index >= m_paragraphs.size()) {
+        return std::nullopt;
+    }
+    return m_paragraphs[index].list;
+}
+
 AnnotationList KmlDocumentModel::paragraphStartAnnotations(size_t index) const
 {
     if (index >= m_paragraphs.size()) {
@@ -273,13 +298,40 @@ AnnotationList KmlDocumentModel::paragraphStartAnnotations(size_t index) const
     return m_paragraphs[index].startAnnotations;
 }
 
+std::optional<TableCellPlace> KmlDocumentModel::paragraphCell(size_t index) const
+{
+    if (index >= m_paragraphs.size()) {
+        return std::nullopt;
+    }
+    return m_paragraphs[index].cell;
+}
+
+// =============================================================================
+// Tables
+// =============================================================================
+
+size_t KmlDocumentModel::tableCount() const
+{
+    return m_tables.size();
+}
+
+TableShape KmlDocumentModel::table(size_t index) const
+{
+    if (index >= m_tables.size()) {
+        return {};
+    }
+    return m_tables[index];
+}
+
 // =============================================================================
 // Private Methods
 // =============================================================================
 
 bool KmlDocumentModel::isBlockElement(QStringView tag)
 {
-    if (tag == QStringLiteral("p") || tag == QStringLiteral("paragraph")) {
+    if (tag == QStringLiteral("p") || tag == QStringLiteral("paragraph") ||
+        tag == QStringLiteral("ol") || tag == QStringLiteral("ul") ||
+        tag == QStringLiteral("table")) {
         return true;
     }
     return headingLevelOfElement(tag) > 0 || textObjectOfElement(tag.toString()) != TextObject::None;
@@ -361,13 +413,13 @@ void KmlDocumentModel::appendText(Paragraph& para, const QString& source,
     }
 }
 
-void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph& para)
+void KmlDocumentModel::readParagraphAttributes(QXmlStreamReader& reader, Paragraph& para)
 {
     const QString tag = reader.name().toString();
 
     // A heading is in the style of its level; a paragraph in the style it names (a style the
     // book does not have is kept: the editor shows it as Normal)
-    QXmlStreamAttributes attrs = reader.attributes();
+    const QXmlStreamAttributes attrs = reader.attributes();
     if (const int level = headingLevelOfElement(tag); level > 0) {
         para.style = headingStyleId(level);
     } else {
@@ -391,6 +443,14 @@ void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph
         }
     }
 
+    para.format = paragraphFormatFromKml(attrs);
+}
+
+void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph& para)
+{
+    const QString tag = reader.name().toString();
+    readParagraphAttributes(reader, para);
+
     // Move past start element
     reader.readNext();
 
@@ -398,19 +458,474 @@ void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph
     parseInlineContent(reader, para, QTextCharFormat(), tag);
 }
 
-void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
+void KmlDocumentModel::parseTopLevelList(QXmlStreamReader& reader)
+{
+    // A list goes on with the number of the one before it, or gets a new one
+    ListReading list;
+    const QString continues =
+        reader.attributes().value(QStringLiteral("continue")).toString().trimmed().toLower();
+    if (m_lastListId > 0 &&
+        (continues == QStringLiteral("true") || continues == QStringLiteral("1"))) {
+        list.id = m_lastListId;
+        list.definition = m_lastListDefinition;
+    } else {
+        list.id = m_lastListId + 1;
+        list.definition = ListDefinition::ofKind(reader.name() == QStringLiteral("ul")
+                                                     ? ListKind::Bulleted
+                                                     : ListKind::Numbered);
+    }
+    parseList(reader, list, 0);
+
+    // The items read before the element of a deeper level take its format
+    for (const auto& [index, known] : list.items) {
+        std::optional<ListItem>& listItem = m_paragraphs[index].list;
+        if (!listItem) {
+            continue;
+        }
+        ListItem& item = *listItem;
+        for (int level = 0; level < LIST_LEVELS; ++level) {
+            if ((known & (1U << level)) == 0) {
+                item.definition.levels[static_cast<size_t>(level)] =
+                    list.definition.levels[static_cast<size_t>(level)];
+            }
+        }
+    }
+    m_lastListId = std::max(m_lastListId, list.id);
+    m_lastListDefinition = list.definition;
+}
+
+void KmlDocumentModel::parseList(QXmlStreamReader& reader, ListReading& list, int level)
+{
+    const QString tag = reader.name().toString();
+    const int index = std::min(level, LIST_LEVELS - 1);
+    list.definition.levels[static_cast<size_t>(index)] =
+        listLevelFromKml(tag == QStringLiteral("ol"), reader.attributes(), index);
+    list.knownLevels |= 1U << index;
+
+    // Its items, and the lists of a deeper level without an item of their own; text between
+    // them (the indentation of the KML) and other elements are skipped. Each of them stops
+    // after its end element, at the next token.
+    reader.readNext();
+    while (!reader.atEnd()) {
+        if (reader.isEndElement()) {
+            reader.readNext();  // the list's own: its children are read whole
+            return;
+        }
+        if (!reader.isStartElement()) {
+            reader.readNext();
+            continue;
+        }
+        const QStringView child = reader.name();
+        if (child == QStringLiteral("li")) {
+            parseListItem(reader, list, index);
+        } else if (child == QStringLiteral("ol") || child == QStringLiteral("ul")) {
+            parseList(reader, list, index + 1);
+        } else {
+            reader.skipCurrentElement();
+            reader.readNext();
+        }
+    }
+}
+
+void KmlDocumentModel::appendListParagraph(Paragraph&& para, ListReading& list)
+{
+    list.items.emplace_back(m_paragraphs.size(), list.knownLevels);
+    m_paragraphs.push_back(std::move(para));
+}
+
+namespace {
+
+/// @brief Remove the indentation at the end of an item's text before a list inside it: white
+///        space with a line end, which indented KML puts there
+void trimIndentation(QString& text, std::vector<FormatRun>& formats)
+{
+    qsizetype end = text.size();
+    bool lineEnd = false;
+    while (end > 0 && text.at(end - 1).isSpace()) {
+        lineEnd |= text.at(end - 1) == QLatin1Char('\n');
+        --end;
+    }
+    if (!lineEnd) {
+        return;
+    }
+    text.truncate(end);
+    const auto length = static_cast<size_t>(end);
+    for (FormatRun& run : formats) {
+        run.end = std::min(run.end, length);
+    }
+    formats.erase(std::remove_if(formats.begin(), formats.end(),
+                                 [](const FormatRun& run) { return run.start >= run.end; }),
+                  formats.end());
+}
+
+/// @brief Remove the indentation at the start of the text after a list inside an item: white
+///        space with a line end
+void trimLeadingIndentation(QString& text, std::vector<FormatRun>& formats)
+{
+    qsizetype start = 0;
+    bool lineEnd = false;
+    while (start < text.size() && text.at(start).isSpace()) {
+        lineEnd |= text.at(start) == QLatin1Char('\n');
+        ++start;
+    }
+    if (!lineEnd) {
+        return;
+    }
+    text.remove(0, start);
+    const auto removed = static_cast<size_t>(start);
+    for (FormatRun& run : formats) {
+        run.start = run.start > removed ? run.start - removed : 0;
+        run.end = run.end > removed ? run.end - removed : 0;
+    }
+    formats.erase(std::remove_if(formats.begin(), formats.end(),
+                                 [](const FormatRun& run) { return run.start >= run.end; }),
+                  formats.end());
+}
+
+}  // anonymous namespace
+
+void KmlDocumentModel::parseListItem(QXmlStreamReader& reader, ListReading& list, int level)
+{
+    Paragraph item;
+    readParagraphAttributes(reader, item);
+    const QXmlStreamAttributes attrs = reader.attributes();
+    ListItem place;
+    place.id = list.id;
+    place.level = level;
+    place.definition = list.definition;
+    bool ok = false;
+    const int value = attrs.value(QStringLiteral("value")).toString().trimmed().toInt(&ok);
+    if (ok) {
+        place.value = std::clamp(value, MIN_LIST_NUMBER, MAX_LIST_NUMBER);
+    }
+    const QString numbered = attrs.value(QStringLiteral("numbered")).toString().trimmed().toLower();
+    place.numbered = numbered != QStringLiteral("false") && numbered != QStringLiteral("0");
+    item.list = place;
+    reader.readNext();
+
+    // The item's own paragraph; after a list or a paragraph inside the item, its text goes
+    // on in a paragraph of the item's level without a number
+    Paragraph current = std::move(item);
+    bool first = true;
+    for (;;) {
+        const bool ended = parseInlineContent(reader, current, QTextCharFormat(),
+                                              QStringLiteral("li"), true);
+        if (!first) {
+            trimLeadingIndentation(current.text, current.formats);
+        }
+        if (ended) {
+            if (first || !current.text.trimmed().isEmpty() || !current.startAnnotations.isEmpty()) {
+                appendListParagraph(std::move(current), list);
+            }
+            return;
+        }
+
+        const QString child = reader.name().toString();
+        if (child == QStringLiteral("ol") || child == QStringLiteral("ul")) {
+            trimIndentation(current.text, current.formats);
+            if (first || !current.text.isEmpty() || !current.startAnnotations.isEmpty()) {
+                appendListParagraph(std::move(current), list);
+            }
+            parseList(reader, list, std::min(level + 1, LIST_LEVELS - 1));
+        } else if (child == QStringLiteral("table")) {
+            // A table goes after the item's paragraph
+            trimIndentation(current.text, current.formats);
+            if (first || !current.text.isEmpty() || !current.startAnnotations.isEmpty()) {
+                appendListParagraph(std::move(current), list);
+            }
+            parseTable(reader);
+        } else {
+            // A paragraph inside the item: the item's own text when it has none yet
+            const bool own = first && current.text.trimmed().isEmpty() && current.formats.empty();
+            Paragraph para;
+            if (own) {
+                para = std::move(current);
+                para.text.clear();
+            } else {
+                trimIndentation(current.text, current.formats);
+                if (first || !current.text.isEmpty() || !current.startAnnotations.isEmpty()) {
+                    appendListParagraph(std::move(current), list);
+                }
+                para.list = place;
+                para.list->definition = list.definition;
+                para.list->value.reset();
+                para.list->numbered = false;
+            }
+            std::optional<ListItem> keptPlace = para.list;
+            readParagraphAttributes(reader, para);
+            para.list = keptPlace;
+            reader.readNext();
+            parseInlineContent(reader, para, QTextCharFormat(), child);
+            appendListParagraph(std::move(para), list);
+        }
+
+        // The rest of the item's text: a paragraph of its level without a number
+        first = false;
+        current = Paragraph();
+        current.list = place;
+        current.list->definition = list.definition;
+        current.list->value.reset();
+        current.list->numbered = false;
+    }
+}
+
+namespace {
+
+/// @brief The width of a <col> element: the number before its unit ("40%", "120px");
+///        std::nullopt without a number greater than 0 ("auto")
+std::optional<double> columnWidthOf(const QString& written)
+{
+    const QString value = written.trimmed();
+    qsizetype digits = 0;
+    while (digits < value.size() &&
+           (value.at(digits).isDigit() || value.at(digits) == QLatin1Char('.'))) {
+        ++digits;
+    }
+    bool ok = false;
+    const double width = value.left(digits).toDouble(&ok);
+    if (!ok || width <= 0) {
+        return std::nullopt;
+    }
+    return width;
+}
+
+/// @brief The widths of a table's columns in percent, from those its <col> elements give
+///
+/// The widths, in percent or another unit, are taken in proportion to one another. A column
+/// without a <col> element gets the average width of the others; together the widths make
+/// a hundred percent.
+/// @return The widths; empty (equal columns) without <col> elements, or when one of them
+///         has no width
+std::vector<double> columnWidthsInPercent(std::vector<double> widths, bool known, int columns)
+{
+    if (!known || widths.empty() || columns <= 0) {
+        return {};
+    }
+    widths.resize(std::min(widths.size(), static_cast<size_t>(columns)));
+    double sum = 0;
+    for (const double width : widths) {
+        sum += width;
+    }
+    const double average = sum / static_cast<double>(widths.size());
+    while (widths.size() < static_cast<size_t>(columns)) {
+        widths.push_back(average);
+        sum += average;
+    }
+    for (double& width : widths) {
+        width = width * 100.0 / sum;
+    }
+    return widths;
+}
+
+}  // anonymous namespace
+
+void KmlDocumentModel::parseTable(QXmlStreamReader& reader)
+{
+    TableReading table;
+    table.index = static_cast<int>(m_tables.size());
+    parseTableRows(reader, table);
+
+    TableShape& shape = table.shape;
+    if (shape.rows == 0 || shape.columns == 0) {
+        return;  // without cells: no paragraphs either
+    }
+    // A cell spanning more rows than the table has spans those it has
+    for (TableSpan& span : shape.spans) {
+        span.rows = std::min(span.rows, shape.rows - span.row);
+    }
+    shape.spans.erase(std::remove_if(shape.spans.begin(), shape.spans.end(),
+                                     [](const TableSpan& span) {
+                                         return span.rows <= 1 && span.columns <= 1;
+                                     }),
+                      shape.spans.end());
+    shape.columnWidths = columnWidthsInPercent(table.widths, table.knownWidths, shape.columns);
+    m_tables.push_back(std::move(shape));
+}
+
+void KmlDocumentModel::parseTableRows(QXmlStreamReader& reader, TableReading& table)
+{
+    reader.readNext();
+    while (!reader.atEnd()) {
+        if (reader.isEndElement()) {
+            reader.readNext();  // the element's own: its children are read whole
+            return;
+        }
+        if (!reader.isStartElement()) {
+            reader.readNext();
+            continue;
+        }
+        const QString child = reader.name().toString();
+        if (child == QStringLiteral("tr")) {
+            parseTableRow(reader, table);
+        } else if (child == QStringLiteral("col")) {
+            const auto width = columnWidthOf(reader.attributes().value(QStringLiteral("width")).toString());
+            if (width) {
+                table.widths.push_back(*width);
+            } else {
+                table.knownWidths = false;
+            }
+            reader.skipCurrentElement();
+            reader.readNext();
+        } else if (child == QStringLiteral("colgroup") || child == QStringLiteral("thead") ||
+                   child == QStringLiteral("tbody") || child == QStringLiteral("tfoot")) {
+            parseTableRows(reader, table);
+        } else {
+            reader.skipCurrentElement();
+            reader.readNext();
+        }
+    }
+}
+
+void KmlDocumentModel::parseTableRow(QXmlStreamReader& reader, TableReading& table)
+{
+    const int row = table.shape.rows++;
+    int column = 0;
+    bool headerCells = false;
+    bool dataCells = false;
+    reader.readNext();
+    while (!reader.atEnd()) {
+        if (reader.isEndElement()) {
+            reader.readNext();  // the row's own: its cells are read whole
+            break;
+        }
+        if (!reader.isStartElement()) {
+            reader.readNext();
+            continue;
+        }
+        const QString child = reader.name().toString();
+        if (child != QStringLiteral("td") && child != QStringLiteral("th")) {
+            reader.skipCurrentElement();
+            reader.readNext();
+            continue;
+        }
+
+        // The cell goes in the first column the cells above do not span into, and spans
+        // the free columns after it it asks for
+        std::vector<int>& takenUntil = table.takenUntil;
+        while (static_cast<size_t>(column) < takenUntil.size() &&
+               takenUntil[static_cast<size_t>(column)] > row) {
+            ++column;
+        }
+        const QXmlStreamAttributes attrs = reader.attributes();
+        const auto spanOf = [&attrs](const QString& name) {
+            bool ok = false;
+            const int span = attrs.value(name).toString().trimmed().toInt(&ok);
+            return ok ? std::clamp(span, 1, MAX_TABLE_SPAN) : 1;
+        };
+        const int rows = spanOf(QStringLiteral("rowspan"));
+        int columns = spanOf(QStringLiteral("colspan"));
+        const size_t end = static_cast<size_t>(column) + static_cast<size_t>(columns);
+        if (takenUntil.size() < end) {
+            takenUntil.resize(end, 0);
+        }
+        for (int free = 1; free < columns; ++free) {
+            if (takenUntil[static_cast<size_t>(column) + static_cast<size_t>(free)] > row) {
+                columns = free;
+                break;
+            }
+        }
+        for (int taken = column; taken < column + columns; ++taken) {
+            takenUntil[static_cast<size_t>(taken)] = row + rows;
+        }
+        if (rows > 1 || columns > 1) {
+            table.shape.spans.push_back({row, column, rows, columns});
+        }
+        table.shape.columns = std::max(table.shape.columns, column + columns);
+        (child == QStringLiteral("th") ? headerCells : dataCells) = true;
+
+        // An empty cell has an empty paragraph
+        const size_t before = m_paragraphs.size();
+        const TableCellPlace place{table.index, row, column};
+        parseCellContent(reader, place);
+        if (m_paragraphs.size() == before) {
+            Paragraph empty;
+            empty.cell = place;
+            m_paragraphs.push_back(std::move(empty));
+        }
+        column += columns;
+    }
+
+    // A first row of header cells only is the table's header
+    if (row == 0 && headerCells && !dataCells) {
+        table.shape.headerRows = 1;
+    }
+}
+
+void KmlDocumentModel::parseCellContent(QXmlStreamReader& reader, const TableCellPlace& place)
+{
+    const QString tag = reader.name().toString();
+    reader.readNext();
+    for (;;) {
+        // Text outside a paragraph (between its paragraphs: the indentation of the KML)
+        Paragraph loose;
+        const bool ended = parseInlineContent(reader, loose, QTextCharFormat(), tag, true);
+        trimIndentation(loose.text, loose.formats);
+        trimLeadingIndentation(loose.text, loose.formats);
+        if (!loose.text.trimmed().isEmpty() || !loose.startAnnotations.isEmpty()) {
+            loose.cell = place;
+            m_paragraphs.push_back(std::move(loose));
+        }
+        if (ended) {
+            return;
+        }
+
+        const QString child = reader.name().toString();
+        const size_t first = m_paragraphs.size();
+        if (child == QStringLiteral("ol") || child == QStringLiteral("ul")) {
+            parseTopLevelList(reader);
+        } else if (child == QStringLiteral("table")) {
+            flattenInnerTable(reader, place);
+        } else {
+            Paragraph para;
+            parseParagraphElement(reader, para);
+            m_paragraphs.push_back(std::move(para));
+        }
+        for (size_t index = first; index < m_paragraphs.size(); ++index) {
+            m_paragraphs[index].cell = place;
+        }
+    }
+}
+
+void KmlDocumentModel::flattenInnerTable(QXmlStreamReader& reader, const TableCellPlace& place)
+{
+    reader.readNext();
+    while (!reader.atEnd()) {
+        if (reader.isEndElement()) {
+            reader.readNext();
+            return;
+        }
+        if (!reader.isStartElement()) {
+            reader.readNext();
+            continue;
+        }
+        const QString child = reader.name().toString();
+        if (child == QStringLiteral("td") || child == QStringLiteral("th")) {
+            parseCellContent(reader, place);
+        } else if (child == QStringLiteral("tr") || child == QStringLiteral("thead") ||
+                   child == QStringLiteral("tbody") || child == QStringLiteral("tfoot") ||
+                   child == QStringLiteral("table")) {
+            flattenInnerTable(reader, place);
+        } else {
+            reader.skipCurrentElement();
+            reader.readNext();
+        }
+    }
+}
+
+bool KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                                           Paragraph& para,
                                           QTextCharFormat currentFormat,
-                                          const QString& endTag)
+                                          const QString& endTag,
+                                          bool stopAtBlocks)
 {
     while (!reader.atEnd()) {
         if (reader.isEndElement()) {
             QString tag = reader.name().toString();
             if (tag == endTag || tag == QStringLiteral("paragraph")) {
                 reader.readNext();
-                return;
+                return true;
             }
-            return;
+            return true;
         }
 
         if (reader.isCharacters()) {
@@ -419,6 +934,10 @@ void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
         } else if (reader.isStartElement()) {
             QString tag = reader.name().toString();
 
+            if (stopAtBlocks && isBlockElement(tag) &&
+                textObjectOfElement(tag) == TextObject::None) {
+                return false;  // a paragraph or a list inside a list item
+            }
             if (KmlFormatRegistry::isFormattingTag(tag)) {
                 // Apply formatting tag
                 QTextCharFormat newFormat = KmlFormatRegistry::applyTagFormat(tag, currentFormat);
@@ -462,6 +981,13 @@ void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                     anchorAfterText(para, annotation);
                 }
                 m_anchoredIds.insert(ref);
+            } else if (tag == QStringLiteral("a")) {
+                // A link: its text with its address; without an address the text is plain
+                QTextCharFormat newFormat = currentFormat;
+                setLinkAddress(newFormat,
+                               reader.attributes().value(QStringLiteral("href")).toString().trimmed());
+                reader.readNext();
+                parseInlineContent(reader, para, newFormat, tag);
             } else if (tag == QStringLiteral("t") || tag == QStringLiteral("text")) {
                 // Text run - just parse content
                 reader.readNext();
@@ -482,6 +1008,7 @@ void KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
             reader.readNext();
         }
     }
+    return true;
 }
 
 } // namespace editor

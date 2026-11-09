@@ -2,6 +2,29 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="pl_PL">
 <context>
+    <name>AnnotationCards</name>
+    <message>
+        <source>Comment</source>
+        <translation>Komentarz</translation>
+    </message>
+    <message>
+        <source>To do</source>
+        <translation>Do zrobienia</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>(no text)</source>
+        <translation>(bez treści)</translation>
+    </message>
+    <message>
+        <source>Show all</source>
+        <translation>Pokaż całość</translation>
+    </message>
+</context>
+<context>
     <name>CloseButton</name>
     <message>
         <source>Close Tab</source>
@@ -676,10 +699,6 @@
         <translation>&amp;Numerowanie</translation>
     </message>
     <message>
-        <source>C&amp;olor</source>
-        <translation>K&amp;olor</translation>
-    </message>
-    <message>
         <source>Clear For&amp;matting</source>
         <translation>Wyczyść &amp;formatowanie</translation>
     </message>
@@ -986,6 +1005,134 @@
     <message>
         <source>Version &amp;History...</source>
         <translation>&amp;Historia wersji...</translation>
+    </message>
+    <message>
+        <source>&amp;Non-breaking Space</source>
+        <translation>&amp;Spacja nierozdzielająca</translation>
+    </message>
+    <message>
+        <source>Non-breaking &amp;Hyphen</source>
+        <translation>Łącznik &amp;nierozdzielający</translation>
+    </message>
+    <message>
+        <source>&amp;Optional Hyphen</source>
+        <translation>Łącznik &amp;opcjonalny</translation>
+    </message>
+    <message>
+        <source>&amp;En Dash</source>
+        <translation>&amp;Półpauza</translation>
+    </message>
+    <message>
+        <source>E&amp;m Dash</source>
+        <translation>P&amp;auza</translation>
+    </message>
+    <message>
+        <source>&amp;Quick Character</source>
+        <translation>Szybki &amp;wybór znaku</translation>
+    </message>
+    <message>
+        <source>Annotation &amp;Cards Under Paragraphs</source>
+        <translation>Karty uwag p&amp;od akapitem</translation>
+    </message>
+    <message>
+        <source>Collapse &amp;All Annotations</source>
+        <translation>Zw&amp;iń wszystkie uwagi</translation>
+    </message>
+    <message>
+        <source>&amp;Expand All Annotations</source>
+        <translation>Rozwiń wszystkie uwa&amp;gi</translation>
+    </message>
+    <message>
+        <source>&amp;No Numbering</source>
+        <translation>&amp;Bez numeracji</translation>
+    </message>
+    <message>
+        <source>&amp;Line Numbers</source>
+        <translation>Numery &amp;wierszy</translation>
+    </message>
+    <message>
+        <source>&amp;Paragraph Numbers</source>
+        <translation>Numery &amp;akapitów</translation>
+    </message>
+    <message>
+        <source>Numbering &amp;Settings...</source>
+        <translation>&amp;Ustawienia numeracji...</translation>
+    </message>
+    <message>
+        <source>Bullets and Numberin&amp;g...</source>
+        <translation>Punk&amp;tory i numeracja...</translation>
+    </message>
+    <message>
+        <source>Su&amp;perscript</source>
+        <translation>Indeks &amp;górny</translation>
+    </message>
+    <message>
+        <source>Su&amp;bscript</source>
+        <translation>Indeks &amp;dolny</translation>
+    </message>
+    <message>
+        <source>S&amp;mall Caps</source>
+        <translation>&amp;Kapitaliki</translation>
+    </message>
+    <message>
+        <source>&amp;All Caps</source>
+        <translation>&amp;Wersaliki</translation>
+    </message>
+    <message>
+        <source>&amp;Sentence case</source>
+        <translation>&amp;Jak w zdaniu</translation>
+    </message>
+    <message>
+        <source>&amp;lowercase</source>
+        <translation>&amp;małe litery</translation>
+    </message>
+    <message>
+        <source>&amp;UPPERCASE</source>
+        <translation>&amp;WIELKIE LITERY</translation>
+    </message>
+    <message>
+        <source>&amp;Capitalize Each Word</source>
+        <translation>&amp;Każdy Wyraz Wielką Literą</translation>
+    </message>
+    <message>
+        <source>&amp;tOGGLE cASE</source>
+        <translation>&amp;zMIEŃ wIELKOŚĆ lITER</translation>
+    </message>
+    <message>
+        <source>F&amp;ont Color</source>
+        <translation>K&amp;olor czcionki</translation>
+    </message>
+    <message>
+        <source>&amp;Highlight Color</source>
+        <translation>Kolo&amp;r wyróżnienia tekstu</translation>
+    </message>
+    <message>
+        <source>Cop&amp;y Formatting</source>
+        <translation>Ko&amp;piuj formatowanie</translation>
+    </message>
+    <message>
+        <source>Paste Fo&amp;rmatting</source>
+        <translation>&amp;Wklej formatowanie</translation>
+    </message>
+    <message>
+        <source>Q&amp;uick Insert...</source>
+        <translation>Szybkie wst&amp;awianie...</translation>
+    </message>
+    <message>
+        <source>Word R&amp;epetitions</source>
+        <translation>Powtó&amp;rzenia słów</translation>
+    </message>
+    <message>
+        <source>Ne&amp;xt Repetition</source>
+        <translation>Nas&amp;tępne powtórzenie</translation>
+    </message>
+    <message>
+        <source>R&amp;epetitions</source>
+        <translation>Powtó&amp;rzenia</translation>
+    </message>
+    <message>
+        <source>Repetiti&amp;ons in Text</source>
+        <translation>Powtórzeni&amp;a w tekście</translation>
     </message>
 </context>
 <context>
@@ -2072,6 +2219,11 @@ Uruchomić ponownie teraz?</translation>
         <translation>&amp;Widok</translation>
     </message>
     <message>
+        <source>&amp;Window</source>
+        <extracomment>The menu of the windows of the program, before Help. In Polish: &amp;Okno</extracomment>
+        <translation>&amp;Okno</translation>
+    </message>
+    <message>
         <source>&amp;Help</source>
         <translation>Pomo&amp;c</translation>
     </message>
@@ -2113,7 +2265,7 @@ Uruchomić ponownie teraz?</translation>
     </message>
     <message>
         <source>&amp;Panels</source>
-        <translation>P&amp;anele</translation>
+        <translation>Pane&amp;le</translation>
     </message>
     <message>
         <source>Pe&amp;rspectives</source>
@@ -2190,6 +2342,26 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>Versions &amp;and Backups Toolbar</source>
         <translation>Wers&amp;je i kopie</translation>
+    </message>
+    <message>
+        <source>Fo&amp;rmatting Character</source>
+        <translation>Znak &amp;formatujący</translation>
+    </message>
+    <message>
+        <source>Margin &amp;Numbering</source>
+        <translation>Numerac&amp;ja na marginesie</translation>
+    </message>
+    <message>
+        <source>&amp;Text Effects</source>
+        <translation>&amp;Efekty tekstu</translation>
+    </message>
+    <message>
+        <source>&amp;Change Case</source>
+        <translation>Zmień wielkość &amp;liter</translation>
+    </message>
+    <message>
+        <source>A&amp;lign Text</source>
+        <translation>W&amp;yrównanie</translation>
     </message>
 </context>
 <context>
@@ -3249,6 +3421,92 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <extracomment>The submenu of the materials linked with the paragraph. In Polish: Powiązane mate&amp;riały</extracomment>
         <translation>Powiązane mate&amp;riały</translation>
     </message>
+    <message>
+        <source>Annotation menu</source>
+        <translation>Menu uwagi</translation>
+    </message>
+    <message>
+        <source>Mark as done</source>
+        <translation>Oznacz jako zrobione</translation>
+    </message>
+    <message>
+        <source>Click to expand</source>
+        <translation>Kliknij, aby rozwinąć</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Annotation</source>
+        <translation>&amp;Edytuj uwagę</translation>
+    </message>
+    <message>
+        <source>E&amp;xpand Annotation</source>
+        <translation>&amp;Rozwiń uwagę</translation>
+    </message>
+    <message>
+        <source>Collap&amp;se Annotation</source>
+        <translation>Zw&amp;iń uwagę</translation>
+    </message>
+    <message>
+        <source>Mark as &amp;Resolved</source>
+        <translation>&amp;Oznacz jako rozwiązany</translation>
+    </message>
+    <message>
+        <source>Ma&amp;rk as Done</source>
+        <translation>&amp;Oznacz jako zrobione</translation>
+    </message>
+    <message>
+        <source>Remo&amp;ve Annotation</source>
+        <translation>&amp;Usuń uwagę</translation>
+    </message>
+    <message>
+        <source>Card &amp;Appearance and Colors...</source>
+        <translation>&amp;Wygląd i kolory kart...</translation>
+    </message>
+    <message>
+        <source>&amp;Restart at %1</source>
+        <extracomment>%1 is the first number of the level of the list item: 1, a, i</extracomment>
+        <translation>Zacznij numerowanie &amp;od %1</translation>
+    </message>
+    <message>
+        <source>Contin&amp;ue Numbering</source>
+        <translation>Kont&amp;ynuuj numerowanie</translation>
+    </message>
+    <message>
+        <source>Set Numbering &amp;Value...</source>
+        <translation>Ust&amp;aw wartość numerowania...</translation>
+    </message>
+    <message>
+        <source>Incr&amp;ease Indent</source>
+        <translation>Zwiększ wc&amp;ięcie</translation>
+    </message>
+    <message>
+        <source>Decrea&amp;se Indent</source>
+        <translation>Zmni&amp;ejsz wcięcie</translation>
+    </message>
+    <message>
+        <source>Bullets and Numberin&amp;g...</source>
+        <translation>Punktory i nume&amp;racja...</translation>
+    </message>
+    <message>
+        <source>%1click to open the link</source>
+        <extracomment>%1 is the key held for the click: "Ctrl+" (on macOS "⌘")</extracomment>
+        <translation>%1kliknięcie otwiera łącze</translation>
+    </message>
+    <message>
+        <source>Edit &amp;Hyperlink...</source>
+        <translation>E&amp;dytuj łącze...</translation>
+    </message>
+    <message>
+        <source>&amp;Open Hyperlink</source>
+        <translation>&amp;Otwórz łącze</translation>
+    </message>
+    <message>
+        <source>Cop&amp;y Hyperlink</source>
+        <translation>Ko&amp;piuj łącze</translation>
+    </message>
+    <message>
+        <source>Remove Hyperl&amp;ink</source>
+        <translation>&amp;Usuń łącze</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -3267,6 +3525,11 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
 </context>
 <context>
     <name>kalahari::editor::FindReplaceBar</name>
+    <message>
+        <source>Colors of the Search Hits</source>
+        <extracomment>The gear of the find bar: Settings &gt; Editor &gt; Colors, with the colors of the hits</extracomment>
+        <translation>Kolory znalezionych wystąpień</translation>
+    </message>
     <message>
         <source>Find...</source>
         <translation>Znajdź...</translation>
@@ -3424,18 +3687,9 @@ Niewłaściwa konfiguracja może wpłynąć na stabilność programu.</translati
         <translation>Pokazuje dodatkowe menu z narzędziami do debugowania</translation>
     </message>
     <message>
-        <source>When enabled, a &apos;Diagnostic&apos; menu appears in the menu bar with:
-- System information
-- Log viewer
-- Component status
-
-The menu stays for this session only.</source>
-        <translation>Po włączeniu na pasku menu pojawia się menu „Diagnostyka” z:
-- informacjami o systemie
-- podglądem dziennika
-- stanem składników
-
-Menu zostaje tylko do końca tej sesji.</translation>
+        <source>Adds the Diagnostic menu to the menu bar, with the system information, the log viewer and the status of the components. For this session only.</source>
+        <extracomment>In Polish: Na pasku menu pojawia się menu „Diagnostyka” z informacjami o systemie, podglądem dziennika i stanem składników. Tylko do końca tej sesji.</extracomment>
+        <translation>Na pasku menu pojawia się menu „Diagnostyka” z informacjami o systemie, podglądem dziennika i stanem składników. Tylko do końca tej sesji.</translation>
     </message>
 </context>
 <context>
@@ -3469,38 +3723,18 @@ Menu zostaje tylko do końca tej sesji.</translation>
         <translation>Gdy przycisk jest ukryty, panel dziennika otwiera polecenie Widok &gt; Panele &gt; Dziennik (F4)</translation>
     </message>
     <message>
-        <source>The log panel displays application messages in real-time.
-
-Buffer size determines how many log entries are kept in memory.
-When the buffer is full, oldest entries are removed.
-
-Note: Log files are always saved to disk regardless of this setting.</source>
-        <translation>Panel dziennika pokazuje komunikaty programu na bieżąco.
-
-Rozmiar bufora określa, ile wpisów dziennika jest przechowywanych w pamięci.
-Gdy bufor się zapełni, najstarsze wpisy są usuwane.
-
-Uwaga: pliki dziennika są zawsze zapisywane na dysku, niezależnie od tego ustawienia.</translation>
-    </message>
-    <message>
         <source>Log File</source>
         <translation>Plik dziennika</translation>
     </message>
     <message>
-        <source>Log files are stored in the application directory:
-• kalahari.log - Current session log
-
-Use the log panel toolbar buttons to:
-• Open log folder in file explorer
-• Copy log contents to clipboard
-• Clear the log panel display</source>
-        <translation>Pliki dziennika są przechowywane w folderze programu:
-• kalahari.log – dziennik bieżącej sesji
-
-Przyciski na pasku panelu dziennika pozwalają:
-• otworzyć folder dziennika w menedżerze plików
-• skopiować zawartość dziennika do schowka
-• wyczyścić panel dziennika</translation>
+        <source>The messages the panel keeps in memory; when it is full, the oldest ones go. The log file keeps all of them.</source>
+        <extracomment>In Polish: Liczba komunikatów, które panel przechowuje w pamięci. Gdy się zapełni, najstarsze znikają; plik dziennika zachowuje wszystkie.</extracomment>
+        <translation>Liczba komunikatów, które panel przechowuje w pamięci. Gdy się zapełni, najstarsze znikają; plik dziennika zachowuje wszystkie.</translation>
+    </message>
+    <message>
+        <source>The file kalahari.log in the folder of the program keeps the messages of the current session. The buttons of the log panel open its folder, copy the log to the clipboard and clear the panel.</source>
+        <extracomment>In Polish: Plik kalahari.log w folderze programu zapisuje komunikaty bieżącej sesji. Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i czyszczą panel.</extracomment>
+        <translation>Plik kalahari.log w folderze programu zapisuje komunikaty bieżącej sesji. Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i czyszczą panel.</translation>
     </message>
 </context>
 <context>
@@ -3615,6 +3849,10 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>No to-do before the cursor</source>
         <translation>Przed kursorem nie ma uwag do zrobienia</translation>
     </message>
+    <message>
+        <source>Only with the annotation cards under the paragraphs (View menu), in the continuous view</source>
+        <translation>Tylko z kartami uwag pod akapitem (menu Widok), w widoku ciągłym</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AnnotationsPage</name>
@@ -3655,10 +3893,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Kolory</translation>
     </message>
     <message>
-        <source>The colors of the annotations&apos; marks in the text, of the frame an annotation is written in on the paper and of the cards in the Annotations panel. Each theme has its own colors: these are the colors of the current theme.</source>
-        <translation>Kolory znaczników uwag w tekście, ramki do pisania uwagi na papierze i kart w panelu „Uwagi”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
-    </message>
-    <message>
         <source>Comment</source>
         <translation>Komentarz</translation>
     </message>
@@ -3669,6 +3903,159 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>Note</source>
         <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>The colors of the annotations&apos; marks in the text, of their cards under the paragraphs, of the frame an annotation is written in on the paper and of the cards in the Annotations panel. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolory znaczników uwag w tekście, ich kart pod akapitem, ramki do pisania uwagi na papierze i kart w panelu „Uwagi”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Cards Under Paragraphs (Continuous View)</source>
+        <translation>Karty pod akapitem (widok ciągły)</translation>
+    </message>
+    <message>
+        <source>Show annotation cards under paragraphs</source>
+        <translation>Pokazuj karty uwag pod akapitem</translation>
+    </message>
+    <message>
+        <source>Same as View &gt; Annotation Cards Under Paragraphs. In the page view annotations are always marks only.</source>
+        <translation>To samo co Widok &gt; Karty uwag pod akapitem. W widoku „Układ strony” uwagi są zawsze tylko znacznikami.</translation>
+    </message>
+    <message>
+        <source>comments</source>
+        <translation>komentarzy</translation>
+    </message>
+    <message>
+        <source>to-dos</source>
+        <translation>uwag do zrobienia</translation>
+    </message>
+    <message>
+        <source>notes</source>
+        <translation>notatek</translation>
+    </message>
+    <message>
+        <source>Cards for:</source>
+        <translation>Karty dla:</translation>
+    </message>
+    <message>
+        <source>Card look:</source>
+        <translation>Wygląd karty:</translation>
+    </message>
+    <message>
+        <source>Full</source>
+        <translation>Pełna</translation>
+    </message>
+    <message>
+        <source>The kind, the author and the date above the text.</source>
+        <translation>Rodzaj, autor i data nad treścią.</translation>
+    </message>
+    <message>
+        <source>Compact</source>
+        <translation>Zwarta</translation>
+    </message>
+    <message>
+        <source>The text alone, the author and the date at its end.</source>
+        <translation>Sama treść, autor i data na jej końcu.</translation>
+    </message>
+    <message>
+        <source>Collapsed annotation:</source>
+        <translation>Uwaga zwinięta:</translation>
+    </message>
+    <message>
+        <source>Mark only</source>
+        <translation>Sam znacznik</translation>
+    </message>
+    <message>
+        <source>Its mark in the text alone, as without the cards.</source>
+        <translation>Tylko znacznik w tekście, jak bez kart.</translation>
+    </message>
+    <message>
+        <source>One line</source>
+        <translation>Jeden wiersz</translation>
+    </message>
+    <message>
+        <source>A line with the start of its text under the paragraph.</source>
+        <translation>Wiersz z początkiem treści pod akapitem.</translation>
+    </message>
+    <message>
+        <source>expanded</source>
+        <translation>rozwinięte</translation>
+    </message>
+    <message>
+        <source>collapsed</source>
+        <translation>zwinięte</translation>
+    </message>
+    <message>
+        <source>After a chapter opens, annotations are:</source>
+        <translation>Po otwarciu rozdziału uwagi są:</translation>
+    </message>
+    <message>
+        <source>show whole</source>
+        <translation>pokazuj w całości</translation>
+    </message>
+    <message>
+        <source>cut short to 3 lines</source>
+        <translation>skracaj do 3 wierszy</translation>
+    </message>
+    <message>
+        <source>cut short to 6 lines</source>
+        <translation>skracaj do 6 wierszy</translation>
+    </message>
+    <message>
+        <source>Long annotations:</source>
+        <translation>Długie uwagi:</translation>
+    </message>
+    <message>
+        <source> % of the chapter&apos;s text</source>
+        <translation> % tekstu rozdziału</translation>
+    </message>
+    <message>
+        <source>Card text size:</source>
+        <translation>Wielkość tekstu kart:</translation>
+    </message>
+    <message>
+        <source>subtle</source>
+        <translation>delikatne</translation>
+    </message>
+    <message>
+        <source>strong</source>
+        <translation>wyraźne</translation>
+    </message>
+    <message>
+        <source>Card background:</source>
+        <translation>Tło kart:</translation>
+    </message>
+    <message>
+        <source>Card background</source>
+        <translation>Tło kart</translation>
+    </message>
+    <message>
+        <source>From subtle to strong</source>
+        <translation>Od delikatnego do wyraźnego</translation>
+    </message>
+    <message>
+        <source>Highlight the fragment</source>
+        <translation>Podświetlaj fragment</translation>
+    </message>
+    <message>
+        <source>While the mouse is on a card, its fragment in the text is highlighted.</source>
+        <translation>Gdy wskaźnik myszy jest na karcie, jej fragment w tekście jest podświetlony.</translation>
+    </message>
+    <message>
+        <source>show the cards</source>
+        <translation>pokazuj karty</translation>
+    </message>
+    <message>
+        <source>hide the cards</source>
+        <translation>ukrywaj karty</translation>
+    </message>
+    <message>
+        <source>In Distraction-Free:</source>
+        <translation>W trybie „Bez rozpraszania”:</translation>
+    </message>
+    <message>
+        <source>Look of the Cards</source>
+        <extracomment>The group of Settings &gt; Annotations &gt; Cards Under Paragraphs. In Polish: Wygląd kart</extracomment>
+        <translation>Wygląd kart</translation>
     </message>
 </context>
 <context>
@@ -3892,10 +4279,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Położenie zakładek:</translation>
     </message>
     <message>
-        <source>With icons only, the name of a panel is in its tooltip. In one row, names that do not fit are shortened.</source>
-        <translation>Przy samych ikonach nazwa panelu jest w podpowiedzi. W jednym wierszu za długie nazwy się skracają.</translation>
-    </message>
-    <message>
         <source>Tabs in the middle of the window</source>
         <translation>Karty w środku okna</translation>
     </message>
@@ -3906,6 +4289,16 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>The tabs of the Dashboard, the chapters, the lists and the materials that do not fit the width of the window: in one row that scrolls with the arrows, or in more rows. The button to the right of the tabs switches it too</source>
         <translation>Karty Pulpitu, rozdziałów, list i materiałów, które nie mieszczą się w szerokości okna: w jednym wierszu przewijanym strzałkami albo w kilku wierszach. Można to też przełączać przyciskiem na prawo od kart</translation>
+    </message>
+    <message>
+        <source>With icons only, the name of a panel is in its tooltip.</source>
+        <extracomment>In Polish: Przy samych ikonach nazwa panelu jest w podpowiedzi.</extracomment>
+        <translation>Przy samych ikonach nazwa panelu jest w podpowiedzi.</translation>
+    </message>
+    <message>
+        <source>In one row, names that do not fit are shortened.</source>
+        <extracomment>In Polish: W jednym wierszu za długie nazwy się skracają.</extracomment>
+        <translation>W jednym wierszu za długie nazwy się skracają.</translation>
     </message>
 </context>
 <context>
@@ -3973,6 +4366,14 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::CharacterCommands</name>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>The name of a command that inserts a character (Settings &gt; Keyboard Shortcuts, the group of the characters): its name and the character, as "Em dash (—)"</extracomment>
+        <translation>%1 (%2)</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::ColorConfigWidget</name>
     <message>
         <source>Click to select color</source>
@@ -3980,10 +4381,383 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::ColorMenu</name>
+    <message>
+        <source>&amp;Automatic</source>
+        <translation>&amp;Automatyczny</translation>
+    </message>
+    <message>
+        <source>&amp;No Color</source>
+        <translation>&amp;Brak koloru</translation>
+    </message>
+    <message>
+        <source>Font colors</source>
+        <translation>Kolory czcionki</translation>
+    </message>
+    <message>
+        <source>Highlight colors</source>
+        <translation>Kolory wyróżnienia</translation>
+    </message>
+    <message>
+        <source>Recent colors</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>&amp;More Colors...</source>
+        <translation>&amp;Więcej kolorów...</translation>
+    </message>
+    <message>
+        <source>The color of the letters of the selected text.</source>
+        <translation>Kolor liter zaznaczonego tekstu.</translation>
+    </message>
+    <message>
+        <source>The color behind the selected text.</source>
+        <translation>Kolor tła zaznaczonego tekstu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ColorSwatches</name>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A swatch of a color submenu: the name of the color and its HEX, &quot;Red (#CC0000)&quot;</extracomment>
+        <translation>%1 (%2)</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::CommandRegistry</name>
     <message>
         <source>%1 (in preparation)</source>
         <translation>%1 (w przygotowaniu)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CoverNames</name>
+    <message>
+        <source>Cover description</source>
+        <extracomment>What a material of the cover is: the text on the back or on a flap. In Polish: Opis na okładkę</extracomment>
+        <translation>Opis na okładkę</translation>
+    </message>
+    <message>
+        <source>Tagline</source>
+        <extracomment>A short sentence on the front of the cover. In Polish: Hasło</extracomment>
+        <translation>Hasło</translation>
+    </message>
+    <message>
+        <source>Opinion or recommendation</source>
+        <extracomment>Words of a critic, a writer or a magazine about the book. In Polish: Opinia lub rekomendacja</extracomment>
+        <translation>Opinia lub rekomendacja</translation>
+    </message>
+    <message>
+        <source>Cover design or sketch</source>
+        <extracomment>A design of the cover by a designer, or the writer&apos;s own sketch. In Polish: Projekt lub szkic okładki</extracomment>
+        <translation>Projekt lub szkic okładki</translation>
+    </message>
+    <message>
+        <source>Reference picture</source>
+        <extracomment>A picture that shows a mood, colors or a typeface for the cover. In Polish: Ilustracja referencyjna</extracomment>
+        <translation>Ilustracja referencyjna</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>Ideas and remarks about the cover. In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>Cover descriptions</source>
+        <extracomment>A group of the list of the cover. In Polish: Opisy na okładkę</extracomment>
+        <translation>Opisy na okładkę</translation>
+    </message>
+    <message>
+        <source>Taglines</source>
+        <extracomment>A group of the list of the cover. In Polish: Hasła</extracomment>
+        <translation>Hasła</translation>
+    </message>
+    <message>
+        <source>Opinions and recommendations</source>
+        <extracomment>A group of the list of the cover. In Polish: Opinie i rekomendacje</extracomment>
+        <translation>Opinie i rekomendacje</translation>
+    </message>
+    <message>
+        <source>Designs and sketches</source>
+        <extracomment>A group of the list of the cover. In Polish: Projekty i szkice</extracomment>
+        <translation>Projekty i szkice</translation>
+    </message>
+    <message>
+        <source>Reference pictures</source>
+        <extracomment>A group of the list of the cover. In Polish: Ilustracje referencyjne</extracomment>
+        <translation>Ilustracje referencyjne</translation>
+    </message>
+    <message>
+        <source>Notes</source>
+        <extracomment>A group of the list of the cover. In Polish: Notatki</extracomment>
+        <translation>Notatki</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <extracomment>A group of the list of the cover: materials without a kind the program knows. In Polish: Inne</extracomment>
+        <translation>Inne</translation>
+    </message>
+    <message>
+        <source>Description %1</source>
+        <extracomment>The title of a new description for the cover; %1 its number. In Polish: Opis %1</extracomment>
+        <translation>Opis %1</translation>
+    </message>
+    <message>
+        <source>Tagline %1</source>
+        <extracomment>The title of a new tagline; %1 its number. In Polish: Hasło %1</extracomment>
+        <translation>Hasło %1</translation>
+    </message>
+    <message>
+        <source>Opinion %1</source>
+        <extracomment>The title of a new opinion; %1 its number. In Polish: Opinia %1</extracomment>
+        <translation>Opinia %1</translation>
+    </message>
+    <message>
+        <source>Design %1</source>
+        <extracomment>The title of a new design of the cover; %1 its number. In Polish: Projekt %1</extracomment>
+        <translation>Projekt %1</translation>
+    </message>
+    <message>
+        <source>Illustration %1</source>
+        <extracomment>The title of a new reference picture; %1 its number. In Polish: Ilustracja %1</extracomment>
+        <translation>Ilustracja %1</translation>
+    </message>
+    <message>
+        <source>Note %1</source>
+        <extracomment>The title of a new note about the cover; %1 its number. In Polish: Notatka %1</extracomment>
+        <translation>Notatka %1</translation>
+    </message>
+    <message>
+        <source>Front</source>
+        <extracomment>A place on the cover. In Polish: Przód</extracomment>
+        <translation>Przód</translation>
+    </message>
+    <message>
+        <source>Spine</source>
+        <extracomment>A place on the cover. In Polish: Grzbiet</extracomment>
+        <translation>Grzbiet</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <extracomment>A place on the cover. In Polish: Tył</extracomment>
+        <translation>Tył</translation>
+    </message>
+    <message>
+        <source>Front flap</source>
+        <extracomment>A place on the cover. In Polish: Skrzydełko przednie</extracomment>
+        <translation>Skrzydełko przednie</translation>
+    </message>
+    <message>
+        <source>Back flap</source>
+        <extracomment>A place on the cover. In Polish: Skrzydełko tylne</extracomment>
+        <translation>Skrzydełko tylne</translation>
+    </message>
+    <message>
+        <source>Whole cover</source>
+        <extracomment>The place of a design: the whole cover. In Polish: Cała okładka</extracomment>
+        <translation>Cała okładka</translation>
+    </message>
+    <message>
+        <source>Not set</source>
+        <extracomment>A material without a place on the cover yet. In Polish: Nie ustalono</extracomment>
+        <translation>Nie ustalono</translation>
+    </message>
+    <message>
+        <source>chosen for the cover</source>
+        <extracomment>The state of a material of the cover. In Polish: wybrany na okładkę</extracomment>
+        <translation>wybrany na okładkę</translation>
+    </message>
+    <message>
+        <source>rejected</source>
+        <extracomment>The state of a material of the cover. In Polish: odrzucony</extracomment>
+        <translation>odrzucony</translation>
+    </message>
+    <message>
+        <source>draft</source>
+        <extracomment>The state of a material of the cover, at first. In Polish: roboczy</extracomment>
+        <translation>roboczy</translation>
+    </message>
+    <message>
+        <source>★ chosen</source>
+        <extracomment>The state of a material of the cover in a list. In Polish: ★ wybrany</extracomment>
+        <translation>★ wybrany</translation>
+    </message>
+    <message>
+        <source>granted</source>
+        <extracomment>The consent to print an opinion on the cover. In Polish: jest zgoda</extracomment>
+        <translation>jest zgoda</translation>
+    </message>
+    <message>
+        <source>asked for</source>
+        <extracomment>The consent to print an opinion: asked for, no answer yet. In Polish: poproszono o zgodę</extracomment>
+        <translation>poproszono o zgodę</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>No consent to print an opinion. In Polish: brak zgody</extracomment>
+        <translation>brak zgody</translation>
+    </message>
+    <message>
+        <source>not said</source>
+        <extracomment>The consent to print an opinion, not said. In Polish: nie ustalono</extracomment>
+        <translation>nie ustalono</translation>
+    </message>
+    <message>
+        <source>given</source>
+        <extracomment>The consent to print an opinion in the list of the cover. In Polish: jest</extracomment>
+        <translation>jest</translation>
+    </message>
+    <message>
+        <source>waiting</source>
+        <extracomment>The consent to print an opinion in the list of the cover: asked for, no answer yet. In Polish: czeka</extracomment>
+        <translation>czeka</translation>
+    </message>
+    <message>
+        <source>missing</source>
+        <extracomment>No consent to print an opinion, in the list of the cover. In Polish: brak</extracomment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source>%1 w.</source>
+        <extracomment>The length of a text of the cover in a list: %1 its words. In Polish: %1 sł.</extracomment>
+        <translation>%1 sł.</translation>
+    </message>
+    <message>
+        <source>%1 ch.</source>
+        <extracomment>The length of a text of the cover in a list: %1 its characters with spaces. In Polish: %1 zn.</extracomment>
+        <translation>%1 zn.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n characters with spaces</source>
+        <extracomment>The counts of a text of the cover: %1 the characters with spaces, %2 the words. In Polish: %1 znaków ze spacjami · %2 słów (with the plural forms of the numbers)</extracomment>
+        <translation>
+            <numerusform>%n znak ze spacjami</numerusform>
+            <numerusform>%n znaki ze spacjami</numerusform>
+            <numerusform>%n znaków ze spacjami</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n words</source>
+        <translation>
+            <numerusform>%n słowo</numerusform>
+            <numerusform>%n słowa</numerusform>
+            <numerusform>%n słów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>target: up to %n words</source>
+        <extracomment>The target length of a text of the cover. In Polish: cel: do %n słów</extracomment>
+        <translation>
+            <numerusform>cel: do %n słowa</numerusform>
+            <numerusform>cel: do %n słów</numerusform>
+            <numerusform>cel: do %n słów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>target: up to %n characters</source>
+        <extracomment>The target length of a text of the cover. In Polish: cel: do %n znaków</extracomment>
+        <translation>
+            <numerusform>cel: do %n znaku</numerusform>
+            <numerusform>cel: do %n znaków</numerusform>
+            <numerusform>cel: do %n znaków</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n words too many</source>
+        <extracomment>A text of the cover past its target. In Polish: o %n słów za dużo</extracomment>
+        <translation>
+            <numerusform>o %n słowo za dużo</numerusform>
+            <numerusform>o %n słowa za dużo</numerusform>
+            <numerusform>o %n słów za dużo</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n characters too many</source>
+        <extracomment>A text of the cover past its target. In Polish: o %n znaków za dużo</extracomment>
+        <translation>
+            <numerusform>o %n znak za dużo</numerusform>
+            <numerusform>o %n znaki za dużo</numerusform>
+            <numerusform>o %n znaków za dużo</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Chosen for the cover: “%1”</source>
+        <extracomment>The status bar: a material is chosen for the cover; %1 its title. In Polish: Wybrano na okładkę: „%1”</extracomment>
+        <translation>Wybrano na okładkę: „%1”</translation>
+    </message>
+    <message>
+        <source>Rejected: “%1”</source>
+        <extracomment>The status bar: a material of the cover is rejected; %1 its title. In Polish: Odrzucono: „%1”</extracomment>
+        <translation>Odrzucono: „%1”</translation>
+    </message>
+    <message>
+        <source>“%1” is a draft again</source>
+        <extracomment>The status bar: a material of the cover is a draft again; %1 its title. In Polish: „%1” jest znów roboczy
+----------
+The status bar, after a material is chosen for the cover: the one chosen before for its place is a draft again; %1 its title. In Polish: „%1” wraca do roboczych</extracomment>
+        <translation>„%1” jest znów roboczy</translation>
+    </message>
+    <message>
+        <source>words</source>
+        <extracomment>The unit of a target length, after its number. In Polish: słów / znaków</extracomment>
+        <translation>słów</translation>
+    </message>
+    <message>
+        <source>characters</source>
+        <translation>znaków</translation>
+    </message>
+    <message>
+        <source>“%1”</source>
+        <extracomment>An opinion as the cover prints it: %1 its words. In Polish: „%1”</extracomment>
+        <translation>„%1”</translation>
+    </message>
+    <message>
+        <source>%1 – %2</source>
+        <extracomment>An opinion with its author: %1 the opinion in quotes, %2 the author and who the author is. In Polish: %1 – %2</extracomment>
+        <translation>%1 – %2</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CoverPlan</name>
+    <message>
+        <source>empty</source>
+        <extracomment>An empty place on the plan of the cover. In Polish: pusto</extracomment>
+        <translation>pusto</translation>
+    </message>
+    <message>
+        <source>%1 – %2</source>
+        <extracomment>What a card on the plan of the cover is, with its author: %1 the kind, %2 the author. In Polish: %1 – %2</extracomment>
+        <translation>%1 – %2</translation>
+    </message>
+    <message>
+        <source>Flaps</source>
+        <extracomment>Shows the flaps of the cover on its plan. In Polish: Skrzydełka</extracomment>
+        <translation>Skrzydełka</translation>
+    </message>
+    <message>
+        <source>Show rejected</source>
+        <extracomment>Shows the materials rejected on the plan of the cover. In Polish: Pokaż odrzucone</extracomment>
+        <translation>Pokaż odrzucone</translation>
+    </message>
+    <message>
+        <source>Designs:</source>
+        <extracomment>The designs of the cover above its plan, one of them behind it. In Polish: Projekty:</extracomment>
+        <translation>Projekty:</translation>
+    </message>
+    <message>
+        <source>The field &quot;Place on the cover&quot; in the Properties or on the card of a material changes the place. Reference pictures and notes do not go on the cover, so the plan does not show them.</source>
+        <extracomment>Under the plan of the cover. In Polish: Miejsce zmienia pole „Miejsce na okładce” we Właściwościach albo na karcie materiału. Ilustracje referencyjne i notatki nie trafiają na okładkę, więc nie ma ich na planie.</extracomment>
+        <translation>Miejsce zmienia pole „Miejsce na okładce” we Właściwościach albo na karcie materiału. Ilustracje referencyjne i notatki nie trafiają na okładkę, więc nie ma ich na planie.</translation>
+    </message>
+    <message>
+        <source>Show this design behind the plan of the cover (Enter opens its card)</source>
+        <extracomment>The button of a design above the plan of the cover. In Polish: Pokaż ten projekt za planem okładki (Enter otwiera jego kartę)</extracomment>
+        <translation>Pokaż ten projekt za planem okładki (Enter otwiera jego kartę)</translation>
+    </message>
+    <message>
+        <source>Without a place on the cover · %1</source>
+        <extracomment>The materials of the cover without a place, under its plan: %1 their number. In Polish: Bez miejsca na okładce · %1</extracomment>
+        <translation>Bez miejsca na okładce · %1</translation>
     </message>
 </context>
 <context>
@@ -4092,6 +4866,23 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>Automatically open the most recently used book when Kalahari starts</source>
         <translation>Po uruchomieniu Kalahari otwiera ostatnio używaną książkę</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::DetachedWindow</name>
+    <message>
+        <source>Window Settings</source>
+        <extracomment>The gear at the end of the tabs of a window of its own: Settings &gt; General, the options of the windows. In Polish: Ustawienia okien</extracomment>
+        <translation>Ustawienia okien</translation>
+    </message>
+    <message>
+        <source>Page %1 of %2</source>
+        <extracomment>The status bar of a window of its own, as that of the book window. In Polish: Strona %1 z %2</extracomment>
+        <translation>Strona %1 z %2</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1%</translation>
     </message>
 </context>
 <context>
@@ -4378,6 +5169,16 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     <message>
         <source>Paragraph and Styles</source>
         <translation>Akapit i style</translation>
+    </message>
+    <message>
+        <source>Repetitions</source>
+        <extracomment>The panel of the words that come back too close. In Polish: Powtórzenia</extracomment>
+        <translation>Powtórzenia</translation>
+    </message>
+    <message>
+        <source>Repetition Settings</source>
+        <extracomment>The tooltip of the gear of the Repetitions panel. In Polish: Ustawienia powtórzeń</extracomment>
+        <translation>Ustawienia powtórzeń</translation>
     </message>
 </context>
 <context>
@@ -4872,6 +5673,49 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     </message>
 </context>
 <context>
+    <name>kalahari::gui::DocumentWindows</name>
+    <message>
+        <source>&amp;Move to New Window</source>
+        <extracomment>The menu of a tab of a text: it goes to a window of its own. In Polish: &amp;Przenieś do nowego okna</extracomment>
+        <translation>&amp;Przenieś do nowego okna</translation>
+    </message>
+    <message>
+        <source>&amp;Return to Book Window</source>
+        <extracomment>The menu of a tab in a window of its own: the text goes back to the book window. In Polish: Przy&amp;wróć do okna książki</extracomment>
+        <translation>Przy&amp;wróć do okna książki</translation>
+    </message>
+    <message>
+        <source>&amp;Close Tab</source>
+        <extracomment>The menu of a tab: closes it, as its cross does. In Polish: &amp;Zamknij kartę</extracomment>
+        <translation>&amp;Zamknij kartę</translation>
+    </message>
+    <message>
+        <source>&amp;Move Tab to New Window</source>
+        <extracomment>Window menu: the text in front goes to a window of its own. In Polish: &amp;Przenieś kartę do nowego okna</extracomment>
+        <translation>&amp;Przenieś kartę do nowego okna</translation>
+    </message>
+    <message>
+        <source>&amp;Return Tab to Book Window</source>
+        <extracomment>Window menu: the text in front, in a window of its own, goes back to the book window. In Polish: Przy&amp;wróć kartę do okna książki</extracomment>
+        <translation>Przy&amp;wróć kartę do okna książki</translation>
+    </message>
+    <message>
+        <source>&amp;Next Window</source>
+        <extracomment>Window menu: the next window of the program comes to the front. In Polish: &amp;Następne okno</extracomment>
+        <translation>&amp;Następne okno</translation>
+    </message>
+    <message>
+        <source>&amp;Previous Window</source>
+        <extracomment>Window menu: the previous window of the program comes to the front. In Polish: Popr&amp;zednie okno</extracomment>
+        <translation>Popr&amp;zednie okno</translation>
+    </message>
+    <message>
+        <source>Window &amp;Settings...</source>
+        <extracomment>Window menu: Settings &gt; General at the options of the windows. In Polish: &amp;Ustawienia okien...</extracomment>
+        <translation>&amp;Ustawienia okien...</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::EditorAutoCorrectPage</name>
     <message>
         <source>Replace as You Type</source>
@@ -4890,10 +5734,6 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <translation>Apostrof &apos; na ’</translation>
     </message>
     <message>
-        <source>Hyphen opening a paragraph with a dash</source>
-        <translation>Dywiz na początku akapitu na myślnik</translation>
-    </message>
-    <message>
         <source>Em Dash (—)</source>
         <translation>Pauza (—)</translation>
     </message>
@@ -4902,20 +5742,8 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <translation>Półpauza (–)</translation>
     </message>
     <message>
-        <source>Dialogue dash:</source>
-        <translation>Myślnik dialogowy:</translation>
-    </message>
-    <message>
         <source>“...” with an ellipsis “…”</source>
         <translation>„...” na wielokropek „…”</translation>
-    </message>
-    <message>
-        <source>The quotation marks follow the language of the book: „…” and ‚…’ in Polish, “…” and ‘…’ in English. Outside the book, as in a file opened from the disk, they follow the language of the program. A language chosen on the Spelling page goes before both. The hyphen becomes a dash when a space is typed after it.</source>
-        <translation>Cudzysłowy są dobierane do języka książki: po polsku „…” i ‚…’, po angielsku “…” i ‘…’. Poza książką, na przykład w pliku otwartym z dysku, decyduje język programu. Język wybrany na stronie Pisownia ma pierwszeństwo przed obydwoma. Dywiz zamienia się w myślnik, gdy wpiszesz po nim spację.</translation>
-    </message>
-    <message>
-        <source>Tools &gt; Auto-correct as You Type, also a button on the Tools toolbar, turns all the replacements on and off at once; the choices above stay.</source>
-        <translation>Narzędzia &gt; Autokorekta podczas pisania, także przycisk na pasku narzędzi „Narzędzia”, włącza i wyłącza wszystkie zamiany naraz; wybór powyżej zostaje.</translation>
     </message>
     <message>
         <source>%1 right after a replacement undoes just the replacement.</source>
@@ -4926,46 +5754,353 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <source>Edit &gt; Undo right after a replacement undoes just the replacement.</source>
         <translation>Edycja &gt; Cofnij zaraz po zamianie cofa samą zamianę.</translation>
     </message>
+    <message>
+        <source>A word to add: %1</source>
+        <extracomment>%1 is what the list is, as "Words with two capitals"</extracomment>
+        <translation>Wyraz do dodania: %1</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>While Typing</source>
+        <translation>Podczas pisania</translation>
+    </message>
+    <message>
+        <source>Capitals</source>
+        <translation>Wielkie litery</translation>
+    </message>
+    <message>
+        <source>Replacement Table</source>
+        <translation>Tabela zamian</translation>
+    </message>
+    <message>
+        <source>Dialogue dash</source>
+        <translation>Myślnik dialogowy</translation>
+    </message>
+    <message>
+        <source>“ - ” between words with:</source>
+        <translation>„ - ” między wyrazami na:</translation>
+    </message>
+    <message>
+        <source>Dash between words</source>
+        <translation>Myślnik między wyrazami</translation>
+    </message>
+    <message>
+        <source>“--” with an en dash “–”</source>
+        <translation>„--” na półpauzę „–”</translation>
+    </message>
+    <message>
+        <source>Text Elements</source>
+        <translation>Elementy tekstu</translation>
+    </message>
+    <message>
+        <source>In a paragraph of the Code style auto-correct changes nothing.</source>
+        <translation>W akapicie w stylu Kod autokorekta niczego nie zmienia.</translation>
+    </message>
+    <message>
+        <source>A capital at the start of a sentence</source>
+        <translation>Wielka litera na początku zdania</translation>
+    </message>
+    <message>
+        <source>Correct TWo INitial CApitals</source>
+        <translation>Poprawiaj DWie WIelkie litery</translation>
+    </message>
+    <message>
+        <source>Exceptions</source>
+        <translation>Wyjątki</translation>
+    </message>
+    <message>
+        <source>Sentences do not end after these abbreviations</source>
+        <translation>Po tych skrótach zdanie się nie kończy</translation>
+    </message>
+    <message>
+        <source>Words with two capitals</source>
+        <translation>Wyrazy z dwiema wielkimi literami</translation>
+    </message>
+    <message>
+        <source>Polish</source>
+        <translation>polskim</translation>
+    </message>
+    <message>
+        <source>English and other languages</source>
+        <translation>angielskim i innych</translation>
+    </message>
+    <message>
+        <source>For a text in:</source>
+        <translation>Dla tekstu w języku:</translation>
+    </message>
+    <message>
+        <source>They stay as typed.</source>
+        <translation>Zostają tak, jak je wpisano.</translation>
+    </message>
+    <message>
+        <source>Abbreviations, Polish</source>
+        <translation>Skróty, język polski</translation>
+    </message>
+    <message>
+        <source>e.g. godz.</source>
+        <translation>np. godz.</translation>
+    </message>
+    <message>
+        <source>Abbreviations, English and other languages</source>
+        <translation>Skróty, język angielski i inne</translation>
+    </message>
+    <message>
+        <source>e.g. Mr.</source>
+        <translation>np. Mr.</translation>
+    </message>
+    <message>
+        <source>e.g. PCs</source>
+        <translation>np. PCs</translation>
+    </message>
+    <message>
+        <source>All Fixed Replacements</source>
+        <translation>Wszystkie stałe zamiany</translation>
+    </message>
+    <message>
+        <source>e.g. (c)</source>
+        <translation>np. (c)</translation>
+    </message>
+    <message>
+        <source>The word of a new pair</source>
+        <translation>Wyraz nowej pary</translation>
+    </message>
+    <message>
+        <source>e.g. ©</source>
+        <translation>np. ©</translation>
+    </message>
+    <message>
+        <source>Its replacement</source>
+        <translation>Na co go zamienić</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation>Przywróć domyślne</translation>
+    </message>
+    <message>
+        <source>Brings back the built-in replacements as they were; your own stay</source>
+        <translation>Przywraca wbudowane zamiany w pierwotnej postaci; własne zostają</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>Zamień</translation>
+    </message>
+    <message>
+        <source>with</source>
+        <translation>na</translation>
+    </message>
+    <message>
+        <source>Replacement table</source>
+        <translation>Tabela zamian</translation>
+    </message>
+    <message>
+        <source>With</source>
+        <translation>Na</translation>
+    </message>
+    <message>
+        <source>Each replacement can be turned off, changed or removed; Restore Defaults brings back the built-in ones. In the table Space turns the pairs selected on and off, F2 changes a cell, Delete removes the pairs and Insert starts a new one.</source>
+        <translation>Każdą zamianę można wyłączyć, zmienić albo usunąć; „Przywróć domyślne” przywraca wbudowane. W tabeli Spacja włącza i wyłącza wybrane pary, F2 zmienia komórkę, Delete usuwa pary, a Insert zaczyna nową.</translation>
+    </message>
+    <message>
+        <source>The table is not used now: “Replacements from the table” is off on the While Typing tab.</source>
+        <translation>Tabela teraz nie działa: na karcie „Podczas pisania” wyłączono „Zamiany z tabeli zamian”.</translation>
+    </message>
+    <message>
+        <source>A replacement needs a word: “%1” stays.</source>
+        <extracomment>%1 is the word the pair had</extracomment>
+        <translation>Zamiana musi mieć wyraz: zostaje „%1”.</translation>
+    </message>
+    <message>
+        <source>A replacement is one word: without spaces.</source>
+        <translation>Zamieniane jest jedno słowo: bez spacji.</translation>
+    </message>
+    <message>
+        <source>The table has a pair of “%1” already: “%2” stays.</source>
+        <extracomment>%1 is the word typed, %2 the word the pair had</extracomment>
+        <translation>Tabela ma już parę dla „%1”: zostaje „%2”.</translation>
+    </message>
+    <message>
+        <source>A word cannot be replaced with nothing: “%1” stays.</source>
+        <extracomment>%1 is the replacement the pair had</extracomment>
+        <translation>Wyrazu nie można zamienić na nic: zostaje „%1”.</translation>
+    </message>
+    <message>
+        <source>built-in</source>
+        <extracomment>The program's own pair of the replacement table</extracomment>
+        <translation>wbudowana</translation>
+    </message>
+    <message>
+        <source>your own</source>
+        <translation>własna</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces “%1” with “%2” now: Add puts “%3” in its place.</source>
+        <translation>Autokorekta zamienia teraz „%1” na „%2”: Dodaj wstawi w to miejsce „%3”.</translation>
+    </message>
+    <message>
+        <source>Hyphen opening a paragraph with:</source>
+        <translation>Dywiz na początku akapitu na:</translation>
+    </message>
+    <message>
+        <source>In dialogue: the dash it starts with</source>
+        <translation>W dialogu: myślnik z początku akapitu</translation>
+    </message>
+    <message>
+        <source>Replacements from the table</source>
+        <translation>Zamiany z tabeli zamian</translation>
+    </message>
+    <message>
+        <source>“***” and Enter: a scene break</source>
+        <translation>„***” i Enter – podział sceny</translation>
+    </message>
+    <message>
+        <source>“---” and Enter: a horizontal line</source>
+        <translation>„---” i Enter – linia pozioma</translation>
+    </message>
+    <message>
+        <source>Correct words typed with Caps Lock on</source>
+        <translation>Poprawiaj wyrazy pisane z Caps Lock</translation>
+    </message>
+    <message>
+        <source>A sentence starts also after a dialogue dash. No capital after an abbreviation of the list below, a number with a period (5.), an initial (J. Kowalski) or an ellipsis. A word typed with Caps Lock on by mistake, as “cAPS”, becomes “Caps”.</source>
+        <translation>Zdanie zaczyna się także po myślniku dialogowym. Bez wielkiej litery po skrócie z listy poniżej, po liczbie z kropką (5.), po inicjale (J. Kowalski) i po wielokropku. Wyraz wpisany przypadkiem z włączonym Caps Lock, np. „wIELKI”, zmienia się w „Wielki”.</translation>
+    </message>
+    <message>
+        <source>Add an exception when I undo a change</source>
+        <translation>Dodawaj wyjątek, gdy cofnę zamianę</translation>
+    </message>
+    <message>
+        <source>%1 right after a capital or a change of two capitals adds the abbreviation or the word to its list.</source>
+        <extracomment>%1 is the keys of Edit &gt; Undo, as Ctrl+Z</extracomment>
+        <translation>%1 zaraz po wielkiej literze albo poprawie dwóch wielkich liter dopisuje skrót albo wyraz do jego listy.</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Undo right after a capital or a change of two capitals adds the abbreviation or the word to its list.</source>
+        <translation>Edycja &gt; Cofnij zaraz po wielkiej literze albo poprawie dwóch wielkich liter dopisuje skrót albo wyraz do jego listy.</translation>
+    </message>
+    <message>
+        <source>“*” and a space: a bulleted list</source>
+        <translation>„*” i spacja – lista punktowana</translation>
+    </message>
+    <message>
+        <source>“1.” or “1)” and a space: a numbered list</source>
+        <translation>„1.” lub „1)” i spacja – lista numerowana</translation>
+    </message>
+    <message>
+        <source>“***” and “---” are typed in an empty paragraph, “*” and “1.” at the start of a paragraph; the list starts from the number typed.</source>
+        <translation>„***” i „---” wpisuje się w pustym akapicie, a „*” i „1.” na początku akapitu; lista zaczyna się od wpisanego numeru.</translation>
+    </message>
+    <message>
+        <source>Internet addresses with links</source>
+        <translation>Adres internetowy na łącze</translation>
+    </message>
+    <message>
+        <source>An address that starts with www., http:// or https://, and an e-mail address, becomes a link when a space or Enter is typed after it.</source>
+        <translation>Adres, który zaczyna się od www., http:// lub https://, oraz adres e-mail zmieniają się w łącze, gdy po nich wpisze się spację lub naciśnie Enter.</translation>
+    </message>
+    <message>
+        <source>Turns all the replacements below on and off at once, as Tools &gt; Auto-correct as You Type and its button on the Tools toolbar do. Turned off, they keep their choices.</source>
+        <translation>Włącza i wyłącza naraz wszystkie zamiany poniżej, tak jak polecenie Narzędzia &gt; Autokorekta podczas pisania i jego przycisk na pasku narzędzi „Narzędzia”. Po wyłączeniu wybór zamian zostaje.</translation>
+    </message>
+    <message>
+        <source>Quotes and Apostrophe</source>
+        <extracomment>Settings &gt; Editor &gt; Auto-correct &gt; While Typing: the group of the quotes and the apostrophe. In Polish: Cudzysłowy i apostrof</extracomment>
+        <translation>Cudzysłowy i apostrof</translation>
+    </message>
+    <message>
+        <source>The quotation marks follow the language of the book: „…” and ‚…’ in Polish, “…” and ‘…’ in English. Outside the book, as in a file opened from the disk, they follow the language of the program. A language chosen on the Spelling page goes before both.</source>
+        <translation>Cudzysłowy są dobierane do języka książki: po polsku „…” i ‚…’, po angielsku “…” i ‘…’. Poza książką, na przykład w pliku otwartym z dysku, decyduje język programu. Język wybrany na stronie Pisownia ma pierwszeństwo przed obydwoma.</translation>
+    </message>
+    <message>
+        <source>Dashes and Ellipsis</source>
+        <extracomment>Settings &gt; Editor &gt; Auto-correct &gt; While Typing: the group of the dashes and the ellipsis. In Polish: Myślniki i wielokropek</extracomment>
+        <translation>Myślniki i wielokropek</translation>
+    </message>
+    <message>
+        <source>The hyphen becomes a dash when a space is typed after it.</source>
+        <translation>Dywiz zamienia się w myślnik, gdy wpiszesz po nim spację.</translation>
+    </message>
+    <message>
+        <source>Other Replacements</source>
+        <extracomment>Settings &gt; Editor &gt; Auto-correct &gt; While Typing: the group of the replacement table and the links. In Polish: Inne zamiany</extracomment>
+        <translation>Inne zamiany</translation>
+    </message>
+    <message>
+        <source>The fixed replacements of the Replacement Table tab, as (c) with ©.</source>
+        <translation>Stałe zamiany z karty „Tabela zamian”, na przykład (c) na ©.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorColorsPage</name>
     <message>
-        <source>Configure editor colors for light and dark mode.
-Editor color mode is independent from the application theme.</source>
-        <translation>Ustaw kolory edytora w trybie jasnym i ciemnym.
-Tryb kolorów edytora nie zależy od motywu programu.</translation>
+        <source>The colors of the paper and of the text on it, of the desk around the paper and of what is shown under the text. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolory papieru i tekstu na nim, tła wokół kartki oraz tego, co widać pod tekstem. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
     </message>
     <message>
-        <source>Use dark mode for editor</source>
-        <translation>Ciemny tryb edytora</translation>
+        <source>Dark paper</source>
+        <translation>Ciemny papier</translation>
     </message>
     <message>
-        <source>Toggle between light and dark editor colors</source>
-        <translation>Przełącza między jasnymi a ciemnymi kolorami edytora</translation>
+        <source>Write on the dark paper, whatever the theme. View &gt; Dark Paper switches it as well.</source>
+        <translation>Piszesz na ciemnym papierze, niezależnie od motywu. To samo przełącza polecenie Widok &gt; Ciemny papier.</translation>
     </message>
     <message>
-        <source>Light Mode Colors</source>
-        <translation>Kolory trybu jasnego</translation>
-    </message>
-    <message>
-        <source>Background</source>
-        <translation>Tło</translation>
+        <source>Paper</source>
+        <translation>Papier</translation>
     </message>
     <message>
         <source>Text</source>
         <translation>Tekst</translation>
     </message>
     <message>
-        <source>Inactive (Focus mode)</source>
-        <translation>Nieaktywny tekst (tryb skupienia)</translation>
-    </message>
-    <message>
-        <source>Dark Mode Colors</source>
-        <translation>Kolory trybu ciemnego</translation>
+        <source>Dimmed text (Focus)</source>
+        <translation>Przygaszony tekst (Skupienie)</translation>
     </message>
     <message>
         <source>Formatting marks</source>
         <translation>Znaki formatowania</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <translation>Łącza</translation>
+    </message>
+    <message>
+        <source>Around the paper</source>
+        <translation>Tło wokół kartki</translation>
+    </message>
+    <message>
+        <source>Light Paper</source>
+        <translation>Jasny papier</translation>
+    </message>
+    <message>
+        <source>Dark Paper</source>
+        <translation>Ciemny papier</translation>
+    </message>
+    <message>
+        <source>On Both Papers</source>
+        <translation>Na obu papierach</translation>
+    </message>
+    <message>
+        <source>Shown translucent under the text, so the text stays readable on either paper.</source>
+        <translation>Te kolory są półprzezroczyste i leżą pod tekstem, więc tekst pozostaje czytelny na obu papierach.</translation>
+    </message>
+    <message>
+        <source>Selection</source>
+        <translation>Zaznaczenie</translation>
+    </message>
+    <message>
+        <source>Search hits</source>
+        <translation>Znalezione wystąpienia</translation>
+    </message>
+    <message>
+        <source>Current search hit</source>
+        <translation>Bieżące wystąpienie</translation>
     </message>
 </context>
 <context>
@@ -5110,20 +6245,8 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Miejsce kursora jest zapamiętywane w książce dla każdego rozdziału, także po zamknięciu programu.</translation>
     </message>
     <message>
-        <source> spaces</source>
-        <translation> spacji</translation>
-    </message>
-    <message>
         <source>Tab Size:</source>
         <translation>Szerokość tabulatora:</translation>
-    </message>
-    <message>
-        <source>Show Line Numbers</source>
-        <translation>Pokazuj numery wierszy</translation>
-    </message>
-    <message>
-        <source>Enable Word Wrap</source>
-        <translation>Zawijaj wiersze</translation>
     </message>
     <message>
         <source>Typography</source>
@@ -5229,6 +6352,36 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <source>Keep Text Only</source>
         <translation>Tylko tekst</translation>
     </message>
+    <message>
+        <source>Paragraph Indent</source>
+        <translation>Wcięcie akapitu</translation>
+    </message>
+    <message>
+        <source>Number of Spaces</source>
+        <translation>Liczba spacji</translation>
+    </message>
+    <message>
+        <source>Tab types a tab character, also at the start of a paragraph. With Paragraph Indent the tab stops are as far apart as the first-line indent of the paragraph&apos;s style; a style without one, as a heading, has them as far apart as the indent above.</source>
+        <translation>Klawisz Tab wstawia znak tabulacji, także na początku akapitu. Przy „Wcięciu akapitu” tabulatory są co tyle, ile wynosi wcięcie pierwszego wiersza w stylu akapitu; w stylu bez wcięcia, na przykład w nagłówku, co tyle, ile wcięcie ustawione powyżej.</translation>
+    </message>
+    <message numerus="yes">
+        <source> space(s)</source>
+        <translation>
+            <numerusform> spacja</numerusform>
+            <numerusform> spacje</numerusform>
+            <numerusform> spacji</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Tabs</source>
+        <extracomment>The group of Settings &gt; Editor &gt; General with the tab stops. In Polish: Tabulatory</extracomment>
+        <translation>Tabulatory</translation>
+    </message>
+    <message>
+        <source>Scene Breaks</source>
+        <extracomment>The group of Settings &gt; Editor &gt; General with the look of the scene breaks. In Polish: Podziały scen</extracomment>
+        <translation>Podziały scen</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorGrammarPage</name>
@@ -5275,14 +6428,6 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>&amp;Show Progress</source>
         <translation>P&amp;okaż postęp</translation>
-    </message>
-    <message>
-        <source>On this comp&amp;uter (recommended)</source>
-        <translation>Na tym &amp;komputerze (zalecane)</translation>
-    </message>
-    <message>
-        <source>On a server in the &amp;internet</source>
-        <translation>Na serwerze w &amp;internecie</translation>
     </message>
     <message>
         <source>The text of the book does not leave the computer.</source>
@@ -5661,13 +6806,19 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <source>The color of the wavy line under a grammar issue and of the frames of its cards in the Spelling and Grammar panel. Each theme has its own colors: these are the colors of the current theme.</source>
         <translation>Kolor falistej linii pod błędem gramatyki i ramek jego kart w panelu „Pisownia i gramatyka”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
     </message>
+    <message>
+        <source>On this computer (recommended)</source>
+        <extracomment>In Polish: Na tym komputerze (zalecane)</extracomment>
+        <translation>Na tym komputerze (zalecane)</translation>
+    </message>
+    <message>
+        <source>On a server in the internet</source>
+        <extracomment>In Polish: Na serwerze w internecie</extracomment>
+        <translation>Na serwerze w internecie</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorPagesPage</name>
-    <message>
-        <source>Configure the page format, the page margins and the text frame border.</source>
-        <translation>Ustaw format strony, marginesy i ramkę tekstu.</translation>
-    </message>
     <message>
         <source>Page</source>
         <translation>Strona</translation>
@@ -5810,6 +6961,124 @@ Pomaga zobaczyć granice marginesów.</translation>
         <source>Border width (1-5 pixels)</source>
         <translation>Grubość ramki (1–5 pikseli)</translation>
     </message>
+    <message>
+        <source>Preview of pages 2 and 3</source>
+        <translation>Podgląd stron 2 i 3</translation>
+    </message>
+    <message>
+        <source>Pages 2 and 3 of a chapter. Page 1 is a right page, so its inner margin is on the left. A chapter can start on a left page: &quot;Starts on a left page&quot; in the Properties panel.</source>
+        <translation>Strony 2 i 3 rozdziału. Strona 1 jest prawa, więc margines wewnętrzny ma po lewej. Rozdział może zaczynać się na lewej stronie: „Zaczyna się na lewej stronie” w panelu Właściwości.</translation>
+    </message>
+    <message>
+        <source>Preview:</source>
+        <translation>Podgląd:</translation>
+    </message>
+    <message>
+        <source>Margin Numbering</source>
+        <translation>Numeracja na marginesie</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Brak</translation>
+    </message>
+    <message>
+        <source>Lines</source>
+        <translation>Wiersze</translation>
+    </message>
+    <message>
+        <source>Paragraphs</source>
+        <translation>Akapity</translation>
+    </message>
+    <message>
+        <source>Number:</source>
+        <translation>Numeruj:</translation>
+    </message>
+    <message>
+        <source>Interval:</source>
+        <translation>Interwał:</translation>
+    </message>
+    <message>
+        <source>1: a number at every line, 5: at every fifth one.</source>
+        <translation>1: numer przy każdym wierszu, 5: przy co piątym.</translation>
+    </message>
+    <message>
+        <source>1: a number at every paragraph, 5: at every fifth one. Headings, scene breaks and empty paragraphs are not counted.</source>
+        <translation>1: numer przy każdym akapicie, 5: przy co piątym. Nagłówki, podziały scen i puste akapity nie są liczone.</translation>
+    </message>
+    <message>
+        <source>Restart on every page</source>
+        <translation>Licz od nowa na każdej stronie</translation>
+    </message>
+    <message>
+        <source>Line numbers in the Page Layout view only. In the Continuous view the numbers run through the whole chapter.</source>
+        <translation>Tylko numery wierszy w widoku „Układ strony”. W widoku „Ciągły” numery biegną przez cały rozdział.</translation>
+    </message>
+    <message>
+        <source>Font:</source>
+        <translation>Czcionka:</translation>
+    </message>
+    <message>
+        <source> pt</source>
+        <translation> pt</translation>
+    </message>
+    <message>
+        <source>Size:</source>
+        <translation>Wielkość:</translation>
+    </message>
+    <message>
+        <source>At 100% zoom; the numbers grow and shrink with the text.</source>
+        <translation>Przy powiększeniu 100%; numery rosną i maleją razem z tekstem.</translation>
+    </message>
+    <message>
+        <source>Number color</source>
+        <translation>Kolor numerów</translation>
+    </message>
+    <message>
+        <source>The same on the light and on the dark paper.</source>
+        <translation>Ten sam na jasnym i na ciemnym papierze.</translation>
+    </message>
+    <message>
+        <source>Fog settled on the river</source>
+        <translation>Mgła zeszła nad rzekę</translation>
+    </message>
+    <message>
+        <source>long before dawn</source>
+        <translation>jeszcze przed świtem</translation>
+    </message>
+    <message>
+        <source>Light paper</source>
+        <translation>Jasny papier</translation>
+    </message>
+    <message>
+        <source>Dark paper</source>
+        <translation>Ciemny papier</translation>
+    </message>
+    <message>
+        <source>Preview of the margin numbers</source>
+        <translation>Podgląd numerów na marginesie</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation>Przywróć domyślne</translation>
+    </message>
+    <message>
+        <source>The default interval, font, size and color; the numbering stays as chosen. Apply and OK store them.</source>
+        <translation>Domyślny interwał, czcionka, wielkość i kolor; wybrana numeracja zostaje. Zapisują je przyciski Zastosuj i OK.</translation>
+    </message>
+    <message>
+        <source>The format of the pages and their margins.</source>
+        <extracomment>The intro of Settings &gt; Editor &gt; Pages and Margins. In Polish: Format stron i ich marginesy.</extracomment>
+        <translation>Format stron i ich marginesy.</translation>
+    </message>
+    <message>
+        <source>The numbering buttons on the Views toolbar and the commands of View &gt; Margin Numbering change the same settings as the fields below.</source>
+        <translation>Przyciski numeracji na pasku Widoki i polecenia menu Widok &gt; Numeracja na marginesie zmieniają te same ustawienia co pola poniżej.</translation>
+    </message>
+    <message>
+        <source>Look of the Numbers</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Margin Numbering. In Polish: Wygląd numerów</extracomment>
+        <translation>Wygląd numerów</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorPanel</name>
@@ -5839,6 +7108,32 @@ Saving the {kind} keeps only this text. Close {kind:s=it|p=them} without saving 
 
 Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmian, zamknij {kind:accusative} bez zapisywania.</translation>
     </message>
+    <message>
+        <source>Caps Lock was on: the word typed with it is corrected, and Caps Lock is off now.</source>
+        <translation>Caps Lock był włączony: słowo wpisane z nim zostało poprawione, a Caps Lock jest teraz wyłączony.</translation>
+    </message>
+    <message>
+        <source>Caps Lock is on: the word typed with it is corrected. Turn Caps Lock off.</source>
+        <translation>Caps Lock jest włączony: słowo wpisane z nim zostało poprawione. Wyłącz Caps Lock.</translation>
+    </message>
+    <message>
+        <source>After “%1” auto-correct no longer starts a sentence with a capital: it is among the exceptions now.</source>
+        <extracomment>%1 is an abbreviation with its period, as "godz."</extracomment>
+        <translation>Po „%1” autokorekta nie zaczyna już zdania wielką literą: ten skrót jest teraz wśród wyjątków.</translation>
+    </message>
+    <message>
+        <source>Auto-correct no longer changes “%1”: it is among the exceptions now.</source>
+        <extracomment>%1 is a word with two capitals at its start, as "PCs"</extracomment>
+        <translation>Autokorekta nie zmienia już „%1”: to słowo jest teraz wśród wyjątków.</translation>
+    </message>
+    <message>
+        <source>Kalahari opens only the addresses of web pages and e-mail addresses: %1</source>
+        <translation>Kalahari otwiera tylko adresy stron internetowych i adresy e-mail: %1</translation>
+    </message>
+    <message>
+        <source>The address could not be opened: %1</source>
+        <translation>Nie udało się otworzyć adresu: %1</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorSpellingPage</name>
@@ -5862,10 +7157,6 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Language:</source>
         <translation>Język:</translation>
-    </message>
-    <message>
-        <source>With &quot;Language of the book&quot; the chapters are checked in the language of the book, set in its properties, and other documents, such as a file opened from the disk, in the language of the program. A misspelled word is underlined with a wavy line; right-click it for suggestions. Tools &gt; Check Spelling as You Type (Shift+F7) turns the checking on and off.</source>
-        <translation>Przy ustawieniu „Język książki” rozdziały są sprawdzane w języku książki, ustawionym w jej właściwościach, a inne dokumenty, np. plik otwarty z dysku, w języku programu. Błędnie zapisane słowo jest podkreślone falistą linią, a po kliknięciu go prawym przyciskiem myszy pojawiają się podpowiedzi. Sprawdzanie włącza się i wyłącza poleceniem Narzędzia &gt; Sprawdzaj pisownię podczas pisania (Shift+F7).</translation>
     </message>
     <message>
         <source>Your Words</source>
@@ -5942,6 +7233,14 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>The color of the wavy line under a misspelled word and of the frames of its cards in the Spelling and Grammar panel. Each theme has its own colors: these are the colors of the current theme.</source>
         <translation>Kolor falistej linii pod błędem pisowni i ramek jego kart w panelu „Pisownia i gramatyka”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>A misspelled word is underlined with a wavy line; right-click it for suggestions. Tools &gt; Check Spelling as You Type (Shift+F7) turns the checking on and off too.</source>
+        <translation>Błędnie zapisane słowo jest podkreślone falistą linią, a po kliknięciu go prawym przyciskiem myszy pojawiają się podpowiedzi. Sprawdzanie włącza się i wyłącza także poleceniem Narzędzia &gt; Sprawdzaj pisownię podczas pisania (Shift+F7).</translation>
+    </message>
+    <message>
+        <source>With &quot;Language of the book&quot; the chapters are checked in the language of the book, set in its properties, and other documents, such as a file opened from the disk, in the language of the program.</source>
+        <translation>Przy ustawieniu „Język książki” rozdziały są sprawdzane w języku książki, ustawionym w jej właściwościach, a inne dokumenty, np. plik otwarty z dysku, w języku programu.</translation>
     </message>
 </context>
 <context>
@@ -6073,10 +7372,6 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>W podfolderze .backups każdej książki</translation>
     </message>
     <message>
-        <source>In one folder for all books:</source>
-        <translation>We wspólnym folderze wszystkich książek:</translation>
-    </message>
-    <message>
         <source>Choose the Folder of the Backups</source>
         <translation>Wybierz folder kopii zapasowych</translation>
     </message>
@@ -6107,6 +7402,16 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>The windows exporting a book and choosing an archive to import open in this folder. Later each of them starts in the folder chosen in it last, until this setting changes.</source>
         <translation>Okna eksportu książki i wyboru archiwum do importu otwierają się w tym folderze. Później każde z nich zaczyna od folderu wybranego w nim ostatnio, aż do zmiany tego ustawienia.</translation>
+    </message>
+    <message>
+        <source>Backups:</source>
+        <extracomment>In Polish: Kopie:</extracomment>
+        <translation>Kopie:</translation>
+    </message>
+    <message>
+        <source>In one folder for all books</source>
+        <extracomment>In Polish: We wspólnym folderze wszystkich książek</extracomment>
+        <translation>We wspólnym folderze wszystkich książek</translation>
     </message>
 </context>
 <context>
@@ -6154,6 +7459,55 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Automatically open the most recently used book when Kalahari starts</source>
         <translation>Po uruchomieniu Kalahari otwiera ostatnio używaną książkę</translation>
+    </message>
+    <message>
+        <source>Windows</source>
+        <extracomment>Settings &gt; General: the group of the options of the windows. In Polish: Okna</extracomment>
+        <translation>Okna</translation>
+    </message>
+    <message>
+        <source>Full window</source>
+        <extracomment>Settings &gt; General &gt; Windows: a tab moved to a window of its own shows the menus, the toolbars and the status bar. In Polish: Pełne okno</extracomment>
+        <translation>Pełne okno</translation>
+    </message>
+    <message>
+        <source>Writing only</source>
+        <extracomment>The Format toolbar and the status bar. In Polish: Samo pisanie</extracomment>
+        <translation>Samo pisanie</translation>
+    </message>
+    <message>
+        <source>Full window: the menus, the toolbars and the status bar, as in the book window. Writing only: the Format toolbar and the status bar.</source>
+        <extracomment>In Polish: Pełne okno: menu, paski narzędzi i pasek stanu, jak w oknie książki. Samo pisanie: pasek formatowania i pasek stanu.</extracomment>
+        <translation>Pełne okno: menu, paski narzędzi i pasek stanu, jak w oknie książki. Samo pisanie: pasek formatowania i pasek stanu.</translation>
+    </message>
+    <message>
+        <source>Detached window:</source>
+        <extracomment>In Polish: Wygląd oderwanego okna:</extracomment>
+        <translation>Wygląd oderwanego okna:</translation>
+    </message>
+    <message>
+        <source>Its tabs return to the book window</source>
+        <extracomment>In Polish: Karty wracają do okna książki</extracomment>
+        <translation>Karty wracają do okna książki</translation>
+    </message>
+    <message>
+        <source>Its texts close</source>
+        <extracomment>In Polish: Teksty się zamykają</extracomment>
+        <translation>Teksty się zamykają</translation>
+    </message>
+    <message>
+        <source>What closing a window of its own of tabs does to its texts; unsaved changes are asked about</source>
+        <translation>Co dzieje się z tekstami po zamknięciu oderwanego okna; o niezapisane zmiany program pyta</translation>
+    </message>
+    <message>
+        <source>Closing a detached window:</source>
+        <extracomment>In Polish: Zamknięcie oderwanego okna:</extracomment>
+        <translation>Zamknięcie oderwanego okna:</translation>
+    </message>
+    <message>
+        <source>A tab goes to a window of its own when it is dragged off the bar of the tabs, or from the Window menu.</source>
+        <extracomment>In Polish: Kartę odrywa się, przeciągając ją poza pasek kart albo z menu Okno.</extracomment>
+        <translation>Kartę odrywa się do osobnego okna, przeciągając ją poza pasek kart albo z menu Okno.</translation>
     </message>
 </context>
 <context>
@@ -6698,6 +8052,39 @@ Czy zapisać go przed zamknięciem?</translation>
         <extracomment>The tooltip of a greyed command of the Book menu that adds an element of a kind of the Workshop, e.g. New Character.... In Polish: Program nie ma jeszcze edytora {kind:genitive}.</extracomment>
         <translation>Program nie ma jeszcze edytora {kind:genitive}.</translation>
     </message>
+    <message>
+        <source>Annotation cards under paragraphs: shown</source>
+        <translation>Karty uwag pod akapitem: widoczne</translation>
+    </message>
+    <message>
+        <source>Annotation cards under paragraphs: hidden</source>
+        <translation>Karty uwag pod akapitem: ukryte</translation>
+    </message>
+    <message>
+        <source>Margin numbering: off</source>
+        <translation>Numeracja na marginesie: wyłączona</translation>
+    </message>
+    <message>
+        <source>Margin numbering: lines</source>
+        <translation>Numeracja na marginesie: wiersze</translation>
+    </message>
+    <message>
+        <source>Margin numbering: paragraphs</source>
+        <translation>Numeracja na marginesie: akapity</translation>
+    </message>
+    <message>
+        <source>Formatting copied: select text and choose Format &gt; Paste Formatting</source>
+        <translation>Skopiowano formatowanie: zaznacz tekst i wybierz Format &gt; Wklej formatowanie</translation>
+    </message>
+    <message>
+        <source>No formatting copied yet: choose Format &gt; Copy Formatting first</source>
+        <translation>Nie skopiowano jeszcze formatowania: najpierw wybierz Format &gt; Kopiuj formatowanie</translation>
+    </message>
+    <message>
+        <source>A cell of a table holds only text</source>
+        <extracomment>Why Insert &gt; Horizontal Line, Scene Break, Page Break and Table are greyed out with the cursor in a table. In Polish: Komórka tabeli może zawierać tylko tekst</extracomment>
+        <translation>Komórka tabeli może zawierać tylko tekst</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
@@ -7149,11 +8536,6 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>Wybór u góry okna:</translation>
     </message>
     <message>
-        <source>Materials</source>
-        <extracomment>The group of the materials of the Workshop. In Polish: Materiały</extracomment>
-        <translation>Materiały</translation>
-    </message>
-    <message>
         <source>On a tab of the program</source>
         <extracomment>In Polish: Na karcie w programie</extracomment>
         <translation>Na karcie w programie</translation>
@@ -7167,11 +8549,6 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Pictures too. The Preview button in the Properties panel then opens the preview tab.</source>
         <extracomment>In Polish: Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</extracomment>
         <translation>Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</translation>
-    </message>
-    <message>
-        <source>Opening materials:</source>
-        <extracomment>In Polish: Otwieranie materiałów:</extracomment>
-        <translation>Otwieranie materiałów:</translation>
     </message>
     <message>
         <source>A picture, also the copy of one from the web, opens on a preview tab, as a chapter does. A file of another kind, such as a PDF, opens in the system program until the program has a preview of it. A material without a file and an address opens on its card.</source>
@@ -7232,11 +8609,6 @@ Szczegóły są w dzienniku programu.</translation>
         <source>The window opens filled with the file, the address or the picture; Add adds the material.</source>
         <extracomment>In Polish: Okno otwiera się wypełnione plikiem, adresem albo obrazem; materiał dodaje dopiero „Dodaj”.</extracomment>
         <translation>Okno otwiera się wypełnione plikiem, adresem albo obrazem; materiał dodaje dopiero „Dodaj”.</translation>
-    </message>
-    <message>
-        <source>Dropped or pasted:</source>
-        <extracomment>In Polish: Upuszczone albo wklejone:</extracomment>
-        <translation>Upuszczone albo wklejone:</translation>
     </message>
     <message>
         <source>Applies to a file dragged from the file manager, an address dragged from the browser, and an address, a file or a picture pasted in the Navigator (Ctrl+V).</source>
@@ -7302,6 +8674,95 @@ Szczegóły są w dzienniku programu.</translation>
         <source>A kind clicked in the Navigator:</source>
         <extracomment>In Polish: Typ kliknięty w Nawigatorze:</extracomment>
         <translation>Typ kliknięty w Nawigatorze:</translation>
+    </message>
+    <message>
+        <source>Material Kinds in the Navigator</source>
+        <extracomment>The group of Settings &gt; Navigator that hides kinds of materials. In Polish: Typy materiałów w Nawigatorze</extracomment>
+        <translation>Typy materiałów w Nawigatorze</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>A kind unchecked leaves the Navigator in every book. Its materials stay in the book and in All Materials; checked again, the kind comes back. &quot;Hide Kind&quot; in the menu of a kind in the Navigator does the same. The numbers are those of the open book.</source>
+        <extracomment>In Polish: Odznaczony typ znika z Nawigatora we wszystkich książkach. Jego materiały zostają w książce i są we „Wszystkich materiałach”; po zaznaczeniu typ wraca. To samo robi polecenie „Ukryj typ” w menu typu w Nawigatorze. Liczby dotyczą otwartej książki.</extracomment>
+        <translation>Odznaczony typ znika z Nawigatora we wszystkich książkach. Jego materiały zostają w książce i są we „Wszystkich materiałach”; po zaznaczeniu typ wraca. To samo robi polecenie „Ukryj typ” w menu typu w Nawigatorze. Liczby dotyczą otwartej książki.</translation>
+    </message>
+    <message>
+        <source>&amp;Show:</source>
+        <extracomment>In Polish: &amp;Pokazuj:</extracomment>
+        <translation>&amp;Pokazuj:</translation>
+    </message>
+    <message>
+        <source>Cover</source>
+        <extracomment>The group of Settings &gt; Navigator of the materials of the cover. In Polish: Okładka</extracomment>
+        <translation>Okładka</translation>
+    </message>
+    <message>
+        <source>characters with spaces</source>
+        <extracomment>The unit of the lengths of the texts of the cover. In Polish: znakach ze spacjami</extracomment>
+        <translation>znakach ze spacjami</translation>
+    </message>
+    <message>
+        <source>words</source>
+        <extracomment>In Polish: słowach</extracomment>
+        <translation>słowach</translation>
+    </message>
+    <message>
+        <source>&amp;Length counted in:</source>
+        <extracomment>In Polish: &amp;Długość liczona w:</extracomment>
+        <translation>&amp;Długość liczona w:</translation>
+    </message>
+    <message>
+        <source>Target length in words:</source>
+        <extracomment>In Polish: Docelowa długość w słowach:</extracomment>
+        <translation>Docelowa długość w słowach:</translation>
+    </message>
+    <message>
+        <source>Target length in characters with spaces:</source>
+        <extracomment>In Polish: Docelowa długość w znakach ze spacjami:</extracomment>
+        <translation>Docelowa długość w znakach ze spacjami:</translation>
+    </message>
+    <message>
+        <source>%1, %2</source>
+        <extracomment>The accessible name of a target: %1 the kind of text, %2 the unit. In Polish: %1, %2</extracomment>
+        <translation>%1, %2</translation>
+    </message>
+    <message>
+        <source>Each material can have its own target length on its card. Publishers usually count characters with spaces.</source>
+        <extracomment>In Polish: Każdy materiał może mieć własną docelową długość na swojej karcie. Wydawnictwa podają zwykle znaki ze spacjami.</extracomment>
+        <translation>Każdy materiał może mieć własną docelową długość na swojej karcie. Wydawnictwa podają zwykle znaki ze spacjami.</translation>
+    </message>
+    <message>
+        <source>Dropped and Pasted</source>
+        <extracomment>The group of Settings &gt; Navigator &gt; Adding. In Polish: Upuszczone i wklejone</extracomment>
+        <translation>Upuszczone i wklejone</translation>
+    </message>
+    <message>
+        <source>Added:</source>
+        <extracomment>The choice of the group Dropped and Pasted. In Polish: Dodawane:</extracomment>
+        <translation>Dodawane:</translation>
+    </message>
+    <message>
+        <source>Lists of Materials</source>
+        <extracomment>The group of Settings &gt; Navigator &gt; Materials. In Polish: Listy materiałów</extracomment>
+        <translation>Listy materiałów</translation>
+    </message>
+    <message>
+        <source>Opening Materials</source>
+        <extracomment>The group of Settings &gt; Navigator &gt; Materials. In Polish: Otwieranie materiałów</extracomment>
+        <translation>Otwieranie materiałów</translation>
+    </message>
+    <message>
+        <source>Files and pictures:</source>
+        <extracomment>The choice of the group Opening Materials. In Polish: Pliki i obrazy:</extracomment>
+        <translation>Pliki i obrazy:</translation>
+    </message>
+    <message>
+        <source>Links</source>
+        <extracomment>The group of Settings &gt; Navigator &gt; Materials. In Polish: Powiązania</extracomment>
+        <translation>Powiązania</translation>
     </message>
 </context>
 <context>
@@ -7592,6 +9053,16 @@ Szczegóły są w dzienniku programu.</translation>
         <source>&amp;Open List</source>
         <extracomment>Shows the list of the materials of a kind on a tab in the middle of the window. In Polish: &amp;Otwórz listę</extracomment>
         <translation>&amp;Otwórz listę</translation>
+    </message>
+    <message>
+        <source>&amp;Hide Kind &quot;%1&quot;</source>
+        <extracomment>Hides a kind of materials in the Navigator of every book; its materials stay. %1: the name of the kind. In Polish: &amp;Ukryj typ „%1”</extracomment>
+        <translation>&amp;Ukryj typ „%1”</translation>
+    </message>
+    <message>
+        <source>Kind &amp;Settings...</source>
+        <extracomment>Opens Settings &gt; Navigator at the kinds of materials. In Polish: Ustawienia &amp;typów...</extracomment>
+        <translation>Ustawienia &amp;typów...</translation>
     </message>
 </context>
 <context>
@@ -8120,6 +9591,92 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>In Polish: Brak powiązanych materiałów.</extracomment>
         <translation>Brak powiązanych materiałów.</translation>
     </message>
+    <message>
+        <source>Starts on a left page</source>
+        <translation>Zaczyna się na lewej stronie</translation>
+    </message>
+    <message>
+        <source>Change Failed</source>
+        <translation>Nie udało się wprowadzić zmiany</translation>
+    </message>
+    <message>
+        <source>With mirror margins (Settings &gt; Editor &gt; Pages and Margins) the first page of {kind:s=this|p=these} {kind} is a left page: its inner margin is on the right. Unchecked: a right page.</source>
+        <translation>Przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy) pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez zaznaczenia jest prawa.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::QuickCharacterPalette</name>
+    <message>
+        <source>Quick Character</source>
+        <translation>Szybki wybór znaku</translation>
+    </message>
+    <message>
+        <source>Find a character: a name or a code</source>
+        <translation>Znajdź znak: nazwa lub kod</translation>
+    </message>
+    <message>
+        <source>Find a character</source>
+        <translation>Szukaj znaku</translation>
+    </message>
+    <message>
+        <source>&amp;Favorites</source>
+        <translation>&amp;Ulubione</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>Ulubione</translation>
+    </message>
+    <message>
+        <source>No favorites yet. Add them in the window Insert &gt; Special Character...</source>
+        <translation>Nie masz jeszcze ulubionych. Dodasz je w oknie Wstaw &gt; Znak specjalny...</translation>
+    </message>
+    <message>
+        <source>Recently &amp;used</source>
+        <translation>&amp;Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Recently used</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>The characters you insert appear here.</source>
+        <translation>Tu pojawią się wstawiane znaki.</translation>
+    </message>
+    <message>
+        <source>Characters found</source>
+        <translation>Znalezione znaki</translation>
+    </message>
+    <message>
+        <source>&amp;All Characters...</source>
+        <translation>&amp;Wszystkie znaki...</translation>
+    </message>
+    <message>
+        <source>The window Insert &gt; Special Character... (%1)</source>
+        <translation>Okno Wstaw &gt; Znak specjalny... (%1)</translation>
+    </message>
+    <message>
+        <source>Found: the first %1 of %2</source>
+        <extracomment>%1 characters of the %2 found are shown</extracomment>
+        <translation>Znalezione: pierwsze %1 z %2</translation>
+    </message>
+    <message>
+        <source>Found</source>
+        <translation>Znalezione</translation>
+    </message>
+    <message>
+        <source>Nothing matches “%1”.</source>
+        <translation>Nic nie pasuje do „%1”.</translation>
+    </message>
+    <message>
+        <source>auto-correct %1</source>
+        <extracomment>What auto-correct replaces with the character, as "(c)" or "--"</extracomment>
+        <translation>autokorekta %1</translation>
+    </message>
+    <message>
+        <source>Not in the font %1: in the text another font shows it.</source>
+        <extracomment>%1 is the name of a font</extracomment>
+        <translation>Nie ma go w czcionce %1: w tekście pokaże go inna czcionka.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::RecentBooksMenu</name>
@@ -8373,6 +9930,46 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <extracomment>The page of the downloads for the materials with a web address. In Polish: Materiały</extracomment>
         <translation>Materiały</translation>
     </message>
+    <message>
+        <source>Quick Insert</source>
+        <extracomment>Settings &gt; Editor &gt; Quick Insert: @ and # in the text. In Polish: Szybkie wstawianie</extracomment>
+        <translation>Szybkie wstawianie</translation>
+    </message>
+    <message>
+        <source>Repetitions</source>
+        <extracomment>Settings &gt; Editor &gt; Repetitions: the words that come back too close. In Polish: Powtórzenia</extracomment>
+        <translation>Powtórzenia</translation>
+    </message>
+    <message>
+        <source>Writing</source>
+        <extracomment>Settings &gt; Editor &gt; Writing: the behavior of the editor while writing. In Polish: Pisanie</extracomment>
+        <translation>Pisanie</translation>
+    </message>
+    <message>
+        <source>Margin Numbering</source>
+        <extracomment>Settings &gt; Editor &gt; Margin Numbering: the numbers of the lines or paragraphs in the margin. Short: the list of the pages is as wide as its longest name. In Polish: Numeracja</extracomment>
+        <translation>Numeracja</translation>
+    </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>Settings &gt; Annotations &gt; Cards: the annotations shown as cards under the paragraphs in the continuous view. Short: the list of the pages is as wide as its longest name. In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
+    <message>
+        <source>Adding</source>
+        <extracomment>Settings &gt; Navigator &gt; Adding: the menus of the nodes, the Add Element window and the dropped files. In Polish: Dodawanie</extracomment>
+        <translation>Dodawanie</translation>
+    </message>
+    <message>
+        <source>Material Kinds</source>
+        <extracomment>Settings &gt; Navigator &gt; Material Kinds: the kinds of materials shown in the Navigator. In Polish: Typy materiałów</extracomment>
+        <translation>Typy materiałów</translation>
+    </message>
+    <message>
+        <source>Cover</source>
+        <extracomment>Settings &gt; Navigator &gt; Cover: the cover of the book in the Navigator. In Polish: Okładka</extracomment>
+        <translation>Okładka</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SettingsPage</name>
@@ -8399,6 +9996,10 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>On: a color too light for a light background is shown darker, and one too dark for a dark background lighter (on the paper and in the panels). Off: the colors exactly as set. One setting for the spelling, the grammar, the annotations and the comparison of the versions.</source>
         <translation>Włączone: kolor zbyt jasny na jasnym tle jest pokazywany ciemniej, a zbyt ciemny na ciemnym tle – jaśniej (na papierze i w panelach). Wyłączone: kolory dokładnie takie, jak ustawione. Jedno ustawienie dla pisowni, gramatyki, uwag i porównania wersji.</translation>
+    </message>
+    <message>
+        <source>Ad&amp;vanced Settings</source>
+        <translation>Ustawienia &amp;zaawansowane</translation>
     </message>
 </context>
 <context>
@@ -8800,10 +10401,6 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>Wyjście</translation>
     </message>
     <message>
-        <source>%1 goes to the next field.</source>
-        <translation>%1 przechodzi do następnego pola.</translation>
-    </message>
-    <message>
         <source>%1 goes back to the previous field.</source>
         <translation>%1 wraca do poprzedniego pola.</translation>
     </message>
@@ -9115,6 +10712,64 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Delete the element</source>
         <translation>Usuń element</translation>
     </message>
+    <message>
+        <source>Tab character</source>
+        <translation>Znak tabulacji</translation>
+    </message>
+    <message>
+        <source>%1 goes to the next field; in the text it types a tab character.</source>
+        <translation>%1 przechodzi do następnego pola; w tekście wstawia znak tabulacji.</translation>
+    </message>
+    <message>
+        <source>types a tab character</source>
+        <translation>wstawia znak tabulacji</translation>
+    </message>
+    <message>
+        <source>Fixed: the quick insert list</source>
+        <translation>Stałe: lista szybkiego wstawiania</translation>
+    </message>
+    <message>
+        <source>Choose an item</source>
+        <translation>Wybierz pozycję</translation>
+    </message>
+    <message>
+        <source>Insert the item</source>
+        <translation>Wstaw pozycję</translation>
+    </message>
+    <message>
+        <source>Close the list</source>
+        <translation>Zamknij listę</translation>
+    </message>
+    <message>
+        <source>Fixed: the Repetitions panel</source>
+        <extracomment>In Polish: Stałe: panel „Powtórzenia”</extracomment>
+        <translation>Stałe: panel „Powtórzenia”</translation>
+    </message>
+    <message>
+        <source>Choose a card or a word</source>
+        <extracomment>In Polish: Wybierz kartę albo słowo</extracomment>
+        <translation>Wybierz kartę albo słowo</translation>
+    </message>
+    <message>
+        <source>Go to the words in the text</source>
+        <extracomment>In Polish: Przejdź do słów w tekście</extracomment>
+        <translation>Przejdź do słów w tekście</translation>
+    </message>
+    <message>
+        <source>Skip the word of the card</source>
+        <extracomment>In Polish: Pomijaj słowo karty</extracomment>
+        <translation>Pomijaj słowo karty</translation>
+    </message>
+    <message>
+        <source>The card&apos;s menu</source>
+        <extracomment>In Polish: Menu karty</extracomment>
+        <translation>Menu karty</translation>
+    </message>
+    <message>
+        <source>Switch the pages Close Together and Most Frequent</source>
+        <extracomment>In Polish: Przełącz karty „Blisko siebie” i „Najczęstsze”</extracomment>
+        <translation>Przełącz karty „Blisko siebie” i „Najczęstsze”</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::ShortcutsPage</name>
@@ -9425,6 +11080,1083 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Press the new shortcut... (Esc – cancel)</source>
         <translation>Naciśnij nowy skrót... (Esc – anuluj)</translation>
+    </message>
+    <message>
+        <source>Characters</source>
+        <extracomment>The group of Settings &gt; Keyboard Shortcuts with the characters given keys in Insert &gt; Special Character...</extracomment>
+        <translation>Znaki</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpecialCharacterCoordinator</name>
+    <message>
+        <source>No chapter or file is open</source>
+        <translation>Nie jest otwarty żaden rozdział ani plik</translation>
+    </message>
+    <message>
+        <source>Inserted: %1</source>
+        <extracomment>%1 is a character with its name, as "Em dash (—)"</extracomment>
+        <translation>Wstawiono: %1</translation>
+    </message>
+    <message>
+        <source>%1 has no shortcut now.</source>
+        <extracomment>%1 is a character with its name, as "Em dash (—)"</extracomment>
+        <translation>Usunięto skrót znaku: %1.</translation>
+    </message>
+    <message>
+        <source>%1 inserts %2 now; %3 has no shortcut.</source>
+        <extracomment>%1 are keys, %2 a character with its name, %3 the command that had the keys</extracomment>
+        <translation>Skrót %1 wstawia teraz: %2. Polecenie „%3” nie ma już skrótu.</translation>
+    </message>
+    <message>
+        <source>%1 inserts %2 now.</source>
+        <extracomment>%1 are keys, %2 a character with its name</extracomment>
+        <translation>Skrót %1 wstawia teraz: %2.</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces “%1” with %2 now.</source>
+        <extracomment>%1 is a word, %2 a character with its name</extracomment>
+        <translation>Autokorekta zamienia teraz „%1” na: %2.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpecialCharacters</name>
+    <message>
+        <source>Em dash</source>
+        <translation>Pauza</translation>
+    </message>
+    <message>
+        <source>dash dialogue</source>
+        <translation>myślnik dialogowy</translation>
+    </message>
+    <message>
+        <source>En dash</source>
+        <translation>Półpauza</translation>
+    </message>
+    <message>
+        <source>dash range</source>
+        <translation>myślnik przedział</translation>
+    </message>
+    <message>
+        <source>Ellipsis</source>
+        <translation>Wielokropek</translation>
+    </message>
+    <message>
+        <source>dots</source>
+        <translation>kropki</translation>
+    </message>
+    <message>
+        <source>Low double opening quotation mark</source>
+        <translation>Cudzysłów otwierający dolny</translation>
+    </message>
+    <message>
+        <source>quote</source>
+        <translation>cudzysłów</translation>
+    </message>
+    <message>
+        <source>Double closing quotation mark</source>
+        <translation>Cudzysłów zamykający</translation>
+    </message>
+    <message>
+        <source>Low single opening quotation mark</source>
+        <translation>Cudzysłów pojedynczy otwierający dolny</translation>
+    </message>
+    <message>
+        <source>Apostrophe</source>
+        <translation>Apostrof</translation>
+    </message>
+    <message>
+        <source>single closing quotation mark</source>
+        <translation>cudzysłów pojedynczy zamykający</translation>
+    </message>
+    <message>
+        <source>Double opening quotation mark</source>
+        <translation>Cudzysłów otwierający górny</translation>
+    </message>
+    <message>
+        <source>quote English</source>
+        <translation>cudzysłów angielski</translation>
+    </message>
+    <message>
+        <source>Single opening quotation mark</source>
+        <translation>Cudzysłów pojedynczy otwierający górny</translation>
+    </message>
+    <message>
+        <source>Opening guillemet</source>
+        <translation>Cudzysłów francuski otwierający</translation>
+    </message>
+    <message>
+        <source>quote French</source>
+        <translation>cudzysłów francuski jodełka</translation>
+    </message>
+    <message>
+        <source>Closing guillemet</source>
+        <translation>Cudzysłów francuski zamykający</translation>
+    </message>
+    <message>
+        <source>Single opening guillemet</source>
+        <translation>Pojedyncza jodełka otwierająca</translation>
+    </message>
+    <message>
+        <source>Single closing guillemet</source>
+        <translation>Pojedyncza jodełka zamykająca</translation>
+    </message>
+    <message>
+        <source>Middle dot</source>
+        <translation>Kropka środkowa</translation>
+    </message>
+    <message>
+        <source>point</source>
+        <translation>punkt</translation>
+    </message>
+    <message>
+        <source>Bullet</source>
+        <translation>Punktor</translation>
+    </message>
+    <message>
+        <source>point list</source>
+        <translation>kropka lista</translation>
+    </message>
+    <message>
+        <source>Section sign</source>
+        <translation>Paragraf</translation>
+    </message>
+    <message>
+        <source>paragraph law</source>
+        <translation>prawo</translation>
+    </message>
+    <message>
+        <source>Pilcrow</source>
+        <translation>Znak akapitu</translation>
+    </message>
+    <message>
+        <source>paragraph mark</source>
+        <translation>akapit</translation>
+    </message>
+    <message>
+        <source>Dagger</source>
+        <translation>Krzyżyk</translation>
+    </message>
+    <message>
+        <source>cross obelisk died</source>
+        <translation>obelisk zmarły</translation>
+    </message>
+    <message>
+        <source>Double dagger</source>
+        <translation>Podwójny krzyżyk</translation>
+    </message>
+    <message>
+        <source>cross</source>
+        <translation>krzyż</translation>
+    </message>
+    <message>
+        <source>Degree sign</source>
+        <translation>Stopień</translation>
+    </message>
+    <message>
+        <source>temperature angle</source>
+        <translation>temperatura kąt</translation>
+    </message>
+    <message>
+        <source>Prime</source>
+        <translation>Prim</translation>
+    </message>
+    <message>
+        <source>minute foot</source>
+        <translation>minuta stopa</translation>
+    </message>
+    <message>
+        <source>Double prime</source>
+        <translation>Bis</translation>
+    </message>
+    <message>
+        <source>second inch</source>
+        <translation>sekunda cal</translation>
+    </message>
+    <message>
+        <source>Per mille sign</source>
+        <translation>Promil</translation>
+    </message>
+    <message>
+        <source>thousand</source>
+        <translation>tysiąc</translation>
+    </message>
+    <message>
+        <source>Numero sign</source>
+        <translation>Numer</translation>
+    </message>
+    <message>
+        <source>number</source>
+        <translation>numero</translation>
+    </message>
+    <message>
+        <source>Copyright sign</source>
+        <translation>Znak praw autorskich</translation>
+    </message>
+    <message>
+        <source>rights</source>
+        <translation>copyright prawa</translation>
+    </message>
+    <message>
+        <source>Registered sign</source>
+        <translation>Zastrzeżony znak towarowy</translation>
+    </message>
+    <message>
+        <source>registered trademark</source>
+        <translation>zastrzeżony</translation>
+    </message>
+    <message>
+        <source>Trade mark sign</source>
+        <translation>Znak towarowy</translation>
+    </message>
+    <message>
+        <source>trademark</source>
+        <translation>towarowy</translation>
+    </message>
+    <message>
+        <source>Inverted exclamation mark</source>
+        <translation>Odwrócony wykrzyknik</translation>
+    </message>
+    <message>
+        <source>Spanish</source>
+        <translation>hiszpański</translation>
+    </message>
+    <message>
+        <source>Inverted question mark</source>
+        <translation>Odwrócony pytajnik</translation>
+    </message>
+    <message>
+        <source>Spanish question</source>
+        <translation>hiszpański znak zapytania</translation>
+    </message>
+    <message>
+        <source>Interrobang</source>
+        <translation>Pytajnik z wykrzyknikiem</translation>
+    </message>
+    <message>
+        <source>question exclamation</source>
+        <translation>pytajnik wykrzyknik</translation>
+    </message>
+    <message>
+        <source>Asterism</source>
+        <translation>Asteryzm</translation>
+    </message>
+    <message>
+        <source>three asterisks scene break</source>
+        <translation>trzy gwiazdki podział sceny</translation>
+    </message>
+    <message>
+        <source>Reference mark</source>
+        <translation>Znak odniesienia</translation>
+    </message>
+    <message>
+        <source>note</source>
+        <translation>przypis</translation>
+    </message>
+    <message>
+        <source>No-break space</source>
+        <translation>Spacja nierozdzielająca</translation>
+    </message>
+    <message>
+        <source>hard nbsp</source>
+        <translation>twarda</translation>
+    </message>
+    <message>
+        <source>Narrow no-break space</source>
+        <translation>Wąska spacja nierozdzielająca</translation>
+    </message>
+    <message>
+        <source>thin hard</source>
+        <translation>twarda cienka</translation>
+    </message>
+    <message>
+        <source>Thin space</source>
+        <translation>Cienka spacja</translation>
+    </message>
+    <message>
+        <source>narrow</source>
+        <translation>wąska</translation>
+    </message>
+    <message>
+        <source>En space</source>
+        <translation>Spacja półfiretowa</translation>
+    </message>
+    <message>
+        <source>wide</source>
+        <translation>szeroka</translation>
+    </message>
+    <message>
+        <source>Em space</source>
+        <translation>Spacja firetowa</translation>
+    </message>
+    <message>
+        <source>Non-breaking hyphen</source>
+        <translation>Łącznik nierozdzielający</translation>
+    </message>
+    <message>
+        <source>hard dash</source>
+        <translation>twardy dywiz</translation>
+    </message>
+    <message>
+        <source>Optional hyphen</source>
+        <translation>Łącznik opcjonalny</translation>
+    </message>
+    <message>
+        <source>soft shy hyphenation</source>
+        <translation>miękki dywiz dzielenie wyrazów</translation>
+    </message>
+    <message>
+        <source>Hyphen</source>
+        <translation>Łącznik</translation>
+    </message>
+    <message>
+        <source>dash</source>
+        <translation>dywiz</translation>
+    </message>
+    <message>
+        <source>Zero width space</source>
+        <translation>Spacja zerowej szerokości</translation>
+    </message>
+    <message>
+        <source>invisible break</source>
+        <translation>niewidoczny podział</translation>
+    </message>
+    <message>
+        <source>Leftwards arrow</source>
+        <translation>Strzałka w lewo</translation>
+    </message>
+    <message>
+        <source>Rightwards arrow</source>
+        <translation>Strzałka w prawo</translation>
+    </message>
+    <message>
+        <source>Upwards arrow</source>
+        <translation>Strzałka w górę</translation>
+    </message>
+    <message>
+        <source>Downwards arrow</source>
+        <translation>Strzałka w dół</translation>
+    </message>
+    <message>
+        <source>Left right arrow</source>
+        <translation>Strzałka w lewo i w prawo</translation>
+    </message>
+    <message>
+        <source>Up down arrow</source>
+        <translation>Strzałka w górę i w dół</translation>
+    </message>
+    <message>
+        <source>Leftwards double arrow</source>
+        <translation>Podwójna strzałka w lewo</translation>
+    </message>
+    <message>
+        <source>Rightwards double arrow</source>
+        <translation>Podwójna strzałka w prawo</translation>
+    </message>
+    <message>
+        <source>Left right double arrow</source>
+        <translation>Podwójna strzałka w obie strony</translation>
+    </message>
+    <message>
+        <source>North west arrow</source>
+        <translation>Strzałka w lewo w górę</translation>
+    </message>
+    <message>
+        <source>North east arrow</source>
+        <translation>Strzałka w prawo w górę</translation>
+    </message>
+    <message>
+        <source>South east arrow</source>
+        <translation>Strzałka w prawo w dół</translation>
+    </message>
+    <message>
+        <source>South west arrow</source>
+        <translation>Strzałka w lewo w dół</translation>
+    </message>
+    <message>
+        <source>Leftwards arrow with hook</source>
+        <translation>Strzałka zawracająca</translation>
+    </message>
+    <message>
+        <source>Heavy rightwards arrow</source>
+        <translation>Gruba strzałka w prawo</translation>
+    </message>
+    <message>
+        <source>Plus-minus sign</source>
+        <translation>Plus minus</translation>
+    </message>
+    <message>
+        <source>Multiplication sign</source>
+        <translation>Znak mnożenia</translation>
+    </message>
+    <message>
+        <source>times</source>
+        <translation>razy</translation>
+    </message>
+    <message>
+        <source>Division sign</source>
+        <translation>Znak dzielenia</translation>
+    </message>
+    <message>
+        <source>Minus sign</source>
+        <translation>Minus</translation>
+    </message>
+    <message>
+        <source>subtraction</source>
+        <translation>odejmowanie</translation>
+    </message>
+    <message>
+        <source>Almost equal to</source>
+        <translation>Prawie równe</translation>
+    </message>
+    <message>
+        <source>about</source>
+        <translation>około</translation>
+    </message>
+    <message>
+        <source>Not equal to</source>
+        <translation>Różne</translation>
+    </message>
+    <message>
+        <source>unequal</source>
+        <translation>nierówne</translation>
+    </message>
+    <message>
+        <source>Less-than or equal to</source>
+        <translation>Mniejsze lub równe</translation>
+    </message>
+    <message>
+        <source>Greater-than or equal to</source>
+        <translation>Większe lub równe</translation>
+    </message>
+    <message>
+        <source>Infinity</source>
+        <translation>Nieskończoność</translation>
+    </message>
+    <message>
+        <source>endless</source>
+        <translation>bez końca</translation>
+    </message>
+    <message>
+        <source>Square root</source>
+        <translation>Pierwiastek</translation>
+    </message>
+    <message>
+        <source>root</source>
+        <translation>pierwiastek kwadratowy</translation>
+    </message>
+    <message>
+        <source>Summation</source>
+        <translation>Suma</translation>
+    </message>
+    <message>
+        <source>sigma</source>
+        <translation>sigma</translation>
+    </message>
+    <message>
+        <source>Product</source>
+        <translation>Iloczyn</translation>
+    </message>
+    <message>
+        <source>Integral</source>
+        <translation>Całka</translation>
+    </message>
+    <message>
+        <source>Partial differential</source>
+        <translation>Pochodna cząstkowa</translation>
+    </message>
+    <message>
+        <source>Increment</source>
+        <translation>Przyrost</translation>
+    </message>
+    <message>
+        <source>delta</source>
+        <translation>delta</translation>
+    </message>
+    <message>
+        <source>Nabla</source>
+        <translation>Nabla</translation>
+    </message>
+    <message>
+        <source>Element of</source>
+        <translation>Należy do</translation>
+    </message>
+    <message>
+        <source>Not an element of</source>
+        <translation>Nie należy do</translation>
+    </message>
+    <message>
+        <source>Intersection</source>
+        <translation>Część wspólna</translation>
+    </message>
+    <message>
+        <source>Union</source>
+        <translation>Suma zbiorów</translation>
+    </message>
+    <message>
+        <source>Subset of</source>
+        <translation>Zawiera się w</translation>
+    </message>
+    <message>
+        <source>For all</source>
+        <translation>Dla każdego</translation>
+    </message>
+    <message>
+        <source>There exists</source>
+        <translation>Istnieje</translation>
+    </message>
+    <message>
+        <source>Not sign</source>
+        <translation>Negacja</translation>
+    </message>
+    <message>
+        <source>Angle</source>
+        <translation>Kąt</translation>
+    </message>
+    <message>
+        <source>Perpendicular</source>
+        <translation>Prostopadłe</translation>
+    </message>
+    <message>
+        <source>Parallel to</source>
+        <translation>Równoległe</translation>
+    </message>
+    <message>
+        <source>Euro sign</source>
+        <translation>Euro</translation>
+    </message>
+    <message>
+        <source>currency money</source>
+        <translation>waluta pieniądze</translation>
+    </message>
+    <message>
+        <source>Dollar sign</source>
+        <translation>Dolar</translation>
+    </message>
+    <message>
+        <source>Pound sign</source>
+        <translation>Funt</translation>
+    </message>
+    <message>
+        <source>Yen sign</source>
+        <translation>Jen</translation>
+    </message>
+    <message>
+        <source>Cent sign</source>
+        <translation>Cent</translation>
+    </message>
+    <message>
+        <source>Ruble sign</source>
+        <translation>Rubel</translation>
+    </message>
+    <message>
+        <source>Hryvnia sign</source>
+        <translation>Hrywna</translation>
+    </message>
+    <message>
+        <source>Indian rupee sign</source>
+        <translation>Rupia indyjska</translation>
+    </message>
+    <message>
+        <source>Won sign</source>
+        <translation>Won</translation>
+    </message>
+    <message>
+        <source>New shekel sign</source>
+        <translation>Szekel</translation>
+    </message>
+    <message>
+        <source>Turkish lira sign</source>
+        <translation>Lira turecka</translation>
+    </message>
+    <message>
+        <source>French franc sign</source>
+        <translation>Frank francuski</translation>
+    </message>
+    <message>
+        <source>Bitcoin sign</source>
+        <translation>Bitcoin</translation>
+    </message>
+    <message>
+        <source>Currency sign</source>
+        <translation>Znak waluty</translation>
+    </message>
+    <message>
+        <source>One half</source>
+        <translation>Jedna druga</translation>
+    </message>
+    <message>
+        <source>fraction half</source>
+        <translation>ułamek pół</translation>
+    </message>
+    <message>
+        <source>One third</source>
+        <translation>Jedna trzecia</translation>
+    </message>
+    <message>
+        <source>fraction</source>
+        <translation>ułamek</translation>
+    </message>
+    <message>
+        <source>Two thirds</source>
+        <translation>Dwie trzecie</translation>
+    </message>
+    <message>
+        <source>One quarter</source>
+        <translation>Jedna czwarta</translation>
+    </message>
+    <message>
+        <source>fraction quarter</source>
+        <translation>ułamek ćwierć</translation>
+    </message>
+    <message>
+        <source>Three quarters</source>
+        <translation>Trzy czwarte</translation>
+    </message>
+    <message>
+        <source>One fifth</source>
+        <translation>Jedna piąta</translation>
+    </message>
+    <message>
+        <source>One eighth</source>
+        <translation>Jedna ósma</translation>
+    </message>
+    <message>
+        <source>Three eighths</source>
+        <translation>Trzy ósme</translation>
+    </message>
+    <message>
+        <source>Five eighths</source>
+        <translation>Pięć ósmych</translation>
+    </message>
+    <message>
+        <source>Seven eighths</source>
+        <translation>Siedem ósmych</translation>
+    </message>
+    <message>
+        <source>Floral heart</source>
+        <translation>Kwiatowe serce</translation>
+    </message>
+    <message>
+        <source>fleuron scene break</source>
+        <translation>ozdobnik podział sceny</translation>
+    </message>
+    <message>
+        <source>Rotated floral heart</source>
+        <translation>Obrócone kwiatowe serce</translation>
+    </message>
+    <message>
+        <source>fleuron</source>
+        <translation>ozdobnik</translation>
+    </message>
+    <message>
+        <source>Reversed rotated floral heart</source>
+        <translation>Odwrócone kwiatowe serce</translation>
+    </message>
+    <message>
+        <source>Diamond of four diamonds</source>
+        <translation>Romb z czterech rombów</translation>
+    </message>
+    <message>
+        <source>Heavy asterisk</source>
+        <translation>Gruba gwiazdka</translation>
+    </message>
+    <message>
+        <source>star</source>
+        <translation>gwiazda</translation>
+    </message>
+    <message>
+        <source>Black star</source>
+        <translation>Gwiazda pełna</translation>
+    </message>
+    <message>
+        <source>White star</source>
+        <translation>Gwiazda pusta</translation>
+    </message>
+    <message>
+        <source>Spade suit</source>
+        <translation>Pik</translation>
+    </message>
+    <message>
+        <source>card</source>
+        <translation>karta</translation>
+    </message>
+    <message>
+        <source>Club suit</source>
+        <translation>Trefl</translation>
+    </message>
+    <message>
+        <source>Heart suit</source>
+        <translation>Kier</translation>
+    </message>
+    <message>
+        <source>card heart</source>
+        <translation>karta serce</translation>
+    </message>
+    <message>
+        <source>Diamond suit</source>
+        <translation>Karo</translation>
+    </message>
+    <message>
+        <source>Eighth note</source>
+        <translation>Ósemka</translation>
+    </message>
+    <message>
+        <source>music</source>
+        <translation>muzyka</translation>
+    </message>
+    <message>
+        <source>Beamed eighth notes</source>
+        <translation>Dwie ósemki</translation>
+    </message>
+    <message>
+        <source>Check mark</source>
+        <translation>Ptaszek</translation>
+    </message>
+    <message>
+        <source>tick</source>
+        <translation>znak wyboru</translation>
+    </message>
+    <message>
+        <source>Ballot X</source>
+        <translation>Iks</translation>
+    </message>
+    <message>
+        <source>cross x</source>
+        <translation>krzyżyk iks</translation>
+    </message>
+    <message>
+        <source>Ballot box</source>
+        <translation>Puste pole wyboru</translation>
+    </message>
+    <message>
+        <source>check box</source>
+        <translation>kratka</translation>
+    </message>
+    <message>
+        <source>Ballot box with check</source>
+        <translation>Pole wyboru z ptaszkiem</translation>
+    </message>
+    <message>
+        <source>Latin cross</source>
+        <translation>Krzyż łaciński</translation>
+    </message>
+    <message>
+        <source>Sun</source>
+        <translation>Słońce</translation>
+    </message>
+    <message>
+        <source>Moon</source>
+        <translation>Księżyc</translation>
+    </message>
+    <message>
+        <source>Envelope</source>
+        <translation>Koperta</translation>
+    </message>
+    <message>
+        <source>letter mail</source>
+        <translation>list</translation>
+    </message>
+    <message>
+        <source>Telephone</source>
+        <translation>Telefon</translation>
+    </message>
+    <message>
+        <source>phone</source>
+        <translation>aparat</translation>
+    </message>
+    <message>
+        <source>Scissors</source>
+        <translation>Nożyczki</translation>
+    </message>
+    <message>
+        <source>cut</source>
+        <translation>wytnij</translation>
+    </message>
+    <message>
+        <source>Writing hand</source>
+        <translation>Pisząca ręka</translation>
+    </message>
+    <message>
+        <source>write</source>
+        <translation>pisanie</translation>
+    </message>
+    <message>
+        <source>Ligature ae</source>
+        <translation>Ligatura ae</translation>
+    </message>
+    <message>
+        <source>Ligature AE</source>
+        <translation>Ligatura AE</translation>
+    </message>
+    <message>
+        <source>Ligature oe</source>
+        <translation>Ligatura oe</translation>
+    </message>
+    <message>
+        <source>Ligature OE</source>
+        <translation>Ligatura OE</translation>
+    </message>
+    <message>
+        <source>o with stroke</source>
+        <translation>o przekreślone</translation>
+    </message>
+    <message>
+        <source>O with stroke</source>
+        <translation>O przekreślone</translation>
+    </message>
+    <message>
+        <source>d with stroke</source>
+        <translation>d przekreślone</translation>
+    </message>
+    <message>
+        <source>D with stroke</source>
+        <translation>D przekreślone</translation>
+    </message>
+    <message>
+        <source>l with stroke</source>
+        <translation>l przekreślone</translation>
+    </message>
+    <message>
+        <source>L with stroke</source>
+        <translation>L przekreślone</translation>
+    </message>
+    <message>
+        <source>Sharp s (eszett)</source>
+        <translation>Ostre s (eszett)</translation>
+    </message>
+    <message>
+        <source>Thorn</source>
+        <translation>Thorn</translation>
+    </message>
+    <message>
+        <source>Thorn (capital letter)</source>
+        <translation>Thorn (wielka litera)</translation>
+    </message>
+    <message>
+        <source>Eth</source>
+        <translation>Eth</translation>
+    </message>
+    <message>
+        <source>Eth (capital letter)</source>
+        <translation>Eth (wielka litera)</translation>
+    </message>
+    <message>
+        <source>Dotless i</source>
+        <translation>i bez kropki</translation>
+    </message>
+    <message>
+        <source>%1 with acute</source>
+        <translation>%1 z kreską</translation>
+    </message>
+    <message>
+        <source>%1 with grave</source>
+        <translation>%1 z akcentem ciężkim</translation>
+    </message>
+    <message>
+        <source>%1 with circumflex</source>
+        <translation>%1 z daszkiem</translation>
+    </message>
+    <message>
+        <source>%1 with diaeresis</source>
+        <translation>%1 z dierezą (umlaut)</translation>
+    </message>
+    <message>
+        <source>%1 with tilde</source>
+        <translation>%1 z tyldą</translation>
+    </message>
+    <message>
+        <source>%1 with ring above</source>
+        <translation>%1 z kółkiem</translation>
+    </message>
+    <message>
+        <source>%1 with macron</source>
+        <translation>%1 z makronem</translation>
+    </message>
+    <message>
+        <source>%1 with breve</source>
+        <translation>%1 z łuczkiem</translation>
+    </message>
+    <message>
+        <source>%1 with ogonek</source>
+        <translation>%1 z ogonkiem</translation>
+    </message>
+    <message>
+        <source>%1 with cedilla</source>
+        <translation>%1 z cedyllą</translation>
+    </message>
+    <message>
+        <source>%1 with caron</source>
+        <translation>%1 z haczkiem</translation>
+    </message>
+    <message>
+        <source>%1 with dot above</source>
+        <translation>%1 z kropką</translation>
+    </message>
+    <message>
+        <source>%1 with double acute</source>
+        <translation>%1 z podwójną kreską</translation>
+    </message>
+    <message>
+        <source>%1 with comma below</source>
+        <translation>%1 z przecinkiem pod spodem</translation>
+    </message>
+    <message>
+        <source>alpha</source>
+        <translation>alfa</translation>
+    </message>
+    <message>
+        <source>beta</source>
+        <translation>beta</translation>
+    </message>
+    <message>
+        <source>gamma</source>
+        <translation>gamma</translation>
+    </message>
+    <message>
+        <source>epsilon</source>
+        <translation>epsilon</translation>
+    </message>
+    <message>
+        <source>zeta</source>
+        <translation>dzeta</translation>
+    </message>
+    <message>
+        <source>eta</source>
+        <translation>eta</translation>
+    </message>
+    <message>
+        <source>theta</source>
+        <translation>theta</translation>
+    </message>
+    <message>
+        <source>iota</source>
+        <translation>jota</translation>
+    </message>
+    <message>
+        <source>kappa</source>
+        <translation>kappa</translation>
+    </message>
+    <message>
+        <source>lambda</source>
+        <translation>lambda</translation>
+    </message>
+    <message>
+        <source>mu</source>
+        <translation>mi</translation>
+    </message>
+    <message>
+        <source>nu</source>
+        <translation>ni</translation>
+    </message>
+    <message>
+        <source>xi</source>
+        <translation>ksi</translation>
+    </message>
+    <message>
+        <source>omicron</source>
+        <translation>omikron</translation>
+    </message>
+    <message>
+        <source>pi</source>
+        <translation>pi</translation>
+    </message>
+    <message>
+        <source>rho</source>
+        <translation>rho</translation>
+    </message>
+    <message>
+        <source>tau</source>
+        <translation>tau</translation>
+    </message>
+    <message>
+        <source>upsilon</source>
+        <translation>ypsilon</translation>
+    </message>
+    <message>
+        <source>phi</source>
+        <translation>fi</translation>
+    </message>
+    <message>
+        <source>chi</source>
+        <translation>chi</translation>
+    </message>
+    <message>
+        <source>psi</source>
+        <translation>psi</translation>
+    </message>
+    <message>
+        <source>omega</source>
+        <translation>omega</translation>
+    </message>
+    <message>
+        <source>Punctuation and Typography</source>
+        <translation>Interpunkcja i typografia</translation>
+    </message>
+    <message>
+        <source>Spaces and Hyphens</source>
+        <translation>Spacje i łączniki</translation>
+    </message>
+    <message>
+        <source>Accented Letters</source>
+        <translation>Litery z akcentami</translation>
+    </message>
+    <message>
+        <source>letter accent</source>
+        <translation>litera akcent diakrytyczny</translation>
+    </message>
+    <message>
+        <source>Greek Alphabet</source>
+        <translation>Alfabet grecki</translation>
+    </message>
+    <message>
+        <source>greek</source>
+        <translation>grecki</translation>
+    </message>
+    <message>
+        <source>%1 (small letter)</source>
+        <translation>%1 (mała litera)</translation>
+    </message>
+    <message>
+        <source>%1 (capital letter)</source>
+        <translation>%1 (wielka litera)</translation>
+    </message>
+    <message>
+        <source>Arrows</source>
+        <translation>Strzałki</translation>
+    </message>
+    <message>
+        <source>Mathematics</source>
+        <translation>Matematyka</translation>
+    </message>
+    <message>
+        <source>Currencies</source>
+        <translation>Waluty</translation>
+    </message>
+    <message>
+        <source>Fractions and Indices</source>
+        <translation>Ułamki i indeksy</translation>
+    </message>
+    <message>
+        <source>power</source>
+        <translation>potęga</translation>
+    </message>
+    <message>
+        <source>Superscript %1</source>
+        <translation>Indeks górny %1</translation>
+    </message>
+    <message>
+        <source>Subscript %1</source>
+        <translation>Indeks dolny %1</translation>
+    </message>
+    <message>
+        <source>Ornaments</source>
+        <translation>Ozdobniki</translation>
+    </message>
+    <message>
+        <source>Character %1</source>
+        <extracomment>%1 is the code of a character, as U+2603</extracomment>
+        <translation>Znak %1</translation>
     </message>
 </context>
 <context>
@@ -10070,6 +12802,23 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Reset all colors to the default values for the selected theme</source>
         <translation>Przywraca wszystkie kolory do domyślnych wartości wybranego motywu</translation>
     </message>
+    <message>
+        <source>Look of the Program</source>
+        <extracomment>Settings &gt; Appearance &gt; Theme: the group of the choice of the theme. In Polish: Wygląd programu</extracomment>
+        <translation>Wygląd programu</translation>
+    </message>
+    <message>
+        <source>Light or dark, in the whole program. Each theme keeps its own colors: the fields below show those of the theme chosen here.</source>
+        <translation>Jasny albo ciemny, w całym programie. Każdy motyw ma własne kolory: pola poniżej pokazują kolory motywu wybranego tutaj.</translation>
+    </message>
+    <message>
+        <source>The icons of the menus, the toolbars and the Dashboard are drawn in these two colors.</source>
+        <translation>W tych dwóch kolorach są rysowane ikony menu, pasków narzędzi i Pulpitu.</translation>
+    </message>
+    <message>
+        <source>Brings back the theme&apos;s own colors, also those under Advanced Settings.</source>
+        <translation>Przywraca kolory motywu, także te w ustawieniach zaawansowanych.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::AboutDialog</name>
@@ -10582,6 +13331,202 @@ Harmonogram projektu:
         <source>Copy puts the technical description of the error on the clipboard.</source>
         <extracomment>Under what went wrong when the program does not know its cause. In Polish: Opis techniczny błędu skopiujesz przyciskiem „Kopiuj”.</extracomment>
         <translation>Opis techniczny błędu skopiujesz przyciskiem „Kopiuj”.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::BulletsNumberingDialog</name>
+    <message>
+        <source>Disc</source>
+        <translation>Kropka</translation>
+    </message>
+    <message>
+        <source>Circle</source>
+        <translation>Kółko</translation>
+    </message>
+    <message>
+        <source>Square</source>
+        <translation>Kwadrat</translation>
+    </message>
+    <message>
+        <source>En dash</source>
+        <translation>Półpauza</translation>
+    </message>
+    <message>
+        <source>Check mark</source>
+        <translation>Ptaszek</translation>
+    </message>
+    <message>
+        <source>Arrow</source>
+        <translation>Strzałka</translation>
+    </message>
+    <message>
+        <source>The 6:40 train.</source>
+        <translation>Pociąg o 6:40.</translation>
+    </message>
+    <message>
+        <source>Change at Łapy:</source>
+        <translation>Przesiadka w Łapach:</translation>
+    </message>
+    <message>
+        <source>ask for Mr Hilary,</source>
+        <translation>zapytać o pana Hilarego,</translation>
+    </message>
+    <message>
+        <source>do not give the name.</source>
+        <translation>nie podawać nazwiska.</translation>
+    </message>
+    <message>
+        <source>The address on Mostowa Street.</source>
+        <translation>Adres przy ulicy Mostowej.</translation>
+    </message>
+    <message>
+        <source>a coat and a torch,</source>
+        <translation>płaszcz i latarka,</translation>
+    </message>
+    <message>
+        <source>the key to the locker:</source>
+        <translation>klucz do schowka:</translation>
+    </message>
+    <message>
+        <source>a spare one at aunt Helena&apos;s,</source>
+        <translation>zapasowy u cioci Heleny,</translation>
+    </message>
+    <message>
+        <source>another one in the drawer.</source>
+        <translation>drugi w szufladzie.</translation>
+    </message>
+    <message>
+        <source>a return ticket.</source>
+        <translation>bilet powrotny.</translation>
+    </message>
+    <message>
+        <source>Bullets and Numbering</source>
+        <translation>Punktory i numeracja</translation>
+    </message>
+    <message>
+        <source>The look of the list in the selected paragraphs; each level has its own format.</source>
+        <translation>Wygląd listy w zaznaczonych akapitach; każdy poziom ma własny format.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>&amp;Numbering</source>
+        <translation>&amp;Numerowanie</translation>
+    </message>
+    <message>
+        <source>&amp;Bullets</source>
+        <translation>&amp;Punktory</translation>
+    </message>
+    <message>
+        <source>&amp;Restore Defaults</source>
+        <translation>Przywróć &amp;domyślne</translation>
+    </message>
+    <message>
+        <source>&amp;Level</source>
+        <translation>Pozi&amp;om</translation>
+    </message>
+    <message>
+        <source>&amp;Format</source>
+        <translation>&amp;Format</translation>
+    </message>
+    <message>
+        <source>B&amp;ullet</source>
+        <translation>Pun&amp;ktor</translation>
+    </message>
+    <message>
+        <source>&amp;Start at</source>
+        <translation>&amp;Rozpocznij od</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <translation>Do lewej</translation>
+    </message>
+    <message>
+        <source>Center</source>
+        <translation>Do środka</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <translation>Do prawej</translation>
+    </message>
+    <message>
+        <source>Number &amp;alignment</source>
+        <translation>&amp;Wyrównanie numeru</translation>
+    </message>
+    <message>
+        <source>&amp;Character...</source>
+        <translation>&amp;Znak...</translation>
+    </message>
+    <message>
+        <source>any character of the Special Character window</source>
+        <translation>dowolny znak z okna Znak specjalny</translation>
+    </message>
+    <message>
+        <source>Number &amp;indent</source>
+        <translation>Wcięcie n&amp;umeru</translation>
+    </message>
+    <message>
+        <source>Bullet &amp;indent</source>
+        <translation>Wcięcie p&amp;unktora</translation>
+    </message>
+    <message>
+        <source>&amp;Text indent</source>
+        <translation>Wcięcie &amp;tekstu</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>The bullet: %1</source>
+        <translation>Punktor: %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::CharacterShortcutDialog</name>
+    <message>
+        <source>Shortcut for a Character</source>
+        <translation>Skrót znaku</translation>
+    </message>
+    <message>
+        <source>Press the keys that are to insert %1.</source>
+        <extracomment>%1 is a character with its name, as "Em dash (—)"</extracomment>
+        <translation>Naciśnij klawisze, które mają wstawiać znak: %1.</translation>
+    </message>
+    <message>
+        <source>Assign</source>
+        <translation>Przypisz</translation>
+    </message>
+    <message>
+        <source>No shortcut</source>
+        <translation>Bez skrótu</translation>
+    </message>
+    <message>
+        <source>Shortcut</source>
+        <translation>Skrót</translation>
+    </message>
+    <message>
+        <source>The shortcut is also on the page Settings &gt; Keyboard Shortcuts, in the group Characters, where it can be changed or removed.</source>
+        <translation>Skrót widać też na stronie Ustawienia &gt; Skróty klawiszowe, w grupie Znaki – tam można go zmienić lub usunąć.</translation>
+    </message>
+    <message>
+        <source>&amp;Press Other Keys</source>
+        <translation>&amp;Naciśnij inne klawisze</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Shortcut</source>
+        <translation>&amp;Usuń skrót</translation>
+    </message>
+    <message>
+        <source>Press the keys... (Esc – cancel)</source>
+        <translation>Naciśnij klawisze... (Esc – anuluj)</translation>
+    </message>
+    <message>
+        <source>%1 belongs to &lt;b&gt;%2&lt;/b&gt; now: if you assign it here, that command will be left without a shortcut.</source>
+        <extracomment>%1 are keys, %2 the command that has them</extracomment>
+        <translation>Skrót %1 należy teraz do polecenia &lt;b&gt;%2&lt;/b&gt;: jeśli przypiszesz go tutaj, tamto polecenie zostanie bez skrótu.</translation>
     </message>
 </context>
 <context>
@@ -11111,6 +14056,42 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::HyperlinkDialog</name>
+    <message>
+        <source>Link</source>
+        <translation>Łącze</translation>
+    </message>
+    <message>
+        <source>The text of the link and the address of the web page.</source>
+        <translation>Tekst łącza i adres strony internetowej.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Link Color Settings</source>
+        <translation>Ustawienia koloru łączy</translation>
+    </message>
+    <message>
+        <source>&amp;Text to display</source>
+        <translation>&amp;Tekst do wyświetlenia</translation>
+    </message>
+    <message>
+        <source>&amp;Address</source>
+        <translation>&amp;Adres</translation>
+    </message>
+    <message>
+        <source>%1click on a link in the text opens its address in the browser.</source>
+        <extracomment>%1 is the key held for the click: "Ctrl+" (on macOS "⌘")</extracomment>
+        <translation>%1kliknięcie łącza w tekście otwiera jego adres w przeglądarce.</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Link</source>
+        <translation>&amp;Usuń łącze</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::ImportArchiveDialog</name>
     <message>
         <source>Import Project Archive</source>
@@ -11343,6 +14324,141 @@ Harmonogram projektu:
         <source>Kalahari cannot open the book of this archive.</source>
         <extracomment>In Polish: Kalahari nie może otworzyć książki z tego archiwum.</extracomment>
         <translation>Kalahari nie może otworzyć książki z tego archiwum.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::FontDialog</name>
+    <message>
+        <source>Font</source>
+        <translation>Czcionka</translation>
+    </message>
+    <message>
+        <source>The look of the selected text; the paragraph style stays as it is.</source>
+        <translation>Wygląd zaznaczonego tekstu; styl akapitu się nie zmienia.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>The mist came down over the river</source>
+        <extracomment>The preview of Format &gt; Font when no text is selected. In Polish: Mgła zeszła nad rzekę</extracomment>
+        <translation>Mgła zeszła nad rzekę</translation>
+    </message>
+    <message>
+        <source>&amp;Font</source>
+        <translation>&amp;Czcionka</translation>
+    </message>
+    <message>
+        <source>Ad&amp;vanced</source>
+        <translation>&amp;Zaawansowane</translation>
+    </message>
+    <message>
+        <source>Fo&amp;nt</source>
+        <translation>Czcio&amp;nka</translation>
+    </message>
+    <message>
+        <source>St&amp;yle</source>
+        <translation>St&amp;yl</translation>
+    </message>
+    <message>
+        <source>&amp;Size</source>
+        <translation>&amp;Rozmiar</translation>
+    </message>
+    <message>
+        <source>Regular</source>
+        <translation>Normalny</translation>
+    </message>
+    <message>
+        <source>Italic</source>
+        <translation>Kursywa</translation>
+    </message>
+    <message>
+        <source>Bold</source>
+        <translation>Pogrubiony</translation>
+    </message>
+    <message>
+        <source>Bold Italic</source>
+        <translation>Pogrubiona kursywa</translation>
+    </message>
+    <message>
+        <source>Font &amp;color</source>
+        <translation>&amp;Kolor czcionki</translation>
+    </message>
+    <message>
+        <source>&amp;Highlight color</source>
+        <translation>Kolor &amp;wyróżnienia tekstu</translation>
+    </message>
+    <message>
+        <source>Effects</source>
+        <translation>Efekty</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>&amp;Underline</source>
+        <translation>&amp;Podkreślenie</translation>
+    </message>
+    <message>
+        <source>Stri&amp;kethrough</source>
+        <translation>Prz&amp;ekreślenie</translation>
+    </message>
+    <message>
+        <source>Su&amp;perscript</source>
+        <translation>Indeks &amp;górny</translation>
+    </message>
+    <message>
+        <source>Subscrip&amp;t</source>
+        <translation>Indeks &amp;dolny</translation>
+    </message>
+    <message>
+        <source>S&amp;mall caps</source>
+        <translation>Kap&amp;italiki</translation>
+    </message>
+    <message>
+        <source>&amp;All caps</source>
+        <translation>Wers&amp;aliki</translation>
+    </message>
+    <message>
+        <source>Character spacing</source>
+        <translation>Odstępy między znakami</translation>
+    </message>
+    <message>
+        <source>Normal</source>
+        <translation>Normalne</translation>
+    </message>
+    <message>
+        <source>Expanded</source>
+        <translation>Rozstrzelone</translation>
+    </message>
+    <message>
+        <source>Condensed</source>
+        <translation>Zagęszczone</translation>
+    </message>
+    <message>
+        <source>&amp;by</source>
+        <extracomment>Format &gt; Font, the letter spacing: Expanded &quot;by&quot; 1.5 pt. In Polish: o</extracomment>
+        <translation>&amp;o</translation>
+    </message>
+    <message>
+        <source> pt</source>
+        <extracomment>The unit of the letter spacing, points. In Polish: pt</extracomment>
+        <translation> pt</translation>
+    </message>
+    <message>
+        <source>Expanded spacing moves the letters of the selected text apart, condensed spacing brings them closer together.</source>
+        <translation>Rozstrzelenie oddala od siebie litery zaznaczonego tekstu, zagęszczenie je zbliża.</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <extracomment>The color of a text: the editor&apos;s, which follows its paper</extracomment>
+        <translation>Brak</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Automatyczny</translation>
     </message>
 </context>
 <context>
@@ -11609,6 +14725,62 @@ Harmonogram projektu:
     <message>
         <source>Downloaded %1 of %2 MB.</source>
         <translation>Pobrano %1 z %2 MB.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::InsertTableDialog</name>
+    <message>
+        <source>Insert Table</source>
+        <translation>Wstaw tabelę</translation>
+    </message>
+    <message>
+        <source>The table is as wide as the text, its columns equal.</source>
+        <translation>Tabela ma szerokość tekstu i równe kolumny.</translation>
+    </message>
+    <message>
+        <source>Insert</source>
+        <translation>Wstaw</translation>
+    </message>
+    <message>
+        <source>&amp;Columns</source>
+        <translation>&amp;Kolumny</translation>
+    </message>
+    <message>
+        <source>&amp;Rows</source>
+        <translation>&amp;Wiersze</translation>
+    </message>
+    <message>
+        <source>&amp;Header row</source>
+        <translation>Wiersz &amp;nagłówka</translation>
+    </message>
+    <message>
+        <source>Preview of the table</source>
+        <translation>Podgląd tabeli</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n columns</source>
+        <translation>
+            <numerusform>%n kolumna</numerusform>
+            <numerusform>%n kolumny</numerusform>
+            <numerusform>%n kolumn</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n rows</source>
+        <translation>
+            <numerusform>%n wiersz</numerusform>
+            <numerusform>%n wiersze</numerusform>
+            <numerusform>%n wierszy</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1 and %2, with a header row</source>
+        <extracomment>%1 is the columns (&quot;3 columns&quot;), %2 the rows (&quot;3 rows&quot;)</extracomment>
+        <translation>%1 i %2, z wierszem nagłówka</translation>
+    </message>
+    <message>
+        <source>%1 and %2</source>
+        <translation>%1 i %2</translation>
     </message>
 </context>
 <context>
@@ -12128,6 +15300,16 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <extracomment>In Polish: Po „Dodaj” program pobierze stronę z tego adresu tylko po to, żeby odczytać jej tytuł. Nic więcej nie wysyła ani nie zapisuje.</extracomment>
         <translation>Po „Dodaj” program pobierze stronę z tego adresu tylko po to, żeby odczytać jej tytuł. Nic więcej nie wysyła ani nie zapisuje.</translation>
     </message>
+    <message>
+        <source>Kind of Cover Material</source>
+        <extracomment>The parts of a new material of the cover, buttons that the arrows go through. In Polish: Rodzaj materiału okładki</extracomment>
+        <translation>Rodzaj materiału okładki</translation>
+    </message>
+    <message>
+        <source>On the cover: %1 – you change it on the card.</source>
+        <extracomment>Where a new material of the cover goes on the cover, after where it goes in the Workshop; %1 the place: back, front... In Polish: Na okładce: %1 – zmienisz to na karcie.</extracomment>
+        <translation>Na okładce: %1 – zmienisz to na karcie.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::NewItemDialog</name>
@@ -12311,6 +15493,192 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::NumberingValueDialog</name>
+    <message>
+        <source>Set Numbering Value</source>
+        <translation>Ustaw wartość numerowania</translation>
+    </message>
+    <message>
+        <source>The number of the list item; the items after it go on from it.</source>
+        <translation>Numer pozycji listy; kolejne pozycje są numerowane dalej od niego.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Set &amp;value to</source>
+        <translation>Ustaw &amp;wartość na</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ParagraphDialog</name>
+    <message>
+        <source> pt</source>
+        <extracomment>The unit of the spacing of paragraphs, points. In Polish: pt</extracomment>
+        <translation> pt</translation>
+    </message>
+    <message>
+        <source>Paragraph</source>
+        <translation>Akapit</translation>
+    </message>
+    <message>
+        <source>Indents, spacing and breaks of the selected paragraphs; the paragraph style stays as it is.</source>
+        <translation>Wcięcia, odstępy i podziały zaznaczonych akapitów; styl akapitu się nie zmienia.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>&amp;Indents and Spacing</source>
+        <translation>&amp;Wcięcia i odstępy</translation>
+    </message>
+    <message>
+        <source>Line and Page &amp;Breaks</source>
+        <translation>Podziały wiersza i &amp;strony</translation>
+    </message>
+    <message>
+        <source>Ali&amp;gnment</source>
+        <translation>W&amp;yrównanie</translation>
+    </message>
+    <message>
+        <source>Align Left</source>
+        <translation>Wyrównaj do lewej</translation>
+    </message>
+    <message>
+        <source>Align Center</source>
+        <translation>Wyśrodkuj</translation>
+    </message>
+    <message>
+        <source>Align Right</source>
+        <translation>Wyrównaj do prawej</translation>
+    </message>
+    <message>
+        <source>Justify</source>
+        <translation>Wyjustuj</translation>
+    </message>
+    <message>
+        <source>Indentation</source>
+        <translation>Wcięcia</translation>
+    </message>
+    <message>
+        <source>(none)</source>
+        <extracomment>Format &gt; Paragraph, the special indent: none</extracomment>
+        <translation>(brak)</translation>
+    </message>
+    <message>
+        <source>First line</source>
+        <translation>Pierwszy wiersz</translation>
+    </message>
+    <message>
+        <source>Hanging</source>
+        <translation>Wysunięcie</translation>
+    </message>
+    <message>
+        <source>&amp;Left</source>
+        <translation>&amp;Lewe</translation>
+    </message>
+    <message>
+        <source>&amp;Right</source>
+        <translation>P&amp;rawe</translation>
+    </message>
+    <message>
+        <source>&amp;Special</source>
+        <translation>Specjal&amp;ne</translation>
+    </message>
+    <message>
+        <source>B&amp;y</source>
+        <extracomment>Format &gt; Paragraph: a special indent &quot;by&quot; 0.63 cm. In Polish: o</extracomment>
+        <translation>&amp;o</translation>
+    </message>
+    <message>
+        <source>A list item has the indents of its level: Format &gt; Bullets and Numbering...</source>
+        <translation>Punkt listy ma wcięcia swojego poziomu: Format &gt; Punktory i numeracja...</translation>
+    </message>
+    <message>
+        <source>Spacing</source>
+        <translation>Odstępy</translation>
+    </message>
+    <message>
+        <source>Single</source>
+        <translation>Pojedyncza</translation>
+    </message>
+    <message>
+        <source>1.5 lines</source>
+        <translation>1,5 wiersza</translation>
+    </message>
+    <message>
+        <source>Double</source>
+        <translation>Podwójna</translation>
+    </message>
+    <message>
+        <source>At least</source>
+        <translation>Co najmniej</translation>
+    </message>
+    <message>
+        <source>Exactly</source>
+        <translation>Dokładnie</translation>
+    </message>
+    <message>
+        <source>Multiple</source>
+        <translation>Wielokrotna</translation>
+    </message>
+    <message>
+        <source>Be&amp;fore</source>
+        <translation>Prz&amp;ed</translation>
+    </message>
+    <message>
+        <source>Aft&amp;er</source>
+        <translation>&amp;Po</translation>
+    </message>
+    <message>
+        <source>Li&amp;ne spacing</source>
+        <translation>&amp;Interlinia</translation>
+    </message>
+    <message>
+        <source>&amp;At</source>
+        <extracomment>Format &gt; Paragraph: line spacing At least &quot;at&quot; 12 pt. In Polish: co</extracomment>
+        <translation>&amp;co</translation>
+    </message>
+    <message>
+        <source>At least and Exactly are in points, Multiple in lines.</source>
+        <translation>Interlinia „Co najmniej” i „Dokładnie” jest w punktach, „Wielokrotna” – w wierszach.</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Pagination</source>
+        <translation>Podział na strony</translation>
+    </message>
+    <message>
+        <source>&amp;Widow/Orphan control</source>
+        <translation>&amp;Kontrola bękartów i wdów</translation>
+    </message>
+    <message>
+        <source>Keep with ne&amp;xt</source>
+        <translation>Ra&amp;zem z następnym</translation>
+    </message>
+    <message>
+        <source>&amp;Keep lines together</source>
+        <translation>Zachowaj wiersze r&amp;azem</translation>
+    </message>
+    <message>
+        <source>Page break bef&amp;ore</source>
+        <translation>Po&amp;dział strony przed</translation>
+    </message>
+    <message>
+        <source>Widow/Orphan control leaves no single line of the paragraph at the bottom or at the top of a page. The page view follows these settings; the headings keep with the next paragraph in their style.</source>
+        <translation>Kontrola bękartów i wdów nie zostawia pojedynczego wiersza akapitu na dole ani na górze strony. Widok strony uwzględnia te ustawienia; nagłówki mają w stylu włączone „Razem z następnym”.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::RenameElementDialog</name>
     <message>
         <source>Rename</source>
@@ -12323,6 +15691,238 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>New name</source>
         <translation>Nowa nazwa</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ReplacementDialog</name>
+    <message>
+        <source>New Replacement</source>
+        <translation>Nowa zamiana</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces the word you type here with %1.</source>
+        <extracomment>%1 is a character with its name, as "Rightwards arrow (→)"</extracomment>
+        <translation>Autokorekta zamieni wpisane tu słowo na znak: %1.</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>e.g. -&gt;</source>
+        <translation>np. -&gt;</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>Słowo do zamiany</translation>
+    </message>
+    <message>
+        <source>A replacement is one word: without spaces.</source>
+        <translation>Zamieniane jest jedno słowo: bez spacji.</translation>
+    </message>
+    <message>
+        <source>The replacement table has this pair already.</source>
+        <translation>Ta para jest już w tabeli zamian.</translation>
+    </message>
+    <message>
+        <source>Auto-correct replaces “%1” with “%2” now: Add puts “%3” in its place.</source>
+        <extracomment>%1 is a word, %2 what replaces it now, %3 the character</extracomment>
+        <translation>Autokorekta zamienia teraz „%1” na „%2”: Dodaj wstawi w to miejsce „%3”.</translation>
+    </message>
+    <message>
+        <source>The pair goes to the replacement table on the page Settings &gt; Editor &gt; Auto-correct, and works after a space or a punctuation mark.</source>
+        <translation>Para trafi do tabeli zamian na stronie Ustawienia &gt; Edytor &gt; Autokorekta i zadziała po spacji lub znaku interpunkcyjnym.</translation>
+    </message>
+    <message>
+        <source>The replacements of the table are turned off now (Settings &gt; Editor &gt; Auto-correct).</source>
+        <translation>Zamiany z tabeli są teraz wyłączone (Ustawienia &gt; Edytor &gt; Autokorekta).</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::SpecialCharacterDialog</name>
+    <message>
+        <source>Special Character</source>
+        <translation>Znak specjalny</translation>
+    </message>
+    <message>
+        <source>Enter inserts the character at the cursor. Esc closes the window.</source>
+        <translation>Enter wstawia znak w miejscu kursora. Esc zamyka okno.</translation>
+    </message>
+    <message>
+        <source>&amp;Insert</source>
+        <translation>&amp;Wstaw</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the window open after inserting</source>
+        <translation>&amp;Zostaw okno otwarte po wstawieniu</translation>
+    </message>
+    <message>
+        <source>Add to &amp;Favorites</source>
+        <translation>Dodaj do &amp;ulubionych</translation>
+    </message>
+    <message>
+        <source>Assign &amp;Shortcut...</source>
+        <translation>Przypisz s&amp;krót...</translation>
+    </message>
+    <message>
+        <source>Add &amp;Replacement...</source>
+        <translation>Dodaj za&amp;mianę...</translation>
+    </message>
+    <message>
+        <source>Find: a name or a code, e.g. em dash, arrow, euro, 2014</source>
+        <translation>Szukaj: nazwa lub kod, np. pauza, strzałka, euro, 2014</translation>
+    </message>
+    <message>
+        <source>Find a character</source>
+        <translation>Szukaj znaku</translation>
+    </message>
+    <message>
+        <source>View</source>
+        <translation>Widok</translation>
+    </message>
+    <message>
+        <source>&amp;Grid</source>
+        <translation>&amp;Siatka</translation>
+    </message>
+    <message>
+        <source>The characters in a grid, by group</source>
+        <translation>Znaki w siatce, według grup</translation>
+    </message>
+    <message>
+        <source>&amp;List</source>
+        <translation>&amp;Lista</translation>
+    </message>
+    <message>
+        <source>The characters in a list, with their names</source>
+        <translation>Znaki na liście, z nazwami</translation>
+    </message>
+    <message>
+        <source>Groups</source>
+        <translation>Grupy</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>Ulubione</translation>
+    </message>
+    <message>
+        <source>Recently Used</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Characters</source>
+        <translation>Znaki</translation>
+    </message>
+    <message>
+        <source>Give the character keys that insert it</source>
+        <translation>Przypisz znakowi klawisze, które go wstawiają</translation>
+    </message>
+    <message>
+        <source>Add a text that auto-correct replaces with the character as you type</source>
+        <translation>Dodaj tekst, który autokorekta zamieni na ten znak podczas pisania</translation>
+    </message>
+    <message>
+        <source>Recently &amp;used</source>
+        <translation>&amp;Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>Recently used</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>The characters you insert appear here.</source>
+        <translation>Tu pojawią się wstawiane znaki.</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <translation>Wszystkie</translation>
+    </message>
+    <message>
+        <source>Character</source>
+        <translation>Znak</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Code</source>
+        <translation>Kod</translation>
+    </message>
+    <message>
+        <source>Shortcut, auto-correct</source>
+        <translation>Skrót, autokorekta</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Ulubiony</translation>
+    </message>
+    <message>
+        <source>Nothing matches “%1”. Type another name, or a code such as U+2014.</source>
+        <translation>Nic nie pasuje do „%1”. Wpisz inną nazwę albo kod, np. U+2014.</translation>
+    </message>
+    <message>
+        <source>auto-correct %1</source>
+        <extracomment>In the list of the characters: what auto-correct replaces with one</extracomment>
+        <translation>autokorekta %1</translation>
+    </message>
+    <message>
+        <source>A favorite: click to remove it</source>
+        <translation>Ulubiony: kliknij, aby usunąć</translation>
+    </message>
+    <message>
+        <source>Click to add it to the favorites</source>
+        <translation>Kliknij, aby dodać do ulubionych</translation>
+    </message>
+    <message>
+        <source>Code: %1</source>
+        <translation>Kod: %1</translation>
+    </message>
+    <message>
+        <source>Shortcut: %1</source>
+        <translation>Skrót: %1</translation>
+    </message>
+    <message>
+        <source>Auto-correct: %1</source>
+        <extracomment>%1: what auto-correct replaces with the character, as "(c)" or "--"</extracomment>
+        <translation>Autokorekta: %1</translation>
+    </message>
+    <message>
+        <source>The font %1 has no such character: in the text another font shows it.</source>
+        <extracomment>%1 is the name of a font</extracomment>
+        <translation>Czcionka %1 nie ma tego znaku: w tekście pokaże go inna czcionka.</translation>
+    </message>
+    <message>
+        <source>No character</source>
+        <translation>Brak znaku</translation>
+    </message>
+    <message>
+        <source>Remove from &amp;Favorites</source>
+        <translation>Usuń z &amp;ulubionych</translation>
+    </message>
+    <message>
+        <source>Insert is greyed out: %1</source>
+        <extracomment>%1 says why, as "No chapter is open"</extracomment>
+        <translation>Nie można wstawić: %1</translation>
+    </message>
+    <message>
+        <source>Not in the font %1: in the text another font shows it.</source>
+        <translation>Nie ma go w czcionce %1: w tekście pokaże go inna czcionka.</translation>
+    </message>
+    <message>
+        <source>Enter chooses the character. Esc closes the window.</source>
+        <translation>Enter wybiera znak. Esc zamyka okno.</translation>
+    </message>
+    <message>
+        <source>&amp;Choose</source>
+        <translation>&amp;Wybierz</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Anuluj</translation>
     </message>
 </context>
 <context>
@@ -13567,6 +17167,116 @@ Note: %2</source>
         <translation>%1
 Notatka: %2</translation>
     </message>
+    <message>
+        <source>Length against the target</source>
+        <extracomment>In Polish: Długość względem celu</extracomment>
+        <translation>Długość względem celu</translation>
+    </message>
+    <message>
+        <source>Target le&amp;ngth:</source>
+        <extracomment>The own target length of one text of the cover. In Polish: Docelowa dłu&amp;gość:</extracomment>
+        <translation>Docelowa dłu&amp;gość:</translation>
+    </message>
+    <message>
+        <source>Of this material only; the default of its kind is in Settings &gt; Navigator.</source>
+        <extracomment>In Polish: Dotyczy tylko tego materiału; domyślną długość rodzaju ustawisz w Ustawieniach &gt; Nawigator.</extracomment>
+        <translation>Dotyczy tylko tego materiału; domyślną długość rodzaju ustawisz w Ustawieniach &gt; Nawigator.</translation>
+    </message>
+    <message>
+        <source>Cover Data</source>
+        <extracomment>The data of a material of the cover: its kind, place and state, and of an opinion its author and source. In Polish: Dane okładki</extracomment>
+        <translation>Dane okładki</translation>
+    </message>
+    <message>
+        <source>&amp;Kind:</source>
+        <extracomment>The kind of a material of the cover: a description, a tagline... In Polish: &amp;Rodzaj:</extracomment>
+        <translation>&amp;Rodzaj:</translation>
+    </message>
+    <message>
+        <source>&amp;Place on the cover:</source>
+        <extracomment>Where a material goes on the cover. In Polish: &amp;Miejsce na okładce:</extracomment>
+        <translation>&amp;Miejsce na okładce:</translation>
+    </message>
+    <message>
+        <source>S&amp;tate:</source>
+        <extracomment>Draft, chosen for the cover or rejected. In Polish: &amp;Stan:</extracomment>
+        <translation>&amp;Stan:</translation>
+    </message>
+    <message>
+        <source>&amp;Author:</source>
+        <extracomment>The author of an opinion or of a design. In Polish: &amp;Autor:</extracomment>
+        <translation>&amp;Autor:</translation>
+    </message>
+    <message>
+        <source>&amp;Who they are:</source>
+        <extracomment>Who the author of an opinion is: a critic, a writer. In Polish: &amp;Kim jest:</extracomment>
+        <translation>&amp;Kim jest:</translation>
+    </message>
+    <message>
+        <source>S&amp;ource:</source>
+        <extracomment>Where an opinion was printed or said. In Polish: Źródł&amp;o:</extracomment>
+        <translation>Źródł&amp;o:</translation>
+    </message>
+    <message>
+        <source>&amp;Date:</source>
+        <extracomment>In Polish: &amp;Data:</extracomment>
+        <translation>&amp;Data:</translation>
+    </message>
+    <message>
+        <source>&amp;Consent to print:</source>
+        <extracomment>Whether the author of an opinion lets it be printed on the cover. In Polish: &amp;Zgoda na druk:</extracomment>
+        <translation>&amp;Zgoda na druk:</translation>
+    </message>
+    <message>
+        <source>&amp;License:</source>
+        <extracomment>The license of a reference picture. In Polish: &amp;Licencja:</extracomment>
+        <translation>&amp;Licencja:</translation>
+    </message>
+    <message>
+        <source>A&amp;bout:</source>
+        <extracomment>What a reference picture shows for the cover: colors, a typeface. In Polish: Dot&amp;yczy:</extracomment>
+        <translation>Dot&amp;yczy:</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <extracomment>The text of a material of the cover, written in the program. In Polish: Treść</extracomment>
+        <translation>Treść</translation>
+    </message>
+    <message>
+        <source>Text of the cover material</source>
+        <extracomment>In Polish: Treść materiału okładki</extracomment>
+        <translation>Treść materiału okładki</translation>
+    </message>
+    <message>
+        <source>Enter the text...</source>
+        <extracomment>In Polish: Wpisz treść...</extracomment>
+        <translation>Wpisz treść...</translation>
+    </message>
+    <message>
+        <source>&amp;Author or source:</source>
+        <extracomment>Who made a reference picture, or where it comes from. In Polish: &amp;Autor albo źródło:</extracomment>
+        <translation>&amp;Autor albo źródło:</translation>
+    </message>
+    <message>
+        <source>as in the settings (%1)</source>
+        <extracomment>The own target length of a text of the cover when it has none: the default of its kind; %1 its length. In Polish: jak w Ustawieniach (%1)</extracomment>
+        <translation>jak w Ustawieniach (%1)</translation>
+    </message>
+    <message>
+        <source>On the cover: %1</source>
+        <extracomment>How the cover prints an opinion, under its text; %1 the opinion in quotes with its author. In Polish: Na okładce: %1</extracomment>
+        <translation>Na okładce: %1</translation>
+    </message>
+    <message>
+        <source>Cover Data Not Saved</source>
+        <extracomment>In Polish: Nie zapisano danych okładki</extracomment>
+        <translation>Nie zapisano danych okładki</translation>
+    </message>
+    <message>
+        <source>State Not Saved</source>
+        <extracomment>In Polish: Nie zapisano stanu</extracomment>
+        <translation>Nie zapisano stanu</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::MaterialList</name>
@@ -13921,6 +17631,126 @@ Notatka: %2</translation>
         <translation>Menedżer plików nie mógł pokazać tego miejsca:
 %1</translation>
     </message>
+    <message>
+        <source>%1 · consent: %2</source>
+        <extracomment>The state of an opinion with its consent to print in the list of the cover: %1 the state, %2 the consent. In Polish: %1 · zgoda: %2</extracomment>
+        <translation>%1 · zgoda: %2</translation>
+    </message>
+    <message>
+        <source>Text or title</source>
+        <extracomment>A column of the list of the cover: the text of a material, else its title. In Polish: Treść albo tytuł</extracomment>
+        <translation>Treść albo tytuł</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <extracomment>Who wrote an opinion, made a design or a picture. In Polish: Autor</extracomment>
+        <translation>Autor</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <extracomment>Where a material goes on the cover. In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>State</source>
+        <extracomment>Chosen for the cover, a draft, rejected. In Polish: Stan</extracomment>
+        <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Length</source>
+        <extracomment>The length of a text, the size of a picture. In Polish: Długość</extracomment>
+        <translation>Długość</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <extracomment>Where an opinion comes from. In Polish: Źródło</extracomment>
+        <translation>Źródło</translation>
+    </message>
+    <message>
+        <source>Date</source>
+        <extracomment>The date of an opinion or a design. In Polish: Data</extracomment>
+        <translation>Data</translation>
+    </message>
+    <message>
+        <source>License</source>
+        <extracomment>The license of a reference picture. In Polish: Licencja</extracomment>
+        <translation>Licencja</translation>
+    </message>
+    <message>
+        <source>The kind &quot;%1&quot; is hidden. Its materials stay in the book; you show it again in Settings &gt; Navigator.</source>
+        <extracomment>The status bar after a kind of material is hidden in the Navigator; %1 its name. In Polish: Ukryto typ „%1”. Jego materiały zostały w książce; przywrócisz go w Ustawieniach &gt; Nawigator</extracomment>
+        <translation>Ukryto typ „%1”. Jego materiały zostały w książce; przywrócisz go w Ustawieniach &gt; Nawigator.</translation>
+    </message>
+    <message>
+        <source>The kind &quot;%1&quot; is in the Navigator again.</source>
+        <extracomment>The status bar after a hidden kind of material is shown again; %1 its name. In Polish: Typ „%1” jest znów w Nawigatorze</extracomment>
+        <translation>Typ „%1” jest znów w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>State Not Saved</source>
+        <extracomment>In Polish: Nie zapisano stanu</extracomment>
+        <translation>Nie zapisano stanu</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>The row that names a group of the list of the cover: %1 its name, %2 its number of materials. In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+    <message>
+        <source>&amp;Kind:</source>
+        <extracomment>The filter of the list of the cover by what its materials are. In Polish: Rodzaj:</extracomment>
+        <translation>&amp;Rodzaj:</translation>
+    </message>
+    <message>
+        <source>Cover Plan</source>
+        <extracomment>Shows the plan of the cover with its materials in their places. In Polish: Plan okładki</extracomment>
+        <translation>Plan okładki</translation>
+    </message>
+    <message>
+        <source>Group by Kind</source>
+        <extracomment>Shows the materials of the cover in groups by what they are. In Polish: Grupuj według rodzaju</extracomment>
+        <translation>Grupuj według rodzaju</translation>
+    </message>
+    <message>
+        <source>Material Settings</source>
+        <extracomment>The gear of a list of materials: Settings &gt; Navigator. In Polish: Ustawienia materiałów</extracomment>
+        <translation>Ustawienia materiałów</translation>
+    </message>
+    <message>
+        <source>C&amp;hoose for the Cover</source>
+        <extracomment>Chooses a material for the cover; a description, a tagline or a design of the same place is no longer chosen. In Polish: &amp;Wybierz na okładkę</extracomment>
+        <translation>&amp;Wybierz na okładkę</translation>
+    </message>
+    <message>
+        <source>Re&amp;ject</source>
+        <extracomment>Rejects a material of the cover; it stays in the list. In Polish: O&amp;drzuć</extracomment>
+        <translation>O&amp;drzuć</translation>
+    </message>
+    <message>
+        <source>&amp;Back to Draft</source>
+        <extracomment>Makes a material of the cover chosen or rejected a draft again. In Polish: Przywróć jako &amp;roboczy</extracomment>
+        <translation>Przywróć jako &amp;roboczy</translation>
+    </message>
+    <message>
+        <source>%1 · in groups of kinds</source>
+        <extracomment>How the list of the cover is sorted in its groups; %1: the sorting. In Polish: %1 · w grupach rodzajów</extracomment>
+        <translation>%1 · w grupach rodzajów</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;The kind &quot;%1&quot; is hidden.&lt;/b&gt; Its materials (%2) stay in the book and in All Materials. The kind comes back when it is checked in the Settings or with the button below.</source>
+        <extracomment>The page of a kind of materials hidden in the Navigator: %1 its name, %2 the number of its materials. In Polish: &lt;b&gt;Typ „%1” jest ukryty.&lt;/b&gt; Jego materiały (%2) zostają w książce i są we „Wszystkich materiałach”. Typ wraca po zaznaczeniu go w Ustawieniach albo przyciskiem poniżej.</extracomment>
+        <translation>&lt;b&gt;Typ „%1” jest ukryty.&lt;/b&gt; Jego materiały (%2) zostają w książce i są we „Wszystkich materiałach”. Typ wraca po zaznaczeniu go w Ustawieniach albo przyciskiem poniżej.</translation>
+    </message>
+    <message>
+        <source>Show Kind &quot;%1&quot;</source>
+        <extracomment>Shows a kind of materials hidden in the Navigator again: %1 its name. In Polish: Pokaż typ „%1”</extracomment>
+        <translation>Pokaż typ „%1”</translation>
+    </message>
+    <message>
+        <source>all</source>
+        <extracomment>The filter Kind of the list of the cover that shows all of them. In Polish: wszystkie</extracomment>
+        <translation>wszystkie</translation>
+    </message>
 </context>
 <context>
     <name>LinkRoles</name>
@@ -14150,6 +17980,529 @@ Notatka: %2</translation>
         <source>The program downloads only the address of the material: a page up to its title, or a picture, whose copy it saves in the book&apos;s &quot;workshop&quot; folder.</source>
         <extracomment>In Polish: Program pobiera tylko adres materiału: stronę do jej tytułu albo obraz, którego kopię zapisuje w folderze „workshop” książki.</extracomment>
         <translation>Program pobiera tylko adres materiału: stronę do jej tytułu albo obraz, którego kopię zapisuje w folderze „workshop” książki.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorQuickInsertPage</name>
+    <message>
+        <source>Quick Insert</source>
+        <translation>Szybkie wstawianie</translation>
+    </message>
+    <message>
+        <source>Open the list after @ or #</source>
+        <translation>Otwieraj listę po @ albo #</translation>
+    </message>
+    <message>
+        <source>Names from the cards of the Workshop</source>
+        <translation>Imiona i nazwy z kart Warsztatu</translation>
+    </message>
+    <message>
+        <source>Text fragments</source>
+        <translation>Fragmenty tekstu</translation>
+    </message>
+    <message>
+        <source>Typographic characters</source>
+        <translation>Znaki typograficzne</translation>
+    </message>
+    <message>
+        <source>%1 after %2</source>
+        <extracomment>The check box of a source in the column of @ or #: &quot;Text fragments after #&quot;</extracomment>
+        <translation>%1 po %2</translation>
+    </message>
+    <message>
+        <source>@ or # in the middle of a word, as in an e-mail address or in C#, stays a character. The letters typed after it narrow the list; Esc closes it and keeps what was typed.</source>
+        <translation>@ albo # w środku słowa, jak w adresie e-mail albo w C#, zostaje zwykłym znakiem. Litery wpisane po nim zawężają listę; Esc ją zamyka i zostawia to, co wpisano.</translation>
+    </message>
+    <message>
+        <source>Insert &gt; Quick Insert... (%1) opens the list at the cursor with all of them, also when the list does not open after @ or #.</source>
+        <extracomment>%1 is the keys of Insert &gt; Quick Insert..., as Ctrl+Shift+W</extracomment>
+        <translation>Wstaw &gt; Szybkie wstawianie... (%1) otwiera przy kursorze listę ze wszystkim, także gdy lista nie otwiera się po @ ani #.</translation>
+    </message>
+    <message>
+        <source>Insert &gt; Quick Insert... opens the list at the cursor with all of them, also when the list does not open after @ or #.</source>
+        <translation>Wstaw &gt; Szybkie wstawianie... otwiera przy kursorze listę ze wszystkim, także gdy lista nie otwiera się po @ ani #.</translation>
+    </message>
+    <message>
+        <source>Text Fragments and Characters</source>
+        <translation>Fragmenty tekstu i znaki</translation>
+    </message>
+    <message>
+        <source>Text fragments and characters</source>
+        <translation>Fragmenty tekstu i znaki</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Inserts</source>
+        <translation>Wstawia</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Grupa</translation>
+    </message>
+    <message>
+        <source>&amp;Add...</source>
+        <translation>&amp;Dodaj...</translation>
+    </message>
+    <message>
+        <source>&amp;Edit...</source>
+        <translation>&amp;Zmień...</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Restore &amp;Default Characters</source>
+        <translation>Przywróć domyślne &amp;znaki</translation>
+    </message>
+    <message>
+        <source>Type # and the first letters of a name at the start of a word to insert its text. The names of the cards are those of the book open; they need no list here.</source>
+        <translation>Wpisz # i pierwsze litery nazwy na początku słowa, żeby wstawić jej tekst. Imiona i nazwy z kart pochodzą z otwartej książki; nie trzeba ich tu dopisywać.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorRepetitionsPage</name>
+    <message>
+        <source>Tools &gt; Next Repetition</source>
+        <extracomment>Next Repetition without keys. In Polish: Narzędzia &gt; Następne powtórzenie</extracomment>
+        <translation>Narzędzia &gt; Następne powtórzenie</translation>
+    </message>
+    <message>
+        <source>What Is a Repetition</source>
+        <extracomment>In Polish: Co jest powtórzeniem</extracomment>
+        <translation>Co jest powtórzeniem</translation>
+    </message>
+    <message>
+        <source>A word comes back within</source>
+        <extracomment>In Polish: Słowo wraca w odstępie do</extracomment>
+        <translation>Słowo wraca w odstępie do</translation>
+    </message>
+    <message>
+        <source>A word comes back within:</source>
+        <extracomment>In Polish: Słowo wraca w odstępie do:</extracomment>
+        <translation>Słowo wraca w odstępie do:</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n word(s)</source>
+        <extracomment>After the distance of Settings &gt; Editor &gt; Repetitions. In Polish: %n słowo / słowa / słów</extracomment>
+        <translation>
+            <numerusform>%n słowa</numerusform>
+            <numerusform>%n słów</numerusform>
+            <numerusform>%n słów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Counted words have at least</source>
+        <extracomment>In Polish: Liczone słowa mają co najmniej</extracomment>
+        <translation>Liczone słowa mają co najmniej</translation>
+    </message>
+    <message>
+        <source>Counted words have at least:</source>
+        <extracomment>In Polish: Liczone słowa mają co najmniej:</extracomment>
+        <translation>Liczone słowa mają co najmniej:</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n letter(s)</source>
+        <extracomment>After the length of the words counted. In Polish: %n literę / litery / liter</extracomment>
+        <translation>
+            <numerusform>%n literę</numerusform>
+            <numerusform>%n litery</numerusform>
+            <numerusform>%n liter</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Merge the forms of a word</source>
+        <extracomment>In Polish: Łącz odmiany jednego słowa</extracomment>
+        <translation>Łącz odmiany jednego słowa</translation>
+    </message>
+    <message>
+        <source>&quot;said&quot; and &quot;says&quot; are one word, by the spelling dictionary of the language of the text.</source>
+        <extracomment>In Polish: „mówił” i „mówiła” to jedno słowo, według słownika pisowni języka tekstu.</extracomment>
+        <translation>„mówił” i „mówiła” to jedno słowo, według słownika pisowni języka tekstu.</translation>
+    </message>
+    <message>
+        <source>Skip very common words</source>
+        <extracomment>In Polish: Pomijaj bardzo częste słowa</extracomment>
+        <translation>Pomijaj bardzo częste słowa</translation>
+    </message>
+    <message>
+        <source>Such as and, the, of, to, it.</source>
+        <extracomment>The very common words of the language. In Polish: Takie jak i, w, się, że, nie.</extracomment>
+        <translation>Takie jak i, w, się, że, nie.</translation>
+    </message>
+    <message>
+        <source>So count the Repetitions panel (Tools &gt; Word Repetitions) and %1, which goes to the next repetition.</source>
+        <extracomment>%1: the keys of Tools &gt; Next Repetition (Ctrl+Shift+F7). In Polish: Tak liczą panel „Powtórzenia” (Narzędzia &gt; Powtórzenia słów) i %1, które przechodzi do następnego powtórzenia.</extracomment>
+        <translation>Tak liczą panel „Powtórzenia” (Narzędzia &gt; Powtórzenia słów) i %1, które przechodzi do następnego powtórzenia.</translation>
+    </message>
+    <message>
+        <source>Skipped Words</source>
+        <extracomment>In Polish: Pomijane słowa</extracomment>
+        <translation>Pomijane słowa</translation>
+    </message>
+    <message>
+        <source>Skipped words</source>
+        <translation>Pomijane słowa</translation>
+    </message>
+    <message>
+        <source>A word to skip</source>
+        <extracomment>In Polish: Słowo do pominięcia</extracomment>
+        <translation>Słowo do pominięcia</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>These words are not counted in any form. &quot;Skip This Word&quot; on a card of the Repetitions panel (or Delete) adds the word of the card here.</source>
+        <extracomment>In Polish: Te słowa nie są liczone w żadnej odmianie. „Pomijaj to słowo” na karcie panelu „Powtórzenia” (albo Delete) dopisuje tu słowo karty.</extracomment>
+        <translation>Te słowa nie są liczone w żadnej odmianie. „Pomijaj to słowo” na karcie panelu „Powtórzenia” (albo Delete) dopisuje tu słowo karty.</translation>
+    </message>
+    <message>
+        <source>In the Text</source>
+        <extracomment>In Polish: W tekście</extracomment>
+        <translation>W tekście</translation>
+    </message>
+    <message>
+        <source>Mark the repetitions in the text</source>
+        <extracomment>In Polish: Zaznaczaj powtórzenia w tekście</extracomment>
+        <translation>Zaznaczaj powtórzenia w tekście</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <extracomment>How the repeated words are marked. In Polish: Tło</extracomment>
+        <translation>Tło</translation>
+    </message>
+    <message>
+        <source>Wavy line</source>
+        <extracomment>How the repeated words are marked. In Polish: Falista linia</extracomment>
+        <translation>Falista linia</translation>
+    </message>
+    <message>
+        <source>Marked with:</source>
+        <extracomment>In Polish: Sposób zaznaczenia:</extracomment>
+        <translation>Sposób zaznaczenia:</translation>
+    </message>
+    <message>
+        <source>Mark</source>
+        <extracomment>The color of the repeated words in the text. In Polish: Kolor zaznaczenia</extracomment>
+        <translation>Kolor zaznaczenia</translation>
+    </message>
+    <message>
+        <source>The words are marked while the Repetitions panel is shown; the words of the card chosen are framed. View &gt; Repetitions in Text turns it on and off too.</source>
+        <extracomment>In Polish: Sposób zaznaczenia: In Polish: Słowa są zaznaczone, gdy panel „Powtórzenia” jest widoczny; słowa wybranej karty mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza.</extracomment>
+        <translation>Słowa są zaznaczone, gdy panel „Powtórzenia” jest widoczny; słowa wybranej karty mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza.</translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>Each theme has its own color: this is the color of the current theme.</source>
+        <extracomment>In Polish: Każdy motyw ma swój kolor: to kolor bieżącego motywu.</extracomment>
+        <translation>Każdy motyw ma swój kolor: to kolor bieżącego motywu.</translation>
+    </message>
+</context>
+<context>
+    <name>QuickInsert</name>
+    <message>
+        <source>Typographic Characters</source>
+        <translation>Znaki typograficzne</translation>
+    </message>
+    <message>
+        <source>Text Fragments</source>
+        <translation>Fragmenty tekstu</translation>
+    </message>
+    <message>
+        <source>en dash</source>
+        <extracomment>Quick insert: the name of a typographic character, typed after # to find it</extracomment>
+        <translation>półpauza</translation>
+    </message>
+    <message>
+        <source>em dash</source>
+        <translation>pauza</translation>
+    </message>
+    <message>
+        <source>ellipsis</source>
+        <translation>wielokropek</translation>
+    </message>
+    <message>
+        <source>quotation marks</source>
+        <translation>cudzysłów</translation>
+    </message>
+    <message>
+        <source>inner quotation marks</source>
+        <translation>cudzysłów wewnętrzny</translation>
+    </message>
+    <message>
+        <source>no-break space</source>
+        <translation>spacja nierozdzielająca</translation>
+    </message>
+    <message>
+        <source>non-breaking hyphen</source>
+        <translation>łącznik nierozdzielający</translation>
+    </message>
+    <message>
+        <source>section sign</source>
+        <translation>paragraf</translation>
+    </message>
+    <message>
+        <source>degree sign</source>
+        <translation>stopień</translation>
+    </message>
+    <message>
+        <source>multiplication sign</source>
+        <translation>znak mnożenia</translation>
+    </message>
+    <message>
+        <source>arrow</source>
+        <translation>strzałka</translation>
+    </message>
+    <message>
+        <source>copyright sign</source>
+        <translation>znak praw autorskich</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::QuickInsertItemDialog</name>
+    <message>
+        <source>Add to Quick Insert</source>
+        <extracomment>The window of Add... on the page Settings &gt; Editor &gt; Quick Insert. In Polish: Dodaj do szybkiego wstawiania</extracomment>
+        <translation>Dodaj do szybkiego wstawiania</translation>
+    </message>
+    <message>
+        <source>Edit Quick Insert Item</source>
+        <translation>Zmień pozycję szybkiego wstawiania</translation>
+    </message>
+    <message>
+        <source>Type # and the first letters of the name at the start of a word: the list at the cursor offers the text.</source>
+        <translation>Wpisz # i pierwsze litery nazwy na początku słowa: lista przy kursorze podsunie ten tekst.</translation>
+    </message>
+    <message>
+        <source>e.g. scene</source>
+        <extracomment>In Polish: np. scena</extracomment>
+        <translation>np. scena</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Inserted text</source>
+        <translation>Wstawiany tekst</translation>
+    </message>
+    <message>
+        <source>Text fragment</source>
+        <translation>Fragment tekstu</translation>
+    </message>
+    <message>
+        <source>Typographic character</source>
+        <translation>Znak typograficzny</translation>
+    </message>
+    <message>
+        <source>Group in the list</source>
+        <translation>Grupa na liście</translation>
+    </message>
+    <message>
+        <source>A text in several lines inserts them as paragraphs. A pair of marks, such as „” or (), leaves the cursor between them.</source>
+        <translation>Tekst w kilku wierszach wstawia je jako akapity. Para znaków, taka jak „” albo (), zostawia kursor między nimi.</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj / Zapisz</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Zapisz</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::RepetitionsPanel</name>
+    <message>
+        <source>Chapter</source>
+        <translation>Rozdział</translation>
+    </message>
+    <message>
+        <source>Whole Book</source>
+        <translation>Cała książka</translation>
+    </message>
+    <message>
+        <source>Recount</source>
+        <extracomment>Counts the repetitions of the whole book again. In Polish: Przelicz</extracomment>
+        <translation>Przelicz</translation>
+    </message>
+    <message>
+        <source>Words close together</source>
+        <translation>Słowa blisko siebie</translation>
+    </message>
+    <message>
+        <source>Go To</source>
+        <extracomment>The button of a card of the panel Repetitions: the cursor to its words. In Polish: Przejdź
+----------
+The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
+        <translation>Przejdź</translation>
+    </message>
+    <message>
+        <source>Skip This Word</source>
+        <extracomment>The button of a card of the panel Repetitions: the word is not counted any more. In Polish: Pomijaj to słowo</extracomment>
+        <translation>Pomijaj to słowo</translation>
+    </message>
+    <message>
+        <source>Close Together</source>
+        <extracomment>The page of the panel Repetitions with the words that come back too close. In Polish: Blisko siebie</extracomment>
+        <translation>Blisko siebie</translation>
+    </message>
+    <message>
+        <source>Most frequent words</source>
+        <translation>Najczęstsze słowa</translation>
+    </message>
+    <message>
+        <source>Word</source>
+        <extracomment>The columns of the most frequent words: the word, how many times, times in a thousand words. In Polish: Słowo, Razy, Na 1000</extracomment>
+        <translation>Słowo</translation>
+    </message>
+    <message>
+        <source>Times</source>
+        <translation>Razy</translation>
+    </message>
+    <message>
+        <source>Per 1000</source>
+        <translation>Na 1000</translation>
+    </message>
+    <message>
+        <source>Most Frequent</source>
+        <extracomment>The page of the panel Repetitions with the words used most often. In Polish: Najczęstsze</extracomment>
+        <translation>Najczęstsze</translation>
+    </message>
+    <message>
+        <source>No book is open.</source>
+        <translation>Nie ma otwartej książki.</translation>
+    </message>
+    <message>
+        <source>No word comes back too close.</source>
+        <translation>Żadne słowo nie wraca zbyt blisko.</translation>
+    </message>
+    <message>
+        <source>No words are counted.</source>
+        <translation>Nie policzono żadnych słów.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::editor::QuickInsertList</name>
+    <message>
+        <source>Nothing matches “%1”. The next character closes the list.</source>
+        <extracomment>Quick insert: the list after the letters typed in the text (%1, &quot;@xyz&quot;) found nothing</extracomment>
+        <translation>Nic nie pasuje do „%1”. Następny znak zamknie listę.</translation>
+    </message>
+    <message>
+        <source>↑↓ choose · Enter, Tab insert · Esc leaves “%1”</source>
+        <extracomment>Quick insert: the keys of the list; %1 is what was typed in the text (&quot;@an&quot;)</extracomment>
+        <translation>↑↓ wybór · Enter, Tab wstawia · Esc zostawia „%1”</translation>
+    </message>
+    <message>
+        <source>Inserts: %1</source>
+        <extracomment>Quick insert: what the chosen item puts in the text</extracomment>
+        <translation>Wstawia: %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::RepetitionsCoordinator</name>
+    <message>
+        <source>No text is in front</source>
+        <extracomment>Why Next Repetition is greyed out. In Polish: Na wierzchu nie ma tekstu</extracomment>
+        <translation>Na wierzchu nie ma tekstu</translation>
+    </message>
+    <message>
+        <source>No word comes back too close here</source>
+        <extracomment>Next Repetition found none. In Polish: Żadne słowo nie wraca tu zbyt blisko</extracomment>
+        <translation>Żadne słowo nie wraca tu zbyt blisko</translation>
+    </message>
+    <message numerus="yes">
+        <source>Repetition: “%1”, %n time(s) in %2 words</source>
+        <extracomment>Next Repetition: the word it found, how many times and in how many words. In Polish: Powtórzenie: „%1”, %n razy w %2 słowach</extracomment>
+        <translation>
+            <numerusform>Powtórzenie: „%1”, %n raz w %2 słowach</numerusform>
+            <numerusform>Powtórzenie: „%1”, %n razy w %2 słowach</numerusform>
+            <numerusform>Powtórzenie: „%1”, %n razy w %2 słowach</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>No text is in front. Open a chapter to see the words that come back too close.</source>
+        <extracomment>The panel Repetitions without a text in front. In Polish: Na wierzchu nie ma tekstu. Otwórz rozdział, żeby zobaczyć słowa, które wracają zbyt blisko.</extracomment>
+        <translation>Na wierzchu nie ma tekstu. Otwórz rozdział, żeby zobaczyć słowa, które wracają zbyt blisko.</translation>
+    </message>
+    <message>
+        <source>The book has no text yet.</source>
+        <extracomment>The panel Repetitions, the whole book, without texts. In Polish: Książka nie ma jeszcze tekstu.</extracomment>
+        <translation>Książka nie ma jeszcze tekstu.</translation>
+    </message>
+    <message>
+        <source>No book is open.</source>
+        <translation>Nie ma otwartej książki.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n time(s) in %1 words</source>
+        <extracomment>How many times a word comes back, and in how many words: &quot;3 times in 19 words&quot;. In Polish: %n razy w %1 słowach</extracomment>
+        <translation>
+            <numerusform>%n raz w %1 słowach</numerusform>
+            <numerusform>%n razy w %1 słowach</numerusform>
+            <numerusform>%n razy w %1 słowach</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Whole book</source>
+        <extracomment>The panel Repetitions: what is counted, the whole book. In Polish: Cała książka</extracomment>
+        <translation>Cała książka</translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln word(s)</source>
+        <extracomment>The words counted. In Polish: %Ln słów (słowo, słowa)</extracomment>
+        <translation>
+            <numerusform>%Ln słowo</numerusform>
+            <numerusform>%Ln słowa</numerusform>
+            <numerusform>%Ln słów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln repetition(s) close together</source>
+        <extracomment>In Polish: %Ln powtórzeń blisko siebie (powtórzenie, powtórzenia)</extracomment>
+        <translation>
+            <numerusform>%Ln powtórzenie blisko siebie</numerusform>
+            <numerusform>%Ln powtórzenia blisko siebie</numerusform>
+            <numerusform>%Ln powtórzeń blisko siebie</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln different</source>
+        <extracomment>The words counted that are not the same. In Polish: %Ln różnych (różne, różnych)</extracomment>
+        <translation>
+            <numerusform>%Ln różne</numerusform>
+            <numerusform>%Ln różne</numerusform>
+            <numerusform>%Ln różnych</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The text changed after it was counted: click Recount.</source>
+        <extracomment>The whole book was counted before a chapter changed. In Polish: Tekst zmienił się po przeliczeniu – kliknij „Przelicz”.</extracomment>
+        <translation>Tekst zmienił się po przeliczeniu – kliknij „Przelicz”.</translation>
+    </message>
+    <message>
+        <source>The text changed: the repetitions are counted again</source>
+        <extracomment>The words of a card are not where they were counted. In Polish: Tekst zmienił się: powtórzenia są liczone od nowa</extracomment>
+        <translation>Tekst zmienił się: powtórzenia są liczone od nowa</translation>
+    </message>
+    <message>
+        <source>“%1” is not counted any more. The skipped words are in Settings &gt; Editor &gt; Repetitions</source>
+        <extracomment>Skip This Word on a card of the panel Repetitions. In Polish: „%1” nie jest już liczone. Pomijane słowa są w Ustawieniach &gt; Edytor &gt; Powtórzenia</extracomment>
+        <translation>„%1” nie jest już liczone. Pomijane słowa są w Ustawieniach &gt; Edytor &gt; Powtórzenia</translation>
     </message>
 </context>
 </TS>

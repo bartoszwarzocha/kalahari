@@ -853,8 +853,8 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     // notes and the kinds of materials, in Materials
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
     CHECK(navigator.itemsIn(QStringLiteral("workshop:materials")) ==
-          "Working notes, Quotes, Web pages, Pictures, Documents, Publications, Recordings, "
-          "Other files");
+          "Working notes, Cover, Quotes, Web pages, Pictures, Documents, Publications, "
+          "Recordings, Other files");
 
     // A working note has no status; it opens in the editor
     CHECK(navigator.add(onWorkshop(), {addAs({.kind = "work_note"})}) == 1);
@@ -2742,6 +2742,52 @@ TEST_CASE("Properties panel: leaving a field without a change saves nothing",
     names.at(1)->setText(QStringLiteral("The Middle"));
     REQUIRE(QMetaObject::invokeMethod(namesRow, "editingFinished"));
     CHECK(saved());
+}
+
+TEST_CASE("Navigator commands: a chapter set to start on a left page in the Properties panel, "
+          "saved at once and in its editor too",
+          "[gui][navigator][margins]") {
+    OpenNovel novel;
+    Navigator navigator;
+    auto& pm = novel.pm;
+    // The main window passes the change of the panel to the open editors
+    QObject::connect(navigator.properties, &gui::PropertiesPanel::chapterFirstPageChanged,
+                     &navigator.coordinator, &gui::NavigatorCoordinator::refreshFirstPage);
+
+    const QString id = navigator.added(QStringLiteral("chapter"));
+    navigator.coordinator.onElementSelected(id, pm.findElement(id)->title);
+    REQUIRE(navigator.tabs->count() == 1);
+    auto* editor = qobject_cast<gui::EditorPanel*>(navigator.tabs->currentWidget());
+    REQUIRE(editor != nullptr);
+    CHECK_FALSE(editor->getBookEditor()->appearance().pageMargins.firstPageLeft);
+
+    // A right page unless checked
+    navigator.properties->showChapterProperties(id);
+    auto* left = navigator.properties->findChild<QCheckBox*>(QStringLiteral("chapterFirstPageLeft"));
+    REQUIRE(left != nullptr);
+    CHECK(left->isVisibleTo(navigator.properties));
+    CHECK(left->isEnabled());
+    CHECK_FALSE(left->isChecked());
+
+    left->setChecked(true);
+    CHECK(pm.findElement(id)->firstPageLeft);
+    REQUIRE(novel.savedBook().mainElements.size() == 1);
+    CHECK(novel.savedBook().mainElements.first().firstPageLeft);
+    CHECK(editor->getBookEditor()->appearance().pageMargins.firstPageLeft);
+
+    // Opened again, the editor has it from the start
+    delete navigator.tabs->widget(0);
+    REQUIRE(navigator.tabs->count() == 0);
+    navigator.coordinator.onElementSelected(id, pm.findElement(id)->title);
+    REQUIRE(navigator.tabs->count() == 1);
+    editor = qobject_cast<gui::EditorPanel*>(navigator.tabs->currentWidget());
+    REQUIRE(editor != nullptr);
+    CHECK(editor->getBookEditor()->appearance().pageMargins.firstPageLeft);
+
+    // A part has no pages of its own
+    const QString part = navigator.added(QStringLiteral("part"));
+    navigator.properties->showChapterProperties(part);
+    CHECK_FALSE(left->isVisibleTo(navigator.properties));
 }
 
 namespace {

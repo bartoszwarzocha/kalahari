@@ -28,6 +28,7 @@
 #include "kalahari/core/theme_manager.h"
 #include <QLabel>
 #include <QLineEdit>
+#include <QCheckBox>
 #include <QPushButton>
 #include <QComboBox>
 #include <QTextEdit>
@@ -118,6 +119,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_chapterTitleEdit(nullptr)
     , m_chapterWordCountLabel(nullptr)
     , m_chapterStatusCombo(nullptr)
+    , m_chapterFirstPageLeft(nullptr)
     , m_chapterNotesGroup(nullptr)
     , m_chapterNotesEdit(nullptr)
     , m_sectionTitleLabel(nullptr)
@@ -414,6 +416,11 @@ QWidget* PropertiesPanel::createChapterPage() {
     m_chapterStatusCombo->addItem(tr("Revision"), "revision");
     m_chapterStatusCombo->addItem(tr("Final"), "final");
     infoLayout->addRow(tr("Status:"), m_chapterStatusCombo);
+
+    // Its first page: a right one, unless the writer says it is a left one (mirror margins)
+    m_chapterFirstPageLeft = new QCheckBox(tr("Starts on a left page"), infoGroup);
+    m_chapterFirstPageLeft->setObjectName(QStringLiteral("chapterFirstPageLeft"));
+    infoLayout->addRow(m_chapterFirstPageLeft);
 
     layout->addWidget(infoGroup);
 
@@ -800,6 +807,8 @@ void PropertiesPanel::connectSignals() {
             this, &PropertiesPanel::onChapterTitleChanged);
     connect(m_chapterStatusCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PropertiesPanel::onChapterStatusChanged);
+    connect(m_chapterFirstPageLeft, &QCheckBox::toggled,
+            this, &PropertiesPanel::onChapterFirstPageChanged);
 
     // Notes are saved on focus lost via eventFilter (not on every keystroke)
     m_chapterNotesEdit->installEventFilter(this);
@@ -1323,6 +1332,22 @@ void PropertiesPanel::onChapterStatusChanged(int index) {
     emit chapterStatusChanged(m_currentChapterId);
 }
 
+void PropertiesPanel::onChapterFirstPageChanged(bool left) {
+    if (m_isUpdating) return;
+    if (m_currentChapterId.isEmpty()) return;
+
+    // ProjectManager saves the project at once
+    if (!core::ProjectManager::getInstance().setFirstPageLeft(m_currentChapterId, left)) {
+        const bool wasUpdating = m_isUpdating;
+        m_isUpdating = true;
+        m_chapterFirstPageLeft->setChecked(!left);
+        m_isUpdating = wasUpdating;
+        dialogs::MessageDialog::warning(this, tr("Change Failed"), tr("Failed to save changes."));
+        return;
+    }
+    emit chapterFirstPageChanged(m_currentChapterId);
+}
+
 void PropertiesPanel::onChapterNotesChanged() {
     if (m_isUpdating) return;
     if (m_currentChapterId.isEmpty()) return;
@@ -1503,6 +1528,14 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
         core::fillWords(tr("Word count of {kind:s=this|p=these} {kind}"), nouns));
     //: In Polish: Stan ukończenia {kind:genitive}
     m_chapterStatusCombo->setToolTip(core::fillWords(tr("{Kind} completion status"), nouns));
+    //: In Polish: Przy marginesach lustrzanych (Ustawienia > Edytor > Strony i marginesy)
+    //: pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez
+    //: zaznaczenia jest prawa.
+    m_chapterFirstPageLeft->setToolTip(core::fillWords(
+        tr("With mirror margins (Settings > Editor > Pages and Margins) the first page of "
+           "{kind:s=this|p=these} {kind} is a left page: its inner margin is on the right. "
+           "Unchecked: a right page."),
+        nouns));
     //: In Polish: Notatki i uwagi do {kind:genitive}
     m_chapterNotesEdit->setToolTip(
         core::fillWords(tr("Notes and comments for {kind:s=this|p=these} {kind}"), nouns));
@@ -1516,6 +1549,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     const bool workshop = at && at->place == core::BookPlace::Workshop;
     const bool text = pm.formOf(*element) == core::ElementForm::Text;
     m_chapterInfoLayout->setRowVisible(m_chapterStatusCombo, !bookFile && !workshop && text);
+    m_chapterInfoLayout->setRowVisible(m_chapterFirstPageLeft, !bookFile && !workshop && text);
     m_chapterInfoLayout->setRowVisible(m_chapterWordCountLabel, bookFile || text);
     m_chapterNotesGroup->setVisible(!bookFile);
     // The materials about the element; a file of the book is not linked
@@ -1537,12 +1571,14 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_chapterTitleEdit->setText(element->title);
     m_chapterWordCountLabel->setText(numberText(pm.wordCount(elementId)));
     selectChapterStatus(core::ProjectManager::statusOf(*element));
+    m_chapterFirstPageLeft->setChecked(element->firstPageLeft);
     m_chapterNotesEdit->setPlainText(pm.notes(elementId));
 
     // An element of a book open read-only is read only, here too
     const bool readOnly = pm.isReadOnly();
     m_chapterTitleEdit->setReadOnly(readOnly);
     m_chapterStatusCombo->setEnabled(!readOnly);
+    m_chapterFirstPageLeft->setEnabled(!readOnly);
     m_chapterNotesEdit->setReadOnly(readOnly);
     showVersions(elementId);
 

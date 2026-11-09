@@ -132,6 +132,7 @@ struct NewMaterial {
     QString url;         ///< Web address of a page or of a picture; empty: none
     QStringList links;   ///< What it is about (ProjectElement::links); each link gets the
                          ///< role of its kind (newLink())
+    CoverData cover;     ///< Of a material of the cover: what it is and where it goes
 };
 
 /// @brief Singleton manager of the book project open in the program
@@ -658,6 +659,12 @@ public:
     /// book outside its text has no status.
     bool setStatus(const QString& elementId, const QString& status);
 
+    /// @brief Set whether a text element starts on a left page (with mirror margins its inner
+    ///        margin is on the right then); without it, it starts on a right page
+    ///
+    /// Saves the .klh file. A file of the book outside its text has no pages of its own.
+    bool setFirstPageLeft(const QString& elementId, bool left);
+
     /// @brief Notes of a text element, from its chapter file; of an element without a chapter
     /// file (a card of the Workshop), its description (ProjectElement::description)
     QString notes(const QString& elementId) const;
@@ -712,6 +719,23 @@ public:
     /// @return false for another angle, when the project has no such element or the file
     ///         cannot be written
     bool setRotation(const QString& elementId, int rotation);
+
+    /// @brief Give material @p elementId of the cover the data @p cover (what it is and where
+    /// it goes) and save the .klh file
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element keeps its data then
+    bool setCover(const QString& elementId, const CoverData& cover);
+
+    /// @brief Give material @p elementId of the cover the state @p state
+    /// (CoverMaterial::CHOSEN, REJECTED; empty: a draft) and save the .klh file once
+    ///
+    /// A description, a tagline or a design chosen (CoverMaterial::choosesOne()) takes the
+    /// place of the one chosen before for the same part and place: that one is a draft again.
+    /// @param drafts Gets the materials that are drafts again; may be nullptr
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         materials keep their states then
+    bool setCoverState(const QString& elementId, const QString& state,
+                       QStringList* drafts = nullptr);
 
     /// @brief Materials linked with @p link, an element or a section of the book
     /// (BookProject::sectionLink()), in the order of the Workshop

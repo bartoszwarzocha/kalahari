@@ -39,8 +39,9 @@
   "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface"],
   "main":     ["prologue", "part", "chapter", "epilogue"],
   "back":     ["afterword", "acknowledgments", "glossary", "about_author", "toc"],
-  "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "quote",
-               "web_page", "picture", "document", "publication", "recording", "other_file"],
+  "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "cover",
+               "quote", "web_page", "picture", "document", "publication", "recording",
+               "other_file"],
   "primary":  "chapter",
   "start":    ["title_page", "chapter"],
   "styles":   "styles.json"

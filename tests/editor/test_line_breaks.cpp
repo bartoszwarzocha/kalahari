@@ -127,15 +127,16 @@ TEST_CASE("Line breaks: a break at the end of a paragraph starts an empty line",
 
 TEST_CASE("Line breaks: the break and the text typed after it are one undo step",
           "[editor][linebreak]") {
+    // A capital first: autocorrect has nothing to change when the break ends the word
     auto editor = editorWith(kmlOf({QString()}));
-    type(*editor, QStringLiteral("abc"));
+    type(*editor, QStringLiteral("Abc"));
     press(*editor, Qt::Key_Return, Qt::ShiftModifier);
     type(*editor, QStringLiteral("def"));
-    const QString typed = QStringLiteral("abc") + LINE_BREAK + QStringLiteral("def");
+    const QString typed = QStringLiteral("Abc") + LINE_BREAK + QStringLiteral("def");
     REQUIRE(editor->paragraphPlainText(0) == typed);
 
     editor->undo();
-    CHECK(editor->paragraphPlainText(0) == QStringLiteral("abc"));
+    CHECK(editor->paragraphPlainText(0) == QStringLiteral("Abc"));
     CHECK(editor->cursorPosition() == CursorPosition{0, 3});
     editor->undo();
     CHECK(editor->paragraphPlainText(0).isEmpty());
