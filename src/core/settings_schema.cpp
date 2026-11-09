@@ -110,6 +110,19 @@ std::map<std::string, json> buildDefaults() {
         // with a paperclip (core::LinkRoles::PARAGRAPHS_SETTING); false hides the paragraphs of
         // the links and keeps them
         {"materials.linkParagraphs", true},
+        // The materials of the cover (Settings > Navigator > Cover): their lengths in
+        // characters with spaces ("characters") or in "words", and the default target length
+        // of a description, a tagline and an opinion in each unit (core::CoverMaterial)
+        {"materials.cover.lengthUnit", "characters"},
+        {"materials.cover.targets.blurb.characters", 600},
+        {"materials.cover.targets.blurb.words", 100},
+        {"materials.cover.targets.tagline.characters", 60},
+        {"materials.cover.targets.tagline.words", 10},
+        {"materials.cover.targets.opinion.characters", 200},
+        {"materials.cover.targets.opinion.words", 35},
+        // The kinds of materials the Navigator does not show, in every book: kinds with their
+        // packages ("kalahari.base:cover"); their materials stay in the books (MaterialList)
+        {"materials.hiddenKinds", json::array()},
 
         // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
         // and the commands named after the kinds most added there) or "single" ("Add..." only)

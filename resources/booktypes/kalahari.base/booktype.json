@@ -268,6 +268,18 @@
         "en": { "singular": "material", "plural": "materials", "indefinite": "a material" }
       }
     },
+    "cover": {
+      "form": "window", "editor": "material", "places": ["workshop"], "icon": "material.cover",
+      "workshopGroup": "resources",
+      "name": { "pl": "Okładka", "en": "Cover" },
+      "plural": { "pl": "Okładka", "en": "Cover" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "materiał okładki", "plural": "materiały okładki",
+                "genitive": "materiału okładki", "dative": "materiałowi okładki", "accusative": "materiał okładki",
+                "instrumental": "materiałem okładki", "locative": "materiale okładki", "genitivePlural": "materiałów okładki" },
+        "en": { "singular": "cover material", "plural": "cover materials", "indefinite": "a cover material" }
+      }
+    },
     "quote": {
       "form": "window", "editor": "material", "places": ["workshop"], "icon": "format.style.quote",
       "workshopGroup": "resources",
@@ -356,8 +368,9 @@
   "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface", "introduction"],
   "main":     ["chapter", "part"],
   "back":     ["afterword", "acknowledgments", "glossary", "about_author", "toc"],
-  "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "quote",
-               "web_page", "picture", "document", "publication", "recording", "other_file"],
+  "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "cover",
+               "quote", "web_page", "picture", "document", "publication", "recording",
+               "other_file"],
   "primary":  "chapter",
   "styles":   "styles.json"
 }

@@ -853,8 +853,8 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     // notes and the kinds of materials, in Materials
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
     CHECK(navigator.itemsIn(QStringLiteral("workshop:materials")) ==
-          "Working notes, Quotes, Web pages, Pictures, Documents, Publications, Recordings, "
-          "Other files");
+          "Working notes, Cover, Quotes, Web pages, Pictures, Documents, Publications, "
+          "Recordings, Other files");
 
     // A working note has no status; it opens in the editor
     CHECK(navigator.add(onWorkshop(), {addAs({.kind = "work_note"})}) == 1);

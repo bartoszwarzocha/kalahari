@@ -36,6 +36,9 @@ struct AddTarget {
     /// empty: all kinds of the Workshop
     QList<core::KindRef> kinds;
     core::KindRef kind;  ///< The kind chosen at the start; none: the usual one of the place
+    /// A material of the cover: the part chosen at the start (core::CoverMaterial::BLURB...);
+    /// empty: the one chosen last
+    QString coverPart;
 };
 
 /// @brief What the top of the Add Element window chooses from, as Settings > Navigator sets it

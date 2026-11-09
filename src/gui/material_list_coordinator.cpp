@@ -7,6 +7,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/add_target.h"
+#include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/link_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/material_list.h"
@@ -35,6 +36,13 @@ constexpr const char* STALE_PROPERTY = "materialListStale";
 
 /// @brief How long the status bar shows what a list did
 constexpr int MESSAGE_TIMEOUT = 2000;
+
+/// @brief How long the status bar shows what is longer to read
+constexpr int LONG_MESSAGE_TIMEOUT = 6000;
+
+/// @brief The beginning of the keys of the settings of the cover: the unit and the targets of
+/// its texts (core::CoverMaterial::UNIT_SETTING, TARGETS_SETTING)
+constexpr const char* COVER_SETTINGS = "materials.cover.";
 
 /// @brief The ids of all the elements of the Workshop of the open book
 QSet<QString> workshopIds() {
@@ -85,8 +93,16 @@ MaterialListCoordinator::MaterialListCoordinator(QTabWidget* centralTabs,
     // The setting may change on another thread: the Navigator is built on this one
     m_settingsListener = core::SettingsManager::getInstance().subscribe(
         [self = QPointer<MaterialListCoordinator>(this)](const std::string& key) {
-            if (key == NavigatorPanel::MATERIALS_TREE_SETTING && self != nullptr) {
+            if (self == nullptr) {
+                return;
+            }
+            if (key == NavigatorPanel::MATERIALS_TREE_SETTING) {
                 QMetaObject::invokeMethod(self, "onTreeSettingChanged", Qt::QueuedConnection);
+            } else if (key == MaterialList::HIDDEN_SETTING) {
+                QMetaObject::invokeMethod(self, "onHiddenSettingChanged", Qt::QueuedConnection);
+            } else if (key.rfind(COVER_SETTINGS, 0) == 0) {
+                // The unit and the targets of the texts of the cover
+                QMetaObject::invokeMethod(self, "refresh", Qt::QueuedConnection);
             }
         });
 }
@@ -171,6 +187,40 @@ void MaterialListCoordinator::onTreeSettingChanged() {
     m_navigator->refreshNavigator();
 }
 
+void MaterialListCoordinator::onHiddenSettingChanged() {
+    if (core::ProjectManager::getInstance().isProjectOpen()) {
+        // The Navigator built again fills the lists again
+        m_navigator->refreshNavigator();
+    }
+}
+
+void MaterialListCoordinator::hideKind(const QString& list) {
+    if (list.isEmpty() || MaterialList::isHidden(list)) {
+        return;
+    }
+    MaterialList::setHidden(list, true);
+    //: The status bar after a kind of material is hidden in the Navigator; %1 its name. In
+    //: Polish: Ukryto typ „%1”. Jego materiały zostały w książce; przywrócisz go w Ustawieniach
+    //: > Nawigator
+    m_statusBar->showMessage(
+        MaterialList::tr("The kind \"%1\" is hidden. Its materials stay in the book; you show it "
+                         "again in Settings > Navigator.")
+            .arg(MaterialList::nameOf(list)),
+        LONG_MESSAGE_TIMEOUT);
+}
+
+void MaterialListCoordinator::showKind(const QString& list) {
+    if (!MaterialList::isHidden(list)) {
+        return;
+    }
+    MaterialList::setHidden(list, false);
+    //: The status bar after a hidden kind of material is shown again; %1 its name. In Polish:
+    //: Typ „%1” jest znów w Nawigatorze
+    m_statusBar->showMessage(MaterialList::tr("The kind \"%1\" is in the Navigator again.")
+                                 .arg(MaterialList::nameOf(list)),
+                             MESSAGE_TIMEOUT);
+}
+
 void MaterialListCoordinator::onCurrentTabChanged() {
     MaterialListPanel* panel = currentList();
     if (panel != nullptr && panel->property(STALE_PROPERTY).toBool() &&
@@ -210,6 +260,18 @@ void MaterialListCoordinator::connectList(MaterialListPanel* panel) {
                     add(panel, list);
                 }
             });
+    connect(panel, &MaterialListPanel::requestAddCover, this,
+            [this, panel = QPointer<MaterialListPanel>(panel)](const QString& list,
+                                                               const QString& part) {
+                if (panel != nullptr) {
+                    add(panel, list, part);
+                }
+            });
+    connect(panel, &MaterialListPanel::requestCoverState, this,
+            &MaterialListCoordinator::setCoverState);
+    connect(panel, &MaterialListPanel::requestShowKind, this, &MaterialListCoordinator::showKind);
+    connect(panel, &MaterialListPanel::requestSettings, this,
+            &MaterialListCoordinator::settingsRequested);
     connect(panel, &MaterialListPanel::message, this,
             [this](const QString& text) { m_statusBar->showMessage(text, MESSAGE_TIMEOUT); });
 }
@@ -280,7 +342,8 @@ void MaterialListCoordinator::link(const QString& elementId) {
     m_navigator->onMaterialChanged(elementId);
 }
 
-void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list) {
+void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
+                                  const QString& coverPart) {
     auto& pm = core::ProjectManager::getInstance();
     if (!pm.isProjectOpen() || pm.isReadOnly()) {
         return;
@@ -304,6 +367,7 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list)
     if (!list.isEmpty()) {
         target.kind = target.kinds.constFirst();
     }
+    target.coverPart = coverPart;
     const QSet<QString> before = workshopIds();
     m_navigator->onRequestAdd(target);
 
@@ -325,6 +389,34 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list)
     panel->selectMaterial(added);
     if (m_centralTabs->currentWidget() == panel) {
         panel->focusList();
+    }
+}
+
+void MaterialListCoordinator::setCoverState(const QString& elementId, const QString& state) {
+    auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (pm.isReadOnly() || element == nullptr) {
+        return;
+    }
+    const QString title = element->title;
+    QStringList drafts;
+    if (!pm.setCoverState(elementId, state, &drafts)) {
+        //: In Polish: Nie zapisano stanu
+        dialogs::MessageDialog::warning(window(), MaterialList::tr("State Not Saved"),
+                                        MaterialList::tr("Failed to save changes."));
+        return;
+    }
+    QStringList titles;
+    for (const QString& id : drafts) {
+        if (const core::ProjectElement* other = pm.findElement(id)) {
+            titles << other->title;
+        }
+    }
+    const QString text = CoverNames::stateMessage(title, state, titles);
+    m_statusBar->showMessage(text, LONG_MESSAGE_TIMEOUT);
+    m_navigator->onMaterialChanged(elementId);
+    for (const QString& id : drafts) {
+        m_navigator->onMaterialChanged(id);
     }
 }
 

@@ -1689,9 +1689,9 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     CHECK(references(pm.kindsFor(BookPlace::Workshop)) ==
           "kalahari.base:mindmap, kalahari.base:timeline, kalahari.base:character, "
           "kalahari.base:location, kalahari.base:item, kalahari.base:work_note, "
-          "kalahari.base:quote, kalahari.base:web_page, kalahari.base:picture, "
-          "kalahari.base:document, kalahari.base:publication, kalahari.base:recording, "
-          "kalahari.base:other_file");
+          "kalahari.base:cover, kalahari.base:quote, kalahari.base:web_page, "
+          "kalahari.base:picture, kalahari.base:document, kalahari.base:publication, "
+          "kalahari.base:recording, kalahari.base:other_file");
     CHECK(ProjectManager::canAdd(note));
     CHECK(ProjectManager::canAdd(material));
     CHECK(ProjectManager::canAdd(otherFile));
@@ -3594,4 +3594,71 @@ TEST_CASE("An imported book takes the name of its archive", "[project_manager][a
     CHECK(ProjectManager::archiveProjectName("C:/books/My Novel.KLH.ZIP") == "My Novel");
     CHECK(ProjectManager::archiveProjectName("/books/v1.2 draft.zip") == "v1.2 draft");
     CHECK(ProjectManager::archiveProjectName("/books/.klh.zip") == "project");
+}
+
+TEST_CASE("ProjectManager chooses the materials of the cover", "[project_manager][cover]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Cover", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const KindRef cover = kind("kalahari.base", "cover");
+    REQUIRE(cover);
+    const auto add = [&pm, &cover](const char* title, const char* part, const char* place) {
+        NewMaterial material;
+        material.title = QString::fromLatin1(title);
+        material.cover.part = QString::fromLatin1(part);
+        material.cover.place = QString::fromLatin1(place);
+        return pm.addMaterial(material, cover);
+    };
+    const QString first = add("Blurb 1", CoverMaterial::BLURB, CoverMaterial::BACK);
+    const QString second = add("Blurb 2", CoverMaterial::BLURB, CoverMaterial::BACK);
+    const QString flap = add("Blurb 3", CoverMaterial::BLURB, CoverMaterial::FRONT_FLAP);
+    const QString opinion = add("Opinion 1", CoverMaterial::OPINION, CoverMaterial::BACK);
+    const QString other = add("Opinion 2", CoverMaterial::OPINION, CoverMaterial::BACK);
+    for (const QString& id : {first, second, flap, opinion, other}) {
+        REQUIRE_FALSE(id.isEmpty());
+    }
+    CHECK(pm.findElement(first)->cover.part == CoverMaterial::BLURB);
+    const auto stateOf = [&pm](const QString& id) { return pm.findElement(id)->cover.state; };
+
+    // One description is chosen for a place: the one chosen before is a draft again
+    QStringList drafts;
+    REQUIRE(pm.setCoverState(first, CoverMaterial::CHOSEN, &drafts));
+    REQUIRE(pm.setCoverState(flap, CoverMaterial::CHOSEN, &drafts));
+    CHECK(drafts.isEmpty());
+    REQUIRE(pm.setCoverState(second, CoverMaterial::CHOSEN, &drafts));
+    CHECK(drafts == QStringList{first});
+    CHECK(stateOf(first).isEmpty());
+    CHECK(stateOf(second) == CoverMaterial::CHOSEN);
+    CHECK(stateOf(flap) == CoverMaterial::CHOSEN);
+
+    // Opinions are chosen many to a place
+    REQUIRE(pm.setCoverState(opinion, CoverMaterial::CHOSEN, &drafts));
+    REQUIRE(pm.setCoverState(other, CoverMaterial::CHOSEN, &drafts));
+    CHECK(drafts.isEmpty());
+    CHECK(stateOf(opinion) == CoverMaterial::CHOSEN);
+
+    // Rejected and a draft again
+    REQUIRE(pm.setCoverState(other, CoverMaterial::REJECTED));
+    CHECK(stateOf(other) == CoverMaterial::REJECTED);
+    REQUIRE(pm.setCoverState(other, QString()));
+    CHECK(stateOf(other).isEmpty());
+    CHECK_FALSE(pm.setCoverState("nothing", CoverMaterial::CHOSEN));
+
+    // A .klh file that cannot be written leaves all the states as they were
+    const BookProject unchanged = *pm.project();
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkdir(manifest));
+    CHECK_FALSE(pm.setCoverState(first, CoverMaterial::CHOSEN, &drafts));
+    CHECK(drafts.isEmpty());
+    CHECK(*pm.project() == unchanged);
+    REQUIRE(QDir().rmdir(manifest));
+    REQUIRE(pm.saveManifest());
+
+    // The .klh file has them
+    REQUIRE(pm.closeProject(false));
+    const BookProject saved = savedProject(manifest);
+    CHECK(saved.findElement(second)->cover.state == CoverMaterial::CHOSEN);
+    CHECK(saved.findElement(first)->cover.state.isEmpty());
+    CHECK(saved.findElement(first)->cover.place == CoverMaterial::BACK);
 }

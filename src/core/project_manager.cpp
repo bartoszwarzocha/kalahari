@@ -64,6 +64,13 @@ void appendAll(const QList<ProjectElement>& elements, QList<const ProjectElement
     }
 }
 
+void appendAll(QList<ProjectElement>& elements, QList<ProjectElement*>& all) {
+    for (ProjectElement& element : elements) {
+        all.append(&element);
+        appendAll(element.elements, all);
+    }
+}
+
 /// Every element of @p project: of the books in reading order, each followed by the files of
 /// the book outside its text, then of the Workshop
 QList<const ProjectElement*> allElements(const BookProject& project) {
@@ -1554,6 +1561,7 @@ QString ProjectManager::addMaterial(const NewMaterial& material, const KindRef& 
     element.kind = KindReference{kind.package->id, kind.kind->id};
     element.title = material.title;
     element.url = material.url;
+    element.cover = material.cover;
     const QString role = LinkRoles::suggestedFor(kind.kind->id);
     for (const QString& link : material.links) {
         if (element.linkTo(link) == nullptr && m_project->hasLinkTarget(link)) {
@@ -2393,6 +2401,59 @@ bool ProjectManager::setRotation(const QString& elementId, int rotation) {
     }
     return changeDetails("setRotation", elementId,
                          [rotation](ProjectElement& element) { element.rotation = rotation; });
+}
+
+bool ProjectManager::setCover(const QString& elementId, const CoverData& cover) {
+    return changeDetails("setCover", elementId,
+                         [&cover](ProjectElement& element) { element.cover = cover; });
+}
+
+bool ProjectManager::setCoverState(const QString& elementId, const QString& state,
+                                   QStringList* drafts) {
+    if (drafts != nullptr) {
+        drafts->clear();
+    }
+    if (refusesChange("setCoverState")) {
+        return false;
+    }
+    if (!findElement(elementId)) {
+        Logger::getInstance().warn("setCoverState: Element not found: {}",
+                                   elementId.toStdString());
+        return false;
+    }
+    // The project as it was, to put back when the file cannot be written. Its lists are shared
+    // with the project until they change, so the element is found after the copy: finding it
+    // gives the project lists of its own
+    const BookProject before = *m_project;
+    ProjectElement* element = findElement(elementId);
+    element->cover.state = state;
+    QStringList others;
+    if (state == QLatin1String(CoverMaterial::CHOSEN) &&
+        CoverMaterial::choosesOne(element->cover.part)) {
+        const QString part = element->cover.part;
+        const QString place = element->cover.place;
+        QList<ProjectElement*> workshop;
+        appendAll(m_project->workshop.elements, workshop);
+        for (ProjectElement* other : workshop) {
+            if (other->id != elementId && other->cover.part == part &&
+                other->cover.place == place &&
+                other->cover.state == QLatin1String(CoverMaterial::CHOSEN)) {
+                other->cover.state.clear();
+                others << other->id;
+            }
+        }
+    }
+    if (*m_project == before) {
+        return true;
+    }
+    if (!saveManifest()) {
+        *m_project = before;
+        return false;
+    }
+    if (drafts != nullptr) {
+        *drafts = others;
+    }
+    return true;
 }
 
 QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& link) const {
