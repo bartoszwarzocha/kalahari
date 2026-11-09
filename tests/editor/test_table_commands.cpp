@@ -626,6 +626,17 @@ TEST_CASE("Table commands: Alt+Shift+Up and Down move rows and paragraphs",
         table->undo();
         CHECK(kmlOf(*table) == GRID_KML.toStdString());
     }
+
+    SECTION("not with a selection going into or out of a table") {
+        auto editor = editorWith(GRID_KML);
+        select(*editor, {0, 2}, {5, 1});  // from Before to b2
+        CHECK_FALSE(editor->moveParagraphsOrRows(true));
+        CHECK_FALSE(editor->moveParagraphsOrRows(false));
+        select(*editor, {5, 1}, {10, 2});  // from b2 to After
+        CHECK_FALSE(editor->moveParagraphsOrRows(true));
+        CHECK_FALSE(editor->moveParagraphsOrRows(false));
+        CHECK(kmlOf(*editor) == GRID_KML.toStdString());
+    }
 }
 
 // =============================================================================

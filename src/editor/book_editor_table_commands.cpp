@@ -669,6 +669,13 @@ bool BookEditor::moveParagraphsOrRows(bool down)
     }
     if (const std::optional<TableCellRange> cells = tableCells()) {
         QTextTable& table = *cells->table;
+        // A selection going out of the table moves nothing: it is more than rows
+        const int position = calculateAbsolutePosition(m_cursorPosition);
+        const int anchorPosition =
+            calculateAbsolutePosition(hasSelection() ? m_selectionAnchor : m_cursorPosition);
+        if (tableAt(*m_textBuffer, position) != &table || tableAt(*m_textBuffer, anchorPosition) != &table) {
+            return false;
+        }
         const int neighbour = down ? cells->lastRow + 1 : cells->firstRow - 1;
         if (neighbour < 0 || neighbour >= table.rows()) {
             return false;
@@ -702,9 +709,6 @@ bool BookEditor::moveParagraphsOrRows(bool down)
             const QTextTableCell cell = table.cellAt(position);
             return std::tuple{cell.row(), cell.column(), position - cell.firstPosition()};
         };
-        const int position = calculateAbsolutePosition(m_cursorPosition);
-        const int anchorPosition =
-            calculateAbsolutePosition(hasSelection() ? m_selectionAnchor : m_cursorPosition);
         const auto [cursorRow, cursorColumn, cursorOffset] = placeInCell(position);
         const auto [anchorRow, anchorColumn, anchorOffset] = placeInCell(anchorPosition);
 
