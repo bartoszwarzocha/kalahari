@@ -513,7 +513,7 @@ TEST_CASE("Paste: the mode of the setting", "[editor][paste]") {
     CHECK(ClipboardHandler::pasteModeFromId(QStringLiteral("other")) == PasteMode::Merge);
 }
 
-TEST_CASE("Paste: Settings > Editor > General gives the editors the mode",
+TEST_CASE("Paste: Settings > Editor > Writing gives the editors the mode",
           "[gui][settings][paste]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string before = settings.get<std::string>(PASTE_MODE_KEY);
@@ -526,7 +526,7 @@ TEST_CASE("Paste: Settings > Editor > General gives the editors the mode",
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     for (QTreeWidgetItemIterator it(tree); *it; ++it) {
-        if ((*it)->text(0) == QStringLiteral("General") && (*it)->parent() &&
+        if ((*it)->text(0) == QStringLiteral("Writing") && (*it)->parent() &&
             (*it)->parent()->text(0) == QStringLiteral("Editor")) {
             tree->setCurrentItem(*it);
         }

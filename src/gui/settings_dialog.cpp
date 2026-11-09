@@ -111,13 +111,22 @@ void SettingsDialog::createNavigationTree() {
     addPage(appearance, tr("Dashboard"), []() { return new DashboardPage(); });
 
     QTreeWidgetItem* editor = category(tr("Editor"));
-    addPage(editor, tr("General"), []() { return new EditorGeneralPage(); });
+    addPage(editor, tr("General"),
+            []() { return new EditorGeneralPage(EditorGeneralPage::Part::Text); });
+    //: Settings > Editor > Writing: the behavior of the editor while writing. In Polish: Pisanie
+    addPage(editor, tr("Writing"),
+            []() { return new EditorGeneralPage(EditorGeneralPage::Part::Writing); });
     m_pageItems[EDITOR_COLORS_PAGE] =
         addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
-    m_pageItems[PAGES_PAGE] =
-        addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
-    m_pageItems[MARGIN_NUMBERING_PAGE] = m_pageItems[PAGES_PAGE];
+    m_pageItems[PAGES_PAGE] = addPage(editor, tr("Pages and Margins"), []() {
+        return new EditorPagesPage(EditorPagesPage::Part::Pages);
+    });
+    //: Settings > Editor > Margin Numbering: the numbers of the lines or paragraphs in the
+    //: margin. In Polish: Numeracja na marginesie
+    m_pageItems[MARGIN_NUMBERING_PAGE] = addPage(editor, tr("Margin Numbering"), []() {
+        return new EditorPagesPage(EditorPagesPage::Part::MarginNumbers);
+    });
     m_pageItems[SPELLING_PAGE] =
         addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
     addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_grammar); });
@@ -131,10 +140,32 @@ void SettingsDialog::createNavigationTree() {
     m_pageItems[VERSIONS_PAGE] =
         addPage(editor, tr("Versions"), []() { return new EditorVersionsPage(); });
 
-    m_pageItems[ANNOTATIONS_PAGE] =
-        addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
-    m_pageItems[NAVIGATOR_PAGE] =
-        addPage(nullptr, tr("Navigator"), []() { return new NavigatorPage(); });
+    QTreeWidgetItem* annotations = category(tr("Annotations"));
+    m_pageItems[ANNOTATIONS_PAGE] = addPage(annotations, tr("General"), []() {
+        return new AnnotationsPage(AnnotationsPage::Part::General);
+    });
+    //: Settings > Annotations > Cards Under Paragraphs: the annotations shown as cards in the
+    //: continuous view. In Polish: Karty pod akapitem
+    addPage(annotations, tr("Cards Under Paragraphs"),
+            []() { return new AnnotationsPage(AnnotationsPage::Part::Cards); });
+
+    QTreeWidgetItem* navigator = category(tr("Navigator"));
+    //: Settings > Navigator > Adding: the menus of the nodes, the Add Element window and the
+    //: dropped files. In Polish: Dodawanie
+    m_pageItems[NAVIGATOR_ADDING_PAGE] = addPage(navigator, tr("Adding"), []() {
+        return new NavigatorPage(NavigatorPage::Part::Adding);
+    });
+    //: Settings > Navigator > Materials: the lists and the opening of the materials. In
+    //: Polish: Materiały
+    addPage(navigator, tr("Materials"),
+            []() { return new NavigatorPage(NavigatorPage::Part::Materials); });
+    //: Settings > Navigator > Material Kinds: the kinds of materials shown in the Navigator. In
+    //: Polish: Typy materiałów
+    m_pageItems[NAVIGATOR_PAGE] = addPage(navigator, tr("Material Kinds"), []() {
+        return new NavigatorPage(NavigatorPage::Part::Kinds);
+    });
+    //: Settings > Navigator > Cover: the cover of the book in the Navigator. In Polish: Okładka
+    addPage(navigator, tr("Cover"), []() { return new NavigatorPage(NavigatorPage::Part::Cover); });
     m_pageItems[SHORTCUTS_PAGE] =
         addPage(nullptr, tr("Keyboard Shortcuts"), []() { return new ShortcutsPage(); });
 
@@ -297,7 +328,7 @@ bool SettingsDialog::openPage(const QString& page) {
             shortcuts->setFocus(Qt::OtherFocusReason);
         }
     } else if (page == QLatin1String(MARGIN_NUMBERING_PAGE)) {
-        // The group far down the page in view, the cursor in its choice of the numbering
+        // The cursor in the choice of the numbering, its group in view
         const auto built = m_builtPages.find(item->second);
         auto* scrollArea =
             built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;

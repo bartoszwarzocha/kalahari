@@ -28,6 +28,7 @@
 #include <QStyle>
 #include <QStyleOption>
 #include <QTimer>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 #include <cmath>
@@ -318,6 +319,59 @@ void SettingsPage::alignWithText(QLabel* note, const QAbstractButton* button) {
         radio ? QStyle::PM_RadioButtonLabelSpacing : QStyle::PM_CheckBoxLabelSpacing, nullptr,
         button);
     note->setContentsMargins(indicator + spacing, 0, 0, 0);
+}
+
+QLabel* SettingsPage::addFieldNote(QFormLayout* form, const QString& text) {
+    auto* note = new QLabel(text);
+    note->setWordWrap(true);
+    note->setStyleSheet(noteStyleSheet());
+    m_notes.push_back(note);
+    // An empty label: the note starts where the fields start
+    form->addRow(QString(), note);
+    return note;
+}
+
+QLabel* SettingsPage::addOptionNote(QLayout* layout, const QAbstractButton* button,
+                                    const QString& text) {
+    QLabel* note = addNote(layout, text);
+    alignWithText(note, button);
+    return note;
+}
+
+QVBoxLayout* SettingsPage::advancedLayout() {
+    if (m_advanced == nullptr) {
+        // The button, and the groups under it hidden until it is pressed
+        m_advancedToggle = new QToolButton();
+        m_advancedToggle->setObjectName(QStringLiteral("advancedSettings"));
+        m_advancedToggle->setText(tr("Ad&vanced Settings"));
+        m_advancedToggle->setCheckable(true);
+        m_advancedToggle->setAutoRaise(true);
+        m_advancedToggle->setFocusPolicy(Qt::StrongFocus);
+        m_advancedToggle->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+        m_advancedToggle->setArrowType(Qt::RightArrow);
+        m_layout->addWidget(m_advancedToggle, 0, Qt::AlignLeft);
+        m_advanced = new QWidget();
+        m_advanced->setObjectName(QStringLiteral("advancedSettingsGroups"));
+        auto* groups = new QVBoxLayout(m_advanced);
+        groups->setContentsMargins(0, 0, 0, 0);
+        m_layout->addWidget(m_advanced);
+        m_advanced->hide();
+        connect(m_advancedToggle, &QToolButton::toggled, this, [this](bool open) {
+            m_advancedToggle->setArrowType(open ? Qt::DownArrow : Qt::RightArrow);
+            m_advanced->setVisible(open);
+        });
+    }
+    return qobject_cast<QVBoxLayout*>(m_advanced->layout());
+}
+
+QFormLayout* SettingsPage::addAdvancedGroup(const QString& title) {
+    QVBoxLayout* groups = advancedLayout();
+    auto* group = new QGroupBox(title);
+    auto* form = new QFormLayout(group);
+    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    form->setRowWrapPolicy(QFormLayout::WrapLongRows);
+    groups->addWidget(group);
+    return form;
 }
 
 QColor SettingsPage::noteColor() {

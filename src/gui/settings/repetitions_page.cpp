@@ -258,18 +258,22 @@ EditorRepetitionsPage::EditorRepetitionsPage(QWidget* parent)
     //: How the repeated words are marked. In Polish: Falista linia
     style->addItem(tr("Wavy line"), QStringLiteral("wave"));
     //: In Polish: Sposób zaznaczenia:
-    QLabel* styleLabel = addField(marks, tr("Marked with:"), style, Coordinator::STYLE_KEY);
     //: In Polish: Słowa są zaznaczone, gdy panel „Powtórzenia” jest widoczny; słowa wybranej
-    //: karty mają obwódkę. Widok > Powtórzenia w tekście też to włącza i wyłącza. Każdy motyw
-    //: ma swój kolor: to kolor bieżącego motywu.
-    addNote(marks, tr("The words are marked while the Repetitions panel is shown; the words of "
-                      "the card chosen are framed. View > Repetitions in Text turns it on and "
-                      "off too. Each theme has its own color: this is the color of the current "
-                      "theme."));
+    //: karty mają obwódkę. Widok > Powtórzenia w tekście też to włącza i wyłącza.
+    addOptionNote(marks, highlight,
+                  tr("The words are marked while the Repetitions panel is shown; the words of "
+                     "the card chosen are framed. View > Repetitions in Text turns it on and "
+                     "off too."));
+    QLabel* styleLabel = addField(marks, tr("Marked with:"), style, Coordinator::STYLE_KEY);
+
+    // The color of the marks, apart from how they are made
+    QFormLayout* colors = addGroup(tr("Colors"));
+    //: In Polish: Każdy motyw ma swój kolor: to kolor bieżącego motywu.
+    addNote(colors, tr("Each theme has its own color: this is the color of the current theme."));
     //: The color of the repeated words in the text. In Polish: Kolor zaznaczenia
-    addThemeColor(marks, tr("Mark"), editor::REPETITION_COLOR_KEY);
-    addOptimizeColorsCheckBox(marks);
-    addRestoreColorsButton(marks);
+    addThemeColor(colors, tr("Mark"), editor::REPETITION_COLOR_KEY);
+    addOptimizeColorsCheckBox(colors);
+    addRestoreColorsButton(colors);
     const auto syncStyle = [highlight, style, styleLabel]() {
         style->setEnabled(highlight->isChecked());
         styleLabel->setEnabled(highlight->isChecked());

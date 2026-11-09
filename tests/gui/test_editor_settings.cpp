@@ -499,7 +499,7 @@ TEST_CASE("Settings dialog: the margin numbering, its fields greyed out without 
     settings.set<std::string>("editor.marginNumbers.mode", "none");
     gui::EditorPanel panel;
     gui::SettingsDialog dialog(nullptr);
-    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::PAGES_PAGE)));
+    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::MARGIN_NUMBERING_PAGE)));
 
     auto* none = dialog.findChild<QRadioButton*>(QStringLiteral("marginNumbers_none"));
     auto* lines = dialog.findChild<QRadioButton*>(QStringLiteral("marginNumbers_lines"));
@@ -558,7 +558,7 @@ TEST_CASE("Settings dialog: the margin numbering, its fields greyed out without 
     // Set elsewhere (View > Margin Numbering), it shows in a dialog opened after that
     settings.set<std::string>("editor.marginNumbers.mode", "lines");
     gui::SettingsDialog next(nullptr);
-    REQUIRE(next.openPage(QString::fromLatin1(gui::SettingsDialog::PAGES_PAGE)));
+    REQUIRE(next.openPage(QString::fromLatin1(gui::SettingsDialog::MARGIN_NUMBERING_PAGE)));
     auto* nextLines = next.findChild<QRadioButton*>(QStringLiteral("marginNumbers_lines"));
     REQUIRE(nextLines != nullptr);
     CHECK(nextLines->isChecked());
@@ -578,7 +578,7 @@ TEST_CASE("Settings dialog: the preview of the margin numbers shows the theme's 
     QCoreApplication::processEvents();  // the theme follows the settings
 
     gui::SettingsDialog dialog(nullptr);
-    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::PAGES_PAGE)));
+    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::MARGIN_NUMBERING_PAGE)));
     auto* preview = dialog.findChild<QWidget*>(QStringLiteral("marginNumbersPreview"));
     REQUIRE(preview != nullptr);
     REQUIRE(preview->isEnabled());
@@ -611,7 +611,7 @@ TEST_CASE("Settings dialog: View > Margin Numbering > Numbering Settings... puts
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     REQUIRE(tree->currentItem() != nullptr);
-    CHECK(tree->currentItem()->text(0) == QStringLiteral("Pages and Margins"));
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Margin Numbering"));
     QScrollArea* area = nullptr;
     for (QWidget* parent = paragraphs->parentWidget(); parent != nullptr && area == nullptr;
          parent = parent->parentWidget()) {
@@ -639,7 +639,7 @@ TEST_CASE("Settings dialog: the dialogue dashes counted as words, in the open ed
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     for (QTreeWidgetItemIterator it(tree); *it; ++it) {
-        if ((*it)->text(0) == QStringLiteral("General") && (*it)->parent() &&
+        if ((*it)->text(0) == QStringLiteral("Writing") && (*it)->parent() &&
             (*it)->parent()->text(0) == QStringLiteral("Editor")) {
             tree->setCurrentItem(*it);
         }
@@ -768,7 +768,7 @@ TEST_CASE("Settings dialog: the look of the scene breaks, with its preview, and 
     gui::SettingsDialog dialog(nullptr);
     openEveryPage(dialog);
 
-    // Editor > General > Typography: the five looks, three asterisks chosen
+    // Editor > General > Scene Breaks: the five looks, three asterisks chosen
     QComboBox* looks = nullptr;
     for (const QLabel* label : dialog.findChildren<QLabel*>()) {
         if (label->text() == QStringLiteral("Scene Break Look:")) {

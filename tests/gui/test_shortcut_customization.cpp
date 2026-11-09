@@ -245,7 +245,7 @@ TEST_CASE("Custom shortcuts: the texts that name the keys follow them",
     };
 
     DashboardPanel dashboard;
-    EditorGeneralPage editorPage;
+    EditorGeneralPage editorPage(EditorGeneralPage::Part::Writing);
     const KeyboardShortcut newBook = keysOf("file.new.project");
     const KeyboardShortcut typewriter = keysOf("view.typewriter");
     REQUIRE_FALSE(newBook.isEmpty());

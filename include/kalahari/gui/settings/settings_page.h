@@ -25,6 +25,7 @@ class QFormLayout;
 class QLabel;
 class QLayout;
 class QPushButton;
+class QToolButton;
 class QVBoxLayout;
 
 namespace kalahari {
@@ -69,6 +70,10 @@ public:
     [[nodiscard]] virtual Problem problem() const;
     /// @brief The muted explanatory texts of the page (addNote())
     [[nodiscard]] const std::vector<QLabel*>& notes() const { return m_notes; }
+
+    /// @brief The button that shows the advanced settings of addAdvancedGroup() (none: the page
+    ///        has none)
+    [[nodiscard]] QToolButton* advancedSettingsButton() const { return m_advancedToggle; }
 
     /// @brief The color of the notes: the theme's muted one, darker or lighter as far as
     ///        the window needs to read it (WCAG AA, as normal text)
@@ -139,6 +144,27 @@ protected:
     /// @brief Put @p note under check box or radio button @p button in line with its text
     static void alignWithText(QLabel* note, const QAbstractButton* button);
 
+    /// @brief Add a short muted explanation under the field of the row added last to @p form,
+    ///        in line with the field (the label column stays empty)
+    QLabel* addFieldNote(QFormLayout* form, const QString& text);
+
+    /// @brief Add a short muted explanation under check box or radio button @p button of
+    ///        @p layout, in line with its text
+    QLabel* addOptionNote(QLayout* layout, const QAbstractButton* button, const QString& text);
+
+    /// @brief Add a titled group under the button "Advanced Settings" at the end of the page:
+    ///        the settings changed seldom, hidden until the button is pressed (as on the page
+    ///        Editor > Grammar)
+    ///
+    /// The first call adds the button where the page ends then; the groups of the page that
+    /// are always shown come before it.
+    QFormLayout* addAdvancedGroup(const QString& title);
+
+    /// @brief The layout of the advanced settings, hidden until the button above it is
+    ///        pressed, for groups of a layout of their own (as addAdvancedGroup(), which adds
+    ///        to it)
+    QVBoxLayout* advancedLayout();
+
     /// @brief Grey out an option the program does not use yet
     void markNotUsedYet(QWidget* field, QLabel* label = nullptr);
 
@@ -185,6 +211,8 @@ private:
     std::vector<QLabel*> m_notes;    ///< The notes, widgets of the page as long as it lives
     std::vector<std::function<void()>> m_restoreColors;  ///< Show the default of each color
     std::size_t m_restoreButtonColors = 0;  ///< Colors a restore button was added for already
+    QToolButton* m_advancedToggle = nullptr;  ///< Shows the advanced settings (addAdvancedGroup())
+    QWidget* m_advanced = nullptr;            ///< The groups of the advanced settings
 };
 
 } // namespace gui

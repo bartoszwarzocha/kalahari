@@ -139,11 +139,22 @@ public:
     explicit DashboardPage(QWidget* parent = nullptr);
 };
 
-/// @brief Editor > General: font, typography, typewriter scrolling
+/// @brief Editor > General: the font and the typography; Editor > Writing: pasting, opening a
+/// chapter, typewriter scrolling and the word count
 class EditorGeneralPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorGeneralPage(QWidget* parent = nullptr);
+    /// @brief The pages of the general settings of the editor
+    enum class Part {
+        Text,    ///< The font, the spacing, the tabs and the scene breaks
+        Writing  ///< Pasting, opening a chapter, typewriter scrolling, the word count
+    };
+
+    explicit EditorGeneralPage(Part part = Part::Text, QWidget* parent = nullptr);
+
+private:
+    void createText();
+    void createWriting();
 };
 
 /// @brief Editor > Colors: the light and the dark paper, kept for each theme
@@ -174,6 +185,9 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    /// @brief The group of the writer's own words, which the page changes in @p spelling
+    void addOwnWords(editor::SpellCheckService* spelling);
+
     /// @brief Add the word of the field to the list
     void addWord();
 
@@ -189,14 +203,20 @@ private:
     QPushButton* m_remove = nullptr;
 };
 
-/// @brief Editor > Pages and Margins
+/// @brief Editor > Pages and Margins, and Editor > Margin Numbering
 class EditorPagesPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorPagesPage(QWidget* parent = nullptr);
+    /// @brief The pages of the pages of the editor
+    enum class Part {
+        Pages,         ///< The page format, the margins, the text frame border
+        MarginNumbers  ///< The working numbers on the left margin
+    };
+
+    explicit EditorPagesPage(Part part = Part::Pages, QWidget* parent = nullptr);
 
 private:
-    /// @brief The group Margin Numbering: the working numbers on the left margin
+    /// @brief The groups of the margin numbering: the working numbers on the left margin
     void addMarginNumbersGroup();
 };
 
@@ -343,10 +363,16 @@ public:
 class AnnotationsPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit AnnotationsPage(QWidget* parent = nullptr);
+    /// @brief The pages of Settings > Annotations
+    enum class Part {
+        General,  ///< The author of new ones, their marks in the text and their colors
+        Cards     ///< Their cards under the paragraphs
+    };
+
+    explicit AnnotationsPage(Part part = Part::General, QWidget* parent = nullptr);
 
 private:
-    /// @brief The group of the cards under the paragraphs
+    /// @brief The groups of the cards under the paragraphs
     void addCardSettings();
 };
 
@@ -358,9 +384,22 @@ private:
 class NavigatorPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit NavigatorPage(QWidget* parent = nullptr);
+    /// @brief The pages of Settings > Navigator, each with its own groups
+    enum class Part {
+        Adding,     ///< The menus of the nodes, the Add Element window, dropped and pasted
+        Materials,  ///< The lists of the materials, how they open, their links
+        Kinds,      ///< The kinds of materials the Navigator shows
+        Cover       ///< The lengths of the texts of the cover
+    };
+
+    explicit NavigatorPage(Part part, QWidget* parent = nullptr);
 
 private:
+    void createAdding();
+    void createMaterials();
+    void createKinds();
+    void createCover();
+
     QRadioButton* m_named = nullptr;   ///< "Add..." and the commands named after kinds
     QRadioButton* m_single = nullptr;  ///< "Add..." only
     QRadioButton* m_sections = nullptr;  ///< A section of the book or the Workshop at a time

@@ -562,7 +562,7 @@ private:
     QLocale m_saved;
 };
 
-/// The dialogue dashes count as words or not (Settings > Editor > General > Word Count) until
+/// The dialogue dashes count as words or not (Settings > Editor > Writing > Word Count) until
 /// the test ends; then the choice is as it was
 class DashRule {
 public:

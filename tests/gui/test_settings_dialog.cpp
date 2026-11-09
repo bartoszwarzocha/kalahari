@@ -32,11 +32,13 @@
 #include <QScrollBar>
 #include <QSpinBox>
 #include <QStackedWidget>
+#include <QToolButton>
 #include <QTranslator>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
 #include <optional>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -197,11 +199,25 @@ TEST_CASE("Settings dialog: the gears of the panels open it at their pages", "[g
     REQUIRE(tree->currentItem()->parent() != nullptr);
     CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
 
-    // The gear of the Annotations panel: Annotations
+    // The gear of the Annotations panel: Annotations > General
     CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE)));
     REQUIRE(tree->currentItem() != nullptr);
-    CHECK(tree->currentItem()->text(0) == QStringLiteral("Annotations"));
-    CHECK(tree->currentItem()->parent() == nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("General"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Annotations"));
+
+    // The gear of a list of materials and Kind Settings... of the Navigator: Navigator >
+    // Material Kinds; the Add Element window: Navigator > Adding
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::NAVIGATOR_PAGE)));
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Material Kinds"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Navigator"));
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::NAVIGATOR_ADDING_PAGE)));
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Adding"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Navigator"));
 
     // The gears of the Link dialog and of the find bar: Editor > Colors, with the colors of
     // links and of the hits
@@ -305,6 +321,12 @@ TEST_CASE("Settings dialog: every page fits the narrowest window, in English and
             const auto* scrollArea = qobject_cast<QScrollArea*>(stack->currentWidget());
             REQUIRE(scrollArea != nullptr);
             REQUIRE(scrollArea->widget() != nullptr);
+            // The advanced settings shown too
+            for (auto* advanced : scrollArea->widget()->findChildren<QToolButton*>(
+                     QStringLiteral("advancedSettings"))) {
+                advanced->setChecked(true);
+            }
+            settle();
             CHECK(scrollArea->widget()->minimumSizeHint().width() <=
                   scrollArea->viewport()->width());
             CHECK_FALSE(scrollArea->horizontalScrollBar()->isVisible());
@@ -313,6 +335,53 @@ TEST_CASE("Settings dialog: every page fits the narrowest window, in English and
         CHECK(pages > 20);
     }
     settings.set<bool>("editor.margins.mirrorEnabled", mirrored);
+}
+
+TEST_CASE("Settings dialog: the settings changed seldom wait under Advanced Settings",
+          "[gui][settings]") {
+    SettingsDialog dialog(nullptr);
+    dialog.show();
+    const auto advancedOf = [&dialog]() {
+        auto* stack = dialog.findChild<QStackedWidget*>();
+        REQUIRE(stack != nullptr);
+        auto* button = stack->currentWidget()->findChild<QToolButton*>(
+            QStringLiteral("advancedSettings"));
+        REQUIRE(button != nullptr);
+        return button;
+    };
+
+    // Appearance > Theme: the colors of the parts of the program; the icon colors in view
+    openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
+    settle();
+    ColorConfigWidget* window =
+        colorWidget(dialog, QStringLiteral("General background color for windows and panels"));
+    ColorConfigWidget* primary =
+        colorWidget(dialog, QStringLiteral("Primary icon color used for main icon elements"));
+    REQUIRE(window != nullptr);
+    REQUIRE(primary != nullptr);
+    QToolButton* advanced = advancedOf();
+    CHECK(advanced->isVisible());
+    CHECK(advanced->focusPolicy() == Qt::StrongFocus);
+    CHECK(primary->isVisible());
+    CHECK_FALSE(window->isVisible());
+    advanced->click();
+    CHECK(window->isVisible());
+    advanced->click();
+    CHECK_FALSE(window->isVisible());
+
+    // Editor > Pages and Margins: the border of the text frame
+    openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Pages and Margins"));
+    settle();
+    QCheckBox* frame = nullptr;
+    for (QCheckBox* box : dialog.findChildren<QCheckBox*>()) {
+        if (box->text() == QStringLiteral("Show text frame border")) {
+            frame = box;
+        }
+    }
+    REQUIRE(frame != nullptr);
+    CHECK_FALSE(frame->isVisible());
+    advancedOf()->click();
+    CHECK(frame->isVisible());
 }
 
 TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][settings]") {
@@ -403,7 +472,7 @@ TEST_CASE("Settings dialog: the Annotations page has the author and the size of 
     settings.set<int>("editor.annotationMarkSize", 100);
 
     SettingsDialog dialog(nullptr);
-    openPage(dialog, QString(), QStringLiteral("Annotations"));
+    openPage(dialog, QStringLiteral("Annotations"), QStringLiteral("General"));
     auto* author = dialog.findChild<QLineEdit*>(QStringLiteral("annotationsAuthor"));
     auto* markSize = dialog.findChild<QSpinBox*>(QStringLiteral("annotationsMarkSize"));
     REQUIRE(author != nullptr);
@@ -444,7 +513,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in 
     settings.set<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, "named");
 
     SettingsDialog dialog(nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
     auto* named = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddNamed"));
     auto* single = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddSingle"));
     REQUIRE(named != nullptr);
@@ -461,7 +530,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in 
 
     // Opened again, the page shows the stored choice
     SettingsDialog again(nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Adding"));
     auto* singleAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorAddSingle"));
     REQUIRE(singleAgain != nullptr);
     CHECK(singleAgain->isChecked());
@@ -477,7 +546,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses the top of the Add Elemen
     settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, "sections");
 
     SettingsDialog dialog(nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
     auto* sections = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowSections"));
     auto* book = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
     auto* place = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowPlace"));
@@ -506,7 +575,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses the top of the Add Elemen
 
     // Opened again, the page shows the stored choice
     SettingsDialog again(nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Adding"));
     auto* bookAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
     REQUIRE(bookAgain != nullptr);
     CHECK(bookAgain->isChecked());
@@ -522,7 +591,8 @@ TEST_CASE("Settings dialog: the Navigator page chooses how a material opens",
     settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
 
     SettingsDialog dialog(nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Materials"));
     auto* card = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
     auto* system = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsSystem"));
     REQUIRE(card != nullptr);
@@ -542,7 +612,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses how a material opens",
 
     // Opened again, the page shows the stored choice
     SettingsDialog again(nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Materials"));
     auto* systemAgain =
         again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsSystem"));
     REQUIRE(systemAgain != nullptr);
@@ -559,7 +629,7 @@ TEST_CASE("Settings dialog: the Navigator page says whether links name paragraph
 
     // They do, as usual
     SettingsDialog dialog(nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Materials"));
     auto* paragraphs = dialog.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
     REQUIRE(paragraphs != nullptr);
     CHECK(paragraphs->isChecked());
@@ -572,7 +642,7 @@ TEST_CASE("Settings dialog: the Navigator page says whether links name paragraph
 
     // Opened again, the page shows it
     SettingsDialog again(nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Materials"));
     auto* paragraphsAgain =
         again.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
     REQUIRE(paragraphsAgain != nullptr);
@@ -588,7 +658,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses what the Materials show a
 
     // The usual ones: the kinds with their numbers, each on a tab of its own
     SettingsDialog dialog(nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Materials"));
     auto* types = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsTypes"));
     auto* expand = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
     auto* own = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOwnTabs"));
@@ -619,7 +689,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses what the Materials show a
 
     // Opened again, the page shows the stored choices
     SettingsDialog again(nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Materials"));
     auto* expandAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
     auto* oneAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOneTab"));
     REQUIRE(expandAgain != nullptr);
@@ -628,7 +698,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses what the Materials show a
     CHECK(oneAgain->isChecked());
 }
 
-TEST_CASE("Settings dialog: the settings of the Materials on the Navigator page keep apart",
+TEST_CASE("Settings dialog: the settings of the Materials on the Navigator pages keep apart",
           "[gui][settings][materials]") {
     // Regression: the notes of a setting ran into the next setting, with no more room between
     // two settings than between the choices of one
@@ -636,7 +706,7 @@ TEST_CASE("Settings dialog: the settings of the Materials on the Navigator page 
     SettingsDialog dialog(nullptr);
     dialog.resize(900, 700);
     dialog.show();
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Materials"));
     settle();
 
     auto* types = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsTypes"));
@@ -644,50 +714,63 @@ TEST_CASE("Settings dialog: the settings of the Materials on the Navigator page 
     auto* own = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOwnTabs"));
     auto* card = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
     auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesBrowser"));
-    auto* link = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsLink"));
     auto* paragraphs = dialog.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
     REQUIRE(types != nullptr);
     REQUIRE(expand != nullptr);
     REQUIRE(own != nullptr);
     REQUIRE(card != nullptr);
     REQUIRE(browser != nullptr);
-    REQUIRE(link != nullptr);
     REQUIRE(paragraphs != nullptr);
 
-    // The choices of a setting with their notes, in the group of the Materials
+    // The lists, the opening and the links: a group each
     QWidget* const tree = types->parentWidget();
-    QWidget* const group = tree->parentWidget();
-    REQUIRE(qobject_cast<QGroupBox*>(group) != nullptr);
+    QWidget* const lists = tree->parentWidget();
+    QWidget* const opening = card->parentWidget()->parentWidget();
+    QWidget* const links = paragraphs->parentWidget();
+    REQUIRE(qobject_cast<QGroupBox*>(lists) != nullptr);
+    REQUIRE(qobject_cast<QGroupBox*>(opening) != nullptr);
+    REQUIRE(qobject_cast<QGroupBox*>(links) != nullptr);
+    CHECK(own->parentWidget()->parentWidget() == lists);
+    CHECK(browser->parentWidget()->parentWidget() == opening);
+    CHECK(opening != lists);
+    CHECK(links != lists);
+    CHECK(links != opening);
+
+    // The choices of a setting with their notes, apart from the next setting of the group
+    auto* typesNote = qobject_cast<QLabel*>(tree->layout()->itemAt(1)->widget());
+    REQUIRE(typesNote != nullptr);
+    const auto gap = [](const QWidget* group, const QWidget* above, const QWidget* below) {
+        return below->mapTo(group, QPoint()).y() -
+               above->mapTo(group, QPoint(0, above->height())).y();
+    };
+    const int line = lists->fontMetrics().height();
+    const int within = gap(lists, typesNote, expand);
+    INFO("a line is " << line << " px; the choices of one setting are " << within
+                      << " px apart");
+    const std::vector<std::tuple<const QWidget*, const QWidget*, const QWidget*>> settings{
+        {lists, tree, own->parentWidget()},
+        {opening, card->parentWidget(), browser->parentWidget()}};
+    for (const auto& [group, above, below] : settings) {
+        INFO("two settings " << gap(group, above, below) << " px apart");
+        CHECK(gap(group, above, below) >= line);
+        CHECK(gap(group, above, below) > within);
+    }
+
+    // Navigator > Adding: what a drop gives, its note under its choices
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
+    settle();
+    auto* link = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsLink"));
+    REQUIRE(link != nullptr);
+    QWidget* const dropped = link->parentWidget()->parentWidget();
+    REQUIRE(qobject_cast<QGroupBox*>(dropped) != nullptr);
     QLabel* dropNote = nullptr;
-    for (QLabel* label : group->findChildren<QLabel*>()) {
+    for (QLabel* label : dropped->findChildren<QLabel*>()) {
         if (label->text().startsWith(QStringLiteral("Applies to a file dragged"))) {
             dropNote = label;
         }
     }
     REQUIRE(dropNote != nullptr);
-    auto* typesNote = qobject_cast<QLabel*>(tree->layout()->itemAt(1)->widget());
-    REQUIRE(typesNote != nullptr);
-
-    const auto top = [group](const QWidget* widget) { return widget->mapTo(group, QPoint()).y(); };
-    const auto gap = [group, &top](const QWidget* above, const QWidget* below) {
-        return top(below) - above->mapTo(group, QPoint(0, above->height())).y();
-    };
-    const int line = group->fontMetrics().height();
-    const int within = gap(typesNote, expand);
-    INFO("a line is " << line << " px; the choices of one setting are " << within
-                      << " px apart");
-
-    const std::vector<std::pair<const QWidget*, const QWidget*>> settings{
-        {tree, own->parentWidget()},
-        {own->parentWidget(), card->parentWidget()},
-        {card->parentWidget(), browser->parentWidget()},
-        {browser->parentWidget(), link->parentWidget()},
-        {dropNote, paragraphs}};
-    for (const auto& [above, below] : settings) {
-        INFO("two settings " << gap(above, below) << " px apart");
-        CHECK(gap(above, below) >= line);
-        CHECK(gap(above, below) > within);
-    }
+    CHECK(gap(dropped, link->parentWidget(), dropNote) >= 0);
 }
 
 TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a drop gives",
@@ -704,7 +787,8 @@ TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a
     settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
 
     SettingsDialog dialog(nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Materials"));
     auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesBrowser"));
     auto* onCard = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesCard"));
     auto* link = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsLink"));
@@ -747,7 +831,8 @@ TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a
 
     // Opened again, the page shows the stored choices
     SettingsDialog again(nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Adding"));
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Materials"));
     auto* onCardAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesCard"));
     auto* addAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsAdd"));
     REQUIRE(onCardAgain != nullptr);

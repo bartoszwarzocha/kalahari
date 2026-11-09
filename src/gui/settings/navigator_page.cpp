@@ -107,8 +107,27 @@ void addGap(QFormLayout* form) {
 
 } // namespace
 
-NavigatorPage::NavigatorPage(QWidget* parent)
+NavigatorPage::NavigatorPage(Part part, QWidget* parent)
     : SettingsPage(parent)
+{
+    switch (part) {
+    case Part::Adding:
+        createAdding();
+        break;
+    case Part::Materials:
+        createMaterials();
+        break;
+    case Part::Kinds:
+        createKinds();
+        break;
+    case Part::Cover:
+        createCover();
+        break;
+    }
+    pageLayout()->addStretch();
+}
+
+void NavigatorPage::createAdding()
 {
     QFormLayout* menus = addGroup(tr("Node Menus"));
     m_named = new QRadioButton(tr("\"Add...\" and a command for each kind"));
@@ -189,9 +208,76 @@ NavigatorPage::NavigatorPage(QWidget* parent)
     };
     bindCustom(std::move(addWindow));
 
-    // How a material opens
-    //: The group of the materials of the Workshop. In Polish: Materiały
-    QFormLayout* materials = addGroup(tr("Materials"));
+    // Files, web addresses and pictures dropped on the Navigator or pasted in it
+    //: The group of Settings > Navigator > Adding. In Polish: Upuszczone i wklejone
+    QFormLayout* materials = addGroup(tr("Dropped and Pasted"));
+    //: In Polish: Od razu, z powiązaniem
+    m_quickLink = new QRadioButton(tr("At once, linked"));
+    m_quickLink->setObjectName(QStringLiteral("navigatorQuickMaterialsLink"));
+    //: In Polish: Od razu
+    m_quickAdd = new QRadioButton(tr("At once"));
+    m_quickAdd->setObjectName(QStringLiteral("navigatorQuickMaterialsAdd"));
+    //: In Polish: W oknie „Dodaj element”
+    m_quickWindow = new QRadioButton(tr("In the Add Element window"));
+    m_quickWindow->setObjectName(QStringLiteral("navigatorQuickMaterialsWindow"));
+    auto* quickChoices = new QWidget();
+    auto* quickLayout = new QVBoxLayout(quickChoices);
+    quickLayout->setContentsMargins(0, 0, 0, 0);
+    quickLayout->addWidget(m_quickLink);
+    //: In Polish: Materiał dochodzi bez okna. Upuszczony albo wklejony na rozdział, część albo
+    //: sekcję od razu się z nimi wiąże.
+    alignWithText(addNote(quickLayout, tr("The material is added without a window. Dropped or "
+                                          "pasted on a chapter, a part or a section, it is "
+                                          "linked with it at once.")),
+                  m_quickLink);
+    quickLayout->addWidget(m_quickAdd);
+    //: In Polish: Materiał dochodzi bez okna, zawsze bez powiązań.
+    alignWithText(addNote(quickLayout, tr("The material is added without a window, always "
+                                          "without links.")),
+                  m_quickAdd);
+    quickLayout->addWidget(m_quickWindow);
+    //: In Polish: Okno otwiera się wypełnione plikiem, adresem albo obrazem; materiał dodaje
+    //: dopiero „Dodaj”.
+    alignWithText(addNote(quickLayout, tr("The window opens filled with the file, the address "
+                                          "or the picture; Add adds the material.")),
+                  m_quickWindow);
+    //: The choice of the group Dropped and Pasted. In Polish: Dodawane:
+    auto* quickLabel = new QLabel(tr("Added:"));
+    quickLabel->setBuddy(m_quickLink);
+    materials->addRow(quickLabel, quickChoices);
+    //: In Polish: Dotyczy pliku przeciągniętego z Eksploratora, adresu przeciągniętego z
+    //: przeglądarki oraz adresu, pliku albo obrazu wklejonego w Nawigatorze (Ctrl+V).
+    addNote(materials, tr("Applies to a file dragged from the file manager, an address dragged "
+                          "from the browser, and an address, a file or a picture pasted in the "
+                          "Navigator (Ctrl+V)."));
+
+    Binding quick;
+    quick.key = []() { return std::string(NavigatorPanel::QUICK_MATERIALS_SETTING); };
+    quick.stored = [&settings]() {
+        return json(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, LINK));
+    };
+    quick.shown = [this]() {
+        return json(m_quickAdd->isChecked() ? ADD : m_quickWindow->isChecked() ? WINDOW : LINK);
+    };
+    quick.show = [this](const json& value) {
+        const std::string chosen = value.is_string() ? value.get<std::string>() : LINK;
+        (chosen == ADD ? m_quickAdd : chosen == WINDOW ? m_quickWindow : m_quickLink)
+            ->setChecked(true);
+    };
+    quick.store = [&settings](const json& value) {
+        settings.set<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING,
+                                  value.get<std::string>());
+    };
+    bindCustom(std::move(quick));
+}
+
+void NavigatorPage::createMaterials()
+{
+    auto& settings = core::SettingsManager::getInstance();
+
+    // What the Materials show, and where the list of a kind clicked opens
+    //: The group of Settings > Navigator > Materials. In Polish: Listy materiałów
+    QFormLayout* materials = addGroup(tr("Lists of Materials"));
 
     // What the Materials show: their kinds, whose lists open on tabs, or their materials too
     //: In Polish: Typy z liczbą materiałów
@@ -280,7 +366,10 @@ NavigatorPage::NavigatorPage(QWidget* parent)
         settings.set<std::string>(MaterialList::TABS_SETTING, value.get<std::string>());
     };
     bindCustom(std::move(tabs));
-    addGap(materials);
+
+    // How a material opens
+    //: The group of Settings > Navigator > Materials. In Polish: Otwieranie materiałów
+    materials = addGroup(tr("Opening Materials"));
     //: In Polish: Na karcie w programie
     m_openCard = new QRadioButton(tr("On a tab of the program"));
     m_openCard->setObjectName(QStringLiteral("navigatorOpenMaterialsCard"));
@@ -308,8 +397,8 @@ NavigatorPage::NavigatorPage(QWidget* parent)
     alignWithText(addNote(openLayout, tr("Pictures too. The Preview button in the Properties "
                                          "panel then opens the preview tab.")),
                   m_openSystem);
-    //: In Polish: Otwieranie materiałów:
-    auto* openLabel = new QLabel(tr("Opening materials:"));
+    //: The choice of the group Opening Materials. In Polish: Pliki i obrazy:
+    auto* openLabel = new QLabel(tr("Files and pictures:"));
     openLabel->setBuddy(m_openCard);
     materials->addRow(openLabel, openChoices);
 
@@ -374,68 +463,9 @@ NavigatorPage::NavigatorPage(QWidget* parent)
         settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, value.get<std::string>());
     };
     bindCustom(std::move(openPages));
-    addGap(materials);
 
-    // Files, web addresses and pictures dropped on the Navigator or pasted in it
-    //: In Polish: Od razu, z powiązaniem
-    m_quickLink = new QRadioButton(tr("At once, linked"));
-    m_quickLink->setObjectName(QStringLiteral("navigatorQuickMaterialsLink"));
-    //: In Polish: Od razu
-    m_quickAdd = new QRadioButton(tr("At once"));
-    m_quickAdd->setObjectName(QStringLiteral("navigatorQuickMaterialsAdd"));
-    //: In Polish: W oknie „Dodaj element”
-    m_quickWindow = new QRadioButton(tr("In the Add Element window"));
-    m_quickWindow->setObjectName(QStringLiteral("navigatorQuickMaterialsWindow"));
-    auto* quickChoices = new QWidget();
-    auto* quickLayout = new QVBoxLayout(quickChoices);
-    quickLayout->setContentsMargins(0, 0, 0, 0);
-    quickLayout->addWidget(m_quickLink);
-    //: In Polish: Materiał dochodzi bez okna. Upuszczony albo wklejony na rozdział, część albo
-    //: sekcję od razu się z nimi wiąże.
-    alignWithText(addNote(quickLayout, tr("The material is added without a window. Dropped or "
-                                          "pasted on a chapter, a part or a section, it is "
-                                          "linked with it at once.")),
-                  m_quickLink);
-    quickLayout->addWidget(m_quickAdd);
-    //: In Polish: Materiał dochodzi bez okna, zawsze bez powiązań.
-    alignWithText(addNote(quickLayout, tr("The material is added without a window, always "
-                                          "without links.")),
-                  m_quickAdd);
-    quickLayout->addWidget(m_quickWindow);
-    //: In Polish: Okno otwiera się wypełnione plikiem, adresem albo obrazem; materiał dodaje
-    //: dopiero „Dodaj”.
-    alignWithText(addNote(quickLayout, tr("The window opens filled with the file, the address "
-                                          "or the picture; Add adds the material.")),
-                  m_quickWindow);
-    //: In Polish: Upuszczone albo wklejone:
-    auto* quickLabel = new QLabel(tr("Dropped or pasted:"));
-    quickLabel->setBuddy(m_quickLink);
-    materials->addRow(quickLabel, quickChoices);
-    //: In Polish: Dotyczy pliku przeciągniętego z Eksploratora, adresu przeciągniętego z
-    //: przeglądarki oraz adresu, pliku albo obrazu wklejonego w Nawigatorze (Ctrl+V).
-    addNote(materials, tr("Applies to a file dragged from the file manager, an address dragged "
-                          "from the browser, and an address, a file or a picture pasted in the "
-                          "Navigator (Ctrl+V)."));
-
-    Binding quick;
-    quick.key = []() { return std::string(NavigatorPanel::QUICK_MATERIALS_SETTING); };
-    quick.stored = [&settings]() {
-        return json(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, LINK));
-    };
-    quick.shown = [this]() {
-        return json(m_quickAdd->isChecked() ? ADD : m_quickWindow->isChecked() ? WINDOW : LINK);
-    };
-    quick.show = [this](const json& value) {
-        const std::string chosen = value.is_string() ? value.get<std::string>() : LINK;
-        (chosen == ADD ? m_quickAdd : chosen == WINDOW ? m_quickWindow : m_quickLink)
-            ->setChecked(true);
-    };
-    quick.store = [&settings](const json& value) {
-        settings.set<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING,
-                                  value.get<std::string>());
-    };
-    bindCustom(std::move(quick));
-    addGap(materials);
+    //: The group of Settings > Navigator > Materials. In Polish: Powiązania
+    materials = addGroup(tr("Links"));
 
     // Paragraphs of the links, with the paperclips beside them in the editor
     //: In Polish: Powiązania wskazują akapity tekstu
@@ -449,7 +479,11 @@ NavigatorPage::NavigatorPage(QWidget* parent)
                           "is about, and the editor marks that paragraph with a paperclip in "
                           "the margin. Turned off, the paragraphs and the paperclips are hidden; "
                           "the paragraphs named are kept."));
+}
 
+void NavigatorPage::createKinds()
+{
+    auto& settings = core::SettingsManager::getInstance();
     // The kinds of materials the Navigator shows, in every book
     //: The group of Settings > Navigator that hides kinds of materials. In Polish: Typy
     //: materiałów w Nawigatorze
@@ -519,6 +553,11 @@ NavigatorPage::NavigatorPage(QWidget* parent)
         settings.set<json>(MaterialList::HIDDEN_SETTING, value);
     };
     bindCustom(std::move(hidden));
+}
+
+void NavigatorPage::createCover()
+{
+    auto& settings = core::SettingsManager::getInstance();
 
     // The texts of the cover: the unit of their lengths and the targets of their kinds
     //: The group of Settings > Navigator of the materials of the cover. In Polish: Okładka
@@ -606,8 +645,6 @@ NavigatorPage::NavigatorPage(QWidget* parent)
     };
     connect(m_unitWords, &QRadioButton::toggled, this, showUnit);
     whenLoaded(showUnit);
-
-    pageLayout()->addStretch();
 }
 
 } // namespace gui
