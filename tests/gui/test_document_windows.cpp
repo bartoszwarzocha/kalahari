@@ -8,15 +8,19 @@
 #include <kalahari/gui/command_registry.h>
 #include <kalahari/gui/document_windows.h>
 #include <kalahari/gui/panels/editor_panel.h>
+#include <kalahari/gui/widgets/central_tabs.h>
+#include <kalahari/gui/widgets/panel_tab_bar.h>
 
 #include "context_menu_reader.h"
 #include "document_window.h"
 
 #include <QAbstractButton>
+#include <QApplication>
 #include <QContextMenuEvent>
 #include <QCoreApplication>
 #include <QMainWindow>
 #include <QMenuBar>
+#include <QMouseEvent>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QToolBar>
@@ -82,13 +86,15 @@ struct FrontPages {
     }
 };
 
-/// A book window with the texts @p count in its tabs, as the main window has them
+/// A book window with the texts @p count in its tabs, as the main window has them; with
+/// @p central the tabs of the middle of the main window, which can be in more rows
 struct BookWindow {
     QMainWindow window;
-    QTabWidget* tabs = new QTabWidget(&window);
+    QTabWidget* tabs;
     QList<EditorPanel*> texts;
 
-    explicit BookWindow(int count) {
+    explicit BookWindow(int count, bool central = false)
+        : tabs(central ? new gui::CentralTabs(&window) : new QTabWidget(&window)) {
         window.setWindowTitle(QStringLiteral("Rain - Kalahari"));
         window.setCentralWidget(tabs);
         tabs->setTabsClosable(true);
@@ -110,6 +116,50 @@ struct BookWindow {
 
     [[nodiscard]] DocumentWindows& owner() const { return DocumentWindows::of(*tabs); }
 };
+
+/// The layouts of a shown window settle
+void settle() {
+    for (int pass = 0; pass < 5; ++pass) {
+        QCoreApplication::processEvents();
+    }
+}
+
+/// A mouse event on @p widget at @p pos
+void mouse(QWidget* widget, QEvent::Type type, const QPoint& pos, Qt::MouseButton button,
+           Qt::MouseButtons buttons) {
+    QMouseEvent event(type, QPointF(pos), widget->mapToGlobal(QPointF(pos)), button, buttons,
+                      Qt::NoModifier);
+    QCoreApplication::sendEvent(widget, &event);
+}
+
+/// The first tab of @p rows below their first row, -1 for none
+int inSecondRow(const gui::PanelTabBar& rows) {
+    for (int i = 1; i < rows.count(); ++i) {
+        if (rows.tabRect(i).top() > rows.tabRect(0).bottom()) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/// The texts of the tabs of @p tabs, in their order
+QStringList tabTexts(const QTabWidget& tabs) {
+    QStringList texts;
+    for (int i = 0; i < tabs.count(); ++i) {
+        texts.append(tabs.tabText(i));
+    }
+    return texts;
+}
+
+/// The menu of @p rows at @p pos, as @p reason opens it, its item @p item chosen
+void rowsMenu(QTabWidget& tabs, gui::PanelTabBar& rows, QContextMenuEvent::Reason reason,
+              const QPoint& pos, const QString& item) {
+    test::ContextMenuReader reader(tabs.tabBar());
+    reader.chooseItem(item);
+    QContextMenuEvent event(reason, pos, rows.mapToGlobal(pos));
+    QCoreApplication::sendEvent(&rows, &event);
+    REQUIRE(reader.menusRead() == 1);
+}
 
 /// How tabMenu() chooses its item
 enum class Choose {
@@ -478,4 +528,72 @@ TEST_CASE("Windows: the Window menu lists the windows of the book", "[gui][windo
     CHECK(titles() == expected);
     // Opened again, it lists them once
     CHECK(titles() == expected);
+}
+
+TEST_CASE("Windows: in more rows of tabs, a tab dragged off them or its menu moves its text",
+          "[gui][windows]") {
+    BookWindow book(8, true);
+    DocumentWindows& owner = book.owner();
+    auto* central = qobject_cast<gui::CentralTabs*>(book.tabs);
+    REQUIRE(central != nullptr);
+    book.window.resize(420, 300);
+    book.window.show();
+    // The rows made after the windows watch the tabs, as when the setting changes
+    central->setRows(gui::PanelTabBar::Rows::Wrap);
+    settle();
+    gui::PanelTabBar* rows = central->tabRows();
+    REQUIRE(rows != nullptr);
+    REQUIRE(rows->rowCount() > 1);
+    const QString toWindow = DocumentWindows::tr("&Move to New Window");
+
+    // The menu of a tab in the second row, not the one in front, with the mouse
+    int index = inSecondRow(*rows);
+    REQUIRE(index > 0);
+    REQUIRE(book.tabs->currentIndex() != index);
+    QWidget* text = book.tabs->widget(index);
+    rowsMenu(*book.tabs, *rows, QContextMenuEvent::Mouse, rows->tabRect(index).center(),
+             toWindow);
+    CHECK(owner.isDetached(text));
+    owner.returnToBook(text);
+    deleteClosed();
+    REQUIRE_FALSE(owner.isDetached(text));
+
+    // With the menu key, the menu of the tab in front
+    settle();
+    text = book.tabs->widget(book.tabs->count() - 1);
+    book.tabs->setCurrentWidget(text);
+    rowsMenu(*book.tabs, *rows, QContextMenuEvent::Keyboard, rows->rect().center(), toWindow);
+    CHECK(owner.isDetached(text));
+    owner.returnToBook(text);
+    deleteClosed();
+    REQUIRE_FALSE(owner.isDetached(text));
+
+    // Rows made again (more rows after one row): a tab of the second row dragged among the
+    // tabs, then far above them, goes to a window of its own; the others stay in their places
+    central->setRows(gui::PanelTabBar::Rows::Single);
+    central->setRows(gui::PanelTabBar::Rows::Wrap);
+    settle();
+    rows = central->tabRows();
+    REQUIRE(rows != nullptr);
+    index = inSecondRow(*rows);
+    REQUIRE(index > 0);
+    text = book.tabs->widget(index);
+    QStringList others = tabTexts(*book.tabs);
+    others.removeAt(index);
+    const QPoint from = rows->tabRect(index).center();
+    const QPoint away(from.x(), -200);
+    mouse(rows, QEvent::MouseButtonPress, from, Qt::LeftButton, Qt::LeftButton);
+    mouse(rows, QEvent::MouseMove, from + QPoint(QApplication::startDragDistance() + 2, 0),
+          Qt::NoButton, Qt::LeftButton);
+    mouse(rows, QEvent::MouseMove, away, Qt::NoButton, Qt::LeftButton);
+    mouse(rows, QEvent::MouseButtonRelease, away, Qt::LeftButton, Qt::NoButton);
+    settle();
+    CHECK(owner.isDetached(text));
+    CHECK(qobject_cast<DetachedWindow*>(text->window()) != nullptr);
+    CHECK(tabTexts(*book.tabs) == others);
+    REQUIRE(central->tabRows() == rows);
+    REQUIRE(rows->count() == book.tabs->count());
+    for (int i = 0; i < rows->count(); ++i) {
+        CHECK(rows->tab(i).name == book.tabs->tabText(i));
+    }
 }
