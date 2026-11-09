@@ -566,6 +566,32 @@ TEST_CASE("Settings dialog: the margin numbering, its fields greyed out without 
     restore(before);
 }
 
+TEST_CASE("Settings dialog: the preview of the margin numbers shows the theme's light paper",
+          "[gui][settings][marginNumbers][colors]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string theme = core::ThemeManager::getInstance().getCurrentTheme().name;
+    const std::string cream =
+        core::ThemeManager::editorColorSetting(theme, editor::LIGHT_PAPER_COLOR_KEYS.paper);
+    const auto before = valuesOf({"editor.marginNumbers.mode"});
+    settings.set<std::string>("editor.marginNumbers.mode", "lines");
+    settings.set<std::string>(cream, "#f5ecd7");
+    QCoreApplication::processEvents();  // the theme follows the settings
+
+    gui::SettingsDialog dialog(nullptr);
+    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::PAGES_PAGE)));
+    auto* preview = dialog.findChild<QWidget*>(QStringLiteral("marginNumbersPreview"));
+    REQUIRE(preview != nullptr);
+    REQUIRE(preview->isEnabled());
+    preview->resize(preview->sizeHint());
+
+    // Inside the frame of the light paper, above its text
+    const QImage image = preview->grab().toImage();
+    CHECK(QColor(image.pixel(3, 3)) == QColor(QStringLiteral("#f5ecd7")));
+
+    settings.removeKey(cream);
+    restore(before);
+}
+
 TEST_CASE("Settings dialog: View > Margin Numbering > Numbering Settings... puts the cursor in "
           "the choice of the numbering",
           "[gui][settings][marginNumbers]") {

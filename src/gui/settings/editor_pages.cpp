@@ -10,6 +10,7 @@
 #include "kalahari/gui/utils/chapter_cursor.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/settings_schema.h"
+#include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/paragraph_styles.h"
@@ -929,19 +930,24 @@ void EditorPagesPage::addMarginNumbersGroup() {
     addNote(numbers, tr("The numbering buttons on the Views toolbar and the commands of "
                         "View > Margin Numbering change the same settings as the fields above."));
 
-    // The preview: the numbers as the fields show them, the text and the paper as stored
+    // The preview: the numbers as the fields show them, the text as stored and the papers in
+    // the current theme's colors
     const auto showPreview = [chosen, interval, font, size, color, preview]() {
         preview->setNumbers(chosen(), interval->value(), font->currentFont().family(),
                             size->value(), color->color());
     };
     whenLoaded([&settings, preview]() {
-        const auto colorOf = [&settings](const char* key) {
-            return QColor(QString::fromStdString(settings.get<std::string>(key)));
-        };
-        preview->setText(QString::fromStdString(settings.get<std::string>("editor.fontFamily")),
-                         settings.get<int>("editor.fontSize"),
-                         {colorOf("editor.colors.backgroundLight"), colorOf("editor.colors.textLight")},
-                         {colorOf("editor.colors.backgroundDark"), colorOf("editor.colors.textDark")});
+        const auto& themes = core::ThemeManager::getInstance();
+        const editor::EditorColors own;
+        const editor::PaperColorKeys& light = editor::LIGHT_PAPER_COLOR_KEYS;
+        const editor::PaperColorKeys& dark = editor::DARK_PAPER_COLOR_KEYS;
+        preview->setText(
+            QString::fromStdString(settings.get<std::string>("editor.fontFamily")),
+            settings.get<int>("editor.fontSize"),
+            {themes.editorColor(light.paper, own.continuous.backgroundLight),
+             themes.editorColor(light.text, own.continuous.textLight)},
+            {themes.editorColor(dark.paper, own.continuous.backgroundDark),
+             themes.editorColor(dark.text, own.continuous.textDark)});
     });
 
     // With None the fields are greyed out; Restart on every page counts lines only
