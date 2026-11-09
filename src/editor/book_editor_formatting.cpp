@@ -6,6 +6,7 @@
 #include <kalahari/core/logger.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/kml_format_registry.h>
 #include <QTextBoundaryFinder>
 #include <algorithm>
 #include <array>
@@ -16,22 +17,17 @@ namespace kalahari::editor {
 namespace {
 
 /// @brief The character properties Clear Formatting takes off text: the inline formats, the
-/// font and the colors (KML <b>, <i>, <u>, <s>, <sub>, <sup> and the attributes of <span>)
-constexpr std::array<int, 12> CLEARED_CHARACTER_PROPERTIES{
-    QTextFormat::FontWeight,      QTextFormat::FontItalic,
-    QTextFormat::FontUnderline,   QTextFormat::TextUnderlineStyle,
-    QTextFormat::FontStrikeOut,   QTextFormat::TextVerticalAlignment,
-    QTextFormat::FontFamilies,    QTextFormat::FontFamily,
-    QTextFormat::FontPointSize,   QTextFormat::FontPixelSize,
-    QTextFormat::ForegroundBrush, QTextFormat::BackgroundBrush,
+/// font, the colors, the capitals and the letter spacing (KML <b>, <i>, <u>, <s>, <sub>, <sup>
+/// and the attributes of <span>); Copy Formatting remembers them
+constexpr std::array<int, 14> CLEARED_CHARACTER_PROPERTIES{
+    QTextFormat::FontWeight,        QTextFormat::FontItalic,
+    QTextFormat::FontUnderline,     QTextFormat::TextUnderlineStyle,
+    QTextFormat::FontStrikeOut,     QTextFormat::TextVerticalAlignment,
+    QTextFormat::FontFamilies,      QTextFormat::FontFamily,
+    QTextFormat::FontPointSize,     QTextFormat::FontPixelSize,
+    QTextFormat::ForegroundBrush,   QTextFormat::BackgroundBrush,
+    QTextFormat::FontCapitalization, KmlPropLetterSpacing,
 };
-
-/// @brief Whether text in @p format has formatting Clear Formatting takes off
-bool hasClearedFormatting(const QTextCharFormat& format)
-{
-    return std::any_of(CLEARED_CHARACTER_PROPERTIES.begin(), CLEARED_CHARACTER_PROPERTIES.end(),
-                       [&format](int property) { return format.hasProperty(property); });
-}
 
 /// @brief @p format without the formatting Clear Formatting takes off; the annotations and
 /// the references of the text stay
@@ -41,6 +37,81 @@ QTextCharFormat withoutClearedFormatting(QTextCharFormat format)
         format.clearProperty(property);
     }
     return format;
+}
+
+/// @brief Only the formatting of @p format Clear Formatting takes off
+QTextCharFormat onlyClearedFormatting(const QTextCharFormat& format)
+{
+    QTextCharFormat only;
+    for (const int property : CLEARED_CHARACTER_PROPERTIES) {
+        if (format.hasProperty(property)) {
+            only.setProperty(property, format.property(property));
+        }
+    }
+    return only;
+}
+
+/// @brief What Copy Formatting remembers, for all the editors
+struct CopiedFormatting {
+    QTextCharFormat character;  ///< Only the formatting Clear Formatting takes off
+    QString style;              ///< Empty when copied at an object
+    ParagraphFormat paragraph;
+    Qt::Alignment alignment;    ///< Its own; none: of the style
+};
+
+std::optional<CopiedFormatting>& copiedFormatting()
+{
+    static std::optional<CopiedFormatting> copied;
+    return copied;
+}
+
+/// @brief Call @p visit with the format and the place in the document of each fragment of
+/// text of a range (objects aside), cut to the range
+template <typename Visit>
+void forEachTextFragment(const QTextDocument& document, const SelectionRange& range, Visit visit)
+{
+    for (int i = range.start.paragraph; i <= range.end.paragraph; ++i) {
+        const QTextBlock block = document.findBlockByNumber(i);
+        if (!block.isValid()) {
+            continue;
+        }
+        const int start = i == range.start.paragraph ? range.start.offset : 0;
+        const int end = i == range.end.paragraph ? range.end.offset : block.length() - 1;
+        const int from = block.position() + start;
+        const int to = block.position() + end;
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            const int fragmentFrom = fragment.position();
+            const int fragmentTo = fragmentFrom + fragment.length();
+            const QTextCharFormat format = fragment.charFormat();
+            if (fragmentTo <= from || fragmentFrom >= to ||
+                textObjectOf(format) != TextObject::None) {
+                continue;
+            }
+            visit(format, std::max(fragmentFrom, from), std::min(fragmentTo, to));
+        }
+    }
+}
+
+/// @brief Keep in @p shown the parts @p other has the same
+void keepCommonParts(CharacterFormat& shown, const CharacterFormat& other)
+{
+    const auto common = [](auto& part, const auto& otherPart) {
+        if (part != otherPart) {
+            part.reset();
+        }
+    };
+    common(shown.family, other.family);
+    common(shown.size, other.size);
+    common(shown.bold, other.bold);
+    common(shown.italic, other.italic);
+    common(shown.underline, other.underline);
+    common(shown.strikethrough, other.strikethrough);
+    common(shown.position, other.position);
+    common(shown.capitals, other.capitals);
+    common(shown.letterSpacing, other.letterSpacing);
+    common(shown.color, other.color);
+    common(shown.highlight, other.highlight);
 }
 
 }  // namespace
@@ -89,6 +160,46 @@ bool BookEditor::isStrikethrough() const
     return hasFormat(InlineFormat::Strikethrough);
 }
 
+void BookEditor::toggleSuperscript()
+{
+    toggleFormat(InlineFormat::Superscript);
+}
+
+void BookEditor::toggleSubscript()
+{
+    toggleFormat(InlineFormat::Subscript);
+}
+
+void BookEditor::toggleSmallCaps()
+{
+    toggleFormat(InlineFormat::SmallCaps);
+}
+
+void BookEditor::toggleAllCaps()
+{
+    toggleFormat(InlineFormat::AllCaps);
+}
+
+bool BookEditor::isSuperscript() const
+{
+    return hasFormat(InlineFormat::Superscript);
+}
+
+bool BookEditor::isSubscript() const
+{
+    return hasFormat(InlineFormat::Subscript);
+}
+
+bool BookEditor::isSmallCaps() const
+{
+    return hasFormat(InlineFormat::SmallCaps);
+}
+
+bool BookEditor::isAllCaps() const
+{
+    return hasFormat(InlineFormat::AllCaps);
+}
+
 void BookEditor::clearFormatting()
 {
     if (refusesChange()) {
@@ -98,87 +209,31 @@ void BookEditor::clearFormatting()
         return;
     }
 
-    // The paragraphs of the selection, or the one at the cursor, with alignments of their own
-    int startPara = m_cursorPosition.paragraph;
-    int endPara = m_cursorPosition.paragraph;
-    if (hasSelection()) {
-        const SelectionRange selection = m_selection.normalized();
-        startPara = selection.start.paragraph;
-        endPara = selection.end.paragraph;
-    }
-    std::vector<QTextBlock> aligned;
-    for (QTextBlock block = m_textBuffer->findBlockByNumber(startPara);
-         block.isValid() && block.blockNumber() <= endPara; block = block.next()) {
-        if (blockObject(block) == TextObject::None && ownAlignment(block.blockFormat())) {
-            aligned.push_back(block);
-        }
+    // The paragraphs of the selection, or the one at the cursor, lose their own alignments
+    // and formatting (indents, spacing, line spacing, breaks); their styles and lists stay
+    std::vector<std::pair<QTextBlock, QTextBlockFormat>> blocks;
+    for (const QTextBlock& block : selectedTextBlocks()) {
+        QTextBlockFormat format = block.blockFormat();
+        format.clearProperty(QTextFormat::BlockAlignment);
+        clearParagraphFormat(format);
+        blocks.emplace_back(block, format);
     }
 
-    // The pieces of the selection or the word with formatting to take off, objects aside
-    struct Piece {
-        int from;
-        int to;
-        QTextCharFormat format;
-    };
-    std::vector<Piece> pieces;
+    // The selection or the word loses the formatting given by hand, objects aside: one undo
+    // step with the paragraphs
     const std::optional<SelectionRange> range = formatRange();
+    std::vector<FormatPiece> pieces;
     if (range) {
-        const SelectionRange& selected = *range;
-        for (int i = selected.start.paragraph; i <= selected.end.paragraph; ++i) {
-            const QTextBlock block = m_textBuffer->findBlockByNumber(i);
-            if (!block.isValid()) {
-                continue;
-            }
-            const int start = i == selected.start.paragraph ? selected.start.offset : 0;
-            const int end =
-                i == selected.end.paragraph ? selected.end.offset : block.length() - 1;
-            const int from = block.position() + start;
-            const int to = block.position() + end;
-            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
-                const QTextFragment fragment = it.fragment();
-                const int fragmentFrom = fragment.position();
-                const int fragmentTo = fragmentFrom + fragment.length();
-                const QTextCharFormat format = fragment.charFormat();
-                if (fragmentTo <= from || fragmentFrom >= to ||
-                    textObjectOf(format) != TextObject::None || !hasClearedFormatting(format)) {
-                    continue;
-                }
-                pieces.push_back({std::max(fragmentFrom, from), std::min(fragmentTo, to),
-                                  withoutClearedFormatting(format)});
-            }
-        }
+        pieces = changedFormatPieces(
+            *range, [](QTextCharFormat& format) { format = withoutClearedFormatting(format); });
     }
+    setFormats(pieces, blocks);
 
-    // One undo step that brings back the cursor and selection it was made with, as the
-    // alignment does (setParagraphAlignment()); nothing to take off, no step
-    if (!aligned.empty() || !pieces.empty()) {
-        QTextCursor cursor(m_textBuffer.get());
-        cursor.beginEditBlock();
-        m_textBuffer->appendUndoItem(new CallbackUndoItem(
-            [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
-        for (const Piece& piece : pieces) {
-            cursor.setPosition(piece.from);
-            cursor.setPosition(piece.to, QTextCursor::KeepAnchor);
-            cursor.setCharFormat(piece.format);
-        }
-        for (const QTextBlock& block : aligned) {
-            QTextBlockFormat format = block.blockFormat();
-            format.clearProperty(QTextFormat::BlockAlignment);
-            cursor.setPosition(block.position());
-            cursor.setBlockFormat(format);
-        }
-        cursor.endEditBlock();
-        if (m_renderPipeline) {
-            m_renderPipeline->markAllDirty();
-        }
-        emit contentChanged();
-        update();
-    }
-
-    // Without a selection or a word: the text typed next is without the inline formats,
-    // whatever the text before it has (the pending format adds to the place's, so what the
-    // place has is turned off). Its font and colors stay those of the place: given here, the
-    // editor's own font would be saved with the text as a font of its own.
+    // Without a selection or a word: the text typed next is without the inline formats, the
+    // capitals and the letter spacing, whatever the text before it has (the pending format
+    // adds to the place's, so what the place has is turned off). Its font and colors stay
+    // those of the place: given here, the editor's own font would be saved with the text as
+    // a font of its own.
     if (!range) {
         const QTextCharFormat place = placeFormat();
         QTextCharFormat pending;
@@ -196,6 +251,12 @@ void BookEditor::clearFormatting()
         }
         if (place.verticalAlignment() != QTextCharFormat::AlignNormal) {
             pending.setVerticalAlignment(QTextCharFormat::AlignNormal);
+        }
+        if (place.fontCapitalization() != QFont::MixedCase) {
+            pending.setFontCapitalization(QFont::MixedCase);
+        }
+        if (place.doubleProperty(KmlPropLetterSpacing) != 0.0) {
+            pending.setProperty(KmlPropLetterSpacing, 0.0);
         }
         setPendingFormat(pending);
     }
@@ -472,6 +533,14 @@ void BookEditor::toggleFormat(InlineFormat formatType)
                 return "underline";
             case InlineFormat::Strikethrough:
                 return "strikethrough";
+            case InlineFormat::Superscript:
+                return "superscript";
+            case InlineFormat::Subscript:
+                return "subscript";
+            case InlineFormat::SmallCaps:
+                return "small caps";
+            case InlineFormat::AllCaps:
+                return "all caps";
         }
         return "";
     };
@@ -512,6 +581,26 @@ void BookEditor::toggleFormat(InlineFormat formatType)
                     format.setFontStrikeOut(*on);
                 }
                 break;
+            case InlineFormat::Superscript:
+            case InlineFormat::Subscript:
+                format.clearProperty(QTextFormat::TextVerticalAlignment);
+                if (on) {
+                    format.setVerticalAlignment(!*on ? QTextCharFormat::AlignNormal
+                                                : formatType == InlineFormat::Superscript
+                                                    ? QTextCharFormat::AlignSuperScript
+                                                    : QTextCharFormat::AlignSubScript);
+                }
+                break;
+            case InlineFormat::SmallCaps:
+            case InlineFormat::AllCaps:
+                format.clearProperty(QTextFormat::FontCapitalization);
+                if (on) {
+                    format.setFontCapitalization(!*on ? QFont::MixedCase
+                                                 : formatType == InlineFormat::SmallCaps
+                                                     ? QFont::SmallCaps
+                                                     : QFont::AllUppercase);
+                }
+                break;
         }
         return format;
     };
@@ -530,9 +619,7 @@ void BookEditor::toggleFormat(InlineFormat formatType)
     // the other way round. When the place gives it so, the format given goes: given twice,
     // the typed text is as without it.
     const bool on = !formatHas(typingFormat(), formatType);
-    const bool placeHasIt = formatHas(placeFormat(), formatType);
-    setPendingFormat(
-        withFormat(pendingFormat(), placeHasIt == on ? std::nullopt : std::optional<bool>(on)));
+    setPendingFormat(pendingFor(withFormat(typingFormat(), on)));
     core::Logger::getInstance().debug("BookEditor::toggleFormat() - text typed next: {} {}",
         formatName(), on ? "on" : "off");
 }
@@ -559,6 +646,14 @@ bool BookEditor::formatHas(const QTextCharFormat& format, InlineFormat formatTyp
             return format.fontUnderline();
         case InlineFormat::Strikethrough:
             return format.fontStrikeOut();
+        case InlineFormat::Superscript:
+            return format.verticalAlignment() == QTextCharFormat::AlignSuperScript;
+        case InlineFormat::Subscript:
+            return format.verticalAlignment() == QTextCharFormat::AlignSubScript;
+        case InlineFormat::SmallCaps:
+            return format.fontCapitalization() == QFont::SmallCaps;
+        case InlineFormat::AllCaps:
+            return format.fontCapitalization() == QFont::AllUppercase;
     }
     return false;
 }
@@ -688,6 +783,341 @@ int BookEditor::fontSizeOf(const QTextCharFormat& format) const
 {
     const int size = static_cast<int>(format.fontPointSize());
     return size > 0 ? size : m_appearance.typography.textFont.pointSize();
+}
+
+qreal BookEditor::fontPointSizeOf(const QTextCharFormat& format) const
+{
+    const qreal size = format.fontPointSize();
+    return size > 0 ? size : m_appearance.typography.textFont.pointSizeF();
+}
+
+CharacterFormat BookEditor::characterFormatOf(const QTextCharFormat& format) const
+{
+    CharacterFormat shown;
+    shown.family = fontFamilyOf(format);
+    shown.size = fontPointSizeOf(format);
+    shown.bold = formatHas(format, InlineFormat::Bold);
+    shown.italic = formatHas(format, InlineFormat::Italic);
+    shown.underline = formatHas(format, InlineFormat::Underline);
+    shown.strikethrough = formatHas(format, InlineFormat::Strikethrough);
+    shown.position = formatHas(format, InlineFormat::Superscript) ? QTextCharFormat::AlignSuperScript
+                     : formatHas(format, InlineFormat::Subscript) ? QTextCharFormat::AlignSubScript
+                                                                   : QTextCharFormat::AlignNormal;
+    shown.capitals = formatHas(format, InlineFormat::SmallCaps) ? QFont::SmallCaps
+                     : formatHas(format, InlineFormat::AllCaps) ? QFont::AllUppercase
+                                                                 : QFont::MixedCase;
+    shown.letterSpacing = format.doubleProperty(KmlPropLetterSpacing);
+    shown.color = textColorOf(format);
+    shown.highlight = highlightColorOf(format);
+    return shown;
+}
+
+std::vector<BookEditor::FormatPiece> BookEditor::changedFormatPieces(
+    const SelectionRange& range, const std::function<void(QTextCharFormat&)>& change) const
+{
+    std::vector<FormatPiece> pieces;
+    forEachTextFragment(*m_textBuffer, range,
+                        [&pieces, &change](const QTextCharFormat& format, int from, int to) {
+                            QTextCharFormat changed = format;
+                            change(changed);
+                            if (changed != format) {
+                                pieces.push_back({from, to, changed});
+                            }
+                        });
+
+    // An empty paragraph of a selection: the text typed there
+    if (range.start.paragraph != range.end.paragraph) {
+        for (QTextBlock block = m_textBuffer->findBlockByNumber(range.start.paragraph);
+             block.isValid() && block.blockNumber() <= range.end.paragraph; block = block.next()) {
+            if (block.length() == 1 && blockObject(block) == TextObject::None) {
+                QTextCharFormat changed = block.charFormat();
+                change(changed);
+                if (changed != block.charFormat()) {
+                    pieces.push_back({block.position(), block.position(), changed, true});
+                }
+            }
+        }
+    }
+    return pieces;
+}
+
+void BookEditor::setFormats(const std::vector<FormatPiece>& pieces,
+                            const std::vector<std::pair<QTextBlock, QTextBlockFormat>>& blocks)
+{
+    std::vector<std::pair<QTextBlock, QTextBlockFormat>> changed;
+    std::copy_if(blocks.begin(), blocks.end(), std::back_inserter(changed),
+                 [](const auto& entry) { return entry.first.blockFormat() != entry.second; });
+    if (pieces.empty() && changed.empty()) {
+        return;
+    }
+
+    QTextCursor cursor(m_textBuffer.get());
+    cursor.beginEditBlock();
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+    for (const FormatPiece& piece : pieces) {
+        cursor.setPosition(piece.from);
+        if (piece.emptyParagraph) {
+            cursor.setBlockCharFormat(piece.format);
+            continue;
+        }
+        cursor.setPosition(piece.to, QTextCursor::KeepAnchor);
+        cursor.setCharFormat(piece.format);
+    }
+    for (const auto& [block, format] : changed) {
+        cursor.setPosition(block.position());
+        cursor.setBlockFormat(format);
+    }
+    cursor.endEditBlock();
+
+    if (m_renderPipeline) {
+        m_renderPipeline->markAllDirty();
+    }
+    emit contentChanged();
+    update();
+}
+
+void BookEditor::changeCharFormat(const std::function<void(QTextCharFormat&)>& change)
+{
+    if (refusesChange() || !m_textBuffer) {
+        return;
+    }
+    if (const std::optional<SelectionRange> range = formatRange()) {
+        setFormats(changedFormatPieces(*range, change));
+        return;
+    }
+    QTextCharFormat wanted = typingFormat();
+    change(wanted);
+    setPendingFormat(pendingFor(wanted));
+}
+
+QTextCharFormat BookEditor::pendingFor(const QTextCharFormat& wanted) const
+{
+    const QTextCharFormat place = placeFormat();
+    QTextCharFormat pending;
+    if (fontFamilyOf(wanted) != fontFamilyOf(place)) {
+        pending.setFontFamilies({fontFamilyOf(wanted)});
+    }
+    if (fontPointSizeOf(wanted) != fontPointSizeOf(place)) {
+        pending.setFontPointSize(fontPointSizeOf(wanted));
+    }
+    if (formatHas(wanted, InlineFormat::Bold) != formatHas(place, InlineFormat::Bold)) {
+        pending.setFontWeight(formatHas(wanted, InlineFormat::Bold) ? QFont::Bold : QFont::Normal);
+    }
+    if (wanted.fontItalic() != place.fontItalic()) {
+        pending.setFontItalic(wanted.fontItalic());
+    }
+    if (wanted.fontUnderline() != place.fontUnderline()) {
+        pending.setFontUnderline(wanted.fontUnderline());
+    }
+    if (wanted.fontStrikeOut() != place.fontStrikeOut()) {
+        pending.setFontStrikeOut(wanted.fontStrikeOut());
+    }
+    if (wanted.verticalAlignment() != place.verticalAlignment()) {
+        pending.setVerticalAlignment(wanted.verticalAlignment());
+    }
+    if (wanted.fontCapitalization() != place.fontCapitalization()) {
+        pending.setFontCapitalization(wanted.fontCapitalization());
+    }
+    if (wanted.doubleProperty(KmlPropLetterSpacing) != place.doubleProperty(KmlPropLetterSpacing)) {
+        pending.setProperty(KmlPropLetterSpacing, wanted.doubleProperty(KmlPropLetterSpacing));
+    }
+    // No brush: the automatic color, no highlight (the pending format adds to the place's)
+    if (const QColor color = textColorOf(wanted); color != textColorOf(place)) {
+        pending.setForeground(color.isValid() ? QBrush(color) : QBrush());
+    }
+    if (const QColor color = highlightColorOf(wanted); color != highlightColorOf(place)) {
+        pending.setBackground(color.isValid() ? QBrush(color) : QBrush());
+    }
+    return pending;
+}
+
+// =============================================================================
+// More of the character formatting
+// =============================================================================
+
+CharacterFormat BookEditor::shownCharacterFormat() const
+{
+    if (!m_textBuffer || !hasSelection()) {
+        return characterFormatOf(typingFormat());
+    }
+    std::optional<CharacterFormat> shown;
+    forEachTextFragment(*m_textBuffer, m_selection.normalized(),
+                        [this, &shown](const QTextCharFormat& format, int, int) {
+                            const CharacterFormat part = characterFormatOf(format);
+                            if (!shown) {
+                                shown = part;
+                            } else {
+                                keepCommonParts(*shown, part);
+                            }
+                        });
+    // A selection of objects or empty paragraphs only: as the text typed there
+    return shown ? *shown : characterFormatOf(typingFormat());
+}
+
+void BookEditor::applyCharacterFormat(const CharacterFormat& changes)
+{
+    changeCharFormat([&changes](QTextCharFormat& format) { mergeCharacterFormat(format, changes); });
+}
+
+void BookEditor::changeCase(CaseChange change)
+{
+    if (refusesChange() || !m_textBuffer) {
+        return;
+    }
+    const std::optional<SelectionRange> range = formatRange();
+    if (!range) {
+        return;
+    }
+
+    // The letters change fragment by fragment, so each keeps its format and annotations; the
+    // text keeps its length (changedCase()), so the selection stays on it
+    struct Replacement {
+        int from;
+        int to;
+        QString text;
+        QTextCharFormat format;
+    };
+    std::vector<Replacement> replacements;
+    std::vector<int> paragraphs;
+    for (int i = range->start.paragraph; i <= range->end.paragraph; ++i) {
+        const QTextBlock block = m_textBuffer->findBlockByNumber(i);
+        if (!block.isValid() || blockObject(block) != TextObject::None) {
+            continue;
+        }
+        const int start = i == range->start.paragraph ? range->start.offset : 0;
+        const int end = i == range->end.paragraph ? range->end.offset : block.length() - 1;
+        const QString text = block.text();
+        const QString changed = changedCase(text, start, end, change);
+        if (changed == text) {
+            continue;
+        }
+        paragraphs.push_back(i);
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            const int from = std::max(fragment.position() - block.position(), start);
+            const int to = std::min(fragment.position() - block.position() + fragment.length(), end);
+            if (from >= to || textObjectOf(fragment.charFormat()) != TextObject::None) {
+                continue;
+            }
+            const QString part = changed.mid(from, to - from);
+            if (part != QStringView(text).mid(from, to - from)) {
+                replacements.push_back(
+                    {block.position() + from, block.position() + to, part, fragment.charFormat()});
+            }
+        }
+    }
+    if (replacements.empty()) {
+        return;
+    }
+
+    // One undo step that brings back the cursor and selection it was made with
+    QTextCursor cursor(m_textBuffer.get());
+    cursor.beginEditBlock();
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+    for (const Replacement& replacement : replacements) {
+        cursor.setPosition(replacement.from);
+        cursor.setPosition(replacement.to, QTextCursor::KeepAnchor);
+        cursor.insertText(replacement.text, replacement.format);
+    }
+    cursor.endEditBlock();
+    m_learnableChange.reset();
+
+    update();
+    emit contentChanged();
+    for (const int paragraph : paragraphs) {
+        emit paragraphModified(paragraph);
+    }
+}
+
+void BookEditor::copyFormatting()
+{
+    if (!m_textBuffer) {
+        return;
+    }
+    // The first character of the selection, or the text typed at the cursor
+    QTextCharFormat format = typingFormat();
+    int paragraph = m_cursorPosition.paragraph;
+    if (hasSelection()) {
+        const SelectionRange range = m_selection.normalized();
+        QTextCursor cursor = createCursor(m_textBuffer.get(), range.start);
+        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+        format = cursor.charFormat();
+        paragraph = range.start.paragraph;
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(paragraph);
+    CopiedFormatting copied;
+    copied.character = onlyClearedFormatting(format);
+    if (block.isValid() && blockObject(block) == TextObject::None) {
+        copied.style = paragraphStyleOf(block.blockFormat());
+        copied.paragraph = paragraphFormatOf(block.blockFormat());
+        copied.alignment = ownAlignment(block.blockFormat());
+    }
+    copiedFormatting() = copied;
+}
+
+bool BookEditor::hasCopiedFormatting()
+{
+    return copiedFormatting().has_value();
+}
+
+void BookEditor::pasteFormatting()
+{
+    const std::optional<CopiedFormatting> held = copiedFormatting();
+    if (refusesChange() || !m_textBuffer || !held) {
+        return;
+    }
+    const CopiedFormatting& copied = *held;
+    const auto change = [&copied](QTextCharFormat& format) {
+        format = withoutClearedFormatting(format);
+        format.merge(copied.character);
+    };
+
+    // The paragraphs the selection holds whole get the style, own formatting and alignment;
+    // a list item keeps the indents of its level
+    std::vector<std::pair<QTextBlock, QTextBlockFormat>> blocks;
+    std::vector<QTextBlock> restyled;
+    if (hasSelection() && !copied.style.isEmpty()) {
+        const SelectionRange range = m_selection.normalized();
+        for (const QTextBlock& block : selectedTextBlocks()) {
+            const int number = block.blockNumber();
+            const bool whole = (number > range.start.paragraph || range.start.offset == 0) &&
+                               (number < range.end.paragraph || range.end.offset >= block.length() - 1);
+            if (!whole) {
+                continue;
+            }
+            QTextBlockFormat format = block.blockFormat();
+            if (paragraphStyleOf(format) != copied.style) {
+                setParagraphStyle(format, copied.style);
+                restyled.push_back(block);
+            }
+            ParagraphFormat paragraph = copied.paragraph;
+            if (isListItem(format)) {
+                const ParagraphFormat own = paragraphFormatOf(format);
+                paragraph.leftIndent = own.leftIndent;
+                paragraph.firstLineIndent = own.firstLineIndent;
+            }
+            setParagraphFormat(format, paragraph);
+            if (copied.alignment) {
+                format.setAlignment(copied.alignment);
+            } else {
+                format.clearProperty(QTextFormat::BlockAlignment);
+            }
+            blocks.emplace_back(block, format);
+        }
+    }
+
+    if (const std::optional<SelectionRange> range = formatRange()) {
+        setFormats(changedFormatPieces(*range, change), blocks);
+    } else {
+        QTextCharFormat wanted = typingFormat();
+        change(wanted);
+        setPendingFormat(pendingFor(wanted));
+    }
+    if (!restyled.empty()) {
+        checkParagraphsAgain(restyled);  // Code is not checked, the other styles are
+    }
 }
 
 // =============================================================================

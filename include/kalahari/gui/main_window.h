@@ -24,6 +24,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
 
+class QColor;
 class QDockWidget;
 class QCloseEvent;
 class QShowEvent;
@@ -57,10 +58,12 @@ class AnnotationsCoordinator;
 class ParagraphMarksCoordinator;
 class MaterialListCoordinator;
 class EditCoordinator;
+class SpecialCharacterCoordinator;
 class VersionsCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
+class ColorMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
 }
@@ -267,6 +270,10 @@ private slots:
     void onFormatStrikethrough();
 
     /// @brief Slot for Format > Align Left action
+    /// @brief Format > Font Color or Highlight Color: give the selection in the editor in
+    ///        front, or the text typed next, a color (invalid: automatic, or no highlight)
+    void applyColor(const QColor& color, bool highlight);
+
     void onAlignLeft();
 
     /// @brief Slot for Format > Align Center action
@@ -308,8 +315,17 @@ private slots:
     /// @brief Show or hide the border around the text of every editor (remembered)
     void onTextFrameBorderToggle();
 
+    /// @brief Show or hide the cards of the annotations under the paragraphs of every editor
+    ///        (remembered)
+    void onAnnotationCardsToggle();
+
     /// @brief Show or hide the formatting marks of every editor (remembered)
     void onFormattingMarksToggle();
+
+    /// @brief Number the lines or the paragraphs of every editor on the margin, or not
+    ///        (remembered); the numbering on chosen again turns it off
+    /// @param mode A name of the settings: editor::MARGIN_NUMBERING_NONE, ..._LINES, ..._PARAGRAPHS
+    void onMarginNumbering(const QString& mode);
 
     /// @brief Turn Distraction-Free writing on or off (the view mode stays)
     void onDistractionFreeToggle();
@@ -392,6 +408,8 @@ private:
     /// @brief The lists of the kinds of materials on their tabs
     MaterialListCoordinator* m_materialListCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
+    /// Insert > Special Character... and Insert > Quick Character
+    SpecialCharacterCoordinator* m_specialCharacterCoordinator{nullptr};
     GrammarCoordinator* m_grammarCoordinator{nullptr};
 
     /// @brief The Spelling and Grammar panel and when it shows
@@ -399,6 +417,10 @@ private:
 
     /// @brief Undo, Redo, Cut, Copy, Paste and Select All on the element with the keys
     EditCoordinator* m_editCoordinator{nullptr};
+
+    /// @brief The submenus of Format > Font Color and Highlight Color
+    ColorMenu* m_fontColorMenu{nullptr};
+    ColorMenu* m_highlightColorMenu{nullptr};
 
     /// @brief Save Version and Version History of the texts of the book
     VersionsCoordinator* m_versionsCoordinator{nullptr};

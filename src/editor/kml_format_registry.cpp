@@ -10,6 +10,7 @@
 #include <QColor>
 #include <QSet>
 #include <QXmlStreamAttributes>
+#include <algorithm>
 
 namespace kalahari {
 namespace editor {
@@ -275,6 +276,24 @@ void applyInlineStyleAttributes(const QXmlStreamAttributes& attrs,
         const QColor bgColor(attrs.value(QStringLiteral("bg")).toString());
         if (bgColor.isValid()) {
             format.setBackground(QBrush(bgColor));
+        }
+    }
+
+    // Small or all capitals
+    const QStringView caps = attrs.value(QStringLiteral("caps"));
+    if (caps == u"small") {
+        format.setFontCapitalization(QFont::SmallCaps);
+    } else if (caps == u"all") {
+        format.setFontCapitalization(QFont::AllUppercase);
+    }
+
+    // Letter spacing in points
+    if (attrs.hasAttribute(QStringLiteral("spacing"))) {
+        bool ok = false;
+        const qreal spacing = attrs.value(QStringLiteral("spacing")).toDouble(&ok);
+        if (ok && spacing != 0.0) {
+            format.setProperty(KmlPropLetterSpacing,
+                               std::clamp(spacing, MIN_LETTER_SPACING, MAX_LETTER_SPACING));
         }
     }
 }

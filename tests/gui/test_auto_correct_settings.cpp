@@ -11,6 +11,7 @@
 #include "kalahari/editor/auto_correct.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
+#include "kalahari/gui/auto_correct_replacements.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/edit_coordinator.h"
@@ -18,6 +19,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/gui/utils/caps_lock.h"
 
 #include <QAction>
 #include <QApplication>
@@ -25,19 +27,26 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QGuiApplication>
+#include <QItemSelectionModel>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLabel>
+#include <QLineEdit>
+#include <QListWidget>
 #include <QMainWindow>
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QTabWidget>
+#include <QTableWidget>
 #include <QTemporaryDir>
 #include <QToolBar>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
+#include <algorithm>
 #include <array>
+#include <nlohmann/json.hpp>
 #include <string>
 
 using namespace kalahari;
@@ -49,7 +58,7 @@ namespace {
 constexpr std::array<const char*, 4> CHECK_BOXES = {
     "Straight quotes with typographic ones",
     "Apostrophe ' with ’",
-    "Hyphen opening a paragraph with a dash",
+    "Hyphen opening a paragraph with:",
     "“...” with an ellipsis “…”",
 };
 
@@ -72,14 +81,29 @@ QWidget* openAutoCorrectPage(SettingsDialog& dialog) {
     return stack->currentWidget();
 }
 
+/// The page's widget of a type with an accessible name
+template <typename Widget>
+Widget* namedChild(const QWidget* page, const char* name) {
+    for (Widget* widget : page->findChildren<Widget*>()) {
+        if (widget->accessibleName() == QString::fromUtf8(name)) {
+            return widget;
+        }
+    }
+    return nullptr;
+}
+
 /// The page's check box with a text
-QCheckBox* checkBoxOf(const QWidget* page, const char* text) {
+QCheckBox* checkBoxOf(const QWidget* page, const QString& text) {
     for (QCheckBox* box : page->findChildren<QCheckBox*>()) {
-        if (box->text() == QString::fromUtf8(text)) {
+        if (box->text() == text) {
             return box;
         }
     }
     return nullptr;
+}
+
+QCheckBox* checkBoxOf(const QWidget* page, const char* text) {
+    return checkBoxOf(page, QString::fromUtf8(text));
 }
 
 /// The page's label with a text
@@ -90,16 +114,6 @@ QLabel* labelOf(const QWidget* page, const QString& text) {
         }
     }
     return nullptr;
-}
-
-/// The page's label whose text starts with @p start
-QString labelStartingWith(const QWidget* page, const QString& start) {
-    for (const QLabel* label : page->findChildren<QLabel*>()) {
-        if (label->text().startsWith(start)) {
-            return label->text();
-        }
-    }
-    return QString();
 }
 
 /// Type the text as the keyboard does, a character at a time
@@ -116,6 +130,30 @@ void press(QWidget* widget, int key, Qt::KeyboardModifiers modifiers = Qt::NoMod
     QApplication::sendEvent(widget, &pressed);
     QKeyEvent released(QEvent::KeyRelease, key, modifiers);
     QApplication::sendEvent(widget, &released);
+}
+
+/// The options with the lists (the replacement table, the exceptions) of @p from; their
+/// switches are compared apart from the lists
+editor::AutoCorrectOptions withListsOf(editor::AutoCorrectOptions options,
+                                       const editor::AutoCorrectOptions& from) {
+    options.replacements = from.replacements;
+    options.languageAbbreviations = from.languageAbbreviations;
+    options.twoCapitalsExceptions = from.twoCapitalsExceptions;
+    return options;
+}
+
+/// Whether a list of the settings has a text
+bool textsContain(const nlohmann::json& list, const char* text) {
+    return list.is_array() && std::find(list.begin(), list.end(), text) != list.end();
+}
+
+/// Type the text with Caps Lock on: Shift held for its small letters
+void typeWithCapsLock(QWidget* widget, const QString& text) {
+    for (const QChar ch : text) {
+        QKeyEvent pressed(QEvent::KeyPress, 0, ch.isLower() ? Qt::ShiftModifier : Qt::NoModifier,
+                          QString(ch));
+        QApplication::sendEvent(widget, &pressed);
+    }
 }
 
 /// The window's tests need an active window; the offscreen platform has one without a window
@@ -136,7 +174,8 @@ TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors 
     EditorPanel panel;
     editor::BookEditor* bookEditor = panel.getBookEditor();
     REQUIRE(bookEditor != nullptr);
-    CHECK(bookEditor->autoCorrect() == editor::AutoCorrectOptions{});
+    const editor::AutoCorrectOptions lists = bookEditor->autoCorrect();
+    CHECK(bookEditor->autoCorrect() == withListsOf({}, lists));
 
     SettingsDialog dialog(nullptr);
     QWidget* page = openAutoCorrectPage(dialog);
@@ -147,11 +186,8 @@ TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors 
         CHECK(box->isChecked());
         CHECK(box->isEnabled());
     }
-    auto* dash = page->findChild<QComboBox*>();
+    auto* dash = namedChild<QComboBox>(page, "Dialogue dash");
     REQUIRE(dash != nullptr);
-    const QLabel* dashLabel = labelOf(page, QStringLiteral("Dialogue dash:"));
-    REQUIRE(dashLabel != nullptr);
-    CHECK(dashLabel->buddy() == dash);
     CHECK(dash->currentText() == QStringLiteral("Em Dash (—)"));
     CHECK(dash->isEnabled());
 
@@ -159,10 +195,8 @@ TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors 
     QCheckBox* dialogueDash = checkBoxOf(page, CHECK_BOXES[2]);
     dialogueDash->setChecked(false);
     CHECK_FALSE(dash->isEnabled());
-    CHECK_FALSE(dashLabel->isEnabled());
     dialogueDash->setChecked(true);
     CHECK(dash->isEnabled());
-    CHECK(dashLabel->isEnabled());
 
     // Applied, the settings reach the editors
     checkBoxOf(page, CHECK_BOXES[0])->setChecked(false);
@@ -177,7 +211,7 @@ TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors 
     CHECK_FALSE(settings.get<bool>("editor.autoCorrect.ellipsis"));
     QCoreApplication::processEvents();
 
-    editor::AutoCorrectOptions expected;
+    editor::AutoCorrectOptions expected = withListsOf({}, lists);
     expected.quotes = false;
     expected.dash = editor::DialogueDash::En;
     expected.ellipsis = false;
@@ -196,7 +230,8 @@ TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors 
     CHECK_FALSE(checkBoxOf(shown, CHECK_BOXES[0])->isChecked());
     CHECK(checkBoxOf(shown, CHECK_BOXES[1])->isChecked());
     CHECK_FALSE(checkBoxOf(shown, CHECK_BOXES[3])->isChecked());
-    CHECK(shown->findChild<QComboBox*>()->currentText() == QStringLiteral("En Dash (–)"));
+    CHECK(namedChild<QComboBox>(shown, "Dialogue dash")->currentText() ==
+          QStringLiteral("En Dash (–)"));
 }
 
 TEST_CASE("Settings > Auto-correct: the dash is greyed out while the dialogue dash is off",
@@ -207,10 +242,7 @@ TEST_CASE("Settings > Auto-correct: the dash is greyed out while the dialogue da
     const QCheckBox* dialogueDash = checkBoxOf(page, CHECK_BOXES[2]);
     REQUIRE(dialogueDash != nullptr);
     CHECK_FALSE(dialogueDash->isChecked());
-    CHECK_FALSE(page->findChild<QComboBox*>()->isEnabled());
-    const QLabel* dashLabel = labelOf(page, QStringLiteral("Dialogue dash:"));
-    REQUIRE(dashLabel != nullptr);
-    CHECK_FALSE(dashLabel->isEnabled());
+    CHECK_FALSE(namedChild<QComboBox>(page, "Dialogue dash")->isEnabled());
     CHECK_FALSE(dialog.hasChanges());
 }
 
@@ -223,7 +255,7 @@ TEST_CASE("Settings > Auto-correct: off as a whole, the replacements are greyed 
     QCheckBox* enabled = checkBoxOf(page, "Auto-correct as you type");
     REQUIRE(enabled != nullptr);
     CHECK(enabled->isChecked());
-    auto* dash = page->findChild<QComboBox*>();
+    auto* dash = namedChild<QComboBox>(page, "Dialogue dash");
     REQUIRE(dash != nullptr);
 
     enabled->setChecked(false);
@@ -249,7 +281,16 @@ TEST_CASE("Settings > Auto-correct: off as a whole, the replacements are greyed 
     CHECK(dash->isEnabled());
 }
 
-TEST_CASE("Settings > Auto-correct: the note gives the keys Undo has", "[gui][settings][autocorrect]") {
+TEST_CASE("Settings > Auto-correct: the notes give the keys Undo has",
+          "[gui][settings][autocorrect]") {
+    const auto undoNote = [](const QString& undo) {
+        return undo + QStringLiteral(" right after a replacement undoes just the replacement. In "
+                                     "a paragraph of the Code style auto-correct changes nothing.");
+    };
+    const auto learnNote = [](const QString& undo) {
+        return undo + QStringLiteral(" right after a capital or a change of two capitals adds the "
+                                     "abbreviation or the word to its list.");
+    };
     SECTION("The command's keys, also those the user gives it") {
         registerAllCommands(CommandCallbacks{});
         const Command* undo = CommandRegistry::getInstance().getCommand("edit.undo");
@@ -259,26 +300,319 @@ TEST_CASE("Settings > Auto-correct: the note gives the keys Undo has", "[gui][se
 
         SettingsDialog dialog(nullptr);
         QWidget* page = openAutoCorrectPage(dialog);
-        CHECK(labelStartingWith(page, keys) ==
-              keys + QStringLiteral(" right after a replacement undoes just the replacement."));
+        CHECK(labelOf(page, undoNote(keys)) != nullptr);
+        CHECK(labelOf(page, learnNote(keys)) != nullptr);
 
         const KeyboardShortcut userKeys(Qt::Key_F12, Qt::ControlModifier);
         CommandRegistry::getInstance().setCustomShortcuts({{"edit.undo", userKeys}});
         const QString newKeys = userKeys.toQKeySequence().toString(QKeySequence::NativeText);
-        CHECK(labelStartingWith(page, newKeys) ==
-              newKeys + QStringLiteral(" right after a replacement undoes just the replacement."));
+        CHECK(labelOf(page, undoNote(newKeys)) != nullptr);
+        CHECK(labelOf(page, learnNote(newKeys)) != nullptr);
 
         CommandRegistry::getInstance().setCustomShortcuts({{"edit.undo", KeyboardShortcut()}});
-        CHECK_FALSE(
-            labelStartingWith(page, QStringLiteral("Edit > Undo right after a replacement")).isEmpty());
+        CHECK(labelOf(page, undoNote(QStringLiteral("Edit > Undo"))) != nullptr);
+        CHECK(labelOf(page, learnNote(QStringLiteral("Edit > Undo"))) != nullptr);
     }
 
     SECTION("No keys, no mention of them") {
         CommandRegistry::getInstance().clear();
         SettingsDialog dialog(nullptr);
         QWidget* page = openAutoCorrectPage(dialog);
-        CHECK(labelStartingWith(page, QStringLiteral("Edit > Undo")) ==
-              QStringLiteral("Edit > Undo right after a replacement undoes just the replacement."));
+        CHECK(labelOf(page, undoNote(QStringLiteral("Edit > Undo"))) != nullptr);
+        CHECK(labelOf(page, learnNote(QStringLiteral("Edit > Undo"))) != nullptr);
+    }
+}
+
+TEST_CASE("Settings > Auto-correct: three tabs, Ctrl+Page Down and Ctrl+Page Up go between them",
+          "[gui][settings][autocorrect]") {
+    SettingsDialog dialog(nullptr);
+    QWidget* page = openAutoCorrectPage(dialog);
+    auto* tabs = page->findChild<QTabWidget*>();
+    REQUIRE(tabs != nullptr);
+    REQUIRE(tabs->count() == 3);
+    CHECK(tabs->tabText(0) == QStringLiteral("While Typing"));
+    CHECK(tabs->tabText(1) == QStringLiteral("Capitals"));
+    CHECK(tabs->tabText(2) == QStringLiteral("Replacement Table"));
+    CHECK(tabs->currentIndex() == 0);
+
+    if (!canActivateWindows()) {
+        SKIP(NEEDS_OFFSCREEN);
+    }
+    dialog.show();
+    dialog.activateWindow();
+    REQUIRE(test::waitUntil([&dialog] { return QApplication::activeWindow() == &dialog; }));
+    QCheckBox* enabled = checkBoxOf(page, "Auto-correct as you type");
+    enabled->setFocus(Qt::OtherFocusReason);
+    REQUIRE(test::waitUntil([enabled] { return QApplication::focusWidget() == enabled; }));
+    press(enabled, Qt::Key_PageDown, Qt::ControlModifier);
+    CHECK(tabs->currentIndex() == 1);
+    press(QApplication::focusWidget(), Qt::Key_PageDown, Qt::ControlModifier);
+    CHECK(tabs->currentIndex() == 2);
+    // From the last one to the first one, and back
+    press(QApplication::focusWidget(), Qt::Key_PageDown, Qt::ControlModifier);
+    CHECK(tabs->currentIndex() == 0);
+    press(QApplication::focusWidget(), Qt::Key_PageUp, Qt::ControlModifier);
+    CHECK(tabs->currentIndex() == 2);
+}
+
+TEST_CASE("Settings > Auto-correct: the replacements of the words, the capitals and the text "
+          "elements",
+          "[gui][settings][autocorrect]") {
+    auto& settings = core::SettingsManager::getInstance();
+    SettingsDialog dialog(nullptr);
+    QWidget* page = openAutoCorrectPage(dialog);
+    const std::array<std::pair<const char*, const char*>, 10> boxes = {{
+        {"“ - ” between words with:", "editor.autoCorrect.dashBetweenWords"},
+        {"In dialogue: the dash it starts with", "editor.autoCorrect.dashInDialogue"},
+        {"“--” with an en dash “–”", "editor.autoCorrect.doubleHyphen"},
+        {"Replacements from the table", "editor.autoCorrect.replacementTable"},
+        {"“***” and Enter: a scene break", "editor.autoCorrect.sceneBreak"},
+        {"A capital at the start of a sentence", "editor.autoCorrect.sentenceCapitals"},
+        {"Correct TWo INitial CApitals", "editor.autoCorrect.twoInitialCapitals"},
+        {"Correct words typed with Caps Lock on", "editor.autoCorrect.capsLock"},
+        {"“*” and a space: a bulleted list", "editor.autoCorrect.bulletedLists"},
+        {"“1.” or “1)” and a space: a numbered list", "editor.autoCorrect.numberedLists"},
+    }};
+    for (const auto& [text, key] : boxes) {
+        INFO(text);
+        const QCheckBox* box = checkBoxOf(page, text);
+        REQUIRE(box != nullptr);
+        CHECK(box->isChecked());
+    }
+    auto* wordDash = namedChild<QComboBox>(page, "Dash between words");
+    REQUIRE(wordDash != nullptr);
+    CHECK(wordDash->currentText() == QStringLiteral("En Dash (–)"));
+
+    // The dash and the dash of dialogue only with the replacement between words
+    QCheckBox* betweenWords = checkBoxOf(page, boxes[0].first);
+    QCheckBox* inDialogue = checkBoxOf(page, boxes[1].first);
+    betweenWords->setChecked(false);
+    CHECK_FALSE(wordDash->isEnabled());
+    CHECK_FALSE(inDialogue->isEnabled());
+    betweenWords->setChecked(true);
+    CHECK(inDialogue->isEnabled());
+
+    // Off as a whole: the capitals are greyed out too
+    QCheckBox* enabled = checkBoxOf(page, "Auto-correct as you type");
+    enabled->setChecked(false);
+    CHECK_FALSE(checkBoxOf(page, boxes[5].first)->isEnabled());
+    CHECK_FALSE(inDialogue->isEnabled());
+    enabled->setChecked(true);
+    CHECK(checkBoxOf(page, boxes[5].first)->isEnabled());
+
+    // The table not used: its tab says so
+    page->findChild<QTabWidget*>()->setCurrentIndex(2);
+    const QString unused = QStringLiteral("The table is not used now: “Replacements from the "
+                                          "table” is off on the While Typing tab.");
+    CHECK_FALSE(labelOf(page, unused)->isVisibleTo(page));
+    checkBoxOf(page, boxes[3].first)->setChecked(false);
+    CHECK(labelOf(page, unused)->isVisibleTo(page));
+
+    for (const auto& [text, key] : boxes) {
+        checkBoxOf(page, text)->setChecked(false);
+    }
+    wordDash->setCurrentIndex(wordDash->findData(QStringLiteral("emDash")));
+    dialog.applyButton()->click();
+    for (const auto& [text, key] : boxes) {
+        INFO(key);
+        CHECK_FALSE(settings.get<bool>(key));
+    }
+    CHECK(settings.get<std::string>("editor.autoCorrect.dashBetweenWordsType") == "emDash");
+    CHECK(settings.get<bool>("editor.autoCorrect.horizontalRule"));
+}
+
+TEST_CASE("Settings > Auto-correct: the exceptions of the capitals",
+          "[gui][settings][autocorrect]") {
+    auto& settings = core::SettingsManager::getInstance();
+    SettingsDialog dialog(nullptr);
+    QWidget* page = openAutoCorrectPage(dialog);
+    auto* polish = namedChild<QListWidget>(page, "Abbreviations, Polish");
+    auto* english = namedChild<QListWidget>(page, "Abbreviations, English and other languages");
+    auto* twoCapitals = namedChild<QListWidget>(page, "Words with two capitals");
+    REQUIRE(polish != nullptr);
+    REQUIRE(english != nullptr);
+    REQUIRE(twoCapitals != nullptr);
+    CHECK_FALSE(polish->findItems(QStringLiteral("np."), Qt::MatchExactly).isEmpty());
+    CHECK_FALSE(english->findItems(QStringLiteral("Mr."), Qt::MatchExactly).isEmpty());
+    CHECK(twoCapitals->count() == 2);
+    page->findChild<QTabWidget*>()->setCurrentIndex(1);
+
+    // The list of the language chosen; the program speaks English here
+    auto* language = labelOf(page, QStringLiteral("For a text in:"))->buddy();
+    auto* languages = qobject_cast<QComboBox*>(language);
+    REQUIRE(languages != nullptr);
+    CHECK(languages->currentText() == QStringLiteral("English and other languages"));
+    CHECK(english->isVisibleTo(page));
+    CHECK_FALSE(polish->isVisibleTo(page));
+    languages->setCurrentIndex(languages->findText(QStringLiteral("Polish")));
+    CHECK(polish->isVisibleTo(page));
+
+    // Enter in the field adds the word at the end; the dialog stays open
+    auto* field = namedChild<QLineEdit>(page, "A word to add: Abbreviations, Polish");
+    REQUIRE(field != nullptr);
+    field->setText(QStringLiteral("ps."));
+    press(field, Qt::Key_Return);
+    CHECK(polish->item(polish->count() - 1)->text() == QStringLiteral("ps."));
+    CHECK(field->text().isEmpty());
+    // A word in the list already, or with a space, is not added
+    field->setText(QStringLiteral("np."));
+    press(field, Qt::Key_Return);
+    field->setText(QStringLiteral("a b"));
+    press(field, Qt::Key_Return);
+    CHECK(polish->findItems(QStringLiteral("np."), Qt::MatchExactly).size() == 1);
+    CHECK(polish->findItems(QStringLiteral("a b"), Qt::MatchExactly).isEmpty());
+
+    // Delete takes the words selected off
+    const int before = polish->count();
+    polish->setCurrentItem(polish->findItems(QStringLiteral("np."), Qt::MatchExactly).front());
+    press(polish, Qt::Key_Delete);
+    CHECK(polish->count() == before - 1);
+    CHECK(polish->findItems(QStringLiteral("np."), Qt::MatchExactly).isEmpty());
+
+    auto* capitalsField = namedChild<QLineEdit>(page, "A word to add: Words with two capitals");
+    REQUIRE(capitalsField != nullptr);
+    capitalsField->setText(QStringLiteral("CDs"));
+    press(capitalsField, Qt::Key_Enter);
+
+    dialog.applyButton()->click();
+    const nlohmann::json abbreviations =
+        settings.get<nlohmann::json>("editor.autoCorrect.abbreviations.pl");
+    CHECK(textsContain(abbreviations, "ps."));
+    CHECK_FALSE(textsContain(abbreviations, "np."));
+    CHECK(textsContain(settings.get<nlohmann::json>("editor.autoCorrect.twoCapitalsExceptions"),
+                       "CDs"));
+    CHECK(textsContain(settings.get<nlohmann::json>("editor.autoCorrect.abbreviations.en"), "Mr."));
+}
+
+TEST_CASE("Settings > Auto-correct: the replacement table", "[gui][settings][autocorrect]") {
+    // Each section starts with the program's pairs (a section before may have applied others)
+    setReplacementEntries(defaultReplacementEntries());
+    SettingsDialog dialog(nullptr);
+    QWidget* page = openAutoCorrectPage(dialog);
+    auto* table = namedChild<QTableWidget>(page, "Replacement table");
+    auto* word = namedChild<QLineEdit>(page, "The word of a new pair");
+    auto* replacement = namedChild<QLineEdit>(page, "Its replacement");
+    REQUIRE(table != nullptr);
+    REQUIRE(word != nullptr);
+    REQUIRE(replacement != nullptr);
+    const auto rowOf = [table](const QString& from) {
+        for (int row = 0; row < table->rowCount(); ++row) {
+            if (table->item(row, 1)->text() == from) {
+                return row;
+            }
+        }
+        return -1;
+    };
+    const auto pairsStored = []() { return replacementEntries(); };
+    page->findChild<QTabWidget*>()->setCurrentIndex(2);
+
+    // The program's own pairs, each one on
+    REQUIRE(table->rowCount() == 11);
+    CHECK(table->item(0, 1)->text() == QStringLiteral("(c)"));
+    CHECK(table->item(0, 2)->text() == QStringLiteral("©"));
+    CHECK(table->item(0, 0)->checkState() == Qt::Checked);
+    CHECK(table->item(0, 3)->text() == QStringLiteral("built-in"));
+
+    SECTION("A new pair: Enter in its fields adds it at the end, the writer's own") {
+        word->setText(QStringLiteral("kal"));
+        replacement->setText(QStringLiteral("Kalahari"));
+        press(replacement, Qt::Key_Return);
+        REQUIRE(table->rowCount() == 12);
+        CHECK(table->item(11, 1)->text() == QStringLiteral("kal"));
+        CHECK(table->item(11, 3)->text() == QStringLiteral("your own"));
+        CHECK(table->currentRow() == 11);
+        CHECK(word->text().isEmpty());
+        dialog.applyButton()->click();
+        CHECK(pairsStored().back() ==
+              ReplacementEntry{QStringLiteral("kal"), QStringLiteral("Kalahari"), true});
+    }
+
+    SECTION("A word of the table: Add gives it the new replacement, saying so first") {
+        word->setText(QStringLiteral("->"));
+        replacement->setText(QStringLiteral("⇒"));
+        const QLabel* note = labelOf(page, QStringLiteral("Auto-correct replaces “->” with “→” "
+                                                          "now: Add puts “⇒” in its place."));
+        REQUIRE(note != nullptr);
+        CHECK(note->isVisibleTo(page));
+        press(word, Qt::Key_Enter);
+        CHECK(table->rowCount() == 11);
+        CHECK(table->item(rowOf(QStringLiteral("->")), 2)->text() == QStringLiteral("⇒"));
+        CHECK(table->item(rowOf(QStringLiteral("->")), 3)->text() == QStringLiteral("your own"));
+        CHECK_FALSE(note->isVisibleTo(page));
+    }
+
+    SECTION("Space turns the pairs selected off and on, Delete removes them") {
+        table->setCurrentCell(1, 1);
+        table->selectionModel()->select(table->model()->index(2, 0),
+                                        QItemSelectionModel::Select | QItemSelectionModel::Rows);
+        press(table, Qt::Key_Space);
+        CHECK(table->item(1, 0)->checkState() == Qt::Unchecked);
+        CHECK(table->item(2, 0)->checkState() == Qt::Unchecked);
+        CHECK(table->item(0, 0)->checkState() == Qt::Checked);
+        dialog.applyButton()->click();
+        CHECK_FALSE(pairsStored().at(1).enabled);
+        CHECK(autoCorrectSources(QStringLiteral("®")).isEmpty());
+        press(table, Qt::Key_Space);
+        CHECK(table->item(1, 0)->checkState() == Qt::Checked);
+
+        press(table, Qt::Key_Delete);
+        CHECK(table->rowCount() == 9);
+        CHECK(rowOf(QStringLiteral("(r)")) == -1);
+        CHECK(rowOf(QStringLiteral("(tm)")) == -1);
+        // The keys go on from the pair after them
+        CHECK(table->currentRow() == 1);
+        CHECK(table->item(1, 1)->text() == QStringLiteral("1/2"));
+
+        // Restore Defaults: the program's pairs come back, the writer's stay
+        table->item(0, 2)->setText(QStringLiteral("(C)"));
+        word->setText(QStringLiteral("kal"));
+        replacement->setText(QStringLiteral("Kalahari"));
+        press(word, Qt::Key_Return);
+        QPushButton* restore = nullptr;
+        for (QPushButton* button : page->findChildren<QPushButton*>()) {
+            if (button->text() == QStringLiteral("Restore Defaults")) {
+                restore = button;
+            }
+        }
+        REQUIRE(restore != nullptr);
+        restore->click();
+        CHECK(table->rowCount() == 12);
+        CHECK(table->item(0, 2)->text() == QStringLiteral("©"));
+        CHECK(rowOf(QStringLiteral("(r)")) >= 0);
+        CHECK(rowOf(QStringLiteral("kal")) >= 0);
+    }
+
+    SECTION("An edit the table cannot have is put back, saying why") {
+        table->item(0, 1)->setText(QStringLiteral("(r)"));
+        CHECK(table->item(0, 1)->text() == QStringLiteral("(c)"));
+        CHECK(labelOf(page, QStringLiteral("The table has a pair of “(r)” already: “(c)” "
+                                           "stays."))
+                  ->isVisibleTo(page));
+        table->item(0, 1)->setText(QStringLiteral("a b"));
+        CHECK(table->item(0, 1)->text() == QStringLiteral("(c)"));
+        table->item(0, 2)->setText(QStringLiteral(" "));
+        CHECK(table->item(0, 2)->text() == QStringLiteral("©"));
+        CHECK(labelOf(page, QStringLiteral("A word cannot be replaced with nothing: “©” stays."))
+                  ->isVisibleTo(page));
+        // A word edited well
+        table->item(0, 1)->setText(QStringLiteral(" (C) "));
+        CHECK(table->item(0, 1)->text() == QStringLiteral("(C)"));
+        CHECK(table->item(0, 3)->text() == QStringLiteral("your own"));
+        dialog.applyButton()->click();
+        CHECK(pairsStored().front().from == QStringLiteral("(C)"));
+    }
+
+    SECTION("Insert goes to the word of a new pair") {
+        if (!canActivateWindows()) {
+            SKIP(NEEDS_OFFSCREEN);
+        }
+        dialog.show();
+        dialog.activateWindow();
+        REQUIRE(test::waitUntil([&dialog] { return QApplication::activeWindow() == &dialog; }));
+        table->setFocus(Qt::OtherFocusReason);
+        REQUIRE(test::waitUntil([table] { return QApplication::focusWidget() == table; }));
+        press(table, Qt::Key_Insert);
+        CHECK(QApplication::focusWidget() == word);
     }
 }
 
@@ -431,6 +765,17 @@ TEST_CASE("Autocorrect: Tools > Auto-correct as You Type turns all the replaceme
         nothing.apostrophe = false;
         nothing.dialogueDash = false;
         nothing.ellipsis = false;
+        nothing.dashBetweenWords = false;
+        nothing.doubleHyphen = false;
+        nothing.sentenceCapitals = false;
+        nothing.twoInitialCapitals = false;
+        nothing.capsLock = false;
+        nothing.sceneBreak = false;
+        nothing.horizontalRule = false;
+        nothing.bulletedLists = false;
+        nothing.numberedLists = false;
+        nothing.languageAbbreviations = panel.getBookEditor()->autoCorrect().languageAbbreviations;
+        nothing.twoCapitalsExceptions = panel.getBookEditor()->autoCorrect().twoCapitalsExceptions;
         REQUIRE(test::waitUntil([bookEditor, &nothing]() {
             return bookEditor->autoCorrect() == nothing;
         }));
@@ -460,7 +805,8 @@ TEST_CASE("Autocorrect: Tools > Auto-correct as You Type turns all the replaceme
         chosen.apostrophe = false;
         chosen.dash = editor::DialogueDash::En;
         REQUIRE(test::waitUntil([bookEditor, &chosen]() {
-            return bookEditor->autoCorrect() == chosen;
+            return bookEditor->autoCorrect() == withListsOf(chosen, bookEditor->autoCorrect()) &&
+                   !bookEditor->autoCorrect().replacements.empty();
         }));
         CHECK(test::waitUntil([action]() {
             return action->toolTip().contains(QStringLiteral(
@@ -489,4 +835,142 @@ TEST_CASE("Autocorrect: Tools > Auto-correct as You Type turns all the replaceme
     const Command* command = registry.getCommand("tools.autocorrect");
     REQUIRE(command != nullptr);
     CHECK_FALSE(static_cast<bool>(command->execute));
+}
+
+TEST_CASE("Autocorrect: the settings of the words reach the editors",
+          "[gui][settings][autocorrect]") {
+    auto& settings = core::SettingsManager::getInstance();
+    EditorPanel panel;
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    REQUIRE(bookEditor != nullptr);
+
+    // The program's own lists
+    const editor::AutoCorrectOptions& options = bookEditor->autoCorrect();
+    CHECK(options.replacements.size() == 11);
+    CHECK(std::find(options.replacements.begin(), options.replacements.end(),
+                    editor::Replacement{QStringLiteral("(c)"), QStringLiteral("©")}) !=
+          options.replacements.end());
+    REQUIRE(options.languageAbbreviations.contains(QStringLiteral("pl")));
+    REQUIRE(options.languageAbbreviations.contains(QStringLiteral("en")));
+    CHECK(options.languageAbbreviations.at(QStringLiteral("pl")).contains(QStringLiteral("np.")));
+    CHECK_FALSE(
+        options.languageAbbreviations.at(QStringLiteral("pl")).contains(QStringLiteral("itd.")));
+    CHECK(options.languageAbbreviations.at(QStringLiteral("en")).contains(QStringLiteral("Mr.")));
+    CHECK(options.twoCapitalsExceptions == QStringList{QStringLiteral("IDs"), QStringLiteral("PCs")});
+
+    // A pair turned off, a pair of the writer's, the dashes, the switches
+    nlohmann::json pairs = settings.get<nlohmann::json>("editor.autoCorrect.replacements");
+    REQUIRE(pairs.is_array());
+    pairs[0]["enabled"] = false;  // (c)
+    pairs.push_back({{"from", "kal"}, {"to", "Kalahari"}});
+    settings.set<nlohmann::json>("editor.autoCorrect.replacements", pairs);
+    settings.set<std::string>("editor.autoCorrect.dashBetweenWordsType", "emDash");
+    settings.set<bool>("editor.autoCorrect.dashInDialogue", false);
+    settings.set<bool>("editor.autoCorrect.sentenceCapitals", false);
+    settings.set<bool>("editor.autoCorrect.sceneBreak", false);
+    REQUIRE(test::waitUntil([bookEditor]() { return !bookEditor->autoCorrect().sceneBreak; }));
+    const editor::AutoCorrectOptions& changed = bookEditor->autoCorrect();
+    CHECK(changed.replacements.size() == 11);
+    CHECK(changed.replacements.front() ==
+          editor::Replacement{QStringLiteral("(r)"), QStringLiteral("®")});
+    CHECK(changed.replacements.back() ==
+          editor::Replacement{QStringLiteral("kal"), QStringLiteral("Kalahari")});
+    CHECK(changed.wordDash == editor::DialogueDash::Em);
+    CHECK_FALSE(changed.dialogueDashInDialogue);
+    CHECK_FALSE(changed.sentenceCapitals);
+    CHECK(changed.horizontalRule);
+
+    bookEditor->fromKml(test::kmlOf({QString()}));
+    type(bookEditor, QStringLiteral("o kal (c) - (r) "));
+    CHECK(bookEditor->plainText() == QStringLiteral("o Kalahari (c) — ® "));
+
+    // The table off as a whole: no pair
+    settings.set<bool>("editor.autoCorrect.replacementTable", false);
+    REQUIRE(test::waitUntil([bookEditor]() { return bookEditor->autoCorrect().replacements.empty(); }));
+}
+
+TEST_CASE("Autocorrect: a capital undone right after it adds to the exceptions",
+          "[gui][autocorrect][undo]") {
+    auto& settings = core::SettingsManager::getInstance();
+    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    settings.set<std::string>("editor.spellCheck.language", "pl");
+    QMainWindow window;
+    auto* panel = new EditorPanel();
+    window.setCentralWidget(panel);
+    editor::BookEditor* bookEditor = panel->getBookEditor();
+    bookEditor->fromKml(test::kmlOf({QString()}));
+
+    SECTION("An abbreviation, in the list of the text's language") {
+        type(bookEditor, QStringLiteral("Pies zw. reksem "));
+        REQUIRE(bookEditor->plainText() == QStringLiteral("Pies zw. Reksem "));
+        bookEditor->undo();
+        CHECK(bookEditor->plainText() == QStringLiteral("Pies zw. reksem "));
+        CHECK(settings.get<nlohmann::json>("editor.autoCorrect.abbreviations.pl").back() ==
+              "zw.");
+        CHECK(window.statusBar()->currentMessage() ==
+              QStringLiteral("After “zw.” auto-correct no longer starts a sentence with a "
+                             "capital: it is among the exceptions now."));
+
+        // The editors have it: the next word after it stays
+        REQUIRE(test::waitUntil([bookEditor]() {
+            return bookEditor->autoCorrect()
+                .languageAbbreviations.at(QStringLiteral("pl"))
+                .contains(QStringLiteral("zw."));
+        }));
+        type(bookEditor, QStringLiteral("i zw. burkiem "));
+        CHECK(bookEditor->plainText() == QStringLiteral("Pies zw. reksem i zw. burkiem "));
+    }
+
+    SECTION("A word with two capitals") {
+        type(bookEditor, QStringLiteral("Ala ABc "));
+        REQUIRE(bookEditor->plainText() == QStringLiteral("Ala Abc "));
+        bookEditor->undo();
+        CHECK(settings.get<nlohmann::json>("editor.autoCorrect.twoCapitalsExceptions").back() ==
+              "ABc");
+        CHECK(window.statusBar()->currentMessage() ==
+              QStringLiteral(
+                  "Auto-correct no longer changes “ABc”: it is among the exceptions now."));
+    }
+
+    SECTION("Not when the writer turned it off") {
+        settings.set<bool>("editor.autoCorrect.learnExceptions", false);
+        type(bookEditor, QStringLiteral("Pies ps. reksem "));
+        REQUIRE(bookEditor->plainText() == QStringLiteral("Pies ps. Reksem "));
+        bookEditor->undo();
+        CHECK_FALSE(textsContain(settings.get<nlohmann::json>("editor.autoCorrect.abbreviations.pl"),
+                                 "ps."));
+        CHECK(window.statusBar()->currentMessage().isEmpty());
+    }
+}
+
+TEST_CASE("Autocorrect: a word typed with Caps Lock on turns it off, or the writer is told",
+          "[gui][autocorrect]") {
+    QMainWindow window;
+    auto* panel = new EditorPanel();
+    window.setCentralWidget(panel);
+    editor::BookEditor* bookEditor = panel->getBookEditor();
+    bookEditor->fromKml(test::kmlOf({QString()}));
+
+    int turnedOff = 0;
+    bool systemLets = true;
+    setCapsLockForTests([&turnedOff, &systemLets]() {
+        ++turnedOff;
+        return systemLets;
+    });
+
+    typeWithCapsLock(bookEditor, QStringLiteral("Ala wIELKI "));
+    CHECK(bookEditor->plainText() == QStringLiteral("Ala Wielki "));
+    CHECK(turnedOff == 1);
+    CHECK(window.statusBar()->currentMessage() ==
+          QStringLiteral("Caps Lock was on: the word typed with it is corrected, and Caps Lock "
+                         "is off now."));
+
+    systemLets = false;
+    typeWithCapsLock(bookEditor, QStringLiteral("kOT "));
+    CHECK(bookEditor->plainText() == QStringLiteral("Ala Wielki Kot "));
+    CHECK(turnedOff == 2);
+    CHECK(window.statusBar()->currentMessage() ==
+          QStringLiteral("Caps Lock is on: the word typed with it is corrected. Turn Caps Lock "
+                         "off."));
+    setCapsLockForTests({});
 }

@@ -249,6 +249,23 @@ void AnnotationFrame::place() {
         return;
     }
     const Placement placement = m_placement();
+
+    // Over its card, as wide as it; the card makes room for the frame as high as it is
+    if (!placement.card.isEmpty()) {
+        const int cardWidth = std::max(1, static_cast<int>(std::lround(placement.card.width())));
+        if (cardWidth != width()) {
+            resize(cardWidth, height());
+            updateTextHeight();
+        }
+        const int frameHeight = sizeHint().height();
+        setGeometry(static_cast<int>(std::lround(placement.card.left())),
+                    static_cast<int>(std::lround(placement.card.top())), cardWidth, frameHeight);
+        if (std::abs(placement.card.height() - frameHeight) >= 1.0) {
+            emit cardHeightNeeded(frameHeight);
+        }
+        return;
+    }
+
     QRectF column = placement.column.intersected(area);
     if (column.width() < 1.0) {
         column = area;
