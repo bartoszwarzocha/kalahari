@@ -10,8 +10,10 @@
 #include "editor_test_utils.h"
 
 #include <QCoreApplication>
+#include <QIcon>
 #include <QImage>
 #include <QMouseEvent>
+#include <QPixmap>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -215,6 +217,49 @@ TEST_CASE("Mirror margins: pages 2, 4... have the margins of page 1 the other wa
         CAPTURE(zoom);
         click(*editor, QPointF(at.left() + 1.0, at.center().y()));
         CHECK(editor->cursorPosition() == target);
+    }
+}
+
+TEST_CASE("Mirror margins: the paperclip of a paragraph is in the margin of its page",
+          "[editor][margins][pagemode][marks]") {
+    auto editor = editorWith(ViewMode::Page, paragraphs(60));
+    change(*editor, [](EditorAppearance& appearance) {
+        appearance.pageMargins.inner = 40.0;
+        appearance.pageMargins.outer = 10.0;
+        appearance.pageMargins.mirrored = true;
+        appearance.pageMargins.firstPageLeft = false;
+    });
+    paint(*editor);
+    REQUIRE(editor->totalPages() >= 3);
+
+    // A paragraph that starts on page 2, a left page: its text 30 mm further left than on
+    // a right page
+    editor->goToPage(2);
+    paint(*editor);
+    REQUIRE(editor->currentPage() == 2);
+    const int paragraph = editor->cursorPosition().paragraph + 1;
+    QPixmap pixmap(32, 32);
+    pixmap.fill(Qt::red);
+    editor->setParagraphMarks({ParagraphMark{paragraph, {QStringLiteral("m1")},
+                                             {QStringLiteral("Map")}}},
+                              QIcon(pixmap));
+    editor->setCursorPosition({paragraph, 0});
+    paint(*editor);
+    REQUIRE(editor->currentPage() == 2);
+    const QRectF line = caret(*editor);
+
+    // Left of the text of its line, not where a right page has the text
+    const auto markAt = [&editor, &line](double x) {
+        return editor->paragraphMarkAt(QPointF(x, line.center().y())).has_value();
+    };
+    bool found = false;
+    for (double x = line.left() - 1.0; x > line.left() - 3.0 * line.height(); x -= 1.0) {
+        found = found || markAt(x);
+    }
+    CHECK(found);
+    for (double x = line.left(); x < line.left() + 150.0; x += 1.0) {
+        INFO("x " << x);
+        REQUIRE_FALSE(markAt(x));
     }
 }
 
