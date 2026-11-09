@@ -278,7 +278,7 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
               std::vector<std::string>{
                   "title_page, copyright, dedication, motto, toc, preface, introduction",
                   "chapter, part", "afterword, acknowledgments, glossary, about_author, toc",
-                  "work_note, mindmap, timeline, character, location, item, material"});
+                  "mindmap, timeline, character, location, item, work_note, quote, web_page, picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.base") == "chapter");
     }
 
@@ -288,7 +288,7 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
                   "title_page, copyright, dedication, motto, toc, preface",
                   "prologue, part, chapter, epilogue",
                   "afterword, acknowledgments, glossary, about_author, toc",
-                  "work_note, mindmap, timeline, character, location, item, material"});
+                  "mindmap, timeline, character, location, item, work_note, quote, web_page, picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.novel") == "chapter");
         CHECK(start("kalahari.novel") == "title_page/front, chapter/main");
     }
@@ -299,7 +299,7 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
                   "title_page, copyright, dedication, motto, toc, introduction",
                   "story, section",
                   "contributors, first_publications, acknowledgments, about_author, toc",
-                  "work_note, mindmap, character, location, material"});
+                  "mindmap, character, location, work_note, quote, web_page, picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.short_stories") == "story");
         CHECK(start("kalahari.short_stories") == "title_page/front, story/main");
     }
@@ -312,7 +312,7 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
                   "part, chapter, conclusion",
                   "annex, endnotes, bibliography, glossary, index, illustrations, "
                   "acknowledgments, about_author, toc",
-                  "source, work_note, timeline, mindmap, material"});
+                  "source, timeline, mindmap, work_note, quote, web_page, picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.nonfiction") == "chapter");
         CHECK(start("kalahari.nonfiction") ==
               "title_page/front, introduction/front, chapter/main");
@@ -322,7 +322,7 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
         CHECK(places("kalahari.screenplay") ==
               std::vector<std::string>{"title_page", "act, episode", "",
                                        "logline, synopsis, treatment, step_outline, character, "
-                                       "location, work_note, material"});
+                                       "location, work_note, quote, web_page, picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.screenplay") == "act");
         CHECK(start("kalahari.screenplay") == "title_page/front, act/main");
     }
@@ -332,7 +332,7 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
               std::vector<std::string>{
                   "title_page, copyright, dedication, motto, toc, introduction", "cycle, poem",
                   "explanatory_notes, about_author, first_lines, publisher_note, toc",
-                  "draft, work_note, mindmap, material"});
+                  "draft, mindmap, work_note, quote, web_page, picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.poetry") == "poem");
         CHECK(start("kalahari.poetry") == "title_page/front, poem/main");
     }
@@ -406,14 +406,17 @@ TEST_CASE("Built-in book types: a kind comes from the type or from a package it 
     CHECK(toc.kind->allows(BookPlace::Back));
 }
 
-TEST_CASE("Built-in book types: the palette offers every kind of every package",
+TEST_CASE("Built-in book types: the palette offers every kind of every package but the "
+          "retired ones",
           "[core][booktypes]") {
     BookTypeRegistry registry;
     loadBuiltIn(registry);
 
     qsizetype kindCount = 0;
     for (const BookTypePackage* package : registry.packages()) {
-        kindCount += package->kinds.size();
+        for (const ElementKind& kind : package->kinds) {
+            kindCount += kind.retired ? 0 : 1;
+        }
     }
     const QList<KindRef> all = registry.allKinds();
     CHECK(all.size() == kindCount);
@@ -425,12 +428,13 @@ TEST_CASE("Built-in book types: the palette offers every kind of every package",
     }
     qualified.removeDuplicates();
     CHECK(qualified.size() == kindCount);
-    for (const char* kind : {"kalahari.base/chapter", "kalahari.base/material",
+    for (const char* kind : {"kalahari.base/chapter", "kalahari.base/quote",
                              "kalahari.novel/prologue", "kalahari.screenplay/act",
                              "kalahari.poetry/poem", "kalahari.nonfiction/source"}) {
         INFO(kind);
         CHECK(qualified.contains(QString::fromLatin1(kind)));
     }
+    CHECK_FALSE(qualified.contains(QStringLiteral("kalahari.base/material")));
     // A package's kinds in the order of its lists
     CHECK(qualified.indexOf(QStringLiteral("kalahari.base/title_page")) <
           qualified.indexOf(QStringLiteral("kalahari.base/chapter")));
@@ -484,14 +488,30 @@ TEST_CASE("Built-in book types: groups of the Workshop and the parts layer",
         }
         return joined(kinds);
     };
+    const std::string materials =
+        "work_note/resources, quote/resources, web_page/resources, picture/resources, "
+        "document/resources, publication/resources, recording/resources, other_file/resources";
     CHECK(groups("kalahari.novel") ==
-          "work_note, mindmap, timeline, character/libraries, location/libraries, item/libraries, "
-          "material/resources");
-    CHECK(groups("kalahari.nonfiction") ==
-          "source/libraries, work_note, timeline, mindmap, material/resources");
+          "mindmap, timeline, character/libraries, location/libraries, item/libraries, " +
+              materials);
+    CHECK(groups("kalahari.nonfiction") == "source/libraries, timeline, mindmap, " + materials);
     CHECK(groups("kalahari.screenplay") ==
-          "logline, synopsis, treatment, step_outline, character/libraries, location/libraries, "
-          "work_note, material/resources");
+          "logline, synopsis, treatment, step_outline, character/libraries, location/libraries, " +
+              materials);
+
+    // The one kind of materials of earlier versions is read, but offered nowhere
+    const KindRef old = registry.findKind(QStringLiteral("kalahari.novel"),
+                                          QStringLiteral("material"));
+    REQUIRE(old);
+    CHECK(old.kind->retired);
+    CHECK(old.kind->isMaterial());
+    CHECK_FALSE(old.offeredIn(BookPlace::Workshop));
+    const QList<KindRef> all = registry.allKinds();
+    CHECK(std::none_of(all.cbegin(), all.cend(),
+                       [](const KindRef& kind) { return kind.kind->retired; }));
+    CHECK(std::count_if(all.cbegin(), all.cend(), [](const KindRef& kind) {
+              return kind.kind->isMaterial();
+          }) == 7);
     CHECK(workshopGroupFromName(QStringLiteral("libraries")) == WorkshopGroup::Libraries);
     CHECK_FALSE(workshopGroupFromName(QStringLiteral("archive")));
     CHECK(workshopGroupName(WorkshopGroup::None).isEmpty());
@@ -1009,6 +1029,8 @@ TEST_CASE("Book type packages: a type with a problem is not loaded", "[core][boo
          "kinds.motto.position: only a kind of the main part has a position"},
         {"an opening that is not true or false", set("kinds.prologue.first", "yes"),
          "kinds.prologue.first: must be true or false"},
+        {"a retired kind that is not true or false", set("kinds.prologue.retired", "yes"),
+         "kinds.prologue.retired: must be true or false"},
         {"an opening kind with a position",
          [](QJsonObject& type) {
              setAt(type, QStringLiteral("kinds.prologue.position"), QStringLiteral("start"));

@@ -99,6 +99,10 @@ constexpr std::array<const char*, 3> VERSIONS_TOOLBAR_COMMANDS{
 /// The prefix of the setting with whether a toolbar was shown when the window closed
 constexpr const char* VISIBLE_SETTING_PREFIX = "toolbars.visible.";
 
+/// The setting with whether the saved layout has the Panels toolbar put by the right edge
+/// (ToolbarManager::placePanelsToolbar())
+constexpr const char* PANELS_PLACED_SETTING = "toolbars.panelsByRightEdge";
+
 }  // namespace
 
 // OpenSpec #00037: Toolbar config version for reset detection
@@ -557,6 +561,13 @@ void ToolbarManager::restoreState() {
         logger.debug("ToolbarManager: Toolbar '{}' visibility set to {} (default: {}, hasSaved: {})",
                      id, visible, defaultVisible, hasSavedSettings);
     }
+
+    // A layout saved while the Panels toolbar was hidden at the top by default keeps it there:
+    // once, it stands by the right edge, shown, as in the default layout
+    if (hasSavedSettings && !settings.get<bool>(PANELS_PLACED_SETTING, false)) {
+        placePanelsToolbar();
+    }
+    settings.set<bool>(PANELS_PLACED_SETTING, true);
 
     // OpenSpec #00037: Apply default layout if no saved settings
     // This ensures proper 2-row layout on first run or after config reset
@@ -1102,6 +1113,20 @@ void ToolbarManager::placeVersionsToolbar() {
     quickActions->setVisible(quickActionsShown);
     core::Logger::getInstance().info(
         "ToolbarManager: Versions and Backups placed after Quick Actions in a saved layout");
+}
+
+void ToolbarManager::placePanelsToolbar() {
+    QToolBar* panels = getToolbar("view");
+    if (panels == nullptr) {
+        return;
+    }
+    m_mainWindow->addToolBar(Qt::RightToolBarArea, panels);
+    panels->setVisible(true);
+    if (auto action = m_viewActions.find("view"); action != m_viewActions.end()) {
+        action->second->setChecked(true);
+    }
+    core::Logger::getInstance().info(
+        "ToolbarManager: Panels placed by the right edge and shown in a saved layout");
 }
 
 void ToolbarManager::loadConfigurations() {

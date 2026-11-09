@@ -4,7 +4,9 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/backup_manager.h>
 #include <kalahari/core/chapter_document.h>
+#include <kalahari/core/link_roles.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/material_kinds.h>
 #include <kalahari/core/old_book_conversion.h>
 #include <kalahari/core/package_card.h>
 #include <kalahari/core/resource_paths.h>
@@ -385,6 +387,12 @@ zip_t* openZip(const QString& path, int flags, ZipFailure* failure) {
     }
     zip_error_fini(&zipError);
     return archive;
+}
+
+/// Write @p data as the whole of file @p path, which is replaced only once it is written
+bool writeWhole(const QString& path, const QByteArray& data) {
+    QSaveFile file(path);
+    return file.open(QIODevice::WriteOnly) && file.write(data) == data.size() && file.commit();
 }
 
 }  // namespace
@@ -910,6 +918,9 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
                 }
             }
         }
+
+        // The materials of a book saved before the kinds of materials get theirs
+        convertOldMaterials();
     }
     m_packageCards = PackageCards::readAll(projectDir, *m_project);
 
@@ -1440,7 +1451,8 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
 }
 
 bool ProjectManager::canAdd(const KindRef& kind) {
-    return kind && (kind.kind->form != ElementForm::Window || kind.kind->isMaterial());
+    return kind && !kind.kind->retired &&
+           (kind.kind->form != ElementForm::Window || kind.kind->isMaterial());
 }
 
 std::optional<ElementPlace> ProjectManager::newPlaceAfter(const QString& elementId,
@@ -1508,6 +1520,13 @@ QString ProjectManager::newMaterialFile(const QString& sourcePath) const {
 
 QString ProjectManager::addMaterial(const QString& sourcePath, const KindRef& kind,
                                     const QString& title) {
+    NewMaterial material;
+    material.title = title;
+    material.filePath = sourcePath;
+    return addMaterial(material, kind);
+}
+
+QString ProjectManager::addMaterial(const NewMaterial& material, const KindRef& kind) {
     auto& logger = Logger::getInstance();
     if (refusesChange("addMaterial")) {
         return QString();
@@ -1520,36 +1539,83 @@ QString ProjectManager::addMaterial(const QString& sourcePath, const KindRef& ki
         logger.error("addMaterial: {} is not a kind of materials", kind.reference().toStdString());
         return QString();
     }
-    const QFileInfo source(sourcePath);
-    if (!source.isFile() || !source.isReadable()) {
-        logger.error("addMaterial: {} is not a file that can be read", sourcePath.toStdString());
-        return QString();
+    const bool copy = !material.filePath.isEmpty();
+    if (copy) {
+        const QFileInfo source(material.filePath);
+        if (!source.isFile() || !source.isReadable()) {
+            logger.error("addMaterial: {} is not a file that can be read",
+                         material.filePath.toStdString());
+            return QString();
+        }
     }
 
     ProjectElement element;
     element.id = m_project->newElementId();
     element.kind = KindReference{kind.package->id, kind.kind->id};
-    element.title = title;
-    element.file = newMaterialFile(sourcePath);
-    const QString target = filePathOf(element);
-    if (!QDir().mkpath(QFileInfo(target).absolutePath()) || !QFile::copy(sourcePath, target)) {
-        logger.error("addMaterial: Cannot copy {} to {}", sourcePath.toStdString(),
-                     target.toStdString());
-        QFile::remove(target);
-        return QString();
+    element.title = material.title;
+    element.url = material.url;
+    const QString role = LinkRoles::suggestedFor(kind.kind->id);
+    for (const QString& link : material.links) {
+        if (element.linkTo(link) == nullptr && m_project->hasLinkTarget(link)) {
+            element.links << ElementLink{link, role, 0, {}, {}, {}};
+        }
+    }
+    QString target;
+    if (copy || !material.data.isEmpty()) {
+        element.file = newMaterialFile(copy ? material.filePath : material.fileName);
+        target = filePathOf(element);
+        const bool written = QDir().mkpath(QFileInfo(target).absolutePath()) &&
+                             (copy ? QFile::copy(material.filePath, target)
+                                   : writeWhole(target, material.data));
+        if (!written) {
+            logger.error("addMaterial: Cannot write {}", target.toStdString());
+            QFile::remove(target);
+            return QString();
+        }
     }
 
     const qsizetype at = newIndexIn(*list, kind);
     list->insert(at, element);
     if (!saveManifest()) {
         list->removeAt(at);
-        QFile::remove(target);
+        if (!target.isEmpty()) {
+            QFile::remove(target);
+        }
         return QString();
     }
 
-    logger.info("addMaterial: Added {} as '{}' ({}, id: {})", sourcePath.toStdString(),
-                title.toStdString(), element.file.toStdString(), element.id.toStdString());
+    logger.info("addMaterial: Added '{}' (file: {}, address: {}, id: {})",
+                material.title.toStdString(), element.file.toStdString(),
+                element.url.toStdString(), element.id.toStdString());
+    if (!element.links.isEmpty()) {
+        emit linksChanged();
+    }
     return element.id;
+}
+
+bool ProjectManager::setMaterialCopy(const QString& elementId, const QByteArray& data,
+                                     const QString& fileName) {
+    auto& logger = Logger::getInstance();
+    if (refusesChange("setMaterialCopy")) {
+        return false;
+    }
+    ProjectElement* element = findElement(elementId);
+    if (!element || !element->file.isEmpty()) {
+        logger.warn("setMaterialCopy: {} is no element without a file", elementId.toStdString());
+        return false;
+    }
+    element->file = newMaterialFile(fileName);
+    const QString target = filePathOf(*element);
+    if (!QDir().mkpath(QFileInfo(target).absolutePath()) || !writeWhole(target, data) ||
+        !saveManifest()) {
+        logger.error("setMaterialCopy: Cannot write {}", target.toStdString());
+        element->file.clear();
+        QFile::remove(target);
+        return false;
+    }
+    logger.info("setMaterialCopy: {} has its copy in {}", elementId.toStdString(),
+                target.toStdString());
+    return true;
 }
 
 bool ProjectManager::isBookFile(const QString& elementId) const {
@@ -1819,19 +1885,46 @@ std::optional<ProjectElement> ProjectManager::removeElement(const QString& eleme
         return std::nullopt;
     }
     ProjectElement element = list->takeAt(index);
+    QList<const ProjectElement*> removed{&element};
+    appendAll(element.elements, removed);
+
+    // The links to the element and to the elements inside it go with it
+    QSet<QString> removedIds;
+    for (const ProjectElement* gone : removed) {
+        removedIds.insert(gone->id);
+    }
+    const auto removedLink = [&removedIds](const ElementLink& link) {
+        return removedIds.contains(link.to);
+    };
+    QList<std::pair<QString, QList<ElementLink>>> unlinked;  // Elements and their links before
+    for (const ProjectElement* each : allElements(*m_project)) {
+        if (std::any_of(each->links.cbegin(), each->links.cend(), removedLink)) {
+            unlinked.append({each->id, each->links});
+        }
+    }
+    for (const auto& [linkedId, links] : unlinked) {
+        m_project->findElement(linkedId)->links.removeIf(removedLink);
+    }
+
     if (!saveManifest()) {
+        for (const auto& [linkedId, links] : unlinked) {
+            m_project->findElement(linkedId)->links = links;
+        }
         list->insert(index, element);
         return std::nullopt;
     }
 
     // The program forgets the element and the elements inside it; their files stay
-    QList<const ProjectElement*> removed{&element};
-    appendAll(element.elements, removed);
+    bool linksGone = !unlinked.isEmpty();
     for (const ProjectElement* gone : removed) {
         m_elementStates.remove(gone->id);
+        linksGone = linksGone || !gone->links.isEmpty();
     }
     Logger::getInstance().info("removeElement: Removed '{}' (id: {})",
                                element.title.toStdString(), elementId.toStdString());
+    if (linksGone) {
+        emit linksChanged();
+    }
     return element;
 }
 
@@ -2156,6 +2249,11 @@ bool ProjectManager::setStatus(const QString& elementId, const QString& status) 
 }
 
 QString ProjectManager::notes(const QString& elementId) const {
+    // An element without a chapter file keeps them in the .klh file
+    const ProjectElement* element = findElement(elementId);
+    if (element && (element->file.isEmpty() || formOf(*element) != ElementForm::Text)) {
+        return element->description;
+    }
     return m_elementStates.value(elementId).notes;
 }
 
@@ -2164,9 +2262,13 @@ bool ProjectManager::setNotes(const QString& elementId, const QString& notes) {
         return false;
     }
     const ProjectElement* element = findElement(elementId);
-    if (!element || !stateOf(elementId)) {
-        Logger::getInstance().warn("setNotes: Not a text element: {}", elementId.toStdString());
+    if (!element) {
+        Logger::getInstance().warn("setNotes: Element not found: {}", elementId.toStdString());
         return false;
+    }
+    // An element without a chapter file keeps them in the .klh file
+    if (!stateOf(elementId)) {
+        return setDescription(elementId, notes);
     }
     const QString previous = m_elementStates.value(elementId).notes;
     if (previous == notes) {
@@ -2178,6 +2280,151 @@ bool ProjectManager::setNotes(const QString& elementId, const QString& notes) {
         return false;
     }
     return true;
+}
+
+bool ProjectManager::isMaterial(const ProjectElement& element) const {
+    const KindRef kind = kindOf(element);
+    return kind && kind.kind->isMaterial();
+}
+
+bool ProjectManager::changeDetails(const char* what, const QString& elementId,
+                                   const std::function<void(ProjectElement&)>& change) {
+    if (refusesChange(what)) {
+        return false;
+    }
+    ProjectElement* element = findElement(elementId);
+    if (!element) {
+        Logger::getInstance().warn("{}: Element not found: {}", what, elementId.toStdString());
+        return false;
+    }
+    const ProjectElement previous = *element;
+    change(*element);
+    if (*element == previous) {
+        return true;
+    }
+    if (!saveManifest()) {
+        *element = previous;
+        return false;
+    }
+    return true;
+}
+
+bool ProjectManager::setDescription(const QString& elementId, const QString& description) {
+    return changeDetails("setDescription", elementId, [&description](ProjectElement& element) {
+        element.description = description;
+    });
+}
+
+bool ProjectManager::setFields(const QString& elementId, const QList<ElementField>& fields) {
+    return changeDetails("setFields", elementId,
+                         [&fields](ProjectElement& element) { element.fields = fields; });
+}
+
+bool ProjectManager::setLinks(const QString& elementId, const QList<ElementLink>& links) {
+    if (!m_project) {
+        Logger::getInstance().warn("setLinks: No project is open");
+        return false;
+    }
+    // Only what the project has, without the element itself, each once
+    ProjectElement kept;
+    for (const ElementLink& link : links) {
+        if (link.to != elementId && kept.linkTo(link.to) == nullptr &&
+            m_project->hasLinkTarget(link.to)) {
+            kept.links << link;
+        }
+    }
+    const ProjectElement* element = findElement(elementId);
+    const bool changed = element != nullptr && element->links != kept.links;
+    const bool saved = changeDetails("setLinks", elementId, [&kept](ProjectElement& each) {
+        each.links = kept.links;
+    });
+    if (saved && changed) {
+        emit linksChanged();
+    }
+    return saved;
+}
+
+bool ProjectManager::setLinks(const QString& elementId, const QStringList& targets) {
+    const ProjectElement* element = findElement(elementId);
+    QList<ElementLink> links;
+    for (const QString& target : targets) {
+        const ElementLink* had = element != nullptr ? element->linkTo(target) : nullptr;
+        links << (had != nullptr ? *had : newLink(elementId, target));
+    }
+    return setLinks(elementId, links);
+}
+
+ElementLink ProjectManager::newLink(const QString& elementId, const QString& target) const {
+    ElementLink link;
+    link.to = target;
+    const ProjectElement* element = findElement(elementId);
+    if (element != nullptr && isMaterial(*element)) {
+        if (const KindRef kind = kindOf(*element)) {
+            link.role = LinkRoles::suggestedFor(kind.kind->id);
+        }
+    }
+    return link;
+}
+
+QStringList ProjectManager::paragraphsOf(const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (element == nullptr || element->file.isEmpty() || formOf(*element) != ElementForm::Text) {
+        return {};
+    }
+    const auto state = m_elementStates.constFind(elementId);
+    QString kml;
+    if (state != m_elementStates.cend() && state->loaded) {
+        kml = state->content;
+    } else {
+        const std::optional<ChapterDocument> chapter = ChapterDocument::load(filePathOf(*element));
+        if (!chapter) {
+            return {};
+        }
+        kml = chapter->kml();
+    }
+    const QString text = ChapterDocument::kmlToPlainText(kml);
+    return text.isEmpty() ? QStringList() : text.split(QLatin1Char('\n'));
+}
+
+bool ProjectManager::setRotation(const QString& elementId, int rotation) {
+    if (rotation != 0 && rotation != 90 && rotation != 180 && rotation != 270) {
+        Logger::getInstance().warn("setRotation: {} is not 0, 90, 180 or 270", rotation);
+        return false;
+    }
+    return changeDetails("setRotation", elementId,
+                         [rotation](ProjectElement& element) { element.rotation = rotation; });
+}
+
+QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& link) const {
+    QList<const ProjectElement*> linked;
+    if (!m_project || link.isEmpty()) {
+        return linked;
+    }
+    QList<const ProjectElement*> workshop;
+    appendAll(m_project->workshop.elements, workshop);
+    for (const ProjectElement* element : workshop) {
+        if (element->linkTo(link) != nullptr && isMaterial(*element)) {
+            linked << element;
+        }
+    }
+    return linked;
+}
+
+QStringList ProjectManager::fieldNames() const {
+    QStringList names;
+    if (!m_project) {
+        return names;
+    }
+    for (const ProjectElement* element : allElements(*m_project)) {
+        for (const ElementField& field : element->fields) {
+            const QString name = field.name.trimmed();
+            if (!name.isEmpty() && !names.contains(name)) {
+                names << name;
+            }
+        }
+    }
+    names.sort(Qt::CaseInsensitive);
+    return names;
 }
 
 int ProjectManager::wordCount(const QString& elementId) const {
@@ -2284,11 +2531,54 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
         return false;
     }
     m_elementStates[elementId].dirty = false;
+    followLinkedParagraphs(elementId);
 
     Logger::getInstance().debug("Saved .kchapter for element: {} ({} words)",
                                 elementId.toStdString(), wordCount(elementId));
     keepVersionOnSave(elementId, state.content);
     return true;
+}
+
+void ProjectManager::followLinkedParagraphs(const QString& elementId) {
+    if (!m_project) {
+        return;
+    }
+    // A link to a paragraph names it again: by its number while it begins with the excerpt,
+    // else where the excerpt went; the excerpt follows a beginning the writer changed
+    const QStringList paragraphs = paragraphsOf(elementId);
+    const auto followed = [&paragraphs](ElementLink link) {
+        const int now = LinkRoles::paragraphOf(paragraphs, link);
+        if (link.paragraph > 0 && now > 0) {
+            link.paragraph = now;
+            link.excerpt = LinkRoles::excerptOf(paragraphs.at(now - 1));
+        }
+        return link;
+    };
+    // The elements whose links change, with the links they had
+    QList<std::pair<QString, QList<ElementLink>>> moved;
+    for (const ProjectElement* each : allElements(*m_project)) {
+        const ElementLink* link = each->linkTo(elementId);
+        if (link != nullptr && followed(*link) != *link) {
+            moved.append({each->id, each->links});
+        }
+    }
+    if (moved.isEmpty()) {
+        return;
+    }
+    for (const auto& [linkedId, links] : moved) {
+        for (ElementLink& link : m_project->findElement(linkedId)->links) {
+            if (link.to == elementId) {
+                link = followed(link);
+            }
+        }
+    }
+    if (!saveManifest()) {
+        for (const auto& [linkedId, links] : moved) {
+            m_project->findElement(linkedId)->links = links;
+        }
+        return;
+    }
+    emit linksChanged();
 }
 
 bool ProjectManager::saveChapterDetails(const QString& elementId) {
@@ -2545,6 +2835,86 @@ void ProjectManager::setWorkMode(WorkMode mode) {
                                     mode == WorkMode::ProjectMode ? "ProjectMode" : "StandaloneMode");
         emit workModeChanged(mode);
     }
+}
+
+void ProjectManager::convertOldMaterials() {
+    auto& logger = Logger::getInstance();
+    const QString base = QString::fromLatin1(BASE_PACKAGE);
+    const KindReference old{base, QString::fromLatin1(MaterialKinds::OLD_MATERIAL)};
+    const KindRef workNote =
+        bookTypes().findKind(base, QString::fromLatin1(MaterialKinds::WORK_NOTE));
+
+    // The book as it was, for a book that cannot be saved; then the files of the new notes
+    const BookProject before = *m_project;
+    QStringList noteFiles;
+    int kinds = 0;
+    QList<ProjectElement>& elements = m_project->workshop.elements;
+    for (qsizetype i = 0; i < elements.size(); ++i) {
+        ProjectElement& element = elements[i];
+        if (element.kind != old) {
+            continue;
+        }
+        // The kind of its source: a picture, a web page, a document...
+        const QString kindId = MaterialKinds::ofSource(
+            QUrl(element.url), element.file.isEmpty() ? QString() : filePathOf(element));
+        if (!kindId.isEmpty()) {
+            element.kind.kindId = kindId;
+            ++kinds;
+            continue;
+        }
+        // Neither a file nor an address: a working note, whose text is the description
+        if (!workNote) {
+            continue;
+        }
+        element.kind.kindId = workNote.kind->id;
+        element.file = newChapterFile(workNote, BookPlace::Workshop);
+        element.status = QStringLiteral("draft");
+        if (!writeChapterFile(element, editor::ClipboardHandler::textToKml(element.description))) {
+            logger.warn("convertOldMaterials: '{}' stays a material: its note cannot be written",
+                        element.title.toStdString());
+            element = before.workshop.elements.at(i);
+            continue;
+        }
+        noteFiles << filePathOf(element);
+        element.description.clear();
+    }
+
+    // The kinds a book of its own type takes: those of the materials, and the working notes,
+    // in place of the old one
+    bool listChanged = false;
+    for (qsizetype i = 0; i < m_project->kinds.size(); ++i) {
+        if (m_project->kinds.at(i) != old) {
+            continue;
+        }
+        m_project->kinds.removeAt(i);
+        qsizetype at = i;
+        for (const QString& kindId :
+             QStringList{QString::fromLatin1(MaterialKinds::WORK_NOTE)} + MaterialKinds::all()) {
+            const KindReference reference{base, kindId};
+            if (!m_project->kinds.contains(reference)) {
+                m_project->kinds.insert(at++, reference);
+            }
+        }
+        listChanged = true;
+        --i;
+    }
+
+    if (kinds == 0 && noteFiles.isEmpty() && !listChanged) {
+        return;
+    }
+    if (!saveManifest()) {
+        // The book stays as it was, and is converted the next time it opens
+        logger.warn("convertOldMaterials: The book cannot be saved, so its materials keep "
+                    "their kind");
+        *m_project = before;
+        for (const QString& path : std::as_const(noteFiles)) {
+            QFile::remove(path);
+        }
+        return;
+    }
+    logger.info("convertOldMaterials: {} materials got the kinds of their sources, {} became "
+                "working notes",
+                kinds, noteFiles.size());
 }
 
 void ProjectManager::loadElementStates() {

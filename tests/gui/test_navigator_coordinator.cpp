@@ -3,6 +3,7 @@
 /// deleting elements, which ProjectManager saves at once, and the files that no element has
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/art_provider.h>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/file_trash.h>
@@ -17,44 +18,67 @@
 #include <kalahari/gui/dialogs/file_preview_dialog.h>
 #include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/dialogs/new_file_dialog.h>
+#include <kalahari/gui/icon_registrar.h>
+#include <kalahari/gui/material_downloader.h>
 #include <kalahari/gui/navigator_coordinator.h>
 #include <kalahari/gui/panels/editor_panel.h>
+#include <kalahari/gui/panels/image_preview_panel.h>
+#include <kalahari/gui/panels/material_page.h>
 #include <kalahari/gui/panels/navigator_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
+#include <kalahari/gui/paste_target.h>
 #include <kalahari/gui/utils/access_keys.h>
 #include <kalahari/gui/utils/file_location.h>
 
+#include "context_menu_reader.h"
+
+#include <QAbstractButton>
 #include <QAction>
 #include <QApplication>
+#include <QBuffer>
+#include <QButtonGroup>
 #include <QCheckBox>
 #include <QChildEvent>
+#include <QClipboard>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDialog>
 #include <QDir>
+#include <QDropEvent>
 #include <QFile>
-#include <QLabel>
 #include <QFileInfo>
+#include <QGuiApplication>
+#include <QHash>
+#include <QIcon>
+#include <QImage>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
+#include <QMimeData>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QStatusBar>
 #include <QTabWidget>
 #include <QTemporaryDir>
 #include <QTextBrowser>
+#include <QTextEdit>
 #include <QTimer>
+#include <QtMath>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QTreeWidgetItemIterator>
+#include <QUrl>
 
+#include <cstdio>
 #include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 using namespace kalahari;
 
@@ -162,16 +186,31 @@ Answer addAs(const AddChoice& choice = {}) {
         if (!choice.kind.isEmpty()) {
             // The first tile of the kind that can be chosen; the names of the parts of the book
             // have no kind
-            QListWidget* tiles = window->kindList();
-            bool found = false;
-            for (int row = 0; row < tiles->count() && !found; ++row) {
-                QListWidgetItem* tile = tiles->item(row);
-                if (!tile->data(Qt::UserRole).isValid() ||
-                    !tile->flags().testFlag(Qt::ItemIsEnabled)) {
-                    continue;
+            const auto chooseTile = [window, &choice]() {
+                QListWidget* tiles = window->kindList();
+                for (int row = 0; row < tiles->count(); ++row) {
+                    QListWidgetItem* tile = tiles->item(row);
+                    if (!tile->data(Qt::UserRole).isValid() ||
+                        !tile->flags().testFlag(Qt::ItemIsEnabled)) {
+                        continue;
+                    }
+                    tiles->setCurrentItem(tile);
+                    if (window->kind() && window->kind().kind->id == choice.kind) {
+                        return true;
+                    }
                 }
-                tiles->setCurrentItem(tile);
-                found = window->kind() && window->kind().kind->id == choice.kind;
+                return false;
+            };
+            // Among the tiles shown, else those of the other choices at the top of the window
+            bool found = chooseTile();
+            if (QButtonGroup* choices = window->chooserButtons(); !found && choices) {
+                for (QAbstractButton* button : choices->buttons()) {
+                    button->click();
+                    found = chooseTile();
+                    if (found) {
+                        break;
+                    }
+                }
             }
             if (!found) {
                 dialog.reject();
@@ -794,6 +833,9 @@ TEST_CASE("Navigator commands: Add Element adds parts, chapters and items of the
 TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes and materials, "
           "saved at once", "[gui][navigator]") {
     OpenNovel novel;
+    // The materials are in the Navigator, under their kinds
+    core::SettingsManager::getInstance().set<std::string>(
+        gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
     Navigator navigator;
     auto& pm = novel.pm;
     TestFileOpener opener;
@@ -807,8 +849,12 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     }
     TestFileChooser chooser(picture);
 
-    // The Workshop has the groups of the kinds the program makes, also empty
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Working notes, Materials");
+    // The Workshop has the groups of the kinds the program makes, also empty: the working
+    // notes and the kinds of materials, in Materials
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
+    CHECK(navigator.itemsIn(QStringLiteral("workshop:materials")) ==
+          "Working notes, Quotes, Web pages, Pictures, Documents, Publications, Recordings, "
+          "Other files");
 
     // A working note has no status; it opens in the editor
     CHECK(navigator.add(onWorkshop(), {addAs({.kind = "work_note"})}) == 1);
@@ -831,19 +877,24 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
                     {addAs({.title = "Ideas"})}) == 1);
     CHECK(titles(pm.project()->workshop.elements) == "Note 1, Ideas");
 
-    // A material is a copy of the file chosen, named after it; it has no text to open
-    CHECK(navigator.add(onWorkshop(), {addAs({.kind = "material"})}) == 1);
+    // A material is a copy of the file chosen, named after it; it has no text to open, and its
+    // card opens in the middle of the window, ready for its description
+    CHECK(navigator.add(onWorkshop(), {addAs({.kind = "picture"})}) == 1);
     REQUIRE(pm.project()->workshop.elements.size() == 3);
     const core::ProjectElement map = pm.project()->workshop.elements.last();
     CHECK(map.title == QStringLiteral("map"));
-    CHECK(map.kind.toString() == QStringLiteral("kalahari.base:material"));
+    CHECK(map.kind.toString() == QStringLiteral("kalahari.base:picture"));
     CHECK(map.status.isEmpty());
     CHECK(QFileInfo(pm.filePathOf(map)).fileName() == QStringLiteral("map.png"));
     CHECK(QFileInfo::exists(pm.filePathOf(map)));
     CHECK(QFileInfo::exists(picture));
     CHECK(navigator.current() == map.id);
-    CHECK(navigator.tabs->count() == 2);
-    CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Material added: map"));
+    REQUIRE(navigator.tabs->count() == 3);
+    auto* card = qobject_cast<gui::MaterialCardPanel*>(navigator.tabs->currentWidget());
+    REQUIRE(card != nullptr);
+    CHECK(card->elementId() == map.id);
+    CHECK(navigator.tabs->tabText(2) == QStringLiteral("map"));
+    CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Picture added: map"));
 
     // Saved at once, and shown in the groups of their kinds
     CHECK(titles(novel.savedProject().workshop.elements) == "Note 1, Ideas, map");
@@ -851,9 +902,50 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     CHECK(navigator.item(note.id)->text(0) == QStringLiteral("Note 1"));
     CHECK(navigator.item(note.id)->parent()->text(0) == QStringLiteral("Working notes"));
     REQUIRE(navigator.item(map.id) != nullptr);
-    CHECK(navigator.item(map.id)->parent()->text(0) == QStringLiteral("Materials"));
+    CHECK(navigator.item(map.id)->parent()->text(0) == QStringLiteral("Pictures"));
+    CHECK(navigator.item(note.id)->parent()->parent()->text(0) == QStringLiteral("Materials"));
 
-    // The material opens in the system's program for its file
+    // Materials and each group of it have their numbers of elements, which a screen reader
+    // reads with their names; an empty group has 0
+    const auto count = [&navigator](const QString& id) {
+        const QTreeWidgetItem* found = navigator.item(id);
+        REQUIRE(found != nullptr);
+        return found->data(0, Qt::UserRole + 7).toInt();
+    };
+    CHECK(count(QStringLiteral("workshop:materials")) == 3);
+    CHECK(count(QStringLiteral("workshop:kalahari.base:work_note")) == 2);
+    CHECK(count(QStringLiteral("workshop:kalahari.base:picture")) == 1);
+    CHECK(count(QStringLiteral("workshop:kalahari.base:quote")) == 0);
+    CHECK(navigator.item(QStringLiteral("workshop:kalahari.base:picture"))
+              ->data(0, Qt::AccessibleTextRole)
+              .toString() == QStringLiteral("Pictures (1)"));
+    CHECK(navigator.item(QStringLiteral("workshop:materials"))
+              ->data(0, Qt::AccessibleTextRole)
+              .toString() == QStringLiteral("Materials (3)"));
+
+    // A picture opens on its preview tab, which says why it shows none of this file; opened
+    // again, its tab comes to the front
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string before =
+        settings.get<std::string>(gui::NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
+    settings.set<std::string>(gui::NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
+    navigator.coordinator.onRequestOpenMaterial(map.id);
+    CHECK(opener.opened.isEmpty());
+    REQUIRE(navigator.tabs->count() == 4);
+    auto* preview = qobject_cast<gui::ImagePreviewPanel*>(navigator.tabs->currentWidget());
+    REQUIRE(preview != nullptr);
+    CHECK(preview->elementId() == map.id);
+    CHECK(preview->property("elementId").toString() == map.id);
+    CHECK(navigator.tabs->tabText(3) == QStringLiteral("map"));
+    CHECK_FALSE(preview->hasPicture());
+    CHECK(preview->problem().startsWith(QStringLiteral("The picture cannot be read (")));
+    navigator.tabs->setCurrentIndex(0);
+    navigator.coordinator.onRequestOpenMaterial(map.id);
+    CHECK(navigator.tabs->count() == 4);
+    CHECK(navigator.tabs->currentWidget() == preview);
+
+    // As the settings say, it opens in the system's program for its file
+    settings.set<std::string>(gui::NavigatorPanel::OPEN_MATERIALS_SETTING, "system");
     navigator.coordinator.onRequestOpenMaterial(map.id);
     CHECK(opener.opened == QStringList{pm.filePathOf(map)});
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Opened: map"));
@@ -863,8 +955,58 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     QString said;
     CHECK(answering([&navigator, &map] { navigator.coordinator.onRequestOpenMaterial(map.id); },
                     {answerMessage(&said)}) == 1);
-    CHECK(said == QStringLiteral("Open Material Failed\n\nThe system could not open the file:\n") +
+    CHECK(said == QStringLiteral("Open Picture Failed\n\nThe system could not open the file:\n") +
                       QDir::toNativeSeparators(pm.filePathOf(map)));
+    settings.set<std::string>(gui::NavigatorPanel::OPEN_MATERIALS_SETTING, before);
+
+    // Deleted from the book, the material takes its preview tab and its card with it
+    CHECK(answering([&navigator, &map] { navigator.coordinator.onRequestDelete(map.id); },
+                    {answerDelete(true, false)}) == 1);
+    CHECK(pm.findElement(map.id) == nullptr);
+    CHECK(navigator.tabs->count() == 2);
+}
+
+TEST_CASE("Navigator: the numbers of the Materials keep off the right edge of the tree",
+          "[gui][navigator][materials]") {
+    OpenNovel novel;
+    Navigator navigator;
+    navigator.panel->resize(300, 600);
+    navigator.window.resize(300, 600);
+    navigator.window.show();
+    QApplication::processEvents();
+    auto* tree = navigator.panel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    QTreeWidgetItem* materials = navigator.item(QStringLiteral("workshop:materials"));
+    REQUIRE(materials != nullptr);
+    tree->scrollToItem(materials);
+    QApplication::processEvents();
+    const QRect row = tree->visualItemRect(materials);
+    REQUIRE(row.isValid());
+
+    // The last pixel of the number: the right end of the row has the color of the row. The
+    // picture has the pixels of the screen, more than those of the widget at a scaling over 100%
+    const QImage picture = tree->viewport()->grab().toImage();
+    const qreal ratio = picture.devicePixelRatio();
+    const QRect pixels(QPoint(qCeil(row.left() * ratio), qCeil(row.top() * ratio)),
+                       QPoint(qFloor((row.right() + 1) * ratio) - 1,
+                              qFloor((row.bottom() + 1) * ratio) - 1));
+    const QRgb background = picture.pixel(pixels.right(), pixels.center().y());
+    int last = -1;
+    for (int x = pixels.right(); x >= pixels.left() && last < 0; --x) {
+        for (int y = pixels.top(); y <= pixels.bottom(); ++y) {
+            if (picture.pixel(x, y) != background) {
+                last = x;
+                break;
+            }
+        }
+    }
+    REQUIRE(last >= 0);
+    const qreal margin = (pixels.right() - last) / ratio;
+    const int space = tree->fontMetrics().horizontalAdvance(QLatin1Char(' '));
+    INFO("the number ends " << margin << " pixels from the edge at a scaling of " << ratio
+                            << "; a space is " << space);
+    // Within a pixel: the edge of a letter is smoothed over a pixel at a scaling of 125%
+    CHECK(margin > 4 * space - 1);
 }
 
 TEST_CASE("Navigator commands: Add and New Chapter start from the element in the editor",
@@ -959,16 +1101,16 @@ TEST_CASE("Navigator commands: the book and the Workshop are named and the Works
     CHECK(novel.savedProject().workshop.name.isEmpty());
     CHECK(workshopItem()->text(0) == QStringLiteral("Workshop"));
 
-    // Grouped, the materials are in Resources
+    // Grouped or not, the working notes and the materials are in Materials
     navigator.coordinator.onRequestWorkshopGrouped(true);
     CHECK(pm.project()->workshop.grouped);
     CHECK(novel.savedProject().workshop.grouped);
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Working notes, Resources");
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop grouped"));
     navigator.coordinator.onRequestWorkshopGrouped(false);
     CHECK_FALSE(pm.project()->workshop.grouped);
     CHECK_FALSE(novel.savedProject().workshop.grouped);
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Working notes, Materials");
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop not grouped"));
 }
 
@@ -1042,14 +1184,34 @@ TEST_CASE("Navigator: the keys and the \"+\" button add, rename and delete on th
                                  QStringLiteral("workshop")});
     CHECK(deleted == QStringList{chapter});
 
-    // Nothing is added on the project's node: the button is grey, and Insert does nothing
+    // On the project's node the window starts at the book, as on the book's node
     added.clear();
     navigator.select(navigator.projectItem());
+    CHECK(plus->isEnabled());
+    navigator.press(Qt::Key_Insert);
+    plus->click();
+    REQUIRE(added.size() == 2);
+    CHECK(added.at(0).scope == gui::AddTarget::Scope::Book);
+    CHECK(added.at(1).scope == gui::AddTarget::Scope::Book);
+    CHECK(navigator.inMenuOf(navigator.projectItem(), QStringLiteral("Add...")));
+    REQUIRE(added.size() == 3);
+    CHECK(added.at(2).scope == gui::AddTarget::Scope::Book);
+
+    // Without the choice at the top of the window nothing is added there: the button is grey,
+    // Insert does nothing and the menu has no Add...
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string before =
+        settings.get<std::string>(gui::NavigatorPanel::ADD_WINDOW_SETTING, "sections");
+    settings.set<std::string>(gui::NavigatorPanel::ADD_WINDOW_SETTING, "place");
+    navigator.panel->onSettingsChanged();
+    added.clear();
     CHECK_FALSE(plus->isEnabled());
     navigator.press(Qt::Key_Insert);
     CHECK(added.isEmpty());
+    CHECK_FALSE(navigator.inMenuOf(navigator.projectItem(), QStringLiteral("Add...")));
     navigator.select(navigator.section(QStringLiteral("workshop")));
     CHECK(plus->isEnabled());
+    settings.set<std::string>(gui::NavigatorPanel::ADD_WINDOW_SETTING, before);
 }
 
 TEST_CASE("Navigator menus: Add... and the commands named after kinds, or Add... only",
@@ -1083,8 +1245,14 @@ TEST_CASE("Navigator menus: Add... and the commands named after kinds, or Add...
     CHECK(navigator.addCommandsOf(navigator.item(chapter)) ==
           QStringList{"Add...", "Add Chapter..."});
     CHECK(navigator.addCommandsOf(navigator.item(dedication)) == QStringList{"Add..."});
+    // The Workshop and Materials leave the many kinds of materials to the window; a group
+    // of a kind of materials names its kind
     CHECK(navigator.addCommandsOf(navigator.section(QStringLiteral("workshop"))) ==
-          QStringList{"Add...", "Add Working note...", "Add Material..."});
+          QStringList{"Add...", "Add Working note..."});
+    CHECK(navigator.addCommandsOf(navigator.item(QStringLiteral("workshop:materials"))) ==
+          QStringList{"Add...", "Add Working note..."});
+    CHECK(navigator.addCommandsOf(navigator.item(QStringLiteral("workshop:kalahari.base:quote"))) ==
+          QStringList{"Add...", "Add Quote..."});
 
     // A command named after a kind opens the window with that kind chosen
     QList<gui::AddTarget> requested;
@@ -2574,4 +2742,510 @@ TEST_CASE("Properties panel: leaving a field without a change saves nothing",
     names.at(1)->setText(QStringLiteral("The Middle"));
     REQUIRE(QMetaObject::invokeMethod(namesRow, "editingFinished"));
     CHECK(saved());
+}
+
+namespace {
+
+/// @brief The settings of materials as a test sets them, given back as they were when it ends
+struct KeptMaterialSettings {
+    std::map<std::string, std::string> values;
+
+    KeptMaterialSettings() {
+        for (const auto& [key, usual] : keys()) {
+            values[key] = settings().get<std::string>(key, usual);
+            settings().set<std::string>(key, usual);
+        }
+    }
+    ~KeptMaterialSettings() {
+        try {
+            for (const auto& [key, value] : values) {
+                settings().set<std::string>(key, value);
+            }
+        } catch (...) {
+            // A destructor may not throw: the later tests then find the settings of this one
+            std::fputs("KeptMaterialSettings: the settings of the test stay\n", stderr);
+        }
+    }
+    KeptMaterialSettings(const KeptMaterialSettings&) = delete;
+    KeptMaterialSettings& operator=(const KeptMaterialSettings&) = delete;
+
+    static core::SettingsManager& settings() { return core::SettingsManager::getInstance(); }
+
+    /// The settings with their usual values
+    static std::vector<std::pair<std::string, std::string>> keys() {
+        return {{gui::NavigatorPanel::QUICK_MATERIALS_SETTING, "link"},
+                {gui::NavigatorPanel::OPEN_PAGES_SETTING, "browser"},
+                {gui::NavigatorPanel::OPEN_MATERIALS_SETTING, "card"},
+                {gui::MaterialDownloader::SETTING, "ask"},
+                {gui::dialogs::NewFileDialog::SOURCE_SETTING, "file"}};
+    }
+};
+
+/// @brief The browser of a test in place of the system's until the test ends
+struct TestBrowser {
+    QList<QUrl> opened;  ///< The addresses the program asked to open
+
+    TestBrowser() {
+        gui::setBrowserForTests([this](const QUrl& url) {
+            opened << url;
+            return true;
+        });
+    }
+    ~TestBrowser() { gui::setBrowserForTests({}); }
+    TestBrowser(const TestBrowser&) = delete;
+    TestBrowser& operator=(const TestBrowser&) = delete;
+};
+
+/// @brief The material of the Workshop added last
+const core::ProjectElement& lastMaterial() {
+    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    REQUIRE(project != nullptr);
+    REQUIRE_FALSE(project->workshop.elements.isEmpty());
+    return project->workshop.elements.constLast();
+}
+
+}  // namespace
+
+TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are materials of "
+          "the kinds of their sources, linked with the chapter they were dropped on",
+          "[gui][navigator][materials]") {
+    KeptMaterialSettings kept;
+    OpenNovel novel;
+    // The materials are in the Navigator, under their kinds
+    core::SettingsManager::getInstance().set<std::string>(
+        gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
+    Navigator navigator;
+    auto& pm = core::ProjectManager::getInstance();
+    QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAddMaterials,
+                     &navigator.coordinator, &gui::NavigatorCoordinator::onRequestAddMaterials);
+    const QString chapter = navigator.added(QStringLiteral("chapter"));
+    navigator.window.resize(600, 800);
+    navigator.window.show();
+    QCoreApplication::processEvents();
+
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString picture = QDir(files.path()).filePath(QStringLiteral("map.png"));
+    QImage image(30, 20, QImage::Format_RGB32);
+    image.fill(Qt::darkGreen);
+    REQUIRE(image.save(picture));
+
+    auto* tree = navigator.panel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    auto* pasting = dynamic_cast<gui::PasteTarget*>(tree);
+    REQUIRE(pasting != nullptr);
+
+    SECTION("a file dropped on a chapter: its copy, linked with the chapter, nothing opens") {
+        QTreeWidgetItem* item = navigator.item(chapter);
+        REQUIRE(item != nullptr);
+        tree->scrollToItem(item);
+        const QPoint at = tree->visualItemRect(item).center();
+        QMimeData dropped;
+        dropped.setUrls({QUrl::fromLocalFile(picture)});
+        QDragEnterEvent enter(at, Qt::CopyAction | Qt::MoveAction, &dropped, Qt::LeftButton,
+                              Qt::NoModifier);
+        QCoreApplication::sendEvent(tree->viewport(), &enter);
+        CHECK(enter.isAccepted());
+        CHECK(enter.dropAction() == Qt::CopyAction);
+        QDropEvent drop(QPointF(at), Qt::CopyAction | Qt::MoveAction, &dropped, Qt::LeftButton,
+                        Qt::NoModifier);
+        QCoreApplication::sendEvent(tree->viewport(), &drop);
+        QCoreApplication::processEvents();
+
+        const core::ProjectElement& map = lastMaterial();
+        CHECK(map.title == QStringLiteral("map"));
+        CHECK(map.kind.toString() == QStringLiteral("kalahari.base:picture"));
+        CHECK(map.linkTargets() == QStringList{chapter});
+        CHECK(QFileInfo(pm.filePathOf(map)).fileName() == QStringLiteral("map.png"));
+        CHECK(QFileInfo::exists(pm.filePathOf(map)));
+        CHECK(navigator.current() == map.id);
+        CHECK(navigator.tabs->count() == 0);
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("Picture added: map – a copy of the file in the book, linked with "
+                             "\"Chapter 1\""));
+        CHECK(titles(novel.savedProject().workshop.elements) == "map");
+    }
+
+    SECTION("several files dropped on a chapter: all linked with it") {
+        const QString notes = QDir(files.path()).filePath(QStringLiteral("notes.txt"));
+        QFile file(notes);
+        REQUIRE(file.open(QIODevice::WriteOnly));
+        REQUIRE(file.write("Dunes") == 5);
+        file.close();
+        QTreeWidgetItem* item = navigator.item(chapter);
+        REQUIRE(item != nullptr);
+        tree->scrollToItem(item);
+        const QPoint at = tree->visualItemRect(item).center();
+        QMimeData dropped;
+        dropped.setUrls({QUrl::fromLocalFile(picture), QUrl::fromLocalFile(notes)});
+        QDragEnterEvent enter(at, Qt::CopyAction | Qt::MoveAction, &dropped, Qt::LeftButton,
+                              Qt::NoModifier);
+        QCoreApplication::sendEvent(tree->viewport(), &enter);
+        REQUIRE(enter.isAccepted());
+        QDropEvent drop(QPointF(at), Qt::CopyAction | Qt::MoveAction, &dropped, Qt::LeftButton,
+                        Qt::NoModifier);
+        QCoreApplication::sendEvent(tree->viewport(), &drop);
+        QCoreApplication::processEvents();
+
+        CHECK(titles(novel.savedProject().workshop.elements) == "map, notes");
+        for (const core::ProjectElement& material : pm.project()->workshop.elements) {
+            CHECK(material.linkTargets() == QStringList{chapter});
+        }
+        // Of two kinds, in the groups of their kinds
+        CHECK(pm.project()->workshop.elements.at(0).kind.kindId == QStringLiteral("picture"));
+        CHECK(pm.project()->workshop.elements.at(1).kind.kindId == QStringLiteral("document"));
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("Added to \"Materials\": map, notes; all linked with \"Chapter 1\""));
+        CHECK(navigator.tabs->count() == 0);
+    }
+
+    SECTION("pasted: a web address, a picture without a file; a text adds nothing") {
+        tree->setCurrentItem(navigator.item(chapter));
+        QGuiApplication::clipboard()->setText(
+            QStringLiteral("https://pl.wikipedia.org/wiki/Kalahari"));
+        CHECK(pasting->canPasteHere());
+        pasting->pasteHere();
+        // A copy: the next materials move the list
+        core::ProjectElement page = lastMaterial();
+        CHECK(page.title == QStringLiteral("Kalahari"));
+        CHECK(page.url == QStringLiteral("https://pl.wikipedia.org/wiki/Kalahari"));
+        CHECK(page.file.isEmpty());
+        CHECK(page.linkTargets() == QStringList{chapter});
+        CHECK(page.kind.kindId == QStringLiteral("web_page"));
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("Web page added: Kalahari – the address of a page, linked with "
+                             "\"Chapter 1\""));
+
+        // A screenshot: a PNG file in the book
+        QGuiApplication::clipboard()->setImage(image);
+        tree->setCurrentItem(navigator.item(page.id));  // A material links with nothing
+        pasting->pasteHere();
+        const core::ProjectElement& shot = lastMaterial();
+        CHECK(shot.title.startsWith(QStringLiteral("Picture from the clipboard ")));
+        CHECK(shot.file.startsWith(QStringLiteral("workshop/clipboard_")));
+        CHECK(shot.file.endsWith(QStringLiteral(".png")));
+        CHECK(shot.links.isEmpty());
+        CHECK(shot.kind.kindId == QStringLiteral("picture"));
+        CHECK(QImage(pm.filePathOf(shot)).size() == QSize(30, 20));
+
+        // A text that is no file and no address
+        const qsizetype count = pm.project()->workshop.elements.size();
+        QGuiApplication::clipboard()->setText(QStringLiteral("a caravan of words"));
+        CHECK(pasting->canPasteHere());
+        pasting->pasteHere();
+        CHECK(pm.project()->workshop.elements.size() == count);
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("The clipboard has no file, web address or picture, so nothing was "
+                             "added."));
+        QGuiApplication::clipboard()->clear();
+    }
+
+    SECTION("as the settings say: without links, or in the Add Element window") {
+        auto& settings = core::SettingsManager::getInstance();
+        settings.set<std::string>(gui::NavigatorPanel::QUICK_MATERIALS_SETTING, "add");
+        gui::IncomingMaterials incoming;
+        incoming.files << picture;
+        emit navigator.panel->requestAddMaterials(incoming, QString());
+        CHECK(lastMaterial().links.isEmpty());
+        CHECK(navigator.tabs->count() == 0);
+
+        // The window, filled with the address and on its kind; Add opens the card of the
+        // material
+        settings.set<std::string>(gui::NavigatorPanel::QUICK_MATERIALS_SETTING, "window");
+        gui::IncomingMaterials address;
+        address.addresses << QUrl(QStringLiteral("https://example.com/oasis"));
+        QString filled;
+        QString kindId;
+        CHECK(answering(
+                  [&navigator, &address] {
+                      navigator.coordinator.onRequestAddMaterials(address, QString());
+                  },
+                  {[&filled, &kindId](QDialog& dialog) {
+                      auto* window = qobject_cast<gui::dialogs::NewFileDialog*>(&dialog);
+                      REQUIRE(window != nullptr);
+                      filled = window->addressEdit()->text();
+                      kindId = window->kind() ? window->kind().kind->id : QString();
+                      window->createButton()->click();
+                  }}) == 1);
+        CHECK(filled == QStringLiteral("https://example.com/oasis"));
+        CHECK(kindId == QStringLiteral("web_page"));
+        CHECK(lastMaterial().kind.kindId == QStringLiteral("web_page"));
+        CHECK(lastMaterial().url == QStringLiteral("https://example.com/oasis"));
+        CHECK(lastMaterial().title == QStringLiteral("oasis"));
+        REQUIRE(navigator.tabs->count() == 1);
+        auto* card = qobject_cast<gui::MaterialCardPanel*>(navigator.tabs->widget(0));
+        REQUIRE(card != nullptr);
+        CHECK(card->elementId() == lastMaterial().id);
+        CHECK(card->page()->isFull());
+    }
+}
+
+TEST_CASE("Navigator: Expand All and Collapse All of a menu have the icons of the panel's "
+          "buttons",
+          "[gui][navigator]") {
+    gui::registerAllIcons();
+    OpenNovel novel;
+    Navigator navigator;
+    navigator.window.setAttribute(Qt::WA_DontShowOnScreen);
+    navigator.window.resize(400, 900);
+    navigator.panel->setGeometry(0, 0, 400, 900);
+    navigator.window.show();
+    auto* tree = navigator.panel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    QTreeWidgetItem* book = nullptr;
+    for (QTreeWidgetItemIterator it(tree); *it != nullptr; ++it) {
+        if ((*it)->data(0, Qt::UserRole + 1).toString() == QStringLiteral("book")) {
+            book = *it;
+        }
+    }
+    REQUIRE(book != nullptr);
+
+    test::ContextMenuReader reader(navigator.panel);
+    emit tree->customContextMenuRequested(tree->visualItemRect(book).center());
+    REQUIRE(reader.menusRead() == 1);
+    // A null icon where there is no such item or button
+    const auto iconOf = [&reader](const QString& text) {
+        for (const test::MenuItem& item : reader.items()) {
+            if (item.text == text) {
+                return item.icon;
+            }
+        }
+        return QIcon();
+    };
+    const auto buttonIcon = [&navigator](const QString& toolTip) {
+        for (const QToolButton* button : navigator.panel->findChildren<QToolButton*>()) {
+            if (button->toolTip() == toolTip) {
+                return button->icon();
+            }
+        }
+        return QIcon();
+    };
+    const auto picture = [](const QIcon& icon) { return icon.pixmap(QSize(16, 16)).toImage(); };
+
+    const QIcon expand = iconOf(QStringLiteral("&Expand All"));
+    const QIcon collapse = iconOf(QStringLiteral("&Collapse All"));
+    REQUIRE_FALSE(expand.isNull());
+    REQUIRE_FALSE(collapse.isNull());
+    REQUIRE_FALSE(buttonIcon(QStringLiteral("Expand All")).isNull());
+    CHECK(picture(expand) == picture(buttonIcon(QStringLiteral("Expand All"))));
+    CHECK(picture(collapse) == picture(buttonIcon(QStringLiteral("Collapse All"))));
+    CHECK(picture(expand) != picture(collapse));
+}
+
+TEST_CASE("Navigator: Rename and Properties of a menu have the icons of their commands",
+          "[gui][navigator]") {
+    gui::registerAllIcons();
+    OpenNovel novel;
+    auto& pm = novel.pm;
+    const QString partId =
+        pm.addElement(pm.partKind(), QStringLiteral("Part I"), core::BookPlace::Main);
+    REQUIRE_FALSE(partId.isEmpty());
+    const QString chapterId = pm.addElement(pm.chapterKindFor(core::BookPlace::Main),
+                                            QStringLiteral("The Storm"), core::BookPlace::Main,
+                                            partId);
+    REQUIRE_FALSE(chapterId.isEmpty());
+    Navigator navigator;
+    navigator.window.setAttribute(Qt::WA_DontShowOnScreen);
+    navigator.window.resize(400, 900);
+    navigator.panel->setGeometry(0, 0, 400, 900);
+    navigator.window.show();
+    auto* tree = navigator.panel->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+
+    auto& artProvider = core::ArtProvider::getInstance();
+    const QIcon rename = artProvider.getIcon(QStringLiteral("edit.rename"), core::IconContext::Menu);
+    const QIcon panel =
+        artProvider.getIcon(QStringLiteral("view.properties"), core::IconContext::Menu);
+    const QIcon book =
+        artProvider.getIcon(QStringLiteral("book.properties"), core::IconContext::Menu);
+    REQUIRE_FALSE(rename.isNull());
+    REQUIRE_FALSE(panel.isNull());
+    REQUIRE_FALSE(book.isNull());
+    const auto picture = [](const QIcon& icon) { return icon.pixmap(QSize(16, 16)).toImage(); };
+
+    test::ContextMenuReader reader(navigator.panel);
+    struct Command {
+        QTreeWidgetItem* node;
+        QString text;  ///< Without its access key and keys
+        QIcon icon;
+    };
+    const QList<Command> commands{
+        {navigator.item(chapterId), QStringLiteral("Rename..."), rename},
+        {navigator.item(chapterId), QStringLiteral("Properties..."), panel},
+        {navigator.item(partId), QStringLiteral("Rename..."), rename},
+        {navigator.item(partId), QStringLiteral("Properties..."), panel},
+        {navigator.section(QStringLiteral("section_body")), QStringLiteral("Rename..."), rename},
+        {navigator.section(QStringLiteral("workshop")), QStringLiteral("Rename..."), rename},
+        {navigator.bookItem(), QStringLiteral("Rename..."), rename},
+        {navigator.bookItem(), QStringLiteral("Book Properties..."), book},
+        {navigator.projectItem(), QStringLiteral("Project Properties..."), panel},
+    };
+    for (const Command& command : commands) {
+        REQUIRE(command.node != nullptr);
+        INFO(command.text.toStdString() << " of " << command.node->text(0).toStdString());
+        tree->scrollToItem(command.node);
+        const int read = reader.menusRead();
+        emit tree->customContextMenuRequested(tree->visualItemRect(command.node).center());
+        REQUIRE(reader.menusRead() == read + 1);
+        QHash<QString, QIcon> icons;
+        for (const test::MenuItem& item : reader.items()) {
+            icons.insert(gui::withoutAccessKey(item.text.section(QLatin1Char('\t'), 0, 0)),
+                         item.icon);
+        }
+        REQUIRE(icons.contains(command.text));
+        REQUIRE_FALSE(icons.value(command.text).isNull());
+        CHECK(picture(icons.value(command.text)) == picture(command.icon));
+    }
+    CHECK(picture(rename) != picture(panel));
+}
+
+TEST_CASE("Navigator: a material opens as its source says; the title of its page and the copy "
+          "of its picture come after it was added",
+          "[gui][navigator][materials]") {
+    KeptMaterialSettings kept;
+    OpenNovel novel;
+    // The materials are in the Navigator, under their kinds
+    core::SettingsManager::getInstance().set<std::string>(
+        gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
+    Navigator navigator;
+    TestBrowser browser;
+    auto& pm = core::ProjectManager::getInstance();
+    core::NewMaterial page;
+    page.title = QStringLiteral("Kalahari");
+    page.url = QStringLiteral("https://pl.wikipedia.org/wiki/Kalahari");
+    const QString pageId = pm.addMaterial(page, novelKind(QStringLiteral("web_page")));
+    core::NewMaterial camel;
+    camel.title = QStringLiteral("Camel on a dune");
+    camel.url = QStringLiteral("https://upload.wikimedia.org/a/b/Camel_on_a_dune.jpg");
+    const QString camelId = pm.addMaterial(camel, novelKind(QStringLiteral("picture")));
+    core::NewMaterial book;
+    book.title = QStringLiteral("Caravan Trails");
+    const QString bookId = pm.addMaterial(book, novelKind(QStringLiteral("publication")));
+    REQUIRE_FALSE(pageId.isEmpty());
+    REQUIRE_FALSE(camelId.isEmpty());
+    REQUIRE_FALSE(bookId.isEmpty());
+    navigator.coordinator.refreshNavigator();
+
+    SECTION("a page and a picture on the web in the browser, or on the card; neither on the "
+            "card") {
+        navigator.coordinator.onRequestOpenMaterial(pageId);
+        navigator.coordinator.onRequestOpenMaterial(camelId);
+        CHECK(browser.opened == QList<QUrl>{QUrl(page.url), QUrl(camel.url)});
+        CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Opened: Camel on a dune"));
+        CHECK(navigator.tabs->count() == 0);
+
+        navigator.coordinator.onRequestOpenMaterial(bookId);
+        REQUIRE(navigator.tabs->count() == 1);
+        auto* card = qobject_cast<gui::MaterialCardPanel*>(navigator.tabs->currentWidget());
+        REQUIRE(card != nullptr);
+        CHECK(card->elementId() == bookId);
+        CHECK(navigator.tabs->tabText(0) == QStringLiteral("Caravan Trails"));
+
+        core::SettingsManager::getInstance().set<std::string>(
+            gui::NavigatorPanel::OPEN_PAGES_SETTING, "card");
+        navigator.coordinator.onRequestOpenMaterial(pageId);
+        CHECK(navigator.tabs->count() == 2);
+        CHECK(browser.opened.size() == 2);
+        // Opened again, its tab comes to the front
+        navigator.coordinator.onRequestOpenMaterialCard(bookId);
+        CHECK(navigator.tabs->count() == 2);
+        CHECK(navigator.tabs->currentWidget() == card);
+
+        // A change on the card shows on its tab and in the Navigator
+        card->page()->titleEdit()->setText(QStringLiteral("Trails of the Caravans"));
+        emit card->page()->titleEdit()->editingFinished();
+        CHECK(navigator.tabs->tabText(0) == QStringLiteral("Trails of the Caravans"));
+        REQUIRE(navigator.item(bookId) != nullptr);
+        CHECK(navigator.item(bookId)->text(0) == QStringLiteral("Trails of the Caravans"));
+
+        // Deleted, the material takes its card with it
+        CHECK(answering([&navigator, &bookId] { navigator.coordinator.onRequestDelete(bookId); },
+                        {answerDelete(true, false)}) == 1);
+        CHECK(navigator.tabs->count() == 1);
+    }
+
+    SECTION("the title of the page replaces the one its address gave, not the writer's own") {
+        // Another page, which the new title puts it before
+        core::NewMaterial dunes;
+        dunes.title = QStringLiteral("Dunes");
+        dunes.url = QStringLiteral("https://example.com/dunes");
+        REQUIRE_FALSE(pm.addMaterial(dunes, novelKind(QStringLiteral("web_page"))).isEmpty());
+        navigator.coordinator.refreshNavigator();
+
+        // The writer is at a chapter, typing its notes, when the download ends
+        const QString chapter = navigator.added(QStringLiteral("chapter"));
+        auto* tree = navigator.panel->findChild<QTreeWidget*>();
+        REQUIRE(tree != nullptr);
+        tree->setCurrentItem(navigator.item(chapter));
+        navigator.properties->showChapterProperties(chapter);
+        auto* notes =
+            navigator.properties->findChild<QTextEdit*>(QStringLiteral("chapterNotesEdit"));
+        REQUIRE(notes != nullptr);
+        notes->setPlainText(QStringLiteral("Not saved yet"));
+        int asked = 0;
+        QObject::connect(navigator.panel, &gui::NavigatorPanel::requestProperties,
+                         [&asked](const QString&) { ++asked; });
+
+        gui::MaterialDownloader::Result result;
+        result.elementId = pageId;
+        result.url = QUrl(page.url);
+        result.title = QStringLiteral("Basin of the Kalahari – Wikipedia");
+        emit navigator.coordinator.materialDownloader()->finished(result);
+        CHECK(pm.findElement(pageId)->title == result.title);
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("Title from the page: Basin of the Kalahari – Wikipedia"));
+        CHECK(novel.savedProject().workshop.elements.size() == 4);
+        // In the group of its kind at the place of its new title; the chapter stays current
+        // and its notes as typed
+        const QTreeWidgetItem* group = navigator.item(pageId)->parent();
+        REQUIRE(group != nullptr);
+        QStringList order;
+        for (int i = 0; i < group->childCount(); ++i) {
+            order << group->child(i)->text(0);
+        }
+        CHECK(order.join(QStringLiteral(", ")) ==
+              QStringLiteral("Basin of the Kalahari – Wikipedia, Dunes"));
+        CHECK(navigator.current() == chapter);
+        CHECK(asked == 0);
+        CHECK(notes->toPlainText() == QStringLiteral("Not saved yet"));
+
+        REQUIRE(pm.renameElement(pageId, QStringLiteral("The desert")));
+        emit navigator.coordinator.materialDownloader()->finished(result);
+        CHECK(pm.findElement(pageId)->title == QStringLiteral("The desert"));
+
+        // A failure nobody asked about goes to the status bar
+        result.title.clear();
+        result.error = QStringLiteral("The server did not answer in time.");
+        emit navigator.coordinator.materialDownloader()->finished(result);
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("Nothing was downloaded for \"The desert\": The server did not "
+                             "answer in time."));
+    }
+
+    SECTION("the picture downloaded is the copy, which opens on its preview tab") {
+        QImage image(16, 12, QImage::Format_RGB32);
+        image.fill(Qt::yellow);
+        QByteArray data;
+        QBuffer buffer(&data);
+        REQUIRE(buffer.open(QIODevice::WriteOnly));
+        REQUIRE(image.save(&buffer, "JPG"));
+        gui::MaterialDownloader::Result result;
+        result.elementId = camelId;
+        result.url = QUrl(camel.url);
+        result.picture = true;
+        result.data = data;
+        result.fileName = QStringLiteral("Camel_on_a_dune.jpg");
+        emit navigator.coordinator.materialDownloader()->finished(result);
+        const core::ProjectElement* copied = pm.findElement(camelId);
+        REQUIRE(copied != nullptr);
+        CHECK(copied->file == QStringLiteral("workshop/Camel_on_a_dune.jpg"));
+        CHECK(QImage(pm.filePathOf(*copied)).size() == QSize(16, 12));
+        CHECK(navigator.statusBar->currentMessage() ==
+              QStringLiteral("Copy of the picture saved: Camel on a dune"));
+
+        navigator.coordinator.onRequestOpenMaterial(camelId);
+        CHECK(browser.opened.isEmpty());
+        REQUIRE(navigator.tabs->count() == 1);
+        CHECK(qobject_cast<gui::ImagePreviewPanel*>(navigator.tabs->currentWidget()) != nullptr);
+    }
 }

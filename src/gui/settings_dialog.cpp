@@ -153,6 +153,8 @@ void SettingsDialog::createNavigationTree() {
                       "- Encoding settings"));
 
     QTreeWidgetItem* network = category(tr("Network"));
+    //: The page of the downloads for the materials with a web address. In Polish: Materiały
+    addPage(network, tr("Materials"), []() { return new NetworkMaterialsPage(); });
     addPlannedPage(network, tr("Updates"),
                    tr("Planned features:\n"
                       "- Automatic update checks\n"

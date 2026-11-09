@@ -12,6 +12,7 @@
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/gui/add_target.h"
+#include "kalahari/gui/material_source.h"
 
 #include <QWidget>
 #include <QHash>
@@ -27,6 +28,7 @@ class QAction;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QLineEdit;
+class QMimeData;
 class QToolButton;
 class QTimer;
 class QComboBox;
@@ -57,18 +59,22 @@ namespace gui {
 /// the order of the book's type, named after the kind ("Working notes"), with the elements in
 /// alphabetical order of their titles. A kind whose elements the program can make has its
 /// group always, also empty, so that an element can be added to it; the other kinds when they
-/// have elements. A grouped Workshop (core::ProjectWorkshop::grouped) has the groups of cards
-/// in "Libraries" and those of materials in "Resources". The elements of the Workshop have no
-/// status in the tree, and are not dragged: their place is that of their title.
+/// have elements. The groups of the working notes and of the kinds of materials are always in
+/// "Materials", each with its number of elements, and Materials with the number of all of
+/// them; a grouped Workshop (core::ProjectWorkshop::grouped) has the groups of cards in
+/// "Libraries". The elements of the Workshop have no status in the tree, and are not dragged:
+/// their place is that of their title.
 ///
 /// The chapter files in the folders of the book and of the Workshop that no element has (the
 /// files of elements deleted without their files) are listed, grey, under "Unassigned Files"
 /// at the end of the project, from where they go back to the book or are deleted.
 ///
 /// "Add..." on a node (its menu, the "+" button of the bar, Insert or Ctrl+Shift+Enter) asks
-/// for the Add Element window with the kinds of that node (requestAdd()). The menu of a node
-/// also names the kinds most added there ("Add Chapter...", "Add Part..."), unless the setting
-/// "navigator.addCommands" is "single". F2 renames the node and Delete deletes the element.
+/// for the Add Element window, which starts at that node (requestAdd()); with a choice at the
+/// top of the window ("navigator.addWindow") also on the project's node and with no node
+/// chosen, at the book. The menu of a node also names the kinds most added there ("Add
+/// Chapter...", "Add Part..."), unless the setting "navigator.addCommands" is "single". F2
+/// renames the node and Delete deletes the element.
 ///
 /// An element is dragged to any place of the book its kind can have (dropPlaceOf()), also in
 /// another group or section; a collapsed group or section under it opens after a moment, so
@@ -153,6 +159,43 @@ public:
     /// the kinds most added there, "Add Chapter...") or "single" (variant B: only "Add...")
     static constexpr const char* ADD_COMMANDS_SETTING = "navigator.addCommands";
 
+    /// @brief The setting of what the top of the Add Element window chooses from: "sections"
+    /// (the usual one), "book" or "place" (AddChooser)
+    static constexpr const char* ADD_WINDOW_SETTING = "navigator.addWindow";
+
+    /// @brief What the top of the Add Element window chooses from, as ADD_WINDOW_SETTING says
+    static AddChooser addChooser();
+
+    /// @brief The setting of how a material opens: "card" (its picture on a preview tab of the
+    /// program, the usual one) or "system" (in the program the system gives its file)
+    static constexpr const char* OPEN_MATERIALS_SETTING = "navigator.openMaterials";
+
+    /// @brief The setting of how a material with the address of a page opens: "browser" (in
+    /// the system's browser, the usual one) or "card" (its card in the middle of the window)
+    static constexpr const char* OPEN_PAGES_SETTING = "navigator.openPages";
+
+    /// @brief The setting of what a file, a web address or a picture dropped on the Navigator
+    /// or pasted in it gives: "link" (a material at once, linked with the chapter, part or
+    /// section it was dropped or pasted on; the usual one), "add" (a material at once, without
+    /// links) or "window" (the Add Element window with it)
+    static constexpr const char* QUICK_MATERIALS_SETTING = "navigator.quickMaterials";
+
+    /// @brief What QUICK_MATERIALS_SETTING says: "link", "add" or "window"
+    static QString quickMaterials();
+
+    /// @brief The setting of what the Materials of the Workshop show: "types" (their kinds,
+    /// each with its number of materials, whose lists open on tabs; the usual one) or "expand"
+    /// (the kinds with their materials under them, collapsed at first)
+    static constexpr const char* MATERIALS_TREE_SETTING = "materials.navigatorTree";
+
+    /// @brief Whether the kinds of the Materials have their materials under them
+    /// (MATERIALS_TREE_SETTING)
+    static bool materialsExpandable();
+
+    /// @brief The list of materials that @p item opens (MaterialList): MaterialList::ALL for
+    /// Materials, the kind of a kind of the Materials; none for the other nodes
+    static std::optional<QString> materialListOf(const QTreeWidgetItem* item);
+
     /// @brief The name of the node of @p book: the writer's own, or "Book"
     static QString bookName(const core::ProjectBook& book);
 
@@ -163,10 +206,31 @@ public:
     /// @brief Whether @p item is an element of the Workshop
     static bool isWorkshopItem(const QTreeWidgetItem* item);
 
+    /// @brief Whether @p item is a material of the Workshop
+    static bool isMaterialItem(const QTreeWidgetItem* item);
+
+    /// @brief The format of the dragged nodes of the tree that a material can be linked with:
+    /// their links, one in a line (linkOf())
+    static constexpr const char* LINKS_MIME_TYPE = "application/x-kalahari-links";
+
+    /// @brief The link of the node of @p item (core::ProjectElement::links): the id of an
+    /// element of the book or of the Workshop, or the section of the open book
+    /// (core::BookProject::sectionLink()); empty for another node
+    static QString linkOf(const QTreeWidgetItem* item);
+
+    /// @brief The links of the nodes of the tree in @p data (LINKS_MIME_TYPE); empty for other
+    /// data
+    static QStringList linksOf(const QMimeData* data);
+
     /// @brief Where Add Element adds an element when it is opened on @p item, with the kinds
-    /// it offers there; none for the project, the files and the nodes of a book that is not
-    /// open
+    /// it offers there; none for the files and the nodes of a book that is not open. The
+    /// project's node and no node (nullptr) give the book when the window has a choice at its
+    /// top (addChooser()), else none.
     std::optional<AddTarget> addTargetOf(const QTreeWidgetItem* item) const;
+
+    /// @brief New settings: the "+" button follows what the Add Element window can be opened
+    /// on (addChooser())
+    void onSettingsChanged();
 
     /// @brief The tree of the project
     QTreeWidget* tree() const { return m_treeWidget; }
@@ -248,13 +312,21 @@ public:
 
     /// @brief Show an element: expand the items above it, make it the current item and
     /// scroll to it
+    ///
+    /// A material that its kind does not show (MATERIALS_TREE_SETTING) shows its kind, and its
+    /// card shows in the Properties panel.
     /// @param elementId Element ID; nothing happens when the tree has no such element
     void revealElement(const QString& elementId);
+
+    /// @brief Show section @p place of the book as revealElement() shows an element; nothing
+    /// happens when the tree does not show it
+    void revealSection(core::BookPlace place);
 
     /// @brief Refresh a single item's display text by element ID
     /// @param elementId Element ID of the item to refresh
     /// @note Updates the display title (including status suffix) from ProjectManager
     /// @note Does nothing if element not found in tree
+    /// @note In a group of the Workshop the element goes to the place of its title
     void refreshItem(const QString& elementId);
 
     /// @brief Set modified indicator for a chapter element (OpenSpec #00042 Phase 7.5)
@@ -301,12 +373,26 @@ signals:
     /// @param itemType "book" or "workshop"
     void requestRenameNode(const QString& itemType);
 
-    /// @brief Request to group the Workshop (Libraries and Resources) or not
+    /// @brief Request to group the cards of the Workshop in Libraries or not
     void requestWorkshopGrouped(bool grouped);
 
-    /// @brief Request to open material @p elementId of the Workshop in the program the system
-    /// gives its file
+    /// @brief Request to open material @p elementId of the Workshop as the settings say: its
+    /// picture on a preview tab or its file in the program the system gives it
     void requestOpenMaterial(const QString& elementId);
+
+    /// @brief Request to open the card of material @p elementId in the middle of the window
+    void requestOpenMaterialCard(const QString& elementId);
+
+    /// @brief Request to show list @p list of the materials (MaterialList) on its tab: a click
+    /// on Materials or on one of its kinds, or Enter on it
+    /// @param keys The list gets the keys (Enter), else the Navigator keeps them (a click)
+    void requestOpenMaterialList(const QString& list, bool keys);
+
+    /// @brief Request to add the materials @p incoming, dropped on the Navigator from outside
+    /// the program or pasted in it; @p link: the node they are linked with (empty: none), as
+    /// QUICK_MATERIALS_SETTING says
+    void requestAddMaterials(const kalahari::gui::IncomingMaterials& incoming,
+                             const QString& link);
 
     /// @brief Request to show the sections of the book, or to hide them
     /// @param shown Whether the Navigator shows the sections
@@ -354,9 +440,14 @@ signals:
     void requestPartProperties(const QString& partId);
 
     /// @brief Request to bring the Properties panel to the front
-    /// @note Only the Properties command of the context menu asks for it. Choosing an
-    ///       element only fills the panel, so the tab on top of its group stays there.
+    /// @note The Properties command of the context menu and Alt+Enter ask for it, and choosing
+    ///       a material, whose card is in the panel. Choosing another element only fills the
+    ///       panel, so the tab on top of its group stays there.
     void requestPropertiesPanel();
+
+    /// @brief Request to give the keys to the first field of the Properties panel (Alt+Enter),
+    /// after requestPropertiesPanel()
+    void requestPropertiesFocus();
 
     /// @brief Emitted when a file of the "Other Files" section is opened
     /// @param filePath Absolute file path
@@ -431,8 +522,9 @@ private slots:
     void onItemActivated(QTreeWidgetItem* item, int column);
 
 protected:
-    /// @brief The keys of the tree: Insert and Ctrl+Shift+Enter add, F2 renames, Delete
-    /// deletes, Alt+Shift+H shows the versions of a text
+    /// @brief The keys of the tree: Insert and Ctrl+Shift+Enter add, F2 renames, Delete deletes,
+    /// Alt+Enter gives the keys to the properties of the node, Alt+Shift+H shows the versions of
+    /// a text
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
@@ -443,6 +535,11 @@ private:
     /// @brief Rename @p item: an element, a section, the book or the Workshop; nothing for the
     /// other items
     void renameItem(const QTreeWidgetItem* item);
+
+    /// @brief Fill the Properties panel with the properties of @p item: of the book for the
+    /// project and the book, the statistics of a section or a group, those of an element
+    /// @return Whether the node has properties
+    bool requestPropertiesOf(const QTreeWidgetItem* item);
 
     /// @brief Delete @p item: an element, a file of the book or one that no element has;
     /// nothing for the other items
@@ -461,6 +558,10 @@ private:
     /// @brief The kinds the menu of @p item names in its own commands ("Add Chapter..."),
     /// those most added there; none in variant "single" of "navigator.addCommands"
     QList<core::KindRef> namedKindsOf(const QTreeWidgetItem* item) const;
+
+    /// @brief Gives @p item, Materials or a group of it, its number of elements @p count,
+    /// which the tree shows at the right of its name and a screen reader reads with it
+    static void setCount(QTreeWidgetItem* item, qsizetype count);
 
     /// @brief Add the groups of the kinds of the Workshop of @p project with their elements
     /// under @p workshopItem
@@ -553,6 +654,11 @@ private:
     /// @param ids List of item IDs to expand
     /// @note Handles both regular IDs and "type:<elementType>:<text>" format
     void expandItemsById(const QStringList& ids);
+
+    /// @brief Move @p item of a group of the Workshop to the place of its title among the
+    /// others; the tree keeps its current item, the items open under it and its scroll, and
+    /// asks for no properties
+    void placeInWorkshopGroup(QTreeWidgetItem* item);
 
     /// @brief Find item by type-text identifier (OpenSpec #00034 Phase F)
     /// @param elementType Element type stored in Qt::UserRole + 1
