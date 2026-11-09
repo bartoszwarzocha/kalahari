@@ -26,6 +26,9 @@ std::map<std::string, json> buildDefaults() {
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
         // The bar that says the panels on the right were hidden for a small screen was shown
         {"window.smallScreenNoticeShown", false},
+        // The tabs in the middle of the window (Settings > Appearance > General): in one row
+        // with arrows when they do not fit ("single") or in more rows ("wrap")
+        {"window.tabRows", "single"},
 
         // The Paragraph and Styles panel: a panel of its own ("panel") or the lower part of
         // the Properties panel ("properties"), folded there to its band or not, with the
@@ -38,6 +41,13 @@ std::map<std::string, json> buildDefaults() {
         // The Log button of the Panels toolbar, for those who read the log (Settings >
         // Advanced > Log); View > Panels > Log (F4) opens the panel anyway
         {"panels.showLogButton", false},
+        // The tabs of panels docked one over another (Settings > Appearance > General): icons
+        // alone ("icons"), icons and names ("iconsAndNames") or names alone ("names"); in more
+        // rows when they do not fit ("wrap") or in one row with shortened names ("single");
+        // above the panels ("above") or under them ("below")
+        {"panels.tabLook", "icons"},
+        {"panels.tabRows", "wrap"},
+        {"panels.tabSide", "above"},
         {"recent_files", json::array()},
 
         // Interface
@@ -95,6 +105,11 @@ std::map<std::string, json> buildDefaults() {
 
         // Annotations: the name new ones are made with. Empty: by no one named
         {"annotations.author", ""},
+
+        // Whether a link of a material may name a paragraph of a text, which the editor marks
+        // with a paperclip (core::LinkRoles::PARAGRAPHS_SETTING); false hides the paragraphs of
+        // the links and keeps them
+        {"materials.linkParagraphs", true},
 
         // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
         // and the commands named after the kinds most added there) or "single" ("Add..." only)
@@ -273,6 +288,23 @@ std::map<std::string, json> buildDefaults() {
         {"editor.autoCorrect.dialogueDash", true},
         {"editor.autoCorrect.dialogueDashType", "emDash"},
         {"editor.autoCorrect.ellipsis", true},
+
+        // Editor: versions of the texts (Settings > Editor > Versions, ChapterVersions). With
+        // enabled off no new version is kept, neither the writer's nor the program's (except
+        // the current text before another version is restored); those kept stay. Save
+        // Version asks for a description; the program keeps a version by itself when a chapter
+        // is saved, at most once in onSaveMinutes, and before Replace All in a chapter (and
+        // always before another version is restored), keeping at most keepAutomatic of them
+        // for each file. The writer's own versions stay until the writer deletes them. The
+        // buttons of Save Version and Version History are on a toolbar of their own, with
+        // Backup Now ("ownToolbar"), or on the Quick Actions toolbar ("quickActions")
+        {"editor.versions.enabled", true},
+        {"editor.versions.askName", true},
+        {"editor.versions.onSave", true},
+        {"editor.versions.onSaveMinutes", 60},
+        {"editor.versions.beforeReplaceAll", true},
+        {"editor.versions.keepAutomatic", 20},
+        {"editor.versions.buttons", "ownToolbar"},
     };
 }
 

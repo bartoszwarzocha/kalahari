@@ -50,6 +50,7 @@ public:
     /// Editor > Pages and Margins, scrolled to its group Margin Numbering, the cursor in it
     static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
+    static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
 

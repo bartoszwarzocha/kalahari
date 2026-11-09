@@ -116,6 +116,11 @@ public:
     /// clipboard's HTML (CF_HTML) as a document, and Qt adds only the markers of the fragment.
     static QString htmlDocument(const QString& fragment);
 
+    /// @brief The clipboard's data of text @p kml copied in Kalahari: the KML itself (MIME_KML),
+    ///        its HTML (htmlDocument()) for other programs and its plain text, whose
+    ///        paragraphs and line breaks end a line
+    static std::unique_ptr<QMimeData> mimeDataOf(const QString& kml);
+
     /// @brief Convert HTML of another program (Word, LibreOffice, a browser) to KML
     ///
     /// The HTML is read by Qt (QTextDocumentFragment::fromHtml), without anything it refers
