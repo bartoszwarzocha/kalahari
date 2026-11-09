@@ -26,7 +26,7 @@ struct DefaultColor {
     const char* dark;
 };
 
-constexpr std::array<DefaultColor, 13> DEFAULT_COLORS{{
+constexpr std::array<DefaultColor, 17> DEFAULT_COLORS{{
     {"statsBackground", "#FFFFFF", "#161B1F"},
     {"statsGrid", "#E2ECF2", "#25313A"},
     {"statsFrame", "#8FB5D0", "#3C6B87"},
@@ -40,6 +40,10 @@ constexpr std::array<DefaultColor, 13> DEFAULT_COLORS{{
     {"statsHoursLow", "#EEF4F8", "#1C2730"},
     {"statsHoursHigh", "#1673B8", "#4CB0E8"},
     {"statsText", "#2E3D49", "#C3D0DA"},
+    {"statsBadgeBronze", "#A3532A", "#C98A55"},
+    {"statsBadgeSilver", "#6F7D88", "#B9C3CC"},
+    {"statsBadgeGold", "#B08400", "#E3B341"},
+    {"statsBadgePlatinum", "#23879A", "#8FD8E8"},
 }};
 
 bool isDarkTheme()
@@ -55,7 +59,7 @@ bool isDarkTheme()
 
 QColor StatsColors::color(const std::string& key) const
 {
-    static const std::array<std::pair<const char*, QColor StatsColors::*>, 13> MEMBERS{{
+    static const std::array<std::pair<const char*, QColor StatsColors::*>, 17> MEMBERS{{
         {"statsBackground", &StatsColors::background},
         {"statsGrid", &StatsColors::grid},
         {"statsFrame", &StatsColors::frame},
@@ -69,6 +73,10 @@ QColor StatsColors::color(const std::string& key) const
         {"statsHoursLow", &StatsColors::hoursLow},
         {"statsHoursHigh", &StatsColors::hoursHigh},
         {"statsText", &StatsColors::text},
+        {"statsBadgeBronze", &StatsColors::bronze},
+        {"statsBadgeSilver", &StatsColors::silver},
+        {"statsBadgeGold", &StatsColors::gold},
+        {"statsBadgePlatinum", &StatsColors::platinum},
     }};
     for (const auto& [name, member] : MEMBERS) {
         if (key == name) {
@@ -103,6 +111,20 @@ QColor StatsColors::temperature(core::WritingTemperature temperature) const
     return line;
 }
 
+QColor StatsColors::badge(int level) const
+{
+    switch (level) {
+    case 0:
+        return bronze;
+    case 1:
+        return silver;
+    case 2:
+        return gold;
+    default:
+        return platinum;
+    }
+}
+
 StatsColors StatsColors::current()
 {
     const auto& themes = core::ThemeManager::getInstance();
@@ -125,6 +147,10 @@ StatsColors StatsColors::current()
     colors.hoursLow = take(DEFAULT_COLORS[10]);
     colors.hoursHigh = take(DEFAULT_COLORS[11]);
     colors.text = take(DEFAULT_COLORS[12]);
+    colors.bronze = take(DEFAULT_COLORS[13]);
+    colors.silver = take(DEFAULT_COLORS[14]);
+    colors.gold = take(DEFAULT_COLORS[15]);
+    colors.platinum = take(DEFAULT_COLORS[16]);
     colors.fillOpacity = core::SettingsManager::getInstance().get<int>(
         fillOpacitySetting(themes.getCurrentTheme().name), defaultFillOpacity(dark));
     return colors;
@@ -178,6 +204,19 @@ double niceMax(double value, double minimum)
 QString number(qint64 value)
 {
     return QLocale().toString(value);
+}
+
+QString words(qint64 count)
+{
+    if (count == 1) {
+        //: In Polish: 1 słowo
+        return QCoreApplication::translate("StatsPainter", "1 word");
+    }
+    // The form of the language follows the number; the count of words fits easily
+    const int forms = int(std::clamp<qint64>(count, -1'000'000'000, 1'000'000'000));
+    //: In Polish: %1 słowo / %1 słowa / %1 słów
+    return QCoreApplication::translate("StatsPainter", "%1 words", nullptr, forms)
+        .arg(number(count));
 }
 
 QString hoursMinutes(qint64 ms)

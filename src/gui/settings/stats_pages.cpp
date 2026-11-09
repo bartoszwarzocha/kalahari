@@ -11,6 +11,7 @@
 #include "kalahari/gui/widgets/writing_stats_bar.h"
 
 #include <QButtonGroup>
+#include <QCoreApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFormLayout>
@@ -75,6 +76,8 @@ QWidget* rowOf(const QList<QWidget*>& parts)
 /// @brief The preview of the colors of a theme: a day of writing on the grid, with the line of
 /// the goal, the words adding up and the four temperatures of work
 class StatsPreview : public QWidget {
+    Q_DECLARE_TR_FUNCTIONS(StatsPreview)
+
 public:
     explicit StatsPreview(std::function<StatsColors()> colors, QWidget* parent = nullptr)
         : QWidget(parent)
@@ -339,7 +342,7 @@ StatsBarPage::StatsBarPage(QWidget* parent)
     addFieldNote(panel, tr("Hidden views take no room in the panel."));
 
     QFormLayout* status = addGroup(tr("Status Bar"));
-    addOption(status, tr("Show the time of writing and the days in a &row"), "stats.statusBar",
+    addOption(status, tr("Show the time of writing and the d&ays in a row"), "stats.statusBar",
               tr("Beside the words and the reading time, at the bottom of the window."));
 
     QFormLayout* advanced = addAdvanced(tr("Graph of the Bar"));
@@ -360,7 +363,7 @@ StatsBarPage::StatsBarPage(QWidget* parent)
     bind(to, "stats.bar.toHour");
     from->setAccessibleName(tr("From"));
     to->setAccessibleName(tr("To"));
-    auto* hoursLabel = new QLabel(tr("&Hours: from"));
+    auto* hoursLabel = new QLabel(tr("Ho&urs: from"));
     hoursLabel->setBuddy(from);
     advanced->addRow(hoursLabel, rowOf({from, new QLabel(tr("to")), to}));
     addFieldNote(advanced, tr("When you write outside these hours, the graph widens by itself."));
@@ -371,8 +374,8 @@ StatsBarPage::StatsBarPage(QWidget* parent)
     auto* lines = new QWidget();
     auto* linesLayout = new QVBoxLayout(lines);
     linesLayout->setContentsMargins(0, 0, 0, 0);
-    QCheckBox* pieces = addOption(linesLayout, tr("Words in each &piece"), "stats.bar.showPieces");
-    addOption(linesLayout, tr("Words today with the line of the &goal"),
+    QCheckBox* pieces = addOption(linesLayout, tr("Words in &each piece"), "stats.bar.showPieces");
+    addOption(linesLayout, tr("Words today with the li&ne of the goal"),
               "stats.bar.showCumulative");
     auto* linesLabel = new QLabel(tr("Lines:"));
     linesLabel->setBuddy(pieces);
@@ -424,7 +427,7 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
     minimum->setAccessibleName(tr("Words a day"));
     std::vector<QRadioButton*> rules =
         addChoices(streak, tr("A day counts when you:"), "stats.streakRule",
-                   {{tr("&write at least"), "minimumWords", {}},
+                   {{tr("w&rite at least"), "minimumWords", {}},
                     {tr("reach the &daily goal"), "dailyGoal", {}}});
     // The words beside the first choice, in its row
     if (auto* layout = qobject_cast<QBoxLayout*>(rules.front()->parentWidget()->layout())) {
@@ -490,10 +493,9 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
 StatsNotificationsPage::StatsNotificationsPage(QWidget* parent)
     : StatsSettingsPage(parent)
 {
-    //: In Polish: Wiadomości pokazują się na pasku na dole okna, z przyciskiem kopiowania. Gdy
-    //: panel „Asystent” jest otwarty, asystent też pochwali.
+    //: In Polish: Wiadomości pokazują się na pasku na dole okna, z przyciskiem kopiowania.
     addIntro(tr("The messages show in the bar at the bottom of the window, with a button that "
-                "copies them. When the Assistant panel is open, the assistant praises you too."));
+                "copies them."));
 
     QFormLayout* messages = addGroup(tr("Messages"));
     addOption(messages, tr("&Daily goal reached"), "stats.notify.dailyGoal");
@@ -580,6 +582,14 @@ void StatsColorsPage::addTheme(const QString& themeName)
         tr("Times of writing: the fewest words"),
         tr("Times of writing: the most words"),
         tr("Texts on the graphs"),
+        //: In Polish: Odznaki: brązowa
+        tr("Badges: bronze"),
+        //: In Polish: Odznaki: srebrna
+        tr("Badges: silver"),
+        //: In Polish: Odznaki: złota
+        tr("Badges: gold"),
+        //: In Polish: Odznaki: platynowa
+        tr("Badges: platinum"),
     };
     const std::vector<std::string>& keys = StatsColors::keys();
     auto widgets = std::make_shared<std::vector<ColorConfigWidget*>>();

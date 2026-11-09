@@ -163,7 +163,7 @@ TEST_CASE("Statistics bar: the graph, its texts and its buttons", "[gui][statist
           QStringLiteral("%1 of %2 words")
               .arg(stats_painter::number(480), stats_painter::number(1000)));
     CHECK(texts.contains(QStringLiteral("0:10 of writing")));
-    CHECK(texts.contains(QStringLiteral("3 day(s) in a row")));
+    CHECK(texts.contains(QStringLiteral("3 days in a row")));
 
     // The texts and the buttons do not cover the data
     const QRectF plot = bar.plotRect();
@@ -182,7 +182,7 @@ TEST_CASE("Statistics bar: the graph, its texts and its buttons", "[gui][statist
     settings.set<bool>("stats.bar.showWords", false);
     bar.refresh();
     CHECK(bar.texts() == QStringList{QStringLiteral("0:10 of writing"),
-                                     QStringLiteral("3 day(s) in a row")});
+                                     QStringLiteral("3 days in a row")});
 }
 
 TEST_CASE("Statistics bar: folded to one line, with the fold button in the same place",

@@ -241,7 +241,12 @@ void WritingStatsBar::readNumbers()
 
     // The words: the numbers in their colors, the rest of the sentence as the language has it
     Text words;
-    const QString pattern = m_goal > 0 ? tr("%1 of %2 words") : tr("%1 words");
+    //: In Polish: %1 z %2 słów
+    const QString pattern = m_goal > 0 ? tr("%1 of %2 words")
+                            //: In Polish: %1 słowo
+                            : m_words == 1 ? tr("%1 word")
+                                           //: In Polish: %1 słowo / %1 słowa / %1 słów
+                                           : tr("%1 words", nullptr, m_words);
     static const QRegularExpression PLACEHOLDER(QStringLiteral("%[12]"));
     int at = 0;
     for (auto match = PLACEHOLDER.globalMatch(pattern); match.hasNext();) {
@@ -289,7 +294,12 @@ void WritingStatsBar::readNumbers()
         streak.hasGlyph = true;
         streak.glyph = stats_painter::Glyph::Flame;
         streak.glyphColor = m_colors.text;
-        streak.runs.append({tr("%Ln day(s) in a row", nullptr, m_streak), m_colors.text});
+        streak.runs.append({m_streak == 1
+                                //: In Polish: 1 dzień z rzędu
+                                ? tr("1 day in a row")
+                                //: In Polish: %Ln dni z rzędu
+                                : tr("%Ln days in a row", nullptr, m_streak),
+                            m_colors.text});
         m_texts.append(streak);
     }
 }
@@ -757,8 +767,9 @@ QString WritingStatsBar::pieceToolTip(int piece) const
     if (entry.written == 0 && entry.deleted == 0) {
         return tr("%1: no writing").arg(time);
     }
-    return tr("%1: %2 words (written %3, deleted %4)")
-        .arg(time, stats_painter::number(entry.counted(m_counting)),
+    //: %1: the hours, %2: the words. In Polish: %1: %2 (napisane %3, usunięte %4)
+    return tr("%1: %2 (written %3, deleted %4)")
+        .arg(time, stats_painter::words(entry.counted(m_counting)),
              stats_painter::number(entry.written), stats_painter::number(entry.deleted));
 }
 

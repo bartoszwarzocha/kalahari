@@ -9,14 +9,18 @@
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/writing_goals.h"
 #include "kalahari/gui/settings/settings_page.h"
+#include "kalahari/gui/widgets/badge_painter.h"
 #include "kalahari/gui/widgets/stats_painter.h"
+#include "kalahari/gui/writing_awards_tracker.h"
 #include "kalahari/gui/writing_stats_model.h"
 
+#include <QAbstractButton>
 #include <QApplication>
 #include <QCheckBox>
 #include <QEvent>
 #include <QHBoxLayout>
 #include <QHelpEvent>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
 #include <QLocale>
@@ -85,7 +89,7 @@ QString clockOf(int minutes)
 
 /// @brief What a graph of the panel shows
 struct GraphData {
-    enum class Kind { None, Day, Columns, Book, Hours };
+    enum class Kind { None, Day, Columns, Book, Hours, Trophy };
     Kind kind = Kind::None;
     /// Day: the pieces of the day; Columns: the days (NaN: still to come); Book: the words at
     /// the end of each day, up to today
@@ -131,6 +135,15 @@ void paintPlot(QPainter& painter, const QRectF& rect, const GraphData& graph,
     case GraphData::Kind::None:
         stats_painter::drawGrid(painter, rect, 4, rows, colors.grid);
         break;
+    case GraphData::Kind::Trophy: {
+        stats_painter::drawGrid(painter, rect, 4, rows, colors.grid);
+        const double side = std::min(inner.height() - 6.0, 20.0);
+        badge_painter::drawTrophy(painter,
+                                  QRectF(inner.center().x() - side / 2.0,
+                                         inner.center().y() - side / 2.0, side, side),
+                                  colors.line);
+        break;
+    }
     case GraphData::Kind::Day: {
         stats_painter::drawGrid(painter, rect, small ? 4 : 6, rows, colors.grid);
         stats_painter::drawArea(painter, inner, graph.values, graph.max, colors.line,
@@ -759,6 +772,135 @@ private:
     QList<QLabel*> m_values;
 };
 
+/// @brief The badge won last, large: its ring, its name, the day it was won and the badges and
+/// challenges; a click opens the tab Challenges and Badges
+class BigBadgeButton : public QAbstractButton {
+public:
+    /// @brief The size of the ring
+    static constexpr int CIRCLE = 88;
+
+    explicit BigBadgeButton(QWidget* parent)
+        : QAbstractButton(parent)
+    {
+        setFocusPolicy(Qt::StrongFocus);
+        setCursor(Qt::PointingHandCursor);
+        setAttribute(Qt::WA_Hover, true);
+        QSizePolicy policy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        policy.setHeightForWidth(true);
+        setSizePolicy(policy);
+    }
+
+    /// @brief What it shows: a badge won (@p won) of @p kind and @p level, or none yet
+    void setBadge(bool won, core::BadgeKind kind, int level, const QStringList& lines)
+    {
+        m_won = won;
+        m_kind = kind;
+        m_level = level;
+        m_lines = lines;
+        setAccessibleName(lines.join(QStringLiteral(". ")));
+        updateGeometry();
+        update();
+    }
+
+    /// @brief Its lines: the name in bold, then the smaller ones
+    QStringList lines() const { return m_lines; }
+
+    QSize sizeHint() const override { return {200, heightForWidth(200)}; }
+    QSize minimumSizeHint() const override { return {100, heightForWidth(100)}; }
+    bool hasHeightForWidth() const override { return true; }
+
+    int heightForWidth(int width) const override
+    {
+        const int textWidth = std::max(20, width - 2 * PADDING);
+        int height = PADDING + circle(width) + 8;
+        for (int i = 0; i < m_lines.size(); ++i) {
+            const QFontMetrics metrics(fontOf(i));
+            height += metrics.boundingRect(QRect(0, 0, textWidth, 10000),
+                                           Qt::AlignHCenter | Qt::TextWordWrap, m_lines[i])
+                          .height() +
+                      2;
+        }
+        return height + PADDING;
+    }
+
+protected:
+    void paintEvent(QPaintEvent* /*event*/) override
+    {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        const StatsColors colors = StatsColors::current();
+        const QColor muted = SettingsPage::noteColor();
+        const bool lit = hasFocus() || underMouse();
+        const QRectF frame = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
+        painter.setPen(QPen(palette().color(lit ? QPalette::Highlight : QPalette::Mid),
+                            hasFocus() ? 2.0 : 1.0));
+        painter.setBrush(palette().color(QPalette::Base));
+        painter.drawRoundedRect(frame, 6.0, 6.0);
+
+        const int side = circle(width());
+        const QRectF ring(width() / 2.0 - side / 2.0, PADDING, side, side);
+        if (m_won) {
+            badge_painter::drawBadge(painter, ring, m_kind, colors.badge(m_level), true, 3.0);
+        } else {
+            QPen pen(muted, 2.0);
+            pen.setStyle(Qt::DashLine);
+            pen.setDashPattern({2.0, 1.6});
+            painter.setPen(pen);
+            painter.setBrush(Qt::NoBrush);
+            painter.drawEllipse(ring.adjusted(1, 1, -1, -1));
+            badge_painter::drawTrophy(painter, ring.adjusted(side / 4.0, side / 4.0, -side / 4.0,
+                                                             -side / 4.0),
+                                      muted);
+        }
+
+        int top = int(ring.bottom()) + 8;
+        const int textWidth = std::max(20, width() - 2 * PADDING);
+        for (int i = 0; i < m_lines.size(); ++i) {
+            const QFont font = fontOf(i);
+            painter.setFont(font);
+            painter.setPen(i == 0 ? palette().color(QPalette::Text) : muted);
+            const QRect bounds =
+                QFontMetrics(font).boundingRect(QRect(PADDING, top, textWidth, 10000),
+                                                Qt::AlignHCenter | Qt::TextWordWrap, m_lines[i]);
+            painter.drawText(QRect(PADDING, top, textWidth, bounds.height()),
+                             Qt::AlignHCenter | Qt::TextWordWrap, m_lines[i]);
+            top += bounds.height() + 2;
+        }
+    }
+
+    void keyPressEvent(QKeyEvent* event) override
+    {
+        // Enter opens the tab too, as Space does
+        if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
+            click();
+            event->accept();
+            return;
+        }
+        QAbstractButton::keyPressEvent(event);
+    }
+
+private:
+    static constexpr int PADDING = 12;
+
+    int circle(int width) const { return std::max(40, std::min(CIRCLE, width - 2 * PADDING)); }
+
+    /// @brief The first line a little larger and bold, the others smaller
+    QFont fontOf(int line) const
+    {
+        if (line == 0) {
+            QFont bold = scaledFont(font(), 1.1);
+            bold.setBold(true);
+            return bold;
+        }
+        return font();
+    }
+
+    bool m_won = false;
+    core::BadgeKind m_kind = core::BadgeKind::Words;
+    int m_level = 0;
+    QStringList m_lines;
+};
+
 // =============================================================================
 // What the views show
 // =============================================================================
@@ -786,6 +928,11 @@ struct WritingStatsPanel::ViewData {
     double progress = -1.0;  ///< The share of the bar; below 0: no bar
     QList<StatsDetails::Detail> details;
     bool goals = false;      ///< The button of the goals
+    bool awards = false;     ///< Add Challenge and the badge won last
+    bool badgeWon = false;   ///< A badge was won: the last one
+    core::BadgeKind badgeKind = core::BadgeKind::Words;
+    int badgeLevel = 0;
+    QStringList badgeLines;  ///< Its name, the day it was won, the badges and challenges
     bool periods = false;    ///< The arrows to earlier and later periods
     bool later = false;      ///< A later period is there
 };
@@ -850,6 +997,23 @@ WritingStatsPanel::WritingStatsPanel(QWidget* parent)
     m_subtitle = new QLabel(view);
     m_subtitle->setWordWrap(true);
     layout->addWidget(m_subtitle);
+
+    // The achievements: Add Challenge on top, then the badge won last, large
+    m_addChallenge = new QPushButton(view);
+    m_addChallenge->setObjectName(QStringLiteral("statsAddChallenge"));
+    m_addChallenge->setIcon(
+        core::ArtProvider::getInstance().getIcon(QStringLiteral("tools.addChallenge")));
+    m_addChallenge->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    connect(m_addChallenge, &QPushButton::clicked, this, &WritingStatsPanel::addChallengeRequested);
+    layout->addWidget(m_addChallenge, 0, Qt::AlignLeft);
+    m_awardsCaption = new QLabel(view);
+    m_awardsCaption->setObjectName(QStringLiteral("statsLastBadgeCaption"));
+    layout->addWidget(m_awardsCaption);
+    m_bigBadge = new BigBadgeButton(view);
+    m_bigBadge->setObjectName(QStringLiteral("statsLastBadge"));
+    connect(m_bigBadge, &QAbstractButton::clicked, this, &WritingStatsPanel::awardsRequested);
+    layout->addWidget(m_bigBadge);
+    retranslateAwards();
 
     m_graph = new StatsGraph(view);
     layout->addWidget(m_graph);
@@ -921,6 +1085,8 @@ WritingStatsPanel::WritingStatsPanel(QWidget* parent)
                 }
                 m_goals->setIcon(core::ArtProvider::getInstance().getIcon(
                     QStringLiteral("tools.writingGoals")));
+                m_addChallenge->setIcon(core::ArtProvider::getInstance().getIcon(
+                    QStringLiteral("tools.addChallenge")));
                 refresh();
             });
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::editorColorsChanged, this,
@@ -944,6 +1110,34 @@ void WritingStatsPanel::setModel(WritingStatsModel* model)
     }
     m_dirty = true;
     refresh();
+}
+
+void WritingStatsPanel::setAwardsTracker(WritingAwardsTracker* tracker)
+{
+    if (m_tracker != nullptr) {
+        disconnect(m_tracker, nullptr, this, nullptr);
+    }
+    m_tracker = tracker;
+    if (m_tracker != nullptr) {
+        connect(m_tracker, &WritingAwardsTracker::changed, this, &WritingStatsPanel::refresh);
+    }
+    m_dirty = true;
+    refresh();
+}
+
+QAbstractButton* WritingStatsPanel::lastBadgeButton() const
+{
+    return m_bigBadge;
+}
+
+void WritingStatsPanel::retranslateAwards()
+{
+    //: In Polish: &Dodaj wyzwanie...
+    m_addChallenge->setText(tr("&Add Challenge..."));
+    //: In Polish: Ostatnio zdobyta odznaka
+    m_awardsCaption->setText(tr("Last badge won"));
+    //: In Polish: Otwórz kartę „Wyzwania i odznaki” w środku okna
+    m_bigBadge->setToolTip(tr("Open the tab Challenges and Badges in the middle of the window"));
 }
 
 QWidget* WritingStatsPanel::takeFooter()
@@ -1004,6 +1198,8 @@ const char* WritingStatsPanel::settingOf(View view)
         return "stats.panel.book";
     case View::Hours:
         return "stats.panel.hours";
+    case View::Awards:
+        return "stats.panel.awards";
     }
     return "stats.panel.today";
 }
@@ -1012,7 +1208,8 @@ QList<WritingStatsPanel::View> WritingStatsPanel::listedViews() const
 {
     auto& settings = core::SettingsManager::getInstance();
     QList<View> views;
-    for (View view : {View::Today, View::Week, View::Month, View::Book, View::Hours}) {
+    for (View view :
+         {View::Today, View::Week, View::Month, View::Book, View::Hours, View::Awards}) {
         if (settings.get<bool>(settingOf(view), true)) {
             views.append(view);
         }
@@ -1083,6 +1280,7 @@ void WritingStatsPanel::changeEvent(QEvent* event)
             m_countPasted->setToolTip(tr("The same as Settings > Statistics and Goals > Counting"));
             m_previous->setToolTip(tr("Earlier"));
             m_next->setToolTip(tr("Later"));
+            retranslateAwards();
         }
         m_dirty = true;
         refresh();
@@ -1186,6 +1384,10 @@ void WritingStatsPanel::fillView(const Context& context)
     m_details->setDetails(data.details);
     m_details->setVisible(!data.details.isEmpty());
     m_goals->setVisible(data.goals);
+    m_addChallenge->setVisible(data.awards);
+    m_awardsCaption->setVisible(data.awards && data.badgeWon);
+    m_bigBadge->setVisible(data.awards);
+    m_bigBadge->setBadge(data.badgeWon, data.badgeKind, data.badgeLevel, data.badgeLines);
 
     m_numberTexts.clear();
     for (const StatsKpiGrid::Number& number : data.numbers) {
@@ -1216,6 +1418,10 @@ void WritingStatsPanel::viewOf(View view, const Context& context, ViewData& data
     case View::Hours:
         data.title = tr("Times of Writing");
         break;
+    case View::Awards:
+        //: The view of the badges and the challenges. In Polish: Osiągnięcia
+        data.title = tr("Achievements");
+        break;
     }
     if (context.model == nullptr) {
         data.note = tr("No statistics yet.");
@@ -1236,6 +1442,9 @@ void WritingStatsPanel::viewOf(View view, const Context& context, ViewData& data
         break;
     case View::Hours:
         showHours(context, data);
+        break;
+    case View::Awards:
+        showAwards(context, data);
         break;
     }
 }
@@ -1259,8 +1468,9 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& data) const
     data.listText = goal > 0 ? tr("%1 of %2 words · %3")
                                    .arg(number(words), number(goal),
                                         stats_painter::hoursMinutes(totals.activeMs))
-                             : tr("%1 words · %2")
-                                   .arg(number(words), stats_painter::hoursMinutes(totals.activeMs));
+                             : tr("%1 · %2")
+                                   .arg(stats_painter::words(words),
+                                        stats_painter::hoursMinutes(totals.activeMs));
 
     // The graph of the day: the words in each piece, in the hours of the bar
     const QList<DayPiece> pieces =
@@ -1278,8 +1488,9 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& data) const
         graph.values.append(value);
         most = std::max(most, value);
         const int start = dayStart + i * piece;
-        graph.tips.append(tr("%1–%2: %3 words")
-                              .arg(clockOf(start), clockOf(start + piece), number(int(value))));
+        graph.tips.append(tr("%1–%2: %3")
+                              .arg(clockOf(start), clockOf(start + piece),
+                                   stats_painter::words(qint64(value))));
     }
     graph.max = stats_painter::niceMax(most);
     graph.now = to > from ? double(nowMinute - from) / double(to - from) : -1.0;
@@ -1339,7 +1550,7 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& data) const
     if (goal > 0) {
         data.details.append({tr("To the daily goal"),
                              words >= goal ? tr("reached")
-                                           : tr("%1 words").arg(number(goal - words)),
+                                           : stats_painter::words(goal - words),
                              words >= goal ? context.colors.done : QColor()});
     }
     const core::WritingTemperature temperature = statistics.temperature(context.now);
@@ -1404,8 +1615,7 @@ void fillDays(GraphData& graph, const core::WritingStatistics& statistics,
         graph.values.append(words);
         graph.off.append(!rules.isWritingDay(day));
         graph.done.append(goal > 0 && words >= goal);
-        graph.tips.append(WritingStatsPanel::tr("%1: %2 words")
-                              .arg(name, stats_painter::number(words)));
+        graph.tips.append(WritingStatsPanel::tr("%1: %2").arg(name, stats_painter::words(words)));
         most = std::max(most, double(words));
     }
     graph.goal = rules.dailyGoal;
@@ -1469,7 +1679,7 @@ void WritingStatsPanel::showWeek(const Context& context, ViewData& data) const
     }
     const int weekly = rules.weeklyGoalWords();
     data.listText = weekly > 0 ? tr("%1 of %2 words").arg(number(sum), number(weekly))
-                               : tr("%1 words").arg(number(sum));
+                               : stats_painter::words(sum);
     data.numbers.append({m_offset == 0 ? tr("This week") : tr("In the week"), number(sum), QString()});
     if (weekly > 0) {
         data.numbers.append({tr("Weekly goal"),
@@ -1488,21 +1698,30 @@ void WritingStatsPanel::showWeek(const Context& context, ViewData& data) const
         }
         data.details.append({tr("Weekly goal"),
                              rules.weeklyGoal > 0
-                                 ? tr("%1 words").arg(number(weekly))
-                                 : tr("%1 words (%2 writing days × %3)")
-                                       .arg(number(weekly), number(days), number(rules.dailyGoal)),
+                                 ? stats_painter::words(weekly)
+                                 //: The weekly goal: %1 words, %2 writing days, %3 the daily
+                                 //: goal. In Polish: %1 (%2 × %3)
+                                 : tr("%1 (%2 × %3)")
+                                       .arg(stats_painter::words(weekly),
+                                            days == 1
+                                                //: In Polish: 1 dzień pisania
+                                                ? tr("1 writing day")
+                                                //: In Polish: %1 dzień pisania / %1 dni pisania
+                                                : tr("%1 writing days", nullptr, days)
+                                                      .arg(number(days)),
+                                            number(rules.dailyGoal)),
                              {}});
         if (m_offset == 0) {
             data.details.append({tr("Left"),
                                  sum >= weekly ? tr("goal reached")
-                                               : tr("%1 words").arg(number(weekly - sum)),
+                                               : stats_painter::words(weekly - sum),
                                  sum >= weekly ? context.colors.done : QColor()});
         }
     }
     if (best.isValid()) {
         data.details.append({tr("Best day"),
-                             tr("%1, %2 words").arg(context.locale.dayName(best.dayOfWeek()),
-                                                    number(bestWords)),
+                             tr("%1, %2").arg(context.locale.dayName(best.dayOfWeek()),
+                                              stats_painter::words(bestWords)),
                              {}});
     }
     if (rules.dailyGoal > 0) {
@@ -1561,7 +1780,7 @@ void WritingStatsPanel::showMonth(const Context& context, ViewData& data) const
             best = day;
         }
     }
-    data.listText = tr("%1 words").arg(number(sum));
+    data.listText = stats_painter::words(sum);
     data.numbers.append({tr("Total"), number(sum), QString()});
     data.numbers.append({tr("Average"),
                          number(std::lround(context.statistics.averagePerWritingDay(first, last))),
@@ -1571,9 +1790,9 @@ void WritingStatsPanel::showMonth(const Context& context, ViewData& data) const
     }
     if (best.isValid()) {
         data.details.append({tr("Best day"),
-                             tr("%1 – %2 words")
+                             tr("%1 – %2")
                                  .arg(context.locale.toString(best, QStringLiteral("dddd, d MMMM")),
-                                      number(bestWords)),
+                                      stats_painter::words(bestWords)),
                              {}});
     }
     if (sum > 0) {
@@ -1655,7 +1874,7 @@ void WritingStatsPanel::showBook(const Context& context, ViewData& data) const
     graph.bottomRight = context.locale.toString(end, QStringLiteral("d MMMM"));
 
     data.listText = target > 0 ? tr("%1 of %2 words").arg(number(words), number(target))
-                               : tr("%1 words").arg(number(words));
+                               : stats_painter::words(words);
     data.numbers.append({tr("Words"), number(words), QString()});
     if (target > 0) {
         data.numbers.append({tr("Goal"), QStringLiteral("%1%").arg(std::lround(100.0 * words / target)), QString()});
@@ -1663,7 +1882,12 @@ void WritingStatsPanel::showBook(const Context& context, ViewData& data) const
     }
     if (goals.deadline.isValid() && goals.deadline >= today) {
         const auto days = today.daysTo(goals.deadline);
-        data.numbers.append({tr("To the deadline"), number(days), tr("day(s)", nullptr, int(days))});
+        data.numbers.append({tr("To the deadline"), number(days),
+                             days == 1
+                                 //: The unit after 1. In Polish: dzień
+                                 ? tr("day")
+                                 //: The unit after a number of days. In Polish: dni
+                                 : tr("days", nullptr, int(days))});
     }
 
     if (target <= 0 && !goals.deadline.isValid()) {
@@ -1671,8 +1895,8 @@ void WritingStatsPanel::showBook(const Context& context, ViewData& data) const
                        "and Deadlines.");
     }
     if (target > 0) {
-        data.details.append({tr("Length of the book"), tr("%1 words").arg(number(target)), {}});
-        data.details.append({tr("Left"), left == 0 ? tr("goal reached") : tr("%1 words").arg(number(left)),
+        data.details.append({tr("Length of the book"), stats_painter::words(target), {}});
+        data.details.append({tr("Left"), left == 0 ? tr("goal reached") : stats_painter::words(left),
                              left == 0 ? context.colors.done : QColor()});
     }
     if (goals.deadline.isValid()) {
@@ -1682,7 +1906,7 @@ void WritingStatsPanel::showBook(const Context& context, ViewData& data) const
             const int writingDays = core::writingDaysBetween(rules, today, goals.deadline);
             data.details.append({tr("Writing days to the deadline"), number(writingDays), {}});
             data.details.append({tr("Needed on a writing day"),
-                                 tr("%1 words").arg(number(core::wordsPerWritingDay(left, writingDays))),
+                                 stats_painter::words(core::wordsPerWritingDay(left, writingDays)),
                                  {}});
         }
     }
@@ -1729,11 +1953,13 @@ void WritingStatsPanel::showHours(const Context& context, ViewData& data) const
     }
     for (int d = 0; d < 7; ++d) {
         for (int h = 0; h < 24; ++h) {
-            graph.tips.append(tr("%1, %2:00–%3:00: %4 words on average")
+            //: %1: a day of the week, %2 and %3: hours, %4: words. In Polish: %1, %2:00–%3:00:
+            //: średnio %4
+            graph.tips.append(tr("%1, %2:00–%3:00: %4 on average")
                                   .arg(context.locale.dayName(d + 1))
                                   .arg(h)
                                   .arg(h + 1)
-                                  .arg(stats_painter::number(std::lround(map.words[d][h]))));
+                                  .arg(stats_painter::words(std::lround(map.words[d][h]))));
         }
     }
 
@@ -1768,6 +1994,61 @@ void WritingStatsPanel::showHours(const Context& context, ViewData& data) const
     data.details.append({tr("Monday to Friday and weekend"),
                          tr("%1 and %2").arg(share(map.shareOfDays(1, 5)), share(map.shareOfDays(6, 7))),
                          {}});
+}
+
+// -----------------------------------------------------------------------------
+// Achievements
+// -----------------------------------------------------------------------------
+
+void WritingStatsPanel::showAwards(const Context& context, ViewData& data) const
+{
+    Q_UNUSED(context);
+    data.graph.kind = GraphData::Kind::Trophy;
+    if (m_tracker == nullptr) {
+        //: In Polish: Nie ma jeszcze odznak.
+        data.note = tr("No badges yet.");
+        data.listText = data.note;
+        return;
+    }
+    data.awards = true;
+    // The graph is the badge won last, in its own button
+    const int badges = int(m_tracker->shownBadges().size());
+    int open = 0;
+    for (const core::WritingChallenge& challenge : m_tracker->challenges()) {
+        const core::ChallengeProgress progress = m_tracker->challengeProgress(challenge);
+        open += !progress.done && !progress.over ? 1 : 0;
+    }
+    QString counts = badges == 1
+                         //: In Polish: 1 odznaka
+                         ? tr("1 badge")
+                         //: In Polish: %n odznaki / %n odznak
+                         : tr("%n badges", nullptr, badges);
+    if (open > 0) {
+        //: Two counts side by side. In Polish: %1 · %2
+        counts = tr("%1 · %2").arg(counts, open == 1
+                                               //: A challenge going on. In Polish: 1 wyzwanie
+                                               ? tr("1 challenge")
+                                               //: In Polish: %n wyzwania / %n wyzwań
+                                               : tr("%n challenges", nullptr, open));
+    }
+    data.listText = counts;
+
+    if (const std::optional<core::EarnedBadge> last = m_tracker->lastBadge()) {
+        const core::BadgeProgress progress = m_tracker->progressOf(last->kind);
+        data.badgeWon = true;
+        data.badgeKind = last->kind;
+        data.badgeLevel = last->level;
+        data.badgeLines = {badge_painter::title(progress, last->level),
+                           badge_painter::wonOn(last->date), counts};
+    } else {
+        data.badgeLines = {
+            //: In Polish: Nie ma jeszcze odznak
+            tr("No badges yet"),
+            //: In Polish: Odznaki przychodzą z pisaniem: za słowa, dni z rzędu i osiągnięte cele.
+            tr("The badges come with the writing: for the words, the days in a row and the goals "
+               "reached."),
+            counts};
+    }
 }
 
 }  // namespace kalahari::gui

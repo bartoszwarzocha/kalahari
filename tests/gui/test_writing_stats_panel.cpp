@@ -104,7 +104,7 @@ TEST_CASE("Statistics panel: today, its numbers and its sessions", "[gui][statis
     CHECK(contains(panel.details(), QStringLiteral("Texts: Chapter 1 (480)")));
 
     // The list: every view with its line of numbers
-    REQUIRE(panel.viewList()->count() == 5);
+    REQUIRE(panel.viewList()->count() == 6);
     CHECK(panel.listTexts().first() ==
           QStringLiteral("Today: 480 of %1 words · 0:10").arg(number(1000)));
 }
@@ -209,8 +209,8 @@ TEST_CASE("Statistics panel: the settings choose the views of the list", "[gui][
     WritingStatsPanel panel;
     panel.setModel(&journal.model);
     panel.show();
-    CHECK(panel.listedViews() == QList<View>{View::Today, View::Week, View::Book});
-    CHECK(panel.viewList()->count() == 3);
+    CHECK(panel.listedViews() == QList<View>{View::Today, View::Week, View::Book, View::Awards});
+    CHECK(panel.viewList()->count() == 4);
 
     // A view chosen elsewhere is shown, though not in the list
     panel.setView(View::Hours);
@@ -249,5 +249,5 @@ TEST_CASE("Statistics panel: without statistics", "[gui][statistics]")
     panel.show();
     CHECK(panel.titleText() == QStringLiteral("Today"));
     CHECK(panel.numbers().isEmpty());
-    CHECK(panel.viewList()->count() == 5);
+    CHECK(panel.viewList()->count() == 6);
 }

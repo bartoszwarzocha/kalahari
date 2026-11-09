@@ -170,7 +170,7 @@ TEST_CASE("Statistics settings: the colors of each theme, kept only when changed
     }
     REQUIRE(dark != nullptr);
     const QList<gui::ColorConfigWidget*> colors = dark->findChildren<gui::ColorConfigWidget*>();
-    REQUIRE(colors.size() == 13);
+    REQUIRE(colors.size() == 17);
     // The colors of the theme file
     CHECK(colors[3]->color() == QColor(QStringLiteral("#4CB0E8")));
     colors[3]->setColor(QColor(QStringLiteral("#123456")));

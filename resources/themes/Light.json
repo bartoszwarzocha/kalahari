@@ -64,6 +64,10 @@
     "statsLittleSlow": "#6B7088",
     "statsHoursLow": "#EEF4F8",
     "statsHoursHigh": "#1673B8",
-    "statsText": "#2E3D49"
+    "statsText": "#2E3D49",
+    "statsBadgeBronze": "#A3532A",
+    "statsBadgeSilver": "#6F7D88",
+    "statsBadgeGold": "#B08400",
+    "statsBadgePlatinum": "#23879A"
   }
 }

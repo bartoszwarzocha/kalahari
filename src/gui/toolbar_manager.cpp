@@ -277,14 +277,14 @@ void ToolbarManager::initializeConfigs() {
 
     // Writing Statistics Toolbar: the statistics of writing in one place - the statistics bar, the
     // Statistics panel (also on the Panels toolbar, with the other panels), the tabs of the
-    // goals and of the challenges and badges, and the settings of the statistics
+    // goals and of the challenges and badges, a new challenge, and the settings of the statistics
     m_configs["stats"] = {
         "stats",
         QT_TRANSLATE_NOOP("QObject", "&Writing Statistics Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"view.showStatsBar", "view.statistics", SEPARATOR_ID, "tools.writingGoals",
-         "tools.challenges", SEPARATOR_ID, "tools.statsSettings"}
+         "tools.challenges", "tools.addChallenge", SEPARATOR_ID, "tools.statsSettings"}
     };
 
     // Format Toolbar (text formatting - essential for writer's IDE)

@@ -81,6 +81,9 @@ public:
     /// @brief A book is open
     bool hasBook() const { return m_database != nullptr; }
 
+    /// @brief The database of the open book; nullptr without one
+    core::ProjectDatabase* database() const { return m_database; }
+
     /// @brief The id of the open book; empty without one
     const QString& bookId() const { return m_bookId; }
 

@@ -347,6 +347,10 @@ MainWindow::MainWindow(QWidget* parent)
         m_dockCoordinator, m_documentCoordinator,
         [this](const QString& page) { m_settingsCoordinator->openSettingsPage(page); }, this);
     m_writingStatsCoordinator->connectCommands();
+    // The time of writing and the days in a row after the reading time, and the summary of
+    // the session over this window
+    m_writingStatsCoordinator->attachStatusBar(statusBar());
+    m_writingStatsCoordinator->setSummaryWindow(this);
 
     // The annotation commands and the Annotations panel; a chapter is opened as from the
     // Navigator
@@ -1908,6 +1912,11 @@ void MainWindow::closeEvent(QCloseEvent* event) {
             return;
         }
         // Don't Save -> continue with close
+    }
+
+    // The summary of the session of writing, when the settings say so
+    if (m_writingStatsCoordinator) {
+        m_writingStatsCoordinator->showSessionSummary();
     }
 
     // Phase F: Save Navigator expansion state before closing

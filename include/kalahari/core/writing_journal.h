@@ -10,11 +10,14 @@
 #pragma once
 
 #include "kalahari/core/writing_activity.h"
+#include "kalahari/core/writing_awards.h"
 
 #include <QDate>
 #include <QList>
+#include <QMap>
 #include <QSqlDatabase>
 #include <QString>
+#include <QStringList>
 
 namespace kalahari::core {
 
@@ -36,7 +39,8 @@ QList<WritingActivity> read(const QSqlDatabase& db, const QDate& from, const QDa
 
 }  // namespace writing_activity_store
 
-/// @brief The writer's journal: the record of writing of all the books
+/// @brief The writer's journal: the record of writing of all the books, the badges of the writer
+/// and of the months, the goals each day had, the books finished and the challenges
 class WritingJournal {
 public:
     WritingJournal() = default;
@@ -62,6 +66,40 @@ public:
     /// of one
     QList<WritingActivity> activity(const QDate& from, const QDate& to,
                                     const QString& bookId = {}) const;
+
+    /// @brief The badges won by the writer and in the months (EarnedBadge::scope), by date
+    QList<EarnedBadge> badges() const;
+
+    /// @brief Keep @p badges won; one won before stays as it was
+    bool addBadges(const QList<EarnedBadge>& badges);
+
+    /// @brief The daily goal each day had, as setDayGoals() kept it
+    QMap<QDate, int> dailyGoals() const;
+
+    /// @brief The weekly goal each day had, as setDayGoals() kept it
+    QMap<QDate, int> weeklyGoals() const;
+
+    /// @brief Keep the goals of @p day: its daily goal and the goal of its week
+    bool setDayGoals(const QDate& day, int dailyGoal, int weeklyGoal);
+
+    /// @brief The books that reached their length, by their ids
+    QStringList finishedBooks() const;
+
+    /// @brief Keep that the book @p bookId reached its length on @p day; once
+    bool addFinishedBook(const QString& bookId, const QDate& day);
+
+    /// @brief The writer's challenges, in the order they were set
+    QList<WritingChallenge> challenges() const;
+
+    /// @brief Keep a new challenge
+    /// @return Its number (WritingChallenge::id); 0 when it cannot be kept
+    int addChallenge(const WritingChallenge& challenge);
+
+    /// @brief Keep that the challenge @p id was done on @p day
+    bool setChallengeDone(int id, const QDate& day);
+
+    /// @brief Forget the challenge @p id
+    bool removeChallenge(int id);
 
     QString lastError() const { return m_lastError; }
 

@@ -2,8 +2,9 @@
 /// @brief The Statistics panel: a list of small graphs of the writing, as in the Performance
 /// tab of the Task Manager of Windows 11, and the view chosen in it, large
 ///
-/// The views are today, the week, 30 days, the book and the times of writing. Each one has a
-/// large graph on a fine grid, big numbers and a few details in plain words. Everything fits
+/// The views are today, the week, 30 days, the book, the times of writing and the achievements.
+/// Each one but the last has a large graph on a fine grid, big numbers and a few details in
+/// plain words; the achievements show the badge won last, large, and Add Challenge above it. Everything fits
 /// the narrowest panel: the graphs are as wide as the panel, the numbers go to as many columns
 /// as fit, and a detail that does not fit beside its name goes under it. At its foot, a box
 /// says whether the text pasted counts in the statistics (the setting stats.countPasted).
@@ -15,6 +16,7 @@
 
 #include <functional>
 
+class QAbstractButton;
 class QCheckBox;
 class QLabel;
 class QListWidget;
@@ -24,7 +26,9 @@ class QVBoxLayout;
 
 namespace kalahari::gui {
 
+class WritingAwardsTracker;
 class WritingStatsModel;
+class BigBadgeButton;
 class StatsGraph;
 class StatsKpiGrid;
 class StatsDetails;
@@ -36,7 +40,7 @@ class WritingStatsPanel : public QWidget {
 
 public:
     /// @brief The views, in the order of the list
-    enum class View { Today, Week, Month, Book, Hours };
+    enum class View { Today, Week, Month, Book, Hours, Awards };
 
     /// @brief The height of the large graph
     static constexpr int GRAPH_HEIGHT = 112;
@@ -50,6 +54,13 @@ public:
     /// @brief The statistics it shows; nullptr: none (an empty panel)
     void setModel(WritingStatsModel* model);
     WritingStatsModel* model() const;
+
+    /// @brief The badges and the challenges of the view Achievements; nullptr: none
+    void setAwardsTracker(WritingAwardsTracker* tracker);
+
+    /// @brief The badge won last, large, in the view Achievements: a click opens the tab
+    /// Challenges and Badges
+    QAbstractButton* lastBadgeButton() const;
 
     /// @brief How the titles of the texts and of the book are found: by the id of a text, and
     /// the title of the book open
@@ -99,6 +110,12 @@ signals:
     /// @brief The tab Writing Goals and Deadlines was asked for
     void goalsRequested();
 
+    /// @brief The tab Challenges and Badges was asked for (a click on the badge won last)
+    void awardsRequested();
+
+    /// @brief Add Challenge was pressed
+    void addChallengeRequested();
+
 protected:
     void showEvent(QShowEvent* event) override;
     void changeEvent(QEvent* event) override;
@@ -116,6 +133,9 @@ private:
     void showMonth(const Context& context, ViewData& data) const;
     void showBook(const Context& context, ViewData& data) const;
     void showHours(const Context& context, ViewData& data) const;
+    void showAwards(const Context& context, ViewData& data) const;
+    /// @brief The texts of the view Achievements in the language of the program
+    void retranslateAwards();
     /// @brief The list of views: those the settings show, with their small graphs and texts
     void fillList(const Context& context);
     /// @brief The view in front
@@ -125,6 +145,7 @@ private:
     void showCountPasted();
 
     QPointer<WritingStatsModel> m_model;
+    QPointer<WritingAwardsTracker> m_tracker;
     std::function<QString(const QString&)> m_textTitle;
     std::function<QString()> m_bookTitle;
     View m_view{View::Today};
@@ -147,6 +168,9 @@ private:
     StatsProgress* m_progress{nullptr};
     StatsDetails* m_details{nullptr};
     QPushButton* m_goals{nullptr};
+    QPushButton* m_addChallenge{nullptr};
+    QLabel* m_awardsCaption{nullptr};
+    BigBadgeButton* m_bigBadge{nullptr};
     QWidget* m_footer{nullptr};
     QCheckBox* m_countPasted{nullptr};
     QLabel* m_countPastedText{nullptr};

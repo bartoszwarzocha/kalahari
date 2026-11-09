@@ -35,6 +35,10 @@ struct StatsColors {
     QColor hoursLow;    ///< The times of writing: the fewest words
     QColor hoursHigh;   ///< The most words
     QColor text;        ///< The texts on the graphs
+    QColor bronze;      ///< The badges won: the first threshold
+    QColor silver;      ///< The second
+    QColor gold;        ///< The third
+    QColor platinum;    ///< The fourth
     int fillOpacity = 20;  ///< The fill under the lines, in percent
 
     /// @brief One color of the list below, by its key ("statsLine")
@@ -45,6 +49,9 @@ struct StatsColors {
 
     /// @brief The color of a temperature of work; the line color when it is unknown or idle
     QColor temperature(core::WritingTemperature temperature) const;
+
+    /// @brief The color of the badges won of @p level: 0 bronze ... 3 platinum
+    QColor badge(int level) const;
 
     /// @brief The colors of the theme in use, with the writer's own
     static StatsColors current();
@@ -68,6 +75,9 @@ double niceMax(double value, double minimum = 10.0);
 
 /// @brief A number in the writer's language, with the separators of thousands
 QString number(qint64 value);
+
+/// @brief A number of words: "1 word", "1,250 words", in the forms the language has
+QString words(qint64 count);
 
 /// @brief A time of writing as hours and minutes: "2:35"
 QString hoursMinutes(qint64 ms);

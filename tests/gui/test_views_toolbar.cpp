@@ -846,14 +846,15 @@ TEST_CASE("Statistics toolbar: the statistics of writing in one place, shown at 
 
     // The very actions of the menus: the statistics bar and the panel are checked with them
     const QList<QAction*> actions = toolbar->actions();
-    REQUIRE(actions.size() == 7);
+    REQUIRE(actions.size() == 8);
     CHECK(actions[0] == registry.getAction(std::string("view.showStatsBar")));
     CHECK(actions[1] == registry.getAction(std::string("view.statistics")));
     CHECK(actions[2]->isSeparator());
     CHECK(actions[3] == registry.getAction(std::string("tools.writingGoals")));
     CHECK(actions[4] == registry.getAction(std::string("tools.challenges")));
-    CHECK(actions[5]->isSeparator());
-    CHECK(actions[6] == registry.getAction(std::string("tools.statsSettings")));
+    CHECK(actions[5] == registry.getAction(std::string("tools.addChallenge")));
+    CHECK(actions[6]->isSeparator());
+    CHECK(actions[7] == registry.getAction(std::string("tools.statsSettings")));
 
     // The panel keeps its button on the Panels toolbar too; the Views toolbar has none of them
     CHECK(manager.getToolbarCommands(QStringLiteral("view"))
