@@ -2404,7 +2404,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                 //: stay. %1: the name of the kind. In Polish: &Ukryj typ „%1”
                 QAction* hideAction =
                     menu.addAction(tr("&Hide Kind \"%1\"").arg(item->text(0)));
-                const QString kind = *list;
+                const QString& kind = *list;
                 connect(hideAction, &QAction::triggered, this,
                         [this, kind]() { emit requestHideKind(kind); });
             }

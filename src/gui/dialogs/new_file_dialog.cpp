@@ -1455,7 +1455,8 @@ QGroupBox* NewFileDialog::createCoverGroup(QWidget* parent)
     //: The parts of a new material of the cover, buttons that the arrows go through. In
     //: Polish: Rodzaj materiału okładki
     m_coverGroup = new QGroupBox(tr("Kind of Cover Material"), parent);
-    auto* layout = new FlowLayout(m_coverGroup, 6, 6);
+    // The group takes the layout when its buttons are in it
+    auto* layout = new FlowLayout(nullptr, 6, 6);
     m_coverButtons = new QButtonGroup(m_coverGroup);
     const QStringList& parts = core::CoverMaterial::parts();
     for (qsizetype index = 0; index < parts.size(); ++index) {
@@ -1469,6 +1470,7 @@ QGroupBox* NewFileDialog::createCoverGroup(QWidget* parent)
         m_coverButtons->addButton(button, static_cast<int>(index));
         layout->addWidget(button);
     }
+    m_coverGroup->setLayout(layout);
 
     // The part asked for, else the one chosen last, else a description
     QString start = m_book.coverPart;
