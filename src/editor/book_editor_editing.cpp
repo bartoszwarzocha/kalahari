@@ -1128,14 +1128,7 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
             break;
         }
     }
-
-    // Plain text: the paragraphs and the line breaks in them end a line
-    auto mimeData = std::make_unique<QMimeData>();
-    mimeData->setText(ClipboardHandler::kmlToText(kml, QString(), &marks));
-    mimeData->setHtml(
-        ClipboardHandler::htmlDocument(ClipboardHandler::kmlToHtml(kml, QString(), &marks)));
-    mimeData->setData(QString::fromLatin1(MIME_KML), kml.toUtf8());
-    return mimeData;
+    return ClipboardHandler::mimeDataOf(kml, &marks);
 }
 
 bool BookEditor::canInsertFromMimeData(const QMimeData* source)

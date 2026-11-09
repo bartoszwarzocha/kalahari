@@ -59,6 +59,15 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"file.save", QStringLiteral("Ctrl+S")},
         {"file.saveAs", QStringLiteral("Ctrl+Shift+S")},
 #ifdef Q_OS_MACOS
+        // Option+Shift+Cmd, as the pastes: Option with a letter types a character
+        {"file.saveVersion", QStringLiteral("Ctrl+Alt+Shift+S")},
+        {"file.versionHistory", QStringLiteral("Ctrl+Alt+Shift+H")},
+#else
+        // Ctrl+Alt is AltGr on Windows
+        {"file.saveVersion", QStringLiteral("Alt+Shift+S")},
+        {"file.versionHistory", QStringLiteral("Alt+Shift+H")},
+#endif
+#ifdef Q_OS_MACOS
         {"file.exit", QStringLiteral("Ctrl+Q")},  // Cmd+Q
 #else
         {"file.exit", QStringLiteral("Alt+F4")},

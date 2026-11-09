@@ -1,4 +1,4 @@
-/// @file test_link_dialog.cpp
+/// @file test_hyperlink_dialog.cpp
 /// @brief Insert > Link... (Ctrl+K): the window, its gear and what the editor gets from it,
 ///        and the links the editor panel opens
 
@@ -6,7 +6,7 @@
 #include "../editor/editor_test_utils.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_link.h"
-#include "kalahari/gui/dialogs/link_dialog.h"
+#include "kalahari/gui/dialogs/hyperlink_dialog.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 
@@ -25,7 +25,7 @@ using namespace kalahari;
 using namespace kalahari::editor;
 using kalahari::gui::SettingsDialog;
 using kalahari::gui::dialogs::KalahariDialog;
-using kalahari::gui::dialogs::LinkDialog;
+using kalahari::gui::dialogs::HyperlinkDialog;
 
 namespace {
 
@@ -85,7 +85,7 @@ public:
 
 TEST_CASE("Link dialog: the text, the address and OK only with an address",
           "[gui][links][dialog]") {
-    LinkDialog dialog;
+    HyperlinkDialog dialog;
     dialog.show();
     QApplication::processEvents();
     CHECK(dialog.windowTitle() == QStringLiteral("Link"));
@@ -134,7 +134,7 @@ TEST_CASE("Link dialog: the text, the address and OK only with an address",
 TEST_CASE("Link dialog: the gear opens the colors of the editor in the Settings dialog",
           "[gui][links][dialog][settings]") {
     SECTION("Without the program's way of opening the Settings dialog: no gear") {
-        LinkDialog dialog;
+        HyperlinkDialog dialog;
         CHECK(gearOf(dialog) == nullptr);
     }
 
@@ -145,7 +145,7 @@ TEST_CASE("Link dialog: the gear opens the colors of the editor in the Settings 
             askedBy = dialog;
             asked = page;
         });
-        LinkDialog dialog;
+        HyperlinkDialog dialog;
         QToolButton* gear = gearOf(dialog);
         REQUIRE(gear != nullptr);
         CHECK(gear->toolTip() == QStringLiteral("Link Color Settings"));
@@ -164,7 +164,7 @@ TEST_CASE("Editor panel: Insert > Link puts the window's link in the text",
 
     // A new link on the selected text
     QTimer::singleShot(0, [&]() {
-        auto* dialog = qobject_cast<LinkDialog*>(test::shownDialog());
+        auto* dialog = qobject_cast<HyperlinkDialog*>(test::shownDialog());
         CHECK(dialog != nullptr);
         if (dialog == nullptr) {
             closeShownDialog();
@@ -175,14 +175,14 @@ TEST_CASE("Editor panel: Insert > Link puts the window's link in the text",
         fieldOf(*dialog, QStringLiteral("&Address"))->setText(QStringLiteral("example.com"));
         dialog->acceptButton()->click();
     });
-    panel.showLinkDialog();
+    panel.showHyperlinkDialog();
     CHECK(editor->toKml() ==
           QStringLiteral("<kml><p>One <a href=\"https://example.com\">two</a></p></kml>"));
 
     // The link edited at the cursor: the window shows it
     editor->setCursorPosition({0, 5});
     QTimer::singleShot(0, [&]() {
-        auto* dialog = qobject_cast<LinkDialog*>(test::shownDialog());
+        auto* dialog = qobject_cast<HyperlinkDialog*>(test::shownDialog());
         CHECK(dialog != nullptr);
         if (dialog == nullptr) {
             closeShownDialog();
@@ -192,7 +192,7 @@ TEST_CASE("Editor panel: Insert > Link puts the window's link in the text",
         fieldOf(*dialog, QStringLiteral("&Text to display"))->setText(QStringLiteral("2"));
         dialog->acceptButton()->click();
     });
-    panel.showLinkDialog();
+    panel.showHyperlinkDialog();
     CHECK(editor->toKml() ==
           QStringLiteral("<kml><p>One <a href=\"https://example.com\">2</a></p></kml>"));
 
@@ -203,12 +203,12 @@ TEST_CASE("Editor panel: Insert > Link puts the window's link in the text",
             dialog->reject();
         }
     });
-    panel.showLinkDialog();
+    panel.showHyperlinkDialog();
     CHECK(linksIn(editor->textDocument()->firstBlock()).size() == 1);
 
     // Remove Link: the text stays
     QTimer::singleShot(0, [&]() {
-        auto* dialog = qobject_cast<LinkDialog*>(test::shownDialog());
+        auto* dialog = qobject_cast<HyperlinkDialog*>(test::shownDialog());
         CHECK(dialog != nullptr);
         if (dialog == nullptr) {
             closeShownDialog();
@@ -216,7 +216,7 @@ TEST_CASE("Editor panel: Insert > Link puts the window's link in the text",
         }
         buttonOf(*dialog, QStringLiteral("&Remove Link"))->click();
     });
-    panel.showLinkDialog();
+    panel.showHyperlinkDialog();
     CHECK(editor->toKml() == QStringLiteral("<kml><p>One 2</p></kml>"));
 }
 

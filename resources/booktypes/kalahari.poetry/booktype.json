@@ -93,7 +93,8 @@
   "front":    ["title_page", "copyright", "dedication", "motto", "toc", "introduction"],
   "main":     ["cycle", "poem"],
   "back":     ["explanatory_notes", "about_author", "first_lines", "publisher_note", "toc"],
-  "workshop": ["draft", "work_note", "mindmap", "material"],
+  "workshop": ["draft", "mindmap", "work_note", "quote", "web_page",
+               "picture", "document", "publication", "recording", "other_file"],
   "primary":  "poem",
   "start":    ["title_page", "poem"],
   "styles":   "styles.json"

@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/paragraph_styles.h>
 
 #include <QColor>
@@ -148,6 +149,10 @@ struct EditorColors {
 inline constexpr const char* DEFAULT_TEXT_FONT_FAMILY = "Georgia";
 inline constexpr int DEFAULT_TEXT_FONT_SIZE = 14;
 
+/// @brief The names the settings give the tab stops (editor.tabStops)
+inline constexpr const char* TAB_STOPS_INDENT = "indent";  ///< TabStops::Indent
+inline constexpr const char* TAB_STOPS_SPACES = "spaces";  ///< TabStops::Spaces
+
 /// @brief Typography settings for the editor
 struct EditorTypography {
     // Main text
@@ -158,6 +163,10 @@ struct EditorTypography {
     // First line indent
     bool firstLineIndent{true};                ///< Indent first line of paragraphs
     qreal indentSize{24.0};                    ///< First line indent in pixels
+
+    // Tab stops: every first-line indent of the paragraph's style, or every few spaces
+    TabStops tabStops{TabStops::Indent};       ///< How far apart the tab stops are
+    int tabSpaces{4};                          ///< Spaces between two tab stops
 
     QFont uiFont{"Segoe UI", 10};              ///< Font of the Distraction-Free texts (word count)
 };
@@ -225,6 +234,30 @@ struct DistractionFreeSettings {
     bool fadeOnMouseMove{true};                ///< Show UI on mouse move to edges
 };
 
+/// @brief The cards of the annotations under their paragraphs (View > Annotation Cards Under
+/// Paragraphs, Settings > Annotations)
+///
+/// The continuous views show them; the page view shows the marks alone, so the pages keep
+/// their lines as printed.
+struct AnnotationCardSettings {
+    bool show{false};               ///< Cards under the paragraphs; else the marks alone
+    bool comments{true};            ///< Cards of the comments...
+    bool todos{true};               ///< ...of the to-dos...
+    bool notes{true};               ///< ...and of the notes
+    bool compact{false};            ///< The text alone, its author and date at its end; else
+                                    ///< the kind, the author and the date over the text
+    bool collapsedLine{false};      ///< A collapsed one is a line with the start of its text;
+                                    ///< else its mark alone
+    bool startCollapsed{false};     ///< Collapsed when the chapter opens
+    int longLines{0};               ///< A longer text is cut to so many lines (0: whole)
+    int fontPercent{90};            ///< Size of the cards' text, in % of the text's
+    int tintPercent{100};           ///< How much of the kind's color they have, in % of the usual
+    bool highlightFragment{true};   ///< The fragment lights up while the mouse is on its card
+    bool inDistractionFree{true};   ///< Shown in Distraction-Free writing too
+
+    bool operator==(const AnnotationCardSettings& other) const = default;
+};
+
 /// @brief Text frame border settings
 ///
 /// A frame around the text area of the pages, to show where the margins are.
@@ -256,11 +289,62 @@ struct CursorSettings {
 // =============================================================================
 
 /// @brief Page margins configuration (every view: the continuous views are an endless page)
+///
+/// Mirror margins are those of a book's facing pages: the inner margin at the binding, the
+/// outer one at the edge. The first page of a chapter is a right page (the binding on its
+/// left), unless the chapter starts on a left page. The continuous views show the margins of
+/// the chapter's first page.
 struct PageMarginsConfig {
     double top = 25.4;           ///< Top margin in mm (default 1 inch)
     double bottom = 25.4;        ///< Bottom margin in mm
-    double left = 25.4;          ///< Left margin in mm
-    double right = 25.4;         ///< Right margin in mm
+    double left = 25.4;          ///< Left margin in mm (without mirror margins)
+    double right = 25.4;         ///< Right margin in mm (without mirror margins)
+    bool mirrored = false;       ///< Mirror margins: inner and outer instead of left and right
+    double inner = 30.0;         ///< Inner margin in mm (at the binding)
+    double outer = 20.0;         ///< Outer margin in mm (at the edge)
+    bool firstPageLeft = false;  ///< The chapter starts on a left page (set by the chapter)
+};
+
+// =============================================================================
+// The numbers on the margin
+// =============================================================================
+
+/// @brief What the numbers on the left margin count
+enum class MarginNumbering {
+    None,        ///< No numbers
+    Lines,       ///< Every line: also of a heading, a scene break and an empty paragraph
+    Paragraphs,  ///< Every paragraph with text, at its first line: no headings, objects or
+                 ///< empty paragraphs
+};
+
+/// @brief The names the settings give the numbering (editor.marginNumbers.mode)
+inline constexpr const char* MARGIN_NUMBERING_NONE = "none";              ///< MarginNumbering::None
+inline constexpr const char* MARGIN_NUMBERING_LINES = "lines";            ///< MarginNumbering::Lines
+inline constexpr const char* MARGIN_NUMBERING_PARAGRAPHS = "paragraphs";  ///< MarginNumbering::Paragraphs
+
+/// @brief The numbering of a name of the settings (MarginNumbering::None for another name)
+inline MarginNumbering marginNumberingFromName(const QString& name) {
+    if (name == QLatin1String(MARGIN_NUMBERING_LINES)) return MarginNumbering::Lines;
+    if (name == QLatin1String(MARGIN_NUMBERING_PARAGRAPHS)) return MarginNumbering::Paragraphs;
+    return MarginNumbering::None;
+}
+
+/// @brief The working numbers of lines or paragraphs on the left margin (View > Margin
+///        Numbering)
+///
+/// Only on the screen: the chapter's file, the print and the export have none. They are
+/// counted from 1 in every chapter, the same in every view; with restartEachPage the lines
+/// are counted from 1 on every page of the page view.
+struct MarginNumbers {
+    MarginNumbering numbering{MarginNumbering::None};  ///< What is numbered
+    int interval{1};                   ///< A number every this many lines or paragraphs
+    bool restartEachPage{false};       ///< Lines from 1 on every page (page view)
+    QString fontFamily{QStringLiteral("Courier New")};  ///< Font of the numbers
+    qreal pointSize{8.0};              ///< Size of the numbers at 100% zoom (they zoom with
+                                       ///< the text)
+    QColor color{128, 128, 128};       ///< The same on the light and the dark paper
+
+    bool operator==(const MarginNumbers&) const = default;
 };
 
 // =============================================================================
@@ -294,8 +378,10 @@ public:
     TextFrameBorder textFrameBorder;           ///< Text frame border settings
     PageMarginsConfig pageMargins;             ///< The page's margins, in every view
     double annotationMarkScale{1.0};           ///< Size of the annotations' marks (1 = 100%)
+    AnnotationCardSettings annotationCards;    ///< The annotations' cards under the paragraphs
     SceneBreakLook sceneBreakLook{SceneBreakLook::Asterisks};  ///< How the scene breaks look
     bool showFormattingMarks{false};           ///< View > Show Formatting Marks
+    MarginNumbers marginNumbers;               ///< View > Margin Numbering
 };
 
 }  // namespace kalahari::editor

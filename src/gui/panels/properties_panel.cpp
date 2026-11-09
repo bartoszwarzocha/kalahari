@@ -7,10 +7,14 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/utils/reading_time.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/section_words.h"
+#include "kalahari/gui/settings/settings_page.h"
+#include "kalahari/gui/version_texts.h"
+#include "kalahari/gui/widgets/flow_layout.h"
 #include "kalahari/gui/widgets/sections_field.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/core/art_provider.h"
@@ -21,8 +25,11 @@
 #include "kalahari/core/database_types.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/text_statistics.h"
+#include "kalahari/core/theme_manager.h"
 #include <QLabel>
 #include <QLineEdit>
+#include <QCheckBox>
+#include <QPushButton>
 #include <QComboBox>
 #include <QTextEdit>
 #include <QStackedWidget>
@@ -34,7 +41,16 @@
 #include <QHBoxLayout>
 #include <QScrollArea>
 #include <QEvent>
+#include <QStyle>
+#include <QStyleOptionGroupBox>
+#include <QToolButton>
 #include <QDateTime>
+#include <QListWidget>
+#include <QToolButton>
+
+#include <optional>
+
+#include <algorithm>
 
 namespace kalahari {
 namespace gui {
@@ -48,6 +64,33 @@ constexpr const char* WORD_COUNT_RULES_KEY = "editor.wordCount.dashesAsWords";
 ///        status bar and the counts of the editor write them
 QString numberText(int number) {
     return QLocale().toString(number);
+}
+
+/// @brief The part of the book of a section of @p sectionType ("section_body"...); none for
+/// another type
+std::optional<core::BookPlace> sectionPlaceOf(const QString& sectionType) {
+    if (sectionType == QLatin1String("section_frontmatter")) {
+        return core::BookPlace::Front;
+    }
+    if (sectionType == QLatin1String("section_body")) {
+        return core::BookPlace::Main;
+    }
+    if (sectionType == QLatin1String("section_backmatter")) {
+        return core::BookPlace::Back;
+    }
+    return std::nullopt;
+}
+
+/// @brief Give the keys to @p widget, scrolled to it in its page
+void focusInPage(QWidget* widget) {
+    for (QWidget* parent = widget->parentWidget(); parent != nullptr;
+         parent = parent->parentWidget()) {
+        if (auto* area = qobject_cast<QScrollArea*>(parent)) {
+            area->ensureWidgetVisible(widget);
+            break;
+        }
+    }
+    widget->setFocus(Qt::OtherFocusReason);
 }
 
 }  // namespace
@@ -76,6 +119,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_chapterTitleEdit(nullptr)
     , m_chapterWordCountLabel(nullptr)
     , m_chapterStatusCombo(nullptr)
+    , m_chapterFirstPageLeft(nullptr)
     , m_chapterNotesGroup(nullptr)
     , m_chapterNotesEdit(nullptr)
     , m_sectionTitleLabel(nullptr)
@@ -114,12 +158,15 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     connect(m_cursorDebounceTimer, &QTimer::timeout,
             this, &PropertiesPanel::updateEditorStatistics);
 
-    // The words of the book follow new rules of counting at once, wherever they are chosen;
-    // the listener runs on the thread that changes them, the panel counts on its own
+    // The words of the book follow new rules of counting at once, wherever they are chosen,
+    // and the group of the versions the versions turned on or off; the listener runs on the
+    // thread that changes them, the panel changes on its own
     m_settingsListener =
         core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
             if (key == WORD_COUNT_RULES_KEY) {
                 QMetaObject::invokeMethod(this, "updateWordCounts", Qt::QueuedConnection);
+            } else if (key == core::ChapterVersions::ENABLED_SETTING) {
+                QMetaObject::invokeMethod(this, "refreshVersions", Qt::QueuedConnection);
             }
         });
 
@@ -157,6 +204,7 @@ void PropertiesPanel::setupUI() {
     m_stackedWidget->addWidget(createSectionPage());     // Page::Section = 3
     m_stackedWidget->addWidget(createPartPage());        // Page::Part = 4
     m_stackedWidget->addWidget(createEditorPage());      // Page::Editor = 5
+    m_stackedWidget->addWidget(createMaterialPage());    // Page::Material = 6
 
     mainLayout->addWidget(m_stackedWidget);
     setLayout(mainLayout);
@@ -369,6 +417,11 @@ QWidget* PropertiesPanel::createChapterPage() {
     m_chapterStatusCombo->addItem(tr("Final"), "final");
     infoLayout->addRow(tr("Status:"), m_chapterStatusCombo);
 
+    // Its first page: a right one, unless the writer says it is a left one (mirror margins)
+    m_chapterFirstPageLeft = new QCheckBox(tr("Starts on a left page"), infoGroup);
+    m_chapterFirstPageLeft->setObjectName(QStringLiteral("chapterFirstPageLeft"));
+    infoLayout->addRow(m_chapterFirstPageLeft);
+
     layout->addWidget(infoGroup);
 
     // Notes group
@@ -386,6 +439,66 @@ QWidget* PropertiesPanel::createChapterPage() {
     notesLayout->addWidget(m_chapterNotesEdit);
 
     layout->addWidget(notesGroup);
+
+    // The materials about the element (populateChapterFields())
+    m_chapterMaterials = createMaterialsBox(scrollContent);
+    layout->addWidget(m_chapterMaterials);
+    // The versions of the text: how many, the last one, and the commands of the File menu
+    // for them (showVersions())
+    //: The group of the Properties panel with the versions of a text. In Polish: Wersje
+    m_chapterVersionsGroup = new QGroupBox(tr("Versions"), scrollContent);
+    m_chapterVersionsGroup->setObjectName(QStringLiteral("chapterVersionsGroup"));
+    auto* versionsLayout = new QVBoxLayout(m_chapterVersionsGroup);
+    versionsLayout->setSpacing(6);
+    versionsLayout->setContentsMargins(11, 11, 11, 11);
+    m_versionsCountLabel = new QLabel(m_chapterVersionsGroup);
+    m_versionsCountLabel->setObjectName(QStringLiteral("versionsCountLabel"));
+    m_versionsCountLabel->setTextFormat(Qt::PlainText);
+    m_versionsCountLabel->setWordWrap(true);
+    versionsLayout->addWidget(m_versionsCountLabel);
+    m_versionsLastLabel = new QLabel(m_chapterVersionsGroup);
+    m_versionsLastLabel->setObjectName(QStringLiteral("versionsLastLabel"));
+    m_versionsLastLabel->setTextFormat(Qt::PlainText);
+    m_versionsLastLabel->setWordWrap(true);
+    versionsLayout->addWidget(m_versionsLastLabel);
+    // The buttons in two rows on a narrow panel
+    auto* buttonRow = new QWidget(m_chapterVersionsGroup);
+    auto* buttons = new FlowLayout(buttonRow, 6, 6);
+    buttons->setContentsMargins(0, 0, 0, 0);
+    //: The button of the group of the versions, as File > Save Version... In Polish: Zapisz
+    //: wersję
+    m_saveVersionButton = new QPushButton(tr("Save Version"), buttonRow);
+    m_saveVersionButton->setObjectName(QStringLiteral("saveVersionButton"));
+    //: The button of the group of the versions, as File > Version History... In Polish:
+    //: Historia wersji...
+    m_versionHistoryButton = new QPushButton(tr("Version History..."), buttonRow);
+    m_versionHistoryButton->setObjectName(QStringLiteral("versionHistoryButton"));
+    buttons->addWidget(m_saveVersionButton);
+    buttons->addWidget(m_versionHistoryButton);
+    versionsLayout->addWidget(buttonRow);
+    connect(m_saveVersionButton, &QPushButton::clicked, this,
+            [this]() { emit requestSaveVersion(m_versionsElementId); });
+    connect(m_versionHistoryButton, &QPushButton::clicked, this,
+            [this]() { emit requestVersionHistory(m_versionsElementId); });
+    // Its settings: the gear at the end of the line of its title, as on the title bars of the
+    // panels; Tab reaches it after the buttons
+    m_versionSettingsButton = new QToolButton(m_chapterVersionsGroup);
+    m_versionSettingsButton->setObjectName(QStringLiteral("versionSettingsButton"));
+    m_versionSettingsButton->setAutoRaise(true);
+    m_versionSettingsButton->setFixedSize(16, 16);
+    //: The gear at the title of the group of the versions in the Properties panel: Settings >
+    //: Editor > Versions. In Polish: Ustawienia wersji
+    m_versionSettingsButton->setToolTip(tr("Version Settings"));
+    m_versionSettingsButton->setAccessibleName(m_versionSettingsButton->toolTip());
+    connect(m_versionSettingsButton, &QToolButton::clicked, this,
+            &PropertiesPanel::requestVersionSettings);
+    m_chapterVersionsGroup->installEventFilter(this);
+    updateVersionIcons();
+    connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
+            &PropertiesPanel::updateVersionIcons);
+    m_chapterVersionsGroup->hide();
+    layout->addWidget(m_chapterVersionsGroup);
+    m_chapterPageLayout = layout;
 
     // Add stretch at the bottom
     layout->addStretch(1);
@@ -457,6 +570,10 @@ QWidget* PropertiesPanel::createSectionPage() {
 
     layout->addWidget(statusGroup);
 
+    // The materials about the section (showSectionMaterials())
+    m_sectionMaterials = createMaterialsBox(scrollContent);
+    layout->addWidget(m_sectionMaterials);
+
     // Add stretch at the bottom
     layout->addStretch(1);
 
@@ -524,6 +641,10 @@ QWidget* PropertiesPanel::createPartPage() {
     statusLayout->addRow(tr("Final:"), m_partFinalCountLabel);
 
     layout->addWidget(statusGroup);
+
+    // The materials about the part (showPartMaterials())
+    m_partMaterials = createMaterialsBox(scrollContent);
+    layout->addWidget(m_partMaterials);
 
     // Add stretch at the bottom
     layout->addStretch(1);
@@ -595,6 +716,8 @@ QWidget* PropertiesPanel::createEditorPage() {
     statsLayout->addRow(tr("Reading time:"), m_editorReadingTimeLabel);
 
     layout->addWidget(statsGroup);
+    // Under the counts of a text of the book, the group of its versions (placeVersionsGroup())
+    m_editorPageLayout = layout;
 
     // Add stretch at the bottom
     layout->addStretch(1);
@@ -607,6 +730,50 @@ QWidget* PropertiesPanel::createEditorPage() {
     pageLayout->addWidget(scrollArea);
 
     return page;
+}
+
+QWidget* PropertiesPanel::createMaterialPage() {
+    QWidget* page = new QWidget();
+
+    // Use scroll area for long content
+    QScrollArea* scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
+    QWidget* scrollContent = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(scrollContent);
+    layout->setContentsMargins(11, 11, 11, 11);
+    layout->setSpacing(11);
+    m_materialPage = new MaterialPage(scrollContent);
+    layout->addWidget(m_materialPage);
+    connect(m_materialPage, &MaterialPage::requestPreview, this,
+            &PropertiesPanel::requestPreview);
+    connect(m_materialPage, &MaterialPage::requestOpenWithSystem, this,
+            &PropertiesPanel::requestOpenWithSystem);
+    connect(m_materialPage, &MaterialPage::requestOpenLink, this,
+            &PropertiesPanel::requestOpenLink);
+    connect(m_materialPage, &MaterialPage::requestOpenInBrowser, this,
+            &PropertiesPanel::requestOpenInBrowser);
+    connect(m_materialPage, &MaterialPage::requestSaveCopy, this,
+            &PropertiesPanel::requestSaveCopy);
+    connect(m_materialPage, &MaterialPage::changed, this, &PropertiesPanel::materialChanged);
+    connect(m_materialPage, &MaterialPage::message, this, &PropertiesPanel::message);
+    // The Navigator shows the new title
+    connect(m_materialPage, &MaterialPage::titleChanged, this,
+            &PropertiesPanel::chapterStatusChanged);
+
+    scrollArea->setWidget(scrollContent);
+    QVBoxLayout* pageLayout = new QVBoxLayout(page);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->addWidget(scrollArea);
+    return page;
+}
+
+LinkedMaterialsBox* PropertiesPanel::createMaterialsBox(QWidget* parent) {
+    auto* box = new LinkedMaterialsBox(parent);
+    connect(box, &LinkedMaterialsBox::requestOpenMaterial, this,
+            &PropertiesPanel::requestOpenMaterial);
+    return box;
 }
 
 void PropertiesPanel::connectSignals() {
@@ -640,9 +807,20 @@ void PropertiesPanel::connectSignals() {
             this, &PropertiesPanel::onChapterTitleChanged);
     connect(m_chapterStatusCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PropertiesPanel::onChapterStatusChanged);
+    connect(m_chapterFirstPageLeft, &QCheckBox::toggled,
+            this, &PropertiesPanel::onChapterFirstPageChanged);
 
     // Notes are saved on focus lost via eventFilter (not on every keystroke)
     m_chapterNotesEdit->installEventFilter(this);
+
+    // A version kept, renamed or deleted, and another theme, show in the group of the versions
+    connect(&pm, &core::ProjectManager::versionsChanged, this, [this](const QString& elementId) {
+        if (elementId == m_versionsElementId) {
+            refreshVersions();
+        }
+    });
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
+            &PropertiesPanel::refreshVersions);
 }
 
 void PropertiesPanel::showProjectProperties() {
@@ -671,9 +849,57 @@ void PropertiesPanel::showChapterProperties(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::showChapterProperties() - Element: {}", elementId.toStdString());
 
+    // A material has its card
+    const auto& pm = core::ProjectManager::getInstance();
+    if (const core::ProjectElement* element = pm.findElement(elementId);
+        element && pm.isMaterial(*element)) {
+        showMaterialProperties(elementId);
+        return;
+    }
+
     m_currentChapterId = elementId;
+    placeVersionsGroup(m_chapterPageLayout);
     populateChapterFields(elementId);
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Chapter));
+}
+
+void PropertiesPanel::showMaterialProperties(const QString& elementId) {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("PropertiesPanel::showMaterialProperties() - Element: {}",
+                 elementId.toStdString());
+
+    m_currentChapterId.clear();
+    m_currentSectionType.clear();
+    m_currentPartId.clear();
+    m_materialPage->showMaterial(elementId);
+    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Material));
+}
+
+void PropertiesPanel::focusFirstField() {
+    switch (currentPage()) {
+        case Page::Project:
+            focusInPage(m_projectTitleEdit);
+            break;
+        case Page::Chapter:
+            focusInPage(m_chapterTitleEdit);
+            break;
+        case Page::Material:
+            focusInPage(m_materialPage->titleEdit());
+            m_materialPage->titleEdit()->selectAll();
+            break;
+        case Page::Section:
+        case Page::Part: {
+            // A section or a part has no field: its materials
+            LinkedMaterialsBox* box =
+                currentPage() == Page::Section ? m_sectionMaterials : m_partMaterials;
+            focusInPage(!box->list()->isHidden() ? static_cast<QWidget*>(box->list())
+                                                 : box->addButton());
+            break;
+        }
+        case Page::Editor:     // Counts only: the paragraph is the Paragraph and Styles panel's
+        case Page::NoProject:
+            break;
+    }
 }
 
 void PropertiesPanel::showNoProject() {
@@ -694,6 +920,7 @@ void PropertiesPanel::showSectionProperties(const QString& sectionType) {
     m_currentPartId.clear();
     m_currentSectionType = sectionType;
     populateSectionFields(sectionType);
+    showSectionMaterials();
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Section));
 }
 
@@ -705,6 +932,7 @@ void PropertiesPanel::showPartProperties(const QString& partId) {
     m_currentSectionType.clear();
     m_currentPartId = partId;
     populatePartFields(partId);
+    showPartMaterials();
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Part));
 }
 
@@ -716,7 +944,26 @@ void PropertiesPanel::showEditorProperties() {
     m_currentSectionType.clear();
     m_currentPartId.clear();
     updateEditorStatistics();
+    // A text of the book in front has its versions under its counts, as the Navigator's
+    // choice of it has them
+    placeVersionsGroup(m_editorPageLayout);
+    showVersions(m_activeEditorPanel != nullptr
+                     ? m_activeEditorPanel->property("elementId").toString()
+                     : QString());
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Editor));
+}
+
+void PropertiesPanel::placeVersionsGroup(QVBoxLayout* layout) {
+    if (layout == nullptr || layout->indexOf(m_chapterVersionsGroup) >= 0) {
+        return;
+    }
+    for (QVBoxLayout* other : {m_chapterPageLayout, m_editorPageLayout}) {
+        if (other != nullptr) {
+            other->removeWidget(m_chapterVersionsGroup);
+        }
+    }
+    // Over the stretch at the bottom of the page
+    layout->insertWidget(layout->count() - 1, m_chapterVersionsGroup);
 }
 
 void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
@@ -814,17 +1061,50 @@ void PropertiesPanel::refresh() {
         case Page::Section:
             if (!m_currentSectionType.isEmpty()) {
                 populateSectionFields(m_currentSectionType);
+                showSectionMaterials();
             }
             break;
         case Page::Part:
             if (pm.findElement(m_currentPartId)) {
                 populatePartFields(m_currentPartId);
+                showPartMaterials();
             } else {
                 showProjectProperties();
             }
             break;
         case Page::Editor:
             updateEditorStatistics();
+            break;
+        case Page::Material:
+            // A material deleted from the book leaves the panel to the book
+            if (pm.findElement(m_materialPage->elementId())) {
+                m_materialPage->refresh();
+            } else {
+                showProjectProperties();
+            }
+            break;
+    }
+}
+
+void PropertiesPanel::refreshMaterial(const QString& elementId) {
+    switch (currentPage()) {
+        case Page::Material:
+            if (m_materialPage->elementId() == elementId) {
+                m_materialPage->refresh();
+            }
+            break;
+        case Page::Chapter:
+            m_chapterMaterials->refresh();
+            break;
+        case Page::Section:
+            m_sectionMaterials->refresh();
+            break;
+        case Page::Part:
+            m_partMaterials->refresh();
+            break;
+        case Page::NoProject:
+        case Page::Project:
+        case Page::Editor:
             break;
     }
 }
@@ -855,6 +1135,7 @@ void PropertiesPanel::updateWordCounts() {
             break;
         case Page::NoProject:
         case Page::Editor:
+        case Page::Material:
             break;  // No counts of the book
     }
 }
@@ -1051,6 +1332,22 @@ void PropertiesPanel::onChapterStatusChanged(int index) {
     emit chapterStatusChanged(m_currentChapterId);
 }
 
+void PropertiesPanel::onChapterFirstPageChanged(bool left) {
+    if (m_isUpdating) return;
+    if (m_currentChapterId.isEmpty()) return;
+
+    // ProjectManager saves the project at once
+    if (!core::ProjectManager::getInstance().setFirstPageLeft(m_currentChapterId, left)) {
+        const bool wasUpdating = m_isUpdating;
+        m_isUpdating = true;
+        m_chapterFirstPageLeft->setChecked(!left);
+        m_isUpdating = wasUpdating;
+        dialogs::MessageDialog::warning(this, tr("Change Failed"), tr("Failed to save changes."));
+        return;
+    }
+    emit chapterFirstPageChanged(m_currentChapterId);
+}
+
 void PropertiesPanel::onChapterNotesChanged() {
     if (m_isUpdating) return;
     if (m_currentChapterId.isEmpty()) return;
@@ -1068,6 +1365,20 @@ void PropertiesPanel::onChapterNotesChanged() {
 bool PropertiesPanel::eventFilter(QObject* obj, QEvent* event) {
     if (obj == m_chapterNotesEdit && event->type() == QEvent::FocusOut) {
         onChapterNotesChanged();  // Save notes on focus lost
+    }
+    // The gear follows the title of the group of the versions
+    if (obj == m_chapterVersionsGroup) {
+        switch (event->type()) {
+        case QEvent::Resize:
+        case QEvent::Show:
+        case QEvent::FontChange:
+        case QEvent::StyleChange:
+        case QEvent::LayoutDirectionChange:
+            placeVersionSettingsButton();
+            break;
+        default:
+            break;
+        }
     }
     return QWidget::eventFilter(obj, event);
 }
@@ -1217,6 +1528,14 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
         core::fillWords(tr("Word count of {kind:s=this|p=these} {kind}"), nouns));
     //: In Polish: Stan ukończenia {kind:genitive}
     m_chapterStatusCombo->setToolTip(core::fillWords(tr("{Kind} completion status"), nouns));
+    //: In Polish: Przy marginesach lustrzanych (Ustawienia > Edytor > Strony i marginesy)
+    //: pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez
+    //: zaznaczenia jest prawa.
+    m_chapterFirstPageLeft->setToolTip(core::fillWords(
+        tr("With mirror margins (Settings > Editor > Pages and Margins) the first page of "
+           "{kind:s=this|p=these} {kind} is a left page: its inner margin is on the right. "
+           "Unchecked: a right page."),
+        nouns));
     //: In Polish: Notatki i uwagi do {kind:genitive}
     m_chapterNotesEdit->setToolTip(
         core::fillWords(tr("Notes and comments for {kind:s=this|p=these} {kind}"), nouns));
@@ -1230,8 +1549,20 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     const bool workshop = at && at->place == core::BookPlace::Workshop;
     const bool text = pm.formOf(*element) == core::ElementForm::Text;
     m_chapterInfoLayout->setRowVisible(m_chapterStatusCombo, !bookFile && !workshop && text);
+    m_chapterInfoLayout->setRowVisible(m_chapterFirstPageLeft, !bookFile && !workshop && text);
     m_chapterInfoLayout->setRowVisible(m_chapterWordCountLabel, bookFile || text);
     m_chapterNotesGroup->setVisible(!bookFile);
+    // The materials about the element; a file of the book is not linked
+    m_chapterMaterials->setVisible(!bookFile);
+    if (!bookFile) {
+        //: In Polish: {kind:m=Ten|f=Ta|n=To|p=Te} {kind} {kind:m=nie ma|f=nie ma|n=nie ma|p=nie
+        //: mają} powiązanych materiałów.
+        m_chapterMaterials->showLinked(
+            elementId,
+            core::fillWords(tr("{Kind:s=This|p=These} {kind} {kind:s=has|p=have} no linked "
+                               "materials."),
+                            nouns));
+    }
 
     // Set updating flag to prevent recursive updates
     m_isUpdating = true;
@@ -1240,17 +1571,123 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_chapterTitleEdit->setText(element->title);
     m_chapterWordCountLabel->setText(numberText(pm.wordCount(elementId)));
     selectChapterStatus(core::ProjectManager::statusOf(*element));
+    m_chapterFirstPageLeft->setChecked(element->firstPageLeft);
     m_chapterNotesEdit->setPlainText(pm.notes(elementId));
 
     // An element of a book open read-only is read only, here too
     const bool readOnly = pm.isReadOnly();
     m_chapterTitleEdit->setReadOnly(readOnly);
     m_chapterStatusCombo->setEnabled(!readOnly);
+    m_chapterFirstPageLeft->setEnabled(!readOnly);
     m_chapterNotesEdit->setReadOnly(readOnly);
+    showVersions(elementId);
 
     m_isUpdating = false;
 
     logger.debug("PropertiesPanel: Chapter fields populated");
+}
+
+void PropertiesPanel::showVersions(const QString& elementId) {
+    m_versionsElementId = elementId;
+    auto& pm = core::ProjectManager::getInstance();
+    const std::optional<core::ChapterVersions> versions = pm.versionsOf(elementId);
+    const core::ProjectElement* element = pm.findElement(elementId);
+    m_chapterVersionsGroup->setVisible(versions.has_value() && element != nullptr);
+    if (!versions || element == nullptr) {
+        return;
+    }
+    const core::KindWords kind = wordsOf(*element);
+    const QList<core::ChapterVersion> list = versions->list();
+    const bool enabled = versionsEnabled();
+    if (!enabled) {
+        // The group stays, with its gear: the versions kept can be read and restored
+        //: The group of the versions while Settings > Editor > Versions > Create Versions of
+        //: the Texts is off. In Polish: Tworzenie wersji jest wyłączone
+        m_versionsCountLabel->setText(tr("Creating versions is turned off"));
+        m_versionsLastLabel->setText(
+            list.isEmpty()
+                //: In Polish: Nie ma zapisanych wersji.
+                ? tr("There are no saved versions.")
+                //: In Polish: %n zapisaną wersję / zapisane wersje / zapisanych wersji można
+                //: czytać i przywracać w historii.
+                : tr("%n saved version(s) can be read and restored in the history.", nullptr,
+                     static_cast<int>(list.size())));
+    } else if (list.isEmpty()) {
+        //: In Polish: Jeszcze nie ma wersji
+        m_versionsCountLabel->setText(tr("No versions yet"));
+        //: In Polish: Wersja zachowa tekst {kind:genitive} taki, jak teraz w edytorze.
+        m_versionsLastLabel->setText(core::fillWords(
+            tr("A version keeps the text of the {kind} as it is in the editor now."),
+            {{QStringLiteral("kind"), kind}}));
+    } else {
+        //: %Ln: how many versions, %1: when the last one was kept (today, 14:52). In Polish:
+        //: %Ln wersja / wersje / wersji, ostatnia: %1
+        m_versionsCountLabel->setText(
+            tr("%Ln version(s), the last one: %1", nullptr, static_cast<int>(list.size()))
+                .arg(versionTime(list.first().created)));
+        m_versionsLastLabel->setText(versionTitle(list.first(), kind));
+    }
+    m_versionsLastLabel->setStyleSheet(
+        QStringLiteral("color: %1;").arg(SettingsPage::noteColor().name()));
+
+    // No new version while versions are turned off, nor in a book open read-only: the button
+    // says why
+    const QString whyNotSave =
+        !enabled ? versionsOffReason() : pm.isReadOnly() ? readOnlyReason() : QString();
+    m_saveVersionButton->setEnabled(whyNotSave.isEmpty());
+    m_saveVersionButton->setToolTip(
+        !whyNotSave.isEmpty()
+            ? whyNotSave
+            //: In Polish: Zachowaj tekst {kind:genitive} taki, jak teraz w edytorze, jako
+            //: wersję
+            : core::fillWords(tr("Keep the text of the {kind} as it is in the editor now as a "
+                                 "version"),
+                              {{QStringLiteral("kind"), kind}}));
+    //: In Polish: Przeczytaj, porównaj albo przywróć wersje {kind:genitive}
+    m_versionHistoryButton->setToolTip(
+        core::fillWords(tr("Read, compare or restore the versions of the {kind}"),
+                        {{QStringLiteral("kind"), kind}}));
+}
+
+void PropertiesPanel::refreshVersions() {
+    const Page page = currentPage();
+    if (page == Page::Chapter || page == Page::Editor) {
+        showVersions(m_versionsElementId);
+    }
+}
+
+void PropertiesPanel::placeVersionSettingsButton() {
+    // In the middle of the line of the title, at the right end of the frame (left from right
+    // to left)
+    QStyleOptionGroupBox option;
+    option.initFrom(m_chapterVersionsGroup);
+    option.text = m_chapterVersionsGroup->title();
+    option.textAlignment = m_chapterVersionsGroup->alignment();
+    option.subControls = QStyle::SC_GroupBoxFrame | QStyle::SC_GroupBoxLabel;
+    option.lineWidth = 1;
+    const QStyle* style = m_chapterVersionsGroup->style();
+    const QRect label = style->subControlRect(QStyle::CC_GroupBox, &option,
+                                              QStyle::SC_GroupBoxLabel, m_chapterVersionsGroup);
+    const QRect frame = style->subControlRect(QStyle::CC_GroupBox, &option,
+                                              QStyle::SC_GroupBoxFrame, m_chapterVersionsGroup);
+    const QSize size = m_versionSettingsButton->size();
+    const QRect place(QPoint(frame.right() + 1 - size.width(),
+                             std::max(0, label.center().y() + 1 - (size.height() / 2))),
+                      size);
+    m_versionSettingsButton->move(
+        QStyle::visualRect(m_chapterVersionsGroup->layoutDirection(),
+                           m_chapterVersionsGroup->rect(), place)
+            .topLeft());
+    m_versionSettingsButton->raise();
+}
+
+void PropertiesPanel::updateVersionIcons() {
+    auto& art = core::ArtProvider::getInstance();
+    m_saveVersionButton->setIcon(
+        art.getIcon(QStringLiteral("file.saveVersion"), core::IconContext::Button));
+    m_versionHistoryButton->setIcon(
+        art.getIcon(QStringLiteral("file.versionHistory"), core::IconContext::Button));
+    m_versionSettingsButton->setIcon(art.getIcon(QStringLiteral("dock.settings")));
 }
 
 void PropertiesPanel::selectChapterStatus(const QString& status) {
@@ -1451,6 +1888,28 @@ void PropertiesPanel::populatePartFields(const QString& partId) {
 
     logger.debug("PropertiesPanel: Part fields populated - {} chapters, {} words",
                  statistics.elements, statistics.words);
+}
+
+void PropertiesPanel::showSectionMaterials() {
+    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    const std::optional<core::BookPlace> place = sectionPlaceOf(m_currentSectionType);
+    //: In Polish: Brak powiązanych materiałów.
+    m_sectionMaterials->showLinked(project && place ? project->sectionLink(*place) : QString(),
+                                   tr("No linked materials."));
+}
+
+void PropertiesPanel::showPartMaterials() {
+    const core::ProjectElement* part =
+        core::ProjectManager::getInstance().findElement(m_currentPartId);
+    if (!part) {
+        return;
+    }
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*part)}};
+    m_partMaterials->showLinked(
+        m_currentPartId,
+        core::fillWords(tr("{Kind:s=This|p=These} {kind} {kind:s=has|p=have} no linked "
+                           "materials."),
+                        nouns));
 }
 
 QString PropertiesPanel::formatDate(const QDateTime& dateTime) const {

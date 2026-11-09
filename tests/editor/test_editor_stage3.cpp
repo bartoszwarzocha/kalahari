@@ -480,7 +480,18 @@ TEST_CASE("Stage3 find: Find opens the bar with the selected text and finds it",
         }
         REQUIRE(replaceAll != nullptr);
 
+        // Before the change the editor says what it replaces, with the text as it was: the
+        // book keeps it as a version
+        QStringList announced;
+        QObject::connect(editor.get(), &BookEditor::aboutToReplaceAll,
+                         [&](const QString& found, const QString& replacement, int count) {
+                             announced << QStringLiteral("%1 → %2, %3")
+                                              .arg(found, replacement)
+                                              .arg(count)
+                                       << editor->toKml();
+                         });
         replaceAll->click();
+        CHECK(announced == QStringList{QStringLiteral("word → term, 3"), kWords});
         CHECK(editor->plainText() ==
               QStringLiteral("One term, then another term.\nNo match here.\nThe last term."));
         editor->undo();

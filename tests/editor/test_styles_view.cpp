@@ -337,6 +337,12 @@ TEST_CASE("Formatting marks: the spaces, the breaks and the end of a paragraph",
     const QString text = QStringLiteral("a b") + QChar(QChar::Nbsp) + QStringLiteral("c\td") +
                          QChar(QChar::LineSeparator) + QStringLiteral("e");
     auto editor = editorWith(QStringLiteral("<p>x</p>"));
+    // Tab stops far apart: the tab is wider than its arrow (a narrower one has the arrow
+    // from its start)
+    EditorAppearance appearance = editor->appearance();
+    appearance.typography.tabStops = TabStops::Spaces;
+    appearance.typography.tabSpaces = 16;
+    editor->setAppearance(appearance);
     setText(*editor, text);
 
     const QTextBlock block = blockOf(*editor, 0);

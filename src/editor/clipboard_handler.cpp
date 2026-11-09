@@ -1187,6 +1187,15 @@ QString ClipboardHandler::htmlDocument(const QString& fragment)
            fragment + QStringLiteral("<!--EndFragment--></body></html>");
 }
 
+std::unique_ptr<QMimeData> ClipboardHandler::mimeDataOf(const QString& kml, const ListMarks* marks)
+{
+    auto mimeData = std::make_unique<QMimeData>();
+    mimeData->setText(kmlToText(kml, QString(), marks));
+    mimeData->setHtml(htmlDocument(kmlToHtml(kml, QString(), marks)));
+    mimeData->setData(QString::fromLatin1(MIME_KML), kml.toUtf8());
+    return mimeData;
+}
+
 QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBreakStyle,
                                     const ListMarks* marks)
 {

@@ -363,12 +363,13 @@ TEST_CASE("Colors: a kind's color as Optimize colors in themes shows it", "[gui]
     CHECK(shownColor(deep, white, true) == deep);
     CHECK_FALSE(shownColor(QColor(), white, true).isValid());
 
-    // The kinds' colors of both themes, on both papers and on the panels of both themes
+    // The marks' colors of both themes (the kinds of annotations, spelling, grammar and the
+    // changes of a version), on both papers and on the panels of both themes
     const QColor lightBase = themeNamed(QStringLiteral("Light")).palette.base;
     const QColor darkBase = themeNamed(QStringLiteral("Dark")).palette.base;
     for (const QString& name : {QStringLiteral("Light"), QStringLiteral("Dark")}) {
         const core::Theme theme = themeNamed(name);
-        CHECK(theme.editor.size() == 5);
+        CHECK(theme.editor.size() == 7);
         for (const auto& [key, color] : theme.editor) {
             for (const QColor& background : {white, darkPaper, lightBase, darkBase}) {
                 INFO(name.toStdString() << " " << key << " on " << background.name().toStdString());
@@ -886,7 +887,8 @@ TEST_CASE("Annotations frame: under its place within the text column, above it w
     QWidget editor;
     editor.resize(800, 600);
     auto* frame = new AnnotationFrame(&editor);
-    AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600)};
+    AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600),
+                                         QRectF()};
     frame->setPlacement([&placement]() { return placement; });
 
     // Two thirds of the column wide, a little left of the place
@@ -927,7 +929,8 @@ TEST_CASE("Annotations frame: who the annotation is by, on the right of its head
 
     frame->setAuthor(QStringLiteral(" Anna Nowak "));
     frame->setPlacement([]() {
-        return AnnotationFrame::Placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600)};
+        return AnnotationFrame::Placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600),
+                                         QRectF()};
     });
     frame->show();
     QApplication::processEvents();

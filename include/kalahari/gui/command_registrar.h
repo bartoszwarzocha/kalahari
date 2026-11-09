@@ -150,8 +150,14 @@ struct CommandCallbacks {
     std::function<void()> onFocusToggle;        ///< View > Focus
     std::function<void()> onDarkPaperToggle;    ///< View > Dark Paper
     std::function<void()> onTextFrameBorderToggle;  ///< View > Text Frame Border
+    std::function<void()> onAnnotationCardsToggle;  ///< View > Annotation Cards Under Paragraphs
     std::function<void()> onDistractionFreeToggle;  ///< View > Distraction-Free
     std::function<void()> onFormattingMarksToggle;  ///< View > Show Formatting Marks
+
+    /// View > Margin Numbering: what the numbers on the margin count, by the name the settings
+    /// give it (editor::MARGIN_NUMBERING_NONE, ..._LINES, ..._PARAGRAPHS)
+    std::function<void(const QString&)> onMarginNumbering;
+    std::function<void()> onMarginNumberingSettings;  ///< View > Margin Numbering > Numbering Settings...
 
     // Zoom (the editor in front)
     std::function<void()> onZoomIn;             ///< View > Zoom > Zoom In

@@ -21,7 +21,9 @@ namespace kalahari::gui {
 /// @brief The frame an annotation's text is written in
 ///
 /// Looks like a card of the Annotations panel and lies over the editor, under the place
-/// of the annotation (above it when there is no room below), within the text column. Enter
+/// of the annotation (above it when there is no room below), within the text column; with
+/// the cards under the paragraphs, over the annotation's card, as wide as it (the card makes
+/// room for the frame as high as it is: cardHeightNeeded()). Enter
 /// starts a new line; Ctrl+Enter or Save keeps the text, Esc or its X in the corner drops
 /// it - the frame says so. Going anywhere else in the program closes it, the text kept: a
 /// click outside it, or the keys going to another place of the program. It stays open
@@ -39,6 +41,7 @@ public:
     struct Placement {
         QRectF place;   ///< The annotation's place: a caret's rectangle
         QRectF column;  ///< The text column (empty: the whole editor)
+        QRectF card;    ///< Its card under the paragraph (empty: none; the frame goes to its place)
     };
 
     /// @brief Gives the placement as it is now (the view scrolls and changes)
@@ -98,6 +101,11 @@ signals:
     /// @brief Going anywhere else in the program: close it, the text kept. Asked once, and
     /// never after Esc or its X
     void closeRequested();
+
+    /// @brief Lying over a card (Placement::card), the frame is of another height than the
+    /// card: the card should make room for it
+    /// @param height The frame's height, in pixels of the editor
+    void cardHeightNeeded(int height);
 
 protected:
     void paintEvent(QPaintEvent* event) override;

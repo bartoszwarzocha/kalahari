@@ -49,6 +49,7 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Assistant Actions") return QObject::tr("Assistant A&ctions");
     if (technicalName == "View Mode") return QObject::tr("View &Mode");
     if (technicalName == "Zoom") return QObject::tr("&Zoom");
+    if (technicalName == "Margin Numbering") return QObject::tr("Margin &Numbering");
     if (technicalName == "Panels") return QObject::tr("&Panels");
     if (technicalName == "Perspectives") return QObject::tr("Pe&rspectives");
     if (technicalName == "Toolbars") return QObject::tr("&Toolbars");
@@ -85,6 +86,7 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Assistant Actions", QStringLiteral("menu.assistantActions")},
         {"View Mode", QStringLiteral("menu.viewMode")},
         {"Zoom", QStringLiteral("menu.zoom")},
+        {"Margin Numbering", QStringLiteral("menu.marginNumbers")},
         {"Panels", QStringLiteral("menu.panels")},
         {"Perspectives", QStringLiteral("menu.perspectives")},
         {"Toolbars", QStringLiteral("menu.toolbars")},

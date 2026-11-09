@@ -113,6 +113,22 @@ public:
     /// @param allowed false to hide it until it is allowed again
     void setInfoBarAllowed(bool allowed);
 
+    /// @brief Say @p message under the text of @p editor, of what was just done to it, with a
+    /// button @p actionText that does @p action (e.g. undoes it)
+    ///
+    /// The info bar shows it while the tab of the editor is in front, until the text changes,
+    /// the writer closes it or another notice comes.
+    /// @param editor The tab of the text
+    /// @param message The notice
+    /// @param actionText Its button, with a mnemonic; empty: none
+    /// @param actionToolTip The tooltip of its button
+    /// @param action What the button does; the notice goes before it
+    void showNotice(EditorPanel* editor, const QString& message, const QString& actionText,
+                    const QString& actionToolTip, std::function<void()> action);
+
+    /// @brief Whether a notice is shown under the text of @p editor (showNotice())
+    [[nodiscard]] bool hasNotice(const EditorPanel* editor) const;
+
     // =========================================================================
     // Per-editor save state
     // =========================================================================
@@ -362,6 +378,9 @@ private:
     /// read-only under any other tab (until the writer closes it), or hide it
     void updateStandaloneInfoBar();
 
+    /// @brief No notice under a text any more (showNotice())
+    void clearNotice();
+
     /// @brief List the standalone files in the navigator again after it was cleared, with the
     /// new files that have no file yet
     void relistStandaloneFiles();
@@ -421,6 +440,18 @@ private:
     bool m_infoBarAllowed{true};    ///< The info bar may show (not in Distraction-Free)
     bool m_readOnlyBarDismissed{false};  ///< The writer closed the message of the book open
                                          ///< read-only; it shows again with the next book
+
+    /// @brief A notice under a text (showNotice())
+    struct Notice {
+        EditorPanel* editor = nullptr;  ///< The tab of the text; null: no notice
+        QString message;
+        QString actionText;
+        QString actionToolTip;
+        std::function<void()> action;
+        QMetaObject::Connection changed;  ///< The first change of the text ends it
+        QMetaObject::Connection closed;   ///< So does closing its tab
+    };
+    Notice m_notice;
     QStatusBar* m_statusBar;
 
     WindowTitleUpdater m_updateWindowTitle;

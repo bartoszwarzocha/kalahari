@@ -294,6 +294,7 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
     row(keysFor(tr("New paragraph"), {A::NewParagraph}));
     row(keysFor(tr("New line in the paragraph"), {A::NewLine}));
     row(keysFor(tr("New paragraph after the cursor"), {A::OpenLine}));
+    row(keysFor(tr("Tab character"), {A::Tab}));
     row(keysFor(tr("Undo (second shortcut)"), {A::Undo}));
     row(keysFor(tr("Redo (second shortcut)"), {A::Redo}));
     row(keysFor(tr("Cut, copy, paste (second shortcuts)"), {A::Cut, A::Copy, A::Paste}));
@@ -439,12 +440,14 @@ FixedKeyGroup ShortcutRules::systemGroup() const {
     const QString switchReason =
         tr("%1 switches the windows of the system: it does not reach the program.");
 
-    // Tab and Shift+Tab work as in every program: fixed keys rather than the system's
+    // Tab and Shift+Tab work as in every program: fixed keys rather than the system's. In the
+    // text Tab types a tab character (the keys of the text, textGroups())
     const QKeyCombination nextField = keyWith(NONE, Qt::Key_Tab);
     const QKeyCombination previousField = keyWith(SHIFT, Qt::Key_Tab);
     FixedKeys fields{tr("Field by field"), {nextField, previousField}, NONE, {}, {}, {}};
     fields.keyReasons = {
-        fixedKeyReason(tr("%1 goes to the next field.").arg(keysText(nextField))),
+        fixedKeyReason(tr("%1 goes to the next field; in the text it types a tab character.")
+                           .arg(keysText(nextField))),
         fixedKeyReason(tr("%1 goes back to the previous field.").arg(keysText(previousField)))};
     fields.brief = tr("a fixed key");
 
@@ -678,6 +681,9 @@ QString ShortcutRules::textKeyReason(QKeyCombination keys, TextKeyAction action,
         break;
     case TextKeyAction::OpenLine:
         does = tr("starts a new paragraph after the cursor");
+        break;
+    case TextKeyAction::Tab:
+        does = tr("types a tab character");
         break;
     case TextKeyAction::Transpose:
         does = tr("swaps the characters around the cursor");

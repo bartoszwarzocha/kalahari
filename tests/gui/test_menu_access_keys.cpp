@@ -19,6 +19,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/editor/annotation.h"
+#include "kalahari/editor/annotation_cards.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/grammar_check_service.h"
 #include "kalahari/editor/spell_check_service.h"
@@ -53,6 +54,7 @@
 #include <QHostAddress>
 #include <QLabel>
 #include <QLineEdit>
+#include <QLocale>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMenuBar>
@@ -526,6 +528,47 @@ void checkTextMenus(bool shown, QStringList& problems) {
     CHECK(itemCount(linkMenu) == 6 + 4);
     editor.fromKml(test::kmlOf({sentence()}));
 
+    // The annotation at the click on top of the usual menu: a line with its kind and the start
+    // of its text, without a key, then its commands; with the cards under the paragraphs also
+    // Collapse, and the menu of its card
+    for (const bool cards : {false, true}) {
+        editor::BookEditor annotated;
+        test::resizeWidget(annotated, QSize(600, 400));
+        annotated.fromKml(QStringLiteral(
+            "<kml><annotations><annotation id=\"a1\" kind=\"todo\">Check the date</annotation>"
+            "</annotations><p>One <anchor ref=\"a1\">two</anchor> three</p></kml>"));
+        annotated.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
+                                             registry.getAction(QStringLiteral("edit.copy")),
+                                             registry.getAction(QStringLiteral("edit.paste")),
+                                             registry.getAction(QStringLiteral("edit.selectAll"))});
+        annotated.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
+                                         registry.getAction(QStringLiteral("insert.todo")),
+                                         registry.getAction(QStringLiteral("insert.note"))});
+        editor::EditorAppearance appearance = annotated.appearance();
+        appearance.annotationCards.show = cards;
+        annotated.setAppearance(appearance);
+        const QString label =
+            editor::AnnotationCards::kindTitle(editor::AnnotationKind::Todo) +
+            QStringLiteral(": ") + QLocale().quoteString(QStringLiteral("Check the date"));
+        const QString where = cards ? QStringLiteral("Annotation in the text, with cards")
+                                    : QStringLiteral("Annotation in the text");
+        QList<test::MenuItem> items = contextMenu(&annotated, &annotated, placeOf(annotated, 5));
+        collectProblems(items, where, {label}, problems);
+        CHECK(labelsOf(items).contains(label));
+        // Edit, (Collapse,) Mark as Done, Remove, then the usual menu
+        CHECK(itemCount(items) == (cards ? 5 : 4) + 6);
+
+        if (cards) {
+            const QRectF card = annotated.annotationCardRect(QStringLiteral("a1"));
+            REQUIRE_FALSE(card.isEmpty());
+            items = contextMenu(&annotated, &annotated,
+                                QPointF(card.center().x(), card.bottom() - 4.0).toPoint());
+            collectProblems(items, QStringLiteral("Annotation card under a paragraph"), {},
+                            problems);
+            CHECK(itemCount(items) == 5);  // and Card Appearance and Colors
+        }
+    }
+
     // The words for a misspelled one, from the dictionary, on top of the usual menu; the
     // editor checks its text as it shows
     editor::SpellCheckService spelling;
@@ -619,8 +662,8 @@ void checkNavigatorMenus(QStringList& problems) {
     contents.title = QStringLiteral("Contents");
     REQUIRE(pm.book() != nullptr);
     pm.book()->frontElements.append(contents);
-    // The Workshop with a working note and a material, grouped: the groups of its kinds in
-    // Resources
+    // The Workshop with a working note and a material, grouped: the groups of their kinds in
+    // Materials
     const core::BookTypeRegistry& types = pm.bookTypes();
     REQUIRE_FALSE(pm.addElement(types.findKind(QStringLiteral("kalahari.base"),
                                                QStringLiteral("work_note")),
@@ -636,7 +679,7 @@ void checkNavigatorMenus(QStringList& problems) {
     }
     REQUIRE_FALSE(pm.addMaterial(picture,
                                  types.findKind(QStringLiteral("kalahari.base"),
-                                                QStringLiteral("material")),
+                                                QStringLiteral("picture")),
                                  QStringLiteral("Map"))
                       .isEmpty());
     REQUIRE(pm.setWorkshopGrouped(true));
@@ -903,6 +946,21 @@ TEST_CASE("Menu access keys: the menu of the panels' titles names them with keys
     CHECK(navigator->isHidden() != hidden);
     navigatorItem->trigger();
     CHECK(navigator->isHidden() == hidden);
+}
+
+TEST_CASE("Menu access keys: the copy of a menu leaves its hidden items out",
+          "[gui][menus][keys]") {
+    // Qt's menu of the window lists every toolbar; one not in use is hidden there
+    QMenu qtMenu;
+    qtMenu.addAction(QStringLiteral("Quick Actions"));
+    qtMenu.addAction(QStringLiteral("Versions and Backups"))->setVisible(false);
+    qtMenu.addAction(QStringLiteral("Edit"));
+    const std::unique_ptr<QMenu> menu(menuWithAccessKeys(qtMenu, nullptr));
+    QStringList names;
+    for (const QAction* item : menu->actions()) {
+        names << withoutAccessKey(item->text());
+    }
+    CHECK(names == QStringList{QStringLiteral("Quick Actions"), QStringLiteral("Edit")});
 }
 
 TEST_CASE("Menu access keys: lists and toolbar buttons show the names without them",

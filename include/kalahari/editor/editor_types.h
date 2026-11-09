@@ -7,6 +7,7 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 #include <QTextFormat>
 #include <QVector>
 
@@ -69,6 +70,16 @@ struct SelectionRange {
     }
 };
 
+/// @brief How far apart the tab stops of a paragraph are
+///
+/// The stops are counted from where each line starts: on the first line of an indented
+/// paragraph a tab at the start moves the text by one more indent.
+enum class TabStops {
+    Indent,  ///< Every first-line indent of the paragraph's style (LayoutTypography::tabIndent
+             ///< in a style without one)
+    Spaces,  ///< Every few spaces of the font of the paragraph's style
+};
+
 /// @brief View typography applied when blocks are broken into lines
 ///
 /// A view setting, not a block format: changing it re-lays out the text but does not
@@ -84,6 +95,10 @@ struct LayoutTypography {
     qreal paragraphSpacing = 0.0;    ///< Space below every paragraph
     qreal firstLineIndent = 0.0;     ///< Indent of the first line (left-aligned and justified paragraphs)
     qreal referencePointSize = 0.0;  ///< Font size the lengths are given for
+    TabStops tabStops = TabStops::Indent;  ///< How far apart the tab stops are
+    qreal tabIndent = 0.0;           ///< Between the tab stops of a style without a first-line
+                                     ///< indent (TabStops::Indent); 0: Qt's default
+    int tabSpaces = 4;               ///< Spaces between two tab stops (TabStops::Spaces)
 
     bool operator==(const LayoutTypography&) const = default;
 };
@@ -101,6 +116,24 @@ struct PageFlow {
     qreal textHeight = 0.0;  ///< Height of one text area
 
     bool operator==(const PageFlow&) const = default;
+};
+
+/// @brief What the numbers on the margin count before a paragraph
+struct MarginCounts {
+    int lines = 0;       ///< Lines of every block: also of headings, objects, empty paragraphs
+    int paragraphs = 0;  ///< Paragraphs with text: no headings, objects or empty paragraphs
+
+    bool operator==(const MarginCounts&) const = default;
+};
+
+/// @brief A mark beside a paragraph, in the left margin of the page: the paperclip of the
+/// materials linked with the paragraph
+struct ParagraphMark {
+    int paragraph = 0;   ///< The paragraph (0-based)
+    QStringList ids;     ///< What it names: the ids of the materials, in their order
+    QStringList titles;  ///< Their titles, for the tooltip and the menu
+
+    bool operator==(const ParagraphMark&) const = default;
 };
 
 /// @brief Alignment of a paragraph without one of its own: justified (Qt leaves the last

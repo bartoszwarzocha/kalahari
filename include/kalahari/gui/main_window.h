@@ -42,6 +42,7 @@ namespace gui {
 // Forward declarations for panels
 class DashboardPanel;
 class EditorPanel;
+class ImagePreviewPanel;
 class NavigatorPanel;
 class PropertiesPanel;
 class LogPanel;
@@ -54,8 +55,11 @@ class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
 class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
+class ParagraphMarksCoordinator;
+class MaterialListCoordinator;
 class EditCoordinator;
 class SpecialCharacterCoordinator;
+class VersionsCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
@@ -122,6 +126,9 @@ public:
     /// @note Returns nullptr if current tab is Dashboard or other panel type
     /// @note Made public for diagnostic/benchmark access (OpenSpec #00043)
     EditorPanel* getCurrentEditor();
+
+    /// @brief The preview of a material in front, or nullptr
+    ImagePreviewPanel* currentPreview();
 
     /// @brief Open a chapter/element by ID (OpenSpec #00043 - Benchmark CLI)
     /// @param elementId Element ID to open (ProjectElement::id)
@@ -291,7 +298,8 @@ private slots:
     /// @brief Turn typewriter scrolling on or off in every editor (remembered)
     void onTypewriterToggle();
 
-    /// @brief Show the cursor's page and the zoom of the editor in front in the status bar
+    /// @brief Show the cursor's page and the zoom of the editor in front in the status bar, or
+    /// the zoom of the preview of a material in front
     void updatePageStatus();
 
     /// @brief Show "Read-only" with a lock in the status bar while the open book is
@@ -307,8 +315,17 @@ private slots:
     /// @brief Show or hide the border around the text of every editor (remembered)
     void onTextFrameBorderToggle();
 
+    /// @brief Show or hide the cards of the annotations under the paragraphs of every editor
+    ///        (remembered)
+    void onAnnotationCardsToggle();
+
     /// @brief Show or hide the formatting marks of every editor (remembered)
     void onFormattingMarksToggle();
+
+    /// @brief Number the lines or the paragraphs of every editor on the margin, or not
+    ///        (remembered); the numbering on chosen again turns it off
+    /// @param mode A name of the settings: editor::MARGIN_NUMBERING_NONE, ..._LINES, ..._PARAGRAPHS
+    void onMarginNumbering(const QString& mode);
 
     /// @brief Turn Distraction-Free writing on or off (the view mode stays)
     void onDistractionFreeToggle();
@@ -386,6 +403,10 @@ private:
 
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
+    /// @brief The paperclips beside the paragraphs that materials are linked with
+    ParagraphMarksCoordinator* m_paragraphMarksCoordinator{nullptr};
+    /// @brief The lists of the kinds of materials on their tabs
+    MaterialListCoordinator* m_materialListCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
     /// Insert > Special Character... and Insert > Quick Character
     SpecialCharacterCoordinator* m_specialCharacterCoordinator{nullptr};
@@ -400,6 +421,9 @@ private:
     /// @brief The submenus of Format > Font Color and Highlight Color
     ColorMenu* m_fontColorMenu{nullptr};
     ColorMenu* m_highlightColorMenu{nullptr};
+
+    /// @brief Save Version and Version History of the texts of the book
+    VersionsCoordinator* m_versionsCoordinator{nullptr};
 
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen

@@ -4,7 +4,10 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
 #include "book_editor_internal.h"
+#include <QAction>
 #include <QDateTime>
+#include <QMenu>
+#include <QTextBlock>
 
 #include <algorithm>
 
@@ -75,18 +78,123 @@ QRectF BookEditor::placeRect(int position, bool afterText) const
                                        afterText);
 }
 
-QRectF BookEditor::textColumnRect() const
+QRectF BookEditor::textColumnRect(double y) const
 {
     if (!m_renderPipeline) {
         return QRectF(rect());
     }
+    // Of the page there: mirror margins shift the text of every other page
     const auto& computed = m_renderPipeline->context().computed;
-    return QRectF(computed.originX, 0.0, computed.textWidth * computed.viewScale, height());
+    const double left = m_renderPipeline->documentToWidget(
+        QPointF(0.0, m_renderPipeline->widgetToDocument(QPointF(0.0, y)).y())).x();
+    return QRectF(left, 0.0, computed.textWidth * computed.viewScale, height());
 }
 
 QString BookEditor::annotationMarkAt(const QPointF& point) const
 {
     return m_renderPipeline ? m_renderPipeline->annotationMarkAt(point) : QString();
+}
+
+// =============================================================================
+// Marks beside the paragraphs
+// =============================================================================
+
+void BookEditor::setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon)
+{
+    m_paragraphMarkIcon = icon;
+    anchorParagraphMarks(marks);
+    syncParagraphMarks(true);
+}
+
+QList<ParagraphMark> BookEditor::paragraphMarks() const
+{
+    QList<ParagraphMark> marks;
+    for (const AnchoredMark& each : m_paragraphMarks) {
+        if (each.anchor.isNull()) {
+            continue;
+        }
+        const int paragraph = each.anchor.block().blockNumber();
+        // A paragraph that took in the next one (the text between them deleted) has the
+        // marks of both
+        const auto same = std::find_if(marks.begin(), marks.end(),
+                                       [paragraph](const ParagraphMark& mark) {
+                                           return mark.paragraph == paragraph;
+                                       });
+        if (same == marks.end()) {
+            ParagraphMark mark = each.mark;
+            mark.paragraph = paragraph;
+            marks.append(mark);
+            continue;
+        }
+        for (qsizetype i = 0; i < each.mark.ids.size(); ++i) {
+            if (!same->ids.contains(each.mark.ids.at(i))) {
+                same->ids.append(each.mark.ids.at(i));
+                same->titles.append(each.mark.titles.value(i));
+            }
+        }
+    }
+    std::sort(marks.begin(), marks.end(), [](const ParagraphMark& a, const ParagraphMark& b) {
+        return a.paragraph < b.paragraph;
+    });
+    return marks;
+}
+
+std::optional<ParagraphMark> BookEditor::paragraphMarkAt(const QPointF& point) const
+{
+    return m_renderPipeline ? m_renderPipeline->paragraphMarkAt(point) : std::nullopt;
+}
+
+void BookEditor::anchorParagraphMarks(const QList<ParagraphMark>& marks)
+{
+    m_paragraphMarks.clear();
+    if (!m_textBuffer) {
+        return;
+    }
+    for (const ParagraphMark& mark : marks) {
+        const QTextBlock block = m_textBuffer->findBlockByNumber(mark.paragraph);
+        if (block.isValid()) {
+            m_paragraphMarks.push_back({QTextCursor(block), mark});
+        }
+    }
+}
+
+void BookEditor::syncParagraphMarks(bool always)
+{
+    if (!m_renderPipeline || (!always && m_paragraphMarks.empty() &&
+                              m_renderPipeline->paragraphMarks().empty())) {
+        return;
+    }
+    const QList<ParagraphMark> now = paragraphMarks();
+    std::vector<ParagraphMark> marks(now.cbegin(), now.cend());
+    if (always || marks != m_renderPipeline->paragraphMarks()) {
+        m_renderPipeline->setParagraphMarks(std::move(marks), m_paragraphMarkIcon);
+    }
+}
+
+void BookEditor::openParagraphMark(const ParagraphMark& mark, const QPoint& globalPos)
+{
+    if (mark.ids.size() == 1) {
+        emit paragraphMarkClicked(mark.ids.first());
+        return;
+    }
+    QMenu menu(this);
+    addParagraphMarkItems(menu, mark);
+    menu.exec(globalPos);
+}
+
+void BookEditor::addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark)
+{
+    for (qsizetype i = 0; i < mark.ids.size(); ++i) {
+        const QString id = mark.ids.at(i);
+        QString title = mark.titles.value(i);
+        if (title.isEmpty()) {
+            title = id;
+        }
+        // A "&" of the title is shown, not taken for an access key
+        QAction* item = menu.addAction(m_paragraphMarkIcon,
+                                       title.replace(QLatin1Char('&'), QStringLiteral("&&")));
+        connect(item, &QAction::triggered, this, [this, id]() { emit paragraphMarkClicked(id); });
+    }
 }
 
 bool BookEditor::updateAnnotation(const Annotation& annotation, bool joinPreviousStep)
@@ -159,6 +267,17 @@ bool BookEditor::goToAnnotation(const QString& id)
         setSelection({start, end});
     }
     ensureCursorVisible();
+
+    // Its card under the paragraph is outlined, and comes into view, while the cursor is in
+    // its fragment
+    if (m_annotationCards.isShown()) {
+        m_annotationCards.setSelected(id);
+        m_selectedCard = QTextCursor(m_textBuffer.get());
+        m_selectedCard.setPosition(place->start);
+        m_selectedCard.setPosition(place->end, QTextCursor::KeepAnchor);
+        scrollToAnnotationCard(id);
+        update();
+    }
     return true;
 }
 
