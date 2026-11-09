@@ -77,6 +77,27 @@ std::map<std::string, json> buildDefaults() {
         {"icons.sizes.button", 20},
         {"icons.sizes.comboBox", 16},
 
+        // Statistics and goals of writing (Settings > Statistics and Goals, core::WritingRules).
+        // A writing day ends at dayStart (minutes after midnight) of the next morning; the time
+        // of writing stops after a pause of idleMinutes; a change of more than largeChangeWords
+        // at once (pasting or cutting a chapter, restoring a version) is not writing when
+        // skipLargeChanges is on. The goals count the growth of the text ("net") or all the
+        // words written ("written"), of all the books or of the open one. writingDays: bit 0 is
+        // Monday, ... bit 6 Sunday. weeklyGoal 0: the daily goals of the writing days. A day
+        // keeps the days in a row going with streakMinimumWords ("minimumWords") or with the
+        // daily goal reached ("dailyGoal").
+        {"stats.dayStart", 240},
+        {"stats.idleMinutes", 5},
+        {"stats.skipLargeChanges", true},
+        {"stats.largeChangeWords", 500},
+        {"stats.goalCounting", "net"},
+        {"stats.dailyGoalAllBooks", true},
+        {"stats.writingDays", 31},
+        {"stats.dailyGoal", 1000},
+        {"stats.weeklyGoal", 0},
+        {"stats.streakRule", "minimumWords"},
+        {"stats.streakMinimumWords", 100},
+
         // Toolbars
         {"toolbars.locked", false},
         {"toolbars.configurations", "{}"},

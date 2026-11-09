@@ -30,6 +30,8 @@ set(KALAHARI_CORE_SOURCES
     core/chapter_versions.cpp   # Versions of the texts of the chapter files
     core/text_diff.cpp          # Differences between two texts, word by word
     core/text_statistics.cpp    # Word/character counting shared by the whole application
+    core/writing_activity.cpp   # The record of writing in 5-minute slots, and its recorder
+    core/writing_statistics.cpp # The statistics of writing: writing days, days in a row, hours
     core/text_file.cpp          # Plain text files in their own encoding and line ends
     core/standalone_file.cpp    # Chapters and text files opened outside a book project
     core/file_trash.cpp         # Files to the Trash of the system
