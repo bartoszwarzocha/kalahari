@@ -8,6 +8,9 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/image_preview_panel.h"
+#include "kalahari/gui/panels/material_list_panel.h"
+#include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/utils/tab_focus.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
@@ -2084,10 +2087,14 @@ void DocumentCoordinator::onProjectClosed() {
         m_styleResolver->invalidateCache();
     }
 
-    // The book's chapters close with it; their changes were saved or discarded before
+    // The book's chapters close with it; their changes were saved or discarded before. So do
+    // the previews and the cards of its materials, and the lists of them.
     for (int i = m_centralTabs->count() - 1; i >= 0; --i) {
         QWidget* widget = m_centralTabs->widget(i);
-        if (qobject_cast<EditorPanel*>(widget) && !widget->property("elementId").toString().isEmpty()) {
+        if (((qobject_cast<EditorPanel*>(widget) || qobject_cast<ImagePreviewPanel*>(widget) ||
+              qobject_cast<MaterialCardPanel*>(widget)) &&
+             !widget->property("elementId").toString().isEmpty()) ||
+            qobject_cast<MaterialListPanel*>(widget)) {
             utils::removeTabKeepingFocus(*m_centralTabs, i);
             widget->deleteLater();
         }

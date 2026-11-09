@@ -14,7 +14,10 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/image_preview_panel.h"
+#include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/material_file.h"
 #include "kalahari/gui/section_words.h"
 #include "kalahari/gui/utils/file_location.h"
 #include "kalahari/core/chapter_document.h"
@@ -24,15 +27,20 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/material_kinds.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
 #include <QStatusBar>
 #include <QTimer>
+#include <QBuffer>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QImage>
+#include <QUrl>
 #include <algorithm>
 #include <chrono>
 #include <optional>
@@ -114,6 +122,40 @@ QString projectFilePath(const QString& file) {
         QDir(core::ProjectManager::getInstance().getProjectPath()).filePath(file));
 }
 
+/// How long the status bar says what the quick ways added
+constexpr int MATERIALS_MESSAGE_MS = 6000;
+
+/// @p picture as a PNG file
+QByteArray pngOf(const QImage& picture) {
+    QByteArray data;
+    QBuffer buffer(&data);
+    buffer.open(QIODevice::WriteOnly);
+    picture.save(&buffer, "PNG");
+    return data;
+}
+
+/// The kind of all @p kinds; none when they are of several kinds, or there are none
+core::KindRef oneKindOf(const QList<core::KindRef>& kinds) {
+    if (kinds.isEmpty() || std::any_of(kinds.cbegin(), kinds.cend(), [&kinds](const auto& kind) {
+            return kind.kind != kinds.constFirst().kind;
+        })) {
+        return {};
+    }
+    return kinds.constFirst();
+}
+
+/// The name of @p link, an element or a section of the book, as the Navigator shows it
+QString linkName(const QString& link) {
+    const auto& pm = core::ProjectManager::getInstance();
+    if (const core::ProjectElement* element = pm.findElement(link)) {
+        return element->title;
+    }
+    const core::BookProject* project = pm.project();
+    const std::optional<core::BookPlace> section =
+        project ? project->linkedSection(link) : std::nullopt;
+    return section && pm.book() ? pm.book()->sectionName(*section) : link;
+}
+
 }  // namespace
 
 NavigatorCoordinator::NavigatorCoordinator(NavigatorPanel* navigatorPanel,
@@ -127,11 +169,16 @@ NavigatorCoordinator::NavigatorCoordinator(NavigatorPanel* navigatorPanel,
     , m_centralTabs(centralTabs)
     , m_statusBar(statusBar)
     , m_wordCountTimer(new QTimer(this))
+    , m_downloader(new MaterialDownloader(this))
 {
     // The counts of the book follow the text being written, without counting at each key
     m_wordCountTimer->setSingleShot(true);
     m_wordCountTimer->setInterval(WORD_COUNT_DELAY_MS);
     connect(m_wordCountTimer, &QTimer::timeout, this, &NavigatorCoordinator::countWords);
+
+    // The title of a page or the copy of a picture comes after the material was added
+    connect(m_downloader, &MaterialDownloader::finished, this,
+            &NavigatorCoordinator::onDownloadFinished);
 
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorCoordinator created");
@@ -1008,43 +1055,69 @@ void NavigatorCoordinator::moveElementTo(const QString& elementId,
 // =============================================================================
 
 void NavigatorCoordinator::onRequestAdd(const AddTarget& target) {
+    addWithWindow(target);
+}
+
+bool NavigatorCoordinator::addWithWindow(
+    const AddTarget& target, const std::function<void(dialogs::NewFileDialog&)>& prepare) {
     auto& logger = core::Logger::getInstance();
     auto& pm = core::ProjectManager::getInstance();
     auto* window = qobject_cast<QWidget*>(parent());
 
     if (!pm.isProjectOpen() || pm.isReadOnly()) {
         logger.warn("NavigatorCoordinator: Add requested but no book can be changed");
-        return;
+        return false;
     }
 
-    // The window offers the kinds of the place it was opened on
-    const dialogs::NewFileDialog::Book book = dialogs::NewFileDialog::forAdding(target);
+    // The window starts at the place it was opened on; without a choice at its top it offers
+    // the kinds of that place only
+    const dialogs::NewFileDialog::Book book =
+        dialogs::NewFileDialog::forAdding(target, NavigatorPanel::addChooser());
     if (book.kinds.isEmpty()) {
         logger.warn("NavigatorCoordinator: Nothing can be added there");
-        return;
+        return false;
     }
     dialogs::NewFileDialog dialog(book, pm.bookTypes(), window);
+    if (prepare) {
+        prepare(dialog);
+    }
     if (dialog.exec() != QDialog::Accepted) {
-        return;
+        return false;
     }
     const core::KindRef kind = dialog.kind();
     const QString title = dialog.title();
     // The messages name the kind added: "Working note added", "Could not add a story"
     const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
 
-    // A material is a copy of the file the writer chose, in the Workshop's folder; any other
-    // element gets its chapter file, and ProjectManager saves the project at once
+    // A material is a copy of a file in the Workshop's folder, a picture saved there, a web
+    // address or none of them; any other element gets its chapter file, and ProjectManager
+    // saves the project at once
     const bool material = kind && kind.kind->isMaterial();
     const core::ElementPlace at = dialog.place();
-    const QString elementId =
-        material ? pm.addMaterial(dialog.materialFile(), kind, title)
-                 : pm.addElement(kind, title, at.place, at.groupId, at.index, dialog.takeInside(),
-                                 std::nullopt, dialog.status());
+    QString elementId;
+    const QImage picture = dialog.materialPicture();
+    if (material) {
+        core::NewMaterial newMaterial;
+        newMaterial.title = title;
+        if (!picture.isNull()) {
+            newMaterial.data = pngOf(picture);
+            newMaterial.fileName =
+                IncomingMaterials::pictureFileName(QDateTime::currentDateTime());
+        } else {
+            newMaterial.filePath = dialog.materialFile();
+        }
+        newMaterial.url = dialog.materialAddress().toString();
+        newMaterial.links = dialog.materialLinks();
+        elementId = pm.addMaterial(newMaterial, kind);
+    } else {
+        elementId = pm.addElement(kind, title, at.place, at.groupId, at.index,
+                                  dialog.takeInside(), std::nullopt, dialog.status());
+    }
     if (elementId.isEmpty()) {
         logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
         //: In Polish: Nie udało się dodać {kind:genitive}
         const QString heading = core::fillWords(tr("Add {Kind} Failed"), nouns);
-        if (material) {
+        if (material && !dialog.materialFile().isEmpty()) {
             //: %1: the file the writer chose. In Polish: Nie udało się dodać kopii pliku do
             //: książki:\n%1\nSzczegóły są w dzienniku programu.
             dialogs::MessageDialog::warning(
@@ -1052,10 +1125,17 @@ void NavigatorCoordinator::onRequestAdd(const AddTarget& target) {
                 tr("The copy of the file could not be added to the book:\n%1\nThe program's "
                    "log has the details.")
                     .arg(QDir::toNativeSeparators(dialog.materialFile())));
+        } else if (material && !picture.isNull()) {
+            //: In Polish: Nie udało się zapisać obrazu w książce. Szczegóły są w dzienniku
+            //: programu.
+            dialogs::MessageDialog::warning(
+                window, heading,
+                tr("The picture could not be saved in the book. The program's log has the "
+                   "details."));
         } else {
             dialogs::MessageDialog::warning(window, heading, tr("Failed to save changes."));
         }
-        return;
+        return false;
     }
     logger.info("NavigatorCoordinator: Added '{}' (id={})", title.toStdString(),
                 elementId.toStdString());
@@ -1063,7 +1143,17 @@ void NavigatorCoordinator::onRequestAdd(const AddTarget& target) {
     showAdded(elementId, title);
     //: In Polish: Dodano {kind:accusative}: %1
     m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(title), 2000);
+    if (material) {
+        // What the writer asked the program to download comes after; the card of the new
+        // material opens in the middle of the window, ready for its description
+        if (dialog.downloadChosen()) {
+            download(elementId,
+                     MaterialDownloader::policy() == MaterialDownloader::Policy::Ask);
+        }
+        onRequestOpenMaterialCard(elementId, true);
+    }
     emit documentModified();
+    return true;
 }
 
 void NavigatorCoordinator::onRequestAddHere() {
@@ -1230,8 +1320,499 @@ void NavigatorCoordinator::onRequestOpenMaterial(const QString& elementId) {
                                          elementId.toStdString());
         return;
     }
+    // A page, and a picture on the web without a copy: the program shows no web pages, so the
+    // browser opens it, unless the settings say its card. A material without a file and an
+    // address has nothing to open elsewhere: its card.
+    const auto& settings = core::SettingsManager::getInstance();
+    const MaterialSource source = materialSourceOf(*element);
+    if (source == MaterialSource::None) {
+        onRequestOpenMaterialCard(elementId);
+        return;
+    }
+    if (source == MaterialSource::Page ||
+        (source == MaterialSource::WebPicture && element->file.isEmpty())) {
+        if (settings.get<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, "browser") == "card") {
+            onRequestOpenMaterialCard(elementId);
+        } else {
+            onRequestOpenInBrowser(elementId);
+        }
+        return;
+    }
+    // A picture, also the copy of one from the web, opens on its preview tab, which also says
+    // why it shows none; the program has no preview of the other files
+    const bool card =
+        settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card") != "system";
+    if (card && MaterialFile::of(pm.filePathOf(*element)).picture) {
+        onRequestPreview(elementId);
+    } else {
+        onRequestOpenWithSystem(elementId);
+    }
+}
 
-    // The program has no window of its own for materials yet
+void NavigatorCoordinator::onRequestOpenMaterialCard(const QString& elementId,
+                                                     bool description) {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element || !pm.isMaterial(*element)) {
+        return;
+    }
+    MaterialCardPanel* card = nullptr;
+    for (MaterialCardPanel* open : materialCards()) {
+        if (open->elementId() == elementId) {
+            card = open;
+        }
+    }
+    if (!card) {
+        card = new MaterialCardPanel(elementId, m_centralTabs);
+        MaterialPage* page = card->page();
+        connect(page, &MaterialPage::requestPreview, this,
+                &NavigatorCoordinator::onRequestPreview);
+        connect(page, &MaterialPage::requestOpenWithSystem, this,
+                &NavigatorCoordinator::onRequestOpenWithSystem);
+        connect(page, &MaterialPage::requestOpenLink, this,
+                &NavigatorCoordinator::onRequestOpenLink);
+        connect(page, &MaterialPage::requestOpenInBrowser, this,
+                &NavigatorCoordinator::onRequestOpenInBrowser);
+        connect(page, &MaterialPage::requestSaveCopy, this,
+                &NavigatorCoordinator::onRequestSaveCopy);
+        connect(page, &MaterialPage::changed, this, &NavigatorCoordinator::onMaterialChanged);
+        connect(page, &MaterialPage::message, this,
+                [this](const QString& text) { m_statusBar->showMessage(text, 2000); });
+        page->setDownloading(elementId, m_downloader->isFetching(elementId));
+        m_centralTabs->addTab(
+            card, core::ArtProvider::getInstance().getIcon(card->property("tabIconId").toString()),
+            element->title);
+    }
+    m_centralTabs->setCurrentWidget(card);
+    if (description) {
+        card->page()->focusDescription();
+    } else {
+        card->page()->focusFirstField();
+    }
+}
+
+void NavigatorCoordinator::onRequestOpenInBrowser(const QString& elementId) {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element || element->url.isEmpty()) {
+        return;
+    }
+    if (!openInBrowser(QUrl(element->url))) {
+        const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+        dialogs::MessageDialog::warning(
+            qobject_cast<QWidget*>(parent()), core::fillWords(tr("Open {Kind} Failed"), nouns),
+            //: %1: the web address. In Polish: System nie otworzył adresu:\n%1
+            tr("The system could not open the address:\n%1").arg(element->url));
+        return;
+    }
+    m_statusBar->showMessage(tr("Opened: %1").arg(element->title), 2000);
+}
+
+void NavigatorCoordinator::onRequestSaveCopy(const QString& elementId) {
+    if (MaterialDownloader::policy() != MaterialDownloader::Policy::Never) {
+        download(elementId, true);
+    }
+}
+
+void NavigatorCoordinator::download(const QString& elementId, bool asked) {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element || element->url.isEmpty() || m_downloader->isFetching(elementId)) {
+        return;
+    }
+    const QUrl url(element->url);
+    if (asked) {
+        m_askedDownloads.insert(elementId);
+    } else {
+        m_askedDownloads.remove(elementId);
+    }
+    // A picture once: its copy stays
+    if (materialSourceOf(*element) == MaterialSource::WebPicture) {
+        if (!element->file.isEmpty()) {
+            return;
+        }
+        m_downloader->fetchPicture(elementId, url);
+    } else {
+        m_downloader->fetchTitle(elementId, url);
+    }
+    showDownloading(elementId);
+}
+
+void NavigatorCoordinator::onDownloadFinished(const MaterialDownloader::Result& result) {
+    auto& pm = core::ProjectManager::getInstance();
+    auto* window = qobject_cast<QWidget*>(parent());
+    const bool asked = m_askedDownloads.remove(result.elementId);
+    showDownloading(result.elementId);
+    // Deleted or closed meanwhile, or in a book that cannot change now
+    const core::ProjectElement* element = pm.findElement(result.elementId);
+    if (!element || element->url != result.url.toString() || pm.isReadOnly()) {
+        return;
+    }
+    const QString title = element->title;
+    if (!result.error.isEmpty()) {
+        if (asked) {
+            //: In Polish: Pobieranie się nie udało
+            dialogs::MessageDialog::warning(
+                window, tr("Download Failed"),
+                //: %1: why, %2: the address. In Polish: %1\n\nMateriał zachowuje swój adres:
+                //: \n%2
+                tr("%1\n\nThe material keeps its address:\n%2").arg(result.error, element->url));
+        } else {
+            //: %1: the material, %2: why. In Polish: Nie pobrano niczego dla „%1”: %2
+            m_statusBar->showMessage(
+                tr("Nothing was downloaded for \"%1\": %2").arg(title, result.error),
+                MATERIALS_MESSAGE_MS);
+        }
+        return;
+    }
+
+    if (result.picture) {
+        if (!element->file.isEmpty()) {
+            return;
+        }
+        if (!pm.setMaterialCopy(result.elementId, result.data, result.fileName)) {
+            dialogs::MessageDialog::warning(
+                window, tr("Download Failed"),
+                //: In Polish: Nie udało się zapisać kopii obrazu w książce. Szczegóły są w
+                //: dzienniku programu.
+                tr("The copy of the picture could not be saved in the book. The program's log "
+                   "has the details."));
+            return;
+        }
+        //: In Polish: Zapisano kopię obrazu: %1
+        m_statusBar->showMessage(tr("Copy of the picture saved: %1").arg(title),
+                                 MATERIALS_MESSAGE_MS);
+    } else {
+        // The title of the page replaces the one its address gave, not the writer's own
+        if (result.title.isEmpty() || result.title == title ||
+            title != titleOfAddress(result.url)) {
+            if (result.title.isEmpty() && asked) {
+                //: %1: the material. In Polish: Program nie znalazł tytułu na stronie
+                //: materiału „%1”.
+                m_statusBar->showMessage(
+                    tr("The program found no title on the page of \"%1\".").arg(title),
+                    MATERIALS_MESSAGE_MS);
+            }
+            return;
+        }
+        if (!pm.renameElement(result.elementId, result.title)) {
+            dialogs::MessageDialog::warning(window, tr("Rename Failed"),
+                                            tr("Failed to save changes."));
+            return;
+        }
+        //: In Polish: Tytuł ze strony: %1
+        m_statusBar->showMessage(tr("Title from the page: %1").arg(result.title),
+                                 MATERIALS_MESSAGE_MS);
+    }
+    onMaterialChanged(result.elementId);
+    emit documentModified();
+}
+
+void NavigatorCoordinator::showDownloading(const QString& elementId) {
+    const bool fetching = m_downloader->isFetching(elementId);
+    for (MaterialCardPanel* card : materialCards()) {
+        card->page()->setDownloading(elementId, fetching);
+    }
+    if (MaterialPage* page = m_propertiesPanel->materialPage()) {
+        page->setDownloading(elementId, fetching);
+    }
+}
+
+void NavigatorCoordinator::onMaterialChanged(const QString& elementId) {
+    for (MaterialCardPanel* card : materialCards()) {
+        if (card->elementId() == elementId) {
+            card->refresh();
+            m_centralTabs->setTabIcon(
+                m_centralTabs->indexOf(card),
+                core::ArtProvider::getInstance().getIcon(card->property("tabIconId").toString()));
+        }
+    }
+    refreshTabTitle(elementId);
+    // Only what shows the material: a download ends while the writer types in the panel
+    m_propertiesPanel->refreshMaterial(elementId);
+    m_navigatorPanel->refreshItem(elementId);
+    emit materialChanged(elementId);
+}
+
+QList<MaterialCardPanel*> NavigatorCoordinator::materialCards() const {
+    QList<MaterialCardPanel*> cards;
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        if (auto* card = qobject_cast<MaterialCardPanel*>(m_centralTabs->widget(i))) {
+            cards << card;
+        }
+    }
+    return cards;
+}
+
+core::KindRef NavigatorCoordinator::materialKind(const QString& kindId) const {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::BookProject* project = pm.project();
+    if (!project) {
+        return {};
+    }
+    core::KindRef first;
+    for (const core::KindRef& kind : project->kindsIn(pm.bookTypes(), core::BookPlace::Workshop)) {
+        if (!kind.kind->isMaterial() || !core::ProjectManager::canAdd(kind)) {
+            continue;
+        }
+        if (kind.kind->id == kindId) {
+            return kind;
+        }
+        if (!first) {
+            first = kind;
+        }
+    }
+    return first;
+}
+
+void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incoming,
+                                                 const QString& link) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = core::ProjectManager::getInstance();
+    auto* window = qobject_cast<QWidget*>(parent());
+    if (!pm.isProjectOpen() || pm.isReadOnly() || !materialKind(QString())) {
+        logger.warn("NavigatorCoordinator: No materials can be added now");
+        return;
+    }
+    if (!incoming.hasMaterials()) {
+        //: Ctrl+V in the Navigator with a text on the clipboard. In Polish: W schowku nie ma
+        //: pliku, adresu internetowego ani obrazu, więc niczego nie dodano.
+        m_statusBar->showMessage(tr("The clipboard has no file, web address or picture, so "
+                                    "nothing was added."),
+                                 MATERIALS_MESSAGE_MS);
+        return;
+    }
+
+    // The kind of each of them is that of its source: a picture, a web page, a document...
+    const auto kindOfFile = [this](const QString& file) {
+        return materialKind(core::MaterialKinds::ofFile(file));
+    };
+    const auto kindOfAddress = [this](const QUrl& address) {
+        return materialKind(core::MaterialKinds::ofSource(address, QString()));
+    };
+    const core::KindRef pictureKind =
+        materialKind(QString::fromLatin1(core::MaterialKinds::PICTURE));
+
+    // Each of them in the Add Element window, filled and on its kind; Cancel stops the rest
+    if (NavigatorPanel::quickMaterials() == QLatin1String("window")) {
+        const auto targetOf = [](const core::KindRef& kind) {
+            AddTarget target;
+            target.scope = AddTarget::Scope::Workshop;
+            target.kinds = {kind};
+            target.kind = kind;
+            return target;
+        };
+        const QStringList links = link.isEmpty() ? QStringList() : QStringList{link};
+        bool going = true;
+        for (const QString& file : incoming.files) {
+            going = going &&
+                    addWithWindow(targetOf(kindOfFile(file)), [&](dialogs::NewFileDialog& dialog) {
+                        dialog.setMaterialFile(file);
+                        dialog.setMaterialLinks(links);
+                    });
+        }
+        for (const QUrl& address : incoming.addresses) {
+            going = going && addWithWindow(targetOf(kindOfAddress(address)),
+                                           [&](dialogs::NewFileDialog& dialog) {
+                                               dialog.setMaterialAddress(address);
+                                               dialog.setMaterialLinks(links);
+                                           });
+        }
+        if (going && !incoming.picture.isNull()) {
+            addWithWindow(targetOf(pictureKind), [&](dialogs::NewFileDialog& dialog) {
+                dialog.setMaterialPicture(incoming.picture);
+                dialog.setMaterialLinks(links);
+            });
+        }
+        return;
+    }
+
+    // At once: a copy of each file, each address, and the picture saved as a PNG file
+    const QStringList links = link.isEmpty() ? QStringList() : QStringList{link};
+    const bool downloads = MaterialDownloader::policy() == MaterialDownloader::Policy::Always;
+    QList<core::NewMaterial> materials;
+    QList<core::KindRef> kinds;
+    QStringList hows;
+    for (const QString& file : incoming.files) {
+        core::NewMaterial material;
+        material.title = QFileInfo(file).completeBaseName();
+        material.filePath = file;
+        materials << material;
+        kinds << kindOfFile(file);
+        //: What a material dropped on the Navigator is. In Polish: kopia pliku w książce
+        hows << tr("a copy of the file in the book");
+    }
+    for (const QUrl& address : incoming.addresses) {
+        core::NewMaterial material;
+        material.title = titleOfAddress(address);
+        material.url = address.toString();
+        materials << material;
+        kinds << kindOfAddress(address);
+        if (core::MaterialKinds::isPictureAddress(address)) {
+            //: What a material dropped on the Navigator is. In Polish: adres obrazu
+            hows << tr("the address of a picture");
+        } else {
+            //: What a material dropped on the Navigator is. In Polish: adres strony
+            hows << tr("the address of a page");
+        }
+    }
+    if (!incoming.picture.isNull()) {
+        const QDateTime now = QDateTime::currentDateTime();
+        core::NewMaterial material;
+        material.title = IncomingMaterials::pictureTitle(now);
+        material.fileName = IncomingMaterials::pictureFileName(now);
+        material.data = pngOf(incoming.picture);
+        materials << material;
+        kinds << pictureKind;
+        //: In Polish: obraz zapisany w książce
+        hows << tr("a picture saved in the book");
+    }
+
+    QStringList added;
+    QStringList titles;
+    QStringList addedHows;
+    QList<core::KindRef> addedKinds;
+    QStringList failed;
+    QList<core::KindRef> failedKinds;
+    for (qsizetype i = 0; i < materials.size(); ++i) {
+        core::NewMaterial& material = materials[i];
+        material.links = links;
+        const QString elementId = pm.addMaterial(material, kinds.at(i));
+        if (elementId.isEmpty()) {
+            failed << (!material.filePath.isEmpty() ? QDir::toNativeSeparators(material.filePath)
+                       : !material.url.isEmpty()    ? material.url
+                                                    : material.title);
+            failedKinds << kinds.at(i);
+            continue;
+        }
+        logger.info("NavigatorCoordinator: Material added at once: '{}' (id={})",
+                    material.title.toStdString(), elementId.toStdString());
+        added << elementId;
+        titles << material.title;
+        addedHows << hows.at(i);
+        addedKinds << kinds.at(i);
+        if (downloads && !material.url.isEmpty()) {
+            download(elementId, false);
+        }
+    }
+
+    if (!added.isEmpty()) {
+        // The Navigator shows the new materials, and the Properties panel the last one
+        refreshNavigator();
+        for (const QString& elementId : std::as_const(added)) {
+            m_navigatorPanel->revealElement(elementId);
+        }
+        const core::KindRef kind = oneKindOf(addedKinds);
+        const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
+        const QString linked = links.isEmpty() ? QString() : linkName(links.constFirst());
+        // The group they went to: that of their kind, or Materials for several kinds
+        //: The node of the Navigator with the materials of several kinds added at once. In
+        //: Polish: Materiały
+        const QString several = tr("Materials");
+        const QString groupName = kind ? kind.kind->plural.text(programLanguage()) : several;
+        QString message;
+        if (added.size() == 1 && linked.isEmpty()) {
+            //: %1: the title, %2: what it is, e.g. "a copy of the file in the book".
+            //: In Polish: Dodano {kind:accusative}: %1 – %2
+            message = core::fillWords(tr("{Kind} added: %1 – %2"), nouns)
+                          .arg(titles.constFirst(), addedHows.constFirst());
+        } else if (added.size() == 1) {
+            //: %1: the title, %2: what it is, e.g. "a copy of the file in the book", %3: the
+            //: element or the section it is linked with. In Polish: Dodano
+            //: {kind:accusative}: %1 – %2, powiązan{kind:m=y|f=a|n=e|p=e} z „%3”
+            message = core::fillWords(tr("{Kind} added: %1 – %2, linked with \"%3\""), nouns)
+                          .arg(titles.constFirst(), addedHows.constFirst(), linked);
+        } else if (linked.isEmpty()) {
+            //: %1: the group of the materials in the Navigator, %2: their titles. In Polish:
+            //: Dodano do grupy „%1”: %2
+            message = tr("Added to \"%1\": %2").arg(groupName, titles.join(QStringLiteral(", ")));
+        } else {
+            //: %1: the group of the materials in the Navigator, %2: their titles, %3: the
+            //: element or the section they are linked with. In Polish: Dodano do grupy „%1”:
+            //: %2; wszystkie powiązane z „%3”
+            message = tr("Added to \"%1\": %2; all linked with \"%3\"")
+                          .arg(groupName, titles.join(QStringLiteral(", ")), linked);
+        }
+        m_statusBar->showMessage(message, MATERIALS_MESSAGE_MS);
+        emit documentModified();
+    }
+    if (!failed.isEmpty()) {
+        const core::KindRef kind = oneKindOf(failedKinds);
+        const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
+        //: The title of the message about materials of several kinds that could not be added.
+        //: In Polish: Nie udało się dodać materiałów
+        const QString several = tr("Add Materials Failed");
+        dialogs::MessageDialog::warning(
+            window, kind ? core::fillWords(tr("Add {Kind} Failed"), nouns) : several,
+            //: %1: the files or the addresses, one in a line. In Polish: Nie udało się dodać
+            //: do książki:\n%1\nSzczegóły są w dzienniku programu.
+            tr("These could not be added to the book:\n%1\nThe program's log has the details.")
+                .arg(pathLines(failed)));
+    }
+}
+
+void NavigatorCoordinator::onRequestPreview(const QString& elementId) {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element) {
+        return;
+    }
+    for (int i = 0; i < m_centralTabs->count(); ++i) {
+        if (auto* preview = qobject_cast<ImagePreviewPanel*>(m_centralTabs->widget(i));
+            preview && preview->elementId() == elementId) {
+            m_centralTabs->setCurrentIndex(i);
+            preview->setFocus(Qt::OtherFocusReason);
+            return;
+        }
+    }
+    auto* preview = new ImagePreviewPanel(elementId, m_centralTabs);
+    connect(preview, &ImagePreviewPanel::openWithSystemRequested, this,
+            &NavigatorCoordinator::onRequestOpenWithSystem);
+    // The card and the materials of a chapter show the picture turned as the preview does
+    connect(preview, &ImagePreviewPanel::rotationChanged, m_propertiesPanel,
+            &PropertiesPanel::refresh);
+    const int index = m_centralTabs->addTab(
+        preview,
+        core::ArtProvider::getInstance().getIcon(preview->property("tabIconId").toString()),
+        element->title);
+    m_centralTabs->setCurrentIndex(index);
+    preview->setFocus(Qt::OtherFocusReason);
+}
+
+void NavigatorCoordinator::onRequestOpenLink(const QString& link) {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::BookProject* project = pm.project();
+    if (!project) {
+        return;
+    }
+    if (const std::optional<core::BookPlace> section = project->linkedSection(link)) {
+        m_navigatorPanel->revealSection(*section);
+        return;
+    }
+    const core::ProjectElement* element = pm.findElement(link);
+    if (!element) {
+        return;
+    }
+    if (pm.isMaterial(*element)) {
+        onRequestOpenMaterial(link);
+        return;
+    }
+    // Shown where it is in the book; a text opens in the editor too
+    m_navigatorPanel->revealElement(link);
+    if (pm.formOf(*element) == core::ElementForm::Text) {
+        onElementSelected(link, element->title);
+    }
+}
+
+void NavigatorCoordinator::onRequestOpenWithSystem(const QString& elementId) {
+    const auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (!element) {
+        core::Logger::getInstance().warn("NavigatorCoordinator: No material to open: {}",
+                                         elementId.toStdString());
+        return;
+    }
+
     const QString path = pm.filePathOf(*element);
     if (!openWithSystem(path)) {
         const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};

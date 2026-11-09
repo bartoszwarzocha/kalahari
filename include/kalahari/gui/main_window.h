@@ -41,6 +41,7 @@ namespace gui {
 // Forward declarations for panels
 class DashboardPanel;
 class EditorPanel;
+class ImagePreviewPanel;
 class NavigatorPanel;
 class PropertiesPanel;
 class LogPanel;
@@ -53,6 +54,8 @@ class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
 class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
+class ParagraphMarksCoordinator;
+class MaterialListCoordinator;
 class EditCoordinator;
 class VersionsCoordinator;
 class SpellingCoordinator;
@@ -120,6 +123,9 @@ public:
     /// @note Returns nullptr if current tab is Dashboard or other panel type
     /// @note Made public for diagnostic/benchmark access (OpenSpec #00043)
     EditorPanel* getCurrentEditor();
+
+    /// @brief The preview of a material in front, or nullptr
+    ImagePreviewPanel* currentPreview();
 
     /// @brief Open a chapter/element by ID (OpenSpec #00043 - Benchmark CLI)
     /// @param elementId Element ID to open (ProjectElement::id)
@@ -285,7 +291,8 @@ private slots:
     /// @brief Turn typewriter scrolling on or off in every editor (remembered)
     void onTypewriterToggle();
 
-    /// @brief Show the cursor's page and the zoom of the editor in front in the status bar
+    /// @brief Show the cursor's page and the zoom of the editor in front in the status bar, or
+    /// the zoom of the preview of a material in front
     void updatePageStatus();
 
     /// @brief Show "Read-only" with a lock in the status bar while the open book is
@@ -380,6 +387,10 @@ private:
 
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
+    /// @brief The paperclips beside the paragraphs that materials are linked with
+    ParagraphMarksCoordinator* m_paragraphMarksCoordinator{nullptr};
+    /// @brief The lists of the kinds of materials on their tabs
+    MaterialListCoordinator* m_materialListCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
     GrammarCoordinator* m_grammarCoordinator{nullptr};
 

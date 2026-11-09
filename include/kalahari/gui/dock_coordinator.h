@@ -39,6 +39,7 @@ class SpellingPanel;
 class ParagraphPanel;
 class FittingScrollArea;
 class InfoBar;
+class PanelTabs;
 class StandaloneInfoBar;
 
 /// @brief Coordinates dock widgets and panel management
@@ -143,11 +144,16 @@ public:
     // Dock customization
     // =========================================================================
 
+    /// @brief The object name of the row of a panel's title bar: its icon, title and buttons
+    static constexpr const char* TITLE_ROW = "panelTitleRow";
+
     /// @brief Setup custom title bar for dock widget
     /// @param dock The dock widget to customize
     /// @param iconId Icon command ID (e.g., "view.navigator")
     /// @param title Translated title text
-    /// @note Creates horizontal layout with icon label + title label + float/close buttons
+    /// @note The title bar holds its row (TITLE_ROW: icon label + title label + float/close
+    ///       buttons) in a vertical layout, with room above it for the tabs of the panel's
+    ///       group (PanelTabs)
     void setupDockTitleBar(QDockWidget* dock, const QString& iconId, const QString& title);
 
     /// @brief Refresh all dock title bar icons
@@ -204,6 +210,9 @@ public:
 
     /// @brief The parts of the Properties panel: its own and the Paragraph and Styles panel
     [[nodiscard]] QSplitter* propertiesSplitter() const { return m_propertiesSplitter; }
+
+    /// @brief The tabs of the panels docked one over another
+    [[nodiscard]] PanelTabs* panelTabs() const { return m_panelTabs; }
 
     /// @brief Get Standalone info bar
     [[nodiscard]] StandaloneInfoBar* standaloneInfoBar() const { return m_standaloneInfoBar; }
@@ -443,6 +452,7 @@ private:
     ParagraphPanel* m_paragraphPanel{nullptr};       ///< In its own dock
     ParagraphPanel* m_propertiesParagraph{nullptr};  ///< The lower part of Properties
     QSplitter* m_propertiesSplitter{nullptr};        ///< Properties | Paragraph and Styles
+    PanelTabs* m_panelTabs{nullptr};                 ///< The tabs of the docked panels
     FittingScrollArea* m_propertiesParagraphArea{nullptr};  ///< The lower part, scrolling
 
     // Central widget

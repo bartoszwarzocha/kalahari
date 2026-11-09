@@ -355,6 +355,10 @@ private:
     /// before it existed, where Qt leaves it at the end of the last row
     void placeVersionsToolbar();
 
+    /// @brief Panels by the right edge of the window, shown: in a layout saved while it was
+    /// hidden at the top by default, once (the writer's own place for it is kept after)
+    void placePanelsToolbar();
+
     /// @brief Slot called when View menu toolbar action is toggled
     ///
     /// @param checked New checked state

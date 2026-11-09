@@ -7,6 +7,7 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 #include <QTextFormat>
 #include <QVector>
 
@@ -101,6 +102,16 @@ struct PageFlow {
     qreal textHeight = 0.0;  ///< Height of one text area
 
     bool operator==(const PageFlow&) const = default;
+};
+
+/// @brief A mark beside a paragraph, in the left margin of the page: the paperclip of the
+/// materials linked with the paragraph
+struct ParagraphMark {
+    int paragraph = 0;   ///< The paragraph (0-based)
+    QStringList ids;     ///< What it names: the ids of the materials, in their order
+    QStringList titles;  ///< Their titles, for the tooltip and the menu
+
+    bool operator==(const ParagraphMark&) const = default;
 };
 
 /// @brief Alignment of a paragraph without one of its own: justified (Qt leaves the last
