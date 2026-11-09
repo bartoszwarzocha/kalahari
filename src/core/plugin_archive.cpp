@@ -2,6 +2,7 @@
 /// @brief Plugin archive implementation
 
 #include <kalahari/core/plugin_archive.h>
+#include <kalahari/core/data_folders.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/unicode_paths.h>
@@ -202,6 +203,12 @@ std::filesystem::path PluginArchive::getTempPluginDir() {
     // Tests unpack into their own temporary folder, never into the user's profile
     if (SettingsManager::isTestMode()) {
         return std::filesystem::temp_directory_path() / "Kalahari" / "plugins";
+    }
+
+    // A copy of the program with a data folder of its own unpacks into that folder
+    const DataFolders& dataFolders = DataFolders::current();
+    if (dataFolders.hasOwnFolder()) {
+        return dataFolders.folder() / "plugins" / "temp";
     }
 
 #ifdef __linux__

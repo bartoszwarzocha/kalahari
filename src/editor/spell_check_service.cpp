@@ -2,6 +2,7 @@
 /// @brief The spelling dictionary every editor checks its text with (Hunspell)
 
 #include <kalahari/editor/spell_check_service.h>
+#include <kalahari/core/data_folders.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/resource_paths.h>
 
@@ -45,9 +46,13 @@ QStringList dictionaryFolders() {
     folders.append(appDir + QStringLiteral("/dictionaries"));
     folders.append(appDir + QStringLiteral("/resources/dictionaries"));
 
-    // The writer's own: AppData/Kalahari/dictionaries
-    folders.append(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) +
-                   QStringLiteral("/dictionaries"));
+    // The writer's own: AppData/Kalahari/dictionaries, or dictionaries in the data folder of
+    // a copy of the program that has one of its own
+    const core::DataFolders& dataFolders = core::DataFolders::current();
+    folders.append(dataFolders.hasOwnFolder()
+                       ? dataFolders.ownFolder(QStringLiteral("dictionaries"))
+                       : QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) +
+                             QStringLiteral("/dictionaries"));
 
 #ifdef Q_OS_WIN
     // LibreOffice's and Hunspell's

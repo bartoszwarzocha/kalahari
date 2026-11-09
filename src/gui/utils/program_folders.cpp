@@ -3,6 +3,7 @@
 
 #include "kalahari/gui/utils/program_folders.h"
 
+#include "kalahari/core/data_folders.h"
 #include "kalahari/core/settings_manager.h"
 
 #include <QDir>
@@ -77,6 +78,11 @@ QString ProgramFolders::documentsFolder() {
     // The tests keep away from the files of the user, as with the settings
     if (qEnvironmentVariableIsSet("KALAHARI_TEST_MODE")) {
         return cleanPath(QDir(QDir::tempPath()).filePath(QStringLiteral("Documents")));
+    }
+    // A copy of the program with a data folder of its own keeps away from them too
+    const core::DataFolders& dataFolders = core::DataFolders::current();
+    if (dataFolders.hasOwnFolder()) {
+        return cleanPath(dataFolders.ownFolder(QStringLiteral("Documents")));
     }
     const QString documents =
         QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);

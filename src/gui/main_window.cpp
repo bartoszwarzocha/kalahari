@@ -52,6 +52,7 @@
 #include "kalahari/gui/utils/setting_toggle.h"
 #include "kalahari/gui/utils/tab_focus.h"
 #include "kalahari/gui/utils/chapter_cursor.h"
+#include "kalahari/core/data_folders.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/log_panel_sink.h"
 #include "kalahari/core/settings_manager.h"
@@ -130,8 +131,9 @@ MainWindow::MainWindow(QWidget* parent)
     logger.info("MainWindow constructor called");
 
     // Set window properties: no book is open yet, so the title is the name of the program
-    // alone, as after a book is closed (updateWindowTitle())
-    setWindowTitle(QStringLiteral("Kalahari"));
+    // alone, as after a book is closed (updateWindowTitle()); a copy of the program with a
+    // data folder of its own has its name after it, "Kalahari (test copy)"
+    setWindowTitle(core::DataFolders::current().programName());
     utils::resizeWithinScreen(this, QSize(1280, 720));
 
     // Create UI components (Command Registry pattern)
@@ -1951,7 +1953,8 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 // Helper methods (Task #00008)
 void MainWindow::updateWindowTitle() {
     // The open book, as when it is opened: "Rain - Kalahari"; without a book, the name of
-    // the program alone, as when a book is closed
+    // the program alone, as when a book is closed. A copy of the program with a data folder
+    // of its own has its name after the program's: "Rain - Kalahari (test copy)"
     const auto& pm = core::ProjectManager::getInstance();
     if (pm.isProjectOpen() && pm.book() && !pm.book()->title.isEmpty()) {
         QString title = pm.book()->title;
@@ -1960,9 +1963,10 @@ void MainWindow::updateWindowTitle() {
             //: [read-only] - Kalahari". In Polish: [tylko do odczytu]
             title += QLatin1Char(' ') + tr("[read-only]");
         }
-        setWindowTitle(title + QStringLiteral(" - Kalahari"));
+        setWindowTitle(title + QStringLiteral(" - ") +
+                       core::DataFolders::current().programName());
     } else {
-        setWindowTitle(QStringLiteral("Kalahari"));
+        setWindowTitle(core::DataFolders::current().programName());
     }
 }
 

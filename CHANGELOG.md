@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A copy of the program with a data folder of its own** - 2026-11-08. A copy that has the
+  file kalahari-data.json next to its executable keeps the writer's data in the folder that
+  file names (absolute, or relative to the folder of the executable), and nothing in the
+  folders of the system: the settings with the layout of the window and of the toolbars, the
+  recent books, the Dashboard and the folders used last, the custom book types and the user
+  dictionary next to them, the grammar components, the unpacked plugins, the writer's own
+  dictionaries, and the Documents folder the books and the windows choosing files start in.
+  So a test copy never reads or changes the data of the program the writer works in. The
+  file's "name" shows in the title bar after the name of the program: "Kalahari (test copy)".
+  A file that cannot be used (not JSON, no folder, a folder that cannot be created or written
+  to) stops the copy at the start with a message, in the language of the system; the copy
+  then reads and saves no settings, and does not take the usual folders instead. Without the
+  file nothing changes. See BUILDING.md, "A Copy With a Data Folder of Its Own".
+
 - **Lists of the kinds of materials on tabs** - 2026-10-25. A kind of the Materials clicked
   in the Navigator (or Enter on it, or Open List in its menu) shows its materials on a tab in
   the middle of the window; Materials itself shows All Materials, the working notes too. The

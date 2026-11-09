@@ -526,6 +526,35 @@ ctest --output-on-failure
 
 ---
 
+## A Copy With a Data Folder of Its Own
+
+A build used for testing (or a copy on a USB stick) can keep all the writer's data apart from
+the program the writer works in. Put `kalahari-data.json` next to the executable:
+
+```json
+{
+    "folder": "../../program-data",
+    "name": "test copy"
+}
+```
+
+- `folder` is absolute, or relative to the folder of the executable; the program creates it.
+- `name` is optional; the title bar shows it after the name of the program:
+  `Kalahari (test copy)`.
+
+That copy then keeps in this folder, and never in the folders of the system, its
+`settings.json` (with the layout of the window and the toolbars, the recent books, the
+Dashboard and the folders used last), the custom book types (`booktypes`), the user dictionary,
+the grammar components (`grammar`), the unpacked plugins (`plugins\temp`), the writer's own
+dictionaries (`dictionaries`) and the Documents folder its books and windows choosing files
+start in (`Documents`). Without the file a program uses the usual folders (Windows:
+`%APPDATA%\Kalahari`, `%LOCALAPPDATA%\Kalahari`, Documents). A file that cannot be used (not
+JSON, no folder, a folder that cannot be created or written to) stops the copy at the start
+with a message; it does not fall back to the usual folders. The log of every copy is
+`kalahari.log` in its working folder. The tests (`KALAHARI_TEST_MODE`) ignore the file.
+
+---
+
 ## Troubleshooting
 
 ### Build Errors
