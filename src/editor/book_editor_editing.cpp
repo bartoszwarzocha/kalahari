@@ -966,15 +966,8 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
 
     const SelectionRange sel = m_selection.normalized();
     const QTextCursor range = createCursor(m_textBuffer.get(), sel.start, sel.end);
-    const QString kml =
-        KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd());
-
-    // Plain text: the paragraphs and the line breaks in them end a line
-    auto mimeData = std::make_unique<QMimeData>();
-    mimeData->setText(ClipboardHandler::kmlToText(kml));
-    mimeData->setHtml(ClipboardHandler::htmlDocument(ClipboardHandler::kmlToHtml(kml)));
-    mimeData->setData(QString::fromLatin1(MIME_KML), kml.toUtf8());
-    return mimeData;
+    return ClipboardHandler::mimeDataOf(
+        KmlSerializer().toKml(m_textBuffer.get(), range.selectionStart(), range.selectionEnd()));
 }
 
 bool BookEditor::canInsertFromMimeData(const QMimeData* source)

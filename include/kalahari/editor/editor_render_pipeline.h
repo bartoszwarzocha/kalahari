@@ -17,6 +17,7 @@
 #include <kalahari/editor/render_context.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/text_highlight.h>
+#include <QIcon>
 #include <QObject>
 #include <QPolygonF>
 #include <QRect>
@@ -301,6 +302,21 @@ public:
     /// @return std::nullopt when no mark is there
     std::optional<AnnotationMark> annotationMarkDetailsAt(const QPointF& point) const;
 
+    /// @brief Set the marks beside the paragraphs and the icon they show, drawn in the color
+    ///        of the text (repaint only)
+    void setParagraphMarks(std::vector<ParagraphMark> marks, const QIcon& icon);
+
+    /// @brief The marks beside the paragraphs
+    const std::vector<ParagraphMark>& paragraphMarks() const { return m_paragraphMarks; }
+
+    /// @brief The mark beside a paragraph at a widget point (the visible paragraphs)
+    /// @return std::nullopt when no mark is there
+    std::optional<ParagraphMark> paragraphMarkAt(const QPointF& point) const;
+
+    /// @brief Where the mark beside a paragraph is drawn, in widget coordinates: in the left
+    ///        margin, beside its first line (empty for a paragraph not laid out)
+    QRectF paragraphMarkRect(size_t paragraph) const;
+
     /// @brief Show where dragged text would be dropped (std::nullopt hides it)
     ///
     /// Painted as a line caret in the cursor color, independent of the cursor's
@@ -538,6 +554,9 @@ private:
     /// @brief Draw what a paragraph has in the room under its text (the decorator)
     void renderParagraphDecoration(QPainter* painter, size_t index, double widgetY);
 
+    /// @brief Draw the marks beside the paragraphs (in the left margin)
+    void renderParagraphMarks(QPainter* painter, const QRect& clipRect);
+
     /// @brief Render cursor
     void renderCursor(QPainter* painter);
 
@@ -587,6 +606,8 @@ private:
     std::optional<ParagraphHighlight> m_spokenWord;  ///< Word being read aloud
     std::optional<FragmentHighlight> m_fragmentHighlight;  ///< Fragment shown in a color
     ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
+    std::vector<ParagraphMark> m_paragraphMarks;     ///< Marks beside the paragraphs
+    QIcon m_paragraphMarkIcon;                       ///< What they show
 
     // External components (not owned)
     ViewportManager* m_viewportManager = nullptr;

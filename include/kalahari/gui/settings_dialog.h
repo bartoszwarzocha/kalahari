@@ -47,6 +47,7 @@ class SettingsDialog : public dialogs::KalahariDialog {
 public:
     /// @brief The pages the dialog can be opened at (openPage())
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
+    static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
 

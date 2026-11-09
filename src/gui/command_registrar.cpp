@@ -225,10 +225,24 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     // The book and every open file outside it; no shortcut of its own
     REG_CMD_TOOL_ICON("file.saveAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Save A&ll"),
-                      "FILE/Save All", 70, true, 0,
+                      "FILE/Save All", 70, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onSaveAll);
+
+    // The versions of the text in front (VersionsCoordinator): Alt+Shift with the letter, as
+    // the pastes (Cmd+Option+Shift on macOS, where Option with a letter types a character)
+    REG_CMD_TOOL_ICON("file.saveVersion", QT_TRANSLATE_NOOP("CommandRegistrar", "Save &Version..."),
+                      "FILE/Save Version...", 72, false, 0,
+                      KeyboardShortcut(Qt::Key_S, pasteModifiers),
+                      IconSet(),
+                      nullptr);
+    REG_CMD_TOOL_ICON("file.versionHistory",
+                      QT_TRANSLATE_NOOP("CommandRegistrar", "Version &History..."),
+                      "FILE/Version History...", 74, true, 0,
+                      KeyboardShortcut(Qt::Key_H, pasteModifiers),
+                      IconSet(),
+                      nullptr);
 
     // Import submenu
     REG_CMD("file.import.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX Document..."), "FILE/Import/DOCX Document...", 80, false, 1);
@@ -564,8 +578,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("tools.readability", QT_TRANSLATE_NOOP("CommandRegistrar", "&Readability Score"), "TOOLS/Readability Score", 60, true, 2);
 
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Backup Now"), "TOOLS/Backup Now", 100, false, 2);
-    REG_CMD("tools.autoSaveSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "&Auto-Save Settings..."), "TOOLS/Auto-Save Settings...", 110, false, 1);
-    REG_CMD("tools.versionHistory", QT_TRANSLATE_NOOP("CommandRegistrar", "&Version History..."), "TOOLS/Version History...", 120, true, 2);
+    REG_CMD("tools.autoSaveSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "&Auto-Save Settings..."), "TOOLS/Auto-Save Settings...", 110, true, 1);
 
     // Plugins submenu
     REG_CMD("tools.plugins.manager", QT_TRANSLATE_NOOP("CommandRegistrar", "Plugin &Manager..."), "TOOLS/Plugins/Plugin Manager...", 130, false, 2);

@@ -31,6 +31,7 @@
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/editor_render_pipeline.h>  // Phase 12.3: Unified render pipeline
 #include <kalahari/editor/text_keys.h>
+#include <QIcon>
 #include <QWidget>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -759,6 +760,24 @@ public:
     /// @return Its id; empty when no mark is there
     QString annotationMarkAt(const QPointF& point) const;
 
+    /// @brief Show marks beside paragraphs, in the left margin of the page: the paperclips
+    /// of the materials linked with them
+    ///
+    /// A mark stays with its paragraph while the text is edited; a new text drops the marks.
+    /// A click on a mark, or its item in the context menu of the paragraph, chooses a
+    /// material it names (paragraphMarkClicked()).
+    /// @param marks The marks; one past the end of the text is left out
+    /// @param icon What they show, in the color of the text
+    void setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon);
+
+    /// @brief The marks beside the paragraphs, with the paragraphs they are at now, in the
+    /// order of the text
+    QList<ParagraphMark> paragraphMarks() const;
+
+    /// @brief The mark beside a paragraph at a point of the editor
+    /// @return std::nullopt when no mark is there
+    std::optional<ParagraphMark> paragraphMarkAt(const QPointF& point) const;
+
     /// @brief Give an annotation new data (kind, text, state...), one undo step
     /// @param annotation The annotation's new data; its id says which one it is
     /// @param joinPreviousStep true: the change joins the last undo step instead of making
@@ -1005,6 +1024,16 @@ public:
     /// changes only when asked for.
     void shrinkToPageWidthOnFirstShow();
 
+    /// @brief Keep the page at the width of the view, as zoomToPageWidth() zooms it, so the
+    ///        view never scrolls sideways (a preview)
+    ///
+    /// Each new size of the view, new text, appearance or paper scale zooms the page to the
+    /// width again; a zoom asked for stays until then.
+    void setKeepsPageWidth(bool keeps);
+
+    /// @brief Whether the page keeps the width of the view (setKeepsPageWidth())
+    bool keepsPageWidth() const;
+
     /// @brief Zoom in by one step (+10%)
     void zoomIn();
 
@@ -1245,6 +1274,12 @@ signals:
     /// it, pasted, cut, undid, redid, formatted or aligned it; nothing changed
     void changeRefused();
 
+    /// @brief Replace All of the Find/Replace bar is about to replace @p count matches of
+    /// @p found with @p replacement; the text is still as it was (toKml())
+    ///
+    /// The book keeps the text as a version first (ChapterVersions).
+    void aboutToReplaceAll(const QString& found, const QString& replacement, int count);
+
     /// @brief Emitted when the document content changes
     ///
     /// This signal is emitted whenever text is inserted, deleted, or modified.
@@ -1339,6 +1374,11 @@ signals:
     /// @brief Emitted when the cards under the paragraphs come or go (showsAnnotationCards())
     /// @param shown Whether they are shown now
     void annotationCardsShownChanged(bool shown);
+
+    /// @brief Emitted when a material is chosen at the mark beside a paragraph: a click on
+    /// the mark (a menu first when it names several), or its item in the context menu
+    /// @param id What the mark names (ParagraphMark::ids)
+    void paragraphMarkClicked(const QString& id);
 
     /// @brief Emitted when a paragraph is modified (text inserted/deleted)
     /// @param paragraphIndex Index of the modified paragraph
@@ -1606,8 +1646,9 @@ private:
     ///        of the scroll bar; 0 while the page has no size
     double pageWidthZoom() const;
 
-    /// @brief Apply shrinkToPageWidthOnFirstShow() while it waits for the first paint
-    void applyFirstShowShrink();
+    /// @brief Apply setKeepsPageWidth(), and shrinkToPageWidthOnFirstShow() while it waits
+    ///        for the first paint
+    void applyPageWidthZoom();
 
     /// @brief Put the cursor line at the height of scrollCursorLineTo() again while it waits
     ///        for the first paint
@@ -1919,6 +1960,7 @@ private:
     bool m_paintingWholeView = false;                       ///< A paint of the whole view runs
     bool m_shrinkOnFirstShow = false;                       ///< shrinkToPageWidthOnFirstShow() waits
                                                             ///< for the first paint
+    bool m_keepsPageWidth = false;                          ///< setKeepsPageWidth()
     qreal m_cursorLineHeightOnFirstShow = -1.0;             ///< scrollCursorLineTo() waits for the
                                                             ///< first paint (none below 0)
 
@@ -1971,6 +2013,15 @@ private:
     bool m_autoScrollForDrop = false;   ///< Scrolling for dragged text (else: for a mouse selection)
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
     QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
+
+    /// @brief A mark beside a paragraph, held by a cursor at the start of the paragraph: it
+    /// moves with the text
+    struct AnchoredMark {
+        QTextCursor anchor;
+        ParagraphMark mark;
+    };
+    std::vector<AnchoredMark> m_paragraphMarks;  ///< setParagraphMarks()
+    QIcon m_paragraphMarkIcon;                   ///< What they show
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
     QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
@@ -2071,6 +2122,20 @@ private:
     /// @param fromMouse A right click: outside the selection it puts the cursor at @p pos
     /// @param kind Only a misspelled word or only a grammar issue there (none: either, the
     ///        word first)
+    /// @brief Hold the marks beside the paragraphs at the paragraphs of their numbers
+    void anchorParagraphMarks(const QList<ParagraphMark>& marks);
+
+    /// @brief Give the render pipeline the marks at the paragraphs they are at now
+    /// @param always Also when they are where they were (a new icon)
+    void syncParagraphMarks(bool always = false);
+
+    /// @brief The material a mark beside a paragraph names is chosen: at once when it names
+    /// one, else in a menu at @p globalPos
+    void openParagraphMark(const ParagraphMark& mark, const QPoint& globalPos);
+
+    /// @brief Add an item to @p menu for each material @p mark names
+    void addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark);
+
     void showContextMenu(const CursorPosition& pos, const QPoint& globalPos, bool fromMouse,
                          std::optional<TextIssueKind> kind = std::nullopt);
 

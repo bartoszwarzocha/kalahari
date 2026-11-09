@@ -49,6 +49,8 @@
     "annotationTodo": "#A08CFF",
     "annotationNote": "#4DA3F0",
     "spelling": "#FF0000",
-    "grammar": "#0064FF"
+    "grammar": "#0064FF",
+    "versionDeleted": "#EF6B6B",
+    "versionAdded": "#5CC27A"
   }
 }

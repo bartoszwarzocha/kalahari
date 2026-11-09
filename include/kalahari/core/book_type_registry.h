@@ -26,8 +26,8 @@ struct KindRef {
 
     /// @brief Whether a new element of the kind is offered in @p place: one of its places that
     /// the package defining it lists it in, or any of its places when the package lists it
-    /// nowhere. An element is moved to the other places of its kind, not added there (a
-    /// chapter goes to the front section, but is added to the main one).
+    /// nowhere; a retired kind nowhere. An element is moved to the other places of its kind,
+    /// not added there (a chapter goes to the front section, but is added to the main one).
     bool offeredIn(BookPlace place) const;
 };
 
@@ -86,7 +86,8 @@ public:
     /// another package, "kalahari.nonfiction:bibliography", is the kind as that package sees it.
     KindRef findKind(const QString& packageId, const QString& kindId) const;
 
-    /// @brief Kinds that package @p packageId offers in @p place, in its order
+    /// @brief Kinds that package @p packageId offers in @p place, in its order; a retired kind
+    /// (ElementKind::retired) that its list names is left out
     QList<KindRef> kindsIn(const QString& packageId, BookPlace place) const;
 
     /// @brief Kinds of package @p packageId that can be inside a group of kind @p groupKindId
@@ -101,6 +102,7 @@ public:
     ///
     /// Kinds of the same id from different packages are different kinds. In the order of
     /// packages(); in a package, in the order of its lists, then the kinds it does not list.
+    /// Retired kinds (ElementKind::retired) are left out.
     QList<KindRef> allKinds() const;
 
     /// @brief Paragraph styles of package @p packageId and of the packages it uses

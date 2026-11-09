@@ -575,9 +575,18 @@ TEST_CASE("SearchEngine replace functionality", "[editor][search_engine]") {
     SECTION("replaceAll replaces all matches") {
         REQUIRE(engine.totalMatchCount() == 2);
 
+        // Before the change, the document still has the text as it was
+        QStringList textsBefore;
+        QList<int> counts;
+        QObject::connect(&engine, &SearchEngine::aboutToReplaceAll, [&](int replaced) {
+            textsBefore << doc.toPlainText();
+            counts << replaced;
+        });
         int count = engine.replaceAll();
         REQUIRE(count == 2);
         REQUIRE(doc.toPlainText() == "Hi World Hi");
+        CHECK(textsBefore == QStringList{"Hello World Hello"});
+        CHECK(counts == QList<int>{2});
 
         // One undo step of the document restores all
         doc.undo();
@@ -608,8 +617,12 @@ TEST_CASE("SearchEngine replace functionality", "[editor][search_engine]") {
         emptyEngine.setSearchText("notfound");
         emptyEngine.setReplaceText("x");
 
+        bool announced = false;
+        QObject::connect(&emptyEngine, &SearchEngine::aboutToReplaceAll,
+                         [&announced](int) { announced = true; });
         int count = emptyEngine.replaceAll();
         REQUIRE(count == 0);
+        CHECK_FALSE(announced);  // nothing to replace: no version before it
     }
 }
 
